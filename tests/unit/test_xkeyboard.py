@@ -202,7 +202,11 @@ def test_going_back_up_is_a_flick_not_a_reading_gesture(steady):
     # measured over many draws, not one gesture, which is a couple of waits
     typical = lambda pace: statistics.median([human._notch_gap_ms(Page(), pace) for _ in range(400)])
     assert typical("return") * 1.5 < typical("read")  # back to back, not a pause a reader takes
-    assert sum(up_waits) < sum(down_waits)
+    # whole gestures, summed over many: one gesture is about 8 waits, and one pair compared alone
+    # came out the wrong way round about 2% of the time
+    ups = sum(up_waits) + sum(sum(gesture(-1200, pace="return")[1]) for _ in range(24))
+    downs = sum(down_waits) + sum(sum(gesture(1200)[1]) for _ in range(24))
+    assert ups < downs
 
 
 def test_a_return_still_follows_the_lanes_offset(monkeypatch):
