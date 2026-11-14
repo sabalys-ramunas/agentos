@@ -42,6 +42,28 @@ async (opts) => {
       requestAnimationFrame(() => requestAnimationFrame(() => { clearTimeout(done); resolve(); }));
     });
   }
+  // An image that has just loaded gets its largest-paint entry a frame or more later, and a busy
+  // machine (or a tab with no frames) can be slower than the two frames above: when a loaded image
+  // is bigger than the largest paint so far, wait for its entry, up to paint_ms.
+  const loaded = loading.filter((im) => im.complete && im.naturalWidth > 0);
+  if (loaded.length && opts.paint_ms && supported.includes('largest-contentful-paint')) {
+    const seen = (im) => {
+      const r = im.getBoundingClientRect();
+      return Math.max(0, Math.min(r.right, vw) - Math.max(r.left, 0)) * Math.max(0, Math.min(r.bottom, vh) - Math.max(r.top, 0));
+    };
+    const biggest = Math.max(...loaded.map(seen));
+    await new Promise((resolve) => {
+      let po = null;
+      const finish = () => { clearTimeout(end); if (po) po.disconnect(); resolve(); };
+      const end = setTimeout(finish, opts.paint_ms);
+      try {
+        po = new PerformanceObserver((l) => {
+          if (l.getEntries().some((e) => loaded.includes(e.element) || e.size >= biggest * 0.9)) finish();
+        });
+        po.observe({ type: 'largest-contentful-paint', buffered: true });
+      } catch (e) { finish(); }
+    });
+  }
   const pending = loading.filter((im) => !im.complete).length;
   const [allShifts, allTasks, frames, lcp] = await Promise.all([
     read('layout-shift'), read('longtask'), read('long-animation-frame'), read('largest-contentful-paint'),

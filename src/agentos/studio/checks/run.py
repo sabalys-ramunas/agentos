@@ -38,6 +38,7 @@ SEV_RANK = {Severity.INFO: 0, Severity.MINOR: 1, Severity.MAJOR: 2, Severity.BLO
 # How long the performance pass waits for images on first view that are still loading, so the
 # largest paint it reads is the one they make (perf.js)
 IMAGES_WAIT_MS = 1500
+PAINT_WAIT_MS = 1000  # then for the largest-paint entry of an image that has just loaded
 
 # Glyphs as they are, without colour, black and white: the pixel route's four screenshots.
 _GLYPH_PSEUDOS = "*,*::before,*::after,*::first-letter,*::first-line,*::marker"
@@ -725,7 +726,8 @@ async def run_checks(page: Any, ctx: CheckContext, *, other_theme: Any | None = 
     perf: dict | None = None
     if any(c in want for c in ("health.layout_shift", "health.long_tasks", "health.images")):
         try:
-            perf = await page.evaluate(script("perf"), {"wait_ms": 60, "images_ms": IMAGES_WAIT_MS})
+            perf = await page.evaluate(script("perf"), {"wait_ms": 60, "images_ms": IMAGES_WAIT_MS,
+                                                               "paint_ms": PAINT_WAIT_MS})
         except Exception as e:  # noqa: BLE001 - recorded in coverage
             perf = None
             for c in ("health.layout_shift", "health.long_tasks"):
