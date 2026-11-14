@@ -1,8 +1,8 @@
 """What the memory service needs from the rest of the node, as small ports.
 
 The service never imports another package's implementation. `build(runtime)` wires these
-ports to the runtime's services through `RuntimePolicyPort` and the helpers below; tests and
-`agentos dev up` use `agentos.memory.fakes` instead.
+ports to the runtime's services through `RuntimePolicyPort` and the helpers below; tests use the
+fakes in tests/testkit/memory.py instead.
 
 Policy port (Brief B implements the missing pieces in agentos.policy; until then the adapter
 falls back as documented on each method):

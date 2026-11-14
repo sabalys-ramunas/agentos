@@ -40,6 +40,7 @@ STATUS_BY_CODE: dict[str, int] = {
     "human_in_control": 409,
     "agent_paused": 409,
     "cancelled": 409,
+    "source_retired": 409,  # a run from the removed engagement engine: cancelled, nothing sent
     "form_changed": 409,
     "publish_changed": 409,
     "too_large": 413,
@@ -55,9 +56,9 @@ STATUS_BY_CODE: dict[str, int] = {
     "approval_pending": 202,
     # ---- every other catalog code, each placed on purpose (tests/unit/test_http_errors.py) ----
     # 400: what was sent cannot be used as it is
-    "bad_archive": 400, "bad_evidence": 400, "bad_export": 400, "bundle_invalid": 400, "cap_ceiling": 400,
+    "bad_archive": 400, "bad_evidence": 400, "bad_export": 400, "bundle_invalid": 400,
     "connector_invalid": 400, "edit_mismatch": 400, "invalid_pattern": 400, "mail_confirm_hosts": 400,
-    "mail_connect_failed": 400, "mail_id_taken": 400, "missing_param": 400, "profile_invalid": 400, "program_invalid": 400,
+    "mail_connect_failed": 400, "mail_id_taken": 400, "missing_param": 400, "profile_invalid": 400,
     "secret_in_memory": 400, "secret_in_profile": 400, "template_invalid": 400, "vault_entry_invalid": 400, "vault_secret_too_long": 400,
     # 403: a rule refuses it, and asking again the same way will not change that. A run's grant that no
     # longer counts is 403 too, never 401: the request's own sign-in is fine, and a 401 signs the panel out
@@ -67,7 +68,7 @@ STATUS_BY_CODE: dict[str, int] = {
     "not_a_read": 403, "out_of_scope": 403, "owner_only": 403, "owner_trust_required": 403,
     "passkey_invalid": 403, "pilot_lane_uncovered": 403, "pilot_refused": 403,
     "plugin_person_only": 403, "privacy": 403, "proof_too_weak": 403, "publish_unbound": 403,
-    "trust_too_low": 403, "type_not_allowed": 403, "unfreeze_denied": 403, "url_outside_domain": 403,
+    "trust_too_low": 403, "type_not_allowed": 403, "url_outside_domain": 403,
     "use_a_list": 403, "vault_code_refused": 403, "vault_denied": 403, "vault_wrong_passphrase": 403,
     # 404: it is not there (any more)
     "file_not_found": 404, "login_closed": 404, "mail_job_ended": 404, "mail_message_gone": 404,

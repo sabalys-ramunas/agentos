@@ -17,7 +17,7 @@ import { Select } from '@/components/ui/select';
 import { EmptyState, ErrorState, QueryView, Skeleton } from '@/components/ui/states';
 import { Status } from '@/components/ui/status';
 import { Table, Td, Th, Tr, mainCell } from '@/components/ui/table';
-import { dateTime, plural } from '@/lib/format';
+import { dateTime, plural, utcClock } from '@/lib/format';
 import { laneName, runStatus } from '@/lib/labels';
 import { PLACES } from '@/lib/vocabulary';
 import { usePrincipalName } from '@/lib/use-principal';
@@ -27,7 +27,6 @@ import { accountOf, ShareDialog, type ShareTarget } from './share-dialog';
 import { SharesList } from './shares';
 import { CHAIN_WORDS, chainSentence, dayTitle, shiftDay } from './words';
 
-const clock = (iso: string) => new Date(iso).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
 
 /** A step's own result, in the words of runs, or the plain word the node gave. */
 function resultOf(status: string) {
@@ -164,11 +163,11 @@ export function ProofPage() {
                           const result = resultOf(step.status);
                           return (
                             <Tr key={step.id}>
-                              <Td className="tabular hidden text-13 whitespace-nowrap text-faint md:table-cell">{clock(step.at)}</Td>
+                              <Td className="tabular hidden text-13 whitespace-nowrap text-faint md:table-cell">{utcClock(step.at)}</Td>
                               <Td className={`${mainCell} whitespace-normal`}>
                                 <p className="text-14 break-words">{step.summary ? proofSummary(step.summary, names) : 'A step with no words'}</p>
                                 <p className="text-12 break-words text-faint">
-                                  <span className="tabular md:hidden">{clock(step.at)} · </span>
+                                  <span className="tabular md:hidden">{utcClock(step.at)} · </span>
                                   {step.grant?.label ?? who(step.principal ?? null, { inSentence: false })}
                                 </p>
                                 {step.error ? <p className="mt-1 text-12 text-red">{step.error}</p> : null}

@@ -202,6 +202,6 @@ What it does not do:
 `src/agentos/git/`: `wire.py` (URLs, pkt-lines), `remotes.py`, `keys.py`, `agent.py`,
 `upstream.py`, `gateway.py`, `service.py` (the runtime service `git`, built after the vault),
 `cli.py`, `tools.py`. Tests: `tests/unit/test_git_*.py` run a real git client through the gateway
-against a local bare repository with a real policy and vault; `tests/node/test_git_ssh.py` pushes
+against a local bare repository with a real policy and vault; `tests/node/test_git_ssh_node.py` pushes
 over real SSH to a local sshd with a key made by `agentos git key add` (run it with
-`scripts/node-test.sh git tests/node/test_git_ssh.py`).
+`scripts/node-test.sh git tests/node/test_git_ssh_node.py`).

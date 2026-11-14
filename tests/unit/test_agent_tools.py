@@ -16,7 +16,8 @@ from mcp import Client
 from agentos.core.config import NodeConfig
 from agentos.core.models import ControlState, LaneControl, LaneSpec, Signal, SnapshotResult
 from agentos.core.runtime import Runtime
-from agentos.mcp.registry import PromptSpec, build_mcp
+from agentos.core.tools import PromptSpec
+from agentos.mcp.registry import build_mcp
 from agentos.node import control_tools, devtools_tools, interaction, io_tools
 from agentos.node import tools as node_tools
 from agentos.node.interaction import WaitResult
@@ -366,18 +367,18 @@ async def test_a_human_taking_the_lane_is_what_stops_a_wait(manager):
 
 
 def test_the_ref_states_agents_see_are_the_ones_the_wait_knows():
-    assert typing.get_args(node_tools.RefStateName) == interaction.REF_STATES
+    assert typing.get_args(node_tools.RefStateName) == interaction.waits.REF_STATES
 
 
 # ---- howto and prompts --------------------------------------------------------------------------
 
 def all_tool_names() -> set[str]:
     from agentos.agenda import tools as agenda_tools
+    from agentos.node import vault_tools
     from agentos.policy import tools as policy_tools
     from agentos.profiles import tools as profiles_tools
     from agentos.runner import tools as runner_tools
     from agentos.studio import tools as studio_tools
-    from agentos.vault import tools as vault_tools
 
     runtime = Runtime()
     names = set()
@@ -464,7 +465,7 @@ async def test_an_outline_after_an_action_is_of_the_tab_the_lane_acts_in_now():
 
     from test_io_tabs_dialogs import FakeContext
 
-    from agentos.node.engine_camoufox import PageTracker
+    from agentos.node.camoufox.engine import PageTracker
 
     ctx = FakeContext()
     tracker = PageTracker(ctx)

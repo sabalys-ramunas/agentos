@@ -38,8 +38,10 @@ from agentos.core.errors import InvalidRequest, LaneNotFound, NotFound, PolicyDe
 from agentos.core.models import Principal, Surface
 from agentos.runner.connectors.lint import site_hosts
 from agentos.runner.connectors.models import BINDING_PARAMS, WEB_SITE, Binding
+from agentos.runner.flowdoc import FlowVersion
 from agentos.runner.flows import FlowService, validation_message
-from agentos.runner.models import FlowVersion, is_connector_id, is_owner
+from agentos.runner.names import is_connector_id
+from agentos.runner.owner import is_owner
 from agentos.runner.store import RunnerStore
 from agentos.runner.util import Clock, clip_text
 
@@ -225,7 +227,7 @@ class SurfaceService:
         approvals = self.runtime.get("approvals") if self.runtime is not None else None
         if approvals is None or not callable(getattr(approvals, "list_standing", None)):
             return []
-        from agentos.policy import globs
+        from agentos.core import globs
 
         ws = surface_id.split("/", 1)[0]
         lapsed = []

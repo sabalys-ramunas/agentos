@@ -1,12 +1,15 @@
 # The app design (W2): Workbench, calmer, on one token set
 
+> The prototypes under `panel/prototypes/` were removed with the classic panel on 2026-11-14. They are
+> in git history (commit 59634500 and earlier); the commands below run only on such a checkout.
+
 Status: design, 2026-11-12. The owner chose Workbench as the base ("machines is better in workbench,
 same with brand, dev task, sidebar is better too") and asked for a calmer Home with running jobs as
 a slider with pictures, a Machines screen that needs no scrolling, and more focus on UX. This is
 that design, and the one the real web app will be built from.
 
 The prototype is
-[panel/prototypes/dashboard/app/index.html](../../panel/prototypes/dashboard/app/index.html): plain
+`panel/prototypes/dashboard/app/index.html`: plain
 HTML, CSS and JS, no build step. Open the file, or serve `panel/prototypes/dashboard/` (it loads
 `../tokens.css`). Workbench, Canvas and foundations.html are left as they were.
 

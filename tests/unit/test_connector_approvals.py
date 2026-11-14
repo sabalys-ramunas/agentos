@@ -24,8 +24,9 @@ from connector_samples import (
 from test_policy_support import Clock
 
 from agentos.core.models import Effect, RunStatus
-from agentos.policy.approvals import call_targets, content_digest
-from agentos.policy.service import PolicyService, family_key
+from agentos.policy.approval_binding import call_targets, content_digest
+from agentos.policy.service import PolicyService
+from agentos.policy.taint import family_key
 from agentos.policy.util import content_hash
 from agentos.runner import tools as runner_tools
 from agentos.runner.connectors.compile import compile_connector

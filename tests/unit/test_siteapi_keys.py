@@ -11,9 +11,9 @@ from openapi_spec_validator import OpenAPIV31SpecValidator
 from siteapi_http_support import API, OTHER, OWNER, READ_PATH, SURFACE, TOKEN, Node
 from typer.testing import CliRunner
 
+from agentos.core import layout, migrate
 from agentos.core.errors import InvalidRequest, PolicyDenied
 from agentos.core.models import Principal
-from agentos.ops import layout, migrate
 from agentos.runner.siteapis import http_migrations
 from agentos.runner.siteapis.cli import app as site_api_app
 from agentos.runner.siteapis.http_store import HttpStore

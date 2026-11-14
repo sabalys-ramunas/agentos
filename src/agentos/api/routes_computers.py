@@ -32,6 +32,7 @@ from agentos import __version__
 from agentos.api.app import Api, access_of, endpoint
 from agentos.api.errors import ApiError
 from agentos.api.routes_core import all_lanes, local_node
+from agentos.core import clock
 from agentos.node.channel import reports
 
 MIB = 1024 * 1024
@@ -60,10 +61,6 @@ NO_REMOVE = "This is the computer you are using, so it cannot be removed from it
 
 # The window a metrics answer covers, and the spacing its points would have.
 METRIC_BUCKETS = {"1h": 60, "24h": 600, "7d": 3600}
-
-
-def _now() -> str:
-    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
 def _utc(stamp: datetime) -> str:
@@ -124,8 +121,8 @@ def schedules_of(api: Api) -> list[dict[str, Any]] | None:
 
 def tools_of(api: Api) -> list[dict[str, Any]]:
     """The tools this node offers its agents, as `ToolDef`: the same list the MCP server serves."""
+    from agentos.mcp.providers import tool_providers
     from agentos.mcp.registry import collect
-    from agentos.node.daemon import tool_providers
 
     tools, _ = collect(api.runtime, tool_providers())
     # The screens name these effects; an effect the screens have no word for is not reported.
@@ -212,7 +209,7 @@ def system_facts(api: Api, started: float) -> dict[str, Any]:
         "enrolled_by": None,
         "key_fingerprint": None,
         "protocol": facts["protocol"],
-        "reported_at": _now(),
+        "reported_at": clock.iso(z=True),
     }
 
 
@@ -241,35 +238,39 @@ async def fleet_node(api: Api, started: float) -> dict[str, Any]:
     }
 
 
-def routes(api: Api) -> list:
-    started = time.time()  # the API is built when agentosd starts, so this is the daemon's start
+class Handlers:
+    """The handlers of the routes below, sharing one Api (and what they keep between calls)."""
 
-    def this(request: Request) -> None:
-        if request.path_params["id"] != api.node_name:
+    def __init__(self, api: Api) -> None:
+        self.api = api
+        self.started = time.time()  # the API is built when agentosd starts, so this is the daemon's start
+
+    def this(self, request: Request) -> None:
+        if request.path_params["id"] != self.api.node_name:
             raise ApiError("not_found", "This computer has no such computer.")
 
     # ---- join codes: a node has nobody to join ----
-    async def join_tokens(request: Request) -> list:
+    async def join_tokens(self, request: Request) -> list:
         del request
         return []
 
-    async def join_token_create(request: Request) -> dict:
+    async def join_token_create(self, request: Request) -> dict:
         del request
         raise ApiError("conflict", NO_JOIN)
 
-    async def join_token_revoke(request: Request) -> None:
+    async def join_token_revoke(self, request: Request) -> None:
         del request
         raise ApiError("not_found", "There is no join code here to revoke.")
 
     # ---- this computer ----
-    async def node(request: Request) -> dict:
-        this(request)
-        base = await fleet_node(api, started)
-        system = await asyncio.to_thread(system_facts, api, started)
+    async def node(self, request: Request) -> dict:
+        self.this(request)
+        base = await fleet_node(self.api, self.started)
+        system = await asyncio.to_thread(system_facts, self.api, self.started)
         mem = base["mem"] or {}
         disk = None
         try:
-            disk = shutil.disk_usage(api.config.home).free // MIB
+            disk = shutil.disk_usage(self.api.config.home).free // MIB
         except (OSError, AttributeError):
             pass
         return {
@@ -283,26 +284,26 @@ def routes(api: Api) -> list:
                 "disk_free_mb": disk,
             },
             # The node's own lane rows (the panel's shape). web/computers.py shapes them to `Lane`.
-            "lanes": await all_lanes(api, access_of(request)),
+            "lanes": await all_lanes(self.api, access_of(request)),
         }
 
-    async def remove(request: Request) -> None:
-        this(request)
+    async def remove(self, request: Request) -> None:
+        self.this(request)
         raise ApiError("conflict", NO_REMOVE)
 
-    async def system(request: Request) -> dict:
-        this(request)
-        return await asyncio.to_thread(system_facts, api, started)
+    async def system(self, request: Request) -> dict:
+        self.this(request)
+        return await asyncio.to_thread(system_facts, self.api, self.started)
 
-    async def programs(request: Request) -> list:
-        this(request)
-        rows = await asyncio.to_thread(reports.programs, api.runtime)
+    async def programs(self, request: Request) -> list:
+        self.this(request)
+        rows = await asyncio.to_thread(reports.programs, self.api.runtime)
         # What the node does not record: a pin and an install date for node and lane programs.
         return [{"pinned_hash": None, "installed_at": None, **row} for row in rows]
 
-    async def services(request: Request) -> list:
-        this(request)
-        rows = reports.services(api.runtime, started=started)
+    async def services(self, request: Request) -> list:
+        self.this(request)
+        rows = reports.services(self.api.runtime, started=self.started)
         # The supervisor keeps no port list, and does not sample a service's CPU or memory: those are
         # left out or null, never guessed.
         return [
@@ -310,25 +311,25 @@ def routes(api: Api) -> list:
             for row in rows
         ]
 
-    async def schedules(request: Request) -> list | None:
-        this(request)
-        return await asyncio.to_thread(schedules_of, api)
+    async def schedules(self, request: Request) -> list | None:
+        self.this(request)
+        return await asyncio.to_thread(schedules_of, self.api)
 
-    async def tools(request: Request) -> list:
-        this(request)
-        return await asyncio.to_thread(tools_of, api)
+    async def tools(self, request: Request) -> list:
+        self.this(request)
+        return await asyncio.to_thread(tools_of, self.api)
 
-    async def logs(request: Request) -> StreamingResponse:
+    async def logs(self, request: Request) -> StreamingResponse:
         """A live tail of the node's log, as `event: log` frames. Lines are shaped and redacted as the
         node sends them to its controller. It ends when the reader does, or after the stream's limit."""
-        this(request)
+        self.this(request)
         from agentos.node.channel import logstream
 
         query = logstream.Query(log_query(request))
         needle = (request.query_params.get("q") or "").lower()
-        scrub = logstream.Scrubber(api.runtime, api.config)
-        reader = logstream.Reader(Path(api.config.home), query)
-        deadline = time.monotonic() + api.settings.sse_max_seconds
+        scrub = logstream.Scrubber(self.api.runtime, self.api.config)
+        reader = logstream.Reader(Path(self.api.config.home), query)
+        deadline = time.monotonic() + self.api.settings.sse_max_seconds
 
         async def frames():
             reader.start()
@@ -338,7 +339,7 @@ def routes(api: Api) -> list:
                     try:
                         item = await asyncio.to_thread(reader.lines.get, True, 1.0)
                     except queue.Empty:
-                        if time.monotonic() - quiet_since >= api.settings.sse_heartbeat:
+                        if time.monotonic() - quiet_since >= self.api.settings.sse_heartbeat:
                             quiet_since = time.monotonic()
                             yield ": keep-alive\n\n"  # a comment, so a proxy keeps the stream open
                         continue
@@ -360,44 +361,48 @@ def routes(api: Api) -> list:
             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
         )
 
-    async def health(request: Request) -> list:
-        this(request)
-        rows = await asyncio.to_thread(reports.doctor, api.config)
+    async def health(self, request: Request) -> list:
+        self.this(request)
+        rows = await asyncio.to_thread(reports.doctor, self.api.config)
         return [
             {"id": row["id"], "name": row["name"], "status": row["status"], "detail": row["detail"],
              "fix": row.get("fix"), "at": row["at"]}
             for row in rows
         ]
 
-    async def connections(request: Request) -> None:
+    async def connections(self, request: Request) -> None:
         # A node has no controller to be connected to, so it keeps no connection history to show.
-        this(request)
+        self.this(request)
 
-    async def metrics(request: Request) -> dict:
-        this(request)
+    async def metrics(self, request: Request) -> dict:
+        self.this(request)
         window = request.query_params.get("range", "24h")
         if window not in METRIC_BUCKETS:
             raise ApiError("invalid", "The range is 1h, 24h or 7d.")
         # No sampler keeps a history yet, so there are no points to draw. That is said, not faked.
         return {"range": window, "bucket_seconds": METRIC_BUCKETS[window], "points": []}
 
+
+def routes(api: Api) -> list:
+    h = Handlers(api)
+
     def route(path: str, fn: Any, methods: list[str]) -> Route:
         return Route(path, endpoint(api, fn, owner=True), methods=methods)
 
     return [
         # Before `/api/nodes/{id}`, which would otherwise take `join-tokens` for a computer's name.
-        route("/api/nodes/join-tokens", join_tokens, ["GET"]),
-        route("/api/nodes/join-tokens", join_token_create, ["POST"]),
-        route("/api/nodes/join-tokens/{id}", join_token_revoke, ["DELETE"]),
-        route("/api/nodes/{id}", node, ["GET"]),
-        route("/api/nodes/{id}", remove, ["DELETE"]),
-        route("/api/nodes/{id}/system", system, ["GET"]),
-        route("/api/nodes/{id}/programs", programs, ["GET"]),
-        route("/api/nodes/{id}/services", services, ["GET"]),
-        route("/api/nodes/{id}/schedules", schedules, ["GET"]),
-        route("/api/nodes/{id}/tools", tools, ["GET"]),
-        route("/api/nodes/{id}/logs/stream", logs, ["GET"]),
-        route("/api/nodes/{id}/health", health, ["GET"]),
-        route("/api/nodes/{id}/connections", connections, ["GET"]),
-        route("/api/nodes/{id}/metrics", metrics, ["GET"]),
+        route("/api/nodes/join-tokens", h.join_tokens, ["GET"]),
+        route("/api/nodes/join-tokens", h.join_token_create, ["POST"]),
+        route("/api/nodes/join-tokens/{id}", h.join_token_revoke, ["DELETE"]),
+        route("/api/nodes/{id}", h.node, ["GET"]),
+        route("/api/nodes/{id}", h.remove, ["DELETE"]),
+        route("/api/nodes/{id}/system", h.system, ["GET"]),
+        route("/api/nodes/{id}/programs", h.programs, ["GET"]),
+        route("/api/nodes/{id}/services", h.services, ["GET"]),
+        route("/api/nodes/{id}/schedules", h.schedules, ["GET"]),
+        route("/api/nodes/{id}/tools", h.tools, ["GET"]),
+        route("/api/nodes/{id}/logs/stream", h.logs, ["GET"]),
+        route("/api/nodes/{id}/health", h.health, ["GET"]),
+        route("/api/nodes/{id}/connections", h.connections, ["GET"]),
+        route("/api/nodes/{id}/metrics", h.metrics, ["GET"]),
     ]

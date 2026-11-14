@@ -54,6 +54,7 @@ from typing import Any
 from urllib.parse import urlsplit
 
 from agentos.core.config import NodeConfig
+from agentos.core.text import first_line
 from agentos.webbotauth import base, keys, settings
 from agentos.webbotauth.keys import IdentityError, LaneKey
 from agentos.webbotauth.settings import LaneIdentity
@@ -231,7 +232,7 @@ class LaneSigner:
         try:
             response = await route.fetch(headers=headers, max_redirects=0, timeout=FETCH_TIMEOUT_MS)
         except Exception as e:  # noqa: BLE001 - a network error, as the browser would have seen it
-            self._write({**row, "status": None, "error": _first_line(e)})
+            self._write({**row, "status": None, "error": first_line(e)})
             with contextlib.suppress(Exception):
                 await route.abort("failed")
             return
@@ -244,7 +245,7 @@ class LaneSigner:
         try:
             await route.fulfill(response=response)
         except Exception as e:  # noqa: BLE001 - the page went away while the response was on its way
-            log.debug("%s: fulfilling %s failed: %s", self.lane_id, origin, _first_line(e))
+            log.debug("%s: fulfilling %s failed: %s", self.lane_id, origin, first_line(e))
 
     async def _prepare(self, request: Any, url: str, origin: str) -> tuple[dict[str, str] | None, str | None]:
         """The header set to sign and send, or (None, why) when this request must go unsigned."""
@@ -392,10 +393,6 @@ def _location_origin(url: str, location: str | None) -> str | None:
         return base.origin_of(urljoin(url, location))
     except ValueError:
         return None
-
-
-def _first_line(e: BaseException) -> str:
-    return (str(e).strip() or type(e).__name__).splitlines()[0][:200]
 
 
 class IdentityProvider:

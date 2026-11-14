@@ -19,8 +19,7 @@
 Only the owner in person: the signed-in panel, on a session cookie. A bearer token is refused, the owner token
 included, because agents hold it (they save drafts through the MCP tools instead). So is a member and a grant.
 Every save here is the owner's, so it goes live at once, and the accounts are brought in line from it with no
-approval card (the save is the consent): learned fields by the profile sync, LinkedIn's by the engagement
-engine. A lane with "Ask me first" on still waits for the owner. Without the profiles service the list answers
+approval card (the save is the consent): learned fields by the profile sync. A lane with "Ask me first" on still waits for the owner. Without the profiles service the list answers
 `available: false`.
 """
 
@@ -64,8 +63,13 @@ def _version(body: dict[str, Any]) -> int | None:
     return version
 
 
-def routes(api: Api) -> list[Route]:
-    def person(request: Request, action: str) -> Any:
+class Handlers:
+    """The handlers of the routes below, sharing one Api (and what they keep between calls)."""
+
+    def __init__(self, api: Api) -> None:
+        self.api = api
+
+    def person(self, request: Request, action: str) -> Any:
         """The owner in person (owner_in_person: a session cookie, not a member, never a bearer token), or a
         refusal that is traced. Only then do the service calls below pass `as_owner=True` / `in_person=True`.
         Returns the principal the service records."""
@@ -74,109 +78,109 @@ def routes(api: Api) -> list[Route]:
             raise ApiError("denied", PERSON_ONLY)
         return principal_of(request)
 
-    def ref_of(request: Request) -> str:
+    def ref_of(self, request: Request) -> str:
         return f"{request.path_params['ws']}/{request.path_params['id']}"
 
-    async def listing(request: Request) -> dict[str, Any]:
-        person(request, "profiles.list")
-        svc = api.optional(SERVICE)
+    async def listing(self, request: Request) -> dict[str, Any]:
+        self.person(request, "profiles.list")
+        svc = self.api.optional(SERVICE)
         if svc is None:
             return {"available": False, "profiles": []}
         workspace = request.query_params.get("workspace") or None
         return {"available": True, "profiles": await asyncio.to_thread(svc.list, workspace)}
 
-    async def sites(request: Request) -> list[dict[str, Any]]:
+    async def sites(self, request: Request) -> list[dict[str, Any]]:
         from agentos.profiles.mapping import sites as site_list
 
-        person(request, "profiles.sites")
+        self.person(request, "profiles.sites")
         return site_list()
 
-    async def save(request: Request) -> dict[str, Any]:
-        who = person(request, "profiles.save")
-        svc = api.svc(SERVICE)
+    async def save(self, request: Request) -> dict[str, Any]:
+        who = self.person(request, "profiles.save")
+        svc = self.api.svc(SERVICE)
         body = await read_json_object(request)
         out = await asyncio.to_thread(svc.save, body, by=who, as_owner=True)
         access_of(request).trace("profiles.save", summary=f"saved profile {out['profile']} version {out['version']}")
         return out
 
-    async def get(request: Request) -> dict[str, Any]:
-        person(request, "profiles.get")
-        svc = api.svc(SERVICE)
+    async def get(self, request: Request) -> dict[str, Any]:
+        self.person(request, "profiles.get")
+        svc = self.api.svc(SERVICE)
         raw = request.query_params.get("version")
         if raw is not None and not raw.isdigit():
             raise InvalidRequest("version is a number.")
-        return await asyncio.to_thread(svc.get, ref_of(request), version=int(raw) if raw else None)
+        return await asyncio.to_thread(svc.get, self.ref_of(request), version=int(raw) if raw else None)
 
-    async def update(request: Request) -> dict[str, Any]:
-        who = person(request, "profiles.update")
-        svc = api.svc(SERVICE)
+    async def update(self, request: Request) -> dict[str, Any]:
+        who = self.person(request, "profiles.update")
+        svc = self.api.svc(SERVICE)
         body = await read_json_object(request)
         changes = body.get("changes")
         if not isinstance(changes, dict) or not changes:
             raise InvalidRequest("changes are the fields to set, like {\"headline\": \"...\"}.")
-        ref = ref_of(request)
+        ref = self.ref_of(request)
         out = await asyncio.to_thread(svc.update, ref, changes, by=who, as_owner=True)
         access_of(request).trace("profiles.update", summary=f"changed {', '.join(sorted(changes))} on {ref}")
         return out
 
-    async def status(request: Request) -> dict[str, Any]:
-        person(request, "profiles.status")
-        svc = api.svc(SERVICE)
-        return await asyncio.to_thread(svc.status, ref_of(request))
+    async def status(self, request: Request) -> dict[str, Any]:
+        self.person(request, "profiles.status")
+        svc = self.api.svc(SERVICE)
+        return await asyncio.to_thread(svc.status, self.ref_of(request))
 
-    async def decide(request: Request, approve: bool) -> dict[str, Any]:
+    async def decide(self, request: Request, approve: bool) -> dict[str, Any]:
         action = "profiles.approve" if approve else "profiles.reject"
-        who = person(request, action)
-        svc = api.svc(SERVICE)
+        who = self.person(request, action)
+        svc = self.api.svc(SERVICE)
         body = await read_json_object(request)
         version = _version(body)
         if version is None:  # never "the latest": another draft may have arrived since the owner looked
             raise InvalidRequest(f"say which version to {'approve' if approve else 'reject'}: the one you read.")
         note = _text(body, "note", required=False)
-        ref = ref_of(request)
+        ref = self.ref_of(request)
         out = await asyncio.to_thread(svc.decide, ref, version, approve=approve, by=who, in_person=True, note=note)
         access_of(request).trace(action, summary=f"{'approved' if approve else 'rejected'} {ref} version {out['version']}")
         return out
 
-    async def approve(request: Request) -> dict[str, Any]:
-        return await decide(request, True)
+    async def approve(self, request: Request) -> dict[str, Any]:
+        return await self.decide(request, True)
 
-    async def reject(request: Request) -> dict[str, Any]:
-        return await decide(request, False)
+    async def reject(self, request: Request) -> dict[str, Any]:
+        return await self.decide(request, False)
 
-    async def attach(request: Request) -> dict[str, Any]:
-        who = person(request, "profiles.attach")
-        svc = api.svc(SERVICE)
+    async def attach(self, request: Request) -> dict[str, Any]:
+        who = self.person(request, "profiles.attach")
+        svc = self.api.svc(SERVICE)
         body = await read_json_object(request)
         surface = _text(body, "surface")
         site = _text(body, "site", required=False)
         overrides = body.get("overrides") or {}
         if not isinstance(overrides, dict) or not all(isinstance(v, str) for v in overrides.values()):
             raise InvalidRequest("overrides maps a site field to the text this account shows.")
-        ref = ref_of(request)
+        ref = self.ref_of(request)
         out = await asyncio.to_thread(svc.attach, ref, surface, by=who, site=site, overrides=overrides, as_owner=True)
         access_of(request).trace("profiles.attach", lane=surface, summary=f"attached {surface} to {ref}")
         return out
 
-    async def detach(request: Request) -> dict[str, Any]:
-        who = person(request, "profiles.detach")
-        svc = api.svc(SERVICE)
+    async def detach(self, request: Request) -> dict[str, Any]:
+        who = self.person(request, "profiles.detach")
+        svc = self.api.svc(SERVICE)
         body = await read_json_object(request)
         surface = _text(body, "surface")
-        ref = ref_of(request)
+        ref = self.ref_of(request)
         out = await asyncio.to_thread(svc.detach, ref, surface, by=who, as_owner=True)
         access_of(request).trace("profiles.detach", lane=surface, summary=f"detached {surface} from {ref}")
         return out
 
-    async def mark(request: Request) -> dict[str, Any]:
-        who = person(request, "profiles.mark")
-        svc = api.svc(SERVICE)
+    async def mark(self, request: Request) -> dict[str, Any]:
+        who = self.person(request, "profiles.mark")
+        svc = self.api.svc(SERVICE)
         body = await read_json_object(request)
         surface = _text(body, "surface")
         fields = body.get("fields")
         if not isinstance(fields, list) or not fields or not all(isinstance(f, str) for f in fields):
             raise InvalidRequest("fields lists the site fields that now show the profile's value.")
-        ref = ref_of(request)
+        ref = self.ref_of(request)
 
         def run() -> dict[str, Any]:
             pv = svc.for_surface(surface)
@@ -188,11 +192,11 @@ def routes(api: Api) -> list[Route]:
         access_of(request).trace("profiles.mark", lane=surface, summary=f"{', '.join(fields)} on {surface} done by hand")
         return out
 
-    async def photo_put(request: Request) -> dict[str, Any]:
+    async def photo_put(self, request: Request) -> dict[str, Any]:
         from agentos.profiles.store import MAX_PHOTO_BYTES
 
-        who = person(request, "profiles.photo")
-        svc = api.svc(SERVICE)
+        who = self.person(request, "profiles.photo")
+        svc = self.api.svc(SERVICE)
         kind = request.path_params["kind"]
         if kind not in PHOTO_KINDS:
             raise InvalidRequest("a profile photo is the avatar or the cover.")
@@ -211,7 +215,7 @@ def routes(api: Api) -> list[Route]:
         data = b"".join(chunks)
         if not data:
             raise InvalidRequest("send the image as the request body.")
-        ref = ref_of(request)
+        ref = self.ref_of(request)
         ws = request.path_params["ws"]
 
         def run() -> dict[str, Any]:
@@ -222,31 +226,35 @@ def routes(api: Api) -> list[Route]:
         access_of(request).trace("profiles.photo", summary=f"set the {kind} of {ref}")
         return out
 
-    async def photo_get(request: Request) -> Response:
-        person(request, "profiles.photo.get")
-        svc = api.svc(SERVICE)
+    async def photo_get(self, request: Request) -> Response:
+        self.person(request, "profiles.photo.get")
+        svc = self.api.svc(SERVICE)
         sha = request.path_params["id"]
         if not SHA_RE.match(sha):
             raise InvalidRequest("a photo is named by the 64 hex digits of its sha256.")
         path, meta = await asyncio.to_thread(svc.store.photo, f"sha256:{sha}")
         return FileResponse(path, media_type=meta["type"], headers=IMAGE_HEADERS)
 
+
+def routes(api: Api) -> list[Route]:
+    h = Handlers(api)
+
     def r(path: str, fn: Any, method: str, action: str) -> Route:
         return Route(path, endpoint(api, fn, owner=True, action=action), methods=[method])
 
     one = "/api/profiles/{ws}/{id}"
     return [
-        r("/api/profiles", listing, "GET", "profiles.list"),
-        r("/api/profiles", save, "POST", "profiles.save"),
-        r("/api/profiles/sites", sites, "GET", "profiles.sites"),
-        r(one, get, "GET", "profiles.get"),
-        r(one, update, "PATCH", "profiles.update"),
-        r(f"{one}/status", status, "GET", "profiles.status"),
-        r(f"{one}/approve", approve, "POST", "profiles.approve"),
-        r(f"{one}/reject", reject, "POST", "profiles.reject"),
-        r(f"{one}/attach", attach, "POST", "profiles.attach"),
-        r(f"{one}/detach", detach, "POST", "profiles.detach"),
-        r(f"{one}/mark", mark, "POST", "profiles.mark"),
-        r(f"{one}/photo/{{kind}}", photo_put, "POST", "profiles.photo"),
-        r("/api/profile-photos/{id}", photo_get, "GET", "profiles.photo.get"),
+        r("/api/profiles", h.listing, "GET", "profiles.list"),
+        r("/api/profiles", h.save, "POST", "profiles.save"),
+        r("/api/profiles/sites", h.sites, "GET", "profiles.sites"),
+        r(one, h.get, "GET", "profiles.get"),
+        r(one, h.update, "PATCH", "profiles.update"),
+        r(f"{one}/status", h.status, "GET", "profiles.status"),
+        r(f"{one}/approve", h.approve, "POST", "profiles.approve"),
+        r(f"{one}/reject", h.reject, "POST", "profiles.reject"),
+        r(f"{one}/attach", h.attach, "POST", "profiles.attach"),
+        r(f"{one}/detach", h.detach, "POST", "profiles.detach"),
+        r(f"{one}/mark", h.mark, "POST", "profiles.mark"),
+        r(f"{one}/photo/{{kind}}", h.photo_put, "POST", "profiles.photo"),
+        r("/api/profile-photos/{id}", h.photo_get, "GET", "profiles.photo.get"),
     ]

@@ -27,8 +27,8 @@ import { AddNodeDialog, AddWays, useRunsAlone } from './add-node';
 import { LastHour } from './last-hour';
 import type { MachineRow, Part } from './model';
 import { BUSY_CPU, hourHasRuns, jobKind, lastHour, machineRows, machinesSentence, naturalDirection, sortRows, timeLeft, totals } from './model';
-import { NodeNow, NodePanel, VmPanel } from './panel';
-import type { RunsInfo } from './panel';
+import { NodeNow, NodePanel, VmPanel } from './machine-aside';
+import type { RunsInfo } from './machine-aside';
 import type { MachineSort, TableSearch } from './search';
 
 export interface MachinesProps {

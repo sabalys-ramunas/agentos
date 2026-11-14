@@ -48,7 +48,7 @@ def test_audit_verify_on_a_damaged_log_exits_4(tmp_path, monkeypatch):
 
 
 def test_a_fresh_node_has_no_pending_migrations(tmp_path, monkeypatch):
-    from agentos.ops import migrate
+    from agentos.core import migrate
 
     home = tmp_path / "h"
     monkeypatch.setenv("AGENTOS_HOME", str(home))

@@ -10,7 +10,7 @@ import { useProofShared } from '@/api/hooks';
 import type { ProofShared, ProofStep } from '@/api/types';
 import { Button } from '@/components/ui/button';
 import { Status } from '@/components/ui/status';
-import { dateTime, plural } from '@/lib/format';
+import { dateTime, plural, utcClock } from '@/lib/format';
 import { laneName, runStatus } from '@/lib/labels';
 import { accountOf } from '@/features/activity/proof/share-dialog';
 import { CHAIN_WORDS, chainSentence, dayTitle } from '@/features/activity/proof/words';
@@ -26,7 +26,6 @@ export function tokenFromHash(hash: string): string {
   }
 }
 
-const clock = (iso: string) => new Date(iso).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
 
 function StepLine({ step, token }: { step: ProofStep; token: string }) {
   const chain = CHAIN_WORDS[step.chain.status];
@@ -35,7 +34,7 @@ function StepLine({ step, token }: { step: ProofStep; token: string }) {
     <li className="grid gap-2 border-b border-line py-4 last:border-b-0">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <p className="min-w-0 text-14">{step.summary || 'A step with no words'}</p>
-        <span className="tabular text-13 whitespace-nowrap text-faint">{clock(step.at)}</span>
+        <span className="tabular text-13 whitespace-nowrap text-faint">{utcClock(step.at)}</span>
       </div>
       <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-13 text-muted">
         <Status status={result} />

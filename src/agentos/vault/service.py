@@ -22,7 +22,8 @@ from typing import Any
 
 from agentos.core.config import home_from_env
 from agentos.core.errors import InvalidRequest, ServiceUnavailable
-from agentos.ops.layout import vault_socket
+from agentos.core.layout import vault_socket
+from agentos.policy.scrub import MIN_SECRET, MIN_USERNAME, Matcher
 from agentos.vault import crypto
 from agentos.vault.catcher import CodeCatcher, CodeSource, ImapCodeCatcher, ImapCodeSource
 from agentos.vault.domains import parse_origin
@@ -42,10 +43,9 @@ from agentos.vault.errors import (
 from agentos.vault.models import EntryKind, EntryMeta, NewEntry, validate_lanes, validate_new_entry
 from agentos.vault.policy import Decision, Reason, Sink, decide, lane_bound, matching_entries
 from agentos.vault.relay import CodeRelay, RelayCodeSource
-from agentos.vault.scrub import MIN_SECRET, MIN_USERNAME, Matcher, seed_forms
 from agentos.vault.secret import Secret
 from agentos.vault.store import SEALED_FIELDS, VaultStore, WrongKey
-from agentos.vault.totp import code_at, parse_totp, seconds_left
+from agentos.vault.totp import code_at, parse_totp, seconds_left, seed_forms
 from agentos.vault.typist import FieldInfo, TypistFactory
 
 log = logging.getLogger("agentos.vault")
@@ -612,24 +612,12 @@ class VaultService:
         prefix = meta.config.get("prefix", "Bearer " if header.lower() == "authorization" else "")
         return header, Secret(prefix + secret.reveal())
 
-    async def resolve_cookie(self, ctx: Any, *, lane_id: str, url: str, ref: str | None = None) -> Secret:
-        """A Cookie header value for the lane's browser context on the entry's domain."""
-        picked = await self._pick(lane_id, url, ref, EntryKind.COOKIE)
-        meta, values = await self._open(picked.id, ("secret",))
-        d = decide(meta, lane_id=lane_id, sink=Sink.COOKIE, url=url)
-        if not d.allowed:
-            self._denied(ctx, meta, lane_id, Sink.COOKIE, d)
-        secret = values["secret"]
-        assert secret is not None
-        await self._used(ctx, meta, lane_id, d.host, Sink.COOKIE)
-        return secret
-
     # ---- redaction --------------------------------------------------------------
 
     def scrub(self, text: str, lane_id: str | None = None, *, codes_lane: str | None = None) -> str:
         """Replace any known secret (passwords, api keys, cookies, TOTP seeds, usernames of
         MIN_USERNAME or more characters, recent one-time codes) in `text` with [redacted], in any
-        letter case and percent-encoded (agentos.vault.scrub says what is not caught). For
+        letter case and percent-encoded (agentos.policy.scrub says what is not caught). For
         snapshots, traces and logs. Secrets of entries bound to `lane_id` (all entries, and the
         machine secrets, when None). Recent codes of `lane_id`, else of `codes_lane` (page text a
         tool read on that lane), else of every lane.

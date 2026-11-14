@@ -26,6 +26,7 @@ from typing import Any
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
+from agentos.core import signing
 from agentos.core.errors import InvalidRequest, NotFound
 from agentos.core.models import Effect
 from agentos.node.channel import wire
@@ -47,7 +48,7 @@ class Keys:
 
     @property
     def controller_pubkey(self) -> str:
-        return wire.public_b64(self.controller)
+        return signing.public_b64(self.controller)
 
     def org(self, org_id: str) -> Ed25519PrivateKey:
         key = self._orgs.get(org_id)
@@ -56,10 +57,10 @@ class Keys:
         return key
 
     def grant_pubkey(self, org_id: str) -> str:
-        return wire.public_b64(self.org(org_id))
+        return signing.public_b64(self.org(org_id))
 
     def sign(self, kind: str, node_id: str, body: dict) -> dict:
-        return wire.sign_controller(self.controller, kind, node_id, body)
+        return signing.sign_controller(self.controller, kind, node_id, body)
 
 
 @dataclass

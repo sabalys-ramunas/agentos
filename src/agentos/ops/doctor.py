@@ -2,7 +2,7 @@
 
 Every check returns results with a status (pass, warn, fail, skip), a one-line detail and,
 when something is wrong, the exact command or edit that fixes it. Checks read the machine
-only through `agentos.ops.system.Host`, so each one runs against a fake in unit tests. The
+only through `agentos.core.system.Host`, so each one runs against a fake in unit tests. The
 doctor is read-only: it never changes a file, a lane or a service, and it never prints a
 secret (proxy credentials, the MCP token and vault keys stay out of every line and of --json).
 """
@@ -25,10 +25,10 @@ from typing import Any
 
 from agentos import __version__
 from agentos.core.config import LANE_MEMORY_DEFAULT_MB, NodeConfig, config_path, load_config, load_proxies
+from agentos.core.layout import BROWSER_BIN, connect_ro, default_backup_dir, lane_dirs, vault_socket
 from agentos.core.models import ProxyConfig
-from agentos.ops.layout import BROWSER_BIN, connect_ro, default_backup_dir, lane_dirs, vault_socket
-from agentos.ops.system import Host, redact
-from agentos.stealth import fingerprint as fpmod
+from agentos.core.system import Host, redact
+from agentos.node import fingerprint as fpmod
 
 PASS, WARN, FAIL, SKIP = "pass", "warn", "fail", "skip"
 ORDER = {FAIL: 0, WARN: 1, PASS: 2, SKIP: 3}
@@ -71,6 +71,9 @@ class DoctorContext:
     timeout: float = 15.0
     prefix: Path | None = None   # the install prefix (where .venv lives)
     client_home: Path | None = None  # whose `agentos connect` connections to check (default: $HOME)
+    # how they are read (agentos.client.state.connections_at): the CLI passes it in, since ops is a
+    # layer below the client; without it this computer has none to check
+    read_connections: Callable[[Path | None], list[Any]] | None = None
 
     def __post_init__(self) -> None:
         self.home = Path(self.home)
@@ -668,7 +671,7 @@ def check_proxies(ctx: DoctorContext) -> list[CheckResult]:
 
 
 def check_migrations(ctx: DoctorContext) -> list[CheckResult]:
-    from agentos.ops import migrate
+    from agentos.core import migrate
 
     try:
         statuses = migrate.status(ctx.home)
@@ -763,12 +766,8 @@ def check_workspace_memory(ctx: DoctorContext) -> list[CheckResult]:
 
 
 def client_connections(ctx: DoctorContext) -> list[Any]:
-    """The connections `agentos connect` made on this computer (empty without the client package)."""
-    try:
-        from agentos.client.state import ConnectionStore, Paths
-    except ModuleNotFoundError:
-        return []
-    return ConnectionStore(Paths(ctx.client_home) if ctx.client_home else Paths.current()).all()
+    """The connections `agentos connect` made on this computer (empty when the caller gave no reader)."""
+    return ctx.read_connections(ctx.client_home) if ctx.read_connections is not None else []
 
 
 EXPIRY_WARN_DAYS = 14

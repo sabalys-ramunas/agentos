@@ -44,4 +44,3 @@ export const isContentChanged = (error: unknown) =>
 export const staysPending = (code: string) => code !== 'already_decided' && code !== 'expired';
 
 export const isPlanLimit = (error: unknown) => error instanceof ApiError && error.code === 'plan_limit';
-export const isReadOnly = (error: unknown) => error instanceof ApiError && error.code === 'read_only';

@@ -19,9 +19,10 @@ from test_policy_support import OWNER, SPECS, Clock, make_service
 from agentos.core.config import NodeConfig
 from agentos.core.models import Effect
 from agentos.core.runtime import Runtime
-from agentos.core.tools import ToolSpec
+from agentos.core.tools import ToolSpec, bind_request_token
 from agentos.mcp.http import build_app
-from agentos.mcp.registry import bind_request_token, build_mcp
+from agentos.mcp.providers import feature_providers, tool_providers
+from agentos.mcp.registry import build_mcp
 from agentos.mcp.toolsets import (
     CORE,
     NAMES,
@@ -33,7 +34,6 @@ from agentos.mcp.toolsets import (
     toolset_of,
 )
 from agentos.node import daemon
-from agentos.node.daemon import feature_providers, tool_providers
 from agentos.node.tools import INSTRUCTIONS, RECIPES
 from agentos.plugins.entries import PLUGINS
 from agentos.policy import bind_request_token as bind_policy_token

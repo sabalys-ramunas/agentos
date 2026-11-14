@@ -5,7 +5,7 @@ process that stops answering (the 2026-11-10 re-test: a LinkedIn tab at 1430 MB 
 ceiling) hangs a step that has none (an evaluate, a title read, a settle wait, the read-back), and
 the call then held the lane for every other caller until a person killed the browser.
 
-So every tool call that takes a lane through agentos.node.tools.ctx_session gets a deadline from
+So every tool call that takes a lane through agentos.node.tools.session.ctx_session gets a deadline from
 this table, and LaneManagerImpl.using() enforces it (agentos.node.lanes.access): when it passes,
 the call is interrupted at its next await, its turn on the lane is released, and the event is
 logged with the lane, the tool and how long it ran. Then the page gets a trivial probe

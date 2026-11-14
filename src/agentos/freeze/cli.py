@@ -27,7 +27,7 @@ from typing import Annotated, Any
 import typer
 
 from agentos.core.config import NodeConfig, config_path, home_from_env, load_config
-from agentos.freeze.store import FreezeRecord, FreezeStore, scope_key
+from agentos.policy.freeze_store import FreezeRecord, FreezeStore, scope_key
 
 app = typer.Typer(no_args_is_help=True, help="Freeze a lane, a workspace or this node: every agent stops at once.")
 unfreeze_app = typer.Typer(no_args_is_help=True, help="Lift a freeze (owner only; nothing is restored).")

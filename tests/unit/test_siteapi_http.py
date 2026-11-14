@@ -27,7 +27,7 @@ from agentos.core.config import NodeConfig
 from agentos.core.models import RunStatus
 from agentos.node.daemon import _Uvicorn
 from agentos.policy.redact import redact_text
-from agentos.policy.service import family_key
+from agentos.policy.taint import family_key
 from agentos.runner.siteapis.keys import token_hash
 
 

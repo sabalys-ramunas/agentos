@@ -48,28 +48,33 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-import unicodedata
 from datetime import date
 from enum import StrEnum
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from agentos.core.models import LANE_ID_RE, parse_lane_id
+from agentos.profiles.fields import LIMITS, PHOTO_RE, Strict, clean_text, clean_url
+from agentos.profiles.sections import (
+    Audience,
+    Brand,
+    Environment,
+    Guideline,
+    Reference,
+    Reviewer,
+    environments_ok,
+    guidelines_ok,
+    references_ok,
+    refuse_secrets,
+)
 
 PROFILE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{1,62}$")
-PHOTO_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 PHONE_RE = re.compile(r"^\+[1-9][0-9]{6,14}$")
 EMAIL_RE = re.compile(r"^[^@\s]{1,64}@[^@\s]{1,253}\.[a-z]{2,}$", re.IGNORECASE)
 LINK_KEY_RE = re.compile(r"^[a-z][a-z0-9_]{0,30}$")
 FIELD_PATH_RE = re.compile(r"^[a-z_]+(\.[a-z_]+)?$")
 
-# What a field may hold. The site limits (agentos.engage.models.PROFILE_LIMITS for LinkedIn) are
-# checked when a profile is resolved for an account, so one long bio can still serve sites that
-# take it while a site that does not reports a resolve problem.
-LIMITS = {"display_name": 100, "first": 50, "last": 50, "headline": 220, "bio.short": 300, "bio.long": 2600,
-          "location": 100, "url": 300, "voice.personality": 1000, "voice.tone": 200, "voice.rule": 200,
-          "voice.example": 500, "item": 100, "work.description": 2000}
 
 
 class ProfileKind(StrEnum):
@@ -102,42 +107,11 @@ class ProfileState(StrEnum):
     REJECTED = "rejected"        # the owner turned it down
 
 
-class _Strict(BaseModel):
-    model_config = ConfigDict(extra="forbid", populate_by_name=True)
-
-
-def clean_text(value: Any, what: str, limit: int, *, lines: bool = False) -> str:
-    """A value as it will be typed on a site: trimmed, within `limit`, and free of control and
-    invisible characters (they hide text from the owner who approves it). Line breaks only where
-    `lines` allows them."""
-    text = str(value).replace("\r\n", "\n")
-    if lines:
-        text = "\n".join(line.rstrip() for line in text.split("\n"))
-    text = unicodedata.normalize("NFC", text.strip())
-    if not text:
-        raise ValueError(f"{what} is empty (leave it out instead)")
-    if len(text) > limit:
-        raise ValueError(f"{what} has {len(text)} characters; at most {limit}")
-    for ch in text:
-        if lines and ch == "\n":
-            continue
-        if unicodedata.category(ch) in ("Cc", "Cf", "Co", "Cs", "Zl", "Zp"):
-            raise ValueError(f"{what} has a control or invisible character (U+{ord(ch):04X}); write plain text")
-    return text
-
-
 def _opt(value: Any, what: str, limit: int, *, lines: bool = False) -> str | None:
     return None if value is None else clean_text(value, what, limit, lines=lines)
 
 
-def clean_url(value: Any, what: str) -> str:
-    url = clean_text(value, what, LIMITS["url"])
-    if not re.match(r"^https?://[^\s/$.?#][^\s]*$", url, re.IGNORECASE):
-        raise ValueError(f"{what} must be a full link starting with https://, not {url[:40]!r}")
-    return url
-
-
-class Name(_Strict):
+class Name(Strict):
     first: str
     last: str
 
@@ -147,7 +121,7 @@ class Name(_Strict):
         return clean_text(v, f"name.{info.field_name}", LIMITS[info.field_name])
 
 
-class Bio(_Strict):
+class Bio(Strict):
     short: str | None = None     # one or two lines
     long: str | None = None      # an About section
 
@@ -162,7 +136,7 @@ class Bio(_Strict):
         return _opt(v, "bio.long", LIMITS["bio.long"], lines=True)
 
 
-class Photos(_Strict):
+class Photos(Strict):
     avatar: str | None = None    # sha256:<hex> of a file in the profile store
     cover: str | None = None
 
@@ -175,7 +149,7 @@ class Photos(_Strict):
         return None if v is None else str(v).strip()
 
 
-class Example(_Strict):
+class Example(Strict):
     context: str
     reply: str
 
@@ -185,7 +159,7 @@ class Example(_Strict):
         return clean_text(v, f"voice.examples.{info.field_name}", LIMITS["voice.example"], lines=True)
 
 
-class Voice(_Strict):
+class Voice(Strict):
     """How agents write as this profile: the brand personality a comment, reply or post follows."""
     personality: str | None = None
     tone: str | None = None
@@ -236,7 +210,7 @@ class Voice(_Strict):
         return "\n".join(out)
 
 
-class Job(_Strict):
+class Job(Strict):
     company: str
     title: str
     start: str | None = None      # YYYY-MM
@@ -261,7 +235,7 @@ class Job(_Strict):
         return _opt(v, "work_history.description", LIMITS["work.description"], lines=True)
 
 
-class School(_Strict):
+class School(Strict):
     school: str
     degree: str | None = None
     start: str | None = None
@@ -273,9 +247,9 @@ class School(_Strict):
         return _opt(v, f"education.{info.field_name}", LIMITS["item"])
 
 
-class Attachment(_Strict):
+class Attachment(Strict):
     """An account that takes its public profile from this one."""
-    surface: str                                  # workspace/name, as a lane or engage program names it
+    surface: str                                  # workspace/name, as a lane names it
     site: str | None = None                       # from the surface name when left out
     overrides: dict[str, str] = Field(default_factory=dict)   # field path -> the value this account shows
     map: dict[str, str] = Field(default_factory=dict)         # site field -> profile field path
@@ -306,22 +280,9 @@ class Attachment(_Strict):
         return self
 
 
-# the sections build on the helpers above, so they are imported here, not at the top
-from agentos.profiles.sections import (
-    Audience,
-    Brand,
-    Environment,
-    Guideline,
-    Reference,
-    Reviewer,
-    environments_ok,
-    guidelines_ok,
-    references_ok,
-    refuse_secrets,
-)
 
 
-class Profile(_Strict):
+class Profile(Strict):
     id: str = Field(alias="profile")
     workspace: str
     kind: ProfileKind = ProfileKind.PERSON

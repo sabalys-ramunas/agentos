@@ -512,7 +512,7 @@ The node exposes about 150 tools today. [TOOLS.md](TOOLS.md) is the generated re
   `lane_wait_control`.
 - **Automation:** flows (`flow_record_start`, `flow_save`, `flow_run`, one `flow_<name>`
   tool per saved flow), workflows, triggers, schedules, brains (`brain_run`, `brain_use`),
-  engagement (`engage_*`), connectors, memory, mail, files, traces.
+  connectors, memory, mail, files, traces.
 
 Key choices:
 
@@ -652,6 +652,28 @@ Open questions still to settle:
 - Providers may block node-hosted subscription use; the plugin boundary limits the blast
   radius to that layer.
 - macOS nodes cannot run fully isolated Linux lanes; the degraded profile needs to be explicit.
+
+## 13. Layers
+
+The packages of `src/agentos` sit on six layers. A module imports its own layer and the ones
+below it, never one above, and packages on one layer never import each other in a circle.
+`make layers` checks it (scripts/layers.py, the order in scripts/layers.toml); the imports that
+still break it are listed there with a reason, and that list only shrinks. Top to bottom:
+
+1. **Entry points**: `cli`, `commands`, `cli_groups`, `tui`, `client`, `dev`, `controller`, and every
+   package's `cli.py`; `node/daemon.py` (the composition root).
+2. **Surfaces**: `api`, `mcp`, every package's HTTP routes and pages (`api.py`, `form.py`,
+   `forms.py`), and `node/channel/`, the controller's API into the node (it relays workflow runs,
+   logs and the doctor's checks, so it sits above the features, like the panel's API).
+3. **Features**: `environments`, `studio`, `profiles`, `brains`, `memory`, `runner`, `agenda`,
+   `pilot`, `keepalive`, `workspaces`, `textreview`, `plugins`, `webhooks`, `events`, `agents`,
+   and the services that act across them: `ops`, `freeze`, `audit`.
+4. **Node runtime**: `node`, `env`, `vms`, `git`, `stealth`, `vault`, `webbotauth`, `runas`.
+5. **Safety**: `policy` (grants, approvals, traces, scrubbing).
+6. **Core**: `core`, the contracts and small shared pieces (config, errors, models, tools,
+   layout, migrations, clock). It imports nothing else of agentos.
+
+[src/agentos/README.md](../src/agentos/README.md) says where things live.
 
 ## Not built yet
 

@@ -87,24 +87,6 @@ def listening_ports() -> set[int] | None:
     return None if found is None else set(found)
 
 
-def _socket_inodes(pids: list[int]) -> set[int]:
-    """Inodes of the sockets these processes hold open (from /proc/<pid>/fd)."""
-    inodes: set[int] = set()
-    for pid in pids:
-        try:
-            fds = list(Path(f"/proc/{pid}/fd").iterdir())
-        except OSError:
-            continue
-        for fd in fds:
-            try:
-                target = os.readlink(fd)
-            except OSError:
-                continue
-            if target.startswith("socket:["):
-                inodes.add(int(target[8:-1]))
-    return inodes
-
-
 def tcp_ports_of(pid: int) -> set[int]:
     """TCP ports process `pid` listens on (empty without /proc). x11vnc's must be empty."""
     mine = socket_inodes(pid)

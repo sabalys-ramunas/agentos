@@ -38,3 +38,21 @@ def test_cli_prints_the_example_with_no_secret():
     assert result.exit_code == 0, result.output
     assert '# mcp_token = "..."' in result.output and "AGENTOS_HOME" in result.output
     assert "—" not in result.output
+
+
+def test_an_old_node_toml_with_the_engagement_settings_still_loads(tmp_path):
+    """The engagement engine was removed. A node whose node.toml still holds its settings starts as
+    before: the old keys are ignored, every other setting is read, and nothing writes them back."""
+    from agentos.core.config import load_config, save_config
+
+    (tmp_path / "node.toml").write_text(
+        'name = "old-node"\nmcp_port = 7499\nkeepalive = true\nengage_sessions = true\nengage_draft_provider = "http"\n'
+        'engage_draft_endpoint = "https://drafts.example/v1"\nengage_draft_secret_ref = "engage/draft-provider/token"\n'
+        "engage_draft_timeout_s = 30.0\n")
+    (tmp_path / "engage.db").write_bytes(b"SQLite format 3\x00")  # an old engagement store, never opened
+    cfg = load_config(tmp_path)
+    assert cfg.name == "old-node" and cfg.mcp_port == 7499 and cfg.keepalive is True
+    assert not any(name.startswith("engage") for name in cfg.model_dump())
+    save_config(cfg)
+    assert "engage" not in (tmp_path / "node.toml").read_text()
+    assert (tmp_path / "engage.db").read_bytes() == b"SQLite format 3\x00"

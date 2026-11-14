@@ -205,6 +205,9 @@ class McpSession:
         self.session_id = None
 
 
+PROBE_TIMEOUT = 5.0  # how long `agentos connect` waits for one probe of a node
+
+
 def probe(port: int, token: str, *, timeout: float = 5.0) -> dict[str, Any]:
     """An MCP initialize with the token; returns the server's info or raises McpError."""
     with McpSession(port, token, timeout=timeout) as session:

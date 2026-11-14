@@ -1,0 +1,1901 @@
+{
+ "secret.lanes child=None parent=None": {
+  "ok": []
+ },
+ "secret.lanes child=None parent=[]": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "secret.lanes child=None parent=['biz-a/*']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "secret.lanes child=None parent=['biz-a/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "secret.lanes child=None parent=['biz-b/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "secret.lanes child=None parent=['biz-a/x', 'biz-b/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "secret.lanes child=[] parent=None": {
+  "ok": []
+ },
+ "secret.lanes child=[] parent=[]": {
+  "ok": []
+ },
+ "secret.lanes child=[] parent=['biz-a/*']": {
+  "ok": []
+ },
+ "secret.lanes child=[] parent=['biz-a/x']": {
+  "ok": []
+ },
+ "secret.lanes child=[] parent=['biz-b/x']": {
+  "ok": []
+ },
+ "secret.lanes child=[] parent=['biz-a/x', 'biz-b/x']": {
+  "ok": []
+ },
+ "secret.lanes child=['biz-a/*'] parent=None": {
+  "ok": []
+ },
+ "secret.lanes child=['biz-a/*'] parent=[]": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "secret.lanes child=['biz-a/*'] parent=['biz-a/*']": {
+  "ok": []
+ },
+ "secret.lanes child=['biz-a/*'] parent=['biz-a/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "secret.lanes child=['biz-a/*'] parent=['biz-b/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "secret.lanes child=['biz-a/*'] parent=['biz-a/x', 'biz-b/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "secret.lanes child=['biz-a/x'] parent=None": {
+  "ok": []
+ },
+ "secret.lanes child=['biz-a/x'] parent=[]": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "secret.lanes child=['biz-a/x'] parent=['biz-a/*']": {
+  "ok": []
+ },
+ "secret.lanes child=['biz-a/x'] parent=['biz-a/x']": {
+  "ok": []
+ },
+ "secret.lanes child=['biz-a/x'] parent=['biz-b/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "secret.lanes child=['biz-a/x'] parent=['biz-a/x', 'biz-b/x']": {
+  "ok": []
+ },
+ "secret.lanes child=['biz-b/x'] parent=None": {
+  "ok": []
+ },
+ "secret.lanes child=['biz-b/x'] parent=[]": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "secret.lanes child=['biz-b/x'] parent=['biz-a/*']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "secret.lanes child=['biz-b/x'] parent=['biz-a/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "secret.lanes child=['biz-b/x'] parent=['biz-b/x']": {
+  "ok": []
+ },
+ "secret.lanes child=['biz-b/x'] parent=['biz-a/x', 'biz-b/x']": {
+  "ok": []
+ },
+ "secret.lanes child=['biz-a/x', 'biz-b/x'] parent=None": {
+  "ok": []
+ },
+ "secret.lanes child=['biz-a/x', 'biz-b/x'] parent=[]": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "secret.lanes child=['biz-a/x', 'biz-b/x'] parent=['biz-a/*']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "secret.lanes child=['biz-a/x', 'biz-b/x'] parent=['biz-a/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "secret.lanes child=['biz-a/x', 'biz-b/x'] parent=['biz-b/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "secret.lanes child=['biz-a/x', 'biz-b/x'] parent=['biz-a/x', 'biz-b/x']": {
+  "ok": []
+ },
+ "secret all fields, two parents": {
+  "ok": [
+   "lanes",
+   "lanes"
+  ]
+ },
+ "secret narrow under wide": {
+  "ok": []
+ },
+ "secret no parents": {
+  "ok": []
+ },
+ "exec.lanes child=None parent=None": {
+  "ok": []
+ },
+ "exec.lanes child=None parent=[]": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "exec.lanes child=None parent=['biz-a/*']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "exec.lanes child=None parent=['biz-a/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "exec.lanes child=None parent=['biz-b/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "exec.lanes child=None parent=['biz-a/x', 'biz-b/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "exec.lanes child=[] parent=None": {
+  "ok": []
+ },
+ "exec.lanes child=[] parent=[]": {
+  "ok": []
+ },
+ "exec.lanes child=[] parent=['biz-a/*']": {
+  "ok": []
+ },
+ "exec.lanes child=[] parent=['biz-a/x']": {
+  "ok": []
+ },
+ "exec.lanes child=[] parent=['biz-b/x']": {
+  "ok": []
+ },
+ "exec.lanes child=[] parent=['biz-a/x', 'biz-b/x']": {
+  "ok": []
+ },
+ "exec.lanes child=['biz-a/*'] parent=None": {
+  "ok": []
+ },
+ "exec.lanes child=['biz-a/*'] parent=[]": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "exec.lanes child=['biz-a/*'] parent=['biz-a/*']": {
+  "ok": []
+ },
+ "exec.lanes child=['biz-a/*'] parent=['biz-a/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "exec.lanes child=['biz-a/*'] parent=['biz-b/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "exec.lanes child=['biz-a/*'] parent=['biz-a/x', 'biz-b/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "exec.lanes child=['biz-a/x'] parent=None": {
+  "ok": []
+ },
+ "exec.lanes child=['biz-a/x'] parent=[]": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "exec.lanes child=['biz-a/x'] parent=['biz-a/*']": {
+  "ok": []
+ },
+ "exec.lanes child=['biz-a/x'] parent=['biz-a/x']": {
+  "ok": []
+ },
+ "exec.lanes child=['biz-a/x'] parent=['biz-b/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "exec.lanes child=['biz-a/x'] parent=['biz-a/x', 'biz-b/x']": {
+  "ok": []
+ },
+ "exec.lanes child=['biz-b/x'] parent=None": {
+  "ok": []
+ },
+ "exec.lanes child=['biz-b/x'] parent=[]": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "exec.lanes child=['biz-b/x'] parent=['biz-a/*']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "exec.lanes child=['biz-b/x'] parent=['biz-a/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "exec.lanes child=['biz-b/x'] parent=['biz-b/x']": {
+  "ok": []
+ },
+ "exec.lanes child=['biz-b/x'] parent=['biz-a/x', 'biz-b/x']": {
+  "ok": []
+ },
+ "exec.lanes child=['biz-a/x', 'biz-b/x'] parent=None": {
+  "ok": []
+ },
+ "exec.lanes child=['biz-a/x', 'biz-b/x'] parent=[]": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "exec.lanes child=['biz-a/x', 'biz-b/x'] parent=['biz-a/*']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "exec.lanes child=['biz-a/x', 'biz-b/x'] parent=['biz-a/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "exec.lanes child=['biz-a/x', 'biz-b/x'] parent=['biz-b/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "exec.lanes child=['biz-a/x', 'biz-b/x'] parent=['biz-a/x', 'biz-b/x']": {
+  "ok": []
+ },
+ "exec all fields, two parents": {
+  "ok": [
+   "lanes",
+   "lanes"
+  ]
+ },
+ "exec narrow under wide": {
+  "ok": []
+ },
+ "exec no parents": {
+  "ok": []
+ },
+ "vm.lanes child=None parent=None": {
+  "ok": []
+ },
+ "vm.lanes child=None parent=[]": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "vm.lanes child=None parent=['biz-a/*']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "vm.lanes child=None parent=['biz-a/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "vm.lanes child=None parent=['biz-b/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "vm.lanes child=None parent=['biz-a/x', 'biz-b/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "vm.lanes child=[] parent=None": {
+  "ok": []
+ },
+ "vm.lanes child=[] parent=[]": {
+  "ok": []
+ },
+ "vm.lanes child=[] parent=['biz-a/*']": {
+  "ok": []
+ },
+ "vm.lanes child=[] parent=['biz-a/x']": {
+  "ok": []
+ },
+ "vm.lanes child=[] parent=['biz-b/x']": {
+  "ok": []
+ },
+ "vm.lanes child=[] parent=['biz-a/x', 'biz-b/x']": {
+  "ok": []
+ },
+ "vm.lanes child=['biz-a/*'] parent=None": {
+  "ok": []
+ },
+ "vm.lanes child=['biz-a/*'] parent=[]": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "vm.lanes child=['biz-a/*'] parent=['biz-a/*']": {
+  "ok": []
+ },
+ "vm.lanes child=['biz-a/*'] parent=['biz-a/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "vm.lanes child=['biz-a/*'] parent=['biz-b/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "vm.lanes child=['biz-a/*'] parent=['biz-a/x', 'biz-b/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "vm.lanes child=['biz-a/x'] parent=None": {
+  "ok": []
+ },
+ "vm.lanes child=['biz-a/x'] parent=[]": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "vm.lanes child=['biz-a/x'] parent=['biz-a/*']": {
+  "ok": []
+ },
+ "vm.lanes child=['biz-a/x'] parent=['biz-a/x']": {
+  "ok": []
+ },
+ "vm.lanes child=['biz-a/x'] parent=['biz-b/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "vm.lanes child=['biz-a/x'] parent=['biz-a/x', 'biz-b/x']": {
+  "ok": []
+ },
+ "vm.lanes child=['biz-b/x'] parent=None": {
+  "ok": []
+ },
+ "vm.lanes child=['biz-b/x'] parent=[]": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "vm.lanes child=['biz-b/x'] parent=['biz-a/*']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "vm.lanes child=['biz-b/x'] parent=['biz-a/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "vm.lanes child=['biz-b/x'] parent=['biz-b/x']": {
+  "ok": []
+ },
+ "vm.lanes child=['biz-b/x'] parent=['biz-a/x', 'biz-b/x']": {
+  "ok": []
+ },
+ "vm.lanes child=['biz-a/x', 'biz-b/x'] parent=None": {
+  "ok": []
+ },
+ "vm.lanes child=['biz-a/x', 'biz-b/x'] parent=[]": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "vm.lanes child=['biz-a/x', 'biz-b/x'] parent=['biz-a/*']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "vm.lanes child=['biz-a/x', 'biz-b/x'] parent=['biz-a/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "vm.lanes child=['biz-a/x', 'biz-b/x'] parent=['biz-b/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "vm.lanes child=['biz-a/x', 'biz-b/x'] parent=['biz-a/x', 'biz-b/x']": {
+  "ok": []
+ },
+ "vm.profiles child=None parent=None": {
+  "ok": []
+ },
+ "vm.profiles child=None parent=[]": {
+  "ok": [
+   "profiles"
+  ]
+ },
+ "vm.profiles child=None parent=['a']": {
+  "ok": [
+   "profiles"
+  ]
+ },
+ "vm.profiles child=None parent=['a', 'b']": {
+  "ok": [
+   "profiles"
+  ]
+ },
+ "vm.profiles child=None parent=['c']": {
+  "ok": [
+   "profiles"
+  ]
+ },
+ "vm.profiles child=[] parent=None": {
+  "ok": []
+ },
+ "vm.profiles child=[] parent=[]": {
+  "ok": []
+ },
+ "vm.profiles child=[] parent=['a']": {
+  "ok": []
+ },
+ "vm.profiles child=[] parent=['a', 'b']": {
+  "ok": []
+ },
+ "vm.profiles child=[] parent=['c']": {
+  "ok": []
+ },
+ "vm.profiles child=['a'] parent=None": {
+  "ok": []
+ },
+ "vm.profiles child=['a'] parent=[]": {
+  "ok": [
+   "profiles"
+  ]
+ },
+ "vm.profiles child=['a'] parent=['a']": {
+  "ok": []
+ },
+ "vm.profiles child=['a'] parent=['a', 'b']": {
+  "ok": []
+ },
+ "vm.profiles child=['a'] parent=['c']": {
+  "ok": [
+   "profiles"
+  ]
+ },
+ "vm.profiles child=['a', 'b'] parent=None": {
+  "ok": []
+ },
+ "vm.profiles child=['a', 'b'] parent=[]": {
+  "ok": [
+   "profiles"
+  ]
+ },
+ "vm.profiles child=['a', 'b'] parent=['a']": {
+  "ok": [
+   "profiles"
+  ]
+ },
+ "vm.profiles child=['a', 'b'] parent=['a', 'b']": {
+  "ok": []
+ },
+ "vm.profiles child=['a', 'b'] parent=['c']": {
+  "ok": [
+   "profiles"
+  ]
+ },
+ "vm.profiles child=['c'] parent=None": {
+  "ok": []
+ },
+ "vm.profiles child=['c'] parent=[]": {
+  "ok": [
+   "profiles"
+  ]
+ },
+ "vm.profiles child=['c'] parent=['a']": {
+  "ok": [
+   "profiles"
+  ]
+ },
+ "vm.profiles child=['c'] parent=['a', 'b']": {
+  "ok": [
+   "profiles"
+  ]
+ },
+ "vm.profiles child=['c'] parent=['c']": {
+  "ok": []
+ },
+ "vm.repos child=None parent=None": {
+  "ok": []
+ },
+ "vm.repos child=None parent=['github.com/acme/*']": {
+  "ok": [
+   "repos"
+  ]
+ },
+ "vm.repos child=None parent=['github.com/acme/api']": {
+  "ok": [
+   "repos"
+  ]
+ },
+ "vm.repos child=None parent=['github.com/other/x']": {
+  "ok": [
+   "repos"
+  ]
+ },
+ "vm.repos child=['github.com/acme/*'] parent=None": {
+  "ok": []
+ },
+ "vm.repos child=['github.com/acme/*'] parent=['github.com/acme/*']": {
+  "ok": []
+ },
+ "vm.repos child=['github.com/acme/*'] parent=['github.com/acme/api']": {
+  "ok": [
+   "repos"
+  ]
+ },
+ "vm.repos child=['github.com/acme/*'] parent=['github.com/other/x']": {
+  "ok": [
+   "repos"
+  ]
+ },
+ "vm.repos child=['github.com/acme/api'] parent=None": {
+  "ok": []
+ },
+ "vm.repos child=['github.com/acme/api'] parent=['github.com/acme/*']": {
+  "ok": []
+ },
+ "vm.repos child=['github.com/acme/api'] parent=['github.com/acme/api']": {
+  "ok": []
+ },
+ "vm.repos child=['github.com/acme/api'] parent=['github.com/other/x']": {
+  "ok": [
+   "repos"
+  ]
+ },
+ "vm.repos child=['github.com/other/x'] parent=None": {
+  "ok": []
+ },
+ "vm.repos child=['github.com/other/x'] parent=['github.com/acme/*']": {
+  "ok": [
+   "repos"
+  ]
+ },
+ "vm.repos child=['github.com/other/x'] parent=['github.com/acme/api']": {
+  "ok": [
+   "repos"
+  ]
+ },
+ "vm.repos child=['github.com/other/x'] parent=['github.com/other/x']": {
+  "ok": []
+ },
+ "vm all fields, two parents": {
+  "ok": [
+   "lanes",
+   "profiles",
+   "repos",
+   "lanes",
+   "profiles",
+   "repos"
+  ]
+ },
+ "vm narrow under wide": {
+  "ok": []
+ },
+ "vm no parents": {
+  "ok": []
+ },
+ "install_overlay.sources child=None parent=None": {
+  "ok": []
+ },
+ "install_overlay.sources child=None parent=[]": {
+  "ok": [
+   "sources"
+  ]
+ },
+ "install_overlay.sources child=None parent=['a']": {
+  "ok": [
+   "sources"
+  ]
+ },
+ "install_overlay.sources child=None parent=['a', 'b']": {
+  "ok": [
+   "sources"
+  ]
+ },
+ "install_overlay.sources child=None parent=['c']": {
+  "ok": [
+   "sources"
+  ]
+ },
+ "install_overlay.sources child=[] parent=None": {
+  "ok": []
+ },
+ "install_overlay.sources child=[] parent=[]": {
+  "ok": []
+ },
+ "install_overlay.sources child=[] parent=['a']": {
+  "ok": []
+ },
+ "install_overlay.sources child=[] parent=['a', 'b']": {
+  "ok": []
+ },
+ "install_overlay.sources child=[] parent=['c']": {
+  "ok": []
+ },
+ "install_overlay.sources child=['a'] parent=None": {
+  "ok": []
+ },
+ "install_overlay.sources child=['a'] parent=[]": {
+  "ok": [
+   "sources"
+  ]
+ },
+ "install_overlay.sources child=['a'] parent=['a']": {
+  "ok": []
+ },
+ "install_overlay.sources child=['a'] parent=['a', 'b']": {
+  "ok": []
+ },
+ "install_overlay.sources child=['a'] parent=['c']": {
+  "ok": [
+   "sources"
+  ]
+ },
+ "install_overlay.sources child=['a', 'b'] parent=None": {
+  "ok": []
+ },
+ "install_overlay.sources child=['a', 'b'] parent=[]": {
+  "ok": [
+   "sources"
+  ]
+ },
+ "install_overlay.sources child=['a', 'b'] parent=['a']": {
+  "ok": [
+   "sources"
+  ]
+ },
+ "install_overlay.sources child=['a', 'b'] parent=['a', 'b']": {
+  "ok": []
+ },
+ "install_overlay.sources child=['a', 'b'] parent=['c']": {
+  "ok": [
+   "sources"
+  ]
+ },
+ "install_overlay.sources child=['c'] parent=None": {
+  "ok": []
+ },
+ "install_overlay.sources child=['c'] parent=[]": {
+  "ok": [
+   "sources"
+  ]
+ },
+ "install_overlay.sources child=['c'] parent=['a']": {
+  "ok": [
+   "sources"
+  ]
+ },
+ "install_overlay.sources child=['c'] parent=['a', 'b']": {
+  "ok": [
+   "sources"
+  ]
+ },
+ "install_overlay.sources child=['c'] parent=['c']": {
+  "ok": []
+ },
+ "install_overlay all fields, two parents": {
+  "ok": [
+   "sources",
+   "sources"
+  ]
+ },
+ "install_overlay narrow under wide": {
+  "ok": []
+ },
+ "install_overlay no parents": {
+  "ok": []
+ },
+ "service.max_ttl_s child=None parent=None": {
+  "ok": []
+ },
+ "service.max_ttl_s child=None parent=0": {
+  "ok": [
+   "max_ttl_s"
+  ]
+ },
+ "service.max_ttl_s child=None parent=5": {
+  "ok": [
+   "max_ttl_s"
+  ]
+ },
+ "service.max_ttl_s child=None parent=10": {
+  "ok": [
+   "max_ttl_s"
+  ]
+ },
+ "service.max_ttl_s child=0 parent=None": {
+  "ok": []
+ },
+ "service.max_ttl_s child=0 parent=0": {
+  "ok": []
+ },
+ "service.max_ttl_s child=0 parent=5": {
+  "ok": []
+ },
+ "service.max_ttl_s child=0 parent=10": {
+  "ok": []
+ },
+ "service.max_ttl_s child=5 parent=None": {
+  "ok": []
+ },
+ "service.max_ttl_s child=5 parent=0": {
+  "ok": [
+   "max_ttl_s"
+  ]
+ },
+ "service.max_ttl_s child=5 parent=5": {
+  "ok": []
+ },
+ "service.max_ttl_s child=5 parent=10": {
+  "ok": []
+ },
+ "service.max_ttl_s child=10 parent=None": {
+  "ok": []
+ },
+ "service.max_ttl_s child=10 parent=0": {
+  "ok": [
+   "max_ttl_s"
+  ]
+ },
+ "service.max_ttl_s child=10 parent=5": {
+  "ok": [
+   "max_ttl_s"
+  ]
+ },
+ "service.max_ttl_s child=10 parent=10": {
+  "ok": []
+ },
+ "service.ports child=None parent=None": {
+  "ok": []
+ },
+ "service.ports child=None parent=[]": {
+  "ok": [
+   "ports"
+  ]
+ },
+ "service.ports child=None parent=[80]": {
+  "ok": [
+   "ports"
+  ]
+ },
+ "service.ports child=None parent=[80, 443]": {
+  "ok": [
+   "ports"
+  ]
+ },
+ "service.ports child=None parent=[22]": {
+  "ok": [
+   "ports"
+  ]
+ },
+ "service.ports child=[] parent=None": {
+  "ok": []
+ },
+ "service.ports child=[] parent=[]": {
+  "ok": []
+ },
+ "service.ports child=[] parent=[80]": {
+  "ok": []
+ },
+ "service.ports child=[] parent=[80, 443]": {
+  "ok": []
+ },
+ "service.ports child=[] parent=[22]": {
+  "ok": []
+ },
+ "service.ports child=[80] parent=None": {
+  "ok": []
+ },
+ "service.ports child=[80] parent=[]": {
+  "ok": [
+   "ports"
+  ]
+ },
+ "service.ports child=[80] parent=[80]": {
+  "ok": []
+ },
+ "service.ports child=[80] parent=[80, 443]": {
+  "ok": []
+ },
+ "service.ports child=[80] parent=[22]": {
+  "ok": [
+   "ports"
+  ]
+ },
+ "service.ports child=[80, 443] parent=None": {
+  "ok": []
+ },
+ "service.ports child=[80, 443] parent=[]": {
+  "ok": [
+   "ports"
+  ]
+ },
+ "service.ports child=[80, 443] parent=[80]": {
+  "ok": [
+   "ports"
+  ]
+ },
+ "service.ports child=[80, 443] parent=[80, 443]": {
+  "ok": []
+ },
+ "service.ports child=[80, 443] parent=[22]": {
+  "ok": [
+   "ports"
+  ]
+ },
+ "service.ports child=[22] parent=None": {
+  "ok": []
+ },
+ "service.ports child=[22] parent=[]": {
+  "ok": [
+   "ports"
+  ]
+ },
+ "service.ports child=[22] parent=[80]": {
+  "ok": [
+   "ports"
+  ]
+ },
+ "service.ports child=[22] parent=[80, 443]": {
+  "ok": [
+   "ports"
+  ]
+ },
+ "service.ports child=[22] parent=[22]": {
+  "ok": []
+ },
+ "service all fields, two parents": {
+  "ok": [
+   "max_ttl_s",
+   "ports",
+   "max_ttl_s",
+   "ports"
+  ]
+ },
+ "service narrow under wide": {
+  "ok": []
+ },
+ "service no parents": {
+  "ok": []
+ },
+ "approve.lanes child=None parent=None": {
+  "ok": []
+ },
+ "approve.lanes child=None parent=[]": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "approve.lanes child=None parent=['biz-a/*']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "approve.lanes child=None parent=['biz-a/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "approve.lanes child=None parent=['biz-b/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "approve.lanes child=None parent=['biz-a/x', 'biz-b/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "approve.lanes child=[] parent=None": {
+  "ok": []
+ },
+ "approve.lanes child=[] parent=[]": {
+  "ok": []
+ },
+ "approve.lanes child=[] parent=['biz-a/*']": {
+  "ok": []
+ },
+ "approve.lanes child=[] parent=['biz-a/x']": {
+  "ok": []
+ },
+ "approve.lanes child=[] parent=['biz-b/x']": {
+  "ok": []
+ },
+ "approve.lanes child=[] parent=['biz-a/x', 'biz-b/x']": {
+  "ok": []
+ },
+ "approve.lanes child=['biz-a/*'] parent=None": {
+  "ok": []
+ },
+ "approve.lanes child=['biz-a/*'] parent=[]": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "approve.lanes child=['biz-a/*'] parent=['biz-a/*']": {
+  "ok": []
+ },
+ "approve.lanes child=['biz-a/*'] parent=['biz-a/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "approve.lanes child=['biz-a/*'] parent=['biz-b/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "approve.lanes child=['biz-a/*'] parent=['biz-a/x', 'biz-b/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "approve.lanes child=['biz-a/x'] parent=None": {
+  "ok": []
+ },
+ "approve.lanes child=['biz-a/x'] parent=[]": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "approve.lanes child=['biz-a/x'] parent=['biz-a/*']": {
+  "ok": []
+ },
+ "approve.lanes child=['biz-a/x'] parent=['biz-a/x']": {
+  "ok": []
+ },
+ "approve.lanes child=['biz-a/x'] parent=['biz-b/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "approve.lanes child=['biz-a/x'] parent=['biz-a/x', 'biz-b/x']": {
+  "ok": []
+ },
+ "approve.lanes child=['biz-b/x'] parent=None": {
+  "ok": []
+ },
+ "approve.lanes child=['biz-b/x'] parent=[]": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "approve.lanes child=['biz-b/x'] parent=['biz-a/*']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "approve.lanes child=['biz-b/x'] parent=['biz-a/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "approve.lanes child=['biz-b/x'] parent=['biz-b/x']": {
+  "ok": []
+ },
+ "approve.lanes child=['biz-b/x'] parent=['biz-a/x', 'biz-b/x']": {
+  "ok": []
+ },
+ "approve.lanes child=['biz-a/x', 'biz-b/x'] parent=None": {
+  "ok": []
+ },
+ "approve.lanes child=['biz-a/x', 'biz-b/x'] parent=[]": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "approve.lanes child=['biz-a/x', 'biz-b/x'] parent=['biz-a/*']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "approve.lanes child=['biz-a/x', 'biz-b/x'] parent=['biz-a/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "approve.lanes child=['biz-a/x', 'biz-b/x'] parent=['biz-b/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "approve.lanes child=['biz-a/x', 'biz-b/x'] parent=['biz-a/x', 'biz-b/x']": {
+  "ok": []
+ },
+ "approve.effects child=['read'] parent=['read']": {
+  "ok": []
+ },
+ "approve.effects child=['read'] parent=['read', 'draft']": {
+  "ok": []
+ },
+ "approve.effects child=['read'] parent=['commit']": {
+  "ok": [
+   "effects"
+  ]
+ },
+ "approve.effects child=['read', 'draft'] parent=['read']": {
+  "ok": [
+   "effects"
+  ]
+ },
+ "approve.effects child=['read', 'draft'] parent=['read', 'draft']": {
+  "ok": []
+ },
+ "approve.effects child=['read', 'draft'] parent=['commit']": {
+  "ok": [
+   "effects"
+  ]
+ },
+ "approve.effects child=['commit'] parent=['read']": {
+  "ok": [
+   "effects"
+  ]
+ },
+ "approve.effects child=['commit'] parent=['read', 'draft']": {
+  "ok": [
+   "effects"
+  ]
+ },
+ "approve.effects child=['commit'] parent=['commit']": {
+  "ok": []
+ },
+ "approve.max_usd child=None parent=None": {
+  "ok": []
+ },
+ "approve.max_usd child=None parent=0.0": {
+  "ok": []
+ },
+ "approve.max_usd child=None parent=2.5": {
+  "ok": []
+ },
+ "approve.max_usd child=None parent=10.0": {
+  "ok": []
+ },
+ "approve.max_usd child=0.0 parent=None": {
+  "ok": [
+   "max_usd"
+  ]
+ },
+ "approve.max_usd child=0.0 parent=0.0": {
+  "ok": []
+ },
+ "approve.max_usd child=0.0 parent=2.5": {
+  "ok": []
+ },
+ "approve.max_usd child=0.0 parent=10.0": {
+  "ok": []
+ },
+ "approve.max_usd child=2.5 parent=None": {
+  "ok": [
+   "max_usd"
+  ]
+ },
+ "approve.max_usd child=2.5 parent=0.0": {
+  "ok": [
+   "max_usd"
+  ]
+ },
+ "approve.max_usd child=2.5 parent=2.5": {
+  "ok": []
+ },
+ "approve.max_usd child=2.5 parent=10.0": {
+  "ok": []
+ },
+ "approve.max_usd child=10.0 parent=None": {
+  "ok": [
+   "max_usd"
+  ]
+ },
+ "approve.max_usd child=10.0 parent=0.0": {
+  "ok": [
+   "max_usd"
+  ]
+ },
+ "approve.max_usd child=10.0 parent=2.5": {
+  "ok": [
+   "max_usd"
+  ]
+ },
+ "approve.max_usd child=10.0 parent=10.0": {
+  "ok": []
+ },
+ "approve all fields, two parents": {
+  "ok": [
+   "lanes",
+   "effects",
+   "lanes"
+  ]
+ },
+ "approve narrow under wide": {
+  "ok": [
+   "effects",
+   "max_usd"
+  ]
+ },
+ "approve no parents": {
+  "ok": []
+ },
+ "control.lanes child=None parent=None": {
+  "ok": []
+ },
+ "control.lanes child=None parent=[]": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "control.lanes child=None parent=['biz-a/*']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "control.lanes child=None parent=['biz-a/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "control.lanes child=None parent=['biz-b/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "control.lanes child=None parent=['biz-a/x', 'biz-b/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "control.lanes child=[] parent=None": {
+  "ok": []
+ },
+ "control.lanes child=[] parent=[]": {
+  "ok": []
+ },
+ "control.lanes child=[] parent=['biz-a/*']": {
+  "ok": []
+ },
+ "control.lanes child=[] parent=['biz-a/x']": {
+  "ok": []
+ },
+ "control.lanes child=[] parent=['biz-b/x']": {
+  "ok": []
+ },
+ "control.lanes child=[] parent=['biz-a/x', 'biz-b/x']": {
+  "ok": []
+ },
+ "control.lanes child=['biz-a/*'] parent=None": {
+  "ok": []
+ },
+ "control.lanes child=['biz-a/*'] parent=[]": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "control.lanes child=['biz-a/*'] parent=['biz-a/*']": {
+  "ok": []
+ },
+ "control.lanes child=['biz-a/*'] parent=['biz-a/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "control.lanes child=['biz-a/*'] parent=['biz-b/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "control.lanes child=['biz-a/*'] parent=['biz-a/x', 'biz-b/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "control.lanes child=['biz-a/x'] parent=None": {
+  "ok": []
+ },
+ "control.lanes child=['biz-a/x'] parent=[]": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "control.lanes child=['biz-a/x'] parent=['biz-a/*']": {
+  "ok": []
+ },
+ "control.lanes child=['biz-a/x'] parent=['biz-a/x']": {
+  "ok": []
+ },
+ "control.lanes child=['biz-a/x'] parent=['biz-b/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "control.lanes child=['biz-a/x'] parent=['biz-a/x', 'biz-b/x']": {
+  "ok": []
+ },
+ "control.lanes child=['biz-b/x'] parent=None": {
+  "ok": []
+ },
+ "control.lanes child=['biz-b/x'] parent=[]": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "control.lanes child=['biz-b/x'] parent=['biz-a/*']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "control.lanes child=['biz-b/x'] parent=['biz-a/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "control.lanes child=['biz-b/x'] parent=['biz-b/x']": {
+  "ok": []
+ },
+ "control.lanes child=['biz-b/x'] parent=['biz-a/x', 'biz-b/x']": {
+  "ok": []
+ },
+ "control.lanes child=['biz-a/x', 'biz-b/x'] parent=None": {
+  "ok": []
+ },
+ "control.lanes child=['biz-a/x', 'biz-b/x'] parent=[]": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "control.lanes child=['biz-a/x', 'biz-b/x'] parent=['biz-a/*']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "control.lanes child=['biz-a/x', 'biz-b/x'] parent=['biz-a/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "control.lanes child=['biz-a/x', 'biz-b/x'] parent=['biz-b/x']": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "control.lanes child=['biz-a/x', 'biz-b/x'] parent=['biz-a/x', 'biz-b/x']": {
+  "ok": []
+ },
+ "control.watch_only child=None parent=None": {
+  "ok": []
+ },
+ "control.watch_only child=None parent=False": {
+  "ok": []
+ },
+ "control.watch_only child=None parent=True": {
+  "ok": [
+   "watch_only"
+  ]
+ },
+ "control.watch_only child=False parent=None": {
+  "ok": []
+ },
+ "control.watch_only child=False parent=False": {
+  "ok": []
+ },
+ "control.watch_only child=False parent=True": {
+  "ok": [
+   "watch_only"
+  ]
+ },
+ "control.watch_only child=True parent=None": {
+  "ok": []
+ },
+ "control.watch_only child=True parent=False": {
+  "ok": []
+ },
+ "control.watch_only child=True parent=True": {
+  "ok": []
+ },
+ "control.max_session_s child=None parent=None": {
+  "ok": []
+ },
+ "control.max_session_s child=None parent=0": {
+  "ok": [
+   "max_session_s"
+  ]
+ },
+ "control.max_session_s child=None parent=5": {
+  "ok": [
+   "max_session_s"
+  ]
+ },
+ "control.max_session_s child=None parent=10": {
+  "ok": [
+   "max_session_s"
+  ]
+ },
+ "control.max_session_s child=0 parent=None": {
+  "ok": []
+ },
+ "control.max_session_s child=0 parent=0": {
+  "ok": []
+ },
+ "control.max_session_s child=0 parent=5": {
+  "ok": []
+ },
+ "control.max_session_s child=0 parent=10": {
+  "ok": []
+ },
+ "control.max_session_s child=5 parent=None": {
+  "ok": []
+ },
+ "control.max_session_s child=5 parent=0": {
+  "ok": [
+   "max_session_s"
+  ]
+ },
+ "control.max_session_s child=5 parent=5": {
+  "ok": []
+ },
+ "control.max_session_s child=5 parent=10": {
+  "ok": []
+ },
+ "control.max_session_s child=10 parent=None": {
+  "ok": []
+ },
+ "control.max_session_s child=10 parent=0": {
+  "ok": [
+   "max_session_s"
+  ]
+ },
+ "control.max_session_s child=10 parent=5": {
+  "ok": [
+   "max_session_s"
+  ]
+ },
+ "control.max_session_s child=10 parent=10": {
+  "ok": []
+ },
+ "control all fields, two parents": {
+  "ok": [
+   "lanes",
+   "watch_only",
+   "max_session_s",
+   "lanes",
+   "max_session_s"
+  ]
+ },
+ "control narrow under wide": {
+  "ok": []
+ },
+ "control no parents": {
+  "ok": []
+ },
+ "brain.provider child=None parent=None": {
+  "ok": []
+ },
+ "brain.provider child=None parent='x'": {
+  "ok": [
+   "provider"
+  ]
+ },
+ "brain.provider child=None parent='y'": {
+  "ok": [
+   "provider"
+  ]
+ },
+ "brain.provider child='x' parent=None": {
+  "ok": []
+ },
+ "brain.provider child='x' parent='x'": {
+  "ok": []
+ },
+ "brain.provider child='x' parent='y'": {
+  "ok": [
+   "provider"
+  ]
+ },
+ "brain.provider child='y' parent=None": {
+  "ok": []
+ },
+ "brain.provider child='y' parent='x'": {
+  "ok": [
+   "provider"
+  ]
+ },
+ "brain.provider child='y' parent='y'": {
+  "ok": []
+ },
+ "brain.credential_owner child=None parent=None": {
+  "ok": []
+ },
+ "brain.credential_owner child=None parent='x'": {
+  "ok": [
+   "credential_owner"
+  ]
+ },
+ "brain.credential_owner child=None parent='y'": {
+  "ok": [
+   "credential_owner"
+  ]
+ },
+ "brain.credential_owner child='x' parent=None": {
+  "ok": []
+ },
+ "brain.credential_owner child='x' parent='x'": {
+  "ok": []
+ },
+ "brain.credential_owner child='x' parent='y'": {
+  "ok": [
+   "credential_owner"
+  ]
+ },
+ "brain.credential_owner child='y' parent=None": {
+  "ok": []
+ },
+ "brain.credential_owner child='y' parent='x'": {
+  "ok": [
+   "credential_owner"
+  ]
+ },
+ "brain.credential_owner child='y' parent='y'": {
+  "ok": []
+ },
+ "brain.tier child=None parent=None": {
+  "ok": []
+ },
+ "brain.tier child=None parent='small'": {
+  "ok": [
+   "tier"
+  ]
+ },
+ "brain.tier child=None parent='large'": {
+  "ok": [
+   "tier"
+  ]
+ },
+ "brain.tier child=None parent='big'": {
+  "ok": [
+   "tier"
+  ]
+ },
+ "brain.tier child=None parent='huge'": {
+  "ok": [
+   "tier"
+  ]
+ },
+ "brain.tier child='small' parent=None": {
+  "ok": []
+ },
+ "brain.tier child='small' parent='small'": {
+  "ok": []
+ },
+ "brain.tier child='small' parent='large'": {
+  "ok": []
+ },
+ "brain.tier child='small' parent='big'": {
+  "ok": []
+ },
+ "brain.tier child='small' parent='huge'": {
+  "ok": [
+   "tier"
+  ]
+ },
+ "brain.tier child='large' parent=None": {
+  "ok": []
+ },
+ "brain.tier child='large' parent='small'": {
+  "ok": [
+   "tier"
+  ]
+ },
+ "brain.tier child='large' parent='large'": {
+  "ok": []
+ },
+ "brain.tier child='large' parent='big'": {
+  "ok": []
+ },
+ "brain.tier child='large' parent='huge'": {
+  "ok": [
+   "tier"
+  ]
+ },
+ "brain.tier child='big' parent=None": {
+  "ok": []
+ },
+ "brain.tier child='big' parent='small'": {
+  "ok": [
+   "tier"
+  ]
+ },
+ "brain.tier child='big' parent='large'": {
+  "ok": []
+ },
+ "brain.tier child='big' parent='big'": {
+  "ok": []
+ },
+ "brain.tier child='big' parent='huge'": {
+  "ok": [
+   "tier"
+  ]
+ },
+ "brain.tier child='huge' parent=None": {
+  "ok": []
+ },
+ "brain.tier child='huge' parent='small'": {
+  "ok": [
+   "tier"
+  ]
+ },
+ "brain.tier child='huge' parent='large'": {
+  "ok": [
+   "tier"
+  ]
+ },
+ "brain.tier child='huge' parent='big'": {
+  "ok": [
+   "tier"
+  ]
+ },
+ "brain.tier child='huge' parent='huge'": {
+  "ok": [
+   "tier"
+  ]
+ },
+ "brain.quota_tokens child=None parent=None": {
+  "ok": []
+ },
+ "brain.quota_tokens child=None parent=0": {
+  "ok": [
+   "quota_tokens"
+  ]
+ },
+ "brain.quota_tokens child=None parent=5": {
+  "ok": [
+   "quota_tokens"
+  ]
+ },
+ "brain.quota_tokens child=None parent=10": {
+  "ok": [
+   "quota_tokens"
+  ]
+ },
+ "brain.quota_tokens child=0 parent=None": {
+  "ok": []
+ },
+ "brain.quota_tokens child=0 parent=0": {
+  "ok": []
+ },
+ "brain.quota_tokens child=0 parent=5": {
+  "ok": []
+ },
+ "brain.quota_tokens child=0 parent=10": {
+  "ok": []
+ },
+ "brain.quota_tokens child=5 parent=None": {
+  "ok": []
+ },
+ "brain.quota_tokens child=5 parent=0": {
+  "ok": [
+   "quota_tokens"
+  ]
+ },
+ "brain.quota_tokens child=5 parent=5": {
+  "ok": []
+ },
+ "brain.quota_tokens child=5 parent=10": {
+  "ok": []
+ },
+ "brain.quota_tokens child=10 parent=None": {
+  "ok": []
+ },
+ "brain.quota_tokens child=10 parent=0": {
+  "ok": [
+   "quota_tokens"
+  ]
+ },
+ "brain.quota_tokens child=10 parent=5": {
+  "ok": [
+   "quota_tokens"
+  ]
+ },
+ "brain.quota_tokens child=10 parent=10": {
+  "ok": []
+ },
+ "brain.quota_usd child=None parent=None": {
+  "ok": []
+ },
+ "brain.quota_usd child=None parent=0.0": {
+  "ok": [
+   "quota_usd"
+  ]
+ },
+ "brain.quota_usd child=None parent=2.5": {
+  "ok": [
+   "quota_usd"
+  ]
+ },
+ "brain.quota_usd child=None parent=10.0": {
+  "ok": [
+   "quota_usd"
+  ]
+ },
+ "brain.quota_usd child=0.0 parent=None": {
+  "ok": []
+ },
+ "brain.quota_usd child=0.0 parent=0.0": {
+  "ok": []
+ },
+ "brain.quota_usd child=0.0 parent=2.5": {
+  "ok": []
+ },
+ "brain.quota_usd child=0.0 parent=10.0": {
+  "ok": []
+ },
+ "brain.quota_usd child=2.5 parent=None": {
+  "ok": []
+ },
+ "brain.quota_usd child=2.5 parent=0.0": {
+  "ok": [
+   "quota_usd"
+  ]
+ },
+ "brain.quota_usd child=2.5 parent=2.5": {
+  "ok": []
+ },
+ "brain.quota_usd child=2.5 parent=10.0": {
+  "ok": []
+ },
+ "brain.quota_usd child=10.0 parent=None": {
+  "ok": []
+ },
+ "brain.quota_usd child=10.0 parent=0.0": {
+  "ok": [
+   "quota_usd"
+  ]
+ },
+ "brain.quota_usd child=10.0 parent=2.5": {
+  "ok": [
+   "quota_usd"
+  ]
+ },
+ "brain.quota_usd child=10.0 parent=10.0": {
+  "ok": []
+ },
+ "brain all fields, two parents": {
+  "ok": [
+   "provider",
+   "credential_owner",
+   "tier",
+   "quota_tokens",
+   "quota_usd",
+   "provider",
+   "credential_owner",
+   "tier",
+   "quota_tokens",
+   "quota_usd"
+  ]
+ },
+ "brain narrow under wide": {
+  "ok": []
+ },
+ "brain no parents": {
+  "ok": []
+ },
+ "install_base all fields, two parents": {
+  "ok": []
+ },
+ "install_base narrow under wide": {
+  "ok": []
+ },
+ "install_base no parents": {
+  "ok": []
+ },
+ "nothing_known.lanes child=None parent=None": {
+  "ok": []
+ },
+ "nothing_known.lanes child=None parent=[]": {
+  "ok": []
+ },
+ "nothing_known.lanes child=None parent=['biz-a/*']": {
+  "ok": []
+ },
+ "nothing_known.lanes child=None parent=['biz-a/x']": {
+  "ok": []
+ },
+ "nothing_known.lanes child=None parent=['biz-b/x']": {
+  "ok": []
+ },
+ "nothing_known.lanes child=None parent=['biz-a/x', 'biz-b/x']": {
+  "ok": []
+ },
+ "nothing_known.lanes child=[] parent=None": {
+  "ok": []
+ },
+ "nothing_known.lanes child=[] parent=[]": {
+  "ok": []
+ },
+ "nothing_known.lanes child=[] parent=['biz-a/*']": {
+  "ok": []
+ },
+ "nothing_known.lanes child=[] parent=['biz-a/x']": {
+  "ok": []
+ },
+ "nothing_known.lanes child=[] parent=['biz-b/x']": {
+  "ok": []
+ },
+ "nothing_known.lanes child=[] parent=['biz-a/x', 'biz-b/x']": {
+  "ok": []
+ },
+ "nothing_known.lanes child=['biz-a/*'] parent=None": {
+  "ok": []
+ },
+ "nothing_known.lanes child=['biz-a/*'] parent=[]": {
+  "ok": []
+ },
+ "nothing_known.lanes child=['biz-a/*'] parent=['biz-a/*']": {
+  "ok": []
+ },
+ "nothing_known.lanes child=['biz-a/*'] parent=['biz-a/x']": {
+  "ok": []
+ },
+ "nothing_known.lanes child=['biz-a/*'] parent=['biz-b/x']": {
+  "ok": []
+ },
+ "nothing_known.lanes child=['biz-a/*'] parent=['biz-a/x', 'biz-b/x']": {
+  "ok": []
+ },
+ "nothing_known.lanes child=['biz-a/x'] parent=None": {
+  "ok": []
+ },
+ "nothing_known.lanes child=['biz-a/x'] parent=[]": {
+  "ok": []
+ },
+ "nothing_known.lanes child=['biz-a/x'] parent=['biz-a/*']": {
+  "ok": []
+ },
+ "nothing_known.lanes child=['biz-a/x'] parent=['biz-a/x']": {
+  "ok": []
+ },
+ "nothing_known.lanes child=['biz-a/x'] parent=['biz-b/x']": {
+  "ok": []
+ },
+ "nothing_known.lanes child=['biz-a/x'] parent=['biz-a/x', 'biz-b/x']": {
+  "ok": []
+ },
+ "nothing_known.lanes child=['biz-b/x'] parent=None": {
+  "ok": []
+ },
+ "nothing_known.lanes child=['biz-b/x'] parent=[]": {
+  "ok": []
+ },
+ "nothing_known.lanes child=['biz-b/x'] parent=['biz-a/*']": {
+  "ok": []
+ },
+ "nothing_known.lanes child=['biz-b/x'] parent=['biz-a/x']": {
+  "ok": []
+ },
+ "nothing_known.lanes child=['biz-b/x'] parent=['biz-b/x']": {
+  "ok": []
+ },
+ "nothing_known.lanes child=['biz-b/x'] parent=['biz-a/x', 'biz-b/x']": {
+  "ok": []
+ },
+ "nothing_known.lanes child=['biz-a/x', 'biz-b/x'] parent=None": {
+  "ok": []
+ },
+ "nothing_known.lanes child=['biz-a/x', 'biz-b/x'] parent=[]": {
+  "ok": []
+ },
+ "nothing_known.lanes child=['biz-a/x', 'biz-b/x'] parent=['biz-a/*']": {
+  "ok": []
+ },
+ "nothing_known.lanes child=['biz-a/x', 'biz-b/x'] parent=['biz-a/x']": {
+  "ok": []
+ },
+ "nothing_known.lanes child=['biz-a/x', 'biz-b/x'] parent=['biz-b/x']": {
+  "ok": []
+ },
+ "nothing_known.lanes child=['biz-a/x', 'biz-b/x'] parent=['biz-a/x', 'biz-b/x']": {
+  "ok": []
+ },
+ "nothing_known all fields, two parents": {
+  "ok": []
+ },
+ "nothing_known narrow under wide": {
+  "ok": []
+ },
+ "nothing_known no parents": {
+  "ok": []
+ },
+ "memory child=0 parent=0": {
+  "ok": []
+ },
+ "memory child=0 parent=1": {
+  "ok": []
+ },
+ "memory child=0 parent=2": {
+  "ok": []
+ },
+ "memory child=1 parent=0": {
+  "ok": [
+   "workspaces",
+   "write"
+  ]
+ },
+ "memory child=1 parent=1": {
+  "ok": []
+ },
+ "memory child=1 parent=2": {
+  "ok": [
+   "write"
+  ]
+ },
+ "memory child=2 parent=0": {
+  "ok": [
+   "workspaces"
+  ]
+ },
+ "memory child=2 parent=1": {
+  "ok": [
+   "workspaces"
+  ]
+ },
+ "memory child=2 parent=2": {
+  "ok": []
+ }
+}

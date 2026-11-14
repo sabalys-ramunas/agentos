@@ -52,7 +52,8 @@ def enrolled(devices):
 def test_the_device_table_has_the_contracts_columns_and_no_route_fills_it(devices, tmp_path):
     columns = {r["name"] for r in devices.db.all("PRAGMA table_info(confirm_devices)")}
     assert columns == {"id", "person", "method", "public_key", "label", "added_at", "last_used_at", "revoked_at"}
-    routes = (SRC / "api" / "routes_members.py").read_text() + (SRC / "api" / "routes_resources.py").read_text()
+    routes = "".join((SRC / "api" / f"routes_{name}.py").read_text()
+                     for name in ("members", "resources", "approvals", "activity", "settings"))
     assert "confirm_devices" not in routes and "devices.add" not in routes
 
 

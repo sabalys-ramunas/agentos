@@ -9,6 +9,7 @@ all are listed and the semantic one, then the one named for the property's use, 
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from functools import lru_cache
 from typing import Any
 
@@ -93,151 +94,203 @@ def match(value: Any, category: TokenCategory | str, tokens: TokenSet, *, theme:
     heights and em lengths."""
     category = TokenCategory(category)
     theme = Theme(theme) if theme else None
-    r = _rules(rules)
-    toks = _themed(tokens, category, theme)
-    ctx = context_of(prop)
+    matcher = _MATCHERS.get(category) or (_match_length if category in LENGTHS or category == C.LINE_HEIGHT else None)
+    if matcher is None:
+        return Match(kind="off")
+    ask = _Ask(category=category, tokens=tokens, toks=_themed(tokens, category, theme), r=_rules(rules),
+               ctx=context_of(prop), font_size_px=font_size_px, root_px=root_px)
+    return matcher(value, ask)
 
-    if category == C.COLOR:
-        c = parse_color(str(value))
-        if c is None:
-            return Match(kind="off")
-        # alpha is handled apart: the nearest token is the nearest in colour (opacity only
-        # breaks ties); a token is exact or near only when the opacity agrees too
-        scored = []
-        for t in toks:
-            tc = _color(t.value)
-            if tc is not None:
-                scored.append((delta_e(c, tc), abs(c.alpha - tc.alpha), t))
-        if not scored:
-            return Match(kind="off")
-        exact = [(d, t) for d, da, t in scored if d <= r["color_exact"] and da <= r["alpha_exact"]]
-        if exact:
-            cands = sorted((t for _, t in exact), key=lambda t: _pref_key(t, ctx))
-            return Match(kind="exact", token=cands[0].name, candidates=[t.name for t in cands],
-                         distance=round(min(d for d, _ in exact), 4))
-        best = min(d + da for d, da, _ in scored)
-        nearest = sorted((x for x in scored if x[0] + x[1] - best <= 1e-9), key=lambda x: _pref_key(x[2], ctx))
-        d, da, top = nearest[0]
-        tc = _color(top.value)
-        sharing = sorted((t for _, _, t in scored if (o := _color(t.value)) and delta_e(o, tc) <= r["color_exact"]
-                          and abs(o.alpha - tc.alpha) <= r["alpha_exact"]), key=lambda t: _pref_key(t, ctx))
-        kind = "near" if d <= r["color_near"] and da <= r["alpha_near"] else "off"
-        return Match(kind=kind, token=sharing[0].name if sharing else top.name,
-                     candidates=[t.name for t in sharing] or [top.name], distance=round(d, 4))
 
-    if category in LENGTHS or category == C.LINE_HEIGHT:
-        text = str(value).strip()
-        if category == C.RADIUS:
-            shape = radius_shape(text, root_px=root_px)
-            if shape is not None:
-                # a circle (50%) or a pill (9999px, Tailwind's rounded-full) is a shape, not a size
-                pills = [t for t in toks if (parse_length(t.value) or 0) >= 999]
-                if pills:
-                    return Match(kind="exact", token=pills[0].name, candidates=[t.name for t in pills], distance=0.0)
-                return Match(kind="exact", token=SHAPES[shape], candidates=[SHAPES[shape]], distance=0.0)
-            if text.endswith("%"):
-                return Match(kind="off")
-        fs = font_size_px if font_size_px is not None else root_px
+@dataclass(frozen=True)
+class _Ask:
+    """One match's question, apart from the value: the tokens it may answer with and the rules."""
+    category: TokenCategory
+    tokens: TokenSet
+    toks: list[Token]           # the category's tokens, kept to the theme
+    r: dict[str, float]
+    ctx: str | None
+    font_size_px: float | None
+    root_px: float
+
+
+def _match_color(value: Any, ask: _Ask) -> Match:
+    """A colour: the nearest in colour, with opacity only breaking ties."""
+    toks, r, ctx = ask.toks, ask.r, ask.ctx
+    c = parse_color(str(value))
+    if c is None:
+        return Match(kind="off")
+    # alpha is handled apart: the nearest token is the nearest in colour (opacity only
+    # breaks ties); a token is exact or near only when the opacity agrees too
+    scored = []
+    for t in toks:
+        tc = _color(t.value)
+        if tc is not None:
+            scored.append((delta_e(c, tc), abs(c.alpha - tc.alpha), t))
+    if not scored:
+        return Match(kind="off")
+    exact = [(d, t) for d, da, t in scored if d <= r["color_exact"] and da <= r["alpha_exact"]]
+    if exact:
+        cands = sorted((t for _, t in exact), key=lambda t: _pref_key(t, ctx))
+        return Match(kind="exact", token=cands[0].name, candidates=[t.name for t in cands],
+                     distance=round(min(d for d, _ in exact), 4))
+    best = min(d + da for d, da, _ in scored)
+    nearest = sorted((x for x in scored if x[0] + x[1] - best <= 1e-9), key=lambda x: _pref_key(x[2], ctx))
+    d, da, top = nearest[0]
+    tc = _color(top.value)
+    sharing = sorted((t for _, _, t in scored if (o := _color(t.value)) and delta_e(o, tc) <= r["color_exact"]
+                      and abs(o.alpha - tc.alpha) <= r["alpha_exact"]), key=lambda t: _pref_key(t, ctx))
+    kind = "near" if d <= r["color_near"] and da <= r["alpha_near"] else "off"
+    return Match(kind=kind, token=sharing[0].name if sharing else top.name,
+                 candidates=[t.name for t in sharing] or [top.name], distance=round(d, 4))
+
+
+def _match_length(value: Any, ask: _Ask) -> Match:
+    """A length or a line height, in px, against the tokens and the token set's scales."""
+    category, r = ask.category, ask.r
+    text = str(value).strip()
+    if category == C.RADIUS:
+        shaped = _radius_shape_match(text, ask)
+        if shaped is not None:
+            return shaped
+    fs = ask.font_size_px if ask.font_size_px is not None else ask.root_px
+    if category == C.LINE_HEIGHT:
+        num = parse_number(text)
+        px = num * fs if num is not None else parse_length(text, root_px=ask.root_px, em_px=fs)
+    else:
+        px = parse_length(text, root_px=ask.root_px, em_px=fs)
+    if px is None:
+        return Match(kind="off")
+    apx = abs(px)
+
+    def token_px(t: Token) -> float | None:
         if category == C.LINE_HEIGHT:
-            num = parse_number(text)
-            px = num * fs if num is not None else parse_length(text, root_px=root_px, em_px=fs)
-        else:
-            px = parse_length(text, root_px=root_px, em_px=fs)
-        if px is None:
-            return Match(kind="off")
-        apx = abs(px)
+            n = parse_number(t.value)
+            if n is not None:
+                return n * fs
+        return parse_length(t.value, root_px=ask.root_px)
 
-        def token_px(t: Token) -> float | None:
-            if category == C.LINE_HEIGHT:
-                n = parse_number(t.value)
-                if n is not None:
-                    return n * fs
-            return parse_length(t.value, root_px=root_px)
+    scored = [(abs(apx - tp), t) for t in ask.toks if (tp := token_px(t)) is not None]
 
-        scored = [(abs(apx - tp), t) for t in toks if (tp := token_px(t)) is not None]
-        extra: list[str] = []
-        for s in tokens.scales:
-            if s.category != category or s.step_px <= 0:
-                continue
-            # half steps are on the scale too (Tailwind's p-0.5, gap-1.5, 2.5 and 3.5), and so is a
-            # 1px hairline on a spacing scale (Tailwind's p-px)
-            n = round(apx / s.step_px * 2) / 2
-            if n >= 0.5 and n * s.step_px <= s.max_px and abs(n * s.step_px - apx) <= r["px_exact"]:
-                extra.append(scale_name(s, n))
-            elif s.category == C.SPACE and s.step_px > 1 and abs(apx - 1) <= 0.01:
-                extra.append(f"{s.category.value}.scale.px")
+    def near(d: float, t: Token) -> bool:
+        tp = token_px(t) or 0.0
+        return d <= r["px_near"] or d < r["px_near_ratio"] * tp
 
-        def near(d: float, t: Token) -> bool:
-            tp = token_px(t) or 0.0
-            return d <= r["px_near"] or d < r["px_near_ratio"] * tp
+    def same(a: Token, b: Token):
+        pa, pb = token_px(a), token_px(b)
+        return pa is not None and pb is not None and abs(pa - pb) <= r["px_exact"]
 
-        def same(a: Token, b: Token):
-            pa, pb = token_px(a), token_px(b)
-            return pa is not None and pb is not None and abs(pa - pb) <= r["px_exact"]
+    m = _result(scored, r["px_exact"], near, None, same, _on_scale(apx, ask))
+    if m.kind != "exact" and ask.tokens.scales:
+        m = _nearest_step(m, apx, ask)
+    return m
 
-        m = _result(scored, r["px_exact"], near, None, same, extra)
-        if m.kind != "exact" and tokens.scales:
-            for s in tokens.scales:
-                if s.category == category and s.step_px > 0:
-                    n = max(1, round(apx / s.step_px))
-                    d = abs(n * s.step_px - apx)
-                    if m.distance is None or d < m.distance:
-                        kind = "near" if d <= r["px_near"] or d < r["px_near_ratio"] * n * s.step_px else "off"
-                        m = Match(kind=kind, token=scale_name(s, n), candidates=[scale_name(s, n)], distance=round(d, 4))
-        return m
 
-    if category == C.FONT_WEIGHT:
-        w = parse_weight(value)
-        if w is None:
-            return Match(kind="off")
-        scored = [(abs(w - tw), t) for t in toks if (tw := parse_weight(t.value)) is not None]
-        return _result(scored, 0.5, lambda d, t: d <= r["weight_near"], None,
-                       lambda a, b: parse_weight(a.value) == parse_weight(b.value))
+def _radius_shape_match(text: str, ask: _Ask) -> Match | None:
+    """A circle (50%) or a pill (9999px, Tailwind's rounded-full) is a shape, not a size. Any other
+    percentage matches nothing. None: a size, matched as a length."""
+    shape = radius_shape(text, root_px=ask.root_px)
+    if shape is not None:
+        pills = [t for t in ask.toks if (parse_length(t.value) or 0) >= 999]
+        if pills:
+            return Match(kind="exact", token=pills[0].name, candidates=[t.name for t in pills], distance=0.0)
+        return Match(kind="exact", token=SHAPES[shape], candidates=[SHAPES[shape]], distance=0.0)
+    if text.endswith("%"):
+        return Match(kind="off")
+    return None
 
-    if category == C.FONT_FAMILY:
-        stack = font_stack(str(value))
-        if not stack:
-            return Match(kind="off")
-        scored = []
-        for t in toks:
-            ts = font_stack(t.value)
-            if not ts:
-                continue
-            if ts[0] == stack[0]:
-                d = 0.0
-            elif stack[0] in ts or ts[0] in stack:
-                d = 1.0
-            else:
-                d = 2.0
-            scored.append((d, t))
-        return _result(scored, 0.0, lambda d, t: d <= 1.0, None,
-                       lambda a, b: font_stack(a.value)[:1] == font_stack(b.value)[:1])
 
-    if category == C.SHADOW:
-        layers = parse_shadow(str(value), root_px=root_px)
-        if not layers:
-            return Match(kind="off")
-        scored = []
-        for t in toks:
-            tl = parse_shadow(t.value, root_px=root_px)
-            if not tl or len(tl) != len(layers):
-                continue
+def _on_scale(apx: float, ask: _Ask) -> list[str]:
+    """The scale steps `apx` is exactly on."""
+    extra: list[str] = []
+    for s in ask.tokens.scales:
+        if s.category != ask.category or s.step_px <= 0:
+            continue
+        # half steps are on the scale too (Tailwind's p-0.5, gap-1.5, 2.5 and 3.5), and so is a
+        # 1px hairline on a spacing scale (Tailwind's p-px)
+        n = round(apx / s.step_px * 2) / 2
+        if n >= 0.5 and n * s.step_px <= s.max_px and abs(n * s.step_px - apx) <= ask.r["px_exact"]:
+            extra.append(scale_name(s, n))
+        elif s.category == C.SPACE and s.step_px > 1 and abs(apx - 1) <= 0.01:
+            extra.append(f"{s.category.value}.scale.px")
+    return extra
+
+
+def _nearest_step(m: Match, apx: float, ask: _Ask) -> Match:
+    """A whole scale step nearer than the match `m`, when there is one."""
+    r = ask.r
+    for s in ask.tokens.scales:
+        if s.category == ask.category and s.step_px > 0:
+            n = max(1, round(apx / s.step_px))
+            d = abs(n * s.step_px - apx)
+            if m.distance is None or d < m.distance:
+                kind = "near" if d <= r["px_near"] or d < r["px_near_ratio"] * n * s.step_px else "off"
+                m = Match(kind=kind, token=scale_name(s, n), candidates=[scale_name(s, n)], distance=round(d, 4))
+    return m
+
+
+def _match_weight(value: Any, ask: _Ask) -> Match:
+    """A font weight."""
+    toks, r = ask.toks, ask.r
+    w = parse_weight(value)
+    if w is None:
+        return Match(kind="off")
+    scored = [(abs(w - tw), t) for t in toks if (tw := parse_weight(t.value)) is not None]
+    return _result(scored, 0.5, lambda d, t: d <= r["weight_near"], None,
+                   lambda a, b: parse_weight(a.value) == parse_weight(b.value))
+
+
+def _match_family(value: Any, ask: _Ask) -> Match:
+    """A font family: the first family of the stack decides."""
+    toks = ask.toks
+    stack = font_stack(str(value))
+    if not stack:
+        return Match(kind="off")
+    scored = []
+    for t in toks:
+        ts = font_stack(t.value)
+        if not ts:
+            continue
+        if ts[0] == stack[0]:
             d = 0.0
-            for a, b in zip(layers, tl, strict=True):
-                if a.inset != b.inset:
-                    d = 999.0
-                    break
-                d = max(d, abs(a.x - b.x), abs(a.y - b.y), abs(a.blur - b.blur), abs(a.spread - b.spread))
-                if a.color and b.color:
-                    de = delta_e(a.color, b.color) + abs(a.color.alpha - b.color.alpha)
-                    if de > r["color_near"]:
-                        d = max(d, 2.0 + de)
-                    elif de > r["color_exact"]:
-                        d = max(d, r["px_exact"] + 0.01)
-            scored.append((d, t))
-        return _result(scored, r["px_exact"], lambda d, t: d <= r["px_near"], None, lambda a, b: a.value == b.value)
+        elif stack[0] in ts or ts[0] in stack:
+            d = 1.0
+        else:
+            d = 2.0
+        scored.append((d, t))
+    return _result(scored, 0.0, lambda d, t: d <= 1.0, None,
+                   lambda a, b: font_stack(a.value)[:1] == font_stack(b.value)[:1])
 
-    return Match(kind="off")
+
+def _match_shadow(value: Any, ask: _Ask) -> Match:
+    """A box shadow, layer by layer."""
+    toks, r, root_px = ask.toks, ask.r, ask.root_px
+    layers = parse_shadow(str(value), root_px=root_px)
+    if not layers:
+        return Match(kind="off")
+    scored = []
+    for t in toks:
+        tl = parse_shadow(t.value, root_px=root_px)
+        if not tl or len(tl) != len(layers):
+            continue
+        d = 0.0
+        for a, b in zip(layers, tl, strict=True):
+            if a.inset != b.inset:
+                d = 999.0
+                break
+            d = max(d, abs(a.x - b.x), abs(a.y - b.y), abs(a.blur - b.blur), abs(a.spread - b.spread))
+            if a.color and b.color:
+                de = delta_e(a.color, b.color) + abs(a.color.alpha - b.color.alpha)
+                if de > r["color_near"]:
+                    d = max(d, 2.0 + de)
+                elif de > r["color_exact"]:
+                    d = max(d, r["px_exact"] + 0.01)
+        scored.append((d, t))
+    return _result(scored, r["px_exact"], lambda d, t: d <= r["px_near"], None, lambda a, b: a.value == b.value)
+
+
+_MATCHERS = {C.COLOR: _match_color, C.FONT_WEIGHT: _match_weight, C.FONT_FAMILY: _match_family,
+             C.SHADOW: _match_shadow}
 
 
 def scale_name(s: Scale, n: float) -> str:

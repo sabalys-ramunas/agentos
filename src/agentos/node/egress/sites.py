@@ -6,6 +6,7 @@ import contextlib
 import re
 from urllib.parse import unquote, urlsplit
 
+from agentos.core import globs
 from agentos.core.errors import InvalidRequest
 from agentos.core.models import (
     COUNTRY_TOKEN,
@@ -14,7 +15,6 @@ from agentos.core.models import (
     split_site,
 )
 from agentos.node.egress.constants import WEB_SCHEMES
-from agentos.policy import globs
 from agentos.vault.domains import (  # noqa: F401 - the guard reads them here, so a test can patch them
     registrable_domain,
     same_site,

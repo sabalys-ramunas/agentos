@@ -252,19 +252,8 @@ function patchNode(client: QueryClient, org: string, node: FleetNode) {
   });
 }
 
-const taps = new Set<(event: LiveEvent) => void>();
-
-/** Watch every live event as it passes, for what a cache cannot show: the fleet map's light. */
-export function tapLiveEvents(listener: (event: LiveEvent) => void) {
-  taps.add(listener);
-  return () => {
-    taps.delete(listener);
-  };
-}
-
 /** The single entry point for every live change, real or mocked. */
 export function applyLiveEvent(client: QueryClient, org: string, event: LiveEvent) {
-  taps.forEach((listener) => listener(event));
   switch (event.type) {
     case 'lane':
       return patchLane(client, org, event.payload);

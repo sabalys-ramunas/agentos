@@ -228,10 +228,6 @@ class LaunchMixin:
         egress guard bound, before anything uses it (agentos.node.expose routes a dev server there)."""
         self._session_listeners.append(callback)
 
-    def remove_session_listener(self, callback: Callable[[str, Any], Any]) -> None:
-        if callback in self._session_listeners:
-            self._session_listeners.remove(callback)
-
     async def _session_started(self, lane_id: str, session: Any) -> None:
         """Tell the session listeners. One that fails is logged, never the lane's failure: what it adds
         (an exposed dev server) is the owner's convenience, and the lane works without it."""

@@ -7,10 +7,10 @@ import os
 import subprocess
 
 import pytest
+from testkit.brains import FakeCtx, add, make_service, wait_status
 
 from agentos.brains import bundle as bundle_mod
 from agentos.brains.models import ContextBundle, GitRef
-from agentos.brains.testing import FakeCtx, add, make_service, wait_status
 from agentos.core.errors import ApprovalPending, InvalidRequest
 from agentos.core.models import Effect, Principal
 from agentos.core.runtime import Runtime

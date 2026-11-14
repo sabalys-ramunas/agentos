@@ -1,4 +1,4 @@
-"""The built panel (panel/dist) at `/`, with SPA fallback and cache headers.
+"""The built web app (web/dist) at `/`, with SPA fallback and cache headers.
 
 Hashed files under /assets are immutable for a year; everything else (index.html, the
 icon) is revalidated on every load so a new build shows up at once.
@@ -18,17 +18,8 @@ from agentos.api.errors import error_body
 IMMUTABLE = "public, max-age=31536000, immutable"
 REVALIDATE = "no-cache"
 
+# a checkout with web/, before the web app is built
 NOT_BUILT = """<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><title>agentos</title>
-<meta name="viewport" content="width=device-width, initial-scale=1"></head>
-<body style="font: 16px system-ui, sans-serif; max-width: 36rem; margin: 4rem auto; padding: 0 1rem">
-<h1>The panel is not built yet</h1>
-<p>The API is running. Build the panel once with <code>npm ci &amp;&amp; npm run build</code> in
-<code>panel/</code>, or point <code>AGENTOS_PANEL_DIR</code> at a built copy.</p>
-</body></html>"""
-
-# a checkout with web/ and no panel/ (the public repository), before the web app is built
-WEB_NOT_BUILT = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><title>agentos</title>
 <meta name="viewport" content="width=device-width, initial-scale=1"></head>
 <body style="font: 16px system-ui, sans-serif; max-width: 36rem; margin: 4rem auto; padding: 0 1rem">
@@ -38,7 +29,7 @@ in <code>web/</code> (Node.js 22 or later; <code>npx pnpm@10.33.0</code> works w
 then start agentos again. Or point <code>AGENTOS_PANEL_DIR</code> at a built copy.</p>
 </body></html>"""
 
-# an installation without the app's source (no panel/ and no web/ beside it)
+# an installation without the app's source (no web/ beside it)
 NO_APP = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><title>agentos</title>
 <meta name="viewport" content="width=device-width, initial-scale=1"></head>
@@ -54,10 +45,8 @@ and <code>agentos open --terminal</code> on the node.</p>
 def placeholder(panel_dir: Path) -> str:
     """The page for a node with no built app: how to build it, or, with no source to build, what to
     use instead."""
-    if (panel_dir.parent / "package.json").is_file():
+    if (panel_dir.parent / "package.json").is_file() or (panel_dir.parent.parent / "web" / "package.json").is_file():
         return NOT_BUILT
-    if (panel_dir.parent.parent / "web" / "package.json").is_file():
-        return WEB_NOT_BUILT
     return NO_APP
 
 

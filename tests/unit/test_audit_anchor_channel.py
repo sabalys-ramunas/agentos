@@ -21,10 +21,10 @@ from test_policy_support import T0, Clock
 from agentos.controller.grants import Keys
 from agentos.controller.hub import Hub, NodeSession
 from agentos.controller.store import ControllerStore
+from agentos.core.s3 import S3Object
+from agentos.core.signing import verify_controller
 from agentos.node.anchors import AnchorService, AnchorStore, fetch_s3
 from agentos.node.channel import wire
-from agentos.node.channel.identity import verify_controller
-from agentos.ops.s3 import S3Object
 from agentos.policy import anchors as anchor_rules
 from agentos.policy.auditlog import read_marks
 from agentos.policy.traces import TraceEvent, TraceStore
@@ -71,6 +71,9 @@ class Link:
     def __init__(self, answer):
         self.connected, self.conn, self.service = True, self, None
         self.answer, self.sent = answer, []
+
+    def envelope(self, kind: str, body: dict) -> wire.Envelope:  # as NodeChannel.envelope
+        return wire.Envelope(kind, body)
 
     async def send(self, env: wire.Envelope) -> None:
         self.sent.append(env)
@@ -713,3 +716,12 @@ def test_the_health_monitor_shows_anchor_status_and_warns_when_heads_wait(tmp_pa
     assert monitor.check_anchors()[0].level == "critical"
     monitor.anchors = None
     assert monitor.check_anchors() == []
+
+
+def test_the_node_channel_builds_the_messages_the_anchors_service_sends():
+    """The service sits a layer below the channel, so it asks the channel object for its envelopes."""
+    from agentos.node.channel.node import NodeChannel
+
+    env = NodeChannel.envelope(SimpleNamespace(), "audit_anchor", {"anchor": {"n": 1}})
+    assert isinstance(env, wire.Envelope) and env.type == "audit_anchor" and env.body == {"anchor": {"n": 1}}
+    assert env.id.startswith("m_") and env.re is None and env.seq is None

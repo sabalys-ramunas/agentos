@@ -1,0 +1,959 @@
+{
+ "all anchored": {
+  "ok": {
+   "findings": [],
+   "summary": {
+    "anchors": 4,
+    "matched": 4,
+    "anchored_through": {
+     "mark": 5,
+     "seq": 10,
+     "at": "2026-11-15T13:00:00+00:00"
+    },
+    "chain": "ch_pinned",
+    "retention_anchored": 1
+   }
+  }
+ },
+ "all anchored, trusted": {
+  "ok": {
+   "findings": [],
+   "summary": {
+    "anchors": 4,
+    "matched": 4,
+    "anchored_through": {
+     "mark": 5,
+     "seq": 10,
+     "at": "2026-11-15T13:00:00+00:00"
+    },
+    "chain": "ch_pinned",
+    "retention_anchored": 1
+   }
+  }
+ },
+ "all anchored, received times": {
+  "ok": {
+   "findings": [],
+   "summary": {
+    "anchors": 4,
+    "matched": 4,
+    "anchored_through": {
+     "mark": 5,
+     "seq": 10,
+     "at": "2026-11-15T13:00:00+00:00"
+    },
+    "chain": "ch_pinned",
+    "retention_anchored": 1
+   }
+  }
+ },
+ "nothing held": {
+  "ok": {
+   "findings": [
+    {
+     "level": "unprovable",
+     "text": "retention mark 4 (rows through seq 3) is not anchored off the node yet, so nothing held elsewhere shows when it removed those rows",
+     "seq": [
+      3,
+      3
+     ],
+     "mark": 4
+    },
+    {
+     "level": "unprovable",
+     "text": "checkpoints 2-5 are not anchored off the node yet, so rows after the last anchor are only as safe as the node's own key",
+     "mark": 2
+    }
+   ],
+   "summary": {
+    "anchors": 0,
+    "matched": 0,
+    "anchored_through": null,
+    "chain": "ch_pinned",
+    "retention_anchored": 0
+   }
+  }
+ },
+ "only the first checkpoint": {
+  "ok": {
+   "findings": [
+    {
+     "level": "unprovable",
+     "text": "retention mark 4 (rows through seq 3) is not anchored off the node yet, so nothing held elsewhere shows when it removed those rows",
+     "seq": [
+      3,
+      3
+     ],
+     "mark": 4
+    },
+    {
+     "level": "unprovable",
+     "text": "checkpoints 3-5 are not anchored off the node yet, so rows after the last anchor are only as safe as the node's own key",
+     "mark": 3
+    }
+   ],
+   "summary": {
+    "anchors": 1,
+    "matched": 1,
+    "anchored_through": {
+     "mark": 2,
+     "seq": 4,
+     "at": "2026-11-14T00:00:00+00:00"
+    },
+    "chain": "ch_pinned",
+    "retention_anchored": 0
+   }
+  }
+ },
+ "checkpoints only": {
+  "ok": {
+   "findings": [
+    {
+     "level": "unprovable",
+     "text": "retention mark 4 (rows through seq 3) was never anchored, though later marks were: nothing held elsewhere shows when it removed those rows, so they may have been removed to hide them",
+     "seq": [
+      3,
+      3
+     ],
+     "mark": 4
+    }
+   ],
+   "summary": {
+    "anchors": 3,
+    "matched": 3,
+    "anchored_through": {
+     "mark": 5,
+     "seq": 10,
+     "at": "2026-11-15T13:00:00+00:00"
+    },
+    "chain": "ch_pinned",
+    "retention_anchored": 0
+   }
+  }
+ },
+ "retention not anchored, later anchored": {
+  "ok": {
+   "findings": [
+    {
+     "level": "unprovable",
+     "text": "retention mark 4 (rows through seq 3) was never anchored, though later marks were: nothing held elsewhere shows when it removed those rows, so they may have been removed to hide them",
+     "seq": [
+      3,
+      3
+     ],
+     "mark": 4
+    }
+   ],
+   "summary": {
+    "anchors": 3,
+    "matched": 3,
+    "anchored_through": {
+     "mark": 5,
+     "seq": 10,
+     "at": "2026-11-15T13:00:00+00:00"
+    },
+    "chain": "ch_pinned",
+    "retention_anchored": 0
+   }
+  }
+ },
+ "newest not anchored": {
+  "ok": {
+   "findings": [
+    {
+     "level": "unprovable",
+     "text": "checkpoint 5 is not anchored off the node yet, so rows after the last anchor are only as safe as the node's own key",
+     "mark": 5
+    }
+   ],
+   "summary": {
+    "anchors": 3,
+    "matched": 3,
+    "anchored_through": {
+     "mark": 3,
+     "seq": 8,
+     "at": "2026-11-14T01:00:00+00:00"
+    },
+    "chain": "ch_pinned",
+    "retention_anchored": 1
+   }
+  }
+ },
+ "duplicates, earliest receipt wins": {
+  "ok": {
+   "findings": [],
+   "summary": {
+    "anchors": 4,
+    "matched": 4,
+    "anchored_through": {
+     "mark": 5,
+     "seq": 10,
+     "at": "2026-11-15T13:00:00+00:00"
+    },
+    "chain": "ch_pinned",
+    "retention_anchored": 1
+   }
+  }
+ },
+ "invalid anchors are skipped": {
+  "ok": {
+   "findings": [],
+   "summary": {
+    "anchors": 4,
+    "matched": 4,
+    "anchored_through": {
+     "mark": 5,
+     "seq": 10,
+     "at": "2026-11-15T13:00:00+00:00"
+    },
+    "chain": "ch_pinned",
+    "retention_anchored": 1
+   }
+  }
+ },
+ "held beyond the log's marks": {
+  "ok": {
+   "findings": [
+    {
+     "level": "tampered",
+     "text": "the log's marks end at mark 5, but the anchor of checkpoint 9 (seq 12, 2026-11-15T13:00:00+00:00) is held off the node: the log was cut back after it was anchored",
+     "mark": 9
+    }
+   ],
+   "summary": {
+    "anchors": 5,
+    "matched": 4,
+    "anchored_through": {
+     "mark": 5,
+     "seq": 10,
+     "at": "2026-11-15T13:00:00+00:00"
+    },
+    "chain": "ch_pinned",
+    "retention_anchored": 1
+   }
+  }
+ },
+ "an anchored mark is gone": {
+  "ok": {
+   "findings": [
+    {
+     "level": "tampered",
+     "text": "mark 3 is gone, but the anchor of checkpoint 3 (seq 8, 2026-11-14T01:00:00+00:00) is held off the node: checkpoints were deleted",
+     "mark": 3
+    }
+   ],
+   "summary": {
+    "anchors": 4,
+    "matched": 3,
+    "anchored_through": {
+     "mark": 5,
+     "seq": 10,
+     "at": "2026-11-15T13:00:00+00:00"
+    },
+    "chain": "ch_pinned",
+    "retention_anchored": 1
+   }
+  }
+ },
+ "anchor hash differs": {
+  "ok": {
+   "findings": [
+    {
+     "level": "tampered",
+     "text": "mark 3 no longer matches the anchor of checkpoint 3 (seq 8, 2026-11-14T01:00:00+00:00): it is now a checkpoint mark for seq 8 with another hash, key or time, so history was rewritten and signed again",
+     "seq": [
+      8,
+      8
+     ],
+     "mark": 3
+    }
+   ],
+   "summary": {
+    "anchors": 4,
+    "matched": 3,
+    "anchored_through": {
+     "mark": 5,
+     "seq": 10,
+     "at": "2026-11-15T13:00:00+00:00"
+    },
+    "chain": "ch_pinned",
+    "retention_anchored": 1
+   }
+  }
+ },
+ "anchor kid differs": {
+  "ok": {
+   "findings": [
+    {
+     "level": "tampered",
+     "text": "mark 3 no longer matches the anchor of checkpoint 3 (seq 8, 2026-11-14T01:00:00+00:00): it is now a checkpoint mark for seq 8 with another hash, key or time, so history was rewritten and signed again",
+     "seq": [
+      8,
+      8
+     ],
+     "mark": 3
+    }
+   ],
+   "summary": {
+    "anchors": 4,
+    "matched": 3,
+    "anchored_through": {
+     "mark": 5,
+     "seq": 10,
+     "at": "2026-11-15T13:00:00+00:00"
+    },
+    "chain": "ch_pinned",
+    "retention_anchored": 1
+   }
+  }
+ },
+ "anchor time differs": {
+  "ok": {
+   "findings": [
+    {
+     "level": "tampered",
+     "text": "mark 2 no longer matches the anchor of checkpoint 2 (seq 4, 2026-11-18T03:00:00+00:00): it is now a checkpoint mark for seq 4 with another hash, key or time, so history was rewritten and signed again",
+     "seq": [
+      4,
+      4
+     ],
+     "mark": 2
+    }
+   ],
+   "summary": {
+    "anchors": 4,
+    "matched": 3,
+    "anchored_through": {
+     "mark": 5,
+     "seq": 10,
+     "at": "2026-11-15T13:00:00+00:00"
+    },
+    "chain": "ch_pinned",
+    "retention_anchored": 1
+   }
+  }
+ },
+ "anchor says checkpoint, mark is retention": {
+  "ok": {
+   "findings": [
+    {
+     "level": "tampered",
+     "text": "mark 4 no longer matches the anchor of checkpoint 4 (seq 3, 2026-11-15T12:00:00+00:00): it is now a retention mark for seq 3 with another hash, key or time, so history was rewritten and signed again",
+     "seq": [
+      3,
+      3
+     ],
+     "mark": 4
+    }
+   ],
+   "summary": {
+    "anchors": 4,
+    "matched": 3,
+    "anchored_through": {
+     "mark": 5,
+     "seq": 10,
+     "at": "2026-11-15T13:00:00+00:00"
+    },
+    "chain": "ch_pinned",
+    "retention_anchored": 0
+   }
+  }
+ },
+ "retention anchor with no kind, not a checkpoint": {
+  "ok": {
+   "findings": [
+    {
+     "level": "note",
+     "text": "the anchor of retention mark 4 does not say it is a retention mark (the controller that took it was older than retention anchors); it cannot be a checkpoint, since an earlier checkpoint already reached seq 3",
+     "mark": 4
+    }
+   ],
+   "summary": {
+    "anchors": 4,
+    "matched": 4,
+    "anchored_through": {
+     "mark": 5,
+     "seq": 10,
+     "at": "2026-11-15T13:00:00+00:00"
+    },
+    "chain": "ch_pinned",
+    "retention_anchored": 1
+   }
+  }
+ },
+ "retention anchor with no kind, could be a checkpoint": {
+  "ok": {
+   "findings": [
+    {
+     "level": "tampered",
+     "text": "mark 3 no longer matches the anchor of checkpoint 3 (seq 9, 2026-11-15T06:00:00+00:00): it is now a retention mark for seq 9 with another hash, key or time, so history was rewritten and signed again",
+     "seq": [
+      9,
+      9
+     ],
+     "mark": 3
+    }
+   ],
+   "summary": {
+    "anchors": 3,
+    "matched": 2,
+    "anchored_through": {
+     "mark": 4,
+     "seq": 10,
+     "at": "2026-11-15T07:00:00+00:00"
+    },
+    "chain": "ch_pinned",
+    "retention_anchored": 0
+   }
+  }
+ },
+ "retention anchor with no kind, earlier checkpoint held": {
+  "ok": {
+   "findings": [
+    {
+     "level": "tampered",
+     "text": "mark 3 no longer matches the anchor of checkpoint 3 (seq 9, 2026-11-15T06:00:00+00:00): it is now a retention mark for seq 9 with another hash, key or time, so history was rewritten and signed again",
+     "seq": [
+      9,
+      9
+     ],
+     "mark": 3
+    }
+   ],
+   "summary": {
+    "anchors": 3,
+    "matched": 2,
+    "anchored_through": {
+     "mark": 4,
+     "seq": 10,
+     "at": "2026-11-15T07:00:00+00:00"
+    },
+    "chain": "ch_pinned",
+    "retention_anchored": 0
+   }
+  }
+ },
+ "row rewritten under an anchor": {
+  "ok": {
+   "findings": [
+    {
+     "level": "tampered",
+     "text": "row seq 8 no longer has the hash the anchor of checkpoint 3 (seq 8, 2026-11-14T01:00:00+00:00) holds: the log was rewritten after it was anchored",
+     "seq": [
+      8,
+      8
+     ],
+     "mark": 3
+    }
+   ],
+   "summary": {
+    "anchors": 4,
+    "matched": 3,
+    "anchored_through": {
+     "mark": 5,
+     "seq": 10,
+     "at": "2026-11-15T13:00:00+00:00"
+    },
+    "chain": "ch_pinned",
+    "retention_anchored": 1
+   }
+  }
+ },
+ "rows cut from the end": {
+  "ok": {
+   "findings": [
+    {
+     "level": "tampered",
+     "text": "the log ends at seq 8, but the anchor of checkpoint 5 (seq 10, 2026-11-15T13:00:00+00:00) covers rows through seq 10: rows were deleted from the end after it was anchored",
+     "seq": [
+      9,
+      10
+     ],
+     "mark": 5
+    }
+   ],
+   "summary": {
+    "anchors": 4,
+    "matched": 3,
+    "anchored_through": {
+     "mark": 3,
+     "seq": 8,
+     "at": "2026-11-14T01:00:00+00:00"
+    },
+    "chain": "ch_pinned",
+    "retention_anchored": 1
+   }
+  }
+ },
+ "row gone, no retention": {
+  "ok": {
+   "findings": [
+    {
+     "level": "tampered",
+     "text": "row seq 8 is gone, though no signed retention mark removed it and the anchor of checkpoint 3 (seq 8, 2026-11-14T01:00:00+00:00) is held off the node",
+     "seq": [
+      8,
+      8
+     ],
+     "mark": 3
+    }
+   ],
+   "summary": {
+    "anchors": 4,
+    "matched": 3,
+    "anchored_through": {
+     "mark": 5,
+     "seq": 10,
+     "at": "2026-11-15T13:00:00+00:00"
+    },
+    "chain": "ch_pinned",
+    "retention_anchored": 1
+   }
+  }
+ },
+ "checkpoint at the retention head, other hash": {
+  "ok": {
+   "findings": [
+    {
+     "level": "tampered",
+     "text": "the retention mark says the log was pruned through seq 3 with another hash than the anchor of checkpoint 2 (seq 3, 2026-11-14T00:00:00+00:00) holds",
+     "seq": [
+      3,
+      3
+     ],
+     "mark": 2
+    },
+    {
+     "level": "unprovable",
+     "text": "retention mark 3 removed rows through seq 3, but no anchored checkpoint before it covers those rows, so nothing held off the node shows they were old: they may have been removed to hide them",
+     "seq": [
+      3,
+      3
+     ],
+     "mark": 3
+    }
+   ],
+   "summary": {
+    "anchors": 2,
+    "matched": 1,
+    "anchored_through": {
+     "mark": 4,
+     "seq": 10,
+     "at": "2026-11-15T07:00:00+00:00"
+    },
+    "chain": "ch_pinned",
+    "retention_anchored": 0
+   }
+  }
+ },
+ "checkpoint at the retention head": {
+  "ok": {
+   "findings": [],
+   "summary": {
+    "anchors": 3,
+    "matched": 3,
+    "anchored_through": {
+     "mark": 4,
+     "seq": 10,
+     "at": "2026-11-15T07:00:00+00:00"
+    },
+    "chain": "ch_pinned",
+    "retention_anchored": 1
+   }
+  }
+ },
+ "foreign chain": {
+  "ok": {
+   "findings": [
+    {
+     "level": "tampered",
+     "text": "this log is chain ch_pinned, but chain ch_other was anchored through seq 10 (checkpoint 5, 2026-11-15T13:00:00+00:00): the log was reset and started again",
+     "mark": 5
+    }
+   ],
+   "summary": {
+    "anchors": 5,
+    "matched": 4,
+    "anchored_through": {
+     "mark": 5,
+     "seq": 10,
+     "at": "2026-11-15T13:00:00+00:00"
+    },
+    "chain": "ch_pinned",
+    "retention_anchored": 1
+   }
+  }
+ },
+ "no chain, foreign anchors": {
+  "ok": {
+   "findings": [
+    {
+     "level": "tampered",
+     "text": "this log has no chain, but chain ch_pinned was anchored through seq 10 (checkpoint 5, 2026-11-15T13:00:00+00:00): the log was deleted or reset",
+     "mark": 5
+    }
+   ],
+   "summary": {
+    "anchors": 4,
+    "matched": 0,
+    "anchored_through": null,
+    "chain": null,
+    "retention_anchored": 0
+   }
+  }
+ },
+ "a later checkpoint with a lower seq": {
+  "ok": {
+   "findings": [],
+   "summary": {
+    "anchors": 2,
+    "matched": 2,
+    "anchored_through": {
+     "mark": 2,
+     "seq": 8,
+     "at": "2026-11-14T00:00:00+00:00"
+    },
+    "chain": "ch_pinned",
+    "retention_anchored": 0
+   }
+  }
+ },
+ "retention two hours after the checkpoint": {
+  "ok": {
+   "findings": [
+    {
+     "level": "unprovable",
+     "text": "retention mark 3 removed rows through seq 3, but it came 2 hours after checkpoint 2 (seq 4) by its own time, and retention keeps rows at least a day: they may have been removed to hide them",
+     "seq": [
+      3,
+      3
+     ],
+     "mark": 3
+    }
+   ],
+   "summary": {
+    "anchors": 3,
+    "matched": 3,
+    "anchored_through": {
+     "mark": 4,
+     "seq": 10,
+     "at": "2026-11-14T03:00:00+00:00"
+    },
+    "chain": "ch_pinned",
+    "retention_anchored": 1
+   }
+  }
+ },
+ "retention under an hour after": {
+  "ok": {
+   "findings": [
+    {
+     "level": "unprovable",
+     "text": "retention mark 3 removed rows through seq 3, but it came less than an hour after checkpoint 2 (seq 4) by its own time, and retention keeps rows at least a day: they may have been removed to hide them",
+     "seq": [
+      3,
+      3
+     ],
+     "mark": 3
+    }
+   ],
+   "summary": {
+    "anchors": 3,
+    "matched": 3,
+    "anchored_through": {
+     "mark": 4,
+     "seq": 10,
+     "at": "2026-11-14T01:00:00+00:00"
+    },
+    "chain": "ch_pinned",
+    "retention_anchored": 1
+   }
+  }
+ },
+ "retention dated by its receipt": {
+  "ok": {
+   "findings": [
+    {
+     "level": "unprovable",
+     "text": "retention mark 3 removed rows through seq 3, but it came less than an hour after checkpoint 2 (seq 4) by when it was received off the node, and retention keeps rows at least a day: they may have been removed to hide them",
+     "seq": [
+      3,
+      3
+     ],
+     "mark": 3
+    }
+   ],
+   "summary": {
+    "anchors": 3,
+    "matched": 3,
+    "anchored_through": {
+     "mark": 4,
+     "seq": 10,
+     "at": "2026-11-14T03:00:00+00:00"
+    },
+    "chain": "ch_pinned",
+    "retention_anchored": 1
+   }
+  }
+ },
+ "retention dated by a later mark's receipt": {
+  "ok": {
+   "findings": [
+    {
+     "level": "unprovable",
+     "text": "retention mark 3 removed rows through seq 3, but it came 2 hours after checkpoint 2 (seq 4) by its own time, and retention keeps rows at least a day: they may have been removed to hide them",
+     "seq": [
+      3,
+      3
+     ],
+     "mark": 3
+    }
+   ],
+   "summary": {
+    "anchors": 3,
+    "matched": 3,
+    "anchored_through": {
+     "mark": 4,
+     "seq": 10,
+     "at": "2026-11-14T03:00:00+00:00"
+    },
+    "chain": "ch_pinned",
+    "retention_anchored": 1
+   }
+  }
+ },
+ "retention with no readable time": {
+  "ok": {
+   "findings": [
+    {
+     "level": "unprovable",
+     "text": "retention mark 3 removed rows through seq 3, but it carries no time a verifier can read, and nothing held off the node dates it, and retention keeps rows at least a day: they may have been removed to hide them",
+     "seq": [
+      3,
+      3
+     ],
+     "mark": 3
+    }
+   ],
+   "summary": {
+    "anchors": 3,
+    "matched": 3,
+    "anchored_through": {
+     "mark": 4,
+     "seq": 10,
+     "at": "2026-11-14T03:00:00+00:00"
+    },
+    "chain": "ch_pinned",
+    "retention_anchored": 1
+   }
+  }
+ },
+ "retention with no checkpoint before it": {
+  "ok": {
+   "findings": [
+    {
+     "level": "unprovable",
+     "text": "retention mark 2 removed rows through seq 3, but no anchored checkpoint before it covers those rows, so nothing held off the node shows they were old: they may have been removed to hide them",
+     "seq": [
+      3,
+      3
+     ],
+     "mark": 2
+    }
+   ],
+   "summary": {
+    "anchors": 2,
+    "matched": 2,
+    "anchored_through": {
+     "mark": 3,
+     "seq": 10,
+     "at": "2026-11-15T07:00:00+00:00"
+    },
+    "chain": "ch_pinned",
+    "retention_anchored": 1
+   }
+  }
+ },
+ "retention with no checkpoint before it, none held": {
+  "ok": {
+   "findings": [
+    {
+     "level": "unprovable",
+     "text": "retention mark 2 (rows through seq 3) is not anchored off the node yet, so nothing held elsewhere shows when it removed those rows",
+     "seq": [
+      3,
+      3
+     ],
+     "mark": 2
+    },
+    {
+     "level": "unprovable",
+     "text": "checkpoint 3 is not anchored off the node yet, so rows after the last anchor are only as safe as the node's own key",
+     "mark": 3
+    }
+   ],
+   "summary": {
+    "anchors": 0,
+    "matched": 0,
+    "anchored_through": null,
+    "chain": "ch_pinned",
+    "retention_anchored": 0
+   }
+  }
+ },
+ "retention covered by a later-seq checkpoint": {
+  "ok": {
+   "findings": [],
+   "summary": {
+    "anchors": 3,
+    "matched": 3,
+    "anchored_through": {
+     "mark": 4,
+     "seq": 10,
+     "at": "2026-11-15T07:00:00+00:00"
+    },
+    "chain": "ch_pinned",
+    "retention_anchored": 1
+   }
+  }
+ },
+ "a second retention mark that goes back": {
+  "ok": {
+   "findings": [],
+   "summary": {
+    "anchors": 5,
+    "matched": 5,
+    "anchored_through": {
+     "mark": 6,
+     "seq": 12,
+     "at": "2026-11-16T13:00:00+00:00"
+    },
+    "chain": "ch_pinned",
+    "retention_anchored": 2
+   }
+  }
+ },
+ "retention through_seq not a number": {
+  "ok": {
+   "findings": [],
+   "summary": {
+    "anchors": 3,
+    "matched": 3,
+    "anchored_through": {
+     "mark": 5,
+     "seq": 10,
+     "at": "2026-11-15T13:00:00+00:00"
+    },
+    "chain": "ch_pinned",
+    "retention_anchored": 0
+   }
+  }
+ },
+ "unreadable retention mark": {
+  "ok": {
+   "findings": [
+    {
+     "level": "tampered",
+     "text": "mark 4 no longer matches the anchor of retention mark 4 (seq 3, 2026-11-15T12:00:00+00:00): it is now a retention mark for seq None with another hash, key or time, so history was rewritten and signed again",
+     "seq": [
+      3,
+      3
+     ],
+     "mark": 4
+    }
+   ],
+   "summary": {
+    "anchors": 4,
+    "matched": 3,
+    "anchored_through": {
+     "mark": 5,
+     "seq": 10,
+     "at": "2026-11-15T13:00:00+00:00"
+    },
+    "chain": "ch_pinned",
+    "retention_anchored": 0
+   }
+  }
+ },
+ "retention of rows from before the chain": {
+  "ok": {
+   "findings": [],
+   "summary": {
+    "anchors": 3,
+    "matched": 3,
+    "anchored_through": {
+     "mark": 5,
+     "seq": 10,
+     "at": "2026-11-15T13:00:00+00:00"
+    },
+    "chain": "ch_pinned",
+    "retention_anchored": 0
+   }
+  }
+ },
+ "marks older than every anchor held": {
+  "ok": {
+   "findings": [],
+   "summary": {
+    "anchors": 1,
+    "matched": 1,
+    "anchored_through": {
+     "mark": 5,
+     "seq": 10,
+     "at": "2026-11-15T13:00:00+00:00"
+    },
+    "chain": "ch_pinned",
+    "retention_anchored": 0
+   }
+  }
+ },
+ "no traces table": {
+  "ok": {
+   "findings": [
+    {
+     "level": "tampered",
+     "text": "the log ends at seq 3, but the anchor of checkpoint 2 (seq 4, 2026-11-14T00:00:00+00:00) covers rows through seq 4: rows were deleted from the end after it was anchored",
+     "seq": [
+      4,
+      4
+     ],
+     "mark": 2
+    },
+    {
+     "level": "tampered",
+     "text": "the log ends at seq 3, but the anchor of checkpoint 3 (seq 8, 2026-11-14T01:00:00+00:00) covers rows through seq 8: rows were deleted from the end after it was anchored",
+     "seq": [
+      4,
+      8
+     ],
+     "mark": 3
+    },
+    {
+     "level": "tampered",
+     "text": "the log ends at seq 3, but the anchor of checkpoint 5 (seq 10, 2026-11-15T13:00:00+00:00) covers rows through seq 10: rows were deleted from the end after it was anchored",
+     "seq": [
+      4,
+      10
+     ],
+     "mark": 5
+    },
+    {
+     "level": "unprovable",
+     "text": "retention mark 4 removed rows through seq 3, but no anchored checkpoint before it covers those rows, so nothing held off the node shows they were old: they may have been removed to hide them",
+     "seq": [
+      3,
+      3
+     ],
+     "mark": 4
+    }
+   ],
+   "summary": {
+    "anchors": 4,
+    "matched": 1,
+    "anchored_through": null,
+    "chain": "ch_pinned",
+    "retention_anchored": 1
+   }
+  }
+ }
+}

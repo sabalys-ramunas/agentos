@@ -28,8 +28,9 @@ from starlette.requests import Request
 from starlette.routing import Route
 
 from agentos.api.app import Api, access_of, endpoint, read_body
-from agentos.api.jsonable import jsonable, maybe_await
+from agentos.api.jsonable import jsonable
 from agentos.api.routes_core import one_lane, scoped_lane_id
+from agentos.core.aio import maybe_await
 from agentos.core.errors import InvalidRequest, NotFound, ServiceUnavailable
 from agentos.core.models import DEVICE_NAME_RE
 from agentos.core.presence import Presence

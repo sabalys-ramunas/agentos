@@ -21,6 +21,7 @@ from agentos.api.app import Api
 from agentos.api.web import history, telling
 from agentos.api.web.base import org_route, read
 from agentos.api.web.home import account_state, face_of
+from agentos.core import clock
 from agentos.core.errors import InvalidRequest
 
 NIGHT_STARTS, NIGHT_ENDS = 23, 7
@@ -32,10 +33,6 @@ POSTS = frozenset({history.POST, history.PUBLISH, history.REPLY})
 
 def _clock(hour: int) -> str:
     return f"{hour % 12 or 12} {'am' if hour < 12 else 'pm'}"
-
-
-def _iso(moment: datetime) -> str:
-    return moment.astimezone(UTC).isoformat().replace("+00:00", "Z")
 
 
 def _at(stamp: str) -> datetime:
@@ -89,7 +86,7 @@ def routes(api: Api) -> list[BaseRoute]:
         for row in rows:
             at = _at(row["at"])
             hour = at.astimezone(UTC).replace(minute=0, second=0, microsecond=0)
-            slot = hours.setdefault(hour, {"at": _iso(hour), "actions": 0, "failed": 0})
+            slot = hours.setdefault(hour, {"at": clock.iso(hour, z=True), "actions": 0, "failed": 0})
             slot["actions"] += 1
             if row.get("status") == "error":
                 slot["failed"] += 1
@@ -112,7 +109,7 @@ def routes(api: Api) -> list[BaseRoute]:
                 continue
             place = telling.place_of(lane_id, names)
             stopped.append({
-                "lane": lane_id, "place": place, "at": _iso(at), "face": face,
+                "lane": lane_id, "place": place, "at": clock.iso(at, z=True), "face": face,
                 "sentence": f"{place} stopped at {local(at)} and needs you.",
             })
         stopped = stopped[:MAX_NIGHT_STOPS]
@@ -129,8 +126,8 @@ def routes(api: Api) -> list[BaseRoute]:
         parts += [item["sentence"] for item in stopped]
         return {
             "timezone": api.timezone,
-            "from": _iso(start),
-            "to": _iso(end),
+            "from": clock.iso(start, z=True),
+            "to": clock.iso(end, z=True),
             "label": f"{_clock(NIGHT_STARTS)} to {_clock(NIGHT_ENDS)}",
             "over": now >= end,
             "actions": actions,

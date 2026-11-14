@@ -33,6 +33,9 @@ from agentos.core.models import (
 )
 from agentos.node.store import LaneStore
 from agentos.stealth import lanecheck as lc
+from agentos.stealth import lanefacts as lc_facts
+from agentos.stealth import lanereport as lc_report
+from agentos.stealth import lanerules as lc_rules
 from agentos.stealth.lanecheck import FAIL, OK, UNKNOWN, WARN, LaneChecker, LaneFacts
 
 NOW = datetime(2026, 11, 4, 12, 0, tzinfo=UTC)
@@ -117,7 +120,7 @@ def cookie_db(profile: Path, cookies: list[tuple[str, str, str, float]]) -> None
         conn.close()
 
 
-def by_id(report: lc.LaneReport) -> dict[str, lc.Check]:
+def by_id(report: lc_report.LaneReport) -> dict[str, lc_report.Check]:
     return {c.id: c for c in report.checks}
 
 
@@ -140,7 +143,7 @@ class StateManager:
 
 def test_the_offline_guard_stops_the_real_host():
     """Held: if a check ever used the real Host, the first socket would raise instead of connecting."""
-    from agentos.ops.system import Host
+    from agentos.core.system import Host
 
     with pytest.raises(AssertionError, match="reached the network"):
         Host().tcp_connect("203.0.113.7", 80, timeout=0.1)
@@ -160,7 +163,7 @@ def rig(tmp_path) -> Rig:
 @pytest.mark.parametrize(("exit_tz", "pinned_tz"), [(None, "America/New_York"), ("Europe/Vilnius", "Mars/Olympus")])
 def test_location_does_not_claim_a_match_it_never_compared(exit_tz, pinned_tz):
     geo = {"ip": "203.0.113.7", "country": "LT" if exit_tz else "US", **({"timezone": exit_tz} if exit_tz else {})}
-    check = lc.judge_location(geo, pinned_tz=pinned_tz, pinned_country=None, locale="en", at=NOW)
+    check = lc_rules.judge_location(geo, pinned_tz=pinned_tz, pinned_country=None, locale="en", at=NOW)
     assert "same offset" not in check.detail and "same timezone" not in check.detail, check.detail
     assert check.level in (UNKNOWN, WARN)
 
@@ -168,16 +171,16 @@ def test_location_does_not_claim_a_match_it_never_compared(exit_tz, pinned_tz):
 def test_location_flags_a_timezone_one_hour_off_and_a_country_one_letter_off():
     """Held: a pin in Vilnius and an exit in Berlin differ by an hour and are caught; so is a country that
     differs from the pinned one by one letter (LT against LV)."""
-    far = lc.judge_location({"ip": "x", "country": "DE", "timezone": "Europe/Berlin"}, pinned_tz="Europe/Vilnius",
+    far = lc_rules.judge_location({"ip": "x", "country": "DE", "timezone": "Europe/Berlin"}, pinned_tz="Europe/Vilnius",
                             pinned_country=None, locale="en", at=NOW)
     assert far.level == WARN and "UTC+02:00" in far.detail
-    one_letter = lc.judge_location({"ip": "x", "country": "LV", "timezone": "Europe/Riga"},
+    one_letter = lc_rules.judge_location({"ip": "x", "country": "LV", "timezone": "Europe/Riga"},
                                    pinned_tz="Europe/Vilnius", pinned_country="LT", locale="lt-LT", at=NOW)
     assert one_letter.level == WARN and "the pin was made in LT" in one_letter.detail
-    gb = lc.judge_location({"ip": "x", "country": "GB", "timezone": "Europe/London"}, pinned_tz="Europe/London",
+    gb = lc_rules.judge_location({"ip": "x", "country": "GB", "timezone": "Europe/London"}, pinned_tz="Europe/London",
                            pinned_country="GB", locale="en-GB", at=NOW)
     assert gb.level == OK
-    assert lc.judge_location({"ip": "x", "country": "IE", "timezone": "Europe/Dublin"}, pinned_tz="Europe/London",
+    assert lc_rules.judge_location({"ip": "x", "country": "IE", "timezone": "Europe/Dublin"}, pinned_tz="Europe/London",
                              pinned_country="GB", locale="en-GB", at=NOW).level == WARN
 
 
@@ -185,10 +188,10 @@ def test_offset_is_right_on_the_days_the_clocks_change():
     """Held: the offset is read at the instant, so the 23 and 25 hour days give the right pair."""
     before = datetime(2026, 3, 29, 0, 59, tzinfo=UTC)   # Vilnius: 02:59 EET
     after = datetime(2026, 3, 29, 1, 1, tzinfo=UTC)     # Vilnius: 04:01 EEST
-    assert lc.utc_offset("Europe/Vilnius", before) == "UTC+02:00"
-    assert lc.utc_offset("Europe/Vilnius", after) == "UTC+03:00"
-    assert lc.utc_offset("America/St_Johns", NOW) == "UTC-03:30"
-    assert lc.utc_offset("Australia/Lord_Howe", datetime(2026, 1, 1, tzinfo=UTC)) == "UTC+11:00"
+    assert lc_rules.utc_offset("Europe/Vilnius", before) == "UTC+02:00"
+    assert lc_rules.utc_offset("Europe/Vilnius", after) == "UTC+03:00"
+    assert lc_rules.utc_offset("America/St_Johns", NOW) == "UTC-03:30"
+    assert lc_rules.utc_offset("Australia/Lord_Howe", datetime(2026, 1, 1, tzinfo=UTC)) == "UTC+11:00"
 
 
 # ---- the geo cache ------------------------------------------------------------------------------
@@ -291,7 +294,7 @@ async def test_an_unreadable_exit_pin_is_not_a_pass(rig, monkeypatch):
     rig.store.pin_proxy_exit("gw", "198.51.100.1")
     rig.exit_of("198.51.100.9", {"country": "LT", "timezone": "Europe/Vilnius"})
     calls = []
-    real = lc.connect_ro
+    real = lc_facts.connect_ro
 
     def flaky(path, timeout=5.0):
         calls.append(path)
@@ -299,7 +302,7 @@ async def test_an_unreadable_exit_pin_is_not_a_pass(rig, monkeypatch):
             raise sqlite3.OperationalError("database is locked")
         return real(path, timeout)
 
-    monkeypatch.setattr(lc, "connect_ro", flaky)
+    monkeypatch.setattr(lc_facts, "connect_ro", flaky)
     exit_ip = by_id(await rig.checker().check("biz/instagram"))["exit_ip"]
     assert len(calls) >= 2
     assert exit_ip.level != OK, exit_ip.detail
@@ -325,7 +328,7 @@ async def test_offline_mode_does_not_blame_the_proxy(rig):
 
 
 async def test_a_corrupt_cookie_file_is_not_blamed_on_a_busy_browser(rig, monkeypatch):
-    monkeypatch.setattr(lc.time, "sleep", lambda s: None)
+    monkeypatch.setattr(time, "sleep", lambda s: None)
     profile = rig.lane(account=AccountRef(site="instagram", user_id="4242"), cookies=False)
     (profile / "cookies.sqlite").write_bytes(b"this is not a database at all" * 20)
     session = by_id(await rig.checker().check("biz/instagram"))["session"]
@@ -347,7 +350,7 @@ async def test_a_missing_proxy_is_not_described_as_no_proxy(rig):
 def test_an_ended_timed_hold_is_not_a_hold_for_a_human(ended_ago):
     hold = LaneControl(state=ControlState.PAUSED, by="node", since=NOW - timedelta(hours=1), reason="rate_limited",
                        hold_until=NOW - ended_ago)
-    check = lc.judge_hold(LaneFacts(LaneSpec(id="biz/instagram"), control=hold), now=NOW)
+    check = lc_rules.judge_hold(LaneFacts(LaneSpec(id="biz/instagram"), control=hold), now=NOW)
     assert check.level != FAIL and check.data.get("cleared_by") != "human", check.detail
 
 
@@ -355,7 +358,7 @@ def test_a_time_in_another_zone_is_converted_to_utc():
     vilnius = ZoneInfo("Europe/Vilnius")
     at = datetime(2026, 3, 29, 4, 30, tzinfo=vilnius)    # the day the clocks change: 04:30 EEST is 01:30 UTC
     assert at.astimezone(UTC).strftime("%H:%M") == "01:30"
-    q = lc.judge_hold(LaneFacts(LaneSpec(id="biz/instagram"), quarantine={"reason": "x", "at": at, "by": "node",
+    q = lc_rules.judge_hold(LaneFacts(LaneSpec(id="biz/instagram"), quarantine={"reason": "x", "at": at, "by": "node",
                                                                           "kind": "manual"}), now=NOW)
     assert "2026-03-29 01:30 UTC" in q.detail, q.detail
 
@@ -393,8 +396,8 @@ async def test_a_crashed_check_is_not_safe_to_use(rig):
 
 
 def test_the_summary_does_not_say_every_check_passed_when_some_could_not_run():
-    report = lc.LaneReport("biz/instagram", "cold", NOW, [lc.Check("proxy", OK, "Proxy gw answers."),
-                                                         lc.Check("session", UNKNOWN, "The session cookies could "
+    report = lc_report.LaneReport("biz/instagram", "cold", NOW, [lc_report.Check("proxy", OK, "Proxy gw answers."),
+                                                         lc_report.Check("session", UNKNOWN, "The session cookies could "
                                                                   "not be read.")])
     assert "every check passed" not in report.summary()
 
@@ -451,7 +454,7 @@ async def test_no_secret_reaches_the_report_or_the_log(rig, caplog):
     rig.host.tcp_errors[GATEWAY.host] = OSError(f"refused for {GATEWAY.username}:{GATEWAY.password}")
     down = await rig.checker().check("biz/instagram")
     assert by_id(down)["proxy"].level == FAIL
-    text = "".join(json.dumps(r.to_dict()) + lc.format_report(r) + repr(r) for r in (report, down)) + caplog.text
+    text = "".join(json.dumps(r.to_dict()) + lc_report.format_report(r) + repr(r) for r in (report, down)) + caplog.text
     for secret in ("SESSION-SECRET-VALUE", "4242", "9999", GATEWAY.username, GATEWAY.password):
         assert secret not in text, secret
 
@@ -484,7 +487,7 @@ async def test_the_check_writes_nothing_into_the_profile(rig):
 async def test_reading_launch_prefs_from_the_real_engine_writes_no_file(rig):
     """Held: the check asks the real engine for its network prefs; for an unproxied lane the engine would
     write network-guard.pac next to the profile, and the check must never get there."""
-    from agentos.node.engine_camoufox import CamoufoxEngine
+    from agentos.node.camoufox.engine import CamoufoxEngine
 
     rig.lane(cookies=False)
     rig.lane("biz/direct", proxy=None, cookies=False)
@@ -513,7 +516,7 @@ async def test_proxy_error_text_keeps_no_piece_of_the_password(rig):
 async def test_a_commented_out_pref_is_not_read_as_set(rig):
     profile = rig.lane(cookies=False)
     (profile / "user.js").write_text('/* kept for later\nuser_pref("media.peerconnection.enabled", false);\n*/\n')
-    assert lc.parse_prefs((profile / "user.js").read_text()) == {}
+    assert lc_rules.parse_prefs((profile / "user.js").read_text()) == {}
     webrtc = by_id(await rig.checker().check("biz/instagram"))["webrtc"]
     # Not "WebRTC is off": the commented-out pref is not set. The engine's proxy_only (set on every
     # proxied lane since the WebRTC leak fix) is what makes it ok.

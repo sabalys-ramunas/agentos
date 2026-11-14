@@ -39,7 +39,7 @@ gives whichever one you use:
   app or the chat, with a button to take the browser over.
 
 Everything else is a feature on top: studio's page checks, profiles with a brand, logged-in
-browser lanes for your own accounts, routines, the engagement engine.
+browser lanes for your own accounts and routines.
 
 ## The building blocks
 
@@ -87,8 +87,6 @@ asks for agentos or a VM, or the work needs a machine (builds, tests, a dev serv
 - **Routines**: flows recorded once and replayed with no model, workflows on a schedule, and
   brains (your own `claude -p` or `codex exec`) that keep working with your laptop closed
   ([WORKFLOWS.md](WORKFLOWS.md)).
-- **The engagement engine**: a slow, capped program for your own business accounts, with
-  comments you approve ([ENGAGEMENT.md](ENGAGEMENT.md)).
 
 ## What agentos is not
 

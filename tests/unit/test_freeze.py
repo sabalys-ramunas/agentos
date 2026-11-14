@@ -23,13 +23,13 @@ from freeze_support import (
     task,
 )
 
-from agentos.core.errors import AgentPaused, InvalidRequest, LaneNotFound
+from agentos.core import signing
+from agentos.core.errors import AgentPaused, Frozen, InvalidRequest, LaneNotFound
 from agentos.core.models import LaneState
-from agentos.freeze.errors import Frozen
 from agentos.freeze.service import FreezeService
-from agentos.freeze.store import FreezeRecord, FreezeStore, parse_key, scope_key
 from agentos.node import human, interrupts
 from agentos.policy.errors import Denied
+from agentos.policy.freeze_store import FreezeRecord, FreezeStore, parse_key, scope_key
 
 EM_DASH = "—"
 
@@ -646,7 +646,6 @@ async def test_the_sweep_result_is_saved_even_after_the_directory_was_read_again
 def _org_node(tmp_path):
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-    from agentos.node.channel import wire
     from agentos.policy import tokens
     from agentos.policy.grants import GrantBlock
     from agentos.policy.issuers import SERVICE_NAME, TrustedIssuers
@@ -654,7 +653,7 @@ def _org_node(tmp_path):
 
     org = Ed25519PrivateKey.generate()
     issuers = TrustedIssuers(tmp_path)
-    issuers.trust("org:test", wire.public_b64(org))
+    issuers.trust("org:test", signing.public_b64(org))
 
     def mint(sub: str, kind: str = "agent", **scope) -> str:
         block = {"v": 1, "id": new_id("gr"), "rid": new_id("rv"), "iat": int(time.time()),

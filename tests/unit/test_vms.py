@@ -13,6 +13,7 @@ from agentos.core.errors import InvalidRequest, LaneExists, PolicyDenied
 from agentos.core.models import Effect, Principal, utcnow
 from agentos.core.runtime import Runtime
 from agentos.env.host import FakeHost
+from agentos.env.lanes import SandboxError
 from agentos.env.manager import EnvManager
 from agentos.env.paths import EnvSettings
 from agentos.env.sandbox import DirectLauncher, Workload
@@ -72,6 +73,20 @@ async def test_create_makes_a_ready_vm_lane_with_pinned_keys(env):
     known = (vms.dir / rec.id / "known_hosts").read_text().split()
     assert "ssh_pwauth: false" in ud and known[2] in ud and known[0] == f"agentos-{rec.id}"
     assert oct((vms.dir / rec.id / "id_ed25519").stat().st_mode & 0o777) == "0o600"
+
+
+async def test_vms_gives_the_env_manager_its_ssh_launcher(env, tmp_path):
+    """env never imports vms: a VM lane warms with the launcher vms hands the env manager, and an env
+    manager no VM manager reached refuses a VM lane instead of running it on the node."""
+    vms, envs, _, _ = env
+    assert isinstance(envs.remote_launcher, ssh.SshLauncher)
+    rec = await vms.create("dev/build-2", ttl_minutes=60, purpose="run tests")
+    alone = EnvManager(tmp_path / "home", host=FakeHost(), launcher=DirectLauncher(),
+                       settings=EnvSettings(proxy_port=0), use_lock=False)
+    assert alone.remote_launcher is None
+    with pytest.raises(SandboxError, match="VM lane"):
+        await alone.warm(rec.lane_id)
+    await alone.shutdown()
 
 
 async def test_destroy_deletes_the_server_the_lane_and_the_keys(env):
@@ -429,7 +444,7 @@ def test_policy_routes_vm_to_a_person_and_grants_limit_profiles():
     assert VmCap(repos=["github.com/acme/*"]).repos == ["github.com/acme/*"]
     with pytest.raises((ValueError, InvalidRequest)):
         VmCap(repos=["https://github.com/acme/*"])
-    from agentos.policy import globs
+    from agentos.core import globs
     from agentos.policy.grants import _cap_widening
     assert globs.repo_match("github.com/acme/*", "github.com/acme/api")
     assert not globs.repo_match("github.com/acme/*", "github.com/acme2/api")

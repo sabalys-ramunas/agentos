@@ -5,9 +5,9 @@ from __future__ import annotations
 
 from lockheld import loop_stays_free
 from test_brains_runner import P, _kill_leftovers
+from testkit.brains import FakeNotifier, add, make_service, wait_status
 
 from agentos.brains.store import Store
-from agentos.brains.testing import FakeNotifier, add, make_service, wait_status
 from agentos.core.runtime import Runtime
 
 

@@ -176,20 +176,7 @@ class GrantRegistryMixin:
         ttl = int(ttl_s or self.cfg.default_grant_ttl_s)
         if ttl <= 0 or ttl > self.cfg.max_grant_ttl_s:
             raise InvalidRequest(f"ttl must be between 1 second and {self.cfg.max_grant_ttl_s // 86400} days")
-        try:
-            sub = subject if isinstance(subject, Subject) else Subject(**subject)
-        except ValueError as e:
-            raise InvalidRequest(f"invalid subject: {e}") from None
-        if sub.kind == "human" and not _member:
-            raise InvalidRequest("a person's grant is made for a member (issue_member_grant, `agentos members`), "
-                                 "never as a token")
-        if not _reserved and any(sub.id.startswith(p) if p.endswith(":") else sub.id == p for p in RESERVED_SUBJECTS):
-            # a Site API key's runs are told apart by this subject (siteapis.http): no other grant takes it
-            raise InvalidRequest(f"the subject id {sub.id[:40]!r} is reserved for the node's own grants")
-        if owner is not None:
-            if owner != "owner" and not MEMBER_ID_RE.match(owner):
-                raise InvalidRequest("owner is \"owner\" or a member id (m_...)")
-            sub = sub.model_copy(update={"owner": owner})
+        sub = _root_subject(subject, owner=owner, member=_member, reserved=_reserved)
         self.ring.refresh()
         block = self._block(
             parent=None, version=tokens.VERSION, iss=self.issuer, aud=list(audience or [self.issuer]),
@@ -199,15 +186,7 @@ class GrantRegistryMixin:
             depth=self.cfg.default_depth if depth is None else depth, fanout=fanout, pins=pins, egress=egress,
             admin=admin or None, note=note)
         if within is not None:
-            problems = widening_problems(within, block, tiers=self.cfg.brain_tiers, aliases=self.cfg.brain_tier_aliases)
-            # a narrowed child inherits what it leaves out; a fresh root does not, so leaving one out widens it
-            if block.budget is None and within.budgets():
-                problems.append("budget")
-            if block.domains is None and any(b.domains is not None for b in within.blocks):
-                problems.append("domains")
-            if within.fanout_limit() is not None:  # roots it issued would not count against its fan-out
-                problems.append("fanout")
-            problems = sorted(set(problems))
+            problems = self._root_widening(within, block)
             if problems:
                 raise InvalidRequest("this would grant more than the grant asking for it holds: " + ", ".join(problems))
         if sub.kind != "human":  # people keep looking during a freeze; agents get no new way in
@@ -217,6 +196,18 @@ class GrantRegistryMixin:
         g.check_structure()
         self._register(g, source="issued", by=by)
         return g, token
+
+    def _root_widening(self, within: Grant, block: GrantBlock) -> list[str]:
+        """What a new root grant would hold beyond the grant asking for it, sorted."""
+        problems = widening_problems(within, block, tiers=self.cfg.brain_tiers, aliases=self.cfg.brain_tier_aliases)
+        # a narrowed child inherits what it leaves out; a fresh root does not, so leaving one out widens it
+        if block.budget is None and within.budgets():
+            problems.append("budget")
+        if block.domains is None and any(b.domains is not None for b in within.blocks):
+            problems.append("domains")
+        if within.fanout_limit() is not None:  # roots it issued would not count against its fan-out
+            problems.append("fanout")
+        return sorted(set(problems))
 
     @staticmethod
     def _built(token: str) -> Grant:
@@ -597,30 +588,12 @@ class GrantRegistryMixin:
         parent = self.grant_for(principal)
         if parent.human and not parent.owner_token:
             raise InvalidRequest("a member's grant cannot be narrowed or handed to an agent")
-        lanes = list(dict.fromkeys(lanes or []))
-        if not lanes:
-            raise InvalidRequest("a child grant needs at least one lane")
-        freeze_gate.check_child_lanes(self, lanes)
-        for lane in lanes:
-            try:
-                ws, _ = parse_lane_id(lane)
-            except ValueError as e:
-                raise InvalidRequest(str(e)) from None
-            if ws != workspace:
-                raise InvalidRequest(f"lane {lane} is not in workspace {workspace}")
-            if not parent.lane_allowed(lane):
-                raise Denied("out_of_scope", f"the parent grant does not cover lane {lane}")
+        lanes = self._child_lanes(parent, lanes, workspace)
         eff = coerce_effect(ceiling)
         if eff.rank is None:
             raise InvalidRequest("a child grant's ceiling must be read, draft, commit, pay or irreversible")
         child_ceiling = LADDER[min(eff.rank, parent.ceiling.rank)]
-        names = set(specials.keys() if isinstance(specials, dict) else specials or []) - {"brain", "exec"}
-        unsupported = names - {"secret"}
-        if unsupported:
-            raise InvalidRequest(f"a brain's child grant cannot carry {', '.join(sorted(unsupported))}")
-        child_specials = Specials(secret=LaneCap(lanes=lanes) if "secret" in names else None)
-        if "secret" in names and parent.caps("secret") is None:
-            raise Denied("special", "the parent grant does not include secret")
+        child_specials = _child_specials(parent, specials, lanes)
         child_budget = self._narrow_budget(parent, budget or {})
         now = int(self.clock())
         ttl = max(60, min(int(ttl_seconds or 3600), self.cfg.max_grant_ttl_s))
@@ -657,6 +630,24 @@ class GrantRegistryMixin:
         self._register(g, source="attenuated", by=by)
         return {"token": token, "grant_id": g.id, "expires_at": iso(g.expires_at)}
 
+    def _child_lanes(self, parent: Grant, lanes: list[str], workspace: str) -> list[str]:
+        """A child grant's lanes, once each: at least one, none frozen, all in `workspace` and
+        covered by the parent."""
+        lanes = list(dict.fromkeys(lanes or []))
+        if not lanes:
+            raise InvalidRequest("a child grant needs at least one lane")
+        freeze_gate.check_child_lanes(self, lanes)
+        for lane in lanes:
+            try:
+                ws, _ = parse_lane_id(lane)
+            except ValueError as e:
+                raise InvalidRequest(str(e)) from None
+            if ws != workspace:
+                raise InvalidRequest(f"lane {lane} is not in workspace {workspace}")
+            if not parent.lane_allowed(lane):
+                raise Denied("out_of_scope", f"the parent grant does not cover lane {lane}")
+        return lanes
+
     @staticmethod
     def _narrow_budget(parent: Grant, wanted: dict) -> Budget | None:
         out: dict[str, Any] = {}
@@ -666,6 +657,38 @@ class GrantRegistryMixin:
             if values:
                 out[name] = min(values)
         return Budget(**out) if out else None
+
+
+def _child_specials(parent: Grant, specials: Iterable[str] | dict | None, lanes: list[str]) -> Specials:
+    """A brain's child grant carries secret at most (never brain or exec), and only when the parent has it."""
+    names = set(specials.keys() if isinstance(specials, dict) else specials or []) - {"brain", "exec"}
+    unsupported = names - {"secret"}
+    if unsupported:
+        raise InvalidRequest(f"a brain's child grant cannot carry {', '.join(sorted(unsupported))}")
+    child_specials = Specials(secret=LaneCap(lanes=lanes) if "secret" in names else None)
+    if "secret" in names and parent.caps("secret") is None:
+        raise Denied("special", "the parent grant does not include secret")
+    return child_specials
+
+
+def _root_subject(subject: Subject | dict, *, owner: str | None, member: bool, reserved: bool) -> Subject:
+    """The subject of a new root grant, checked: never a person's outside issue_member_grant, never a
+    subject the node keeps for its own grants, and its owner (the person behind an agent) set."""
+    try:
+        sub = subject if isinstance(subject, Subject) else Subject(**subject)
+    except ValueError as e:
+        raise InvalidRequest(f"invalid subject: {e}") from None
+    if sub.kind == "human" and not member:
+        raise InvalidRequest("a person's grant is made for a member (issue_member_grant, `agentos members`), "
+                             "never as a token")
+    if not reserved and any(sub.id.startswith(p) if p.endswith(":") else sub.id == p for p in RESERVED_SUBJECTS):
+        # a Site API key's runs are told apart by this subject (siteapis.http): no other grant takes it
+        raise InvalidRequest(f"the subject id {sub.id[:40]!r} is reserved for the node's own grants")
+    if owner is not None:
+        if owner != "owner" and not MEMBER_ID_RE.match(owner):
+            raise InvalidRequest("owner is \"owner\" or a member id (m_...)")
+        sub = sub.model_copy(update={"owner": owner})
+    return sub
 
 
 def _stored_block(row: Any) -> GrantBlock:

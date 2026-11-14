@@ -3,9 +3,9 @@
 import json
 
 import pytest
+from testkit.brains import OAUTH, FakeCtx, add, make_service, wait_status
 
 from agentos.brains import tool_specs
-from agentos.brains.testing import OAUTH, FakeCtx, add, make_service, wait_status
 from agentos.core.errors import NotFound, PolicyDenied
 from agentos.core.models import Effect, Principal
 from agentos.core.tools import TOOL_NAME_RE

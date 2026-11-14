@@ -23,7 +23,6 @@ import type {
   NodeRange,
   NotificationSettings,
   Org,
-  PlanStep,
   Readiness,
   Role,
   RoutineDefinition,
@@ -44,7 +43,6 @@ import {
   nodeServices,
   nodeSystem,
   nodeTools,
-  replayEvents,
   reportsDepth,
   topology,
 } from './fleet';
@@ -53,7 +51,6 @@ import { ALWAYS_MESSAGE, applyAsk, CEILING_MESSAGE, isOnline, isSupported, laneA
 import { previewNeedYou } from './fleet-preview';
 import { historyPage } from './history';
 import {
-  allMeters,
   checkBriefs,
   clearTaint,
   laneCheck,
@@ -70,7 +67,7 @@ import {
   withClaim,
   workspaceZone,
 } from './account';
-import { activityMetrics, laneMetrics, nodeMetrics, spark } from './metrics';
+import { activityMetrics, nodeMetrics, spark } from './metrics';
 import { retryRun, routineCatalog, routineDay, routineRuns, saveRoutine, withRoutine } from './routines';
 import { mockAuth, scenario } from './scenario';
 import { s3Handlers } from './s3';
@@ -78,8 +75,6 @@ import { setupHandlers } from './setup';
 import { emailHandlers } from './email';
 import { filesHandlers } from './files';
 import { memoryHandlers } from './memory';
-import { planHandlers } from './plan';
-import { engageHandlers } from './engage';
 import { siteApiHandlers } from './site-apis';
 import { accessHandlers } from './access';
 import { workerBrains, workerHandlers } from './workers';
@@ -594,8 +589,6 @@ const paged = <T extends { at: string }>(items: T[], before: string | null, limi
 
 const svg = (body: string) => new HttpResponse(body, { headers: { 'Content-Type': 'image/svg+xml' } });
 
-const SURFACE_TEMPLATE = ['instagram', 'facebook', 'reddit', 'medium', 'blog', 'linkedin'];
-
 export const handlers = [
   // First, so its watchers see a request before the handler that answers it.
   ...setupHandlers({ org, find: (slug) => db.orgs.get(slug) }, (token) => {
@@ -889,60 +882,6 @@ export const handlers = [
     }),
   ),
   http.post(
-    '/api/orgs/:org/templates/apply',
-    org(async (data, { request }) => {
-      const body = await jsonBody<{ workspaces: string[] }>(request);
-      const created: Lane[] = [];
-      const node = data.nodes[0]?.id ?? 'unassigned';
-      for (const workspace of body.workspaces) {
-        for (const surface of SURFACE_TEMPLATE) {
-          // A way to see the honest partial result: a workspace named to stop part way.
-          if (workspace.includes('stop') && surface === 'reddit') {
-            const remaining = SURFACE_TEMPLATE.slice(SURFACE_TEMPLATE.indexOf(surface)).map((name) => `${workspace}/${name}`);
-            return HttpResponse.json({
-              status: 'partial',
-              created: created.map((lane) => lane.id),
-              existing: [],
-              failed: { lane: `${workspace}/${surface}`, code: 'proxy_conflict', message: 'This node has no free exit for that platform.' },
-              remaining,
-              warnings: [],
-            });
-          }
-          const lane: Lane = {
-            id: `${workspace}/${surface}`,
-            workspace,
-            name: surface,
-            kind: 'browser',
-            engine: 'camoufox',
-            preset: 'account',
-            state: 'cold',
-            signal: 'logged_out',
-            proxy: null,
-            exit_ip: null,
-            last_used: null,
-            node,
-            quarantine_reason: null,
-            logged_in_hint: 'needs_login',
-            control: { ...idleControl },
-            hold: null,
-            hold_until: null,
-            signal_detail: null,
-            account: null,
-            readiness: 'needs_login',
-            readiness_note: null,
-            login_url: `https://${surface}.example/login`,
-          };
-          data.lanes.push(lane);
-          created.push(lane);
-        }
-      }
-      return HttpResponse.json(
-        { status: 'complete', created: created.map((lane) => lane.id), existing: [], failed: null, remaining: [], warnings: [] },
-        { status: 200 },
-      );
-    }),
-  ),
-  http.post(
     '/api/orgs/:org/lanes',
     org(async (data, { request }) => {
       const body = await jsonBody<{ id: string; kind: Lane['kind']; preset?: string }>(request);
@@ -1053,7 +992,6 @@ export const handlers = [
       });
     }),
   ),
-  http.get('/api/orgs/:org/meters', org((data) => HttpResponse.json(allMeters(data, data.lanes)))),
   http.get(
     '/api/orgs/:org/lanes/:ws/:name/queue',
     org((data, { params }) => onLane(data, params, (lane) => HttpResponse.json(laneQueue(data, lane))))),
@@ -1301,7 +1239,7 @@ export const handlers = [
     }),
   ),
 
-  // Logins and templates
+  // Logins
   http.get(
     '/api/orgs/:org/queue',
     org((data) => {
@@ -1343,39 +1281,6 @@ export const handlers = [
       return next ? new HttpResponse(null, { status: 204 }) : failure(404, 'lane_not_found', 'No such lane.');
     }),
   ),
-  http.get(
-    '/api/orgs/:org/templates',
-    org(() =>
-      HttpResponse.json({
-        templates: [
-          { id: 'social-6', title: 'Six surfaces', description: 'For one company', surfaces: SURFACE_TEMPLATE.map((name) => ({ name, platform: name })) },
-          { id: 'personal', title: 'Personal', description: 'For your own accounts', surfaces: ['instagram', 'facebook', 'reddit', 'linkedin'].map((name) => ({ name, platform: name })) },
-        ],
-        problems: [],
-      }),
-    ),
-  ),
-  http.post(
-    '/api/orgs/:org/templates/plan',
-    org(async (data, { request }) => {
-      const body = await jsonBody<{ template: string; workspaces: string[] }>(request);
-      const steps: PlanStep[] = body.workspaces.flatMap((workspace) =>
-        SURFACE_TEMPLATE.map((surface) => {
-          const lane = `${workspace}/${surface}`;
-          const exists = data.lanes.some((item) => item.id === lane);
-          return { lane, workspace, surface, platform: surface, engine: 'camoufox', proxy: null, action: exists ? ('exists' as const) : ('create' as const), reasons: [], warnings: [] };
-        }),
-      );
-      const count = (action: PlanStep['action']) => steps.filter((step) => step.action === action).length;
-      return HttpResponse.json({
-        template: body.template,
-        workspaces: body.workspaces,
-        ok: true,
-        counts: { create: count('create'), exists: count('exists'), conflict: count('conflict') },
-        steps,
-      });
-    }),
-  ),
 
   // Metrics
   http.get(
@@ -1393,13 +1298,6 @@ export const handlers = [
       if (!node) return notFound();
       const range = (new URL(request.url).searchParams.get('range') ?? '24h') as NodeRange;
       return HttpResponse.json(nodeMetrics(node, range));
-    }),
-  ),
-  http.get(
-    '/api/orgs/:org/lanes/:ws/:name/metrics',
-    org((data, { params }) => {
-      const lane = data.lanes.find((item) => item.id === `${params.ws}/${params.name}`);
-      return lane ? HttpResponse.json(laneMetrics(data, lane)) : failure(404, 'lane_not_found', 'No such lane.');
     }),
   ),
 
@@ -1597,14 +1495,6 @@ export const handlers = [
       );
     }),
   ),
-  http.get('/api/orgs/:org/nodes/join-tokens', org((data) => HttpResponse.json(data.joinTokens))),
-  http.delete(
-    '/api/orgs/:org/nodes/join-tokens/:id',
-    org((data, { params }) => {
-      data.joinTokens = data.joinTokens.filter((item) => item.id !== params.id);
-      return new HttpResponse(null, { status: 204 });
-    }),
-  ),
   http.get(
     '/api/orgs/:org/nodes/:id',
     org((data, { params }) => {
@@ -1634,15 +1524,6 @@ export const handlers = [
     org((data, { request }) => {
       const window = new URL(request.url).searchParams.get('window') === '24h' ? 86_400 : 3_600;
       return HttpResponse.json(topology(data, window));
-    }),
-  ),
-  http.get(
-    '/api/orgs/:org/topology/events',
-    org((data, { request }) => {
-      const search = new URL(request.url).searchParams;
-      const to = search.get('to') ?? iso();
-      const from = search.get('from') ?? iso(-3_600_000);
-      return HttpResponse.json(replayEvents(data, from, to, Number(search.get('limit') ?? 4_000)));
     }),
   ),
   http.delete(
@@ -1723,9 +1604,7 @@ export const handlers = [
   ...siteApiHandlers({ org, failure }),
   ...emailHandlers({ org, failure }),
   ...memoryHandlers({ org, failure }),
-  ...planHandlers({ org, failure }),
   ...filesHandlers({ org, failure }),
-  ...engageHandlers({ org, failure }),
   ...workerHandlers({ org, failure, stepUpNeeded, stepUpValid }),
   ...proofHandlers({ org, failure, newId, data: () => db }),
   ...brainTaskHandlers({ org, failure }),

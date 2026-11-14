@@ -33,8 +33,8 @@ from agentos.core.models import (
 from agentos.core.runtime import Runtime
 from agentos.dev.lanes import DevLaneManager
 from agentos.dev.web import CHALLENGE_URL, DevInteraction, new_tab
-from agentos.engage.persona import draw_persona
 from agentos.keepalive import planner, visit
+from agentos.keepalive.persona import draw_persona
 from agentos.keepalive.service import KeepaliveService
 from agentos.keepalive.sites import TABLE, Entry, entry_for
 from agentos.keepalive.store import KeepaliveStore
@@ -494,12 +494,12 @@ async def test_one_lane_at_a_time_with_a_gap(node):
     assert out.get("visited", {}).get("outcome") == "ok" or out.get("due") == []
 
 
-async def test_recent_activity_and_an_engagement_session_push_the_visit_back(node):
+async def test_recent_activity_pushes_the_visit_back(node):
     lane = node.lanes.get(LANE)
     lane.spec = lane.spec.model_copy(update={"created_at": node.service.now() - timedelta(days=30)})
     before = node.service.plan(lane, node.service.now())
     assert before["activity_at"] is None and datetime.fromisoformat(before["due_at"]) < node.service.now()
-    async with node.lanes.using(LANE, principal_kind="agent"):  # an engagement session, a flow, an agent call
+    async with node.lanes.using(LANE, principal_kind="agent"):  # a flow, an agent call
         pass
     await node.lanes.close(LANE)
     after = node.service.plan(node.lanes.get(LANE), node.service.now())

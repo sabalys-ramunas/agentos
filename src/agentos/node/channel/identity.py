@@ -16,6 +16,7 @@ from pathlib import Path
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
+from agentos.core import signing
 from agentos.node.channel import wire
 
 NODE_KEY = "node.key"
@@ -77,17 +78,10 @@ class NodeKey:
 
     @property
     def public(self) -> str:
-        return wire.public_b64(self.key)
+        return signing.public_b64(self.key)
 
     def sign_hello(self, nonce: str, node_id: str) -> str:
-        return wire.b64e(self.key.sign(wire.hello_message(nonce, node_id)))
+        return signing.b64e(self.key.sign(wire.hello_message(nonce, node_id)))
 
     def sign_enroll(self, nonce: str) -> str:
-        return wire.b64e(self.key.sign(wire.enroll_message(nonce, self.public)))
-
-
-def verify_controller(controller_pubkey: str, kind: str, node_id: str, body: wire.Json) -> bool:
-    """True only when `body.sig` is a valid signature by the pinned controller key."""
-    if not controller_pubkey or not node_id:
-        return False
-    return wire.verify(controller_pubkey, body.get("sig"), wire.controller_message(kind, node_id, body))
+        return signing.b64e(self.key.sign(wire.enroll_message(nonce, self.public)))

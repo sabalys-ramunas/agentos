@@ -17,7 +17,7 @@ from agentos.core.runtime import Runtime
 from agentos.node import control_tools
 from agentos.node.control_tools import take_over_link, tool_specs
 from agentos.node.tools import lane_view
-from agentos.node.viewer_app import ViewTokens
+from agentos.node.viewer_tokens import ViewTokens
 from agentos.policy.ceiling import ControllerCeiling
 
 LANE = "personal/reddit"
@@ -225,8 +225,8 @@ def test_lane_view_links_follow_the_route_connect_recorded_for_the_grant(tmp_pat
     """QA 2026-11-10 finding 9: on a second node the link named this node's port and hostname."""
     from types import SimpleNamespace
 
-    from agentos.node.tools import _caller_route
-    from agentos.ops import viewroutes
+    from agentos.node import viewroutes
+    from agentos.node.tools.lanes import _caller_route
 
     monkeypatch.delenv("AGENTOS_SSH_HOST", raising=False)
     mgr, *_ = make(tmp_path, mcp_port=7400, ssh_host="ubuntu-8gb-fsn1-2")

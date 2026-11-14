@@ -6,7 +6,7 @@
     await learner.finish("acme/instagram", "bio", readback_locator=..., profile_url=..., by=principal)
 
 `start` checks the account is attached to an approved profile, the field is one the site has and
-the engine does not edit yet (or one to learn again), and the lane is signed into its pinned
+is not learned yet (or one to learn again), and the lane is signed into its pinned
 account. It makes sure the account has a surface (who it acts as: the lane's own pinned account),
 turns on the flow recorder for the lane and opens the lane guard's learn window
 (agentos.node.egress.learn): one request whose body carries exactly the profile's value, from a

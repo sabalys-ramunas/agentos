@@ -717,19 +717,20 @@ async def test_a_learned_save_that_pins_no_field_is_refused(tmp_path):
 
 
 def test_the_executor_fills_a_pinned_value_escaped():
-    from agentos.runner.executor import _match_for
+    from agentos.runner.execution import match_for
 
-    got = _match_for({"form:biography": "^${value}$"}, {"value": "a+b (c)?"})
+    got = match_for({"form:biography": "^${value}$"}, {"value": "a+b (c)?"})
     assert got == {"form:biography": "^a\\+b\\ \\(c\\)\\?$"}
     import re as re_
 
     assert re_.fullmatch(got["form:biography"], "a+b (c)?") and not re_.fullmatch(got["form:biography"], "aab (c)")
     with pytest.raises(ValueError, match="no value"):
-        _match_for({"form:biography": "^${value}$"}, {})
+        match_for({"form:biography": "^${value}$"}, {})
 
 
 async def test_the_executor_scopes_a_learned_operations_run_strictly():
-    from agentos.runner.executor import FlowExecutor, learned_flow
+    from agentos.runner.execution import learned_flow
+    from agentos.runner.executor import FlowExecutor
 
     seen = []
 

@@ -33,7 +33,7 @@ class Connection:
     tunnel_hint: str | None = None  # how to reach this node from the Mac, when known
     session: str = field(default="", repr=False)  # the owner's device credential (sent as the session cookie)
     home: Path | None = None  # on the node, with its own token from node.toml: decisions carry a one-time
-                              # code from this home's panel.db, so they are a person's (agentos.cli.operator_presence)
+                              # code from this home's panel.db, so they are a person's (agentos.commands.base.operator_presence)
 
     @property
     def has_token(self) -> bool:

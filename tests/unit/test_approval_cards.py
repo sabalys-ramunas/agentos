@@ -157,7 +157,7 @@ async def test_a_form_approval_never_carries_a_vault_value_to_the_panel_a_push_o
     from agentos.core.errors import ApprovalPending
     from agentos.core.models import Effect
     from agentos.node.channel import bridge
-    from agentos.vault.scrub import runtime_scrub
+    from agentos.policy.scrub import runtime_scrub
 
     svc, rt = make_service(tmp_path / "policy")
     vault = make_vault(private_home(tmp_path))
@@ -190,7 +190,7 @@ async def test_a_form_approval_never_carries_a_vault_value_to_the_panel_a_push_o
 
 
 def test_a_read_only_param_is_shown_but_never_editable():
-    """A profile edit's value comes from the engagement program: the card approves it as it is."""
+    """A profile edit's value is read only: the card approves it as it is."""
     from pathlib import Path
     from types import SimpleNamespace
 

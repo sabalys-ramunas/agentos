@@ -9,7 +9,6 @@ import pytest
 from agentos.core.models import AccountRef, LaneSpec, NavigateResult, Signal, SnapshotResult
 from agentos.node import interaction as ia_mod
 from agentos.node.interaction import (
-    _MARKERS_JS,
     PlaywrightInteraction,
     bind_lane,
     is_challenge_url,
@@ -17,6 +16,7 @@ from agentos.node.interaction import (
     last_report,
     take_report,
 )
+from agentos.node.interaction.readback import _MARKERS_JS
 from agentos.node.sites import (
     MARKER_SELECTORS,
     Frame,

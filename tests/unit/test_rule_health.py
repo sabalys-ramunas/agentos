@@ -17,7 +17,7 @@ from test_egress import COMMITTER, OWNER, FakeRequest, make_guard
 from agentos.core.config import NodeConfig
 from agentos.core.models import LaneSpec
 from agentos.node import egress, gateshapes, rulehealth
-from agentos.node.viewer_app import rule_health_api_routes
+from agentos.node.viewer_routes import rule_health_api_routes
 
 SECRET = "my private words 42"
 EM_DASH = "—"

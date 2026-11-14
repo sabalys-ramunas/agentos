@@ -765,7 +765,7 @@ Goal: the package that stores, labels and serves memory, with no MCP or HTTP yet
 - `MemoryService` takes ports, not concrete services: `policy` (principal, grant, family
   key, `taint_ever(family)`, `taint_add(family, labels)`, `trace_visible(trace_id,
   family, workspace)`, `trace_snapshot(trace_id)`, `lane_url_at(trace_id)`), `vault_scrub`,
-  `privacy_for(workspace)` and a clock. Provide fakes in `memory/fakes.py` so tests and
+  `privacy_for(workspace)` and a clock. Provide fakes in `tests/testkit/memory.py` so tests and
   `agentos dev up` need no real policy.
 - Implement: `write` (trust and labels per 4.4 and 4.5, scrub refusal per 4.14, evidence
   check, compare-and-set, trust-gated supersession, rate caps per family, size caps),

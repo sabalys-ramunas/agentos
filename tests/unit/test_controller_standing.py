@@ -12,11 +12,12 @@ from channel_support import agent, owner, start_controller, wait_for
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from test_freeze_mesh import start
 
+from agentos.core import signing
 from agentos.core.config import NodeConfig
 from agentos.core.runtime import Runtime
 from agentos.node.channel import service, wire
 from agentos.node.channel.enroll import enroll
-from agentos.policy.approvals import content_digest
+from agentos.policy.approval_binding import content_digest
 from agentos.policy.errors import Denied
 from agentos.policy.issuers import TrustedIssuers
 
@@ -143,9 +144,9 @@ async def test_joining_another_org_leaves_the_old_ones_grants_and_standing_appro
 
 def test_the_channel_forgets_an_org_the_node_left_when_it_starts(tmp_path):
     issuers = TrustedIssuers(tmp_path)
-    issuers.trust("org:old", wire.public_b64(Ed25519PrivateKey.generate()))
+    issuers.trust("org:old", signing.public_b64(Ed25519PrivateKey.generate()))
     runtime = Runtime()
-    runtime.register("config", NodeConfig(home=tmp_path, org_id="new", controller_url="ws://127.0.0.1:1", node_id="nd_x", controller_pubkey=wire.public_b64(Ed25519PrivateKey.generate())))
+    runtime.register("config", NodeConfig(home=tmp_path, org_id="new", controller_url="ws://127.0.0.1:1", node_id="nd_x", controller_pubkey=signing.public_b64(Ed25519PrivateKey.generate())))
     runtime.register("grant_issuers", issuers)
     service.build(runtime)
     assert not issuers.live("org:old")

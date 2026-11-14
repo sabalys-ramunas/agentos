@@ -27,7 +27,7 @@ the signer, only while an agent acts.
 The engine's parts live beside this module: procs (the browser's processes), pin (the pin file and
 its model), config (the config a launch gives the browser), launch (LaunchPlan and the Camoufox
 lookups), window (the window's size and place), prefs, pages (PageTracker) and session
-(CamoufoxSession). The old path agentos.node.engine_camoufox is this module for one release.
+(CamoufoxSession).
 """
 
 from __future__ import annotations
@@ -42,6 +42,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from agentos.core import clock
 from agentos.core.aio import run_to_end
 from agentos.core.errors import AgentosError, EngineError
 from agentos.core.models import LaneSpec, ProxyConfig
@@ -75,7 +76,6 @@ from agentos.node.camoufox.launch import (
     ExitGeo,
     LaunchPlan,
     _camoufox_version,
-    _now,
     _pref_env,
     _resolve_options,
     installed_browser_version,
@@ -136,7 +136,7 @@ from agentos.node.display import kill_processes
 from agentos.node.egress import TRACE_NAME as EGRESS_TRACE_NAME
 from agentos.node.egress import EgressTrace, LaneGuard
 from agentos.node.files import FilesConfig, LaneFiles
-from agentos.node.interaction import DIALOG_TIMEOUT
+from agentos.node.interaction.dialogs import DIALOG_TIMEOUT
 
 log = logging.getLogger("agentos.engine.camoufox")
 
@@ -326,7 +326,7 @@ class CamoufoxEngine:
             config, filled = complete_config(identity, host_cores=_host_cores())
             config, prefs, hardening = harden(config, prefs, host_cores=_host_cores())
             meta: dict[str, Any] = {
-                "version": PIN_VERSION, "pinned_at": _now(), "camoufox": _camoufox_version(),
+                "version": PIN_VERSION, "pinned_at": clock.iso(z=True, timespec="seconds"), "camoufox": _camoufox_version(),
                 "prefs": pinned_prefs(prefs), "canvas_noise": canvas_covered(prefs),
                 "geo": self._exit_record(config), "filled": sorted(filled), "hardening": HARDENING}
             new_pin = {**config, PIN_META: meta}
@@ -344,7 +344,7 @@ class CamoufoxEngine:
             meta = dict(pin.meta)
             if filled or legacy or any(k not in meta for k in ("prefs", "canvas_noise", "geo")):
                 earlier = meta.get("filled") if isinstance(meta.get("filled"), list) else []
-                meta.update(version=PIN_VERSION, completed_at=_now(), completed_from=pin.version,
+                meta.update(version=PIN_VERSION, completed_at=clock.iso(z=True, timespec="seconds"), completed_from=pin.version,
                             camoufox=meta.get("camoufox") or _camoufox_version(),
                             filled=sorted({*map(str, earlier), *filled}))
                 meta.setdefault("prefs", pinned_prefs(prefs))
@@ -385,10 +385,10 @@ class CamoufoxEngine:
         updates itself, or None when there is nothing to move: no pin, a version 1 pin (it is
         completed from the draws it has always shown first, and moved on its next launch), a pin
         newer than this agentos, an installed version that is unknown, the same or older (never
-        moved back: `agentos lane audit` fails that). Only stealth.fingerprint.VERSION_KEYS change (the
+        moved back: `agentos lane audit` fails that). Only node.fingerprint.VERSION_KEYS change (the
         rv: and Firefox/ tokens of the user agent and its header); oscpu, platform and the whole
         device stay. The move is recorded in the pin's firefox_updates."""
-        from agentos.stealth.fingerprint import browser_major, bump, pinned_major
+        from agentos.node.fingerprint import browser_major, bump, pinned_major
 
         if pin is None or pin.version != PIN_VERSION:
             return None
@@ -399,7 +399,7 @@ class CamoufoxEngine:
         config, changed = bump(pin.config, installed)
         if not changed:
             return None
-        update = {"from": pinned, "to": installed, "browser": verstr, "keys": changed, "at": _now()}
+        update = {"from": pinned, "to": installed, "browser": verstr, "keys": changed, "at": clock.iso(z=True, timespec="seconds")}
         earlier = pin.meta.get("firefox_updates") if isinstance(pin.meta.get("firefox_updates"), list) else []
         log.info("%s: Camoufox is now Firefox %d; the pin's Firefox %d moves with it (%s), as a real Firefox "
                  "updates itself; the device stays", lane_id, installed, pinned, ", ".join(changed))

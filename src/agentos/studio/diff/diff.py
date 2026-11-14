@@ -181,15 +181,9 @@ def _shots(cap: Capture) -> dict[str, Shot]:
 def _screen(store: StudioStore, before: Capture, after: Capture, key: str, *, tokens: TokenSet | None,
             mask: ScreenMask | None, crops: bool) -> _Screen:
     sb, sa = _shots(before).get(key), _shots(after).get(key)
-    if sb is None or sa is None:
-        side = "before" if sb is None else "after"
-        return _skip(key, f"the {side} capture has no screen {key}: capture both with the same screens")
-    for side, shot in (("before", sb), ("after", sa)):
-        if not shot.ok or not shot.image or not shot.manifest:
-            return _skip(key, f"the {side} screen failed to capture: {shot.error or 'no image was kept'}")
-    if (sb.screen.height, sb.screen.scale) != (sa.screen.height, sa.screen.scale):
-        return _skip(key, f"the screens differ in size: before {sb.screen.width}x{sb.screen.height} at "
-                          f"{sb.screen.scale:g}x, after {sa.screen.width}x{sa.screen.height} at {sa.screen.scale:g}x")
+    why = _not_comparable(key, sb, sa)
+    if why is not None:
+        return _skip(key, why)
     try:
         mb, ma = store.manifest(before.id, key), store.manifest(after.id, key)
         png_b, png_a = store.blob(sb.image), store.blob(sa.image)
@@ -205,28 +199,9 @@ def _screen(store: StudioStore, before: Capture, after: Capture, key: str, *, to
     grid = pixels.compare(png_b, png_a, scale=scale, masks=mask.rects)
     flags = _covered(grid, [r for it in st.items for r in _explains(it)])
     changed = {i for i, n in enumerate(grid.counts) if n}
-    loose = {i for i in changed if not flags[i]}
-    found = pixels.regions(grid, loose)
-
-    unexplained: list[Region] = []
-    region_lines: list[str] = []
-    for rect, n in found[:MAX_REGIONS]:
-        evidence = None
-        if crops:
-            try:
-                evidence = store.put_blob(pixels.side_by_side(png_b, png_a, rect, scale=scale), "image/png")
-                store.attach(after.id, evidence)
-            except AgentosError as e:
-                log.info("studio diff: no crop for %s on %s: %s", rect, key, e)
-        unexplained.append(Region(rect=rect, share=round(n / grid.total, 6), evidence=evidence))
-        el = _smallest_cover(rect, ma.elements)
-        where = f"inside {label(el)}" if el is not None else "outside every element"
-        tail = f" (before and after side by side: {evidence})" if evidence else ""
-        region_lines.append(f"Pixels changed in a {px(rect.w)}x{px(rect.h)} px area at "
-                            f"{px(rect.x)},{px(rect.y)} {where}, and nothing in the "
-                            f"layout, styles or text explains it{tail}.")
-    if len(found) > MAX_REGIONS:
-        region_lines.append(f"{len(found) - MAX_REGIONS} smaller changed areas are not listed.")
+    found = pixels.regions(grid, {i for i in changed if not flags[i]})
+    unexplained, region_lines = _unexplained(store, after.id, key, found, (png_b, png_a), scale, grid.total,
+                                             ma.elements, crops=crops)
 
     roots = [it for it in st.items if it.cause is None]
     theme = sa.screen.theme
@@ -243,6 +218,47 @@ def _screen(store: StudioStore, before: Capture, after: Capture, key: str, *, to
                       pixel_share=masked_share, lines=lines if status == "changed" else [])
     all_rects = [r for r, _ in pixels.regions(grid, changed)]
     return _Screen(diff, st, all_rects)
+
+
+def _not_comparable(key: str, sb: Shot | None, sa: Shot | None) -> str | None:
+    """Why the two shots of a screen cannot be compared, or None when they can."""
+    if sb is None or sa is None:
+        side = "before" if sb is None else "after"
+        return f"the {side} capture has no screen {key}: capture both with the same screens"
+    for side, shot in (("before", sb), ("after", sa)):
+        if not shot.ok or not shot.image or not shot.manifest:
+            return f"the {side} screen failed to capture: {shot.error or 'no image was kept'}"
+    if (sb.screen.height, sb.screen.scale) != (sa.screen.height, sa.screen.scale):
+        return (f"the screens differ in size: before {sb.screen.width}x{sb.screen.height} at "
+                f"{sb.screen.scale:g}x, after {sa.screen.width}x{sa.screen.height} at {sa.screen.scale:g}x")
+    return None
+
+
+def _unexplained(store: StudioStore, after_id: str, key: str, found: list, pngs: tuple[bytes, bytes], scale: float,
+                 total: int, elements: list, *, crops: bool) -> tuple[list[Region], list[str]]:
+    """The changed areas no element explains, each with a before and after crop when asked for,
+    and the lines that say where they are."""
+    png_b, png_a = pngs
+    unexplained: list[Region] = []
+    region_lines: list[str] = []
+    for rect, n in found[:MAX_REGIONS]:
+        evidence = None
+        if crops:
+            try:
+                evidence = store.put_blob(pixels.side_by_side(png_b, png_a, rect, scale=scale), "image/png")
+                store.attach(after_id, evidence)
+            except AgentosError as e:
+                log.info("studio diff: no crop for %s on %s: %s", rect, key, e)
+        unexplained.append(Region(rect=rect, share=round(n / total, 6), evidence=evidence))
+        el = _smallest_cover(rect, elements)
+        where = f"inside {label(el)}" if el is not None else "outside every element"
+        tail = f" (before and after side by side: {evidence})" if evidence else ""
+        region_lines.append(f"Pixels changed in a {px(rect.w)}x{px(rect.h)} px area at "
+                            f"{px(rect.x)},{px(rect.y)} {where}, and nothing in the "
+                            f"layout, styles or text explains it{tail}.")
+    if len(found) > MAX_REGIONS:
+        region_lines.append(f"{len(found) - MAX_REGIONS} smaller changed areas are not listed.")
+    return unexplained, region_lines
 
 
 def _manifest_notes(side: str, m: Manifest) -> list[str]:

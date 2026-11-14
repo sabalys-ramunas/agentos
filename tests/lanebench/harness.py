@@ -401,8 +401,8 @@ class Bench:
 
     async def patch_cases(self, task: Task, patch: dict[str, Any] | None, lane_id: str) -> list[dict[str, Any]]:
         """Try the patch on the page as served and on every parity case, against the target."""
+        from agentos.core.locator import Locator
         from agentos.node.flow_driver import PlaywrightFlowDriver
-        from agentos.runner.models import Locator
 
         if not patch or gates.patch_problems(patch):
             return []
@@ -439,7 +439,7 @@ class Bench:
     def _humanized(self, lane_id: str) -> bool:
         """Whether the lane's browser glides pointer moves itself, from the config it was started
         with. Unknown counts as no: the gate then judges every move rather than none."""
-        from agentos.node.engine_camoufox import browser_pids, read_browser_config
+        from agentos.node.camoufox.engine import browser_pids, read_browser_config
 
         try:
             pids = browser_pids(self.config.profile_dir(lane_id))

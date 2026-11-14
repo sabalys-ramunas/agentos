@@ -9,7 +9,7 @@ import random
 
 import pytest
 
-from agentos.node import human
+from agentos.node import human, human_fields
 
 
 class Keyboard:
@@ -274,7 +274,7 @@ def test_before_key_runs_right_before_each_key_and_stops_the_typing():
     ({"maxLength": "x"}, False),
 ])
 def test_typos_allowed(facts, fit):
-    assert human.typos_allowed(facts) is fit
+    assert human_fields.typos_allowed(facts) is fit
 
 
 def test_typos_fit_reads_the_field_and_counts_unreadable_as_unfit():
@@ -286,9 +286,9 @@ def test_typos_fit_reads_the_field_and_counts_unreadable_as_unfit():
             if isinstance(self.facts, Exception):
                 raise self.facts
             return self.facts
-    assert asyncio.run(human.typos_fit(Field({"maxLength": -1, "type": "text"}))) is True
-    assert asyncio.run(human.typos_fit(Field({"maxLength": -1, "type": "password"}))) is False
-    assert asyncio.run(human.typos_fit(Field(RuntimeError("detached")))) is False
+    assert asyncio.run(human_fields.typos_fit(Field({"maxLength": -1, "type": "text"}))) is True
+    assert asyncio.run(human_fields.typos_fit(Field({"maxLength": -1, "type": "password"}))) is False
+    assert asyncio.run(human_fields.typos_fit(Field(RuntimeError("detached")))) is False
 
 
 class Mouse:

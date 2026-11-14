@@ -231,3 +231,26 @@ def test_words():
     assert label(el("k", 1, 2, 3, 4, tag="button", role="button", name="Save", component="Button/primary")) == \
         "Button 'Save' (Button/primary)"
     assert label(el("k", 16, 300, 3, 4)) == "Box at 16,300"
+
+
+def test_matching_works_out_each_elements_content_once(monkeypatch):
+    """Many free siblings of one kind: every one is compared with every candidate, round after round,
+    and each element's content is still worked out only once."""
+    from agentos.studio.diff import structure
+
+    calls = []
+    real = structure._content
+    monkeypatch.setattr(structure, "_content", lambda e, kids: calls.append(e.key) or real(e, kids))
+    def word(n: int) -> str:     # digits are not content to the matcher, so the rows differ in letters
+        return "row " + chr(97 + n // 26) + chr(97 + n % 26)
+
+    root_b, root_a = el("main", 0, 0, 800, 4000), el("main", 0, 0, 800, 4000)
+    before = [root_b] + [el(f"main > li[{i}]", 0, i * 20, 800, 20, parent="main", tag="li", text=word(i))
+                         for i in range(150)]
+    after = [root_a] + [el(f"main > li[{i}]", 0, i * 20, 800, 20, parent="main", tag="li", text=word(i + 1))
+                        for i in range(150)]
+    pairs = match(before, after)
+    assert pairs["main"] == "main"
+    assert pairs["main > li[1]"] == "main > li[0]"      # the rows moved up one, by content
+    assert pairs["main > li[0]"] == "main > li[149]"    # the one left on each side, by order
+    assert len(calls) <= len(before) + len(after)

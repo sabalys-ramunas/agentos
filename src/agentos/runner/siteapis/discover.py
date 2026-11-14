@@ -36,9 +36,10 @@ from dataclasses import dataclass, field
 from typing import Any
 from urllib.parse import urljoin, urlsplit, urlunsplit
 
+from agentos.core.driver import JsonResponse, parse_json
 from agentos.node.snapshot import parse_line
-from agentos.runner.driver import JsonResponse, parse_json
-from agentos.runner.models import PARAM_NAME_RE, RESERVED_PARAMS, names_secret, url_pattern
+from agentos.runner.names import PARAM_NAME_RE, RESERVED_PARAMS
+from agentos.runner.urlpattern import names_secret, url_pattern
 from agentos.runner.util import host_in
 
 MAX_CHARS = 1_000_000
@@ -348,68 +349,85 @@ def _keyed(item: Node) -> dict[tuple[str, int], Node]:
     return keyed
 
 
+class _Columns:
+    """The columns found so far, and the field names they took."""
+
+    def __init__(self) -> None:
+        self.found: list[_Column] = []
+        self.taken: set[str] = set()
+
+    def add(self, base: str, spec: dict[str, Any], values: list[Any]) -> None:
+        name = field_name(None, base, self.taken)
+        self.found.append(_Column(name, spec, values))
+        self.taken.add(name)
+
+    def full(self) -> bool:
+        return len(self.found) >= MAX_FIELDS
+
+
 def _item_columns(items: list[Node], page: str, domain: str) -> list[_Column]:
     keyed = [_keyed(i) for i in items]
     counts: Counter[tuple[str, int]] = Counter(k for row in keyed for k in row)
     per_role: dict[str, int] = {}
     for role, n in counts:
         per_role[role] = max(per_role.get(role, 0), n + 1)
-    columns: list[_Column] = []
-    taken: set[str] = set()
+    columns = _Columns()
     texts: dict[int, list[str]] = {}
     order = list(dict.fromkeys(k for row in keyed for k in row))
     for key in order:
         role, n = key
-        if counts[key] < MIN_COVERAGE * len(items) or len(columns) >= MAX_FIELDS:
+        if counts[key] < MIN_COVERAGE * len(items) or columns.full():
             continue
         rows = [row.get(key) for row in keyed]
         locator: dict[str, Any] = {"role": role} if per_role[role] == 1 else {"role": role, "nth": n}
-        if role == "link":
-            hrefs = [_href(r, page, domain) if r else None for r in rows]
-            words = [_text_of(r) if r else "" for r in rows]
-            headed = any(c.name.startswith("title") and c.values == words for c in columns)
-            if any(words) and not headed and not any(c.values == words for c in columns):
-                name = field_name(None, "title" if not any(c.name.startswith("title") for c in columns) else "link", taken)
-                columns.append(_Column(name, _text_field(locator, [w for w in words if w]), list(words)))
-                taken.add(name)
-            if any(hrefs):
-                name = field_name(None, "url", taken)
-                columns.append(_Column(name, _link_field(locator, domain), list(hrefs)))
-                taken.add(name)
-            continue
-        if role == "img":
-            words = [r.name if r else "" for r in rows]
-            if any(words):
-                name = field_name(None, "image", taken)
-                columns.append(_Column(name, _text_field(locator, words), list(words)))
-                taken.add(name)
-            continue
-        if role == "text":  # loose text has no element of its own: read it out of the item
-            words = [r.text if r else "" for r in rows]
-            kind = _value_name(words)
-            if kind == "price":
-                name = field_name(None, "price", taken)
-                found = [re.search(_MONEY_IN_RE, w) for w in words]
-                columns.append(_Column(name, {"read": "text", "capture": _MONEY_IN_RE, "max_chars": 80, "untrusted": True},
-                                       [m.group(1) if m else "" for m in found]))
-                taken.add(name)
-            else:
-                texts[n] = words
-            continue
-        if role not in TEXTS:
-            continue
-        words = [_text_of(r) if r else "" for r in rows]
-        if not any(words):
-            continue
-        base = _value_name(words) or TEXTS[role]
-        name = field_name(None, base, taken)
-        columns.append(_Column(name, _text_field(locator, [w for w in words if w]), list(words)))
-        taken.add(name)
-    if texts and not any(c.spec.get("read") == "text" and "locator" not in c.spec and "capture" not in c.spec for c in columns):
+        loose = _key_columns(columns, role, locator, rows, page, domain)
+        if loose is not None:
+            texts[n] = loose
+    if texts and not any(c.spec.get("read") == "text" and "locator" not in c.spec and "capture" not in c.spec
+                         for c in columns.found):
         words = [" ".join(_text_of(i).split()) for i in items]
-        name = field_name(None, "text", taken)
-        columns.append(_Column(name, _text_field(None, words), list(words)))
-    return columns
+        name = field_name(None, "text", columns.taken)
+        columns.found.append(_Column(name, _text_field(None, words), list(words)))
+    return columns.found
+
+
+def _key_columns(columns: _Columns, role: str, locator: dict[str, Any], rows: list[Node | None], page: str,
+                 domain: str) -> list[str] | None:
+    """The columns of one element (by role and place) across the items. Loose text that is not a
+    price is not a column of its own: it is returned, to be read as the item's whole text."""
+    if role == "link":
+        _link_columns(columns, locator, rows, page, domain)
+    elif role == "img":
+        words = [r.name if r else "" for r in rows]
+        if any(words):
+            columns.add("image", _text_field(locator, words), list(words))
+    elif role == "text":  # loose text has no element of its own: read it out of the item
+        words = [r.text if r else "" for r in rows]
+        if _value_name(words) != "price":
+            return words
+        found = [re.search(_MONEY_IN_RE, w) for w in words]
+        columns.add("price", {"read": "text", "capture": _MONEY_IN_RE, "max_chars": 80, "untrusted": True},
+                    [m.group(1) if m else "" for m in found])
+    elif role in TEXTS:
+        words = [_text_of(r) if r else "" for r in rows]
+        if any(words):
+            columns.add(_value_name(words) or TEXTS[role], _text_field(locator, [w for w in words if w]),
+                        list(words))
+    return None
+
+
+def _link_columns(columns: _Columns, locator: dict[str, Any], rows: list[Node | None], page: str,
+                  domain: str) -> None:
+    """A link in each item: its words (the title, unless a column already holds them) and its address."""
+    hrefs = [_href(r, page, domain) if r else None for r in rows]
+    words = [_text_of(r) if r else "" for r in rows]
+    found = columns.found
+    headed = any(c.name.startswith("title") and c.values == words for c in found)
+    if any(words) and not headed and not any(c.values == words for c in found):
+        base = "title" if not any(c.name.startswith("title") for c in found) else "link"
+        columns.add(base, _text_field(locator, [w for w in words if w]), list(words))
+    if any(hrefs):
+        columns.add("url", _link_field(locator, domain), list(hrefs))
 
 
 def _table_columns(rows: list[Node], heads: list[Node], page: str, domain: str) -> list[_Column]:

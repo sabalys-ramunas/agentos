@@ -25,12 +25,12 @@ from typing import Any
 
 from agentos.controller import guide
 from agentos.controller.routing import NodeView, ToolDef, parse_tools
+from agentos.core import ceiling
 from agentos.core.errors import AgentosError, Conflict, InvalidRequest, NotFound, ServiceUnavailable
-from agentos.core.models import LANE_ID_RE
+from agentos.core.models import LANE_ID_RE, SPECIALS
 from agentos.node.channel import standing, wire
 from agentos.node.channel.streams import StreamPipe, StreamTable
 from agentos.node.channel.workflows import HOOK_HEADERS
-from agentos.policy import ceiling
 
 log = logging.getLogger("agentos.controller")
 
@@ -139,7 +139,7 @@ def clean_ceiling(value: Any) -> dict | None:
     effect = value.get("max_effect")
     lists = {name: value.get(name) if isinstance(value.get(name), list) else [] for name in ("specials", "streams")}
     return {"max_effect": effect if effect in ceiling.EFFECTS else None,
-            "specials": [s for s in ceiling.SPECIALS if s in lists["specials"]],
+            "specials": [s for s in SPECIALS if s in lists["specials"]],
             "streams": [s for s in ceiling.STREAMS if s in lists["streams"]]}
 
 

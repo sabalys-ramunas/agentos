@@ -46,16 +46,8 @@ from agentos.core.models import DeviceSpec, LaneSpec, device_name_problem
 
 log = logging.getLogger("agentos.devices")
 
-PIN_META = "agentos:pin"  # agentos.node.engine_camoufox.PIN_META
+PIN_META = "agentos:pin"  # agentos.node.camoufox.engine.PIN_META
 BEFORE_DEVICE = "before-device"  # fingerprint.json.before-device.bak: the lane's own pin before it joined
-
-
-def read_pin_file(path: Path) -> dict[str, Any] | None:
-    try:
-        data = json.loads(path.read_text())
-    except (OSError, ValueError):
-        return None
-    return data if isinstance(data, dict) and data else None
 
 
 PinStatus = Literal["pinned", "absent", "unreadable", "conflict"]
@@ -107,8 +99,7 @@ def pin_summary(data: dict[str, Any] | None) -> dict[str, Any] | None:
     Firefox version, and where the pin was made. None: not pinned yet."""
     if not data:
         return None
-    from agentos.stealth.fingerprint import pinned_major
-    from agentos.stealth.stealth import platform_os, ua_os
+    from agentos.node.fingerprint import pinned_major, platform_os, ua_os
 
     config = {k: v for k, v in data.items() if k != PIN_META}
     meta = data.get(PIN_META) if isinstance(data.get(PIN_META), dict) else {}
@@ -139,7 +130,7 @@ def same_pin(a: Path, b: Path) -> bool:
 
 
 def _write_private(path: Path, raw: bytes) -> None:
-    from agentos.node.engine_camoufox import write_private_bytes
+    from agentos.node.camoufox.engine import write_private_bytes
 
     write_private_bytes(path, raw)
 
@@ -666,6 +657,6 @@ def _newness(path: Path, state: PinState) -> tuple[int, float]:
 
 
 def _keep_replaced(path: Path) -> Path:
-    from agentos.node.engine_camoufox import backup_pin
+    from agentos.node.camoufox.engine import backup_pin
 
     return backup_pin(path, 0, label=REPLACED)

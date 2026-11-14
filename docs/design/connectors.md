@@ -564,10 +564,9 @@ An operation's contract does not name a backend. The binding does:
 - **Taint.** Outputs label the family (`untrusted_content`, `private_data`); connector runs
   are browser reads in the taint sense even when no browser tool was called.
 
-### 4.13 Engagement operations and the verified mark
+### 4.13 Social operations and the verified mark
 
-The engagement engine (`docs/design/engagement-engine.md`) acts only through connector
-operations. These exist (connectors/reddit 0.3.0, connectors/linkedin 0.3.0):
+These connector operations exist (connectors/reddit 0.3.0, connectors/linkedin 0.3.0):
 
 | Operation | Effect | Inputs | Output | Egress rule | Verified |
 |---|---|---|---|---|---|
@@ -635,11 +634,10 @@ What each one acts on and what proves it, fail closed:
   the name heading and the headline, the About text with its line breaks; for an image, a `src`
   on `media.licdn.com` whose asset id (`identity`) is not the one noted before the run, so the
   same image at another size or signature does not count. Their inputs are `readOnly`: the
-  approval card shows the value and the owner approves or denies it, never edits it, because the
-  engagement program keeps the value it asked for as the account's state. Nobody has captured these
+  approval card shows the value and the owner approves or denies it, never edits it. Nobody has captured these
   pages or requests: the locators, the fixtures (SYNTHESIZED, NOT CAPTURED) and the commit
   request names are guesses, and the egress rules `linkedin.profile.*` ship with an empty
-  `verified`, so the engine holds them as `rule_unverified` before it even looks for a mark.
+  `verified`, so they stay `rule_unverified` before a mark is even looked at.
 
 LinkedIn sets no cookie that names the member, so its operations read who they act as from the
 URL: each starts at `/in/me/`, which LinkedIn sends to the member's own profile, and the profile
@@ -654,8 +652,7 @@ read the effect back is recorded as a mark in the node's own ledger
 the operation's **proof hash**: the compiled operation (steps, locators, readbacks, preflights,
 commit request, pace, outputs) without its title, description, version and mark. A mark is
 honoured only while the installed operation has that proof hash: any later edit makes it stale,
-and the engine holds the operation again (`op_unverified`, reason `verified_stale`). With no
-mark the engine holds too. Everything here was written from the 2026-11-04 notes without loading
+and the operation reads as unverified again (`verified_stale`). With no mark it is unverified too. Everything here was written from the 2026-11-04 notes without loading
 the pages, and its fixtures say so in their first line: the locators are a hypothesis until a
 canary proves them. `reddit.post_text`'s 2026-11-04 canary ran 0.1.0; its public check and
 author check came later, so its old mark is stale and it needs a canary again.

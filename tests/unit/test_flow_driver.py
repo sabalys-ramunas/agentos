@@ -12,13 +12,14 @@ from typing import Any
 
 import pytest
 
+from agentos.core.driver import ElementNotFound
 from agentos.core.errors import AgentPaused, HumanInControl, LaneBusy, PolicyDenied
-from agentos.core.models import ControlState, LaneControl, LaneInfo, LaneSpec, RunStatus
+from agentos.core.locator import Locator
+from agentos.core.models import ControlState, LaneControl, LaneInfo, LaneSpec, RunKind, RunStatus
 from agentos.core.runtime import Runtime
 from agentos.node import flow_driver as fd
-from agentos.runner.driver import ElementNotFound
+from agentos.node import flow_match, flow_recorder
 from agentos.runner.fakes import FakeDriver, Harness, driver_factory, social_site
-from agentos.runner.models import Locator, RunKind
 from agentos.runner.recorder import Recorder
 from agentos.runner.store import RunnerStore
 
@@ -45,18 +46,18 @@ def test_regex_escape_is_literal_in_python_and_safe_for_javascript():
 
 
 def test_name_variants_put_count_tolerant_patterns_first():
-    variants = fd.name_variants("Like 12")
+    variants = flow_match.name_variants("Like 12")
     assert variants[0] == (r"^Like \d[\d.,]*[KkMm]?$", "regex")
     assert variants[-1] == ("Like 12", "exact")
     pattern = variants[0][0]
     for later in ("Like 13", "Like 1,204", "Like 2.5K"):
         assert re.search(pattern, later)
     assert not re.search(pattern, "Unlike 12")
-    assert fd.name_variants("Share") == [("Share", "exact")]
-    assert fd.name_variants(None) == [(None, "exact")]
+    assert flow_match.name_variants("Share") == [("Share", "exact")]
+    assert flow_match.name_variants(None) == [(None, "exact")]
     long = "word " * 30
-    assert fd.name_variants(long)[0][1] == "contains"
-    for value, match in fd.name_variants("Post (3 comments) by a.b"):
+    assert flow_match.name_variants(long)[0][1] == "contains"
+    for value, match in flow_match.name_variants("Post (3 comments) by a.b"):
         Locator(role="article", name=value, match=match)  # each is a valid locator
 
 
@@ -82,11 +83,11 @@ def test_role_and_name_of_a_ref_in_a_snapshot():
     - textbox "Caption" [ref=e13]: hello
     - link "Home" [ref=e1]:
       - /url: /index.html"""
-    assert fd.ref_role_and_name(raw, "e12") == ("button", "Like 12")
-    assert fd.ref_role_and_name(raw, "e3") == ("article", "Post by Ada")
-    assert fd.ref_role_and_name(raw, "e13") == ("textbox", "Caption")
-    assert fd.ref_role_and_name(raw, "e1") == ("link", "Home")  # not e12 or e13
-    assert fd.ref_role_and_name(raw, "e99") == (None, None)
+    assert flow_match.ref_role_and_name(raw, "e12") == ("button", "Like 12")
+    assert flow_match.ref_role_and_name(raw, "e3") == ("article", "Post by Ada")
+    assert flow_match.ref_role_and_name(raw, "e13") == ("textbox", "Caption")
+    assert flow_match.ref_role_and_name(raw, "e1") == ("link", "Home")  # not e12 or e13
+    assert flow_match.ref_role_and_name(raw, "e99") == (None, None)
 
 
 # ---------------------------------------------------------------- the inbox
@@ -420,9 +421,9 @@ async def test_record_act_only_acts_when_nothing_records(recorder):
         calls.append("act")
         return Result()
 
-    out = await fd.record_act(runtime_with(recorder), "biz-a/social", Page(), "e5", "click", None, perform)
+    out = await flow_recorder.record_act(runtime_with(recorder), "biz-a/social", Page(), "e5", "click", None, perform)
     assert isinstance(out, Result) and calls == ["act"]
-    assert await fd.record_act(Runtime(), "biz-a/social", Page(), "e5", "click", None, perform)
+    assert await flow_recorder.record_act(Runtime(), "biz-a/social", Page(), "e5", "click", None, perform)
 
 
 async def test_record_act_pushes_an_event_the_recorder_turns_into_a_verified_step(recorder, monkeypatch):
@@ -451,15 +452,15 @@ async def test_record_act_pushes_an_event_the_recorder_turns_into_a_verified_ste
     async def handle_state(handle):
         return next(states)
 
-    monkeypatch.setattr(fd, "structural_locator_for", locator_for)
-    monkeypatch.setattr(fd, "_handle_state", handle_state)
+    monkeypatch.setattr(flow_recorder, "structural_locator_for", locator_for)
+    monkeypatch.setattr(flow_recorder, "_handle_state", handle_state)
     recorder.start("biz-a/social")
 
     async def perform():
         return Result()
 
-    await fd.record_act(runtime_with(recorder), "biz-a/social", RefPage(), "e5", "click", None, perform)
-    fd.record_navigate(runtime_with(recorder), "biz-a/social", POST)
+    await flow_recorder.record_act(runtime_with(recorder), "biz-a/social", RefPage(), "e5", "click", None, perform)
+    flow_recorder.record_navigate(runtime_with(recorder), "biz-a/social", POST)
     rec = recorder.stop("biz-a/social")
     click = rec["events"][0]
     assert click["action"] == "click" and click["ok"] is True
@@ -476,13 +477,13 @@ async def test_record_act_without_a_locator_still_acts_and_records_the_gap(recor
     async def no_locator(page, ref, **kw):
         raise fd.InvalidRequest("no role")
 
-    monkeypatch.setattr(fd, "structural_locator_for", no_locator)
+    monkeypatch.setattr(flow_recorder, "structural_locator_for", no_locator)
     recorder.start("biz-a/social")
 
     async def perform():
         return Result()
 
-    await fd.record_act(runtime_with(recorder), "biz-a/social", Page(), "e9", "fill", "hello", perform)
+    await flow_recorder.record_act(runtime_with(recorder), "biz-a/social", Page(), "e9", "fill", "hello", perform)
     ev = recorder.stop("biz-a/social")["events"][0]
     assert ev["locator"] is None and ev["text"] == "hello"
     with pytest.raises(Exception, match="nothing was recorded"):

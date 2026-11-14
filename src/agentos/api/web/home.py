@@ -136,10 +136,6 @@ def _words(count: int) -> str:
     return {1: "One", 2: "Two", 3: "Three"}.get(count, str(count))
 
 
-def _iso(moment: datetime) -> str:
-    return moment.astimezone(UTC).isoformat().replace("+00:00", "Z")
-
-
 def _at(stamp: str | None) -> datetime | None:
     return datetime.fromisoformat(str(stamp)) if stamp else None
 

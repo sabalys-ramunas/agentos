@@ -256,6 +256,73 @@ def _group_key(plan: Plan) -> tuple[str, str, int]:
     return plan.screen.state, plan.device or "", plan.screen.width
 
 
+class _ReviewRun:
+    """One review: the shots kept so far, the first error, and the engine's version."""
+
+    def __init__(self, pool: Any, store: StudioStore, checks: Checks, manifest_cap: int, out: Review):
+        self.pool, self.store, self.checks, self.manifest_cap, self.out = pool, store, checks, manifest_cap, out
+        self.shots: dict[str, Shot] = {}
+        self.first_error: BaseException | None = None
+        self.engine_version: str | None = None
+        self.attempted = 0
+
+    async def open_group(self, stack: AsyncExitStack, group: list[Plan]) -> list[tuple[Plan, Any]]:
+        """Open each screen of a group (both themes of a width) and keep its shot. A screen that
+        fails is said; the very first screen failing at the page level stops the review."""
+        opened: list[tuple[Plan, Any]] = []
+        pool, out = self.pool, self.out
+        for plan in group:
+            key = plan.screen.key
+            self.attempted += 1
+            try:
+                page = await stack.enter_async_context(pool.page(plan.target, plan.screen, device=plan.device)
+                                                       if plan.device else pool.page(plan.target, plan.screen))
+                await check_overlay(page)
+                report = pool.report(page) if hasattr(pool, "report") else {}
+                out.reports[key] = report
+                self.engine_version = self.engine_version or _engine_version(report)
+                self.shots[key] = await _shot(page, plan.screen, self.store, report, self.manifest_cap)
+                opened.append((plan, page))
+            except asyncio.CancelledError:
+                raise
+            except Exception as e:
+                if self.attempted == 1 and isinstance(e, PAGE_LEVEL):
+                    raise
+                if not isinstance(e, AgentosError):
+                    log.warning("studio review: screen %s of %s failed", key, plan.target.url, exc_info=True)
+                self.first_error = self.first_error or e
+                out.failed[key] = _reason(e)
+                self.shots[key] = Shot(screen=plan.screen, ok=False, error=_reason(e))
+        return opened
+
+    async def measured(self, opened: list[tuple[Plan, Any]], run_checks: Any) -> None:
+        """The measured checks on each open screen, with the same screen in the other theme for theme.leak."""
+        checks = self.checks
+        by_theme = {plan.screen.theme: page for plan, page in opened}
+        for plan, page in opened:
+            other_theme = Theme.DARK if plan.screen.theme == Theme.LIGHT else Theme.LIGHT
+            ctx = CheckContext(screen=plan.screen, engine=plan.target.engine, only=checks.only, rules=checks.rules)
+            try:
+                self.out.outputs.append(await run_checks(page, ctx, other_theme=by_theme.get(other_theme)))
+            except Exception as e:
+                log.warning("studio review: checks on %s failed", plan.screen.key, exc_info=True)
+                self.out.outputs.append(CheckOutput(coverage=[CoverageItem(
+                    check="measured", screen=plan.screen.key, status="failed", reason=_reason(e)[:240])]))
+
+    async def system(self, opened: list[tuple[Plan, Any]]) -> None:
+        """The design system check, on the screens planned for it."""
+        checks, out = self.checks, self.out
+        for plan, page in opened:
+            if not (plan.system and checks.tokens is not None):
+                continue
+            try:
+                out.outputs.append(await _system(page, plan.screen, plan.target.engine, checks, out))
+            except Exception as e:
+                log.warning("studio review: design system check on %s failed", plan.screen.key, exc_info=True)
+                out.outputs.append(CheckOutput(coverage=[CoverageItem(
+                    check="token", screen=plan.screen.key, status="failed", reason=_reason(e)[:240])]))
+
+
 async def review(pool: Any, store: StudioStore, plans: Sequence[Plan], checks: Checks, *,
                  manifest_cap: int = 4000) -> Review:
     """Open every planned screen once (both themes of a width together), keep the shots, run the
@@ -267,57 +334,15 @@ async def review(pool: Any, store: StudioStore, plans: Sequence[Plan], checks: C
     groups: dict[tuple[str, str, int], list[Plan]] = {}
     for plan in plans:
         groups.setdefault(_group_key(plan), []).append(plan)
-    shots: dict[str, Shot] = {}
-    first_error: BaseException | None = None
-    out = Review(capture=Capture(id=new_capture_id(), target=plans[0].target, shots=[], created_at=iso_now()))
-    engine_version: str | None = None
-    attempted = 0
+    run = _ReviewRun(pool, store, checks, manifest_cap,
+                     Review(capture=Capture(id=new_capture_id(), target=plans[0].target, shots=[], created_at=iso_now())))
     for group in groups.values():
         async with AsyncExitStack() as stack:
-            opened: list[tuple[Plan, Any]] = []
-            for plan in group:
-                key = plan.screen.key
-                attempted += 1
-                try:
-                    page = await stack.enter_async_context(pool.page(plan.target, plan.screen, device=plan.device)
-                                                           if plan.device else pool.page(plan.target, plan.screen))
-                    await check_overlay(page)
-                    report = pool.report(page) if hasattr(pool, "report") else {}
-                    out.reports[key] = report
-                    engine_version = engine_version or _engine_version(report)
-                    shots[key] = await _shot(page, plan.screen, store, report, manifest_cap)
-                    opened.append((plan, page))
-                except asyncio.CancelledError:
-                    raise
-                except Exception as e:
-                    if attempted == 1 and isinstance(e, PAGE_LEVEL):
-                        raise
-                    if not isinstance(e, AgentosError):
-                        log.warning("studio review: screen %s of %s failed", key, plan.target.url, exc_info=True)
-                    first_error = first_error or e
-                    out.failed[key] = _reason(e)
-                    shots[key] = Shot(screen=plan.screen, ok=False, error=_reason(e))
-            by_theme = {plan.screen.theme: page for plan, page in opened}
-            for plan, page in opened:
-                if not checks.measured:
-                    continue
-                other_theme = Theme.DARK if plan.screen.theme == Theme.LIGHT else Theme.LIGHT
-                ctx = CheckContext(screen=plan.screen, engine=plan.target.engine, only=checks.only, rules=checks.rules)
-                try:
-                    out.outputs.append(await run_checks(page, ctx, other_theme=by_theme.get(other_theme)))
-                except Exception as e:
-                    log.warning("studio review: checks on %s failed", plan.screen.key, exc_info=True)
-                    out.outputs.append(CheckOutput(coverage=[CoverageItem(
-                        check="measured", screen=plan.screen.key, status="failed", reason=_reason(e)[:240])]))
-            for plan, page in opened:
-                if not (plan.system and checks.tokens is not None):
-                    continue
-                try:
-                    out.outputs.append(await _system(page, plan.screen, plan.target.engine, checks, out))
-                except Exception as e:
-                    log.warning("studio review: design system check on %s failed", plan.screen.key, exc_info=True)
-                    out.outputs.append(CheckOutput(coverage=[CoverageItem(
-                        check="token", screen=plan.screen.key, status="failed", reason=_reason(e)[:240])]))
+            opened = await run.open_group(stack, group)
+            if checks.measured:
+                await run.measured(opened, run_checks)
+            await run.system(opened)
+    out, shots, first_error, engine_version = run.out, run.shots, run.first_error, run.engine_version
     _theme_leak_reasons(out, plans)
     ordered = [shots[p.screen.key] for p in plans if p.screen.key in shots]
     if ordered and all(not s.ok for s in ordered) and first_error is not None:

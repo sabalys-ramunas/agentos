@@ -16,8 +16,8 @@ from agentos.core.errors import InvalidRequest, PolicyDenied
 from agentos.core.models import ControlState, Effect, Signal
 from agentos.freeze.service import FreezeService
 from agentos.node.channel.reports import workflows_catalog
-from agentos.policy.approvals import _TARGET_RE
-from agentos.runner import executor
+from agentos.policy.approval_binding import _TARGET_RE
+from agentos.runner import readvalues
 from agentos.runner.fakes import El
 from agentos.runner.siteapis.cache import SiteCache, cache_key
 from agentos.runner.siteapis.http_store import HttpStore
@@ -472,7 +472,7 @@ async def test_an_over_long_value_is_not_a_cut_so_a_row_that_went_is_gone(node):
 async def test_a_list_trimmed_to_fit_the_output_cap_says_nothing_of_the_rows_it_lost(node, monkeypatch):
     wid = on(node)
     await node.settle()
-    monkeypatch.setattr(executor, "OUTPUT_CAP", 340)  # room for three of the four rows
+    monkeypatch.setattr(readvalues, "OUTPUT_CAP", 340)  # room for three of the four rows
     node.site.state["rows"].append(("A-5", "50"))
     await tick(node)
     run = node.runner.get(watch(node, wid)["last_run"])

@@ -425,7 +425,7 @@ def up_command(
     Safe to run again: settings and tokens are kept. By hand: `agentos connect --by-hand`.
 
     With Claude Code or Codex on this machine (or `--here`), they connect to it too, with no tunnel."""
-    from agentos.cli import init_node, read_config
+    from agentos.commands.base import init_node, read_config
     from agentos.controller.up import run_up
     from agentos.core import logs
     from agentos.core.config import config_path

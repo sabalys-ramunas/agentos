@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import inspect
 import ipaddress
 import logging
 import re
@@ -32,6 +31,7 @@ from typing import Any
 
 import httpx
 
+from agentos.core.aio import maybe_await
 from agentos.core.errors import AgentosError, InvalidRequest, LaneExists, NotFound
 from agentos.core.models import LaneState, parse_lane_id, utcnow
 from agentos.env.models import RemoteHost
@@ -86,9 +86,15 @@ def _iso(dt: datetime | None) -> str | None:
     return dt.isoformat() if dt else None
 
 
-async def _maybe_await(v: Any) -> Any:
-    return await v if inspect.isawaitable(v) else v
 
+
+
+def _give_launcher(envs: Any) -> None:
+    """VM lanes run over ssh: the env manager (which vms builds on) gets the launcher from here."""
+    if getattr(envs, "remote_launcher", "absent") is None:
+        from agentos.vms.ssh import SshLauncher
+
+        envs.remote_launcher = SshLauncher()
 
 class VmManager:
     def __init__(self, home: Path, *, runtime: Any = None, provider: Provider | None = None,
@@ -96,6 +102,8 @@ class VmManager:
                  public_ip: str | None = None, clock=utcnow):
         self.home = Path(home)
         self.runtime = runtime
+        if runtime is not None and runtime.get("envs") is not None:
+            _give_launcher(runtime.get("envs"))  # VM lanes that outlived a restart warm before any call here
         self.settings = settings or load_settings(self.home)
         self.dir = self.home / "vms"
         self.store = VmStore(self.home / "vms.db")
@@ -142,6 +150,7 @@ class VmManager:
         envs = self.runtime.get("envs") if self.runtime is not None else None
         if envs is None:
             raise VmError("VM lanes need terminal lanes (agentos.env) on this node")
+        _give_launcher(envs)
         return envs
 
     @property
@@ -183,7 +192,7 @@ class VmManager:
             log.warning("%s: %s", title, body)
             return
         try:
-            await _maybe_await(fn(title=title, body=body, level="warning", urgent=urgent, data={}))
+            await maybe_await(fn(title=title, body=body, level="warning", urgent=urgent, data={}))
         except Exception:
             log.exception("could not send a VM notification")
 

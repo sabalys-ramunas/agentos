@@ -105,3 +105,12 @@ regexes = [
   '''^tok-3f9a-very-secret$''',
   '''^VAULTSECRET-api-key-0c1d2e$''',
 ]
+
+# Not a secret: the key id of the synthetic audit-log signing key built at run time by
+# tests/unit/pinned_log.py, quoted in the verifier's pinned messages.
+[[allowlists]]
+description = "key id of the synthetic audit key in the verifier pins"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^tests/fixtures/pinned/verify\.json$''']
+regexes = ['''^ed25519:c945cbf2a5602002141e2fb9d17054d6$''', '''^c945cbf2a5602002141e2fb9d17054d6$''']

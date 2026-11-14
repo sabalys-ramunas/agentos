@@ -10,7 +10,7 @@
   "operations": {
     "post": {
       "title": "Post text, with an optional photo, as the member",
-      "description": "Not verified yet: written from the notes of the 2026-11-04 canary, not recorded, so the engagement engine holds it until a canary on a throwaway account passes (docs/design/connectors.md 4.13). Notes the newest update on the member's own activity page first, then opens the feed's share box (Photo when an image is given, which the canary found works where a click on Start a post then an upload did not), types the text in the editor and presses Post. The preflight refuses unless the editor holds exactly the text and the audience reads Post to Anyone. The photo goes up as registerMediaUpload and a PUT to /dms-uploads/ before the post names it. Proved on the activity page: the newest update is not the one noted before the run, and its text is exactly the text. LinkedIn offers no readable permalink (Copy link writes to the clipboard), so the output is the update's urn.",
+      "description": "Not verified yet: written from the notes of the 2026-11-04 canary, not recorded, so it stays unverified until a canary on a throwaway account passes (docs/design/connectors.md 4.13). Notes the newest update on the member's own activity page first, then opens the feed's share box (Photo when an image is given, which the canary found works where a click on Start a post then an upload did not), types the text in the editor and presses Post. The preflight refuses unless the editor holds exactly the text and the audience reads Post to Anyone. The photo goes up as registerMediaUpload and a PUT to /dms-uploads/ before the post names it. Proved on the activity page: the newest update is not the one noted before the run, and its text is exactly the text. LinkedIn offers no readable permalink (Copy link writes to the clipboard), so the output is the update's urn.",
       "effect": "commit",
       "input": {
         "type": "object",
@@ -319,7 +319,7 @@
     },
     "comment": {
       "title": "Comment on a post",
-      "description": "Not verified yet: written from the notes of the 2026-11-04 canary, not recorded, so the engagement engine holds it until a canary on a throwaway account passes (docs/design/connectors.md 4.13). Opens the post's own page as the member, types the comment into the comment box of that post (inside the post's own container) and presses Comment, then waits for the box to clear. Proved on the member's own comments activity: in the newest entry for that post, the member's comment holds exactly the text.",
+      "description": "Not verified yet: written from the notes of the 2026-11-04 canary, not recorded, so it stays unverified until a canary on a throwaway account passes (docs/design/connectors.md 4.13). Opens the post's own page as the member, types the comment into the comment box of that post (inside the post's own container) and presses Comment, then waits for the box to clear. Proved on the member's own comments activity: in the newest entry for that post, the member's comment holds exactly the text.",
       "effect": "commit",
       "input": {
         "type": "object",
@@ -586,7 +586,7 @@
     },
     "react": {
       "title": "Like a post",
-      "description": "Not verified yet: written from the notes of the 2026-11-04 canary, not recorded, so the engagement engine holds it until a canary on a throwaway account passes (docs/design/connectors.md 4.13). Opens the post's own page as the member and presses the Like toggle of that post: every locator is inside the post's own container (the article whose data-urn is the post's urn), never a comment's. The preflight refuses when the post already carries any reaction of the member's (Like, Celebrate, ...), because pressing again takes it back or changes it, and unless exactly one Like toggle is there. Proved after a reload: the post's own Like is pressed, and the post is on the member's own reactions activity.",
+      "description": "Not verified yet: written from the notes of the 2026-11-04 canary, not recorded, so it stays unverified until a canary on a throwaway account passes (docs/design/connectors.md 4.13). Opens the post's own page as the member and presses the Like toggle of that post: every locator is inside the post's own container (the article whose data-urn is the post's urn), never a comment's. The preflight refuses when the post already carries any reaction of the member's (Like, Celebrate, ...), because pressing again takes it back or changes it, and unless exactly one Like toggle is there. Proved after a reload: the post's own Like is pressed, and the post is on the member's own reactions activity.",
       "effect": "commit",
       "input": {
         "type": "object",
@@ -846,7 +846,7 @@
     },
     "follow": {
       "title": "Follow a member or a company",
-      "description": "Not verified yet: written from the notes of the 2026-11-04 canary, not recorded, so the engagement engine holds it until a canary on a throwaway account passes (docs/design/connectors.md 4.13). Opens the profile (/in/<name>/) or the company page (/company/<name>/) as the member and presses the Follow button of the page's own top card, never Connect (a connection request is aimed at a person and is out of scope) and never a Follow in a suggestion list. The preflight refuses when the top card already shows Following, and when it has no Follow button (only Connect). Proved after a reload: the top card shows Following.",
+      "description": "Not verified yet: written from the notes of the 2026-11-04 canary, not recorded, so it stays unverified until a canary on a throwaway account passes (docs/design/connectors.md 4.13). Opens the profile (/in/<name>/) or the company page (/company/<name>/) as the member and presses the Follow button of the page's own top card, never Connect (a connection request is aimed at a person and is out of scope) and never a Follow in a suggestion list. The preflight refuses when the top card already shows Following, and when it has no Follow button (only Connect). Proved after a reload: the top card shows Following.",
       "effect": "commit",
       "input": {
         "type": "object",
@@ -1183,7 +1183,7 @@
     },
     "profile_name": {
       "title": "Set the member's first and last name",
-      "description": "Not verified yet, and not captured: nobody has recorded LinkedIn's profile edits, so every locator and the commit request below are a best reading of the web client, to be replaced at the canary (docs/ENGAGEMENT.md, Profile). The engine holds it until then (rule_unverified, op_unverified). Opens the member's own profile at its public address (/in/<id>/, the page every read and the proof use), opens Edit intro from the top card and fills First name and Last name. The preflight wants both boxes to hold exactly the names and the top card's name to differ from them (the same name ends already_current, with nothing saved). Proved on the profile page reloaded as the account (a signed-in view, not a signed-out visitor's; the canary checks a signed-out view once): its name heading reads exactly the first and last name.",
+      "description": "Not verified yet, and not captured: nobody has recorded LinkedIn's profile edits, so every locator and the commit request below are a best reading of the web client, to be replaced at the canary. It stays unverified until then (rule_unverified). Opens the member's own profile at its public address (/in/<id>/, the page every read and the proof use), opens Edit intro from the top card and fills First name and Last name. The preflight wants both boxes to hold exactly the names and the top card's name to differ from them (the same name ends already_current, with nothing saved). Proved on the profile page reloaded as the account (a signed-in view, not a signed-out visitor's; the canary checks a signed-out view once): its name heading reads exactly the first and last name.",
       "effect": "commit",
       "input": {
         "type": "object",
@@ -1447,7 +1447,7 @@
     },
     "profile_headline": {
       "title": "Set the member's headline",
-      "description": "Not verified yet, and not captured: nobody has recorded LinkedIn's profile edits, so every locator and the commit request below are a best reading of the web client, to be replaced at the canary (docs/ENGAGEMENT.md, Profile). The engine holds it until then (rule_unverified, op_unverified). Opens the member's own profile at its public address (/in/<id>/, the page every read and the proof use), opens Edit intro from the top card and fills Headline. The preflight wants the box to hold exactly the headline and the top card's one headline to differ from it (the same headline ends already_current, with nothing saved). Proved on the profile page reloaded as the account (a signed-in view, not a signed-out visitor's; the canary checks a signed-out view once): the headline under the name is exactly the text.",
+      "description": "Not verified yet, and not captured: nobody has recorded LinkedIn's profile edits, so every locator and the commit request below are a best reading of the web client, to be replaced at the canary. It stays unverified until then (rule_unverified). Opens the member's own profile at its public address (/in/<id>/, the page every read and the proof use), opens Edit intro from the top card and fills Headline. The preflight wants the box to hold exactly the headline and the top card's one headline to differ from it (the same headline ends already_current, with nothing saved). Proved on the profile page reloaded as the account (a signed-in view, not a signed-out visitor's; the canary checks a signed-out view once): the headline under the name is exactly the text.",
       "effect": "commit",
       "input": {
         "type": "object",
@@ -1673,7 +1673,7 @@
     },
     "profile_about": {
       "title": "Set the member's About section",
-      "description": "Not verified yet, and not captured: nobody has recorded LinkedIn's profile edits, so every locator and the commit request below are a best reading of the web client, to be replaced at the canary (docs/ENGAGEMENT.md, Profile). The engine holds it until then (rule_unverified, op_unverified). Opens the member's own profile at its public address (/in/<id>/, the page every read and the proof use), opens the About section's edit dialog and fills its text box. The preflight wants the box to hold exactly the text and the section's one text to differ from it, line breaks kept (the same text ends already_current, with nothing saved). Proved on the profile page reloaded as the account (a signed-in view, not a signed-out visitor's; the canary checks a signed-out view once): the About text is exactly the text (spaces normalized, line breaks kept). A profile with no About section yet has no edit button there: the run fails before anything is typed.",
+      "description": "Not verified yet, and not captured: nobody has recorded LinkedIn's profile edits, so every locator and the commit request below are a best reading of the web client, to be replaced at the canary. It stays unverified until then (rule_unverified). Opens the member's own profile at its public address (/in/<id>/, the page every read and the proof use), opens the About section's edit dialog and fills its text box. The preflight wants the box to hold exactly the text and the section's one text to differ from it, line breaks kept (the same text ends already_current, with nothing saved). Proved on the profile page reloaded as the account (a signed-in view, not a signed-out visitor's; the canary checks a signed-out view once): the About text is exactly the text (spaces normalized, line breaks kept). A profile with no About section yet has no edit button there: the run fails before anything is typed.",
       "effect": "commit",
       "input": {
         "type": "object",
@@ -1888,7 +1888,7 @@
     },
     "profile_photo": {
       "title": "Set the member's profile photo",
-      "description": "Not verified yet, and not captured: nobody has recorded LinkedIn's profile edits, so every locator and the commit request below are a best reading of the web client, to be replaced at the canary (docs/ENGAGEMENT.md, Profile). The engine holds it until then (rule_unverified, op_unverified). Opens the member's own profile at its public address (/in/<id>/, the page every read and the proof use), waits for the top card's one photo and notes its src (no photo there, nothing is done), opens the photo dialog from the top card, uploads the image (its upload is registered the way a post's photo is: registerMediaUpload and a PUT to /dms-uploads/), and saves it. The preflight wants exactly one image in the dialog. Proved on the profile page reloaded as the account (a signed-in view, not a signed-out visitor's; the canary checks a signed-out view once): the photo's src names another media asset on media.licdn.com than the one noted before the run (compared by the asset id, not the size or signature in the URL).",
+      "description": "Not verified yet, and not captured: nobody has recorded LinkedIn's profile edits, so every locator and the commit request below are a best reading of the web client, to be replaced at the canary. It stays unverified until then (rule_unverified). Opens the member's own profile at its public address (/in/<id>/, the page every read and the proof use), waits for the top card's one photo and notes its src (no photo there, nothing is done), opens the photo dialog from the top card, uploads the image (its upload is registered the way a post's photo is: registerMediaUpload and a PUT to /dms-uploads/), and saves it. The preflight wants exactly one image in the dialog. Proved on the profile page reloaded as the account (a signed-in view, not a signed-out visitor's; the canary checks a signed-out view once): the photo's src names another media asset on media.licdn.com than the one noted before the run (compared by the asset id, not the size or signature in the URL).",
       "effect": "commit",
       "input": {
         "type": "object",
@@ -2149,7 +2149,7 @@
     },
     "profile_cover": {
       "title": "Set the member's cover image",
-      "description": "Not verified yet, and not captured: nobody has recorded LinkedIn's profile edits, so every locator and the commit request below are a best reading of the web client, to be replaced at the canary (docs/ENGAGEMENT.md, Profile). The engine holds it until then (rule_unverified, op_unverified). Opens the member's own profile at its public address (/in/<id>/, the page every read and the proof use), waits for the one cover image and notes its src (none there, nothing is done), opens the background photo dialog, uploads the image (registered like a post's photo) and applies it. The preflight wants exactly one image in the dialog. Proved on the profile page reloaded as the account (a signed-in view, not a signed-out visitor's; the canary checks a signed-out view once): the cover's src names another media asset on media.licdn.com than the one noted before the run (compared by the asset id, not the size or signature in the URL).",
+      "description": "Not verified yet, and not captured: nobody has recorded LinkedIn's profile edits, so every locator and the commit request below are a best reading of the web client, to be replaced at the canary. It stays unverified until then (rule_unverified). Opens the member's own profile at its public address (/in/<id>/, the page every read and the proof use), waits for the one cover image and notes its src (none there, nothing is done), opens the background photo dialog, uploads the image (registered like a post's photo) and applies it. The preflight wants exactly one image in the dialog. Proved on the profile page reloaded as the account (a signed-in view, not a signed-out visitor's; the canary checks a signed-out view once): the cover's src names another media asset on media.licdn.com than the one noted before the run (compared by the asset id, not the size or signature in the URL).",
       "effect": "commit",
       "input": {
         "type": "object",

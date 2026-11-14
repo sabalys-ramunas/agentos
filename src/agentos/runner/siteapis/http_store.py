@@ -16,10 +16,10 @@ from collections.abc import Callable, Iterable
 from pathlib import Path
 from typing import Any
 
+from agentos.core import migrate
 from agentos.core.errors import ServiceUnavailable
+from agentos.core.layout import adopt_owner
 from agentos.core.sqlite import SqliteStore
-from agentos.ops import migrate
-from agentos.ops.layout import adopt_owner
 from agentos.runner.siteapis.http_migrations import DB, MIGRATIONS
 
 KEY_FIELDS = frozenset({"label", "apis", "endpoints", "surfaces", "ceiling", "rate_per_min", "grant_id", "old_grants",

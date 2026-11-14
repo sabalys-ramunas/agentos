@@ -54,9 +54,6 @@ class EnvStore(SqliteStore):
         except sqlite3.IntegrityError as e:
             raise LaneExists(f"lane {lane.id} already exists") from e
 
-    def update_lane(self, lane: EnvLane) -> None:
-        self._q("UPDATE lanes SET spec=? WHERE id=?", (lane.model_dump_json(), lane.id))
-
     def get_lane(self, lane_id: str) -> EnvLane:
         rows = self._q("SELECT spec FROM lanes WHERE id=?", (lane_id,))
         if not rows:

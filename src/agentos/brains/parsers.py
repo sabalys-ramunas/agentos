@@ -31,7 +31,7 @@ import json
 import re
 import time
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, ClassVar
 
 PREVIEW = 2000
 RAW_KEEP = 32_000
@@ -201,6 +201,11 @@ class StreamParser:
 
 class ClaudeStreamParser(StreamParser):
     runner = "claude"
+    # a line's `type`, as the method that reads it; any other type is passed on as it is
+    _HANDLERS: ClassVar[dict[str, str]] = {
+        "system": "_on_system", "rate_limit_event": "_on_rate_limit", "assistant": "_on_assistant",
+        "user": "_on_user", "result": "_on_result",
+    }
 
     def __init__(self) -> None:
         super().__init__()
@@ -215,117 +220,142 @@ class ClaudeStreamParser(StreamParser):
     def _on(self, obj: dict[str, Any]) -> list[dict[str, Any]]:
         t = obj.get("type")
         self.session_id = obj.get("session_id") or self.session_id
-        if t == "system":
-            sub = obj.get("subtype")
-            if sub == "init":
-                self.model = obj.get("model") or self.model
-                self.cli_version = obj.get("claude_code_version") or self.cli_version
-                return [{"kind": "system", "text": f"session started: model {self.model}"}]
-            if sub == "api_retry":
-                status = obj.get("error_status")
-                err = str(obj.get("error") or "")
-                detail = f"API retry {obj.get('attempt')}/{obj.get('max_retries')}: {status} {err}"
-                if status == 429 or err == "rate_limit":
-                    self._note_signal("rate_limited", detail)
-                elif status in (401, 403) or err in ("authentication_failed", "billing_error"):
-                    self._note_signal("auth_failed", detail)
-                elif isinstance(status, int) and status >= 500:
-                    self._note_signal("server_error", detail)
-                return [{"kind": "retry", "text": detail}]
-            return [{"kind": "system", "text": _preview(sub or "system")}]
-        if t == "rate_limit_event":
-            info = obj.get("rate_limit_info") or {}
-            status = str(info.get("status") or "")
-            util = info.get("utilization")
-            if isinstance(util, (int, float)):
-                self.window_utilization = float(util)
-            resets = info.get("resetsAt")
-            if status in ("rejected", "blocked"):
-                self._note_signal("rate_limited", f"rate limit {info.get('rateLimitType') or ''} {status}")
-                if isinstance(resets, (int, float)):
-                    self.resets_at = float(resets) / (1000.0 if resets > 1e11 else 1.0)
-            return [{"kind": "rate_limit", "text": f"rate limit {status} {info.get('rateLimitType') or ''}".strip()}]
-        if t == "assistant":
-            msg = obj.get("message") or {}
-            mid = msg.get("id") or obj.get("uuid") or str(len(self._usage_by_msg))
-            synthetic = msg.get("model") == "<synthetic>"
-            if not synthetic:
-                if mid not in self._usage_by_msg:
-                    self.turns += 1
-                    self._usage_by_msg[mid] = {}
-                usage = msg.get("usage") or {}
-                cur = self._usage_by_msg[mid]
-                for k in ("input_tokens", "output_tokens", "cache_read_input_tokens",
-                          "cache_creation_input_tokens"):
-                    v = usage.get(k)
-                    if isinstance(v, int):
-                        cur[k] = max(cur.get(k, 0), v)
-                self._sum_usage()
-                self.model = msg.get("model") or self.model
-            err = obj.get("error")
-            events = []
-            for block in msg.get("content") or []:
-                bt = block.get("type")
-                if bt == "text":
-                    events.append({"kind": "assistant", "text": _preview(block.get("text"))})
-                elif bt == "tool_use":
-                    events.append({"kind": "tool_use", "text": f"{block.get('name')}: "
-                                   f"{_preview(block.get('input'), 400)}"})
-                elif bt == "thinking":
-                    events.append({"kind": "thinking", "text": _preview(block.get("thinking"), 400)})
-            if err or obj.get("is_api_error_message"):
-                text = " ".join(b.get("text", "") for b in msg.get("content") or [] if b.get("type") == "text")
-                self.last_error = text or str(err)
-                kind = {"rate_limit": "rate_limited", "authentication_failed": "auth_failed",
-                        "billing_error": "auth_failed", "server_error": "server_error"}.get(str(err))
-                status = obj.get("api_error_status")
-                if not kind and status == 429:
-                    kind = "rate_limited"
-                elif not kind and status in (401, 403):
-                    kind = "auth_failed"
-                self._note_signal(kind or classify_text(text), text or str(err))
-                events.append({"kind": "error", "text": _preview(self.last_error, 400)})
-            return events or [{"kind": "assistant", "text": ""}]
-        if t == "user":
-            msg = obj.get("message") or {}
-            out = []
-            content = msg.get("content")
-            for block in content if isinstance(content, list) else []:
-                if block.get("type") == "tool_result":
-                    out.append({"kind": "tool_result", "text": _preview(block.get("content"), 600)})
-            return out or [{"kind": "user", "text": _preview(msg.get("content"), 400)}]
-        if t == "result":
-            self.final_seen = True
-            self.result_is_error = bool(obj.get("is_error"))
-            self.result_text = obj.get("result") if isinstance(obj.get("result"), str) else None
-            if isinstance(obj.get("num_turns"), int):
-                self.turns = max(self.turns, obj["num_turns"])
-            if isinstance(obj.get("total_cost_usd"), (int, float)):
-                self.cost_usd = float(obj["total_cost_usd"])
-            usage = obj.get("usage") or {}
-            if usage:
-                self.input_tokens = max(self.input_tokens, int(usage.get("input_tokens") or 0))
-                self.output_tokens = max(self.output_tokens, int(usage.get("output_tokens") or 0))
-                self.cache_read_tokens = max(self.cache_read_tokens, int(usage.get("cache_read_input_tokens") or 0))
-                self.cache_write_tokens = max(self.cache_write_tokens,
-                                              int(usage.get("cache_creation_input_tokens") or 0))
-            sub = str(obj.get("subtype") or "")
-            reason = str(obj.get("terminal_reason") or "")
-            if "max_turns" in sub or "max_turns" in reason:
-                self.limit_hit = "limit_turns"
-            elif "budget" in sub or "budget" in reason:
-                self.limit_hit = "limit_cost"
-            if self.result_is_error:
-                status = obj.get("api_error_status")
-                if status == 429:
-                    self._note_signal("rate_limited", self.result_text or "429")
-                elif status in (401, 403):
-                    self._note_signal("auth_failed", self.result_text or str(status))
-                elif isinstance(status, int) and status >= 500:
-                    self._note_signal("server_error", self.result_text or str(status))
-            return [{"kind": "result", "text": _preview(self.result_text), "is_error": self.result_is_error,
-                     "turns": self.turns, "cost_usd": self.cost_usd}]
-        return [{"kind": str(t or "event"), "text": ""}]
+        name = self._HANDLERS.get(t) if isinstance(t, str) else None
+        if name is None:
+            return [{"kind": str(t or "event"), "text": ""}]
+        return getattr(self, name)(obj)
+
+    def _on_system(self, obj: dict[str, Any]) -> list[dict[str, Any]]:
+        sub = obj.get("subtype")
+        if sub == "init":
+            self.model = obj.get("model") or self.model
+            self.cli_version = obj.get("claude_code_version") or self.cli_version
+            return [{"kind": "system", "text": f"session started: model {self.model}"}]
+        if sub == "api_retry":
+            return self._on_api_retry(obj)
+        return [{"kind": "system", "text": _preview(sub or "system")}]
+
+    def _on_api_retry(self, obj: dict[str, Any]) -> list[dict[str, Any]]:
+        status = obj.get("error_status")
+        err = str(obj.get("error") or "")
+        detail = f"API retry {obj.get('attempt')}/{obj.get('max_retries')}: {status} {err}"
+        if status == 429 or err == "rate_limit":
+            self._note_signal("rate_limited", detail)
+        elif status in (401, 403) or err in ("authentication_failed", "billing_error"):
+            self._note_signal("auth_failed", detail)
+        elif isinstance(status, int) and status >= 500:
+            self._note_signal("server_error", detail)
+        return [{"kind": "retry", "text": detail}]
+
+    def _on_rate_limit(self, obj: dict[str, Any]) -> list[dict[str, Any]]:
+        info = obj.get("rate_limit_info") or {}
+        status = str(info.get("status") or "")
+        util = info.get("utilization")
+        if isinstance(util, (int, float)):
+            self.window_utilization = float(util)
+        resets = info.get("resetsAt")
+        if status in ("rejected", "blocked"):
+            self._note_signal("rate_limited", f"rate limit {info.get('rateLimitType') or ''} {status}")
+            if isinstance(resets, (int, float)):
+                self.resets_at = float(resets) / (1000.0 if resets > 1e11 else 1.0)
+        return [{"kind": "rate_limit", "text": f"rate limit {status} {info.get('rateLimitType') or ''}".strip()}]
+
+    def _on_assistant(self, obj: dict[str, Any]) -> list[dict[str, Any]]:
+        msg = obj.get("message") or {}
+        if msg.get("model") != "<synthetic>":
+            self._count_message(msg, msg.get("id") or obj.get("uuid") or str(len(self._usage_by_msg)))
+        events = [ev for ev in (self._content_event(block) for block in msg.get("content") or []) if ev]
+        if obj.get("error") or obj.get("is_api_error_message"):
+            events.append(self._api_error(obj, msg))
+        return events or [{"kind": "assistant", "text": ""}]
+
+    def _count_message(self, msg: dict[str, Any], mid: str) -> None:
+        """A turn per message id. A message's usage arrives in parts; the highest of each count wins."""
+        if mid not in self._usage_by_msg:
+            self.turns += 1
+            self._usage_by_msg[mid] = {}
+        usage = msg.get("usage") or {}
+        cur = self._usage_by_msg[mid]
+        for k in ("input_tokens", "output_tokens", "cache_read_input_tokens", "cache_creation_input_tokens"):
+            v = usage.get(k)
+            if isinstance(v, int):
+                cur[k] = max(cur.get(k, 0), v)
+        self._sum_usage()
+        self.model = msg.get("model") or self.model
+
+    @staticmethod
+    def _content_event(block: dict[str, Any]) -> dict[str, Any] | None:
+        bt = block.get("type")
+        if bt == "text":
+            return {"kind": "assistant", "text": _preview(block.get("text"))}
+        if bt == "tool_use":
+            return {"kind": "tool_use", "text": f"{block.get('name')}: {_preview(block.get('input'), 400)}"}
+        if bt == "thinking":
+            return {"kind": "thinking", "text": _preview(block.get("thinking"), 400)}
+        return None
+
+    def _api_error(self, obj: dict[str, Any], msg: dict[str, Any]) -> dict[str, Any]:
+        err = obj.get("error")
+        text = " ".join(b.get("text", "") for b in msg.get("content") or [] if b.get("type") == "text")
+        self.last_error = text or str(err)
+        kind = _API_ERRORS.get(str(err))
+        status = obj.get("api_error_status")
+        if not kind and status == 429:
+            kind = "rate_limited"
+        elif not kind and status in (401, 403):
+            kind = "auth_failed"
+        self._note_signal(kind or classify_text(text), text or str(err))
+        return {"kind": "error", "text": _preview(self.last_error, 400)}
+
+    def _on_user(self, obj: dict[str, Any]) -> list[dict[str, Any]]:
+        msg = obj.get("message") or {}
+        content = msg.get("content")
+        out = [{"kind": "tool_result", "text": _preview(block.get("content"), 600)}
+               for block in (content if isinstance(content, list) else []) if block.get("type") == "tool_result"]
+        return out or [{"kind": "user", "text": _preview(msg.get("content"), 400)}]
+
+    def _on_result(self, obj: dict[str, Any]) -> list[dict[str, Any]]:
+        self.final_seen = True
+        self.result_is_error = bool(obj.get("is_error"))
+        self.result_text = obj.get("result") if isinstance(obj.get("result"), str) else None
+        if isinstance(obj.get("num_turns"), int):
+            self.turns = max(self.turns, obj["num_turns"])
+        if isinstance(obj.get("total_cost_usd"), (int, float)):
+            self.cost_usd = float(obj["total_cost_usd"])
+        self._result_usage(obj.get("usage") or {})
+        sub = str(obj.get("subtype") or "")
+        reason = str(obj.get("terminal_reason") or "")
+        if "max_turns" in sub or "max_turns" in reason:
+            self.limit_hit = "limit_turns"
+        elif "budget" in sub or "budget" in reason:
+            self.limit_hit = "limit_cost"
+        if self.result_is_error:
+            self._result_error(obj.get("api_error_status"))
+        return [{"kind": "result", "text": _preview(self.result_text), "is_error": self.result_is_error,
+                 "turns": self.turns, "cost_usd": self.cost_usd}]
+
+    def _result_usage(self, usage: dict[str, Any]) -> None:
+        """The result's totals, where they are higher than what the messages added up to."""
+        if not usage:
+            return
+        self.input_tokens = max(self.input_tokens, int(usage.get("input_tokens") or 0))
+        self.output_tokens = max(self.output_tokens, int(usage.get("output_tokens") or 0))
+        self.cache_read_tokens = max(self.cache_read_tokens, int(usage.get("cache_read_input_tokens") or 0))
+        self.cache_write_tokens = max(self.cache_write_tokens, int(usage.get("cache_creation_input_tokens") or 0))
+
+    def _result_error(self, status: Any) -> None:
+        if status == 429:
+            self._note_signal("rate_limited", self.result_text or "429")
+        elif status in (401, 403):
+            self._note_signal("auth_failed", self.result_text or str(status))
+        elif isinstance(status, int) and status >= 500:
+            self._note_signal("server_error", self.result_text or str(status))
+
+
+
+# The `error` field of an assistant message, as the signal it raises.
+_API_ERRORS = {"rate_limit": "rate_limited", "authentication_failed": "auth_failed",
+               "billing_error": "auth_failed", "server_error": "server_error"}
 
 
 CODEX_TOOL_ITEMS = frozenset({"command_execution", "mcp_tool_call", "file_change", "web_search",
@@ -334,6 +364,12 @@ CODEX_TOOL_ITEMS = frozenset({"command_execution", "mcp_tool_call", "file_change
 
 class CodexJsonParser(StreamParser):
     runner = "codex"
+    # a line's `type`, as the method that reads it; any other type is passed on as it is
+    _HANDLERS: ClassVar[dict[str, str]] = {
+        "thread.started": "_on_thread_started", "turn.started": "_on_turn_started",
+        "item.started": "_on_item", "item.updated": "_on_item", "item.completed": "_on_item",
+        "turn.completed": "_on_turn_completed", "turn.failed": "_on_turn_failed", "error": "_on_error",
+    }
 
     def __init__(self) -> None:
         super().__init__()
@@ -342,61 +378,69 @@ class CodexJsonParser(StreamParser):
 
     def _on(self, obj: dict[str, Any]) -> list[dict[str, Any]]:
         t = obj.get("type")
-        if t == "thread.started":
-            self.session_id = obj.get("thread_id") or self.session_id
-            return [{"kind": "system", "text": f"thread started {self.session_id}"}]
-        if t == "turn.started":
-            return [{"kind": "system", "text": "turn started"}]
-        if t in ("item.started", "item.updated", "item.completed"):
-            item = obj.get("item") or {}
-            it = item.get("type")
-            if t != "item.completed":
-                return [{"kind": "progress", "text": f"{it} {item.get('status') or ''}".strip()}]
-            if it == "agent_message":
-                self.turns += 1
-                self.result_text = item.get("text")
-                return [{"kind": "assistant", "text": _preview(item.get("text"))}]
-            if it in CODEX_TOOL_ITEMS:
-                self.turns += 1
-                label = item.get("command") or item.get("tool") or item.get("query") or it
-                out = item.get("aggregated_output")
-                return [{"kind": "tool_use", "text": f"{it}: {_preview(label, 300)}"
-                         + (f" -> {_preview(out, 400)}" if out else "")}]
-            if it == "reasoning":
-                return [{"kind": "thinking", "text": _preview(item.get("text"), 400)}]
-            if it == "error":
-                msg = str(item.get("message") or "")
-                self.last_error = msg
-                self._note_signal(classify_text(msg), msg)
-                return [{"kind": "error", "text": _preview(msg, 400)}]
-            return [{"kind": "event", "text": str(it)}]
-        if t == "turn.completed":
-            usage = obj.get("usage") or {}
-            self._turn_usage.append({k: int(v) for k, v in usage.items() if isinstance(v, int)})
-            self.input_tokens = sum(u.get("input_tokens", 0) for u in self._turn_usage)
-            self.output_tokens = sum(u.get("output_tokens", 0) for u in self._turn_usage)
-            self.cache_read_tokens = sum(u.get("cached_input_tokens", 0) for u in self._turn_usage)
-            self.final_seen = True
-            if not self._failed:
-                self.result_is_error = False
-            return [{"kind": "result", "text": _preview(self.result_text), "is_error": False,
-                     "turns": self.turns}]
-        if t == "turn.failed":
-            msg = str((obj.get("error") or {}).get("message") or "turn failed")
-            self._failed = True
-            self.final_seen = True
-            self.result_is_error = True
-            self.result_text = msg
+        name = self._HANDLERS.get(t) if isinstance(t, str) else None
+        if name is None:
+            return [{"kind": str(t or "event"), "text": ""}]
+        return getattr(self, name)(obj)
+
+    def _on_thread_started(self, obj: dict[str, Any]) -> list[dict[str, Any]]:
+        self.session_id = obj.get("thread_id") or self.session_id
+        return [{"kind": "system", "text": f"thread started {self.session_id}"}]
+
+    def _on_turn_started(self, obj: dict[str, Any]) -> list[dict[str, Any]]:
+        return [{"kind": "system", "text": "turn started"}]
+
+    def _on_item(self, obj: dict[str, Any]) -> list[dict[str, Any]]:
+        item = obj.get("item") or {}
+        it = item.get("type")
+        if obj.get("type") != "item.completed":
+            return [{"kind": "progress", "text": f"{it} {item.get('status') or ''}".strip()}]
+        if it == "agent_message":
+            self.turns += 1
+            self.result_text = item.get("text")
+            return [{"kind": "assistant", "text": _preview(item.get("text"))}]
+        if it in CODEX_TOOL_ITEMS:
+            self.turns += 1
+            label = item.get("command") or item.get("tool") or item.get("query") or it
+            out = item.get("aggregated_output")
+            return [{"kind": "tool_use", "text": f"{it}: {_preview(label, 300)}"
+                     + (f" -> {_preview(out, 400)}" if out else "")}]
+        if it == "reasoning":
+            return [{"kind": "thinking", "text": _preview(item.get("text"), 400)}]
+        if it == "error":
+            msg = str(item.get("message") or "")
             self.last_error = msg
             self._note_signal(classify_text(msg), msg)
-            return [{"kind": "result", "text": _preview(msg), "is_error": True, "turns": self.turns}]
-        if t == "error":
-            msg = str(obj.get("message") or "")
-            self.last_error = msg
-            self._note_signal(classify_text(msg), msg)
-            kind = "retry" if msg.startswith("Reconnecting") else "error"
-            return [{"kind": kind, "text": _preview(msg, 400)}]
-        return [{"kind": str(t or "event"), "text": ""}]
+            return [{"kind": "error", "text": _preview(msg, 400)}]
+        return [{"kind": "event", "text": str(it)}]
+
+    def _on_turn_completed(self, obj: dict[str, Any]) -> list[dict[str, Any]]:
+        usage = obj.get("usage") or {}
+        self._turn_usage.append({k: int(v) for k, v in usage.items() if isinstance(v, int)})
+        self.input_tokens = sum(u.get("input_tokens", 0) for u in self._turn_usage)
+        self.output_tokens = sum(u.get("output_tokens", 0) for u in self._turn_usage)
+        self.cache_read_tokens = sum(u.get("cached_input_tokens", 0) for u in self._turn_usage)
+        self.final_seen = True
+        if not self._failed:
+            self.result_is_error = False
+        return [{"kind": "result", "text": _preview(self.result_text), "is_error": False, "turns": self.turns}]
+
+    def _on_turn_failed(self, obj: dict[str, Any]) -> list[dict[str, Any]]:
+        msg = str((obj.get("error") or {}).get("message") or "turn failed")
+        self._failed = True
+        self.final_seen = True
+        self.result_is_error = True
+        self.result_text = msg
+        self.last_error = msg
+        self._note_signal(classify_text(msg), msg)
+        return [{"kind": "result", "text": _preview(msg), "is_error": True, "turns": self.turns}]
+
+    def _on_error(self, obj: dict[str, Any]) -> list[dict[str, Any]]:
+        msg = str(obj.get("message") or "")
+        self.last_error = msg
+        self._note_signal(classify_text(msg), msg)
+        kind = "retry" if msg.startswith("Reconnecting") else "error"
+        return [{"kind": kind, "text": _preview(msg, 400)}]
 
 
 class ChatJsonParser(StreamParser):

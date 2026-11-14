@@ -1,9 +1,10 @@
-"""`build_api(runtime) -> Starlette`: the panel and app API (docs/API.md) plus the built panel."""
+"""`build_api(runtime) -> Starlette`: the node's HTTP API (docs/API.md) plus the built web app."""
 
 from __future__ import annotations
 
 import asyncio
 import contextlib
+import importlib
 import inspect
 import json
 import logging
@@ -29,7 +30,6 @@ from agentos.api.auth import (
     PRESENCE_HEADER,
     SESSION_COOKIE,
     PanelStore,
-    RateLimiter,
     Session,
     origin_allowed,
     tokens_equal,
@@ -37,14 +37,16 @@ from agentos.api.auth import (
 from agentos.api.bridge import Bridge
 from agentos.api.errors import ApiError, error_response
 from agentos.api.events import EventBus
-from agentos.api.jsonable import jsonable, maybe_await
+from agentos.api.jsonable import jsonable
 from agentos.api.members import Members, MemberStore
-from agentos.api.zone import node_zone
 from agentos.core import live as live_sockets
+from agentos.core.aio import maybe_await
 from agentos.core.errors import AgentosError, InvalidRequest, NotFound, ServiceUnavailable
 from agentos.core.logs import log_context
 from agentos.core.logs import update as update_log_context
 from agentos.core.models import Principal
+from agentos.core.ratelimit import RateLimiter
+from agentos.core.zone import node_zone
 from agentos.policy.confirm import ConfirmLevel, Proof, legacy_requires
 from agentos.policy.errors import ProofTooWeak
 
@@ -54,30 +56,13 @@ LOOPBACK = frozenset({"127.0.0.1", "::1", "localhost"})
 MAX_BODY = 1_000_000
 
 
-UI_CHOICE = "panel-ui"  # in the node's home: `web`, once a person chose it with `agentos panel use web`
-
-
-def chosen_ui(home: Path | None) -> str:
-    """`web` or `classic`. A person chooses, and until they do a node keeps the UI it has."""
-    if home is None:
-        return "classic"
-    try:
-        return "web" if (Path(home) / UI_CHOICE).read_text().strip() == "web" else "classic"
-    except OSError:
-        return "classic"
-
-
-def _default_panel_dir(home: Path | None = None, root: Path | None = None) -> Path:
-    """The built UI to serve: web/dist once a person chose it, or when it is the only one built (a
-    checkout with no panel/, as the public repository is). Otherwise panel/dist."""
+def _default_panel_dir(root: Path | None = None) -> Path:
+    """The built web app to serve: $AGENTOS_PANEL_DIR when set, otherwise web/dist next to the code."""
     env = os.environ.get("AGENTOS_PANEL_DIR")
     if env:
         return Path(env)
     root = root or Path(__file__).resolve().parents[3]  # src/agentos/api/app.py -> the repo root
-    web, panel = root / "web" / "dist", root / "panel" / "dist"
-    if (web / "index.html").is_file() and (chosen_ui(home) == "web" or not (panel / "index.html").is_file()):
-        return web
-    return panel
+    return root / "web" / "dist"
 
 
 @dataclass
@@ -85,7 +70,7 @@ class ApiSettings:
     owner_token: str | None = None        # default: the node's mcp_token from config
     home: Path | None = None              # default: config.home; panel.db lives here
     store: PanelStore | None = None       # tests pass an in-memory store
-    panel_dir: Path | None = None         # default: $AGENTOS_PANEL_DIR or <repo>/panel/dist
+    panel_dir: Path | None = None         # default: $AGENTOS_PANEL_DIR or <repo>/web/dist
     mcp_url: str | None = None            # shown in the first-run wizard
     session_ttl: int = 7 * 24 * 3600
     device_ttl: int = 90 * 24 * 3600      # the owner's device credential (`agentos connect` on the Mac)
@@ -101,7 +86,7 @@ class ApiSettings:
     mount_features: bool = True           # the feature packages' extra routes (agentos.api.mounts)
     schedule_pump_seconds: float = 5.0    # how often schedule changes the scheduler makes are published (0: off)
     brain_pump_seconds: float = 5.0       # how often brain task changes are published (0: off); brains every 30 s
-    timezone: str | None = None           # IANA name shown to the panel; default: the host's zone (agentos.api.zone)
+    timezone: str | None = None           # IANA name shown to the panel; default: the host's zone (agentos.core.zone)
     public_base_url: str | None = None    # where people open the panel (invite links, the passkey RP id);
                                           # default: the notifier's public_base_url, else localhost
     invite_ttl: int = 24 * 3600           # an invite link works once, for this long
@@ -143,7 +128,7 @@ class Api:
         self.owner_token = settings.owner_token or getattr(cfg, "mcp_token", None) or None
         self.limiter = RateLimiter(per_key=settings.login_per_ip, global_max=settings.login_global,
                                    window=settings.login_window)
-        self.panel_dir = settings.panel_dir or _default_panel_dir(settings.home or getattr(cfg, "home", None))
+        self.panel_dir = settings.panel_dir or _default_panel_dir()
         if settings.mcp_url:
             self.mcp_url = settings.mcp_url
         elif cfg is not None:
@@ -578,8 +563,13 @@ class SecurityHeaders:
         await self.app(scope, receive, send_wrapped)
 
 
+# Route modules a feature owns in full that build on this module's helpers (endpoint, read_body):
+# imported by name, as agentos.api.mounts finds the others, since importing them here is a circle.
+FEATURE_ROUTES = ("agentos.runner.mail.api",)
+
+
 def build_api(runtime: Any, settings: ApiSettings | None = None) -> Starlette:
-    """The panel API (mounted at /api) and the built panel (at /), as one Starlette app.
+    """The node's HTTP API (mounted at /api) and the built web app (at /), as one Starlette app.
 
     Its lifespan (agentos.mcp.http forwards it when the node mounts this app) runs the lane
     pump that turns lane state changes into live `lane` events."""
@@ -590,7 +580,6 @@ def build_api(runtime: Any, settings: ApiSettings | None = None) -> Starlette:
         routes_computers,
         routes_core,
         routes_devices,
-        routes_engage,
         routes_files,
         routes_forms,
         routes_freeze,
@@ -600,7 +589,6 @@ def build_api(runtime: Any, settings: ApiSettings | None = None) -> Starlette:
         routes_meters,
         routes_ops,
         routes_overview,
-        routes_plan,
         routes_profiles,
         routes_resources,
         routes_worker,
@@ -609,7 +597,6 @@ def build_api(runtime: Any, settings: ApiSettings | None = None) -> Starlette:
     )
     from agentos.api import web as web_contract
     from agentos.api.lanes_view import lane_json
-    from agentos.runner.mail import api as mail_api
 
     api = Api(runtime, settings or ApiSettings())
     live = live_sockets.of(runtime)  # live streams end when access does (agentos.core.live)
@@ -625,15 +612,13 @@ def build_api(runtime: Any, settings: ApiSettings | None = None) -> Starlette:
         *routes_audit.routes(api),
         *routes_freeze.routes(api),
         *routes_meters.routes(api),
-        *routes_engage.routes(api),
         *routes_memory.routes(api),
         *routes_profiles.routes(api),
-        *routes_plan.routes(api),
         *routes_files.routes(api),
         *routes_worker.routes(api),
         *routes_ops.routes(api),
         *routes_workflows.routes(api),
-        *mail_api.routes(api),
+        *(route for name in FEATURE_ROUTES for route in importlib.import_module(name).routes(api)),
         *routes_login.routes(api),
         *routes_forms.routes(api),
         *(mounts.routes(api) if api.settings.mount_features else []),

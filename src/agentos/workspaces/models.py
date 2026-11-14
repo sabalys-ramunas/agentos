@@ -14,11 +14,11 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from agentos.core.errors import InvalidRequest
+from agentos.core.models import WORKSPACE_ID_RE
 
-# The workspace part of a lane id (`workspace/name`) and the name part, as core.models.LANE_ID_RE
-# spells them. Each side is checked on its own, so any valid workspace with any valid surface name
+# The name part of a lane id (`workspace/name`), as core.models.LANE_ID_RE spells it (the workspace
+# part is core.models.WORKSPACE_ID_RE). Each side is checked on its own, so any valid workspace with any valid surface name
 # makes a valid lane id. Templates are validated against LANE_NAME_RE for the same reason.
-WORKSPACE_ID_RE = re.compile(r"[a-z0-9][a-z0-9-]{0,30}")
 LANE_NAME_RE = re.compile(r"[a-z0-9][a-z0-9-]{0,40}")
 PLATFORM_RE = re.compile(r"[a-z0-9][a-z0-9-]{0,40}")
 TEMPLATE_ID_RE = re.compile(r"[a-z0-9][a-z0-9-]{0,40}")

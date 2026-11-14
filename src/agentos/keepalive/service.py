@@ -10,7 +10,7 @@
 What a round reads, all records the node already keeps (agentos.keepalive.planner says how they combine):
 the lane manager's lanes (state, last_used, control, claim, queue, last signal), the freeze, the lane
 check's last report (signed in, and when the session cookie expires; health rounds refresh it without
-asking any site), the lane's pinned time zone, the engagement persona when there is one, and this
+asking any site), the lane's pinned time zone, and this
 service's own visits.
 
 Who goes first, and when: lanes whose slot has come, earliest slot first; one visit at a time on the
@@ -36,11 +36,8 @@ gap before the first visit.
 The node switch is `keepalive` in node.toml, read again every round so `agentos lane keepalive --node
 on` takes effect without a restart. Off by default: it opens real accounts unattended.
 
-Coordination with the engagement engine (agentos.engage): an engagement session, like every agent call,
-flow and brain, uses the lane through the lane manager, which stamps the lane's last_used; that is the
-activity the planner counts, so a lane the engine keeps busy is never visited. The engine has no hook
-of its own for lane activity, and needs none. Keepalive reads the engine's persona for waking hours and
-never writes to engage.db.
+Every agent call, flow and brain uses the lane through the lane manager, which stamps the lane's
+last_used; that is the activity the planner counts, so a lane kept busy is never visited.
 """
 
 from __future__ import annotations
@@ -57,6 +54,7 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+from agentos.core import clock
 from agentos.core.config import config_path, home_from_env, load_config
 from agentos.core.errors import AgentosError, InvalidRequest, LaneNotFound, ServiceUnavailable
 from agentos.core.models import ControlState, LaneInfo, LaneKind, LaneState
@@ -102,10 +100,6 @@ def pinned_timezone(config: Any, lane_id: str) -> tuple[ZoneInfo, str]:
         return (ZoneInfo(name), "pin") if name else (ZoneInfo("UTC"), "default")
     except (ZoneInfoNotFoundError, ValueError):
         return ZoneInfo("UTC"), "default"
-
-
-def _iso(when: datetime | None) -> str | None:
-    return when.astimezone(UTC).isoformat(timespec="seconds") if when else None
 
 
 class KeepaliveService:
@@ -198,7 +192,7 @@ class KeepaliveService:
     def _set_not_before(self, when: datetime) -> None:
         self._not_before = when
         try:
-            self._db().set_meta(NOT_BEFORE, _iso(when))
+            self._db().set_meta(NOT_BEFORE, clock.iso_or_none(when, timespec="seconds"))
         except Exception:  # the gap still holds in memory
             log.warning("keepalive: could not save the next free time", exc_info=True)
 
@@ -248,15 +242,7 @@ class KeepaliveService:
         return bool(check(lane_id)) if callable(check) else False
 
     def _persona(self, lane_id: str, seed: str) -> Any:
-        engage = self._svc("engage")
-        engaged = None
-        store = getattr(engage, "store", None)
-        if store is not None:
-            try:
-                engaged = store.persona(lane_id)  # read only: keepalive never draws the engine's persona
-            except Exception:  # noqa: BLE001 - the engine's database is its own business
-                engaged = None
-        return planner.persona_for(lane_id, seed, engaged)
+        return planner.persona_for(lane_id, seed)
 
     def _session(self, lane_id: str, entry: Entry) -> tuple[bool | None, datetime | None]:
         """(signed in, session cookie expiry) from the lane check's last report; (None, None) unknown."""
@@ -292,7 +278,7 @@ class KeepaliveService:
         out: dict[str, Any] = {"lane": lane_id, "enabled": enabled, "opted_out": opted_out,
                                "site": entry.name if entry else None, "home": entry.home if entry else None,
                                "status": row.status, "status_reason": row.reason,
-                               "signed_in": signed_in, "session_expires_at": _iso(expires),
+                               "signed_in": signed_in, "session_expires_at": clock.iso_or_none(expires, timespec="seconds"),
                                "blocked": None if block is None else {"code": block.code, "reason": block.reason},
                                "last_visit": last.public() if last else None, "next_at": None, "due_at": None,
                                "_block": block, "_entry": entry, "_row": row}
@@ -320,8 +306,8 @@ class KeepaliveService:
         if at is not None and pace is not None and pace["windows"]:
             at = self._waking(lane_id, at, tz, pace["windows"])
         first, end = planner.window(persona, now.astimezone(tz).date(), tz)
-        out.update({"timezone": tz.key, "timezone_source": tz_source, "activity_at": _iso(activity),
-                    "due_at": _iso(due), "next_at": _iso(at), "retry_at": _iso(retry),
+        out.update({"timezone": tz.key, "timezone_source": tz_source, "activity_at": clock.iso_or_none(activity, timespec="seconds"),
+                    "due_at": clock.iso_or_none(due, timespec="seconds"), "next_at": clock.iso_or_none(at, timespec="seconds"), "retry_at": clock.iso_or_none(retry, timespec="seconds"),
                     "window_today": [first.astimezone(tz).strftime("%H:%M"), end.astimezone(tz).strftime("%H:%M")],
                     "active_hours": pace["active_hours"] if pace is not None else None, "_at": at})
         return out
@@ -631,7 +617,7 @@ class KeepaliveService:
         plan = self.public(self.plan(info, self.now()))
         plan["visits"] = [v.public() for v in self._db().visits(lane_id, HISTORY)]
         plan["visiting"] = self.current == lane_id
-        if self.waiting and plan.get("next_at") and plan["next_at"] <= _iso(self.now()):
+        if self.waiting and plan.get("next_at") and plan["next_at"] <= clock.iso_or_none(self.now(), timespec="seconds"):
             plan["waiting"] = self.waiting
         return plan
 
@@ -681,7 +667,7 @@ class KeepaliveService:
             waits = block.reason if block is not None else (
                 self.waiting if at <= now and self.waiting else None)
             out["items"].append({
-                "lane": lane_id, "workspace": lane_id.split("/", 1)[0], "at": _iso(at), "approx": True,
+                "lane": lane_id, "workspace": lane_id.split("/", 1)[0], "at": clock.iso_or_none(at, timespec="seconds"), "approx": True,
                 "site": plan.get("site"), "title": f"Keepalive visit to {plan.get('site') or 'its site'}",
                 "effect": "read", "due_now": at <= now, "timezone": plan.get("timezone"),
                 **({"waits": waits} if waits else {}),

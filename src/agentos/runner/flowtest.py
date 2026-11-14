@@ -48,9 +48,9 @@ from agentos.core.errors import InvalidRequest
 from agentos.core.models import NavigateResult, Principal, Signal
 from agentos.node.snapshot import parse_line
 from agentos.runner.fakes import El, FakeClock, FakeDriver, FakeSite, _link, driver_factory
+from agentos.runner.flowdoc import FlowDefinition
 from agentos.runner.flowfiles import RECORDING_SUFFIX, SUFFIX, TEST_SUFFIX, load_flow, load_yaml
 from agentos.runner.flows import validation_message
-from agentos.runner.models import FlowDefinition
 
 FORMAT: Literal[1] = 1
 OWNER = Principal(kind="human", id="owner", owner="owner")  # the test saves the flow as the owner would

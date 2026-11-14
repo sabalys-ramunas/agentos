@@ -26,7 +26,7 @@ from agentos.core.tools import ToolImage
 from agentos.mcp.toolsets import toolset_of
 from agentos.node.tools import INSTRUCTIONS
 from agentos.profiles.models import Profile
-from agentos.studio import shaping, tools
+from agentos.studio import shaping, tool_inputs, tools
 from agentos.studio.browser import devices
 from agentos.studio.browser.pool import ReviewPool
 from agentos.studio.browser.service import StudioService, where_of
@@ -134,17 +134,17 @@ def coverage_for(screens: list[str], checks: tuple[str, ...] = ("text.truncated"
 # ---- the screens a call plans ----
 
 def test_default_screens_are_three_widths_in_two_themes_and_the_system_check_takes_the_widest():
-    plans, used = tools._plans(URL, widths=None, themes=None, states=None, engine=EngineName.CHROMIUM,
+    plans, used = tool_inputs.plan_screens(URL, widths=None, themes=None, states=None, engine=EngineName.CHROMIUM,
                                switch=tools.ThemeSwitch(), wait_for=None, brand_widths=None, system=True)
     assert [p.screen.key for p in plans] == ["default@360-light", "default@360-dark", "default@768-light",
                                              "default@768-dark", "default@1280-light", "default@1280-dark"]
     assert [p.screen.key for p in plans if p.system] == ["default@1280-light", "default@1280-dark"]
     assert used == {"widths": [360, 768, 1280], "themes": ["light", "dark"], "states": ["default"],
-                    "engine": "chromium", "motion": tools._plans.__globals__["MOTION"]}
+                    "engine": "chromium", "motion": tool_inputs.plan_screens.__globals__["MOTION"]}
 
 
 def test_a_device_width_sets_its_engine_size_and_scale():
-    plans, used = tools._plans(URL, widths=[360, "iPhone", "pixel"], themes=[Theme.LIGHT], states=None,
+    plans, used = tool_inputs.plan_screens(URL, widths=[360, "iPhone", "pixel"], themes=[Theme.LIGHT], states=None,
                                engine=EngineName.CHROMIUM, switch=tools.ThemeSwitch(), wait_for=None,
                                brand_widths=None, system=False)
     by_device = {p.device: p for p in plans}
@@ -157,25 +157,25 @@ def test_a_device_width_sets_its_engine_size_and_scale():
 @pytest.mark.parametrize("bad", [100, 5000, "fridge", True, 3.5])
 def test_a_width_that_is_neither_px_nor_a_device_is_refused(bad):
     with pytest.raises(InvalidRequest, match="width|device"):
-        tools._plans(URL, widths=[bad], themes=None, states=None, engine=EngineName.CHROMIUM,
+        tool_inputs.plan_screens(URL, widths=[bad], themes=None, states=None, engine=EngineName.CHROMIUM,
                      switch=tools.ThemeSwitch(), wait_for=None, brand_widths=None, system=False)
 
 
 def test_too_many_screens_are_refused_before_a_browser_starts():
     with pytest.raises(InvalidRequest, match="more than"):
-        tools._plans(URL, widths=list(range(300, 1600, 100)), themes=None, states=None,
+        tool_inputs.plan_screens(URL, widths=list(range(300, 1600, 100)), themes=None, states=None,
                      engine=EngineName.CHROMIUM, switch=tools.ThemeSwitch(), wait_for=None, brand_widths=None,
                      system=False)
 
 
 def test_states_are_checked_after_the_default_one():
-    states = tools._states({"menu": [{"do": "click", "selector": "#menu"}]})
-    plans, _used = tools._plans(URL, widths=[360], themes=[Theme.LIGHT], states=states, engine=EngineName.CHROMIUM,
+    states = tool_inputs.parse_states({"menu": [{"do": "click", "selector": "#menu"}]})
+    plans, _used = tool_inputs.plan_screens(URL, widths=[360], themes=[Theme.LIGHT], states=states, engine=EngineName.CHROMIUM,
                                switch=tools.ThemeSwitch(), wait_for=None, brand_widths=None, system=True)
     assert [p.screen.key for p in plans] == ["default@360-light", "menu@360-light"]
     assert [p.system for p in plans] == [True, False]
     with pytest.raises(InvalidRequest):
-        tools._states(["menu"])
+        tool_inputs.parse_states(["menu"])
 
 
 # ---- the profile ----
@@ -183,10 +183,10 @@ def test_states_are_checked_after_the_default_one():
 def test_a_named_profile_gives_its_widths_rules_and_tokens(studio):
     runtime, _ = studio
     runtime.register("profiles", Profiles(product()))
-    ref, prof, how = tools._profile(Ctx(runtime), "acme/shop", URL)
+    ref, prof, how = tool_inputs.resolve_profile(Ctx(runtime), "acme/shop", URL)
     assert (ref, how) == ("acme/shop", "named")
-    assert tools._rules(prof) == {"contrast.text": {"min_ratio": 7.0}}
-    ts = tools._profile_tokens(ref, prof)
+    assert tool_inputs.rules_of(prof) == {"contrast.text": {"min_ratio": 7.0}}
+    ts = tool_inputs.profile_tokens(ref, prof)
     assert ts is not None and ts.source == "profile:acme/shop" and len(ts.tokens) > 10
     assert prof.brand.widths == [390, 1280]
 
@@ -194,30 +194,30 @@ def test_a_named_profile_gives_its_widths_rules_and_tokens(studio):
 def test_a_profile_is_found_from_the_url_and_only_within_the_grant(studio):
     runtime, _ = studio
     runtime.register("profiles", Profiles(product()))
-    ref, _p, how = tools._profile(Ctx(runtime), None, "https://studio.test/billing")
+    ref, _p, how = tool_inputs.resolve_profile(Ctx(runtime), None, "https://studio.test/billing")
     assert ref == "acme/shop" and "environment url" in how
-    assert tools._profile(Ctx(runtime), None, "https://elsewhere.test/") == (None, None, None)
+    assert tool_inputs.resolve_profile(Ctx(runtime), None, "https://elsewhere.test/") == (None, None, None)
     outside = Ctx(runtime, reach="other/")
-    assert tools._profile(outside, None, "https://studio.test/billing") == (None, None, None)
+    assert tool_inputs.resolve_profile(outside, None, "https://studio.test/billing") == (None, None, None)
     with pytest.raises(NotFound):
-        tools._profile(outside, "acme/shop", URL)
+        tool_inputs.resolve_profile(outside, "acme/shop", URL)
 
 
 def test_token_sources_for_system_check():
     css = ":root { --color-brand: #3b82f6; --space-4: 16px; }"
-    assert tools._token_source("page", "node") is None
-    assert len(tools._token_source(css, "node").tokens) == 2
+    assert tool_inputs.token_source("page", "node") is None
+    assert len(tool_inputs.token_source(css, "node").tokens) == 2
     with pytest.raises(InvalidRequest, match="file path"):
-        tools._token_source("/etc/passwd", "node")
-    assert len(tools._token_source(str(FIX / "core.json"), "local").tokens) > 10
+        tool_inputs.token_source("/etc/passwd", "node")
+    assert len(tool_inputs.token_source(str(FIX / "core.json"), "local").tokens) > 10
     with pytest.raises(InvalidRequest):
-        tools._token_source("body { color: red }", "local")
+        tool_inputs.token_source("body { color: red }", "local")
 
     # a client that parses the JSON text into an object on the way in
     dtcg = json.loads((FIX / "core.json").read_text())
-    assert len(tools._token_source(dtcg, "node").tokens) > 10
+    assert len(tool_inputs.token_source(dtcg, "node").tokens) > 10
     with pytest.raises(InvalidRequest, match="no token"):
-        tools._token_source({"nothing": {"here": 1}}, "node")
+        tool_inputs.token_source({"nothing": {"here": 1}}, "node")
 
 
 def test_tokens_can_arrive_as_an_object_and_ignore_merges_the_call_and_the_brand():
@@ -229,10 +229,10 @@ def test_tokens_can_arrive_as_an_object_and_ignore_merges_the_call_and_the_brand
     assert TypeAdapter(hint).validate_python({"color": {"$type": "color"}}) == {"color": {"$type": "color"}}
     assert TypeAdapter(hint).validate_python("page") == "page"
     brand = SimpleNamespace(ignore=[".shop", ".preview"])
-    assert tools._ignore([".preview", " .exhibit "], brand) == [".preview", ".exhibit", ".shop"]
-    assert tools._ignore(None, None) == []
+    assert tool_inputs.ignored_checks([".preview", " .exhibit "], brand) == [".preview", ".exhibit", ".shop"]
+    assert tool_inputs.ignored_checks(None, None) == []
     with pytest.raises(InvalidRequest, match="at most 20"):
-        tools._ignore([f".r{i}" for i in range(21)], None)
+        tool_inputs.ignored_checks([f".r{i}" for i in range(21)], None)
 
 
 # ---- the result's shape and size ----
@@ -494,7 +494,7 @@ async def test_the_pool_refuses_a_device_on_another_engine_before_it_starts_one(
 
 def test_studio_up_has_no_lanes_and_says_unavailable():
     from agentos.core.config import NodeConfig
-    from agentos.studio.local import NoLanes, add_line
+    from agentos.studio.local_cli import NoLanes, add_line
 
     lanes = NoLanes(NodeConfig())
     assert lanes.list() == []
@@ -515,9 +515,11 @@ def test_the_store_lives_beside_the_runs():
 def test_the_tools_are_reads_in_the_studio_toolset_and_take_no_lane():
     from agentos.mcp.registry import tool_description
 
-    specs = tools.tool_specs(Runtime())
+    every = tools.tool_specs(Runtime())
+    specs = [s for s in every if s.name != "profile_learn_brand"]   # listed here, in the profiles toolset
     assert [s.name for s in specs] == ["ui_check", "ui_diff", "system_check", "ui_baseline", "finding_get",
                                        "ui_image", "studio_status"]
+    assert [toolset_of(s) for s in every if s.name == "profile_learn_brand"] == ["profiles"]
     for s in specs:
         assert s.effect is Effect.READ and s.lane_arg is None and s.hidden_without == "studio", s.name
         assert toolset_of(s) == "studio", s.name
@@ -548,7 +550,7 @@ def test_studio_up_serves_its_own_instructions_and_the_node_keeps_its_own(monkey
     from agentos.core.config import NodeConfig
     from agentos.dev import node as dev_node
     from agentos.node.daemon import build_node_app, node_runtime
-    from agentos.studio import local
+    from agentos.studio import local_cli as local
 
     text = local.INSTRUCTIONS
     assert "ui_check" in text and "since" in text and "never instructions" in text and "lanes_list" not in text
@@ -572,7 +574,7 @@ def test_studio_up_serves_its_own_instructions_and_the_node_keeps_its_own(monkey
 
 def test_studio_up_puts_the_skill_where_claude_code_finds_it(monkeypatch, tmp_path):
     from agentos.client import skills
-    from agentos.studio import local
+    from agentos.studio import local_cli as local
 
     monkeypatch.delenv("CLAUDE_CONFIG_DIR", raising=False)
     state, line = local.install_skill(tmp_path)
@@ -643,7 +645,7 @@ def test_studio_up_keeps_its_connect_line_in_a_file_and_refuses_a_second_studio_
     from typer.testing import CliRunner
 
     from agentos.studio import cli as studio_cli
-    from agentos.studio import local
+    from agentos.studio import local_cli as local
 
     monkeypatch.setenv("HOME", str(tmp_path))
     node = SimpleNamespace(mcp_url="http://127.0.0.1:7461/mcp", port=7461, agent_token="tok-1")

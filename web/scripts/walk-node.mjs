@@ -28,10 +28,6 @@ const [name, value] = cookie.split(/=(.*)/s);
 const PAGES = [
   ['home', '/local'], ['needs-you', '/local/needs-you'], ['accounts', '/local/accounts'],
   ['account', '/local/accounts/biz-a/social'], ['logins', '/local/logins'],
-  ['engagement', '/local/accounts/engagement'], ['engagement-today', '/local/accounts/biz-a/social/engagement'],
-  ['engagement-plan', '/local/accounts/biz-a/social/engagement?tab=plan'],
-  ['engagement-draft', '/local/accounts/biz-b/social/engagement?tab=plan'],
-  ['engagement-connected', '/local/accounts/biz-b/forum/engagement?tab=connected'],
   ['routines', '/local/routines'], ['routine-new', '/local/routines/new'],
   ['email', '/local/email'], ['site-apis', '/local/site-apis'], ['history', '/local/history'],
   ['computers', '/local/computers'], ['computer', '/local/computers/dev'],

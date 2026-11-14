@@ -12,11 +12,11 @@ from test_api_members import browser, join, owner, role
 from test_node_panel import TOKEN, Node, bearer
 from test_policy_support import Clock
 
-from agentos.api.auth import RateLimiter
-from agentos.api.zone import node_zone
 from agentos.audit.errors import ShareInvalid
 from agentos.audit.service import AuditService, today
 from agentos.core.errors import InvalidRequest
+from agentos.core.ratelimit import RateLimiter
+from agentos.core.zone import node_zone
 from agentos.policy.traces import TraceEvent
 
 LANE = "biz-a/instagram"
@@ -227,28 +227,6 @@ def test_a_trace_share_shows_only_that_trace_and_expires(node, tmp_path):
         svc.share_open(made["token"])
     with pytest.raises(InvalidRequest):
         svc.share_create(trace_id=first, lane=LANE, day=day())
-
-
-def test_the_replay_as_an_html_file_is_for_the_owner_in_person(node):
-    """GET /api/audit/replay.html: one self-contained page anyone who gets it can read, so, like a share
-    link, only the owner in person downloads it."""
-    g, tok = agent(node, "claude-code")
-    call(node, g, run_id="run_1")
-    url = f"/api/audit/replay.html?lane={LANE}&day={day()}&tz=UTC"
-    with node.client() as client:
-        assert client.get(url, headers=bearer(tok)).status_code == 403
-        assert client.get(url, headers=OWNER).json()["error"]["code"] == "presence_required"
-        person = node.sign_in(client)
-        r = client.get(url, headers=person)
-        assert r.status_code == 200, r.text
-        assert r.headers["content-type"].startswith("text/html") and "attachment" in r.headers["content-disposition"]
-        assert "default-src 'none'" in r.headers["content-security-policy"]
-        assert "<script" not in r.text and g.id not in r.text and "data:image" not in r.text
-        assert "Posted to instagram.com as biz-a" in r.text
-        # the arguments' values stay out unless asked for (the file cannot be taken back)
-        assert "hello" not in r.text and "names only" in r.text
-        r = client.get(url + "&include_args=1", headers=person)
-        assert r.status_code == 200 and "hello" in r.text and "names only" not in r.text
 
 
 def test_a_screenshot_kept_after_a_commit_is_served_to_who_may_see_the_call(node):

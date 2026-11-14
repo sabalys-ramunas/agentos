@@ -4,7 +4,7 @@ The feature packages register their services under the well-known names the API 
 (approvals, traces, runner, flows, brains, vault, policy, notifier, envs), with their own
 method shapes. `Bridge.adapt(name, service)` wraps a real one in a thin adapter with the
 Protocol's methods and the shapes in docs/API.md; anything that already speaks the Protocol
-(the fakes in agentos.api.fakes) passes through untouched. Services are recognized by the
+(the fakes in agentos.dev.apifakes) passes through untouched. Services are recognized by the
 methods they have, so this module imports no feature package.
 
 `Bridge.wire_events(bus)` forwards the services' own change feeds into the panel's event bus:
@@ -24,7 +24,8 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from agentos.api.actors import actor, decided_by
-from agentos.api.jsonable import jsonable, maybe_await
+from agentos.api.jsonable import jsonable
+from agentos.core.aio import maybe_await
 from agentos.core.errors import AgentosError, InvalidRequest, NotFound, PolicyDenied
 from agentos.core.models import LaneInfo, LaneKind, LaneSpec, LaneState, Principal
 
@@ -330,7 +331,7 @@ def schedule_json(described: dict, *, next_fire: str | None = None, last_run: di
 
 
 class RunnerAdapter:
-    """agentos.runner.RunnerService (and its scheduler) as the panel's RunnerService."""
+    """agentos.runner.runner.RunnerService (and its scheduler) as the panel's RunnerService."""
 
     def __init__(self, runner: Any, *, zone: ZoneInfo | None = None):
         self.runner = runner
@@ -408,7 +409,7 @@ def _ask_first_view(flows: Any, flow_id: str) -> dict:
 
 
 class FlowsAdapter:
-    """agentos.runner.FlowService (plus the runner, to submit) as the panel's FlowService."""
+    """agentos.runner.flows.FlowService (plus the runner, to submit) as the panel's FlowService."""
 
     def __init__(self, flows: Any, runner: Any | None):
         self.flows = flows
@@ -510,7 +511,7 @@ class BrainsAdapter:
 # ---------------------------------------------------------------- vault, policy, notifier
 
 class VaultAdapter:
-    """agentos.vault.VaultService as the panel's VaultService: names, domains and lanes only."""
+    """agentos.vault.service.VaultService as the panel's VaultService: names, domains and lanes only."""
 
     def __init__(self, vault: Any):
         self.vault = vault
@@ -674,7 +675,7 @@ class TerminalAdapter:
 
 
 class EnvsAdapter:
-    """agentos.env.EnvManager as the panel's EnvService, plus its lanes in the lane list."""
+    """agentos.env.manager.EnvManager as the panel's EnvService, plus its lanes in the lane list."""
 
     def __init__(self, envs: Any):
         self.envs = envs

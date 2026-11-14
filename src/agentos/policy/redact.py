@@ -70,10 +70,6 @@ def secret_key_kind(key: str) -> str | None:
     return None
 
 
-def is_secret_key(key: str) -> bool:
-    return secret_key_kind(key) is not None
-
-
 _TEXT_PATTERNS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----.*?(?:-----END [A-Z0-9 ]*PRIVATE KEY-----|\Z)", re.DOTALL),
      "[redacted:private_key]"),

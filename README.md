@@ -227,8 +227,6 @@ The CLI shows the same: `agentos environments list`, `show ID` and `close ID`.
   [docs/RESPONSIBLE-USE.md](docs/RESPONSIBLE-USE.md)).
 - **Routines**: flows you record and replay, and workflows on a schedule
   ([docs/WORKFLOWS.md](docs/WORKFLOWS.md)).
-- **The engagement engine**: a slow, capped program of posts and replies for your own business
-  accounts, which you approve ([docs/ENGAGEMENT.md](docs/ENGAGEMENT.md)).
 
 ## FAQ
 

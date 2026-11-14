@@ -16,6 +16,7 @@ import copy
 import inspect
 import typing
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Annotated, Any
 
 import typer
@@ -42,7 +43,7 @@ HOME: dict[str, str] = {
     "grants": "access", "approvals": "access", "confirmation": "access", "policy": "access",
     "audit": "access", "freeze": "access", "unfreeze": "access",
     "runner": "routines", "runs": "routines", "flows": "routines", "schedules": "routines",
-    "workflows": "routines", "engage": "routines", "plan": "routines", "connector": "routines",
+    "workflows": "routines", "connector": "routines",
     "site-api": "routines", "brains": "routines", "pilot": "routines", "plugins": "routines",
     "config": "node", "backup": "node", "migrate": "node", "upgrade": "node", "logs": "node",
     "migrate-service-user": "node",
@@ -209,7 +210,7 @@ def _connect_by_hand(kwargs: dict[str, Any]) -> None:
 def by_hand_lines(ssh_host: str | None) -> list[str]:
     """The tunnel, the grant and the `claude mcp add` line, for this box. After `agentos up`
     agents use the controller's URL; on a node alone, the node's."""
-    from agentos import cli
+    from agentos.commands import base as cli
     from agentos.core.config import config_path, home_from_env
 
     home = home_from_env()
@@ -267,119 +268,143 @@ def _help_app(version_cmd: CommandInfo | None) -> typer.Typer:
     return help_app
 
 
-def regroup(app: typer.Typer) -> None:
-    """Show the task-first groups at the top level and hide the old names. Call it once, after
-    every command is mounted."""
-    commands: dict[str, CommandInfo] = {}
-    groups: dict[str, TyperInfo] = {}
-    for info in app.registered_commands:
-        commands[command_name(info)] = info
-    for info in app.registered_groups:
-        name = _named(info)
-        if name:
-            groups[name] = info
-        else:  # a package mounted without a name: its commands sit at the top level
-            for sub in info.typer_instance.registered_commands:
-                commands[command_name(sub)] = sub
+@dataclass
+class _Mounted:
+    """Every command and group the root holds before the regrouping, by name. A package mounted
+    without a name puts its commands at the top level, so they are listed with the root's own."""
+    commands: dict[str, CommandInfo]
+    groups: dict[str, TyperInfo]
 
-    def group_typer(name: str) -> typer.Typer | None:
-        return groups[name].typer_instance if name in groups else None
+    @classmethod
+    def of(cls, app: typer.Typer) -> _Mounted:
+        commands: dict[str, CommandInfo] = {command_name(info): info for info in app.registered_commands}
+        groups: dict[str, TyperInfo] = {}
+        for info in app.registered_groups:
+            name = _named(info)
+            if name:
+                groups[name] = info
+            else:
+                for sub in info.typer_instance.registered_commands:
+                    commands[command_name(sub)] = sub
+        return cls(commands, groups)
 
-    def as_group(name: str, new_name: str | None = None) -> list[TyperInfo]:
-        return [_grp(groups[name], new_name or name, hidden=False)] if name in groups else []
+    def group_typer(self, name: str) -> typer.Typer | None:
+        return self.groups[name].typer_instance if name in self.groups else None
 
-    def as_cmd(name: str, new_name: str | None = None, source: dict[str, CommandInfo] = commands) -> list[CommandInfo]:
+    def as_group(self, name: str, new_name: str | None = None) -> list[TyperInfo]:
+        return [_grp(self.groups[name], new_name or name, hidden=False)] if name in self.groups else []
+
+    def as_cmd(self, name: str, new_name: str | None = None,
+               source: dict[str, CommandInfo] | None = None) -> list[CommandInfo]:
+        source = self.commands if source is None else source
         return [_cmd(source[name], new_name or name, hidden=False)] if name in source else []
 
-    def sub_commands(typer_app: typer.Typer | None) -> dict[str, CommandInfo]:
-        return {command_name(c): c for c in typer_app.registered_commands} if typer_app else {}
 
-    def sub_groups(typer_app: typer.Typer | None) -> dict[str, TyperInfo]:
-        return {_named(g): g for g in typer_app.registered_groups if _named(g)} if typer_app else {}
+def _sub_commands(typer_app: typer.Typer | None) -> dict[str, CommandInfo]:
+    return {command_name(c): c for c in typer_app.registered_commands} if typer_app else {}
 
-    new_commands: list[CommandInfo] = []
-    new_groups: list[TyperInfo] = []
+
+def _sub_groups(typer_app: typer.Typer | None) -> dict[str, TyperInfo]:
+    return {_named(g): g for g in typer_app.registered_groups if _named(g)} if typer_app else {}
+
+
+def _visible_commands(m: _Mounted) -> list[CommandInfo]:
+    """The commands shown at the top level, in their panels, with the flags regroup adds."""
+    commands = m.commands
     panels = {name: (panel, short) for name, panel, short in VISIBLE}
-
-    # -- the visible commands
+    out: list[CommandInfo] = []
     if "setup" in commands:
-        new_commands.append(_cmd(commands["setup"], rich_help_panel=START, short_help=panels["setup"][1]))
+        out.append(_cmd(commands["setup"], rich_help_panel=START, short_help=panels["setup"][1]))
     if "up" in commands:
-        new_commands.append(_cmd(commands["up"], rich_help_panel=START, short_help=panels["up"][1]))
+        out.append(_cmd(commands["up"], rich_help_panel=START, short_help=panels["up"][1]))
     if "connect" in commands:
         original = commands["connect"].callback
-        new_commands.append(_cmd(commands["connect"], rich_help_panel=START, short_help=panels["connect"][1],
-                                 epilog=CONNECT_EPILOG,
-                                 callback=with_flag(original, "by_hand", ByHand, _connect_by_hand)))
+        out.append(_cmd(commands["connect"], rich_help_panel=START, short_help=panels["connect"][1],
+                        epilog=CONNECT_EPILOG,
+                        callback=with_flag(original, "by_hand", ByHand, _connect_by_hand)))
     if "status" in commands:
-        new_commands.append(_cmd(commands["status"], rich_help_panel=START, short_help=panels["status"][1],
-                                 callback=with_flag(commands["status"].callback, "check", Check, _status_check)))
+        out.append(_cmd(commands["status"], rich_help_panel=START, short_help=panels["status"][1],
+                        callback=with_flag(commands["status"].callback, "check", Check, _status_check)))
     if "open" in commands:
-        new_commands.append(_cmd(commands["open"], rich_help_panel=START, short_help=panels["open"][1],
-                                 callback=with_flag(commands["open"].callback, "terminal", Terminal, _open_terminal,
-                                                    optional=("lane",),
-                                                    missing="open needs a lane id, for example `agentos open "
-                                                            "biz-a/instagram` (or --terminal for the dashboard)")))
-
+        out.append(_cmd(commands["open"], rich_help_panel=START, short_help=panels["open"][1],
+                        callback=with_flag(commands["open"].callback, "terminal", Terminal, _open_terminal,
+                                           optional=("lane",),
+                                           missing="open needs a lane id, for example `agentos open "
+                                                   "biz-a/instagram` (or --terminal for the dashboard)")))
     # the commands for your own code: run a command there, your dev server in a lane, a lane's port here
     for name in ("run", "expose"):
         if name in commands:
-            new_commands.append(_cmd(commands[name], rich_help_panel=BUILD, short_help=panels[name][1]))
+            out.append(_cmd(commands[name], rich_help_panel=BUILD, short_help=panels[name][1]))
+    return out
 
-    # -- the visible groups, each a copy of the old one with the commands it takes in
-    freeze, unfreeze = sub_commands(group_typer("freeze")), sub_commands(group_typer("unfreeze"))
+
+def _built_groups(m: _Mounted) -> dict[str, typer.Typer]:
+    """The visible groups, each a copy of the old one with the commands and groups it takes in."""
+    freeze, unfreeze = _sub_commands(m.group_typer("freeze")), _sub_commands(m.group_typer("unfreeze"))
     built: dict[str, typer.Typer] = {}
-    if "lane" in groups:
-        built["lane"] = _clone(group_typer("lane"),
-                               commands=[*as_cmd("lane", "freeze", freeze), *as_cmd("lane", "unfreeze", unfreeze),
-                                         *as_cmd("forward")],
-                               groups=[*as_group("device"), *as_group("proxy"), *as_group("env"),
-                                       *as_group("identity"), *as_group("vm")])
-    if "workspace" in groups:
-        built["workspace"] = _clone(group_typer("workspace"), groups=[*as_group("memory"), *as_group("members"),
-                                                                           *as_group("profile")])
-    if "vault" in groups:
-        built["vault"] = _clone(group_typer("vault"), groups=[*as_group("mail"), *as_group("git")])
+    if "lane" in m.groups:
+        built["lane"] = _clone(m.group_typer("lane"),
+                               commands=[*m.as_cmd("lane", "freeze", freeze), *m.as_cmd("lane", "unfreeze", unfreeze),
+                                         *m.as_cmd("forward")],
+                               groups=[*m.as_group("device"), *m.as_group("proxy"), *m.as_group("env"),
+                                       *m.as_group("identity"), *m.as_group("vm")])
+    if "workspace" in m.groups:
+        built["workspace"] = _clone(m.group_typer("workspace"), groups=[*m.as_group("memory"), *m.as_group("members"),
+                                                                             *m.as_group("profile")])
+    if "vault" in m.groups:
+        built["vault"] = _clone(m.group_typer("vault"), groups=[*m.as_group("mail"), *m.as_group("git")])
     access = typer.Typer(no_args_is_help=True, help="What agents may do: grants, approvals, freezes and the "
                                                     "action log.")
-    access.registered_groups = [*as_group("grants"), *as_group("approvals"), *as_group("confirmation"),
-                                *as_group("freeze"), *as_group("unfreeze"), *as_group("audit"), *as_group("policy")]
+    access.registered_groups = [*m.as_group("grants"), *m.as_group("approvals"), *m.as_group("confirmation"),
+                                *m.as_group("freeze"), *m.as_group("unfreeze"), *m.as_group("audit"),
+                                *m.as_group("policy")]
     built["access"] = access
     routines = typer.Typer(no_args_is_help=True, help="Work that runs by itself: runs, flows, schedules, "
-                                                      "workflows, engagement and brains.")
-    runner_groups = sub_groups(group_typer("runner"))
+                                                      "workflows and brains.")
+    runner_groups = _sub_groups(m.group_typer("runner"))
     routines.registered_groups = [
-        *as_group("runs"), *as_group("flows"), *as_group("schedules"),
+        *m.as_group("runs"), *m.as_group("flows"), *m.as_group("schedules"),
         *([_grp(runner_groups["watches"], hidden=False)] if "watches" in runner_groups else []),
-        *as_group("workflows"), *as_group("engage"), *as_group("plan"), *as_group("connector"),
-        *as_group("site-api"), *as_group("brains"), *as_group("pilot"), *as_group("plugins"), *as_group("agenda")]
+        *m.as_group("workflows"), *m.as_group("connector"),
+        *m.as_group("site-api"), *m.as_group("brains"), *m.as_group("pilot"), *m.as_group("plugins"),
+        *m.as_group("agenda")]
     built["routines"] = routines
-    if "node" in groups:
-        built["node"] = _clone(group_typer("node"),
-                               commands=[*as_cmd("logs"), *as_cmd("migrate-service-user")],
-                               groups=[*as_group("config"), *as_group("doctor"), *as_group("health"),
-                                       *as_group("backup"), *as_group("migrate"), *as_group("upgrade")])
+    if "node" in m.groups:
+        built["node"] = _clone(m.group_typer("node"),
+                               commands=[*m.as_cmd("logs"), *m.as_cmd("migrate-service-user")],
+                               groups=[*m.as_group("config"), *m.as_group("doctor"), *m.as_group("health"),
+                                       *m.as_group("backup"), *m.as_group("migrate"), *m.as_group("upgrade")])
     for name in ("controller", "panel", "studio", "environments"):
-        if name in groups:
-            built[name] = group_typer(name)
-    if "dev" in groups:
-        built["dev"] = _clone(group_typer("dev"), commands=[*as_cmd("tools"), *as_cmd("call"), *as_cmd("errors")],
-                              groups=[*as_group("lanebench"), *as_group("text-review")])
-    built["help"] = _help_app(commands.get("version"))
+        if name in m.groups:
+            built[name] = m.group_typer(name)
+    if "dev" in m.groups:
+        built["dev"] = _clone(m.group_typer("dev"),
+                              commands=[*m.as_cmd("tools"), *m.as_cmd("call"), *m.as_cmd("errors")],
+                              groups=[*m.as_group("lanebench"), *m.as_group("text-review")])
+    built["help"] = _help_app(m.commands.get("version"))
+    return built
 
+
+def regroup(app: typer.Typer) -> None:
+    """Show the task-first groups at the top level and hide the old names. Call it once, after
+    every command is mounted."""
+    m = _Mounted.of(app)
+    new_commands = _visible_commands(m)
+    built = _built_groups(m)
+    new_groups: list[TyperInfo] = []
     for name, panel, short in VISIBLE:
         if name not in built:
             continue
-        base = groups.get(name) or TyperInfo(name=name)
+        base = m.groups.get(name) or TyperInfo(name=name)
         new_groups.append(_grp(base, name, typer_instance=built[name], hidden=False, rich_help_panel=panel,
                                short_help=short))
 
     # -- every other old name: hidden, and exactly as it was
     shown = {name for name, _, _ in VISIBLE}
-    for name, info in commands.items():
+    for name, info in m.commands.items():
         if name not in shown:
             new_commands.append(_cmd(info, name, hidden=name in HOME))
-    for name, info in groups.items():
+    for name, info in m.groups.items():
         if name not in shown:
             new_groups.append(_grp(info, hidden=name in HOME))
 

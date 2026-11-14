@@ -12,7 +12,8 @@ from test_api_members import owner, pending
 from test_node_panel import TOKEN, Node, bearer
 
 from agentos.api.actors import actor
-from agentos.api.auth import PRESENCE_HEADER, RateLimiter
+from agentos.api.auth import PRESENCE_HEADER
+from agentos.core.ratelimit import RateLimiter
 
 LANE = "biz-a/instagram"
 

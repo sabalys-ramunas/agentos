@@ -14,10 +14,10 @@ from starlette.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
 from agentos.api import ApiSettings, PanelStore, build_api
-from agentos.api.fakes import demo_runtime
 from agentos.core import live
 from agentos.core.errors import PolicyDenied
 from agentos.core.models import Principal
+from agentos.dev.apifakes import demo_runtime
 from agentos.node import vnc_relay
 
 H = {"Authorization": "Bearer owner"}

@@ -5,10 +5,10 @@ from __future__ import annotations
 import json
 
 import pytest
+from testkit.memory import fake_memory
 from typer.testing import CliRunner
 
 from agentos.cli import app
-from agentos.memory.fakes import fake_memory
 
 runner = CliRunner()
 

@@ -18,12 +18,12 @@ from pathlib import Path
 from typing import ClassVar
 
 import pytest
+from testkit.brains import FakeConfig, FakeCtx, FakeNotifier, FakePolicy, wait_status
 
 from agentos.brains import cliprobe
 from agentos.brains.models import BrainSpec, Budget
 from agentos.brains.service import BrainService
 from agentos.brains.settings import BrainsSettings
-from agentos.brains.testing import FakeConfig, FakeCtx, FakeNotifier, FakePolicy, wait_status
 from agentos.core.models import Principal
 from agentos.core.runtime import Runtime
 

@@ -15,8 +15,8 @@ import pytest
 
 from agentos.core.errors import EngineError
 from agentos.core.models import LaneSpec
-from agentos.node import engine_camoufox as ec
-from agentos.node.engine_camoufox import (
+from agentos.node.camoufox import engine as ec
+from agentos.node.camoufox.engine import (
     CANVAS_PREF,
     CANVAS_TARGETS,
     LAUNCHER_KEYS,
@@ -343,7 +343,7 @@ def test_a_broken_record_or_a_record_alone_is_handled(caplog):
 
 
 def test_ops_tools_read_and_refresh_a_version_2_pin(tmp_path):
-    from agentos.stealth import fingerprint as ops_fp
+    from agentos.node import fingerprint as ops_fp
     fp = tmp_path / "fingerprint.json"
     stored = {**v1_pin(), PIN_META: {"version": 2, "prefs": {"webgl.enable-webgl2": True}}}
     fp.write_text(json.dumps(stored))

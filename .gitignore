@@ -17,16 +17,3 @@ tests/lanebench/lab/data/
 .agentos-home/
 node_modules/
 
-# design v2 polish: before and after captures of the dashboard prototype (large, regenerated)
-panel/prototypes/dashboard/shots/
-
-# Workbench direction: screenshots of every screen (large, regenerated)
-panel/prototypes/dashboard/workbench/shots/
-
-# The app design (W2): screenshots of every screen (large, regenerated)
-panel/prototypes/dashboard/app/shots/
-# Style take "style-mono" (W3): screenshots of every screen and of the references studied (large, regenerated)
-panel/prototypes/dashboard/style-mono/shots/
-
-# style-glow (W3): screenshots of every screen (large, regenerated)
-panel/prototypes/dashboard/style-glow/shots/

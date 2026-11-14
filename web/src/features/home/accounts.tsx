@@ -103,13 +103,6 @@ export function Accounts() {
         description="Every account your agents use, by workspace: how it is, what it did last, and whether it runs on its own or asks you first."
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            {data.length ? (
-              <Button asChild variant="secondary">
-                <Link to="/$org/accounts/engagement" params={{ org }}>
-                  Engagement
-                </Link>
-              </Button>
-            ) : null}
             {canAddLane && data.length ? (
               <Button icon={<Plus className="size-4" />} onClick={() => setAdding(true)}>
                 Add an account

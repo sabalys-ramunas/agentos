@@ -11,8 +11,6 @@ Pinned encodings (PROTOCOL.md "v1 clarifications", the same as the hosted cloud'
 
 from __future__ import annotations
 
-import base64
-import binascii
 import ipaddress
 import json
 import math
@@ -24,8 +22,7 @@ from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
-from cryptography.exceptions import InvalidSignature
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
+from agentos.core import clock
 
 PROTOCOL_VERSION = 1
 CONNECT_PATH = "/v1/node/connect"
@@ -59,14 +56,12 @@ EVENT_KINDS = ("lane", "run", "approval", "node", "standing", "workflow_run")
 
 HELLO_PREFIX = "agentos-node-hello:v1:"
 ENROLL_PREFIX = "agentos-node-enroll:v1:"
-CONTROLLER_PREFIX = "agentos-controller-msg:v1:"
 
 Json = dict[str, Any]
 
 _ULID_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
 _ULID_DECODE = {ch: i for i, ch in enumerate(_ULID_ALPHABET)}
 ULID_LENGTH = 26
-_B64U_RE = re.compile(r"^[A-Za-z0-9_-]*$")
 LOCAL_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
 
 
@@ -142,48 +137,7 @@ def message_id() -> str:
     return prefixed("m")
 
 
-# ---- encodings ----
-
-def b64e(raw: bytes) -> str:
-    return base64.urlsafe_b64encode(raw).rstrip(b"=").decode()
-
-
-def b64d(text: str) -> bytes:
-    if not isinstance(text, str) or not _B64U_RE.match(text):
-        raise ValueError("not unpadded base64url")
-    try:
-        return base64.urlsafe_b64decode(text + "=" * (-len(text) % 4))
-    except (binascii.Error, ValueError):
-        raise ValueError("not unpadded base64url") from None
-
-
-def canonical(value: Any) -> bytes:
-    """The bytes that are signed: sorted keys, no spaces, UTF-8."""
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
-
-
-def public_key(text: str) -> Ed25519PublicKey:
-    raw = b64d(text)
-    if len(raw) != 32:
-        raise ValueError("an Ed25519 public key is 32 bytes")
-    return Ed25519PublicKey.from_public_bytes(raw)
-
-
-def public_b64(key: Ed25519PrivateKey | Ed25519PublicKey) -> str:
-    pub = key.public_key() if isinstance(key, Ed25519PrivateKey) else key
-    return b64e(pub.public_bytes_raw())
-
-
-def verify(pub_b64: str, sig_b64: Any, message: bytes) -> bool:
-    """True only for a valid signature; any malformed input is simply False."""
-    if not isinstance(sig_b64, str):
-        return False
-    try:
-        public_key(pub_b64).verify(b64d(sig_b64), message)
-    except (InvalidSignature, ValueError):
-        return False
-    return True
-
+# ---- encodings and signatures: agentos.core.signing (b64e, b64d, canonical, verify, sign_controller) ----
 
 def hello_message(nonce: str, node_id: str) -> bytes:
     return f"{HELLO_PREFIX}{nonce}:{node_id}".encode()
@@ -194,25 +148,11 @@ def enroll_message(nonce: str, node_pubkey: str) -> bytes:
     return f"{ENROLL_PREFIX}{nonce}:{node_pubkey}".encode()
 
 
-def controller_message(kind: str, node_id: str, body: Json) -> bytes:
-    unsigned = {key: value for key, value in body.items() if key != "sig"}
-    return f"{CONTROLLER_PREFIX}{kind}:{node_id}:".encode() + canonical(unsigned)
-
-
-def sign_controller(key: Ed25519PrivateKey, kind: str, node_id: str, body: Json) -> Json:
-    """`body` plus its `sig`, for a controller-signed message to one node."""
-    unsigned = {k: v for k, v in body.items() if k != "sig"}
-    return {**unsigned, "sig": b64e(key.sign(controller_message(kind, node_id, unsigned)))}
-
-
 # ---- time ----
 
 def iso(moment: datetime | float | None = None) -> str:
-    """Envelope time, for example 2026-11-04T03:00:00Z."""
-    if isinstance(moment, int | float):
-        moment = datetime.fromtimestamp(moment, UTC)
-    value = (moment or datetime.now(UTC)).astimezone(UTC)
-    return value.strftime("%Y-%m-%dT%H:%M:%SZ")
+    """Envelope time, for example 2026-11-04T03:00:00Z (UTC, to the second). None is now."""
+    return clock.iso(moment, z=True, timespec="seconds")
 
 
 def parse_time(value: Any) -> float | None:

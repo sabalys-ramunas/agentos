@@ -5,8 +5,6 @@ import { ErrorState, Skeleton } from '@/components/ui/states';
 import { StoryDetail, useRunView } from './run-story';
 import { fromHistory } from './story-view';
 
-export { Figure } from './run-story';
-
 export function StorySkeleton() {
   return (
     <div className="grid gap-4" role="status" aria-label="Loading">

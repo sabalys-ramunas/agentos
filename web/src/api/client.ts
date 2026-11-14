@@ -59,7 +59,6 @@ import type {
   HistoryPage,
   HistoryShow,
   ActivityRange,
-  ApplyResult,
   Approval,
   AuditEvent,
   AuthProviders,
@@ -101,7 +100,6 @@ import type {
   LaneTaint,
   Limits,
   Meter,
-  Meters,
   Pace,
   ViewLink,
   WorkspaceZone,
@@ -113,7 +111,6 @@ import type {
   InvitePreview,
   JoinToken,
   Lane,
-  LaneMetrics,
   LoginQueue,
   Member,
   BrainTask,
@@ -145,7 +142,6 @@ import type {
   Webhook,
   WebhookDelivery,
   WebhookEvent,
-  DayPlan,
   Enforcement,
   MemoryConfirmed,
   MemoryDetail,
@@ -155,7 +151,6 @@ import type {
   MemoryWorkspaces,
   Org,
   Page,
-  PlanStatus,
   Passkey,
   Question,
   Readiness,
@@ -165,11 +160,8 @@ import type {
   Session,
   StandingApproval,
   Status,
-  TemplateInfo,
-  TemplatePlan,
   ToolDef,
   Topology,
-  TopologyEvent,
   TopologyWindow,
   TraceEvent,
   VaultEntry,
@@ -181,17 +173,6 @@ import type {
   BrowserDevice,
   DeviceMovePlan,
   Workspace,
-  ConnectorOperation,
-  ConnectorRun,
-  EngageAccountDay,
-  EngageCapSet,
-  EngageDays,
-  EngageItem,
-  EngageItems,
-  EngageKind,
-  EngageProgram,
-  NewSurface,
-  Surface,
 } from './types';
 
 /** A URL reads these as "here" and "up", even percent-encoded, so no id may be one. */
@@ -377,40 +358,6 @@ export function notificationBody(value: NotificationSettings): NotificationSetti
   return timezone_source === 'person' && timezone ? { ...rest, timezone } : rest;
 }
 
-/** Engagement, surfaces and connectors. Writes that change an account are the owner's, in person: the node refuses a token and a member. */
-export const engage = {
-  digest: (org: string, day?: string) => served(http<EngageDays>(path`/api/orgs/${org}/engage/digest` + query({ day }))),
-  account: (org: string, ws: string, name: string, day?: string) =>
-    served(http<EngageAccountDay>(path`/api/orgs/${org}/engage/digest/${ws}/${name}` + query({ day }))),
-  program: (org: string, ws: string, name: string) => served(http<EngageProgram>(path`/api/orgs/${org}/engage/programs/${ws}/${name}`)),
-  /** Approves one version of a program; the newest draft when `version` is left out. */
-  approveProgram: (org: string, id: string, version?: number) =>
-    http<EngageProgram>(path`/api/orgs/${org}/engage/programs/${id}/approve`, { method: 'POST', body: version === undefined ? {} : { version } }),
-  /** Sets one daily limit; `null` goes back to the ramp. Above the hard ceiling is refused. */
-  setCap: (org: string, ws: string, name: string, kind: EngageKind, value: number | null) =>
-    http<EngageCapSet>(path`/api/orgs/${org}/engage/caps/${ws}/${name}/${kind}`, { method: 'PUT', body: { value } }),
-  clearHolds: (org: string, ws: string, name: string, body: { kind?: EngageKind | null; id?: number | null } = {}) =>
-    http<{ surface: string; cleared: number }>(path`/api/orgs/${org}/engage/holds/${ws}/${name}/clear`, { method: 'POST', body }),
-  items: (org: string, ws: string, name: string, status?: string) =>
-    served(http<EngageItems>(path`/api/orgs/${org}/engage/items/${ws}/${name}` + query({ status }))),
-  withdrawItem: (org: string, id: string) =>
-    http<EngageItem>(path`/api/orgs/${org}/engage/items/${id}/withdraw`, { method: 'POST', body: {} }),
-};
-
-export const surfaces = {
-  list: (org: string) => served(http<Surface[]>(path`/api/orgs/${org}/surfaces`)),
-  get: (org: string, ws: string, name: string) => served(http<Surface>(path`/api/orgs/${org}/surfaces/${ws}/${name}`)),
-  add: (org: string, body: NewSurface) => http<Surface>(path`/api/orgs/${org}/surfaces`, { method: 'POST', body }),
-  remove: (org: string, ws: string, name: string) =>
-    http<{ deleted: string }>(path`/api/orgs/${org}/surfaces/${ws}/${name}`, { method: 'DELETE' }),
-};
-
-export const connectors = {
-  list: (org: string) => served(http<ConnectorOperation[]>(path`/api/orgs/${org}/connectors`)),
-  run: (org: string, operation: string, body: { on: string; params?: Record<string, unknown>; idempotency_key?: string }) =>
-    http<ConnectorRun>(path`/api/orgs/${org}/connectors/${operation}/run`, { method: 'POST', body }),
-};
-
 export const fleet = {
   workspaces: (org: string) => http<Workspace[]>(path`/api/orgs/${org}/workspaces`),
   /** One business, with its accounts. Anyone who sees the business. */
@@ -423,8 +370,6 @@ export const fleet = {
     http<Workspace>(path`/api/orgs/${org}/workspaces/${id}`, { method: 'PATCH', body }),
   deleteWorkspace: (org: string, id: string) =>
     http<void>(path`/api/orgs/${org}/workspaces/${id}`, { method: 'DELETE' }),
-  applyTemplate: (org: string, body: { template: string; workspaces: string[] }) =>
-    http<ApplyResult>(path`/api/orgs/${org}/templates/apply`, { method: 'POST', body }),
   releaseLane: (org: string, ws: string, name: string) =>
     http<void>(path`/api/orgs/${org}/lanes/${ws}/${name}/release`, { method: 'POST' }),
   lane: (org: string, ws: string, name: string) =>
@@ -440,15 +385,10 @@ export const fleet = {
   setReadiness: (org: string, ws: string, name: string, body: { state: Readiness; note?: string }) =>
     http<void>(path`/api/orgs/${org}/lanes/${ws}/${name}/readiness`, { method: 'POST', body }),
   loginQueue: (org: string) => served(http<LoginQueue>(path`/api/orgs/${org}/queue`)),
-  templates: (org: string) => served(http<{ templates: TemplateInfo[] }>(path`/api/orgs/${org}/templates`)),
-  planTemplate: (org: string, body: { template: string; workspaces: string[] }) =>
-    http<TemplatePlan>(path`/api/orgs/${org}/templates/plan`, { method: 'POST', body }),
   activityMetrics: (org: string, range: ActivityRange, scope: { workspace?: string; lane?: string }) =>
     http<ActivityMetrics>(path`/api/orgs/${org}/metrics/activity` + query({ range, ...scope })),
   nodeMetrics: (org: string, id: string, range: NodeRange) =>
     http<NodeMetrics>(path`/api/orgs/${org}/nodes/${id}/metrics` + query({ range })),
-  laneMetrics: (org: string, ws: string, name: string, range = '7d') =>
-    http<LaneMetrics>(path`/api/orgs/${org}/lanes/${ws}/${name}/metrics` + query({ range })),
   questions: (org: string) => http<Question[]>(path`/api/orgs/${org}/questions` + query({ state: 'open' })),
   answerQuestion: (org: string, id: string, answer: string) =>
     http<Question>(path`/api/orgs/${org}/questions/${id}/answer`, { method: 'POST', body: { answer } }),
@@ -458,8 +398,6 @@ export const fleet = {
     http<Run>(path`/api/orgs/${org}/runs/${id}/decide`, { method: 'POST', body: { decision } }),
   setScheduleEnabled: (org: string, id: string, enabled: boolean) =>
     http<Schedule>(path`/api/orgs/${org}/schedules/${id}`, { method: 'PATCH', body: { enabled } }),
-  laneScreenshotUrl: (org: string, ws: string, name: string, version = 0) =>
-    path`/api/orgs/${org}/lanes/${ws}/${name}/screenshot` + query({ v: version || undefined }),
 
   approvals: (org: string, state = 'pending', limit = 50) =>
     http<WireApproval[]>(path`/api/orgs/${org}/approvals` + query({ state, limit })).then((items) => items.map(evenApproval)),
@@ -550,7 +488,6 @@ export const fleet = {
   laneMeter: (org: string, ws: string, name: string) => served(http<Meter>(path`/api/orgs/${org}/lanes/${ws}/${name}/meter`)),
   setLaneLimits: (org: string, ws: string, name: string, limits: Limits | null) =>
     http<Meter>(path`/api/orgs/${org}/lanes/${ws}/${name}/meter`, { method: 'PUT', body: { limits } }),
-  meters: (org: string) => served(http<Meters>(path`/api/orgs/${org}/meters`)),
   laneQueue: (org: string, ws: string, name: string) => served(http<LaneQueue>(path`/api/orgs/${org}/lanes/${ws}/${name}/queue`)),
   laneTaint: (org: string, ws: string, name: string) => served(http<LaneTaint>(path`/api/orgs/${org}/lanes/${ws}/${name}/taint`)),
   clearTaint: (org: string, grant: string) =>
@@ -587,8 +524,6 @@ export const fleet = {
     http<void>(path`/api/orgs/${org}/schedules/${id}`, { method: 'DELETE' }),
 
   topology: (org: string, window: TopologyWindow) => http<Topology>(path`/api/orgs/${org}/topology` + query({ window })),
-  topologyEvents: (org: string, from: string, to: string, limit = 4000) =>
-    http<TopologyEvent[]>(path`/api/orgs/${org}/topology/events` + query({ from, to, limit })),
   nodes: (org: string) => http<FleetNode[]>(path`/api/orgs/${org}/nodes`),
   nodeSystem: (org: string, id: string) => http<NodeSystem | null>(path`/api/orgs/${org}/nodes/${id}/system`),
   nodePrograms: (org: string, id: string) => http<NodeProgram[] | null>(path`/api/orgs/${org}/nodes/${id}/programs`),
@@ -636,9 +571,6 @@ export const fleet = {
     http<void>(path`/api/orgs/${org}/nodes/${id}`, { method: 'DELETE' }),
   createJoinToken: (org: string, body: { name?: string; capabilities?: string[] }) =>
     http<JoinToken>(path`/api/orgs/${org}/nodes/join-tokens`, { method: 'POST', body }),
-  joinTokens: (org: string) => http<JoinToken[]>(path`/api/orgs/${org}/nodes/join-tokens`),
-  revokeJoinToken: (org: string, id: string) =>
-    http<void>(path`/api/orgs/${org}/nodes/join-tokens/${id}`, { method: 'DELETE' }),
 
   brains: (org: string) => http<Brain[]>(path`/api/orgs/${org}/brains`),
   workers: (org: string) => served(http<WorkerOverview>(path`/api/orgs/${org}/workers`)),
@@ -801,12 +733,6 @@ export const memory = {
     http<MemoryForgotten>(path`/api/orgs/${org}/memory/${id}/forget`, { method: 'POST', body: { workspace, reason } }),
   exportFile: (org: string, workspace: string | undefined, format: 'jsonl' | 'md') =>
     download(path`/api/orgs/${org}/memory/export` + query({ workspace, format })),
-};
-
-/** The day plan: what is blocked, what waits, what is due, and what to look at. A draft, and it queues nothing. */
-export const dayPlan = {
-  draft: (org: string, workspace?: string) => served(http<DayPlan>(path`/api/orgs/${org}/plan/draft` + query({ workspace }))),
-  status: (org: string, workspace?: string) => served(http<PlanStatus>(path`/api/orgs/${org}/plan/status` + query({ workspace }))),
 };
 
 /**

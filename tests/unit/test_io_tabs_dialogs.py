@@ -10,7 +10,7 @@ import pytest
 
 from agentos.core.errors import InvalidRequest, NotFound
 from agentos.core.models import Signal
-from agentos.node.engine_camoufox import PageTracker, tracker_for
+from agentos.node.camoufox.engine import PageTracker, tracker_for
 from agentos.node.interaction import (
     DialogGuard,
     DialogPending,

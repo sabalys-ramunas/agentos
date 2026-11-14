@@ -13,8 +13,8 @@ import pytest
 from agentos.core.config import NodeConfig
 from agentos.core.errors import LaneExists, LaneNotFound
 from agentos.core.models import LaneSpec, ProxyConfig, utcnow
+from agentos.node.camoufox.engine import CamoufoxEngine, os_of, parse_camou_config, write_private_json
 from agentos.node.display import DisplayManagerImpl
-from agentos.node.engine_camoufox import CamoufoxEngine, os_of, parse_camou_config, write_private_json
 from agentos.node.store import LaneStore
 
 
@@ -133,7 +133,7 @@ def test_display_process_matching_stays_in_our_range(tmp_path):
 
 @pytest.mark.skipif(sys.platform != "linux", reason="reads /proc")
 def test_browser_pid_helpers_ignore_unrelated_processes(tmp_path):
-    from agentos.node.engine_camoufox import browser_pids, browser_pids_under
+    from agentos.node.camoufox.engine import browser_pids, browser_pids_under
     assert browser_pids(tmp_path / "profile") == []
     assert browser_pids_under(Path(tmp_path)) == []
 

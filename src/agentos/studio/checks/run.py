@@ -246,7 +246,6 @@ async def _contrast_pixels(page: Any, raw: dict, meta: dict, fold: _Folder, ctx:
     share = rule(ctx, "contrast.text", "pixel_share", 0.1)
     cap = int(rule(ctx, "contrast.text", "pixel_max", 60))
     mismatch = float(rule(ctx, "contrast.text", "max_css_mismatch", 0.12))
-    vw, vh = meta["vw"], meta["vh"]
     for i, j in enumerate(jobs):
         j["id"] = i
         j["min"] = lo_large if j.get("large") else lo
@@ -258,7 +257,27 @@ async def _contrast_pixels(page: Any, raw: dict, meta: dict, fold: _Folder, ctx:
         x0, y0 = await page.evaluate("() => [scrollX, scrollY]")
     except Exception as e:  # noqa: BLE001 - the page went away: say so in coverage
         return [f"pixel route could not run: {str(e)[:120]}"]
-    # Windows: fixed text where it is now, the rest in viewport-high windows down the page.
+    view = (meta["vw"], meta["vh"])
+    results: dict[int, dict] = {}
+    failed: str | None = None
+    pixels_js = script("pixels")
+    try:
+        for top, win in _pixel_windows(jobs, view[1]):
+            for res in await _judge_window(page, top, win, (x0, y0), view, mismatch, pixels_js):
+                results[res["id"]] = res
+    except Exception as e:  # noqa: BLE001 - recorded in coverage, never guessed
+        failed = str(e).splitlines()[0][:160]
+    finally:
+        try:
+            await _scroll(page, x0, y0)
+        except Exception:  # noqa: BLE001,S110 - the page is gone; nothing to restore
+            pass
+    notes += _pixel_verdicts(jobs, results, failed, share, fold)
+    return notes
+
+
+def _pixel_windows(jobs: list[dict], vh: float) -> list[tuple[float | None, list[dict]]]:
+    """Fixed text where it is now (top None), the rest in viewport-high windows down the page."""
     windows: list[tuple[float | None, list[dict]]] = []
     fixed = [j for j in jobs if j.get("fixed")]
     if fixed:
@@ -269,59 +288,62 @@ async def _contrast_pixels(page: Any, raw: dict, meta: dict, fold: _Folder, ctx:
         win = [j for j in rest if max(q["y"] + q["h"] for q in j["rects"]) <= top + vh] or [rest[0]]
         rest = [j for j in rest if j not in win]
         windows.append((top, win))
-    results: dict[int, dict] = {}
-    failed: str | None = None
-    pixels_js = script("pixels")
-    try:
-        for top, win in windows:
-            if top is None:
-                sx, sy = x0, y0
-                if (sx, sy) != tuple(await page.evaluate("() => [scrollX, scrollY]")):
-                    sx, sy = await _scroll(page, x0, y0)
-                off_x, off_y = 0.0, 0.0
-            else:
-                sx, sy = await _scroll(page, x0, top)
-                off_x, off_y = sx, sy
-            rects_v = []
-            for j in win:
-                rv = []
-                for q in j["rects"]:
-                    x, y = q["x"] - off_x, q["y"] - off_y
-                    x1, y1 = max(0.0, x), max(0.0, y)
-                    x2, y2 = min(vw, x + q["w"]), min(vh, y + q["h"])
-                    if x2 - x1 >= 1 and y2 - y1 >= 1:
-                        rv.append((x1, y1, x2, y2))
-                rects_v.append(rv)
-            allr = [r for rv in rects_v for r in rv]
-            if not allr:
-                continue
-            cx1, cy1 = int(min(r[0] for r in allr)), int(min(r[1] for r in allr))
-            cx2, cy2 = int(max(r[2] for r in allr) + 0.999), int(max(r[3] for r in allr) + 0.999)
-            clip = {"x": cx1, "y": cy1, "width": max(1, cx2 - cx1), "height": max(1, cy2 - cy1)}
-            shots = {}
-            for name, css in (("R", None), ("T", "transparent"), ("K", "#000"), ("W", "#fff")):
-                kw: dict[str, Any] = {"clip": clip, "animations": "disabled", "caret": "hide", "scale": "css",
-                                      "type": "png"}
-                style = _glyph_css(css)
-                if style:
-                    kw["style"] = style
-                shots[name] = base64.b64encode(await page.screenshot(**kw)).decode()
-            args = {
-                **shots, "clip": {"w": clip["width"], "h": clip["height"]}, "max_mismatch": mismatch,
-                "jobs": [{"id": j["id"], "min": j["min"], "fg": j.get("fg"), "opacity": j.get("opacity", 1),
-                          "trust_css": bool(j.get("trust_css", True)),
-                          "rects": [{"x": a - cx1, "y": b - cy1, "w": c - a, "h": d - b} for a, b, c, d in rv]}
-                         for j, rv in zip(win, rects_v, strict=True) if rv],
-            }
-            for res in await page.evaluate(pixels_js, args):
-                results[res["id"]] = res
-    except Exception as e:  # noqa: BLE001 - recorded in coverage, never guessed
-        failed = str(e).splitlines()[0][:160]
-    finally:
-        try:
-            await _scroll(page, x0, y0)
-        except Exception:  # noqa: BLE001,S110 - the page is gone; nothing to restore
-            pass
+    return windows
+
+
+async def _judge_window(page: Any, top: float | None, win: list[dict], start: tuple[float, float],
+                        view: tuple[float, float], mismatch: float, pixels_js: str) -> list[dict]:
+    """Scroll to one window, take its four screenshots (as is, glyphs transparent, black and
+    white) and let the page script judge each job's glyph pixels."""
+    x0, y0 = start
+    if top is None:
+        sx, sy = x0, y0
+        if (sx, sy) != tuple(await page.evaluate("() => [scrollX, scrollY]")):
+            sx, sy = await _scroll(page, x0, y0)
+        off_x, off_y = 0.0, 0.0
+    else:
+        off_x, off_y = await _scroll(page, x0, top)
+    rects_v = [_in_viewport(j["rects"], off_x, off_y, view) for j in win]
+    allr = [r for rv in rects_v for r in rv]
+    if not allr:
+        return []
+    cx1, cy1 = int(min(r[0] for r in allr)), int(min(r[1] for r in allr))
+    cx2, cy2 = int(max(r[2] for r in allr) + 0.999), int(max(r[3] for r in allr) + 0.999)
+    clip = {"x": cx1, "y": cy1, "width": max(1, cx2 - cx1), "height": max(1, cy2 - cy1)}
+    shots = {}
+    for name, css in (("R", None), ("T", "transparent"), ("K", "#000"), ("W", "#fff")):
+        kw: dict[str, Any] = {"clip": clip, "animations": "disabled", "caret": "hide", "scale": "css", "type": "png"}
+        style = _glyph_css(css)
+        if style:
+            kw["style"] = style
+        shots[name] = base64.b64encode(await page.screenshot(**kw)).decode()
+    args = {
+        **shots, "clip": {"w": clip["width"], "h": clip["height"]}, "max_mismatch": mismatch,
+        "jobs": [{"id": j["id"], "min": j["min"], "fg": j.get("fg"), "opacity": j.get("opacity", 1),
+                  "trust_css": bool(j.get("trust_css", True)),
+                  "rects": [{"x": a - cx1, "y": b - cy1, "w": c - a, "h": d - b} for a, b, c, d in rv]}
+                 for j, rv in zip(win, rects_v, strict=True) if rv],
+    }
+    return await page.evaluate(pixels_js, args)
+
+
+def _in_viewport(rects: list[dict], off_x: float, off_y: float,
+                 view: tuple[float, float]) -> list[tuple[float, float, float, float]]:
+    """A job's rects as (x1, y1, x2, y2) in the viewport, clipped to it; a sliver under 1 px is dropped."""
+    vw, vh = view
+    out = []
+    for q in rects:
+        x, y = q["x"] - off_x, q["y"] - off_y
+        x1, y1 = max(0.0, x), max(0.0, y)
+        x2, y2 = min(vw, x + q["w"]), min(vh, y + q["h"])
+        if x2 - x1 >= 1 and y2 - y1 >= 1:
+            out.append((x1, y1, x2, y2))
+    return out
+
+
+def _pixel_verdicts(jobs: list[dict], results: dict[int, dict], failed: str | None, share: float,
+                    fold: _Folder) -> list[str]:
+    """A finding for each job whose glyphs are too often below its minimum; notes for the rest."""
     not_judged: dict[str, int] = {}
     for j in jobs:
         res = results.get(j["id"])
@@ -340,8 +362,7 @@ async def _contrast_pixels(page: Any, raw: dict, meta: dict, fold: _Folder, ctx:
              "apca_lc": color.apca_lc(_rgb(res["fg_at_worst"]), _rgb(res["bg_at_worst"]))}
         _contrast_finding(fold, j, ratio=res["p10"], minimum=j["min"], measured=m,
                           fg=_rgb(res["fg_at_worst"]), bg=_rgb(res["bg_at_worst"]))
-    notes += [f"{n} text element{'s' if n > 1 else ''} not judged: {why}" for why, n in not_judged.items()]
-    return notes
+    return [f"{n} text element{'s' if n > 1 else ''} not judged: {why}" for why, n in not_judged.items()]
 
 
 def _rgb(h: str) -> color.RGB:
@@ -659,27 +680,57 @@ async def run_checks(page: Any, ctx: CheckContext, *, other_theme: Any | None = 
     """Run the measured checks on one screen. `page` is a playwright Page already at the screen
     (settled). `other_theme` is, optionally, a page with the same screen in the other theme, for
     theme.leak. Every check gets a coverage line: ran, skipped (with why) or failed."""
-    key = ctx.screen.key
-    scope = page_scope(getattr(page, "url", "") or "")
-    folds: dict[str, _Folder] = {key: _Folder(key, scope)}
+    run = _ChecksRun(page, ctx)
+    in_page, raw = await run.page_pass()
+    meta = raw.get("meta", {})
+    perf = await run.perf_pass()
+    await run.in_page_results(in_page, raw, meta, perf)
+    await run.requests_pass(raw)
+    run.timeline_checks(perf)
+    await run.theme_leak(other_theme)
+    return run.output()
 
-    def fold_for(screen_key: str) -> _Folder:
-        return folds.setdefault(screen_key, _Folder(screen_key, scope))
 
-    fold = folds[key]
-    want = [c for c in IDS if selected(c, ctx.only)]
-    status: dict[str, tuple[str, str | None]] = {c: ("skipped", f"not asked for (only={ctx.only})") for c in IDS}
-    notes: dict[str, list[str]] = {c: [] for c in IDS}
+# What the page script reports for every in-page check, as the check that reads it.
+_IN_PAGE_HANDLERS: dict[str, Callable[[dict, _Folder, CheckContext], None]] = {
+    "layout.page_overflow": _page_overflow, "layout.clipped": _clipped, "text.truncated": _truncated,
+    "layout.occluded": _occluded, "layout.text_overlap": _overlap, "contrast.text": _contrast_dom,
+    "target.size": _target, "name.missing": _names,
+}
 
-    def ok(check: str) -> None:
-        status[check] = ("ran", None)
 
-    def fail(check: str, why: str) -> None:
-        status[check] = ("failed", why[:240])
+class _ChecksRun:
+    """One screen's checks: what was asked for, each check's status and notes, and the findings
+    folded per screen."""
 
-    in_page = [c for c in want if BY_ID[c].in_page]
-    raw: dict = {"checks": {}, "meta": {}}
-    if in_page:
+    def __init__(self, page: Any, ctx: CheckContext):
+        self.page = page
+        self.ctx = ctx
+        self.key = ctx.screen.key
+        self.scope = page_scope(getattr(page, "url", "") or "")
+        self.folds: dict[str, _Folder] = {self.key: _Folder(self.key, self.scope)}
+        self.fold = self.folds[self.key]
+        self.want = [c for c in IDS if selected(c, ctx.only)]
+        self.status: dict[str, tuple[str, str | None]] = {c: ("skipped", f"not asked for (only={ctx.only})")
+                                                          for c in IDS}
+        self.notes: dict[str, list[str]] = {c: [] for c in IDS}
+
+    def fold_for(self, screen_key: str) -> _Folder:
+        return self.folds.setdefault(screen_key, _Folder(screen_key, self.scope))
+
+    def ok(self, check: str) -> None:
+        self.status[check] = ("ran", None)
+
+    def fail(self, check: str, why: str) -> None:
+        self.status[check] = ("failed", why[:240])
+
+    async def page_pass(self) -> tuple[list[str], dict]:
+        """One evaluation of the page script for every in-page check. Returns the checks it ran
+        and what it reported; when it fails, every in-page check says so."""
+        ctx = self.ctx
+        in_page = [c for c in self.want if BY_ID[c].in_page]
+        if not in_page:
+            return in_page, {"checks": {}, "meta": {}}
         opts = {
             "checks": in_page,
             "max_elements": int(rule(ctx, "page", "max_elements", 4000)),
@@ -690,144 +741,163 @@ async def run_checks(page: Any, ctx: CheckContext, *, other_theme: Any | None = 
             "ignore": ignore_selectors(ctx),
         }
         try:
-            raw = await page.evaluate(script("page"), opts)
+            return in_page, await self.page.evaluate(script("page"), opts)
         except Exception as e:  # noqa: BLE001 - the whole pass failed: every in-page check says so
             why = f"the page script failed: {str(e).splitlines()[0][:160]}"
             for c in in_page:
-                fail(c, why)
-            in_page = []
-    meta = raw.get("meta", {})
-    common_notes = []
+                self.fail(c, why)
+            return [], {"checks": {}, "meta": {}}
+
+    async def perf_pass(self) -> dict | None:
+        if not any(c in self.want for c in ("health.layout_shift", "health.long_tasks", "health.images")):
+            return None
+        try:
+            return await self.page.evaluate(script("perf"), {"wait_ms": 60, "images_ms": IMAGES_WAIT_MS,
+                                                             "paint_ms": PAINT_WAIT_MS})
+        except Exception as e:  # noqa: BLE001 - recorded in coverage
+            for c in ("health.layout_shift", "health.long_tasks"):
+                if c in self.want:
+                    self.fail(c, f"performance timeline not read: {str(e)[:160]}")
+            return None
+
+    async def in_page_results(self, in_page: list[str], raw: dict, meta: dict, perf: dict | None) -> None:
+        """Fold what the page script found for each in-page check, with the notes that qualify it."""
+        common_notes = _common_notes(meta)
+        hit_notes = ["hit testing covered the first 15 viewport heights of a long page"] \
+            if meta.get("windows_capped") else []
+        for c in in_page:
+            r = raw["checks"].get(c)
+            if r is None:
+                self.fail(c, "the page script returned nothing for this check")
+                continue
+            if r.get("status") == "failed":
+                self.fail(c, f"the check threw in the page: {r.get('reason')}")
+                continue
+            try:
+                if c in _IN_PAGE_HANDLERS:
+                    _IN_PAGE_HANDLERS[c](r, self.fold, self.ctx)
+                elif c == "health.images":
+                    self.notes[c] += _images(r, perf, self.fold, self.ctx)
+                self.ok(c)
+            except Exception as e:  # noqa: BLE001 - one check failing never hides the others
+                self.fail(c, f"{type(e).__name__}: {str(e)[:160]}")
+                continue
+            self.notes[c] += common_notes
+            self.notes[c] += _check_notes(c, r, meta, hit_notes)
+            if c == "contrast.text":
+                self.notes[c] += await _contrast_pixels(self.page, r, meta, self.fold, self.ctx)
+
+    async def requests_pass(self, raw: dict) -> None:
+        """health.requests, health.fonts (which reads the requests too) and health.console."""
+        want, notes = self.want, self.notes
+        reqs: list[dict] | None = None
+        if "health.requests" in want or "health.fonts" in want:
+            try:
+                reqs = await _requests(self.page)
+            except Exception as e:  # noqa: BLE001 - recorded in coverage
+                if "health.requests" in want:
+                    self.fail("health.requests", f"requests not read: {str(e)[:160]}")
+        if "health.requests" in want and reqs is not None:
+            notes["health.requests"] += _requests_findings(reqs, self.fold)
+            self.ok("health.requests")
+        if "health.fonts" in want and self.status["health.fonts"][0] == "ran":
+            notes["health.fonts"] += _fonts(raw["checks"].get("health.fonts", {}), reqs or [], self.fold)
+        if "health.console" in want:
+            try:
+                notes["health.console"] += await _console(self.page, self.fold)
+                self.ok("health.console")
+            except Exception as e:  # noqa: BLE001 - recorded in coverage
+                self.fail("health.console", f"console not read: {str(e)[:160]}")
+
+    def timeline_checks(self, perf: dict | None) -> None:
+        """Layout shift and long tasks, from the performance timeline Chromium keeps."""
+        for c, label, fn in (("health.layout_shift", "layout shift", _layout_shift),
+                             ("health.long_tasks", "long tasks", _long_tasks)):
+            if c not in self.want or self.status[c][0] == "failed":
+                continue
+            if self.ctx.engine != EngineName.CHROMIUM:
+                why = f"{label} cannot be measured on {self.ctx.engine.value}; only Chromium reports it"
+                self.status[c] = ("skipped", why)
+                continue
+            sup = (perf or {}).get("supported", {})
+            if not sup.get("layout_shift" if c == "health.layout_shift" else "long_tasks"):
+                self.status[c] = ("skipped", f"this browser does not report {label}")
+                continue
+            fn(perf or {}, self.fold, self.ctx)
+            self.ok(c)
+
+    async def theme_leak(self, other_theme: Any | None) -> None:
+        if "theme.leak" not in self.want:
+            return
+        if other_theme is None:
+            self.status["theme.leak"] = ("skipped", "needs the same screen in the other theme (pass other_theme)")
+            return
+        try:
+            why = await _theme_leak(self.page, other_theme, self.ctx, self.fold_for, self.notes["theme.leak"])
+            self.status["theme.leak"] = ("skipped", why) if why else ("ran", None)
+        except Exception as e:  # noqa: BLE001 - recorded in coverage
+            self.fail("theme.leak", f"{type(e).__name__}: {str(e)[:160]}")
+
+    def output(self) -> CheckOutput:
+        coverage = []
+        for c in IDS:
+            st, why = self.status[c]
+            if st == "ran" and self.notes[c]:
+                why = "; ".join(dict.fromkeys(self.notes[c]))
+            coverage.append(CoverageItem(check=c, screen=self.key, status=st, reason=why))  # type: ignore[arg-type]
+        findings = [f for fo in self.folds.values() for f in fo.findings()]
+        findings.sort(key=lambda f: (-SEV_RANK[f.severity], f.check, f.id))
+        return CheckOutput(findings=findings, coverage=coverage)
+
+
+def _common_notes(meta: dict) -> list[str]:
+    """What qualifies every in-page check of this screen: caps, a modal, what was not looked inside,
+    and the regions left out on purpose."""
+    out = []
     if meta.get("capped"):
-        common_notes.append(f"checked the first {meta.get('checked')} of {meta.get('elements')} elements")
+        out.append(f"checked the first {meta.get('checked')} of {meta.get('elements')} elements")
     if meta.get("modal"):
-        common_notes.append(f"a modal is open ({meta['modal']}): only its content was checked")
+        out.append(f"a modal is open ({meta['modal']}): only its content was checked")
     if meta.get("shadow_roots"):
-        common_notes.append(f"{meta['shadow_roots']} shadow roots not looked inside")
+        out.append(f"{meta['shadow_roots']} shadow roots not looked inside")
     if meta.get("frames"):
-        common_notes.append(f"{meta['frames']} frames not looked inside")
+        out.append(f"{meta['frames']} frames not looked inside")
     ign = meta.get("ignored") or {}
     if ign.get("bad"):
-        common_notes.append("ignore selectors that are not valid CSS, so nothing was left out for them: "
-                            + ", ".join(ign["bad"][:3]))
+        out.append("ignore selectors that are not valid CSS, so nothing was left out for them: "
+                   + ", ".join(ign["bad"][:3]))
     if ign.get("count"):
         named = "; ".join(f"{r['sel'][:60]} ({r['how']}{', ' + r['why'] if r.get('why') else ''})"
                           for r in ign.get("regions", [])[:3])
         more = f" and {ign['count'] - 3} more" if ign["count"] > 3 else ""
         share = ign.get("area_share") or 0
-        common_notes.append(f"left out on purpose: {ign['count']} region{'s' if ign['count'] != 1 else ''} "
-                            f"({named}{more}), {ign.get('text', 0)} text elements and {ign.get('controls', 0)} "
-                            f"controls in them, {round(share * 100)}% of the page's area; what they cover is "
-                            "still checked")
-    hit_notes = []
-    if meta.get("windows_capped"):
-        hit_notes.append("hit testing covered the first 15 viewport heights of a long page")
+        out.append(f"left out on purpose: {ign['count']} region{'s' if ign['count'] != 1 else ''} "
+                   f"({named}{more}), {ign.get('text', 0)} text elements and {ign.get('controls', 0)} "
+                   f"controls in them, {round(share * 100)}% of the page's area; what they cover is "
+                   "still checked")
+    return out
 
-    perf: dict | None = None
-    if any(c in want for c in ("health.layout_shift", "health.long_tasks", "health.images")):
-        try:
-            perf = await page.evaluate(script("perf"), {"wait_ms": 60, "images_ms": IMAGES_WAIT_MS,
-                                                               "paint_ms": PAINT_WAIT_MS})
-        except Exception as e:  # noqa: BLE001 - recorded in coverage
-            perf = None
-            for c in ("health.layout_shift", "health.long_tasks"):
-                if c in want:
-                    fail(c, f"performance timeline not read: {str(e)[:160]}")
 
-    handlers: dict[str, Callable[[dict, _Folder, CheckContext], None]] = {
-        "layout.page_overflow": _page_overflow, "layout.clipped": _clipped, "text.truncated": _truncated,
-        "layout.occluded": _occluded, "layout.text_overlap": _overlap, "contrast.text": _contrast_dom,
-        "target.size": _target, "name.missing": _names,
-    }
-    for c in in_page:
-        r = raw["checks"].get(c)
-        if r is None:
-            fail(c, "the page script returned nothing for this check")
-            continue
-        if r.get("status") == "failed":
-            fail(c, f"the check threw in the page: {r.get('reason')}")
-            continue
-        try:
-            if c in handlers:
-                handlers[c](r, fold, ctx)
-            elif c == "health.images":
-                notes[c] += _images(r, perf, fold, ctx)
-            ok(c)
-        except Exception as e:  # noqa: BLE001 - one check failing never hides the others
-            fail(c, f"{type(e).__name__}: {str(e)[:160]}")
-            continue
-        notes[c] += common_notes
-        if c in TEXT_CHECKS and meta.get("decorative_text"):
-            n = meta["decorative_text"]
-            notes[c].append(f"{n} text element{'s' if n > 1 else ''} inside pictures (aria-hidden, inert or "
-                            "role=img: decorative) not checked")
-        if c in TEXT_CHECKS and meta.get("tiny_text"):
-            n = meta["tiny_text"]
-            notes[c].append(f"{n} text element{'s' if n > 1 else ''} drawn under 4 px tall (a miniature, not text "
-                            "to read) not checked")
-        if c == "layout.occluded" and r.get("stacked"):
-            n = r["stacked"]
-            notes[c].append(f"{n} element{'s' if n > 1 else ''} under a layer of the same size stacked on purpose "
-                            "(a before and after view) not counted as covered")
-        if c in ("layout.occluded", "layout.text_overlap", "contrast.text"):
-            notes[c] += hit_notes
-        if c == "layout.text_overlap" and r.get("unconfirmed"):
-            notes[c].append(f"{r['unconfirmed']} possible overlaps off screen not confirmed")
-        if c == "contrast.text":
-            for why, n in (r.get("not_judged") or {}).items():
-                notes[c].append(f"{n} text element{'s' if n > 1 else ''} not judged: {why}")
-            notes[c] += await _contrast_pixels(page, r, meta, fold, ctx)
-
-    reqs: list[dict] | None = None
-    if "health.requests" in want or "health.fonts" in want:
-        try:
-            reqs = await _requests(page)
-        except Exception as e:  # noqa: BLE001 - recorded in coverage
-            for c in ("health.requests",):
-                if c in want:
-                    fail(c, f"requests not read: {str(e)[:160]}")
-    if "health.requests" in want and reqs is not None:
-        notes["health.requests"] += _requests_findings(reqs, fold)
-        ok("health.requests")
-    if "health.fonts" in want and status["health.fonts"][0] == "ran":
-        notes["health.fonts"] += _fonts(raw["checks"].get("health.fonts", {}), reqs or [], fold)
-    if "health.console" in want:
-        try:
-            notes["health.console"] += await _console(page, fold)
-            ok("health.console")
-        except Exception as e:  # noqa: BLE001 - recorded in coverage
-            fail("health.console", f"console not read: {str(e)[:160]}")
-
-    for c, label, fn in (("health.layout_shift", "layout shift", _layout_shift),
-                         ("health.long_tasks", "long tasks", _long_tasks)):
-        if c not in want or status[c][0] == "failed":
-            continue
-        if ctx.engine != EngineName.CHROMIUM:
-            status[c] = ("skipped", f"{label} cannot be measured on {ctx.engine.value}; only Chromium reports it")
-            continue
-        sup = (perf or {}).get("supported", {})
-        if not sup.get("layout_shift" if c == "health.layout_shift" else "long_tasks"):
-            status[c] = ("skipped", f"this browser does not report {label}")
-            continue
-        fn(perf or {}, fold, ctx)
-        ok(c)
-
-    if "theme.leak" in want:
-        if other_theme is None:
-            status["theme.leak"] = ("skipped", "needs the same screen in the other theme (pass other_theme)")
-        else:
-            try:
-                why = await _theme_leak(page, other_theme, ctx, fold_for, notes["theme.leak"])
-                status["theme.leak"] = ("skipped", why) if why else ("ran", None)
-            except Exception as e:  # noqa: BLE001 - recorded in coverage
-                fail("theme.leak", f"{type(e).__name__}: {str(e)[:160]}")
-
-    coverage = []
-    for c in IDS:
-        st, why = status[c]
-        if st == "ran" and notes[c]:
-            why = "; ".join(dict.fromkeys(notes[c]))
-        coverage.append(CoverageItem(check=c, screen=key, status=st, reason=why))  # type: ignore[arg-type]
-    findings = [f for fo in folds.values() for f in fo.findings()]
-    findings.sort(key=lambda f: (-SEV_RANK[f.severity], f.check, f.id))
-    return CheckOutput(findings=findings, coverage=coverage)
+def _check_notes(c: str, r: dict, meta: dict, hit_notes: list[str]) -> list[str]:
+    """The notes one in-page check adds about what it did not count."""
+    out: list[str] = []
+    if c in TEXT_CHECKS and meta.get("decorative_text"):
+        n = meta["decorative_text"]
+        out.append(f"{n} text element{'s' if n > 1 else ''} inside pictures (aria-hidden, inert or "
+                   "role=img: decorative) not checked")
+    if c in TEXT_CHECKS and meta.get("tiny_text"):
+        n = meta["tiny_text"]
+        out.append(f"{n} text element{'s' if n > 1 else ''} drawn under 4 px tall (a miniature, not text "
+                   "to read) not checked")
+    if c == "layout.occluded" and r.get("stacked"):
+        n = r["stacked"]
+        out.append(f"{n} element{'s' if n > 1 else ''} under a layer of the same size stacked on purpose "
+                   "(a before and after view) not counted as covered")
+    if c in ("layout.occluded", "layout.text_overlap", "contrast.text"):
+        out += hit_notes
+    if c == "layout.text_overlap" and r.get("unconfirmed"):
+        out.append(f"{r['unconfirmed']} possible overlaps off screen not confirmed")
+    if c == "contrast.text":
+        for why, n in (r.get("not_judged") or {}).items():
+            out.append(f"{n} text element{'s' if n > 1 else ''} not judged: {why}")
+    return out

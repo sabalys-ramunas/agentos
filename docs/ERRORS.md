@@ -30,7 +30,6 @@ carries one of these codes:
 | [`bundle_rejected`](#bundle_rejected) | A connector bundle's signature or format did not check out, so nothing in it was installed. | no |
 | [`busy`](#busy) | The lane stayed taken for longer than the call could wait: another caller claims it or calls ahead in its queue, or every warm lane slot is in use. | yes, after 30 s |
 | [`cancelled`](#cancelled) | The request was cancelled before it finished. | no |
-| [`cap_ceiling`](#cap_ceiling) | That cap is above the hard ceiling for this kind of action on this site, or the site has no such action. | no |
 | [`check_unknown`](#check_unknown) | A flow's branch condition could not be checked on the page, so the flow did not guess which way to go. | no |
 | [`claim_lost`](#claim_lost) | Your claim on the lane ended before this call, so the call did nothing: it expired, a person took control, a hold or a freeze, a revoked grant, the lane closed to free memory, or the node restarted. | yes, once the cause is fixed |
 | [`clipboard_too_large`](#clipboard_too_large) | What is copied in the lane is over 1 MB, too much for the live view to bring to your computer, so none of it was read. | no |
@@ -113,7 +112,7 @@ carries one of these codes:
 | [`not_found`](#not_found) | The thing asked for does not exist, or the caller may not see it. | no |
 | [`out_of_scope`](#out_of_scope) | Your grant has no memory access for this workspace, or not for this kind of entry. | no |
 | [`output_contract_violation`](#output_contract_violation) | The values a connector read from the page do not match its declared output types, so they were not returned. | no |
-| [`owner_only`](#owner_only) | Only the owner can do this: approve a program, change a cap, or choose normal risk, auto comments or the followers_of source. | no |
+| [`owner_only`](#owner_only) | Only the owner can do this, in person: approve or reject a profile, or change a confirmation setting. | no |
 | [`owner_trust_required`](#owner_trust_required) | This memory write needs the owner's approval before it is stored. | yes, once the cause is fixed |
 | [`pace_limited`](#pace_limited) | The site's pace for this operation is used up for now. No approval overrides it. | yes, once the cause is fixed |
 | [`passkey_invalid`](#passkey_invalid) | The passkey answer from the browser did not prove what it should. | yes, once the cause is fixed |
@@ -136,7 +135,6 @@ carries one of these codes:
 | [`presence_required`](#presence_required) | This needs a person signed in to the panel. A token, or the saved credential of the owner's computer, cannot do it, because an agent may hold them. | no |
 | [`privacy`](#privacy) | The memory entry would break a privacy rule (for example a person's private data). | no |
 | [`profile_invalid`](#profile_invalid) | The profile does not validate, or a value is too long for a site one of its accounts is on. Nothing was saved. | no |
-| [`program_invalid`](#program_invalid) | The engagement program does not validate, so nothing was saved. | no |
 | [`proof_too_weak`](#proof_too_weak) | This approve is weaker than the approval requires. The answer says what it requires (`requires`). | yes, once the cause is fixed |
 | [`publish_changed`](#publish_changed) | A person approved a publish, but this time the click made the page send something else (other text, another target, other media or another field), so nothing was sent and the approval was retired. | yes, once the cause is fixed |
 | [`publish_unbound`](#publish_unbound) | A click would publish something the node cannot bind whole: a body too large or in a format it cannot read, or media it never saw uploaded in this lane. Nobody could approve exactly what it sends, so nothing was sent. | no |
@@ -157,6 +155,7 @@ carries one of these codes:
 | [`signal_captcha`](#signal_captcha) | The page shows a captcha, so the run stopped before acting. | no |
 | [`signal_checkpoint`](#signal_checkpoint) | The site asks a person to confirm it is them, so the run stopped before acting. | no |
 | [`signal_logged_out`](#signal_logged_out) | The lane is logged out of the site, so the run stopped before acting. | no |
+| [`source_retired`](#source_retired) | The run came from a part of agentos this node no longer has (the engagement engine), so it was cancelled and nothing was sent. | no |
 | [`step_up_required`](#step_up_required) | This decision needs a fresh passkey check. | yes, once the cause is fixed |
 | [`stopped_by_answer`](#stopped_by_answer) | A person answered no to a workflow's question, so it stopped there. What ran before stands. | no |
 | [`storage_error`](#storage_error) | The backup storage (S3 or compatible) refused or failed the request. | yes, after 30 s |
@@ -177,7 +176,6 @@ carries one of these codes:
 | [`type_not_allowed`](#type_not_allowed) | This kind of memory entry is not allowed for this caller. | no |
 | [`unauthorized`](#unauthorized) | The request carries no valid sign-in or token. | no |
 | [`unavailable`](#unavailable) | A service this request needs is not set up or not running on this node. | no |
-| [`unfreeze_denied`](#unfreeze_denied) | Only the owner can unfreeze, signed in (with a passkey check when the node has members) or on the node itself. | no |
 | [`unsaved_work`](#unsaved_work) | The environment has changes that are not committed, or commits that are not pushed, so it was not closed. The message lists them. | no |
 | [`unsupported`](#unsupported) | This node's flow driver cannot do what the step asks (read the account identity, or extract records). | no |
 | [`url_outside_domain`](#url_outside_domain) | A flow step tried to load a URL outside the flow's allowed domains, so it was refused. | no |
@@ -219,7 +217,7 @@ The agenda entry is in a state that does not allow this (it is running, done or 
 - **Agent:** Read the entry with agenda_get and act on its state: wait for a running one, draft a new entry instead of editing a finished one.
 - **You:** Check the entry's state in the panel's Agenda or with `agentos agenda show <id>`, then try what that state allows.
 - **Retry:** no
-- **Raised by:** `agentos.agenda.service.AgendaStateError`
+- **Raised by:** `agentos.agenda.rules.AgendaStateError`
 
 ## agent_paused
 
@@ -237,7 +235,7 @@ The page already shows the value this edit sets, so nothing was saved and nothin
 - **Agent:** Do not retry: the value is already there. Tell the user it was current.
 - **You:** Nothing to fix. If the page shows another value, check the lane in its live view.
 - **Retry:** no
-- **Runs fail with it in:** `agentos.runner.executor`
+- **Runs fail with it in:** `agentos.runner.connector_steps`
 
 ## ambiguous_locator
 
@@ -246,8 +244,8 @@ A flow step's locator matched more than one element, so the step did not act.
 - **Agent:** Do not guess. Report the step to the user, or fix the flow's locator so it names one element.
 - **You:** Make the step's locator more specific (a role and name, or a closer container) and run the flow again.
 - **Retry:** no
-- **Raised by:** `agentos.runner.driver.AmbiguousLocator`
-- **Runs fail with it in:** `agentos.runner.executor`
+- **Raised by:** `agentos.core.driver.AmbiguousLocator`
+- **Runs fail with it in:** `agentos.runner.connector_steps`, `agentos.runner.execution`
 
 ## approval_expired
 
@@ -256,7 +254,7 @@ Nobody approved or denied the run in time, so it did not run.
 - **Agent:** Do not start it again on your own. Tell the user it timed out waiting for approval, and start it again only if they still want it.
 - **You:** Start the run again and approve it in Needs you in the panel, or with `agentos approvals`, before it expires.
 - **Retry:** no
-- **Runs fail with it in:** `agentos.runner.runner`
+- **Runs fail with it in:** `agentos.runner.approvals`
 
 ## approval_loop
 
@@ -265,7 +263,7 @@ The owner approved the run, but the policy asked for approval again, so the runn
 - **Agent:** Do not retry. Tell the user the approval did not take effect.
 - **You:** Check the grant or policy rule that asks for this approval, then run the flow again.
 - **Retry:** no
-- **Runs fail with it in:** `agentos.runner.runner`
+- **Runs fail with it in:** `agentos.runner.dispatch`
 
 ## approval_mismatch
 
@@ -274,7 +272,7 @@ An approval released the run, but what the run would do now is not what was appr
 - **Agent:** Do not retry the same run. Tell the user what changed; queue it again only if they still want it, and it asks again.
 - **You:** Look at what changed since you approved it (the run's message says), then queue it again and approve what it shows now.
 - **Retry:** no
-- **Runs fail with it in:** `agentos.runner.runner`
+- **Runs fail with it in:** `agentos.runner.gate`
 
 ## approval_pending
 
@@ -284,7 +282,7 @@ The call needs a person to approve it first. It is waiting, not failed.
 - **You:** Approve or deny it in Needs you in the panel, or with `agentos approvals`.
 - **Retry:** yes, once the cause is fixed
 - **Raised by:** `agentos.core.errors.ApprovalPending`
-- **Runs fail with it in:** `agentos.runner.executor`
+- **Runs fail with it in:** `agentos.runner.execution`
 
 ## approval_used
 
@@ -293,7 +291,7 @@ The approval this run waited for released another run, so this run asks the owne
 - **Agent:** Wait for the new approval with approval_wait. Do not start the run again.
 - **You:** Approve or deny the new request in Needs you in the panel, or with `agentos approvals`.
 - **Retry:** yes, once the cause is fixed
-- **Runs fail with it in:** `agentos.runner.runner`
+- **Runs fail with it in:** `agentos.runner.approvals`
 
 ## audit_unwritable
 
@@ -338,7 +336,7 @@ The workspace export file cannot be used: wrong passphrase or key, damaged, alte
 - **Agent:** Tell the user the export file cannot be read.
 - **You:** Check the passphrase or key, and that the file was copied whole, then import again.
 - **Retry:** no
-- **Raised by:** `agentos.workspaces.transfer.export.BadExport`
+- **Raised by:** `agentos.workspaces.transfer.format.BadExport`
 
 ## brain_unconfined
 
@@ -384,16 +382,7 @@ The request was cancelled before it finished.
 - **You:** Run it again if the cancel was a mistake.
 - **Retry:** no
 - **Raised by:** `agentos.core.errors.Cancelled`
-- **Runs fail with it in:** `agentos.runner.executor`, `agentos.runner.runner`, `agentos.runner.workflows.engine`, `agentos.runner.workflows.service`
-
-## cap_ceiling
-
-That cap is above the hard ceiling for this kind of action on this site, or the site has no such action.
-
-- **Agent:** Do not ask again; caps are the owner's to change, and never above the ceiling.
-- **You:** Pick a value at or under the hard ceiling (`agentos engage caps` lists them).
-- **Retry:** no
-- **Raised by:** `agentos.engage.errors.CapCeiling`
+- **Runs fail with it in:** `agentos.runner.approvals`, `agentos.runner.executor`, `agentos.runner.workflows.engine`, `agentos.runner.workflows.service`
 
 ## check_unknown
 
@@ -456,7 +445,7 @@ The connection to the browser or the page dropped during a step.
 - **Agent:** Check the run with run_status: the runner retries this by itself when the step is safe to repeat.
 - **You:** If it keeps happening, check the lane's proxy and the node with `agentos doctor`.
 - **Retry:** yes, after 10 s
-- **Runs fail with it in:** `agentos.runner.executor`
+- **Runs fail with it in:** `agentos.runner.execution`
 
 ## connector_broken
 
@@ -528,7 +517,7 @@ The run waits for its lane (busy, held by a person, or paused) and starts again 
 - **Agent:** Wait, and check it later with run_status. Do not start it again.
 - **You:** Nothing, unless it waits long: then hand the lane back to agents or free it.
 - **Retry:** yes, once the cause is fixed
-- **Runs fail with it in:** `agentos.runner.runner`
+- **Runs fail with it in:** `agentos.runner.dispatch`
 
 ## denied
 
@@ -554,7 +543,7 @@ Your grant does not allow this call (scope, effect, budget, expiry or a revoked 
 - **Agent, when the reason is `wrong_account`:** The browser is not signed in as the lane's pinned account, so nothing was sent. Stop using this lane and tell the user.
 - **You, on a lane's live view:** Open the lane from the panel to act on it, or ask the agent for a new view link. A watch link only watches.
 - **Raised by:** `agentos.core.errors.PolicyDenied`
-- **Runs fail with it in:** `agentos.runner.executor`, `agentos.runner.runner`
+- **Runs fail with it in:** `agentos.runner.approvals`, `agentos.runner.execution`, `agentos.runner.executor`, `agentos.runner.gate`
 
 ## dialog_pending
 
@@ -563,7 +552,7 @@ A page dialog (alert, confirm, prompt) waits for an answer, and the page is froz
 - **Agent:** Answer it with browser_dialog_answer, then go on.
 - **You:** Answer the dialog in the lane's live view, or let the agent answer it.
 - **Retry:** no
-- **Raised by:** `agentos.node.interaction.DialogPending`
+- **Raised by:** `agentos.node.interaction.dialogs.DialogPending`
 
 ## driver_error
 
@@ -572,8 +561,8 @@ A flow step failed in the browser driver.
 - **Agent:** Read the run's failing step (run_status) and tell the user; retry only if the run says it is safe.
 - **You:** Open the run in the panel to see the failing step, and the lane's live view to see the page.
 - **Retry:** no
-- **Raised by:** `agentos.runner.driver.DriverError`
-- **Runs fail with it in:** `agentos.runner.executor`
+- **Raised by:** `agentos.core.driver.DriverError`
+- **Runs fail with it in:** `agentos.runner.execution`
 
 ## edit_mismatch
 
@@ -582,7 +571,7 @@ The owner approved the run with an edit, but the edited params do not fit the fl
 - **Agent:** Tell the user the approved edit could not run. Start the run again only with params that fit the flow.
 - **You:** Approve it again with an edit the flow accepts; the message says what is wrong.
 - **Retry:** no
-- **Runs fail with it in:** `agentos.runner.runner`
+- **Runs fail with it in:** `agentos.runner.approvals`
 
 ## egress_refused
 
@@ -600,8 +589,8 @@ A flow step's locator found nothing on the page.
 - **Agent:** Take a snapshot to see the page; the site may have changed or not finished loading.
 - **You:** Update the flow's locator for this step, or check the page in the lane's live view.
 - **Retry:** no
-- **Raised by:** `agentos.runner.driver.ElementNotFound`
-- **Runs fail with it in:** `agentos.runner.executor`
+- **Raised by:** `agentos.core.driver.ElementNotFound`
+- **Runs fail with it in:** `agentos.runner.connector_steps`, `agentos.runner.execution`
 
 ## engine_error
 
@@ -664,7 +653,7 @@ A workspace export could not be written.
 - **Agent:** Tell the user the export failed.
 - **You:** Check free disk space and that the destination is writable, then export again.
 - **Retry:** yes, once the cause is fixed
-- **Raised by:** `agentos.workspaces.transfer.export.ExportError`
+- **Raised by:** `agentos.workspaces.transfer.format.ExportError`
 
 ## export_refused
 
@@ -673,7 +662,7 @@ The workspace export or import cannot go ahead as asked. Nothing was changed.
 - **Agent:** Tell the user what was refused.
 - **You:** Read the message: usually import under a new id with --as, or remove the existing workspace first.
 - **Retry:** no
-- **Raised by:** `agentos.workspaces.transfer.export.ExportRefused`
+- **Raised by:** `agentos.workspaces.transfer.format.ExportRefused`
 
 ## file_not_found
 
@@ -700,7 +689,7 @@ This lane, its workspace, the node or the whole mesh is frozen: no agent acts th
 - **Agent:** Stop at once and tell the user it is frozen. Do not retry or look for another way in. If your grant was revoked, you need a new one after the unfreeze.
 - **You:** Look at the lane first (take control in the panel; the browser was kept). Unfreeze with `agentos unfreeze` when it is safe, then grant agents again.
 - **Retry:** no
-- **Raised by:** `agentos.freeze.errors.Frozen`, `agentos.policy.errors.GrantFrozen`
+- **Raised by:** `agentos.core.errors.Frozen`, `agentos.policy.errors.GrantFrozen`
 
 ## grant_expired
 
@@ -709,7 +698,7 @@ The grant this run was started under has expired, so the run never touched the l
 - **Agent:** Do not retry. Tell the user the grant expired.
 - **You:** Renew the grant in the panel (Settings, Grants) or with `agentos grants`, then start the run again.
 - **Retry:** no
-- **Runs fail with it in:** `agentos.runner.runner`
+- **Runs fail with it in:** `agentos.runner.run_rules`
 
 ## grant_not_yet_valid
 
@@ -718,7 +707,7 @@ The grant this run was started under is not valid yet, so the run never touched 
 - **Agent:** Do not retry before the grant starts. Tell the user.
 - **You:** Wait for the grant's start time, or change it in the panel (Settings, Grants), then start the run again.
 - **Retry:** yes, once the cause is fixed
-- **Runs fail with it in:** `agentos.runner.runner`
+- **Runs fail with it in:** `agentos.runner.run_rules`
 
 ## grant_revoked
 
@@ -727,7 +716,7 @@ The grant this run was started under was revoked, so the run never touched the l
 - **Agent:** Do not retry or work around it. Tell the user.
 - **You:** Issue a new grant in the panel (Settings, Grants) if the agent should still run this, then start the run again.
 - **Retry:** no
-- **Runs fail with it in:** `agentos.runner.runner`
+- **Runs fail with it in:** `agentos.runner.run_rules`
 
 ## grant_unknown
 
@@ -736,7 +725,7 @@ The node does not know the grant this run was started under (it was deleted, or 
 - **Agent:** Do not retry. Tell the user.
 - **You:** Issue a grant on this node in the panel (Settings, Grants), then start the run again.
 - **Retry:** no
-- **Runs fail with it in:** `agentos.runner.runner`
+- **Runs fail with it in:** `agentos.runner.run_rules`
 
 ## host_error
 
@@ -772,7 +761,7 @@ The run could not read which account or Page the lane acts as, so it did nothing
 - **Agent:** Take a snapshot: the lane may be logged out or the page may have changed. Tell the user.
 - **You:** Check the lane in its live view (it may need a login), then run the flow again.
 - **Retry:** no
-- **Runs fail with it in:** `agentos.runner.executor`
+- **Runs fail with it in:** `agentos.runner.connector_steps`
 
 ## import_failed
 
@@ -800,7 +789,7 @@ The node hit an unexpected error while answering the request.
 - **You:** Check `agentos logs --level error --since 10m`; report it if it keeps happening.
 - **Retry:** yes, after 5 s
 - **Raised by:** `agentos.api.errors.ApiError`
-- **Runs fail with it in:** `agentos.runner.runner`
+- **Runs fail with it in:** `agentos.runner.dispatch`
 
 ## invalid
 
@@ -810,7 +799,7 @@ The request is malformed or a value is out of range.
 - **You:** Change the command's arguments as the message says.
 - **Retry:** no
 - **Raised by:** `agentos.core.errors.InvalidRequest`
-- **Runs fail with it in:** `agentos.runner.executor`
+- **Runs fail with it in:** `agentos.runner.connector_steps`, `agentos.runner.executor`
 
 ## invalid_pattern
 
@@ -819,7 +808,7 @@ A flow step's pattern is not a valid regular expression once the params are fill
 - **Agent:** Check the params you passed for regex characters and escape them, or report the step to the user.
 - **You:** Fix the step's pattern in the flow, or escape the param it uses.
 - **Retry:** no
-- **Runs fail with it in:** `agentos.runner.executor`
+- **Runs fail with it in:** `agentos.runner.execution`
 
 ## json_empty
 
@@ -828,7 +817,7 @@ The response a site API's read_json waited for had no body, as a 204 has. A seco
 - **Agent:** Do not retry at once: tell the user the site answered with nothing this time.
 - **You:** If it repeats, check what the page fetches now, then fix the endpoint's url and activate it again.
 - **Retry:** no
-- **Runs fail with it in:** `agentos.runner.executor`
+- **Runs fail with it in:** `agentos.runner.readvalues`
 
 ## json_invalid
 
@@ -837,7 +826,7 @@ A site API's read_json got a response whose body is not JSON. The endpoint count
 - **Agent:** Do not retry: tell the user the site's response changed.
 - **You:** Check what the page fetches now, then fix the endpoint's url or items and activate it again.
 - **Retry:** no
-- **Runs fail with it in:** `agentos.runner.executor`
+- **Runs fail with it in:** `agentos.runner.readvalues`
 
 ## json_not_seen
 
@@ -846,7 +835,7 @@ A site API's read_json saw no response on its url from the page in time. Three s
 - **Agent:** Do not retry now: tell the user the page did not make that request in time.
 - **You:** If it repeats, check what the page fetches now (site-api discover lists it), then fix the endpoint's url or timeout_ms.
 - **Retry:** no
-- **Runs fail with it in:** `agentos.runner.executor`
+- **Runs fail with it in:** `agentos.runner.readvalues`
 
 ## json_slow
 
@@ -855,7 +844,7 @@ The response a site API's read_json waited for came, but its body did not finish
 - **Agent:** Do not retry now: tell the user the site was too slow to answer.
 - **You:** If it repeats, open the page in the lane's live view to see why the site is slow.
 - **Retry:** no
-- **Runs fail with it in:** `agentos.runner.executor`
+- **Runs fail with it in:** `agentos.runner.readvalues`
 
 ## json_status
 
@@ -864,7 +853,7 @@ The response a site API's read_json waited for was not a 2xx. A 5xx counts as a 
 - **Agent:** Do not retry now: tell the user the site answered with an error, and that the status is in the run's error.
 - **You:** Open the page in the lane's live view to see why the site refused, then fix the endpoint or the lane.
 - **Retry:** no
-- **Runs fail with it in:** `agentos.runner.executor`
+- **Runs fail with it in:** `agentos.runner.readvalues`
 
 ## json_too_large
 
@@ -873,7 +862,7 @@ The response a site API's read_json waited for is over the size it may read, so 
 - **Agent:** Do not retry: tell the user the response is too large for read_json.
 - **You:** Point the endpoint at a smaller response, such as a page of the list, or read the page with extract.
 - **Retry:** no
-- **Runs fail with it in:** `agentos.runner.executor`
+- **Runs fail with it in:** `agentos.runner.readvalues`
 
 ## json_unreadable
 
@@ -882,7 +871,7 @@ The browser held no body for the response a site API's read_json waited for: it 
 - **Agent:** Run it again once; the page is loaded fresh. Tell the user if it fails the same way.
 - **You:** Run it again. If it keeps failing, the page may leave or reload before its request ends, or it may keep its own copy and answer every read with a 304.
 - **Retry:** yes, once the cause is fixed
-- **Runs fail with it in:** `agentos.runner.executor`
+- **Runs fail with it in:** `agentos.runner.readvalues`
 
 ## lane_cold
 
@@ -919,7 +908,7 @@ No lane has this id on this node.
 - **You:** Check the id with `agentos lane list`, or create the lane with `agentos lane create`.
 - **Retry:** no
 - **Raised by:** `agentos.core.errors.LaneNotFound`
-- **Runs fail with it in:** `agentos.runner.runner`
+- **Runs fail with it in:** `agentos.runner.dispatch`
 
 ## lane_paced
 
@@ -937,7 +926,7 @@ The run's lane stayed unavailable through every retry, so the runner gave up.
 - **Agent:** Tell the user the lane was not available. Check it with lane_check before running again.
 - **You:** Free the lane (close work you do not need, see `agentos lane list`), then run the flow again.
 - **Retry:** no
-- **Runs fail with it in:** `agentos.runner.runner`
+- **Runs fail with it in:** `agentos.runner.dispatch`
 
 ## login_closed
 
@@ -1099,7 +1088,7 @@ A flow step needs a param that was not given.
 - **Agent:** Run the flow again with every param it needs (flows_list shows them).
 - **You:** Pass the missing param; the message names it.
 - **Retry:** no
-- **Runs fail with it in:** `agentos.runner.executor`
+- **Runs fail with it in:** `agentos.runner.connector_steps`, `agentos.runner.execution`, `agentos.runner.executor`
 
 ## no_environment
 
@@ -1154,16 +1143,16 @@ The values a connector read from the page do not match its declared output types
 - **Agent:** Do not retry. Tell the user the connector's output no longer matches the site.
 - **You:** Update the connector's extract steps or its output types for the site's new layout.
 - **Retry:** no
-- **Runs fail with it in:** `agentos.runner.executor`
+- **Runs fail with it in:** `agentos.runner.connector_steps`, `agentos.runner.executor`, `agentos.runner.readvalues`
 
 ## owner_only
 
-Only the owner can do this: approve a program, change a cap, or choose normal risk, auto comments or the followers_of source.
+Only the owner can do this, in person: approve or reject a profile, or change a confirmation setting.
 
-- **Agent:** Draft without it and tell the user what needs their decision; the owner approves programs and changes caps on the node.
-- **You:** Run it yourself on the node (`agentos engage program approve`, `agentos engage cap`).
+- **Agent:** Save a draft and tell the user what needs their decision; the owner decides it in person.
+- **You:** Do it yourself on the node or in the panel (for a profile: `agentos profile approve`).
 - **Retry:** no
-- **Raised by:** `agentos.engage.errors.OwnerOnly`
+- **Raised by:** `agentos.profiles.errors.OwnerOnly`
 
 ## owner_trust_required
 
@@ -1334,7 +1323,7 @@ Before posting, the composer did not hold exactly what was approved, so nothing 
 - **Agent:** Do not retry in a loop. Take a snapshot and tell the user: the site may change the text as it is typed.
 - **You:** Check the lane in its live view and the connector's preflight step, then run it again.
 - **Retry:** no
-- **Runs fail with it in:** `agentos.runner.executor`
+- **Runs fail with it in:** `agentos.runner.connector_steps`
 
 ## presence_required
 
@@ -1362,15 +1351,6 @@ The profile does not validate, or a value is too long for a site one of its acco
 - **You:** Correct the profile (the message names the field) and save it again, or give that account an override.
 - **Retry:** no
 - **Raised by:** `agentos.profiles.errors.ProfileInvalid`
-
-## program_invalid
-
-The engagement program does not validate, so nothing was saved.
-
-- **Agent:** Fix the field the message names and draft again.
-- **You:** Correct the program file (the message names the field) and draft it again.
-- **Retry:** no
-- **Raised by:** `agentos.engage.errors.ProgramInvalid`
 
 ## proof_too_weak
 
@@ -1416,7 +1396,7 @@ Too many requests or writes in a short time.
 - **You:** Wait as long as the message says and try again; memory write caps reset by the hour and by the day.
 - **Retry:** yes, once the cause is fixed
 - **Raised by:** `agentos.api.errors.ApiError`, `agentos.memory.errors.RateLimited`
-- **Runs fail with it in:** `agentos.runner.executor`
+- **Runs fail with it in:** `agentos.runner.executor`, `agentos.runner.readvalues`
 
 ## readback_error
 
@@ -1524,7 +1504,7 @@ The site is blocking this lane, so the run stopped before acting.
 - **Agent:** Stop using this lane and tell the user.
 - **You:** Check the lane in its live view (lane_view): the account or the proxy may need attention.
 - **Retry:** no
-- **Runs fail with it in:** `agentos.runner.executor`
+- **Runs fail with it in:** `agentos.runner.execution`
 
 ## signal_captcha
 
@@ -1533,7 +1513,7 @@ The page shows a captcha, so the run stopped before acting.
 - **Agent:** Do not retry. Ask the user to solve it in the lane's live view (lane_view), then run again.
 - **You:** Solve the captcha in the lane's live view, then run the flow again.
 - **Retry:** no
-- **Runs fail with it in:** `agentos.runner.executor`
+- **Runs fail with it in:** `agentos.runner.execution`
 
 ## signal_checkpoint
 
@@ -1542,7 +1522,7 @@ The site asks a person to confirm it is them, so the run stopped before acting.
 - **Agent:** Do not retry. Ask the user to answer it in the lane's live view (lane_view), then run again.
 - **You:** Answer the site's question in the lane's live view, then run the flow again.
 - **Retry:** no
-- **Runs fail with it in:** `agentos.runner.executor`
+- **Runs fail with it in:** `agentos.runner.execution`
 
 ## signal_logged_out
 
@@ -1551,7 +1531,16 @@ The lane is logged out of the site, so the run stopped before acting.
 - **Agent:** Do not retry. Tell the user the lane needs a login (lane_login_request, or the live view).
 - **You:** Log the lane in from the panel's Log in button or its live view, then run the flow again.
 - **Retry:** no
-- **Runs fail with it in:** `agentos.runner.executor`
+- **Runs fail with it in:** `agentos.runner.execution`
+
+## source_retired
+
+The run came from a part of agentos this node no longer has (the engagement engine), so it was cancelled and nothing was sent.
+
+- **Agent:** Do not start it again. Tell the user it was from the removed engagement engine.
+- **You:** Nothing to fix. If you still want that post or comment, send it yourself or with a routine.
+- **Retry:** no
+- **Runs fail with it in:** `agentos.runner.approvals`
 
 ## step_up_required
 
@@ -1578,7 +1567,7 @@ The backup storage (S3 or compatible) refused or failed the request.
 - **Agent:** Tell the user the backup storage failed.
 - **You:** Check the storage bucket, its credentials and the network, then try again.
 - **Retry:** yes, after 30 s
-- **Raised by:** `agentos.ops.backup.s3.S3Error`
+- **Raised by:** `agentos.core.s3.S3Error`
 
 ## studio_blank_page
 
@@ -1677,7 +1666,7 @@ A flow template (`${...}`) names a value that does not exist or is malformed.
 - **Agent:** Pass the missing params, or fix the template's name.
 - **You:** Fix the flow's template or pass the missing parameter.
 - **Retry:** no
-- **Raised by:** `agentos.runner.util.TemplateError`
+- **Raised by:** `agentos.core.template.TemplateError`
 
 ## timeout
 
@@ -1686,8 +1675,8 @@ A flow step waited too long for the page.
 - **Agent:** Check the page with a snapshot; call again if the site is just slow.
 - **You:** Check the lane's network and proxy, or give the step a longer wait.
 - **Retry:** yes, after 5 s
-- **Raised by:** `agentos.runner.driver.DriverTimeout`
-- **Runs fail with it in:** `agentos.runner.executor`
+- **Raised by:** `agentos.core.driver.DriverTimeout`
+- **Runs fail with it in:** `agentos.runner.execution`, `agentos.runner.executor`
 
 ## too_large
 
@@ -1737,16 +1726,7 @@ A service this request needs is not set up or not running on this node.
 - **Retry:** no
 - **Agent, when the reason is `engine_missing`:** The browser engine this call needs is not installed. Tell the user the install command in the message; or call again without naming an engine, to use Chromium. Do not retry until it is installed (studio_status shows what is there).
 - **Raised by:** `agentos.core.errors.ServiceUnavailable`
-- **Runs fail with it in:** `agentos.runner.executor`, `agentos.runner.runner`
-
-## unfreeze_denied
-
-Only the owner can unfreeze, signed in (with a passkey check when the node has members) or on the node itself.
-
-- **Agent:** Agents never unfreeze. Tell the user what is frozen and leave the decision to them.
-- **You:** Sign in as the owner and unfreeze in the panel, or run `agentos unfreeze` on the node.
-- **Retry:** no
-- **Raised by:** `agentos.freeze.errors.UnfreezeDenied`
+- **Runs fail with it in:** `agentos.runner.dispatch`, `agentos.runner.executor`
 
 ## unsaved_work
 
@@ -1764,7 +1744,7 @@ This node's flow driver cannot do what the step asks (read the account identity,
 - **Agent:** Tell the user this node cannot run this flow.
 - **You:** Update agentos on the node, or run the flow on a node that supports it.
 - **Retry:** no
-- **Runs fail with it in:** `agentos.runner.executor`
+- **Runs fail with it in:** `agentos.runner.connector_steps`
 
 ## url_outside_domain
 
@@ -2016,7 +1996,7 @@ The lane is logged in as another account than the one the run is bound to, so it
 - **Agent:** Do not retry. Tell the user which account the lane shows.
 - **You:** Log the lane in to the right account in its live view, then hand the lane back to agents.
 - **Retry:** no
-- **Runs fail with it in:** `agentos.runner.executor`
+- **Runs fail with it in:** `agentos.runner.execution`
 
 ## wrong_element
 
@@ -2034,7 +2014,7 @@ The lane acts as another Page or company page than the one the run is bound to, 
 - **Agent:** Do not retry. Tell the user which Page the lane acts as.
 - **You:** Switch the lane to the right Page in its live view, then hand the lane back to agents.
 - **Retry:** no
-- **Runs fail with it in:** `agentos.runner.executor`
+- **Runs fail with it in:** `agentos.runner.connector_steps`
 
 ## xclip_missing
 

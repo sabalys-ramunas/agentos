@@ -19,7 +19,7 @@ from agentos.core.config import NodeConfig, config_path
 SECRET_FIELDS = frozenset({"mcp_token"})
 # Settings an environment variable overrides at runtime (where the code reads it).
 ENV_OVERRIDES = {"home": "AGENTOS_HOME", "ssh_host": "AGENTOS_SSH_HOST"}
-EXTRA_ENV = {"AGENTOS_PANEL_DIR": "where the built web panel is served from (default: <install>/panel/dist)"}
+EXTRA_ENV = {"AGENTOS_PANEL_DIR": "where the built web app is served from (default: <install>/web/dist)"}
 
 # What each setting means, in the order `config example` prints them, grouped.
 GROUPS: list[tuple[str, dict[str, str]]] = [
@@ -78,28 +78,6 @@ GROUPS: list[tuple[str, dict[str, str]]] = [
                      "the lane's waking hours, so its login does not go stale. Off by default because it opens "
                      "real accounts unattended. `agentos lane keepalive --node on` turns it on; a lane opts out "
                      "with `agentos lane keepalive <lane> --off`.",
-        "engage_sessions": "Engagement sessions: approved engagement programs act on their accounts at the "
-                           "planned times (likes, comments, posts), under the caps. Off by default, so plans are "
-                           "only drawn and shown and no account acts until you turn this on. Comments and drafts "
-                           "in approve mode still wait for you.",
-    }),
-    ("Engagement drafts (where comments and posts get their words)", {
-        "engage_draft_provider": "Where programs that need words ask for candidate texts: off (the default: such "
-                                 "comments and posts are skipped unless you add items), passthrough (fixed test "
-                                 "text, for trying it out offline) or http (engage_draft_endpoint). A draft waits for "
-                                 "your approval in approve mode; in auto mode (Instagram and Facebook comments and "
-                                 "replies only) an http draft goes out without asking. Test text always waits, and "
-                                 "passthrough does not start while a program runs in auto mode.",
-        "engage_draft_endpoint": "The draft provider's address, a full https:// URL (plain http only to this "
-                                 "machine). It gets the kind of text, the topics, languages and length, and answers "
-                                 "with a few candidates.",
-        "engage_draft_secret_ref": "The vault name of the provider's bearer token, such as "
-                                   "engage/draft-provider/token (`agentos engage provider token` stores it). Empty "
-                                   "reads engage/draft-provider/token when the vault has it, and otherwise sends no "
-                                   "token.",
-        "engage_draft_timeout_s": "How many seconds a session waits for the draft provider (1 to 120). A provider "
-                                  "that does not answer skips that session's comments and posts; the next session "
-                                  "asks again.",
     }),
     ("Agenda (planned actions, docs/AGENDA.md)", {
         "agenda_approval_max_days": "The longest a request for an agenda entry waits in Needs you (1 to 90 days). "

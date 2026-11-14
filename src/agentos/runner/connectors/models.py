@@ -21,7 +21,8 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validat
 
 from agentos.core.models import LANE_ID_RE, ActsAs, Effect, Surface
 from agentos.runner.connectors.steps import LANG_RE, SAVE_AS_RE, _regex, check_locator, validate_step
-from agentos.runner.models import PARAM_NAME_RE, RESERVED_PARAMS, SendsSpec
+from agentos.runner.flowdoc import SendsSpec
+from agentos.runner.names import PARAM_NAME_RE, RESERVED_PARAMS
 
 LEARNED_SUFFIX = "-profile"  # a learned connector's key: <site>-profile (agentos.profiles.learn)
 CONNECTOR_KEY_RE = re.compile(r"^[a-z]([a-z0-9-]{0,29}[a-z0-9])?$")

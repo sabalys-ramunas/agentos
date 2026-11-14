@@ -36,6 +36,7 @@ import logging
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from agentos.core.signals import PACE_HOLD_CODES, SIGNAL_OF_RUN_CODE, STOP_OR_WRONG_ACCOUNT, signal_of
 from agentos.profiles import mapping
 
 log = logging.getLogger("agentos.profiles")
@@ -47,6 +48,10 @@ BROKEN = ("connector_broken", "preflight_mismatch", "connector_contract_broken",
           "readback_failed")
 PRINCIPAL = {"kind": "flow", "id": "", "owner": "owner"}
 SOURCE = "profiles"
+# A run that ends on one of these waits for the lane (`held`) instead of failing (agentos.core.signals).
+SIGNALS = STOP_OR_WRONG_ACCOUNT
+SIGNAL_CODES = SIGNAL_OF_RUN_CODE
+HELD_CODES = PACE_HOLD_CODES
 
 
 class ProfileSync:
@@ -124,7 +129,6 @@ class ProfileSync:
 
     async def _sync(self, item: dict[str, Any]) -> dict[str, Any]:
         from agentos.core.errors import AgentosError
-        from agentos.engage.adapters import HELD_CODES, signal_of
 
         runner = self.runtime.require("runner")
         surface, field, vh = item["surface"], item["field"], item["hash"]

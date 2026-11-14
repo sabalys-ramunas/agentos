@@ -134,6 +134,7 @@ from agentos.core.models import (  # noqa: F401
     utcnow,
 )
 from agentos.core.signals import QUIET  # noqa: F401
+from agentos.core.system import meminfo_mb  # noqa: F401
 from agentos.node import gateshapes, human, interrupts, lanefmt  # noqa: F401
 from agentos.node.browser_output import browser_error  # noqa: F401
 from agentos.node.claims import (  # noqa: F401
@@ -256,4 +257,3 @@ from agentos.node.lanes.watch import (  # noqa: F401 - re-exported
 )
 from agentos.node.memwatch import MemoryWatch, resolve_ceiling  # noqa: F401
 from agentos.node.store import LaneRecord, LaneStore, QuarantineRecord, SignalRecord  # noqa: F401
-from agentos.ops.system import meminfo_mb  # noqa: F401

@@ -41,14 +41,6 @@ No scraping people's personal data, no tracking or profiling individuals, no har
 impersonation, no fraud. Do not use agentos to collect credentials or payment details from
 anyone.
 
-## The engagement engine
-
-The engagement engine ([ENGAGEMENT.md](ENGAGEMENT.md)) posts, likes, comments and follows on a
-schedule. It exists for **your own business accounts**, doing what you would do by hand if
-you had the time: posting your own content, replying to people who talk to you, following
-accounts that are relevant to your work. Keep it at a human pace, keep "Ask me first" on
-while you learn what it does, and keep within each platform's rules for automated activity.
-
 ## What the project will not build
 
 Features whose main purpose is to break these rules (mass account creation, detection

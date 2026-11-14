@@ -20,40 +20,24 @@ import asyncio
 import hashlib
 import logging
 import os
-import re
 import time
 from pathlib import Path
 from typing import Any
 
+from agentos.policy.capture_files import capture_file, prune
 from agentos.policy.store import DB
 
 log = logging.getLogger("agentos.audit")
 
 CAPTURE_KIND = "screenshot_kept"
-MAX_TOTAL_BYTES = 200 * 1024 * 1024   # all kept screenshots together; past it the oldest go
 MAX_ONE_BYTES = 8 * 1024 * 1024       # one screenshot bigger than this is not kept
 PRUNE_EVERY_S = 300                   # the folder is swept at most this often, off the event loop
-STALE_TMP_S = 3600                    # a half-written file this old was left by a write that died
-FORMATS = ("png", "webp", "jpeg")
-_HEX = re.compile(r"^sha256:([0-9a-f]{64})$")
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS capture_lanes (
   pattern TEXT PRIMARY KEY, set_by TEXT NOT NULL, set_at REAL NOT NULL
 );
 """
-
-
-def capture_dir(home: Path) -> Path:
-    return Path(home) / "audit" / "captures"
-
-
-def capture_file(home: Path, sha256: Any, fmt: Any) -> Path | None:
-    """Where the screenshot with this hash is kept, or None when the hash or format is not one."""
-    m = _HEX.match(sha256) if isinstance(sha256, str) else None
-    if m is None or fmt not in FORMATS:
-        return None
-    return capture_dir(home) / f"{m.group(1)}.{fmt}"
 
 
 def _valid_pattern(pattern: str) -> str:
@@ -218,43 +202,3 @@ async def _prune_soon(home: Path, *, retention_days: float) -> None:
         return
     _last_prune[key] = now
     await asyncio.to_thread(prune, home, retention_days=retention_days)
-
-
-def prune(home: Path, *, retention_days: float, max_bytes: int = MAX_TOTAL_BYTES, now: float | None = None) -> int:
-    """Delete kept screenshots older than the action log keeps rows, then the oldest past the size
-    cap, and half-written `.tmp` files older than STALE_TMP_S. Returns how many files went."""
-    root = capture_dir(home)
-    if not root.is_dir():
-        return 0
-    now = time.time() if now is None else now
-    cutoff = now - retention_days * 86400
-    files: list[tuple[float, int, Path]] = []
-    removed = 0
-    for p in root.iterdir():
-        if p.suffix == ".tmp" and p.is_file():
-            try:
-                if p.stat().st_mtime < now - STALE_TMP_S:
-                    p.unlink(missing_ok=True)
-                    removed += 1
-            except OSError:
-                pass
-            continue
-        if not p.is_file() or p.suffix.lstrip(".") not in FORMATS:
-            continue
-        try:
-            st = p.stat()
-        except OSError:
-            continue
-        if st.st_mtime < cutoff:
-            p.unlink(missing_ok=True)
-            removed += 1
-        else:
-            files.append((st.st_mtime, st.st_size, p))
-    total = sum(size for _, size, _ in files)
-    for _, size, p in sorted(files):
-        if total <= max_bytes:
-            break
-        p.unlink(missing_ok=True)
-        total -= size
-        removed += 1
-    return removed

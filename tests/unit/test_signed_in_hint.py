@@ -1,5 +1,5 @@
 """A lane's login hint when its manager does not say (finding 26 of the 2026-11-10 full test): the readiness a
-person set wins, else the lane check's own session check, else unknown. The classic panel's Home counts it."""
+person set wins, else the lane check's own session check, else unknown."""
 
 from __future__ import annotations
 

@@ -116,7 +116,7 @@ What "stable" means for agentos: one lane is one data volume. The container is r
 
 ## 4. Fit with agentos
 
-**Already in the repo:** `LaneKind.ANDROID` (`src/agentos/core/models.py:30`). The account preset is allowed for android lanes (`src/agentos/env/manager.py:237`). The lanes view maps android to the account preset (`src/agentos/api/lanes_view.py:20`). `agentos.android` is referenced in `src/agentos/core/runtime.py` but does not exist. `docs/ARCHITECTURE.md` already names redroid as an engine.
+**Already in the repo:** `LaneKind.ANDROID` (`src/agentos/core/models.py`). The account preset is allowed for android lanes (`src/agentos/env/manager.py`). The lanes view maps android to the account preset (`src/agentos/api/lanes_view.py`). `agentos.android` is referenced in `src/agentos/core/runtime.py` but does not exist. `docs/ARCHITECTURE.md` already names redroid as an engine.
 
 **Lifecycle, unchanged:**
 

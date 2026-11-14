@@ -9,10 +9,10 @@ Runs against an in-memory lane manager. No browser, no proxy."""
 from __future__ import annotations
 
 import pytest
+from testkit.workspaces import FakeCtx, Harness
 
 from agentos.core.errors import InvalidRequest
 from agentos.workspaces import tools as ws_tools
-from agentos.workspaces.fakes import FakeCtx, Harness
 
 # The labels the Harness has by default. An error that names any of them leaks the node's labels.
 EXISTING_LABELS = ("lt1", "lt2")

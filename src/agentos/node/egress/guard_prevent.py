@@ -12,9 +12,10 @@ from typing import Any
 
 from agentos.core.errors import EgressRefused, EngineError
 from agentos.core.models import ActionKind
+from agentos.core.text import first_line
 from agentos.node.egress.classify import classify, gate_pattern
 from agentos.node.egress.constants import ACTION_TIMEOUT_MS, SAFE_METHODS, STOP_TIMEOUT_S
-from agentos.node.egress.helpers import QUIET_SCHEMES, _first_line, _press_mode, _tab_before_newline
+from agentos.node.egress.helpers import QUIET_SCHEMES, _press_mode, _tab_before_newline
 from agentos.node.egress.page_js import COVER_JS, COVER_POINTS, TARGET_JS
 from agentos.node.egress.rules import EffectRule
 from agentos.node.egress.sites import host_of
@@ -161,7 +162,7 @@ class GuardPrevention:
                         out.extend(hit.get("targets") or [])
             return out
         except Exception as e:  # noqa: BLE001 - refuse when in doubt
-            log.debug("%s: could not read what covers a framed target: %s", self.lane_id, _first_line(e))
+            log.debug("%s: could not read what covers a framed target: %s", self.lane_id, first_line(e))
             return [{"kind": "unreadable", "why": "a frame whose position cannot be read"}]
 
     @contextlib.asynccontextmanager
@@ -183,8 +184,6 @@ class GuardPrevention:
         # during a drive the mark is where the last act ended: a publish held between the agent's
         # calls (a page's timer) is reported by its next act
         mark = self._acted_seq if self._drive_route is not None else self._seq
-        installed: Any = None
-        effects: re.Pattern[str] | None = None
         await self._settle_removal()  # the last drive's route is going: let it go before this act begins
         d = self.driver
         self._approved_until = None  # a person's approval covered what it sent, not this action
@@ -195,26 +194,8 @@ class GuardPrevention:
         self._act_non_get, self._act_last = 0, time.monotonic()
         self._inflight.clear()
         try:  # an act that needs a route it cannot get is refused before it runs: nothing is left to the listener
-            if route and agent and gate is not None:
-                await self._begin_drive(gate, meter)
-            capped = False
-            if route and agent and meter is not None and not (self.strict and self.active()):
-                try:
-                    capped = meter.capped()
-                except Exception:  # the meter still counts what leaves
-                    log.warning("%s: could not read the commit meter", self.lane_id, exc_info=True)
-            # without a gate (no drive to hold a publish), a lane that asks first aborts what it refuses
-            full = ((self.strict and self.active()) or capped
-                    or (gate is None and not effects_route and self._asks_first()))
-            if route and agent and full:
-                await self._bind(GUARD_PATTERN, "the strict egress route")
-                installed = GUARD_PATTERN
-                self._windows += 1
-            if effects_route and route and agent and installed is None:
-                effects = self.gate_route()
-                await self._bind(effects, "the effect route")
-                self._effect_route = effects
-                self._effect_windows += 1
+            installed, effects = await self._act_routes(route=route, agent=agent, meter=meter, gate=gate,
+                                                        effects_route=effects_route)
         except BaseException:
             self._meter, self._gate = previous, previous_gate
             raise
@@ -225,16 +206,53 @@ class GuardPrevention:
             self._gate = previous_gate
             if route and not effects_route:  # a visit leaves the drive's report where the agent's act left it
                 self._acted_seq = self._seq
-            if installed is not None:
-                self._windows -= 1
-                with contextlib.suppress(Exception):
-                    await self.dispatcher.remove_guard(self._route_handler, installed)
-            if effects is not None:
-                self._effect_windows -= 1
-                if not self._effect_windows:
-                    self._effect_route = None
-                with contextlib.suppress(Exception):
-                    await self.dispatcher.remove_guard(self._route_handler, effects)
+            await self._end_act_routes(installed, effects)
+
+    async def _act_routes(self, *, route: bool, agent: bool, meter: CommitMeter | None, gate: PublishGate | None,
+                          effects_route: bool) -> tuple[Any, re.Pattern[str] | None]:
+        """The routes an agent's act runs under: the drive's gate route, the strict route (a strict
+        lane, a capped meter, or Ask me first without a gate), or a keepalive's effects route.
+        (the strict pattern it bound or None, the effects pattern it bound or None)."""
+        installed: Any = None
+        effects: re.Pattern[str] | None = None
+        if route and agent and gate is not None:
+            await self._begin_drive(gate, meter)
+        capped = False
+        if route and agent and meter is not None and not (self.strict and self.active()):
+            capped = self._capped(meter)
+        # without a gate (no drive to hold a publish), a lane that asks first aborts what it refuses
+        full = ((self.strict and self.active()) or capped
+                or (gate is None and not effects_route and self._asks_first()))
+        if route and agent and full:
+            await self._bind(GUARD_PATTERN, "the strict egress route")
+            installed = GUARD_PATTERN
+            self._windows += 1
+        if effects_route and route and agent and installed is None:
+            effects = self.gate_route()
+            await self._bind(effects, "the effect route")
+            self._effect_route = effects
+            self._effect_windows += 1
+        return installed, effects
+
+    def _capped(self, meter: CommitMeter) -> bool:
+        try:
+            return meter.capped()
+        except Exception:  # the meter still counts what leaves
+            log.warning("%s: could not read the commit meter", self.lane_id, exc_info=True)
+            return False
+
+    async def _end_act_routes(self, installed: Any, effects: re.Pattern[str] | None) -> None:
+        """Remove the routes _act_routes bound, once the act is over."""
+        if installed is not None:
+            self._windows -= 1
+            with contextlib.suppress(Exception):
+                await self.dispatcher.remove_guard(self._route_handler, installed)
+        if effects is not None:
+            self._effect_windows -= 1
+            if not self._effect_windows:
+                self._effect_route = None
+            with contextlib.suppress(Exception):
+                await self.dispatcher.remove_guard(self._route_handler, effects)
 
     async def _bind(self, pattern: Any, what: str) -> None:
         """Bind this guard's route handler on `pattern`. The lane's route must exist for the act to run:
@@ -245,7 +263,7 @@ class GuardPrevention:
             await self.dispatcher.add_guard(self._route_handler, pattern)
         except Exception as e:
             log.warning("%s: could not install %s", self.lane_id, what, exc_info=True)
-            raise self._unbound(what, _first_line(e)) from e
+            raise self._unbound(what, first_line(e)) from e
 
     def _unbound(self, what: str, why: str) -> EngineError:
         return EngineError(f"the egress guard could not bind {what} on {self.lane_id} ({why}), so the act was "

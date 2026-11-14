@@ -15,9 +15,11 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from fakes import FakeInteraction, FakeLaneManager
 from websockets.asyncio.server import ServerConnection, serve
 
+from agentos.core import signing
 from agentos.core.config import NodeConfig
 from agentos.core.models import ControlState, LaneSpec
 from agentos.core.runtime import Runtime
+from agentos.mcp import providers as mcp_providers
 from agentos.node.channel import wire
 from agentos.node.channel.identity import NodeKey
 from agentos.node.channel.node import Timings
@@ -117,7 +119,7 @@ class FakeController:
         self.port = 0
 
     def sign(self, kind: str, body: dict) -> dict:
-        return wire.sign_controller(self.key, kind, self.node_id, body)
+        return signing.sign_controller(self.key, kind, self.node_id, body)
 
     def fresh(self, kind: str, body: dict) -> dict:
         """As the controller sends every signed kind: dated now, with a nonce never used before."""
@@ -142,7 +144,7 @@ class FakeController:
         await ws.send(wire.Envelope("challenge", {"nonce": nonce}).encode())
         hello = wire.decode(await ws.recv())
         self.hellos.append(hello.body)
-        ok = hello.type == "hello" and hello.body.get("nonce") == nonce and wire.verify(
+        ok = hello.type == "hello" and hello.body.get("nonce") == nonce and signing.verify(
             self.node_pubkey, hello.body.get("sig"), wire.hello_message(nonce, self.node_id))
         if not ok or self.refuse_next or self.refuse_all:
             self.refuse_next = False
@@ -169,7 +171,6 @@ async def node_runtime(home: Path, fake: FakeController | None = None, *, lanes=
     """A node runtime with the real policy and channel services; the channel is built, not started."""
     from channel_support import extra_tools
 
-    from agentos.node import daemon
 
     home.mkdir(parents=True, exist_ok=True)
     key = NodeKey.load_or_create(home / "secrets")
@@ -177,14 +178,14 @@ async def node_runtime(home: Path, fake: FakeController | None = None, *, lanes=
         assert fake is not None
         config = NodeConfig(home=home, name="node-t", mcp_token="node-owner-token", mcp_port=0,
                             controller_url=fake.url, node_id=fake.node_id, org_id="org_test",
-                            controller_pubkey=wire.public_b64(fake.key), grant_pubkey=wire.public_b64(fake.grant_key),
+                            controller_pubkey=signing.public_b64(fake.key), grant_pubkey=signing.public_b64(fake.grant_key),
                             **ControllerCeiling.full().settings())
     manager = ControlLanes(config)
     for lane in lanes:
         await manager.create(LaneSpec(id=lane))
     runtime = Runtime(config=config, lanes=manager, interaction=FakeInteraction())
     build_services(runtime, ["agentos.policy.service", "agentos.node.channel.service"])
-    build_node_app(config, runtime, providers=providers or [*daemon.tool_providers(), extra_tools])
+    build_node_app(config, runtime, providers=providers or [*mcp_providers.tool_providers(), extra_tools])
     channel = runtime.get("channel")
     if channel is not None:
         channel.timings = FAST

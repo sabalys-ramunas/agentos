@@ -158,7 +158,7 @@ def test_a_torn_file_falls_back_to_its_last_copy(tmp_path):
 def test_moving_the_built_in_reads_after_the_actions_changes_no_built_in_classification():
     """ordered() puts every built-in read after every non-read rule when learned rules exist: no read
     precedes a non-read rule of its site whose path could overlap, so first-match is unchanged."""
-    from agentos.policy import globs
+    from agentos.core import globs
 
     for i, read in enumerate(EFFECT_RULES):
         if read.effect != "read":
@@ -243,13 +243,12 @@ def test_a_store_that_cannot_be_read_leaves_the_built_in_rules(tmp_path):
 
 SRC = Path(__file__).resolve().parents[2] / "src" / "agentos"
 # node code that may import the store: the guard and the lane manager read it; the profile learner
-# (in-process, from its own trace evidence) and the operations registry write or read it
+# (in-process, from its own trace evidence) writes and reads it
 ALLOWED = {"node/learned_rules.py", "node/egress/guard.py", "node/egress/learn.py", "node/lanes/launch.py",
            "profiles/learn.py",
            # the learner writes a rule only from the request the guard's learn window released (its
            # own trace), and verifies it only after its model-free replay: never from an agent's words
-           "profiles/learner.py",
-           "engage/operations.py"}
+           "profiles/learner.py"}
 
 
 def test_no_tool_api_route_or_cli_reaches_the_store():

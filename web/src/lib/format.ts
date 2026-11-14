@@ -9,7 +9,12 @@ export function timeAgo(iso: string | null | undefined, now = Date.now()): strin
   if (elapsed < HOUR) return `${Math.max(1, Math.round(elapsed / MINUTE))}m ago`;
   if (elapsed < DAY) return `${Math.round(elapsed / HOUR)}h ago`;
   if (elapsed < 30 * DAY) return `${Math.round(elapsed / DAY)}d ago`;
-  return new Date(iso).toLocaleDateString('en', { month: 'short', day: 'numeric' });
+  return monthDay(iso);
+}
+
+/** "Nov 9". */
+export function monthDay(at: string | number | Date): string {
+  return new Date(at).toLocaleDateString('en', { month: 'short', day: 'numeric' });
 }
 
 export function timeUntil(iso: string | null | undefined, now = Date.now()): string {
@@ -21,16 +26,19 @@ export function timeUntil(iso: string | null | undefined, now = Date.now()): str
   return `${Math.round(left / DAY)}d`;
 }
 
-/** How long something has been waiting, in words for a sentence. */
-export function waited(iso: string, now = Date.now()): string {
-  const minutes = Math.max(1, Math.round((now - new Date(iso).getTime()) / MINUTE));
-  if (minutes < 60) return `${minutes} min`;
-  const hours = Math.floor(minutes / 60);
-  return hours < 24 ? `${hours} h ${minutes % 60} min` : `${Math.round(hours / 24)} days`;
+/** "09:05", in the reader's own zone. */
+export function clock(at: string | number | Date): string {
+  return new Date(at).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
-export function clock(iso: string): string {
-  return new Date(iso).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false });
+/** "09:05" in UTC, as the action log is kept. */
+export function utcClock(iso: string): string {
+  return new Date(iso).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
+}
+
+/** "09:05:42", for a log line. */
+export function clockSeconds(iso: string): string {
+  return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
 /** "Today 09:00" or "Tomorrow 09:00", so a time in a list is never ambiguous. */

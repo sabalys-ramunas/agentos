@@ -14,10 +14,10 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from agentos.core.driver import ElementState, FlowDriver
+from agentos.core.locator import Condition, Locator
 from agentos.core.models import Signal, utcnow
 from agentos.core.signals import STOP
-from agentos.runner.driver import ElementState, FlowDriver
-from agentos.runner.models import Condition, Locator
 from agentos.runner.util import Clock, clip, norm_lines
 
 BAD_SIGNALS = STOP

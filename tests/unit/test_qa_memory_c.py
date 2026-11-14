@@ -8,8 +8,8 @@ from __future__ import annotations
 import sqlite3
 
 import pytest
+from testkit.memory import fake_memory
 
-from agentos.memory.fakes import fake_memory
 from agentos.memory.store import WorkspaceDB
 
 

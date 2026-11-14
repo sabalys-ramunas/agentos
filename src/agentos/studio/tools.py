@@ -27,42 +27,45 @@ from typing import Any, Literal
 
 from agentos.core.errors import InvalidRequest, NotFound, ServiceUnavailable
 from agentos.core.models import Effect
-from agentos.core.tools import ToolContext, ToolImage, ToolSpec, covers_workspace
+from agentos.core.tools import ToolContext, ToolImage, ToolSpec
 from agentos.studio import shaping
-from agentos.studio.browser.devices import DEVICES, device, is_device
+from agentos.studio.browser.devices import DEVICES
 from agentos.studio.browser.pool import check_url
 from agentos.studio.contracts import (
-    DEFAULT_WIDTHS,
     CheckRun,
     ComponentRule,
     Delta,
     EngineName,
     Rect,
-    Screen,
     Step,
-    Target,
     Theme,
     ThemeSwitch,
     TokenSet,
 )
 from agentos.studio.review import Checks, Plan, Review, measured_wanted, review
 from agentos.studio.runs import RunRecord, Runs, new_run_id
+from agentos.studio.tool_inputs import (
+    brand_of,
+    brand_theme_switch,
+    component_rules,
+    ignored_checks,
+    parse_states,
+    parse_theme_switch,
+    plan_screens,
+    profile_tokens,
+    resolve_profile,
+    rules_of,
+    token_source,
+)
 
 TAG = "studio"
 SERVICE = "studio"
-DEFAULT_THEMES = (Theme.LIGHT, Theme.DARK)
-MAX_SCREENS = 24
 CROP_WIDTH = 800
-MOTION = "reduced: prefers-reduced-motion is on and animations show their last frame"
 FINDING_VIEW = (360.0, 200.0)   # CSS px of page shown around a finding at least
 SHOT_WIDTH = 1000
 SHOT_HEIGHT = 4000
 RECT_RE = re.compile(r"^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*$")
 FINDING_RE = re.compile(r"^f_[0-9a-f]{10}$")
-# A guideline's threshold, as the rule key the check reads (agentos.studio.checks.run.rule).
-RULE_KEYS = {"contrast.text": "min_ratio", "target.size": "min_px", "health.layout_shift": "max_cls",
-             "health.long_tasks": "max_blocking_ms", "layout.occluded": "min_share",
-             "health.images": "oversize", "text.truncated": "min_hidden"}
 
 Detail = Literal["summary", "full"]
 
@@ -116,185 +119,8 @@ def _label(ctx: ToolContext, tool: str, url: str) -> None:
 
 # ---- the profile ----
 
-def _profiles(ctx: ToolContext) -> Any:
-    return ctx.runtime.get("profiles") if hasattr(ctx.runtime, "get") else None
-
-
-def _sees(ctx: ToolContext, workspace: str, accounts: list[str]) -> bool:
-    if covers_workspace(ctx, workspace):
-        return True
-    check = getattr(ctx, "can_access_lane", None)
-    return callable(check) and any(check(s) for s in accounts)
-
-
-def _profile(ctx: ToolContext, ref: str | None, url: str) -> tuple[str | None, Any, str | None]:
-    """(ref, approved Profile, how it was chosen) or (None, None, None). Named: it must be
-    approved and in the caller's reach. Not named: the first approved profile the caller reaches
-    with an environment whose url the page's url starts with."""
-    svc = _profiles(ctx)
-    if ref:
-        if svc is None:
-            raise ServiceUnavailable("profiles are not on this node, so profile cannot be used; call without it")
-        from agentos.profiles.service import split_ref
-
-        ws, pid = split_ref(ref.strip())
-        active = svc.store.active(ws, pid)
-        if active is None or not _sees(ctx, ws, [a.surface for a in active.definition.accounts]):
-            raise NotFound(f"no approved profile {ref.strip()[:80]} you can read (profile_list lists them; the owner "
-                           "approves a draft first)")
-        return f"{ws}/{pid}", active.definition, "named"
-    if svc is None:
-        return None, None, None
-    best: dict[tuple[str, str], Any] = {}
-    try:
-        approved = svc.store.approved()
-    except Exception:  # noqa: BLE001 - no profiles is an answer
-        return None, None, None
-    for pv in approved:
-        p = pv.definition
-        key = (p.workspace, p.id)
-        if key not in best or pv.version > best[key].version:
-            best[key] = pv
-    for (ws, pid), pv in sorted(best.items()):
-        p = pv.definition
-        envs = getattr(p, "environments", None) or []
-        if any(url.startswith(e.url.rstrip("/")) for e in envs) and \
-                _sees(ctx, ws, [a.surface for a in p.accounts]):
-            return f"{ws}/{pid}", p, "its environment url matches"
-    return None, None, None
-
-
-def _brand(profile: Any) -> Any:
-    return getattr(profile, "brand", None) if profile is not None else None
-
-
-def _ignore(given: list[str] | None, brand: Any) -> list[str]:
-    """The regions to leave out: the call's selectors, then the brand's (brand.ignore)."""
-    out: list[str] = []
-    for sel in [*(given or []), *(getattr(brand, "ignore", None) or [])]:
-        if isinstance(sel, str) and sel.strip() and sel.strip() not in out:
-            out.append(sel.strip()[:200])
-    if len(out) > 20:
-        raise InvalidRequest("ignore holds at most 20 selectors")
-    return out
-
-
-def _rules(profile: Any) -> dict[str, Any]:
-    if profile is None:
-        return {}
-    out: dict[str, Any] = {}
-    for check, threshold in profile.check_rules().items():
-        key = RULE_KEYS.get(check)
-        if key and threshold is not None:
-            out[check] = {key: threshold}
-    return out
-
-
-def _profile_tokens(ref: str | None, profile: Any) -> TokenSet | None:
-    brand = _brand(profile)
-    if brand is None or not brand.tokens:
-        return None
-    from agentos.studio.tokens import load_tokens
-
-    ts = load_tokens(brand.tokens)
-    return ts.model_copy(update={"source": f"profile:{ref}"})
-
-
-def _token_source(tokens: str | dict[str, Any], where: str) -> TokenSet | None:
-    """system_check's tokens: 'page' (None here: read from the page), DTCG JSON or CSS text, or a
-    file path on this machine (a laptop only: a node never reads a path an agent names). A client
-    that parses JSON text into an object on the way in sends a dict: that is DTCG too."""
-    from agentos.studio.tokens import load_tokens
-
-    if isinstance(tokens, dict):
-        ts = load_tokens(tokens)
-        if not ts.tokens and not ts.scales:
-            raise InvalidRequest("tokens held no token studio can use (colours, spacing, radius, fonts, shadows, "
-                                 "borders)")
-        return ts
-    text = tokens.strip()
-    if text == "page":
-        return None
-    looks_like_text = "\n" in text or "{" in text
-    if not looks_like_text and where != "local":
-        raise InvalidRequest("tokens is 'page', or the tokens as Design Tokens JSON or CSS text; a file path is read "
-                             "only by a local studio (agentos studio up)")
-    ts = load_tokens(text if looks_like_text else Path(text).expanduser())
-    if not ts.tokens and not ts.scales:
-        raise InvalidRequest("tokens held no token studio can use (colours, spacing, radius, fonts, shadows, borders)")
-    return ts
-
 
 # ---- screens ----
-
-def _switch(value: Any) -> ThemeSwitch | None:
-    """theme_switch as given (the registry validates it; a direct caller may pass a dict)."""
-    return value if value is None or isinstance(value, ThemeSwitch) else ThemeSwitch.model_validate(value)
-
-
-def _states(value: Any) -> dict[str, list[Step]] | None:
-    if not value:
-        return None
-    if not isinstance(value, dict):
-        raise InvalidRequest('states maps a state name to its steps, like {"menu": [{"do": "click", "selector": "#m"}]}')
-    return {str(k): [s if isinstance(s, Step) else Step.model_validate(s) for s in v] for k, v in value.items()}
-
-
-def _target(url: str, *, engine: EngineName, switch: ThemeSwitch, wait_for: str | None,
-            states: dict[str, list[Step]] | None) -> Target:
-    return Target(url=url, engine=engine, theme_switch=switch, wait_for=wait_for, states=dict(states or {}))
-
-
-def _plans(url: str, *, widths: list[int | str] | None, themes: list[Theme] | None,
-           states: dict[str, list[Step]] | None, engine: EngineName, switch: ThemeSwitch, wait_for: str | None,
-           brand_widths: list[int] | None, system: bool, system_only: bool = False) -> tuple[list[Plan], dict]:
-    """The screens of a call: every state at every width (or device) in every theme. The design
-    system check runs on the widest width in each theme of the default state."""
-    raw = list(widths) if widths else (list(brand_widths) if brand_widths else list(DEFAULT_WIDTHS))
-    ws: list[int | str] = []
-    for w in raw:
-        if isinstance(w, str) and w.strip().isdigit():
-            w = int(w.strip())
-        if is_device(w):
-            ws.append(device(str(w)).name)
-        elif isinstance(w, int) and not isinstance(w, bool) and 240 <= w <= 3840:
-            ws.append(w)
-        else:
-            raise InvalidRequest(f"a width is a number of px from 240 to 3840, or a device ({', '.join(DEVICES)}); "
-                                 f"not {str(w)[:40]!r}")
-    ws = list(dict.fromkeys(ws))
-    ts = list(dict.fromkeys(Theme(t) for t in (themes or DEFAULT_THEMES)))
-    names = ["default", *[s for s in (states or {}) if s != "default"]]
-    if not ws or not ts:
-        raise InvalidRequest("name at least one width and one theme")
-    numeric = [w for w in ws if isinstance(w, int)]
-    system_width: int | str = max(numeric) if numeric else ws[0]
-    if system_only:
-        ws = [system_width]
-    if len(ws) * len(ts) * len(names) > MAX_SCREENS:
-        raise InvalidRequest(f"{len(ws) * len(ts) * len(names)} screens is more than {MAX_SCREENS}: ask for fewer "
-                             "widths, themes or states")
-    plans: list[Plan] = []
-    for state in names:
-        for w in ws:
-            for theme in ts:
-                if isinstance(w, str):
-                    d = device(w)
-                    target = _target(url, engine=d.engine, switch=switch, wait_for=wait_for, states=states)
-                    plan = Plan(screen=d.screen(theme, state), target=target, device=d.name)
-                else:
-                    target = _target(url, engine=engine, switch=switch, wait_for=wait_for, states=states)
-                    plan = Plan(screen=Screen(width=w, theme=theme, state=state), target=target)
-                plan.system = system and state == "default" and w == system_width
-                plans.append(plan)
-    used = {"widths": ws, "themes": [t.value for t in ts], "states": names, "engine": engine.value,
-            "motion": MOTION}
-    devs = [w for w in ws if isinstance(w, str)]
-    if devs:
-        used["devices"] = [device(d).label for d in devs]
-    if switch.how != "media":
-        used["theme_switch"] = " ".join(str(v) for v in switch.model_dump(exclude_none=True).values())
-    return plans, used
 
 
 # ---- one review, kept as a run ----
@@ -448,18 +274,18 @@ async def ui_check(ctx: ToolContext, *, url: str, profile: str | None = None, wi
     """
     svc = _studio(ctx)
     url = url.strip()
-    states = _states(states)
+    states = parse_states(states)
     await _authorize(ctx, url, "check")
     before = _runs(svc).get(since.strip()) if since else None
-    ref, prof, how = _profile(ctx, profile, url)
-    brand = _brand(prof)
+    ref, prof, how = resolve_profile(ctx, profile, url)
+    brand = brand_of(prof)
     checks_only, measured_only = _only(only)
-    tokens = _profile_tokens(ref, prof)
-    components: list[ComponentRule] = brand.component_rules() if brand is not None else []
+    tokens = profile_tokens(ref, prof)
+    components: list[ComponentRule] = component_rules(brand)
     want_system = (tokens is not None or bool(components)) and _system_requested(checks_only)
-    switch = _switch(theme_switch) or (brand.theme_switch() if brand is not None else ThemeSwitch())
+    switch = parse_theme_switch(theme_switch) or brand_theme_switch(brand)
     engine = EngineName(brand.engine) if brand is not None and brand.engine else EngineName.CHROMIUM
-    plans, used = _plans(url, widths=widths, themes=themes, states=states, engine=engine, switch=switch,
+    plans, used = plan_screens(url, widths=widths, themes=themes, states=states, engine=engine, switch=switch,
                          wait_for=wait_for, brand_widths=brand.widths if brand is not None else None,
                          system=want_system)
     used["profile"] = ref
@@ -469,10 +295,10 @@ async def ui_check(ctx: ToolContext, *, url: str, profile: str | None = None, wi
         used["only"] = only
     if detail != "summary":
         used["detail"] = detail
-    rules: dict[str, Any] = _rules(prof)
+    rules: dict[str, Any] = rules_of(prof)
     if rules:
         used["rules"] = {k: next(iter(v.values())) for k, v in rules.items()}
-    left_out = _ignore(ignore, brand)
+    left_out = ignored_checks(ignore, brand)
     if left_out:
         rules["ignore"] = left_out
         used["ignore"] = left_out
@@ -564,28 +390,28 @@ async def system_check(ctx: ToolContext, *, url: str, profile: str | None = None
     before = _runs(svc).get(since.strip()) if since else None
     if profile and tokens:
         raise InvalidRequest("name profile or tokens, not both")
-    ref, prof, how = _profile(ctx, profile, url) if not tokens else (None, None, None)
-    brand = _brand(prof)
-    components = brand.component_rules() if brand is not None else []
+    ref, prof, how = resolve_profile(ctx, profile, url) if not tokens else (None, None, None)
+    brand = brand_of(prof)
+    components = component_rules(brand)
     if tokens:
-        ts = _token_source(tokens, getattr(svc, "where", "local"))
+        ts = token_source(tokens, getattr(svc, "where", "local"))
         label = "the page's own CSS variables" if ts is None else f"the tokens given ({len(ts.tokens)} tokens)"
     else:
-        ts = _profile_tokens(ref, prof)
+        ts = profile_tokens(ref, prof)
         if ts is None and not components:
             raise InvalidRequest("no tokens to check against: name a profile whose brand has tokens or components, "
                                  "or pass tokens ('page' for the page's own CSS variables, or the tokens as JSON or "
                                  "CSS text)")
         label = f"profile {ref} ({len(ts.tokens) if ts else 0} tokens)"
-    switch = _switch(theme_switch) or (brand.theme_switch() if brand is not None else ThemeSwitch())
+    switch = parse_theme_switch(theme_switch) or brand_theme_switch(brand)
     engine = EngineName(brand.engine) if brand is not None and brand.engine else EngineName.CHROMIUM
-    plans, used = _plans(url, widths=widths, themes=themes, states=None, engine=engine, switch=switch,
+    plans, used = plan_screens(url, widths=widths, themes=themes, states=None, engine=engine, switch=switch,
                          wait_for=None, brand_widths=brand.widths if brand is not None else None, system=True,
                          system_only=not widths)
     for p in plans:
         p.system = True
     used.update(profile=ref, tokens=label)
-    left_out = _ignore(ignore, brand)
+    left_out = ignored_checks(ignore, brand)
     if left_out:
         used["ignore"] = left_out
     if how and how != "named":
@@ -630,10 +456,10 @@ async def ui_diff(ctx: ToolContext, *, url: str, before: str | None = None, prof
     await _authorize(ctx, url, "capture")
     store = _store(svc)
     runs = _runs(svc)
-    ref, prof, _how = _profile(ctx, profile, url)
+    ref, prof, _how = resolve_profile(ctx, profile, url)
     base_id, base_how = _before(store, runs, url, ref, before)
     base = await asyncio.to_thread(store.get, base_id)
-    brand = _brand(prof)
+    brand = brand_of(prof)
     ok_screens = [s.screen for s in base.shots if s.ok]
     if not widths and not themes:
         plans = [Plan(screen=s, target=base.target) for s in ok_screens]
@@ -641,7 +467,7 @@ async def ui_diff(ctx: ToolContext, *, url: str, before: str | None = None, prof
                                 "themes": list(dict.fromkeys(s.theme.value for s in ok_screens)),
                                 "states": list(dict.fromkeys(s.state for s in ok_screens))}
     else:
-        plans, used = _plans(url, widths=widths or list(dict.fromkeys(s.width for s in ok_screens)),
+        plans, used = plan_screens(url, widths=widths or list(dict.fromkeys(s.width for s in ok_screens)),
                              themes=themes or list(dict.fromkeys(s.theme for s in ok_screens)),
                              states=base.target.states, engine=base.target.engine,
                              switch=base.target.theme_switch, wait_for=base.target.wait_for,
@@ -653,7 +479,7 @@ async def ui_diff(ctx: ToolContext, *, url: str, before: str | None = None, prof
         out = await review(svc.browser, store, plans, Checks(measured=False))
     finally:
         _label(ctx, "ui_diff", url)
-    tokens = _profile_tokens(ref, prof) if brand is not None else None
+    tokens = profile_tokens(ref, prof) if brand is not None else None
     keys = [p.screen.key for p in plans]
     mask = _load_mask(svc, base_id)
     if mask is not None and mask.screens:
@@ -700,30 +526,7 @@ def _shape_diff(result: Any, *, used: dict[str, Any], after: Review, detail: Det
                    + (f", {regions} region{'s' if regions != 1 else ''} no element explains" if regions else "") + ".")
     else:
         verdict = f"No change on {len(screens) - len(skipped)} of {len(screens)} screens."
-    full = detail == "full"
-    rows = []
-    budget = 24
-    for s in screens:
-        if s.status == "same":
-            continue
-        row: dict[str, Any] = {"screen": s.screen, "status": s.status}
-        if s.status == "skipped":
-            row["reason"] = shaping.cap(s.reason or "no reason given", 160)
-        else:
-            lines = [shaping.cap(line, 200) for line in s.lines]
-            if not full:
-                lines, rest = lines[:max(budget, 0)], len(lines) - max(budget, 0)
-                budget -= len(lines)
-                if rest > 0:
-                    row["more_lines"] = rest
-            row["lines"] = lines
-            row["pixels_changed"] = round(s.pixel_share, 4)
-            if s.unexplained:
-                row["unexplained"] = [{"rect": r.rect.model_dump(), "share": round(r.share, 4),
-                                       **({"evidence": r.evidence} if r.evidence else {})} for r in s.unexplained[:3]]
-            if full:
-                row["changes"] = [c.model_dump(mode="json", exclude_defaults=True) for c in s.changes]
-        rows.append(row)
+    rows = _diff_rows(screens, full=detail == "full")
     out: dict[str, Any] = {"verdict": verdict, "diff": result.id, "before": result.before, "after": result.after,
                            "url": url, "used": used, "screens": rows}
     if one_side:
@@ -731,9 +534,7 @@ def _shape_diff(result: Any, *, used: dict[str, Any], after: Review, detail: Det
         names = ", ".join(keys[:3]) + (f" and {len(keys) - 3} more" if len(keys) > 3 else "")
         out["not_compared"] = (f"{len(keys)} screen{'s' if len(keys) != 1 else ''} only one capture has ({names}): "
                                "ask for the same widths and themes to compare them")
-    problems = [f"screen {k} failed: {shaping.cap(v, 200)}" for k, v in after.failed.items()]
-    if not after.capture.fonts_pinned:
-        problems.append("fonts not pinned: a change in text wrapping can come from the machine, not the code")
+    problems = _capture_problems(after)
     if problems:
         out["coverage"] = {"problems": problems}
     if changed:
@@ -743,6 +544,42 @@ def _shape_diff(result: Any, *, used: dict[str, Any], after: Review, detail: Det
     else:
         out["next"] = "Nothing changed on screen. If you expected a change, check that the dev server reloaded."
     return out
+
+
+def _diff_rows(screens: list[Any], *, full: bool) -> list[dict[str, Any]]:
+    """One row per screen that changed or was skipped. A summary shows at most 24 lines in all."""
+    rows = []
+    budget = 24
+    for s in screens:
+        if s.status == "same":
+            continue
+        row: dict[str, Any] = {"screen": s.screen, "status": s.status}
+        if s.status == "skipped":
+            row["reason"] = shaping.cap(s.reason or "no reason given", 160)
+            rows.append(row)
+            continue
+        lines = [shaping.cap(line, 200) for line in s.lines]
+        if not full:
+            lines, rest = lines[:max(budget, 0)], len(lines) - max(budget, 0)
+            budget -= len(lines)
+            if rest > 0:
+                row["more_lines"] = rest
+        row["lines"] = lines
+        row["pixels_changed"] = round(s.pixel_share, 4)
+        if s.unexplained:
+            row["unexplained"] = [{"rect": r.rect.model_dump(), "share": round(r.share, 4),
+                                   **({"evidence": r.evidence} if r.evidence else {})} for r in s.unexplained[:3]]
+        if full:
+            row["changes"] = [c.model_dump(mode="json", exclude_defaults=True) for c in s.changes]
+        rows.append(row)
+    return rows
+
+
+def _capture_problems(after: Review) -> list[str]:
+    problems = [f"screen {k} failed: {shaping.cap(v, 200)}" for k, v in after.failed.items()]
+    if not after.capture.fonts_pinned:
+        problems.append("fonts not pinned: a change in text wrapping can come from the machine, not the code")
+    return problems
 
 
 async def ui_baseline(ctx: ToolContext, *, url: str, run: str | None = None,
@@ -768,7 +605,7 @@ async def ui_baseline(ctx: ToolContext, *, url: str, run: str | None = None,
     runs = _runs(svc)
     ref = None
     if profile:
-        ref, _p, _how = _profile(ctx, profile, url)
+        ref, _p, _how = resolve_profile(ctx, profile, url)
     if run:
         r = run.strip()
         capture_id = runs.get(r).capture if r.startswith("run_") else r
@@ -994,6 +831,10 @@ async def studio_status(ctx: ToolContext) -> dict[str, Any]:
 
 
 def tool_specs(runtime: Any) -> list[ToolSpec]:
+    from agentos.studio.learn.tool import (
+        profile_learn_brand,  # studio part S8: learn a brand from a live site
+    )
+
     def spec(name: str, handler: Any, *tags: str) -> ToolSpec:
         return ToolSpec(name=name, handler=handler, effect=Effect.READ, lane_arg=None, tags=(TAG, *tags),
                         hidden_without=SERVICE)
@@ -1006,4 +847,7 @@ def tool_specs(runtime: Any) -> list[ToolSpec]:
         spec("finding_get", finding_get),
         spec("ui_image", ui_image),
         spec("studio_status", studio_status),
+        # in the profiles toolset (it proposes a profile's brand), served while the profiles service is
+        ToolSpec(name="profile_learn_brand", handler=profile_learn_brand, effect=Effect.DRAFT, lane_arg=None,
+                 tags=("profiles",), hidden_without="profiles"),
     ]

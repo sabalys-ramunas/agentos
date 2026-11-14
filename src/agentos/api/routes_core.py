@@ -16,7 +16,7 @@ from agentos.api.access import Access
 from agentos.api.app import Api, access_of, endpoint, read_body, scoped_list
 from agentos.api.auth import SESSION_COOKIE, tokens_equal
 from agentos.api.errors import ApiError
-from agentos.api.jsonable import jsonable, maybe_await
+from agentos.api.jsonable import jsonable
 from agentos.api.lane_metrics import RANGES, lane_metrics
 from agentos.api.lanes_view import (
     TEMPLATES,
@@ -26,10 +26,13 @@ from agentos.api.lanes_view import (
     title_from_id,
     workspace_health,
 )
+from agentos.core import clock
+from agentos.core.aio import maybe_await
+from agentos.core.config import proxies_by_label as config_proxies_by_label
 from agentos.core.errors import AgentosError, InvalidRequest, LaneExists, LaneNotFound
 from agentos.core.models import Effect, LaneKind, LaneSpec, Preset, parse_lane_id
 from agentos.core.presence import Presence
-from agentos.ops.system import MiB, read_meminfo
+from agentos.core.system import MiB, read_meminfo
 
 OUT_OF_SCOPE = "This lane is outside your grant."
 
@@ -120,17 +123,7 @@ def is_env_lane(api: Api, lane_id: str) -> bool:
 
 
 async def proxies_by_label(api: Api) -> dict[str, Any]:
-    svc = api.optional("proxies")
-    if svc is not None:
-        items = await maybe_await(svc.list())
-        return {(p.label if hasattr(p, "label") else p["label"]): p for p in items}
-    if api.config is not None:
-        from agentos.core.config import load_proxies
-        try:
-            return load_proxies(api.config)
-        except (OSError, ValueError):
-            return {}
-    return {}
+    return await config_proxies_by_label(api.optional("proxies"), api.config)
 
 
 async def shared_exit_needs_a_person(api: Api, request: Request, labels: list[str | None], action: str,
@@ -271,21 +264,6 @@ def stopped_runs(api: Api) -> list[dict]:
         return []
 
 
-def plans_waiting(api: Api, access: Access) -> int:
-    """Engagement plans whose newest version an agent drafted and nobody approved yet (the digest's
-    `program.approved` is false). The owner approves them; no one else may."""
-    svc = api.optional("engage")
-    store = getattr(svc, "store", None)
-    if store is None or not callable(getattr(store, "programs", None)) or not callable(getattr(store, "active", None)):
-        return 0
-    try:
-        surfaces = {version.definition.surface for version in store.programs()}
-        return sum(1 for surface in surfaces
-                   if access.lane_allowed(surface) and store.active(surface) is None)
-    except Exception:  # noqa: BLE001
-        return 0
-
-
 async def pending_approvals(api: Api, access: Access | None = None) -> list[dict]:
     svc = api.optional("approvals")
     if svc is None:
@@ -317,28 +295,33 @@ async def ensure_workspace(api: Api, ws: str) -> None:
                 raise
 
 
-def routes(api: Api) -> list[Route]:
+class Handlers:
+    """The handlers of the routes below, sharing one Api (and what they keep between calls)."""
+
+    def __init__(self, api: Api) -> None:
+        self.api = api
+
     # ---- session ----
-    async def session_create(request: Request) -> Response:
+    async def session_create(self, request: Request) -> Response:
         # another site's page cannot sign a browser in with a code it holds (the controller checks too)
-        if not api.origin_ok(request):
+        if not self.api.origin_ok(request):
             raise ApiError("csrf_failed", "This sign-in came from another site, so it was refused.")
         client = request.client.host if request.client else "unknown"
-        wait = api.limiter.check(client)
+        wait = self.api.limiter.check(client)
         if wait is not None:
             raise ApiError("rate_limited", "Too many sign-in attempts. Wait a few minutes and try again.",
                            headers={"Retry-After": str(int(wait))})
         body = await read_body(request, SessionCreate)
-        if not await api.store.run(api.store.use_code, body.code.strip()):
+        if not await self.api.store.run(self.api.store.use_code, body.code.strip()):
             raise ApiError("unauthorized", "This sign-in link is invalid, used, or expired. "
                                            "Run `agentos panel login` for a new one.")
-        sid, session = await api.store.run(api.store.create_session, "owner", api.settings.session_ttl, member_id="owner")
-        resp = JSONResponse({"csrf": session.csrf, "expires_at": jsonable(_ts(session.expires_at))})
-        resp.set_cookie(SESSION_COOKIE, sid, max_age=api.settings.session_ttl, path="/", httponly=True,
-                        samesite="strict", secure=api.secure_cookie(request))
+        sid, session = await self.api.store.run(self.api.store.create_session, "owner", self.api.settings.session_ttl, member_id="owner")
+        resp = JSONResponse({"csrf": session.csrf, "expires_at": jsonable(clock.iso(session.expires_at))})
+        resp.set_cookie(SESSION_COOKIE, sid, max_age=self.api.settings.session_ttl, path="/", httponly=True,
+                        samesite="strict", secure=self.api.secure_cookie(request))
         return resp
 
-    async def session_device(request: Request) -> Response:
+    async def session_device(self, request: Request) -> Response:
         """The owner's device credential for the CLI tools on their computer (agentos dash, approvals,
         open): an owner panel session with a device label and a long life, returned in the body
         instead of a cookie. Only the node's own token may ask for one (`agentos connect` reads it
@@ -349,38 +332,38 @@ def routes(api: Api) -> list[Route]:
         auth = request.state.auth
         header = request.headers.get("authorization", "")
         token = header[7:].strip() if header[:7].lower() == "bearer " else None
-        if auth.via != "bearer" or not tokens_equal(token, api.owner_token):
+        if auth.via != "bearer" or not tokens_equal(token, self.api.owner_token):
             auth.access.trace("session.device", status="denied", summary="not the node token")
             raise ApiError("denied", "A device credential is made with the node's own token, which "
                                      "`agentos connect` reads over SSH. Run it on your computer.")
         body = await read_body(request, DeviceCreate)
-        ttl = min(body.ttl_s or api.settings.device_ttl, api.settings.device_max_ttl)
-        sid, session = await api.store.run(api.store.create_session, "owner", ttl, member_id="owner",
+        ttl = min(body.ttl_s or self.api.settings.device_ttl, self.api.settings.device_max_ttl)
+        sid, session = await self.api.store.run(self.api.store.create_session, "owner", ttl, member_id="owner",
                                            via="device", device_label=body.label)
         auth.access.trace("session.device", summary=f"Device credential for {body.label}")
         return JSONResponse({"session": sid, "csrf": session.csrf, "id": session.id_hash[:16],
-                             "label": session.device_label, "expires_at": jsonable(_ts(session.expires_at))})
+                             "label": session.device_label, "expires_at": jsonable(clock.iso(session.expires_at))})
 
-    async def session_delete(request: Request) -> Response:
+    async def session_delete(self, request: Request) -> Response:
         auth = request.state.auth
         if auth.sid:
-            await api.store.run(api.store.delete_session, auth.sid)
+            await self.api.store.run(self.api.store.delete_session, auth.sid)
         resp = JSONResponse({"ok": True})
         resp.delete_cookie(SESSION_COOKIE, path="/", httponly=True, samesite="strict")
         return resp
 
     # ---- status ----
-    async def status(request: Request) -> dict:
+    async def status(self, request: Request) -> dict:
         auth = request.state.auth
         access = auth.access
-        pending = await pending_approvals(api, access)  # actions and questions alike
+        pending = await pending_approvals(self.api, access)  # actions and questions alike
         questions = sum(1 for item in pending if item.get("kind") == "question")
         lanes_needing: list[dict] = []  # what the web app shows as a hand (needs_hand)
-        lanes_human: list[dict] = []  # what panel/ has always counted (needs_human): its badge stays its own
+        lanes_human: list[dict] = []  # the older count (needs_human), which `needs_you` keeps
         lane_counts = {"total": 0, "warm": 0, "ready": 0}
-        if api.optional("lanes") is not None:
+        if self.api.optional("lanes") is not None:
             try:
-                lanes = await all_lanes(api, access)
+                lanes = await all_lanes(self.api, access)
             except AgentosError:
                 lanes = []
             lanes_needing = [lane for lane in lanes if needs_hand(lane)]
@@ -391,58 +374,57 @@ def routes(api: Api) -> list[Route]:
                 "ready": sum(1 for lane in lanes if lane["logged_in_hint"] == "ok"),
             }
         codes = 0  # open code cards (agentos.vault.relay): only the owner and approvers answer them
-        vault = api.optional("vault") if access.owner else None
+        vault = self.api.optional("vault") if access.owner else None
         if vault is not None and hasattr(vault, "codes"):
             codes = len(await maybe_await(vault.codes()))
         # The rest of what Needs you shows, so this count is the one every screen says (web
-        # features/needs-you/count.ts): failed outcomes, and the owner's stopped runs and plans. A run that
+        # features/needs-you/count.ts): failed outcomes, and the owner's stopped runs. A run that
         # stopped halfway is one thing, shown once, so it leaves the outcomes it is also counted in.
-        from agentos.api.routes_resources import failed_outcomes_for
+        from agentos.api.routes_approvals import failed_outcomes_for
 
         try:
-            outcome_rows = await failed_outcomes_for(api, access, 500)
+            outcome_rows = await failed_outcomes_for(self.api, access, 500)
         except AgentosError:
             outcome_rows = []
-        stopped = stopped_runs(api) if access.owner else []
+        stopped = stopped_runs(self.api) if access.owner else []
         stopped_approvals = {run.get("approval_id") for run in stopped if run.get("approval_id")}
         outcomes = sum(1 for row in outcome_rows if row.get("id") not in stopped_approvals)
         runs = len(stopped)
-        plans = plans_waiting(api, access) if access.owner else 0
         cost = {"tokens": 0, "usd": 0.0}
-        traces = api.optional("traces")
+        traces = self.api.optional("traces")
         if access.owner and traces is not None and hasattr(traces, "cost_today"):  # node-wide spend: owner only
             cost = jsonable(await maybe_await(traces.cost_today()))
         return {
-            "node": api.node_name,
+            "node": self.api.node_name,
             "version": __version__,
             "csrf": auth.session.csrf if auth.session else None,
             "principal": {"kind": auth.principal.kind, "id": auth.principal.id, "owner": access.owner},
-            # `needs_you` and the detail's `lanes` are what panel/ reads for its badge and list, so they keep
-            # panel's meaning. `needs_you_all` is the web app's count (features/needs-you/count.ts), with
-            # `hands`, `outcomes`, `runs`, `plans` and `logins` beside it.
+            # `needs_you` and the detail's `lanes` keep their older meaning for any client that reads them.
+            # `needs_you_all` is the web app's count (features/needs-you/count.ts), with
+            # `hands`, `outcomes`, `runs` and `logins` beside it.
             "needs_you": len(pending) + len(lanes_human) + codes,
-            "needs_you_all": len(pending) + len(lanes_needing) + codes + outcomes + runs + plans,
+            "needs_you_all": len(pending) + len(lanes_needing) + codes + outcomes + runs,
             "needs_you_detail": {"approvals": len(pending) - questions, "questions": questions, "codes": codes,
                                  "lanes": [lane["id"] for lane in lanes_human],
                                  "hands": [lane["id"] for lane in lanes_needing],
-                                 "outcomes": outcomes, "runs": runs, "plans": plans,
+                                 "outcomes": outcomes, "runs": runs,
                                  "logins": [lane["id"] for lane in lanes_needing if lane.get("login_request")]},
             "cost_today": cost,
-            "brain": await brain_chip(api),
+            "brain": await brain_chip(self.api),
             "nodes": [{"id": n["id"], "state": n.get("state", "up"), "degraded": n.get("state") == "degraded"}
-                      for n in await node_list(api)],
+                      for n in await node_list(self.api)],
             "lanes": lane_counts,
-            "services": api.runtime.names() if access.owner else [],
-            "mcp_url": api.mcp_url,
-            "timezone": api.timezone,
+            "services": self.api.runtime.names() if access.owner else [],
+            "mcp_url": self.api.mcp_url,
+            "timezone": self.api.timezone,
         }
 
     # ---- workspaces ----
-    async def workspaces(request: Request) -> list[dict]:
+    async def workspaces(self, request: Request) -> list[dict]:
         access = access_of(request)
-        lanes = await all_lanes(api, access)
-        pending = await pending_approvals(api, access)
-        meta = await workspace_meta(api)
+        lanes = await all_lanes(self.api, access)
+        pending = await pending_approvals(self.api, access)
+        meta = await workspace_meta(self.api)
         if not access.owner:  # a grant sees the workspaces its lanes are in, a member the ones they hold roles in
             visible = {lane["workspace"] for lane in lanes}
             if access.member is not None:
@@ -471,64 +453,64 @@ def routes(api: Api) -> list[Route]:
             })
         return out
 
-    async def workspace_create(request: Request) -> dict:
+    async def workspace_create(self, request: Request) -> dict:
         body = await read_body(request, WorkspaceCreate)
-        svc = api.optional("workspaces")
+        svc = self.api.optional("workspaces")
         color = body.color or default_color(body.id)
         if svc is not None:
             created = jsonable(await maybe_await(svc.create(id=body.id, name=body.name, color=color)))
         else:
-            created = await api.store.run(api.store.create_workspace, id=body.id, name=body.name, color=color)
+            created = await self.api.store.run(self.api.store.create_workspace, id=body.id, name=body.name, color=color)
         ws = {**created, "health": "idle", "summary": "No lanes yet", "pending_approvals": 0, "lanes": []}
         access_of(request).trace("workspace.create", summary=f"Create workspace {body.id}")
-        api.publish("workspace", ws)
+        self.api.publish("workspace", ws)
         return ws
 
     # ---- templates ----
-    async def templates(request: Request) -> list[dict]:
-        svc = api.optional("workspaces")
+    async def templates(self, request: Request) -> list[dict]:
+        svc = self.api.optional("workspaces")
         if svc is not None and callable(getattr(svc, "templates", None)):
             return jsonable(await maybe_await(svc.templates()))
         return list(TEMPLATES.values())
 
-    async def template_apply(request: Request) -> dict:
+    async def template_apply(self, request: Request) -> dict:
         body = await read_body(request, TemplateApply)
-        svc = api.optional("workspaces")
+        svc = self.api.optional("workspaces")
         if svc is not None and callable(getattr(svc, "apply", None)):
             # The workspaces service plans first and refuses (409 conflict) a plan that would link
             # two businesses or two accounts of one platform by IP; nothing is created then.
             for ws in body.workspaces:
-                await ensure_workspace(api, ws)
+                await ensure_workspace(self.api, ws)
             access = access_of(request)
             real = getattr(svc, "svc", svc)  # the panel's adapter wraps the workspaces service
             if callable(getattr(real, "plan", None)):
                 plan = await maybe_await(real.plan(body.template, body.workspaces,
                                                    proxy_per_workspace=body.proxy_per_workspace))
-                await shared_exit_needs_a_person(api, request, [s.proxy for s in plan.creates], "template.apply")
+                await shared_exit_needs_a_person(self.api, request, [s.proxy for s in plan.creates], "template.apply")
             result = await svc.apply(template=body.template, workspaces=body.workspaces,
                                      proxy_per_workspace=body.proxy_per_workspace,
                                      by=request.state.auth.principal.id)
-            lanes = api.svc("lanes")
+            lanes = self.api.svc("lanes")
             created = []
             for lane_id in result.get("created", []):
-                lane = await one_lane(api, lane_id, await maybe_await(lanes.get(lane_id)))
+                lane = await one_lane(self.api, lane_id, await maybe_await(lanes.get(lane_id)))
                 created.append(lane)
-                api.publish("lane", lane)
+                self.api.publish("lane", lane)
             access.trace("template.apply", summary=f"Apply template {body.template} to "
                                                    f"{', '.join(body.workspaces)}: {len(created)} lanes")
             return {**result, "created": created, "skipped": result.get("existing", [])}
         tpl = TEMPLATES.get(body.template)
         if tpl is None:
             raise InvalidRequest(f"Unknown template {body.template!r}.")
-        lanes = api.svc("lanes")
-        proxies = await proxies_by_label(api)
+        lanes = self.api.svc("lanes")
+        proxies = await proxies_by_label(self.api)
         for ws, label in body.proxy_per_workspace.items():
             if label not in proxies:
                 raise InvalidRequest(f"Unknown proxy {label!r} for {ws}.")
-        await shared_exit_needs_a_person(api, request, list(body.proxy_per_workspace.values()), "template.apply")
+        await shared_exit_needs_a_person(self.api, request, list(body.proxy_per_workspace.values()), "template.apply")
         created, skipped = [], []
         for ws in body.workspaces:
-            await ensure_workspace(api, ws)
+            await ensure_workspace(self.api, ws)
             for item in tpl["lanes"]:
                 spec = LaneSpec(id=f"{ws}/{item['name']}", kind=LaneKind(item["kind"]),
                                 proxy_label=body.proxy_per_workspace.get(ws))
@@ -537,74 +519,74 @@ def routes(api: Api) -> list[Route]:
                 except LaneExists:
                     skipped.append(spec.id)
                     continue
-                lane = await one_lane(api, spec.id, info)
+                lane = await one_lane(self.api, spec.id, info)
                 created.append(lane)
-                api.publish("lane", lane)
+                self.api.publish("lane", lane)
         access_of(request).trace("template.apply", summary=f"Apply template {body.template} to "
                                                          f"{', '.join(body.workspaces)}: {len(created)} lanes")
         return {"created": created, "skipped": skipped}
 
     # ---- lanes ----
-    async def lanes_list(request: Request) -> list[dict]:
-        return await all_lanes(api, access_of(request))
+    async def lanes_list(self, request: Request) -> list[dict]:
+        return await all_lanes(self.api, access_of(request))
 
-    async def lane_get(request: Request) -> dict:
-        return await one_lane(api, scoped_lane_id(request, "lane.get"))
+    async def lane_get(self, request: Request) -> dict:
+        return await one_lane(self.api, scoped_lane_id(request, "lane.get"))
 
-    async def lane_create(request: Request) -> dict:
+    async def lane_create(self, request: Request) -> dict:
         body = await read_body(request, LaneCreate)
-        if body.proxy_label and body.proxy_label not in await proxies_by_label(api):
+        if body.proxy_label and body.proxy_label not in await proxies_by_label(self.api):
             raise InvalidRequest(f"Unknown proxy {body.proxy_label!r}.")
         label = body.proxy_label
-        if body.device and callable(getattr(api.svc("lanes"), "device_info", None)):
+        if body.device and callable(getattr(self.api.svc("lanes"), "device_info", None)):
             try:  # a lane on a device leaves through the device's proxy
-                label = (await maybe_await(api.svc("lanes").device_info(body.device))).get("proxy") or label
+                label = (await maybe_await(self.api.svc("lanes").device_info(body.device))).get("proxy") or label
             except AgentosError:
                 pass  # no such device: the lane manager says so
-        await shared_exit_needs_a_person(api, request, [label], "lane.create", lane=body.id)
+        await shared_exit_needs_a_person(self.api, request, [label], "lane.create", lane=body.id)
         spec = LaneSpec(id=body.id, kind=body.kind, proxy_label=body.proxy_label, device=body.device,
                         **({"engine": body.engine} if body.engine else {}))
-        await ensure_workspace(api, spec.workspace)
-        info = await maybe_await(api.svc("lanes").create(spec))
-        lane = await one_lane(api, spec.id, info)
+        await ensure_workspace(self.api, spec.workspace)
+        info = await maybe_await(self.api.svc("lanes").create(spec))
+        lane = await one_lane(self.api, spec.id, info)
         access_of(request).trace("lane.create", lane=spec.id, summary=f"Create {spec.kind.value} lane {spec.id}")
-        api.publish("lane", lane)
+        self.api.publish("lane", lane)
         return lane
 
-    async def _open_or_close(request: Request, verb: str) -> dict:
+    async def _open_or_close(self, request: Request, verb: str) -> dict:
         lane_id = scoped_lane_id(request, f"lane.{verb}")
         access_of(request).require("operate", lane_id.split("/", 1)[0], action=f"lane.{verb}", lane=lane_id)
         await access_of(request).authorize(Effect.READ, action=f"lane.{verb}", lane_id=lane_id,
                                            summary=f"{verb.capitalize()} lane {lane_id}")
-        if is_env_lane(api, lane_id):
-            envs = env_lanes(api)
+        if is_env_lane(self.api, lane_id):
+            envs = env_lanes(self.api)
             await (envs.open(lane_id) if verb == "open" else envs.close(lane_id))
-            lane = await one_lane(api, lane_id)
+            lane = await one_lane(self.api, lane_id)
         else:
-            lanes = api.svc("lanes")
+            lanes = self.api.svc("lanes")
             info = await maybe_await(lanes.open(lane_id) if verb == "open" else lanes.close(lane_id))
-            lane = await one_lane(api, lane_id, info)
-        api.publish("lane", lane)
+            lane = await one_lane(self.api, lane_id, info)
+        self.api.publish("lane", lane)
         return lane
 
-    async def lane_open(request: Request) -> dict:
-        return await _open_or_close(request, "open")
+    async def lane_open(self, request: Request) -> dict:
+        return await self._open_or_close(request, "open")
 
-    async def lane_close(request: Request) -> dict:
-        return await _open_or_close(request, "close")
+    async def lane_close(self, request: Request) -> dict:
+        return await self._open_or_close(request, "close")
 
-    async def lane_screenshot(request: Request) -> Response:
+    async def lane_screenshot(self, request: Request) -> Response:
         lane_id = scoped_lane_id(request, "lane.screenshot")
         access = access_of(request)
         if access.member is not None and access.watch_terms(lane_id) is None:  # type: ignore[attr-defined]
             # a screenshot shows what the account shows (DMs too): members watch only when their role says so
             access.trace("lane.screenshot", status="denied", lane=lane_id, summary="no live view for this role")
             raise ApiError("denied", "Your role does not include the live view of this lane.")
-        if is_env_lane(api, lane_id):
+        if is_env_lane(self.api, lane_id):
             raise ApiError("lane_cold", "Terminal and service lanes have no screen to capture.")
         await access_of(request).authorize(Effect.READ, action="lane.screenshot", lane_id=lane_id,
                                            summary=f"Screenshot of lane {lane_id}")
-        lanes = api.svc("lanes")
+        lanes = self.api.svc("lanes")
         info = await maybe_await(lanes.get(lane_id))
         if info.state.value not in ("warm", "active"):
             raise ApiError("lane_cold", "The lane is not open. Open it first to take a screenshot.")
@@ -614,33 +596,33 @@ def routes(api: Api) -> list[Route]:
             from agentos.node.claims import READ
             from agentos.node.tools import lane_session
 
-            interaction = api.svc("interaction")
+            interaction = self.api.svc("interaction")
             async with lane_session(lanes, lane_id, "agent", mode=READ) as page:  # a read: passes a claim
                 png = await maybe_await(interaction.screenshot(page))
         return Response(png, media_type="image/png", headers={"Cache-Control": "no-store"})
 
-    async def lane_metrics_route(request: Request) -> dict:
+    async def lane_metrics_route(self, request: Request) -> dict:
         """The lane's runs per bar over a range (agentos.api.lane_metrics), counted from its real runs."""
         lane_id = scoped_lane_id(request, "lane.metrics")
         range_name = request.query_params.get("range") or "7d"
         if range_name not in RANGES:
             raise InvalidRequest(f"range is one of {', '.join(RANGES)}")
-        runner = api.runtime.get("runner")
+        runner = self.api.runtime.get("runner")
         if not callable(getattr(runner, "lane_run_times", None)):  # no runner here: no bars to draw
             return {"range": range_name, "bucket_seconds": int(RANGES[range_name][1].total_seconds()), "buckets": []}
         now = datetime.now(UTC)
         runs = runner.lane_run_times(lane_id, now - RANGES[range_name][0])
         return lane_metrics(runs, range_name=range_name, now=now)
 
-    async def lane_check(request: Request) -> dict:
+    async def lane_check(self, request: Request) -> dict:
         """The lane's checklist (agentos.stealth.lanecheck), run now. Reads only: it never warms the lane."""
         lane_id = scoped_lane_id(request, "lane.check")
         await access_of(request).authorize(Effect.READ, action="lane.check", lane_id=lane_id,
                                            summary=f"Check lane {lane_id}")
-        report = await api.svc("lane_check").check(lane_id)
+        report = await self.api.svc("lane_check").check(lane_id)
         return report.to_dict()
 
-    async def lane_health(request: Request) -> dict:
+    async def lane_health(self, request: Request) -> dict:
         """The lane's health (agentos.stealth.health): one grade and plain findings from the lane check's
         last run (run now when there is none, or with ?fresh=1), its pin findings and its holds in the
         last ?days=30. Reads only, as the check does, and is authorised as the check is."""
@@ -651,36 +633,36 @@ def routes(api: Api) -> list[Route]:
         await access_of(request).authorize(Effect.READ, action="lane.health", lane_id=lane_id,
                                            summary=f"Health of lane {lane_id}")
         fresh = request.query_params.get("fresh") in ("1", "true")
-        found = await health.gather(api.svc("lane_check"), lane_id, days=days, fresh=fresh)
+        found = await health.gather(self.api.svc("lane_check"), lane_id, days=days, fresh=fresh)
         out = found.to_dict()
         return out if access_of(request).owner else health.for_member(out)
 
-    async def lane_keepalive(request: Request) -> dict:
+    async def lane_keepalive(self, request: Request) -> dict:
         """The lane's keepalive plan (agentos.keepalive): the next visit, why not now, the last visits."""
         lane_id = scoped_lane_id(request, "lane.keepalive")
         await access_of(request).authorize(Effect.READ, action="lane.keepalive", lane_id=lane_id,
                                            summary=f"Keepalive plan of lane {lane_id}")
-        keepalive = api.optional("keepalive")
+        keepalive = self.api.optional("keepalive")
         if keepalive is None:
             return {"lane": lane_id, "available": False}
         return {"available": True, **keepalive.status(lane_id)}
 
-    async def lane_sites(request: Request) -> dict:
+    async def lane_sites(self, request: Request) -> dict:
         """The domains this lane's account may reach. A read for anyone who can see the lane; the owner
         changes the list with POST /api/lanes/{ws}/{name}/sites (agentos.node.viewer_app)."""
         lane_id = scoped_lane_id(request, "lane.sites")
         await access_of(request).authorize(Effect.READ, action="lane.sites", lane_id=lane_id,
                                            summary=f"Site list of lane {lane_id}")
-        info = await maybe_await(api.svc("lanes").get(lane_id))
+        info = await maybe_await(self.api.svc("lanes").get(lane_id))
         return {"lane": lane_id, "sites": list(info.spec.sites), "strict": info.spec.egress_strict}
 
-    async def lanes_checks(request: Request) -> dict:
+    async def lanes_checks(self, request: Request) -> dict:
         """The worst level per lane the caller may see: from the last run (the health monitor runs every
         lane every few minutes), or run now with ?fresh=1."""
         access = access_of(request)
-        checker = api.optional("lane_check")
+        checker = self.api.optional("lane_check")
         if checker is None:  # the health service is not running: every lane is unknown
-            lanes = api.optional("lanes")
+            lanes = self.api.optional("lanes")
             ids = [info.spec.id for info in await maybe_await(lanes.list())] if lanes is not None else []
             return {"lanes": [{"lane": i, "level": "unknown", "safe": None, "state": None, "at": None,
                                "failing": [], "warning": [], "health": None} for i in ids if access.lane_allowed(i)],
@@ -705,27 +687,31 @@ def routes(api: Api) -> list[Route]:
             entry["health"] = grades.get(entry["lane"])
         return {"lanes": out}
 
+
+def routes(api: Api) -> list[Route]:
+    h = Handlers(api)
+
     return [
-        Route("/api/session", endpoint(api, session_create, public=True), methods=["POST"]),
-        Route("/api/session", endpoint(api, session_delete), methods=["DELETE"]),
-        Route("/api/session/device", endpoint(api, session_device), methods=["POST"]),
-        Route("/api/status", endpoint(api, status), methods=["GET"]),
-        Route("/api/workspaces", endpoint(api, workspaces), methods=["GET"]),
-        Route("/api/workspaces", endpoint(api, workspace_create, owner=True), methods=["POST"]),
-        Route("/api/templates", endpoint(api, templates), methods=["GET"]),
-        Route("/api/templates/apply", endpoint(api, template_apply, owner=True), methods=["POST"]),
-        Route("/api/lanes", endpoint(api, lanes_list), methods=["GET"]),
-        Route("/api/lanes", endpoint(api, lane_create, owner=True), methods=["POST"]),
-        Route("/api/lanes/{ws}/{name}", endpoint(api, lane_get), methods=["GET"]),
-        Route("/api/lanes/{ws}/{name}/open", endpoint(api, lane_open), methods=["POST"]),
-        Route("/api/lanes/{ws}/{name}/close", endpoint(api, lane_close), methods=["POST"]),
-        Route("/api/lanes/{ws}/{name}/screenshot", endpoint(api, lane_screenshot), methods=["GET"]),
-        Route("/api/lanes/checks", endpoint(api, lanes_checks), methods=["GET"]),
-        Route("/api/lanes/{ws}/{name}/check", endpoint(api, lane_check), methods=["GET"]),
-        Route("/api/lanes/{ws}/{name}/health", endpoint(api, lane_health), methods=["GET"]),
-        Route("/api/lanes/{ws}/{name}/keepalive", endpoint(api, lane_keepalive), methods=["GET"]),
-        Route("/api/lanes/{ws}/{name}/metrics", endpoint(api, lane_metrics_route), methods=["GET"]),
-        Route("/api/lanes/{ws}/{name}/sites", endpoint(api, lane_sites), methods=["GET"]),
+        Route("/api/session", endpoint(api, h.session_create, public=True), methods=["POST"]),
+        Route("/api/session", endpoint(api, h.session_delete), methods=["DELETE"]),
+        Route("/api/session/device", endpoint(api, h.session_device), methods=["POST"]),
+        Route("/api/status", endpoint(api, h.status), methods=["GET"]),
+        Route("/api/workspaces", endpoint(api, h.workspaces), methods=["GET"]),
+        Route("/api/workspaces", endpoint(api, h.workspace_create, owner=True), methods=["POST"]),
+        Route("/api/templates", endpoint(api, h.templates), methods=["GET"]),
+        Route("/api/templates/apply", endpoint(api, h.template_apply, owner=True), methods=["POST"]),
+        Route("/api/lanes", endpoint(api, h.lanes_list), methods=["GET"]),
+        Route("/api/lanes", endpoint(api, h.lane_create, owner=True), methods=["POST"]),
+        Route("/api/lanes/{ws}/{name}", endpoint(api, h.lane_get), methods=["GET"]),
+        Route("/api/lanes/{ws}/{name}/open", endpoint(api, h.lane_open), methods=["POST"]),
+        Route("/api/lanes/{ws}/{name}/close", endpoint(api, h.lane_close), methods=["POST"]),
+        Route("/api/lanes/{ws}/{name}/screenshot", endpoint(api, h.lane_screenshot), methods=["GET"]),
+        Route("/api/lanes/checks", endpoint(api, h.lanes_checks), methods=["GET"]),
+        Route("/api/lanes/{ws}/{name}/check", endpoint(api, h.lane_check), methods=["GET"]),
+        Route("/api/lanes/{ws}/{name}/health", endpoint(api, h.lane_health), methods=["GET"]),
+        Route("/api/lanes/{ws}/{name}/keepalive", endpoint(api, h.lane_keepalive), methods=["GET"]),
+        Route("/api/lanes/{ws}/{name}/metrics", endpoint(api, h.lane_metrics_route), methods=["GET"]),
+        Route("/api/lanes/{ws}/{name}/sites", endpoint(api, h.lane_sites), methods=["GET"]),
     ]
 
 
@@ -736,11 +722,6 @@ def _days_param(request: Request, default: int, most: int) -> int:
     if not raw.isdigit() or not 1 <= int(raw) <= most:
         raise InvalidRequest(f"days is a whole number from 1 to {most}, not {raw[:12]!r}")
     return int(raw)
-
-
-def _ts(value: float) -> str:
-    from datetime import UTC, datetime
-    return datetime.fromtimestamp(value, UTC).isoformat()
 
 
 async def brain_chip(api: Api) -> dict | None:

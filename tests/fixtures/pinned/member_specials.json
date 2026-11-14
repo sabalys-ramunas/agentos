@@ -1,0 +1,5757 @@
+{
+ "admin / none": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": null,
+     "max_usd": null
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin / unknown option": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "unknown member options: colour (known: effects, lanes, max_session_s, max_usd, watch)"
+ },
+ "admin / lanes": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": [
+      "biz-c/insta",
+      "biz-c/*"
+     ],
+     "max_usd": null
+    },
+    "control": {
+     "lanes": [
+      "biz-c/insta",
+      "biz-c/*"
+     ],
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin / lanes empty": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lanes is a list of lane patterns inside the member's workspace"
+ },
+ "admin / lanes not a list": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lanes is a list of lane patterns inside the member's workspace"
+ },
+ "admin / lane outside": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lane biz-a/x is not inside biz-c"
+ },
+ "admin / lane pattern bad": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lane pattern must look like 'workspace/name' or '*': 'no slash here!'"
+ },
+ "admin / max_usd": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": null,
+     "max_usd": 50.0
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin / max_usd float": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": null,
+     "max_usd": 12.5
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin / max_usd zero": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": null,
+     "max_usd": 0.0
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin / max_usd negative": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "admin / max_usd bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "admin / max_usd text": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "admin / max_usd inf": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "admin / max_session_s": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": null,
+     "max_usd": null
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 900
+    }
+   }
+  ]
+ },
+ "admin / max_session_s zero": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "admin / max_session_s float": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "admin / max_session_s bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "admin / watch": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": null,
+     "max_usd": null
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin / watch not bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "watch is true or false"
+ },
+ "admin / effects": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit"
+     ],
+     "lanes": null,
+     "max_usd": null
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin / effects empty": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "effects is a list of effects this member may decide"
+ },
+ "admin / effects not a list": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "effects is a list of effects this member may decide"
+ },
+ "admin / effects unknown": {
+  "raised": "Denied",
+  "code": "denied",
+  "message": "unknown_effect: 'fly' is not an effect this node knows"
+ },
+ "admin / everything": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "commit",
+      "pay"
+     ],
+     "lanes": [
+      "biz-c/*"
+     ],
+     "max_usd": 20.0
+    },
+    "control": {
+     "lanes": [
+      "biz-c/*"
+     ],
+     "watch_only": null,
+     "max_session_s": 600
+    }
+   }
+  ]
+ },
+ "approver / none": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "commit"
+     ],
+     "lanes": null,
+     "max_usd": null
+    },
+    "control": null
+   }
+  ]
+ },
+ "approver / unknown option": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "unknown member options: colour (known: effects, lanes, max_session_s, max_usd, watch)"
+ },
+ "approver / lanes": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "commit"
+     ],
+     "lanes": [
+      "biz-c/insta",
+      "biz-c/*"
+     ],
+     "max_usd": null
+    },
+    "control": null
+   }
+  ]
+ },
+ "approver / lanes empty": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lanes is a list of lane patterns inside the member's workspace"
+ },
+ "approver / lanes not a list": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lanes is a list of lane patterns inside the member's workspace"
+ },
+ "approver / lane outside": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lane biz-a/x is not inside biz-c"
+ },
+ "approver / lane pattern bad": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lane pattern must look like 'workspace/name' or '*': 'no slash here!'"
+ },
+ "approver / max_usd": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "commit",
+      "pay"
+     ],
+     "lanes": null,
+     "max_usd": 50.0
+    },
+    "control": null
+   }
+  ]
+ },
+ "approver / max_usd float": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "commit",
+      "pay"
+     ],
+     "lanes": null,
+     "max_usd": 12.5
+    },
+    "control": null
+   }
+  ]
+ },
+ "approver / max_usd zero": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "commit",
+      "pay"
+     ],
+     "lanes": null,
+     "max_usd": 0.0
+    },
+    "control": null
+   }
+  ]
+ },
+ "approver / max_usd negative": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "approver / max_usd bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "approver / max_usd text": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "approver / max_usd inf": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "approver / max_session_s": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "commit"
+     ],
+     "lanes": null,
+     "max_usd": null
+    },
+    "control": null
+   }
+  ]
+ },
+ "approver / max_session_s zero": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "approver / max_session_s float": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "approver / max_session_s bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "approver / watch": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "commit"
+     ],
+     "lanes": null,
+     "max_usd": null
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": true,
+     "max_session_s": null
+    }
+   }
+  ]
+ },
+ "approver / watch not bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "watch is true or false"
+ },
+ "approver / effects": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit"
+     ],
+     "lanes": null,
+     "max_usd": null
+    },
+    "control": null
+   }
+  ]
+ },
+ "approver / effects empty": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "effects is a list of effects this member may decide"
+ },
+ "approver / effects not a list": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "effects is a list of effects this member may decide"
+ },
+ "approver / effects unknown": {
+  "raised": "Denied",
+  "code": "denied",
+  "message": "unknown_effect: 'fly' is not an effect this node knows"
+ },
+ "approver / everything": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "commit",
+      "pay"
+     ],
+     "lanes": [
+      "biz-c/*"
+     ],
+     "max_usd": 20.0
+    },
+    "control": {
+     "lanes": [
+      "biz-c/*"
+     ],
+     "watch_only": true,
+     "max_session_s": null
+    }
+   }
+  ]
+ },
+ "operator / none": {
+  "ok": [
+   "commit",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "operator / unknown option": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "unknown member options: colour (known: effects, lanes, max_session_s, max_usd, watch)"
+ },
+ "operator / lanes": {
+  "ok": [
+   "commit",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": {
+     "lanes": [
+      "biz-c/insta",
+      "biz-c/*"
+     ],
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "operator / lanes empty": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lanes is a list of lane patterns inside the member's workspace"
+ },
+ "operator / lanes not a list": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lanes is a list of lane patterns inside the member's workspace"
+ },
+ "operator / lane outside": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lane biz-a/x is not inside biz-c"
+ },
+ "operator / lane pattern bad": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lane pattern must look like 'workspace/name' or '*': 'no slash here!'"
+ },
+ "operator / max_usd": {
+  "ok": [
+   "commit",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "operator / max_usd float": {
+  "ok": [
+   "commit",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "operator / max_usd zero": {
+  "ok": [
+   "commit",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "operator / max_usd negative": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "operator / max_usd bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "operator / max_usd text": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "operator / max_usd inf": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "operator / max_session_s": {
+  "ok": [
+   "commit",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 900
+    }
+   }
+  ]
+ },
+ "operator / max_session_s zero": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "operator / max_session_s float": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "operator / max_session_s bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "operator / watch": {
+  "ok": [
+   "commit",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "operator / watch not bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "watch is true or false"
+ },
+ "operator / effects": {
+  "ok": [
+   "commit",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "operator / effects empty": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "effects is a list of effects this member may decide"
+ },
+ "operator / effects not a list": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "effects is a list of effects this member may decide"
+ },
+ "operator / effects unknown": {
+  "raised": "Denied",
+  "code": "denied",
+  "message": "unknown_effect: 'fly' is not an effect this node knows"
+ },
+ "operator / everything": {
+  "ok": [
+   "commit",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": {
+     "lanes": [
+      "biz-c/*"
+     ],
+     "watch_only": null,
+     "max_session_s": 600
+    }
+   }
+  ]
+ },
+ "viewer / none": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": null
+   }
+  ]
+ },
+ "viewer / unknown option": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "unknown member options: colour (known: effects, lanes, max_session_s, max_usd, watch)"
+ },
+ "viewer / lanes": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": null
+   }
+  ]
+ },
+ "viewer / lanes empty": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lanes is a list of lane patterns inside the member's workspace"
+ },
+ "viewer / lanes not a list": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lanes is a list of lane patterns inside the member's workspace"
+ },
+ "viewer / lane outside": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lane biz-a/x is not inside biz-c"
+ },
+ "viewer / lane pattern bad": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lane pattern must look like 'workspace/name' or '*': 'no slash here!'"
+ },
+ "viewer / max_usd": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": null
+   }
+  ]
+ },
+ "viewer / max_usd float": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": null
+   }
+  ]
+ },
+ "viewer / max_usd zero": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": null
+   }
+  ]
+ },
+ "viewer / max_usd negative": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "viewer / max_usd bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "viewer / max_usd text": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "viewer / max_usd inf": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "viewer / max_session_s": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": null
+   }
+  ]
+ },
+ "viewer / max_session_s zero": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "viewer / max_session_s float": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "viewer / max_session_s bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "viewer / watch": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": {
+     "lanes": null,
+     "watch_only": true,
+     "max_session_s": null
+    }
+   }
+  ]
+ },
+ "viewer / watch not bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "watch is true or false"
+ },
+ "viewer / effects": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": null
+   }
+  ]
+ },
+ "viewer / effects empty": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "effects is a list of effects this member may decide"
+ },
+ "viewer / effects not a list": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "effects is a list of effects this member may decide"
+ },
+ "viewer / effects unknown": {
+  "raised": "Denied",
+  "code": "denied",
+  "message": "unknown_effect: 'fly' is not an effect this node knows"
+ },
+ "viewer / everything": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": {
+     "lanes": [
+      "biz-c/*"
+     ],
+     "watch_only": true,
+     "max_session_s": null
+    }
+   }
+  ]
+ },
+ "auditor / none": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": null
+   }
+  ]
+ },
+ "auditor / unknown option": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "unknown member options: colour (known: effects, lanes, max_session_s, max_usd, watch)"
+ },
+ "auditor / lanes": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": null
+   }
+  ]
+ },
+ "auditor / lanes empty": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lanes is a list of lane patterns inside the member's workspace"
+ },
+ "auditor / lanes not a list": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lanes is a list of lane patterns inside the member's workspace"
+ },
+ "auditor / lane outside": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lane biz-a/x is not inside biz-c"
+ },
+ "auditor / lane pattern bad": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lane pattern must look like 'workspace/name' or '*': 'no slash here!'"
+ },
+ "auditor / max_usd": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": null
+   }
+  ]
+ },
+ "auditor / max_usd float": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": null
+   }
+  ]
+ },
+ "auditor / max_usd zero": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": null
+   }
+  ]
+ },
+ "auditor / max_usd negative": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "auditor / max_usd bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "auditor / max_usd text": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "auditor / max_usd inf": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "auditor / max_session_s": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": null
+   }
+  ]
+ },
+ "auditor / max_session_s zero": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "auditor / max_session_s float": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "auditor / max_session_s bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "auditor / watch": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": null
+   }
+  ]
+ },
+ "auditor / watch not bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "watch is true or false"
+ },
+ "auditor / effects": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": null
+   }
+  ]
+ },
+ "auditor / effects empty": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "effects is a list of effects this member may decide"
+ },
+ "auditor / effects not a list": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "effects is a list of effects this member may decide"
+ },
+ "auditor / effects unknown": {
+  "raised": "Denied",
+  "code": "denied",
+  "message": "unknown_effect: 'fly' is not an effect this node knows"
+ },
+ "auditor / everything": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": null
+   }
+  ]
+ },
+ "admin+approver / none": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": null,
+     "max_usd": null
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin+approver / unknown option": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "unknown member options: colour (known: effects, lanes, max_session_s, max_usd, watch)"
+ },
+ "admin+approver / lanes": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": [
+      "biz-c/insta",
+      "biz-c/*"
+     ],
+     "max_usd": null
+    },
+    "control": {
+     "lanes": [
+      "biz-c/insta",
+      "biz-c/*"
+     ],
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin+approver / lanes empty": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lanes is a list of lane patterns inside the member's workspace"
+ },
+ "admin+approver / lanes not a list": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lanes is a list of lane patterns inside the member's workspace"
+ },
+ "admin+approver / lane outside": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lane biz-a/x is not inside biz-c"
+ },
+ "admin+approver / lane pattern bad": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lane pattern must look like 'workspace/name' or '*': 'no slash here!'"
+ },
+ "admin+approver / max_usd": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": null,
+     "max_usd": 50.0
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin+approver / max_usd float": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": null,
+     "max_usd": 12.5
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin+approver / max_usd zero": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": null,
+     "max_usd": 0.0
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin+approver / max_usd negative": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "admin+approver / max_usd bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "admin+approver / max_usd text": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "admin+approver / max_usd inf": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "admin+approver / max_session_s": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": null,
+     "max_usd": null
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 900
+    }
+   }
+  ]
+ },
+ "admin+approver / max_session_s zero": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "admin+approver / max_session_s float": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "admin+approver / max_session_s bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "admin+approver / watch": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": null,
+     "max_usd": null
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin+approver / watch not bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "watch is true or false"
+ },
+ "admin+approver / effects": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit"
+     ],
+     "lanes": null,
+     "max_usd": null
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin+approver / effects empty": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "effects is a list of effects this member may decide"
+ },
+ "admin+approver / effects not a list": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "effects is a list of effects this member may decide"
+ },
+ "admin+approver / effects unknown": {
+  "raised": "Denied",
+  "code": "denied",
+  "message": "unknown_effect: 'fly' is not an effect this node knows"
+ },
+ "admin+approver / everything": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "commit",
+      "pay"
+     ],
+     "lanes": [
+      "biz-c/*"
+     ],
+     "max_usd": 20.0
+    },
+    "control": {
+     "lanes": [
+      "biz-c/*"
+     ],
+     "watch_only": null,
+     "max_session_s": 600
+    }
+   }
+  ]
+ },
+ "admin+operator / none": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": null,
+     "max_usd": null
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin+operator / unknown option": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "unknown member options: colour (known: effects, lanes, max_session_s, max_usd, watch)"
+ },
+ "admin+operator / lanes": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": [
+      "biz-c/insta",
+      "biz-c/*"
+     ],
+     "max_usd": null
+    },
+    "control": {
+     "lanes": [
+      "biz-c/insta",
+      "biz-c/*"
+     ],
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin+operator / lanes empty": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lanes is a list of lane patterns inside the member's workspace"
+ },
+ "admin+operator / lanes not a list": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lanes is a list of lane patterns inside the member's workspace"
+ },
+ "admin+operator / lane outside": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lane biz-a/x is not inside biz-c"
+ },
+ "admin+operator / lane pattern bad": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lane pattern must look like 'workspace/name' or '*': 'no slash here!'"
+ },
+ "admin+operator / max_usd": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": null,
+     "max_usd": 50.0
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin+operator / max_usd float": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": null,
+     "max_usd": 12.5
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin+operator / max_usd zero": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": null,
+     "max_usd": 0.0
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin+operator / max_usd negative": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "admin+operator / max_usd bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "admin+operator / max_usd text": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "admin+operator / max_usd inf": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "admin+operator / max_session_s": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": null,
+     "max_usd": null
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 900
+    }
+   }
+  ]
+ },
+ "admin+operator / max_session_s zero": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "admin+operator / max_session_s float": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "admin+operator / max_session_s bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "admin+operator / watch": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": null,
+     "max_usd": null
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin+operator / watch not bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "watch is true or false"
+ },
+ "admin+operator / effects": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit"
+     ],
+     "lanes": null,
+     "max_usd": null
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin+operator / effects empty": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "effects is a list of effects this member may decide"
+ },
+ "admin+operator / effects not a list": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "effects is a list of effects this member may decide"
+ },
+ "admin+operator / effects unknown": {
+  "raised": "Denied",
+  "code": "denied",
+  "message": "unknown_effect: 'fly' is not an effect this node knows"
+ },
+ "admin+operator / everything": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "commit",
+      "pay"
+     ],
+     "lanes": [
+      "biz-c/*"
+     ],
+     "max_usd": 20.0
+    },
+    "control": {
+     "lanes": [
+      "biz-c/*"
+     ],
+     "watch_only": null,
+     "max_session_s": 600
+    }
+   }
+  ]
+ },
+ "admin+viewer / none": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": null,
+     "max_usd": null
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin+viewer / unknown option": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "unknown member options: colour (known: effects, lanes, max_session_s, max_usd, watch)"
+ },
+ "admin+viewer / lanes": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": [
+      "biz-c/insta",
+      "biz-c/*"
+     ],
+     "max_usd": null
+    },
+    "control": {
+     "lanes": [
+      "biz-c/insta",
+      "biz-c/*"
+     ],
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin+viewer / lanes empty": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lanes is a list of lane patterns inside the member's workspace"
+ },
+ "admin+viewer / lanes not a list": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lanes is a list of lane patterns inside the member's workspace"
+ },
+ "admin+viewer / lane outside": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lane biz-a/x is not inside biz-c"
+ },
+ "admin+viewer / lane pattern bad": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lane pattern must look like 'workspace/name' or '*': 'no slash here!'"
+ },
+ "admin+viewer / max_usd": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": null,
+     "max_usd": 50.0
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin+viewer / max_usd float": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": null,
+     "max_usd": 12.5
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin+viewer / max_usd zero": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": null,
+     "max_usd": 0.0
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin+viewer / max_usd negative": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "admin+viewer / max_usd bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "admin+viewer / max_usd text": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "admin+viewer / max_usd inf": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "admin+viewer / max_session_s": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": null,
+     "max_usd": null
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 900
+    }
+   }
+  ]
+ },
+ "admin+viewer / max_session_s zero": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "admin+viewer / max_session_s float": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "admin+viewer / max_session_s bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "admin+viewer / watch": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": null,
+     "max_usd": null
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin+viewer / watch not bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "watch is true or false"
+ },
+ "admin+viewer / effects": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit"
+     ],
+     "lanes": null,
+     "max_usd": null
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin+viewer / effects empty": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "effects is a list of effects this member may decide"
+ },
+ "admin+viewer / effects not a list": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "effects is a list of effects this member may decide"
+ },
+ "admin+viewer / effects unknown": {
+  "raised": "Denied",
+  "code": "denied",
+  "message": "unknown_effect: 'fly' is not an effect this node knows"
+ },
+ "admin+viewer / everything": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "commit",
+      "pay"
+     ],
+     "lanes": [
+      "biz-c/*"
+     ],
+     "max_usd": 20.0
+    },
+    "control": {
+     "lanes": [
+      "biz-c/*"
+     ],
+     "watch_only": null,
+     "max_session_s": 600
+    }
+   }
+  ]
+ },
+ "admin+auditor / none": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": null,
+     "max_usd": null
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin+auditor / unknown option": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "unknown member options: colour (known: effects, lanes, max_session_s, max_usd, watch)"
+ },
+ "admin+auditor / lanes": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": [
+      "biz-c/insta",
+      "biz-c/*"
+     ],
+     "max_usd": null
+    },
+    "control": {
+     "lanes": [
+      "biz-c/insta",
+      "biz-c/*"
+     ],
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin+auditor / lanes empty": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lanes is a list of lane patterns inside the member's workspace"
+ },
+ "admin+auditor / lanes not a list": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lanes is a list of lane patterns inside the member's workspace"
+ },
+ "admin+auditor / lane outside": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lane biz-a/x is not inside biz-c"
+ },
+ "admin+auditor / lane pattern bad": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lane pattern must look like 'workspace/name' or '*': 'no slash here!'"
+ },
+ "admin+auditor / max_usd": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": null,
+     "max_usd": 50.0
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin+auditor / max_usd float": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": null,
+     "max_usd": 12.5
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin+auditor / max_usd zero": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": null,
+     "max_usd": 0.0
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin+auditor / max_usd negative": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "admin+auditor / max_usd bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "admin+auditor / max_usd text": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "admin+auditor / max_usd inf": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "admin+auditor / max_session_s": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": null,
+     "max_usd": null
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 900
+    }
+   }
+  ]
+ },
+ "admin+auditor / max_session_s zero": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "admin+auditor / max_session_s float": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "admin+auditor / max_session_s bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "admin+auditor / watch": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": null,
+     "max_usd": null
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin+auditor / watch not bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "watch is true or false"
+ },
+ "admin+auditor / effects": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit"
+     ],
+     "lanes": null,
+     "max_usd": null
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin+auditor / effects empty": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "effects is a list of effects this member may decide"
+ },
+ "admin+auditor / effects not a list": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "effects is a list of effects this member may decide"
+ },
+ "admin+auditor / effects unknown": {
+  "raised": "Denied",
+  "code": "denied",
+  "message": "unknown_effect: 'fly' is not an effect this node knows"
+ },
+ "admin+auditor / everything": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "commit",
+      "pay"
+     ],
+     "lanes": [
+      "biz-c/*"
+     ],
+     "max_usd": 20.0
+    },
+    "control": {
+     "lanes": [
+      "biz-c/*"
+     ],
+     "watch_only": null,
+     "max_session_s": 600
+    }
+   }
+  ]
+ },
+ "approver+operator / none": {
+  "ok": [
+   "commit",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "commit"
+     ],
+     "lanes": null,
+     "max_usd": null
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "approver+operator / unknown option": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "unknown member options: colour (known: effects, lanes, max_session_s, max_usd, watch)"
+ },
+ "approver+operator / lanes": {
+  "ok": [
+   "commit",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "commit"
+     ],
+     "lanes": [
+      "biz-c/insta",
+      "biz-c/*"
+     ],
+     "max_usd": null
+    },
+    "control": {
+     "lanes": [
+      "biz-c/insta",
+      "biz-c/*"
+     ],
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "approver+operator / lanes empty": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lanes is a list of lane patterns inside the member's workspace"
+ },
+ "approver+operator / lanes not a list": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lanes is a list of lane patterns inside the member's workspace"
+ },
+ "approver+operator / lane outside": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lane biz-a/x is not inside biz-c"
+ },
+ "approver+operator / lane pattern bad": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lane pattern must look like 'workspace/name' or '*': 'no slash here!'"
+ },
+ "approver+operator / max_usd": {
+  "ok": [
+   "commit",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "commit",
+      "pay"
+     ],
+     "lanes": null,
+     "max_usd": 50.0
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "approver+operator / max_usd float": {
+  "ok": [
+   "commit",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "commit",
+      "pay"
+     ],
+     "lanes": null,
+     "max_usd": 12.5
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "approver+operator / max_usd zero": {
+  "ok": [
+   "commit",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "commit",
+      "pay"
+     ],
+     "lanes": null,
+     "max_usd": 0.0
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "approver+operator / max_usd negative": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "approver+operator / max_usd bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "approver+operator / max_usd text": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "approver+operator / max_usd inf": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "approver+operator / max_session_s": {
+  "ok": [
+   "commit",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "commit"
+     ],
+     "lanes": null,
+     "max_usd": null
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 900
+    }
+   }
+  ]
+ },
+ "approver+operator / max_session_s zero": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "approver+operator / max_session_s float": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "approver+operator / max_session_s bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "approver+operator / watch": {
+  "ok": [
+   "commit",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "commit"
+     ],
+     "lanes": null,
+     "max_usd": null
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "approver+operator / watch not bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "watch is true or false"
+ },
+ "approver+operator / effects": {
+  "ok": [
+   "commit",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit"
+     ],
+     "lanes": null,
+     "max_usd": null
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "approver+operator / effects empty": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "effects is a list of effects this member may decide"
+ },
+ "approver+operator / effects not a list": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "effects is a list of effects this member may decide"
+ },
+ "approver+operator / effects unknown": {
+  "raised": "Denied",
+  "code": "denied",
+  "message": "unknown_effect: 'fly' is not an effect this node knows"
+ },
+ "approver+operator / everything": {
+  "ok": [
+   "commit",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "commit",
+      "pay"
+     ],
+     "lanes": [
+      "biz-c/*"
+     ],
+     "max_usd": 20.0
+    },
+    "control": {
+     "lanes": [
+      "biz-c/*"
+     ],
+     "watch_only": null,
+     "max_session_s": 600
+    }
+   }
+  ]
+ },
+ "approver+viewer / none": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "commit"
+     ],
+     "lanes": null,
+     "max_usd": null
+    },
+    "control": null
+   }
+  ]
+ },
+ "approver+viewer / unknown option": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "unknown member options: colour (known: effects, lanes, max_session_s, max_usd, watch)"
+ },
+ "approver+viewer / lanes": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "commit"
+     ],
+     "lanes": [
+      "biz-c/insta",
+      "biz-c/*"
+     ],
+     "max_usd": null
+    },
+    "control": null
+   }
+  ]
+ },
+ "approver+viewer / lanes empty": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lanes is a list of lane patterns inside the member's workspace"
+ },
+ "approver+viewer / lanes not a list": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lanes is a list of lane patterns inside the member's workspace"
+ },
+ "approver+viewer / lane outside": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lane biz-a/x is not inside biz-c"
+ },
+ "approver+viewer / lane pattern bad": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lane pattern must look like 'workspace/name' or '*': 'no slash here!'"
+ },
+ "approver+viewer / max_usd": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "commit",
+      "pay"
+     ],
+     "lanes": null,
+     "max_usd": 50.0
+    },
+    "control": null
+   }
+  ]
+ },
+ "approver+viewer / max_usd float": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "commit",
+      "pay"
+     ],
+     "lanes": null,
+     "max_usd": 12.5
+    },
+    "control": null
+   }
+  ]
+ },
+ "approver+viewer / max_usd zero": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "commit",
+      "pay"
+     ],
+     "lanes": null,
+     "max_usd": 0.0
+    },
+    "control": null
+   }
+  ]
+ },
+ "approver+viewer / max_usd negative": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "approver+viewer / max_usd bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "approver+viewer / max_usd text": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "approver+viewer / max_usd inf": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "approver+viewer / max_session_s": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "commit"
+     ],
+     "lanes": null,
+     "max_usd": null
+    },
+    "control": null
+   }
+  ]
+ },
+ "approver+viewer / max_session_s zero": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "approver+viewer / max_session_s float": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "approver+viewer / max_session_s bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "approver+viewer / watch": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "commit"
+     ],
+     "lanes": null,
+     "max_usd": null
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": true,
+     "max_session_s": null
+    }
+   }
+  ]
+ },
+ "approver+viewer / watch not bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "watch is true or false"
+ },
+ "approver+viewer / effects": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit"
+     ],
+     "lanes": null,
+     "max_usd": null
+    },
+    "control": null
+   }
+  ]
+ },
+ "approver+viewer / effects empty": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "effects is a list of effects this member may decide"
+ },
+ "approver+viewer / effects not a list": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "effects is a list of effects this member may decide"
+ },
+ "approver+viewer / effects unknown": {
+  "raised": "Denied",
+  "code": "denied",
+  "message": "unknown_effect: 'fly' is not an effect this node knows"
+ },
+ "approver+viewer / everything": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "commit",
+      "pay"
+     ],
+     "lanes": [
+      "biz-c/*"
+     ],
+     "max_usd": 20.0
+    },
+    "control": {
+     "lanes": [
+      "biz-c/*"
+     ],
+     "watch_only": true,
+     "max_session_s": null
+    }
+   }
+  ]
+ },
+ "approver+auditor / none": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "commit"
+     ],
+     "lanes": null,
+     "max_usd": null
+    },
+    "control": null
+   }
+  ]
+ },
+ "approver+auditor / unknown option": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "unknown member options: colour (known: effects, lanes, max_session_s, max_usd, watch)"
+ },
+ "approver+auditor / lanes": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "commit"
+     ],
+     "lanes": [
+      "biz-c/insta",
+      "biz-c/*"
+     ],
+     "max_usd": null
+    },
+    "control": null
+   }
+  ]
+ },
+ "approver+auditor / lanes empty": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lanes is a list of lane patterns inside the member's workspace"
+ },
+ "approver+auditor / lanes not a list": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lanes is a list of lane patterns inside the member's workspace"
+ },
+ "approver+auditor / lane outside": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lane biz-a/x is not inside biz-c"
+ },
+ "approver+auditor / lane pattern bad": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lane pattern must look like 'workspace/name' or '*': 'no slash here!'"
+ },
+ "approver+auditor / max_usd": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "commit",
+      "pay"
+     ],
+     "lanes": null,
+     "max_usd": 50.0
+    },
+    "control": null
+   }
+  ]
+ },
+ "approver+auditor / max_usd float": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "commit",
+      "pay"
+     ],
+     "lanes": null,
+     "max_usd": 12.5
+    },
+    "control": null
+   }
+  ]
+ },
+ "approver+auditor / max_usd zero": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "commit",
+      "pay"
+     ],
+     "lanes": null,
+     "max_usd": 0.0
+    },
+    "control": null
+   }
+  ]
+ },
+ "approver+auditor / max_usd negative": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "approver+auditor / max_usd bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "approver+auditor / max_usd text": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "approver+auditor / max_usd inf": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "approver+auditor / max_session_s": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "commit"
+     ],
+     "lanes": null,
+     "max_usd": null
+    },
+    "control": null
+   }
+  ]
+ },
+ "approver+auditor / max_session_s zero": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "approver+auditor / max_session_s float": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "approver+auditor / max_session_s bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "approver+auditor / watch": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "commit"
+     ],
+     "lanes": null,
+     "max_usd": null
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": true,
+     "max_session_s": null
+    }
+   }
+  ]
+ },
+ "approver+auditor / watch not bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "watch is true or false"
+ },
+ "approver+auditor / effects": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit"
+     ],
+     "lanes": null,
+     "max_usd": null
+    },
+    "control": null
+   }
+  ]
+ },
+ "approver+auditor / effects empty": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "effects is a list of effects this member may decide"
+ },
+ "approver+auditor / effects not a list": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "effects is a list of effects this member may decide"
+ },
+ "approver+auditor / effects unknown": {
+  "raised": "Denied",
+  "code": "denied",
+  "message": "unknown_effect: 'fly' is not an effect this node knows"
+ },
+ "approver+auditor / everything": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "commit",
+      "pay"
+     ],
+     "lanes": [
+      "biz-c/*"
+     ],
+     "max_usd": 20.0
+    },
+    "control": {
+     "lanes": [
+      "biz-c/*"
+     ],
+     "watch_only": true,
+     "max_session_s": null
+    }
+   }
+  ]
+ },
+ "operator+viewer / none": {
+  "ok": [
+   "commit",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "operator+viewer / unknown option": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "unknown member options: colour (known: effects, lanes, max_session_s, max_usd, watch)"
+ },
+ "operator+viewer / lanes": {
+  "ok": [
+   "commit",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": {
+     "lanes": [
+      "biz-c/insta",
+      "biz-c/*"
+     ],
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "operator+viewer / lanes empty": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lanes is a list of lane patterns inside the member's workspace"
+ },
+ "operator+viewer / lanes not a list": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lanes is a list of lane patterns inside the member's workspace"
+ },
+ "operator+viewer / lane outside": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lane biz-a/x is not inside biz-c"
+ },
+ "operator+viewer / lane pattern bad": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lane pattern must look like 'workspace/name' or '*': 'no slash here!'"
+ },
+ "operator+viewer / max_usd": {
+  "ok": [
+   "commit",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "operator+viewer / max_usd float": {
+  "ok": [
+   "commit",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "operator+viewer / max_usd zero": {
+  "ok": [
+   "commit",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "operator+viewer / max_usd negative": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "operator+viewer / max_usd bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "operator+viewer / max_usd text": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "operator+viewer / max_usd inf": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "operator+viewer / max_session_s": {
+  "ok": [
+   "commit",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 900
+    }
+   }
+  ]
+ },
+ "operator+viewer / max_session_s zero": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "operator+viewer / max_session_s float": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "operator+viewer / max_session_s bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "operator+viewer / watch": {
+  "ok": [
+   "commit",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "operator+viewer / watch not bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "watch is true or false"
+ },
+ "operator+viewer / effects": {
+  "ok": [
+   "commit",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "operator+viewer / effects empty": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "effects is a list of effects this member may decide"
+ },
+ "operator+viewer / effects not a list": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "effects is a list of effects this member may decide"
+ },
+ "operator+viewer / effects unknown": {
+  "raised": "Denied",
+  "code": "denied",
+  "message": "unknown_effect: 'fly' is not an effect this node knows"
+ },
+ "operator+viewer / everything": {
+  "ok": [
+   "commit",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": {
+     "lanes": [
+      "biz-c/*"
+     ],
+     "watch_only": null,
+     "max_session_s": 600
+    }
+   }
+  ]
+ },
+ "operator+auditor / none": {
+  "ok": [
+   "commit",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "operator+auditor / unknown option": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "unknown member options: colour (known: effects, lanes, max_session_s, max_usd, watch)"
+ },
+ "operator+auditor / lanes": {
+  "ok": [
+   "commit",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": {
+     "lanes": [
+      "biz-c/insta",
+      "biz-c/*"
+     ],
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "operator+auditor / lanes empty": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lanes is a list of lane patterns inside the member's workspace"
+ },
+ "operator+auditor / lanes not a list": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lanes is a list of lane patterns inside the member's workspace"
+ },
+ "operator+auditor / lane outside": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lane biz-a/x is not inside biz-c"
+ },
+ "operator+auditor / lane pattern bad": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lane pattern must look like 'workspace/name' or '*': 'no slash here!'"
+ },
+ "operator+auditor / max_usd": {
+  "ok": [
+   "commit",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "operator+auditor / max_usd float": {
+  "ok": [
+   "commit",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "operator+auditor / max_usd zero": {
+  "ok": [
+   "commit",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "operator+auditor / max_usd negative": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "operator+auditor / max_usd bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "operator+auditor / max_usd text": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "operator+auditor / max_usd inf": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "operator+auditor / max_session_s": {
+  "ok": [
+   "commit",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 900
+    }
+   }
+  ]
+ },
+ "operator+auditor / max_session_s zero": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "operator+auditor / max_session_s float": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "operator+auditor / max_session_s bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "operator+auditor / watch": {
+  "ok": [
+   "commit",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "operator+auditor / watch not bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "watch is true or false"
+ },
+ "operator+auditor / effects": {
+  "ok": [
+   "commit",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "operator+auditor / effects empty": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "effects is a list of effects this member may decide"
+ },
+ "operator+auditor / effects not a list": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "effects is a list of effects this member may decide"
+ },
+ "operator+auditor / effects unknown": {
+  "raised": "Denied",
+  "code": "denied",
+  "message": "unknown_effect: 'fly' is not an effect this node knows"
+ },
+ "operator+auditor / everything": {
+  "ok": [
+   "commit",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": {
+     "lanes": [
+      "biz-c/*"
+     ],
+     "watch_only": null,
+     "max_session_s": 600
+    }
+   }
+  ]
+ },
+ "viewer+auditor / none": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": null
+   }
+  ]
+ },
+ "viewer+auditor / unknown option": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "unknown member options: colour (known: effects, lanes, max_session_s, max_usd, watch)"
+ },
+ "viewer+auditor / lanes": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": null
+   }
+  ]
+ },
+ "viewer+auditor / lanes empty": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lanes is a list of lane patterns inside the member's workspace"
+ },
+ "viewer+auditor / lanes not a list": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lanes is a list of lane patterns inside the member's workspace"
+ },
+ "viewer+auditor / lane outside": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lane biz-a/x is not inside biz-c"
+ },
+ "viewer+auditor / lane pattern bad": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lane pattern must look like 'workspace/name' or '*': 'no slash here!'"
+ },
+ "viewer+auditor / max_usd": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": null
+   }
+  ]
+ },
+ "viewer+auditor / max_usd float": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": null
+   }
+  ]
+ },
+ "viewer+auditor / max_usd zero": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": null
+   }
+  ]
+ },
+ "viewer+auditor / max_usd negative": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "viewer+auditor / max_usd bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "viewer+auditor / max_usd text": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "viewer+auditor / max_usd inf": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "viewer+auditor / max_session_s": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": null
+   }
+  ]
+ },
+ "viewer+auditor / max_session_s zero": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "viewer+auditor / max_session_s float": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "viewer+auditor / max_session_s bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "viewer+auditor / watch": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": {
+     "lanes": null,
+     "watch_only": true,
+     "max_session_s": null
+    }
+   }
+  ]
+ },
+ "viewer+auditor / watch not bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "watch is true or false"
+ },
+ "viewer+auditor / effects": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": null
+   }
+  ]
+ },
+ "viewer+auditor / effects empty": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "effects is a list of effects this member may decide"
+ },
+ "viewer+auditor / effects not a list": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "effects is a list of effects this member may decide"
+ },
+ "viewer+auditor / effects unknown": {
+  "raised": "Denied",
+  "code": "denied",
+  "message": "unknown_effect: 'fly' is not an effect this node knows"
+ },
+ "viewer+auditor / everything": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": {
+     "lanes": [
+      "biz-c/*"
+     ],
+     "watch_only": true,
+     "max_session_s": null
+    }
+   }
+  ]
+ },
+ "no role / none": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": null
+   }
+  ]
+ },
+ "no role / unknown option": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "unknown member options: colour (known: effects, lanes, max_session_s, max_usd, watch)"
+ },
+ "no role / lanes": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": null
+   }
+  ]
+ },
+ "no role / lanes empty": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lanes is a list of lane patterns inside the member's workspace"
+ },
+ "no role / lanes not a list": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lanes is a list of lane patterns inside the member's workspace"
+ },
+ "no role / lane outside": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lane biz-a/x is not inside biz-c"
+ },
+ "no role / lane pattern bad": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lane pattern must look like 'workspace/name' or '*': 'no slash here!'"
+ },
+ "no role / max_usd": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": null
+   }
+  ]
+ },
+ "no role / max_usd float": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": null
+   }
+  ]
+ },
+ "no role / max_usd zero": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": null
+   }
+  ]
+ },
+ "no role / max_usd negative": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "no role / max_usd bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "no role / max_usd text": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "no role / max_usd inf": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "no role / max_session_s": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": null
+   }
+  ]
+ },
+ "no role / max_session_s zero": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "no role / max_session_s float": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "no role / max_session_s bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "no role / watch": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": null
+   }
+  ]
+ },
+ "no role / watch not bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "watch is true or false"
+ },
+ "no role / effects": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": null
+   }
+  ]
+ },
+ "no role / effects empty": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "effects is a list of effects this member may decide"
+ },
+ "no role / effects not a list": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "effects is a list of effects this member may decide"
+ },
+ "no role / effects unknown": {
+  "raised": "Denied",
+  "code": "denied",
+  "message": "unknown_effect: 'fly' is not an effect this node knows"
+ },
+ "no role / everything": {
+  "ok": [
+   "read",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": null,
+    "control": null
+   }
+  ]
+ },
+ "superuser / none": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "a member's role is one of admin, approver, operator, viewer, auditor, not 'superuser'"
+ },
+ "superuser / unknown option": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "unknown member options: colour (known: effects, lanes, max_session_s, max_usd, watch)"
+ },
+ "superuser / lanes": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "a member's role is one of admin, approver, operator, viewer, auditor, not 'superuser'"
+ },
+ "superuser / lanes empty": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lanes is a list of lane patterns inside the member's workspace"
+ },
+ "superuser / lanes not a list": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lanes is a list of lane patterns inside the member's workspace"
+ },
+ "superuser / lane outside": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lane biz-a/x is not inside biz-c"
+ },
+ "superuser / lane pattern bad": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lane pattern must look like 'workspace/name' or '*': 'no slash here!'"
+ },
+ "superuser / max_usd": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "a member's role is one of admin, approver, operator, viewer, auditor, not 'superuser'"
+ },
+ "superuser / max_usd float": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "a member's role is one of admin, approver, operator, viewer, auditor, not 'superuser'"
+ },
+ "superuser / max_usd zero": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "a member's role is one of admin, approver, operator, viewer, auditor, not 'superuser'"
+ },
+ "superuser / max_usd negative": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "superuser / max_usd bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "superuser / max_usd text": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "superuser / max_usd inf": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "superuser / max_session_s": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "a member's role is one of admin, approver, operator, viewer, auditor, not 'superuser'"
+ },
+ "superuser / max_session_s zero": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "superuser / max_session_s float": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "superuser / max_session_s bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "superuser / watch": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "a member's role is one of admin, approver, operator, viewer, auditor, not 'superuser'"
+ },
+ "superuser / watch not bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "watch is true or false"
+ },
+ "superuser / effects": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "a member's role is one of admin, approver, operator, viewer, auditor, not 'superuser'"
+ },
+ "superuser / effects empty": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "effects is a list of effects this member may decide"
+ },
+ "superuser / effects not a list": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "effects is a list of effects this member may decide"
+ },
+ "superuser / effects unknown": {
+  "raised": "Denied",
+  "code": "denied",
+  "message": "unknown_effect: 'fly' is not an effect this node knows"
+ },
+ "superuser / everything": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "a member's role is one of admin, approver, operator, viewer, auditor, not 'superuser'"
+ },
+ "viewer+superuser / none": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "a member's role is one of admin, approver, operator, viewer, auditor, not 'superuser'"
+ },
+ "viewer+superuser / unknown option": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "unknown member options: colour (known: effects, lanes, max_session_s, max_usd, watch)"
+ },
+ "viewer+superuser / lanes": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "a member's role is one of admin, approver, operator, viewer, auditor, not 'superuser'"
+ },
+ "viewer+superuser / lanes empty": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lanes is a list of lane patterns inside the member's workspace"
+ },
+ "viewer+superuser / lanes not a list": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lanes is a list of lane patterns inside the member's workspace"
+ },
+ "viewer+superuser / lane outside": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lane biz-a/x is not inside biz-c"
+ },
+ "viewer+superuser / lane pattern bad": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lane pattern must look like 'workspace/name' or '*': 'no slash here!'"
+ },
+ "viewer+superuser / max_usd": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "a member's role is one of admin, approver, operator, viewer, auditor, not 'superuser'"
+ },
+ "viewer+superuser / max_usd float": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "a member's role is one of admin, approver, operator, viewer, auditor, not 'superuser'"
+ },
+ "viewer+superuser / max_usd zero": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "a member's role is one of admin, approver, operator, viewer, auditor, not 'superuser'"
+ },
+ "viewer+superuser / max_usd negative": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "viewer+superuser / max_usd bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "viewer+superuser / max_usd text": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "viewer+superuser / max_usd inf": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "viewer+superuser / max_session_s": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "a member's role is one of admin, approver, operator, viewer, auditor, not 'superuser'"
+ },
+ "viewer+superuser / max_session_s zero": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "viewer+superuser / max_session_s float": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "viewer+superuser / max_session_s bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "viewer+superuser / watch": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "a member's role is one of admin, approver, operator, viewer, auditor, not 'superuser'"
+ },
+ "viewer+superuser / watch not bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "watch is true or false"
+ },
+ "viewer+superuser / effects": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "a member's role is one of admin, approver, operator, viewer, auditor, not 'superuser'"
+ },
+ "viewer+superuser / effects empty": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "effects is a list of effects this member may decide"
+ },
+ "viewer+superuser / effects not a list": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "effects is a list of effects this member may decide"
+ },
+ "viewer+superuser / effects unknown": {
+  "raised": "Denied",
+  "code": "denied",
+  "message": "unknown_effect: 'fly' is not an effect this node knows"
+ },
+ "viewer+superuser / everything": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "a member's role is one of admin, approver, operator, viewer, auditor, not 'superuser'"
+ },
+ "admin+approver+operator+viewer+auditor / none": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": null,
+     "max_usd": null
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin+approver+operator+viewer+auditor / unknown option": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "unknown member options: colour (known: effects, lanes, max_session_s, max_usd, watch)"
+ },
+ "admin+approver+operator+viewer+auditor / lanes": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": [
+      "biz-c/insta",
+      "biz-c/*"
+     ],
+     "max_usd": null
+    },
+    "control": {
+     "lanes": [
+      "biz-c/insta",
+      "biz-c/*"
+     ],
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin+approver+operator+viewer+auditor / lanes empty": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lanes is a list of lane patterns inside the member's workspace"
+ },
+ "admin+approver+operator+viewer+auditor / lanes not a list": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lanes is a list of lane patterns inside the member's workspace"
+ },
+ "admin+approver+operator+viewer+auditor / lane outside": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lane biz-a/x is not inside biz-c"
+ },
+ "admin+approver+operator+viewer+auditor / lane pattern bad": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "lane pattern must look like 'workspace/name' or '*': 'no slash here!'"
+ },
+ "admin+approver+operator+viewer+auditor / max_usd": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": null,
+     "max_usd": 50.0
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin+approver+operator+viewer+auditor / max_usd float": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": null,
+     "max_usd": 12.5
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin+approver+operator+viewer+auditor / max_usd zero": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": null,
+     "max_usd": 0.0
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin+approver+operator+viewer+auditor / max_usd negative": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "admin+approver+operator+viewer+auditor / max_usd bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "admin+approver+operator+viewer+auditor / max_usd text": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "admin+approver+operator+viewer+auditor / max_usd inf": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_usd is a number of US dollars, 0 or more"
+ },
+ "admin+approver+operator+viewer+auditor / max_session_s": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": null,
+     "max_usd": null
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 900
+    }
+   }
+  ]
+ },
+ "admin+approver+operator+viewer+auditor / max_session_s zero": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "admin+approver+operator+viewer+auditor / max_session_s float": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "admin+approver+operator+viewer+auditor / max_session_s bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "max_session_s is a whole number of seconds, 1 or more"
+ },
+ "admin+approver+operator+viewer+auditor / watch": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit",
+      "pay",
+      "irreversible",
+      "secret",
+      "exec",
+      "install_overlay",
+      "install_base",
+      "service",
+      "brain",
+      "agent",
+      "vm"
+     ],
+     "lanes": null,
+     "max_usd": null
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin+approver+operator+viewer+auditor / watch not bool": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "watch is true or false"
+ },
+ "admin+approver+operator+viewer+auditor / effects": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "draft",
+      "commit"
+     ],
+     "lanes": null,
+     "max_usd": null
+    },
+    "control": {
+     "lanes": null,
+     "watch_only": null,
+     "max_session_s": 3600
+    }
+   }
+  ]
+ },
+ "admin+approver+operator+viewer+auditor / effects empty": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "effects is a list of effects this member may decide"
+ },
+ "admin+approver+operator+viewer+auditor / effects not a list": {
+  "raised": "InvalidRequest",
+  "code": "invalid",
+  "message": "effects is a list of effects this member may decide"
+ },
+ "admin+approver+operator+viewer+auditor / effects unknown": {
+  "raised": "Denied",
+  "code": "denied",
+  "message": "unknown_effect: 'fly' is not an effect this node knows"
+ },
+ "admin+approver+operator+viewer+auditor / everything": {
+  "ok": [
+   "irreversible",
+   {
+    "secret": null,
+    "exec": null,
+    "install_overlay": null,
+    "install_base": null,
+    "service": null,
+    "brain": null,
+    "memory": null,
+    "vm": null,
+    "approve": {
+     "effects": [
+      "commit",
+      "pay"
+     ],
+     "lanes": [
+      "biz-c/*"
+     ],
+     "max_usd": 20.0
+    },
+    "control": {
+     "lanes": [
+      "biz-c/*"
+     ],
+     "watch_only": null,
+     "max_session_s": 600
+    }
+   }
+  ]
+ }
+}

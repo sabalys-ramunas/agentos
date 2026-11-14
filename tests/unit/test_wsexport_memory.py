@@ -16,6 +16,8 @@ from agentos.memory import Caller
 from agentos.policy.traces import TraceEvent
 from agentos.workspaces.transfer import export as wsexport
 from agentos.workspaces.transfer import import_ as wsimport
+from agentos.workspaces.transfer import read as wsread
+from agentos.workspaces.transfer import sources as wssources
 from agentos.workspaces.transfer.import_ import ImportOptions
 
 OWNER = Caller.owner()
@@ -24,7 +26,7 @@ OWNER = Caller.owner()
 class MemNode(Node):
     def __init__(self, root: Path, name: str, **kw):
         super().__init__(root, name, **kw)
-        self.memory = wsexport._memory_service(self.home, self.policy, self.cfg)
+        self.memory = wssources._memory_service(self.home, self.policy, self.cfg)
 
     def sources(self):
         src = super().sources()
@@ -61,7 +63,7 @@ def export(node, dest: Path, workspace: str = "acme"):
 
 
 def do_import(node, path: Path, **options):
-    contents = wsexport.read_export(path, wsexport.staging_dir(node.home, "import"), passphrase=PASSPHRASE)
+    contents = wsread.read_export(path, wsread.staging_dir(node.home, "import"), passphrase=PASSPHRASE)
     try:
         plan = asyncio.run(wsimport.plan_import(contents, node.sources(), ImportOptions(**options)))
         assert plan.ok, plan.blockers
@@ -109,7 +111,7 @@ def test_an_import_never_merges_memory(nodes, tmp_path):
     out = tmp_path / "acme.agentos"
     export(a, out)
     b.memory.write(OWNER, "acme", {"type": "fact", "title": "already here"})
-    contents = wsexport.read_export(out, wsexport.staging_dir(b.home, "import"), passphrase=PASSPHRASE)
+    contents = wsread.read_export(out, wsread.staging_dir(b.home, "import"), passphrase=PASSPHRASE)
     try:
         plan = asyncio.run(wsimport.plan_import(contents, b.sources(), ImportOptions()))
         assert any("already has memory" in x for x in plan.blockers)
@@ -121,7 +123,7 @@ def test_a_failed_import_takes_its_memory_out_again(nodes, tmp_path, monkeypatch
     a, b = nodes
     out = tmp_path / "acme.agentos"
     export(a, out)
-    contents = wsexport.read_export(out, wsexport.staging_dir(b.home, "import"), passphrase=PASSPHRASE)
+    contents = wsread.read_export(out, wsread.staging_dir(b.home, "import"), passphrase=PASSPHRASE)
     try:
         plan = asyncio.run(wsimport.plan_import(contents, b.sources(), ImportOptions()))
 

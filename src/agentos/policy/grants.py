@@ -38,21 +38,21 @@ from __future__ import annotations
 
 import hashlib
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
+from agentos.core import globs
 from agentos.core.errors import InvalidRequest
-from agentos.core.models import Effect, Principal
-from agentos.policy import globs, tokens
+from agentos.core.models import SPECIALS, Effect, Principal
+from agentos.policy import tokens
 from agentos.policy.errors import Denied, TokenInvalid
 from agentos.policy.memory_rules import MemoryCap, block_scope_problems, cap_widening  # memory: the special
 from agentos.policy.util import iso
 
 LADDER = (Effect.READ, Effect.DRAFT, Effect.COMMIT, Effect.PAY, Effect.IRREVERSIBLE)
-SPECIALS = ("secret", "exec", "install_overlay", "install_base", "service", "brain",
-            "memory", "vm")  # memory: a special with no effect of its own (memory_rules.py)
 HUMAN_SPECIALS = ("approve", "control")  # only in a grant whose subject is a human (a member)
 OWNER_GRANT_ID = "owner"
 DELEGATE_KINDS = ("agent", "flow", "brain")  # what a derived subject may be; never human or panel
@@ -788,6 +788,14 @@ def _domains_within(child: list[str], parents: list[list[str]]) -> bool:
 def widening_problems(parent: Grant, child: GrantBlock, *, tiers: list[str], aliases: dict[str, str]) -> list[str]:
     """Fields of `child` that try to grant more than `parent` holds. Empty means it narrows.
     Evaluation would ignore a widening anyway; this exists to fail loudly when narrowing."""
+    problems = [*_scope_widening(parent, child), *_specials_widening(parent, child, tiers, aliases),
+                *_budget_widening(parent, child), *_limits_widening(parent, child),
+                *_delegation_widening(parent, child), *_subject_widening(parent, child)]
+    return sorted(set(problems))
+
+
+def _scope_widening(parent: Grant, child: GrantBlock) -> list[str]:
+    """Lanes, domains, egress and the effect ceiling."""
     problems: list[str] = []
     child_pats = child.lane_patterns(authority=False)
     if child_pats is not None and not _lanes_within(child_pats, parent):
@@ -800,25 +808,45 @@ def widening_problems(parent: Grant, child: GrantBlock, *, tiers: list[str], ali
         problems.append("egress")
     if child.ceiling is not None and child.ceiling.rank > parent.ceiling.rank:
         problems.append("ceiling")
-    if child.specials is not None:
-        for name in child.specials.names():
-            caps = parent.caps(name)
-            if caps is None:
-                problems.append(f"specials.{name}")
-                continue
-            ccap = getattr(child.specials, name)
-            problems += [f"specials.{name}.{p}" for p in _cap_widening(name, ccap, caps, tiers, aliases)]
-        problems += block_scope_problems(child, parent)  # memory: workspaces inside the lane scope
-    if child.budget is not None:
-        for _, b in parent.budgets():
-            if b.usd is not None and (child.budget.usd is None or child.budget.usd > b.usd):
-                problems.append("budget.usd")
-            if b.tokens is not None and (child.budget.tokens is None or child.budget.tokens > b.tokens):
-                problems.append("budget.tokens")
-            for name in BUDGET_LIMITS:  # a child never asks for a larger daily or hourly limit
-                mine, theirs = getattr(child.budget, name), getattr(b, name)
-                if theirs is not None and mine is not None and mine > theirs:
-                    problems.append(f"budget.{name}")
+    return problems
+
+
+def _specials_widening(parent: Grant, child: GrantBlock, tiers: list[str], aliases: dict[str, str]) -> list[str]:
+    """A special the parent does not hold, or caps wider than every block of the parent that grants it."""
+    if child.specials is None:
+        return []
+    problems: list[str] = []
+    for name in child.specials.names():
+        caps = parent.caps(name)
+        if caps is None:
+            problems.append(f"specials.{name}")
+            continue
+        ccap = getattr(child.specials, name)
+        problems += [f"specials.{name}.{p}" for p in _cap_widening(name, ccap, caps, tiers, aliases)]
+    problems += block_scope_problems(child, parent)  # memory: workspaces inside the lane scope
+    return problems
+
+
+def _budget_widening(parent: Grant, child: GrantBlock) -> list[str]:
+    """A budget past any of the parent's: no budget is past every one."""
+    if child.budget is None:
+        return []
+    problems: list[str] = []
+    for _, b in parent.budgets():
+        if b.usd is not None and (child.budget.usd is None or child.budget.usd > b.usd):
+            problems.append("budget.usd")
+        if b.tokens is not None and (child.budget.tokens is None or child.budget.tokens > b.tokens):
+            problems.append("budget.tokens")
+        for name in BUDGET_LIMITS:  # a child never asks for a larger daily or hourly limit
+            mine, theirs = getattr(child.budget, name), getattr(b, name)
+            if theirs is not None and mine is not None and mine > theirs:
+                problems.append(f"budget.{name}")
+    return problems
+
+
+def _limits_widening(parent: Grant, child: GrantBlock) -> list[str]:
+    """Its time window, admin and audience."""
+    problems: list[str] = []
     if child.exp is not None and parent.expires_at is not None and child.exp > parent.expires_at:
         problems.append("exp")
     if child.nbf is not None and parent.not_before is not None and child.nbf < parent.not_before:
@@ -827,25 +855,30 @@ def widening_problems(parent: Grant, child: GrantBlock, *, tiers: list[str], ali
         problems.append("admin")
     if child.aud is not None and not _audience_within(child.aud, parent):
         problems.append("aud")
-    if child.pins is not None:
-        for p in parent.pins():
-            if any(p.get(t) != h for t, h in child.pins.items()):
-                problems.append("pins")
-                break
+    return problems
+
+
+def _delegation_widening(parent: Grant, child: GrantBlock) -> list[str]:
+    """Its tool pins, and how deep and wide it may delegate."""
+    problems: list[str] = []
+    if child.pins is not None and any(any(p.get(t) != h for t, h in child.pins.items()) for p in parent.pins()):
+        problems.append("pins")
     if child.depth is not None:
         remaining = _remaining_depth(parent)
         if remaining is not None and child.depth > remaining - 1:
             problems.append("depth")
     if child.fanout is not None and (limit := parent.fanout_limit()) is not None and child.fanout > limit:
         problems.append("fanout")
+    return problems
+
+
+def _subject_widening(parent: Grant, child: GrantBlock) -> list[str]:
+    """A subject the child may not declare under this parent."""
     try:
         wanted = child.declared_subject(parent.subject)
     except ValueError:
-        wanted = None
-        problems.append("subject.id")
-    if wanted is not None:
-        problems += subject_problems(parent.subject, wanted)
-    return sorted(set(problems))
+        return ["subject.id"]
+    return subject_problems(parent.subject, wanted) if wanted is not None else []
 
 
 def _audience_within(child: list[str], parent: Grant) -> bool:
@@ -870,54 +903,80 @@ def _remaining_depth(grant: Grant) -> int | None:
     return rem
 
 
+def _patterns_wider(child: list[str] | None, parent: list[str] | None, within: Callable[[str, str], bool]) -> bool:
+    """The parent limits these patterns and the child does not, or names one outside every parent pattern."""
+    return parent is not None and (child is None or not all(any(within(c, q) for q in parent) for c in child))
+
+
+def _set_wider(child: list[Any] | None, parent: list[Any] | None) -> bool:
+    """The parent limits this list and the child does not, or holds something the parent does not."""
+    return parent is not None and (child is None or not set(child) <= set(parent))
+
+
+def _limit_wider(child: Any, parent: Any) -> bool:
+    """The parent sets this limit and the child sets none, or a larger one."""
+    return parent is not None and (child is None or child > parent)
+
+
+def _lanes_wider(child: Any, p: Any) -> bool:
+    return _patterns_wider(child.lanes, p.lanes, globs.lane_pattern_within)
+
+
+def _lane_cap_widening(child: Any, p: Any) -> list[tuple[str, bool]]:
+    return [("lanes", _lanes_wider(child, p))]
+
+
+def _vm_widening(child: Any, p: Any) -> list[tuple[str, bool]]:
+    return [("lanes", _lanes_wider(child, p)), ("profiles", _set_wider(child.profiles, p.profiles)),
+            ("repos", _patterns_wider(child.repos, p.repos, globs.repo_pattern_within))]
+
+
+def _install_widening(child: Any, p: Any) -> list[tuple[str, bool]]:
+    return [("sources", _set_wider(child.sources, p.sources))]
+
+
+def _service_widening(child: Any, p: Any) -> list[tuple[str, bool]]:
+    return [("max_ttl_s", _limit_wider(child.max_ttl_s, p.max_ttl_s)), ("ports", _set_wider(child.ports, p.ports))]
+
+
+def _approve_widening(child: Any, p: Any) -> list[tuple[str, bool]]:
+    # a parent with no max_usd approves no pay at all, so any child max is wider
+    max_usd = child.max_usd is not None and (p.max_usd is None or child.max_usd > p.max_usd)
+    return [("lanes", _lanes_wider(child, p)), ("effects", not set(child.effects) <= set(p.effects)),
+            ("max_usd", max_usd)]
+
+
+def _control_widening(child: Any, p: Any) -> list[tuple[str, bool]]:
+    return [("lanes", _lanes_wider(child, p)), ("watch_only", bool(p.watch_only and not child.watch_only)),
+            ("max_session_s", _limit_wider(child.max_session_s, p.max_session_s))]
+
+
+# the special's caps, field by field: (field, wider than this parent block's?)
+_CAP_WIDENING: dict[str, Callable[[Any, Any], list[tuple[str, bool]]]] = {
+    "secret": _lane_cap_widening, "exec": _lane_cap_widening, "vm": _vm_widening,
+    "install_overlay": _install_widening, "service": _service_widening, "approve": _approve_widening,
+    "control": _control_widening,
+}
+
+
+def _brain_widening(child: Any, p: Any, tiers: list[str], aliases: dict[str, str]) -> list[str]:
+    out = [f for f in ("provider", "credential_owner") if getattr(p, f) is not None and getattr(child, f) != getattr(p, f)]
+    if p.tier is not None:
+        pr = tier_rank(p.tier, tiers, aliases)
+        cr = tier_rank(child.tier, tiers, aliases) if child.tier else None
+        if pr is None or cr is None or cr > pr:
+            out.append("tier")
+    return out + [f for f in ("quota_tokens", "quota_usd") if _limit_wider(getattr(child, f), getattr(p, f))]
+
+
 def _cap_widening(name: str, child: Any, parents: list[Any], tiers: list[str], aliases: dict[str, str]) -> list[str]:
+    """The fields of the child's caps for special `name` wider than one of the parent blocks' caps."""
     out: list[str] = []
     for p in parents:
-        if name in ("secret", "exec", "vm") and p.lanes is not None and (
-                child.lanes is None
-                or not all(any(globs.lane_pattern_within(c, q) for q in p.lanes) for c in child.lanes)):
-            out.append("lanes")
-        if name == "vm" and p.profiles is not None and (
-                child.profiles is None or not set(child.profiles) <= set(p.profiles)):
-            out.append("profiles")
-        if name == "vm" and p.repos is not None and (
-                child.repos is None
-                or not all(any(globs.repo_pattern_within(c, q) for q in p.repos) for c in child.repos)):
-            out.append("repos")
-        if name == "install_overlay" and p.sources is not None and (
-                child.sources is None or not set(child.sources) <= set(p.sources)):
-            out.append("sources")
-        if name == "service":
-            if p.max_ttl_s is not None and (child.max_ttl_s is None or child.max_ttl_s > p.max_ttl_s):
-                out.append("max_ttl_s")
-            if p.ports is not None and (child.ports is None or not set(child.ports) <= set(p.ports)):
-                out.append("ports")
-        if name in ("approve", "control") and p.lanes is not None and (
-                child.lanes is None
-                or not all(any(globs.lane_pattern_within(c, q) for q in p.lanes) for c in child.lanes)):
-            out.append("lanes")
-        if name == "approve":
-            if not set(child.effects) <= set(p.effects):
-                out.append("effects")
-            if child.max_usd is not None and (p.max_usd is None or child.max_usd > p.max_usd):
-                out.append("max_usd")
-        if name == "control":
-            if p.watch_only and not child.watch_only:
-                out.append("watch_only")
-            if p.max_session_s is not None and (child.max_session_s is None or child.max_session_s > p.max_session_s):
-                out.append("max_session_s")
         if name == "brain":
-            for f in ("provider", "credential_owner"):
-                if getattr(p, f) is not None and getattr(child, f) != getattr(p, f):
-                    out.append(f)
-            if p.tier is not None:
-                pr = tier_rank(p.tier, tiers, aliases)
-                cr = tier_rank(child.tier, tiers, aliases) if child.tier else None
-                if pr is None or cr is None or cr > pr:
-                    out.append("tier")
-            for f in ("quota_tokens", "quota_usd"):
-                if getattr(p, f) is not None and (getattr(child, f) is None or getattr(child, f) > getattr(p, f)):
-                    out.append(f)
-        if name == "memory":  # memory: workspaces and types shrink, flags only turn off
+            out += _brain_widening(child, p, tiers, aliases)
+        elif name == "memory":  # memory: workspaces and types shrink, flags only turn off
             out += cap_widening(child, p)
+        elif name in _CAP_WIDENING:
+            out += [field for field, wider in _CAP_WIDENING[name](child, p) if wider]
     return out

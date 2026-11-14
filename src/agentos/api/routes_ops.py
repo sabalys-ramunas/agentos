@@ -24,7 +24,6 @@ import sys
 import threading
 import time
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -37,11 +36,12 @@ from agentos import __version__
 from agentos.api.access import Presence
 from agentos.api.app import PERSON_ONLY, Api, access_of, endpoint, owner_in_person, read_body
 from agentos.api.errors import ApiError
+from agentos.core import clock
 from agentos.core.errors import AgentosError
+from agentos.core.layout import default_backup_dir, ops_socket
 from agentos.core.models import parse_lane_id
+from agentos.core.system import Host
 from agentos.ops import backup
-from agentos.ops.layout import default_backup_dir, ops_socket
-from agentos.ops.system import Host
 from agentos.runner.mail import form as mail_form
 from agentos.webbotauth import keys, settings
 from agentos.webbotauth.keys import IdentityError
@@ -60,10 +60,6 @@ LOG_LINES = (1, 500)
 MODES = {"ok": "ok", "warn": "warn", "fail": "fail"}  # the doctor's pass, warn, fail as the app's checks
 
 
-def _now() -> str:
-    return datetime.now(UTC).isoformat(timespec="seconds")
-
-
 def _said(exc: BaseException, fallback: str) -> str:
     """What a failed job says: the node's own sentence when it has one, never a traceback."""
     message = getattr(exc, "message", None) if isinstance(exc, AgentosError) else None
@@ -80,7 +76,7 @@ class Job:
     name: str | None = None   # the archive a check reads
     state: str = "running"    # running, done, failed
     message: str = ""
-    started_at: str = field(default_factory=_now)
+    started_at: str = field(default_factory=lambda: clock.iso(timespec="seconds"))
     finished_at: str | None = None
 
     def public(self) -> dict[str, Any]:
@@ -109,7 +105,7 @@ class Jobs:
 
     def finish(self, job: Job, *, state: str, message: str) -> None:
         with self.lock:
-            job.state, job.message, job.finished_at = state, message, _now()
+            job.state, job.message, job.finished_at = state, message, clock.iso(timespec="seconds")
 
 
 @dataclass
@@ -162,7 +158,7 @@ def _read_checks(folder: Path) -> dict[str, dict[str, Any]]:
 
 def _write_check(folder: Path, name: str, *, ok: bool, error: str | None = None) -> None:
     rows = _read_checks(folder)
-    rows[name] = {"at": _now(), "ok": ok, **({"error": error} if error else {})}
+    rows[name] = {"at": clock.iso(timespec="seconds"), "ok": ok, **({"error": error} if error else {})}
     path = folder / CHECKS_FILE
     tmp = folder / f"{CHECKS_FILE}.tmp"
     tmp.write_text(json.dumps(rows, indent=2))
@@ -380,61 +376,62 @@ def _ended() -> HTMLResponse:
                           "out of time. Start again from the Backups tab.</p>", status=404)
 
 
-def routes(api: Api) -> list[Route]:
-    jobs, trips = Jobs(), Trips()
+class Handlers:
+    """The handlers of the routes below, sharing one Api (and what they keep between calls)."""
 
-    def this(request: Request) -> None:
-        if request.path_params["id"] != api.node_name:
+    def __init__(self, api: Api) -> None:
+        self.api = api
+        self.jobs, self.trips = Jobs(), Trips()
+
+    def this(self, request: Request) -> None:
+        if request.path_params["id"] != self.api.node_name:
             raise ApiError("not_found", "This computer has no such computer.")
 
-    def route(path: str, fn: Any, methods: list[str]) -> Route:
-        return Route(path, endpoint(api, fn, owner=True), methods=methods)
-
     # ---- health ----
-    async def health_run(request: Request) -> dict[str, Any]:
-        this(request)
-        return await asyncio.to_thread(_full_check, api.config)
+    async def health_run(self, request: Request) -> dict[str, Any]:
+        self.this(request)
+        return await asyncio.to_thread(_full_check, self.api.config)
 
-    async def health_rounds(request: Request) -> dict[str, Any] | None:
-        this(request)
-        return await asyncio.to_thread(_rounds, api.config.home)
+    async def health_rounds(self, request: Request) -> dict[str, Any] | None:
+        self.this(request)
+        return await asyncio.to_thread(_rounds, self.api.config.home)
 
     # ---- backups ----
-    async def backups(request: Request) -> dict[str, Any]:
-        this(request)
-        return await asyncio.to_thread(_backups_view, api.config.home, jobs)
+    async def backups(self, request: Request) -> dict[str, Any]:
+        self.this(request)
+        return await asyncio.to_thread(_backups_view, self.api.config.home, self.jobs)
 
-    async def backup_start(request: Request) -> dict[str, Any]:
-        this(request)
+    async def backup_start(self, request: Request) -> dict[str, Any]:
+        self.this(request)
         _person(request, "backups.start")
-        if jobs.running():
+        if self.jobs.running():
             raise ApiError("busy", "A backup is already running. It takes a few minutes, and the Backups tab says "
                                    "when it is done.")
         access_of(request).trace("backups.start", summary="Asked for a backup")
-        return trips.start("backup", None).public()
+        return self.trips.start("backup", None).public()
 
-    async def backup_check(request: Request) -> dict[str, Any]:
-        this(request)
+    async def backup_check(self, request: Request) -> dict[str, Any]:
+        self.this(request)
         _person(request, "backups.check")
         body = await read_body(request, BackupCheck)
         name = body.name
-        if jobs.running():
+        if self.jobs.running():
             raise ApiError("busy", "A backup is already running. Check this one when it is done.")
-        if not parse_name_ok(name) or not (default_backup_dir(api.config.home) / name).is_file():
+        if not parse_name_ok(name) or not (default_backup_dir(self.api.config.home) / name).is_file():
             raise ApiError("not_found", "There is no such backup on this computer.")
         access_of(request).trace("backups.check", summary=f"Asked to check {name}")
-        return trips.start("check", name).public()
+        return self.trips.start("check", name).public()
 
-    async def form_get(request: Request) -> Response:
-        trip = trips.by_token(request.path_params["token"])
+    async def form_get(self, request: Request) -> Response:
+        trip = self.trips.by_token(request.path_params["token"])
         if trip is None:
             return _ended()
         if not mail_form.direct(request):
             return mail_form.not_direct()
         return _passphrase_page(trip)
 
-    async def form_post(request: Request) -> Response:
-        trip = trips.by_token(request.path_params["token"])
+    async def form_post(self, request: Request) -> Response:
+        trip = self.trips.by_token(request.path_params["token"])
         if trip is None:
             return _ended()
         if not mail_form.direct(request) or not mail_form.same_origin(request):
@@ -451,20 +448,20 @@ def routes(api: Api) -> list[Route]:
             error = "Type the passphrase."
         if error is not None:
             return _passphrase_page(trip, error=error, status=400)
-        if jobs.running():
+        if self.jobs.running():
             return _passphrase_page(trip, error="A backup is already running. Try again when it is done.", status=409)
-        with trips.lock:  # one form works once: a second post finds the trip already taken
+        with self.trips.lock:  # one form works once: a second post finds the trip already taken
             if trip.stage != "waiting":
                 return _ended()
             trip.stage = "running"
-        home, node = api.config.home, api.node_name
+        home, node = self.api.config.home, self.api.node_name
         if trip.kind == "backup":
-            job = jobs.start("backup", None)
-            worker = threading.Thread(target=_run_backup, args=(home, node, value, job, jobs), daemon=True,
+            job = self.jobs.start("backup", None)
+            worker = threading.Thread(target=_run_backup, args=(home, node, value, job, self.jobs), daemon=True,
                                       name="agentos-backup")
         else:
-            job = jobs.start("check", trip.name)
-            worker = threading.Thread(target=_run_check, args=(home, trip.name or "", value, job, jobs), daemon=True,
+            job = self.jobs.start("check", trip.name)
+            worker = threading.Thread(target=_run_check, args=(home, trip.name or "", value, job, self.jobs), daemon=True,
                                       name="agentos-check")
         worker.start()
         done = "Making the backup" if trip.kind == "backup" else "Checking the backup"
@@ -472,22 +469,22 @@ def routes(api: Api) -> list[Route]:
                                     "tab. The Backups tab says when it is done.</p>")
 
     # ---- upgrade ----
-    async def upgrade(request: Request) -> dict[str, Any]:
-        this(request)
+    async def upgrade(self, request: Request) -> dict[str, Any]:
+        self.this(request)
         # A node cannot see a newer release from here, so `newer` is null: the screens say so, and do not guess.
         return {"running": __version__, "newer": None, "command": UPGRADE_COMMAND, "python": sys.version.split()[0]}
 
     # ---- environments ----
-    async def environments(request: Request) -> dict[str, Any] | None:
-        this(request)
-        envs = api.runtime.get("envs")
+    async def environments(self, request: Request) -> dict[str, Any] | None:
+        self.this(request)
+        envs = self.api.runtime.get("envs")
         if envs is None:
             return None
         return await asyncio.to_thread(_environments, envs)
 
-    def service_envs(request: Request) -> tuple[Any, str]:
-        this(request)
-        envs = api.runtime.get("envs")
+    def service_envs(self, request: Request) -> tuple[Any, str]:
+        self.this(request)
+        envs = self.api.runtime.get("envs")
         if envs is None:
             raise ApiError("unavailable", "Environments are not set up on this computer.")
         lane = f"{request.path_params['ws']}/{request.path_params['name']}"
@@ -499,9 +496,9 @@ def routes(api: Api) -> list[Route]:
             raise ApiError("invalid", f"{lane} is not a service.")
         return envs, lane
 
-    def env_lane(request: Request) -> tuple[Any, str]:
-        this(request)
-        envs = api.runtime.get("envs")
+    def env_lane(self, request: Request) -> tuple[Any, str]:
+        self.this(request)
+        envs = self.api.runtime.get("envs")
         if envs is None:
             raise ApiError("unavailable", "Terminal and service lanes are not set up on this computer.")
         lane = f"{request.path_params['ws']}/{request.path_params['name']}"
@@ -511,39 +508,39 @@ def routes(api: Api) -> list[Route]:
             raise ApiError("invalid", "A lane is named workspace/name.") from exc
         return envs, lane
 
-    async def environment_remove(request: Request) -> dict[str, Any]:
+    async def environment_remove(self, request: Request) -> dict[str, Any]:
         """`agentos env remove` on the node while agentosd owns the env runtime (QA 2026-11-10, finding 30):
         a person (the panel's owner, or the node's CLI with its one-time code), never a token alone."""
-        envs, lane = env_lane(request)
+        envs, lane = self.env_lane(request)
         envs.get(lane)  # lane_not_found when there is none
         await envs.remove(lane)
         access_of(request).trace("environments.remove", lane=lane, summary=f"Deleted the lane {lane} and its files")
         return {"removed": lane}
 
-    async def environments_doctor(request: Request) -> dict[str, Any]:
+    async def environments_doctor(self, request: Request) -> dict[str, Any]:
         """`agentos env doctor` while agentosd runs: what this node can do for terminal and service lanes."""
-        this(request)
-        envs = api.runtime.get("envs")
+        self.this(request)
+        envs = self.api.runtime.get("envs")
         if envs is None:
             raise ApiError("unavailable", "Terminal and service lanes are not set up on this computer.")
         return envs.node_report()
 
-    async def service_start(request: Request) -> dict[str, Any]:
+    async def service_start(self, request: Request) -> dict[str, Any]:
         _person(request, "services.start")
-        envs, lane = service_envs(request)
+        envs, lane = self.service_envs(request)
         status = await envs.service_start(lane)
         access_of(request).trace("services.start", lane=lane, summary=f"Started the service in {lane}")
         return _status_view(status)
 
-    async def service_stop(request: Request) -> dict[str, Any]:
+    async def service_stop(self, request: Request) -> dict[str, Any]:
         _person(request, "services.stop")
-        envs, lane = service_envs(request)
+        envs, lane = self.service_envs(request)
         status = await envs.service_stop(lane)
         access_of(request).trace("services.stop", lane=lane, summary=f"Stopped the service in {lane}")
         return _status_view(status)
 
-    async def service_logs(request: Request) -> dict[str, Any]:
-        envs, lane = service_envs(request)
+    async def service_logs(self, request: Request) -> dict[str, Any]:
+        envs, lane = self.service_envs(request)
         try:
             lines = int(request.query_params.get("lines", "100"))
         except ValueError:
@@ -553,14 +550,14 @@ def routes(api: Api) -> list[Route]:
         return {"lane": lane, "log": text}
 
     # ---- identity ----
-    async def identity(request: Request) -> dict[str, Any]:
-        this(request)
-        cfg = api.config
-        lanes = [row["id"] for row in await _lanes(api) if row.get("kind") not in ("terminal", "service")]
+    async def identity(self, request: Request) -> dict[str, Any]:
+        self.this(request)
+        cfg = self.api.config
+        lanes = [row["id"] for row in await _lanes(self.api) if row.get("kind") not in ("terminal", "service")]
         return {"accounts": [_account_view(cfg, lane) for lane in lanes]}
 
-    def account_lane(request: Request) -> str:
-        this(request)
+    def account_lane(self, request: Request) -> str:
+        self.this(request)
         lane = f"{request.path_params['ws']}/{request.path_params['name']}"
         try:
             parse_lane_id(lane)
@@ -568,11 +565,11 @@ def routes(api: Api) -> list[Route]:
             raise ApiError("invalid", "An account is named workspace/name.") from exc
         return lane
 
-    async def site_add(request: Request) -> dict[str, Any]:
+    async def site_add(self, request: Request) -> dict[str, Any]:
         _person(request, "identity.site.add")
-        lane = account_lane(request)
+        lane = self.account_lane(request)
         body = await read_body(request, SiteAdd)
-        cfg = api.config
+        cfg = self.api.config
 
         def add() -> dict[str, Any]:
             ident = _loaded(cfg, lane)
@@ -587,11 +584,11 @@ def routes(api: Api) -> list[Route]:
         access_of(request).trace("identity.site.add", lane=lane, summary=f"Signs for {added['origin']} on {lane}")
         return _account_view(cfg, lane)
 
-    async def site_remove(request: Request) -> dict[str, Any]:
+    async def site_remove(self, request: Request) -> dict[str, Any]:
         _person(request, "identity.site.remove")
-        lane = account_lane(request)
+        lane = self.account_lane(request)
         origin = request.query_params.get("origin", "")
-        cfg = api.config
+        cfg = self.api.config
 
         def remove() -> None:
             ident = _loaded(cfg, lane)
@@ -608,30 +605,37 @@ def routes(api: Api) -> list[Route]:
         return _account_view(cfg, lane)
 
     # ---- settings ----
-    async def settings_view(request: Request) -> list[dict[str, Any]]:
-        this(request)
-        return await asyncio.to_thread(_settings_rows, api.config)
+    async def settings_view(self, request: Request) -> list[dict[str, Any]]:
+        self.this(request)
+        return await asyncio.to_thread(_settings_rows, self.api.config)
+
+
+def routes(api: Api) -> list[Route]:
+    h = Handlers(api)
+
+    def route(path: str, fn: Any, methods: list[str]) -> Route:
+        return Route(path, endpoint(api, fn, owner=True), methods=methods)
 
     return [
-        route("/api/nodes/{id}/health/run", health_run, ["POST"]),
-        route("/api/nodes/{id}/health/rounds", health_rounds, ["GET"]),
-        route("/api/nodes/{id}/backups", backups, ["GET"]),
-        route("/api/nodes/{id}/backups", backup_start, ["POST"]),
-        route("/api/nodes/{id}/backups/check", backup_check, ["POST"]),
-        Route("/api/backups/form/{token}", endpoint(api, form_get, public=True), methods=["GET"]),
-        Route("/api/backups/form/{token}", endpoint(api, form_post, public=True), methods=["POST"]),
-        route("/api/nodes/{id}/upgrade", upgrade, ["GET"]),
-        route("/api/nodes/{id}/environments", environments, ["GET"]),
-        route("/api/nodes/{id}/environments/doctor", environments_doctor, ["GET"]),
+        route("/api/nodes/{id}/health/run", h.health_run, ["POST"]),
+        route("/api/nodes/{id}/health/rounds", h.health_rounds, ["GET"]),
+        route("/api/nodes/{id}/backups", h.backups, ["GET"]),
+        route("/api/nodes/{id}/backups", h.backup_start, ["POST"]),
+        route("/api/nodes/{id}/backups/check", h.backup_check, ["POST"]),
+        Route("/api/backups/form/{token}", endpoint(api, h.form_get, public=True), methods=["GET"]),
+        Route("/api/backups/form/{token}", endpoint(api, h.form_post, public=True), methods=["POST"]),
+        route("/api/nodes/{id}/upgrade", h.upgrade, ["GET"]),
+        route("/api/nodes/{id}/environments", h.environments, ["GET"]),
+        route("/api/nodes/{id}/environments/doctor", h.environments_doctor, ["GET"]),
         Route("/api/nodes/{id}/environments/{ws}/{name}",
-              endpoint(api, environment_remove, owner=True, presence=Presence.PERSON), methods=["DELETE"]),
-        route("/api/nodes/{id}/services/{ws}/{name}/start", service_start, ["POST"]),
-        route("/api/nodes/{id}/services/{ws}/{name}/stop", service_stop, ["POST"]),
-        route("/api/nodes/{id}/services/{ws}/{name}/logs", service_logs, ["GET"]),
-        route("/api/nodes/{id}/identity", identity, ["GET"]),
-        route("/api/nodes/{id}/identity/{ws}/{name}/sites", site_add, ["POST"]),
-        route("/api/nodes/{id}/identity/{ws}/{name}/sites", site_remove, ["DELETE"]),
-        route("/api/nodes/{id}/settings", settings_view, ["GET"]),
+              endpoint(api, h.environment_remove, owner=True, presence=Presence.PERSON), methods=["DELETE"]),
+        route("/api/nodes/{id}/services/{ws}/{name}/start", h.service_start, ["POST"]),
+        route("/api/nodes/{id}/services/{ws}/{name}/stop", h.service_stop, ["POST"]),
+        route("/api/nodes/{id}/services/{ws}/{name}/logs", h.service_logs, ["GET"]),
+        route("/api/nodes/{id}/identity", h.identity, ["GET"]),
+        route("/api/nodes/{id}/identity/{ws}/{name}/sites", h.site_add, ["POST"]),
+        route("/api/nodes/{id}/identity/{ws}/{name}/sites", h.site_remove, ["DELETE"]),
+        route("/api/nodes/{id}/settings", h.settings_view, ["GET"]),
     ]
 
 

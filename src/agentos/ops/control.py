@@ -19,7 +19,7 @@ be ours or root (SO_PEERCRED). One JSON line in, one JSON line out:
     {"op": "lane_health", "days": 30}   -> {"ok": true, "lanes": [...every lane...]}
     {"op": "keepalive", "lane": "ws/name"}               -> {"ok": true, "keepalive": {...the plan...}}
     {"op": "keepalive", "lane": "ws/name", "now": true}  -> {"ok": true, "visit": {...}, "keepalive": {...}}
-    {"op": "planned", "source": "keepalive" | "engage", "start": iso, "end": iso, "workspace": "ws" | null}
+    {"op": "planned", "source": "keepalive", "start": iso, "end": iso, "workspace": "ws" | null}
                                         -> {"ok": true, "planned": {...what that service plans in the range...}}
     errors                              -> {"ok": false, "error": {"code", "message"}}
 """
@@ -35,7 +35,7 @@ from pathlib import Path
 from typing import Any
 
 from agentos.core.errors import AgentosError
-from agentos.ops.layout import prepare_socket
+from agentos.core.layout import prepare_socket
 
 MAX_LINE = 64 * 1024
 
@@ -157,8 +157,8 @@ def _planned(service: Any, req: dict[str, Any]) -> dict[str, Any]:
     from datetime import UTC, datetime
 
     source, workspace = req.get("source"), req.get("workspace")
-    if source not in ("keepalive", "engage") or (workspace is not None and not isinstance(workspace, str)):
-        return {"ok": False, "error": {"code": "invalid", "message": "source is keepalive or engage"}}
+    if source != "keepalive" or (workspace is not None and not isinstance(workspace, str)):
+        return {"ok": False, "error": {"code": "invalid", "message": "source is keepalive"}}
     try:
         start, end = (datetime.fromisoformat(str(req.get(k))) for k in ("start", "end"))
     except ValueError:

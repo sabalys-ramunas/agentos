@@ -13,11 +13,12 @@ import idna
 import pytest
 from test_policy_support import T0, make_service
 
+from agentos.core import globs
 from agentos.core.errors import ApprovalPending, InvalidRequest
 from agentos.core.models import Effect, Principal
-from agentos.policy import globs, tokens
+from agentos.policy import tokens
+from agentos.policy.context import CallMeta
 from agentos.policy.errors import Denied
-from agentos.policy.service import CallMeta
 
 LANE = "biz-a/x"
 

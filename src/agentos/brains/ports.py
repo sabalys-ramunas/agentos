@@ -55,10 +55,6 @@ class Ports:
         return self.runtime.get(name) if self.runtime is not None else None
 
     # ---- policy ----
-    @property
-    def has_policy(self) -> bool:
-        return self._svc("policy") is not None
-
     async def mint_child(self, principal: Principal, *, task_id: str, workspace: str, lanes: list[str],
                          ttl_seconds: int, budget: dict[str, Any] | None) -> tuple[str, str | None] | None:
         """A CHILD grant for the brain: only these lanes, never the brain special (a brain

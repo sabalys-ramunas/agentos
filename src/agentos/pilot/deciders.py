@@ -1,7 +1,7 @@
 """The pilot's three jobs, each behind a small interface, so no model is assumed to win.
 
 - `decide`: a Decider answers one step's typed questions. JevDecider goes through
-  `BrainService.decide`; a scripted one stands in for tests (agentos.pilot.testing).
+  `BrainService.decide`; a scripted one stands in for tests (tests/testkit/pilot.py).
 - `rescue`: a Rescue answers ONE of those questions when a pick is unsure, from the same options.
   BrainRescue goes through `BrainService.pick`, which runs with no tools and refuses anything but an
   offered id or a plain none, so a rescue can never invent an action, a URL or a selector.

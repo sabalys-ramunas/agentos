@@ -1,6 +1,6 @@
 """Code cards: the one-time codes a site asks for, as the app's Needs you reads them.
 
-The node's own route (`agentos.api.routes_resources`) lists the requests it holds. The app is shown only
+The node's own route (`agentos.api.routes_approvals`) lists the requests it holds. The app is shown only
 the open ones, whatever the node returns, so a card that is closed is never offered for an answer.
 Answering and declining pass through unchanged: a code is taken once, and this module never sees one
 (`POST /api/orgs/{org}/codes/{id}` is the node's own route).

@@ -30,7 +30,7 @@ from agentos.policy.registry import _stored_block
 from agentos.policy.traces import TraceEvent
 
 if TYPE_CHECKING:
-    from agentos.policy.service import Decision, PolicyContext
+    from agentos.policy.context import Decision, PolicyContext
 
 log = logging.getLogger("agentos.policy")
 

@@ -18,8 +18,8 @@ from typing import Any, Protocol
 from croniter import croniter
 
 from agentos.core.models import Effect
-from agentos.runner.models import SendsSpec
-from agentos.runner.util import TEMPLATE_RE
+from agentos.core.template import TEMPLATE_RE
+from agentos.runner.flowdoc import SendsSpec
 from agentos.runner.workflows.models import (
     MAX_BRANCH_DEPTH,
     MAX_LOOP_DEPTH,

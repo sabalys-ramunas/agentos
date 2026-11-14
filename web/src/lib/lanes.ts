@@ -31,9 +31,6 @@ export function laneStatus(lane: Lane, context: LaneContext = {}): StatusLabel {
   return { label: condition.label ?? STATE_WORDS[condition.state], tone: TONE[condition.state], pulse: condition.state === 'working' };
 }
 
-/** A trace or a run may carry either form of principal. */
-export { principalId } from './principal';
-
 export const idleControl = {
   state: 'agent' as const,
   by: null,

@@ -1,0 +1,973 @@
+{
+ "dropped_kinds/0": [
+  {
+   "description": "Recorded draft. Review the locators and add a readback for the final action.",
+   "effect": "draft",
+   "id": "w.l.draft-202611140930",
+   "lane": "w/l",
+   "params": {
+    "additionalProperties": false,
+    "properties": {},
+    "required": [],
+    "type": "object"
+   },
+   "steps": [
+    {
+     "type": "navigate",
+     "url": "https://x.test/x"
+    },
+    {
+     "locator": {
+      "match": "exact",
+      "name": "Password",
+      "own": true,
+      "role": "textbox"
+     },
+     "type": "wait_for"
+    }
+   ],
+   "title": "Recorded on w/l"
+  },
+  [
+   "dropped an unsupported action: 'drag'",
+   "dropped a click with no structural locator (only refs were recorded)",
+   "dropped a click: 1 validation error for Locator\nnth\n  Input should be greater than or equal to 0 [type=greater_than_equal, input_value=-5... (225 chars, truncated)",
+   "dropped a click: 1 validation error for Locator\n  Value error, snapshot refs (like e12) change on every page load; address the element wi... (347 chars, truncated)",
+   "dropped typing into a sensitive field; use login(on) or the vault instead",
+   "dropped typing into a sensitive field; use login(on) or the vault instead",
+   "recorded with effect 'draft', but every input step counts as commit until the owner marks the steps that publish nothing with \"publishes\": false"
+  ],
+  "every action the recording saw (6) was dropped, so the flow would only open pages and nothing was saved. Record again, acting on elements the snapshot names (see the notes)"
+ ],
+ "dropped_kinds/1": [
+  {
+   "description": "Recorded draft. Review the locators and add a readback for the final action.",
+   "effect": "commit",
+   "id": "w.l.mine",
+   "lane": "w/l",
+   "params": {
+    "additionalProperties": false,
+    "properties": {},
+    "required": [],
+    "type": "object"
+   },
+   "steps": [
+    {
+     "type": "navigate",
+     "url": "https://x.test/x"
+    },
+    {
+     "locator": {
+      "match": "exact",
+      "name": "Password",
+      "own": true,
+      "role": "textbox"
+     },
+     "type": "wait_for"
+    }
+   ],
+   "title": "T"
+  },
+  [
+   "dropped an unsupported action: 'drag'",
+   "dropped a click with no structural locator (only refs were recorded)",
+   "dropped a click: 1 validation error for Locator\nnth\n  Input should be greater than or equal to 0 [type=greater_than_equal, input_value=-5... (225 chars, truncated)",
+   "dropped a click: 1 validation error for Locator\n  Value error, snapshot refs (like e12) change on every page load; address the element wi... (347 chars, truncated)",
+   "dropped typing into a sensitive field; use login(on) or the vault instead",
+   "dropped typing into a sensitive field; use login(on) or the vault instead"
+  ],
+  "every action the recording saw (6) was dropped, so the flow would only open pages and nothing was saved. Record again, acting on elements the snapshot names (see the notes)"
+ ],
+ "every_action_dropped/0": [
+  {
+   "description": "Recorded draft. Review the locators and add a readback for the final action.",
+   "effect": "read",
+   "id": "w.l.draft-202611140930",
+   "lane": "w/l",
+   "params": {
+    "additionalProperties": false,
+    "properties": {},
+    "required": [],
+    "type": "object"
+   },
+   "steps": [
+    {
+     "type": "navigate",
+     "url": "https://x.test/compose"
+    }
+   ],
+   "title": "Recorded on w/l"
+  },
+  [
+   "dropped a fill with no structural locator (only refs were recorded)",
+   "dropped a click with no structural locator (only refs were recorded)"
+  ],
+  "every action the recording saw (2) was dropped, so the flow would only open pages and nothing was saved. Record again, acting on elements the snapshot names (see the notes)"
+ ],
+ "every_action_dropped/1": [
+  {
+   "description": "Recorded draft. Review the locators and add a readback for the final action.",
+   "effect": "commit",
+   "id": "w.l.mine",
+   "lane": "w/l",
+   "params": {
+    "additionalProperties": false,
+    "properties": {},
+    "required": [],
+    "type": "object"
+   },
+   "steps": [
+    {
+     "type": "navigate",
+     "url": "https://x.test/compose"
+    }
+   ],
+   "title": "T"
+  },
+  [
+   "dropped a fill with no structural locator (only refs were recorded)",
+   "dropped a click with no structural locator (only refs were recorded)"
+  ],
+  "every action the recording saw (2) was dropped, so the flow would only open pages and nothing was saved. Record again, acting on elements the snapshot names (see the notes)"
+ ],
+ "every_kind_of_step/0": [
+  {
+   "description": "Recorded draft. Review the locators and add a readback for the final action.",
+   "effect": "draft",
+   "id": "w.l.draft-202611140930",
+   "lane": "w/l",
+   "params": {
+    "additionalProperties": false,
+    "properties": {
+     "caption": {
+      "description": "Typed into textbox \"Write a caption...\"",
+      "examples": [
+       "hello there"
+      ],
+      "type": "string"
+     },
+     "file": {
+      "description": "File to upload: a path on the node or a files ref",
+      "type": "string"
+     }
+    },
+    "required": [
+     "caption",
+     "file"
+    ],
+    "type": "object"
+   },
+   "steps": [
+    {
+     "type": "navigate",
+     "url": "https://x.test/b"
+    },
+    {
+     "locator": {
+      "match": "exact",
+      "name": "Like",
+      "own": true,
+      "role": "button",
+      "within": {
+       "match": "exact",
+       "name": "Post by mira",
+       "own": true,
+       "role": "article"
+      }
+     },
+     "type": "wait_for"
+    },
+    {
+     "label": "set aria-pressed to true",
+     "locator": {
+      "match": "exact",
+      "name": "Like",
+      "own": true,
+      "role": "button",
+      "within": {
+       "match": "exact",
+       "name": "Post by mira",
+       "own": true,
+       "role": "article"
+      }
+     },
+     "readback": {
+      "condition": {
+       "equals": "true",
+       "kind": "attribute",
+       "name": "aria-pressed"
+      }
+     },
+     "type": "click",
+     "writes": true
+    },
+    {
+     "locator": {
+      "match": "exact",
+      "name": "Write a caption...",
+      "own": true,
+      "role": "textbox"
+     },
+     "param": "caption",
+     "readback": {
+      "condition": {
+       "equals": "${caption}",
+       "kind": "value"
+      }
+     },
+     "type": "fill"
+    },
+    {
+     "locator": {
+      "match": "exact",
+      "name": "Note",
+      "own": true,
+      "role": "textbox"
+     },
+     "param": "caption",
+     "readback": {
+      "condition": {
+       "equals": "${caption}",
+       "kind": "value"
+      }
+     },
+     "type": "type"
+    },
+    {
+     "type": "navigate",
+     "url": "https://x.test/search?q=${caption}"
+    },
+    {
+     "locator": {
+      "match": "exact",
+      "name": "Size",
+      "own": true,
+      "role": "combobox"
+     },
+     "type": "wait_for"
+    },
+    {
+     "locator": {
+      "match": "exact",
+      "name": "Size",
+      "own": true,
+      "role": "combobox"
+     },
+     "option": "XL",
+     "type": "select"
+    },
+    {
+     "locator": {
+      "match": "exact",
+      "name": "Colour",
+      "own": true,
+      "role": "combobox"
+     },
+     "option": "Red",
+     "type": "select"
+    },
+    {
+     "locator": {
+      "match": "exact",
+      "name": "Feed",
+      "own": true,
+      "role": "region"
+     },
+     "type": "scroll_to"
+    },
+    {
+     "locator": {
+      "match": "exact",
+      "name": "Add photo",
+      "own": true,
+      "role": "button"
+     },
+     "param": "file",
+     "type": "upload"
+    },
+    {
+     "key": "Enter",
+     "type": "press"
+    },
+    {
+     "key": "Tab",
+     "locator": {
+      "match": "exact",
+      "name": "Write a caption...",
+      "own": true,
+      "role": "textbox"
+     },
+     "type": "press"
+    },
+    {
+     "key": "Enter",
+     "type": "press"
+    },
+    {
+     "locator": {
+      "match": "exact",
+      "name": "Share",
+      "own": true,
+      "role": "button"
+     },
+     "type": "click"
+    }
+   ],
+   "title": "Recorded on w/l"
+  },
+  [
+   "recorded with effect 'draft', but every input step counts as commit until the owner marks the steps that publish nothing with \"publishes\": false"
+  ],
+  null
+ ],
+ "every_kind_of_step/1": [
+  {
+   "description": "Recorded draft. Review the locators and add a readback for the final action.",
+   "effect": "commit",
+   "id": "w.l.mine",
+   "lane": "w/l",
+   "params": {
+    "additionalProperties": false,
+    "properties": {
+     "caption": {
+      "description": "Typed into textbox \"Write a caption...\"",
+      "examples": [
+       "hello there"
+      ],
+      "type": "string"
+     },
+     "file": {
+      "description": "File to upload: a path on the node or a files ref",
+      "type": "string"
+     }
+    },
+    "required": [
+     "caption",
+     "file"
+    ],
+    "type": "object"
+   },
+   "steps": [
+    {
+     "type": "navigate",
+     "url": "https://x.test/b"
+    },
+    {
+     "locator": {
+      "match": "exact",
+      "name": "Like",
+      "own": true,
+      "role": "button",
+      "within": {
+       "match": "exact",
+       "name": "Post by mira",
+       "own": true,
+       "role": "article"
+      }
+     },
+     "type": "wait_for"
+    },
+    {
+     "label": "set aria-pressed to true",
+     "locator": {
+      "match": "exact",
+      "name": "Like",
+      "own": true,
+      "role": "button",
+      "within": {
+       "match": "exact",
+       "name": "Post by mira",
+       "own": true,
+       "role": "article"
+      }
+     },
+     "readback": {
+      "condition": {
+       "equals": "true",
+       "kind": "attribute",
+       "name": "aria-pressed"
+      }
+     },
+     "type": "click",
+     "writes": true
+    },
+    {
+     "locator": {
+      "match": "exact",
+      "name": "Write a caption...",
+      "own": true,
+      "role": "textbox"
+     },
+     "param": "caption",
+     "readback": {
+      "condition": {
+       "equals": "${caption}",
+       "kind": "value"
+      }
+     },
+     "type": "fill"
+    },
+    {
+     "locator": {
+      "match": "exact",
+      "name": "Note",
+      "own": true,
+      "role": "textbox"
+     },
+     "param": "caption",
+     "readback": {
+      "condition": {
+       "equals": "${caption}",
+       "kind": "value"
+      }
+     },
+     "type": "type"
+    },
+    {
+     "type": "navigate",
+     "url": "https://x.test/search?q=${caption}"
+    },
+    {
+     "locator": {
+      "match": "exact",
+      "name": "Size",
+      "own": true,
+      "role": "combobox"
+     },
+     "type": "wait_for"
+    },
+    {
+     "locator": {
+      "match": "exact",
+      "name": "Size",
+      "own": true,
+      "role": "combobox"
+     },
+     "option": "XL",
+     "type": "select"
+    },
+    {
+     "locator": {
+      "match": "exact",
+      "name": "Colour",
+      "own": true,
+      "role": "combobox"
+     },
+     "option": "Red",
+     "type": "select"
+    },
+    {
+     "locator": {
+      "match": "exact",
+      "name": "Feed",
+      "own": true,
+      "role": "region"
+     },
+     "type": "scroll_to"
+    },
+    {
+     "locator": {
+      "match": "exact",
+      "name": "Add photo",
+      "own": true,
+      "role": "button"
+     },
+     "param": "file",
+     "type": "upload"
+    },
+    {
+     "key": "Enter",
+     "type": "press"
+    },
+    {
+     "key": "Tab",
+     "locator": {
+      "match": "exact",
+      "name": "Write a caption...",
+      "own": true,
+      "role": "textbox"
+     },
+     "type": "press"
+    },
+    {
+     "key": "Enter",
+     "type": "press"
+    },
+    {
+     "locator": {
+      "match": "exact",
+      "name": "Share",
+      "own": true,
+      "role": "button"
+     },
+     "type": "click"
+    }
+   ],
+   "title": "T"
+  },
+  [],
+  null
+ ],
+ "input_lost_before_send/0": [
+  {
+   "description": "Recorded draft. Review the locators and add a readback for the final action.",
+   "effect": "draft",
+   "id": "w.l.draft-202611140930",
+   "lane": "w/l",
+   "params": {
+    "additionalProperties": false,
+    "properties": {},
+    "required": [],
+    "type": "object"
+   },
+   "steps": [
+    {
+     "type": "navigate",
+     "url": "https://x.test/compose"
+    },
+    {
+     "locator": {
+      "match": "exact",
+      "name": "Share",
+      "own": true,
+      "role": "button"
+     },
+     "type": "wait_for"
+    },
+    {
+     "locator": {
+      "match": "exact",
+      "name": "Share",
+      "own": true,
+      "role": "button"
+     },
+     "type": "click"
+    }
+   ],
+   "title": "Recorded on w/l"
+  },
+  [
+   "dropped a fill with no structural locator (only refs were recorded)",
+   "dropped a select with no structural locator (only refs were recorded)",
+   "recorded with effect 'draft', but every input step counts as commit until the owner marks the steps that publish nothing with \"publishes\": false"
+  ],
+  "2 inputs before a click or key press (fill, select) were dropped, so the flow would send without them and nothing was saved. Record again (see the notes), or save it with flow_save once the steps are whole"
+ ],
+ "input_lost_before_send/1": [
+  {
+   "description": "Recorded draft. Review the locators and add a readback for the final action.",
+   "effect": "commit",
+   "id": "w.l.mine",
+   "lane": "w/l",
+   "params": {
+    "additionalProperties": false,
+    "properties": {},
+    "required": [],
+    "type": "object"
+   },
+   "steps": [
+    {
+     "type": "navigate",
+     "url": "https://x.test/compose"
+    },
+    {
+     "locator": {
+      "match": "exact",
+      "name": "Share",
+      "own": true,
+      "role": "button"
+     },
+     "type": "wait_for"
+    },
+    {
+     "locator": {
+      "match": "exact",
+      "name": "Share",
+      "own": true,
+      "role": "button"
+     },
+     "type": "click"
+    }
+   ],
+   "title": "T"
+  },
+  [
+   "dropped a fill with no structural locator (only refs were recorded)",
+   "dropped a select with no structural locator (only refs were recorded)"
+  ],
+  "2 inputs before a click or key press (fill, select) were dropped, so the flow would send without them and nothing was saved. Record again (see the notes), or save it with flow_save once the steps are whole"
+ ],
+ "nothing/0": [
+  "raises",
+  "InvalidRequest",
+  "nothing was recorded: no actions with structural locators reached the recorder"
+ ],
+ "nothing/1": [
+  "raises",
+  "InvalidRequest",
+  "nothing was recorded: no actions with structural locators reached the recorder"
+ ],
+ "one_input_lost_before_send/0": [
+  {
+   "description": "Recorded draft. Review the locators and add a readback for the final action.",
+   "effect": "draft",
+   "id": "w.l.draft-202611140930",
+   "lane": "w/l",
+   "params": {
+    "additionalProperties": false,
+    "properties": {},
+    "required": [],
+    "type": "object"
+   },
+   "steps": [
+    {
+     "type": "navigate",
+     "url": "https://x.test/compose"
+    },
+    {
+     "key": "Enter",
+     "type": "press"
+    }
+   ],
+   "title": "Recorded on w/l"
+  },
+  [
+   "dropped a fill with no structural locator (only refs were recorded)",
+   "recorded with effect 'draft', but every input step counts as commit until the owner marks the steps that publish nothing with \"publishes\": false"
+  ],
+  "1 input before a click or key press (fill) was dropped, so the flow would send without them and nothing was saved. Record again (see the notes), or save it with flow_save once the steps are whole"
+ ],
+ "one_input_lost_before_send/1": [
+  {
+   "description": "Recorded draft. Review the locators and add a readback for the final action.",
+   "effect": "commit",
+   "id": "w.l.mine",
+   "lane": "w/l",
+   "params": {
+    "additionalProperties": false,
+    "properties": {},
+    "required": [],
+    "type": "object"
+   },
+   "steps": [
+    {
+     "type": "navigate",
+     "url": "https://x.test/compose"
+    },
+    {
+     "key": "Enter",
+     "type": "press"
+    }
+   ],
+   "title": "T"
+  },
+  [
+   "dropped a fill with no structural locator (only refs were recorded)"
+  ],
+  "1 input before a click or key press (fill) was dropped, so the flow would send without them and nothing was saved. Record again (see the notes), or save it with flow_save once the steps are whole"
+ ],
+ "reads_only/0": [
+  {
+   "description": "Recorded draft. Review the locators and add a readback for the final action.",
+   "effect": "read",
+   "id": "w.l.draft-202611140930",
+   "lane": "w/l",
+   "params": {
+    "additionalProperties": false,
+    "properties": {},
+    "required": [],
+    "type": "object"
+   },
+   "steps": [
+    {
+     "type": "navigate",
+     "url": "https://x.test/a"
+    }
+   ],
+   "title": "Recorded on w/l"
+  },
+  [],
+  null
+ ],
+ "reads_only/1": [
+  {
+   "description": "Recorded draft. Review the locators and add a readback for the final action.",
+   "effect": "commit",
+   "id": "w.l.mine",
+   "lane": "w/l",
+   "params": {
+    "additionalProperties": false,
+    "properties": {},
+    "required": [],
+    "type": "object"
+   },
+   "steps": [
+    {
+     "type": "navigate",
+     "url": "https://x.test/a"
+    }
+   ],
+   "title": "T"
+  },
+  [],
+  null
+ ],
+ "same_text_twice/0": [
+  {
+   "description": "Recorded draft. Review the locators and add a readback for the final action.",
+   "effect": "draft",
+   "id": "w.l.draft-202611140930",
+   "lane": "w/l",
+   "params": {
+    "additionalProperties": false,
+    "properties": {
+     "caption": {
+      "description": "Typed into textbox \"Write a caption...\"",
+      "examples": [
+       "same"
+      ],
+      "type": "string"
+     },
+     "caption_2": {
+      "description": "Typed into textbox \"Write a caption...\"",
+      "examples": [
+       "other"
+      ],
+      "type": "string"
+     },
+     "file": {
+      "description": "File to upload: a path on the node or a files ref",
+      "type": "string"
+     },
+     "file_2": {
+      "description": "File to upload: a path on the node or a files ref",
+      "type": "string"
+     }
+    },
+    "required": [
+     "caption",
+     "caption_2",
+     "file",
+     "file_2"
+    ],
+    "type": "object"
+   },
+   "steps": [
+    {
+     "type": "navigate",
+     "url": "https://x.test/a"
+    },
+    {
+     "locator": {
+      "match": "exact",
+      "name": "Write a caption...",
+      "own": true,
+      "role": "textbox"
+     },
+     "type": "wait_for"
+    },
+    {
+     "locator": {
+      "match": "exact",
+      "name": "Write a caption...",
+      "own": true,
+      "role": "textbox"
+     },
+     "param": "caption",
+     "readback": {
+      "condition": {
+       "equals": "${caption}",
+       "kind": "value"
+      }
+     },
+     "type": "fill"
+    },
+    {
+     "locator": {
+      "match": "exact",
+      "name": "Write a caption...",
+      "own": true,
+      "role": "textbox"
+     },
+     "param": "caption",
+     "readback": {
+      "condition": {
+       "equals": "${caption}",
+       "kind": "value"
+      }
+     },
+     "type": "fill"
+    },
+    {
+     "locator": {
+      "match": "exact",
+      "name": "Write a caption...",
+      "own": true,
+      "role": "textbox"
+     },
+     "param": "caption_2",
+     "readback": {
+      "condition": {
+       "equals": "${caption_2}",
+       "kind": "value"
+      }
+     },
+     "type": "fill"
+    },
+    {
+     "locator": {
+      "match": "exact",
+      "name": "File",
+      "own": true,
+      "role": "button"
+     },
+     "param": "file",
+     "type": "upload"
+    },
+    {
+     "locator": {
+      "match": "exact",
+      "name": "File",
+      "own": true,
+      "role": "button"
+     },
+     "param": "file_2",
+     "type": "upload"
+    }
+   ],
+   "title": "Recorded on w/l"
+  },
+  [
+   "recorded with effect 'draft', but every input step counts as commit until the owner marks the steps that publish nothing with \"publishes\": false"
+  ],
+  null
+ ],
+ "same_text_twice/1": [
+  {
+   "description": "Recorded draft. Review the locators and add a readback for the final action.",
+   "effect": "commit",
+   "id": "w.l.mine",
+   "lane": "w/l",
+   "params": {
+    "additionalProperties": false,
+    "properties": {
+     "caption": {
+      "description": "Typed into textbox \"Write a caption...\"",
+      "examples": [
+       "same"
+      ],
+      "type": "string"
+     },
+     "caption_2": {
+      "description": "Typed into textbox \"Write a caption...\"",
+      "examples": [
+       "other"
+      ],
+      "type": "string"
+     },
+     "file": {
+      "description": "File to upload: a path on the node or a files ref",
+      "type": "string"
+     },
+     "file_2": {
+      "description": "File to upload: a path on the node or a files ref",
+      "type": "string"
+     }
+    },
+    "required": [
+     "caption",
+     "caption_2",
+     "file",
+     "file_2"
+    ],
+    "type": "object"
+   },
+   "steps": [
+    {
+     "type": "navigate",
+     "url": "https://x.test/a"
+    },
+    {
+     "locator": {
+      "match": "exact",
+      "name": "Write a caption...",
+      "own": true,
+      "role": "textbox"
+     },
+     "type": "wait_for"
+    },
+    {
+     "locator": {
+      "match": "exact",
+      "name": "Write a caption...",
+      "own": true,
+      "role": "textbox"
+     },
+     "param": "caption",
+     "readback": {
+      "condition": {
+       "equals": "${caption}",
+       "kind": "value"
+      }
+     },
+     "type": "fill"
+    },
+    {
+     "locator": {
+      "match": "exact",
+      "name": "Write a caption...",
+      "own": true,
+      "role": "textbox"
+     },
+     "param": "caption",
+     "readback": {
+      "condition": {
+       "equals": "${caption}",
+       "kind": "value"
+      }
+     },
+     "type": "fill"
+    },
+    {
+     "locator": {
+      "match": "exact",
+      "name": "Write a caption...",
+      "own": true,
+      "role": "textbox"
+     },
+     "param": "caption_2",
+     "readback": {
+      "condition": {
+       "equals": "${caption_2}",
+       "kind": "value"
+      }
+     },
+     "type": "fill"
+    },
+    {
+     "locator": {
+      "match": "exact",
+      "name": "File",
+      "own": true,
+      "role": "button"
+     },
+     "param": "file",
+     "type": "upload"
+    },
+    {
+     "locator": {
+      "match": "exact",
+      "name": "File",
+      "own": true,
+      "role": "button"
+     },
+     "param": "file_2",
+     "type": "upload"
+    }
+   ],
+   "title": "T"
+  },
+  [],
+  null
+ ]
+}

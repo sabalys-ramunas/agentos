@@ -11,7 +11,7 @@ from urllib.parse import parse_qs, unquote, urlsplit
 import pytest
 from typer.testing import CliRunner
 
-from agentos.ops.backup.s3 import Credentials, S3Error, S3Target, sign
+from agentos.core.s3 import Credentials, S3Error, S3Target, sign
 
 AWS = Credentials("AKIAIOSFODNN7EXAMPLE", "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY")
 WHEN = datetime(2013, 5, 24, tzinfo=UTC)

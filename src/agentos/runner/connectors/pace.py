@@ -26,7 +26,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from agentos.core.models import RunStatus
-from agentos.runner.models import ACTIVE, Run
+from agentos.runner.records import ACTIVE, Run
 from agentos.runner.store import RunnerStore
 
 COUNTED = ACTIVE | {RunStatus.SUCCEEDED_VERIFIED, RunStatus.SUCCEEDED_UNVERIFIED, RunStatus.PARTIAL}

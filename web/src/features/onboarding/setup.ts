@@ -8,7 +8,7 @@
  * started yet, the same list is worked out here from what the panel can already read. Either way
  * an item is done because it is true, never because a step was clicked through.
  */
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useSyncExternalStore } from 'react';
 import { fleet, orgs, setup as setupApi } from '@/api/client';
 import { isNotServed, served } from '@/api/http';
@@ -205,19 +205,6 @@ export function useSetup(org: string, enabled = true): SetupState {
   }, [remote.data, local, saved, workspaces.data, nodes.data, grants.data, decided.data, phones.data, invites.data, members.data]);
 
   return { setup, local };
-}
-
-/** Saves the first job on the org (where the cloud keeps it) and in this browser. */
-export function useSaveGoal(org: string) {
-  const client = useQueryClient();
-  return useMutation({
-    meta: { inline: true },
-    mutationFn: async ({ goal, note }: { goal: GoalKey; note: string | null }) => {
-      remember(org, { goal, goal_note: note });
-      await orgs.update(org, { goal, goal_note: note });
-    },
-    onSettled: () => client.invalidateQueries({ queryKey: keys.setup(org) }),
-  });
 }
 
 /** Asks Getting started again, after something on this screen made a line true. */

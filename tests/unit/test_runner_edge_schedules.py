@@ -319,7 +319,7 @@ class _FrozenLane:
         self.lane = lane
 
     def check_call(self, lane, *, tool):
-        from agentos.freeze.errors import Frozen
+        from agentos.core.errors import Frozen
 
         if lane == self.lane:
             raise Frozen(f"{lane} is frozen")

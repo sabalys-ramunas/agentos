@@ -34,6 +34,7 @@ from datetime import datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from agentos.core.aio import maybe_await
 from agentos.events.models import (
     MAX_DEPTH,
     OPEN_STATES,
@@ -48,7 +49,7 @@ from agentos.events.models import (
 )
 from agentos.events.store import EventStore
 from agentos.events.targets import Finish, Handoff, Targets
-from agentos.runner.util import maybe_await, new_id
+from agentos.runner.util import new_id
 
 log = logging.getLogger("agentos.events")
 
@@ -489,15 +490,18 @@ class Dispatcher:
     def _max_wait(self, now: datetime) -> None:
         """A normal delivery waiting longer than its route's max_wait notifies once."""
         by_route: dict[str, list[Delivery]] = {}
+        routes: dict[str, Route | None] = {}  # read once per tick, not once per waiting delivery
         for d in self.store.list_deliveries(states=[DeliveryState.WAITING], limit=500):
             if d.priority == "low" or "max_wait" in d.notified:
                 continue
-            route = self.store.get_route(d.route_id)
+            if d.route_id not in routes:
+                routes[d.route_id] = self.store.get_route(d.route_id)
+            route = routes[d.route_id]
             if route is None or (now - d.created_at).total_seconds() <= route.controls.max_wait_s:
                 continue
             by_route.setdefault(route.id, []).append(d)
         for rid, items in by_route.items():
-            route = self.store.get_route(rid)
+            route = routes[rid]
             hours = route.controls.max_wait_s // 3600
             self.notify(f"{route.workspace}: trigger events are waiting",
                         f'{len(items)} event(s) of trigger "{route.name}" have waited over {hours} hours: '

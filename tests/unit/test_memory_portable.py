@@ -4,9 +4,9 @@ and the decisions digest getter for commit traces."""
 from __future__ import annotations
 
 import pytest
+from testkit.memory import fake_memory
 
 from agentos.memory import Caller
-from agentos.memory.fakes import fake_memory
 
 OWNER = Caller.owner()
 

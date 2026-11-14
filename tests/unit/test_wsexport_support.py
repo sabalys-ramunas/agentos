@@ -27,7 +27,7 @@ from agentos.vault import crypto
 from agentos.vault.service import VaultService, keyfile_path
 from agentos.vault.store import VaultStore
 from agentos.workspaces.store import WorkspaceStore
-from agentos.workspaces.transfer.export import Sources
+from agentos.workspaces.transfer.sources import Sources
 
 PASSPHRASE = "export passphrase for the tests"
 LOG_N = 10

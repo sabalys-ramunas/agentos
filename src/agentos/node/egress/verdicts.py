@@ -86,7 +86,7 @@ def _ceiling(grant: Any) -> str | None:
 
 
 class CommitMeter(Protocol):
-    """What a publish during an agent's act is charged to (agentos.node.tools.ActMeter)."""
+    """What a publish during an agent's act is charged to (agentos.node.tools.guarding.ActMeter)."""
 
     def charge(self, rule: EffectRule, *, sent: bool) -> str | None:
         """One commit; None within the limits, else the sentence saying which limit it passes.
@@ -274,35 +274,61 @@ def judge(url: str, method: str, *, navigation: bool, sites: tuple[str, ...] | l
     agent = driver is not None and not driver.human and not human
     if host is None or human:
         return None
-    grant_lists_set = agent and driver.lists is not None
-    if host and host in exposed:
-        pass  # the owner's own dev server, on this lane only while exposed: no host list applies
-    elif navigation:
-        if host == "":
+    if not (host and host in exposed):  # the owner's own dev server, exposed to this lane: no host list applies
+        if navigation and host == "":  # decided here: an address that cannot be read is judged no further
+            grant_lists_set = agent and driver is not None and driver.lists is not None
             return Refusal("unreadable", "the address cannot be read") if sites or grant_lists_set else None
-        if sites and not in_sites(sites, host, frame=frame):
-            if site_scope(sites, host) == "frame":
-                return Refusal("lane_sites", f"{host} is on this lane's site list only as a frame inside a page, "
-                                             "not as a page of its own")
-            return Refusal("lane_sites", f"{host} is not on this lane's site list")
-        if agent and not driver.allows_host(host):
-            return Refusal("grant_egress", f"{host} is outside the egress list of the grant driving this lane")
-    elif (agent or flow) and method not in SAFE_METHODS:
-        # a frame the list admits may post to its own host (a captcha checks its answer there)
-        if host == "":
-            if sites or grant_lists_set:
-                return Refusal("non_get", f"a {method} to an unreadable address")
-        elif sites and not in_sites(sites, host, frame=True):
-            return Refusal("non_get", f"a {method} to {host} goes outside the hosts this lane allows")
-        elif agent and not driver.allows_host(host):
-            return Refusal("non_get", f"a {method} to {host} goes outside the hosts this lane and its grant allow")
-    if agent and effect is not None and effect.effect in ("commit", "write"):
+        where = (_page_refusal(host, sites, frame=frame, agent=agent, driver=driver) if navigation
+                 else _send_refusal(host, method, sites, agent=agent, flow=flow, driver=driver))
+        if where is not None:
+            return where
+    return _effect_refusal(host, method, agent=agent, driver=driver, effect=effect, asks_first=asks_first)
+
+
+def _page_refusal(host: str, sites: tuple[str, ...] | list[str], *, frame: bool, agent: bool,
+                  driver: Driver | None) -> Refusal | None:
+    """A document load (to a readable address): on the lane's site list (a frame entry only inside
+    a page), and on the egress list of an agent's grant."""
+    if sites and not in_sites(sites, host, frame=frame):
+        if site_scope(sites, host) == "frame":
+            return Refusal("lane_sites", f"{host} is on this lane's site list only as a frame inside a page, "
+                                         "not as a page of its own")
+        return Refusal("lane_sites", f"{host} is not on this lane's site list")
+    if agent and driver is not None and not driver.allows_host(host):
+        return Refusal("grant_egress", f"{host} is outside the egress list of the grant driving this lane")
+    return None
+
+
+def _send_refusal(host: str, method: str, sites: tuple[str, ...] | list[str], *, agent: bool, flow: bool,
+                  driver: Driver | None) -> Refusal | None:
+    """An agent's or a flow's non-GET: to a host the lane allows (a frame the list admits may post
+    to its own host: a captcha checks its answer there), and the grant too for an agent."""
+    if not ((agent or flow) and method not in SAFE_METHODS):
+        return None
+    if host == "":
+        grant_lists_set = agent and driver is not None and driver.lists is not None
+        if sites or grant_lists_set:
+            return Refusal("non_get", f"a {method} to an unreadable address")
+    elif sites and not in_sites(sites, host, frame=True):
+        return Refusal("non_get", f"a {method} to {host} goes outside the hosts this lane allows")
+    elif agent and driver is not None and not driver.allows_host(host):
+        return Refusal("non_get", f"a {method} to {host} goes outside the hosts this lane and its grant allow")
+    return None
+
+
+def _effect_refusal(host: str, method: str, *, agent: bool, driver: Driver | None, effect: EffectRule | None,
+                    asks_first: Callable[[], bool] | None) -> Refusal | None:
+    """An agent's publish or write: within the grant's ceiling, and never a publish by clicking
+    while the account asks a person first."""
+    if not agent or driver is None or effect is None:
+        return None
+    if effect.effect in ("commit", "write"):
         need = "commit" if effect.effect == "commit" else "draft"
         if not driver.allows(need):
             what = "publishes" if effect.effect == "commit" else "writes"
             return Refusal(effect.effect, f"this {method} to {host} {what} ({effect.id}), and the grant driving "
                                           f"this lane allows up to {driver.ceiling}")
-    if agent and effect is not None and effect.effect == "commit" and asks_first is not None and asks_first():
+    if effect.effect == "commit" and asks_first is not None and asks_first():
         return Refusal("ask_first", f"this {method} to {host} publishes ({effect.id}), and this account asks a person "
                                     "first, so an agent cannot publish here by clicking. Run a routine for it, "
                                     "which asks the person, or ask the person with human_ask")

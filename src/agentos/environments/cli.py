@@ -56,7 +56,7 @@ def _managers() -> tuple[Any, Any]:
 def _git_state(vms: Any, env: Any) -> list[dict] | None:
     """The environment's repositories (every one under /work), read over its VM's SSH (as agentosd
     reads them)."""
-    from agentos.environments.manager import GIT_STATE, parse_git_state
+    from agentos.environments.probes import GIT_STATE, parse_git_state
     from agentos.vms import ssh
 
     if not env.vm_id:
@@ -282,7 +282,7 @@ def repo_list(json_out: Annotated[bool, typer.Option("--json")] = False) -> None
 
 
 def _creds_or_none() -> list[Any] | None:
-    from agentos.cli import cli_runtime
+    from agentos.commands.base import cli_runtime
     from agentos.git import cli as gitcli
 
     if cli_runtime().get("vault") is None:

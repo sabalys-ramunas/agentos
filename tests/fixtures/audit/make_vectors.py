@@ -29,7 +29,8 @@ from agentos.policy.auditlog import (
     sign,
 )
 from agentos.policy.tokens import key_id
-from agentos.policy.traces import INT64_MAX, TraceEvent, TraceStore
+from agentos.policy.trace_writes import INT64_MAX
+from agentos.policy.traces import TraceEvent, TraceStore
 
 KEY = Ed25519PrivateKey.from_private_bytes(bytes(range(1, 33)))
 KID = key_id(KEY)

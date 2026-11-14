@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 import logging
 from collections.abc import Awaitable
 from typing import Any
@@ -32,3 +33,10 @@ async def run_to_end(aw: Awaitable[Any]) -> Any:
     if cancelled:
         raise asyncio.CancelledError
     return result
+
+
+async def maybe_await(value: Any) -> Any:
+    """The value, awaited when it is awaitable: services may be sync or async, callers take both."""
+    if inspect.isawaitable(value):
+        return await value
+    return value

@@ -90,95 +90,91 @@ def _plan_args(body: dict[str, Any]) -> dict[str, Any]:
             "reason": body.get("reason")}
 
 
-def routes(runtime: Any) -> list[Route]:
-    def svc():
-        return runtime.require(SERVICE_NAME)
+def _handled(fn):
+    """A route handler that answers an AgentosError with this module's error body."""
+    async def endpoint(request: Request) -> Response:
+        try:
+            return await fn(request)
+        except AgentosError as e:
+            return _error(e)
 
-    def handle(fn):
-        async def endpoint(request: Request) -> Response:
-            try:
-                return await fn(request)
-            except AgentosError as e:
-                return _error(e)
+    endpoint.__name__ = fn.__name__
+    return endpoint
 
-        endpoint.__name__ = fn.__name__
-        return endpoint
+
+class Handlers:
+    """The handlers of the routes below, sharing the node runtime."""
+
+    def __init__(self, runtime: Any) -> None:
+        self.runtime = runtime
+
+    def svc(self):
+        return self.runtime.require(SERVICE_NAME)
 
     # ---- workspaces ----
-    @handle
-    async def list_workspaces(request: Request) -> Response:
-        return JSONResponse([ws.model_dump(mode="json") for ws in svc().list_workspaces()])
+    async def list_workspaces(self, request: Request) -> Response:
+        return JSONResponse([ws.model_dump(mode="json") for ws in self.svc().list_workspaces()])
 
-    @handle
-    async def create_workspace(request: Request) -> Response:
+    async def create_workspace(self, request: Request) -> Response:
         body = await _body(request)
-        view = svc().create_workspace(body.get("id"), name=body.get("name"), color=body.get("color"),
+        view = self.svc().create_workspace(body.get("id"), name=body.get("name"), color=body.get("color"),
                                       default_proxy=body.get("default_proxy"), notes=body.get("notes"))
         return JSONResponse(view.model_dump(mode="json"), status_code=201)
 
-    @handle
-    async def get_workspace(request: Request) -> Response:
-        return JSONResponse(svc().get_workspace(request.path_params["id"]).model_dump(mode="json"))
+    async def get_workspace(self, request: Request) -> Response:
+        return JSONResponse(self.svc().get_workspace(request.path_params["id"]).model_dump(mode="json"))
 
-    @handle
-    async def update_workspace(request: Request) -> Response:
+    async def update_workspace(self, request: Request) -> Response:
         body = await _body(request)
-        view = svc().update_workspace(request.path_params["id"], body)
+        view = self.svc().update_workspace(request.path_params["id"], body)
         return JSONResponse(view.model_dump(mode="json"))
 
-    @handle
-    async def delete_workspace(request: Request) -> Response:
-        svc().delete_workspace(request.path_params["id"])
+    async def delete_workspace(self, request: Request) -> Response:
+        self.svc().delete_workspace(request.path_params["id"])
         return JSONResponse({"deleted": request.path_params["id"]})
 
     # ---- the login queue ----
-    @handle
-    async def workspace_queue(request: Request) -> Response:
-        return JSONResponse(svc().queue(request.path_params["id"]).model_dump(mode="json"))
+    async def workspace_queue(self, request: Request) -> Response:
+        return JSONResponse(self.svc().queue(request.path_params["id"]).model_dump(mode="json"))
 
-    @handle
-    async def queue(request: Request) -> Response:
-        return JSONResponse(svc().queue().model_dump(mode="json"))
+    async def queue(self, request: Request) -> Response:
+        return JSONResponse(self.svc().queue().model_dump(mode="json"))
 
-    @handle
-    async def set_readiness(request: Request) -> Response:
+    async def set_readiness(self, request: Request) -> Response:
         body = await _body(request)
         lane = f"{request.path_params['workspace']}/{request.path_params['name']}"
-        view = svc().set_readiness(lane, body.get("state"), note=body.get("note"), by=_principal(request).id)
+        view = self.svc().set_readiness(lane, body.get("state"), note=body.get("note"), by=_principal(request).id)
         return JSONResponse(view.model_dump(mode="json"))
 
     # ---- templates ----
-    @handle
-    async def list_templates(request: Request) -> Response:
-        templates, problems = svc().templates()
+    async def list_templates(self, request: Request) -> Response:
+        templates, problems = self.svc().templates()
         return JSONResponse({"templates": [t.model_dump(mode="json") for t in templates],
                              "problems": [p.model_dump(mode="json") for p in problems]})
 
-    @handle
-    async def plan_template(request: Request) -> Response:
+    async def plan_template(self, request: Request) -> Response:
         body = await _body(request)
-        plan = svc().plan(body.get("template"), body.get("workspaces"), **_plan_args(body))
+        plan = self.svc().plan(body.get("template"), body.get("workspaces"), **_plan_args(body))
         return JSONResponse(plan.public())
 
-    @handle
-    async def apply_template(request: Request) -> Response:
+    async def apply_template(self, request: Request) -> Response:
         body = await _body(request)
-        result = await svc().apply(body.get("template"), body.get("workspaces"), by=_principal(request).id,
+        result = await self.svc().apply(body.get("template"), body.get("workspaces"), by=_principal(request).id,
                                    **_plan_args(body))
         return JSONResponse(result.model_dump(mode="json"))
 
-    @handle
-    async def list_overrides(request: Request) -> Response:
-        records = svc().overrides(_limit(request.query_params.get("limit")))
+    async def list_overrides(self, request: Request) -> Response:
+        records = self.svc().overrides(_limit(request.query_params.get("limit")))
         return JSONResponse([r.model_dump(mode="json") for r in records])
 
     # ---- export and import (agentos.workspaces.transfer.export, agentos.workspaces.transfer.import_); owner only (agentos.api.mounts) ----
-    @handle
-    async def export_workspace(request: Request) -> Response:
+    async def export_workspace(self, request: Request) -> Response:
         """Stream one workspace as an encrypted file. Body: {"passphrase"} or {"recipients": ["age1..."]},
         and "with_proxies"."""
-        from agentos.workspaces.transfer.export import export_name, runtime_sources, staging_dir
+        from agentos.workspaces.transfer.export import export_name
         from agentos.workspaces.transfer.export import export_workspace as run_export
+        from agentos.workspaces.transfer.read import staging_dir
+        from agentos.workspaces.transfer.sources import runtime_sources
 
         # an export holds the accounts' signed-in sessions (and, with_proxies, their proxy logins):
         # only the owner in person takes them off the node, never a token an agent may hold
@@ -191,7 +187,7 @@ def routes(runtime: Any) -> list[Route]:
                                        not all(isinstance(r, str) for r in recipients)):
             raise InvalidRequest("recipients must be a list of age public keys (age1...)")
         workspace = request.path_params["id"]
-        src = runtime_sources(runtime)
+        src = runtime_sources(self.runtime)
         folder = staging_dir(src.home, "export")
         folder.mkdir(mode=0o700)
         dest = folder / export_name(workspace, datetime.now(UTC))
@@ -209,15 +205,15 @@ def routes(runtime: Any) -> list[Route]:
         return StreamingResponse(_chunks(dest), media_type="application/octet-stream", headers=headers,
                                  background=BackgroundTask(shutil.rmtree, folder, ignore_errors=True))
 
-    @handle
-    async def import_workspace(request: Request) -> Response:
+    async def import_workspace(self, request: Request) -> Response:
         """Import an uploaded export (the raw file as the body). The secret travels in a header
         (X-Agentos-Passphrase or X-Agentos-Identity), the options in the query: as, dry_run,
         reissue_grants, allow_missing_proxy, map_proxy=OLD=NEW (repeatable), on_vault_conflict,
         enable_schedules. 200 with the plan (dry run or blocked: applied false), 201 when applied."""
         from agentos.core import age
-        from agentos.workspaces.transfer.export import read_export, runtime_sources, staging_dir
         from agentos.workspaces.transfer.import_ import ImportOptions, apply_import, plan_import
+        from agentos.workspaces.transfer.read import read_export, staging_dir
+        from agentos.workspaces.transfer.sources import runtime_sources
 
         q = request.query_params
         if _qflag(q, "reissue_grants"):
@@ -244,7 +240,7 @@ def routes(runtime: Any) -> list[Route]:
                                 allow_missing_proxy=_qflag(q, "allow_missing_proxy"), proxy_map=proxy_map,
                                 vault_conflict=q.get("on_vault_conflict") or "error",
                                 enable_schedules=_qflag(q, "enable_schedules"), by=_principal(request).id)
-        src = runtime_sources(runtime)
+        src = runtime_sources(self.runtime)
         upload = staging_dir(src.home, "upload")
         try:
             await _receive(request, upload)
@@ -264,21 +260,25 @@ def routes(runtime: Any) -> list[Route]:
             contents.discard()
         return JSONResponse({"applied": True, "plan": plan.to_dict(), "result": result.to_dict()}, status_code=201)
 
+
+def routes(runtime: Any) -> list[Route]:
+    h = Handlers(runtime)
+
     return [
-        Route("/api/workspaces", list_workspaces, methods=["GET"]),
-        Route("/api/workspaces", create_workspace, methods=["POST"]),
-        Route("/api/workspaces/{id}", get_workspace, methods=["GET"]),
-        Route("/api/workspaces/{id}", update_workspace, methods=["PATCH"]),
-        Route("/api/workspaces/{id}", delete_workspace, methods=["DELETE"]),
-        Route("/api/workspaces/{id}/queue", workspace_queue, methods=["GET"]),
-        Route("/api/queue", queue, methods=["GET"]),
-        Route("/api/lanes/{workspace}/{name}/readiness", set_readiness, methods=["POST"]),
-        Route("/api/templates", list_templates, methods=["GET"]),
-        Route("/api/templates/plan", plan_template, methods=["POST"]),
-        Route("/api/templates/apply", apply_template, methods=["POST"]),
-        Route("/api/overrides", list_overrides, methods=["GET"]),
-        Route("/api/workspaces/{id}/export", export_workspace, methods=["POST"]),
-        Route("/api/workspaces/import", import_workspace, methods=["POST"]),
+        Route("/api/workspaces", _handled(h.list_workspaces), methods=["GET"]),
+        Route("/api/workspaces", _handled(h.create_workspace), methods=["POST"]),
+        Route("/api/workspaces/{id}", _handled(h.get_workspace), methods=["GET"]),
+        Route("/api/workspaces/{id}", _handled(h.update_workspace), methods=["PATCH"]),
+        Route("/api/workspaces/{id}", _handled(h.delete_workspace), methods=["DELETE"]),
+        Route("/api/workspaces/{id}/queue", _handled(h.workspace_queue), methods=["GET"]),
+        Route("/api/queue", _handled(h.queue), methods=["GET"]),
+        Route("/api/lanes/{workspace}/{name}/readiness", _handled(h.set_readiness), methods=["POST"]),
+        Route("/api/templates", _handled(h.list_templates), methods=["GET"]),
+        Route("/api/templates/plan", _handled(h.plan_template), methods=["POST"]),
+        Route("/api/templates/apply", _handled(h.apply_template), methods=["POST"]),
+        Route("/api/overrides", _handled(h.list_overrides), methods=["GET"]),
+        Route("/api/workspaces/{id}/export", _handled(h.export_workspace), methods=["POST"]),
+        Route("/api/workspaces/import", _handled(h.import_workspace), methods=["POST"]),
     ]
 
 

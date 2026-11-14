@@ -6,11 +6,11 @@ import asyncio
 from types import SimpleNamespace
 
 import pytest
+from testkit.memory import fake_memory
 
 from agentos.core.config import NodeConfig
 from agentos.core.runtime import Runtime
 from agentos.memory import SERVICE_NAME, build
-from agentos.memory.fakes import fake_memory
 from agentos.memory.models import Caller, EntryType, MemoryScope
 from agentos.memory.ports import RuntimePolicyPort, runtime_cloud_ok, runtime_privacy_for
 from agentos.memory.scan import secret_key_kind, suspicious_reasons

@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 from agentos.runner.cli import _schedule_line
 from agentos.runner.models import Run
-from agentos.runner.runner import bind_workflow, started_by_schedule
+from agentos.runner.run_rules import bind_workflow, started_by_schedule
 
 
 def test_schedule_line_of_a_workflow_schedule_does_not_crash():
@@ -95,7 +95,7 @@ def test_an_unknown_template_names_the_ones_there_are(tmp_path):
 
 def test_an_approval_tells_the_agent_why_and_a_flow_run_need_not_be_called_again():
     """Tester A 4 and 6."""
-    from agentos.policy.approvals import Approval
+    from agentos.policy.approval_models import Approval
 
     ap = Approval(id="ap_1", kind="action", state="pending", summary="Run flow x", created_at=0.0, expires_at=60.0,
                   reason="it follows untrusted text from a web page at example.com", tool="flow_run", requester={})

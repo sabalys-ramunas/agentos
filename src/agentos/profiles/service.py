@@ -8,7 +8,6 @@
     get(ref) / list(workspace)           read
     status(ref)                          per account: what it should show, and how far it is
     for_surface(surface)                 the approved profile an account is attached to
-    engine_profile(surface, site)        what the engagement engine edits on that account (or None)
     voice(surface)                       the voice drafts and agents write in on that account
     context(ref, task)                   the approved profile, sliced for design, build, write or review
     propose(ref, change, reason, by=)    a draft of brand, guidelines or references, with its reason and diff
@@ -17,25 +16,12 @@
 at once. Anyone else saves a draft that does nothing until the owner approves it, so an agent
 can never change a public identity on its own. Once a version is approved, nothing asks again:
 the owner's save (or approval) and the logins they saved are their consent, and every account is
-brought in line without a card (LinkedIn by agentos.engage.profile, learned sites by
-agentos.profiles.sync).
+brought in line without a card by its learned operations (agentos.profiles.sync).
 
 **Accounts.** An account (a surface, `workspace/name`) is attached to at most one approved
 profile. Its values come from agentos.profiles.mapping: what the site has, the account's `map`
 and `overrides`, the site's limits. A value a site would not take is refused when the profile is
 saved (the message names the account and the field), never cut short later.
-
-**The engine.** `build` hands the engagement engine this service (`EngageStore.profiles`): for an
-attached account, `engine_profile` replaces the program's inline `profile:`, so the profile is
-the one source of truth and nothing is copied into programs. The engine still needs an approved
-program on the account to plan its edits (`risk: off` is enough), and today it edits LinkedIn
-person profiles only (name, headline, About, photo, cover). Every other field is `manual`:
-profile_sync_status lists it, and an agent changes it in the lane by hand.
-
-**Photos** are kept once, by the hash of their bytes. When the engine needs one on an account,
-it is copied into that account's lane inbox once (files_put), and the copy's id is remembered
-(`lane_photos`), so the edit's target stays the same value from one window to the next and the
-edit is not made again.
 """
 
 from __future__ import annotations
@@ -54,20 +40,11 @@ from pydantic_core import PydanticCustomError
 
 from agentos.core.config import home_from_env
 from agentos.core.errors import InvalidRequest, NotFound
-from agentos.engage.errors import OwnerOnly
-from agentos.engage.governor import is_owner
-from agentos.engage.service import _who, validation_message
 from agentos.profiles import context as ctx_slice
 from agentos.profiles import mapping
-from agentos.profiles.errors import ProfileInvalid, ProfileSecret
-from agentos.profiles.models import (
-    PROFILE_ID_RE,
-    Attachment,
-    Profile,
-    ProfileState,
-    ProfileVersion,
-    clean_text,
-)
+from agentos.profiles.errors import OwnerOnly, ProfileInvalid, ProfileSecret
+from agentos.profiles.fields import clean_text
+from agentos.profiles.models import PROFILE_ID_RE, Attachment, Profile, ProfileState, ProfileVersion
 from agentos.profiles.screen import flags_note, instruction_flags
 from agentos.profiles.sections import refuse_secrets
 from agentos.profiles.store import FONT_TYPES, PHOTO_TYPES, SVG, ProfileStore
@@ -83,6 +60,31 @@ SCREENED_NEXT = (" Some of its text reads like an instruction to agents (`screen
                  "before approving. If it is a rule for the work, word it as one.")
 # which stored file types each field may name
 FILE_KINDS = {"photo": set(PHOTO_TYPES), "image": {*PHOTO_TYPES, SVG}, "font": set(FONT_TYPES)}
+
+
+def is_owner(by: Any) -> bool:
+    """The human owner in person (the CLI on the node, the owner's panel session). Agents,
+    flows, brains and other humans are not."""
+    if by is None:
+        return False
+    p = by if isinstance(by, dict) else (by.model_dump() if hasattr(by, "model_dump") else vars(by))
+    return p.get("kind") == "human" and bool(p.get("id")) and p.get("id") == p.get("owner", "owner")
+
+
+def _who(by: Any) -> dict[str, Any] | None:
+    if by is None:
+        return None
+    p = by if isinstance(by, dict) else (by.model_dump() if hasattr(by, "model_dump") else dict(vars(by)))
+    return {k: p.get(k) for k in ("kind", "id", "owner") if p.get(k) is not None}
+
+
+def validation_message(exc: ValidationError) -> str:
+    parts = []
+    for err in exc.errors()[:5]:
+        where = ".".join(str(x) for x in err.get("loc", ()) if not str(x).startswith("function-"))
+        msg = str(err.get("msg", "")).removeprefix("Value error, ")
+        parts.append(f"{where}: {msg}" if where else msg)
+    return "; ".join(parts)
 
 
 def value_hash(value: Any) -> str:
@@ -218,12 +220,6 @@ class ProfilesService:
         for a in profile.accounts:
             r = mapping.resolve(profile, a)
             problems += r.problems
-            if not r.problems and r.engine:
-                try:          # what the engine will be handed must pass its own checks too
-                    mapping.engine_profile(r, lambda _ref: "in_00000000")
-                except (ValidationError, ValueError) as e:
-                    why = validation_message(e) if isinstance(e, ValidationError) else str(e)
-                    problems.append(f"{a.surface}: the engine would refuse this value ({why})")
             other = self.for_surface(a.surface)
             if other is not None and (other.definition.workspace, other.definition.id) != (profile.workspace, profile.id):
                 problems.append(f"{a.surface} is attached to profile {other.definition.workspace}/"
@@ -472,70 +468,13 @@ class ProfilesService:
             return None
         return mapping.resolve(pv.definition, pv.definition.attachment(surface))
 
-    def engine_profile(self, surface: str, site: str | None = None, *, copy: bool = True) -> Any:
-        """The engagement engine's profile for an attached account (agentos.engage.models.Profile),
-        or None when no approved profile covers it or the engine edits none of its fields. A
-        photo the account's lane cannot get yet is left out (and logged), never guessed."""
-        r = self.resolved(surface)
-        if r is None or (site is not None and mapping.site_of(site) != r.site) or r.problems:
-            return None
-        try:
-            return mapping.engine_profile(r, lambda ref: self.lane_photo(surface, ref, copy=copy))
-        except (ValidationError, ValueError):
-            log.warning("profiles: %s does not resolve to a valid engine profile", surface, exc_info=True)
-            return None
-
-    def lane_photo(self, surface: str, ref: str, *, copy: bool = True) -> str | None:
-        """The id of `ref`'s copy in the surface's lane inbox, copied there once. With `copy`
-        False (a read such as status) only an existing copy is returned."""
-        files = self._lane_files(surface)
-        if files is None:
-            return None
-        lane, box = files
-        known = self.store.lane_photo(surface, ref)
-        if known is not None and known["lane"] == lane:
-            try:
-                box.get(known["file_id"])
-                return str(known["file_id"])
-            except Exception:  # noqa: BLE001 - gone from the inbox: copied again below
-                log.info("profiles: %s's copy of %s is gone from %s; copying it again", surface, ref, lane)
-        if not copy:
-            return None
-        try:
-            path, meta = self.store.photo(ref)
-            stored = box.put_bytes(meta["name"] or path.name, path.read_bytes(), source="put")
-        except Exception:  # the field waits; status shows it
-            log.warning("profiles: could not copy %s into %s", ref, lane, exc_info=True)
-            return None
-        self.store.set_lane_photo(surface, ref, lane, stored.id)
-        return stored.id
-
-    def _lane_files(self, surface: str) -> tuple[str, Any] | None:
-        """The surface's lane and its files, only on a running node: the surfaces service says
-        which lane an account acts through, and without it (the CLI) a guess could copy into the
-        wrong lane and change the photo's id."""
-        if self.runtime is None or self.runtime.get("config") is None:
-            return None
-        surfaces = self.runtime.get("surfaces")
-        if surfaces is None:
-            return None
-        from agentos.node.io_tools import lane_files
-
-        found = surfaces.find(surface)
-        lane = found.lane if found is not None else surface
-        return lane, lane_files(self.runtime, lane)
-
     # ---------------------------------------------------------------- sync status
     def status(self, ref: str) -> dict[str, Any]:
         """Per attached account of the approved profile: each site field with its value's state.
 
-        in_sync           the engine proved the account shows it
+        in_sync           a learned operation proved the account shows it
         done_by_hand      someone changed it in the lane and said so (profile_mark_synced), for this value
-        due               the engine edits it at the account's next session
-        awaiting_approval an edit waits for the owner's card (or ran and is not proved yet)
-        denied            the owner denied that edit; reset the field to try again
-        failed            the last try failed; it is tried again on a later day
-        no_program        the engine edits it, but the account has no approved engagement program
+        failed            the last try failed; it is tried again later
         manual            nobody taught agentos this site's field yet (`learnable` says whether an
                           agent can: profile_learn_start), or it is changed in the lane by hand
         learning          an agent is teaching it now; learn_failed: the last lesson did not verify
@@ -548,21 +487,15 @@ class ProfilesService:
         pv = self.store.active(ws, pid)
         if pv is None:
             raise NotFound(f"profile {ref} has no approved version yet")
-        engage = self.runtime.get("engage") if self.runtime is not None else None
         accounts = []
         for a in pv.definition.accounts:
             r = mapping.resolve(pv.definition, a)
             marks = self.store.marks(a.surface)
             fields = {f: {"value": v, "state": "done_by_hand" if (marks.get(f) or {}).get("value_hash") == value_hash(v)
                           else "manual"} for f, v in r.values.items()}
-            program = engage.store.active(a.surface) if engage is not None else None
             self._learned_states(a.surface, r, fields)
-            if r.engine:
-                states = self._engine_states(engage, program, a.surface, r)
-                for f in r.engine:
-                    fields[f]["state"] = states.get(f, "no_program")
             accounts.append({"surface": a.surface, "site": r.site, "fields": fields, "skipped": r.skipped,
-                             "problems": r.problems, "program": program.definition.id if program else None})
+                             "problems": r.problems})
         return {"profile": ref, "version": pv.version, "accounts": accounts}
 
     def _learned_states(self, surface: str, r: mapping.Resolved, fields: dict[str, dict[str, Any]]) -> None:
@@ -607,38 +540,9 @@ class ProfilesService:
             self.store.mark(surface, f, value_hash(r.values[f]), by=who)
         return {"surface": surface, "marked": fields}
 
-    def _engine_states(self, engage: Any, program: Any, surface: str, r: mapping.Resolved) -> dict[str, str]:
-        if engage is None or program is None:
-            return {}
-        from agentos.engage import profile as ep
-
-        now = engage.now()
-        known, blocked = ep.history(engage.store, surface, now=now, day=now.date())
-        wanted = self.engine_profile(surface, program.definition.site, copy=False)   # a read: copies nothing
-        want = ep.desired(program.definition.model_copy(update={"profile": wanted}))
-        rows = {f: [] for f in ep.FIELDS}
-        for f, value, row in ep._rows(engage.store, surface):
-            rows[f].append((value, row))
-        out = {}
-        for f in r.engine:
-            target = want.get(f)
-            if target is None:
-                out[f] = "due"          # a photo not copied into the lane yet
-            elif ep._same(f, target, known.get(f)):
-                out[f] = "in_sync"
-            elif (f, target) in blocked:
-                last = next((row for v, row in reversed(rows[f]) if v == target), None)
-                reason = (last or {}).get("reason") or ""
-                out[f] = "denied" if reason in ep.DENIED else (
-                    "failed" if (last or {}).get("status") == "failed" else "awaiting_approval")
-            else:
-                last = next((row for v, row in reversed(rows[f]) if v == target), None)
-                out[f] = "failed" if last is not None and last.get("status") == "failed" else "due"
-        return out
-
 
 def build(runtime: Any, *, home: Path | None = None) -> ProfilesService:
-    """The service, handed to the engagement engine when the node has one."""
+    """The service, registered on the runtime when there is one."""
     from agentos.profiles.learner import ProfileLearner
     from agentos.profiles.sync import ProfileSync
 
@@ -647,7 +551,4 @@ def build(runtime: Any, *, home: Path | None = None) -> ProfilesService:
     service.sync = ProfileSync(service, service.learner)
     if runtime is not None:
         runtime.register(SERVICE_NAME, service)
-        engage = runtime.get("engage")
-        if engage is not None:
-            engage.store.profiles = service
     return service

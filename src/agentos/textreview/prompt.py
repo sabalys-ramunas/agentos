@@ -119,29 +119,40 @@ def parse(reply: str) -> tuple[dict[str, Any] | None, list[str]]:
             problems.append("instructions must be the whole new text, or left out")
     for key in ("tools", "errors"):
         if key in data:
-            value = data[key]
-            if isinstance(value, dict) and all(isinstance(k, str) and isinstance(v, str) for k, v in value.items()):
-                out[key] = dict(value) if value else None
-            else:
-                problems.append(f"{key} must map each name to its whole new text")
+            _read_texts(data[key], key, out, problems)
     if "recipes" in data:
-        value = data["recipes"]
-        if isinstance(value, dict) and all(isinstance(fields, dict) and all(isinstance(v, str) for v in fields.values())
-                                           for fields in value.values()):
-            out["recipes"] = {topic: dict(fields) for topic, fields in value.items()} or None
-            bad = sorted({f for fields in value.values() for f in fields} - set(RECIPE_FIELDS))
-            if bad:
-                problems.append(f"recipe fields {bad} do not exist: only {', '.join(RECIPE_FIELDS)}")
-        else:
-            problems.append("recipes must map each topic to the fields it changes, each a string")
-    changes = data.get("changes")
+        _read_recipes(data["recipes"], out, problems)
+    _read_changes(data.get("changes"), out, problems)
+    out = {k: v for k, v in out.items() if v is not None}
+    if out.get("changes") == [] and any(k in out for k in EDIT_KEYS):
+        problems.append("every edit needs an entry in changes that says what it is and cites its evidence")
+    return (out if not problems else None), problems
+
+
+def _read_texts(value: Any, key: str, out: dict[str, Any], problems: list[str]) -> None:
+    """tools or errors: each name mapped to its whole new text."""
+    if isinstance(value, dict) and all(isinstance(k, str) and isinstance(v, str) for k, v in value.items()):
+        out[key] = dict(value) if value else None
+    else:
+        problems.append(f"{key} must map each name to its whole new text")
+
+
+def _read_recipes(value: Any, out: dict[str, Any], problems: list[str]) -> None:
+    """recipes: each topic mapped to the fields it changes, each a string."""
+    if not (isinstance(value, dict) and all(isinstance(fields, dict) and all(isinstance(v, str) for v in fields.values())
+                                            for fields in value.values())):
+        problems.append("recipes must map each topic to the fields it changes, each a string")
+        return
+    out["recipes"] = {topic: dict(fields) for topic, fields in value.items()} or None
+    bad = sorted({f for fields in value.values() for f in fields} - set(RECIPE_FIELDS))
+    if bad:
+        problems.append(f"recipe fields {bad} do not exist: only {', '.join(RECIPE_FIELDS)}")
+
+
+def _read_changes(changes: Any, out: dict[str, Any], problems: list[str]) -> None:
     if not isinstance(changes, list) or not all(
             isinstance(c, dict) and all(isinstance(c.get(f), str) and c[f].strip() for f in CHANGE_FIELDS)
             for c in changes):
         problems.append("changes must be a list of {what, evidence, fixes}, each a non-empty string")
     else:
         out["changes"] = [{f: c[f].strip() for f in CHANGE_FIELDS} for c in changes]
-    out = {k: v for k, v in out.items() if v is not None}
-    if out.get("changes") == [] and any(k in out for k in EDIT_KEYS):
-        problems.append("every edit needs an entry in changes that says what it is and cites its evidence")
-    return (out if not problems else None), problems

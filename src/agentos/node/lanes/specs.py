@@ -131,7 +131,7 @@ class SpecsMixin:
             raise
         try:
             if fingerprint is not None:
-                from agentos.node.engine_camoufox import write_private_json
+                from agentos.node.camoufox.engine import write_private_json
                 write_private_json(fp_dest, fingerprint)
             lanefmt.stamp_new(self.config.lane_dir(spec.id))
             if spec.device:
@@ -280,7 +280,7 @@ def _first_error(e: ValueError) -> str:
 
 
 def _browsers_using(profile: Path) -> list[int]:
-    from agentos.node.engine_camoufox import browser_pids
+    from agentos.node.camoufox.engine import browser_pids
     return browser_pids(profile)
 
 

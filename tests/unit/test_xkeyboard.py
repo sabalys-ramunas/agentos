@@ -108,7 +108,7 @@ def test_the_keyboard_holds_no_reference_to_a_page():
 
 
 def test_forget_context_drops_the_keyboard():
-    from agentos.node.engine_camoufox import forget_context
+    from agentos.node.camoufox.engine import forget_context
 
     context = Context()
     human.X_KEYBOARDS[context] = XKeyboard(":1")

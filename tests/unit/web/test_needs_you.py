@@ -1,8 +1,7 @@
 """One count of what needs a person, as the node says it (`/api/status`) and as Needs you shows it.
 
 The status count is the sum of its parts: what to decide, what did not go through after a yes, accounts
-that need a hand (an agent's login request among them), login codes, runs that stopped halfway, and
-engagement plans waiting for the owner. Each run counts once. The web app's count.ts sums the same parts
+that need a hand (an agent's login request among them), login codes and runs that stopped halfway. Each run counts once. The web app's count.ts sums the same parts
 from the lists, so the rail, the status pill and the Needs you header agree.
 """
 
@@ -46,10 +45,10 @@ def test_status_counts_a_yes_whose_run_failed(client, node) -> None:
     _run(node, approval_id, RunStatus.FAILED)
     status = client.get("/api/status").json()
     detail = status["needs_you_detail"]
-    assert detail["outcomes"] == 1 and detail["runs"] == 0 and detail["plans"] >= 0
+    assert detail["outcomes"] == 1 and detail["runs"] == 0 and "plans" not in detail
     # the pending yes left the count when it was decided; its failed run came back into it
     assert status["needs_you_all"] == before["needs_you_all"]
-    # panel/'s own count is what it always was: the decided yes left it, and it does not list failed runs
+    # the older count is what it always was: the decided yes left it, and it does not list failed runs
     assert status["needs_you"] == before["needs_you"] - 1
 
 
@@ -76,7 +75,7 @@ def test_an_agents_login_request_is_a_hand_and_counted(client, node) -> None:
     assert LANE in status["needs_you_detail"]["logins"]
     assert LANE in status["needs_you_detail"]["hands"]
     assert status["needs_you_all"] == before["needs_you_all"] + 1
-    # panel/ has no card for a login request, so its count and its list stay as they were
+    # the older count has no card for a login request, so it and its list stay as they were
     assert LANE not in status["needs_you_detail"]["lanes"] and status["needs_you"] == before["needs_you"]
     listed = {item["id"]: item for item in client.get("/api/lanes").json()}
     assert listed[LANE]["login_request"]["why"] == "Social signed this lane out."
@@ -92,4 +91,4 @@ def test_a_login_request_leaves_the_count_when_a_login_starts(client, node) -> N
 
 def test_the_status_parts_are_all_there(client) -> None:
     detail = client.get("/api/status").json()["needs_you_detail"]
-    assert {"approvals", "questions", "codes", "lanes", "hands", "outcomes", "runs", "plans", "logins"} <= set(detail)
+    assert {"approvals", "questions", "codes", "lanes", "hands", "outcomes", "runs", "logins"} <= set(detail)

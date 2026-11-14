@@ -32,9 +32,9 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 from starlette.routing import Route
 
-from agentos.core.errors import AgentosError, InvalidRequest
-from agentos.runner.api import _body, _error
-from agentos.runner.runner import OWNER_GRANT
+from agentos.core.errors import InvalidRequest
+from agentos.runner.api import _body, handle
+from agentos.runner.run_rules import OWNER_GRANT
 from agentos.runner.siteapis.discover import definition_from
 from agentos.runner.siteapis.service import SERVICE_NAME
 
@@ -53,17 +53,13 @@ def _grant(request: Request) -> str | None:
 
 
 def routes(runtime: Any) -> list[Route]:
+    return _draft_routes(runtime) + _api_routes(runtime)
+
+
+def _draft_routes(runtime: Any) -> list[Route]:
+    """Listing, saving a draft, and discovering candidates on a page."""
     def svc() -> Any:
         return runtime.require(SERVICE_NAME)
-
-    def handle(fn):
-        async def endpoint(request: Request) -> Response:
-            try:
-                return await fn(request)
-            except AgentosError as e:
-                return _error(e)
-        endpoint.__name__ = fn.__name__
-        return endpoint
 
     @handle
     async def list_apis(request: Request) -> Response:
@@ -90,6 +86,26 @@ def routes(runtime: Any) -> list[Route]:
         if not body.get("on"):
             raise InvalidRequest("on names the lane or surface to read")
         return JSONResponse(await svc().discover(body["on"], body.get("url")))
+
+    @handle
+    async def discover_view(request: Request) -> Response:
+        on = request.query_params.get("on")
+        if not on:
+            return JSONResponse(None)
+        return JSONResponse(await svc().discover(on, None))
+
+    return [
+        Route("/api/site-apis", list_apis, methods=["GET"]),
+        Route("/api/site-apis", create, methods=["POST"]),
+        Route("/api/site-apis/discover", discover, methods=["POST"]),
+        Route("/api/site-apis/discover", discover_view, methods=["GET"]),
+    ]
+
+
+def _api_routes(runtime: Any) -> list[Route]:
+    """One site API: read, change, remove, and what a person does with it."""
+    def svc() -> Any:
+        return runtime.require(SERVICE_NAME)
 
     @handle
     async def get(request: Request) -> Response:
@@ -123,13 +139,6 @@ def routes(runtime: Any) -> list[Route]:
                                                      on=body.get("on"), grant_id=_grant(request)))
 
     @handle
-    async def discover_view(request: Request) -> Response:
-        on = request.query_params.get("on")
-        if not on:
-            return JSONResponse(None)
-        return JSONResponse(await svc().discover(on, None))
-
-    @handle
     async def read_now(request: Request) -> Response:
         return JSONResponse(await svc().read_now(request.path_params["id"], by=_by(request), grant_id=_grant(request)))
 
@@ -156,10 +165,6 @@ def routes(runtime: Any) -> list[Route]:
                            "see Routines, When it changes.")
 
     return [
-        Route("/api/site-apis", list_apis, methods=["GET"]),
-        Route("/api/site-apis", create, methods=["POST"]),
-        Route("/api/site-apis/discover", discover, methods=["POST"]),
-        Route("/api/site-apis/discover", discover_view, methods=["GET"]),
         Route("/api/site-apis/{id}", get, methods=["GET"]),
         Route("/api/site-apis/{id}", patch, methods=["PATCH"]),
         Route("/api/site-apis/{id}", delete, methods=["DELETE"]),

@@ -99,26 +99,39 @@ def resolve(
     if lim:
         limits = limits.model_copy(update=lim)
 
-    if profile.network not in ("shared", "isolated", "off"):
-        raise InvalidRequest(f"network must be shared, isolated or off, not {profile.network!r}")
-    if profile.filesystem not in ("shared", "overlay", "ephemeral"):
-        raise InvalidRequest(f"filesystem must be shared, overlay or ephemeral, not {profile.filesystem!r}")
-    if profile.processes not in ("shared", "isolated"):
-        raise InvalidRequest(f"processes must be shared or isolated, not {profile.processes!r}")
-    if profile.programs not in ("base", "overlay"):
-        raise InvalidRequest(f"programs must be base or overlay, not {profile.programs!r}")
+    _check_profile(profile, kind)
+    _settle_limits(profile, limits, preset)
+    # programs dial: base -> installs refused, overlay -> lane_install allowed
+    policy.install = profile.programs == "overlay" and preset != Preset.ACCOUNT
+    _tier(profile, policy)
+    return profile, limits, policy
 
+
+DIAL_WORDS = {"network": ("shared", "isolated", "off"), "filesystem": ("shared", "overlay", "ephemeral"),
+              "processes": ("shared", "isolated"), "programs": ("base", "overlay")}
+
+
+def _check_profile(profile: IsolationProfile, kind: LaneKind) -> None:
+    """Each dial one of its words, the allowlist and volumes well formed, and the dials agree."""
+    for dial, words in DIAL_WORDS.items():
+        value = getattr(profile, dial)
+        if value not in words:
+            listed = ", ".join(words[:-1]) + f" or {words[-1]}"
+            raise InvalidRequest(f"{dial} must be {listed}, not {value!r}")
     profile.egress_allowlist = sorted({normalize_host(h) for h in profile.egress_allowlist})
     for v in profile.volumes:
         if not VOLUME_RE.match(v):
             raise InvalidRequest(f"volume names are lowercase letters, digits and dashes: {v!r}")
-
     if profile.egress_allowlist and profile.network != "isolated":
         raise InvalidRequest("an egress allowlist needs network=isolated (off has no egress, shared has no forwarder)")
     if kind == LaneKind.SERVICE and profile.network == "shared":
         raise InvalidRequest(
             "service lanes never share the node network, so nothing they open can listen outside "
             "127.0.0.1 or the lane; use network=isolated or off")
+
+
+def _settle_limits(profile: IsolationProfile, limits: Limits, preset: Preset) -> None:
+    """A disk limit only where the filesystem can hold one, and every limit positive."""
     if profile.filesystem == "shared" and limits.disk_mb is not None and preset != Preset.WORKBENCH:
         limits.disk_mb = None
     if profile.filesystem == "ephemeral" and not limits.disk_mb:
@@ -130,10 +143,9 @@ def resolve(
     if limits.cpus is not None and limits.cpus <= 0:
         raise InvalidRequest("cpus must be positive")
 
-    # programs dial: base -> installs refused, overlay -> lane_install allowed
-    policy.install = profile.programs == "overlay" and preset != Preset.ACCOUNT
 
-    # tiers (docs/ARCHITECTURE.md section 5)
+def _tier(profile: IsolationProfile, policy: Policy) -> None:
+    """The isolation tier (docs/ARCHITECTURE.md section 5) and the warning a weaker one carries."""
     if profile.network == "shared":
         policy.tier = 2
     elif profile.filesystem == "shared" or profile.processes == "shared":
@@ -148,7 +160,6 @@ def resolve(
         shared = [d for d in ("network", "filesystem", "processes") if getattr(profile, d) == "shared"]
         policy.warning = (f"Weaker isolation: this lane shares the node {', '.join(shared)}. "
                           "Do not bind secrets or private data to it.")
-    return profile, limits, policy
 
 
 def describe(lane: EnvLane, *, mechanisms: bool = True) -> str:

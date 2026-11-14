@@ -159,7 +159,7 @@ def test_a_second_action_does_not_start_a_second_drift():
 
 
 def test_forget_context_drops_a_closed_lanes_entries():
-    from agentos.node.engine_camoufox import forget_context
+    from agentos.node.camoufox.engine import forget_context
 
     async def go():
         page = Page()

@@ -190,8 +190,20 @@ def classify_fields(fields: Sequence[FieldInfo]) -> dict[str, FieldRole]:
     (search boxes, comments, newsletter inputs, new-password fields) are absent."""
     roles: dict[str, FieldRole] = {}
     live = [f for f in fields if interactable(f)]
+    _explicit_roles(live, roles)
+    _username_before_password(live, roles)
+    groups: dict[tuple, list[FieldInfo]] = {}
+    for f in live:
+        groups.setdefault((f.form, tuple(f.frame_origins)), []).append(f)
+    for group in groups.values():
+        _username_first_step(group, roles)
+    for group in groups.values():
+        _code_by_structure(group, roles)
+    return roles
 
-    # 1. explicit signals
+
+def _explicit_roles(live: list[FieldInfo], roles: dict[str, FieldRole]) -> None:
+    """1. explicit signals: autocomplete tokens and password inputs."""
     for f in live:
         t, toks = _ftype(f), f.autocomplete_tokens
         if "one-time-code" in toks and (t in TEXTLIKE or t == "password"):
@@ -202,7 +214,9 @@ def classify_fields(fields: Sequence[FieldInfo]) -> dict[str, FieldRole]:
         elif t in TEXTLIKE and "username" in toks:
             roles[f.locator] = FieldRole.USERNAME
 
-    # 2. the text-like input right before a password field in the same form
+
+def _username_before_password(live: list[FieldInfo], roles: dict[str, FieldRole]) -> None:
+    """2. the text-like input right before a password field in the same form."""
     for i, p in enumerate(live):
         if roles.get(p.locator) is not FieldRole.PASSWORD:
             continue
@@ -212,38 +226,36 @@ def classify_fields(fields: Sequence[FieldInfo]) -> dict[str, FieldRole]:
         if before:
             roles[before[-1].locator] = FieldRole.USERNAME
 
-    # 3. username-first step: the only free text-like input of a form that has no password
-    groups: dict[tuple, list[FieldInfo]] = {}
-    for f in live:
-        groups.setdefault((f.form, tuple(f.frame_origins)), []).append(f)
-    for group in groups.values():
-        if any(roles.get(f.locator) in (FieldRole.PASSWORD, FieldRole.USERNAME) for f in group):
-            continue
-        free = [f for f in group if _ftype(f) in TEXTLIKE and f.locator not in roles]
-        if len(free) == 1:
-            f = free[0]
-            hinted = _USER_HINT.search(f.name) or _USER_HINT.search(f.id)
-            code_like = _OTP_HINT.search(f.name) or _OTP_HINT.search(f.id)
-            if _ftype(f) == "email" or "email" in f.autocomplete_tokens or (hinted and not code_like):
-                roles[f.locator] = FieldRole.USERNAME
 
-    # 4. one-time-code by structure: numeric input with a code-like name, in a form with
-    #    no password field; or a group of 4 to 8 single-character inputs
-    for group in groups.values():
-        if any(roles.get(f.locator) is FieldRole.PASSWORD for f in group):
-            continue
-        free = [f for f in group if f.locator not in roles and (_ftype(f) in TEXTLIKE or _ftype(f) == "password")]
-        singles = [f for f in free if f.maxlength == 1]
-        if 4 <= len(singles) <= 8 and len(singles) == len(free):
-            for f in singles:
-                roles[f.locator] = FieldRole.OTP
-            continue
-        for f in free:
-            numeric = f.inputmode.lower() == "numeric" or _ftype(f) in ("tel", "number")
-            sized = f.maxlength is None or 4 <= f.maxlength <= 10
-            if numeric and sized and (_OTP_HINT.search(f.name) or _OTP_HINT.search(f.id)):
-                roles[f.locator] = FieldRole.OTP
-    return roles
+def _username_first_step(group: list[FieldInfo], roles: dict[str, FieldRole]) -> None:
+    """3. username-first step: the only free text-like input of a form that has no password."""
+    if any(roles.get(f.locator) in (FieldRole.PASSWORD, FieldRole.USERNAME) for f in group):
+        return
+    free = [f for f in group if _ftype(f) in TEXTLIKE and f.locator not in roles]
+    if len(free) == 1:
+        f = free[0]
+        hinted = _USER_HINT.search(f.name) or _USER_HINT.search(f.id)
+        code_like = _OTP_HINT.search(f.name) or _OTP_HINT.search(f.id)
+        if _ftype(f) == "email" or "email" in f.autocomplete_tokens or (hinted and not code_like):
+            roles[f.locator] = FieldRole.USERNAME
+
+
+def _code_by_structure(group: list[FieldInfo], roles: dict[str, FieldRole]) -> None:
+    """4. one-time-code by structure: numeric input with a code-like name, in a form with
+    no password field; or a group of 4 to 8 single-character inputs."""
+    if any(roles.get(f.locator) is FieldRole.PASSWORD for f in group):
+        return
+    free = [f for f in group if f.locator not in roles and (_ftype(f) in TEXTLIKE or _ftype(f) == "password")]
+    singles = [f for f in free if f.maxlength == 1]
+    if 4 <= len(singles) <= 8 and len(singles) == len(free):
+        for f in singles:
+            roles[f.locator] = FieldRole.OTP
+        return
+    for f in free:
+        numeric = f.inputmode.lower() == "numeric" or _ftype(f) in ("tel", "number")
+        sized = f.maxlength is None or 4 <= f.maxlength <= 10
+        if numeric and sized and (_OTP_HINT.search(f.name) or _OTP_HINT.search(f.id)):
+            roles[f.locator] = FieldRole.OTP
 
 
 def otp_group(fields: Sequence[FieldInfo], first: FieldInfo) -> list[FieldInfo]:

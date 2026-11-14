@@ -28,9 +28,11 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
-from agentos.policy import globs
+from agentos.core import globs
 from agentos.policy.errors import Conflict
 from agentos.policy.grants import GrantBlock
+
+EXEMPT_TOOLS = frozenset({"lane_freeze", "lane_control", "whoami"})  # callable on a frozen lane
 
 log = logging.getLogger("agentos.policy")
 
@@ -153,25 +155,9 @@ def revoke_reaching(policy: Any, reach: Reach, *, by: str, reason: str) -> dict[
     by_id = {r["id"]: r for r in rows}
     cascaded: set[str] = set()
     for row in rows:
-        path = [p for p in row["path"].split("/") if p]
-        if any(p in dead for p in path):
+        subject = _swept_subject(row, by_id, dead, reach, now)
+        if subject is None:
             continue
-        try:
-            subject = json.loads(row["subject"])
-            root_kind = json.loads(by_id[path[0]]["subject"]).get("kind") if path and path[0] in by_id else None
-        except (ValueError, KeyError, TypeError):
-            subject, root_kind = {}, None
-        # a site key's next call replaces a grant that ran out, so it must be swept too, or it outlives this
-        if row["expires_at"] is not None and row["expires_at"] < now and not str(subject.get("id")).startswith("site-key:"):
-            continue
-        if root_kind == "human" or subject.get("kind") == "human":
-            continue  # a person's grant: people keep taking over and looking
-        try:
-            blocks = [_block(by_id[p]) for p in path]
-        except Exception:  # noqa: BLE001  (a chain this version cannot read: revoke it to be safe)
-            blocks = None
-        if blocks is not None and not reach.holds(blocks):
-            continue  # it reaches beyond the scope: kept, and refused inside it by the freeze gate
         try:
             result = policy.revoke(row["id"], by=by, reason=reason)
         except Conflict:
@@ -187,28 +173,59 @@ def revoke_reaching(policy: Any, reach: Reach, *, by: str, reason: str) -> dict[
     out["cascades_to"] = sorted(cascaded)
     _revoke_foreign(policy, reach, out, now)
     revoked_ids = {g["id"] for g in out["grants"]} | cascaded
-    approvals = getattr(policy, "approvals", None)
-    if approvals is not None:
-        try:
-            standing = approvals.list_standing(active_only=True)
-        except Exception as exc:  # noqa: BLE001
-            standing = []
-            out["errors"].append(f"standing approvals could not be read ({type(exc).__name__})")
-        for sa in standing:
-            covers = (sa.grant_id in revoked_ids or any(reach.workspace(w) for w in sa.workspaces)
-                      or any(reach.pattern(p) for p in sa.lanes))
-            if not covers:
-                continue
-            try:
-                approvals.revoke_standing(sa.id, by=by)
-                out["standing"].append(sa.id)
-            except Conflict:
-                continue
-            except Exception as exc:  # noqa: BLE001
-                out["errors"].append(f"standing approval {sa.id} could not be revoked ({type(exc).__name__})")
+    _revoke_standing_over(policy, reach, revoked_ids, out, by=by)
     with contextlib.suppress(Exception):
         policy.bus.publish("grant", {"state": "frozen", "grants": sorted(revoked_ids), "standing": out["standing"]})
     return out
+
+
+def _swept_subject(row: Any, by_id: dict[str, Any], dead: set[str], reach: Reach, now: float) -> dict | None:
+    """The subject of a grant row the sweep revokes, or None when it keeps it: already revoked, run
+    out (a site key's is swept still), a person's, or reaching beyond the scope."""
+    path = [p for p in row["path"].split("/") if p]
+    if any(p in dead for p in path):
+        return None
+    try:
+        subject = json.loads(row["subject"])
+        root_kind = json.loads(by_id[path[0]]["subject"]).get("kind") if path and path[0] in by_id else None
+    except (ValueError, KeyError, TypeError):
+        subject, root_kind = {}, None
+    # a site key's next call replaces a grant that ran out, so it must be swept too, or it outlives this
+    if row["expires_at"] is not None and row["expires_at"] < now and not str(subject.get("id")).startswith("site-key:"):
+        return None
+    if root_kind == "human" or subject.get("kind") == "human":
+        return None  # a person's grant: people keep taking over and looking
+    try:
+        blocks = [_block(by_id[p]) for p in path]
+    except Exception:  # noqa: BLE001  (a chain this version cannot read: revoke it to be safe)
+        blocks = None
+    if blocks is not None and not reach.holds(blocks):
+        return None  # it reaches beyond the scope: kept, and refused inside it by the freeze gate
+    return subject
+
+
+def _revoke_standing_over(policy: Any, reach: Reach, revoked_ids: set[str], out: dict[str, Any], *, by: str) -> None:
+    """Revoke the standing approvals of a revoked grant, or over the frozen scope."""
+    approvals = getattr(policy, "approvals", None)
+    if approvals is None:
+        return
+    try:
+        standing = approvals.list_standing(active_only=True)
+    except Exception as exc:  # noqa: BLE001
+        standing = []
+        out["errors"].append(f"standing approvals could not be read ({type(exc).__name__})")
+    for sa in standing:
+        covers = (sa.grant_id in revoked_ids or any(reach.workspace(w) for w in sa.workspaces)
+                  or any(reach.pattern(p) for p in sa.lanes))
+        if not covers:
+            continue
+        try:
+            approvals.revoke_standing(sa.id, by=by)
+            out["standing"].append(sa.id)
+        except Conflict:
+            continue
+        except Exception as exc:  # noqa: BLE001
+            out["errors"].append(f"standing approval {sa.id} could not be revoked ({type(exc).__name__})")
 
 
 def _revoke_foreign(policy: Any, reach: Reach, out: dict[str, Any], now: float) -> None:
@@ -255,7 +272,7 @@ def _revoke_foreign(policy: Any, reach: Reach, out: dict[str, Any], now: float) 
 
 
 def _block(row: Any) -> GrantBlock:
-    from agentos.policy.service import _stored_block
+    from agentos.policy.registry import _stored_block
 
     return _stored_block(row)
 
@@ -285,7 +302,7 @@ def check_new_grant(policy: Any, block: GrantBlock) -> None:
             reach = Reach(everything=True)
         if not reach.holds([block]):
             continue
-        from agentos.freeze.errors import Frozen
+        from agentos.core.errors import Frozen
 
         where = "the whole mesh" if scope == "mesh" else ("this node" if scope == "node" else f"{scope} {target}")
         why = f" ({rec.reason})" if getattr(rec, "reason", None) else ""
@@ -304,7 +321,7 @@ def _freezes(policy: Any) -> list[Any]:
     home = getattr(policy, "home", None)
     if home is None or not (Path(home) / "freeze").is_dir():
         return []
-    from agentos.freeze.store import FreezeStore
+    from agentos.policy.freeze_store import FreezeStore
 
     try:
         records, _error = FreezeStore(Path(home)).load()
@@ -331,8 +348,6 @@ def frozen_scope(policy: Any, ctx: Any, *, lane_id: str | None = None, workspace
     freeze = policy.runtime.get("freeze") if policy.runtime is not None else None
     if freeze is None or not callable(getattr(freeze, "frozen_for", None)):
         return None
-    from agentos.freeze.service import EXEMPT_TOOLS
-
     if getattr(ctx, "tool", None) in EXEMPT_TOOLS:
         return None
     ws = workspace if isinstance(workspace, str) and workspace else None
@@ -356,14 +371,6 @@ def frozen_note(freeze: Any, hits: list[tuple[str, Any]]) -> str:
     return (f"Left out because {names} {'is' if len(seen) == 1 else 'are'} frozen: what is in "
             f"{'it' if len(seen) == 1 else 'them'} is not shown or changed until the owner unfreezes. Do not "
             "try to reach it another way; tell your user.")
-
-
-def frozen_error(freeze: Any, hits: list[tuple[str, Any]]) -> Exception:
-    """The `frozen` error for a call that acted on, or read one thing in, a frozen scope."""
-    from agentos.freeze.errors import Frozen
-
-    what, rec = hits[0]
-    return Frozen(freeze.message(what or None, rec))
 
 
 def check_call(policy: Any, ctx: Any, lane_id: str | None) -> None:

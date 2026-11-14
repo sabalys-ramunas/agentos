@@ -1,4 +1,4 @@
-import { routineRunOf } from './post-preview';
+import { routineRunOf } from './routine-run';
 
 describe("a routine's run waiting for a yes", () => {
   it('says the routine and its inputs in words, never the JSON the node sends', () => {

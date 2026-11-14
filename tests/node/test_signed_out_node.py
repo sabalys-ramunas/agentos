@@ -35,8 +35,8 @@ from agentos.core.config import NodeConfig
 from agentos.core.models import LaneSpec, ProxyConfig
 from agentos.core.runtime import Runtime
 from agentos.node import flow_driver as fd
+from agentos.node.camoufox.engine import PIN_META, CamoufoxEngine, browser_pids_under
 from agentos.node.display import DisplayManagerImpl, kill_processes
-from agentos.node.engine_camoufox import PIN_META, CamoufoxEngine, browser_pids_under
 from agentos.node.lanes import LaneManagerImpl
 from agentos.node.store import LaneStore
 

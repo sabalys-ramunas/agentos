@@ -54,7 +54,7 @@ def test_cli_grants_lifecycle(home):
 
 def test_cli_issues_no_agent_grant_into_a_frozen_lane(home):
     """The node's CLI opens the policy without the daemon: the freeze records on disk still count."""
-    from agentos.freeze.store import FreezeRecord, FreezeStore
+    from agentos.policy.freeze_store import FreezeRecord, FreezeStore
 
     FreezeStore(home).put(FreezeRecord("lane", "biz-a/social", "odd post", "owner (node cli)", time.time(), via="cli"))
     refused = run("grants", "issue", "--subject", "late-agent", "--lane", "biz-a/social", "--ceiling", "commit")

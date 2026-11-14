@@ -20,10 +20,10 @@ from channel_support import (
 )
 from fakes import FakeInteraction, FakeLaneManager
 
+from agentos.core import signing
 from agentos.core.errors import PolicyDenied
 from agentos.core.models import LaneSpec
-from agentos.node import daemon
-from agentos.node.channel import wire
+from agentos.mcp import providers as mcp_providers
 from agentos.node.daemon import build_services, node_runtime, serve
 
 SERVICES = ["agentos.policy.service", "agentos.freeze.service", "agentos.node.channel.service"]
@@ -41,7 +41,7 @@ async def start(home, name, ctl, lanes, *, config=None) -> RunningNode:
     channel.timings = FAST
     channel._backoff.low, channel._backoff.high = FAST.backoff_min, FAST.backoff_max
     stop = asyncio.Event()
-    task = asyncio.create_task(serve(config, runtime, stop=stop, providers=[*daemon.tool_providers(), extra_tools]))
+    task = asyncio.create_task(serve(config, runtime, stop=stop, providers=[*mcp_providers.tool_providers(), extra_tools]))
     await asyncio.wait_for(channel.welcomed.wait(), 15)
     return RunningNode(name, config, runtime, manager, interaction, stop, task)
 
@@ -107,7 +107,7 @@ async def test_a_mesh_freeze_reaches_every_node_and_offline_ones_when_they_dial_
 async def test_a_forged_or_stale_mesh_freeze_is_refused(mesh):
     _, nodes, _ = mesh
     channel = nodes["a"].channel
-    forged = wire.sign_controller(_key(), "mesh_freeze", channel.node_id,
+    forged = signing.sign_controller(_key(), "mesh_freeze", channel.node_id,
                                   {"frozen": True, "reason": "x", "by": "x", "freeze_id": "fz_x"})
     with pytest.raises(PolicyDenied):
         channel._apply_mesh_freeze(forged)

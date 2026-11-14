@@ -3,8 +3,9 @@
 import json
 import stat
 
+from testkit.brains import OAUTH, FakeVault
+
 from agentos.brains.credentials import DEV_FILE_NAME, CredentialStore
-from agentos.brains.testing import OAUTH, FakeVault
 
 
 async def test_dev_fallback_is_marked_and_private(tmp_path):

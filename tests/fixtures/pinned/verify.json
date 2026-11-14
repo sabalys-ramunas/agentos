@@ -1,0 +1,3503 @@
+{
+ "honest": {
+  "ok": {
+   "status": "ok",
+   "checked": 6,
+   "rows": {
+    "1": "ok",
+    "2": "ok",
+    "3": "ok",
+    "4": "ok",
+    "5": "ok",
+    "6": "ok"
+   },
+   "proven_through": {
+    "mark": 2,
+    "seq": 6,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 0
+  }
+ },
+ "honest, trusted key": {
+  "ok": {
+   "status": "ok",
+   "checked": 6,
+   "rows": {
+    "1": "ok",
+    "2": "ok",
+    "3": "ok",
+    "4": "ok",
+    "5": "ok",
+    "6": "ok"
+   },
+   "proven_through": {
+    "mark": 2,
+    "seq": 6,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [],
+   "bad": [],
+   "unproven": [],
+   "exit": 0
+  }
+ },
+ "honest, untrusted key": {
+  "ok": {
+   "status": "tampered",
+   "checked": 6,
+   "rows": {
+    "1": "ok",
+    "2": "ok",
+    "3": "ok",
+    "4": "ok",
+    "5": "ok",
+    "6": "ok"
+   },
+   "proven_through": {
+    "mark": 2,
+    "seq": 6,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "tampered",
+     "text": "the log starts from audit key ed25519:65b60673d6ed884bf01c2c222d82ada0, which this node never trusted (k_other): the key or the whole log was swapped",
+     "mark": 1
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "honest, no trust note": {
+  "ok": {
+   "status": "ok",
+   "checked": 6,
+   "rows": {
+    "1": "ok",
+    "2": "ok",
+    "3": "ok",
+    "4": "ok",
+    "5": "ok",
+    "6": "ok"
+   },
+   "proven_through": {
+    "mark": 2,
+    "seq": 6,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [],
+   "bad": [],
+   "unproven": [],
+   "exit": 0
+  }
+ },
+ "no checkpoint": {
+  "ok": {
+   "status": "unverifiable",
+   "checked": 6,
+   "rows": {
+    "1": "unprovable",
+    "2": "unprovable",
+    "3": "unprovable",
+    "4": "unprovable",
+    "5": "unprovable",
+    "6": "unprovable"
+   },
+   "proven_through": null,
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "unprovable",
+     "text": "rows seq 1-6 are unprovable because no checkpoint covers them yet",
+     "seq": [
+      1,
+      6
+     ]
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 4
+  }
+ },
+ "rows after the checkpoint": {
+  "ok": {
+   "status": "unverifiable",
+   "checked": 7,
+   "rows": {
+    "1": "ok",
+    "2": "ok",
+    "3": "ok",
+    "4": "ok",
+    "5": "ok",
+    "6": "ok",
+    "7": "unprovable"
+   },
+   "proven_through": {
+    "mark": 2,
+    "seq": 6,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "unprovable",
+     "text": "row seq 7 is unprovable since checkpoint 2 (seq 6, 2026-11-14T00:00:00Z)",
+     "seq": [
+      7,
+      7
+     ],
+     "mark": 2
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 4
+  }
+ },
+ "edited row": {
+  "ok": {
+   "status": "tampered",
+   "checked": 6,
+   "rows": {
+    "1": "ok",
+    "2": "ok",
+    "3": "tampered",
+    "4": "ok",
+    "5": "ok",
+    "6": "ok"
+   },
+   "proven_through": {
+    "mark": 2,
+    "seq": 6,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "tampered",
+     "text": "row seq 3 was edited after it was written: its contents no longer match its hash",
+     "seq": [
+      3,
+      3
+     ]
+    }
+   ],
+   "bad": [
+    3
+   ],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "edited row, hashes recomputed": {
+  "ok": {
+   "status": "tampered",
+   "checked": 6,
+   "rows": {
+    "1": "unprovable",
+    "2": "unprovable",
+    "3": "unprovable",
+    "4": "unprovable",
+    "5": "unprovable",
+    "6": "tampered"
+   },
+   "proven_through": null,
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "tampered",
+     "text": "checkpoint 2 vouches for row seq 6 with another hash than the log holds: history was rewritten after it was signed",
+     "seq": [
+      6,
+      6
+     ],
+     "mark": 2
+    },
+    {
+     "level": "unprovable",
+     "text": "rows seq 1-5 are unprovable because no checkpoint covers them yet",
+     "seq": [
+      1,
+      5
+     ]
+    }
+   ],
+   "bad": [
+    6
+   ],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "deleted middle row": {
+  "ok": {
+   "status": "tampered",
+   "checked": 5,
+   "rows": {
+    "1": "ok",
+    "2": "ok",
+    "4": "ok",
+    "5": "ok",
+    "6": "ok"
+   },
+   "proven_through": {
+    "mark": 2,
+    "seq": 6,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "tampered",
+     "text": "row seq 3 is missing from the middle of the log (row seq 4 links to a row that is not there)",
+     "seq": [
+      3,
+      3
+     ]
+    }
+   ],
+   "bad": [
+    3
+   ],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "deleted row and edited next": {
+  "ok": {
+   "status": "tampered",
+   "checked": 5,
+   "rows": {
+    "1": "ok",
+    "2": "ok",
+    "4": "tampered",
+    "5": "ok",
+    "6": "ok"
+   },
+   "proven_through": {
+    "mark": 2,
+    "seq": 6,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "tampered",
+     "text": "row seq 3 is missing from the middle of the log (row seq 4 links to a row that is not there)",
+     "seq": [
+      3,
+      3
+     ]
+    },
+    {
+     "level": "tampered",
+     "text": "row seq 4 was edited after it was written: its contents no longer match its hash",
+     "seq": [
+      4,
+      4
+     ]
+    }
+   ],
+   "bad": [
+    3,
+    4
+   ],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "deleted tail": {
+  "ok": {
+   "status": "tampered",
+   "checked": 4,
+   "rows": {
+    "1": "unprovable",
+    "2": "unprovable",
+    "3": "unprovable",
+    "4": "unprovable"
+   },
+   "proven_through": null,
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "tampered",
+     "text": "the log ends at seq 4, but checkpoint 2 covers rows through seq 6: rows seq 5-6 were deleted from the end",
+     "seq": [
+      5,
+      6
+     ],
+     "mark": 2
+    },
+    {
+     "level": "unprovable",
+     "text": "rows seq 1-4 are unprovable because no checkpoint covers them yet",
+     "seq": [
+      1,
+      4
+     ]
+    }
+   ],
+   "bad": [
+    5,
+    6
+   ],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "deleted tail, max seq used": {
+  "ok": {
+   "status": "tampered",
+   "checked": 5,
+   "rows": {
+    "1": "unprovable",
+    "2": "unprovable",
+    "3": "unprovable",
+    "4": "unprovable",
+    "5": "unprovable"
+   },
+   "proven_through": null,
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "tampered",
+     "text": "the log ends at seq 5, but checkpoint 2 covers rows through seq 6: row seq 6 was deleted from the end",
+     "seq": [
+      6,
+      6
+     ],
+     "mark": 2
+    },
+    {
+     "level": "tampered",
+     "text": "the log has used seq up to 8, but it now ends at seq 5: rows seq 6-8 were deleted from the end",
+     "seq": [
+      6,
+      8
+     ]
+    },
+    {
+     "level": "unprovable",
+     "text": "rows seq 1-5 are unprovable because no checkpoint covers them yet",
+     "seq": [
+      1,
+      5
+     ]
+    }
+   ],
+   "bad": [
+    6
+   ],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "honest, max seq used beyond": {
+  "ok": {
+   "status": "tampered",
+   "checked": 6,
+   "rows": {
+    "1": "ok",
+    "2": "ok",
+    "3": "ok",
+    "4": "ok",
+    "5": "ok",
+    "6": "ok"
+   },
+   "proven_through": {
+    "mark": 2,
+    "seq": 6,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "tampered",
+     "text": "the log has used seq up to 9, but it now ends at seq 6: rows seq 7-9 were deleted from the end",
+     "seq": [
+      7,
+      9
+     ]
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "reordered rows": {
+  "ok": {
+   "status": "tampered",
+   "checked": 6,
+   "rows": {
+    "1": "ok",
+    "2": "tampered",
+    "4": "tampered",
+    "3": "tampered",
+    "5": "ok",
+    "6": "ok"
+   },
+   "proven_through": {
+    "mark": 2,
+    "seq": 6,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "tampered",
+     "text": "row seq 3 is missing from the middle of the log (row seq 4 links to a row that is not there)",
+     "seq": [
+      3,
+      3
+     ]
+    },
+    {
+     "level": "tampered",
+     "text": "row seq 4 is missing from the middle of the log (row seq 5 links to a row that is not there)",
+     "seq": [
+      4,
+      4
+     ]
+    },
+    {
+     "level": "tampered",
+     "text": "rows seq 2 and 3 are out of chain order: row 3 links to row 2, which is stored before it (rows were reordered)",
+     "seq": [
+      2,
+      3
+     ]
+    }
+   ],
+   "bad": [
+    2,
+    3,
+    4
+   ],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "row with no hash after the chain began": {
+  "ok": {
+   "status": "tampered",
+   "checked": 6,
+   "rows": {
+    "1": "ok",
+    "2": "ok",
+    "3": "ok",
+    "4": "tampered",
+    "5": "tampered",
+    "6": "ok"
+   },
+   "proven_through": {
+    "mark": 2,
+    "seq": 6,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "tampered",
+     "text": "row seq 4 has no chain hash, though it was written after the chain began",
+     "seq": [
+      4,
+      4
+     ]
+    },
+    {
+     "level": "tampered",
+     "text": "row seq 5 does not link to row seq 4: row 4 was rewritten or replaced",
+     "seq": [
+      4,
+      5
+     ]
+    }
+   ],
+   "bad": [
+    4,
+    5
+   ],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "row links to nothing": {
+  "ok": {
+   "status": "tampered",
+   "checked": 6,
+   "rows": {
+    "1": "ok",
+    "2": "ok",
+    "3": "tampered",
+    "4": "tampered",
+    "5": "ok",
+    "6": "ok"
+   },
+   "proven_through": {
+    "mark": 2,
+    "seq": 6,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "tampered",
+     "text": "row seq 4 does not link to row seq 3: row 3 was rewritten or replaced",
+     "seq": [
+      3,
+      4
+     ]
+    },
+    {
+     "level": "tampered",
+     "text": "row seq 4 was edited after it was written: its contents no longer match its hash",
+     "seq": [
+      4,
+      4
+     ]
+    }
+   ],
+   "bad": [
+    3,
+    4
+   ],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "two checkpoints": {
+  "ok": {
+   "status": "ok",
+   "checked": 8,
+   "rows": {
+    "1": "ok",
+    "2": "ok",
+    "3": "ok",
+    "4": "ok",
+    "5": "ok",
+    "6": "ok",
+    "7": "ok",
+    "8": "ok"
+   },
+   "proven_through": {
+    "mark": 3,
+    "seq": 8,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 0
+  }
+ },
+ "tail deleted under the second checkpoint": {
+  "ok": {
+   "status": "tampered",
+   "checked": 6,
+   "rows": {
+    "1": "ok",
+    "2": "ok",
+    "3": "ok",
+    "4": "ok",
+    "5": "unprovable",
+    "6": "unprovable"
+   },
+   "proven_through": {
+    "mark": 2,
+    "seq": 4,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "tampered",
+     "text": "the log ends at seq 6, but checkpoint 3 covers rows through seq 8: rows seq 7-8 were deleted from the end",
+     "seq": [
+      7,
+      8
+     ],
+     "mark": 3
+    },
+    {
+     "level": "unprovable",
+     "text": "rows seq 5-6 are unprovable since checkpoint 2 (seq 4, 2026-11-14T00:00:00Z)",
+     "seq": [
+      5,
+      6
+     ],
+     "mark": 2
+    }
+   ],
+   "bad": [
+    7,
+    8
+   ],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "two checkpoints at one seq": {
+  "ok": {
+   "status": "ok",
+   "checked": 6,
+   "rows": {
+    "1": "ok",
+    "2": "ok",
+    "3": "ok",
+    "4": "ok",
+    "5": "ok",
+    "6": "ok"
+   },
+   "proven_through": {
+    "mark": 2,
+    "seq": 6,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 0
+  }
+ },
+ "checkpoint vouches for another hash": {
+  "ok": {
+   "status": "tampered",
+   "checked": 6,
+   "rows": {
+    "1": "unprovable",
+    "2": "unprovable",
+    "3": "unprovable",
+    "4": "unprovable",
+    "5": "unprovable",
+    "6": "tampered"
+   },
+   "proven_through": null,
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "tampered",
+     "text": "checkpoint 2 vouches for row seq 6 with another hash than the log holds: history was rewritten after it was signed",
+     "seq": [
+      6,
+      6
+     ],
+     "mark": 2
+    },
+    {
+     "level": "unprovable",
+     "text": "rows seq 1-5 are unprovable because no checkpoint covers them yet",
+     "seq": [
+      1,
+      5
+     ]
+    }
+   ],
+   "bad": [
+    6
+   ],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "checkpoint count wrong": {
+  "ok": {
+   "status": "tampered",
+   "checked": 6,
+   "rows": {
+    "1": "unprovable",
+    "2": "unprovable",
+    "3": "unprovable",
+    "4": "unprovable",
+    "5": "unprovable",
+    "6": "unprovable"
+   },
+   "proven_through": null,
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "tampered",
+     "text": "checkpoint 2 counts 99 rows but covers 6",
+     "mark": 2
+    },
+    {
+     "level": "unprovable",
+     "text": "rows seq 1-6 are unprovable because no checkpoint covers them yet",
+     "seq": [
+      1,
+      6
+     ]
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "unreadable mark": {
+  "ok": {
+   "status": "tampered",
+   "checked": 6,
+   "rows": {
+    "1": "unprovable",
+    "2": "unprovable",
+    "3": "unprovable",
+    "4": "unprovable",
+    "5": "unprovable",
+    "6": "unprovable"
+   },
+   "proven_through": null,
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "tampered",
+     "text": "mark 2 is not readable: it was edited",
+     "mark": 2
+    },
+    {
+     "level": "unprovable",
+     "text": "rows seq 1-6 are unprovable because no checkpoint covers them yet",
+     "seq": [
+      1,
+      6
+     ]
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "mark body not an object": {
+  "ok": {
+   "status": "tampered",
+   "checked": 6,
+   "rows": {
+    "1": "unprovable",
+    "2": "unprovable",
+    "3": "unprovable",
+    "4": "unprovable",
+    "5": "unprovable",
+    "6": "unprovable"
+   },
+   "proven_through": null,
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "tampered",
+     "text": "mark 2 is not readable: it was edited",
+     "mark": 2
+    },
+    {
+     "level": "unprovable",
+     "text": "rows seq 1-6 are unprovable because no checkpoint covers them yet",
+     "seq": [
+      1,
+      6
+     ]
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "mark edited, not resigned": {
+  "ok": {
+   "status": "tampered",
+   "checked": 6,
+   "rows": {
+    "1": "unprovable",
+    "2": "unprovable",
+    "3": "unprovable",
+    "4": "unprovable",
+    "5": "unprovable",
+    "6": "unprovable"
+   },
+   "proven_through": null,
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "tampered",
+     "text": "mark 2 (checkpoint) was edited: its contents no longer match its hash",
+     "mark": 2
+    },
+    {
+     "level": "tampered",
+     "text": "mark 2 (checkpoint) has a signature that does not verify: it was forged or edited",
+     "mark": 2
+    },
+    {
+     "level": "unprovable",
+     "text": "rows seq 1-6 are unprovable because no checkpoint covers them yet",
+     "seq": [
+      1,
+      6
+     ]
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "unsigned checkpoint": {
+  "ok": {
+   "status": "unverifiable",
+   "checked": 6,
+   "rows": {
+    "1": "unprovable",
+    "2": "unprovable",
+    "3": "unprovable",
+    "4": "unprovable",
+    "5": "unprovable",
+    "6": "unprovable"
+   },
+   "proven_through": null,
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "unprovable",
+     "text": "mark 2 (checkpoint) is unsigned: the audit key was unavailable when it was written",
+     "mark": 2
+    },
+    {
+     "level": "unprovable",
+     "text": "rows seq 1-6 are unprovable because no checkpoint covers them yet",
+     "seq": [
+      1,
+      6
+     ]
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 4
+  }
+ },
+ "checkpoint forged": {
+  "ok": {
+   "status": "tampered",
+   "checked": 6,
+   "rows": {
+    "1": "unprovable",
+    "2": "unprovable",
+    "3": "unprovable",
+    "4": "unprovable",
+    "5": "unprovable",
+    "6": "unprovable"
+   },
+   "proven_through": null,
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "tampered",
+     "text": "mark 2 (checkpoint) has a signature that does not verify: it was forged or edited",
+     "mark": 2
+    },
+    {
+     "level": "unprovable",
+     "text": "rows seq 1-6 are unprovable because no checkpoint covers them yet",
+     "seq": [
+      1,
+      6
+     ]
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "checkpoint names another key": {
+  "ok": {
+   "status": "tampered",
+   "checked": 6,
+   "rows": {
+    "1": "unprovable",
+    "2": "unprovable",
+    "3": "unprovable",
+    "4": "unprovable",
+    "5": "unprovable",
+    "6": "unprovable"
+   },
+   "proven_through": null,
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "tampered",
+     "text": "mark 2 (checkpoint) is signed by key ed25519:c945cbf2a5602002141e2fb9d17054d6, but the audit key at that point was ed25519:65b60673d6ed884bf01c2c222d82ada0: the key was swapped",
+     "mark": 2
+    },
+    {
+     "level": "unprovable",
+     "text": "rows seq 1-6 are unprovable because no checkpoint covers them yet",
+     "seq": [
+      1,
+      6
+     ]
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "mark deleted": {
+  "ok": {
+   "status": "tampered",
+   "checked": 8,
+   "rows": {
+    "1": "ok",
+    "2": "ok",
+    "3": "ok",
+    "4": "ok",
+    "5": "ok",
+    "6": "ok",
+    "7": "ok",
+    "8": "ok"
+   },
+   "proven_through": {
+    "mark": 3,
+    "seq": 8,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "tampered",
+     "text": "marks 2-2 are missing: checkpoints were deleted",
+     "mark": 3
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "mark replaced": {
+  "ok": {
+   "status": "tampered",
+   "checked": 8,
+   "rows": {
+    "1": "ok",
+    "2": "ok",
+    "3": "ok",
+    "4": "ok",
+    "5": "ok",
+    "6": "ok",
+    "7": "ok",
+    "8": "ok"
+   },
+   "proven_through": {
+    "mark": 3,
+    "seq": 8,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "tampered",
+     "text": "mark 3 does not follow mark 2: checkpoints were replaced",
+     "mark": 3
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "genesis deleted": {
+  "ok": {
+   "status": "tampered",
+   "checked": 6,
+   "rows": {
+    "1": "unprovable",
+    "2": "unprovable",
+    "3": "unprovable",
+    "4": "unprovable",
+    "5": "unprovable",
+    "6": "unprovable"
+   },
+   "proven_through": null,
+   "chain": null,
+   "keys": [],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "tampered",
+     "text": "marks 1-1 are missing: the log no longer starts at its genesis",
+     "mark": 2
+    },
+    {
+     "level": "tampered",
+     "text": "mark 2 comes before any genesis",
+     "mark": 2
+    },
+    {
+     "level": "unprovable",
+     "text": "the log has no genesis mark, so nothing in it can be proven"
+    },
+    {
+     "level": "unprovable",
+     "text": "rows seq 1-6 are unprovable because no checkpoint covers them yet",
+     "seq": [
+      1,
+      6
+     ]
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "genesis deleted, partial": {
+  "ok": {
+   "status": "tampered",
+   "checked": 6,
+   "rows": {
+    "1": "unprovable",
+    "2": "unprovable",
+    "3": "unprovable",
+    "4": "unprovable",
+    "5": "unprovable",
+    "6": "unprovable"
+   },
+   "proven_through": null,
+   "chain": null,
+   "keys": [],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "tampered",
+     "text": "mark 2 comes before any genesis",
+     "mark": 2
+    },
+    {
+     "level": "unprovable",
+     "text": "rows seq 1-6 are unprovable because no checkpoint covers them yet",
+     "seq": [
+      1,
+      6
+     ]
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "second genesis": {
+  "ok": {
+   "status": "tampered",
+   "checked": 6,
+   "rows": {
+    "1": "ok",
+    "2": "ok",
+    "3": "ok",
+    "4": "ok",
+    "5": "ok",
+    "6": "ok"
+   },
+   "proven_through": {
+    "mark": 2,
+    "seq": 6,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "tampered",
+     "text": "mark 3 is a second genesis: the log was restarted on top of itself",
+     "mark": 3
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "genesis names another key": {
+  "ok": {
+   "status": "tampered",
+   "checked": 6,
+   "rows": {
+    "1": "tampered",
+    "2": "unprovable",
+    "3": "unprovable",
+    "4": "unprovable",
+    "5": "unprovable",
+    "6": "unprovable"
+   },
+   "proven_through": null,
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:c945cbf2a5602002141e2fb9d17054d6",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "tampered",
+     "text": "mark 1 names key ed25519:c945cbf2a5602002141e2fb9d17054d6 but carries another public key",
+     "mark": 1
+    },
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:c945cbf2a5602002141e2fb9d17054d6: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "tampered",
+     "text": "mark 2 does not follow mark 1: checkpoints were replaced",
+     "mark": 2
+    },
+    {
+     "level": "tampered",
+     "text": "mark 2 (checkpoint) is signed by key ed25519:65b60673d6ed884bf01c2c222d82ada0, but the audit key at that point was ed25519:c945cbf2a5602002141e2fb9d17054d6: the key was swapped",
+     "mark": 2
+    },
+    {
+     "level": "tampered",
+     "text": "row seq 1 does not link to row seq 0: row 0 was rewritten or replaced",
+     "seq": [
+      0,
+      1
+     ]
+    },
+    {
+     "level": "unprovable",
+     "text": "rows seq 2-6 are unprovable because no checkpoint covers them yet",
+     "seq": [
+      2,
+      6
+     ]
+    }
+   ],
+   "bad": [
+    0,
+    1
+   ],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "genesis unreadable key": {
+  "ok": {
+   "status": "tampered",
+   "checked": 6,
+   "rows": {
+    "1": "tampered",
+    "2": "unprovable",
+    "3": "unprovable",
+    "4": "unprovable",
+    "5": "unprovable",
+    "6": "unprovable"
+   },
+   "proven_through": null,
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "garbage",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "tampered",
+     "text": "mark 1 carries an unreadable public key: it was edited",
+     "mark": 1
+    },
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "tampered",
+     "text": "mark 1 (genesis) has a signature that does not verify: it was forged or edited",
+     "mark": 1
+    },
+    {
+     "level": "tampered",
+     "text": "mark 2 does not follow mark 1: checkpoints were replaced",
+     "mark": 2
+    },
+    {
+     "level": "tampered",
+     "text": "mark 2 (checkpoint) has a signature that does not verify: it was forged or edited",
+     "mark": 2
+    },
+    {
+     "level": "tampered",
+     "text": "row seq 1 does not link to row seq 0: row 0 was rewritten or replaced",
+     "seq": [
+      0,
+      1
+     ]
+    },
+    {
+     "level": "unprovable",
+     "text": "rows seq 2-6 are unprovable because no checkpoint covers them yet",
+     "seq": [
+      2,
+      6
+     ]
+    }
+   ],
+   "bad": [
+    0,
+    1
+   ],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "key rotation": {
+  "ok": {
+   "status": "ok",
+   "checked": 8,
+   "rows": {
+    "1": "ok",
+    "2": "ok",
+    "3": "ok",
+    "4": "ok",
+    "5": "ok",
+    "6": "ok",
+    "7": "ok",
+    "8": "ok"
+   },
+   "proven_through": {
+    "mark": 4,
+    "seq": 8,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    },
+    {
+     "kid": "ed25519:c945cbf2a5602002141e2fb9d17054d6",
+     "pub": "5_FioQvsVZr-oZXk3OhLaVaNXSywlj60RsBoXisX8vA",
+     "from_mark": 3
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 0
+  }
+ },
+ "key rotation, trusted both": {
+  "ok": {
+   "status": "ok",
+   "checked": 7,
+   "rows": {
+    "1": "ok",
+    "2": "ok",
+    "3": "ok",
+    "4": "ok",
+    "5": "ok",
+    "6": "ok",
+    "7": "ok"
+   },
+   "proven_through": {
+    "mark": 4,
+    "seq": 7,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    },
+    {
+     "kid": "ed25519:c945cbf2a5602002141e2fb9d17054d6",
+     "pub": "5_FioQvsVZr-oZXk3OhLaVaNXSywlj60RsBoXisX8vA",
+     "from_mark": 3
+    }
+   ],
+   "unchained": 0,
+   "findings": [],
+   "bad": [],
+   "unproven": [],
+   "exit": 0
+  }
+ },
+ "key reset, untrusted": {
+  "ok": {
+   "status": "tampered",
+   "checked": 7,
+   "rows": {
+    "1": "ok",
+    "2": "ok",
+    "3": "ok",
+    "4": "ok",
+    "5": "ok",
+    "6": "ok",
+    "7": "ok"
+   },
+   "proven_through": {
+    "mark": 4,
+    "seq": 7,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    },
+    {
+     "kid": "ed25519:c945cbf2a5602002141e2fb9d17054d6",
+     "pub": "5_FioQvsVZr-oZXk3OhLaVaNXSywlj60RsBoXisX8vA",
+     "from_mark": 3
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "tampered",
+     "text": "mark 3 (key) is signed by key ed25519:65b60673d6ed884bf01c2c222d82ada0, but the audit key at that point was ed25519:c945cbf2a5602002141e2fb9d17054d6: the key was swapped",
+     "mark": 3
+    },
+    {
+     "level": "unprovable",
+     "text": "mark 3 reset the audit key to ed25519:c945cbf2a5602002141e2fb9d17054d6 without a signature from ed25519:65b60673d6ed884bf01c2c222d82ada0, so later checkpoints are only as good as that reset",
+     "mark": 3
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "key reset, trusted": {
+  "ok": {
+   "status": "tampered",
+   "checked": 7,
+   "rows": {
+    "1": "ok",
+    "2": "ok",
+    "3": "ok",
+    "4": "ok",
+    "5": "ok",
+    "6": "ok",
+    "7": "ok"
+   },
+   "proven_through": {
+    "mark": 4,
+    "seq": 7,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    },
+    {
+     "kid": "ed25519:c945cbf2a5602002141e2fb9d17054d6",
+     "pub": "5_FioQvsVZr-oZXk3OhLaVaNXSywlj60RsBoXisX8vA",
+     "from_mark": 3
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "tampered",
+     "text": "mark 3 (key) is signed by key ed25519:65b60673d6ed884bf01c2c222d82ada0, but the audit key at that point was ed25519:c945cbf2a5602002141e2fb9d17054d6: the key was swapped",
+     "mark": 3
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "key reset as the node writes it": {
+  "ok": {
+   "status": "unverifiable",
+   "checked": 7,
+   "rows": {
+    "1": "ok",
+    "2": "ok",
+    "3": "ok",
+    "4": "ok",
+    "5": "ok",
+    "6": "ok",
+    "7": "ok"
+   },
+   "proven_through": {
+    "mark": 4,
+    "seq": 7,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    },
+    {
+     "kid": "ed25519:c945cbf2a5602002141e2fb9d17054d6",
+     "pub": "5_FioQvsVZr-oZXk3OhLaVaNXSywlj60RsBoXisX8vA",
+     "from_mark": 3
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "unprovable",
+     "text": "mark 3 reset the audit key to ed25519:c945cbf2a5602002141e2fb9d17054d6 without a signature from ed25519:65b60673d6ed884bf01c2c222d82ada0, so later checkpoints are only as good as that reset",
+     "mark": 3
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 4
+  }
+ },
+ "key reset as the node writes it, trusted": {
+  "ok": {
+   "status": "ok",
+   "checked": 7,
+   "rows": {
+    "1": "ok",
+    "2": "ok",
+    "3": "ok",
+    "4": "ok",
+    "5": "ok",
+    "6": "ok",
+    "7": "ok"
+   },
+   "proven_through": {
+    "mark": 4,
+    "seq": 7,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    },
+    {
+     "kid": "ed25519:c945cbf2a5602002141e2fb9d17054d6",
+     "pub": "5_FioQvsVZr-oZXk3OhLaVaNXSywlj60RsBoXisX8vA",
+     "from_mark": 3
+    }
+   ],
+   "unchained": 0,
+   "findings": [],
+   "bad": [],
+   "unproven": [],
+   "exit": 0
+  }
+ },
+ "key mark unreadable key": {
+  "ok": {
+   "status": "tampered",
+   "checked": 6,
+   "rows": {
+    "1": "ok",
+    "2": "ok",
+    "3": "ok",
+    "4": "ok",
+    "5": "ok",
+    "6": "ok"
+   },
+   "proven_through": {
+    "mark": 2,
+    "seq": 6,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "tampered",
+     "text": "mark 3 carries an unreadable public key: it was edited",
+     "mark": 3
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "key mark id mismatch": {
+  "ok": {
+   "status": "tampered",
+   "checked": 6,
+   "rows": {
+    "1": "ok",
+    "2": "ok",
+    "3": "ok",
+    "4": "ok",
+    "5": "ok",
+    "6": "ok"
+   },
+   "proven_through": {
+    "mark": 2,
+    "seq": 6,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "tampered",
+     "text": "mark 3 introduces a key whose id does not match it",
+     "mark": 3
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "key mark signed by the old kid": {
+  "ok": {
+   "status": "tampered",
+   "checked": 6,
+   "rows": {
+    "1": "ok",
+    "2": "ok",
+    "3": "ok",
+    "4": "ok",
+    "5": "ok",
+    "6": "ok"
+   },
+   "proven_through": {
+    "mark": 2,
+    "seq": 6,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    },
+    {
+     "kid": "ed25519:c945cbf2a5602002141e2fb9d17054d6",
+     "pub": "5_FioQvsVZr-oZXk3OhLaVaNXSywlj60RsBoXisX8vA",
+     "from_mark": 3
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "tampered",
+     "text": "mark 3 (key) has a signature that does not verify: it was forged or edited",
+     "mark": 3
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "retention, honest": {
+  "ok": {
+   "status": "ok",
+   "checked": 6,
+   "rows": {
+    "2": "ok",
+    "4": "ok",
+    "5": "ok",
+    "6": "ok",
+    "7": "ok",
+    "8": "ok"
+   },
+   "proven_through": {
+    "mark": 4,
+    "seq": 8,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 0
+  }
+ },
+ "retention, kept row edited": {
+  "ok": {
+   "status": "tampered",
+   "checked": 6,
+   "rows": {
+    "2": "tampered",
+    "4": "ok",
+    "5": "ok",
+    "6": "ok",
+    "7": "ok",
+    "8": "ok"
+   },
+   "proven_through": {
+    "mark": 4,
+    "seq": 8,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "tampered",
+     "text": "row seq 2 was kept through retention by mark 3, but its contents changed",
+     "seq": [
+      2,
+      2
+     ],
+     "mark": 3
+    }
+   ],
+   "bad": [
+    2
+   ],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "retention, row added below": {
+  "ok": {
+   "status": "tampered",
+   "checked": 7,
+   "rows": {
+    "1": "tampered",
+    "2": "ok",
+    "4": "ok",
+    "5": "ok",
+    "6": "ok",
+    "7": "ok",
+    "8": "ok"
+   },
+   "proven_through": {
+    "mark": 4,
+    "seq": 8,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "tampered",
+     "text": "row seq 1 is older than retention mark 3 (pruned through seq 3), which did not keep it: it was added later",
+     "seq": [
+      1,
+      1
+     ],
+     "mark": 3
+    }
+   ],
+   "bad": [
+    1
+   ],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "retention, kept row missing": {
+  "ok": {
+   "status": "tampered",
+   "checked": 5,
+   "rows": {
+    "4": "ok",
+    "5": "ok",
+    "6": "ok",
+    "7": "ok",
+    "8": "ok"
+   },
+   "proven_through": {
+    "mark": 4,
+    "seq": 8,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "tampered",
+     "text": "row seq 2 was kept through retention by mark 3 and is now missing",
+     "seq": [
+      2,
+      2
+     ],
+     "mark": 3
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "retention, kept row missing, partial": {
+  "ok": {
+   "status": "ok",
+   "checked": 5,
+   "rows": {
+    "4": "ok",
+    "5": "ok",
+    "6": "ok",
+    "7": "ok",
+    "8": "ok"
+   },
+   "proven_through": {
+    "mark": 4,
+    "seq": 8,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 0
+  }
+ },
+ "retention, kept row missing, mid": {
+  "ok": {
+   "status": "ok",
+   "checked": 5,
+   "rows": {
+    "4": "ok",
+    "5": "ok",
+    "6": "ok",
+    "7": "ok",
+    "8": "ok"
+   },
+   "proven_through": {
+    "mark": 4,
+    "seq": 8,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 0
+  }
+ },
+ "retention, kept list unreadable": {
+  "ok": {
+   "status": "tampered",
+   "checked": 5,
+   "rows": {
+    "4": "ok",
+    "5": "ok",
+    "6": "ok",
+    "7": "ok",
+    "8": "ok"
+   },
+   "proven_through": {
+    "mark": 4,
+    "seq": 8,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "tampered",
+     "text": "retention mark 3 lists its kept rows in a form that cannot be read",
+     "mark": 3
+    },
+    {
+     "level": "tampered",
+     "text": "rows seq 1-3 are missing from the middle of the log (row seq 4 links to a row that is not there)",
+     "seq": [
+      1,
+      3
+     ]
+    }
+   ],
+   "bad": [
+    1,
+    2,
+    3
+   ],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "retention unsigned": {
+  "ok": {
+   "status": "unverifiable",
+   "checked": 6,
+   "rows": {
+    "2": "unprovable",
+    "4": "ok",
+    "5": "ok",
+    "6": "ok",
+    "7": "ok",
+    "8": "ok"
+   },
+   "proven_through": {
+    "mark": 4,
+    "seq": 8,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "unprovable",
+     "text": "mark 3 (pruned) is unsigned: the audit key was unavailable when it was written",
+     "mark": 3
+    },
+    {
+     "level": "unprovable",
+     "text": "retention mark 3 cannot be trusted, so rows before seq 3 are not checked",
+     "mark": 3
+    }
+   ],
+   "bad": [],
+   "unproven": [
+    2
+   ],
+   "exit": 4
+  }
+ },
+ "retention unsigned, row below edited": {
+  "ok": {
+   "status": "tampered",
+   "checked": 6,
+   "rows": {
+    "2": "tampered",
+    "4": "ok",
+    "5": "ok",
+    "6": "ok",
+    "7": "ok",
+    "8": "ok"
+   },
+   "proven_through": {
+    "mark": 4,
+    "seq": 8,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "unprovable",
+     "text": "mark 3 (pruned) is unsigned: the audit key was unavailable when it was written",
+     "mark": 3
+    },
+    {
+     "level": "unprovable",
+     "text": "retention mark 3 cannot be trusted, so rows before seq 3 are not checked",
+     "mark": 3
+    },
+    {
+     "level": "tampered",
+     "text": "row seq 2 was edited after it was written: its contents no longer match its hash",
+     "seq": [
+      2,
+      2
+     ]
+    }
+   ],
+   "bad": [
+    2
+   ],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "retention unsigned, kept row gone": {
+  "ok": {
+   "status": "unverifiable",
+   "checked": 5,
+   "rows": {
+    "4": "ok",
+    "5": "ok",
+    "6": "ok",
+    "7": "ok",
+    "8": "ok"
+   },
+   "proven_through": {
+    "mark": 4,
+    "seq": 8,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "unprovable",
+     "text": "mark 3 (pruned) is unsigned: the audit key was unavailable when it was written",
+     "mark": 3
+    },
+    {
+     "level": "unprovable",
+     "text": "retention mark 3 cannot be trusted, so rows before seq 3 are not checked",
+     "mark": 3
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 4
+  }
+ },
+ "retention unsigned then signed": {
+  "ok": {
+   "status": "unverifiable",
+   "checked": 6,
+   "rows": {
+    "2": "ok",
+    "6": "ok",
+    "7": "ok",
+    "8": "ok",
+    "9": "ok",
+    "10": "ok"
+   },
+   "proven_through": {
+    "mark": 5,
+    "seq": 10,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "unprovable",
+     "text": "mark 3 (pruned) is unsigned: the audit key was unavailable when it was written",
+     "mark": 3
+    },
+    {
+     "level": "unprovable",
+     "text": "retention mark 3 cannot be trusted, so rows before seq 3 are not checked",
+     "mark": 3
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 4
+  }
+ },
+ "retention lower through after higher": {
+  "ok": {
+   "status": "ok",
+   "checked": 7,
+   "rows": {
+    "2": "ok",
+    "4": "ok",
+    "6": "ok",
+    "7": "ok",
+    "8": "ok",
+    "9": "ok",
+    "10": "ok"
+   },
+   "proven_through": {
+    "mark": 5,
+    "seq": 10,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 0
+  }
+ },
+ "retention signed below unsigned": {
+  "ok": {
+   "status": "unverifiable",
+   "checked": 6,
+   "rows": {
+    "4": "unprovable",
+    "6": "ok",
+    "7": "ok",
+    "8": "ok",
+    "9": "ok",
+    "10": "ok"
+   },
+   "proven_through": {
+    "mark": 5,
+    "seq": 10,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "unprovable",
+     "text": "mark 3 (pruned) is unsigned: the audit key was unavailable when it was written",
+     "mark": 3
+    },
+    {
+     "level": "unprovable",
+     "text": "retention mark 3 cannot be trusted, so rows before seq 5 are not checked",
+     "mark": 3
+    }
+   ],
+   "bad": [],
+   "unproven": [
+    4
+   ],
+   "exit": 4
+  }
+ },
+ "unchained rows before the chain": {
+  "ok": {
+   "status": "unverifiable",
+   "checked": 8,
+   "rows": {
+    "1": "unchained",
+    "2": "unchained",
+    "3": "ok",
+    "4": "ok",
+    "5": "ok",
+    "6": "ok",
+    "7": "ok",
+    "8": "ok"
+   },
+   "proven_through": {
+    "mark": 2,
+    "seq": 8,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 2,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "unprovable",
+     "text": "rows seq 1-2 were written before the chain began (genesis, mark 1) and cannot be proven",
+     "seq": [
+      1,
+      2
+     ],
+     "mark": 1
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 4
+  }
+ },
+ "unchained rows, scoped": {
+  "ok": {
+   "status": "unverifiable",
+   "checked": 8,
+   "rows": {
+    "1": "unchained",
+    "2": "unchained",
+    "3": "ok",
+    "4": "ok",
+    "5": "ok",
+    "6": "ok",
+    "7": "ok",
+    "8": "ok"
+   },
+   "proven_through": {
+    "mark": 2,
+    "seq": 8,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 2,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "unprovable",
+     "text": "rows seq 1-2 were written before the chain began (genesis, mark 1) and cannot be proven",
+     "seq": [
+      1,
+      2
+     ],
+     "mark": 1
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 4
+  }
+ },
+ "more unchained rows than counted": {
+  "ok": {
+   "status": "tampered",
+   "checked": 8,
+   "rows": {
+    "1": "unchained",
+    "2": "unchained",
+    "3": "ok",
+    "4": "ok",
+    "5": "ok",
+    "6": "ok",
+    "7": "ok",
+    "8": "ok"
+   },
+   "proven_through": {
+    "mark": 2,
+    "seq": 8,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 2,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "tampered",
+     "text": "the genesis counted 1 rows written before the chain began, but 2 are there: rows were added without a chain hash",
+     "mark": 1
+    },
+    {
+     "level": "unprovable",
+     "text": "rows seq 1-2 were written before the chain began (genesis, mark 1) and cannot be proven",
+     "seq": [
+      1,
+      2
+     ],
+     "mark": 1
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "checkpoint at the genesis": {
+  "ok": {
+   "status": "unverifiable",
+   "checked": 8,
+   "rows": {
+    "1": "unchained",
+    "2": "unchained",
+    "3": "ok",
+    "4": "ok",
+    "5": "ok",
+    "6": "ok",
+    "7": "ok",
+    "8": "ok"
+   },
+   "proven_through": {
+    "mark": 3,
+    "seq": 8,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 2,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "unprovable",
+     "text": "rows seq 1-2 were written before the chain began (genesis, mark 1) and cannot be proven",
+     "seq": [
+      1,
+      2
+     ],
+     "mark": 1
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 4
+  }
+ },
+ "retention keeps an unchained row": {
+  "ok": {
+   "status": "unverifiable",
+   "checked": 5,
+   "rows": {
+    "1": "unchained",
+    "5": "ok",
+    "6": "ok",
+    "7": "ok",
+    "8": "ok"
+   },
+   "proven_through": {
+    "mark": 2,
+    "seq": 8,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 1,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "unprovable",
+     "text": "row seq 1 was written before the chain began (genesis, mark 1) and cannot be proven",
+     "seq": [
+      1,
+      1
+     ],
+     "mark": 1
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 4
+  }
+ },
+ "retention keeps an unchained row, edited": {
+  "ok": {
+   "status": "unverifiable",
+   "checked": 5,
+   "rows": {
+    "1": "unchained",
+    "5": "ok",
+    "6": "ok",
+    "7": "ok",
+    "8": "ok"
+   },
+   "proven_through": {
+    "mark": 2,
+    "seq": 8,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 1,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "unprovable",
+     "text": "row seq 1 was written before the chain began (genesis, mark 1) and cannot be proven",
+     "seq": [
+      1,
+      1
+     ],
+     "mark": 1
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 4
+  }
+ },
+ "scope by lane": {
+  "ok": {
+   "status": "ok",
+   "checked": 8,
+   "rows": {
+    "1": "ok",
+    "2": "ok",
+    "3": "ok",
+    "4": "ok",
+    "5": "ok",
+    "6": "ok",
+    "7": "ok",
+    "8": "ok"
+   },
+   "proven_through": {
+    "mark": 2,
+    "seq": 8,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 0
+  }
+ },
+ "scope by time": {
+  "ok": {
+   "status": "unverifiable",
+   "checked": 8,
+   "rows": {
+    "1": "unprovable",
+    "2": "unprovable",
+    "3": "unprovable",
+    "4": "unprovable",
+    "5": "unprovable",
+    "6": "unprovable",
+    "7": "unprovable",
+    "8": "unprovable"
+   },
+   "proven_through": null,
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "unprovable",
+     "text": "rows seq 3-5 are unprovable because no checkpoint covers them yet",
+     "seq": [
+      3,
+      5
+     ]
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 4
+  }
+ },
+ "export, honest": {
+  "ok": {
+   "status": "ok",
+   "checked": 8,
+   "rows": {
+    "1": "ok",
+    "2": "ok",
+    "3": "ok",
+    "4": "ok",
+    "5": "ok",
+    "6": "ok",
+    "7": "ok",
+    "8": "ok"
+   },
+   "proven_through": {
+    "mark": 2,
+    "seq": 8,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 0
+  }
+ },
+ "export stubs": {
+  "ok": {
+   "status": "tampered",
+   "checked": 8,
+   "rows": {
+    "1": "ok",
+    "2": "ok",
+    "3": "ok",
+    "4": "tampered",
+    "5": "ok",
+    "6": "ok",
+    "7": "ok",
+    "8": "ok"
+   },
+   "proven_through": {
+    "mark": 2,
+    "seq": 8,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "tampered",
+     "text": "row seq 4 belongs to lane biz-a/x, but the export left it out",
+     "seq": [
+      4,
+      4
+     ]
+    }
+   ],
+   "bad": [
+    4
+   ],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "export stub edited": {
+  "ok": {
+   "status": "tampered",
+   "checked": 8,
+   "rows": {
+    "1": "ok",
+    "2": "ok",
+    "3": "ok",
+    "4": "tampered",
+    "5": "ok",
+    "6": "ok",
+    "7": "ok",
+    "8": "ok"
+   },
+   "proven_through": {
+    "mark": 2,
+    "seq": 8,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "tampered",
+     "text": "row seq 4 belongs to lane biz-a/x, but the export left it out",
+     "seq": [
+      4,
+      4
+     ]
+    },
+    {
+     "level": "tampered",
+     "text": "row seq 4 was edited after it was written: its contents no longer match its hash",
+     "seq": [
+      4,
+      4
+     ]
+    }
+   ],
+   "bad": [
+    4
+   ],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "export stub unreadable": {
+  "ok": {
+   "status": "tampered",
+   "checked": 8,
+   "rows": {
+    "1": "ok",
+    "2": "ok",
+    "3": "ok",
+    "4": "tampered",
+    "5": "ok",
+    "6": "ok",
+    "7": "ok",
+    "8": "ok"
+   },
+   "proven_through": {
+    "mark": 2,
+    "seq": 8,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "tampered",
+     "text": "row seq 4 belongs to lane biz-a/x, but the export left it out",
+     "seq": [
+      4,
+      4
+     ]
+    },
+    {
+     "level": "tampered",
+     "text": "row seq 4 was edited after it was written: its contents no longer match its hash",
+     "seq": [
+      4,
+      4
+     ]
+    }
+   ],
+   "bad": [
+    4
+   ],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "export left out a row of its lane": {
+  "ok": {
+   "status": "tampered",
+   "checked": 8,
+   "rows": {
+    "1": "ok",
+    "2": "ok",
+    "3": "tampered",
+    "4": "ok",
+    "5": "ok",
+    "6": "ok",
+    "7": "ok",
+    "8": "ok"
+   },
+   "proven_through": {
+    "mark": 2,
+    "seq": 8,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "tampered",
+     "text": "row seq 3 belongs to lane biz-b/y, but the export left it out",
+     "seq": [
+      3,
+      3
+     ]
+    }
+   ],
+   "bad": [
+    3
+   ],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "partial bundle": {
+  "ok": {
+   "status": "ok",
+   "checked": 6,
+   "rows": {
+    "5": "ok",
+    "6": "ok",
+    "7": "ok",
+    "8": "ok",
+    "9": "ok",
+    "10": "ok"
+   },
+   "proven_through": {
+    "mark": 3,
+    "seq": 10,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 0
+  }
+ },
+ "mid walk": {
+  "ok": {
+   "status": "ok",
+   "checked": 6,
+   "rows": {
+    "5": "ok",
+    "6": "ok",
+    "7": "ok",
+    "8": "ok",
+    "9": "ok",
+    "10": "ok"
+   },
+   "proven_through": {
+    "mark": 3,
+    "seq": 10,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 0
+  }
+ },
+ "mid walk, no rows": {
+  "ok": {
+   "status": "ok",
+   "checked": 0,
+   "rows": {},
+   "proven_through": null,
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 0
+  }
+ },
+ "to_seq": {
+  "ok": {
+   "status": "unverifiable",
+   "checked": 7,
+   "rows": {
+    "1": "ok",
+    "2": "ok",
+    "3": "ok",
+    "4": "ok",
+    "5": "ok",
+    "6": "unprovable",
+    "7": "unprovable"
+   },
+   "proven_through": {
+    "mark": 2,
+    "seq": 5,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "unprovable",
+     "text": "rows seq 6-7 are unprovable since checkpoint 2 (seq 5, 2026-11-14T00:00:00Z)",
+     "seq": [
+      6,
+      7
+     ],
+     "mark": 2
+    }
+   ],
+   "bad": [],
+   "unproven": [],
+   "exit": 4
+  }
+ },
+ "no rows at all": {
+  "ok": {
+   "status": "tampered",
+   "checked": 0,
+   "rows": {},
+   "proven_through": null,
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "tampered",
+     "text": "the log ends at seq 0, but checkpoint 2 covers rows through seq 5: rows seq 1-5 were deleted from the end",
+     "seq": [
+      1,
+      5
+     ],
+     "mark": 2
+    },
+    {
+     "level": "tampered",
+     "text": "the log ends at seq 0, but checkpoint 3 covers rows through seq 10: rows seq 1-10 were deleted from the end",
+     "seq": [
+      1,
+      10
+     ],
+     "mark": 3
+    }
+   ],
+   "bad": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+   ],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "row seq not a number": {
+  "raised": "ValueError",
+  "code": null,
+  "message": "invalid literal for int() with base 10: 'x'"
+ }
+}

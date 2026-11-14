@@ -12,7 +12,8 @@ from test_policy_support import make_service
 
 from agentos.agenda import tools as agenda_tools
 from agentos.agenda.models import EntryState
-from agentos.agenda.service import AgendaStateError, build
+from agentos.agenda.rules import AgendaStateError
+from agentos.agenda.service import build
 from agentos.core.errors import InvalidRequest, NotFound, PolicyDenied
 from agentos.core.models import Effect, RunStatus
 from agentos.policy.meters import MeterPolicy

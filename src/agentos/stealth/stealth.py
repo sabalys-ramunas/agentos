@@ -20,15 +20,17 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from agentos.node.fingerprint import platform_os, ua_os
+
 OK, WARN, FAIL = "ok", "warn", "fail"
 RANK = {OK: 0, WARN: 1, FAIL: 2}
 
-PIN_META = "agentos:pin"         # agentos.node.engine_camoufox.PIN_META
+PIN_META = "agentos:pin"         # agentos.node.camoufox.engine.PIN_META
 PIN_VERSION = 2
 PROBE_PAGE = Path(__file__).with_name("stealth_probe.html")
 
@@ -88,6 +90,10 @@ class Finding:
         return out
 
 
+# How a group of checks adds a finding: add(check, level, detail, **data).
+_Add = Callable[..., None]
+
+
 def worst(findings: Iterable[Finding]) -> str:
     return max((f.level for f in findings), key=RANK.__getitem__, default=OK)
 
@@ -97,22 +103,6 @@ def digest(value: Any) -> str:
 
 
 # ---- the OS an identity claims ------------------------------------------------------------------
-
-def ua_os(user_agent: Any) -> str | None:
-    ua = str(user_agent or "")
-    if "Windows NT" in ua:
-        return "windows"
-    if "Macintosh" in ua or "Mac OS X" in ua:
-        return "macos"
-    if "Linux" in ua or "X11" in ua:
-        return "linux"
-    return None
-
-
-def platform_os(platform: Any) -> str | None:
-    p = str(platform or "")
-    return "windows" if p.startswith("Win") else "macos" if p.startswith("Mac") else \
-        "linux" if "Linux" in p else None
 
 
 def oscpu_os(oscpu: Any) -> str | None:
@@ -144,7 +134,7 @@ def split_pin(data: Mapping[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
 
 
 def ua_major(user_agent: Any) -> int | None:
-    from agentos.stealth.fingerprint import ua_major as major
+    from agentos.node.fingerprint import ua_major as major
     return major(user_agent)
 
 
@@ -175,6 +165,26 @@ def pin_findings(lane: str, data: Mapping[str, Any], *, installed_major: int | N
 
     ua = config.get("navigator.userAgent")
     claimed = ua_os(ua)
+    _pin_os_findings(config, ua, claimed, add)
+    _pin_shape_findings(config, claimed, add)
+    version = meta.get("version") if isinstance(meta.get("version"), int) else 1
+    if version < PIN_VERSION:
+        add("pin", WARN, f"a version {version} pin: it is completed on the lane's next launch")
+    if claimed and claimed != "linux":
+        add("pin", WARN, f"a {claimed} identity on a Linux node: text metrics, codecs, form widgets and system "
+                         "colours still come from Linux (Camoufox issue 895), so a page that measures them sees "
+                         "another OS", claimed=claimed)
+    _pin_freshness_findings(ua_major(ua), installed_major, add)
+    if coherence:
+        for violation in coherence_violations(config, claimed) or []:
+            add("pin", WARN, f"Camoufox coherence rule {violation}")
+    if not out:
+        add("pin", OK, f"one consistent {claimed or 'unknown OS'} device")
+    return out
+
+
+def _pin_os_findings(config: Mapping[str, Any], ua: Any, claimed: str | None, add: _Add) -> None:
+    """Everything that names an OS must name the one the user agent claims."""
     others = {"navigator.platform": platform_os(config.get("navigator.platform")),
               "navigator.oscpu": oscpu_os(config.get("navigator.oscpu"))}
     for key, seen in others.items():
@@ -192,6 +202,10 @@ def pin_findings(lane: str, data: Mapping[str, Any], *, installed_major: int | N
             stray = sorted(set(fonts) & set(names))
             if stray:
                 add("pin", FAIL, f"a {claimed} identity lists {other} fonts: {', '.join(stray[:5])}", fonts=stray)
+
+
+def _pin_shape_findings(config: Mapping[str, Any], claimed: str | None, add: _Add) -> None:
+    """The language, the window against the screen, touch, and the keys Camoufox would draw again."""
     language = config.get("locale:language")
     accept = str(config.get("headers.Accept-Language") or "")
     if language and accept and not accept.lower().startswith(str(language).lower()):
@@ -209,28 +223,19 @@ def pin_findings(lane: str, data: Mapping[str, Any], *, installed_major: int | N
     if missing:
         add("pin", WARN, f"the pin lacks {', '.join(missing)}, which Camoufox draws again on every launch",
             missing=missing)
-    version = meta.get("version") if isinstance(meta.get("version"), int) else 1
-    if version < PIN_VERSION:
-        add("pin", WARN, f"a version {version} pin: it is completed on the lane's next launch")
-    if claimed and claimed != "linux":
-        add("pin", WARN, f"a {claimed} identity on a Linux node: text metrics, codecs, form widgets and system "
-                         "colours still come from Linux (Camoufox issue 895), so a page that measures them sees "
-                         "another OS", claimed=claimed)
-    pinned = ua_major(ua)
-    if installed_major and pinned:
-        if pinned < installed_major:
-            add("freshness", WARN, f"the pin says Firefox {pinned} and the browser is {installed_major}; a user "
-                                   "agent that lags its engine is a signal (agentos lane refresh-fingerprint "
-                                   "--keep-device)", pinned=pinned, installed=installed_major)
-        elif pinned > installed_major:
-            add("freshness", FAIL, f"the pin says Firefox {pinned}, newer than the installed {installed_major}",
-                pinned=pinned, installed=installed_major)
-    if coherence:
-        for violation in coherence_violations(config, claimed) or []:
-            add("pin", WARN, f"Camoufox coherence rule {violation}")
-    if not out:
-        add("pin", OK, f"one consistent {claimed or 'unknown OS'} device")
-    return out
+
+
+def _pin_freshness_findings(pinned: int | None, installed_major: int | None, add: _Add) -> None:
+    """The pinned Firefox version against the installed one."""
+    if not (installed_major and pinned):
+        return
+    if pinned < installed_major:
+        add("freshness", WARN, f"the pin says Firefox {pinned} and the browser is {installed_major}; a user "
+                               "agent that lags its engine is a signal (agentos lane refresh-fingerprint "
+                               "--keep-device)", pinned=pinned, installed=installed_major)
+    elif pinned > installed_major:
+        add("freshness", FAIL, f"the pin says Firefox {pinned}, newer than the installed {installed_major}",
+            pinned=pinned, installed=installed_major)
 
 
 DEVICE_KEYS = ("navigator.userAgent", "navigator.platform", "navigator.hardwareConcurrency", "screen.width",
@@ -305,8 +310,37 @@ def dump_findings(lane: str, dump: Mapping[str, Any], *, config: Mapping[str, An
     def add(check: str, level: str, detail: str, **data: Any) -> None:
         out.append(Finding(check, level, detail, lane, data))
 
-    nav, scr, win = _get(dump, "navigator"), _get(dump, "screen"), _get(dump, "window")
-    auto = _get(dump, "automation")
+    seen = _Dump(dump)
+    _automation_findings(seen, add)
+    _side_probe_findings(seen, add)
+    _geometry_findings(seen, add)
+    _input_findings(seen, add)
+    _locale_findings(seen, add, config=config, proxied=proxied)
+    _engine_findings(seen, add)
+    for section, value in dump.items():
+        if isinstance(value, str) and value.startswith("error"):
+            add("consistency", WARN, f"the {section} probe failed: {value}")
+    if not out:
+        add("consistency", OK, f"no automation trace and no inconsistency ({seen.claimed or 'unknown OS'} identity)")
+    return out
+
+
+class _Dump:
+    """One probe dump, with the sections every group of checks reads."""
+
+    def __init__(self, dump: Mapping[str, Any]):
+        self.raw = dump
+        self.nav, self.scr, self.win = _get(dump, "navigator"), _get(dump, "screen"), _get(dump, "window")
+        self.claimed = ua_os(self.nav.get("userAgent"))
+
+    def get(self, section: str) -> dict[str, Any]:
+        return _get(self.raw, section)
+
+
+
+def _automation_findings(d: _Dump, add: _Add) -> None:
+    """Traces a driver leaves: webdriver, its globals and attributes, patched functions."""
+    nav, auto = d.nav, d.get("automation")
     if nav.get("webdriver") or auto.get("webdriver"):
         add("automation", FAIL, "navigator.webdriver is true")
     if auto.get("webdriverOwnProperty"):
@@ -319,32 +353,40 @@ def dump_findings(lane: str, dump: Mapping[str, Any], *, config: Mapping[str, An
             add("automation", FAIL, f"{what}: {', '.join(map(str, auto[key]))}", values=auto[key])
     if auto.get("chrome") not in (None, "undefined"):
         add("automation", FAIL, f"window.chrome is {auto['chrome']} on a Firefox")
-    notification, permission = auto.get("notification"), dump.get("permissionsNotifications")
+    notification, permission = auto.get("notification"), d.raw.get("permissionsNotifications")
     if notification and isinstance(permission, str) and \
             {"default": "prompt", "granted": "granted", "denied": "denied"}.get(notification) != permission:
         add("consistency", WARN, f"Notification.permission is {notification} but the Permissions API says {permission}")
 
-    claimed = ua_os(nav.get("userAgent"))
-    for name, other in (("worker", _get(dump, "worker")), ("frame", _get(dump, "frame"))):
+
+def _side_probe_findings(d: _Dump, add: _Add) -> None:
+    """A worker and a frame must see the browser the page sees."""
+    nav, scr, intl = d.nav, d.scr, d.get("intl")
+    for name in ("worker", "frame"):
+        other = d.get(name)
         if not other:
-            if isinstance(dump.get(name), str):
-                add("consistency", WARN, f"the {name} probe failed: {dump[name]}")
+            if isinstance(d.raw.get(name), str):
+                add("consistency", WARN, f"the {name} probe failed: {d.raw[name]}")
             continue
         pairs = {"userAgent": nav.get("userAgent"), "platform": nav.get("platform"),
                  "hardwareConcurrency": nav.get("hardwareConcurrency"), "languages": nav.get("languages"),
-                 "webdriver": nav.get("webdriver"), "timeZone": _get(dump, "intl").get("timeZone"),
+                 "webdriver": nav.get("webdriver"), "timeZone": intl.get("timeZone"),
                  "appVersion": nav.get("appVersion"), "language": nav.get("language"),
-                 "offsetJanuary": _get(dump, "intl").get("offsetJanuary"),
+                 "offsetJanuary": intl.get("offsetJanuary"),
                  "screenWidth": scr.get("width"), "screenHeight": scr.get("height")}
         differ = sorted(k for k, v in pairs.items() if k in other and other[k] != v)
         if differ:
             add("consistency", FAIL, f"a {name} sees another browser than the page: {', '.join(differ)}",
                 values={k: [pairs[k], other[k]] for k in differ})
         worker_gl = other.get("webgl")
-        page_gl = _get(dump, "webgl")
+        page_gl = d.get("webgl")
         if isinstance(worker_gl, list) and page_gl.get("renderer") and worker_gl[1] != page_gl.get("renderer"):
             add("consistency", FAIL, f"WebGL in a {name} names {worker_gl[1]}, the page {page_gl.get('renderer')}")
-    css = _get(dump, "css")
+
+
+def _geometry_findings(d: _Dump, add: _Add) -> None:
+    """The screen, the window and CSS media must describe one window on one screen."""
+    scr, win, css = d.scr, d.win, d.get("css")
     for key, what in (("deviceWidth", "width"), ("deviceHeight", "height")):
         if css.get(key) is False:
             add("consistency", FAIL, f"CSS device-{what} is not the screen {what} the page reads")
@@ -365,31 +407,43 @@ def dump_findings(lane: str, dump: Mapping[str, Any], *, config: Mapping[str, An
                                      f"screen, which a window at ({win['screenX']}, {win['screenY']}) cannot have "
                                      "(mozInnerScreenX/Y show the real window, Camoufox issue 974)",
                 values={"dx": dx, "dy": dy})
-    media = _get(dump, "media")
+
+
+def _input_findings(d: _Dump, add: _Add) -> None:
+    """Touch, plugins and the User-Agent header."""
+    nav, media = d.nav, d.get("media")
     touch = bool(media.get("anyCoarse") or media.get("touch"))
     if isinstance(nav.get("maxTouchPoints"), int) and media and (nav["maxTouchPoints"] > 0) != touch:
         add("consistency", WARN, f"maxTouchPoints {nav['maxTouchPoints']} but touch media and events say "
                                  f"{'touch' if touch else 'no touch'}")
     if nav.get("pdfViewerEnabled") and not nav.get("plugins"):
         add("consistency", WARN, "pdfViewerEnabled with no plugins (Firefox lists its PDF viewer five times)")
-    headers = _get(dump, "headers")
+    headers = d.get("headers")
     if headers.get("user-agent") and nav.get("userAgent") and headers["user-agent"] != nav["userAgent"]:
         add("consistency", FAIL, "the User-Agent header differs from navigator.userAgent")
+
+
+def _locale_findings(d: _Dump, add: _Add, *, config: Mapping[str, Any] | None, proxied: bool) -> None:
+    """Languages and the timezone, against the headers and the pin."""
+    nav, headers, intl = d.nav, d.get("headers"), d.get("intl")
     accept = str(headers.get("accept-language") or "")
     languages = nav.get("languages") if isinstance(nav.get("languages"), list) else []
     if accept and languages and accept.split(",")[0].split(";")[0].strip().lower() != str(languages[0]).lower():
         add("consistency", FAIL, f"Accept-Language starts with {accept.split(',')[0]}, navigator.languages with "
                                  f"{languages[0]}")
-    intl = _get(dump, "intl")
     if config and config.get("timezone") and intl.get("timeZone") and intl["timeZone"] != config["timezone"]:
         add("consistency", FAIL, f"the page's timezone is {intl['timeZone']}, the pin's {config['timezone']}")
     if intl and intl.get("offsetJanuary") is not None and intl.get("timeZone") in ("UTC", "Etc/UTC") and proxied:
         add("consistency", WARN, "a proxied lane in UTC: the timezone was not set from the exit")
-    gl = _get(dump, "webgl")
-    problem = renderer_problem(gl.get("renderer"), claimed)
+
+
+def _engine_findings(d: _Dump, add: _Add) -> None:
+    """What the machine shows through the browser: the GPU, the fonts, the codecs, WebRTC."""
+    claimed = d.claimed
+    problem = renderer_problem(d.get("webgl").get("renderer"), claimed)
     if problem:
         add("consistency", FAIL if "software" in problem else WARN, f"WebGL: {problem}")
-    found = set(_get(dump, "fonts").get("found") or [])
+    found = set(d.get("fonts").get("found") or [])
     if claimed:
         for other, names in OS_ONLY_FONTS.items():
             stray = sorted(found & set(names)) if other != claimed else []
@@ -399,19 +453,13 @@ def dump_findings(lane: str, dump: Mapping[str, Any], *, config: Mapping[str, An
         core = OS_CORE_FONTS.get(claimed) or ()
         if core and found and not found & set(core):
             add("consistency", WARN, f"a {claimed} identity shows none of {', '.join(core)}")
-    codecs = _get(dump, "codecs")
+    codecs = d.get("codecs")
     if claimed in ("windows", "macos") and codecs and codecs.get("h264") == "":
         add("consistency", WARN, f"a {claimed} identity cannot play H.264, which every {claimed} Firefox can "
                                  "(the host's codecs show, Camoufox issue 895)")
-    raw = _get(dump, "webrtc").get("rawAddresses") or []
+    raw = d.get("webrtc").get("rawAddresses") or []
     if raw:
         add("leak", FAIL, f"WebRTC shows raw addresses: {', '.join(map(str, raw))}", addresses=raw)
-    for section, value in dump.items():
-        if isinstance(value, str) and value.startswith("error"):
-            add("consistency", WARN, f"the {section} probe failed: {value}")
-    if not out:
-        add("consistency", OK, f"no automation trace and no inconsistency ({claimed or 'unknown OS'} identity)")
-    return out
 
 
 def comparable(dump: Mapping[str, Any], canvas_noise: bool) -> dict[str, Any]:
@@ -543,51 +591,86 @@ def device_findings(devices: Mapping[str, str | None], lanes: Mapping[str, tuple
     two exits look like one computer in two places; a pin whose timezone, country or locale is not
     where the proxy exits looks like a traveller on a VPN."""
     out: list[Finding] = []
-    exits = exits or {}
-    geo = geo or {}
     for name, proxy in sorted(devices.items()):
-        on = sorted(lane for lane, (device, _p) in lanes.items() if device == name)
-        workspaces = sorted({lane.split("/", 1)[0] for lane in on})
-        if len(workspaces) > 1:
-            out.append(Finding("device", FAIL, f"device {name} has lanes of {len(workspaces)} workspaces "
-                               f"({', '.join(workspaces)}): one computer links those companies' accounts. Give each "
-                               "company a device of its own", f"device:{name}", {"workspaces": workspaces}))
-        strays = sorted(lane for lane in on if lanes[lane][1] != proxy)
-        if strays:
-            out.append(Finding("device", FAIL, f"{', '.join(strays)} on device {name} leave through another proxy "
-                               f"than the device's {proxy or '(none)'}: one computer seen from several places",
-                               f"device:{name}", {"lanes": strays}))
-        if proxy is None and on:
-            out.append(Finding("device", WARN, f"device {name} has no proxy: its lanes leave from the node's own IP",
-                               f"device:{name}"))
-    users: dict[str, list[str]] = {}  # proxy label -> computers (devices and lanes of their own) behind it
+        out += _one_device_findings(name, proxy, lanes)
+    users = _computers_by_proxy(devices, lanes)
+    if devices:  # before any device exists, lanes sharing a proxy are the old plan (cross_pin_findings)
+        out += _shared_proxy_findings(users)
+    out += _shared_exit_findings(users, exits or {})
+    out += _pin_location_findings(devices, lanes, pins, geo or {}, at)
+    return out
+
+
+def _one_device_findings(name: str, proxy: str | None,
+                         lanes: Mapping[str, tuple[str | None, str | None]]) -> list[Finding]:
+    """One device's lanes: one company's, leaving through the device's one proxy."""
+    out: list[Finding] = []
+    on = sorted(lane for lane, (device, _p) in lanes.items() if device == name)
+    workspaces = sorted({lane.split("/", 1)[0] for lane in on})
+    if len(workspaces) > 1:
+        out.append(Finding("device", FAIL, f"device {name} has lanes of {len(workspaces)} workspaces "
+                           f"({', '.join(workspaces)}): one computer links those companies' accounts. Give each "
+                           "company a device of its own", f"device:{name}", {"workspaces": workspaces}))
+    strays = sorted(lane for lane in on if lanes[lane][1] != proxy)
+    if strays:
+        out.append(Finding("device", FAIL, f"{', '.join(strays)} on device {name} leave through another proxy "
+                           f"than the device's {proxy or '(none)'}: one computer seen from several places",
+                           f"device:{name}", {"lanes": strays}))
+    if proxy is None and on:
+        out.append(Finding("device", WARN, f"device {name} has no proxy: its lanes leave from the node's own IP",
+                           f"device:{name}"))
+    return out
+
+
+def _computers_by_proxy(devices: Mapping[str, str | None],
+                        lanes: Mapping[str, tuple[str | None, str | None]]) -> dict[str, list[str]]:
+    """{proxy label: the computers behind it}: devices, and lanes with a pin of their own."""
+    users: dict[str, list[str]] = {}
     for name, proxy in devices.items():
         if proxy:
             users.setdefault(proxy, []).append(f"device:{name}")
     for lane, (device, proxy) in lanes.items():
         if device is None and proxy:
             users.setdefault(proxy, []).append(lane)
-    if devices:  # before any device exists, lanes sharing a proxy are the old plan (cross_pin_findings)
-        for proxy, units in sorted(users.items()):
-            named = sorted(u for u in units if u.startswith("device:"))
-            if len(units) > 1 and named:
-                level = FAIL if len(named) > 1 else WARN
-                out.append(Finding("device", level, f"{len(units)} computers leave through proxy {proxy} "
-                                   f"({', '.join(sorted(units))}): one exit IP for several computers. One proxy per "
-                                   "device", None, {"proxy": proxy, "units": sorted(units)}))
+    return users
+
+
+def _shared_proxy_findings(users: Mapping[str, list[str]]) -> list[Finding]:
+    out: list[Finding] = []
+    for proxy, units in sorted(users.items()):
+        named = sorted(u for u in units if u.startswith("device:"))
+        if len(units) > 1 and named:
+            level = FAIL if len(named) > 1 else WARN
+            out.append(Finding("device", level, f"{len(units)} computers leave through proxy {proxy} "
+                               f"({', '.join(sorted(units))}): one exit IP for several computers. One proxy per "
+                               "device", None, {"proxy": proxy, "units": sorted(units)}))
+    return out
+
+
+def _shared_exit_findings(users: Mapping[str, list[str]], exits: Mapping[str, str]) -> list[Finding]:
+    """Several proxies that exit from one IP put their computers on one address."""
     by_ip: dict[str, list[str]] = {}
     for proxy, ip in exits.items():
         if proxy in users:
             by_ip.setdefault(ip, []).append(proxy)
+    out: list[Finding] = []
     for ip, labels in sorted(by_ip.items()):
         units = sorted(u for label in labels for u in users[label])
         if len(labels) > 1 and any(u.startswith("device:") for u in units):
             out.append(Finding("device", FAIL, f"proxies {', '.join(sorted(labels))} exit from one IP {ip}, so "
                                f"{', '.join(units)} are several computers on one address", None,
                                {"ip": ip, "proxies": sorted(labels)}))
+    return out
+
+
+def _pin_location_findings(devices: Mapping[str, str | None], lanes: Mapping[str, tuple[str | None, str | None]],
+                           pins: Mapping[str, Mapping[str, Any]], geo: Mapping[str, Mapping[str, Any]],
+                           at: Any) -> list[Finding]:
+    """Each pin's timezone, country and locale against where its proxy exits."""
     from datetime import UTC, datetime
 
     when = at or datetime.now(UTC)
+    out: list[Finding] = []
     for unit, data in sorted(pins.items()):
         if unit.startswith("device:"):
             proxy = devices.get(unit.split(":", 1)[1])
@@ -605,7 +688,7 @@ def location_check(data: Mapping[str, Any], where: Mapping[str, Any] | None, *, 
     the lane check's judge_location, or None when the exit's place is not known."""
     from datetime import UTC, datetime
 
-    from agentos.stealth.lanecheck import judge_location
+    from agentos.stealth.lanerules import judge_location
 
     if not where or not where.get("country"):
         return None
@@ -618,7 +701,7 @@ def location_check(data: Mapping[str, Any], where: Mapping[str, Any] | None, *, 
 
 
 def _proxy_exits(home: Path) -> dict[str, str]:
-    from agentos.ops.layout import connect_ro
+    from agentos.core.layout import connect_ro
 
     db = Path(home) / "agentos.db"
     if not db.exists():
@@ -664,7 +747,7 @@ def audit_pins(home: Path, *, installed_major: int | None = None) -> tuple[list[
     pin's own findings and the collisions between them. A device's pin is audited once, as
     `device:<name>`, and the lanes on it count as that one computer (AUD-02). Returns the findings
     and how many pins were read."""
-    from agentos.ops.layout import device_specs, lane_dirs, lane_specs
+    from agentos.core.layout import device_specs, lane_dirs, lane_specs
 
     specs = lane_specs(home)
     devices = device_specs(home)

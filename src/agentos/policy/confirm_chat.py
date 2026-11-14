@@ -38,7 +38,7 @@ from typing import Any
 
 from agentos.core.errors import NotFound
 from agentos.core.tools import ClientAnswer, current_elicitor
-from agentos.policy.approvals import Approval
+from agentos.policy.approval_models import Approval
 from agentos.policy.confirm import ConfirmLevel, Proof, chat_refusal
 from agentos.policy.errors import Conflict, Denied
 

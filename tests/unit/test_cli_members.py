@@ -11,10 +11,10 @@ from test_api_members import accept
 from test_node_panel import TOKEN, Node
 from typer.testing import CliRunner
 
-from agentos import cli as agentos_cli
 from agentos import qr
-from agentos.api.auth import RateLimiter
 from agentos.cli import app
+from agentos.commands import base as cli_base
+from agentos.core.ratelimit import RateLimiter
 
 EM_DASH = "—"
 
@@ -34,7 +34,7 @@ def node(tmp_path, monkeypatch):
         return client.request(method, urlsplit(url).path, json=body,
                               headers={**headers, "Authorization": f"Bearer {TOKEN}"})
 
-    monkeypatch.setattr(agentos_cli, "_send", send)
+    monkeypatch.setattr(cli_base, "_send", send)
     yield n
     n.close()
 
@@ -125,7 +125,7 @@ def test_a_stopped_daemon_is_explained(tmp_path, monkeypatch):
     def refuse(*a, **k):
         raise httpx.ConnectError("refused")
 
-    monkeypatch.setattr(agentos_cli, "_send", refuse)
+    monkeypatch.setattr(cli_base, "_send", refuse)
     r = run("list")
     assert r.exit_code == 1 and "agentosd is not running" in r.output
 

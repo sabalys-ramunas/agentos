@@ -1,5 +1,8 @@
 # Style take "style-mono" (W3): precise and monochrome
 
+> The prototypes under `panel/prototypes/` were removed with the classic panel on 2026-11-14. They are
+> in git history (commit 59634500 and earlier); the commands below run only on such a checkout.
+
 Status: design, 2026-11-13. One of two style takes on the approved app design
 ([app-design.md](app-design.md)); the owner picks one. The owner's words on app/: "sections and cards
 need to be more scannable ... each can have a colour accent to visually show different task groups.
@@ -11,7 +14,7 @@ and Geist Mono, tight headings, hairlines that almost disappear, generous space,
 meaning, crisp small radii, restrained motion. The structure and UX of app/ stay as approved: Home
 with the slider of running jobs, Machines on one screen, the dev task, the design check.
 
-The prototype is [panel/prototypes/dashboard/style-mono/index.html](../../panel/prototypes/dashboard/style-mono/index.html).
+The prototype is `panel/prototypes/dashboard/style-mono/index.html`.
 Plain HTML, CSS and JS, no build step; it opens from disk. It is a copy of app/ with its own token
 set (`style-mono/build-tokens.py`, which writes `style-mono/tokens.json` and `tokens.css`; the shared
 `build-tokens.py` and app/ are untouched). Every state from app/ still works (`?state=loading`,

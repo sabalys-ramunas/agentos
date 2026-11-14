@@ -20,7 +20,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import pytest
 
 from agentos.core.models import LaneSpec, ProxyConfig
-from agentos.node.engine_camoufox import CamoufoxEngine
+from agentos.node.camoufox.engine import CamoufoxEngine
 
 pytestmark = pytest.mark.node
 

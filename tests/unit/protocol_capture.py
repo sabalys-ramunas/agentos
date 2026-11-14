@@ -201,7 +201,7 @@ async def _start_node(home: Path, name: str, ctl: Any, lanes: list[str]) -> Any:
     from fakes import FakeInteraction
 
     from agentos.core.models import LaneSpec
-    from agentos.node import daemon
+    from agentos.mcp import providers as mcp_providers
     from agentos.node.daemon import build_services, node_runtime, serve
 
     config = await join_node(home, name, ctl)
@@ -215,7 +215,7 @@ async def _start_node(home: Path, name: str, ctl: Any, lanes: list[str]) -> Any:
     channel.timings = dataclasses.replace(FAST, doctor_after=600.0)  # no doctor report mid-session: it is timed
     channel._backoff.low, channel._backoff.high = FAST.backoff_min, FAST.backoff_max
     stop = asyncio.Event()
-    task = asyncio.create_task(serve(config, runtime, stop=stop, providers=[*daemon.tool_providers(), extra_tools]))
+    task = asyncio.create_task(serve(config, runtime, stop=stop, providers=[*mcp_providers.tool_providers(), extra_tools]))
     await asyncio.wait_for(channel.welcomed.wait(), 15)
     return RunningNode(name, config, runtime, manager, interaction, stop, task)
 

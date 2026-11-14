@@ -1,8 +1,11 @@
 # Design v2 polish: the calm dashboard, measured and tidied
 
+> The prototypes under `panel/prototypes/` were removed with the classic panel on 2026-11-14. They are
+> in git history (commit 59634500 and earlier); the commands below run only on such a checkout.
+
 Status: done, 2026-11-12, by builder U1. The prototype is
-[panel/prototypes/dashboard/overview.html](../../panel/prototypes/dashboard/overview.html) with
-[data-v2.js](../../panel/prototypes/dashboard/data-v2.js). This was a polish and UX pass, not a new
+`panel/prototypes/dashboard/overview.html` with
+`data-v2.js`. This was a polish and UX pass, not a new
 direction: the page keeps its light, calm, hairline look. It was also studio's first real design
 job, so the problems studio had are listed at the end.
 

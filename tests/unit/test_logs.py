@@ -190,7 +190,7 @@ async def test_a_request_with_a_grant_token_a_proxy_password_and_a_vault_value_l
     build_services(runtime, ["agentos.policy.service", "agentos.vault.service"])
 
     async def leaky(ctx, *, on: str, note: str) -> str:
-        from agentos.mcp.registry import current_request_token
+        from agentos.core.tools import current_request_token
 
         log.info("leaky got %s with bearer %s", note, current_request_token())
         try:

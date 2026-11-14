@@ -4,9 +4,8 @@
 A node speaks that API too, so the same screens run on a person's own computer with nothing branching
 in them. To the app, a node is one org, `local`, with one computer in it.
 
-`panel/` is the old UI, and only some checkouts have it (the public repository does not). Do not add to it.
-A node that has both keeps serving `panel/` until a person runs `agentos panel use web`, and
-`agentos panel use classic` goes back. A node with only `web/dist` built serves the web app.
+A node serves `web/dist` (or the build `AGENTOS_PANEL_DIR` points at). The older `panel/` UI was removed
+on 2026-11-14.
 
 ## Build it and open it
 
@@ -17,7 +16,7 @@ Node.js 22 or later, and pnpm 10.33.0 (`corepack enable && corepack prepare pnpm
 cd web && pnpm install --frozen-lockfile && pnpm build   # writes web/dist
 ```
 
-Start agentos again (a node reads which UI to serve when it starts), then run `agentos panel login` on the
+Start agentos again, then run `agentos panel login` on the
 node for a one-time sign-in link; from your computer, reach a remote node first with
 `ssh -N -L 7400:localhost:7400 <your node>`. `agentos dev up` prints its own link. The node's installer
 (`deploy/install-node.sh`) builds `web/` by itself whenever its sources changed and Node.js is there, and

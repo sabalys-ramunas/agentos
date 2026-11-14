@@ -18,10 +18,10 @@ from agentos.core.models import LaneSpec, Signal, SnapshotResult
 from agentos.core.runtime import Runtime
 from agentos.mcp.registry import build_mcp
 from agentos.node.tools import INSTRUCTIONS, tool_specs
+from agentos.policy.scrub import REDACTED, Matcher, forms, runtime_scrub
 from agentos.policy.traces import TraceEvent, TraceStore
 from agentos.runner.util import Scrubber
 from agentos.vault.errors import VaultBusy
-from agentos.vault.scrub import REDACTED, Matcher, forms, runtime_scrub
 from agentos.vault.secret import Secret
 from agentos.vault.service import VaultService
 
@@ -58,7 +58,7 @@ def test_the_longer_value_wins_and_text_without_a_value_is_returned_as_is():
 
 
 def test_what_is_not_caught_a_value_split_across_lines_or_transformed():
-    """Documented limits (agentos.vault.scrub): split values and further encodings stay."""
+    """Documented limits (agentos.policy.scrub): split values and further encodings stay."""
     m = Matcher([PASSWORD])
     half = len(PASSWORD) // 2
     split = f"- paragraph: {PASSWORD[:half]}\n- paragraph: {PASSWORD[half:]}"

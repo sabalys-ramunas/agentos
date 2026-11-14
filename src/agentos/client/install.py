@@ -14,7 +14,7 @@ Two scripts go to the host on stdin (`ssh <host> sh -s`), like the node read in 
 Where the code comes from (`install_source`):
 - AGENTOS_GIT_URL set: the node clones it (shallow, AGENTOS_GIT_REF or main).
 - otherwise, when this agentos runs from a checkout: that checkout is sent to the node with rsync
-  over the same SSH login (as scripts/sync-node.sh does, builds in web/dist and panel/dist
+  over the same SSH login (as scripts/sync-node.sh does, its web/dist build
   included), so a private repository works and the node gets exactly the code on this computer.
 - otherwise the public repository (GIT_URL), at AGENTOS_GIT_REF or main.
 
@@ -53,8 +53,8 @@ SEND_EXCLUDES = (
     "/.venv/", ".git", "__pycache__", "*.pyc", ".pytest_cache", ".ruff_cache", ".DS_Store",
     "/poc/shots/", "/poc/profiles/", "/poc/fingerprints/", "/poc/secrets.json", "/.agentos-home/",
     "/.agentos-node.env", "/web/node_modules/", "/web/test-results/", "/web/screenshots/", "/web/.dev-node-*",
-    "/panel/node_modules/", "/panel/test-results/", "/panel/playwright-report/", "/redteam/site/",
-    "/redteam/detect/.venv/",
+    "/redteam/site/",
+    "/redteam/detect/.venv/", "/panel/",  # /panel/: what the removed classic panel left in an old checkout
 )
 
 PROBE = """\

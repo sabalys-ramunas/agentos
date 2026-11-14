@@ -1,5 +1,8 @@
 # Style take: style-glow (W3)
 
+> The prototypes under `panel/prototypes/` were removed with the classic panel on 2026-11-14. They are
+> in git history (commit 59634500 and earlier); the commands below run only on such a checkout.
+
 Status: design, 2026-11-13. One of two style takes on the approved app design
 ([app-design.md](app-design.md)). The owner said the app's style is dated and asked for something
 "cool and modern" like Vercel or Resend, a colour accent per kind of work, better tables, a better
@@ -8,7 +11,7 @@ lit by soft light, translucent edges, Inter with tight tracking, softer corners.
 is designed on its own terms, not inverted.
 
 The prototype is
-[panel/prototypes/dashboard/style-glow/index.html](../../panel/prototypes/dashboard/style-glow/index.html):
+`panel/prototypes/dashboard/style-glow/index.html`:
 plain HTML, CSS and JS, no build step. Open the file, or serve `panel/prototypes/dashboard/`. The
 structure and UX of app/ are kept (Home with the slider, Machines on one screen, the run page, the
 check page). It follows the system theme until you pick one with the switch or `?theme=dark`.

@@ -26,8 +26,7 @@ import pytest
 
 from agentos.core.config import NodeConfig
 from agentos.core.models import LaneSpec
-from agentos.node.display import DisplayManagerImpl, kill_processes
-from agentos.node.engine_camoufox import (
+from agentos.node.camoufox.engine import (
     AVAIL_TOP,
     LAUNCHER_KEYS,
     PIN_META,
@@ -40,6 +39,7 @@ from agentos.node.engine_camoufox import (
     read_browser_config,
     write_private_json,
 )
+from agentos.node.display import DisplayManagerImpl, kill_processes
 
 pytestmark = [
     pytest.mark.node,

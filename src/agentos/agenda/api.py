@@ -17,7 +17,7 @@ from starlette.responses import JSONResponse, Response
 from starlette.routing import Route
 
 from agentos.agenda.models import EntryState
-from agentos.agenda.service import SERVICE_NAME
+from agentos.agenda.rules import SERVICE_NAME
 from agentos.core import catalog
 from agentos.core.errors import (
     AgentosError,

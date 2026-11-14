@@ -25,7 +25,7 @@ from test_vault_support import (
 from agentos.core.errors import ApprovalPending, InvalidRequest, LaneNotFound, RefNotFound, ServiceUnavailable
 from agentos.core.models import Effect, LaneKind, Signal
 from agentos.core.runtime import Runtime
-from agentos.vault import tools
+from agentos.node import vault_tools as tools
 from agentos.vault.errors import EntryNotFound, ResolutionDenied, SecretTooLong, VaultSealed
 from agentos.vault.login import _result, fill_flow, login_flow
 from agentos.vault.secret import Secret

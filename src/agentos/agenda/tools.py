@@ -9,7 +9,8 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from agentos.agenda.models import EntryState
-from agentos.agenda.service import SERVICE_NAME, AgendaService
+from agentos.agenda.rules import SERVICE_NAME
+from agentos.agenda.service import AgendaService
 from agentos.core.errors import InvalidRequest, NotFound
 from agentos.core.models import Effect
 from agentos.core.tools import ToolContext, ToolSpec
@@ -62,10 +63,10 @@ async def agenda_list(ctx: ToolContext, *, workspace: str | None = None, start: 
     submissions, exports, agent tasks), the upcoming fires of its recurring schedules (projected,
     not stored) and the runs that already happened, with their proof. It also shows the work
     other services plan on lanes on their own (type managed, state planned: keepalive's next
-    visit per lane, at an approximate time; engagement's sessions drawn for today and tomorrow).
+    visit per lane, at an approximate time).
     Those are read only: they cannot be approved or cancelled here, and `managed_by` says what
     each service can and cannot show. Default range: from now for 7 days. Filter by lane, kind (flow,
-    connector, route, keepalive, engage) or state (draft, proposed, scheduled, running, done,
+    connector, route, keepalive) or state (draft, proposed, scheduled, running, done,
     failed, skipped, expired, cancelled, projected, planned). Shows only what your grant's lanes
     cover.
 
@@ -74,10 +75,10 @@ async def agenda_list(ctx: ToolContext, *, workspace: str | None = None, start: 
         start: The range's start, ISO 8601 with a timezone (default: an hour ago).
         end: The range's end, ISO 8601 with a timezone (default: 7 days after the start; at most 93 days).
         lane: Only items on this lane or surface, like biz-a/instagram.
-        kind: Only this kind of action: flow, connector, route (a trigger), keepalive or engage.
+        kind: Only this kind of action: flow, connector, route (a trigger) or keepalive.
         state: Only items in this state, like proposed (waiting for a person), projected (a schedule's next fire)
             or planned (another service's own plan).
-        managed: Include what keepalive and engagement plan on their own (default true); false hides them.
+        managed: Include what keepalive plans on its own (default true); false hides them.
     """
     now = _svc(ctx).clock.now()
     s = _time(start, "start", now - timedelta(hours=1))

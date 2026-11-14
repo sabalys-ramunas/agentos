@@ -32,7 +32,7 @@ import tomli_w
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from agentos.core.errors import AgentosError, InvalidRequest, NotFound, ServiceUnavailable
-from agentos.core.models import Effect, Principal, RunStatus, parse_lane_id
+from agentos.core.models import Effect, Principal, RunKind, RunStatus, parse_lane_id
 from agentos.core.runtime import Runtime
 from agentos.node import egress
 from agentos.pilot import grant as grants
@@ -62,7 +62,6 @@ from agentos.pilot.hands import NodeTools, ToolFailed
 from agentos.pilot.loop import LOST_LANE, Pilot, State, Stop
 from agentos.pilot.models import Limits, Request, Result, Status, Value
 from agentos.pilot.modes import GOAL
-from agentos.runner.models import RunKind
 
 log = logging.getLogger("agentos.pilot")
 
@@ -227,7 +226,7 @@ class PilotService:
 
     def attach(self) -> None:
         """Become the runner's executor for pilot runs."""
-        from agentos.runner.models import RunKind
+        from agentos.core.models import RunKind
 
         runner = self.runtime.require("runner")
         runner.register_executor(RunKind.PILOT, self)
@@ -352,8 +351,8 @@ class PilotService:
             policy.must_ask(child.grant_id, "publish")
 
     def _redact(self) -> Callable[[Any], Any]:
-        from agentos.mcp.redact import Redactor
-        from agentos.vault.scrub import runtime_scrub
+        from agentos.policy.redactor import Redactor
+        from agentos.policy.scrub import runtime_scrub
 
         return Redactor(self.runtime.get("config"), scrub=runtime_scrub(self.runtime, lane_codes=True)).value
 
@@ -383,7 +382,7 @@ class PilotService:
     # ---- running it ------------------------------------------------------------------------------
 
     async def execute(self, run: Any, journal: Any, control: Any) -> Any:
-        from agentos.runner.executor import Outcome
+        from agentos.runner.execution import Outcome
 
         session = self.sessions.get(run.id)
         if session is None:

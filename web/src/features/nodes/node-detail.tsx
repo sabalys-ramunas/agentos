@@ -25,7 +25,7 @@ import {
   useWorkspaces,
 } from '@/api/hooks';
 import type { LogLevel, NodeDetail } from '@/api/types';
-import type { NodeSearch, NodeTab } from '@/app/router';
+import type { NodeSearch, NodeTab } from './search';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/dialog';
 import { FreezeButton, FrozenNotice } from '@/features/freeze/freeze';
@@ -51,7 +51,7 @@ import { SettingsTab } from './tab-settings';
 import { WorkersTab } from '@/features/workers/on-computer';
 import { BrowsersTab } from './tab-browsers';
 import { Machines } from './machines';
-import { TAB_WORDS } from './panel';
+import { TAB_WORDS } from './machine-aside';
 
 const LABELS = Object.fromEntries(Object.entries(TAB_WORDS).map(([tab, words]) => [tab, words.label])) as Record<NodeTab, string>;
 

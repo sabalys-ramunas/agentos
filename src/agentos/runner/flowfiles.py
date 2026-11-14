@@ -31,14 +31,11 @@ from typing import Any
 import yaml
 
 from agentos.core.errors import InvalidRequest
+from agentos.runner.flowdoc import FlowDefinition
 from agentos.runner.flows import lint, parse_definition
-from agentos.runner.models import (
-    IDEMPOTENT_DEFAULT,
-    FlowDefinition,
-    is_lane_pattern,
-    iter_steps,
-    names_secret,
-)
+from agentos.runner.names import is_lane_pattern
+from agentos.runner.steps import IDEMPOTENT_DEFAULT, iter_steps
+from agentos.runner.urlpattern import names_secret
 
 SUFFIX = ".yaml"
 TEST_SUFFIX = ".test.yaml"

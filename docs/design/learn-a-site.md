@@ -14,11 +14,11 @@ the account's login and when they save (or approve) the profile.
 
 ## 1. Recording vs connector op
 
-`Recorder.build_checked` (`src/agentos/runner/recorder.py:184-316`) yields a FlowDefinition draft:
+`Recorder.build_checked` (`src/agentos/runner/recorder.py`) yields a FlowDefinition draft:
 steps navigate, wait_for, click, fill/type (with a param and inline readback), select, press,
-scroll_to; `Locator` (`runner/models.py:113-147`) with `name`, not per-language `names`; params
-schema; effect `draft`. Events come from `record_act` (`node/flow_driver.py:1470`), which records
-click/type/fill/select/press/scroll only (`flow_driver.py:1451`): uploads are not recorded (photos
+scroll_to; `Locator` (`runner/models.py`) with `name`, not per-language `names`; params
+schema; effect `draft`. Events come from `record_act` (`node/flow_driver.py`), which records
+click/type/fill/select/press/scroll only (`flow_driver.py`): uploads are not recorded (photos
 come in a second slice).
 
 The node generates everything else, modelled on `connectors/linkedin/connector.json`
@@ -27,60 +27,59 @@ The node generates everything else, modelled on `connectors/linkedin/connector.j
 to the site host; `acting_as` and an `assert_identity` step before the commit; `publishes: false`
 on every input step but the Save click (labelled commit); preflight `value_equals` on the filled
 field plus `text_differs` where the value shows on the same page; readback; discard (Escape);
-pace; signals hold list. Strict lint (`runner/connectors/lint.py:284-344`) wants structural
+pace; signals hold list. Strict lint (`runner/connectors/lint.py`) wants structural
 locators on the commit path: the generator wraps name-only locators in `within` (dialog, form or
 main).
 
 The agent supplies only: the field (fixed by the learn session) and where the new value shows on
 the profile page (a ref, turned into a locator by the node with `structural_locator_for`). The
 commit request is never written by the agent (`browser_network` withholds bodies,
-`node/devtools_tools.py:144`): the node takes it from its own egress trace of the one request the
+`node/devtools_tools.py`): the node takes it from its own egress trace of the one request the
 learn window released (host, path, method, operation name; the shape `gateshapes.log` builds,
-`node/gateshapes.py:96`).
+`node/gateshapes.py`).
 
 ## 2. Connector lifecycle
 
 - Install: only `install_dir` exists (unsigned, owner-only, whole connector,
-  `runner/connectors/service.py:138-147,98-110`); `adopt` is not built. Add
+  `runner/connectors/service.py`); `adopt` is not built. Add
   `ConnectorService.install_learned(doc)` under its own connector key `<site>-profile` (e.g.
   `connector.instagram-profile.bio`), refusing a clashing tool name, with a new `saved_by` kind
-  `learned` in `INSTALL_KINDS` (`runner/models.py:934`) that is NOT counted by `is_owner`
-  (`models.py:946`). `may_publish` (`runner/executor.py:291`) honours `publishes: false` for a
+  `learned` in `INSTALL_KINDS` (`runner/models.py`) that is NOT counted by `is_owner`
+  (`models.py`). `may_publish` (`runner/executor.py`) honours `publishes: false` for a
   `learned` op only under strict FlowCommit scope (section 3).
-- Verified today = `Registry.problem` (`engage/operations.py:271-285`): egress rule `verified`
-  non-empty, flow installed, ledger mark whose proof hash equals the installed op's
-  (`runner/connectors/marks.py:117-126`); the ledger is owner-only from a shell. Add provenance
+- Verified = egress rule `verified` non-empty, flow installed, ledger mark whose proof hash equals
+  the installed op's
+  (`runner/connectors/marks.py`); the ledger is owner-only from a shell. Add provenance
   `by: "replay"`, written only by the in-process `ProfileLearner` after its model-free replays
-  pass (no MCP tool or API route writes it). `Registry` accepts a replay mark only when the flow's
-  `saved_by.kind == "learned"`; catalog ops still need the owner's mark.
+  pass (no MCP tool or API route writes it). `ProfileLearner.state` accepts a replay mark only when
+  the flow's `saved_by.kind == "learned"`; catalog ops still need the owner's mark.
 
 ## 3. Proof rules: data-defined, node-written
 
-`EFFECT_RULES` is code (`node/egress/rules.py:116`); per-node gateshapes promotions are data but
-owner-only and only ever stricter (`gateshapes.py:21-24,231-244,429-451`). Add
+`EFFECT_RULES` is code (`node/egress/rules.py`); per-node gateshapes promotions are data but
+owner-only and only ever stricter (`gateshapes.py`). Add
 `node/learned_rules.py`, a gateshapes-shaped store (`learned-rules.json`, 600) written by the
 learner from trace evidence: id `<site>.profile.learned_<field>`, kind fixed `profile`, exact
 host/path/method/op seen, `verified` set by the replay. Compiled after built-in commit rules and
 before read catch-alls, so it never reclassifies a post/comment/like/follow; for agent drives it is
-still a commit. Hosts must already be known to built-in rules (`gateshapes.py:266-269`): facebook,
+still a commit. Hosts must already be known to built-in rules (`gateshapes.py`): facebook,
 instagram, linkedin, medium, reddit today; x, threads, tiktok, youtube need reviewed base rules and
-`node/sites.py` entries first (lint refuses unknown sites, `lint.py:105`).
+`node/sites.py` entries first (lint refuses unknown sites, `lint.py`).
 
 Strict scope: `FlowCommit(strict=True)` for learned ops. Today `problem` lets an unmatched request
-go (`node/egress/verdicts.py:178`); strict aborts any non-GET on the rule host that is not the
+go (`node/egress/verdicts.py`); strict aborts any non-GET on the rule host that is not the
 declared request, an upload `draft` rule or a known read.
 
 ## 4. Approvals, removed narrowly
 
 | Forces a card | Where | Change |
 |---|---|---|
-| Engine always asks on profile edits | `engage/executor.py:705-710`, `engage/adapters.py:126-143` | The new sync runner submits `ask=False`; LinkedIn programs keep the engine path for now. |
-| Ask-me-first and taint on connector runs | `policy/ROUTING.md:50-57` | When the owner saves/approves a profile in person, mint a bound standing approval per (surface, field, value) whose content is the digest of op key + params (`ROUTING.md:378-385`). |
-| Commit gate during learning (`<site>.unknown` + taint) | `egress-guard.md` 8.1, 8.7 | A learn window (below), modelled on the vault login window (`node/egress/guard.py:820-825`, `_gate_rule` at `:774`). |
+| Ask-me-first and taint on connector runs | `policy/ROUTING.md` | When the owner saves/approves a profile in person, mint a bound standing approval per (surface, field, value) whose content is the digest of op key + params (`ROUTING.md`). |
+| Commit gate during learning (`<site>.unknown` + taint) | `egress-guard.md` 8.1, 8.7 | A learn window (below), modelled on the vault login window (`node/egress/guard.py`, `_gate_rule`). |
 
 Learn window: `LaneGuard.open_learn(field, value, path_prefix, grant, ttl=15m)` releases one
 request that the agent's own press sent, whose body carries exactly the approved value (the
-`carries_typed` machinery, `guard.py:432`), classified only `<site>.unknown` or
+`carries_typed` machinery, `guard.py`), classified only `<site>.unknown` or
 `<site>.profile.*` (never post/comment/like/follow/join/pay/irreversible), from a page under a
 reviewed per-site edit path (`profile_edit_paths` in `node/sites.py`), on the lane's pinned
 account. Traced `learn_commit`; that trace row is the op's commit request. Agent posts, comments
@@ -88,14 +87,13 @@ and pilot runs never get a learn window.
 
 ## 5. Sync runner
 
-`profiles/sync.py`, not engage (engage's profile model is LinkedIn-only and needs a program plus
-`engage_sessions`). Reuses `RunnerOperations` with `ask=False`; lane holds, connector `pace`,
+`profiles/sync.py`. Submits connector runs through the runner with `authorized=False` and no card of
+its own; lane holds, connector `pace`,
 `lane_paced`, lane claims apply. Wakes on profile save and every 30 minutes; per due
 (surface, field): run the read op (`<field>_read`); if it shows the value, `in_sync`; else run the
 commit op; record in `synced(surface, field, value_hash, run_id, status)`. A signal holds the
 account (never a relearn); `connector_broken`, `preflight_mismatch` or `connector_contract_broken`
-(`runner/connectors/health.py:52`) sets the field `relearn`, at most 2 relearns per field per week.
-`mapping.SiteField.engine` becomes dynamic: a valid learned op exists.
+(`runner/connectors/health.py`) sets the field `relearn`, at most 2 relearns per field per week.
 
 ## 6. The learning agent
 

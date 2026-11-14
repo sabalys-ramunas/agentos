@@ -18,6 +18,7 @@ from starlette.responses import Response
 
 from agentos.core.errors import (
     AgentPaused,
+    Frozen,
     HumanInControl,
     InvalidRequest,
     LaneBusy,
@@ -28,12 +29,11 @@ from agentos.core.errors import (
     ServiceUnavailable,
 )
 from agentos.core.signals import CONNECTOR_HOLD_CODES, RUN_SIGNAL_CODE_SET
-from agentos.freeze.errors import Frozen
 from agentos.policy.errors import Denied
 from agentos.policy.meters import LimitReached
 from agentos.runner.connectors.health import BROKEN_CODES
 from agentos.runner.connectors.surfaces import ConnectorBroken, PaceLimited
-from agentos.runner.models import Run
+from agentos.runner.records import Run
 from agentos.runner.siteapis.service import ApiPaused
 
 CONTENT_TYPE = "application/problem+json"

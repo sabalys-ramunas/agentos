@@ -85,8 +85,8 @@ from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from agentos.core import globs
 from agentos.core.models import Effect
-from agentos.policy import globs
 from agentos.policy.errors import Denied
 from agentos.policy.store import DB
 from agentos.policy.util import iso
@@ -115,8 +115,8 @@ CREATE TABLE IF NOT EXISTS meter_day (
 
 
 def zone_name(configured: str | None) -> str:
-    """The node's zone: `[meters] timezone`, else the host's (agentos.api.zone, as the panel shows it)."""
-    from agentos.api.zone import node_zone
+    """The node's zone: `[meters] timezone`, else the host's (agentos.core.zone, as the panel shows it)."""
+    from agentos.core.zone import node_zone
 
     return node_zone(configured)
 
@@ -153,7 +153,7 @@ class MeterPolicy(BaseModel):
     @classmethod
     def _tz(cls, v: str | None) -> str | None:
         if v is not None:
-            from agentos.api.zone import valid_zone
+            from agentos.core.zone import valid_zone
 
             if valid_zone(v) is None:
                 raise ValueError(f"{v!r} is not a time zone name like Europe/Vilnius or UTC")

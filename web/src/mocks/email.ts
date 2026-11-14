@@ -31,6 +31,53 @@ const iso = (at: number) => new Date(at).toISOString();
 /** The concept's form links that are still open, so the waiting step can end the way the node's do. */
 const openFormLinks = new Set<string>();
 let formLinks = 0;
+/**
+ * Mailboxes the concept's drawn form was used for, by address. The form opens in its own tab with its own
+ * copy of this mock, so it says so on a channel, and this tab adds the mailbox the way the node's form does.
+ */
+const filledForms = new Map<string, { id: string; computer: string }>();
+const FORM_CHANNEL = 'agentos.email.connect';
+if (typeof BroadcastChannel !== 'undefined') {
+  const channel = new BroadcastChannel(FORM_CHANNEL);
+  channel.onmessage = (event: MessageEvent<{ kind?: string; address?: string; mailbox?: string; computer?: string }>) => {
+    const { kind, address, mailbox, computer } = event.data;
+    if (kind === 'filled' && address) filledForms.set(address.toLowerCase(), { id: mailbox ?? address, computer: computer ?? 'home-mini' });
+  };
+  (channel as unknown as { unref?: () => void }).unref?.();
+}
+
+/** A mailbox the drawn form connected, as the node lists a new one: healthy, with nothing known yet. */
+function formMailbox(address: string, form: { id: string; computer: string }): Mailbox {
+  const gmail = address.toLowerCase().endsWith('@gmail.example');
+  return {
+    id: form.id,
+    address,
+    site: gmail ? 'gmail' : address.split('@')[1] ?? 'mail',
+    provider: gmail ? 'Gmail' : null,
+    workspace: form.id.split('/')[0] ?? 'personal',
+    computer: form.computer,
+    health: 'good',
+    problem: null,
+    checked_at: iso(Date.now()),
+    new_count: null,
+    arrivals: null,
+    sent_today: 0,
+    planned_today: null,
+    daily_limit: 200,
+    week: null,
+    routines: null,
+    incoming: gmail ? 'imap.gmail.com' : '',
+    outgoing: gmail ? 'smtp.gmail.com' : '',
+  };
+}
+
+/** The store's mailboxes, with any the drawn form connected since the last read. */
+function mailboxesOf(store: EmailStore): Mailbox[] {
+  for (const [address, form] of filledForms) {
+    if (!store.mailboxes.some((box) => box.address.toLowerCase() === address)) store.mailboxes.push(formMailbox(address, form));
+  }
+  return store.mailboxes;
+}
 
 function randomFrom(text: string) {
   let state = 11;
@@ -619,7 +666,7 @@ export function emailHandlers({ org, failure }: Pick<Helpers, 'org' | 'failure'>
   };
   const personOf = (lead: Lead): ListPerson => ({ id: lead.id, name: lead.name, company: lead.company, address: lead.address, source_word: lead.source_word, state: 'planned' });
   return [
-    http.get('/api/orgs/:org/email/mailboxes', org((data) => HttpResponse.json(storeOf(data).mailboxes))),
+    http.get('/api/orgs/:org/email/mailboxes', org((data) => HttpResponse.json(mailboxesOf(storeOf(data))))),
     http.post(
       '/api/orgs/:org/email/discover',
       org(async (_data, { request }) => {

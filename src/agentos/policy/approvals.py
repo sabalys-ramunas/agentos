@@ -48,26 +48,42 @@ import asyncio
 import hashlib
 import hmac
 import json
-import re
 import time
 from collections.abc import Callable
-from dataclasses import dataclass
-from typing import Any, Literal
-
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from typing import Any
 
 from agentos.core.errors import InvalidRequest, NotFound
-from agentos.core.models import Effect, Principal
-from agentos.policy import cards, confirm, globs
+from agentos.core.models import Principal
+from agentos.policy import cards, confirm
+from agentos.policy.approval_binding import (
+    CONTENT_EFFECTS,
+    ActionBinding,
+    content_digest,
+)
+from agentos.policy.approval_models import (
+    DECIDED_VIA,
+    MAX_WAIT_S,
+    NOT_WHOLE,
+    SEND_PAGE,
+    SEND_TOOL,
+    STATES,
+    Approval,
+    ApprovalPolicy,
+    _requester_owner,
+    _row_to_approval,
+    decision_problem,
+    visible_to,
+)
 from agentos.policy.confirm import ConfirmLevel, MethodRegistry, Person, Proof
 from agentos.policy.confirmation import ConfirmationConfig
 from agentos.policy.errors import Conflict, Denied, ProofTooWeak, SeeWholeCard
 from agentos.policy.grants import Grant, owner_block
-from agentos.policy.redact import REDACTED, redact, redact_text
+from agentos.policy.redact import redact, redact_text
+from agentos.policy.scrub import walk
+from agentos.policy.standing import StandingApprovalsMixin
 from agentos.policy.store import DB
 from agentos.policy.traces import EventBus
-from agentos.policy.util import b64u, content_hash, iso, new_id, utc_day
-from agentos.vault.scrub import walk
+from agentos.policy.util import b64u, iso, new_id
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS approvals (
@@ -119,500 +135,42 @@ _MIGRATIONS = (("approvals", "content_digest", "TEXT"), ("approvals", "flow_targ
                ("approvals", "decided_method", "TEXT"), ("approvals", "decided_level", "TEXT"),
                ("approvals", "decided_detail", "TEXT"), ("approvals", "requires_basis", "TEXT"),
                ("approvals", "binding", "TEXT"), ("approvals", "decided_grant", "TEXT"))
-CONTENT_EFFECTS = ("commit",)  # effects whose content is published; standing approvals bind it
 # the longest a request node code opens with its own expiry waits (create_action `expires_at`):
 # the agenda's cap (agenda_approval_max_days) is at most this
 MAX_REQUEST_S = 90 * 86400
-_TARGET_RE = re.compile(r"^(flow:[a-z0-9][a-z0-9_.-]{0,250}@[A-Za-z0-9._:-]{1,128}|tool:[a-z][a-z0-9_]{0,63}"
-                        r"|connector:[a-z][a-z0-9-]{0,30}\.[a-z][a-z0-9_]{0,40}@[A-Za-z0-9._:-]{1,128})$")
-_DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
-_FLOW_CONTENT_KEYS = {"flow", "version", "lane", "params"}  # agentos.runner.flows approval_content
-# agentos.runner.connectors.surfaces SurfaceService.approval: a connector run on a surface
-_CONNECTOR_CONTENT_KEYS = {"operation", "contract", "surface", "acts_as", "params"}
-NAMED_TARGETS = ("flow:", "connector:")  # targets that name what runs, not only the tool
-_PUBLISH_CONTENT_KEYS = {"publish", "lane", "record"}  # agentos.node.publish Capture.content
 
 
-def is_publish(content: Any) -> bool:
-    """Is this the content of a publish the commit gate caught (agentos.node.publish)?"""
-    return isinstance(content, dict) and set(content) == _PUBLISH_CONTENT_KEYS \
-        and isinstance(content.get("publish"), str) and isinstance(content.get("record"), dict)
-
-
-def publish_acts(content: Any) -> dict[str, Any] | None:
-    """Who a publish the commit gate caught acts as, when the gate resolved it (agentos.node.acting:
-    `status` self, surface or unrecognized), else None."""
-    if not is_publish(content):
-        return None
-    acts = content["record"].get("acts_as")
-    return acts if isinstance(acts, dict) and isinstance(acts.get("status"), str) else None
-
-
-def content_digest(content: Any) -> str:
-    """The digest a standing approval's `contents` list holds for a call: sha256 over the
-    canonical JSON of the `content` the node passes to authorize (for a flow run: flow id,
-    version, lane and params)."""
-    return content_hash(content)
-
-
-# How an action approval binds what it is for (Approval.binding). None: a card made before
-# ActionBinding (read for one release; a later stage drops the legacy forms).
-BINDING_CALL = "call"    # the policy gate's: the hash covers routing facts only the gate knows
-BINDING_KEYED = "keyed"  # one operation the node queues itself: whoever holds the key, params and content can hash it again
-_BINDING_EXTRA = frozenset({"cost", "facts", "taint"})
 _DEFAULT_PREVIEW: Any = object()  # ask_for_action: no preview given, so the content as JSON
 
 
-@dataclass(frozen=True)
-class ActionBinding:
-    """What one action approval is for, and the one way its digests are made.
-
-    `content_digest` is content_digest(`content`): what the owner reads, checked again by whoever
-    acts (the runner at dispatch, an engage item, a trigger proposal, a workflow step). `content_hash`
-    covers the whole action: the tool, effect, lane, domain, summary and content, plus `params` (the
-    exact params a queued run is submitted with) and `key` (the one operation it is for) when given,
-    and the policy gate's stated cost and routing facts (`extra`). A field that is absent is left out,
-    so the policy gate's hashes are the ones it made before this class existed."""
-
-    effect: str
-    tool: str | None
-    lane: str | None
-    params: Any = None
-    content: Any = None
-    key: str | None = None
-    domain: str | None = None
-    summary: str = ""
-    extra: dict[str, Any] | None = None
-
-    def __post_init__(self) -> None:
-        if self.extra and not set(self.extra) <= _BINDING_EXTRA:
-            raise ValueError(f"an action binding's extra holds only {sorted(_BINDING_EXTRA)}")
-
-    @property
-    def form(self) -> str:
-        return BINDING_KEYED if self.key is not None or self.params is not None else BINDING_CALL
-
-    def bound(self) -> dict[str, Any]:
-        out: dict[str, Any] = {"tool": self.tool, "effect": self.effect, "lane": self.lane, "domain": self.domain,
-                               "summary": self.summary, "content": self.content}
-        for k, v in (self.extra or {}).items():
-            if v:
-                out[k] = v
-        if self.params is not None:
-            out["params"] = self.params
-        if self.key is not None:
-            out["key"] = self.key
-        return out
-
-    @property
-    def content_hash(self) -> str:
-        return content_hash(self.bound())
-
-    @property
-    def content_digest(self) -> str:
-        return content_digest(self.content)
-
-    def legacy_engage_hash(self, params: Any = None) -> str:
-        """The hash engage put on its cards before ActionBinding (over `params`, default this
-        binding's): read for one release, for cards still pending at the upgrade."""
-        ph = hashlib.sha256(json.dumps(self.params if params is None else params, sort_keys=True,
-                                       default=str).encode()).hexdigest()
-        return hashlib.sha256(json.dumps({"engage": self.key, "params": ph, "content": self.content},
-                                         sort_keys=True, default=str).encode()).hexdigest()
+def _check_decision_args(decision: str, edit: dict | None, via: str | None) -> None:
+    if decision not in ("approve", "deny"):
+        raise InvalidRequest("decision must be approve or deny")
+    if edit is not None and decision != "approve":
+        raise InvalidRequest("only an approval can carry an edit; a denial needs only a reason")
+    if via is not None and not DECIDED_VIA.match(via):
+        raise InvalidRequest("via is a short lowercase word such as passkey or owner_token")
 
 
-def is_legacy_hash(value: Any) -> bool:
-    """A bare sha256 hex: how engage and trigger proposals wrote content_hash before ActionBinding."""
-    return isinstance(value, str) and len(value) == 64 and all(c in "0123456789abcdef" for c in value)
+def _answer(ap: Approval, answer: str | None, note: str | None) -> str:
+    """The answer to a question: one of its options when it has any, at most 2000 characters."""
+    value = (answer if answer is not None else note or "").strip()
+    if not value:
+        choose = f", one of: {', '.join(ap.options)}" if ap.options else ""
+        raise InvalidRequest(f"answering a question needs an answer{choose}")
+    if ap.options and value not in ap.options:
+        raise InvalidRequest(f"the answer must be one of: {', '.join(ap.options)}")
+    return value[:2000]
 
 
-def action_binding_problem(ap: Any, binding: ActionBinding, *, legacy: tuple[str, ...] = ()) -> str | None:
-    """None when the action approval `ap` covers exactly `binding`, else what is wrong, worded to
-    follow "approval <id> ". The lane the card names and the content digest are always checked; the
-    whole-action hash too when the card is keyed (and not edited: an approved edit moved the digest, which is checked). A card made
-    before ActionBinding (`binding` None) holds the hash of its caller's old form: one of `legacy` must
-    match when any is given. Fails closed: an approval that binds nothing covers nothing."""
-    if getattr(ap, "kind", None) != "action":
-        return "is not an approval of an action"
-    form = getattr(ap, "binding", None)
-    digest = getattr(ap, "content_digest", None)
-    have = str(getattr(ap, "content_hash", None) or "")
-    if form is not None and digest is None:
-        return "binds no content"
-    lane = getattr(ap, "lane", None)
-    if lane is not None and binding.lane is not None and lane != binding.lane:
-        return f"is for {lane}, not {binding.lane}"
-    if digest is not None and not hmac.compare_digest(str(digest), binding.content_digest):
-        return "is for different content"
-    if form == BINDING_KEYED and not getattr(ap, "edit", None):
-        if not hmac.compare_digest(have, binding.content_hash):
-            return "is for a different action"
-    elif form is None and legacy:
-        if not any(hmac.compare_digest(have, h) for h in legacy):
-            return "is for a different action"
-    elif digest is None:
-        return "binds no content"
-    return None
-
-
-def call_targets(tool: str | None, content: Any, lane_id: str | None) -> set[str]:
-    """What a call is, in standing-approval target terms: `tool:<name>`, `flow:<id>@<version>`
-    when the content is a flow run's approval content for this lane, and
-    `connector:<site>.<op>@<contract>` when it is a connector run's for this surface (the
-    contract hash survives a locator-only repair, docs/design/connectors.md 4.12)."""
-    out = {f"tool:{tool}"} if tool else set()
-    if (isinstance(content, dict) and set(content) == _FLOW_CONTENT_KEYS and content.get("lane") == lane_id
-            and isinstance(content.get("flow"), str) and isinstance(content.get("version"), str)):
-        out.add(f"flow:{content['flow']}@{content['version']}")
-    if (isinstance(content, dict) and set(content) == _CONNECTOR_CONTENT_KEYS and content.get("surface") == lane_id
-            and isinstance(content.get("operation"), str) and isinstance(content.get("contract"), str)):
-        out.add(f"connector:{content['operation']}@{content['contract']}")
-    return out
-
-
-def named_target(tool: str | None, content: Any, lane_id: str | None) -> str | None:
-    """The flow or connector target of a call, for an approval's `flow_target` and routing."""
-    return next((t for t in sorted(call_targets(tool, content, lane_id)) if t.startswith(NAMED_TARGETS)), None)
-
-STATES = ("pending", "approved", "denied", "expired", "consumed")
-MAX_WAIT_S = 120.0
-DECIDED_VIA = re.compile(r"^[a-z][a-z0-9_:-]{0,39}$")  # passkey, code, owner_token, session, push_link, ...
-# what says a preview is not the whole content: a person can only say yes in chat to what the prompt shows
-NOT_WHOLE = ("[preview truncated:", "...[truncated ", "[nested too deep]", REDACTED, "[redacted:", "[withheld")
-# a send card's messages are served this many at a time (ApprovalStore.send_messages)
-SEND_PAGE = 25
-SEND_TOOL = "workflow_send"
-
-
-class FourEyesRule(BaseModel):
-    """`[approvals] four_eyes = [{workspace = "biz-*", effects = ["pay"]}]` in policy.toml: in
-    matching workspaces, for these effects (all when left out), the person behind the requesting
-    agent does not decide its approval; someone else must. A rule for every workspace ("*") also
-    holds an action that names no lane (no workspace), so leaving the lane out never skips it."""
-    model_config = ConfigDict(extra="forbid", frozen=True)
-    workspace: str = "*"
-    effects: list[str] | None = None
-
-    @field_validator("workspace")
-    @classmethod
-    def _ws(cls, v: str) -> str:
-        return globs.validate_segment(v)
-
-    @field_validator("effects")
-    @classmethod
-    def _effects(cls, v: list[str] | None) -> list[str] | None:
-        if v is not None:
-            for e in v:
-                Effect(e)
-        return v
-
-    def matches(self, workspace: str | None, effect: str | None) -> bool:
-        where = self.workspace == "*" if workspace is None else globs.segment_match(self.workspace, workspace)
-        return where and (self.effects is None or effect in self.effects)
-
-
-class ApprovalPolicy(BaseModel):
-    """The `[approvals]` table of policy.toml (default: no four-eyes anywhere)."""
-    model_config = ConfigDict(extra="forbid")
-    four_eyes: list[FourEyesRule] = Field(default_factory=list)
-
-
-class Approval(BaseModel):
-    id: str
-    kind: Literal["action", "question"]
-    state: str
-    effect: str | None = None
-    tool: str | None = None
-    lane: str | None = None
-    domain: str | None = None
-    summary: str
-    content_hash: str | None = None
-    preview: str | None = None
-    options: list[str] | None = None
-    answer: str | None = None
-    reason: str | None = None
-    requester: dict
-    grant_id: str | None = None
-    grant_path: str | None = None
-    created_at: float
-    expires_at: float
-    decided_by: str | None = None
-    decided_at: float | None = None
-    note: str | None = None
-    consumed_at: float | None = None
-    content_digest: str | None = None  # see content_digest(); what a standing approval can bind
-    flow_target: str | None = None     # flow:<id>@<version> when the call ran a flow
-    binding: str | None = None         # BINDING_CALL or BINDING_KEYED (ActionBinding); None: made before it
-    # routing facts the node computed itself (never model text), and how the decision was made
-    workspace: str | None = None
-    requester_owner: str | None = None  # sub.owner of the requesting grant: the person behind the agent
-    target: str | None = None           # flow:<id>@<version> or tool:<name>
-    amount_usd: float | None = None     # node-parsed, pay only
-    not_after: float | None = None      # when the waiting run goes stale
-    decided_via: str | None = None      # passkey, code, owner_token, session, push_link, ...
-    # how strong a yes must be and where it can be given, fixed when it was created (docs/CONFIRMATIONS.md)
-    requires: str | None = None
-    methods: list[str] | None = None
-    requires_basis: dict | None = None  # what held it up when it was made: {untrusted, floor}, never public
-    # what the node worked out for the decision. None: it proves no person (a bearer token, a push's deny)
-    decided_method: str | None = None
-    decided_level: str | None = None
-    decided_detail: dict | None = None  # nothing secret and no content
-    # the grant the decision was made with: "owner" (the owner, in person or on the node), a member's
-    # grant id, an admin grant id; None when a token other than the owner's decided without one
-    decided_grant: str | None = None
-    # the call follows untrusted content its context read: where from (kind and host, never the
-    # text), newest first; None for a call that follows none (ROUTING.md, "After untrusted content")
-    follows: list[dict] | None = None
-
-    def follows_words(self) -> str | None:
-        """"a web page at evil.example and an email" for the card and the push, or None."""
-        return follows_words(self.follows)
-
-    def is_publish_card(self) -> bool:
-        """The node's card of a publish the commit gate caught: what a chat prompt shows in place of the
-        preview, so it is what says whether the prompt shows the content."""
-        return isinstance(self.card, dict) and self.card.get("type") == "publish"
-
-    def preview_cut(self) -> bool:
-        """The preview does not show the whole content: it was cut, a value in it was withheld, or the
-        card shows an image a text prompt cannot."""
-        images = self.card.get("images") if isinstance(self.card, dict) else None
-        return bool(images) or any(mark in (self.preview or "") for mark in NOT_WHOLE)
-
-    def needs_whole_view(self) -> bool:
-        """A send card whose preview does not show every message: only someone who was served every
-        page of them (ApprovalStore.send_messages) approves it, so no path approves it from the cut."""
-        cut = any(mark in (self.preview or "") for mark in ("[preview truncated:", "...[truncated ", "[nested too deep]"))
-        return self.kind == "action" and self.tool == SEND_TOOL and (cut or not self.preview)
-
-    def chat_can_answer(self) -> bool:
-        """Said in `approval_pending`, so an agent knows to offer approval_confirm."""
-        return "chat" in (self.methods or [])
-    # the node-built card (agentos.policy.cards), the content it binds when a param can be edited,
-    # and the approver's edit: {"params": {...}, "by", "at", "digest_before"}
-    card: dict | None = None
-    content: Any = None
-    edit: dict | None = None
-
-    def public(self) -> dict:
-        """The API shape (docs/API.md Needs you)."""
-        return {
-            "id": self.id, "kind": self.kind, "state": self.state, "effect": self.effect, "tool": self.tool,
-            "content_digest": self.content_digest, "flow_target": self.flow_target,
-            "lane": self.lane, "domain": self.domain, "summary": self.summary, "content_hash": self.content_hash,
-            "preview": {"text": self.preview} if self.preview else None, "options": self.options,
-            "answer": self.answer, "reason": self.reason, "requested_by": self.requester,
-            "created_at": iso(self.created_at), "expires_at": iso(self.expires_at),
-            "decided_by": self.decided_by, "decided_at": iso(self.decided_at), "note": self.note,
-            "workspace": self.workspace, "requester_owner": self.requester_owner, "target": self.target,
-            "amount_usd": self.amount_usd, "not_after": iso(self.not_after), "decided_via": self.decided_via,
-            "follows": self.follows, "after_untrusted": self.follows_words(),
-            "card": self.card, "edit": self._edit_public(),
-            "requires": self.requires, "methods": self.methods, "decided_method": self.decided_method,
-            "decided_level": self.decided_level, "decided_detail": self.decided_detail,
-            "messages": self.messages_info(),
-        }
-
-    def messages_info(self) -> dict | None:
-        """A send card's whole list, for the panel's "show all": how many messages, how many pages
-        (GET /api/approvals/{id}/messages), and whether approving needs every page read first."""
-        if self.tool != SEND_TOOL:
-            return None
-        messages = self.content.get("messages") if isinstance(self.content, dict) else None
-        if not isinstance(messages, list):
-            return {"count": None, "pages": 0, "page_size": SEND_PAGE, "read_all_first": self.needs_whole_view()}
-        return {"count": len(messages), "pages": max(1, -(-len(messages) // SEND_PAGE)), "page_size": SEND_PAGE,
-                "read_all_first": self.needs_whole_view()}
-
-    def _edit_public(self) -> dict | None:
-        if not self.edit:
-            return None
-        return {"params": sorted(self.edit.get("params") or {}), "by": self.edit.get("by"),
-                "at": iso(self.edit.get("at"))}
-
-    def status(self) -> dict:
-        """What an agent sees from approval_status / approval_wait."""
-        out = {"approval_id": self.id, "kind": self.kind, "state": self.state, "summary": self.summary,
-               "created_at": iso(self.created_at), "expires_at": iso(self.expires_at),
-               "decided_at": iso(self.decided_at)}
-        if self.note:
-            out["note"] = self.note
-        if self.reason and self.kind != "question":  # why a person must decide (node-written, as the owner reads it)
-            out["why"] = self.reason
-        if self.state == "pending":
-            out.update(self.confirm_hint())
-        if self.kind == "question":
-            out["answer"] = self.answer
-            out["options"] = self.options
-        elif self.state == "approved" and self.edit:
-            out["edited"] = sorted(self.edit.get("params") or {})
-            out["next"] = ("the approver edited it before approving; the run uses the edited version (see "
-                           "run_status), so do not call again")
-        elif self.state == "approved" and self.tool == "flow_run":
-            out["next"] = ("the run starts on its own within a few seconds: follow it with run_status (calling "
-                           "flow_run again returns the same run)")
-        elif self.state == "approved":
-            out["next"] = f"call {self.tool} again with the same arguments" if self.tool else "retry the call"
-        return out
-
-
-    def confirm_hint(self) -> dict:
-        """What an agent is told about a pending approval: how strong the yes must be and whether a
-        person can give it in chat. Nothing here answers it."""
-        out: dict[str, Any] = {"requires": self.requires, "can_answer_in_chat": self.chat_can_answer()}
-        if self.chat_can_answer():
-            out["offer"] = "the person can answer this in their chat client: call approval_confirm(approval_id)"
-        else:
-            out["offer"] = "call approval_confirm(approval_id) for a review link to show the person"
-        return out
-
-
-class StandingApproval(BaseModel):
-    id: str
-    effects: list[str]
-    workspaces: list[str]
-    lanes: list[str]
-    grant_id: str | None
-    max_uses: int | None
-    uses: int
-    per_day: int | None
-    starts_at: float
-    expires_at: float
-    created_by: str
-    created_at: float
-    revoked_at: float | None
-    note: str | None
-    targets: list[str] = []
-    contents: list[str] = []
-    shape: bool = False  # covers any content of its named targets on its lanes ("always allow this shape")
-    issuer: str | None = None  # `org:<id>` for one a controller sent (node/channel/standing.py); None: this node's
-    withdrawn_at: float | None = None  # its controller no longer sends it; it may send it again, uses kept
-    confirmed_at: float | None = None  # when its controller last sent it, or last reconciled while connected
-
-    def state(self, now: float) -> str:
-        """active, used_up, expired, revoked, or withdrawn (its controller no longer sends it)."""
-        if self.revoked_at is not None:
-            return "revoked"
-        if self.expires_at <= now:
-            return "expired"
-        if self.withdrawn_at is not None:
-            return "withdrawn"
-        return "used_up" if self.max_uses is not None and self.uses >= self.max_uses else "active"
-
-    def covers_publishing(self) -> bool:
-        """Whether it can cover a content-carrying effect at all (it names a target)."""
-        return bool(self.targets)
-
-    def public(self) -> dict:
-        d = self.model_dump()
-        for k in ("starts_at", "expires_at", "created_at", "revoked_at", "withdrawn_at"):
-            d[k] = iso(d[k])
-        d["remaining"] = None if self.max_uses is None else max(0, self.max_uses - self.uses)
-        d["covers_publishing"] = self.covers_publishing()
-        return d
-
-
-ORIGIN_WORDS = {"web_page": "a web page", "email": "an email", "mail_event": "an email",
-                "webhook": "a webhook body", "webhook_event": "a webhook body",
-                "memory_note": "a memory note marked untrusted", "connector_output": "connector output",
-                "event": "an event", "tool_output": "tool output", "terminal_output": "terminal output",
-                "program_output": "program output", "model_output": "model output",
-                "web_content": "web content", "untrusted_content": "untrusted content",
-                "turn_seed": "what woke this turn"}
-
-
-def _origin_word(kind: str) -> str:
-    if kind in ORIGIN_WORDS:
-        return ORIGIN_WORDS[kind]
-    words = kind.replace("_", " ")
-    return f"{'an' if words[:1] in 'aeiou' else 'a'} {words}"
-
-
-def follows_words(origins: list[dict] | None, limit: int = 3) -> str | None:
-    """Untrusted origins in words: kind and host, never the text. An origin without a host is left
-    out when the same kind is also named with one."""
-    if not origins:
+def _decided_grant(proof: Proof, decider: Grant | None, refuse_family: str | None) -> str | None:
+    """The person behind this decision, for the agenda (approver_of): a member's grant, or the
+    owner on the node or in the panel. None when it proves no person (a bearer token)."""
+    if proof.level is None:
         return None
-    named = {o.get("kind") for o in origins if o.get("host")}
-    origins = [o for o in origins if o.get("host") or o.get("kind") not in named]
-    words = []
-    for o in origins[:limit]:
-        w = _origin_word(str(o.get("kind") or "untrusted_content"))
-        words.append(f"{w} at {o['host']}" if o.get("host") else w)
-    more = len(origins) - limit
-    if more > 0:
-        words.append(f"{more} more")
-    return words[0] if len(words) == 1 else ", ".join(words[:-1]) + " and " + words[-1]
-
-
-def _row_to_approval(r: Any) -> Approval:
-    d = dict(r)
-    d["requester"] = json.loads(d["requester"])
-    d["options"] = json.loads(d["options"]) if d["options"] else None
-    d["follows"] = json.loads(d["follows"]) if d.get("follows") else None
-    d["methods"] = json.loads(d["methods"]) if d.get("methods") is not None else None
-    d["requires_basis"] = json.loads(d["requires_basis"]) if d.get("requires_basis") else None
-    d["decided_detail"] = json.loads(d["decided_detail"]) if d.get("decided_detail") else None
-    for key, column in (("card", "card"), ("content", "content_json"), ("edit", "edit")):
-        raw = d.pop(column, None)
-        d[key] = json.loads(raw) if raw else None
-    return Approval(**d)
-
-
-def _row_to_standing(r: Any) -> StandingApproval:
-    d = dict(r)
-    for k in ("effects", "workspaces", "lanes", "targets", "contents"):
-        d[k] = json.loads(d.get(k) or "[]")
-    d.pop("day", None)
-    d.pop("day_uses", None)
-    d["shape"] = bool(d.get("shape"))
-    return StandingApproval(**d)
-
-
-def decision_problem(ap: Approval, decider: Grant, decision: str = "approve", *,
-                     four_eyes: list[FourEyesRule] | tuple[FourEyesRule, ...] = (),
-                     refuse_family: str | None = None, in_person: bool = False) -> Denied | None:
-    """Why `decider` may not make `decision` on `ap`, or None when it may. Pure: the caller checks
-    that the decider grant is live (ApprovalStore.decide does, through `check_live`). The notifier
-    asks the same question to find who can decide a new approval (`ApprovalStore.can_decide`).
-
-    1. the decider is a person (`sub.kind = "human"`), the owner, or an admin grant (`not_approver`);
-    2. a grant family never decides what it asked for (`self_approval`): `refuse_family` names it
-       explicitly, else the decider's own root, except for a person deciding in person (`in_person`:
-       a signed-in panel session, the node CLI); the node token as a bearer is the "owner" family;
-    3. approving: its `approve` covers the effect and lane (Grant.approve_problem), and for pay a
-       known amount at most its `max_usd` (`not_approver`); denying: it only has to see the approval;
-    4. four-eyes: where a rule matches the workspace and effect, the person behind the requesting
-       agent (`requester_owner`) does not approve it (`four_eyes`)."""
-    if not (decider.owner_token or decider.admin or decider.human):
-        return Denied("not_approver", "only a person decides approvals; an agent's grant never does")
-    family = refuse_family
-    if family is None and not in_person:
-        family = decider.root_id
-    if family is not None and (ap.grant_path or "").startswith(f"/{family}/"):
-        return Denied("self_approval", "a grant cannot decide what it, or a grant narrowed from the same "
-                                       "root, asked for; the owner decides it in the panel or on the node")
-    if decision == "deny":
-        if not ApprovalStore.visible_to(ap, decider):
-            return Denied("not_approver", "this member cannot see this approval")
-        return None
-    if decider.human and not decider.owner_token and not decider.admin:
-        problem = decider.approve_problem(ap.effect if ap.kind == "action" else None, ap.lane,
-                                          workspace=ap.workspace, amount_usd=ap.amount_usd)
-        if problem:
-            return Denied("not_approver", problem)
-    person = decider.subject.id if decider.human else decider.subject.owner
-    if ap.kind == "action" and person == _requester_owner(ap) and any(
-            r.matches(ap.workspace, ap.effect) for r in four_eyes):
-        where = ap.workspace or "every workspace"
-        return Denied("four_eyes", f"four-eyes is on for {ap.effect} in {where}: {person} asked for this "
-                                   "through their own agent, so someone else decides it")
-    return None
-
-
-def _requester_owner(ap: Approval) -> str:
-    return ap.requester_owner or str(ap.requester.get("owner") or "owner")
+    if decider is not None:
+        return decider.id
+    return "owner" if refuse_family in (None, "owner") else None
 
 
 def _decided_by(decider: Grant) -> str:
@@ -640,7 +198,7 @@ def ask_for_action(store: Any, binding: ActionBinding, requester: Principal, rea
         content=binding.content, binding=binding.form, **card)
 
 
-class ApprovalStore:
+class ApprovalStore(StandingApprovalsMixin):
     """Runtime service "approvals"."""
 
     # set by PolicyService: raises Denied when a decider grant is revoked, expired or unknown
@@ -654,7 +212,7 @@ class ApprovalStore:
     issued_confirm_s: float = 24 * 3600.0
     # set by PolicyService: (approval, param) -> (bytes, mime) of the image its card shows
     card_files: Callable[[Any, str], tuple[bytes, str]] | None = None
-    # set by PolicyService on a node: the vault's scrub (agentos.vault.scrub.runtime_scrub), so the
+    # set by PolicyService on a node: the vault's scrub (agentos.policy.scrub.runtime_scrub), so the
     # summary, preview and card of an approval (the panel, a push, the controller) never hold a vault value
     scrub: Callable[[str], str] | None = None
     # set by PolicyService: the confirmation setting in force, read when an approval is created
@@ -917,18 +475,7 @@ class ApprovalStore:
         params += [max(1, min(int(limit), 500)), max(0, int(offset))]
         return [_row_to_approval(r) for r in self.db.all(sql, params)]
 
-    @staticmethod
-    def visible_to(ap: Approval, grant: Grant | str, admin: bool = False) -> bool:
-        """The owner and admin grants see every approval; a person's grant (a member) sees the
-        approvals on lanes it covers (a question: of the workspace it was asked in), and its own;
-        an agent's grant sees its own family's. `grant` may be a grant id (with `admin`)."""
-        if isinstance(grant, str):
-            return admin or (ap.grant_path is not None and f"/{grant}/" in ap.grant_path)
-        if grant.owner_token or grant.admin:
-            return True
-        if ap.grant_path is not None and f"/{grant.id}/" in ap.grant_path:
-            return True
-        return grant.human and grant.covers(ap.lane, ap.workspace)
+    visible_to = staticmethod(visible_to)
 
     def can_decide(self, ap: Approval, grant: Grant, decision: str = "approve") -> bool:
         """Could this (live) grant make `decision` on `ap`, with this node's four-eyes policy? The
@@ -972,12 +519,7 @@ class ApprovalStore:
         ({content_hash}, {content_digest}): what the person saw, checked in this same transaction.
         `seen`: for a send card whose preview is cut (Approval.needs_whole_view), the token the last
         page of send_messages gave; without it an approve is `see_whole_card`, whatever the path."""
-        if decision not in ("approve", "deny"):
-            raise InvalidRequest("decision must be approve or deny")
-        if edit is not None and decision != "approve":
-            raise InvalidRequest("only an approval can carry an edit; a denial needs only a reason")
-        if via is not None and not DECIDED_VIA.match(via):
-            raise InvalidRequest("via is a short lowercase word such as passkey or owner_token")
+        _check_decision_args(decision, edit, via)
         if decider is not None and self.check_live is not None:
             self.check_live(decider)
         if by is None:
@@ -991,49 +533,19 @@ class ApprovalStore:
             if row is None:
                 raise NotFound(f"no approval {approval_id}")
             ap = _row_to_approval(row)
-            if decider is not None:
-                problem = decision_problem(ap, decider, decision, four_eyes=self.policy.four_eyes,
-                                           refuse_family=refuse_family, in_person=in_person)
-            else:
-                problem = decision_problem(ap, Grant([owner_block()], owner_token=True), decision,
-                                           four_eyes=self.policy.four_eyes, refuse_family=refuse_family,
-                                           in_person=True)
+            problem = self._decision_problem(ap, decision, decider, refuse_family, in_person)
             if problem is not None:
                 raise problem
-            if ap.state == "pending" and ap.expires_at <= now:
-                conn.execute("UPDATE approvals SET state = 'expired' WHERE id = ?", (ap.id,))
-                ap.state = "expired"
-            if ap.state != "pending":
-                raise Conflict(f"approval {approval_id} is already {ap.state}")
-            if content is not None and content != (ap.content_hash, ap.content_digest):
-                raise Conflict(f"approval {approval_id} holds other content than the person saw")
-            if decision == "approve" and ap.needs_whole_view() and not self._seen_ok(ap, seen):
-                raise SeeWholeCard("this card shows only part of the messages it sends. Open it in the panel, "
-                                   "read every message (show all), and approve it there", ap.id)
+            self._check_still_open(conn, ap, now, decision, content=content, seen=seen)
             if decision == "approve":
                 proof = self._strong_enough(ap, proof, setting.off_in(ap.workspace))
             new_state = "approved" if decision == "approve" else "denied"
-            value = None
-            if ap.kind == "question" and decision == "approve":
-                value = (answer if answer is not None else note or "").strip()
-                if not value:
-                    choose = f", one of: {', '.join(ap.options)}" if ap.options else ""
-                    raise InvalidRequest(f"answering a question needs an answer{choose}")
-                if ap.options and value not in ap.options:
-                    raise InvalidRequest(f"the answer must be one of: {', '.join(ap.options)}")
-                value = value[:2000]
+            value = _answer(ap, answer, note) if ap.kind == "question" and decision == "approve" else None
             expires = now + self.approval_ttl_s if new_state == "approved" else ap.expires_at
             if edit is not None:
                 self._apply_edit(conn, ap, edit, by=by[:120], now=now)
             level = proof.level.word if proof.level is not None else None
-            # the person behind this decision, for the agenda (approver_of): a member's grant, or the
-            # owner on the node or in the panel. None when it proves no person (a bearer token)
-            if proof.level is None:
-                grant = None
-            elif decider is not None:
-                grant = decider.id
-            else:
-                grant = "owner" if refuse_family in (None, "owner") else None
+            grant = _decided_grant(proof, decider, refuse_family)
             conn.execute("UPDATE approvals SET state = ?, decided_by = ?, decided_at = ?, note = ?, answer = ?, "
                          "expires_at = ?, decided_via = ?, decided_method = ?, decided_level = ?, decided_detail = ?, "
                          "decided_grant = ? WHERE id = ? AND state = 'pending'",
@@ -1042,6 +554,30 @@ class ApprovalStore:
         ap = self.get(approval_id)
         self._publish(ap)
         return ap
+
+    def _decision_problem(self, ap: Approval, decision: str, decider: Grant | None, refuse_family: str | None,
+                          in_person: bool) -> Denied | None:
+        """decision_problem for this decider; without one, the owner deciding in person."""
+        if decider is not None:
+            return decision_problem(ap, decider, decision, four_eyes=self.policy.four_eyes,
+                                    refuse_family=refuse_family, in_person=in_person)
+        return decision_problem(ap, Grant([owner_block()], owner_token=True), decision,
+                                four_eyes=self.policy.four_eyes, refuse_family=refuse_family, in_person=True)
+
+    def _check_still_open(self, conn: Any, ap: Approval, now: float, decision: str, *,
+                          content: tuple[str | None, str | None] | None, seen: str | None) -> None:
+        """Still pending (one past its time expires now), for the content the person saw, and for a
+        cut send card, seen whole."""
+        if ap.state == "pending" and ap.expires_at <= now:
+            conn.execute("UPDATE approvals SET state = 'expired' WHERE id = ?", (ap.id,))
+            ap.state = "expired"
+        if ap.state != "pending":
+            raise Conflict(f"approval {ap.id} is already {ap.state}")
+        if content is not None and content != (ap.content_hash, ap.content_digest):
+            raise Conflict(f"approval {ap.id} holds other content than the person saw")
+        if decision == "approve" and ap.needs_whole_view() and not self._seen_ok(ap, seen):
+            raise SeeWholeCard("this card shows only part of the messages it sends. Open it in the panel, "
+                               "read every message (show all), and approve it there", ap.id)
 
     # ---- a send card's whole list ----
     def _page_sig(self, ap: Approval, what: str) -> str:
@@ -1235,292 +771,6 @@ class ApprovalStore:
                           "AND state = 'denied' AND decided_at > ? ORDER BY decided_at DESC LIMIT 1",
                           (len(prefix), prefix, self.clock() - cooldown_s))
         return _row_to_approval(row) if row else None
-
-    # ---- standing approvals ----
-    def add_standing(self, *, effects: list[str], workspaces: list[str] | None = None,
-                     lanes: list[str] | None = None, until: float, count: int | None = None,
-                     per_day: int | None = None, grant_id: str | None = None, starts_at: float | None = None,
-                     by: str, note: str | None = None, targets: list[str] | None = None,
-                     contents: list[str] | None = None, shape: bool = False) -> StandingApproval:
-        """See the module docstring. `targets` are `flow:<id>@<version>`,
-        `connector:<site>.<op>@<contract>` or `tool:<name>`;
-        `contents` are content digests (content_digest) the owner saw. One without targets is
-        accepted but never covers a content-carrying effect (binding_problem says why).
-        `shape` ("always allow this shape"): any content of its named flow versions or connector
-        operations on its lanes, so it needs named targets and no contents; consume_standing applies
-        every other rule to it as to a template (the policy may still require exact content, for
-        example after untrusted text)."""
-        now = self.clock()
-        effects, workspaces, lanes, targets, contents = self.standing_values(
-            effects=effects, workspaces=workspaces, lanes=lanes, until=until, count=count, per_day=per_day,
-            targets=targets, contents=contents, shape=shape)
-        sa = StandingApproval(id=new_id("sa"), effects=effects, workspaces=workspaces, lanes=lanes, grant_id=grant_id,
-                              max_uses=count, uses=0, per_day=per_day, starts_at=starts_at or now, expires_at=until,
-                              created_by=by, created_at=now, revoked_at=None,
-                              note=redact_text(note, max_len=300) if note else None, targets=targets,
-                              contents=contents, shape=shape)
-        self.db.execute(
-            "INSERT INTO standing (id, effects, workspaces, lanes, grant_id, max_uses, uses, per_day, starts_at, "
-            "expires_at, created_by, created_at, note, targets, contents, shape) "
-            "VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (sa.id, json.dumps(effects), json.dumps(workspaces), json.dumps(lanes), grant_id, count, per_day,
-             sa.starts_at, until, by, now, sa.note, json.dumps(targets), json.dumps(contents), int(shape)))
-        self.bus.publish("approval", {"standing": sa.public(), "state": "created"})
-        return sa
-
-    def standing_values(self, *, effects: list[str], workspaces: list[str] | None, lanes: list[str] | None,
-                        until: float, count: int | None, per_day: int | None, targets: list[str] | None,
-                        contents: list[str] | None, shape: bool = False
-                        ) -> tuple[list[str], list[str], list[str], list[str], list[str]]:
-        """The rules every standing approval follows, wherever it comes from: (effects, workspaces,
-        lanes, targets, contents) sorted and checked, or InvalidRequest."""
-        now = self.clock()
-        targets = sorted(set(targets or []))
-        contents = sorted(set(contents or []))
-        if shape and (not targets or any(not t.startswith(NAMED_TARGETS) for t in targets) or contents):
-            raise InvalidRequest("a shape approval names flow versions or connector operations (targets), and no "
-                                 "contents: it covers what they post on its lanes")
-        bad_t = [t for t in targets if not _TARGET_RE.match(t)]
-        if bad_t:
-            raise InvalidRequest(f"standing approval targets look like flow:<id>@<version>, "
-                                 f"connector:<site>.<op>@<contract> or tool:<name>, not {bad_t[0][:80]!r}")
-        if any(not _DIGEST_RE.match(c) for c in contents):
-            raise InvalidRequest("standing approval contents are content digests (sha256:<64 hex>)")
-        effects = sorted(set(effects))
-        if not effects:
-            raise InvalidRequest("a standing approval needs at least one effect")
-        bad = [e for e in effects if e not in self.standing_effects]
-        if bad:
-            raise InvalidRequest(f"a standing approval cannot cover {', '.join(bad)} "
-                                 f"(allowed: {', '.join(self.standing_effects)})")
-        workspaces = [globs.validate_segment(w) for w in workspaces or []]
-        lanes = [globs.validate_lane_pattern(p) for p in lanes or []]
-        if not workspaces and not lanes:
-            raise InvalidRequest("a standing approval needs a workspace or a lane pattern")
-        if until <= now:
-            raise InvalidRequest("a standing approval must end in the future")
-        if count is not None and count < 1:
-            raise InvalidRequest("count must be at least 1")
-        if per_day is not None and per_day < 1:
-            raise InvalidRequest("per_day must be at least 1")
-        return effects, workspaces, lanes, targets, contents
-
-    def binding_problem(self, effects: list[str], targets: list[str] | None) -> str | None:
-        """Why a standing approval for these effects would cover nothing that publishes, or None.
-        The policy API and CLI refuse such approvals; ApprovalStore.add_standing accepts them."""
-        content = sorted(set(effects) & set(self.content_effects))
-        if content and not targets:
-            return (f"a standing approval for {', '.join(content)} must name what it covers: a flow version "
-                    "(flow:<id>@<version>), a connector operation (connector:<site>.<op>@<contract>) or a tool "
-                    "(tool:<name>), plus the contents the owner approved (content digests, or from_approvals); a "
-                    "flow version or connector operation with no parameters is a template")
-        return None
-
-    def binding_from(self, approval_ids: list[str], *, lane: str | None = None,
-                     deciders: list[Grant] | None = None) -> tuple[list[str], list[str], list[str]]:
-        """(targets, contents, lanes) taken from approvals the owner saw: their tool (and flow
-        version), their content digest and their lane. For "approve this, and the same again".
-
-        Only what a person already approved (approved or consumed): a pending one would let whoever
-        makes the standing approval decide it without deciding it. With `lane`, every approval must be
-        for that lane, so "the same again" never moves to another account. With `deciders` (a member's
-        grants), one of them must be able to approve each approval itself (decision_problem: their
-        role's approve, four-eyes), so a standing approval is never a way round deciding."""
-        targets, contents, lanes = set(), set(), set()
-        for i in approval_ids:
-            ap = self.get(i)
-            if ap.kind != "action" or ap.content_digest is None or ap.lane is None or not (
-                    ap.flow_target or ap.tool):
-                raise InvalidRequest(f"approval {i} carries no content to approve again")
-            if ap.state not in ("approved", "consumed"):
-                raise InvalidRequest(f"approval {i} is {ap.state}: approve it first, then allow the same again")
-            if lane is not None and ap.lane != lane:
-                raise InvalidRequest(f"approval {i} is for {ap.lane}, not {lane}")
-            if deciders is not None:
-                problems = [decision_problem(ap, g, "approve", four_eyes=self.policy.four_eyes, in_person=True)
-                            for g in deciders]
-                if all(p is not None for p in problems):
-                    raise problems[0] if problems else Denied("not_approver", "nobody here may approve this")
-            targets.add(ap.flow_target or f"tool:{ap.tool}")
-            contents.add(ap.content_digest)
-            lanes.add(ap.lane)
-        return sorted(targets), sorted(contents), sorted(lanes)
-
-    def list_standing(self, *, active_only: bool = True) -> list[StandingApproval]:
-        sql = "SELECT * FROM standing"
-        params: list[Any] = []
-        if active_only:
-            sql += " WHERE revoked_at IS NULL AND expires_at > ?"
-            params.append(self.clock())
-        return [_row_to_standing(r) for r in self.db.all(sql + " ORDER BY created_at DESC", params)]
-
-    def revoke_standing(self, standing_id: str, *, by: str) -> StandingApproval:
-        with self.db.tx() as conn:
-            row = conn.execute("SELECT * FROM standing WHERE id = ?", (standing_id,)).fetchone()
-            if row is None:
-                raise NotFound(f"no standing approval {standing_id}")
-            if row["revoked_at"] is not None:
-                raise Conflict(f"standing approval {standing_id} is already revoked")
-            conn.execute("UPDATE standing SET revoked_at = ? WHERE id = ?", (self.clock(), standing_id))
-        sa = _row_to_standing(self.db.one("SELECT * FROM standing WHERE id = ?", (standing_id,)))
-        self.bus.publish("approval", {"standing": sa.public(), "state": "revoked", "by": by})
-        return sa
-
-    # ---- standing approvals a controller sent (agentos.node.channel.standing) ----
-    def put_issued_standing(self, standing_id: str, *, issuer: str, effects: list[str], workspaces: list[str],
-                            lanes: list[str], until: float, count: int, per_day: int | None, uses: int, by: str,
-                            note: str | None, targets: list[str], contents: list[str],
-                            starts_at: float | None = None) -> tuple[StandingApproval | None, str]:
-        """Add or replace one a controller sent, by its id, under the rules every standing approval
-        follows (InvalidRequest otherwise). Returns (it, "created" | "updated" | "unchanged"), (it,
-        "revoked") when it was revoked here, since an id never comes back, or (None, "conflict") when
-        the id is this node's own or another issuer's. Uses only grow, so a controller that counted
-        fewer never refills it; a withdrawn one comes back with its uses."""
-        effects, workspaces, lanes, targets, contents = self.standing_values(
-            effects=effects, workspaces=workspaces, lanes=lanes, until=until, count=count, per_day=per_day,
-            targets=targets, contents=contents)
-        now = self.clock()
-        note = redact_text(note, max_len=300) if note else None
-        fields = (json.dumps(effects), json.dumps(workspaces), json.dumps(lanes), count, per_day,
-                  starts_at or now, until, by, note, json.dumps(targets), json.dumps(contents))
-        with self.db.tx() as conn:
-            row = conn.execute("SELECT * FROM standing WHERE id = ?", (standing_id,)).fetchone()
-            if row is not None and row["issuer"] != issuer:
-                return None, "conflict"
-            if row is not None and row["revoked_at"] is not None:
-                return _row_to_standing(row), "revoked"
-            if row is None:
-                conn.execute(
-                    "INSERT INTO standing (effects, workspaces, lanes, max_uses, per_day, starts_at, expires_at, "
-                    "created_by, note, targets, contents, id, uses, created_at, issuer, confirmed_at) "
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    (*fields, standing_id, max(0, uses), now, issuer, now))
-            else:
-                conn.execute(
-                    "UPDATE standing SET effects = ?, workspaces = ?, lanes = ?, max_uses = ?, per_day = ?, "
-                    "starts_at = ?, expires_at = ?, created_by = ?, note = ?, targets = ?, contents = ?, "
-                    "uses = MAX(uses, ?), withdrawn_at = NULL, confirmed_at = ? WHERE id = ?",
-                    (*fields, max(0, uses), now, standing_id))
-            sa = _row_to_standing(conn.execute("SELECT * FROM standing WHERE id = ?", (standing_id,)).fetchone())
-        same = row is not None and _row_to_standing(row).model_copy(update={"confirmed_at": sa.confirmed_at}) == sa
-        state = "created" if row is None else ("unchanged" if same else "updated")
-        if state != "unchanged":
-            self.bus.publish("approval", {"standing": sa.public(), "state": state})
-        return sa, state
-
-    def revoke_unseen_standing(self, standing_id: str, *, issuer: str, by: str) -> bool:
-        """An id `issuer` revoked before this node ever held it: kept as a revoked row covering
-        nothing, so it can never be added later, however many revocations follow. False when the
-        id is already held (by anyone)."""
-        now = self.clock()
-        with self.db.tx() as conn:
-            done = conn.execute(
-                "INSERT OR IGNORE INTO standing (id, effects, workspaces, lanes, max_uses, uses, starts_at, "
-                "expires_at, created_by, created_at, revoked_at, note, issuer) "
-                "VALUES (?, '[]', '[]', '[]', 0, 0, ?, ?, ?, ?, ?, ?, ?)",
-                (standing_id, now, now, by, now, now, "revoked before it arrived", issuer)).rowcount
-        return bool(done)
-
-    def issued_standing(self, issuer: str) -> list[StandingApproval]:
-        """Every standing approval `issuer` sent, in any state."""
-        return [_row_to_standing(r) for r in self.db.all(
-            "SELECT * FROM standing WHERE issuer = ? ORDER BY created_at", (issuer,))]
-
-    def confirm_issued(self, issuer: str) -> int:
-        """Its controller reconciled with this node (it sent its whole set, and the channel is up):
-        every one it holds here counts as confirmed now. Returns how many."""
-        with self.db.tx() as conn:
-            return conn.execute("UPDATE standing SET confirmed_at = ? WHERE issuer = ? AND revoked_at IS NULL "
-                                "AND withdrawn_at IS NULL", (self.clock(), issuer)).rowcount
-
-    def withdraw_standing(self, standing_id: str, *, issuer: str) -> bool:
-        """Its controller no longer sends it (a lane moved, the panel's list changed): it stops
-        covering calls but is not revoked, so it can come back with its uses."""
-        with self.db.tx() as conn:
-            done = conn.execute("UPDATE standing SET withdrawn_at = ? WHERE id = ? AND issuer = ? AND revoked_at "
-                                "IS NULL AND withdrawn_at IS NULL", (self.clock(), standing_id, issuer)).rowcount
-        if done:
-            sa = _row_to_standing(self.db.one("SELECT * FROM standing WHERE id = ?", (standing_id,)))
-            self.bus.publish("approval", {"standing": sa.public(), "state": "withdrawn"})
-        return bool(done)
-
-    def consume_standing(self, effect: str, lane_id: str, chain_ids: list[str], *, tool: str | None = None,
-                         content: Any = None, bound_only: bool = False) -> str | None:
-        """Use one unit of a matching standing approval, atomically. Returns its id or None.
-        Matching: effect, lane or workspace, grant, the targets (when it names any), and for a
-        content-carrying effect the content (see the module docstring). `bound_only` (a call after
-        untrusted content): only one bound to what the owner saw counts, for every effect: the
-        call's exact content in `contents`, or a named flow version or connector operation run
-        with no parameters. A free-form target (a tool alone, or none) never covers it."""
-        if effect not in self.standing_effects:
-            return None
-        now = self.clock()
-        day = utc_day(now)
-        ws = lane_id.split("/", 1)[0]
-        call = call_targets(tool, content, lane_id)
-        template = isinstance(content, dict) and content.get("params") == {} and any(
-            t.startswith(NAMED_TARGETS) for t in call)
-        digests: list[str] = []
-
-        def digest() -> str:  # only hashed when a standing approval binds content
-            if not digests:
-                digests.append(content_digest(content))
-            return digests[0]
-
-        with self.db.tx() as conn:
-            rows = conn.execute("SELECT * FROM standing WHERE revoked_at IS NULL AND withdrawn_at IS NULL "
-                                "AND starts_at <= ? AND expires_at > ? ORDER BY expires_at, created_at",
-                                (now, now)).fetchall()
-            used: str | None = None
-            for r in rows:
-                if effect not in json.loads(r["effects"]):
-                    continue
-                # one a controller sent covers a call only while this node trusts its issuer and the
-                # owner's controller ceiling allows the effect (both checked now, not when it arrived)
-                if r["issuer"] and not (self.issued_ok is not None and self.issued_ok(r["issuer"], effect)):
-                    continue
-                # and only while its controller keeps confirming it: a revoke the node never received
-                # (sent while it was offline) bounds its life to this
-                if r["issuer"] and (r["confirmed_at"] or r["created_at"]) < now - self.issued_confirm_s:
-                    continue
-                if r["grant_id"] and r["grant_id"] not in chain_ids:
-                    continue
-                # workspace patterns match like a grant's (biz-* covers biz-a), BUG-11
-                if not (any(globs.segment_match(w, ws) for w in json.loads(r["workspaces"]))
-                        or any(globs.lane_match(p, lane_id) for p in json.loads(r["lanes"]))):
-                    continue
-                targets = set(json.loads(r["targets"] or "[]"))
-                contents = set(json.loads(r["contents"] or "[]"))
-                if targets and not targets & call:
-                    continue
-                named_flow = any(t.startswith(NAMED_TARGETS) for t in targets & call)
-                bound = bool(contents and digest() in contents) or (not contents and template and named_flow)
-                if bound_only and not bound:
-                    continue
-                if effect in self.content_effects:
-                    # bound to what the owner saw: a named target, and an approved content or a
-                    # flow version run as a template (no parameters), AUD-10
-                    shaped = bool(r["shape"]) and isinstance(content, dict) \
-                        and isinstance(content.get("params"), dict) and named_flow and not contents
-                    # a shape the owner allowed (any content of that flow version or connector operation)
-                    # never covers a call after untrusted content: bound_only skipped it above
-                    if not targets or not (bound or shaped):
-                        continue
-                elif contents and digest() not in contents:
-                    continue
-                if r["max_uses"] is not None and r["uses"] >= r["max_uses"]:
-                    continue
-                day_uses = r["day_uses"] if r["day"] == day else 0
-                if r["per_day"] is not None and day_uses >= r["per_day"]:
-                    continue
-                conn.execute("UPDATE standing SET uses = uses + 1, day = ?, day_uses = ? WHERE id = ?",
-                             (day, day_uses + 1, r["id"]))
-                used = r["id"]
-                break
-        if used is not None:
-            sa = _row_to_standing(self.db.one("SELECT * FROM standing WHERE id = ?", (used,)))
-            self.bus.publish("approval", {"standing": sa.public(), "state": "used"})
-        return used
 
     # ---- time ----
     def _expire_one(self, approval_id: str) -> None:

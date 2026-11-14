@@ -1,0 +1,193 @@
+{
+ "empty": {
+  "ok": {}
+ },
+ "plain login": {
+  "ok": {
+   "p": "password",
+   "u": "username"
+  }
+ },
+ "autocomplete username and password": {
+  "ok": {
+   "u": "username",
+   "p": "password"
+  }
+ },
+ "new password ignored": {
+  "ok": {
+   "u": "username"
+  }
+ },
+ "otp by autocomplete text": {
+  "ok": {
+   "c": "one_time_code"
+  }
+ },
+ "otp by autocomplete password": {
+  "ok": {
+   "c": "one_time_code"
+  }
+ },
+ "otp autocomplete on a checkbox": {
+  "ok": {}
+ },
+ "username in another form than password": {
+  "ok": {
+   "p": "password"
+  }
+ },
+ "two inputs before the password": {
+  "ok": {
+   "p": "password",
+   "u": "username"
+  }
+ },
+ "username after the password": {
+  "ok": {
+   "p": "password"
+  }
+ },
+ "explicit username elsewhere in form": {
+  "ok": {
+   "u": "username",
+   "p": "password"
+  }
+ },
+ "explicit username in other form": {
+  "ok": {
+   "u": "username",
+   "p": "password",
+   "x": "username"
+  }
+ },
+ "iframe password": {
+  "ok": {
+   "p": "password",
+   "u": "username"
+  }
+ },
+ "hidden disabled readonly": {
+  "ok": {
+   "p": "password"
+  }
+ },
+ "not an input": {
+  "ok": {
+   "p": "password"
+  }
+ },
+ "username first by email type": {
+  "ok": {
+   "e": "username"
+  }
+ },
+ "username first by email autocomplete": {
+  "ok": {
+   "e": "username"
+  }
+ },
+ "username first by hint": {
+  "ok": {
+   "u": "username"
+  }
+ },
+ "username first by id hint": {
+  "ok": {
+   "u": "username"
+  }
+ },
+ "username first hint but code like": {
+  "ok": {}
+ },
+ "username first, two free inputs": {
+  "ok": {}
+ },
+ "username first, no hint": {
+  "ok": {}
+ },
+ "username first beside a checkbox": {
+  "ok": {
+   "a": "username"
+  }
+ },
+ "otp numeric with hint": {
+  "ok": {
+   "c": "one_time_code"
+  }
+ },
+ "otp tel with id hint": {
+  "ok": {
+   "c": "one_time_code"
+  }
+ },
+ "otp number too long": {
+  "ok": {}
+ },
+ "otp number sized": {
+  "ok": {
+   "c": "one_time_code"
+  }
+ },
+ "otp numeric no hint": {
+  "ok": {}
+ },
+ "otp in a form with a password": {
+  "ok": {
+   "p": "password"
+  }
+ },
+ "split otp 6 boxes": {
+  "ok": {
+   "b0": "one_time_code",
+   "b1": "one_time_code",
+   "b2": "one_time_code",
+   "b3": "one_time_code",
+   "b4": "one_time_code",
+   "b5": "one_time_code"
+  }
+ },
+ "split otp 3 boxes": {
+  "ok": {}
+ },
+ "split otp 9 boxes": {
+  "ok": {}
+ },
+ "split otp 4 boxes and a free input": {
+  "ok": {}
+ },
+ "split otp password boxes": {
+  "ok": {
+   "b0": "password",
+   "b1": "password",
+   "b2": "password",
+   "b3": "password"
+  }
+ },
+ "formless and forms": {
+  "ok": {
+   "p1": "password",
+   "p2": "password",
+   "u1": "username",
+   "u2": "username",
+   "c": "one_time_code"
+  }
+ },
+ "uppercase type": {
+  "ok": {
+   "p": "password",
+   "u": "username"
+  }
+ },
+ "empty type": {
+  "ok": {
+   "p": "password",
+   "u": "username"
+  }
+ },
+ "inputmode uppercase": {
+  "ok": {
+   "c": "one_time_code"
+  }
+ }
+}

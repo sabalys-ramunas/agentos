@@ -156,8 +156,8 @@ def test_a_ledger_that_cannot_hear_the_lanes_says_so(caplog):
 
 
 def test_a_workers_tool_names_are_the_ones_its_modules_serve():
+    from agentos.mcp.providers import feature_providers
     from agentos.mcp.registry import collect_specs
-    from agentos.node.daemon import feature_providers
     from agentos.plugins.entries import PLUGINS
 
     for plugin in PLUGINS:

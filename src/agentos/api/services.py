@@ -14,28 +14,9 @@ A service that does not accept it gives a scoped caller nothing (agentos.api.app
 
 from __future__ import annotations
 
-from contextlib import AbstractAsyncContextManager
 from typing import Any, Protocol
 
-from agentos.core.models import LaneInfo, LaneSpec, Principal, ProxyConfig, ViewerInfo
-
-
-class LaneService(Protocol):
-    """runtime "lanes": agentos.node.interfaces.LaneManager, used as is.
-
-    Optional extra: `hints(lane_id) -> {"signal": str, "logged_in_hint": str, "preset": str}`
-    (the last deterministic signal and login state, which LaneInfo does not carry yet).
-    Optional extra: `screenshot(lane_id) -> bytes`; otherwise the API takes one through
-    `using()` plus the "interaction" service, and only for a lane that is already warm.
-    """
-
-    def list(self) -> list[LaneInfo]: ...
-    def get(self, lane_id: str) -> LaneInfo: ...
-    async def create(self, spec: LaneSpec) -> LaneInfo: ...
-    async def open(self, lane_id: str) -> LaneInfo: ...
-    async def close(self, lane_id: str) -> LaneInfo: ...
-    def view(self, lane_id: str) -> ViewerInfo | None: ...
-    def using(self, lane_id: str) -> AbstractAsyncContextManager[Any]: ...
+from agentos.core.models import Principal
 
 
 class WorkspaceService(Protocol):
@@ -129,20 +110,6 @@ class PolicyService(Protocol):
                     specials: list[str], budget: dict | None, ttl: str,
                     principal: Principal) -> dict: ...  # {"id", "token", ...}
     def revoke_grant(self, grant_id: str) -> dict | None: ...
-
-
-class ProxyService(Protocol):
-    """runtime "proxies" (optional). Without it the API reads and writes secrets/proxies.json
-    through agentos.core.config, as the M1 CLI does."""
-
-    def list(self) -> list[ProxyConfig]: ...
-    def add(self, proxy: ProxyConfig) -> ProxyConfig: ...
-
-
-class NodeService(Protocol):
-    """runtime "nodes" (optional, the controller in M5). Without it the API reports this node."""
-
-    def list(self) -> list[dict]: ...
 
 
 class NotifierService(Protocol):

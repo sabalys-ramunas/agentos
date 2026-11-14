@@ -39,7 +39,7 @@ The owner's idea is right about the sites and overstated about custody.
 | CTAP2 software authenticator over uhid | The [fido2-hid-bridge README](https://github.com/BryanJacobs/fido2-hid-bridge) names Firefox as a USB-HID application, so USB HID keys reach it on Linux (not checked against Mozilla's docs). Software options are community projects: [soft-fido2](https://lib.rs/crates/soft-fido2) (pure software; license unclear across sources) and [fidorium](https://docs.rs/crate/fidorium/latest/source/README.md) (TPM 2.0 backed). fido2-hid-bridge is not software: it relays to a physical PC/SC key. Firefox testing not stated. | Root or a udev group on `/dev/uhid`, the uhid module, and a VM that exposes it. | Looks like a USB HID device. Kernel-level and fragile. Untested. |
 | Browser extension wrapping `navigator.credentials` | Not tested. | Extension install by policy. | Keys in the profile. My assessment, not tested: page-side checks on native functions can expose a wrapper. |
 
-**Camoufox specifics.** Camoufox's [Python README](https://github.com/daijro/camoufox/blob/main/python/README.md) documents a `firefox_user_prefs` launch option, so WebAuthn prefs can be set at launch. Its README does not name the Firefox base it is built on. The repo's fingerprint code targets Firefox 158 (`src/agentos/stealth/fingerprint.py`, `tests/unit/test_ops_fingerprint.py`), which is the expected base. I did not check the build the node has installed.
+**Camoufox specifics.** Camoufox's [Python README](https://github.com/daijro/camoufox/blob/main/python/README.md) documents a `firefox_user_prefs` launch option, so WebAuthn prefs can be set at launch. Its README does not name the Firefox base it is built on. The repo's fingerprint code targets Firefox 158 (`src/agentos/node/fingerprint.py`, `tests/unit/test_ops_fingerprint.py`), which is the expected base. I did not check the build the node has installed.
 
 ## 2. Storage and consent
 
@@ -92,11 +92,11 @@ Under A, the approval cannot bind to the challenge. The challenge only exists on
 **Components that change:**
 
 - **vault**: `models.py` (kind), the sealed store (private key), a CXF exporter, `policy.py` (sink, reasons, rp_id check), `api.py` (add and remove routes; never return the key).
-- **node**: the Camoufox engine (`src/agentos/node/engine_camoufox.py`) opens and closes the authenticator window and sets WebAuthn prefs through `firefox_user_prefs`. The typist does not change: a passkey is not a field.
+- **node**: the Camoufox engine (`src/agentos/node/camoufox/engine.py`) opens and closes the authenticator window and sets WebAuthn prefs through `firefox_user_prefs`. The typist does not change: a passkey is not a field.
 - **approvals**: a new kind `passkey_sign_in` in `src/agentos/policy/approvals.py`, with a content hash over lane, rp_id, credential reference and TTL.
 - **notifier**: `src/agentos/policy/notifier.py` pushes the site and lane name with the signed approve link, never key material.
 - **panel**: passkeys per lane (rp_id, created, last used, approvals), with revoke. Revoke removes the entry and reminds the owner to remove it on the site.
-- **fingerprint**: a virtual authenticator can change what `PublicKeyCredential` reports. Re-test the pinned fingerprint before enabling the window (`src/agentos/stealth/fingerprint.py`).
+- **fingerprint**: a virtual authenticator can change what `PublicKeyCredential` reports. Re-test the pinned fingerprint before enabling the window (`src/agentos/node/fingerprint.py`).
 
 ## Risks to the owner's accounts
 

@@ -10,7 +10,7 @@ control is PAUSED):
     rate_limited                              a backoff (RATE_LIMIT_BACKOFF, 6 hours), never shorter
     ok, unknown                               none
 
-The lane manager writes the hold (agentos.node.lanes.LaneManager.hold, through its hold policy, which
+The lane manager writes the hold (agentos.node.lanes.control.hold, through its hold policy, which
 is `hold_for` here): `LaneControl(state=PAUSED, by=NODE_BY, reason=..., hold_until=...)`, where
 NODE_BY is "node" for every hold the node sets itself, a quarantine's hold included. A hold is a
 control with a reason; `by` says who set it, never whether it is a hold. The reason is

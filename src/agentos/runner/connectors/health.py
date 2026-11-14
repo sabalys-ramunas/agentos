@@ -43,7 +43,10 @@ from typing import Any
 from agentos.core.models import RunStatus
 from agentos.core.signals import CONNECTOR_HOLD_CODES
 from agentos.runner.connectors.models import BINDING_PARAMS
-from agentos.runner.models import SUCCEEDED, TRY_SOURCE, FlowDefinition, Run, is_connector_id
+from agentos.runner.flowdoc import FlowDefinition
+from agentos.runner.names import is_connector_id
+from agentos.runner.owner import TRY_SOURCE
+from agentos.runner.records import SUCCEEDED, Run
 from agentos.runner.store import RunnerStore
 from agentos.runner.util import Clock, clip_text
 

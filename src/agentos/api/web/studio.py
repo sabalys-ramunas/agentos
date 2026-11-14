@@ -223,9 +223,14 @@ def components_of(store: Any, record: Any) -> list[dict[str, Any]]:
             for n in names]
 
 
-def routes(api: Api) -> list[BaseRoute]:
-    async def listing(request: Request) -> dict[str, Any]:
-        svc = service(api)
+class Handlers:
+    """The handlers of the routes below, sharing one Api (and what they keep between calls)."""
+
+    def __init__(self, api: Api) -> None:
+        self.api = api
+
+    async def listing(self, request: Request) -> dict[str, Any]:
+        svc = service(self.api)
         if svc is None:
             return missing()
         q = request.query_params
@@ -244,10 +249,10 @@ def routes(api: Api) -> list[BaseRoute]:
                 break
         return {"available": True, "runs": out}
 
-    async def run(request: Request) -> dict[str, Any]:
+    async def run(self, request: Request) -> dict[str, Any]:
         from agentos.studio import shaping
 
-        svc = require(api)
+        svc = require(self.api)
         record = await asyncio.to_thread(runs_of(svc).get, request.path_params["id"])
         check_sees(request, record.profile, "studio.run")
         cap_ = await asyncio.to_thread(_capture, store_of(svc), record.capture)
@@ -275,10 +280,10 @@ def routes(api: Api) -> list[BaseRoute]:
                 "screen_list": [screen_out(k, shots.get(k), record.failed) for k in keys],
                 "problems": problems, "system": system, "images_gone": cap_ is None}
 
-    async def crop(request: Request) -> Response:
+    async def crop(self, request: Request) -> Response:
         from agentos.studio.store import resize_png
 
-        svc = require(api)
+        svc = require(self.api)
         record = await asyncio.to_thread(runs_of(svc).get, request.path_params["id"])
         check_sees(request, record.profile, "studio.image")
         fid = request.path_params["fid"]
@@ -299,8 +304,8 @@ def routes(api: Api) -> list[BaseRoute]:
         data = await asyncio.to_thread(resize_png, store.blob(blob), max_width=CROP_WIDTH)
         return png(request, data)
 
-    async def shot(request: Request) -> Response:
-        svc = require(api)
+    async def shot(self, request: Request) -> Response:
+        svc = require(self.api)
         cid = request.path_params["id"]
         if not CAPTURE_RE.match(cid):
             raise InvalidRequest("That is not a capture id.")
@@ -313,8 +318,8 @@ def routes(api: Api) -> list[BaseRoute]:
                                        max_height=SHOT_HEIGHT)
         return png(request, data)
 
-    async def baseline(request: Request) -> dict[str, Any]:
-        svc = require(api)
+    async def baseline(self, request: Request) -> dict[str, Any]:
+        svc = require(self.api)
         url = (request.query_params.get("url") or "").strip()
         if not url:
             raise InvalidRequest("Name the page: url.")
@@ -326,8 +331,8 @@ def routes(api: Api) -> list[BaseRoute]:
         return {"url": url, "profile": profile, "capture": base.id, "created_at": base.created_at,
                 "screens": [screen_out(s.screen.key, s, {}) for s in base.shots]}
 
-    async def diff(request: Request) -> dict[str, Any]:
-        svc = require(api)
+    async def diff(self, request: Request) -> dict[str, Any]:
+        svc = require(self.api)
         try:
             from agentos.studio.diff import diff_captures
         except ImportError:
@@ -369,8 +374,8 @@ def routes(api: Api) -> list[BaseRoute]:
                                    "has, so they were not compared.")
         return out
 
-    async def components(request: Request) -> dict[str, Any]:
-        svc = service(api)
+    async def components(self, request: Request) -> dict[str, Any]:
+        svc = service(self.api)
         if svc is None:
             return missing()
         ref = f"{request.path_params['ws']}/{request.path_params['id']}"
@@ -391,12 +396,16 @@ def routes(api: Api) -> list[BaseRoute]:
                 "look_alikes": summary.get("probe"), "look_alike_findings": look,
                 "on_tokens": summary.get("on_tokens") or {}}
 
+
+def routes(api: Api) -> list[BaseRoute]:
+    h = Handlers(api)
+
     return [
-        org_route(api, "/studio/runs", listing, ["GET"], cap="see"),
-        org_route(api, "/studio/runs/{id}", run, ["GET"], cap="see"),
-        org_route(api, "/studio/runs/{id}/findings/{fid}/crop", crop, ["GET"], cap="see"),
-        org_route(api, "/studio/captures/{id}/screens/{screen}", shot, ["GET"], cap="see"),
-        org_route(api, "/studio/baseline", baseline, ["GET"], cap="see"),
-        org_route(api, "/studio/diff", diff, ["GET"], cap="see"),
-        org_route(api, "/studio/profiles/{ws}/{id}/components", components, ["GET"], cap="see"),
+        org_route(api, "/studio/runs", h.listing, ["GET"], cap="see"),
+        org_route(api, "/studio/runs/{id}", h.run, ["GET"], cap="see"),
+        org_route(api, "/studio/runs/{id}/findings/{fid}/crop", h.crop, ["GET"], cap="see"),
+        org_route(api, "/studio/captures/{id}/screens/{screen}", h.shot, ["GET"], cap="see"),
+        org_route(api, "/studio/baseline", h.baseline, ["GET"], cap="see"),
+        org_route(api, "/studio/diff", h.diff, ["GET"], cap="see"),
+        org_route(api, "/studio/profiles/{ws}/{id}/components", h.components, ["GET"], cap="see"),
     ]

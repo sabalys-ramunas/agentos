@@ -52,12 +52,11 @@ PATCH_EXAMPLE = {"role": "button", "names": {"en": "Save", "lt": "Išsaugoti"},
 
 
 def agent_providers() -> list[Any]:
-    """What an agent gets for a browser lane on a node (agentos.node.daemon.FEATURE_TOOLS, the parts
+    """What an agent gets for a browser lane on a node (agentos.mcp.providers.FEATURE_TOOLS, the parts
     that act on a browser lane): the node's lane and browser tools, files, uploads, tabs and dialogs,
     lane control, and the vault's login, vault_fill and vault_list."""
-    from agentos.node import control_tools, io_tools
+    from agentos.node import control_tools, io_tools, vault_tools
     from agentos.node import tools as node_tools
-    from agentos.vault import tools as vault_tools
 
     return [node_tools.tool_specs, io_tools.tool_specs, control_tools.tool_specs, vault_tools.tool_specs]
 
@@ -150,7 +149,7 @@ def _schema_type(prop: dict[str, Any]) -> str:
 def locator_schema() -> str:
     """The repair patch's format, from the runner's Locator model: so the prompt cannot drift from
     what the patch gate validates."""
-    from agentos.runner.models import Locator
+    from agentos.core.locator import Locator
 
     schema = Locator.model_json_schema()
     props = schema["$defs"]["Locator"]["properties"]

@@ -17,6 +17,8 @@ from agentos.core import catalog
 from agentos.core.config import NodeConfig
 from agentos.core.errors import Conflict, NotFound
 from agentos.core.runtime import Runtime
+from agentos.core.tools import TOOL_CATALOG
+from agentos.mcp.providers import ProviderCatalog
 from agentos.plugins import admin
 from agentos.plugins.entries import PLUGINS, TEXT_REVIEW
 from agentos.plugins.errors import PluginDisabled
@@ -523,6 +525,7 @@ def node(tmp_path, monkeypatch):
     monkeypatch.delenv(admin.LANE_ENV, raising=False)
     monkeypatch.delenv(admin.BRAIN_TASK_ENV, raising=False)
     runtime = Runtime(config=NodeConfig(home=tmp_path), brains=Brains(), traces=FakeTraces(busy_week()))
+    runtime.register(TOOL_CATALOG, ProviderCatalog(runtime))  # as every node runtime has (daemon.node_runtime)
     plugins = PluginService(runtime, home=tmp_path, facts=NodeFacts(runtime=runtime, installed=lambda _: True))
     runtime.register("plugins", plugins)
     return runtime

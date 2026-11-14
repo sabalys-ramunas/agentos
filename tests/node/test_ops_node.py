@@ -152,7 +152,7 @@ def age_decrypt(archive: Path, out: Path, passphrase: str) -> None:
 
 
 async def test_backup_pauses_a_warm_real_lane_and_restore_comes_up_logged_in(work):
-    from agentos.node.engine_camoufox import browser_pids_under
+    from agentos.node.camoufox.engine import browser_pids_under
     from agentos.node.lanes import build_lane_manager
     from agentos.ops import backup
     from agentos.ops.service import HealthService
@@ -331,8 +331,9 @@ def test_upgrade_a_dev_install(dev_install, work):
 def test_root_keeps_a_service_user_home_owned_by_that_user(work, service_user):
     """Root runs backups, migrations, rollbacks, refreshes and restores on a home the service user owns;
     everything it writes there must stay the service user's, or the service can no longer use it."""
-    from agentos.ops import backup, migrate
-    from agentos.stealth import fingerprint
+    from agentos.core import migrate
+    from agentos.node import fingerprint
+    from agentos.ops import backup
 
     subprocess.run(["useradd", "--system", "--user-group", "--no-create-home", "--shell", "/usr/sbin/nologin",
                     service_user], check=True)

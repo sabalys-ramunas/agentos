@@ -1,0 +1,8 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": ["scripts/*.mjs", "e2e-live/simulator/**/*.{ts,mjs}"],
+  "project": ["src/**/*.{ts,tsx}", "build/**/*.ts", "scripts/**/*.mjs", "e2e/**/*.ts", "e2e-live/**/*.ts"],
+  "ignoreExportsUsedInFile": true,
+  "ignoreBinaries": ["uv"],
+  "ignoreDependencies": ["tailwindcss"]
+}

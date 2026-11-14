@@ -164,9 +164,6 @@ class Store:
         return self.db.all("SELECT * FROM deliveries WHERE state = 'pending' AND next_attempt_at <= ? "
                            "ORDER BY next_attempt_at, created_at LIMIT ?", (now, limit))
 
-    def pending_for(self, hook_id: str) -> list[Any]:
-        return self.db.all("SELECT * FROM deliveries WHERE webhook_id = ? AND state = 'pending'", (hook_id,))
-
     def update_delivery(self, delivery_id: str, **fields: Any) -> None:
         names = ", ".join(f"{name} = ?" for name in fields)
         self.db.execute(f"UPDATE deliveries SET {names} WHERE id = ?", (*fields.values(), delivery_id))

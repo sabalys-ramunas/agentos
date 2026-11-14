@@ -119,11 +119,11 @@ def test_the_node_routes_answer_through_the_shared_map():
     the module): a refused export and the vault's locked-out, entry, vault and busy answers."""
     from agentos.brains import api as brains_api
     from agentos.core.errors import ApprovalPending, Conflict, EngineError, LaneBusy, LaneNotFound
-    from agentos.ops.wsexport import ExportRefused
     from agentos.runner import api as runner_api
     from agentos.vault import api as vault_api
     from agentos.vault.errors import VaultBusy, VaultLockedOut, VaultSealed
     from agentos.workspaces import api as workspaces_api
+    from agentos.workspaces.transfer.format import ExportRefused
 
     for module in (runner_api, workspaces_api, brains_api, vault_api):
         assert not hasattr(module, "STATUS") and not hasattr(module, "_STATUS_BY_CODE"), module.__name__

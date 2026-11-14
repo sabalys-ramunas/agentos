@@ -21,8 +21,8 @@ import pytest
 from test_lanes_pin import FakeCamoufox, FakeGeo, v1_pin
 
 from agentos.core.models import LaneSpec, ProxyConfig
-from agentos.node import engine_camoufox as ec
-from agentos.node.engine_camoufox import PIN_META, CamoufoxEngine, load_pin
+from agentos.node.camoufox import engine as ec
+from agentos.node.camoufox.engine import PIN_META, CamoufoxEngine, load_pin
 
 GOLDEN = Path(__file__).parent / "golden" / "engine_launch"
 TIME_KEYS = {"pinned_at", "completed_at", "at"}

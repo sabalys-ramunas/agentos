@@ -9,7 +9,7 @@ import typer
 from test_ops_support import PASSPHRASE, PROXY_PASS, TOKEN, FakeHost, make_home
 from typer.testing import CliRunner
 
-from agentos.ops import backup, cli, doctor
+from agentos.ops import backup, cli, cli_common, doctor
 
 runner = CliRunner()
 
@@ -103,7 +103,7 @@ def test_passphrase_file_rules(home, tmp_path, monkeypatch):
     short = tmp_path / "short"
     short.write_text("tiny")
     short.chmod(0o600)
-    monkeypatch.setenv(cli.PASSPHRASE_ENV, str(short))
+    monkeypatch.setenv(cli_common.PASSPHRASE_ENV, str(short))
     r = runner.invoke(cli.app, ["backup", "create"])
     assert r.exit_code == 1 and "at least" in r.output
 

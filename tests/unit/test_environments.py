@@ -21,10 +21,10 @@ from agentos.env.manager import EnvManager
 from agentos.env.models import ExecResult
 from agentos.env.paths import EnvSettings as TermSettings
 from agentos.env.sandbox import DirectLauncher
-from agentos.environments import machine, routing
-from agentos.environments import manager as envmod
-from agentos.environments.manager import EnvironmentManager, parse_git_state, parse_ports
+from agentos.environments import bringup, machine, routing
+from agentos.environments.manager import EnvironmentManager
 from agentos.environments.models import Environment, EnvSettings
+from agentos.environments.probes import GIT_STATE, parse_git_state, parse_ports
 from agentos.environments.tools import tool_specs as env_tool_specs
 from agentos.policy.wrap import ToolCallError, bind_request_token, wrap_tool
 from agentos.vms.manager import VmManager
@@ -73,7 +73,7 @@ class Machine:
         elif cmd == "sh -s" and stdin == machine.setup_script():
             self.setup = "ready"  # the setup script writes its marker
             out = ""
-        elif cmd == envmod.GIT_STATE:
+        elif cmd == GIT_STATE:
             out = self.git
         elif cmd.startswith("ss "):
             out = self.ports
@@ -100,7 +100,7 @@ async def node(tmp_path, monkeypatch):
     rt.register("vms", vms)
     lanes = FakeLaneManager()
     rt.register("lanes", lanes)
-    monkeypatch.setattr(envmod, "Tunnel", FakeTunnel)
+    monkeypatch.setattr(bringup, "Tunnel", FakeTunnel)
     mgr = EnvironmentManager(home, runtime=rt, settings=EnvSettings())
     mgr.repo_probe = readable_repo
     rt.register("environments", mgr)

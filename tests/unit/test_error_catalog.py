@@ -63,18 +63,18 @@ def test_every_run_failure_code_has_a_catalog_entry(scanned):
 
 def test_the_runner_builds_no_run_code_the_catalog_cannot_see():
     """A code made with an f-string matches no entry; build it from a `*_CODES` dict instead
-    (SIGNAL_CODES in agentos.runner.executor)."""
+    (SIGNAL_CODES in agentos.runner.execution)."""
     assert catalog.unseen_run_codes() == []
 
 
 def test_run_codes_are_collected_from_every_way_the_runner_sets_them(scanned):
     runs = scanned.run_codes
-    for code, module in (("edit_mismatch", "runner"), ("crash_loop", "runner"),          # {"code": ...}
-                         ("grant_expired", "runner"), ("grant_not_yet_valid", "runner"),  # GRANT_CODES
-                         ("wrong_account", "executor"), ("wrong_surface", "executor"),    # map and .get default
+    for code, module in (("edit_mismatch", "approvals"), ("crash_loop", "runner"),      # {"code": ...}
+                         ("grant_expired", "run_rules"), ("grant_not_yet_valid", "run_rules"),  # GRANT_CODES
+                         ("wrong_account", "execution"), ("wrong_surface", "connector_steps"),  # map and .get default
                          ("connector_contract_broken", "executor"), ("readback_failed", "executor"),
-                         ("signal_captcha", "executor"), ("signal_logged_out", "executor"),  # SIGNAL_CODES
-                         ("ambiguous_locator", "executor")):                              # code = a if c else b
+                         ("signal_captcha", "execution"), ("signal_logged_out", "execution"),  # SIGNAL_CODES
+                         ("ambiguous_locator", "execution")):                             # code = a if c else b
         assert f"agentos.runner.{module}" in runs.get(code, []), code
     assert "code" not in runs  # `.get("code")` reads a code, it does not set one
     assert all(not m.endswith((".api", ".schedules")) for m in runs.get("not_found", []))  # HTTP bodies
@@ -112,7 +112,7 @@ OTHER_CODES = OTHER
 def test_the_markdown_says_where_a_run_fails_with_a_code(scanned):
     text = catalog.markdown(scanned)
     section = text.split("## wrong_surface", 1)[1].split("\n## ", 1)[0]
-    assert "- **Runs fail with it in:** `agentos.runner.executor`" in section
+    assert "- **Runs fail with it in:** `agentos.runner.connector_steps`" in section
 
 
 def test_problems_catches_a_missing_entry_an_orphan_and_a_clash():
@@ -164,12 +164,9 @@ def test_every_entry_is_readable():
 
 
 def test_the_generated_files_are_current(scanned):
-    """CI diffs them too (`make errors-doc` writes both)."""
+    """CI diffs it too (`make errors-doc` writes it)."""
     root = SRC.parents[1]
     assert (root / "docs" / "ERRORS.md").read_text() == catalog.markdown(scanned)
-    panel_json = root / "panel" / "src" / "api" / "errors.json"
-    if panel_json.exists():  # a tree without the panel (the public export, for now) has no copy
-        assert json.loads(panel_json.read_text()) == catalog.panel_json()
 
 
 # ---- the three surfaces ----

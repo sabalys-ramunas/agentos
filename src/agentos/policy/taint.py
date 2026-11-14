@@ -17,7 +17,7 @@ from typing import Any
 
 from agentos.core.errors import InvalidRequest, NotFound
 from agentos.core.models import Principal
-from agentos.policy.approvals import follows_words
+from agentos.policy.approval_models import follows_words
 from agentos.policy.errors import Denied
 from agentos.policy.grants import OWNER_GRANT_ID, Grant
 from agentos.policy.labels import DEAD_FAMILIES, EXPIRY_GRACE_S, EverLedger  # memory: the `ever` label view

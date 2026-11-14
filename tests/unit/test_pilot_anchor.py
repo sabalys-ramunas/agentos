@@ -5,11 +5,11 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
+from testkit.pilot import FakeTools, ScriptedDecider, step
 
 from agentos.pilot import Pilot, Request, Status, Value
 from agentos.pilot.anchor import Target, anchors_of, check, line_sha256
 from agentos.pilot.page import parse_page
-from agentos.pilot.testing import FakeTools, ScriptedDecider, step
 
 TWO_POSTS = """signal: ok
 http://127.0.0.1:8000/feed · Feed · 4 refs

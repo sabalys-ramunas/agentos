@@ -19,6 +19,7 @@ from agentos.dev.lanes import DevLaneManager
 from agentos.dev.web import DevInteraction, new_tab
 from agentos.node import commitgate, egress
 from agentos.node import tools as node_tools
+from agentos.node.cardfacts import NodeCardFacts
 from agentos.node.channel import bridge
 from agentos.policy.service import PolicyService
 from agentos.policy.wrap import bind_request_token, wrap_tool
@@ -31,7 +32,7 @@ class Node:
     def __init__(self, tmp_path):
         self.clock = Clock()
         self.lanes = DevLaneManager(make_page=new_tab)
-        self.runtime = Runtime(interaction=DevInteraction())
+        self.runtime = Runtime(interaction=DevInteraction(), card_facts=NodeCardFacts())  # as a node's runtime
         self.runtime.register("lanes", self.lanes)
         self.policy = PolicyService(tmp_path / "policy", runtime=self.runtime, clock=self.clock)
         self.approvals = self.policy.approvals
@@ -298,3 +299,34 @@ async def test_an_approved_publish_outside_the_lanes_waking_hours_is_refused_and
     assert "may next post at 08:00 tomorrow lane time (America/New_York)" in err.value.message
     assert node.sent == [] and node.posts == []
     assert node.approvals.get(ap_id).state == "approved"  # refused before routing: the approval is not used
+
+
+async def test_an_agents_commit_is_handed_to_the_runtimes_after_commit_hook(node):
+    """browser_act hands each commit to the runtime's `after_commit` (agentos.audit.captures in a node),
+    once, after the act, with the lane and its page."""
+    from agentos.node.tools.browser import AFTER_COMMIT
+
+    seen: list[tuple[str, object]] = []
+
+    async def after_commit(ctx, on, page):
+        seen.append((on, page))
+
+    node.runtime.register(AFTER_COMMIT, after_commit)
+    await node.compose("Autumn menu is here.")
+    assert seen == []  # typing is not a commit
+    node.approvals.decide(await pending(node), "approve")
+    assert seen == []  # a publish that waits was not made
+    assert (await node.share())["ok"] is True
+    assert seen == [(LANE, node.page)]
+
+
+def test_every_node_runtime_keeps_the_page_after_a_commit_with_audit_captures():
+    from fakes import FakeInteraction, FakeLaneManager
+
+    from agentos.audit import captures
+    from agentos.core.config import NodeConfig
+    from agentos.node.daemon import node_runtime
+    from agentos.node.tools.browser import AFTER_COMMIT
+
+    runtime = node_runtime(NodeConfig(), FakeLaneManager(), FakeInteraction())
+    assert runtime.get(AFTER_COMMIT) is captures.after_commit

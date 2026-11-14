@@ -22,8 +22,8 @@ import pytest
 from test_client_fakes import FakeSystem, NodeServer, wait_until
 from typer.testing import CliRunner
 
+from agentos.client import credentials, ops
 from agentos.client import install as install_mod
-from agentos.client import ops
 from agentos.client.cli import app
 from agentos.client.mcp_http import McpSession
 from agentos.client.ports import port_in_use
@@ -57,7 +57,7 @@ def system(tmp_path, home, monkeypatch):
     monkeypatch.setattr(ops, "current_platform", lambda: "macos")
     monkeypatch.setattr(ops, "DEFAULT_LOCAL_PORT", free_port())
     monkeypatch.setattr(ops, "VERIFY_SECONDS", 8.0)
-    monkeypatch.setattr(ops, "computer_name", lambda: "testmac")
+    monkeypatch.setattr(credentials, "computer_name", lambda: "testmac")  # the grant subject and device label
     for tool in ("ssh", "security", "launchctl", "systemctl", "claude"):
         assert shutil.which(tool) == str(fake.bin / tool), "a real system tool is reachable"
     yield fake

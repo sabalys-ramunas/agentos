@@ -41,7 +41,9 @@ describe('lane control', () => {
     expect(region.getByText('Agent has control')).toBeInTheDocument();
     expect(region.queryByText('You have control')).not.toBeInTheDocument();
     release();
-    expect(await region.findByText('You have control')).toBeInTheDocument();
+    // the answer, the lane's refetch and the person's own name all have to land: on a busy CI
+    // worker that took longer than the 5 s every other wait gets
+    expect(await region.findByText('You have control', {}, { timeout: 15_000 })).toBeInTheDocument();
   }, 20_000); // a slow machine must not turn the wait for the server into a failure
 
   it('keeps focus on Take over while its request runs, and a second press sends nothing', async () => {
@@ -70,10 +72,10 @@ describe('lane control', () => {
     await user.click(button);
     expect(calls).toBe(1);
     release();
-    await region.findByText('You have control');
+    await region.findByText('You have control', {}, { timeout: 15_000 });
     expect(document.activeElement).toBe(button);
     expect(button).not.toHaveAttribute('aria-disabled');
-  });
+  }, 20_000);
 
   it('keeps keyboard focus on the same button through take and hand back', async () => {
     const { user } = renderApp('/northwind-group/lanes/aster/instagram');

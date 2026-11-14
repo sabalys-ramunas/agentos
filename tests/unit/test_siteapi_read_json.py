@@ -11,21 +11,14 @@ from types import SimpleNamespace
 
 import pytest
 
-from agentos.core.models import RunStatus, Signal
+from agentos.core.driver import JsonResponse, parse_json
+from agentos.core.models import RunKind, RunStatus, Signal
 from agentos.node.flow_driver import PlaywrightFlowDriver
 from agentos.runner.connectors.compile import ConnectorInvalid, compile_connector
 from agentos.runner.connectors.steps import runner_capabilities
-from agentos.runner.driver import JsonResponse, parse_json
-from agentos.runner.executor import Outcome
+from agentos.runner.execution import Outcome
 from agentos.runner.fakes import El, FakeDriver, FakeLanes, FakeNotifier, FakeSite, Harness
-from agentos.runner.models import (
-    MAX_WATCHED_URL,
-    FlowDefinition,
-    ReadJsonStep,
-    RunKind,
-    names_secret,
-    url_pattern,
-)
+from agentos.runner.models import MAX_WATCHED_URL, FlowDefinition, ReadJsonStep, names_secret, url_pattern
 from agentos.runner.siteapis.discover import json_candidates, read_json_step
 from agentos.runner.siteapis.models import compile_api, to_connector
 from agentos.runner.siteapis.service import _steps_words
@@ -158,13 +151,13 @@ def test_no_url_a_page_makes_can_slow_the_match():
 
 
 def test_a_response_off_the_domain_or_on_http_is_never_taken_at_run_time():
-    from agentos.runner.executor import _on_site
+    from agentos.runner.readvalues import on_site
 
-    wanted = _on_site(r"^https://portal\.northsupply\.example/api", "portal.northsupply.example")
+    wanted = on_site(r"^https://portal\.northsupply\.example/api", "portal.northsupply.example")
     assert wanted(f"{PORTAL}/api/orders")
     assert not wanted("http://portal.northsupply.example/api/orders")
-    assert not _on_site(r"^https://portal\.northsupply\.example/api", "other.example")(f"{PORTAL}/api/orders")
-    assert not _on_site(r"^https://portal\.northsupply\.example/api", None)(f"{PORTAL}/api/orders")
+    assert not on_site(r"^https://portal\.northsupply\.example/api", "other.example")(f"{PORTAL}/api/orders")
+    assert not on_site(r"^https://portal\.northsupply\.example/api", None)(f"{PORTAL}/api/orders")
     assert not wanted("https://[bad/api")
 
 

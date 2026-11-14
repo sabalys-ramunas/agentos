@@ -23,6 +23,7 @@ from agentos.dev import web as dev_web
 from agentos.node import commitgate, egress
 from agentos.node import tools as node_tools
 from agentos.node.egress import EFFECT_RULES, Refusal, typed_in, unknown_rule
+from agentos.node.tools import browser as browser_tools
 
 RULES = {r.id: r for r in EFFECT_RULES}
 FORM = {"content-type": "application/x-www-form-urlencoded"}
@@ -355,8 +356,8 @@ async def test_with_ask_me_first_a_form_post_to_a_host_without_rules_waits_for_a
     async def unchanged(*args, **kw):
         return None
 
-    monkeypatch.setattr(node_tools, "form_before_submit", form)
-    monkeypatch.setattr(node_tools, "check_form_unchanged", unchanged)  # the dev page has no form to read again
+    monkeypatch.setattr(browser_tools, "form_before_submit", form)
+    monkeypatch.setattr(browser_tools, "check_form_unchanged", unchanged)  # the dev page has no form to read again
     await node.compose("x")
     ask_first_on(node)
     with pytest.raises(ApprovalPending) as e:
@@ -376,8 +377,8 @@ async def test_without_ask_me_first_the_same_form_post_is_a_draft_as_before(node
     async def unchanged(*args, **kw):
         return None
 
-    monkeypatch.setattr(node_tools, "form_before_submit", form)
-    monkeypatch.setattr(node_tools, "check_form_unchanged", unchanged)
+    monkeypatch.setattr(browser_tools, "form_before_submit", form)
+    monkeypatch.setattr(browser_tools, "check_form_unchanged", unchanged)
     await node.compose("x")
     result = await node.act("Write a caption...")
     assert result["ok"] is True

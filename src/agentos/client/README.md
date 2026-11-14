@@ -107,8 +107,8 @@ root or passwordless `sudo -n`, and no sign of agentos (no node.toml, no agentos
 The code goes to `/opt/agentos-src`: with `AGENTOS_GIT_URL` set the host clones that repository
 (`AGENTOS_GIT_REF`, default main); otherwise, when this agentos runs from a checkout, connect sends
 that checkout with rsync over the same SSH login (as `scripts/sync-node.sh` does: no `.git`, no
-`.venv`, no `node_modules`; `web/dist` and `panel/dist` go along, so a node without Node.js still gets
-a UI built here), which works for a private repository. With neither, it refuses: the public URL is
+`.venv`, no `node_modules`; `web/dist` goes along, so a node without Node.js still gets
+the web app built here), which works for a private repository. With neither, it refuses: the public URL is
 a placeholder until it is decided. Then it runs `deploy/install-node.sh --systemd --user agentos
 --hardened`, which writes node.toml and starts agentosd; then connect goes on as for any node and
 prints a one-time panel sign-in link through the tunnel. `--dry-run` prints every remote command

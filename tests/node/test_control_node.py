@@ -27,8 +27,8 @@ from websockets.asyncio.client import connect
 
 from agentos.core.config import NodeConfig
 from agentos.core.models import ControlState, LaneSpec, ViewerInfo
+from agentos.node.camoufox.engine import browser_pids_under
 from agentos.node.display import DisplayManagerImpl, iter_processes, kill_processes, port_free, tcp_ports_of
-from agentos.node.engine_camoufox import browser_pids_under
 from agentos.node.lanes import LaneManagerImpl, build_lane_manager
 from agentos.node.store import LaneStore
 from agentos.node.viewer_app import build_viewer_app

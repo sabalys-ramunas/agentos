@@ -38,8 +38,10 @@ from agentos.runner.connectors.compile import (
 from agentos.runner.connectors.models import LEARNED_SUFFIX, version_tuple
 from agentos.runner.connectors.signing import BundleRejected, verify_bundle
 from agentos.runner.connectors.tools import tool_name
+from agentos.runner.flowdoc import FlowVersion
 from agentos.runner.flows import FlowService
-from agentos.runner.models import CONNECTOR_PREFIX, LEARNED_KIND, FlowVersion, NodeInstall, is_owner
+from agentos.runner.names import CONNECTOR_PREFIX
+from agentos.runner.owner import LEARNED_KIND, NodeInstall, is_owner
 
 CATALOG_ID = "agentos"
 LEARNER_ID = "profile-learner"

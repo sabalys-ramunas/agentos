@@ -20,13 +20,13 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any
 
+from agentos.core.driver import ElementNotFound
 from agentos.core.errors import InvalidRequest, RefNotFound
 from agentos.core.models import ActionKind, ActionResult, NavigateResult, Signal, SnapshotResult
 from agentos.dev.image import Color, Raster
 from agentos.dev.lanes import FakePage
 from agentos.node.interaction import WAIT_MAX_S, UploadResult, WaitFor, WaitResult, _Watch, url_matches
 from agentos.node.snapshot import find_text, outline_texts
-from agentos.runner.driver import ElementNotFound
 from agentos.runner.fakes import BASE, El, FakeDriver, FakeSite, social_site
 
 CHALLENGE_URL = f"{BASE}/challenge"

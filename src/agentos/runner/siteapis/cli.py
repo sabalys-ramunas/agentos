@@ -31,8 +31,8 @@ import typer
 from agentos.core import catalog
 from agentos.core.config import home_from_env
 from agentos.core.errors import AgentosError
-from agentos.ops.layout import ops_socket
-from agentos.ops.system import Host
+from agentos.core.layout import ops_socket
+from agentos.core.system import Host
 
 app = typer.Typer(no_args_is_help=True, help="Site APIs: a site you can use, as a typed API of your own.")
 

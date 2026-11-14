@@ -15,22 +15,13 @@ from typing import Any
 from jsonschema import Draft202012Validator
 from pydantic import ValidationError
 
+from agentos.core import globs
 from agentos.core.errors import InvalidRequest, NotFound, PolicyDenied
 from agentos.core.models import LANE_ID_RE, Effect, Principal
-from agentos.policy import globs
-from agentos.runner.models import (
-    ACTION_TYPES,
-    CONNECTOR_RESERVED,
-    INSTALL_KINDS,
-    FlowDefinition,
-    FlowVersion,
-    NodeInstall,
-    ReadbackStep,
-    is_connector_id,
-    is_owner,
-    iter_steps,
-    lane_matches,
-)
+from agentos.runner.flowdoc import FlowDefinition, FlowVersion
+from agentos.runner.names import CONNECTOR_RESERVED, is_connector_id, lane_matches
+from agentos.runner.owner import INSTALL_KINDS, NodeInstall, is_owner
+from agentos.runner.steps import ACTION_TYPES, ReadbackStep, iter_steps
 from agentos.runner.store import RunnerStore
 from agentos.runner.util import Clock, Scrubber, clip_text, json_size
 

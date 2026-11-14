@@ -43,7 +43,7 @@ def dash(
 
     transport = None
     if demo:
-        from agentos.tui.demo import DEMO_TOKEN, FakeNode
+        from agentos.dev.tuidemo import DEMO_TOKEN, FakeNode
 
         node = FakeNode()
         transport = node.transport()

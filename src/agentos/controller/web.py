@@ -45,11 +45,12 @@ from starlette.routing import Mount, Route, WebSocketRoute
 from starlette.staticfiles import StaticFiles
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
-from agentos.api.auth import RateLimiter, tokens_equal
+from agentos.api.auth import tokens_equal
 from agentos.controller.hooks import BODY_TIMEOUT_S, TOKEN_RE, HookGate
 from agentos.core import http_errors
 from agentos.core.errors import AgentosError, InvalidRequest, NotFound
 from agentos.core.models import parse_lane_id
+from agentos.core.ratelimit import RateLimiter
 from agentos.node.channel import standing, wire
 from agentos.node.channel.streams import StreamClosed
 from agentos.node.channel.workflows import MAX_HOOK_BODY

@@ -7,8 +7,8 @@ import pytest
 from mcp import Client
 
 from agentos.core.runtime import Runtime
-from agentos.core.tools import ToolSpec
-from agentos.mcp.registry import PromptArg, PromptSpec, build_mcp, collect
+from agentos.core.tools import PromptArg, PromptSpec, ToolSpec
+from agentos.mcp.registry import build_mcp, collect
 
 
 async def plain(ctx) -> dict:

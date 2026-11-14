@@ -164,20 +164,6 @@ export function RoutineAskWord({ org, flow }: { org: string; flow: Flow }) {
   return <Word view={view} detail={whoSetItShort({ by: flow.ask_first_set_by, on: Boolean(flow.ask_first) }, nameOf)} />;
 }
 
-/** The plain word alone, for a line of text such as a phone row. */
-export const routineAskWord = (flow: Flow) => routineAsk(flow)?.word ?? null;
-
-/** For a row. Holds the switch's width even without one, so the columns stay in line. */
-export function RoutineAskSwitch({ org, flow }: { org: string; flow: Flow }) {
-  const [technical] = useTechnical();
-  const name = technical ? flow.id : routineTitle(flow);
-  const can = useCanChange(org);
-  const { flip, busy } = useRoutineFlip(org, flow, name, false);
-  const view = routineAsk(flow, useMayDecide(org));
-  if (!view?.switchable || !can.on) return <span aria-hidden="true" className="inline-block w-8" />;
-  return <AskSwitch name={name} view={view} busy={busy} can={can} onFlip={flip} compact />;
-}
-
 interface PanelProps {
   view: AskView;
   control: ReactNode;

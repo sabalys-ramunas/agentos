@@ -148,7 +148,7 @@ class LoginForm(Kind):
                 "Stop the sign-in</button></form>")
 
     async def submit(self, trip: Trip, api: Any, form: Any, trips: Trips) -> HTMLResponse:
-        from agentos.api.routes_login import read_values
+        from agentos.node.login_assist import read_values
 
         svc = _service(api.runtime)
         action = _read(form, "action") or "step"

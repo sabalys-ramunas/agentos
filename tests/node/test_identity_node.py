@@ -35,8 +35,8 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from agentos.core.config import NodeConfig
 from agentos.core.models import LaneSpec
+from agentos.node.camoufox.engine import PIN_META, CamoufoxEngine, browser_pids_under
 from agentos.node.display import DisplayManagerImpl, kill_processes
-from agentos.node.engine_camoufox import PIN_META, CamoufoxEngine, browser_pids_under
 from agentos.webbotauth import base, keys, settings
 from agentos.webbotauth.route import IdentityProvider, LaneSigner
 from agentos.webbotauth.settings import LaneIdentity

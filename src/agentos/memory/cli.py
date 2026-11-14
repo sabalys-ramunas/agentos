@@ -24,7 +24,8 @@ from agentos.core import catalog
 from agentos.core.config import home_from_env, load_config
 from agentos.core.errors import AgentosError
 from agentos.core.runtime import Runtime
-from agentos.memory.models import Caller, EntryType, iso
+from agentos.memory.markdown import markdown_export
+from agentos.memory.models import Caller, EntryType
 from agentos.memory.ports import MemoryPorts, RuntimePolicyPort, runtime_vault_scrub
 from agentos.memory.service import MemoryService
 
@@ -34,9 +35,6 @@ JsonOpt = Annotated[bool, typer.Option("--json", help="Print JSON instead of a t
 TypeOpt = Annotated[list[str] | None, typer.Option("--type", "-t", help="fact, document, decision, preference, "
                                                                           "contact or run_summary (repeatable)")]
 OWNER = Caller.owner(session="cli")
-MD_TYPES = ("decision", "preference", "document", "fact", "contact", "run_summary")
-TYPE_TITLES = {"decision": "Decisions", "preference": "Preferences", "document": "Documents", "fact": "Facts",
-               "contact": "Contacts", "run_summary": "Run summaries"}
 
 
 def _fail(message: str, code: str = "error") -> NoReturn:
@@ -312,49 +310,6 @@ def _private_file(path: Path, text: str) -> None:
     with os.fdopen(fd, "w") as f:
         f.write(text)
     path.chmod(0o600)
-
-
-def markdown_export(svc: MemoryService, workspace: str) -> dict[str, str]:
-    """One Markdown text per type with provenance footnotes: {file name: text}."""
-    ids = [r["id"] for r in svc.export_records(workspace) if r["record"] == "entry"]
-    by_type: dict[str, list[dict[str, Any]]] = {}
-    forgotten = 0
-    for entry_id in ids:
-        e = svc.get(OWNER, entry_id, workspace=workspace).data
-        if e["state"] == "forgotten":
-            forgotten += 1
-            continue
-        by_type.setdefault(e["type"], []).append(e)
-    out: dict[str, str] = {}
-    for etype in MD_TYPES:
-        entries = by_type.get(etype)
-        if not entries:
-            continue
-        lines = [f"# {workspace}: {TYPE_TITLES[etype]}", ""]
-        notes: list[str] = []
-        for e in entries:
-            n = len(notes) + 1
-            lines += [f"## {e['title']} [^{n}]", ""]
-            if e.get("body"):
-                lines += [e["body"], ""]
-            if e.get("attrs"):
-                lines += [f"Attributes: `{json.dumps(e['attrs'], sort_keys=True)}`", ""]
-            prov = e.get("prov") or {}
-            who = (prov.get("principal") or {}).get("id") or e.get("writer")
-            parts = [f"{e['id']}@{e['version']}", f"{e['trust']} trust", f"written by {who} at {e['updated_at']}"]
-            if prov.get("confirmed_by"):
-                parts.append(f"confirmed by {prov['confirmed_by']}")
-            if e["state"] != "live":
-                parts.append(e["state"])
-            for ev in prov.get("evidence") or []:
-                parts.append(f"evidence {ev.get('trace')} ({ev.get('tool')}, {ev.get('at')})")
-            parts.append(e["version_hash"])
-            notes.append(f"[^{n}]: " + "; ".join(parts))
-        out[f"{workspace}-{etype}.md"] = "\n".join(lines + notes) + "\n"
-    if forgotten:
-        out[f"{workspace}-README.md"] = (f"# {workspace}: memory export\n\nExported {iso(svc.clock())}. "
-                                         f"{forgotten} forgotten entries are not included (their content is gone).\n")
-    return out
 
 
 @app.command("export")

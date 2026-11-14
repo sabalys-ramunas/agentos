@@ -1,0 +1,1008 @@
+{
+ "root: empty child": {
+  "ok": []
+ },
+ "root: lanes[0]": {
+  "ok": []
+ },
+ "root: lanes[1]": {
+  "ok": []
+ },
+ "root: lanes[2]": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "root: lanes[3]": {
+  "ok": []
+ },
+ "root: workspaces[0]": {
+  "ok": []
+ },
+ "root: workspaces[1]": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "root: domains[0]": {
+  "ok": []
+ },
+ "root: domains[1]": {
+  "ok": []
+ },
+ "root: domains[2]": {
+  "ok": [
+   "domains"
+  ]
+ },
+ "root: domains[3]": {
+  "ok": []
+ },
+ "root: egress[0]": {
+  "ok": []
+ },
+ "root: egress[1]": {
+  "ok": [
+   "egress"
+  ]
+ },
+ "root: egress[2]": {
+  "ok": []
+ },
+ "root: ceiling[0]": {
+  "ok": []
+ },
+ "root: ceiling[1]": {
+  "ok": []
+ },
+ "root: ceiling[2]": {
+  "ok": [
+   "ceiling"
+  ]
+ },
+ "root: ceiling[3]": {
+  "ok": [
+   "ceiling"
+  ]
+ },
+ "root: specials[0]": {
+  "ok": []
+ },
+ "root: specials[1]": {
+  "ok": []
+ },
+ "root: specials[2]": {
+  "ok": [
+   "specials.secret.lanes"
+  ]
+ },
+ "root: specials[3]": {
+  "ok": [
+   "specials.secret.lanes"
+  ]
+ },
+ "root: specials[4]": {
+  "ok": [
+   "specials.brain.quota_tokens",
+   "specials.brain.tier"
+  ]
+ },
+ "root: specials[5]": {
+  "ok": []
+ },
+ "root: specials[6]": {
+  "ok": [
+   "specials.exec"
+  ]
+ },
+ "root: specials[7]": {
+  "ok": []
+ },
+ "root: specials[8]": {
+  "ok": [
+   "specials.memory.workspaces"
+  ]
+ },
+ "root: budget[0]": {
+  "ok": [
+   "budget.tokens",
+   "budget.usd"
+  ]
+ },
+ "root: budget[1]": {
+  "ok": []
+ },
+ "root: budget[2]": {
+  "ok": [
+   "budget.tokens",
+   "budget.usd"
+  ]
+ },
+ "root: budget[3]": {
+  "ok": [
+   "budget.tokens",
+   "budget.usd"
+  ]
+ },
+ "root: budget[4]": {
+  "ok": []
+ },
+ "root: budget[5]": {
+  "ok": [
+   "budget.usd_per_day"
+  ]
+ },
+ "root: budget[6]": {
+  "ok": []
+ },
+ "root: budget[7]": {
+  "ok": []
+ },
+ "root: budget[8]": {
+  "ok": []
+ },
+ "root: exp[0]": {
+  "ok": []
+ },
+ "root: exp[1]": {
+  "ok": []
+ },
+ "root: exp[2]": {
+  "ok": [
+   "exp"
+  ]
+ },
+ "root: nbf[0]": {
+  "ok": [
+   "nbf"
+  ]
+ },
+ "root: nbf[1]": {
+  "ok": []
+ },
+ "root: nbf[2]": {
+  "ok": []
+ },
+ "root: admin[0]": {
+  "ok": []
+ },
+ "root: admin[1]": {
+  "ok": [
+   "admin"
+  ]
+ },
+ "root: aud[0]": {
+  "ok": []
+ },
+ "root: aud[1]": {
+  "ok": []
+ },
+ "root: aud[2]": {
+  "ok": [
+   "aud"
+  ]
+ },
+ "root: aud[3]": {
+  "ok": []
+ },
+ "root: pins[0]": {
+  "ok": []
+ },
+ "root: pins[1]": {
+  "ok": []
+ },
+ "root: pins[2]": {
+  "ok": [
+   "pins"
+  ]
+ },
+ "root: pins[3]": {
+  "ok": [
+   "pins"
+  ]
+ },
+ "root: depth[0]": {
+  "ok": []
+ },
+ "root: depth[1]": {
+  "ok": []
+ },
+ "root: depth[2]": {
+  "ok": []
+ },
+ "root: depth[3]": {
+  "ok": [
+   "depth"
+  ]
+ },
+ "root: depth[4]": {
+  "ok": [
+   "depth"
+  ]
+ },
+ "root: fanout[0]": {
+  "ok": []
+ },
+ "root: fanout[1]": {
+  "ok": []
+ },
+ "root: fanout[2]": {
+  "ok": [
+   "fanout"
+  ]
+ },
+ "root: sub[0]": {
+  "ok": []
+ },
+ "root: sub[1]": {
+  "ok": [
+   "subject.id"
+  ]
+ },
+ "root: sub[2]": {
+  "ok": [
+   "subject.id",
+   "subject.kind"
+  ]
+ },
+ "root: sub[3]": {
+  "ok": [
+   "subject.owner"
+  ]
+ },
+ "root: everything wider": {
+  "ok": [
+   "admin",
+   "ceiling",
+   "depth",
+   "exp",
+   "fanout",
+   "lanes",
+   "pins",
+   "specials.memory.workspaces",
+   "subject.owner"
+  ]
+ },
+ "root: everything first": {
+  "ok": [
+   "budget.tokens",
+   "budget.usd",
+   "nbf"
+  ]
+ },
+ "chain: empty child": {
+  "ok": []
+ },
+ "chain: lanes[0]": {
+  "ok": []
+ },
+ "chain: lanes[1]": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "chain: lanes[2]": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "chain: lanes[3]": {
+  "ok": []
+ },
+ "chain: workspaces[0]": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "chain: workspaces[1]": {
+  "ok": [
+   "lanes"
+  ]
+ },
+ "chain: domains[0]": {
+  "ok": []
+ },
+ "chain: domains[1]": {
+  "ok": []
+ },
+ "chain: domains[2]": {
+  "ok": [
+   "domains"
+  ]
+ },
+ "chain: domains[3]": {
+  "ok": []
+ },
+ "chain: egress[0]": {
+  "ok": []
+ },
+ "chain: egress[1]": {
+  "ok": [
+   "egress"
+  ]
+ },
+ "chain: egress[2]": {
+  "ok": []
+ },
+ "chain: ceiling[0]": {
+  "ok": []
+ },
+ "chain: ceiling[1]": {
+  "ok": []
+ },
+ "chain: ceiling[2]": {
+  "ok": [
+   "ceiling"
+  ]
+ },
+ "chain: ceiling[3]": {
+  "ok": [
+   "ceiling"
+  ]
+ },
+ "chain: specials[0]": {
+  "ok": []
+ },
+ "chain: specials[1]": {
+  "ok": []
+ },
+ "chain: specials[2]": {
+  "ok": [
+   "specials.secret.lanes"
+  ]
+ },
+ "chain: specials[3]": {
+  "ok": [
+   "specials.secret.lanes"
+  ]
+ },
+ "chain: specials[4]": {
+  "ok": [
+   "specials.brain.quota_tokens",
+   "specials.brain.tier"
+  ]
+ },
+ "chain: specials[5]": {
+  "ok": []
+ },
+ "chain: specials[6]": {
+  "ok": [
+   "specials.exec"
+  ]
+ },
+ "chain: specials[7]": {
+  "ok": []
+ },
+ "chain: specials[8]": {
+  "ok": [
+   "specials.memory.workspaces"
+  ]
+ },
+ "chain: budget[0]": {
+  "ok": [
+   "budget.tokens",
+   "budget.usd"
+  ]
+ },
+ "chain: budget[1]": {
+  "ok": [
+   "budget.usd"
+  ]
+ },
+ "chain: budget[2]": {
+  "ok": [
+   "budget.tokens",
+   "budget.usd"
+  ]
+ },
+ "chain: budget[3]": {
+  "ok": [
+   "budget.tokens",
+   "budget.usd"
+  ]
+ },
+ "chain: budget[4]": {
+  "ok": []
+ },
+ "chain: budget[5]": {
+  "ok": [
+   "budget.usd_per_day"
+  ]
+ },
+ "chain: budget[6]": {
+  "ok": []
+ },
+ "chain: budget[7]": {
+  "ok": [
+   "budget.tokens_per_day"
+  ]
+ },
+ "chain: budget[8]": {
+  "ok": []
+ },
+ "chain: exp[0]": {
+  "ok": []
+ },
+ "chain: exp[1]": {
+  "ok": []
+ },
+ "chain: exp[2]": {
+  "ok": [
+   "exp"
+  ]
+ },
+ "chain: nbf[0]": {
+  "ok": [
+   "nbf"
+  ]
+ },
+ "chain: nbf[1]": {
+  "ok": []
+ },
+ "chain: nbf[2]": {
+  "ok": []
+ },
+ "chain: admin[0]": {
+  "ok": []
+ },
+ "chain: admin[1]": {
+  "ok": [
+   "admin"
+  ]
+ },
+ "chain: aud[0]": {
+  "ok": []
+ },
+ "chain: aud[1]": {
+  "ok": []
+ },
+ "chain: aud[2]": {
+  "ok": [
+   "aud"
+  ]
+ },
+ "chain: aud[3]": {
+  "ok": []
+ },
+ "chain: pins[0]": {
+  "ok": []
+ },
+ "chain: pins[1]": {
+  "ok": []
+ },
+ "chain: pins[2]": {
+  "ok": [
+   "pins"
+  ]
+ },
+ "chain: pins[3]": {
+  "ok": [
+   "pins"
+  ]
+ },
+ "chain: depth[0]": {
+  "ok": []
+ },
+ "chain: depth[1]": {
+  "ok": [
+   "depth"
+  ]
+ },
+ "chain: depth[2]": {
+  "ok": [
+   "depth"
+  ]
+ },
+ "chain: depth[3]": {
+  "ok": [
+   "depth"
+  ]
+ },
+ "chain: depth[4]": {
+  "ok": [
+   "depth"
+  ]
+ },
+ "chain: fanout[0]": {
+  "ok": []
+ },
+ "chain: fanout[1]": {
+  "ok": []
+ },
+ "chain: fanout[2]": {
+  "ok": [
+   "fanout"
+  ]
+ },
+ "chain: sub[0]": {
+  "ok": []
+ },
+ "chain: sub[1]": {
+  "ok": [
+   "subject.id"
+  ]
+ },
+ "chain: sub[2]": {
+  "ok": [
+   "subject.id",
+   "subject.kind"
+  ]
+ },
+ "chain: sub[3]": {
+  "ok": [
+   "subject.owner"
+  ]
+ },
+ "chain: everything wider": {
+  "ok": [
+   "admin",
+   "ceiling",
+   "depth",
+   "exp",
+   "fanout",
+   "lanes",
+   "pins",
+   "specials.memory.workspaces",
+   "subject.owner"
+  ]
+ },
+ "chain: everything first": {
+  "ok": [
+   "budget.tokens",
+   "budget.usd",
+   "lanes",
+   "nbf"
+  ]
+ },
+ "owner: empty child": {
+  "ok": []
+ },
+ "owner: lanes[0]": {
+  "ok": []
+ },
+ "owner: lanes[1]": {
+  "ok": []
+ },
+ "owner: lanes[2]": {
+  "ok": []
+ },
+ "owner: lanes[3]": {
+  "ok": []
+ },
+ "owner: workspaces[0]": {
+  "ok": []
+ },
+ "owner: workspaces[1]": {
+  "ok": []
+ },
+ "owner: domains[0]": {
+  "ok": []
+ },
+ "owner: domains[1]": {
+  "ok": []
+ },
+ "owner: domains[2]": {
+  "ok": []
+ },
+ "owner: domains[3]": {
+  "ok": []
+ },
+ "owner: egress[0]": {
+  "ok": [
+   "egress"
+  ]
+ },
+ "owner: egress[1]": {
+  "ok": [
+   "egress"
+  ]
+ },
+ "owner: egress[2]": {
+  "ok": []
+ },
+ "owner: ceiling[0]": {
+  "ok": []
+ },
+ "owner: ceiling[1]": {
+  "ok": []
+ },
+ "owner: ceiling[2]": {
+  "ok": []
+ },
+ "owner: ceiling[3]": {
+  "ok": []
+ },
+ "owner: specials[0]": {
+  "ok": []
+ },
+ "owner: specials[1]": {
+  "ok": []
+ },
+ "owner: specials[2]": {
+  "ok": []
+ },
+ "owner: specials[3]": {
+  "ok": []
+ },
+ "owner: specials[4]": {
+  "ok": []
+ },
+ "owner: specials[5]": {
+  "ok": []
+ },
+ "owner: specials[6]": {
+  "ok": []
+ },
+ "owner: specials[7]": {
+  "ok": []
+ },
+ "owner: specials[8]": {
+  "ok": []
+ },
+ "owner: budget[0]": {
+  "ok": []
+ },
+ "owner: budget[1]": {
+  "ok": []
+ },
+ "owner: budget[2]": {
+  "ok": []
+ },
+ "owner: budget[3]": {
+  "ok": []
+ },
+ "owner: budget[4]": {
+  "ok": []
+ },
+ "owner: budget[5]": {
+  "ok": []
+ },
+ "owner: budget[6]": {
+  "ok": []
+ },
+ "owner: budget[7]": {
+  "ok": []
+ },
+ "owner: budget[8]": {
+  "ok": []
+ },
+ "owner: exp[0]": {
+  "ok": []
+ },
+ "owner: exp[1]": {
+  "ok": []
+ },
+ "owner: exp[2]": {
+  "ok": []
+ },
+ "owner: nbf[0]": {
+  "ok": []
+ },
+ "owner: nbf[1]": {
+  "ok": []
+ },
+ "owner: nbf[2]": {
+  "ok": []
+ },
+ "owner: admin[0]": {
+  "ok": []
+ },
+ "owner: admin[1]": {
+  "ok": []
+ },
+ "owner: aud[0]": {
+  "ok": []
+ },
+ "owner: aud[1]": {
+  "ok": []
+ },
+ "owner: aud[2]": {
+  "ok": []
+ },
+ "owner: aud[3]": {
+  "ok": []
+ },
+ "owner: pins[0]": {
+  "ok": []
+ },
+ "owner: pins[1]": {
+  "ok": []
+ },
+ "owner: pins[2]": {
+  "ok": []
+ },
+ "owner: pins[3]": {
+  "ok": []
+ },
+ "owner: depth[0]": {
+  "ok": []
+ },
+ "owner: depth[1]": {
+  "ok": []
+ },
+ "owner: depth[2]": {
+  "ok": []
+ },
+ "owner: depth[3]": {
+  "ok": []
+ },
+ "owner: depth[4]": {
+  "ok": []
+ },
+ "owner: fanout[0]": {
+  "ok": []
+ },
+ "owner: fanout[1]": {
+  "ok": []
+ },
+ "owner: fanout[2]": {
+  "ok": []
+ },
+ "owner: sub[0]": {
+  "ok": [
+   "subject.id"
+  ]
+ },
+ "owner: sub[1]": {
+  "ok": [
+   "subject.id"
+  ]
+ },
+ "owner: sub[2]": {
+  "ok": [
+   "subject.id",
+   "subject.kind"
+  ]
+ },
+ "owner: sub[3]": {
+  "ok": [
+   "subject.id",
+   "subject.owner"
+  ]
+ },
+ "owner: everything wider": {
+  "ok": [
+   "subject.id",
+   "subject.owner"
+  ]
+ },
+ "owner: everything first": {
+  "ok": [
+   "egress",
+   "subject.id"
+  ]
+ },
+ "bare: empty child": {
+  "ok": []
+ },
+ "bare: lanes[0]": {
+  "ok": []
+ },
+ "bare: lanes[1]": {
+  "ok": []
+ },
+ "bare: lanes[2]": {
+  "ok": []
+ },
+ "bare: lanes[3]": {
+  "ok": []
+ },
+ "bare: workspaces[0]": {
+  "ok": []
+ },
+ "bare: workspaces[1]": {
+  "ok": []
+ },
+ "bare: domains[0]": {
+  "ok": []
+ },
+ "bare: domains[1]": {
+  "ok": []
+ },
+ "bare: domains[2]": {
+  "ok": []
+ },
+ "bare: domains[3]": {
+  "ok": []
+ },
+ "bare: egress[0]": {
+  "ok": [
+   "egress"
+  ]
+ },
+ "bare: egress[1]": {
+  "ok": [
+   "egress"
+  ]
+ },
+ "bare: egress[2]": {
+  "ok": []
+ },
+ "bare: ceiling[0]": {
+  "ok": []
+ },
+ "bare: ceiling[1]": {
+  "ok": []
+ },
+ "bare: ceiling[2]": {
+  "ok": []
+ },
+ "bare: ceiling[3]": {
+  "ok": []
+ },
+ "bare: specials[0]": {
+  "ok": []
+ },
+ "bare: specials[1]": {
+  "ok": [
+   "specials.secret"
+  ]
+ },
+ "bare: specials[2]": {
+  "ok": [
+   "specials.secret"
+  ]
+ },
+ "bare: specials[3]": {
+  "ok": [
+   "specials.secret"
+  ]
+ },
+ "bare: specials[4]": {
+  "ok": [
+   "specials.brain"
+  ]
+ },
+ "bare: specials[5]": {
+  "ok": [
+   "specials.brain"
+  ]
+ },
+ "bare: specials[6]": {
+  "ok": [
+   "specials.exec"
+  ]
+ },
+ "bare: specials[7]": {
+  "ok": [
+   "specials.memory"
+  ]
+ },
+ "bare: specials[8]": {
+  "ok": [
+   "specials.memory"
+  ]
+ },
+ "bare: budget[0]": {
+  "ok": []
+ },
+ "bare: budget[1]": {
+  "ok": []
+ },
+ "bare: budget[2]": {
+  "ok": []
+ },
+ "bare: budget[3]": {
+  "ok": []
+ },
+ "bare: budget[4]": {
+  "ok": []
+ },
+ "bare: budget[5]": {
+  "ok": []
+ },
+ "bare: budget[6]": {
+  "ok": []
+ },
+ "bare: budget[7]": {
+  "ok": []
+ },
+ "bare: budget[8]": {
+  "ok": []
+ },
+ "bare: exp[0]": {
+  "ok": []
+ },
+ "bare: exp[1]": {
+  "ok": []
+ },
+ "bare: exp[2]": {
+  "ok": []
+ },
+ "bare: nbf[0]": {
+  "ok": []
+ },
+ "bare: nbf[1]": {
+  "ok": []
+ },
+ "bare: nbf[2]": {
+  "ok": []
+ },
+ "bare: admin[0]": {
+  "ok": []
+ },
+ "bare: admin[1]": {
+  "ok": [
+   "admin"
+  ]
+ },
+ "bare: aud[0]": {
+  "ok": []
+ },
+ "bare: aud[1]": {
+  "ok": []
+ },
+ "bare: aud[2]": {
+  "ok": []
+ },
+ "bare: aud[3]": {
+  "ok": []
+ },
+ "bare: pins[0]": {
+  "ok": []
+ },
+ "bare: pins[1]": {
+  "ok": []
+ },
+ "bare: pins[2]": {
+  "ok": []
+ },
+ "bare: pins[3]": {
+  "ok": []
+ },
+ "bare: depth[0]": {
+  "ok": []
+ },
+ "bare: depth[1]": {
+  "ok": []
+ },
+ "bare: depth[2]": {
+  "ok": []
+ },
+ "bare: depth[3]": {
+  "ok": []
+ },
+ "bare: depth[4]": {
+  "ok": []
+ },
+ "bare: fanout[0]": {
+  "ok": []
+ },
+ "bare: fanout[1]": {
+  "ok": []
+ },
+ "bare: fanout[2]": {
+  "ok": []
+ },
+ "bare: sub[0]": {
+  "ok": []
+ },
+ "bare: sub[1]": {
+  "ok": [
+   "subject.id"
+  ]
+ },
+ "bare: sub[2]": {
+  "ok": [
+   "subject.id",
+   "subject.kind"
+  ]
+ },
+ "bare: sub[3]": {
+  "ok": [
+   "subject.owner"
+  ]
+ },
+ "bare: everything wider": {
+  "ok": [
+   "admin",
+   "specials.memory",
+   "subject.owner"
+  ]
+ },
+ "bare: everything first": {
+  "ok": [
+   "egress"
+  ]
+ }
+}

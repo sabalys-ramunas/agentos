@@ -42,19 +42,19 @@ async function step(label, run) {
 const rail = () => page.getByRole('navigation', { name: 'Main' }).first().getByRole('link', { name: /Needs you/ });
 const needs = async (count) => expect(rail()).toContainText(String(count), { timeout: 8000 });
 
-// A fresh seed has four things for a person: a photo to say yes to, an agent's question, an account that needs
-// a hand (biz-b's Social, a robot check), and an engagement plan to approve (biz-b's Instagram plan, which the
-// seed leaves unapproved). Needs you lists each one, and the count is their sum (web features/needs-you/count.ts).
+// A fresh seed has three things for a person: a photo to say yes to, an agent's question, and an account that
+// needs a hand (biz-b's Social, a robot check). Needs you lists each one, and the count is their sum (web
+// features/needs-you/count.ts).
 await step('Home says what needs a person', async () => {
   await page.goto(`${app}/local`);
   await expect(page.locator('h1').first()).toContainText(/need you/i);
-  await needs(4);
+  await needs(3);
 });
 
 await step('Post a photo that waits for a yes', async () => {
   await page.goto(`${app}/local/needs-you`);
   await page.getByRole('button', { name: /Post it/ }).first().click();
-  await needs(3);
+  await needs(2);
 });
 
 await step('Answer an agent\'s question', async () => {
@@ -62,7 +62,7 @@ await step('Answer an agent\'s question', async () => {
   // A tap right after a decision is ignored on purpose, so a double tap never lands on the next item.
   await page.waitForTimeout(1500);
   await page.getByRole('button', { name: /^bright/i }).first().click();
-  await needs(2);
+  await needs(1);
 });
 
 await step('Take over an account, and hand it back', async () => {

@@ -14,7 +14,7 @@ from types import SimpleNamespace
 
 from channel_fake_controller import NODE_ID, FakeController, node_pubkey, node_runtime, start, stop
 
-from agentos.node.channel import bridge, wire
+from agentos.node.channel import approvals, bridge, calls, connection, outbox, signed, wire
 from agentos.node.channel import node as node_module
 from agentos.policy import tokens
 from agentos.policy.grants import GrantBlock, Specials
@@ -137,7 +137,9 @@ async def test_a_node_with_a_fast_clock_still_runs_a_call_the_controller_has_tim
 
     async with FakeController(NODE_ID, node_pubkey(home)) as fake:
         runtime = await node_runtime(home, fake)
-        monkeypatch.setattr(node_module, "time", SimpleNamespace(time=fast, monotonic=time.monotonic))
+        fast_clock = SimpleNamespace(time=fast, monotonic=time.monotonic)
+        for module in (node_module, connection, signed, approvals, outbox, calls):  # NodeChannel and its mixins
+            monkeypatch.setattr(module, "time", fast_clock)
         runtime.get("policy").clock = fast  # the node's whole clock runs fast, policy included
         await start(runtime)
         try:

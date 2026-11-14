@@ -10,6 +10,7 @@ from typing import Annotated, Any, Literal
 
 from pydantic import Field
 
+from agentos.core.aio import maybe_await
 from agentos.core.errors import ApprovalPending, InvalidRequest, NotFound, PolicyDenied, ServiceUnavailable
 from agentos.core.models import Effect, RunStatus
 from agentos.core.tools import (
@@ -20,10 +21,10 @@ from agentos.core.tools import (
     refuse_frozen,
     require_lane_patterns,
 )
+from agentos.runner.flowdoc import FlowVersion
 from agentos.runner.flows import FlowService, lint
-from agentos.runner.models import FlowVersion, is_connector_id
-from agentos.runner.runner import SAME_RUN
-from agentos.runner.util import maybe_await
+from agentos.runner.names import is_connector_id
+from agentos.runner.run_rules import SAME_RUN
 
 MAX_WAIT_S = 120.0
 DEFAULT_WAIT_S = 15.0

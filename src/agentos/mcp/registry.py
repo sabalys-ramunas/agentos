@@ -40,7 +40,6 @@ from __future__ import annotations
 
 import asyncio
 import base64
-import contextvars
 import copy
 import difflib
 import inspect
@@ -48,8 +47,8 @@ import logging
 import re
 import traceback
 import weakref
-from collections.abc import Awaitable, Callable, Iterable, Iterator, Sequence
-from contextlib import contextmanager, suppress
+from collections.abc import Awaitable, Callable, Iterable, Sequence
+from contextlib import suppress
 from dataclasses import dataclass, field
 from typing import Annotated, Any, get_args, get_origin, get_type_hints
 
@@ -80,12 +79,20 @@ from agentos.core import catalog, logs
 from agentos.core.errors import AgentosError, ApprovalPending, EngineError
 from agentos.core.models import Effect, Principal
 from agentos.core.runtime import Runtime
-from agentos.core.tools import ClientAnswer, ToolImage, ToolSpec, ToolView, elicitor_var
+from agentos.core.tools import (
+    ClientAnswer,
+    PromptSpec,
+    ToolImage,
+    ToolSpec,
+    ToolView,
+    current_request_token,
+    elicitor_var,
+)
 from agentos.environments import routing as env_routing
 from agentos.mcp import toolsets as ts
-from agentos.mcp.redact import Redactor
 from agentos.node import interrupts
-from agentos.vault.scrub import runtime_scrub
+from agentos.policy.redactor import Redactor
+from agentos.policy.scrub import runtime_scrub
 
 log = logging.getLogger(__name__)
 
@@ -114,44 +121,7 @@ OPEN_WORLD_TAGS = frozenset({"browser", "web"})
 CHANGES_STATE = "changes_state"
 
 
-@dataclass(frozen=True)
-class PromptArg:
-    name: str
-    description: str
-    required: bool = False
-
-
-@dataclass(frozen=True)
-class PromptSpec:
-    """An MCP prompt. `render(**arguments)` returns the text of its one user message; arguments
-    the user left out (or left empty) are not passed."""
-    name: str
-    description: str
-    render: Callable[..., str]
-    arguments: tuple[PromptArg, ...] = ()
-    title: str | None = None
-    hidden_without: str | None = None
-
-
 # ---- the request's bearer token ----
-
-request_token: contextvars.ContextVar[str | None] = contextvars.ContextVar("agentos_mcp_request_token",
-                                                                           default=None)
-
-
-@contextmanager
-def bind_request_token(token: str | None) -> Iterator[None]:
-    """Bind the caller's bearer token for one request. agentos.mcp.http does this for every HTTP
-    request; the SDK carries the context into the tool call it dispatches."""
-    reset = request_token.set(token)
-    try:
-        yield
-    finally:
-        request_token.reset(reset)
-
-
-def current_request_token() -> str | None:
-    return request_token.get()
 
 
 # ---- the M1 wrapper: the owner may do everything ----

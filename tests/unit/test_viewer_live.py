@@ -24,7 +24,8 @@ from websockets.exceptions import ConnectionClosed
 from agentos.core.live import LiveSockets
 from agentos.core.models import LaneSpec
 from agentos.node import viewer_app, vnc_relay
-from agentos.node.viewer_app import ViewTokens, build_viewer_app
+from agentos.node.viewer_app import build_viewer_app
+from agentos.node.viewer_tokens import ViewTokens
 
 GREETING = b"RFB 003.008\n"
 WORKSPACE = LANE.split("/", 1)[0]

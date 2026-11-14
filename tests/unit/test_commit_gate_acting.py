@@ -30,6 +30,7 @@ from agentos.dev.lanes import DevLaneManager
 from agentos.dev.web import DevInteraction, new_tab
 from agentos.node import acting, commitgate, egress, publish
 from agentos.node import tools as node_tools
+from agentos.node.cardfacts import NodeCardFacts
 from agentos.policy.cards import publish_card
 from agentos.policy.meters import LimitReached
 from agentos.policy.service import PolicyService
@@ -195,6 +196,8 @@ class CardRuntime:
     def get(self, name):
         if name == "lanes":
             return SimpleNamespace(get=lambda lane: SimpleNamespace(spec=SimpleNamespace(account=FB_PIN)))
+        if name == "card_facts":  # what a node runtime always carries (agentos.node.cardfacts)
+            return NodeCardFacts()
         return None
 
 
@@ -251,7 +254,7 @@ class Node:
     def __init__(self, tmp_path):
         self.clock = Clock()
         self.lanes = DevLaneManager(make_page=new_tab)
-        self.runtime = Runtime(interaction=DevInteraction())
+        self.runtime = Runtime(interaction=DevInteraction(), card_facts=NodeCardFacts())
         self.runtime.register("lanes", self.lanes)
         self.policy = PolicyService(tmp_path / "policy", runtime=self.runtime, clock=self.clock)
         self.approvals = self.policy.approvals

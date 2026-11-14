@@ -19,7 +19,7 @@ import { StateGlyph } from '@/components/ui/state-badge';
 import { Skeleton } from '@/components/ui/states';
 import { cn } from '@/lib/cn';
 import { describeCron } from '@/lib/cron';
-import { clock, compact, dateTime, elapsed, safeUrl, usd } from '@/lib/format';
+import { clock, clockSeconds, compact, dateTime, elapsed, safeUrl, usd } from '@/lib/format';
 import { principalId } from '@/lib/principal';
 import { useTechnical } from '@/lib/technical';
 import { WorkerSteps } from '@/features/workers/in-place';
@@ -48,7 +48,6 @@ export function whenSaid(iso: string): string {
   return `${day === 'Today' || day === 'Yesterday' ? day.toLowerCase() : day} at ${clock(iso)}`;
 }
 
-const seconds = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
 /** The verdict's mark: the four states' glyphs, and a dashed ring for "done, not checked". */
 export function ResultGlyph({ result, size = 20 }: { result: Result; size?: 14 | 16 | 20 | 24 }) {
@@ -117,7 +116,7 @@ function Proof({ view }: { view: StoryView }) {
     <div className="grid gap-2">
       <Screenshot view={view} />
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-13">
-        {shot ? <span className="tabular text-faint">Screenshot taken at {seconds(view.at)}</span> : <span />}
+        {shot ? <span className="tabular text-faint">Screenshot taken at {clockSeconds(view.at)}</span> : <span />}
         {url ? (
           <a href={url} target="_blank" rel="noreferrer noopener" className="link inline-flex items-center gap-1">
             Open on {view.named} <ArrowUpRight className="size-3" />

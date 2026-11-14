@@ -10,7 +10,7 @@ import shutil
 
 import pytest
 
-from agentos.ops import layout
+from agentos.core import layout
 from agentos.ops.control import start_server
 from agentos.vault.service import VaultService
 

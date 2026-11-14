@@ -16,13 +16,13 @@ from starlette.websockets import WebSocketDisconnect
 
 from agentos.api import ApiSettings, PanelStore, build_api
 from agentos.api.auth import SESSION_COOKIE
-from agentos.api.fakes import demo_runtime
 from agentos.api.lane_metrics import lane_metrics
 from agentos.api.web.accounts import lane_for_app, set_by_for_app, slug, template_for_app
 from agentos.api.web.events import reshape_frame
 from agentos.core.models import RunStatus
-from agentos.ops.lanecheck import Check, LaneReport
+from agentos.dev.apifakes import demo_runtime
 from agentos.runner.models import Run
+from agentos.stealth.lanecheck import Check, LaneReport
 
 ORG = "/api/orgs/local"
 LANE = "biz-a/shop"

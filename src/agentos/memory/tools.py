@@ -23,9 +23,10 @@ from typing import Any
 from agentos.core.errors import AgentPaused, PolicyDenied
 from agentos.core.models import Effect
 from agentos.core.tools import ToolContext, ToolSpec
+from agentos.memory.common import MemoryRead
 from agentos.memory.errors import OutOfScope, OwnerTrustRequired
 from agentos.memory.models import Caller, EntryType, MemoryScope, check_entry_id
-from agentos.memory.service import SERVICE_NAME, MemoryRead, MemoryService
+from agentos.memory.service import SERVICE_NAME, MemoryService
 
 TAG = "memory"
 

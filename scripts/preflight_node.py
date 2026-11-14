@@ -229,7 +229,7 @@ def panel(cfg: Any, day: str) -> None:
          f"{len(replay.get('steps', []))} steps, chain {replay.get('chain', {}).get('status')}")
     built = ui_built(cfg)
     if built is None:
-        print("skip  panel page: no UI is built on this node (no panel/dist or web/dist). MCP and the API work; "
+        print("skip  panel page: the web app is not built on this node (no web/dist). MCP and the API work; "
               "deploy/README.md says how to add one.", flush=True)
         return
     with opener.open(f"{base}/", timeout=20) as r:
@@ -237,14 +237,13 @@ def panel(cfg: Any, day: str) -> None:
 
 
 def ui_built(cfg: Any) -> str | None:
-    """Which UI build this install has (panel/dist or web/dist next to the code), or None."""
+    """The web app build this install has (web/dist next to the code), or None."""
     exe = Path(sys.executable)  # .venv/bin/python: not resolved, it links to the interpreter elsewhere
     root = exe.parents[2] if exe.parent.name == "bin" and len(exe.parents) > 2 else None
     roots = [r for r in (root, Path(__file__).resolve().parents[1]) if r is not None]
     for base in roots:
-        for name in ("web", "panel"):
-            if (base / name / "dist" / "index.html").is_file():
-                return f"{name}/dist"
+        if (base / "web" / "dist" / "index.html").is_file():
+            return "web/dist"
     return None
 
 

@@ -1,0 +1,835 @@
+{
+ "signed in": {
+  "ok": {
+   "kind": "signed_in",
+   "origin": "https://login.example.com",
+   "asks": [],
+   "submit": null,
+   "submit_label": "",
+   "choices": [],
+   "heading": "",
+   "message": "",
+   "number": null,
+   "reason": ""
+  }
+ },
+ "signed in but captcha": {
+  "ok": {
+   "kind": "captcha",
+   "origin": "https://login.example.com",
+   "asks": [],
+   "submit": null,
+   "submit_label": "",
+   "choices": [],
+   "heading": "",
+   "message": "",
+   "number": null,
+   "reason": "The page shows a captcha. agentos does not solve captchas: take control, solve it in the live view, then come back to the form."
+  }
+ },
+ "captcha": {
+  "ok": {
+   "kind": "captcha",
+   "origin": "https://login.example.com",
+   "asks": [],
+   "submit": null,
+   "submit_label": "",
+   "choices": [],
+   "heading": "",
+   "message": "",
+   "number": null,
+   "reason": "The page shows a captcha. agentos does not solve captchas: take control, solve it in the live view, then come back to the form."
+  }
+ },
+ "blocked": {
+  "ok": {
+   "kind": "stuck",
+   "origin": "https://login.example.com",
+   "asks": [],
+   "submit": null,
+   "submit_label": "",
+   "choices": [],
+   "heading": "",
+   "message": "",
+   "number": null,
+   "reason": "The site blocked this browser. Take control to see the page, or try again later."
+  }
+ },
+ "rate limited": {
+  "ok": {
+   "kind": "stuck",
+   "origin": "https://login.example.com",
+   "asks": [],
+   "submit": null,
+   "submit_label": "",
+   "choices": [],
+   "heading": "",
+   "message": "",
+   "number": null,
+   "reason": "The site says to slow down. Take control to see the page, or try again later."
+  }
+ },
+ "http page": {
+  "ok": {
+   "kind": "stuck",
+   "origin": "",
+   "asks": [],
+   "submit": null,
+   "submit_label": "",
+   "choices": [],
+   "heading": "",
+   "message": "",
+   "number": null,
+   "reason": "This page is not on https, so agentos does not type into it. Take control if you want to go on by hand."
+  }
+ },
+ "http loopback": {
+  "ok": {
+   "kind": "sign_in",
+   "origin": "http://127.0.0.1:8080",
+   "asks": [
+    {
+     "name": "password",
+     "role": "password",
+     "label": "Password",
+     "secret": true,
+     "locators": [
+      "p"
+     ],
+     "length": null
+    }
+   ],
+   "submit": null,
+   "submit_label": "",
+   "choices": [],
+   "heading": "",
+   "message": "",
+   "number": null,
+   "reason": ""
+  }
+ },
+ "login in another site's frame": {
+  "ok": {
+   "kind": "stuck",
+   "origin": "https://login.example.com",
+   "asks": [],
+   "submit": null,
+   "submit_label": "",
+   "choices": [],
+   "heading": "",
+   "message": "",
+   "number": null,
+   "reason": "The sign-in form is inside a frame from another site, so agentos does not type into it. Take control to sign in by hand."
+  }
+ },
+ "username and password with submit": {
+  "ok": {
+   "kind": "sign_in",
+   "origin": "https://login.example.com",
+   "asks": [
+    {
+     "name": "username",
+     "role": "username",
+     "label": "Email address",
+     "secret": false,
+     "locators": [
+      "u"
+     ],
+     "length": null
+    },
+    {
+     "name": "password",
+     "role": "password",
+     "label": "Your password",
+     "secret": true,
+     "locators": [
+      "p"
+     ],
+     "length": null
+    }
+   ],
+   "submit": "go",
+   "submit_label": "Sign in",
+   "choices": [],
+   "heading": "",
+   "message": "",
+   "number": null,
+   "reason": ""
+  }
+ },
+ "username and password, enter": {
+  "ok": {
+   "kind": "sign_in",
+   "origin": "https://login.example.com",
+   "asks": [
+    {
+     "name": "username",
+     "role": "username",
+     "label": "Email or username",
+     "secret": false,
+     "locators": [
+      "u"
+     ],
+     "length": null
+    },
+    {
+     "name": "password",
+     "role": "password",
+     "label": "Password",
+     "secret": true,
+     "locators": [
+      "p"
+     ],
+     "length": null
+    }
+   ],
+   "submit": null,
+   "submit_label": "",
+   "choices": [],
+   "heading": "",
+   "message": "",
+   "number": null,
+   "reason": ""
+  }
+ },
+ "password only": {
+  "ok": {
+   "kind": "sign_in",
+   "origin": "https://login.example.com",
+   "asks": [
+    {
+     "name": "password",
+     "role": "password",
+     "label": "Password",
+     "secret": true,
+     "locators": [
+      "p"
+     ],
+     "length": null
+    }
+   ],
+   "submit": "go",
+   "submit_label": "Sign in",
+   "choices": [],
+   "heading": "",
+   "message": "",
+   "number": null,
+   "reason": ""
+  }
+ },
+ "username first": {
+  "ok": {
+   "kind": "sign_in",
+   "origin": "https://login.example.com",
+   "asks": [
+    {
+     "name": "username",
+     "role": "username",
+     "label": "Email or username",
+     "secret": false,
+     "locators": [
+      "e"
+     ],
+     "length": null
+    }
+   ],
+   "submit": "go",
+   "submit_label": "Sign in",
+   "choices": [],
+   "heading": "",
+   "message": "",
+   "number": null,
+   "reason": ""
+  }
+ },
+ "username first, formless": {
+  "ok": {
+   "kind": "sign_in",
+   "origin": "https://login.example.com",
+   "asks": [
+    {
+     "name": "username",
+     "role": "username",
+     "label": "Email or username",
+     "secret": false,
+     "locators": [
+      "e"
+     ],
+     "length": null
+    }
+   ],
+   "submit": null,
+   "submit_label": "",
+   "choices": [],
+   "heading": "",
+   "message": "",
+   "number": null,
+   "reason": ""
+  }
+ },
+ "username in another form than the password": {
+  "ok": {
+   "kind": "sign_in",
+   "origin": "https://login.example.com",
+   "asks": [
+    {
+     "name": "password",
+     "role": "password",
+     "label": "Password",
+     "secret": true,
+     "locators": [
+      "p"
+     ],
+     "length": null
+    }
+   ],
+   "submit": null,
+   "submit_label": "",
+   "choices": [],
+   "heading": "",
+   "message": "",
+   "number": null,
+   "reason": ""
+  }
+ },
+ "code field": {
+  "ok": {
+   "kind": "code",
+   "origin": "https://login.example.com",
+   "asks": [
+    {
+     "name": "code",
+     "role": "one_time_code",
+     "label": "Code",
+     "secret": true,
+     "locators": [
+      "c"
+     ],
+     "length": 6
+    }
+   ],
+   "submit": "go",
+   "submit_label": "Sign in",
+   "choices": [],
+   "heading": "",
+   "message": "",
+   "number": null,
+   "reason": ""
+  }
+ },
+ "split code": {
+  "ok": {
+   "kind": "code",
+   "origin": "https://login.example.com",
+   "asks": [
+    {
+     "name": "code",
+     "role": "one_time_code",
+     "label": "Code",
+     "secret": true,
+     "locators": [
+      "b0",
+      "b1",
+      "b2",
+      "b3",
+      "b4",
+      "b5"
+     ],
+     "length": 6
+    }
+   ],
+   "submit": "go",
+   "submit_label": "Sign in",
+   "choices": [],
+   "heading": "",
+   "message": "",
+   "number": null,
+   "reason": ""
+  }
+ },
+ "code beside a password": {
+  "ok": {
+   "kind": "sign_in",
+   "origin": "https://login.example.com",
+   "asks": [
+    {
+     "name": "password",
+     "role": "password",
+     "label": "Password",
+     "secret": true,
+     "locators": [
+      "p"
+     ],
+     "length": null
+    }
+   ],
+   "submit": null,
+   "submit_label": "",
+   "choices": [],
+   "heading": "",
+   "message": "",
+   "number": null,
+   "reason": ""
+  }
+ },
+ "submit in another frame": {
+  "ok": {
+   "kind": "sign_in",
+   "origin": "https://login.example.com",
+   "asks": [
+    {
+     "name": "username",
+     "role": "username",
+     "label": "Email or username",
+     "secret": false,
+     "locators": [
+      "u"
+     ],
+     "length": null
+    },
+    {
+     "name": "password",
+     "role": "password",
+     "label": "Password",
+     "secret": true,
+     "locators": [
+      "p"
+     ],
+     "length": null
+    }
+   ],
+   "submit": null,
+   "submit_label": "",
+   "choices": [],
+   "heading": "",
+   "message": "",
+   "number": null,
+   "reason": ""
+  }
+ },
+ "submit disabled, reset, hidden": {
+  "ok": {
+   "kind": "sign_in",
+   "origin": "https://login.example.com",
+   "asks": [
+    {
+     "name": "username",
+     "role": "username",
+     "label": "Email or username",
+     "secret": false,
+     "locators": [
+      "u"
+     ],
+     "length": null
+    },
+    {
+     "name": "password",
+     "role": "password",
+     "label": "Password",
+     "secret": true,
+     "locators": [
+      "p"
+     ],
+     "length": null
+    }
+   ],
+   "submit": "i",
+   "submit_label": "Go",
+   "choices": [],
+   "heading": "",
+   "message": "",
+   "number": null,
+   "reason": ""
+  }
+ },
+ "sign in with accounts and providers": {
+  "ok": {
+   "kind": "sign_in",
+   "origin": "https://login.example.com",
+   "asks": [
+    {
+     "name": "username",
+     "role": "username",
+     "label": "Email or username",
+     "secret": false,
+     "locators": [
+      "u"
+     ],
+     "length": null
+    },
+    {
+     "name": "password",
+     "role": "password",
+     "label": "Password",
+     "secret": true,
+     "locators": [
+      "p"
+     ],
+     "length": null
+    }
+   ],
+   "submit": "go",
+   "submit_label": "Sign in",
+   "choices": [
+    {
+     "id": "c1",
+     "label": "ann@example.com",
+     "locator": "a1",
+     "kind": "account"
+    },
+    {
+     "id": "c2",
+     "label": "bob@example.com",
+     "locator": "a2",
+     "kind": "account"
+    },
+    {
+     "id": "c3",
+     "label": "Continue with Google",
+     "locator": "g",
+     "kind": "provider"
+    },
+    {
+     "id": "c4",
+     "label": "Use SSO",
+     "locator": "sso",
+     "kind": "provider"
+    }
+   ],
+   "heading": "",
+   "message": "",
+   "number": null,
+   "reason": ""
+  }
+ },
+ "approve flag": {
+  "ok": {
+   "kind": "approve",
+   "origin": "https://login.example.com",
+   "asks": [],
+   "submit": null,
+   "submit_label": "",
+   "choices": [
+    {
+     "id": "c1",
+     "label": "Continue",
+     "locator": "ok",
+     "kind": "button"
+    }
+   ],
+   "heading": "",
+   "message": "",
+   "number": "42",
+   "reason": ""
+  }
+ },
+ "number, no fields": {
+  "ok": {
+   "kind": "approve",
+   "origin": "https://login.example.com",
+   "asks": [],
+   "submit": null,
+   "submit_label": "",
+   "choices": [],
+   "heading": "Check your phone",
+   "message": "",
+   "number": "97",
+   "reason": ""
+  }
+ },
+ "number with a visible field": {
+  "ok": {
+   "kind": "approve",
+   "origin": "https://login.example.com",
+   "asks": [],
+   "submit": null,
+   "submit_label": "",
+   "choices": [],
+   "heading": "",
+   "message": "",
+   "number": "97",
+   "reason": ""
+  }
+ },
+ "unfillable field": {
+  "ok": {
+   "kind": "stuck",
+   "origin": "https://login.example.com",
+   "asks": [],
+   "submit": null,
+   "submit_label": "",
+   "choices": [
+    {
+     "id": "c1",
+     "label": "Sign in",
+     "locator": "go",
+     "kind": "button"
+    }
+   ],
+   "heading": "",
+   "message": "",
+   "number": null,
+   "reason": "This step asks for something agentos does not fill (not an email, a password or a code). Take control to fill it in the live view."
+  }
+ },
+ "unfillable field in another frame": {
+  "ok": {
+   "kind": "choose",
+   "origin": "https://login.example.com",
+   "asks": [],
+   "submit": null,
+   "submit_label": "",
+   "choices": [
+    {
+     "id": "c1",
+     "label": "Sign in",
+     "locator": "go",
+     "kind": "button"
+    },
+    {
+     "id": "c2",
+     "label": "Continue",
+     "locator": "ok",
+     "kind": "button"
+    }
+   ],
+   "heading": "",
+   "message": "",
+   "number": null,
+   "reason": ""
+  }
+ },
+ "nothing to press": {
+  "ok": {
+   "kind": "stuck",
+   "origin": "https://login.example.com",
+   "asks": [],
+   "submit": null,
+   "submit_label": "",
+   "choices": [],
+   "heading": "Hmm",
+   "message": "Something went wrong",
+   "number": null,
+   "reason": "agentos cannot tell what this page wants. Take control and do this step in the live view."
+  }
+ },
+ "one plain button": {
+  "ok": {
+   "kind": "confirm",
+   "origin": "https://login.example.com",
+   "asks": [],
+   "submit": "ok",
+   "submit_label": "Continue",
+   "choices": [
+    {
+     "id": "c1",
+     "label": "Continue",
+     "locator": "ok",
+     "kind": "button"
+    }
+   ],
+   "heading": "",
+   "message": "",
+   "number": null,
+   "reason": ""
+  }
+ },
+ "one account": {
+  "ok": {
+   "kind": "choose",
+   "origin": "https://login.example.com",
+   "asks": [],
+   "submit": null,
+   "submit_label": "",
+   "choices": [
+    {
+     "id": "c1",
+     "label": "ann@example.com",
+     "locator": "a1",
+     "kind": "account"
+    }
+   ],
+   "heading": "",
+   "message": "",
+   "number": null,
+   "reason": ""
+  }
+ },
+ "choose": {
+  "ok": {
+   "kind": "choose",
+   "origin": "https://login.example.com",
+   "asks": [],
+   "submit": null,
+   "submit_label": "",
+   "choices": [
+    {
+     "id": "c1",
+     "label": "ann@example.com",
+     "locator": "a1",
+     "kind": "account"
+    },
+    {
+     "id": "c2",
+     "label": "bob@example.com",
+     "locator": "a2",
+     "kind": "account"
+    },
+    {
+     "id": "c3",
+     "label": "Continue with Google",
+     "locator": "g",
+     "kind": "provider"
+    },
+    {
+     "id": "c4",
+     "label": "Use SSO",
+     "locator": "sso",
+     "kind": "provider"
+    },
+    {
+     "id": "c5",
+     "label": "Continue",
+     "locator": "ok",
+     "kind": "button"
+    }
+   ],
+   "heading": "Choose",
+   "message": "",
+   "number": null,
+   "reason": ""
+  }
+ },
+ "many choices": {
+  "ok": {
+   "kind": "choose",
+   "origin": "https://login.example.com",
+   "asks": [],
+   "submit": null,
+   "submit_label": "",
+   "choices": [
+    {
+     "id": "c1",
+     "label": "Option 0",
+     "locator": "b0",
+     "kind": "button"
+    },
+    {
+     "id": "c2",
+     "label": "Option 1",
+     "locator": "b1",
+     "kind": "button"
+    },
+    {
+     "id": "c3",
+     "label": "Option 2",
+     "locator": "b2",
+     "kind": "button"
+    },
+    {
+     "id": "c4",
+     "label": "Option 3",
+     "locator": "b3",
+     "kind": "button"
+    },
+    {
+     "id": "c5",
+     "label": "Option 4",
+     "locator": "b4",
+     "kind": "button"
+    },
+    {
+     "id": "c6",
+     "label": "Option 5",
+     "locator": "b5",
+     "kind": "button"
+    },
+    {
+     "id": "c7",
+     "label": "Option 6",
+     "locator": "b6",
+     "kind": "button"
+    },
+    {
+     "id": "c8",
+     "label": "Option 7",
+     "locator": "b7",
+     "kind": "button"
+    }
+   ],
+   "heading": "",
+   "message": "",
+   "number": null,
+   "reason": ""
+  }
+ },
+ "same locator twice": {
+  "ok": {
+   "kind": "choose",
+   "origin": "https://login.example.com",
+   "asks": [],
+   "submit": null,
+   "submit_label": "",
+   "choices": [
+    {
+     "id": "c1",
+     "label": "A",
+     "locator": "same",
+     "kind": "account"
+    }
+   ],
+   "heading": "",
+   "message": "",
+   "number": null,
+   "reason": ""
+  }
+ },
+ "role buttons and links": {
+  "ok": {
+   "kind": "choose",
+   "origin": "https://login.example.com",
+   "asks": [],
+   "submit": null,
+   "submit_label": "",
+   "choices": [
+    {
+     "id": "c1",
+     "label": "GitHub",
+     "locator": "l2",
+     "kind": "provider"
+    },
+    {
+     "id": "c2",
+     "label": "Tab",
+     "locator": "r1",
+     "kind": "button"
+    }
+   ],
+   "heading": "",
+   "message": "",
+   "number": null,
+   "reason": ""
+  }
+ },
+ "long heading and message": {
+  "ok": {
+   "kind": "confirm",
+   "origin": "https://login.example.com",
+   "asks": [],
+   "submit": "ok",
+   "submit_label": "Continue",
+   "choices": [
+    {
+     "id": "c1",
+     "label": "Continue",
+     "locator": "ok",
+     "kind": "button"
+    }
+   ],
+   "heading": "HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH\u2026",
+   "message": "M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M\u2026",
+   "number": null,
+   "reason": ""
+  }
+ }
+}

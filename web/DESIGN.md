@@ -1,9 +1,9 @@
 # agentos design system: Mono
 
 The app follows **Mono**, the style the owner approved on 2026-11-13: precise and monochrome, in
-the spirit of vercel.com and resend.com, with a colour for each kind of work. The prototype is
-[`panel/prototypes/dashboard/style-mono/`](../panel/prototypes/dashboard/style-mono/index.html), its
-reasons are in [`docs/design/style-style-mono.md`](../docs/design/style-style-mono.md), the UX in
+the spirit of vercel.com and resend.com, with a colour for each kind of work. The prototype was
+`panel/prototypes/dashboard/style-mono/` (removed with the classic panel; it is in git history at
+59634500), its reasons are in [`docs/design/style-style-mono.md`](../docs/design/style-style-mono.md), the UX in
 [`docs/design/app-design.md`](../docs/design/app-design.md) and the tables, type roles and statuses in
 [`docs/design/foundations.md`](../docs/design/foundations.md). Where those and this file disagree about
 the app, this file is the rule. If you change a rule, change it here in the same commit.
@@ -290,8 +290,7 @@ The frame every page sits in (`src/components/shell/`), drawn from the Mono prot
 
 This is a computer, and the panel should feel like looking into a machine room you own. Calm
 comes from hierarchy, not from showing less. The layer lives in
-[`src/styles/instrument.css`](src/styles/instrument.css) and
-[`src/components/ui/mark.tsx`](src/components/ui/mark.tsx), on top of everything above.
+[`src/styles/instrument.css`](src/styles/instrument.css), on top of everything above.
 
 - **The current.** `--current` (class `live`) is ink in Mono (it was pink), and it means exactly one thing: an
   agent is acting right now. It is never decoration and never a resting state, so the eye
@@ -449,9 +448,6 @@ link. Each section is one quiet block under a faint heading, answer first: a dot
   not in the rail. Each workspace is a room against its caps, with what waits for a look and whether its record
   checks out. Its text is shown as plain text and never followed. Forgetting erases for good, so it is typed and
   needs a reason; the reason stays on record.
-- **The day is under what needs you on Home, and only when it has something to say.** It is a draft, and it says so.
-  A blocked account is said in plain words from its readiness key, never with the command-line sentence the plan
-  keeps for `agentos plan draft`.
 - **An account's files sit on its page, before its history.** A browser account only. Anyone who sees the account
   downloads; an operator adds and deletes. An add is checked against the node's own limit before it is sent, and a
   file is only ever kept and handed back as it is.
@@ -784,8 +780,10 @@ reason: to name the site an account is on, or the agent that acted. So:
 
 ## Data
 
-- `src/api/client.ts` is the one typed client, `hooks.ts` the Query hooks. Screens import hooks
-  only. A lint rule and a test stop any screen importing `src/mocks`.
+- `src/api/client.ts` is the one typed client, `hooks.ts` the Query hooks and `types.ts` the shapes.
+  The hooks and the shapes live in one file per area (`api/hooks/`, `api/types/`), and `hooks.ts`
+  and `types.ts` re-export them, so a screen imports from those two. Every query key is in
+  `keys.ts`. Screens import hooks only. A lint rule and a test stop any screen importing `src/mocks`.
 - `VITE_API_MODE` is the single switch (`mock` in `.env.development`, `live` in
   `.env.production`). A live build contains no mock code.
 - `src/api/http.ts` owns CSRF, the error shape, 401 and step-up. A `403 step_up_required` from

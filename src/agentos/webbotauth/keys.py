@@ -84,10 +84,6 @@ class LaneKey:
     def __repr__(self) -> str:  # never print key material
         return f"LaneKey(lane_id={self.lane_id!r}, keyid={self.keyid!r})"
 
-    @property
-    def short_id(self) -> str:
-        return self.keyid[:12]
-
     def public_key(self) -> Ed25519PublicKey:
         return self._private.public_key()
 

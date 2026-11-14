@@ -9,7 +9,7 @@ import type { RoutineOutput, RoutineRun } from '@/api/types';
 import { SiteMark } from '@/components/brand/site-mark';
 import { StateGlyph } from '@/components/ui/state-badge';
 import { cn } from '@/lib/cn';
-import { dateTime } from '@/lib/format';
+import { dateTime, monthDay } from '@/lib/format';
 import { siteName } from '@/lib/sites';
 
 const money = (amount: number, currency = 'EUR') => new Intl.NumberFormat('en', { style: 'currency', currency, maximumFractionDigits: amount % 1 ? 2 : 0 }).format(amount);
@@ -92,7 +92,7 @@ export function OutputCard({ run, site, lead = false, onOpen }: { run: RoutineRu
       <Foot>
         {failed ? null : proof ? <BadgeCheck aria-hidden="true" className="size-3 shrink-0 text-(--ok-dot)" /> : <CircleDashed aria-hidden="true" className="size-3 shrink-0" />}
         <span className="truncate">
-          {lead ? dateTime(run.started_at) : new Date(run.started_at).toLocaleDateString('en', { month: 'short', day: 'numeric' })}
+          {lead ? dateTime(run.started_at) : monthDay(run.started_at)}
           {failed ? '' : proof ? ` · Checked on ${siteName(proof.site)}` : ' · Not checked'}
         </span>
       </Foot>

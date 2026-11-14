@@ -9,7 +9,7 @@ import { BranchPill } from '@/components/ui/branch';
 import type { AnyKind } from '@/components/ui/kind';
 import { plural } from '@/lib/format';
 import { durationWords, kindOf, money, paymentWords, repoName, size } from './kinds';
-import { previewText } from './post-preview';
+import { previewText } from './preview-parts';
 import type { Where } from './words';
 import { amountOf } from './words';
 

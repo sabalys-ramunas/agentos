@@ -12,15 +12,46 @@ from typing import Any
 import pytest
 from starlette.testclient import TestClient
 
+from agentos.api.auth import SESSION_COOKIE
+from agentos.api.members import Role
 from agentos.core.models import utcnow
 from agentos.environments.models import Call, Environment, Machine
 
-from .test_engage import add_operator, as_member, as_token
+TOKEN = "t" * 43
+MEMBER = "m_ana0001"
 
 ENVS = "/api/orgs/local/environments"
 CLEAN = [{"dir": "/work/shop", "branch": "main", "ahead": 0, "dirty": 0, "dirty_files": [], "unpushed": []}]
 DIRTY = [{"dir": "/work/shop", "branch": "sale", "ahead": 1, "dirty": 1, "dirty_files": ["index.html"],
           "unpushed": ["abc1234 Thirty percent off"]}]
+
+
+def add_operator(client: TestClient, *, scopes: tuple[str, ...] = ("biz-a",), member: str = MEMBER) -> None:
+    """A member with operator in each of `scopes`, as an accepted invite leaves them (test_people's add_member)."""
+    api = client.app.state.api
+    api.members.store.create_member(
+        member_id=member, handle=member[2:5], display_name="Ana", email=f"{member}@example.com", timezone="UTC",
+        by="owner", roles=[Role(scope=scope, role="operator", options={}, expires_at=None) for scope in scopes],
+        member_ttl_s=None,
+    )
+    api.members.sync(member, by="owner", force=True)
+
+
+def as_member(client: TestClient, member: str = MEMBER) -> TestClient:
+    """A second client signed in as the member, with a session cookie and its CSRF header."""
+    api = client.app.state.api
+    sid, session = api.store.create_session(member, 3600, member_id=member, via="passkey")
+    member = TestClient(client.app, base_url="http://localhost")
+    member.cookies.set(SESSION_COOKIE, sid)
+    member.headers["x-agentos-csrf"] = session.csrf
+    return member
+
+
+def as_token(client: TestClient) -> TestClient:
+    """The same node, reached with the owner's bearer token: an agent's way in."""
+    bearer = TestClient(client.app, base_url="http://localhost")
+    bearer.headers["authorization"] = f"Bearer {TOKEN}"
+    return bearer
 
 
 @pytest.fixture
@@ -130,7 +161,6 @@ def test_a_member_without_env_sees_none_and_cannot_close(client: TestClient, env
 
 
 def test_a_member_with_env_reads_and_closes_only_their_own_agents(client: TestClient, envs: Any) -> None:
-    from .test_engage import MEMBER
 
     add_operator(client, scopes=("env",))
     member = as_member(client)

@@ -8,7 +8,6 @@ const floating =
 
 export const Menu = Primitive.Root;
 export const MenuTrigger = Primitive.Trigger;
-export const MenuGroup = Primitive.Group;
 
 export function MenuContent({ className, align = 'start', sideOffset = 4, ...props }: ComponentProps<typeof Primitive.Content>) {
   return (

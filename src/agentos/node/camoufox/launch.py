@@ -5,17 +5,12 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Protocol
 
 from agentos.node.camoufox.pages import _first_line
 
 log = logging.getLogger("agentos.engine.camoufox")
-
-
-def _now() -> str:
-    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _camoufox_version() -> str | None:

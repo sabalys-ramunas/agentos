@@ -24,7 +24,7 @@ from starlette.routing import Route
 
 from agentos.core.errors import AgentosError, InvalidRequest
 from agentos.runner.api import _body, _error, _principal
-from agentos.runner.models import CONNECTOR_PREFIX
+from agentos.runner.names import CONNECTOR_PREFIX
 
 
 def routes(runtime: Any) -> list[Route]:

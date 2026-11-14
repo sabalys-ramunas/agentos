@@ -18,9 +18,10 @@ from starlette.routing import Route
 
 from agentos.api.app import Api, endpoint
 from agentos.api.errors import ApiError
-from agentos.api.jsonable import jsonable, maybe_await
+from agentos.api.jsonable import jsonable
 from agentos.api.lanes_view import workspace_health
 from agentos.api.routes_core import all_lanes
+from agentos.core.aio import maybe_await
 
 WINDOWS = {"1h": 3600, "24h": 86400}
 # The span of each range and the width of its buckets.

@@ -160,53 +160,75 @@ def _content(e: Element, kids: dict[str | None, list[Element]]) -> tuple:
     return e.tag, e.role, _norm(e.name), _norm(e.text), children
 
 
+class _Contents:
+    """Each element's content signature, worked out once: matching compares the same elements
+    many times (every free element against every candidate, round after round)."""
+
+    def __init__(self, kids: dict[str | None, list[Element]]):
+        self.kids = kids
+        self.seen: dict[str, tuple] = {}
+
+    def __call__(self, e: Element) -> tuple:
+        got = self.seen.get(e.key)
+        if got is None:
+            got = self.seen[e.key] = _content(e, self.kids)
+        return got
+
+
 def match(before: list[Element], after: list[Element]) -> dict[str, str]:
     """Before key -> after key for every element that is the same element on both sides."""
     akeys = {e.key: e for e in after}
-    bkids, akids = _kids(before), _kids(after)
+    bcontent, acontent = _Contents(_kids(before)), _Contents(_kids(after))
     pairs: dict[str, str] = {}
     for e in before:
         other = akeys.get(e.key)
         if other is None:
             continue
-        if _POSITIONAL.search(e.key) and _content(e, bkids) != _content(other, akids):
+        if _POSITIONAL.search(e.key) and bcontent(e) != acontent(other):
             continue
         pairs[e.key] = e.key
-    while True:
-        taken = set(pairs.values())
-        free_a = [e for e in after if e.key not in taken]
-        free_b = [e for e in before if e.key not in pairs]
-        if not free_a or not free_b:
-            break
-        groups_a: dict[tuple, list[Element]] = {}
-        for e in free_a:
-            groups_a.setdefault((e.parent, e.tag, e.role), []).append(e)
-        groups_b: dict[tuple, list[Element]] = {}
-        for e in free_b:
-            if e.parent is not None and e.parent not in pairs:
-                continue   # its parent is not placed yet (or is gone)
-            groups_b.setdefault((pairs.get(e.parent) if e.parent else None, e.tag, e.role), []).append(e)
-        grew = False
-        for g, bs in groups_b.items():
-            as_ = groups_a.get(g, [])
-            used: set[str] = set()
-            for b in bs:
-                cb = _content(b, bkids)
-                for a in as_:
-                    if a.key not in used and _content(a, akids) == cb:
-                        pairs[b.key] = a.key
-                        used.add(a.key)
-                        grew = True
-                        break
-            rest_b = [b for b in bs if b.key not in pairs]
-            rest_a = [a for a in as_ if a.key not in used]
-            if rest_b and len(rest_b) == len(rest_a):
-                for b, a in zip(rest_b, rest_a, strict=True):
-                    pairs[b.key] = a.key
-                grew = True
-        if not grew:
-            break
+    # then, round by round, the free elements under parents already paired
+    while _pair_round(pairs, before, after, bcontent, acontent):
+        pass
     return pairs
+
+
+def _pair_round(pairs: dict[str, str], before: list[Element], after: list[Element], bcontent: _Contents,
+                acontent: _Contents) -> bool:
+    """Pair free elements of the same tag and role under paired parents: by content first, then,
+    when as many are left on both sides, in order. Returns whether any pair was added."""
+    taken = set(pairs.values())
+    free_a = [e for e in after if e.key not in taken]
+    free_b = [e for e in before if e.key not in pairs]
+    if not free_a or not free_b:
+        return False
+    groups_a: dict[tuple, list[Element]] = {}
+    for e in free_a:
+        groups_a.setdefault((e.parent, e.tag, e.role), []).append(e)
+    groups_b: dict[tuple, list[Element]] = {}
+    for e in free_b:
+        if e.parent is not None and e.parent not in pairs:
+            continue   # its parent is not placed yet (or is gone)
+        groups_b.setdefault((pairs.get(e.parent) if e.parent else None, e.tag, e.role), []).append(e)
+    grew = False
+    for g, bs in groups_b.items():
+        as_ = groups_a.get(g, [])
+        used: set[str] = set()
+        for b in bs:
+            cb = bcontent(b)
+            for a in as_:
+                if a.key not in used and acontent(a) == cb:
+                    pairs[b.key] = a.key
+                    used.add(a.key)
+                    grew = True
+                    break
+        rest_b = [b for b in bs if b.key not in pairs]
+        rest_a = [a for a in as_ if a.key not in used]
+        if rest_b and len(rest_b) == len(rest_a):
+            for b, a in zip(rest_b, rest_a, strict=True):
+                pairs[b.key] = a.key
+            grew = True
+    return grew
 
 
 # ---- what differs ----
@@ -249,43 +271,15 @@ def compare(before: list[Element], after: list[Element], *, ignore_keys: frozens
     apos = {e.key: i for i, e in enumerate(after)}
     back = {v: k for k, v in pairs.items()}
 
-    def noise(b: Element | None, a: Element | None) -> bool:
-        if (b is not None and b.key in ignore_keys) or (a is not None and a.key in ignore_keys):
-            return True
-        rects = [e.rect for e in (b, a) if e is not None]
-        return bool(ignore_rects) and all(_inside(r, ignore_rects) for r in rects)
-
-    items: list[Item] = []
-    # removed: placed just before the next element that is still there
-    nxt = float(len(after))
-    removed_pos: dict[str, float] = {}
-    for e in reversed(before):
-        if e.key in pairs:
-            nxt = apos[pairs[e.key]]
-        else:
-            removed_pos[e.key] = nxt - 0.5
+    noise = _Noise(ignore_keys, ignore_rects)
     gone = {e.key for e in before if e.key not in pairs}
     new = {e.key for e in after if e.key not in back}
-    for e in before:
-        if e.key not in gone or noise(e, None):
-            continue
-        if any(k in gone for k in _ancestors(e.key, bby)):
-            continue
-        items.append(Item(key=e.key, b=e, a=None, pos=removed_pos[e.key]))
-    for e in after:
-        if e.key not in new or noise(None, e):
-            continue
-        if any(k in new for k in _ancestors(e.key, aby)):
-            continue
-        items.append(Item(key=e.key, b=None, a=e, pos=apos[e.key]))
-    for bk, ak in pairs.items():
-        b, a = bby[bk], aby[ak]
-        if noise(b, a):
-            continue
-        it = Item(key=ak, b=b, a=a, pos=apos[ak], styles=_styles(b, a),
-                  text=(b.text or "") != (a.text or "") or (b.name or "") != (a.name or ""))
-        if it.own or it.moved or it.resized:
-            items.append(it)
+    removed_pos = _removed_positions(before, pairs, apos, len(after))
+    # removed and added: only the outermost element of a subtree that went or came
+    items = [Item(key=e.key, b=e, a=None, pos=removed_pos[e.key])
+             for e in _outermost(before, gone, bby) if not noise(e, None)]
+    items += [Item(key=e.key, b=None, a=e, pos=apos[e.key]) for e in _outermost(after, new, aby) if not noise(None, e)]
+    items += _changed(pairs, bby, aby, apos, noise)
     for it in items:
         if it.added:
             it.inside = sum(1 for k in new if it.key in _ancestors(k, aby))
@@ -294,6 +288,53 @@ def compare(before: list[Element], after: list[Element], *, ignore_keys: frozens
     items.sort(key=lambda i: i.pos)
     _cascade(items, bby, aby)
     return Structure(items=items, pairs=pairs, before=bby, after=aby)
+
+
+class _Noise:
+    """An element named in `ignore_keys`, or inside `ignore_rects` on every side it exists."""
+
+    def __init__(self, ignore_keys: frozenset[str], ignore_rects: list[Rect]):
+        self.keys = ignore_keys
+        self.rects = ignore_rects
+
+    def __call__(self, b: Element | None, a: Element | None) -> bool:
+        if (b is not None and b.key in self.keys) or (a is not None and a.key in self.keys):
+            return True
+        rects = [e.rect for e in (b, a) if e is not None]
+        return bool(self.rects) and all(_inside(r, self.rects) for r in rects)
+
+
+def _changed(pairs: dict[str, str], bby: dict[str, Element], aby: dict[str, Element], apos: dict[str, int],
+             noise: _Noise) -> list[Item]:
+    """The paired elements whose own style or text changed, or that moved or changed size."""
+    out = []
+    for bk, ak in pairs.items():
+        b, a = bby[bk], aby[ak]
+        if noise(b, a):
+            continue
+        it = Item(key=ak, b=b, a=a, pos=apos[ak], styles=_styles(b, a),
+                  text=(b.text or "") != (a.text or "") or (b.name or "") != (a.name or ""))
+        if it.own or it.moved or it.resized:
+            out.append(it)
+    return out
+
+
+def _outermost(elements: list[Element], keys: set[str], by: dict[str, Element]) -> list[Element]:
+    """The elements in `keys` with no ancestor in `keys`, in page order."""
+    return [e for e in elements if e.key in keys and not any(k in keys for k in _ancestors(e.key, by))]
+
+
+def _removed_positions(before: list[Element], pairs: dict[str, str], apos: dict[str, int],
+                       end: int) -> dict[str, float]:
+    """A removed element is placed just before the next element that is still there."""
+    nxt = float(end)
+    out: dict[str, float] = {}
+    for e in reversed(before):
+        if e.key in pairs:
+            nxt = apos[pairs[e.key]]
+        else:
+            out[e.key] = nxt - 0.5
+    return out
 
 
 # ---- the cascade ----
@@ -317,86 +358,109 @@ def _same(x: float, y: float) -> bool:
 
 
 def _cascade(items: list[Item], bby: dict[str, Element], aby: dict[str, Element]) -> None:
-    anc = {id(it): _tree_ancestors(it, bby, aby) for it in items}
-    by_key: dict[str, Item] = {}
-    for it in items:
-        for k in _keys(it):
-            by_key[k] = it
-
-    def is_ancestor(x: Item, of: Item) -> bool:
-        return bool(_keys(x) & anc[id(of)])
-
-    def parent_item(it: Item) -> Item | None:
-        p = it.a.parent if it.a is not None else (it.b.parent if it.b is not None else None)
-        return by_key.get(p) if p else None
-
-    causes: list[Item] = []
-    # 1. own changes are causes, but a restyle that repeats an ancestor's inherited change is not
-    for it in items:
-        if not it.own:
-            continue
-        if it.styles and not it.text and not it.resized and set(it.styles) <= INHERITED:
-            up = next((c for c in reversed(causes) if is_ancestor(c, it)
-                       and all(c.styles.get(p) == v for p, v in it.styles.items())), None)
-            if up is not None:
-                it.cause = up
-                continue
-        causes.append(it)
-    # 2. a box that changed size: a cause inside it, else a sibling that grew the same way
-    for it in reversed(items):
-        if it.own or not it.resized:
-            continue
-        inner = [c for c in causes if is_ancestor(it, c)]
-        if inner:
-            it.cause = min(inner, key=lambda c: c.pos)
-            continue
-        parent = it.a.parent if it.a is not None else None
-        sib = [c for c in causes if c.a is not None and c.a.parent == parent and c is not it
-               and ((abs(it.dh) > TOL and _same(c.shift[1], it.dh)) or (abs(it.dw) > TOL and _same(c.shift[0], it.dw)))]
-        if sib:
-            it.cause = min(sib, key=lambda c: abs(c.pos - it.pos))
-            continue
-        if not it.moved:
-            causes.append(it)
-    causes.sort(key=lambda c: c.pos)
-    # 3. a box that moved: with its parent, else the nearest cause before it
-    for it in items:
-        if it.own or it.cause is not None or not it.moved:
-            continue
-        p = parent_item(it)
-        if p is not None and p.moved and _same(p.dx, it.dx) and _same(p.dy, it.dy):
-            if p.cause is not None:
-                it.cause = p.root()
-                continue
-            if not p.own and p in causes:
-                it.cause = p
-                continue
-        cand = []
-        for c in causes:
-            if c is it or c.pos >= it.pos or is_ancestor(it, c):
-                continue
-            if not is_ancestor(c, it):
-                cr, er = (c.a or c.b).rect, (it.b or it.a).rect
-                if c.added:
-                    er = it.a.rect
-                vertical = abs(it.dy) > TOL
-                if vertical and cr.y > er.y + TOL:
-                    continue
-                if not vertical and (cr.y >= er.y + er.h or cr.y + cr.h <= er.y):
-                    continue
-            sx, sy = c.shift
-            fits = (abs(it.dy) > TOL and _same(sy, it.dy)) or (abs(it.dx) > TOL and _same(sx, it.dx))
-            cand.append((not fits, -c.pos, c))
-        if cand:
-            it.cause = min(cand, key=lambda t: (t[0], t[1]))[2]
-        else:
-            causes.append(it)
-            causes.sort(key=lambda c: c.pos)
+    """Decide each item's cause: own changes first, then boxes that changed size, then boxes that
+    moved. Every effect points at the root cause, which lists its effects."""
+    c = _Cascade(items, bby, aby)
+    c.own_changes()
+    c.resized_boxes()
+    c.causes.sort(key=lambda x: x.pos)
+    c.moved_boxes()
     for it in items:
         if it.cause is not None:
             root = it.root()
             it.cause = root
             root.effects.append(it)
+
+
+class _Cascade:
+    """The items of one compare and the causes found so far, in page order."""
+
+    def __init__(self, items: list[Item], bby: dict[str, Element], aby: dict[str, Element]):
+        self.items = items
+        self.anc = {id(it): _tree_ancestors(it, bby, aby) for it in items}
+        self.by_key: dict[str, Item] = {}
+        for it in items:
+            for k in _keys(it):
+                self.by_key[k] = it
+        self.causes: list[Item] = []
+
+    def is_ancestor(self, x: Item, of: Item) -> bool:
+        return bool(_keys(x) & self.anc[id(of)])
+
+    def parent_item(self, it: Item) -> Item | None:
+        p = it.a.parent if it.a is not None else (it.b.parent if it.b is not None else None)
+        return self.by_key.get(p) if p else None
+
+    def own_changes(self) -> None:
+        """1. Own changes are causes, but a restyle that repeats an ancestor's inherited change is not."""
+        for it in self.items:
+            if not it.own:
+                continue
+            if it.styles and not it.text and not it.resized and set(it.styles) <= INHERITED:
+                up = next((c for c in reversed(self.causes) if self.is_ancestor(c, it)
+                           and all(c.styles.get(p) == v for p, v in it.styles.items())), None)
+                if up is not None:
+                    it.cause = up
+                    continue
+            self.causes.append(it)
+
+    def resized_boxes(self) -> None:
+        """2. A box that changed size: a cause inside it, else a sibling that grew the same way."""
+        for it in reversed(self.items):
+            if it.own or not it.resized:
+                continue
+            inner = [c for c in self.causes if self.is_ancestor(it, c)]
+            if inner:
+                it.cause = min(inner, key=lambda c: c.pos)
+                continue
+            parent = it.a.parent if it.a is not None else None
+            sib = [c for c in self.causes if c.a is not None and c.a.parent == parent and c is not it
+                   and ((abs(it.dh) > TOL and _same(c.shift[1], it.dh))
+                        or (abs(it.dw) > TOL and _same(c.shift[0], it.dw)))]
+            if sib:
+                it.cause = min(sib, key=lambda c: abs(c.pos - it.pos))
+                continue
+            if not it.moved:
+                self.causes.append(it)
+
+    def moved_boxes(self) -> None:
+        """3. A box that moved: with its parent, else the nearest cause before it."""
+        for it in self.items:
+            if it.own or it.cause is not None or not it.moved:
+                continue
+            p = self.parent_item(it)
+            if p is not None and p.moved and _same(p.dx, it.dx) and _same(p.dy, it.dy):
+                if p.cause is not None:
+                    it.cause = p.root()
+                    continue
+                if not p.own and p in self.causes:
+                    it.cause = p
+                    continue
+            cand = [x for c in self.causes if (x := self._candidate(c, it)) is not None]
+            if cand:
+                it.cause = min(cand, key=lambda t: (t[0], t[1]))[2]
+            else:
+                self.causes.append(it)
+                self.causes.sort(key=lambda c: c.pos)
+
+    def _candidate(self, c: Item, it: Item) -> tuple[bool, float, Item] | None:
+        """Cause `c` as a candidate for moved box `it`: before it, not inside it, above it when it
+        moved down (or level with it when it moved across). The sort key prefers one whose shift
+        fits the move, then the nearest."""
+        if c is it or c.pos >= it.pos or self.is_ancestor(it, c):
+            return None
+        if not self.is_ancestor(c, it):
+            cr, er = (c.a or c.b).rect, (it.b or it.a).rect
+            if c.added:
+                er = it.a.rect
+            vertical = abs(it.dy) > TOL
+            if vertical and cr.y > er.y + TOL:
+                return None
+            if not vertical and (cr.y >= er.y + er.h or cr.y + cr.h <= er.y):
+                return None
+        sx, sy = c.shift
+        fits = (abs(it.dy) > TOL and _same(sy, it.dy)) or (abs(it.dx) > TOL and _same(sx, it.dx))
+        return (not fits, -c.pos, c)
 
 
 def moved_effects(cause: Item) -> list[Item]:

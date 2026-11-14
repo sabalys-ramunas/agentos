@@ -6,8 +6,8 @@ import re
 from collections.abc import Callable
 from dataclasses import dataclass
 
+from agentos.core import globs
 from agentos.node.egress.constants import SAFE_METHODS
-from agentos.policy import globs
 
 # ---- effect rules ------------------------------------------------------------------------
 

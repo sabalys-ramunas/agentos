@@ -36,8 +36,7 @@ from pydantic import Field, field_validator, model_validator
 from pydantic_core import PydanticCustomError
 
 # models.py imports this module after it defines these (its sections come from here)
-from agentos.profiles.models import PHOTO_RE, clean_text, clean_url
-from agentos.profiles.models import _Strict as Strict
+from agentos.profiles.fields import PHOTO_RE, Strict, clean_text, clean_url
 
 MAX_TOKENS_CHARS = 64_000       # the DTCG JSON, compact
 MAX_TOKENS = 2000
@@ -154,55 +153,76 @@ def _value(path: str, kind: str, value: Any) -> Any:
         if not (isinstance(value["$ref"], str) and value["$ref"].startswith("#/")):
             raise ValueError(f"brand.tokens.{path}: $ref is a JSON pointer like '#/color/blue/500'")
         return value
-    if kind == "color":
-        if isinstance(value, str) and _HEX_RE.match(value):
-            return _hex_color(value)
-        if not isinstance(value, dict) or value.get("colorSpace") not in COLOR_SPACES:
-            raise ValueError(f"brand.tokens.{path}: a colour is a hex string like '#3366cc' or "
-                             "{colorSpace: srgb, components: [0.2, 0.4, 0.8]}")
-        comps = value.get("components")
-        if not (isinstance(comps, list) and len(comps) == 3 and all(_num(c) or c == "none" for c in comps)):
-            raise ValueError(f"brand.tokens.{path}: components is a list of three numbers")
-        if "alpha" in value and not (_num(value["alpha"]) and 0 <= value["alpha"] <= 1):
-            raise ValueError(f"brand.tokens.{path}: alpha is a number from 0 to 1")
-        if "hex" in value and not (isinstance(value["hex"], str) and _HEX_RE.match(value["hex"])):
-            raise ValueError(f"brand.tokens.{path}: hex is like '#3366cc'")
-        extra = set(value) - {"colorSpace", "components", "alpha", "hex"}
-        if extra:
-            raise ValueError(f"brand.tokens.{path}: a colour has no {', '.join(sorted(extra))}")
-        return value
-    if kind in ("dimension", "duration"):
-        pattern, units = (_DIM_RE, {"px", "rem"}) if kind == "dimension" else (_DUR_RE, {"ms", "s"})
-        if isinstance(value, str) and pattern.match(value.strip()):
-            m = pattern.match(value.strip())
-            n = float(m.group(1))
-            return {"value": int(n) if n.is_integer() else n, "unit": m.group(2)}
-        if not (isinstance(value, dict) and set(value) == {"value", "unit"} and _num(value["value"])
-                and value["unit"] in units):
-            unit = min(units)
-            raise ValueError(f"brand.tokens.{path}: a {kind} is like {{value: 16, unit: {unit}}} or '16{unit}'")
-        return value
-    if kind == "number":
-        if not _num(value):
-            raise ValueError(f"brand.tokens.{path}: a number token's $value is a number")
-        return value
-    if kind == "fontWeight":
-        if not ((_num(value) and 1 <= value <= 1000) or (isinstance(value, str) and len(value) <= 30)):
-            raise ValueError(f"brand.tokens.{path}: a font weight is a number from 1 to 1000, or a name like 'bold'")
-        return value
-    if kind == "fontFamily":
-        if not (isinstance(value, str) or (isinstance(value, list) and value
-                                           and all(isinstance(x, str) for x in value))):
-            raise ValueError(f"brand.tokens.{path}: a font family is a name or a list of names")
-        return value
-    if kind == "cubicBezier":
-        if not (isinstance(value, list) and len(value) == 4 and all(_num(x) for x in value)):
-            raise ValueError(f"brand.tokens.{path}: a cubic Bezier is four numbers")
-        return value
+    check = _VALUE_CHECKS.get(kind)
+    if check is not None:
+        return check(path, kind, value)
     # composites (border, shadow, typography, ...): their parts are checked as strings below
     if not isinstance(value, dict | list | str):
         raise ValueError(f"brand.tokens.{path}: a {kind} is an object (or a list of them)")  # noqa: TRY004 - pydantic reads ValueError
     return value
+
+
+def _color_value(path: str, kind: str, value: Any) -> Any:
+    if isinstance(value, str) and _HEX_RE.match(value):
+        return _hex_color(value)
+    if not isinstance(value, dict) or value.get("colorSpace") not in COLOR_SPACES:
+        raise ValueError(f"brand.tokens.{path}: a colour is a hex string like '#3366cc' or "
+                         "{colorSpace: srgb, components: [0.2, 0.4, 0.8]}")
+    comps = value.get("components")
+    if not (isinstance(comps, list) and len(comps) == 3 and all(_num(c) or c == "none" for c in comps)):
+        raise ValueError(f"brand.tokens.{path}: components is a list of three numbers")
+    if "alpha" in value and not (_num(value["alpha"]) and 0 <= value["alpha"] <= 1):
+        raise ValueError(f"brand.tokens.{path}: alpha is a number from 0 to 1")
+    if "hex" in value and not (isinstance(value["hex"], str) and _HEX_RE.match(value["hex"])):
+        raise ValueError(f"brand.tokens.{path}: hex is like '#3366cc'")
+    extra = set(value) - {"colorSpace", "components", "alpha", "hex"}
+    if extra:
+        raise ValueError(f"brand.tokens.{path}: a colour has no {', '.join(sorted(extra))}")
+    return value
+
+
+def _measure_value(path: str, kind: str, value: Any) -> Any:
+    """A dimension (px, rem) or a duration (ms, s), as {value, unit}."""
+    pattern, units = (_DIM_RE, {"px", "rem"}) if kind == "dimension" else (_DUR_RE, {"ms", "s"})
+    if isinstance(value, str) and pattern.match(value.strip()):
+        m = pattern.match(value.strip())
+        n = float(m.group(1))
+        return {"value": int(n) if n.is_integer() else n, "unit": m.group(2)}
+    if not (isinstance(value, dict) and set(value) == {"value", "unit"} and _num(value["value"])
+            and value["unit"] in units):
+        unit = min(units)
+        raise ValueError(f"brand.tokens.{path}: a {kind} is like {{value: 16, unit: {unit}}} or '16{unit}'")
+    return value
+
+
+def _number_value(path: str, kind: str, value: Any) -> Any:
+    if not _num(value):
+        raise ValueError(f"brand.tokens.{path}: a number token's $value is a number")
+    return value
+
+
+def _weight_value(path: str, kind: str, value: Any) -> Any:
+    if not ((_num(value) and 1 <= value <= 1000) or (isinstance(value, str) and len(value) <= 30)):
+        raise ValueError(f"brand.tokens.{path}: a font weight is a number from 1 to 1000, or a name like 'bold'")
+    return value
+
+
+def _family_value(path: str, kind: str, value: Any) -> Any:
+    if not (isinstance(value, str) or (isinstance(value, list) and value and all(isinstance(x, str) for x in value))):
+        raise ValueError(f"brand.tokens.{path}: a font family is a name or a list of names")
+    return value
+
+
+def _bezier_value(path: str, kind: str, value: Any) -> Any:
+    if not (isinstance(value, list) and len(value) == 4 and all(_num(x) for x in value)):
+        raise ValueError(f"brand.tokens.{path}: a cubic Bezier is four numbers")
+    return value
+
+
+# A token type, as the function that checks (and normalizes) its $value.
+_VALUE_CHECKS = {"color": _color_value, "dimension": _measure_value, "duration": _measure_value,
+                 "number": _number_value, "fontWeight": _weight_value, "fontFamily": _family_value,
+                 "cubicBezier": _bezier_value}
 
 
 def _text_leaves(value: Any, path: str, depth: int = 0) -> None:
@@ -227,15 +247,27 @@ def check_tokens(data: Any) -> dict[str, Any]:
     size = len(json.dumps(data, separators=(",", ":"), ensure_ascii=False))
     if size > MAX_TOKENS_CHARS:
         raise ValueError(f"brand.tokens has {size} characters as JSON; at most {MAX_TOKENS_CHARS}")
-    tokens: dict[str, str | None] = {}        # path -> type (None while only an alias says it)
-    aliases: list[tuple[str, str]] = []
+    walk = _TokenWalk()
+    result = walk.group(data, [], None)
+    for name, target in walk.aliases:
+        if target not in walk.tokens and f"{target}.$root" not in walk.tokens:
+            raise ValueError(f"brand.tokens.{name}: the alias {{{target}}} names no token in this set")
+    return result
 
-    def walk(node: dict[str, Any], path: list[str], inherited: str | None) -> dict[str, Any]:
+
+class _TokenWalk:
+    """One walk of a token document: every token's type, and the aliases to check at the end."""
+
+    def __init__(self) -> None:
+        self.tokens: dict[str, str | None] = {}       # path -> type (None while only an alias says it)
+        self.aliases: list[tuple[str, str]] = []
+
+    def group(self, node: dict[str, Any], path: list[str], inherited: str | None) -> dict[str, Any]:
+        """A group or a token, normalized, with what is inside it."""
         if len(path) > MAX_TOKEN_DEPTH:
             raise ValueError(f"brand.tokens.{'.'.join(path)} is nested more than {MAX_TOKEN_DEPTH} groups deep")
         where = ".".join(path) or "(top)"
         is_token = "$value" in node
-        allowed = _TOKEN_PROPS if is_token else _GROUP_PROPS
         out: dict[str, Any] = {}
         kind = node.get("$type", inherited)
         if "$type" in node and node["$type"] not in TOKEN_TYPES:
@@ -243,56 +275,61 @@ def check_tokens(data: Any) -> dict[str, Any]:
                              f"({', '.join(sorted(TOKEN_TYPES))})")
         for key, value in node.items():
             if key.startswith("$") and key != "$root":      # $root is a group's own token
-                if key not in allowed:
-                    raise ValueError(f"brand.tokens.{where}: {key} is not a DTCG property of a "
-                                     f"{'token' if is_token else 'group'}")
-                if key == "$description":
-                    value = clean_text(value, f"brand.tokens.{where}.$description", 500, lines=True)
-                elif key == "$deprecated" and not isinstance(value, bool | str):
-                    raise ValueError(f"brand.tokens.{where}: $deprecated is true, false or a reason")
-                elif key == "$extends":
-                    if not (isinstance(value, str) and _ALIAS_RE.match(value)):
-                        raise ValueError(f"brand.tokens.{where}: $extends names a group like '{{base.colors}}'")
-                elif key == "$extensions":
-                    if not isinstance(value, dict):
-                        raise ValueError(f"brand.tokens.{where}: $extensions is an object")
-                    _text_leaves(value, f"{where}.$extensions")
-                out[key] = value
+                out[key] = _dollar_property(where, key, value, is_token)
                 continue
             if is_token:
                 raise ValueError(f"brand.tokens.{where}: a token (it has $value) holds no other tokens; "
                                  f"move {key!r} into a group")
-            if key != "$root" and (not key or any(c in key for c in "{}.") or len(key) > 64):
-                raise ValueError(f"brand.tokens.{where}: {key[:40]!r} is not a token name (no braces or dots, "
-                                 "at most 64 characters)")
-            clean_text(key, f"brand.tokens.{where} name", 64)
+            _check_name(where, key)
             if not isinstance(value, dict):
                 raise ValueError(f"brand.tokens.{'.'.join([*path, key])}: a token is an object with $value, "  # noqa: TRY004
                                  f"like {{$value: '#3366cc'}}, not a bare value")
-            out[key] = walk(value, [*path, key], kind)
+            out[key] = self.group(value, [*path, key], kind)
         if is_token:
-            name = ".".join(path)
-            if not path:
-                raise ValueError("brand.tokens: the top level is a group, not a token")
-            raw = node["$value"]
-            if isinstance(raw, str) and _ALIAS_RE.match(raw):
-                aliases.append((name, _ALIAS_RE.match(raw).group(1)))
-            elif kind is None:
-                raise ValueError(f"brand.tokens.{name}: give it a $type (on the token or its group): "
-                                 f"{', '.join(sorted(TOKEN_TYPES))}")
-            else:
-                out["$value"] = _value(name, kind, raw)
-            _text_leaves(out["$value"], f"{name}.$value")
-            tokens[name] = kind
-            if len(tokens) > MAX_TOKENS:
-                raise ValueError(f"brand.tokens has more than {MAX_TOKENS} tokens")
+            self._token(node, path, kind, out)
         return out
 
-    result = walk(data, [], None)
-    for name, target in aliases:
-        if target not in tokens and f"{target}.$root" not in tokens:
-            raise ValueError(f"brand.tokens.{name}: the alias {{{target}}} names no token in this set")
-    return result
+    def _token(self, node: dict[str, Any], path: list[str], kind: str | None, out: dict[str, Any]) -> None:
+        name = ".".join(path)
+        if not path:
+            raise ValueError("brand.tokens: the top level is a group, not a token")
+        raw = node["$value"]
+        if isinstance(raw, str) and _ALIAS_RE.match(raw):
+            self.aliases.append((name, _ALIAS_RE.match(raw).group(1)))
+        elif kind is None:
+            raise ValueError(f"brand.tokens.{name}: give it a $type (on the token or its group): "
+                             f"{', '.join(sorted(TOKEN_TYPES))}")
+        else:
+            out["$value"] = _value(name, kind, raw)
+        _text_leaves(out["$value"], f"{name}.$value")
+        self.tokens[name] = kind
+        if len(self.tokens) > MAX_TOKENS:
+            raise ValueError(f"brand.tokens has more than {MAX_TOKENS} tokens")
+
+
+def _dollar_property(where: str, key: str, value: Any, is_token: bool) -> Any:
+    """A $ property of a token or a group, checked; its value as kept."""
+    allowed = _TOKEN_PROPS if is_token else _GROUP_PROPS
+    if key not in allowed:
+        raise ValueError(f"brand.tokens.{where}: {key} is not a DTCG property of a {'token' if is_token else 'group'}")
+    if key == "$description":
+        return clean_text(value, f"brand.tokens.{where}.$description", 500, lines=True)
+    if key == "$deprecated" and not isinstance(value, bool | str):
+        raise ValueError(f"brand.tokens.{where}: $deprecated is true, false or a reason")
+    if key == "$extends" and not (isinstance(value, str) and _ALIAS_RE.match(value)):
+        raise ValueError(f"brand.tokens.{where}: $extends names a group like '{{base.colors}}'")
+    if key == "$extensions":
+        if not isinstance(value, dict):
+            raise ValueError(f"brand.tokens.{where}: $extensions is an object")
+        _text_leaves(value, f"{where}.$extensions")
+    return value
+
+
+def _check_name(where: str, key: str) -> None:
+    if key != "$root" and (not key or any(c in key for c in "{}.") or len(key) > 64):
+        raise ValueError(f"brand.tokens.{where}: {key[:40]!r} is not a token name (no braces or dots, "
+                         "at most 64 characters)")
+    clean_text(key, f"brand.tokens.{where} name", 64)
 
 
 def flat_tokens(tokens: dict[str, Any] | None) -> list[dict[str, Any]]:
@@ -470,18 +507,6 @@ class Brand(Strict):
             out["brand.logo"] = self.logo
         out.update({f"brand.fonts[{i}].file": f.file for i, f in enumerate(self.fonts) if f.file})
         return out
-
-    def component_rules(self) -> list[Any]:
-        """The components as agentos.studio.contracts.ComponentRule."""
-        from agentos.studio.contracts import ComponentRule
-
-        return [ComponentRule(name=c.name, attr=c.attr, class_pattern=c.class_pattern) for c in self.components]
-
-    def theme_switch(self) -> Any:
-        """The theme as agentos.studio.contracts.ThemeSwitch (media when unset)."""
-        from agentos.studio.contracts import ThemeSwitch
-
-        return ThemeSwitch(**(self.theme.model_dump() if self.theme else {}))
 
 
 # ---- guidelines, references, environments -----------------------------------------------

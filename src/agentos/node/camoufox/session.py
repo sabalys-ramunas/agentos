@@ -15,7 +15,7 @@ from agentos.node.camoufox.procs import browser_pids
 from agentos.node.display import kill_processes, pid_alive, process_group
 from agentos.node.egress import LaneGuard
 from agentos.node.files import LaneFiles
-from agentos.node.interaction import DIALOG_TIMEOUT
+from agentos.node.interaction.dialogs import DIALOG_TIMEOUT
 from agentos.node.routes import RouteDispatcher
 
 log = logging.getLogger("agentos.engine.camoufox")

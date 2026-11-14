@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Any
 
 from agentos.core.errors import AgentosError
-from agentos.ops.layout import prepare_socket, trusted_socket
+from agentos.core.layout import prepare_socket, trusted_socket
 from agentos.vault.crypto import ensure_private_dir
 from agentos.vault.errors import VaultBusy
 

@@ -43,10 +43,11 @@ from agentos.events.models import (
 from agentos.events.ports import SERVICE_NAME
 from agentos.events.store import EventStore
 from agentos.events.targets import Finish, Targets, proposed_flow_problem
-from agentos.policy.approvals import ActionBinding, action_binding_problem, ask_for_action, is_legacy_hash
+from agentos.policy.approval_binding import ActionBinding, action_binding_problem, is_legacy_hash
+from agentos.policy.approvals import ask_for_action
 from agentos.policy.confirm import ConfirmLevel
 from agentos.runner.flows import validation_message
-from agentos.runner.models import is_owner
+from agentos.runner.owner import is_owner
 from agentos.runner.util import Clock, new_id
 
 log = logging.getLogger("agentos.events")

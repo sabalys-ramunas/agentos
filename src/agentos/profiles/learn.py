@@ -66,11 +66,11 @@ from typing import Any
 from urllib.parse import unquote, unquote_plus, urlsplit, urlunsplit
 
 from agentos.core.errors import InvalidRequest
+from agentos.core.locator import Locator
 from agentos.profiles.mapping import MULTILINE
 from agentos.runner.connectors.models import LEARNED_SUFFIX, OPERATION_RE, SEMVER_RE
 from agentos.runner.connectors.service import READ_SUFFIX, UNLEARNABLE_FIELDS
 from agentos.runner.connectors.steps import is_structural
-from agentos.runner.models import Locator
 from agentos.runner.recorder import STATE_ATTRS
 from agentos.runner.util import host_in
 
@@ -393,6 +393,44 @@ def generate(*, site: str, field: str, events: list[dict[str, Any]] | None = Non
     learner always passes both. Raises LearnRefused with what is wrong. The caller
     compiles and installs it (ConnectorService.install_learned), which runs the strict lint with
     the commit gate."""
+    p = _check_request(site, field, version, account_id, value)
+    lang = account_language
+    acting_as = _acting_as(p, lang)
+    profile = _check_profile_url(p, acting_as, profile_url, account_id)
+    values = [value, old_value or ""]
+    named = _names_value(readback_locator, values)
+    if named is not None:
+        raise LearnRefused(f"the readback locator names {named!r}, which holds the value: it would stop matching "
+                           "once the value changes. Point at the element by its place (a landmark, an attribute)")
+    acts = _recorded(events, draft)
+    save, typed = _check_recording(acts, commit, field, value)
+    field_raw = _clean(typed[-1]["locator"], "typing")
+    save_raw = _clean(save.get("locator"), "save")
+    for what, loc in (("typing", field_raw), ("save", save_raw)):
+        named = _names_value(loc, values)
+        if named is not None:
+            raise LearnRefused(f"the recorded {what} finds its element by {named!r}, which holds the value: it "
+                               "would stop matching once the value changes. Record it again on a control named "
+                               "for what it is")
+    page = _edit_page(acts, typed, p, page_url, edit_paths)
+    edit_page = for_account(page, account_id)[0]
+    anchor = p.anchor
+    field_loc = _locator(field_raw, lang, anchor)
+    learned = _Learned(p=p, site=site, field=field, acting_as=acting_as, profile=profile, edit_page=edit_page,
+                       field_loc=field_loc, shown=_locator(readback_locator, lang, {"role": "main"}),
+                       most=limit or DEFAULT_LIMIT)
+    save_step = _save_step(save, _locator(save_raw, lang, anchor), field_loc, dialog=anchor.get("role") == "dialog")
+    return {
+        "connector": connector_key(site), "version": version, "site": site, "domain": p.domain,
+        "title": f"{p.title} profile (learned)", "account_languages": [lang],
+        "operations": {field: _commit_operation(learned, typed[-1], save_step, commit),
+                       f"{field}{READ_SUFFIX}": _read_operation(learned)},
+    }
+
+
+def _check_request(site: str, field: str, version: str, account_id: str, value: str) -> Any:
+    """The site, the field, the version, the account id and the value, before the recording is read.
+    Returns the site's profile."""
     p = SITE_PROFILES.get(site)
     if p is None:
         raise LearnRefused(f"agentos does not learn {site!r} profiles yet (it knows {', '.join(sorted(SITE_PROFILES))})")
@@ -407,8 +445,11 @@ def generate(*, site: str, field: str, events: list[dict[str, Any]] | None = Non
         raise LearnRefused(f"the account id {account_id!r} is not an id")
     if not isinstance(value, str) or not value.strip():
         raise LearnRefused("the learned value is empty")
-    lang = account_language
-    acting_as = _acting_as(p, lang)
+    return p
+
+
+def _check_profile_url(p: Any, acting_as: dict[str, Any], profile_url: str, account_id: str) -> str:
+    """The profile URL must be the learned account's own. Returns it as the connector opens it."""
     _url_on(profile_url, p, "profile URL")
     if acting_as.get("source") == "url":
         m = re.search(acting_as["pattern"], profile_url)
@@ -418,14 +459,13 @@ def generate(*, site: str, field: str, events: list[dict[str, Any]] | None = Non
     if not found:
         raise LearnRefused(f"the profile URL {profile_url} does not carry the account id {account_id!r} "
                            f"({p.title}'s id is {p.id_is}), so one connector could not open another account's")
-    values = [value, old_value or ""]
-    named = _names_value(readback_locator, values)
-    if named is not None:
-        raise LearnRefused(f"the readback locator names {named!r}, which holds the value: it would stop matching "
-                           "once the value changes. Point at the element by its place (a landmark, an attribute)")
+    return profile
 
-    # the save is the act that sent the released request, and nothing chosen before it is replayed
-    acts = _recorded(events, draft)
+
+def _check_recording(acts: list[dict[str, Any]], commit: Any, field: str,
+                     value: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """The save is the act that sent the released request, and nothing chosen before it is
+    replayed. Returns the save and the typing acts before it."""
     at = _save_at(acts, commit if isinstance(commit, dict) else {})
     save, before = acts[at], acts[:at]
     if save.get("action") not in SEND_TYPES:
@@ -449,14 +489,12 @@ def generate(*, site: str, field: str, events: list[dict[str, Any]] | None = Non
         raise LearnRefused(f"the recording typed into {len(fields)} fields; learning {field} types into exactly one")
     if any(str(ev.get("text")) != value for ev in typed):
         raise LearnRefused(f"the recording typed something other than exactly the value to learn for {field}")
-    field_raw = _clean(typed[-1]["locator"], "typing")
-    save_raw = _clean(save.get("locator"), "save")
-    for what, loc in (("typing", field_raw), ("save", save_raw)):
-        named = _names_value(loc, values)
-        if named is not None:
-            raise LearnRefused(f"the recorded {what} finds its element by {named!r}, which holds the value: it "
-                               "would stop matching once the value changes. Record it again on a control named "
-                               "for what it is")
+    return save, typed
+
+
+def _edit_page(acts: list[dict[str, Any]], typed: list[dict[str, Any]], p: Any, page_url: str | None,
+               edit_paths: list[str] | tuple[str, ...] | None) -> str:
+    """The page the recording typed on: the save's own page, and one of the site's edit pages."""
     navs = [ev.get("url") for ev in acts[: acts.index(typed[0])] if ev.get("action") == "navigate" and ev.get("url")]
     page = typed[-1].get("url") or (navs[-1] if navs else None)
     if page_url:
@@ -474,42 +512,60 @@ def generate(*, site: str, field: str, events: list[dict[str, Any]] | None = Non
         if not edit_paths or not path_under(page, tuple(edit_paths)):
             raise LearnRefused(f"the edit page {page} is not one of {p.title}'s reviewed profile edit pages "
                                f"({', '.join(edit_paths) or 'none'})")
-    edit_page = for_account(page, account_id)[0]
-    anchor = p.anchor
-    field_loc = _locator(field_raw, lang, anchor)
+    return page
 
-    shown = _locator(readback_locator, lang, {"role": "main"})
+
+@dataclass(frozen=True)
+class _Learned:
+    """What both learned operations are built from."""
+    p: Any
+    site: str
+    field: str
+    acting_as: dict[str, Any]
+    profile: str
+    edit_page: str
+    field_loc: dict[str, Any]
+    shown: dict[str, Any]
+    most: int
+
+
+def _save_step(save: dict[str, Any], locator: dict[str, Any], field_loc: dict[str, Any], *,
+               dialog: bool) -> dict[str, Any]:
+    """The act that saves, and what proves it saved: the dialog closes, or the field holds the value."""
     saved_rb: dict[str, Any] = (
         {"locator": {"role": "dialog"}, "condition": {"kind": "absent"}, "timeout_ms": 30000}
-        if anchor.get("role") == "dialog" else
+        if dialog else
         {"locator": copy.deepcopy(field_loc), "condition": {"kind": "value", "equals": _TEMPLATE % VALUE},
          "timeout_ms": 15000})
     save_step: dict[str, Any] = {"type": save["action"], "label": SAVE, "writes": True,
-                                 "locator": _locator(save_raw, lang, anchor), "readback": saved_rb}
+                                 "locator": locator, "readback": saved_rb}
     if save["action"] == "press":
         save_step["key"] = str(save.get("key") or "Enter")
-    after = typed[-1].get("state_after") or {}
+    return save_step
+
+
+def _opening(p: Any, url: str) -> list[dict[str, Any]]:
+    """Open `url` as the account: through the site's identity page first when it has one."""
+    identity = {"type": "assert_identity", "label": "acting as"}
+    go = {"type": "navigate", "url": url}
+    return [{"type": "navigate", "url": p.identity_url}, identity, go] if p.identity_url else [go, identity]
+
+
+def _commit_operation(lr: _Learned, last_typed: dict[str, Any], save_step: dict[str, Any],
+                      commit: dict[str, Any]) -> dict[str, Any]:
+    p, field, field_loc, shown, profile, edit_page = lr.p, lr.field, lr.field_loc, lr.shown, lr.profile, lr.edit_page
+    after = last_typed.get("state_after") or {}
     filled = ({"kind": "value", "equals": _TEMPLATE % VALUE} if after.get("value") is not None or "value" not in after
               else {"kind": "text", "contains": _TEMPLATE % VALUE})
     body = [{"type": "wait_for", "locator": copy.deepcopy(field_loc)},
             {"type": "fill", "locator": copy.deepcopy(field_loc), "param": VALUE, "publishes": False,
              "readback": {"condition": filled}}]
-
     preflight: list[dict[str, Any]] = [{"kind": "value_equals", "locator": copy.deepcopy(field_loc), "param": VALUE}]
     if _same_page(edit_page, profile):  # the value shows where it is edited: the same value saves nothing
         preflight.append({"kind": "text_differs", "locator": copy.deepcopy(shown), "text": _TEMPLATE % VALUE})
-
-    most = limit or DEFAULT_LIMIT
-    value_schema: dict[str, Any] = {"type": "string", "minLength": 1, "maxLength": most, "show": True,
+    value_schema: dict[str, Any] = {"type": "string", "minLength": 1, "maxLength": lr.most, "show": True,
                                     "readOnly": True, "pattern": MULTI_LINE if field in MULTILINE else SINGLE_LINE}
-    identity = {"type": "assert_identity", "label": "acting as"}
-    open_profile = {"type": "navigate", "url": profile}
-    opening = ([{"type": "navigate", "url": p.identity_url}, identity, open_profile] if p.identity_url
-               else [open_profile, identity])
-    open_edit = {"type": "navigate", "url": edit_page}
-    to_edit = ([{"type": "navigate", "url": p.identity_url}, identity, open_edit] if p.identity_url
-               else [open_edit, identity])
-    commit_op = {
+    return {
         "title": f"Set the account's {field.replace('_', ' ')} (learned)",
         "description": (f"Learned on this node from one edit an agent made in a lane, and replayed with no model. "
                         f"Opens {edit_page}, sets {field} and saves; proved on {profile} reloaded as the account."),
@@ -521,21 +577,25 @@ def generate(*, site: str, field: str, events: list[dict[str, Any]] | None = Non
                        "type": "string", "format": "uri", "x-agentos-host": p.domain, "maxLength": 300,
                        "pattern": p.account,
                        "description": "the profile page, reloaded as the account, where the readback found the value"}}},
-        "acting_as": copy.deepcopy(acting_as),
+        "acting_as": copy.deepcopy(lr.acting_as),
         "pace": {"min_gap_minutes": 60, "per_day": 2, "per_week": 5, "active_hours": True},
         "signals": {"hold": list(HOLD)},
-        "commit": {"step": SAVE, "strict": True, "preflight": preflight, "request": _request(commit, p, site, field)},
+        "commit": {"step": SAVE, "strict": True, "preflight": preflight, "request": _request(commit, p, lr.site, field)},
         "readback": {"live": {"save_as": "public", "outputs": {"proof_url": "public.url"}}},
         "discard": [{"type": "press", "key": "Escape", "publishes": False}],
         "steps": [
-            *copy.deepcopy(to_edit), *body, save_step,
+            *_opening(p, edit_page), *body, save_step,
             {"type": "pause", "min_ms": 2000, "max_ms": 4000},   # the save's request lands before the reload
-            dict(open_profile),
+            {"type": "navigate", "url": profile},
             {"type": "readback", "save_as": "public", "timeout_ms": 20000, "locator": copy.deepcopy(shown),
              "condition": {"kind": "text", "equals": _TEMPLATE % VALUE}},
         ],
     }
-    read_op = {
+
+
+def _read_operation(lr: _Learned) -> dict[str, Any]:
+    p, field, shown, profile, most = lr.p, lr.field, lr.shown, lr.profile, lr.most
+    return {
         "title": f"Read the account's {field.replace('_', ' ')} (learned)",
         "description": f"Reads what the account's profile ({profile}) shows as {field}, signed in as the account.",
         "effect": "read",
@@ -543,18 +603,13 @@ def generate(*, site: str, field: str, events: list[dict[str, Any]] | None = Non
         "output": {"type": "object", "additionalProperties": False, "required": [VALUE],
                    "properties": {VALUE: {"type": "string", "maxLength": most,
                                           "description": f"the {field} the profile shows"}}},
-        "acting_as": copy.deepcopy(acting_as),
+        "acting_as": copy.deepcopy(lr.acting_as),
         "pace": {"per_hour": 4, "per_day": 60, "active_hours": True},
         "signals": {"hold": list(HOLD)},
         # an extract keeps up to max_chars (a saved element state keeps 300 characters)
         "readback": {"live": {"outputs": {VALUE: "current.items.0.value"}}},
-        "steps": [*copy.deepcopy(opening),
+        "steps": [*_opening(p, profile),
                   {"type": "wait_for", "locator": copy.deepcopy(shown), "timeout_ms": 20000},
                   {"type": "extract", "save_as": "current", "items": copy.deepcopy(shown), "max_items": 1,
                    "fields": {VALUE: {"read": "text", "max_chars": most, "untrusted": True}}}],
-    }
-    return {
-        "connector": connector_key(site), "version": version, "site": site, "domain": p.domain,
-        "title": f"{p.title} profile (learned)", "account_languages": [lang],
-        "operations": {field: commit_op, f"{field}{READ_SUFFIX}": read_op},
     }

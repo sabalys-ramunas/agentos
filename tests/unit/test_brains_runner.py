@@ -13,10 +13,7 @@ import signal
 import time
 
 import pytest
-
-from agentos.brains.models import Budget, ContextBundle, GitRef, Privacy
-from agentos.brains.service import BrainService
-from agentos.brains.testing import (
+from testkit.brains import (
     CHILD_TOKEN,
     OAUTH,
     OWNER_TOKEN,
@@ -30,6 +27,9 @@ from agentos.brains.testing import (
     make_service,
     wait_status,
 )
+
+from agentos.brains.models import Budget, ContextBundle, GitRef, Privacy
+from agentos.brains.service import BrainService
 from agentos.core.errors import ApprovalPending, InvalidRequest, PolicyDenied
 from agentos.core.models import Effect, Principal
 from agentos.core.runtime import Runtime
@@ -367,7 +367,7 @@ async def test_brain_without_credential_is_needs_auth_and_skipped(svc):
 
 async def test_cli_drift_marks_the_brain_down(tmp_path):
     svc = make_service(tmp_path)
-    from agentos.brains import fakecli
+    from agentos.dev import fakecli
     (tmp_path / "bin" / "claude.help").write_text(fakecli.CLAUDE_HELP.replace("--strict-mcp-config", "--mcp-strict"))
     await add(svc, "claude-max", "subscription", "anthropic")
     info = (await svc.list_brains())[0]

@@ -36,9 +36,9 @@
 # node's AGENTOS_HOME, as the service user when root calls it (root only for the commands that need
 # root: upgrade, backup restore, migrate-service-user). So `sudo agentos doctor` works on the node.
 #
-# The panel and the web app are built here when Node.js is installed. Without it, a build that
-# came with the source (panel/dist, and a web/dist built from the same sources) is used; with
-# neither, the node has no web UI and the installer says how to add one. MCP and the API work.
+# The web app is built here when Node.js is installed. Without it, a build that came with the
+# source (a web/dist built from the same sources) is used; with neither, the node has no web UI
+# and the installer says how to add one. MCP and the API work.
 #
 # Environment:
 #   INSTALL_PREFIX     code and .venv (default /opt/agentos)
@@ -227,7 +227,6 @@ if [ "$PREFIX_REAL" != "$SRC_REAL" ]; then
   excludes=(--exclude /.venv/ --exclude .git --exclude __pycache__ --exclude '*.pyc'
             --exclude .pytest_cache --exclude .ruff_cache --exclude /poc/shots/
             --exclude /poc/profiles/ --exclude /poc/fingerprints/ --exclude /poc/secrets.json
-            --exclude /panel/node_modules/ --exclude /panel/test-results/ --exclude /panel/playwright-report/
             --exclude /web/dist/)  # the prefix builds its own web/dist: a copied one would replace the build it made
   for keep in "${KEEP_DIRS[@]}"; do excludes+=(--exclude "/$keep/"); done
   case "$HOME_REAL" in  # never delete node data that lives inside the prefix
@@ -240,26 +239,11 @@ if [ "$PREFIX_REAL" != "$SRC_REAL" ]; then
   rsync -a --delete "${copy_as[@]}" "${excludes[@]}" "$SRC_DIR/" "$INSTALL_PREFIX/"
 fi
 
-# ---- web panel ----
+# ---- web app ----
 NO_NODEJS=0
-# panel/dist is built from panel/ (React). A checkout synced from a machine that built it already
-# has it; otherwise build it here when Node.js 22+ is available, or say how.
-if [ -f "$INSTALL_PREFIX/panel/package.json" ] && [ ! -f "$INSTALL_PREFIX/panel/dist/index.html" ]; then
-  # the node's own Node.js (install_cli.sh) counts too: it is often the only one with npm
-  [ -x "$INSTALL_PREFIX/node/bin/npm" ] && PATH="$INSTALL_PREFIX/node/bin:$PATH"
-  if command -v npm >/dev/null 2>&1; then
-    say "Building the web panel"
-    (cd "$INSTALL_PREFIX/panel" && npm ci --no-audit --no-fund && npm run build) \
-      || warn "the panel did not build; the node still serves MCP and the API"
-  else
-    NO_NODEJS=1
-  fi
-fi
-
-# web/ is the new app. pnpm comes through npx, so a node needs nothing but Node.js. It is served once a
-# person chooses it (`agentos panel use web`), or when it is the only UI built (a checkout with no
-# panel/, as the public repository is). It is built again whenever its sources changed since
-# the last good build (deploy/web-build.sh), and the last good build is kept when a build fails.
+# web/ is the web app the node serves. pnpm comes through npx, so a node needs nothing but Node.js. It
+# is built again whenever its sources changed since the last good build (deploy/web-build.sh), and
+# the last good build is kept when a build fails.
 if [ -f "$INSTALL_PREFIX/web/package.json" ]; then
   . "$INSTALL_PREFIX/deploy/web-build.sh"
   if web_is_stale "$INSTALL_PREFIX/web"; then
@@ -268,7 +252,7 @@ if [ -f "$INSTALL_PREFIX/web/package.json" ]; then
       say "Building the web app"
       (cd "$INSTALL_PREFIX/web" && npx --yes pnpm@10.33.0 install --frozen-lockfile) \
         && web_rebuild "$INSTALL_PREFIX/web" npx --yes pnpm@10.33.0 build \
-        || warn "the web app did not build; the node keeps serving its last build, or the panel"
+        || warn "the web app did not build; the node keeps serving its last build"
     elif [ "$PREFIX_REAL" != "$SRC_REAL" ] && ! web_is_stale "$SRC_DIR/web"; then
       # no Node.js here, but the source came with a build of these very sources (built elsewhere)
       say "Using the web app build that came with the source (web/dist)"
@@ -528,11 +512,11 @@ if [ -n "$WRAPPER" ]; then
     echo "On this node, run it with: sudo agentos doctor (AGENTOS_HOME=$AGENTOS_HOME)."
   fi
 fi
-if [ ! -f "$INSTALL_PREFIX/panel/dist/index.html" ] && [ ! -f "$INSTALL_PREFIX/web/dist/index.html" ]; then
-  warn "this node has no web UI: neither the panel nor the web app is built$([ "$NO_NODEJS" = 1 ] && echo ", because Node.js is not installed here")."
-  warn "MCP, the API and the CLI work; the panel sign-in link shows a placeholder page until a UI is built. To add one:"
+if [ ! -f "$INSTALL_PREFIX/web/dist/index.html" ]; then
+  warn "this node has no web UI: the web app is not built$([ "$NO_NODEJS" = 1 ] && echo ", because Node.js is not installed here")."
+  warn "MCP, the API and the CLI work; the sign-in link shows a placeholder page until the web app is built. To add one:"
   warn "  - install Node.js 22 here and run this installer again, or"
-  warn "  - build on your computer, in your checkout: (cd web && pnpm install && pnpm build)$([ -f "$INSTALL_PREFIX/panel/package.json" ] && echo " and (cd panel && npm ci && npm run build)");"
+  warn "  - build on your computer, in your checkout: (cd web && pnpm install && pnpm build);"
   warn "    then copy that checkout here with its builds (scripts/sync-node.sh --web DIR, or rsync) and run this installer again"
   warn "    from that copy. \`agentos connect HOST --install\` from a checkout sends it, builds included, on a new node."
 fi

@@ -242,7 +242,8 @@ async def test_daemon_waits_out_a_migration_then_refuses(tmp_path, monkeypatch):
 
 
 def test_doctor_reports_lane_formats(tmp_path):
-    from agentos.ops import doctor, migrate
+    from agentos.core import migrate
+    from agentos.ops import doctor
 
     d = lane_copy(tmp_path)
     ctx = doctor.DoctorContext(home=tmp_path)

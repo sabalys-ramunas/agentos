@@ -26,6 +26,7 @@ from typing import Any
 from websockets.asyncio.client import connect
 
 from agentos import __version__
+from agentos.core import signing
 from agentos.core.config import NodeConfig, save_config
 from agentos.node.channel import standing, wire
 from agentos.node.channel.identity import NodeKey
@@ -57,7 +58,7 @@ def _parse_enrolled(body: dict) -> dict[str, Any]:
             raise EnrollmentFailed(f"the controller's enrolled message has no usable {name}")
     for name in ("grant_pubkey", "controller_pubkey"):
         try:
-            wire.public_key(body[name])
+            signing.public_key(body[name])
         except ValueError:
             raise EnrollmentFailed(f"{name} is not a 32 byte Ed25519 key") from None
     config = body.get("config")

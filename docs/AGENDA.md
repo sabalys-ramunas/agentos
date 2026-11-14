@@ -20,22 +20,22 @@ never stores a second copy of them.
 ## What is on the timeline
 
 `agenda_list` (MCP), `GET /api/agenda` (panel), `agentos agenda list` (CLI) merge four things for
-a range of days, filterable by lane, kind (`flow`, `connector`, `route`, `keepalive`, `engage`) and state:
+a range of days, filterable by lane, kind (`flow`, `connector`, `route`, `keepalive`) and state:
 
 | Item | Where it comes from | State |
 |---|---|---|
 | entry | a one-off planned action (this page) | its lifecycle state, below |
 | projected | the next fires of each enabled cron schedule in the range, computed from its cron and time zone (03:30 in a spring gap fires at 04:30; the repeated autumn hour fires once); with `paced` when the lane's pace will move it | `projected` |
 | run | a run that already happened in the range (not an entry's own run, which shows as the entry), with its proof | `done`, `failed`, `running`, `cancelled` |
-| managed | work another service plans on a lane on its own: keepalive's visits and engagement's sessions (below) | `planned` |
+| managed | work another service plans on a lane on its own: keepalive's visits (below) | `planned` |
 
 The owner sees every workspace; an agent sees the entries and runs on the lanes its grant covers.
 
 ### Other planned work
 
-Two services plan timed work on accounts by themselves, and the timeline shows what they plan,
-read only (`type: managed`, `state: planned`, with `source` and `managed_by`). Neither is stored by
-the agenda or planned a second time: each service answers `planned(start, end)` from its own planner.
+Keepalive plans timed work on accounts by itself, and the timeline shows what it plans, read only
+(`type: managed`, `state: planned`, with `source` and `managed_by`). It is not stored by the agenda
+or planned a second time: the service answers `planned(start, end)` from its own planner.
 An item has no approval and cannot be cancelled on the agenda; `manage` names where it is managed.
 `managed_by` in the timeline says, per service, what it can show and what it cannot. The panel shows
 these rows muted, under "Show other planned work"; `managed=0` (API), `managed=false` (MCP) and
@@ -44,10 +44,9 @@ these rows muted, under "Show other planned work"; `managed=0` (API), `managed=f
 | Source | What it shows | What it cannot show |
 |---|---|---|
 | `keepalive` | each lane's next visit, from the plan its rounds decide on, at an approximate time (`approx`, `~` in the CLI and the panel), with `waits` when a gate holds it for now (a human has control, the lane is in use) | any visit after the next: it is drawn from how this one goes and from the lane's use since. The time moves later whenever the lane is used, and a due visit waits for a free warm slot, memory and a gap after the node's last visit. A lane it does not visit (the node switch off, the lane opted out, no site, quarantined, frozen, signed out or challenged) has no item; `skipped` says why. Managed with `agentos lane keepalive <lane>` and the Keepalive card on the lane's page |
-| `engage` | the sessions `nightly()` saved for each approved program (today and tomorrow, in the lane's time zone), with their length and planned actions | days not drawn yet: a day's draw reads the days before it, the company's other accounts and a persona the audit may redraw, so a later day shows nothing rather than a guess (`drawn_until`). A draft program plans nothing. A program whose lane is held, quarantined or frozen is paused: no items, and `paused` says why. On this node engagement is a dry run, so nothing clicks the sessions yet. Managed with `agentos engage` |
 
-The CLI asks agentosd for both (`op: planned` on the ops socket), since agentosd owns the lanes these
-plans read; with agentosd down, the list says so and shows the rest.
+The CLI asks agentosd for it (`op: planned` on the ops socket), since agentosd owns the lanes the
+plan reads; with agentosd down, the list says so and shows the rest.
 
 ## An entry
 
@@ -210,8 +209,7 @@ run recorded no readback, page or output, the proof says so.
 
 - `src/agentos/agenda/`: the store (`agenda.db`, versioned like the other node stores), the service,
   the MCP tools (toolset `agenda`), the CLI and the panel API.
-- `agentos.keepalive.service.planned` and `agentos.engage.service.planned`: what each plans in a
-  range, for the timeline.
+- `agentos.keepalive.service.planned`: what it plans in a range, for the timeline.
 - MCP: `agenda_list`, `agenda_get`, `agenda_draft`, `agenda_update`, `agenda_propose`,
   `agenda_cancel` (docs/TOOLS.md); the `plan_action` recipe in `howto`.
 - CLI: `agentos agenda list | show | add | propose | approve | cancel`.

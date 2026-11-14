@@ -23,8 +23,8 @@ from __future__ import annotations
 import contextlib
 from typing import Any
 
+from agentos.core.locator import Locator
 from agentos.node import human
-from agentos.runner.models import Locator
 from lanebench.executors import ExecResult, RunContext
 from lanebench.tasks import Task
 

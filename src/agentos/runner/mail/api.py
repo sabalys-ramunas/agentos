@@ -74,19 +74,28 @@ def _server(body: dict[str, Any], key: str) -> dict[str, Any] | None:
 
 
 def routes(api: Api) -> list[Route]:
-    def mail() -> Any:
-        return api.svc("workflows").mail
+    return _MailRoutes(api).routes()
 
-    def approvals() -> Any:
-        return api.runtime.get("approvals")  # the store itself: `api.svc` gives the panel's view of it
 
-    async def mail_discover(request: Request) -> dict:
+class _MailRoutes:
+    """The mail routes: each handler is a method, `api` the panel's API they are served under."""
+
+    def __init__(self, api: Api) -> None:
+        self.api = api
+
+    def mail(self) -> Any:
+        return self.api.svc("workflows").mail
+
+    def approvals(self) -> Any:
+        return self.api.runtime.get("approvals")  # the store itself: `api.svc` gives the panel's view of it
+
+    async def mail_discover(self, request: Request) -> dict:
         body = await read_json_object(request)
         found = await discover(body.get("address"), NET())
-        connecting.jobs_for(mail()).show(found)
+        connecting.jobs_for(self.mail()).show(found)
         return found.public()
 
-    async def mail_connect(request: Request) -> Any:
+    async def mail_connect(self, request: Request) -> Any:
         in_person(request, "mail.connect")
         body = await read_json_object(request)
         password = body.pop("password", None)
@@ -96,58 +105,58 @@ def routes(api: Api) -> list[Route]:
         del password
         address = connecting.discovery.split_address(body.get("address"))[0]
         imap, smtp = _server(body, "imap"), _server(body, "smtp")
-        found = connecting.jobs_for(mail()).shown(body.get("digest"), address)
+        found = connecting.jobs_for(self.mail()).shown(body.get("digest"), address)
         if found is None and not (imap and smtp):
             raise connecting.MailConfirmHosts(NOT_SHOWN)
         found = connecting.apply_typed(found, address, imap=imap, smtp=smtp)
-        box = await connecting.connect(mail(), found, secret, mailbox_id=str(body.get("id") or ""),
+        box = await connecting.connect(self.mail(), found, secret, mailbox_id=str(body.get("id") or ""),
                                        confirmed=body.get("confirmed") is True, in_person=True)
-        connecting.close_requests(mail(), approvals(), box.id)
+        connecting.close_requests(self.mail(), self.approvals(), box.id)
         access_of(request).trace("mail.connect", lane=box.id, summary=f"Connect mailbox {box.id}")
-        return mail().view(box)
+        return self.mail().view(box)
 
-    async def requests_list(request: Request) -> dict:
+    async def requests_list(self, request: Request) -> dict:
         in_person(request, "mail.requests")
-        return {"requests": connecting.waiting(mail(), approvals())}
+        return {"requests": connecting.waiting(self.mail(), self.approvals())}
 
-    async def request_link(request: Request) -> dict:
+    async def request_link(self, request: Request) -> dict:
         """The link exists only here, for the owner at this node, and only while the card is open."""
         in_person(request, "mail.request.link")
-        ask = connecting.request(mail(), approvals(), request.path_params["id"])
-        jobs = connecting.jobs_for(mail())
+        ask = connecting.request(self.mail(), self.approvals(), request.path_params["id"])
+        jobs = connecting.jobs_for(self.mail())
         jobs.room()
         found = await connecting.discover_quietly(ask["address"], NET())
         token, job = jobs.open(ask["address"], ask["mailbox"], found, by="owner", asked_by="agent")
         access_of(request).trace("mail.request.link", lane=ask["mailbox"], summary=f"Open the form for mailbox {ask['mailbox']}")
-        return {**connecting.link_for(api.runtime, token, job), "found": found.public() if found else None}
+        return {**connecting.link_for(self.api.runtime, token, job), "found": found.public() if found else None}
 
-    async def mail_list(request: Request) -> list[dict]:
-        return [mail().view(b) for b in mail().list()]
+    async def mail_list(self, request: Request) -> list[dict]:
+        return [self.mail().view(b) for b in self.mail().list()]
 
-    async def mail_remove(request: Request) -> dict:
+    async def mail_remove(self, request: Request) -> dict:
         in_person(request, "mail.remove", "Only the owner signed in to the panel removes a mailbox.")
         box_id = mailbox_id(request)
         access_of(request).trace("mail.remove", lane=box_id, summary=f"Remove mailbox {box_id}")
-        return {"removed": await mail().remove(box_id, person=True)}
+        return {"removed": await self.mail().remove(box_id, person=True)}
 
-    async def mail_messages(request: Request) -> dict:
+    async def mail_messages(self, request: Request) -> dict:
         in_person(request, "mail.messages", IN_PERSON)
-        box = mail().require(mailbox_id(request))
+        box = self.mail().require(mailbox_id(request))
         q = request.query_params
         with mail_tools.reading(box):
-            rows = await mail().list_messages(box, unread=q.get("unread") in ("1", "true"), since=mail_tools.since_time(q.get("since")),
+            rows = await self.mail().list_messages(box, unread=q.get("unread") in ("1", "true"), since=mail_tools.since_time(q.get("since")),
                                               limit=int(q.get("limit") or 20) if (q.get("limit") or "20").isdigit() else 20)
         return {"mailbox": box.id, "messages": [mail_tools.row(m) for m in rows]}
 
-    async def form_get(request: Request) -> Response:
-        job = connecting.jobs_for(mail()).get(request.path_params["token"])
+    async def form_get(self, request: Request) -> Response:
+        job = connecting.jobs_for(self.mail()).get(request.path_params["token"])
         if job is None:
             return form.ended()
         return form.render(job) if form.direct(request) else form.not_direct()
 
-    async def form_post(request: Request) -> Response:
+    async def form_post(self, request: Request) -> Response:
         token = request.path_params["token"]
-        jobs = connecting.jobs_for(mail())
+        jobs = connecting.jobs_for(self.mail())
         job = jobs.get(token)
         if job is None:
             return form.ended()
@@ -168,13 +177,13 @@ def routes(api: Api) -> list[Route]:
         except AgentosError as e:
             alive = jobs.get(token)
             return form.render(alive, error=e.message, status=400) if alive is not None else form.ended()
-        connecting.close_requests(mail(), approvals(), box.id)
+        connecting.close_requests(self.mail(), self.approvals(), box.id)
         return form.done(box.address, box.id)
 
-    def wf() -> Any:
-        return api.svc("workflows")
+    def wf(self) -> Any:
+        return self.api.svc("workflows")
 
-    async def form_link(request: Request) -> dict:
+    async def form_link(self, request: Request) -> dict:
         """A link to the form, for a mailbox the person typed in the panel. The panel gets the link and
         never the field: the password is typed on this computer, in the form the link opens."""
         in_person(request, "mail.form.link")
@@ -183,42 +192,42 @@ def routes(api: Api) -> list[Route]:
         box_id = str(body.get("id") or "")
         if not LANE_ID_RE.match(box_id):
             raise InvalidRequest("A mailbox id looks like a lane id, 'harbor/mail'.")
-        if mail().get(box_id) is not None:
+        if self.mail().get(box_id) is not None:
             raise connecting.taken(box_id)
         # The server names a person typed in the panel (additive): they go over what was found, and the form
         # shows them to check. With both typed, nothing is looked up.
         imap, smtp = _server(body, "imap"), _server(body, "smtp")
-        jobs = connecting.jobs_for(mail())
+        jobs = connecting.jobs_for(self.mail())
         jobs.room()
         found = None if imap and smtp else await connecting.discover_quietly(address, NET())
         if imap or smtp:
             found = connecting.apply_typed(found, address, imap=imap, smtp=smtp)
         token, job = jobs.open(address, box_id, found, by="owner")
         access_of(request).trace("mail.form.link", lane=box_id, summary=f"Open the form for mailbox {box_id}")
-        return {**connecting.link_for(api.runtime, token, job), "found": found.public() if found else None}
+        return {**connecting.link_for(self.api.runtime, token, job), "found": found.public() if found else None}
 
-    async def form_state(request: Request) -> dict:
+    async def form_state(self, request: Request) -> dict:
         """Whether a form the owner opened is still open, for the panel that waits on it (additive). A link
         that ended and one that never was look the same, as on the page itself."""
         in_person(request, "mail.form.state")
-        job = connecting.jobs_for(mail()).get(request.path_params["token"])
+        job = connecting.jobs_for(self.mail()).get(request.path_params["token"])
         if job is None:
             return {"state": "ended"}
         return {"state": "open", "expires_at": datetime.fromtimestamp(job.expires_at, UTC).isoformat()}
 
-    async def form_end(request: Request) -> dict:
+    async def form_end(self, request: Request) -> dict:
         """The owner cancels a form they opened: the link ends now, as one that ran out (additive)."""
         in_person(request, "mail.form.end")
-        ended = connecting.jobs_for(mail()).end(request.path_params["token"])
+        ended = connecting.jobs_for(self.mail()).end(request.path_params["token"])
         access_of(request).trace("mail.form.end", summary="Cancel a mailbox form")
         return {"state": "ended", "ended": ended}
 
-    async def mail_send(request: Request) -> dict:
+    async def mail_send(self, request: Request) -> dict:
         """One message from a mailbox, in person. It is the agent's `mail_send`, with the same checks and
         the same ledger; the one difference is who asks, and a person's yes is the authorization here."""
         in_person(request, "mail.send", "Only the owner signed in to the panel sends mail from a mailbox.")
         body = await read_json_object(request)
-        box = mail().require(str(body.get("mailbox") or ""))
+        box = self.mail().require(str(body.get("mailbox") or ""))
         subject, text = body.get("subject"), body.get("body")
         if not isinstance(subject, str) or not isinstance(text, str):
             raise InvalidRequest("subject and body are text.")
@@ -228,52 +237,54 @@ def routes(api: Api) -> list[Route]:
         access = access_of(request)
         await access.authorize(Effect.COMMIT, action="mail.send", lane_id=box.id, summary=f"Send an email from {box.id}",
                                content={"mailbox": box.id, "to": address, "subject": subject, "body": text, "reply_to": number})
-        outbox.check(wf(), box, address, reply=number is not None)
+        outbox.check(self.wf(), box, address, reply=number is not None)
         parent = None
         if number is not None:
             with mail_tools.reading(box):
-                parent = await mail().read_message(box, number)
-        return await outbox.send_one(wf(), box, address, subject, text, parent=parent)
+                parent = await self.mail().read_message(box, number)
+        return await outbox.send_one(self.wf(), box, address, subject, text, parent=parent)
 
-    async def mail_message(request: Request) -> dict:
+    async def mail_message(self, request: Request) -> dict:
         """One message, whole, as text: HTML is reduced on the node and nothing in it is fetched."""
         in_person(request, "mail.message", IN_PERSON)
-        box = mail().require(mailbox_id(request))
+        box = self.mail().require(mailbox_id(request))
         with mail_tools.reading(box):
-            message = await mail().read_message(box, mail_tools.message_number(request.path_params["uid"]))
+            message = await self.mail().read_message(box, mail_tools.message_number(request.path_params["uid"]))
         return mail_tools.whole(message)
 
-    async def mail_mark(request: Request) -> dict:
+    async def mail_mark(self, request: Request) -> dict:
         in_person(request, "mail.mark", IN_PERSON)
-        box = mail().require(mailbox_id(request))
+        box = self.mail().require(mailbox_id(request))
         number = mail_tools.message_number(request.path_params["uid"])
         body = await read_json_object(request)
         if not isinstance(body.get("read"), bool):
             raise InvalidRequest("read is true or false.")
         await access_of(request).authorize(Effect.DRAFT, action="mail.mark", lane_id=box.id, summary=f"Mark a message in {box.id}")
         with mail_tools.reading(box):
-            await mail().mark(box, number, body["read"])
+            await self.mail().mark(box, number, body["read"])
         access_of(request).trace("mail.mark", lane=box.id, summary=f"Mark message {number} as {'read' if body['read'] else 'unread'}")
         return {"mailbox": box.id, "id": str(number), "read": body["read"]}
 
-    def e(fn: Any, **kw: Any) -> Any:
-        return endpoint(api, fn, **kw)
+    def e(self, fn: Any, **kw: Any) -> Any:
+        return endpoint(self.api, fn, **kw)
 
-    base = "/api/mail"
-    return [
-        Route(f"{base}/discover", e(mail_discover, owner=True, action="mail.discover"), methods=["POST"]),
-        Route(f"{base}/connect", e(mail_connect, owner=True, action="mail.connect"), methods=["POST"]),
-        Route(f"{base}/requests", e(requests_list, owner=True, action="mail.requests"), methods=["GET"]),
-        Route(f"{base}/requests/{{id}}/link", e(request_link, owner=True, action="mail.request.link"), methods=["POST"]),
-        Route(f"{base}/form/{{token}}", e(form_get, public=True, action="mail.form"), methods=["GET"]),
-        Route(f"{base}/form/{{token}}", e(form_post, public=True, action="mail.form.send"), methods=["POST"]),
-        Route(f"{base}/form/{{token}}", e(form_end, owner=True, action="mail.form.end"), methods=["DELETE"]),
-        Route(f"{base}/form/{{token}}/state", e(form_state, owner=True, action="mail.form.state"), methods=["GET"]),
-        Route(base, e(mail_list, owner=True, action="mail.list"), methods=["GET"]),
-        Route(f"{base}/{{id}}", e(mail_remove, owner=True, action="mail.remove"), methods=["DELETE"]),
-        Route(f"{base}/{{id}}/messages", e(mail_messages, owner=True, action="mail.messages"), methods=["GET"]),
-        Route(f"{base}/{{id}}/messages/{{uid}}", e(mail_message, owner=True, action="mail.message"), methods=["GET"]),
-        Route(f"{base}/{{id}}/messages/{{uid}}/mark", e(mail_mark, owner=True, action="mail.mark"), methods=["POST"]),
-        Route(f"{base}/form-links", e(form_link, owner=True, action="mail.form.link"), methods=["POST"]),
-        Route(f"{base}/send", e(mail_send, owner=True, action="mail.send"), methods=["POST"]),
-    ]
+    def routes(self) -> list[Route]:
+        e = self.e
+        base = "/api/mail"
+        return [
+            Route(f"{base}/discover", e(self.mail_discover, owner=True, action="mail.discover"), methods=["POST"]),
+            Route(f"{base}/connect", e(self.mail_connect, owner=True, action="mail.connect"), methods=["POST"]),
+            Route(f"{base}/requests", e(self.requests_list, owner=True, action="mail.requests"), methods=["GET"]),
+            Route(f"{base}/requests/{{id}}/link", e(self.request_link, owner=True, action="mail.request.link"), methods=["POST"]),
+            Route(f"{base}/form/{{token}}", e(self.form_get, public=True, action="mail.form"), methods=["GET"]),
+            Route(f"{base}/form/{{token}}", e(self.form_post, public=True, action="mail.form.send"), methods=["POST"]),
+            Route(f"{base}/form/{{token}}", e(self.form_end, owner=True, action="mail.form.end"), methods=["DELETE"]),
+            Route(f"{base}/form/{{token}}/state", e(self.form_state, owner=True, action="mail.form.state"), methods=["GET"]),
+            Route(base, e(self.mail_list, owner=True, action="mail.list"), methods=["GET"]),
+            Route(f"{base}/{{id}}", e(self.mail_remove, owner=True, action="mail.remove"), methods=["DELETE"]),
+            Route(f"{base}/{{id}}/messages", e(self.mail_messages, owner=True, action="mail.messages"), methods=["GET"]),
+            Route(f"{base}/{{id}}/messages/{{uid}}", e(self.mail_message, owner=True, action="mail.message"), methods=["GET"]),
+            Route(f"{base}/{{id}}/messages/{{uid}}/mark", e(self.mail_mark, owner=True, action="mail.mark"), methods=["POST"]),
+            Route(f"{base}/form-links", e(self.form_link, owner=True, action="mail.form.link"), methods=["POST"]),
+            Route(f"{base}/send", e(self.mail_send, owner=True, action="mail.send"), methods=["POST"]),
+        ]

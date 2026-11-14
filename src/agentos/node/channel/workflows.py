@@ -15,8 +15,8 @@ import time
 from collections.abc import Callable
 from typing import Any
 
-from agentos.api.auth import RateLimiter
 from agentos.core.errors import AgentosError, InvalidRequest, PolicyDenied
+from agentos.core.ratelimit import RateLimiter
 from agentos.node.channel import wire
 from agentos.node.channel.standing import NONCE_KEEP_S, NONCE_RE
 from agentos.policy.ask_first import MAX_BY

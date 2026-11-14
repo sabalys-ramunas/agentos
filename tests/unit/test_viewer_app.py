@@ -24,17 +24,11 @@ from websockets.exceptions import ConnectionClosed, InvalidStatus
 
 from agentos.core.errors import InvalidRequest
 from agentos.core.models import ControlState, LaneSpec
-from agentos.node import viewer_app, vnc_relay
-from agentos.node.viewer_app import (
-    TokenError,
-    ViewMode,
-    ViewTokens,
-    apply_action,
-    build_viewer_app,
-    control_api_routes,
-    load_or_create_key,
-    make_view_link,
-)
+from agentos.node import viewer_app, viewer_tokens, vnc_relay
+from agentos.node.viewer_actions import apply_action
+from agentos.node.viewer_app import build_viewer_app
+from agentos.node.viewer_routes import control_api_routes
+from agentos.node.viewer_tokens import TokenError, ViewMode, ViewTokens, load_or_create_key, make_view_link
 
 LANE = "personal/reddit"
 EM_DASH = "\u2014"
@@ -120,11 +114,11 @@ def test_issue_and_verify(tmp_path):
 def test_ttl_is_clamped(tmp_path):
     clock = Clock()
     tokens = tokens_at(tmp_path, clock)
-    assert tokens.issue(LANE, ttl=1).expires_at == clock.now + viewer_app.MIN_TTL
+    assert tokens.issue(LANE, ttl=1).expires_at == clock.now + viewer_tokens.MIN_TTL
     # no ttl outlives the link's hard end: short for a link an agent may hold, longer for an owner link
-    assert tokens.issue(LANE, ttl=10**9).expires_at == clock.now + viewer_app.AGENT_LINK_MAX
+    assert tokens.issue(LANE, ttl=10**9).expires_at == clock.now + viewer_tokens.AGENT_LINK_MAX
     assert tokens.issue(LANE, "control", ttl=10**9, owner=True).expires_at == clock.now + min(
-        viewer_app.MAX_TTL, viewer_app.OWNER_LINK_MAX)
+        viewer_tokens.MAX_TTL, viewer_tokens.OWNER_LINK_MAX)
 
 
 def test_expired_wrong_lane_and_missing(tmp_path):
@@ -150,9 +144,9 @@ def test_tampered_tokens_are_invalid(tmp_path):
     tokens = tokens_at(tmp_path)
     token = tokens.issue(LANE, ViewMode.VIEW).token
     body, sig = token.split(".")
-    payload = viewer_app._unb64(body)
-    forged_control = viewer_app._b64(payload.replace(b"|view|", b"|control|")) + "." + sig
-    forged_lane = viewer_app._b64(payload.replace(b"personal/reddit", b"personal/bank")) + "." + sig
+    payload = viewer_tokens._unb64(body)
+    forged_control = viewer_tokens._b64(payload.replace(b"|view|", b"|control|")) + "." + sig
+    forged_lane = viewer_tokens._b64(payload.replace(b"personal/reddit", b"personal/bank")) + "." + sig
     flipped_sig = body + "." + ("A" if sig[0] != "A" else "B") + sig[1:]
     for bad in (forged_control, forged_lane, flipped_sig, token + "x", "x" + token, token.replace(".", ""),
                 token + ".x", "a.b", "!!!.???", "a" * 600, ".", f"{body}."):
@@ -173,7 +167,7 @@ def test_a_signed_but_malformed_payload_is_invalid(tmp_path):
     tokens = tokens_at(tmp_path)
     for payload in (b"personal/reddit|admin|9999999999|n", b"personal/reddit|view|soon|n", b"personal/reddit|view",
                     b"personal/reddit|view|1|n|extra", "\u00ff".encode("latin-1")):
-        token = viewer_app._b64(payload) + "." + viewer_app._b64(tokens._mac(payload))
+        token = viewer_tokens._b64(payload) + "." + viewer_tokens._b64(tokens._mac(payload))
         with pytest.raises(TokenError) as e:
             tokens.verify(token, LANE)
         assert e.value.code == "invalid"

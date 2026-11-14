@@ -28,8 +28,8 @@ import pytest_asyncio
 from agentos.core.models import Principal
 from agentos.core.runtime import Runtime
 from agentos.node import devtools_tools
+from agentos.node.camoufox.engine import PageTracker
 from agentos.node.devtools import MASKED, capture_for
-from agentos.node.engine_camoufox import PageTracker
 
 pytestmark = [pytest.mark.node, pytest.mark.asyncio(loop_scope="session")]
 

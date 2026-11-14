@@ -1,11 +1,11 @@
-"""studio.db migrations (found by agentos.ops.migrate.discover() through agentos.studio.migrations,
+"""studio.db migrations (found by agentos.core.migrate.discover() through agentos.studio.migrations,
 and applied when the store opens). Append only: a released migration never changes."""
 
 from __future__ import annotations
 
 import sqlite3
 
-from agentos.ops.migrate import Migration, MigrationSet
+from agentos.core.migrate import Migration, MigrationSet
 
 DB = "studio/studio.db"
 

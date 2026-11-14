@@ -22,13 +22,14 @@ where it is a whole path segment or query value.
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 from urllib.parse import unquote, unquote_plus, urlsplit, urlunsplit
 
 from agentos.core.errors import InvalidRequest, NotFound
+from agentos.core.locator import Locator
 from agentos.core.models import Effect, parse_lane_id
-from agentos.runner.models import Locator
 from agentos.runner.store import RunnerStore
 from agentos.runner.util import Clock, clip_text
 
@@ -190,127 +191,150 @@ class Recorder:
         ws, name = parse_lane_id(lane)
         stamp = (started_at or self.clock.now()).strftime("%Y%m%d%H%M")
         flow_id = flow_id or f"{ws}.{name}.draft-{stamp}"
-        steps: list[dict[str, Any]] = []
-        props: dict[str, Any] = {}
-        required: list[str] = []
-        notes: list[str] = []
-        typed: dict[str, str] = {}  # typed value -> param name
-        acted = False
-        last_nav_index = None
-        dropped: list[str] = []         # actions the draft left out
-        lost_inputs: list[str] = []     # inputs among them (typing, a choice, a file)
-        sent_without: list[str] = []    # those lost before an action that sends was recorded
-
-        def drop(action: Any, note: str) -> None:
-            notes.append(note)
-            dropped.append(str(action))
-            if action in INPUT_ACTIONS:
-                lost_inputs.append(str(action))
-
+        d = _Draft()
         for ev in events:
-            if ev.get("ok") is False:
-                continue
-            action = ev.get("action")
-            loc_data = ev.get("locator")
-            if action == "navigate":
-                url = str(ev.get("url") or "")
-                if not url:
-                    continue
-                url = _url_with_params(url, typed)
-                step = {"type": "navigate", "url": url}
-                if steps and steps[-1]["type"] == "navigate":
-                    steps[-1] = step
-                else:
-                    steps.append(step)
-                last_nav_index = len(steps) - 1
-                continue
-            if action in ("snapshot", "screenshot", "hover", "read"):
-                continue
-            if action not in ("click", "type", "fill", "select", "press", "scroll", "upload"):
-                drop(action, f"dropped an unsupported action: {action!r}")
-                continue
-            if not loc_data and action != "press":
-                drop(action, f"dropped a {action} with no structural locator (only refs were recorded)")
-                continue
-            try:
-                loc = Locator.model_validate(loc_data).model_dump(exclude_none=True) if loc_data else None
-            except ValueError as e:
-                drop(action, f"dropped a {action}: {clip_text(str(e), 120)}")
-                continue
-            if loc is not None and last_nav_index is not None and last_nav_index == len(steps) - 1:
-                steps.append({"type": "wait_for", "locator": loc})
-            acted = True
-            if action in SEND_ACTIONS and lost_inputs:
-                sent_without = list(lost_inputs)
-            if action == "click":
-                step = {"type": "click", "locator": loc}
-                before = (ev.get("state_before") or {}).get("attributes") or {}
-                after = (ev.get("state_after") or {}).get("attributes") or {}
-                changed = [a for a in STATE_ATTRS if a in after and before.get(a) != after.get(a)]
-                if changed:
-                    attr = changed[0]
-                    step["writes"] = True
-                    step["readback"] = {"condition": {"kind": "attribute", "name": attr, "equals": after[attr]}}
-                    step["label"] = f"set {attr} to {after[attr]}"
-                    new_name = renamed_after(loc, ev.get("state_before") or {}, ev.get("state_after") or {})
-                    if new_name:  # pressed, the control is found by its new name in the same anchor
-                        name, match = _name_like(new_name, loc.get("match", "exact"))
-                        renamed = {k: v for k, v in loc.items() if k not in ("nth", "name", "match")}
-                        step["readback"]["locator"] = {**renamed, "name": name,
-                                                       **({"match": match} if match != "exact" else {})}
-                steps.append(step)
-            elif action in ("type", "fill"):
-                text = str(ev.get("text") or "")
-                if _sensitive(ev):
-                    drop(action, "dropped typing into a sensitive field; use login(on) or the vault instead")
-                    continue
-                pname = typed.get(text) or _param_name(loc, set(props))
-                if pname not in props:
-                    props[pname] = {"type": "string", "description": f"Typed into {Locator(**loc).describe()}",
-                                    "examples": [clip_text(text, 80)]}
-                    required.append(pname)
-                typed[text] = pname
-                after = ev.get("state_after") or {}
-                cond_kind = "value" if after.get("value") is not None or "value" not in after else "text"
-                cond = {"kind": cond_kind, ("equals" if cond_kind == "value" else "contains"): "${" + pname + "}"}
-                steps.append({"type": "fill" if action == "fill" else "type", "locator": loc, "param": pname,
-                              "readback": {"condition": cond}})
-            elif action == "select":
-                steps.append({"type": "select", "locator": loc, "option": str(ev.get("option") or ev.get("text") or "")})
-            elif action == "press":
-                step = {"type": "press", "key": str(ev.get("key") or ev.get("text") or "Enter")}
-                if loc:
-                    step["locator"] = loc
-                steps.append(step)
-            elif action == "scroll":
-                steps.append({"type": "scroll_to", "locator": loc})
-            elif action == "upload":
-                pname = _param_name({"name": "file"}, set(props), "file")
-                props[pname] = {"type": "string", "description": "File to upload: a path on the node or a files ref"}
-                required.append(pname)
-                steps.append({"type": "upload", "locator": loc, "param": pname})
-
-        if not steps:
+            if ev.get("ok") is not False:
+                d.add(ev)
+        if not d.steps:
             raise InvalidRequest("nothing was recorded: no actions with structural locators reached the recorder")
-        eff = Effect(effect) if effect else (Effect.DRAFT if acted else Effect.READ)
-        if not effect and acted:
-            notes.append("recorded with effect 'draft', but every input step counts as commit until the owner "
-                         "marks the steps that publish nothing with \"publishes\": false")
+        eff = Effect(effect) if effect else (Effect.DRAFT if d.acted else Effect.READ)
+        if not effect and d.acted:
+            d.notes.append("recorded with effect 'draft', but every input step counts as commit until the owner "
+                           "marks the steps that publish nothing with \"publishes\": false")
         draft = {
             "id": flow_id, "title": title or f"Recorded on {lane}", "lane": lane, "effect": str(eff),
             "description": "Recorded draft. Review the locators and add a readback for the final action.",
-            "params": {"type": "object", "properties": props, "required": required, "additionalProperties": False},
-            "steps": steps,
+            "params": {"type": "object", "properties": d.props, "required": d.required, "additionalProperties": False},
+            "steps": d.steps,
         }
-        problem = None
-        actions = [st for st in steps if st["type"] not in ("navigate", "wait_for")]
-        if dropped and not actions:
-            problem = (f"every action the recording saw ({len(dropped)}) was dropped, so the flow would only open "
-                       "pages and nothing was saved. Record again, acting on elements the snapshot names "
-                       "(see the notes)")
-        elif sent_without:
-            problem = (f"{len(sent_without)} input{'s' if len(sent_without) != 1 else ''} before a click or key "
-                       f"press ({', '.join(sent_without)}) {'were' if len(sent_without) != 1 else 'was'} dropped, "
-                       "so the flow would send without them and nothing was saved. Record again (see the notes), "
-                       "or save it with flow_save once the steps are whole")
-        return draft, notes, problem
+        return draft, d.notes, d.problem()
+
+
+@dataclass
+class _Draft:
+    """What build_checked collects while it reads a recording, event by event."""
+    steps: list[dict[str, Any]] = field(default_factory=list)
+    props: dict[str, Any] = field(default_factory=dict)
+    required: list[str] = field(default_factory=list)
+    notes: list[str] = field(default_factory=list)
+    typed: dict[str, str] = field(default_factory=dict)  # typed value -> param name
+    acted: bool = False
+    last_nav_index: int | None = None
+    dropped: list[str] = field(default_factory=list)       # actions the draft left out
+    lost_inputs: list[str] = field(default_factory=list)   # inputs among them (typing, a choice, a file)
+    sent_without: list[str] = field(default_factory=list)  # those lost before an action that sends was recorded
+
+    def drop(self, action: Any, note: str) -> None:
+        self.notes.append(note)
+        self.dropped.append(str(action))
+        if action in INPUT_ACTIONS:
+            self.lost_inputs.append(str(action))
+
+    def add(self, ev: dict[str, Any]) -> None:
+        action = ev.get("action")
+        loc_data = ev.get("locator")
+        if action == "navigate":
+            self._navigate(ev)
+            return
+        if action in ("snapshot", "screenshot", "hover", "read"):
+            return
+        if action not in ("click", "type", "fill", "select", "press", "scroll", "upload"):
+            self.drop(action, f"dropped an unsupported action: {action!r}")
+            return
+        if not loc_data and action != "press":
+            self.drop(action, f"dropped a {action} with no structural locator (only refs were recorded)")
+            return
+        try:
+            loc = Locator.model_validate(loc_data).model_dump(exclude_none=True) if loc_data else None
+        except ValueError as e:
+            self.drop(action, f"dropped a {action}: {clip_text(str(e), 120)}")
+            return
+        if loc is not None and self.last_nav_index is not None and self.last_nav_index == len(self.steps) - 1:
+            self.steps.append({"type": "wait_for", "locator": loc})
+        self.acted = True
+        if action in SEND_ACTIONS and self.lost_inputs:
+            self.sent_without = list(self.lost_inputs)
+        self._act(ev, action, loc)
+
+    def _navigate(self, ev: dict[str, Any]) -> None:
+        url = str(ev.get("url") or "")
+        if not url:
+            return
+        step = {"type": "navigate", "url": _url_with_params(url, self.typed)}
+        if self.steps and self.steps[-1]["type"] == "navigate":
+            self.steps[-1] = step
+        else:
+            self.steps.append(step)
+        self.last_nav_index = len(self.steps) - 1
+
+    def _act(self, ev: dict[str, Any], action: str, loc: dict[str, Any] | None) -> None:
+        if action == "click":
+            self.steps.append(_click_step(ev, loc))
+        elif action in ("type", "fill"):
+            self._typing(ev, action, loc)
+        elif action == "select":
+            self.steps.append({"type": "select", "locator": loc, "option": str(ev.get("option") or ev.get("text") or "")})
+        elif action == "press":
+            step = {"type": "press", "key": str(ev.get("key") or ev.get("text") or "Enter")}
+            if loc:
+                step["locator"] = loc
+            self.steps.append(step)
+        elif action == "scroll":
+            self.steps.append({"type": "scroll_to", "locator": loc})
+        elif action == "upload":
+            pname = _param_name({"name": "file"}, set(self.props), "file")
+            self.props[pname] = {"type": "string", "description": "File to upload: a path on the node or a files ref"}
+            self.required.append(pname)
+            self.steps.append({"type": "upload", "locator": loc, "param": pname})
+
+    def _typing(self, ev: dict[str, Any], action: str, loc: Any) -> None:
+        text = str(ev.get("text") or "")
+        if _sensitive(ev):
+            self.drop(action, "dropped typing into a sensitive field; use login(on) or the vault instead")
+            return
+        pname = self.typed.get(text) or _param_name(loc, set(self.props))
+        if pname not in self.props:
+            self.props[pname] = {"type": "string", "description": f"Typed into {Locator(**loc).describe()}",
+                                 "examples": [clip_text(text, 80)]}
+            self.required.append(pname)
+        self.typed[text] = pname
+        after = ev.get("state_after") or {}
+        cond_kind = "value" if after.get("value") is not None or "value" not in after else "text"
+        cond = {"kind": cond_kind, ("equals" if cond_kind == "value" else "contains"): "${" + pname + "}"}
+        self.steps.append({"type": "fill" if action == "fill" else "type", "locator": loc, "param": pname,
+                           "readback": {"condition": cond}})
+
+    def problem(self) -> str | None:
+        """Why the draft must not be saved, or None."""
+        sent_without = self.sent_without
+        actions = [st for st in self.steps if st["type"] not in ("navigate", "wait_for")]
+        if self.dropped and not actions:
+            return (f"every action the recording saw ({len(self.dropped)}) was dropped, so the flow would only open "
+                    "pages and nothing was saved. Record again, acting on elements the snapshot names "
+                    "(see the notes)")
+        if sent_without:
+            return (f"{len(sent_without)} input{'s' if len(sent_without) != 1 else ''} before a click or key "
+                    f"press ({', '.join(sent_without)}) {'were' if len(sent_without) != 1 else 'was'} dropped, "
+                    "so the flow would send without them and nothing was saved. Record again (see the notes), "
+                    "or save it with flow_save once the steps are whole")
+        return None
+
+
+def _click_step(ev: dict[str, Any], loc: Any) -> dict[str, Any]:
+    """A click, with a readback when the control's state attribute changed (pressed, checked)."""
+    step: dict[str, Any] = {"type": "click", "locator": loc}
+    before = (ev.get("state_before") or {}).get("attributes") or {}
+    after = (ev.get("state_after") or {}).get("attributes") or {}
+    changed = [a for a in STATE_ATTRS if a in after and before.get(a) != after.get(a)]
+    if changed:
+        attr = changed[0]
+        step["writes"] = True
+        step["readback"] = {"condition": {"kind": "attribute", "name": attr, "equals": after[attr]}}
+        step["label"] = f"set {attr} to {after[attr]}"
+        new_name = renamed_after(loc, ev.get("state_before") or {}, ev.get("state_after") or {})
+        if new_name:  # pressed, the control is found by its new name in the same anchor
+            name, match = _name_like(new_name, loc.get("match", "exact"))
+            renamed = {k: v for k, v in loc.items() if k not in ("nth", "name", "match")}
+            step["readback"]["locator"] = {**renamed, "name": name,
+                                           **({"match": match} if match != "exact" else {})}
+    return step

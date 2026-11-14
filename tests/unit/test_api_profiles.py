@@ -92,9 +92,9 @@ def test_the_owner_saves_edits_and_attaches_live(panel):
         assert one["definition"]["phone"] == "+37060000000" and "sites" not in one
         sites = {s["site"]: s for s in client.get("/api/profiles/sites").json()}
         assert sites["instagram"]["domain"] == "instagram.com"
-        assert {"name": "bio", "source": "bio.short", "limit": 150, "engine": False, "people_only": False} \
+        assert {"name": "bio", "source": "bio.short", "limit": 150, "people_only": False} \
             in sites["instagram"]["fields"]
-        assert next(f for f in sites["linkedin"]["fields"] if f["name"] == "headline")["engine"] is True
+        assert next(f for f in sites["linkedin"]["fields"] if f["name"] == "headline")["limit"] == 220
 
         r = client.patch("/api/profiles/biz-a/ada", json={"changes": {"bio": {"short": "Engines."}}}, headers=csrf)
         assert r.status_code == 200 and r.json()["version"] == 2 and r.json()["summary"] == ["bio changes on 1 account"]
@@ -133,14 +133,14 @@ def test_status_and_marking_a_manual_field_done(panel):
         client.post("/api/profiles", json=ADA, headers=csrf)
         status = client.get("/api/profiles/biz-a/ada/status").json()
         li, ig = status["accounts"]
-        assert li["surface"] == LI and li["fields"]["headline"]["state"] == "no_program"   # no engagement program
+        assert li["surface"] == LI and li["fields"]["headline"]["state"] == "manual"
         assert li["fields"]["website"]["state"] == "manual"
         assert ig["fields"]["bio"] == {"value": "Engines and notes.", "state": "manual", "learnable": True}
         r = client.post("/api/profiles/biz-a/ada/mark", json={"surface": IG, "fields": ["bio", "name"]}, headers=csrf)
         assert r.status_code == 200 and r.json() == {"surface": IG, "marked": ["bio", "name"]}
         ig = client.get("/api/profiles/biz-a/ada/status").json()["accounts"][1]
         assert ig["fields"]["bio"]["state"] == ig["fields"]["name"]["state"] == "done_by_hand"
-        r = client.post("/api/profiles/biz-a/ada/mark", json={"surface": LI, "fields": ["headline"]}, headers=csrf)
+        r = client.post("/api/profiles/biz-a/ada/mark", json={"surface": LI, "fields": ["bio"]}, headers=csrf)
         assert r.status_code == 400 and "not a manual field" in r.json()["error"]["message"]
         r = client.post("/api/profiles/biz-a/ada/mark", json={"surface": "biz-a/x", "fields": ["bio"]}, headers=csrf)
         assert r.status_code == 404

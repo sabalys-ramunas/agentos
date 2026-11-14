@@ -11,8 +11,10 @@ import time
 import pytest
 from channel_fake_controller import NODE_ID, FakeController, node_pubkey, node_runtime, start, stop
 
+from agentos.core import signing
 from agentos.core.models import ControlState
 from agentos.node.channel import node as channel_node
+from agentos.node.channel import signed as channel_signed
 from agentos.node.channel import wire
 from agentos.node.channel.node import Backoff
 from agentos.policy import tokens
@@ -54,7 +56,7 @@ async def test_hello_is_signed_with_the_exact_string_and_welcome_starts_the_sess
     fake, runtime, peer = wired
     hello = fake.hellos[0]
     assert hello["node_id"] == NODE_ID
-    assert wire.verify(node_pubkey(runtime.config.home), hello["sig"],
+    assert signing.verify(node_pubkey(runtime.config.home), hello["sig"],
                        f"agentos-node-hello:v1:{hello['nonce']}:{NODE_ID}".encode())
     beat = await peer.recv("heartbeat")
     assert {"load", "lanes", "degraded", "version"} <= set(beat.body)
@@ -174,7 +176,7 @@ async def test_signed_revoke_cascades_and_a_bad_signature_changes_nothing(wired)
     fake, runtime, peer = wired
     token, grant_id, rid = grant(fake)
     issuers = runtime.get("grant_issuers")
-    forged = wire.sign_controller(wire_key(), "revoke", NODE_ID, {"revocation_ids": [rid]})
+    forged = signing.sign_controller(wire_key(), "revoke", NODE_ID, {"revocation_ids": [rid]})
     sent = await peer.send("revoke", forged)
     reply = await peer.reply_to(sent.id)
     assert reply.type == "error" and reply.body["code"] == "denied"
@@ -200,7 +202,7 @@ async def test_signed_revoke_cascades_and_a_bad_signature_changes_nothing(wired)
 
 async def test_config_update_needs_the_pinned_signature(wired):
     fake, runtime, peer = wired
-    sent = await peer.send("config_update", wire.sign_controller(wire_key(), "config_update", NODE_ID,
+    sent = await peer.send("config_update", signing.sign_controller(wire_key(), "config_update", NODE_ID,
                                                                 {"config": {"heartbeat_seconds": 5}}))
     assert (await peer.reply_to(sent.id)).body["code"] == "denied"
     assert "heartbeat_seconds" not in runtime.channel.controller_config
@@ -347,7 +349,7 @@ async def test_traces_are_batched_redacted_and_carry_no_grant_path(wired):
 
 async def test_lane_control_is_signed_and_takes_the_lane(wired):
     fake, runtime, peer = wired
-    forged = wire.sign_controller(wire_key(), "lane_control", NODE_ID,
+    forged = signing.sign_controller(wire_key(), "lane_control", NODE_ID,
                                   {"lane": "personal/reddit", "action": "take", "by": "owner"})
     sent = await peer.send("lane_control", forged)
     assert (await peer.reply_to(sent.id)).body["code"] == "denied"
@@ -501,10 +503,10 @@ async def test_an_unexpected_error_fails_that_message_only(wired, monkeypatch):
 
 async def test_a_slow_lane_control_does_not_stall_the_reader_and_keeps_its_order(wired, monkeypatch):
     fake, runtime, peer = wired
-    from agentos.node import viewer_app
+    from agentos.node import viewer_actions
 
     applied = []
-    real = viewer_app.apply_action
+    real = viewer_actions.apply_action
 
     async def slow(lanes, lane_id, action, **kw):
         if action == "take":
@@ -512,7 +514,7 @@ async def test_a_slow_lane_control_does_not_stall_the_reader_and_keeps_its_order
         applied.append(action)
         return await real(lanes, lane_id, action, **kw)
 
-    monkeypatch.setattr(viewer_app, "apply_action", slow)
+    monkeypatch.setattr(viewer_actions, "apply_action", slow)
     lane = {"lane": "personal/reddit", "by": "owner"}
     t0 = time.monotonic()
     await peer.send("lane_control", fake.fresh("lane_control", {**lane, "action": "take"}))
@@ -550,5 +552,5 @@ async def test_a_nan_server_time_does_not_switch_freshness_off(wired):
     stale = fake.sign("lane_control", {"lane": "personal/reddit", "action": "take", "by": "owner",
                                        "ts": wire.iso(time.time() - 3600), "nonce": "n0nce-stale-03"})
     assert (await peer.reply_to((await peer.send("lane_control", stale)).id)).body["code"] == "denied"
-    assert wire.NONCE_KEEP_S >= 2 * (channel_node.SIGNED_FRESHNESS + channel_node.MAX_CLOCK_OFFSET)
+    assert wire.NONCE_KEEP_S >= 2 * (channel_signed.SIGNED_FRESHNESS + channel_node.MAX_CLOCK_OFFSET)
     assert not wire.NONCE_RE.fullmatch("abcdefgh\n")

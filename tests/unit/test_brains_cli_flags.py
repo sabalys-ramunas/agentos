@@ -6,11 +6,12 @@ import sys
 from pathlib import Path
 
 import pytest
+from testkit.brains import CHILD_TOKEN, OAUTH
 
-from agentos.brains import adapters, cliprobe, fakecli
+from agentos.brains import adapters, cliprobe
 from agentos.brains.models import BrainSpec
 from agentos.brains.settings import BrainsSettings
-from agentos.brains.testing import CHILD_TOKEN, OAUTH
+from agentos.dev import fakecli
 
 FLAG_RE = re.compile(r"^--?[A-Za-z]")
 

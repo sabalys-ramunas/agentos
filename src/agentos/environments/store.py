@@ -3,12 +3,11 @@ record stays (what it cost, what it pushed, why it closed) until the owner prune
 
 from __future__ import annotations
 
-import sqlite3
-import threading
 from collections.abc import Callable
 from pathlib import Path
 
 from agentos.core.errors import NotFound
+from agentos.core.sqlite import SqliteStore
 from agentos.environments.models import OPEN_STATES, Environment
 
 SCHEMA = """
@@ -26,23 +25,13 @@ CREATE INDEX IF NOT EXISTS environments_binding ON environments (binding);
 """
 
 
-class EnvironmentStore:
+class EnvironmentStore(SqliteStore):
+    """On agentos.core.sqlite: a kept connection per thread, WAL, a 5 s busy timeout as before."""
+
     def __init__(self, path: Path):
-        path.parent.mkdir(parents=True, exist_ok=True)
-        self.path = path
-        self._lock = threading.Lock()
-        self._db = sqlite3.connect(str(path), check_same_thread=False, isolation_level=None)
-        self._db.execute("PRAGMA journal_mode=WAL")
-        self._db.execute("PRAGMA busy_timeout=5000")
-        self._db.executescript(SCHEMA)
-        path.chmod(0o600)
-
-    def close(self) -> None:
-        self._db.close()
-
-    def _q(self, sql: str, args: tuple = ()) -> list[tuple]:
-        with self._lock:
-            return self._db.execute(sql, args).fetchall()
+        super().__init__(path, timeout=5.0)
+        self._conn().executescript(SCHEMA)
+        self.path.chmod(0o600)  # an existing file too, as the store always did
 
     def put(self, env: Environment) -> None:
         self._q("INSERT OR REPLACE INTO environments (id, state, binding, grant_id, title, created_at, record) "
@@ -54,24 +43,16 @@ class EnvironmentStore:
         """Read, change and write one record in one write transaction, so agentosd and the CLI (two
         processes) never lose each other's writes. `change` edits the record in place; returning
         False leaves it as it was. Returns the record as stored."""
-        with self._lock:
-            self._db.execute("BEGIN IMMEDIATE")
-            try:
-                rows = self._db.execute("SELECT record FROM environments WHERE id = ?", (env_id,)).fetchall()
-                if not rows:
-                    raise NotFound(f"no environment {env_id}")
-                env = Environment.model_validate_json(rows[0][0])
-                if change(env) is not False:
-                    self._db.execute("UPDATE environments SET state = ?, binding = ?, record = ? WHERE id = ?",
-                                     (env.state, env.binding, env.model_dump_json(), env.id))
-                    stored = env
-                else:
-                    stored = Environment.model_validate_json(rows[0][0])
-                self._db.execute("COMMIT")
-            except BaseException:
-                self._db.execute("ROLLBACK")
-                raise
-        return stored
+        with self._tx() as db:
+            rows = db.execute("SELECT record FROM environments WHERE id = ?", (env_id,)).fetchall()
+            if not rows:
+                raise NotFound(f"no environment {env_id}")
+            env = Environment.model_validate_json(rows[0][0])
+            if change(env) is not False:
+                db.execute("UPDATE environments SET state = ?, binding = ?, record = ? WHERE id = ?",
+                           (env.state, env.binding, env.model_dump_json(), env.id))
+                return env
+            return Environment.model_validate_json(rows[0][0])
 
     def has(self, env_id: str) -> bool:
         return bool(self._q("SELECT 1 FROM environments WHERE id = ?", (env_id,)))

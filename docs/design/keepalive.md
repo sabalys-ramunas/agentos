@@ -28,7 +28,7 @@ last visit (`GET /api/lanes/{ws}/{name}/keepalive`).
 ## When a lane is visited (planner.py)
 
 - **Activity** is the latest of the lane's `last_used` (stamped by the lane manager's `using()` for
-  every agent call, flow and connector run, brain and engagement session), the last human input in its
+  every agent call, flow and connector run and brain), the last human input in its
   live view, and the last keepalive visit that counts: one that went well (`ok`, `yielded`), one cut
   at its time limit after the feed loaded signed in, or one agentosd did not live to finish. A failed
   attempt is not activity (not even the `last_used` the lane manager stamped for it). A lane never
@@ -39,8 +39,8 @@ last visit (`GET /api/lanes/{ws}/{name}/keepalive`).
   generator keyed by the lane's own seed and that activity: stable between rounds, different per lane.
   When the lane check saw when the session cookie expires, a day before that at the latest.
 - **When** is the first moment from due inside the lane's waking hours, in its pinned time zone (wall
-  clock hours, so a DST day keeps its local window): the engagement persona's when the engine drew
-  one, else a persona drawn the same way from the keepalive seed. Each day draws its own minute and
+  clock hours, so a DST day keeps its local window): a persona drawn from the keepalive seed
+  (agentos.keepalive.persona). Each day draws its own minute and
   second (never on the minute), moved at least 20 minutes from the last visit's time of day. A missed
   slot (the lane was busy, memory was short, agentosd was down) goes at once while the lane is awake,
   else 2 to 12 minutes (drawn) after its waking hours next begin, never at the next day's random slot.
@@ -117,14 +117,11 @@ and the one the lane expects. A held lane is left open for the human (the idle r
    is refused before anything is sent. Nothing is ever typed.
 4. It stops before its next step once control of the lane is not the agents' (a take-over, a hold).
 
-## Coordination with the engagement engine
+## Coordination with other work on the lane
 
-An engagement session uses the lane through the lane manager like every agent, so it stamps
-`last_used` and resets the keepalive timer; a lane the engine keeps busy is never visited. The engine
-has no lane-activity hook and needs none. Keepalive reads the engine's persona (waking hours) when
-there is one and never writes to engage.db; its own visits are not engagement (no likes, no follows,
-nothing counted against caps). Once the engine's session runner (brief E3) runs real sessions, a lane
-in a program simply never comes due.
+Every agent call, flow and brain uses the lane through the lane manager, so it stamps `last_used`
+and resets the keepalive timer; a lane kept busy is never visited. Keepalive's own visits act on
+nothing (no likes, no follows, nothing counted against caps).
 
 ## Before turning it on (with a throwaway account first)
 

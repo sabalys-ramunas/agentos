@@ -19,6 +19,7 @@ from test_pilot_service import (  # noqa: F401 (close_the_nodes is an autouse fi
     ref_of,
     type_caption,
 )
+from testkit.pilot import step
 
 from agentos.core.errors import ApprovalPending, InvalidRequest
 from agentos.core.models import ActionKind, Effect, LaneSpec
@@ -30,10 +31,9 @@ from agentos.pilot import service as pilot_service
 from agentos.pilot.deciders import BrainText, Text
 from agentos.pilot.hands import ToolFailed
 from agentos.pilot.service import PilotService, Settings
-from agentos.pilot.testing import step
 from agentos.pilot.tools import lane_do
 from agentos.runner import tools as runner_tools
-from agentos.runner.executor import Journal
+from agentos.runner.execution import Journal
 from agentos.runner.fakes import BASE
 
 # the owner's choice the review tested: commit left out of the list, everything else kept

@@ -11,10 +11,9 @@ from channel_support import wait_for
 from test_channel_node import invoke_body
 from test_lanes import make
 
-from agentos.core.errors import AgentPaused, HumanInControl, LaneBusy
+from agentos.core.errors import AgentPaused, Frozen, HumanInControl, LaneBusy
 from agentos.core.models import LaneSpec
 from agentos.core.tools import gate_kind, in_person
-from agentos.freeze.errors import Frozen
 from agentos.node import egress
 from agentos.node.claims import Holder
 from agentos.node.tools import caller, check_control, control_stop

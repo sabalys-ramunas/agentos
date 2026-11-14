@@ -1,0 +1,104 @@
+{
+ "bare, args hidden": {
+  "ok": "<li class=\"step\" id=\"s3\"><div class=\"head\"><span class=\"time\">12:00:00</span><span class=\"tag\">Done</span><span class=\"n\">Step 3 (seq 7)</span></div><h2>Did something on element None</h2><dl></dl></li>"
+ },
+ "bare, args shown": {
+  "ok": "<li class=\"step\" id=\"s3\"><div class=\"head\"><span class=\"time\">12:00:00</span><span class=\"tag\">Done</span><span class=\"n\">Step 3 (seq 7)</span></div><h2>Did something on element None</h2><dl></dl></li>"
+ },
+ "unknown status, args hidden": {
+  "ok": "<li class=\"step\" id=\"s3\"><div class=\"head\"><span class=\"time\">12:00:00</span><span class=\"tag\">weird</span><span class=\"tag e-mystery\">mystery</span><span class=\"n\">Step 3 (seq 7)</span></div><h2>Did something on element None</h2><dl></dl></li>"
+ },
+ "unknown status, args shown": {
+  "ok": "<li class=\"step\" id=\"s3\"><div class=\"head\"><span class=\"time\">12:00:00</span><span class=\"tag\">weird</span><span class=\"tag e-mystery\">mystery</span><span class=\"n\">Step 3 (seq 7)</span></div><h2>Did something on element None</h2><dl></dl></li>"
+ },
+ "no status, args hidden": {
+  "ok": "<li class=\"step\" id=\"s3\"><div class=\"head\"><span class=\"time\">12:00:00</span><span class=\"tag\"></span><span class=\"n\">Step 3 (seq 7)</span></div><h2>Did something on element None</h2><dl></dl></li>"
+ },
+ "no status, args shown": {
+  "ok": "<li class=\"step\" id=\"s3\"><div class=\"head\"><span class=\"time\">12:00:00</span><span class=\"tag\"></span><span class=\"n\">Step 3 (seq 7)</span></div><h2>Did something on element None</h2><dl></dl></li>"
+ },
+ "commit with everything, args hidden": {
+  "ok": "<li class=\"step\" id=\"s3\"><div class=\"head\"><span class=\"time\">12:00:00</span><span class=\"tag\">Done</span><span class=\"tag e-commit\">Commit</span><span class=\"tag bad\">After untrusted text</span><span class=\"n\">Step 3 (seq 7)</span></div><h2>Did something on element None</h2><dl><dt>Result</dt><dd>posted https://x.example/p?[left out]</dd><dt>Error</dt><dd><span class=\"warn\">late?q=1</span></dd><dt>By</dt><dd>claude-code</dd><dt>Allowed by</dt><dd>the poster</dd><dt>Untrusted text</dt><dd>This step came after the agent read an email. Text on a page can carry instructions, so check it was what you wanted.</dd><dt>Run</dt><dd>biz.post: done<br>Proof of done: https://x.example/p/1?[left out]</dd><dt>Page after</dt><dd>https://x.example/after?[left out]<br>TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT...</dd><dt>Took</dt><dd>1.5 s</dd></dl><p class=\"muted\">A screenshot was kept for this step and left out of this file.</p><ul class=\"ev\"><li>12:00:00 asked https://x.example/?[left out]</li></ul><p class=\"muted\">Arguments (names only, their values are left out): text, on</p></li>"
+ },
+ "commit with everything, args shown": {
+  "ok": "<li class=\"step\" id=\"s3\"><div class=\"head\"><span class=\"time\">12:00:00</span><span class=\"tag\">Done</span><span class=\"tag e-commit\">Commit</span><span class=\"tag bad\">After untrusted text</span><span class=\"n\">Step 3 (seq 7)</span></div><h2>Did something on element None</h2><dl><dt>Result</dt><dd>posted https://x.example/p?token=abc</dd><dt>Error</dt><dd><span class=\"warn\">late?q=1</span></dd><dt>By</dt><dd>claude-code</dd><dt>Allowed by</dt><dd>the poster</dd><dt>Untrusted text</dt><dd>This step came after the agent read an email. Text on a page can carry instructions, so check it was what you wanted.</dd><dt>Run</dt><dd>biz.post: done<br>Proof of done: https://x.example/p/1?s=2</dd><dt>Page after</dt><dd>https://x.example/after?x=yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy...<br>TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT...</dd><dt>Took</dt><dd>1.5 s</dd></dl><p class=\"muted\">A screenshot was kept for this step and left out of this file.</p><ul class=\"ev\"><li>12:00:00 asked https://x.example/?a=1</li></ul><details><summary>Arguments (redacted when they were written)</summary><pre>{\n &quot;text&quot;: &quot;hello&quot;,\n &quot;on&quot;: &quot;biz-a/x&quot;\n}</pre></details></li>"
+ },
+ "grant with no label, args hidden": {
+  "ok": "<li class=\"step\" id=\"s3\"><div class=\"head\"><span class=\"time\">12:00:00</span><span class=\"tag\">Done</span><span class=\"n\">Step 3 (seq 7)</span></div><h2>Did something on element None</h2><dl><dt>Allowed by</dt><dd>a grant (its label is not on this node)</dd></dl></li>"
+ },
+ "grant with no label, args shown": {
+  "ok": "<li class=\"step\" id=\"s3\"><div class=\"head\"><span class=\"time\">12:00:00</span><span class=\"tag\">Done</span><span class=\"n\">Step 3 (seq 7)</span></div><h2>Did something on element None</h2><dl><dt>Allowed by</dt><dd>a grant (its label is not on this node)</dd></dl></li>"
+ },
+ "tampered, args hidden": {
+  "ok": "<li class=\"step\" id=\"s3\"><div class=\"head\"><span class=\"time\">12:00:00</span><span class=\"tag\">Done</span><span class=\"tag bad\">Changed after it was written</span><span class=\"n\">Step 3 (seq 7)</span></div><h2>Did something on element None</h2><dl></dl></li>"
+ },
+ "tampered, args shown": {
+  "ok": "<li class=\"step\" id=\"s3\"><div class=\"head\"><span class=\"time\">12:00:00</span><span class=\"tag\">Done</span><span class=\"tag bad\">Changed after it was written</span><span class=\"n\">Step 3 (seq 7)</span></div><h2>Did something on element None</h2><dl></dl></li>"
+ },
+ "run without proof or flow, args hidden": {
+  "ok": "<li class=\"step\" id=\"s3\"><div class=\"head\"><span class=\"time\">12:00:00</span><span class=\"tag\">Done</span><span class=\"n\">Step 3 (seq 7)</span></div><h2>Did something on element None</h2><dl><dt>Run</dt><dd>run_2: failed</dd></dl></li>"
+ },
+ "run without proof or flow, args shown": {
+  "ok": "<li class=\"step\" id=\"s3\"><div class=\"head\"><span class=\"time\">12:00:00</span><span class=\"tag\">Done</span><span class=\"n\">Step 3 (seq 7)</span></div><h2>Did something on element None</h2><dl><dt>Run</dt><dd>run_2: failed</dd></dl></li>"
+ },
+ "capture without url, args hidden": {
+  "ok": "<li class=\"step\" id=\"s3\"><div class=\"head\"><span class=\"time\">12:00:00</span><span class=\"tag\">Done</span><span class=\"n\">Step 3 (seq 7)</span></div><h2>Did something on element None</h2><dl></dl><p class=\"muted\">A screenshot was kept for this step and left out of this file.</p></li>"
+ },
+ "capture without url, args shown": {
+  "ok": "<li class=\"step\" id=\"s3\"><div class=\"head\"><span class=\"time\">12:00:00</span><span class=\"tag\">Done</span><span class=\"n\">Step 3 (seq 7)</span></div><h2>Did something on element None</h2><dl></dl><p class=\"muted\">A screenshot was kept for this step and left out of this file.</p></li>"
+ },
+ "capture without title, args hidden": {
+  "ok": "<li class=\"step\" id=\"s3\"><div class=\"head\"><span class=\"time\">12:00:00</span><span class=\"tag\">Done</span><span class=\"n\">Step 3 (seq 7)</span></div><h2>Did something on element None</h2><dl><dt>Page after</dt><dd>https://x.example/a</dd></dl><p class=\"muted\">A screenshot was kept for this step and left out of this file.</p></li>"
+ },
+ "capture without title, args shown": {
+  "ok": "<li class=\"step\" id=\"s3\"><div class=\"head\"><span class=\"time\">12:00:00</span><span class=\"tag\">Done</span><span class=\"n\">Step 3 (seq 7)</span></div><h2>Did something on element None</h2><dl><dt>Page after</dt><dd>https://x.example/a</dd></dl><p class=\"muted\">A screenshot was kept for this step and left out of this file.</p></li>"
+ },
+ "fast, args hidden": {
+  "ok": "<li class=\"step\" id=\"s3\"><div class=\"head\"><span class=\"time\">12:00:00</span><span class=\"tag\">Done</span><span class=\"n\">Step 3 (seq 7)</span></div><h2>Did something on element None</h2><dl><dt>Took</dt><dd>999 ms</dd></dl></li>"
+ },
+ "fast, args shown": {
+  "ok": "<li class=\"step\" id=\"s3\"><div class=\"head\"><span class=\"time\">12:00:00</span><span class=\"tag\">Done</span><span class=\"n\">Step 3 (seq 7)</span></div><h2>Did something on element None</h2><dl><dt>Took</dt><dd>999 ms</dd></dl></li>"
+ },
+ "zero duration, args hidden": {
+  "ok": "<li class=\"step\" id=\"s3\"><div class=\"head\"><span class=\"time\">12:00:00</span><span class=\"tag\">Done</span><span class=\"n\">Step 3 (seq 7)</span></div><h2>Did something on element None</h2><dl><dt>Took</dt><dd>0 ms</dd></dl></li>"
+ },
+ "zero duration, args shown": {
+  "ok": "<li class=\"step\" id=\"s3\"><div class=\"head\"><span class=\"time\">12:00:00</span><span class=\"tag\">Done</span><span class=\"n\">Step 3 (seq 7)</span></div><h2>Did something on element None</h2><dl><dt>Took</dt><dd>0 ms</dd></dl></li>"
+ },
+ "args empty dict, args hidden": {
+  "ok": "<li class=\"step\" id=\"s3\"><div class=\"head\"><span class=\"time\">12:00:00</span><span class=\"tag\">Done</span><span class=\"n\">Step 3 (seq 7)</span></div><h2>Did something on element None</h2><dl></dl></li>"
+ },
+ "args empty dict, args shown": {
+  "ok": "<li class=\"step\" id=\"s3\"><div class=\"head\"><span class=\"time\">12:00:00</span><span class=\"tag\">Done</span><span class=\"n\">Step 3 (seq 7)</span></div><h2>Did something on element None</h2><dl></dl><details><summary>Arguments (redacted when they were written)</summary><pre>{}</pre></details></li>"
+ },
+ "args a list, args hidden": {
+  "ok": "<li class=\"step\" id=\"s3\"><div class=\"head\"><span class=\"time\">12:00:00</span><span class=\"tag\">Done</span><span class=\"n\">Step 3 (seq 7)</span></div><h2>Did something on element None</h2><dl></dl></li>"
+ },
+ "args a list, args shown": {
+  "ok": "<li class=\"step\" id=\"s3\"><div class=\"head\"><span class=\"time\">12:00:00</span><span class=\"tag\">Done</span><span class=\"n\">Step 3 (seq 7)</span></div><h2>Did something on element None</h2><dl></dl><details><summary>Arguments (redacted when they were written)</summary><pre>[\n 1,\n 2\n]</pre></details></li>"
+ },
+ "many args, args hidden": {
+  "ok": "<li class=\"step\" id=\"s3\"><div class=\"head\"><span class=\"time\">12:00:00</span><span class=\"tag\">Done</span><span class=\"n\">Step 3 (seq 7)</span></div><h2>Did something on element None</h2><dl></dl><p class=\"muted\">Arguments (names only, their values are left out): k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15, k16, k17, k18, k19, k20, k21, k22, k23, k24, k25, k26, k27, k28, k29</p></li>"
+ },
+ "many args, args shown": {
+  "ok": "<li class=\"step\" id=\"s3\"><div class=\"head\"><span class=\"time\">12:00:00</span><span class=\"tag\">Done</span><span class=\"n\">Step 3 (seq 7)</span></div><h2>Did something on element None</h2><dl></dl><details><summary>Arguments (redacted when they were written)</summary><pre>{\n &quot;k0&quot;: 0,\n &quot;k1&quot;: 1,\n &quot;k2&quot;: 2,\n &quot;k3&quot;: 3,\n &quot;k4&quot;: 4,\n &quot;k5&quot;: 5,\n &quot;k6&quot;: 6,\n &quot;k7&quot;: 7,\n &quot;k8&quot;: 8,\n &quot;k9&quot;: 9,\n &quot;k10&quot;: 10,\n &quot;k11&quot;: 11,\n &quot;k12&quot;: 12,\n &quot;k13&quot;: 13,\n &quot;k14&quot;: 14,\n &quot;k15&quot;: 15,\n &quot;k16&quot;: 16,\n &quot;k17&quot;: 17,\n &quot;k18&quot;: 18,\n &quot;k19&quot;: 19,\n &quot;k20&quot;: 20,\n &quot;k21&quot;: 21,\n &quot;k22&quot;: 22,\n &quot;k23&quot;: 23,\n &quot;k24&quot;: 24,\n &quot;k25&quot;: 25,\n &quot;k26&quot;: 26,\n &quot;k27&quot;: 27,\n &quot;k28&quot;: 28,\n &quot;k29&quot;: 29,\n &quot;k30&quot;: 30,\n &quot;k31&quot;: 31,\n &quot;k32&quot;: 32,\n &quot;k33&quot;: 33,\n &quot;k34&quot;: 34,\n &quot;k35&quot;: 35,\n &quot;k36&quot;: 36,\n &quot;k37&quot;: 37,\n &quot;k38&quot;: 38,\n &quot;k39&quot;: 39\n}</pre></details></li>"
+ },
+ "long args, args hidden": {
+  "ok": "<li class=\"step\" id=\"s3\"><div class=\"head\"><span class=\"time\">12:00:00</span><span class=\"tag\">Done</span><span class=\"n\">Step 3 (seq 7)</span></div><h2>Did something on element None</h2><dl></dl><p class=\"muted\">Arguments (names only, their values are left out): text</p></li>"
+ },
+ "long args, args shown": {
+  "ok": "<li class=\"step\" id=\"s3\"><div class=\"head\"><span class=\"time\">12:00:00</span><span class=\"tag\">Done</span><span class=\"n\">Step 3 (seq 7)</span></div><h2>Did something on element None</h2><dl></dl><details><summary>Arguments (redacted when they were written)</summary><pre>{\n &quot;text&quot;: &quot;zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz...</pre></details></li>"
+ },
+ "many events, args hidden": {
+  "ok": "<li class=\"step\" id=\"s3\"><div class=\"head\"><span class=\"time\">12:00:00</span><span class=\"tag\">Done</span><span class=\"n\">Step 3 (seq 7)</span></div><h2>Did something on element None</h2><dl></dl><ul class=\"ev\"><li>12:00:00 e0</li><li>12:00:00 e1</li><li>12:00:00 e2</li><li>12:00:00 e3</li><li>12:00:00 e4</li><li>12:00:00 e5</li><li>12:00:00 e6</li><li>12:00:00 e7</li><li>12:00:00 e8</li><li>12:00:00 e9</li><li>12:00:00 e10</li><li>12:00:00 e11</li><li>12:00:00 e12</li><li>12:00:00 e13</li><li>12:00:00 e14</li><li>12:00:00 e15</li><li>12:00:00 e16</li><li>12:00:00 e17</li><li>12:00:00 e18</li><li>12:00:00 e19</li></ul></li>"
+ },
+ "many events, args shown": {
+  "ok": "<li class=\"step\" id=\"s3\"><div class=\"head\"><span class=\"time\">12:00:00</span><span class=\"tag\">Done</span><span class=\"n\">Step 3 (seq 7)</span></div><h2>Did something on element None</h2><dl></dl><ul class=\"ev\"><li>12:00:00 e0</li><li>12:00:00 e1</li><li>12:00:00 e2</li><li>12:00:00 e3</li><li>12:00:00 e4</li><li>12:00:00 e5</li><li>12:00:00 e6</li><li>12:00:00 e7</li><li>12:00:00 e8</li><li>12:00:00 e9</li><li>12:00:00 e10</li><li>12:00:00 e11</li><li>12:00:00 e12</li><li>12:00:00 e13</li><li>12:00:00 e14</li><li>12:00:00 e15</li><li>12:00:00 e16</li><li>12:00:00 e17</li><li>12:00:00 e18</li><li>12:00:00 e19</li></ul></li>"
+ },
+ "html in text, args hidden": {
+  "ok": "<li class=\"step\" id=\"s3\"><div class=\"head\"><span class=\"time\">12:00:00</span><span class=\"tag\">Done</span><span class=\"n\">Step 3 (seq 7)</span></div><h2>Did something on element None</h2><dl><dt>Result</dt><dd>&lt;script&gt;alert(1)&lt;/script&gt;</dd><dt>By</dt><dd>&lt;b&gt;me&lt;/b&gt;</dd></dl></li>"
+ },
+ "html in text, args shown": {
+  "ok": "<li class=\"step\" id=\"s3\"><div class=\"head\"><span class=\"time\">12:00:00</span><span class=\"tag\">Done</span><span class=\"n\">Step 3 (seq 7)</span></div><h2>Did something on element None</h2><dl><dt>Result</dt><dd>&lt;script&gt;alert(1)&lt;/script&gt;</dd><dt>By</dt><dd>&lt;b&gt;me&lt;/b&gt;</dd></dl></li>"
+ }
+}

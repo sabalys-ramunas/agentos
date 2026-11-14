@@ -488,33 +488,60 @@ def check(goal: str, target: Target | None, page: Page, element: Element | None,
     if element is None:
         return None
     if element.box is None:
-        named = anchors_of(goal, target, entered)
-        absent = [a for a in named if not _on_page(a, page)]
-        if absent:
-            return {"anchored": False, "by": f"the page does not hold the {absent[0].kind} {absent[0].value!r} "
-                                             f"the {absent[0].source} names"}
-        inner = next((a for a in named if not (a.kind == "permalink" and _same_link(a.value, page.url))
-                      and any(_held(a, i, page) or (a.kind == "permalink" and any(_same_link(a.value, h)
-                                                                                 for h in page.boxes[i].hrefs))
-                              for i in range(len(page.boxes)))), None)
-        if inner:  # what is named sits in an item, and the control acted on sits in none
-            return {"anchored": False, "by": f"the {inner.kind} {inner.value!r} the {inner.source} names is in an "
-                                             "item the control acted on does not sit in"}
-        part = _part(named, [_page_box(page)])
-        if part:
-            return _partial(part)
-        unsure = _unsure(named, -1, _page_box(page), page)
-        if unsure:
-            return unsure
-        if not _alike(element, page):
-            return None
-        return {"anchored": False, "by": "the page holds another control like this one and no post around "
-                                         "either, so nothing tells them apart"}
+        return _check_outside_items(goal, target, page, element, entered)
     index = element.box
     if _alike(element, page, index):
         return {"anchored": False, "by": "the item acted on holds another control like this one, so nothing "
                                          "tells which of the two the request meant"}
-    kind = _kind(goal)
+    nesting = _wrong_level(_kind(goal), page, element, index)
+    if nesting:
+        return nesting
+    anchors = anchors_of(goal, target, entered)
+    blurred = _blurred_around(anchors, index, page)
+    if blurred:
+        return blurred
+    others = [i for i in range(len(page.boxes)) if i != index]
+    deeper = _inside(goal, index, page)
+    if anchors:
+        return _check_anchors(goal, anchors, page, element, index, others, deeper)
+    if deeper:
+        return _named_deeper(deeper)
+    word = _unique_word(goal, index, others, page)
+    if word:
+        return {"anchored": True, "by": f"only the item acted on holds the goal's word {word!r}"}
+    return {"anchored": False, "by": "nothing the goal names tells the item acted on apart from the others "
+                                     "on the page: pass target to name it"}
+
+
+def _check_outside_items(goal: str, target: Target | None, page: Page, element: Element,
+                         entered: tuple[str, ...]) -> dict[str, Any] | None:
+    """check() for a control that sits in no item: what is named must be on the page and in no item."""
+    named = anchors_of(goal, target, entered)
+    absent = [a for a in named if not _on_page(a, page)]
+    if absent:
+        return {"anchored": False, "by": f"the page does not hold the {absent[0].kind} {absent[0].value!r} "
+                                         f"the {absent[0].source} names"}
+    inner = next((a for a in named if not (a.kind == "permalink" and _same_link(a.value, page.url))
+                  and any(_held(a, i, page) or (a.kind == "permalink" and any(_same_link(a.value, h)
+                                                                             for h in page.boxes[i].hrefs))
+                          for i in range(len(page.boxes)))), None)
+    if inner:  # what is named sits in an item, and the control acted on sits in none
+        return {"anchored": False, "by": f"the {inner.kind} {inner.value!r} the {inner.source} names is in an "
+                                         "item the control acted on does not sit in"}
+    part = _part(named, [_page_box(page)])
+    if part:
+        return _partial(part)
+    unsure = _unsure(named, -1, _page_box(page), page)
+    if unsure:
+        return unsure
+    if not _alike(element, page):
+        return None
+    return {"anchored": False, "by": "the page holds another control like this one and no post around "
+                                     "either, so nothing tells them apart"}
+
+
+def _wrong_level(kind: str | None, page: Page, element: Element, index: int) -> dict[str, Any] | None:
+    """The goal names a post, a comment or a reply, and the item acted on may sit at another level."""
     box = page.boxes[index]
     if kind in ("comment", "reply") and box.level == 0 and box.role not in ("comment", "treeitem"):
         return {"anchored": False, "by": f"the goal names a {kind}, and the item acted on sits in no other item, "
@@ -532,7 +559,12 @@ def check(goal: str, target: Target | None, page: Page, element: Element | None,
     if kind == "reply" and any(page.within(i, index) for i in range(len(page.boxes))):
         return {"anchored": False, "by": "the goal names a reply, and the item acted on has replies under it, "
                                          "so it may be the comment they answer: pass target to name it"}
-    anchors = anchors_of(goal, target, entered)
+    return None
+
+
+def _blurred_around(anchors: list[Anchor], index: int, page: Page) -> dict[str, Any] | None:
+    """The item acted on, or the only items around it that hold an anchor, are blurred (a reshare)."""
+    box = page.boxes[index]
     # a reshare whose quote is plain rows: only the post's own page, where it is the first post, tells
     first = next((i for i, b in enumerate(page.boxes) if b.level == 0 and b.role == box.role), None)
     own = index == first and _post_link(page.url, page) is not None and any(
@@ -544,57 +576,63 @@ def check(goal: str, target: Target | None, page: Page, element: Element | None,
         holders = [i for i in page.ancestors(index) if _held(a, i, page)]
         if holders and not _held(a, index, page) and all(blur(i, page) for i in holders):
             return _blurred(blur(holders[0], page) or "")
-    others = [i for i in range(len(page.boxes)) if i != index]
-    deeper = _inside(goal, index, page)
-    if anchors:
-        missed = [a for a in anchors if not _around(a, index, page)]
-        named = ", ".join(f"{a.kind} {a.value!r}" for a in anchors)
-        if missed:
-            return {"anchored": False, "by": f"the item acted on does not hold the {missed[0].kind} "
-                                             f"{missed[0].value!r} the {missed[0].source} names"}
-        if not any(_held(a, index, page) for a in anchors):
-            return {"anchored": False, "by": f"only an item around the one acted on holds the {named} the "
-                                             "request names, not the item itself"}
-        loose = next((a for a in anchors if a.own and not _held(a, index, page)), None)
-        if loose:  # every target field, and the author the goal names for the item itself, are the item's own
-            return {"anchored": False, "by": f"the {loose.source} names the {loose.kind} {loose.value!r} for the item "
-                                             "acted on itself, and only an item around it holds that"}
-        if deeper:
-            return {"anchored": False, "by": f"the goal's word {deeper!r} is in an item inside the one acted on, "
-                                             "so the request names that item"}
-        part = _part(anchors, [page.boxes[i] for i in (index, *page.ancestors(index))])
-        if part:
-            return _partial(part)
-        unsure = _unsure(anchors, index, box, page)
-        if unsure:
-            return unsure
-        # an item matched only because the page is the link's own page could be any item on it (a
-        # feed's address names no post): then every item beside it is a rival
-        by_page = any(a.kind == "permalink" and not any(_same_link(a.value, h) for h in _own_hrefs(box))
-                      for a in anchors)
-        if by_page and any(e.box is None and e.role == element.role and _bare(e.name) == _bare(element.name)
-                           for e in page.elements):
-            return {"anchored": False, "by": "the page's own address names the item, but a control like this one "
-                                             "sits outside every item, so the post itself may be that one"}
-        # a rival holds what is named as the acted item does: a quote as a whole line
-        rivals = [i for i in others if (by_page and page.boxes[i].role == box.role) or _fits(anchors, i, page, True)]
-        if not rivals:
-            return {"anchored": True, "by": f"the item acted on holds the {named} the request names"}
-        names = frozenset(w for a in anchors if a.kind == "author" and _handle(a.value) is None for w in _words(a.value))
-        word = _unique_word(goal, index, rivals, page, names)
-        if word:
-            return {"anchored": True, "by": f"the item acted on holds the {named} the request names, and only it "
-                                            f"holds the goal's word {word!r}"}
-        return {"anchored": False, "by": f"other items on the page hold the {named} too, and nothing in the "
-                                         "goal tells the one acted on apart: pass target to name it"}
-    if deeper:
-        return {"anchored": False, "by": f"the goal's word {deeper!r} is in an item inside the one acted on, "
-                                         "so the request names that item"}
-    word = _unique_word(goal, index, others, page)
+    return None
+
+
+def _named_deeper(deeper: str) -> dict[str, Any]:
+    return {"anchored": False, "by": f"the goal's word {deeper!r} is in an item inside the one acted on, "
+                                     "so the request names that item"}
+
+
+def _check_anchors(goal: str, anchors: list[Anchor], page: Page, element: Element, index: int,
+                   others: list[int], deeper: str | None) -> dict[str, Any]:
+    """check() when the request names anchors: the item must hold them, then no rival may."""
+    box = page.boxes[index]
+    named = ", ".join(f"{a.kind} {a.value!r}" for a in anchors)
+    not_held = _anchors_not_held(anchors, page, index, named, deeper)
+    if not_held:
+        return not_held
+    # an item matched only because the page is the link's own page could be any item on it (a
+    # feed's address names no post): then every item beside it is a rival
+    by_page = any(a.kind == "permalink" and not any(_same_link(a.value, h) for h in _own_hrefs(box))
+                  for a in anchors)
+    if by_page and any(e.box is None and e.role == element.role and _bare(e.name) == _bare(element.name)
+                       for e in page.elements):
+        return {"anchored": False, "by": "the page's own address names the item, but a control like this one "
+                                         "sits outside every item, so the post itself may be that one"}
+    # a rival holds what is named as the acted item does: a quote as a whole line
+    rivals = [i for i in others if (by_page and page.boxes[i].role == box.role) or _fits(anchors, i, page, True)]
+    if not rivals:
+        return {"anchored": True, "by": f"the item acted on holds the {named} the request names"}
+    names = frozenset(w for a in anchors if a.kind == "author" and _handle(a.value) is None for w in _words(a.value))
+    word = _unique_word(goal, index, rivals, page, names)
     if word:
-        return {"anchored": True, "by": f"only the item acted on holds the goal's word {word!r}"}
-    return {"anchored": False, "by": "nothing the goal names tells the item acted on apart from the others "
-                                     "on the page: pass target to name it"}
+        return {"anchored": True, "by": f"the item acted on holds the {named} the request names, and only it "
+                                        f"holds the goal's word {word!r}"}
+    return {"anchored": False, "by": f"other items on the page hold the {named} too, and nothing in the "
+                                     "goal tells the one acted on apart: pass target to name it"}
+
+
+def _anchors_not_held(anchors: list[Anchor], page: Page, index: int, named: str,
+                      deeper: str | None) -> dict[str, Any] | None:
+    """Why the item acted on does not hold what the request names, or None when it does."""
+    missed = [a for a in anchors if not _around(a, index, page)]
+    if missed:
+        return {"anchored": False, "by": f"the item acted on does not hold the {missed[0].kind} "
+                                         f"{missed[0].value!r} the {missed[0].source} names"}
+    if not any(_held(a, index, page) for a in anchors):
+        return {"anchored": False, "by": f"only an item around the one acted on holds the {named} the "
+                                         "request names, not the item itself"}
+    loose = next((a for a in anchors if a.own and not _held(a, index, page)), None)
+    if loose:  # every target field, and the author the goal names for the item itself, are the item's own
+        return {"anchored": False, "by": f"the {loose.source} names the {loose.kind} {loose.value!r} for the item "
+                                         "acted on itself, and only an item around it holds that"}
+    if deeper:
+        return _named_deeper(deeper)
+    part = _part(anchors, [page.boxes[i] for i in (index, *page.ancestors(index))])
+    if part:
+        return _partial(part)
+    return _unsure(anchors, index, page.boxes[index], page) or None
 
 
 def _unique_word(goal: str, index: int, others: list[int], page: Page,

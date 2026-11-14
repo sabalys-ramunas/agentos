@@ -19,11 +19,12 @@ from test_api_members import owner, pending
 from test_node_panel import TOKEN, Node, _ask, bearer
 
 from agentos.api.access import Access, PolicyAccess
-from agentos.api.auth import PRESENCE_HEADER, SESSION_COOKIE, RateLimiter
+from agentos.api.auth import PRESENCE_HEADER, SESSION_COOKIE
 from agentos.api.errors import ApiError
+from agentos.core import globs
 from agentos.core.presence import Presence
+from agentos.core.ratelimit import RateLimiter
 from agentos.core.tools import gate_kind, in_person
-from agentos.policy import globs
 from agentos.policy.confirm import ConfirmLevel, arrival
 from agentos.policy.confirmation import ConfirmationConfig
 
@@ -196,7 +197,8 @@ def test_a_standing_approval_is_made_only_from_approved_approvals_on_its_own_lan
 
 def test_a_member_never_makes_a_standing_approval_from_what_four_eyes_keeps_from_them(node):
     """A member standing in for their own agent's approval: decision_problem holds for each one."""
-    from agentos.policy.approvals import ApprovalPolicy, ApprovalStore, FourEyesRule
+    from agentos.policy.approval_models import ApprovalPolicy, FourEyesRule
+    from agentos.policy.approvals import ApprovalStore
     from agentos.policy.errors import Denied
 
     store: ApprovalStore = node.policy.approvals
@@ -332,7 +334,8 @@ def test_the_bare_node_token_api_gives_an_owner_link_and_sites_only_to_the_nodes
     from agentos.api.auth import PanelStore
     from agentos.core.config import NodeConfig
     from agentos.core.models import LaneSpec
-    from agentos.node.viewer_app import ViewTokens, control_api_routes
+    from agentos.node.viewer_routes import control_api_routes
+    from agentos.node.viewer_tokens import ViewTokens
 
     config = NodeConfig(home=tmp_path / "home", mcp_token=TOKEN)
     lanes = FakeLaneManager(config)

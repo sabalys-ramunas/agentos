@@ -52,8 +52,9 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from agentos.core import clock
+from agentos.core.layout import LaneDir, adopt_owner, fsync_dir, lane_dirs, write_private_json
 from agentos.core.proc import pid_alive
-from agentos.ops.layout import LaneDir, adopt_owner, fsync_dir, lane_dirs, write_private_json
 
 FORMAT_NAME = "lane-format.json"
 LOCK_NAME = ".lane-format.lock"
@@ -84,10 +85,6 @@ class LaneFormatError(Exception):
 
 class NewerLaneFormat(LaneFormatError):
     """A lane was written by a newer agentos than this one."""
-
-
-class LaneInUse(LaneFormatError):
-    """The lane is warm (or a browser has its profile), so it is not migrated now."""
 
 
 @dataclass
@@ -391,10 +388,6 @@ def lane_status(home: Path, *, migrations: tuple[LaneMigration, ...] = LANE_MIGR
     return out
 
 
-def _stamp(now: datetime | None = None) -> str:
-    return (now or datetime.now(UTC)).strftime("%Y%m%dT%H%M%S%fZ")
-
-
 def backup_root(home: Path) -> Path:
     return Path(home).joinpath(*BACKUP_ROOT)
 
@@ -447,7 +440,7 @@ def migrate_lanes(home: Path, *, migrations: tuple[LaneMigration, ...] = LANE_MI
                 for d in (root.parent, root):
                     d.mkdir(exist_ok=True)
                     d.chmod(0o700)
-                run_dir = root / _stamp(now)
+                run_dir = root / clock.stamp(now)
                 run_dir.mkdir(mode=0o700)
                 result.backup_dir = run_dir
             dest = run_dir / lane_id

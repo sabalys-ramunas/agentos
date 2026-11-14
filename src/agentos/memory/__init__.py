@@ -8,8 +8,9 @@ each version's trust and labels and serves them back with the data. Runtime serv
     ctx.taint(*read.taint)                        # already added through the policy port
 """
 
+from agentos.memory.common import MemoryRead, WritePlan
 from agentos.memory.models import Caller, EntryType, Limits, MemoryScope, Trust, WriteRequest
-from agentos.memory.service import SERVICE_NAME, MemoryRead, MemoryService, WritePlan, build
+from agentos.memory.service import SERVICE_NAME, MemoryService, build
 
 __all__ = [
     "SERVICE_NAME",

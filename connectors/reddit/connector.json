@@ -295,7 +295,7 @@
     },
     "comment": {
       "title": "Comment on a post",
-      "description": "Not verified yet: written from the notes of the 2026-11-04 canary, not recorded, so the engagement engine holds it until a canary on a throwaway account passes (docs/design/connectors.md 4.13). Notes the account's newest comment on the post first (its own comments page), then opens the post as the bound account, types the comment into the post's composer, presses Comment and waits for the composer to clear (Reddit runs an invisible reCAPTCHA before it sends, so the request lags the click). Proved on the account's own comments page, as the canary did (a 0-karma account's comment can be missing from the thread itself): the newest comment on that post is a new one (not the one noted before the run) and its text is exactly the text. Its permalink is the output.",
+      "description": "Not verified yet: written from the notes of the 2026-11-04 canary, not recorded, so it stays unverified until a canary on a throwaway account passes (docs/design/connectors.md 4.13). Notes the account's newest comment on the post first (its own comments page), then opens the post as the bound account, types the comment into the post's composer, presses Comment and waits for the composer to clear (Reddit runs an invisible reCAPTCHA before it sends, so the request lags the click). Proved on the account's own comments page, as the canary did (a 0-karma account's comment can be missing from the thread itself): the newest comment on that post is a new one (not the one noted before the run) and its text is exactly the text. Its permalink is the output.",
       "effect": "commit",
       "input": {
         "type": "object",
@@ -589,7 +589,7 @@
     },
     "join": {
       "title": "Join a subreddit",
-      "description": "Not verified yet: written from the notes of the 2026-11-04 canary, not recorded, so the engagement engine holds it until a canary on a throwaway account passes (docs/design/connectors.md 4.13). Opens the subreddit as the bound account and presses Join. The preflight refuses when the subreddit already shows Joined, because pressing that button leaves. Proved as the canary did: after a reload the subreddit shows Joined.",
+      "description": "Not verified yet: written from the notes of the 2026-11-04 canary, not recorded, so it stays unverified until a canary on a throwaway account passes (docs/design/connectors.md 4.13). Opens the subreddit as the bound account and presses Join. The preflight refuses when the subreddit already shows Joined, because pressing that button leaves. Proved as the canary did: after a reload the subreddit shows Joined.",
       "effect": "commit",
       "input": {
         "type": "object",

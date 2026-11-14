@@ -32,12 +32,10 @@ from agentos.api.errors import ApiError
 from agentos.api.routes_core import OUT_OF_SCOPE, lane_id_from
 from agentos.core.errors import InvalidRequest
 from agentos.core.presence import NEEDS_A_PERSON
-from agentos.vault.secret import Secret
+from agentos.node.login_assist import read_values
 
 NOT_YOURS = ("Only the owner logs a lane in (the panel or the node's CLI), or a member whose role may take "
              "control of it. An agent's grant never can: agents ask with lane_login_request.")
-VALUE_NAMES = ("username", "password", "code")
-MAX_VALUE = 1024
 MAX_WAIT = 30
 
 
@@ -69,22 +67,6 @@ def login_lane(request: Request, action: str) -> tuple[str, str]:
         access.trace(action, status="denied", lane=lane_id, summary="the owner's token, not in person")
         raise ApiError("presence_required", NEEDS_A_PERSON)
     return lane_id, "owner"
-
-
-def read_values(raw: Any) -> dict[str, Secret]:
-    """{name: Secret} from the body's "values". Messages name the field, never its content."""
-    if raw is None:
-        return {}
-    if not isinstance(raw, dict) or len(raw) > len(VALUE_NAMES):
-        raise InvalidRequest('values is an object like {"username": "...", "password": "..."}.')
-    out: dict[str, Secret] = {}
-    for name, value in raw.items():
-        if name not in VALUE_NAMES:
-            raise InvalidRequest(f"values may name {', '.join(VALUE_NAMES)}.")
-        if not isinstance(value, str) or not value or len(value) > MAX_VALUE:
-            raise InvalidRequest(f"The {name} must be text of 1 to {MAX_VALUE} characters.")
-        out[name] = Secret(value)
-    return out
 
 
 def routes(api: Api) -> list[Route]:

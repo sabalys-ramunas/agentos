@@ -1,22 +1,35 @@
 # One command for what CI checks. `make check` before every push.
 
-.PHONY: check merge-check lint shell test panel emdash typecheck audit tools-doc errors-doc protocol-doc golden bench export-check
+.PHONY: check merge-check lint layers complexity deadcode shell test emdash typecheck audit tools-doc errors-doc protocol-doc golden bench export-check
 
-check: lint shell emdash typecheck test panel
+check: lint deadcode shell emdash typecheck test
 
 # After merging a builder branch: the cheap checks that catch two branches meeting (the route
-# matrices, the tool reference, the panel's typed maps), without the whole suite.
-merge-check: lint shell emdash
+# matrices, the tool reference, the error catalog), without the whole suite.
+merge-check: lint deadcode shell emdash
 	uv run pytest -q tests/unit/test_node_panel.py tests/unit/test_api_members.py tests/unit/test_registry.py tests/unit/test_config_example.py tests/unit/test_error_catalog.py
 	@uv run agentos tools --markdown | diff -q - docs/TOOLS.md >/dev/null || { echo "docs/TOOLS.md is stale: make tools-doc"; exit 1; }
 	@uv run agentos errors --markdown | diff -q - docs/ERRORS.md >/dev/null || { echo "docs/ERRORS.md is stale: make errors-doc"; exit 1; }
 	@uv run python scripts/protocol_doc.py --check
-	@if [ -f scripts/publish_cards.py ]; then uv run python scripts/publish_cards.py --check; fi
-	@if [ -d panel/node_modules ]; then cd panel && npm run -s lint && npx tsc --noEmit -p . && npm test --silent; \
-	else echo "panel: run 'npm ci' in panel/ first (skipped)"; fi
 
-lint:
+lint: layers complexity
 	uv run ruff check src tests scripts
+
+# The layer order (scripts/layers.toml, docs/ARCHITECTURE.md "Layers"): no import goes up a layer, no
+# packages on one layer import each other in a circle, and the exceptions list only shrinks.
+layers:
+	@uv run python scripts/layers.py
+
+# Size limits (docs/DEVELOPING.md): no new function of complexity 25 or more, no new file over 1,000
+# lines, and the listed ones only shrink (scripts/complexity-allowlist.txt, file-length-allowlist.txt).
+complexity:
+	@uv run python scripts/complexity.py
+
+# Dead code: what vulture is sure nothing uses. scripts/vulture_whitelist.py names the few uses it
+# cannot see (framework hooks, names reached by string). A pinned uvx, so vulture stays out of uv.lock.
+VULTURE_VERSION ?= 2.16
+deadcode:
+	uvx --python 3.12 vulture==$(VULTURE_VERSION) src/agentos scripts/vulture_whitelist.py --min-confidence 80
 
 # mypy on the modules pyproject.toml's [tool.mypy] lists (its TODO says what comes next). A pinned
 # uvx, so mypy stays out of uv.lock.
@@ -39,18 +52,11 @@ shell:
 test:
 	uv run pytest -q
 
-panel:
-	@if [ -d panel/node_modules ]; then cd panel && npm run -s lint && npm test --silent && npm run -s build; \
-	else echo "panel: run 'npm ci' in panel/ first (skipped)"; fi
-
 # Em dashes are fine in comments, never in text a person reads (strings, docstrings, UI).
 emdash:
 	@if grep -rn "—" src --include='*.py' --include='*.html' --include='*.js' --include='*.css' \
 	    | grep -vE ':[0-9]+: *(#|//|/\*|\*)'; then \
 	  echo "em dash in user-facing text (above): use a period, comma, colon or parentheses"; exit 1; fi
-	@if grep -rn "—" panel/src --include='*.ts' --include='*.tsx' --include='*.css' --include='*.html' \
-	    | grep -vE ':[0-9]+: *(\*|//|/\*)'; then \
-	  echo "em dash in panel text (above)"; exit 1; fi
 	@if grep -rn "—" web/src --include='*.ts' --include='*.tsx' --include='*.css' --include='*.html' \
 	    | grep -vE ':[0-9]+: *(\*|//|/\*)'; then \
 	  echo "em dash in web text (above)"; exit 1; fi
@@ -59,11 +65,10 @@ emdash:
 tools-doc:
 	uv run agentos tools --markdown > docs/TOOLS.md
 
-# The error catalog's reference and the panel's code-to-fix map, generated from the error
-# classes and src/agentos/core/error_catalog.toml; CI fails when either is stale.
+# The error catalog's reference, generated from the error classes and
+# src/agentos/core/error_catalog.toml; CI fails when it is stale.
 errors-doc:
 	uv run agentos errors --markdown > docs/ERRORS.md
-	uv run agentos errors --panel-json > panel/src/api/errors.json
 
 # docs/PROTOCOL.md's message examples: record a real node and controller session into
 # tests/fixtures/protocol/messages.json, then render it into the doc; CI fails when it is stale.

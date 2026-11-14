@@ -12,22 +12,21 @@ import sqlite3
 from dataclasses import replace
 
 import pytest
-from test_engage_executor import OWNER
-from test_profiles import AGENT, Ctx, call, data
+from test_profiles import AGENT, OWNER, Ctx, call, data
 
+from agentos.core import migrate
 from agentos.core.errors import InvalidRequest, NotFound
 from agentos.core.models import Effect, Principal
 from agentos.core.runtime import Runtime
-from agentos.engage.errors import OwnerOnly
-from agentos.ops import migrate
 from agentos.profiles import mapping, tools
 from agentos.profiles.context import TOKENS_INLINE_CHARS, profile_diff
-from agentos.profiles.errors import ProfileInvalid, ProfileSecret
+from agentos.profiles.errors import OwnerOnly, ProfileInvalid, ProfileSecret
 from agentos.profiles.migrations import MIGRATIONS
 from agentos.profiles.models import Attachment, Profile, ProfileKind
 from agentos.profiles.service import ProfilesService, build, merge, parse_profile
 from agentos.profiles.store import ProfileStore
 from agentos.studio.contracts import ComponentRule, ThemeSwitch
+from agentos.studio.tool_inputs import brand_theme_switch, component_rules
 
 # A fake Stripe live key, put together at run time so the source holds nothing a secret scanner
 # (GitHub push protection) takes for a real one.
@@ -136,9 +135,9 @@ def test_a_product_with_a_brand_validates_and_normalizes_its_tokens():
     assert rooted.brand.tokens["accent"]["$root"]["$value"]["hex"] == "#000000"
     assert p.brand.widths == [360, 768, 1280] and p.brand.fonts[0].weights == [400, 600]
     assert p.check_rules() == {"contrast.text": 4.5, "target.size": 44}
-    assert p.brand.component_rules() == [ComponentRule(name="Button", attr="data-slot=button"),
+    assert component_rules(p.brand) == [ComponentRule(name="Button", attr="data-slot=button"),
                                          ComponentRule(name="Card", class_pattern="^card(-|$)")]
-    assert p.brand.theme_switch() == ThemeSwitch(how="attr", name="data-theme", light="light", dark="dark")
+    assert brand_theme_switch(p.brand) == ThemeSwitch(how="attr", name="data-theme", light="light", dark="dark")
 
 
 @pytest.mark.parametrize("tokens, words", [
@@ -237,7 +236,7 @@ def test_anything_that_looks_like_a_secret_is_refused_by_name(change):
 def test_the_new_kinds_never_sync_to_a_site():
     p = Profile.model_construct(**parse_profile(PRODUCT).__dict__)     # past the model's own refusal
     r = mapping.resolve(p, Attachment(surface="biz-a/instagram"))
-    assert r.values == {} and r.engine == [] and "not shown on social accounts" in r.problems[0]
+    assert r.values == {} and r.manual == [] and "not shown on social accounts" in r.problems[0]
     for kind in ("product", "reviewer", "audience"):
         p.kind = ProfileKind(kind)
         assert mapping.resolve(p, Attachment(surface="biz-a/linkedin")).values == {}

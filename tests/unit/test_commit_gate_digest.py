@@ -11,7 +11,7 @@ import pytest
 from agentos.core.errors import ApprovalPending, PublishUnbound
 from agentos.node import commitgate, publish
 from agentos.node.egress import EFFECT_RULES, Refusal
-from agentos.policy.approvals import content_digest
+from agentos.policy.approval_binding import content_digest
 
 RULES = {r.id: r for r in EFFECT_RULES}
 JSON = {"content-type": "application/json"}

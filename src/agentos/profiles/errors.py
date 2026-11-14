@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from agentos.core.errors import InvalidRequest
+from agentos.core.errors import InvalidRequest, PolicyDenied
 
 
 class ProfileInvalid(InvalidRequest):
@@ -18,4 +18,9 @@ class ProfileSecret(ProfileInvalid):
     code = "secret_in_profile"
 
 
-__all__ = ["ProfileInvalid", "ProfileSecret"]
+class OwnerOnly(PolicyDenied):
+    """Only the owner, in person, may do this: approve or reject a profile."""
+    code = "owner_only"
+
+
+__all__ = ["OwnerOnly", "ProfileInvalid", "ProfileSecret"]

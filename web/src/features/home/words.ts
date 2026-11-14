@@ -250,21 +250,6 @@ export function heroSentence(input: { needs: number; offline: string[]; accounts
   return { lead: 'All good.', rest: 'Nothing needs you.', tone: 'good' };
 }
 
-const NUMBER_WORDS = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
-
-/** "One is", "3 are": small counts as words at the start of a sentence. */
-export function countWord(count: number): string {
-  return NUMBER_WORDS[count] ?? String(count);
-}
-
-/** "Good morning, Demo". */
-export function greeting(name: string | undefined, now = new Date()): string {
-  const hour = now.getHours();
-  const part = hour < 5 ? 'Good evening' : hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
-  const first = name?.trim().split(/\s+/)[0];
-  return first ? `${part}, ${first}` : part;
-}
-
 /** Whose account it is, for a stand-in: the handle the site shows when known, else the workspace. */
 export function accountTitle(lane: Pick<Lane, 'account'>, workspaceName?: string | null): string | null {
   const id = lane.account?.user_id;

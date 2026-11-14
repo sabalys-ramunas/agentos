@@ -17,8 +17,8 @@ codes. What the catalog adds is the text, kept in error_catalog.toml next to thi
 
 The same entry reaches all three surfaces: MCP tool results (`fix:` and `retry_after:` lines
 under the `<code>: <message>` line), CLI errors (`error: <code>: <message>` plus a `fix:` line),
-and API error bodies (`{"error": {"code", "message", "fix"}}`). docs/ERRORS.md and the panel's
-panel/src/api/errors.json are generated from it (`agentos errors --markdown`, `--panel-json`).
+and API error bodies (`{"error": {"code", "message", "fix"}}`). docs/ERRORS.md is generated from it
+(`agentos errors --markdown`).
 
 Runs fail with codes too (`run.error.code`: wrong_surface, grant_expired, ...), set by the runner
 rather than raised as classes. `run_codes()` collects them from the runner's source: every
@@ -427,8 +427,3 @@ def markdown(found: Scan, catalog: dict[str, Entry] | None = None) -> str:
             lines.append(f"- **Runs fail with it in:** {', '.join(f'`{n}`' for n in runs)}")
     return "\n".join(lines) + "\n"
 
-
-def panel_json(catalog: dict[str, Entry] | None = None) -> dict[str, dict[str, Any]]:
-    """What the panel maps a code to: the meaning and the person's fix."""
-    catalog = entries() if catalog is None else catalog
-    return {code: {"meaning": item.meaning, "fix": item.fix} for code, item in sorted(catalog.items())}

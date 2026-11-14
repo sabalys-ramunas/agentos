@@ -304,7 +304,7 @@ def test_two_lanes_on_one_device_launch_with_identical_fingerprints_and_their_ow
     pytest.importorskip("camoufox.fingerprints")
     from test_lanes_pin import FakeCamoufox, FakeGeo
 
-    from agentos.node import engine_camoufox as ec
+    from agentos.node.camoufox import engine as ec
 
     running: dict = {}
     monkeypatch.setattr(ec, "read_browser_config", lambda pid: running["config"])
@@ -585,7 +585,7 @@ async def test_a_lane_joining_a_device_waits_for_a_first_launch_on_it(tmp_path):
 
 
 def test_the_engine_never_writes_a_first_pin_over_one_written_meanwhile(tmp_path):
-    from agentos.node import engine_camoufox as ec
+    from agentos.node.camoufox import engine as ec
 
     path = tmp_path / "fingerprint.json"
     ec.write_private_json(path, {"a": 1}, exclusive=True)
@@ -600,7 +600,7 @@ def test_a_first_launch_whose_pin_appeared_meanwhile_fails_instead_of_overwritin
     from test_lanes_pin import FakeCamoufox, FakeGeo
 
     from agentos.core.errors import EngineError
-    from agentos.node import engine_camoufox as ec
+    from agentos.node.camoufox import engine as ec
 
     running: dict = {}
     monkeypatch.setattr(ec, "read_browser_config", lambda pid: running["config"])

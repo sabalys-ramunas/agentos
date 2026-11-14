@@ -35,9 +35,10 @@ from agentos.core.errors import AgentosError, ApprovalPending, NotFound, PolicyD
 from agentos.core.presence import Presence
 from agentos.core.tools import ToolSpec
 from agentos.environments import routing
+from agentos.policy.context import CallMeta
 from agentos.policy.errors import Denied
 from agentos.policy.redact import redact_text
-from agentos.policy.service import CallMeta, PolicyService
+from agentos.policy.service import PolicyService
 from agentos.policy.traces import TraceEvent
 
 log = logging.getLogger("agentos.policy.wrap")
@@ -94,8 +95,9 @@ async def _frozen_aware(runtime: Any, ctx: Any, call: Any) -> Any:
     asked by every scope helper): a "not found" or "not covered" it raised because of one is the
     `frozen` it really is, and a listing that left their rows out says so (`frozen`). A result that
     is not a dict (a bare list) cannot carry the note; its rows are left out all the same."""
-    from agentos.freeze.errors import Frozen
-    from agentos.policy.freeze import frozen_error, frozen_note
+    from agentos.core.errors import Frozen
+    from agentos.core.tools import frozen_error
+    from agentos.policy.freeze import frozen_note
 
     try:
         result = await call

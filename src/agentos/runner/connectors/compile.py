@@ -54,8 +54,9 @@ from agentos.runner.connectors.steps import (
     shadow_steps,
     walk,
 )
+from agentos.runner.flowdoc import FlowDefinition
 from agentos.runner.flows import validation_message
-from agentos.runner.models import CONNECTOR_PREFIX, FlowDefinition
+from agentos.runner.names import CONNECTOR_PREFIX
 
 CONNECTOR_FILE = "connector.json"
 _SCHEMA_PROSE = frozenset({"description", "title", "examples", "$comment"})

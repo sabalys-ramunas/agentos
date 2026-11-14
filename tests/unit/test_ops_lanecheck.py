@@ -31,6 +31,10 @@ from agentos.core.models import (
 from agentos.node.store import LaneStore, QuarantineRecord, SignalRecord
 from agentos.ops.health import CRITICAL, HealthMonitor
 from agentos.stealth import lanecheck as lc
+from agentos.stealth import lanecookies as lc_cookies
+from agentos.stealth import lanefacts as lc_facts
+from agentos.stealth import lanereport as lc_report
+from agentos.stealth import lanerules as lc_rules
 from agentos.stealth.lanecheck import FAIL, OK, UNKNOWN, WARN, LaneChecker, LaneFacts
 
 NOW = datetime(2026, 11, 4, 12, 0, tzinfo=UTC)
@@ -106,7 +110,7 @@ def leaky(profile) -> None:
     (profile / "user.js").write_text('user_pref("media.peerconnection.ice.proxy_only", false);\n')
 
 
-def by_id(report: lc.LaneReport) -> dict[str, lc.Check]:
+def by_id(report: lc_report.LaneReport) -> dict[str, lc_report.Check]:
     return {c.id: c for c in report.checks}
 
 
@@ -118,98 +122,98 @@ def home(tmp_path) -> Home:
 # ---- rules ----------------------------------------------------------------------------------
 
 def test_exit_rule_matches_the_self_check():
-    ok = lc.judge_exit(PROXY, "203.0.113.7", host_ips={"203.0.113.7"}, pinned=None, node_ip="192.0.2.10")
+    ok = lc_rules.judge_exit(PROXY, "203.0.113.7", host_ips={"203.0.113.7"}, pinned=None, node_ip="192.0.2.10")
     assert ok.level == OK
-    other = lc.judge_exit(PROXY, "198.51.100.1", host_ips={"203.0.113.7"}, pinned=None, node_ip="192.0.2.10")
+    other = lc_rules.judge_exit(PROXY, "198.51.100.1", host_ips={"203.0.113.7"}, pinned=None, node_ip="192.0.2.10")
     assert other.level == FAIL and "quarantine" in other.detail
-    node = lc.judge_exit(PROXY, "192.0.2.10", host_ips={"203.0.113.7"}, pinned=None, node_ip="192.0.2.10")
+    node = lc_rules.judge_exit(PROXY, "192.0.2.10", host_ips={"203.0.113.7"}, pinned=None, node_ip="192.0.2.10")
     assert node.level == FAIL and "node's own IP" in node.detail
     gw = ProxyConfig(label="gw", host="gate.example.net", port=1)
-    assert lc.judge_exit(gw, "198.51.100.9", host_ips=set(), pinned=None, node_ip="192.0.2.10").level == OK
+    assert lc_rules.judge_exit(gw, "198.51.100.9", host_ips=set(), pinned=None, node_ip="192.0.2.10").level == OK
     # an unpinned gateway is not passed while the node's own IP is unknown (QA-lanecheck-5)
-    assert lc.judge_exit(gw, "198.51.100.9", host_ips=set(), pinned=None, node_ip=None).level == UNKNOWN
-    assert lc.judge_exit(gw, "198.51.100.9", host_ips=set(), pinned="198.51.100.9", node_ip=None).level == OK
-    moved = lc.judge_exit(gw, "198.51.100.10", host_ips=set(), pinned="198.51.100.9", node_ip=None)
+    assert lc_rules.judge_exit(gw, "198.51.100.9", host_ips=set(), pinned=None, node_ip=None).level == UNKNOWN
+    assert lc_rules.judge_exit(gw, "198.51.100.9", host_ips=set(), pinned="198.51.100.9", node_ip=None).level == OK
+    moved = lc_rules.judge_exit(gw, "198.51.100.10", host_ips=set(), pinned="198.51.100.9", node_ip=None)
     assert moved.level == FAIL and "198.51.100.9" in moved.detail and "{lane}" in moved.fix
 
 
 def test_location_compares_country_and_offset():
     geo = {"ip": "203.0.113.7", "country": "LT", "timezone": "Europe/Vilnius"}
-    same = lc.judge_location(geo, pinned_tz="Europe/Vilnius", pinned_country="LT", locale="lt-LT", at=NOW)
+    same = lc_rules.judge_location(geo, pinned_tz="Europe/Vilnius", pinned_country="LT", locale="lt-LT", at=NOW)
     assert same.level == OK and "the same timezone" in same.detail
-    riga = lc.judge_location({**geo, "timezone": "Europe/Riga"}, pinned_tz="Europe/Vilnius", pinned_country="LT",
+    riga = lc_rules.judge_location({**geo, "timezone": "Europe/Riga"}, pinned_tz="Europe/Vilnius", pinned_country="LT",
                              locale="lt-LT", at=NOW)
     assert riga.level == OK and "same offset" in riga.detail
-    locale = lc.judge_location(geo, pinned_tz="Europe/Vilnius", pinned_country="LT", locale="en-US", at=NOW)
+    locale = lc_rules.judge_location(geo, pinned_tz="Europe/Vilnius", pinned_country="LT", locale="en-US", at=NOW)
     assert locale.level == WARN and "en-US says US" in locale.detail and "LT (Europe/Vilnius, UTC+02:00)" in locale.detail
-    far = lc.judge_location({"ip": "x", "country": "US", "timezone": "America/New_York"}, pinned_tz="Europe/Vilnius",
+    far = lc_rules.judge_location({"ip": "x", "country": "US", "timezone": "America/New_York"}, pinned_tz="Europe/Vilnius",
                             pinned_country="LT", locale="en", at=NOW)
     assert far.level == WARN
     assert "the pin was made in LT" in far.detail and "Europe/Vilnius (UTC+02:00)" in far.detail
     assert far.data["exit_offset"] == "UTC-05:00" and far.data["pinned_offset"] == "UTC+02:00"
-    assert lc.judge_location(None, pinned_tz="Europe/Vilnius", pinned_country=None, locale="en", at=NOW).level == UNKNOWN
-    first = lc.judge_location(geo, pinned_tz=None, pinned_country=None, locale="lt", at=NOW)
+    assert lc_rules.judge_location(None, pinned_tz="Europe/Vilnius", pinned_country=None, locale="en", at=NOW).level == UNKNOWN
+    first = lc_rules.judge_location(geo, pinned_tz=None, pinned_country=None, locale="lt", at=NOW)
     assert first.level == OK and "first launch" in first.detail
-    assert lc.locale_region("en-US") == "US" and lc.locale_region("en") is None and lc.locale_region("zh-Hant-TW") == "TW"
+    assert lc_rules.locale_region("en-US") == "US" and lc_rules.locale_region("en") is None and lc_rules.locale_region("zh-Hant-TW") == "TW"
 
 
 def test_prefs_follow_firefox_order():
-    cfg = lc.parse_prefs(CFG + 'lockPref("network.trr.mode", 5);\npref("a.b", "x");\n')
-    prefs = lc.effective_prefs(cfg=cfg, launch={"media.peerconnection.enabled": True, "network.trr.mode": 2},
+    cfg = lc_rules.parse_prefs(CFG + 'lockPref("network.trr.mode", 5);\npref("a.b", "x");\n')
+    prefs = lc_rules.effective_prefs(cfg=cfg, launch={"media.peerconnection.enabled": True, "network.trr.mode": 2},
                                prefs_js={"media.peerconnection.ice.proxy_only": True},
                                user_js={"media.peerconnection.ice.proxy_only": False})
     assert prefs["media.peerconnection.ice.proxy_only"] is False  # user.js beats prefs.js
     assert prefs["network.trr.mode"] == 5                          # a locked pref beats everything
     assert prefs["media.peerconnection.ice.proxy_only_if_behind_proxy"] is True and prefs["a.b"] == "x"
-    assert lc.parse_prefs('user_pref("x", nonsense);') == {}
+    assert lc_rules.parse_prefs('user_pref("x", nonsense);') == {}
 
 
 def test_webrtc_rule(tmp_path):
     user_js = tmp_path / "user.js"
-    base = lc.effective_prefs(cfg=lc.parse_prefs(CFG), launch={"media.peerconnection.enabled": True},
+    base = lc_rules.effective_prefs(cfg=lc_rules.parse_prefs(CFG), launch={"media.peerconnection.enabled": True},
                               prefs_js={}, user_js={})
-    shipped = lc.judge_webrtc(base, proxied=True, known=True, user_js=user_js)
+    shipped = lc_rules.judge_webrtc(base, proxied=True, known=True, user_js=user_js)
     assert shipped.level == WARN and "blank frame" in shipped.detail and str(user_js) in shipped.fix
-    assert lc.judge_webrtc({**base, "media.peerconnection.ice.proxy_only": True}, proxied=True, known=True,
+    assert lc_rules.judge_webrtc({**base, "media.peerconnection.ice.proxy_only": True}, proxied=True, known=True,
                            user_js=user_js).level == OK
-    assert lc.judge_webrtc({**base, "media.peerconnection.enabled": False}, proxied=True, known=True,
+    assert lc_rules.judge_webrtc({**base, "media.peerconnection.enabled": False}, proxied=True, known=True,
                            user_js=user_js).level == OK
     bare = {"media.peerconnection.enabled": True}
-    assert lc.judge_webrtc(bare, proxied=True, known=True, user_js=user_js).level == FAIL
-    assert lc.judge_webrtc(bare, proxied=True, known=False, user_js=user_js).level == UNKNOWN
+    assert lc_rules.judge_webrtc(bare, proxied=True, known=True, user_js=user_js).level == FAIL
+    assert lc_rules.judge_webrtc(bare, proxied=True, known=False, user_js=user_js).level == UNKNOWN
     shown = {**base, "media.peerconnection.ice.obfuscate_host_addresses": False,
              "media.peerconnection.ice.proxy_only": True}
-    assert lc.judge_webrtc(shown, proxied=True, known=True, user_js=user_js).level == FAIL
-    assert lc.judge_webrtc(bare, proxied=False, known=False, user_js=user_js).level == OK
+    assert lc_rules.judge_webrtc(shown, proxied=True, known=True, user_js=user_js).level == FAIL
+    assert lc_rules.judge_webrtc(bare, proxied=False, known=False, user_js=user_js).level == OK
 
 
 def test_dns_rule():
-    assert lc.judge_dns({}, proxy=PROXY).level == OK  # an HTTP proxy gets the host name in CONNECT
-    assert lc.judge_dns({}, proxy=None).level == OK
+    assert lc_rules.judge_dns({}, proxy=PROXY).level == OK  # an HTTP proxy gets the host name in CONNECT
+    assert lc_rules.judge_dns({}, proxy=None).level == OK
 
 
 def test_hold_rule():
     spec = LaneSpec(id="biz/instagram")
-    q = lc.judge_hold(LaneFacts(spec, quarantine={"reason": "exit IP changed", "at": NOW, "by": "node",
+    q = lc_rules.judge_hold(LaneFacts(spec, quarantine={"reason": "exit IP changed", "at": NOW, "by": "node",
                                                   "kind": "exit_ip_changed"}), now=NOW)
     assert q.level == FAIL and "2026-11-04 12:00 UTC" in q.detail and "handback biz/instagram" in q.fix
     held = LaneControl(state=ControlState.PAUSED, by="node", since=NOW, reason="needs_human:checkpoint")
-    h = lc.judge_hold(LaneFacts(spec, control=held), now=NOW)
+    h = lc_rules.judge_hold(LaneFacts(spec, control=held), now=NOW)
     assert h.level == FAIL and h.data["cleared_by"] == "human" and "needs_human:checkpoint" in h.detail
     timed = held.model_copy(update={"reason": "rate_limited", "hold_until": NOW + timedelta(minutes=30)})
-    t = lc.judge_hold(LaneFacts(spec, control=timed), now=NOW)
+    t = lc_rules.judge_hold(LaneFacts(spec, control=timed), now=NOW)
     assert t.level == WARN and t.data["cleared_by"] == "time" and "12:30" in t.detail
-    stopped = lc.judge_hold(LaneFacts(spec, control=LaneControl(state=ControlState.PAUSED, by="robin")), now=NOW)
+    stopped = lc_rules.judge_hold(LaneFacts(spec, control=LaneControl(state=ControlState.PAUSED, by="robin")), now=NOW)
     assert stopped.level == FAIL and "robin" in stopped.detail
-    human = lc.judge_hold(LaneFacts(spec, control=LaneControl(state=ControlState.HUMAN, by="robin")), now=NOW)
+    human = lc_rules.judge_hold(LaneFacts(spec, control=LaneControl(state=ControlState.HUMAN, by="robin")), now=NOW)
     assert human.level == WARN
-    sig = lc.judge_hold(LaneFacts(spec, signal={"signal": "captcha", "at": NOW, "detail": "instagram.com"}), now=NOW)
+    sig = lc_rules.judge_hold(LaneFacts(spec, signal={"signal": "captcha", "at": NOW, "detail": "instagram.com"}), now=NOW)
     assert sig.level == WARN and "captcha on instagram.com" in sig.detail
-    assert lc.judge_hold(LaneFacts(spec, signal={"signal": "ok", "at": NOW}), now=NOW).level == OK
+    assert lc_rules.judge_hold(LaneFacts(spec, signal={"signal": "ok", "at": NOW}), now=NOW).level == OK
 
 
 def test_lane_level_ignores_unknown():
-    assert lc.worst([OK, UNKNOWN]) == OK and lc.worst([UNKNOWN, WARN]) == WARN and lc.worst([WARN, FAIL]) == FAIL
+    assert lc_report.worst([OK, UNKNOWN]) == OK and lc_report.worst([UNKNOWN, WARN]) == WARN and lc_report.worst([WARN, FAIL]) == FAIL
 
 
 # ---- the cookie reader ---------------------------------------------------------------------------
@@ -225,29 +229,29 @@ def test_cookie_reader_reads_a_copy_and_never_the_file(tmp_path):
     try:
         before = sorted(p.name for p in profile.iterdir())
         assert "cookies.sqlite-wal" in before  # the rows are only in the WAL: a plain copy of the db misses them
-        found = lc.read_cookie_db(profile, ["instagram.com"], now=now, scratch=tmp_path)
+        found = lc_cookies.read_cookie_db(profile, ["instagram.com"], now=now, scratch=tmp_path)
         assert sorted(c["name"] for c in found) == ["ms", "sessionid"]
         assert sorted(p.name for p in profile.iterdir()) == before  # nothing created next to the live file
         assert not [p for p in tmp_path.iterdir() if p.name.startswith("agentos-cookies-")]  # the copy is gone
         writer.execute("INSERT INTO moz_cookies (name, value, host, path, expiry) VALUES ('new', 'v', "
                        "'.instagram.com', '/', ?)", (int(now + 60),))  # the browser keeps writing
-        assert "new" in {c["name"] for c in lc.read_cookie_db(profile, ["instagram.com"], now=now)}
+        assert "new" in {c["name"] for c in lc_cookies.read_cookie_db(profile, ["instagram.com"], now=now)}
     finally:
         writer.close()
-    assert lc.read_cookie_db(tmp_path / "empty", ["instagram.com"]) == []
+    assert lc_cookies.read_cookie_db(tmp_path / "empty", ["instagram.com"]) == []
     (tmp_path / "broken").mkdir()
     (tmp_path / "broken" / "cookies.sqlite").write_bytes(b"not a database at all" * 10)
-    assert lc.read_cookie_db(tmp_path / "broken", ["instagram.com"], tries=2) is None
+    assert lc_cookies.read_cookie_db(tmp_path / "broken", ["instagram.com"], tries=2) is None
 
 
 def test_cookie_reader_retries_while_the_file_changes(tmp_path, monkeypatch):
     profile = tmp_path / "profile"
     signed_in(profile).close()
     stats = iter([(1, 1, 1), (2, 2, 2), (3, 3, 3), (3, 3, 3), (3, 3, 3), (3, 3, 3)])
-    real = lc._stat
-    monkeypatch.setattr(lc, "_stat", lambda p: next(stats) if p.name == "cookies.sqlite" else real(p))
-    monkeypatch.setattr(lc.time, "sleep", lambda s: None)
-    found = lc.read_cookie_db(profile, ["instagram.com"])
+    real = lc_cookies._stat
+    monkeypatch.setattr(lc_cookies, "_stat", lambda p: next(stats) if p.name == "cookies.sqlite" else real(p))
+    monkeypatch.setattr(time, "sleep", lambda s: None)
+    found = lc_cookies.read_cookie_db(profile, ["instagram.com"])
     assert found is not None and {"sessionid", "ds_user_id"} <= {c["name"] for c in found}
 
 
@@ -257,7 +261,7 @@ async def test_a_healthy_lane_is_safe(home):
     home.lane(account=AccountRef(site="instagram", handle="@acme", user_id=USER_ID))
     report = await home.checker().check("biz/instagram")
     checks = by_id(report)
-    assert list(checks) == list(lc.CHECK_IDS)
+    assert list(checks) == list(lc_report.CHECK_IDS)
     assert {c.id: c.level for c in report.checks} == {
         "proxy": OK, "exit_ip": OK, "location": OK, "webrtc": OK, "dns": OK, "profile": OK, "session": OK,
         "account": OK, "hold": OK}
@@ -267,7 +271,7 @@ async def test_a_healthy_lane_is_safe(home):
     text = json.dumps(report.to_dict())
     for secret in (SESSION, USER_ID, PROXY_PASS, PROXY_USER):
         assert secret not in text, secret
-    assert "—" not in text and "—" not in lc.format_report(report)
+    assert "—" not in text and "—" not in lc_report.format_report(report)
 
 
 async def test_signed_out_and_wrong_account_fail(home, tmp_path):
@@ -582,13 +586,13 @@ def test_cli_offline_exit_codes(home, monkeypatch):
 def test_report_round_trips_through_json(home):
     home.lane()
     report = asyncio.run(home.checker().check("biz/instagram"))
-    again = lc.LaneReport.from_dict(json.loads(json.dumps(report.to_dict())))
+    again = lc_report.LaneReport.from_dict(json.loads(json.dumps(report.to_dict())))
     assert again.to_dict() == report.to_dict()
 
 
 def test_store_facts_reads_an_old_schema(tmp_path):
     cfg = make_home(tmp_path)  # a lanes table without control, quarantine or signal columns
-    source = lc.StoreFacts(cfg.db_path)
+    source = lc_facts.StoreFacts(cfg.db_path)
     assert source.lane_ids() == ["personal/reddit", "work/site"]
     facts = source.facts("personal/reddit")
     assert facts.state == "cold" and facts.quarantine is None and source.pinned_exit("lt1") is None
@@ -598,10 +602,10 @@ def test_the_lane_check_reports_when_the_session_cookie_expires():
     from agentos.node import sites
 
     ig = sites.site("instagram")
-    assert lc.session_expiry(ig, [{"name": "sessionid", "value": "x", "expires": 1_800_000_000}]) \
+    assert lc_cookies.session_expiry(ig, [{"name": "sessionid", "value": "x", "expires": 1_800_000_000}]) \
         == "2027-01-15T08:00:00+00:00"
-    assert lc.session_expiry(ig, [{"name": "sessionid", "value": "x", "expires": -1}]) is None
-    assert lc.session_expiry(ig, []) is None
+    assert lc_cookies.session_expiry(ig, [{"name": "sessionid", "value": "x", "expires": -1}]) is None
+    assert lc_cookies.session_expiry(ig, []) is None
 
 
 async def test_the_session_check_says_when_the_cookie_expires(home):

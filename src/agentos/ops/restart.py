@@ -35,9 +35,9 @@ from typing import Annotated, Any
 
 import typer
 
+from agentos.core.layout import ops_socket
+from agentos.core.system import Host
 from agentos.node.claims import holder_text
-from agentos.ops.layout import ops_socket
-from agentos.ops.system import Host
 
 HELD_EXIT = 3  # `--check`: a lane has a holder (or an older agentosd cannot say)
 HOT = ("warming", "warm", "active")

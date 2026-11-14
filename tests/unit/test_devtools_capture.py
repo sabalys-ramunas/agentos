@@ -10,6 +10,7 @@ import pytest
 from test_io_tabs_dialogs import Emitter
 
 from agentos.node import devtools, egress
+from agentos.node.camoufox.engine import PageTracker
 from agentos.node.devtools import (
     BODY_CHARS,
     MASKED,
@@ -22,7 +23,6 @@ from agentos.node.devtools import (
     read_body,
     sensitive_name,
 )
-from agentos.node.engine_camoufox import PageTracker
 
 # ---- test doubles: what Playwright hands the listeners ----
 

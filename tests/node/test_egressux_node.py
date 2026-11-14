@@ -37,12 +37,13 @@ from agentos.core.config import NodeConfig
 from agentos.core.errors import EgressRefused
 from agentos.core.models import LaneSpec, ProxyConfig
 from agentos.node import egress
+from agentos.node.camoufox.engine import CamoufoxEngine, browser_pids_under
 from agentos.node.display import DisplayManagerImpl, kill_processes
 from agentos.node.egress import IDENTITY_SITES, SUGGESTED_SITES, Driver
-from agentos.node.engine_camoufox import CamoufoxEngine, browser_pids_under
 from agentos.node.lanes import LaneManagerImpl
 from agentos.node.store import LaneStore
-from agentos.node.viewer_app import ViewerApp, control_api_routes
+from agentos.node.viewer_app import ViewerApp
+from agentos.node.viewer_routes import control_api_routes
 
 pytestmark = [
     pytest.mark.node,

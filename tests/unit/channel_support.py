@@ -19,7 +19,7 @@ from agentos.controller.config import ControllerConfig
 from agentos.core.config import NodeConfig
 from agentos.core.models import Effect, LaneSpec
 from agentos.core.tools import ToolSpec
-from agentos.node import daemon
+from agentos.mcp import providers as mcp_providers
 from agentos.node.channel.enroll import enroll
 from agentos.node.channel.node import Timings
 from agentos.node.daemon import build_services, node_runtime, serve
@@ -126,7 +126,7 @@ async def start_node(home: Path, name: str, ctl: RunningController, lanes: list[
     runtime.get("channel").timings = FAST
     runtime.get("channel")._backoff.low, runtime.get("channel")._backoff.high = FAST.backoff_min, FAST.backoff_max
     stop = asyncio.Event()
-    providers = [*daemon.tool_providers(), extra_tools]
+    providers = [*mcp_providers.tool_providers(), extra_tools]
     task = asyncio.create_task(serve(config, runtime, stop=stop, providers=providers))
     channel = runtime.get("channel")
     await asyncio.wait_for(channel.welcomed.wait(), 15)

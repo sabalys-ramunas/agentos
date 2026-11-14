@@ -9,7 +9,10 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from agentos.core import globs  # pure parsing helpers, shared with the node's URL checks
+
 LANE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,30}/[a-z0-9][a-z0-9-]{0,40}$")
+WORKSPACE_ID_RE = re.compile(r"[a-z0-9][a-z0-9-]{0,30}")  # the workspace part of a lane id (fullmatch)
 # A device's name (AUD-02): one pinned fingerprint plus one proxy that several lanes
 # share, like one office PC with a browser profile per account. Example: biz-a-pc.
 DEVICE_NAME_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,40}$")
@@ -80,7 +83,6 @@ def _site_pattern(raw: str) -> str:
     domains only (GOOGLE_COUNTRY_SUFFIXES). `@cc` anywhere else is refused, so
     a bare TLD wildcard cannot be written."""
     from agentos.core.errors import InvalidRequest
-    from agentos.policy import globs  # pure parsing helpers, shared with the node's URL checks
 
     p = raw.strip().lower()
     if COUNTRY_TOKEN in p:
@@ -157,6 +159,10 @@ class Effect(StrEnum):
 # Specials named in the contracts whose grant field and checks are not built yet. Surfaces that
 # list specials an owner may grant leave these out until the policy can carry them.
 PENDING_SPECIALS = frozenset({Effect.AGENT})
+
+# Every special a grant can carry (agentos.policy.grants), and what a controller ceiling may list.
+SPECIALS = ("secret", "exec", "install_overlay", "install_base", "service", "brain",
+            "memory", "vm")  # memory: a special with no effect of its own (memory_rules.py)
 
 _LADDER = {Effect.READ: 0, Effect.DRAFT: 1, Effect.COMMIT: 2, Effect.PAY: 3, Effect.IRREVERSIBLE: 4}
 
@@ -280,7 +286,7 @@ class LaneSpec(BaseModel):
     locale: str = "en-US"
     account: AccountRef | None = None
     created_at: datetime = Field(default_factory=utcnow)
-    # The lane's site list: domain patterns (agentos.policy.globs syntax) its documents may load
+    # The lane's site list: domain patterns (agentos.core.globs syntax) its documents may load
     # from, checked on the node for every navigation (agentos.node.egress). Empty: no lane
     # restriction, as for every lane made before the list existed.
     sites: list[str] = Field(default_factory=list)
@@ -529,3 +535,11 @@ class ActionResult(BaseModel):
     detail: str | None = None
     signal_detail: str | None = None
     account: dict[str, Any] | None = None
+
+
+class RunKind(StrEnum):
+    FLOW = "flow"
+    BRAIN = "brain"
+    SCRIPT = "script"
+    WORKFLOW = "workflow"
+    PILOT = "pilot"  # agentos.pilot: lane_do's cheap worker on one lane

@@ -15,7 +15,7 @@ Signed in:
 Owner, or a member with `members` (an admin) for the workspaces they administer:
   GET, POST /api/invites; DELETE /api/invites/{id}
   GET /api/members; GET, PATCH, DELETE /api/members/{id}
-  GET /api/members/{id}/devices; DELETE /api/members/{id}/devices/{device}
+  DELETE /api/members/{id}/devices/{device} (GET /api/members/{id} lists them)
 """
 
 from __future__ import annotations
@@ -36,7 +36,7 @@ from agentos.api.access import Access, Presence
 from agentos.api.app import Api, access_of, endpoint, read_body, read_json_object
 from agentos.api.auth import MEMBER_IDLE_SECONDS, MEMBER_SESSION_SECONDS, SESSION_COOKIE, Session
 from agentos.api.errors import ApiError
-from agentos.api.jsonable import jsonable, maybe_await, strip_sensitive
+from agentos.api.jsonable import jsonable, strip_sensitive
 from agentos.api.members import (
     CAPABILITIES,
     MEMBER_ROLES,
@@ -50,6 +50,8 @@ from agentos.api.members import (
     new_member_id,
     validate_role,
 )
+from agentos.core import clock
+from agentos.core.aio import maybe_await
 from agentos.core.errors import AgentosError, InvalidRequest, NotFound
 
 log = logging.getLogger("agentos.api")
@@ -196,67 +198,71 @@ def panel_base(api: Api) -> str:
     return f"http://localhost:{port}" if port else "http://localhost"
 
 
-def routes(api: Api) -> list[Route]:
-    members = api.members
-    store = members.store
+class Handlers:
+    """The handlers of the routes below, sharing one Api (and what they keep between calls)."""
+
+    def __init__(self, api: Api) -> None:
+        self.api = api
+        self.members = api.members
+        self.store = self.members.store
 
     # ---- helpers ----
-    def guard(request: Request) -> None:
+    def guard(self, request: Request) -> None:
         """Public passkey routes: a browser on this site only, and the sign-in rate limit."""
-        if not api.origin_ok(request):
+        if not self.api.origin_ok(request):
             raise ApiError("csrf_failed", "This request came from another site.")
         client = request.client.host if request.client else "unknown"
-        wait = api.limiter.check(client)
+        wait = self.api.limiter.check(client)
         if wait is not None:
             raise ApiError("rate_limited", "Too many sign-in attempts. Wait a few minutes and try again.",
                            headers={"Retry-After": str(int(wait))})
 
-    def need_members() -> None:
-        if not members.enabled:
+    def need_members(self) -> None:
+        if not self.members.enabled:
             raise ApiError("unavailable", "Members need the policy service on this node.")
 
-    def ceremony(credential: dict, purpose: str):
+    def ceremony(self, credential: dict, purpose: str):
         try:
             challenge = pk.client_challenge(credential)
         except pk.PasskeyError as exc:
             raise ApiError("unauthorized", exc.message) from None
-        found = store.finish(challenge, purpose)
+        found = self.store.finish(challenge, purpose)
         if found is None:
             raise ApiError("unauthorized", "This passkey request expired or was already used. Start again.")
         return found
 
-    def session_response(request: Request, member: Member, *, credential_id: str, label: str | None) -> Response:
+    def session_response(self, request: Request, member: Member, *, credential_id: str, label: str | None) -> Response:
         if member.owner:
-            ttl, idle = api.settings.session_ttl, None
+            ttl, idle = self.api.settings.session_ttl, None
         else:
             ttl, idle = MEMBER_SESSION_SECONDS, MEMBER_IDLE_SECONDS
-        sid, session = api.store.create_session(member.id, ttl, member_id=member.id, via="passkey",
+        sid, session = self.api.store.create_session(member.id, ttl, member_id=member.id, via="passkey",
                                                 credential_id=credential_id, device_label=label, idle_seconds=idle)
-        resp = JSONResponse({"csrf": session.csrf, "expires_at": jsonable(_iso(session.expires_at)),
+        resp = JSONResponse({"csrf": session.csrf, "expires_at": jsonable(clock.iso(session.expires_at)),
                              "member": member.public()})
         resp.set_cookie(SESSION_COOKIE, sid, max_age=ttl, path="/", httponly=True, samesite="strict",
-                        secure=api.secure_cookie(request))
+                        secure=self.api.secure_cookie(request))
         return resp
 
-    def me_member(request: Request) -> Member:
+    def me_member(self, request: Request) -> Member:
         """The person behind this request: a member, or the owner (a panel session, or the node's own
         token for the CLI). Any other token is refused: a grant is never a person."""
         auth = request.state.auth
         if auth.access.member is not None:
             return auth.access.member
         if auth.via == "cookie" or (auth.access.owner and auth.principal.id == OWNER_ID):
-            return store.require(OWNER_ID)
+            return self.store.require(OWNER_ID)
         auth.access.trace("member.route", status="denied", summary="a token is not a person")
         raise ApiError("denied", "This is for a person signed in to the panel, not a token.")
 
-    def me_session(request: Request) -> tuple[Member, Session]:
-        member = me_member(request)
+    def me_session(self, request: Request) -> tuple[Member, Session]:
+        member = self.me_member(request)
         session = request.state.auth.session
         if session is None:
             raise ApiError("denied", "This needs a signed-in panel session.")
         return member, session
 
-    def administers(access: Access, scope: str) -> bool:
+    def administers(self, access: Access, scope: str) -> bool:
         """May this caller give or take roles in `scope`? The owner anywhere; an admin in their
         workspace (`*` only for an admin of every workspace)."""
         if access.owner:
@@ -264,36 +270,36 @@ def routes(api: Api) -> list[Route]:
         return access.member is not None and "members" in capabilities(access.roles.get(scope, set()) |  # type: ignore[attr-defined]
                                                                        access.roles.get("*", set()))  # type: ignore[attr-defined]
 
-    def may_manage(access: Access, target: Member) -> bool:
+    def may_manage(self, access: Access, target: Member) -> bool:
         """An admin manages a member whose every role is in a scope they administer."""
         if access.owner:
             return not target.owner
-        roles = store.roles(target.id, include_expired=True)
-        return not target.owner and bool(roles) and all(administers(access, r.scope) for r in roles)
+        roles = self.store.roles(target.id, include_expired=True)
+        return not target.owner and bool(roles) and all(self.administers(access, r.scope) for r in roles)
 
-    def target(request: Request) -> Member:
+    def target(self, request: Request) -> Member:
         mid = request.path_params["id"]
-        m = store.member(mid) if isinstance(mid, str) and len(mid) < 120 else None
+        m = self.store.member(mid) if isinstance(mid, str) and len(mid) < 120 else None
         access = access_of(request)
-        if m is None or (not access.owner and not may_manage(access, m)):
+        if m is None or (not access.owner and not self.may_manage(access, m)):
             raise NotFound(f"No member {mid}.")
         return m
 
-    def member_json(m: Member, access: Access | None = None) -> dict:
-        roles = store.roles(m.id, include_expired=True)
+    def member_json(self, m: Member, access: Access | None = None) -> dict:
+        roles = self.store.roles(m.id, include_expired=True)
         if access is not None and not access.owner:
-            roles = [r for r in roles if administers(access, r.scope)]
+            roles = [r for r in roles if self.administers(access, r.scope)]
         out = m.public()
         out["roles"] = [{"scope": "*", "role": "owner", "options": {}, "expires_at": None}] if m.owner else \
             [r.public() for r in roles]
-        out["devices"] = len(store.credentials(m.id))
+        out["devices"] = len(self.store.credentials(m.id))
         return out
 
-    def roles_in(items: list[RoleIn], access: Access, *, exp: float | None) -> list[Role]:
+    def roles_in(self, items: list[RoleIn], access: Access, *, exp: float | None) -> list[Role]:
         roles = []
         for item in items:
             r = validate_role(item.scope, item.role, item.options)
-            if not administers(access, r.scope):
+            if not self.administers(access, r.scope):
                 access.trace("member.roles", status="denied", summary=f"cannot give {r.role} in {r.scope}")
                 raise ApiError("denied", f"You cannot give roles in {r.scope}: only the owner, or an admin of "
                                          "that workspace, can.")
@@ -305,156 +311,156 @@ def routes(api: Api) -> list[Route]:
         return roles
 
     # ---- invites ----
-    async def invites(request: Request) -> list[dict]:
+    async def invites(self, request: Request) -> list[dict]:
         access = access_of(request)
-        return [i.public() for i in store.invites()
-                if access.owner or all(administers(access, r.scope) for r in i.roles)]
+        return [i.public() for i in self.store.invites()
+                if access.owner or all(self.administers(access, r.scope) for r in i.roles)]
 
-    async def invite_create(request: Request) -> dict:
-        need_members()
+    async def invite_create(self, request: Request) -> dict:
+        self.need_members()
         body = await read_body(request, InviteCreate)
         access = access_of(request)
         member_ttl = _ttl(body.ttl)
-        roles = roles_in(body.roles, access, exp=None)
-        if store.handle_taken(body.handle) or body.handle == OWNER_ID:
+        roles = self.roles_in(body.roles, access, exp=None)
+        if self.store.handle_taken(body.handle) or body.handle == OWNER_ID:
             raise ApiError("conflict", f"The handle {body.handle} is taken.")
-        invite, code = store.add_invite(handle=body.handle, display_name=body.display_name, email=body.email,
-                                        roles=roles, member_ttl_s=member_ttl, ttl_s=api.settings.invite_ttl,
-                                        by=me_member(request).handle)
+        invite, code = self.store.add_invite(handle=body.handle, display_name=body.display_name, email=body.email,
+                                        roles=roles, member_ttl_s=member_ttl, ttl_s=self.api.settings.invite_ttl,
+                                        by=self.me_member(request).handle)
         access.trace("invite.create", summary=f"Invite {body.handle}: " + ", ".join(
             f"{r.role}@{r.scope}" for r in roles) + (f" for {body.ttl}" if body.ttl else ""))
-        api.publish("member", {"invite": invite.id})
+        self.api.publish("member", {"invite": invite.id})
         # the code and the link are in this one response and nowhere else (only a hash is kept)
-        return {**invite.public(), "code": code, "link": f"{panel_base(api)}/invite#code={code}"}
+        return {**invite.public(), "code": code, "link": f"{panel_base(self.api)}/invite#code={code}"}
 
-    async def invite_delete(request: Request) -> dict:
-        invite = store.invite(request.path_params["id"]) if len(request.path_params["id"]) < 40 else None
+    async def invite_delete(self, request: Request) -> dict:
+        invite = self.store.invite(request.path_params["id"]) if len(request.path_params["id"]) < 40 else None
         access = access_of(request)
-        if invite is None or not (access.owner or all(administers(access, r.scope) for r in invite.roles)):
+        if invite is None or not (access.owner or all(self.administers(access, r.scope) for r in invite.roles)):
             raise NotFound("No such invite.")
-        if not store.revoke_invite(invite.id):
+        if not self.store.revoke_invite(invite.id):
             raise ApiError("conflict", f"This invite is already {invite.state}.")
         access.trace("invite.revoke", summary=f"Revoke the invite for {invite.handle}")
         return {"ok": True}
 
-    async def accept_options(request: Request) -> dict:
-        guard(request)
-        need_members()
+    async def accept_options(self, request: Request) -> dict:
+        self.guard(request)
+        self.need_members()
         body = await read_body(request, CodeIn)
-        invite = store.invite_by_code(body.code.strip())
+        invite = self.store.invite_by_code(body.code.strip())
         if invite is None:
             raise ApiError("unauthorized", "This invite link is invalid, used, or expired. Ask for a new one.")
         member_id = new_member_id()
         challenge = pk.new_challenge()
-        store.begin(challenge, "register", invite_id=invite.id, member_id=member_id)
-        options = pk.registration_options(relying_party(api), user_id=member_id.encode(), user_name=invite.handle,
+        self.store.begin(challenge, "register", invite_id=invite.id, member_id=member_id)
+        options = pk.registration_options(relying_party(self.api), user_id=member_id.encode(), user_name=invite.handle,
                                           display_name=invite.display_name or invite.handle, challenge=challenge)
         shown = {k: v for k, v in invite.public().items()
                  if k in ("handle", "display_name", "roles", "expires_at", "created_by")}
         return {"invite": shown, "publicKey": options}
 
-    async def accept(request: Request) -> Response:
-        guard(request)
-        need_members()
+    async def accept(self, request: Request) -> Response:
+        self.guard(request)
+        self.need_members()
         body = await read_body(request, InviteAccept)
-        invite = store.invite_by_code(body.code.strip())
+        invite = self.store.invite_by_code(body.code.strip())
         if invite is None:
             raise ApiError("unauthorized", "This invite link is invalid, used, or expired. Ask for a new one.")
-        found = ceremony(body.credential, "register")
+        found = self.ceremony(body.credential, "register")
         if found.invite_id != invite.id or not found.member_id:
             raise ApiError("unauthorized", "This passkey was made for another invite. Start again.")
         try:
-            cred = pk.verify_registration(relying_party(api), body.credential, challenge=found.challenge)
+            cred = pk.verify_registration(relying_party(self.api), body.credential, challenge=found.challenge)
         except pk.PasskeyError as exc:
             raise ApiError("unauthorized", f"The passkey was not accepted: {exc.message}.") from None
-        if not store.use_invite(invite.id, found.member_id):  # single use, even when two tabs race
+        if not self.store.use_invite(invite.id, found.member_id):  # single use, even when two tabs race
             raise ApiError("unauthorized", "This invite link is invalid, used, or expired. Ask for a new one.")
-        member = store.create_member(member_id=found.member_id, handle=invite.handle,
+        member = self.store.create_member(member_id=found.member_id, handle=invite.handle,
                                      display_name=body.display_name or invite.display_name, email=invite.email,
                                      timezone=body.timezone or "UTC", by=invite.created_by, roles=invite.roles,
                                      member_ttl_s=invite.member_ttl_s)
-        saved = store.add_credential(member_id=member.id, cred_id=cred.id, public_key=cred.public_key,
+        saved = self.store.add_credential(member_id=member.id, cred_id=cred.id, public_key=cred.public_key,
                                      sign_count=cred.sign_count, label=body.device_label, aaguid=cred.aaguid)
         try:
-            members.sync(member.id, by=invite.created_by, force=True)
+            self.members.sync(member.id, by=invite.created_by, force=True)
         except AgentosError:
-            members.remove(member.id, by="owner")
+            self.members.remove(member.id, by="owner")
             raise ApiError("conflict", "The roles in this invite can no longer be given. Ask for a new invite.") \
                 from None
-        _trace_owner(api, "invite.accept", f"{member.handle} accepted the invite {invite.id} and added a passkey")
-        api.publish("member", {"id": member.id})
-        return session_response(request, member, credential_id=saved.id, label=body.device_label)
+        _trace_owner(self.api, "invite.accept", f"{member.handle} accepted the invite {invite.id} and added a passkey")
+        self.api.publish("member", {"id": member.id})
+        return self.session_response(request, member, credential_id=saved.id, label=body.device_label)
 
     # ---- passkey sign-in ----
-    async def passkey_options(request: Request) -> dict:
-        guard(request)
+    async def passkey_options(self, request: Request) -> dict:
+        self.guard(request)
         challenge = pk.new_challenge()
-        store.begin(challenge, "sign_in")
-        return {"publicKey": pk.authentication_options(relying_party(api), challenge=challenge)}
+        self.store.begin(challenge, "sign_in")
+        return {"publicKey": pk.authentication_options(relying_party(self.api), challenge=challenge)}
 
-    async def passkey_sign_in(request: Request) -> Response:
-        guard(request)
+    async def passkey_sign_in(self, request: Request) -> Response:
+        self.guard(request)
         body = await read_body(request, PasskeyIn)
-        found = ceremony(body.credential, "sign_in")
-        cred, member = _known_credential(body.credential)
-        _check_assertion(body.credential, found.challenge, cred)
+        found = self.ceremony(body.credential, "sign_in")
+        cred, member = self._known_credential(body.credential)
+        self._check_assertion(body.credential, found.challenge, cred)
         if not member.owner:
-            members.sync(member.id, by="owner")
-            if not members.grants(member.id):
+            self.members.sync(member.id, by="owner")
+            if not self.members.grants(member.id):
                 raise ApiError("unauthorized", "Your membership on this node has ended. Ask the owner to invite you "
                                                "again.")
-        return session_response(request, member, credential_id=cred.id, label=body.device_label)
+        return self.session_response(request, member, credential_id=cred.id, label=body.device_label)
 
-    def _known_credential(credential: dict):
+    def _known_credential(self, credential: dict):
         try:
             cid = b64url(pk.credential_id(credential))
         except pk.PasskeyError as exc:
             raise ApiError("unauthorized", exc.message) from None
-        cred = store.credential(cid)
-        member = store.member(cred.member_id) if cred else None
+        cred = self.store.credential(cid)
+        member = self.store.member(cred.member_id) if cred else None
         if cred is None or member is None or member.state != "active":
             raise ApiError("unauthorized", "This passkey is not registered on this node.")
         return cred, member
 
-    def _check_assertion(credential: dict, challenge: bytes, cred: Any) -> None:
+    def _check_assertion(self, credential: dict, challenge: bytes, cred: Any) -> None:
         try:
-            count = pk.verify_assertion(relying_party(api), credential, challenge=challenge,
+            count = pk.verify_assertion(relying_party(self.api), credential, challenge=challenge,
                                         public_key=cred.public_key, sign_count=cred.sign_count)
         except pk.PasskeyError as exc:
             raise ApiError("unauthorized", f"The passkey was not accepted: {exc.message}.") from None
-        store.used_credential(cred.id, count)
+        self.store.used_credential(cred.id, count)
 
     # ---- step-up ----
-    async def verify_options(request: Request) -> dict:
+    async def verify_options(self, request: Request) -> dict:
         body = await read_body(request, VerifyOptions)
-        member, session = me_session(request)
-        creds = store.credentials(member.id)
+        member, session = self.me_session(request)
+        creds = self.store.credentials(member.id)
         if not creds:
             raise ApiError("conflict", "Add a passkey first: there is none to check.")
         challenge = pk.new_challenge()
-        store.begin(challenge, "step_up", member_id=member.id, session_hash=session.id_hash,
+        self.store.begin(challenge, "step_up", member_id=member.id, session_hash=session.id_hash,
                     approval_id=body.approval_id)
-        return {"publicKey": pk.authentication_options(relying_party(api), challenge=challenge,
+        return {"publicKey": pk.authentication_options(relying_party(self.api), challenge=challenge,
                                                        allow=[pk.unb64url(c.id) for c in creds])}
 
-    async def verify(request: Request) -> dict:
+    async def verify(self, request: Request) -> dict:
         body = await read_body(request, PasskeyIn)
-        member, session = me_session(request)
-        found = ceremony(body.credential, "step_up")
+        member, session = self.me_session(request)
+        found = self.ceremony(body.credential, "step_up")
         if found.member_id != member.id or found.session_hash != session.id_hash:
             raise ApiError("unauthorized", "This passkey check was started in another session. Start again.")
-        cred, owner_of = _known_credential(body.credential)
+        cred, owner_of = self._known_credential(body.credential)
         if owner_of.id != member.id:
             raise ApiError("unauthorized", "This passkey belongs to someone else.")
-        _check_assertion(body.credential, found.challenge, cred)
-        await api.store.run(api.store.verified, session, approval_id=found.approval_id)
+        self._check_assertion(body.credential, found.challenge, cred)
+        await self.api.store.run(self.api.store.verified, session, approval_id=found.approval_id)
         access_of(request).trace("session.verify", summary="Passkey check" + (
             f" for approval {found.approval_id}" if found.approval_id else ""), approval=found.approval_id)
-        return {"verified_at": _iso(time.time()), "for_approval": found.approval_id,
-                "window_s": api.settings.step_up_window, "fresh_s": api.settings.step_up_fresh}
+        return {"verified_at": clock.iso(time.time()), "for_approval": found.approval_id,
+                "window_s": self.api.settings.step_up_window, "fresh_s": self.api.settings.step_up_fresh}
 
     # ---- me ----
-    async def me(request: Request) -> dict:
+    async def me(self, request: Request) -> dict:
         auth = request.state.auth
         access = auth.access
         session = auth.session
@@ -464,23 +470,23 @@ def routes(api: Api) -> list[Route]:
         if access.member is not None:
             m = access.member
             out["member"] = m.public()
-            out["roles"] = [r.public() for r in store.roles(m.id) if r.scope in access.roles]  # type: ignore[attr-defined]
-            out["can"] = {scope: sorted(capabilities(roles) | ({"watch"} if _watch(access, scope) else set()))
+            out["roles"] = [r.public() for r in self.store.roles(m.id) if r.scope in access.roles]  # type: ignore[attr-defined]
+            out["can"] = {scope: sorted(capabilities(roles) | ({"watch"} if self._watch(access, scope) else set()))
                           for scope, roles in access.roles.items()}  # type: ignore[attr-defined]
         elif access.owner:
-            out["member"] = store.require(OWNER_ID).public() if auth.via == "cookie" or \
+            out["member"] = self.store.require(OWNER_ID).public() if auth.via == "cookie" or \
                 auth.principal.id == OWNER_ID else None
             out["roles"] = [{"scope": "*", "role": "owner", "options": {}, "expires_at": None}]
             out["can"] = {"*": [*ALL_CAPS, "owner", "watch"]}
         if session is not None:
             recent = session.last_verified_at is not None and \
-                time.time() - session.last_verified_at <= api.settings.step_up_window
-            out["session"] = {**session.public(), "step_up_window_s": api.settings.step_up_window,
+                time.time() - session.last_verified_at <= self.api.settings.step_up_window
+            out["session"] = {**session.public(), "step_up_window_s": self.api.settings.step_up_window,
                               "verified_recently": recent, "step_up_needed": access.member is not None and not recent}
-            out["passkeys"] = len(store.credentials(session.member_id or OWNER_ID))
+            out["passkeys"] = len(self.store.credentials(session.member_id or OWNER_ID))
         return out
 
-    def _watch(access: Any, scope: str) -> bool:
+    def _watch(self, access: Any, scope: str) -> bool:
         g = access.grants.get(scope)
         try:
             return g is not None and g.caps("control") is not None
@@ -488,92 +494,92 @@ def routes(api: Api) -> list[Route]:
             return False
 
     # ---- my passkeys and devices ----
-    def require_recent_check(member: Member, session: Session) -> None:
+    def require_recent_check(self, member: Member, session: Session) -> None:
         """Adding a passkey to an account that has one needs a passkey check within the step-up
         window, so someone who finds an open session cannot enrol their own authenticator
         (QA-teams-2). The first passkey (the owner after a code sign-in) needs none."""
-        if not store.credentials(member.id):
+        if not self.store.credentials(member.id):
             return
         verified = session.last_verified_at
-        if verified is None or time.time() - verified > api.settings.step_up_window:
+        if verified is None or time.time() - verified > self.api.settings.step_up_window:
             raise ApiError("step_up_required", "Confirm with one of your passkeys first, then add the new one.")
 
-    async def my_passkey_options(request: Request) -> dict:
-        member, session = me_session(request)
-        require_recent_check(member, session)
+    async def my_passkey_options(self, request: Request) -> dict:
+        member, session = self.me_session(request)
+        self.require_recent_check(member, session)
         challenge = pk.new_challenge()
-        store.begin(challenge, "add_passkey", member_id=member.id, session_hash=session.id_hash)
+        self.store.begin(challenge, "add_passkey", member_id=member.id, session_hash=session.id_hash)
         return {"publicKey": pk.registration_options(
-            relying_party(api), user_id=member.id.encode(), user_name=member.handle,
+            relying_party(self.api), user_id=member.id.encode(), user_name=member.handle,
             display_name=member.display_name or member.handle, challenge=challenge,
-            exclude=[pk.unb64url(c.id) for c in store.credentials(member.id)])}
+            exclude=[pk.unb64url(c.id) for c in self.store.credentials(member.id)])}
 
-    async def my_passkey_add(request: Request) -> dict:
+    async def my_passkey_add(self, request: Request) -> dict:
         body = await read_body(request, PasskeyIn)
-        member, session = me_session(request)
-        require_recent_check(member, session)
-        found = ceremony(body.credential, "add_passkey")
+        member, session = self.me_session(request)
+        self.require_recent_check(member, session)
+        found = self.ceremony(body.credential, "add_passkey")
         if found.member_id != member.id or found.session_hash != session.id_hash:
             raise ApiError("unauthorized", "This passkey request was started in another session. Start again.")
         try:
-            cred = pk.verify_registration(relying_party(api), body.credential, challenge=found.challenge)
+            cred = pk.verify_registration(relying_party(self.api), body.credential, challenge=found.challenge)
         except pk.PasskeyError as exc:
             raise ApiError("unauthorized", f"The passkey was not accepted: {exc.message}.") from None
-        saved = store.add_credential(member_id=member.id, cred_id=cred.id, public_key=cred.public_key,
+        saved = self.store.add_credential(member_id=member.id, cred_id=cred.id, public_key=cred.public_key,
                                      sign_count=cred.sign_count, label=body.device_label, aaguid=cred.aaguid)
-        await api.store.run(api.store.verified, session)
+        await self.api.store.run(self.api.store.verified, session)
         access_of(request).trace("passkey.add", summary=f"{member.handle} added a passkey")
         return saved.public()
 
-    def devices_of(member: Member, current: Session | None = None) -> dict:
-        sessions = api.store.sessions_of(member.id)
+    def devices_of(self, member: Member, current: Session | None = None) -> dict:
+        sessions = self.api.store.sessions_of(member.id)
         if member.owner:
             sessions = [s for s in sessions if s.member_id == OWNER_ID]
-        return {"passkeys": [c.public() for c in store.credentials(member.id)],
+        return {"passkeys": [c.public() for c in self.store.credentials(member.id)],
                 "sessions": [{**s.public(), "current": current is not None and s.id_hash == current.id_hash}
                              for s in sessions]}
 
-    def drop_device(request: Request, member: Member, device: str) -> dict:
+    def drop_device(self, request: Request, member: Member, device: str) -> dict:
         if not ID_RE.match(device):
             raise NotFound("No such device.")
-        if store.delete_credential(member.id, device):
-            ended = api.store.delete_sessions(member_id=member.id, credential_id=device)
+        if self.store.delete_credential(member.id, device):
+            ended = self.api.store.delete_sessions(member_id=member.id, credential_id=device)
             access_of(request).trace("device.remove", summary=f"Remove a passkey of {member.handle}")
             return {"ok": True, "sessions_ended": ended}
-        ended = api.store.delete_sessions(member_id=member.id, session_prefix=device) if len(device) == 16 else 0
+        ended = self.api.store.delete_sessions(member_id=member.id, session_prefix=device) if len(device) == 16 else 0
         if not ended:
             raise NotFound("No such device.")
         access_of(request).trace("device.remove", summary=f"End a session of {member.handle}")
         return {"ok": True, "sessions_ended": ended}
 
-    async def my_update(request: Request) -> dict:
-        member = me_member(request)
+    async def my_update(self, request: Request) -> dict:
+        member = self.me_member(request)
         body = await read_body(request, MeUpdate)
         if body.name is not None:
-            store.set_display_name(member.id, body.name)
+            self.store.set_display_name(member.id, body.name)
             access_of(request).trace("me.update", summary=f"{member.handle} changed their name")
-        return store.require(member.id).public()
+        return self.store.require(member.id).public()
 
-    async def my_devices(request: Request) -> dict:
-        return devices_of(me_member(request), request.state.auth.session)
+    async def my_devices(self, request: Request) -> dict:
+        return self.devices_of(self.me_member(request), request.state.auth.session)
 
-    async def my_device_delete(request: Request) -> dict:
-        return drop_device(request, me_member(request), request.path_params["device"])
+    async def my_device_delete(self, request: Request) -> dict:
+        return self.drop_device(request, self.me_member(request), request.path_params["device"])
 
     # ---- my notifications ----
-    async def my_notify(request: Request) -> dict:
-        member = me_member(request)
-        notifier = api.runtime.get("notifier")
+    async def my_notify(self, request: Request) -> dict:
+        member = self.me_member(request)
+        notifier = self.api.runtime.get("notifier")
         if callable(getattr(notifier, "member_settings", None)):
             return strip_sensitive(jsonable(await maybe_await(notifier.member_settings(member.id))))
-        stored = store.notify_prefs(member.id)
+        stored = self.store.notify_prefs(member.id)
         return stored or NotifyIn(timezone=member.timezone, quiet_hours=["21:00", "08:00"],
                                   urgent_breaks_quiet=member.owner).model_dump()
 
-    async def my_notify_put(request: Request) -> dict:
-        member = me_member(request)
+    async def my_notify_put(self, request: Request) -> dict:
+        member = self.me_member(request)
         data = await read_json_object(request)
-        notifier = api.runtime.get("notifier")
+        notifier = self.api.runtime.get("notifier")
         if callable(getattr(notifier, "update_member", None)):
             try:
                 result = await maybe_await(notifier.update_member(member.id, data))
@@ -581,70 +587,71 @@ def routes(api: Api) -> list[Route]:
                 raise InvalidRequest(str(exc).splitlines()[0][:300]) from None
         else:
             prefs = NotifyIn.model_validate(data).model_dump()
-            store.set_notify_prefs(member.id, prefs)
+            self.store.set_notify_prefs(member.id, prefs)
             result = prefs
         access_of(request).trace("notify.update", summary=f"{member.handle} changed their notifications")
         return strip_sensitive(jsonable(result))
 
     # ---- members ----
-    async def members_list(request: Request) -> list[dict]:
+    async def members_list(self, request: Request) -> list[dict]:
         access = access_of(request)
-        return [member_json(m, access) for m in store.members()
-                if access.owner or (not m.owner and may_manage(access, m)) or m.id == getattr(access.member, "id", "")]
+        return [self.member_json(m, access) for m in self.store.members()
+                if access.owner or (not m.owner and self.may_manage(access, m)) or m.id == getattr(access.member, "id", "")]
 
-    async def member_get(request: Request) -> dict:
-        m = target(request)
-        return {**member_json(m, access_of(request)), **devices_of(m)}
+    async def member_get(self, request: Request) -> dict:
+        m = self.target(request)
+        return {**self.member_json(m, access_of(request)), **self.devices_of(m)}
 
-    async def member_update(request: Request) -> dict:
-        need_members()
-        m = target(request)
+    async def member_update(self, request: Request) -> dict:
+        self.need_members()
+        m = self.target(request)
         if m.owner or m.state == "removed":
             raise InvalidRequest("Only an active member's roles can change.")
         body = await read_body(request, RolesUpdate)
         access = access_of(request)
         ttl = _ttl(body.ttl)
         exp = time.time() + ttl if ttl else None
-        new = roles_in(body.roles, access, exp=exp)
+        new = self.roles_in(body.roles, access, exp=exp)
         if body.scopes is None and not new:  # nothing to change would answer 200 and change nothing (QA-teams-1)
             raise InvalidRequest("An empty role list needs `scopes`: the workspaces whose roles to clear. "
                                  "To remove the member, delete them instead.")
         scopes = set(body.scopes) if body.scopes is not None else {r.scope for r in new}
         for scope in scopes:
             validate_role(scope, MEMBER_ROLES[0], {})  # a valid scope
-            if not administers(access, scope):
+            if not self.administers(access, scope):
                 raise ApiError("denied", f"You cannot change roles in {scope}.")
         if not ({r.scope for r in new} <= scopes):
             raise InvalidRequest("Every role must be in one of the scopes being changed.")
         if exp is None:  # a changed scope keeps the end its roles had, unless a new ttl is given
-            old_end = {r.scope: r.expires_at for r in store.roles(m.id, include_expired=True)}
+            old_end = {r.scope: r.expires_at for r in self.store.roles(m.id, include_expired=True)}
             new = [Role(scope=r.scope, role=r.role, options=r.options, expires_at=old_end.get(r.scope)) for r in new]
-        by = me_member(request).handle
+        by = self.me_member(request).handle
         grouped = group_by_scope(new)
         for scope in scopes:
-            store.set_roles(m.id, scope, grouped.get(scope, []), by=by)
-        members.sync(m.id, scopes=scopes, by=by, force=True)
+            self.store.set_roles(m.id, scope, grouped.get(scope, []), by=by)
+        self.members.sync(m.id, scopes=scopes, by=by, force=True)
         access.trace("member.roles", summary=f"Roles of {m.handle}: " + (", ".join(
             f"{r.role}@{r.scope}" for r in new) or "none") + f" in {', '.join(sorted(scopes))}")
-        api.publish("member", {"id": m.id})
-        return member_json(store.require(m.id), access)
+        self.api.publish("member", {"id": m.id})
+        return self.member_json(self.store.require(m.id), access)
 
-    async def member_delete(request: Request) -> dict:
-        need_members()
-        m = target(request)
+    async def member_delete(self, request: Request) -> dict:
+        self.need_members()
+        m = self.target(request)
         access = access_of(request)
-        result = members.remove(m.id, by=me_member(request).handle)
-        ended = await api.store.run(api.store.delete_sessions, member_id=m.id)
+        result = self.members.remove(m.id, by=self.me_member(request).handle)
+        ended = await self.api.store.run(self.api.store.delete_sessions, member_id=m.id)
         access.trace("member.remove", summary=f"Remove member {m.handle}: {len(result['grants'])} grants and "
                                               f"{len(result['agent_grants'])} agent grants revoked")
-        api.publish("member", {"id": m.id, "removed": True})
+        self.api.publish("member", {"id": m.id, "removed": True})
         return {**result, "sessions_ended": ended}
 
-    async def member_devices(request: Request) -> dict:
-        return devices_of(target(request))
+    async def member_device_delete(self, request: Request) -> dict:
+        return self.drop_device(request, self.target(request), request.path_params["device"])
 
-    async def member_device_delete(request: Request) -> dict:
-        return drop_device(request, target(request), request.path_params["device"])
+
+def routes(api: Api) -> list[Route]:
+    h = Handlers(api)
 
     def e(fn):
         return endpoint(api, fn)
@@ -657,7 +664,7 @@ def routes(api: Api) -> list[Route]:
         `presence`, at least that: who may act on this node is a person's decision (Presence.PERSON),
         so a token or the device credential, which an agent may hold, never invites or gives a role."""
         async def person_only(request: Request) -> Any:
-            me_member(request)
+            h.me_member(request)
             return await fn(request)
 
         person_only.__name__ = fn.__name__
@@ -670,35 +677,29 @@ def routes(api: Api) -> list[Route]:
 
     PERSON = Presence.PERSON
     return [
-        Route("/api/invites/accept/options", public(accept_options), methods=["POST"]),
-        Route("/api/invites/accept", public(accept), methods=["POST"]),
-        Route("/api/session/passkey/options", public(passkey_options), methods=["POST"]),
-        Route("/api/session/passkey", public(passkey_sign_in), methods=["POST"]),
-        Route("/api/session/verify/options", e(verify_options), methods=["POST"]),
-        Route("/api/session/verify", e(verify), methods=["POST"]),
-        Route("/api/me", e(me), methods=["GET"]),
-        Route("/api/me/details", e(my_update), methods=["PATCH"]),
-        Route("/api/me/passkeys/options", person(my_passkey_options), methods=["POST"]),
-        Route("/api/me/passkeys", person(my_passkey_add), methods=["POST"]),
-        Route("/api/me/devices", e(my_devices), methods=["GET"]),
-        Route("/api/me/devices/{device}", e(my_device_delete), methods=["DELETE"]),
-        Route("/api/me/notify", e(my_notify), methods=["GET"]),
-        Route("/api/me/notify", e(my_notify_put), methods=["PUT"]),
-        Route("/api/invites", admin(invites), methods=["GET"]),
-        Route("/api/invites", admin(invite_create, PERSON), methods=["POST"]),
-        Route("/api/invites/{id}", admin(invite_delete), methods=["DELETE"]),
-        Route("/api/members", admin(members_list), methods=["GET"]),
-        Route("/api/members/{id}", admin(member_get), methods=["GET"]),
-        Route("/api/members/{id}", admin(member_update, PERSON), methods=["PATCH"]),
-        Route("/api/members/{id}", admin(member_delete), methods=["DELETE"]),
-        Route("/api/members/{id}/devices", admin(member_devices), methods=["GET"]),
-        Route("/api/members/{id}/devices/{device}", admin(member_device_delete), methods=["DELETE"]),
+        Route("/api/invites/accept/options", public(h.accept_options), methods=["POST"]),
+        Route("/api/invites/accept", public(h.accept), methods=["POST"]),
+        Route("/api/session/passkey/options", public(h.passkey_options), methods=["POST"]),
+        Route("/api/session/passkey", public(h.passkey_sign_in), methods=["POST"]),
+        Route("/api/session/verify/options", e(h.verify_options), methods=["POST"]),
+        Route("/api/session/verify", e(h.verify), methods=["POST"]),
+        Route("/api/me", e(h.me), methods=["GET"]),
+        Route("/api/me/details", e(h.my_update), methods=["PATCH"]),
+        Route("/api/me/passkeys/options", person(h.my_passkey_options), methods=["POST"]),
+        Route("/api/me/passkeys", person(h.my_passkey_add), methods=["POST"]),
+        Route("/api/me/devices", e(h.my_devices), methods=["GET"]),
+        Route("/api/me/devices/{device}", e(h.my_device_delete), methods=["DELETE"]),
+        Route("/api/me/notify", e(h.my_notify), methods=["GET"]),
+        Route("/api/me/notify", e(h.my_notify_put), methods=["PUT"]),
+        Route("/api/invites", admin(h.invites), methods=["GET"]),
+        Route("/api/invites", admin(h.invite_create, PERSON), methods=["POST"]),
+        Route("/api/invites/{id}", admin(h.invite_delete), methods=["DELETE"]),
+        Route("/api/members", admin(h.members_list), methods=["GET"]),
+        Route("/api/members/{id}", admin(h.member_get), methods=["GET"]),
+        Route("/api/members/{id}", admin(h.member_update, PERSON), methods=["PATCH"]),
+        Route("/api/members/{id}", admin(h.member_delete), methods=["DELETE"]),
+        Route("/api/members/{id}/devices/{device}", admin(h.member_device_delete), methods=["DELETE"]),
     ]
-
-
-def _iso(ts: float) -> str:
-    from datetime import UTC, datetime
-    return datetime.fromtimestamp(ts, UTC).isoformat()
 
 
 def _trace_owner(api: Api, action: str, summary: str) -> None:

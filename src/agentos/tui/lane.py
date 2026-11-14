@@ -11,9 +11,10 @@ from textual.screen import Screen
 from textual.widgets import DataTable, Footer, Static
 
 from agentos.tui import fmt
+from agentos.tui.activity import activity_cells, activity_columns
 from agentos.tui.models import Lane
 from agentos.tui.state import DashState
-from agentos.tui.views import activity_cells, activity_columns, control_info, lane_actions, signal_info
+from agentos.tui.views import control_info, lane_actions, signal_info
 from agentos.tui.widgets import Banner, TopBar, View
 
 

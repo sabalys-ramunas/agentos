@@ -7,6 +7,7 @@ import os
 import signal
 
 import pytest
+from testkit.brains import OAUTH, FakeCtx, add, make_service
 
 from agentos.brains.models import (
     BrainKind,
@@ -21,7 +22,6 @@ from agentos.brains.models import (
     Requirements,
 )
 from agentos.brains.router import route
-from agentos.brains.testing import OAUTH, FakeCtx, add, make_service
 from agentos.core.errors import ApprovalPending
 from agentos.core.models import Effect, Principal
 from agentos.core.runtime import Runtime
@@ -149,8 +149,9 @@ async def test_a_sign_in_after_the_route_is_caught_where_the_credential_is_read(
 async def test_a_codex_refresh_never_overwrites_a_newer_sign_in(tmp_path):
     import json
 
+    from testkit.brains import FakeVault
+
     from agentos.brains.credentials import brain_ref
-    from agentos.brains.testing import FakeVault
 
     s = make_service(tmp_path, runtime=Runtime(vault=FakeVault()))
     auth = json.dumps({"tokens": {"access_token": "at-" + "A" * 30, "refresh_token": "rt-a"}})

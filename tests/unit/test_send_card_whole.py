@@ -9,7 +9,7 @@ import pytest
 from workflow_support import LIST, MAIL, OWNER, action, make_node, workflow
 
 from agentos.core.errors import InvalidRequest
-from agentos.policy.approvals import SEND_PAGE
+from agentos.policy.approval_models import SEND_PAGE
 from agentos.policy.confirm import chat_refusal
 from agentos.policy.errors import SeeWholeCard
 
@@ -146,9 +146,10 @@ def test_the_api_serves_the_pages_and_takes_the_yes_only_with_the_token(tmp_path
     from test_api_members import owner
     from test_node_panel import Node
 
-    from agentos.api.auth import RateLimiter
     from agentos.core.models import Principal
-    from agentos.policy.approvals import ActionBinding, ask_for_action
+    from agentos.core.ratelimit import RateLimiter
+    from agentos.policy.approval_binding import ActionBinding
+    from agentos.policy.approvals import ask_for_action
 
     n = Node(tmp_path)
     try:

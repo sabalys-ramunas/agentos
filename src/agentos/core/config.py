@@ -7,12 +7,16 @@ import json
 import os
 import tomllib
 from pathlib import Path
+from typing import Any
 
 import tomli_w
 from pydantic import BaseModel, ValidationError, model_validator
 
 from agentos.core import fs
+from agentos.core.aio import maybe_await
+from agentos.core.ceiling import problems as ceiling_problems
 from agentos.core.models import ProxyConfig, parse_lane_id
+from agentos.core.toolsets import FULL_ALIASES, NAMES, OTHER
 
 DEFAULT_HOME = Path("/var/lib/agentos")
 # The smallest per-lane memory cap: a warm lane on a logged-in social feed takes 0.8 to 1 GB
@@ -65,18 +69,6 @@ class NodeConfig(BaseModel):
     # Session keepalive (agentos.keepalive): light read-only visits that keep idle lanes signed in.
     # Off until the owner turns it on, because it opens real accounts unattended.
     keepalive: bool = False
-    # Engagement sessions (agentos.engage): approved programs act on their accounts at the planned
-    # times. Off until the owner turns it on, because it acts on real accounts unattended.
-    engage_sessions: bool = False
-    # The draft provider (agentos.engage.drafts): where programs that need words get candidates.
-    # off (default), passthrough (test text, offline) or http (engage_draft_endpoint, with a bearer
-    # token kept in the vault under engage_draft_secret_ref, else engage/draft-provider/token).
-    # Drafts wait for the owner in approve mode; in auto mode an http draft goes out unasked, and
-    # passthrough test text always waits (it does not start while a program runs in auto mode).
-    engage_draft_provider: str = "off"
-    engage_draft_endpoint: str = ""
-    engage_draft_secret_ref: str = ""
-    engage_draft_timeout_s: float = 20.0
     # The agenda (agentos.agenda, docs/AGENDA.md): a request in Needs you for an entry planned weeks
     # ahead stays open until the entry's start, but never more than this many days after it was proposed.
     agenda_approval_max_days: int = 14
@@ -150,22 +142,11 @@ class NodeConfig(BaseModel):
             problems.append("lane_cpu_max_pct must be at least 10 (percent of one core)")
         if set(self.lane_os) - {"windows", "macos", "linux"}:
             problems.append("lane_os may list only windows, macos and linux")
-        try:
-            from agentos.engage.drafts import config_problems as draft_problems
-        except ModuleNotFoundError:  # a build without the engagement engine
-            draft_problems = None  # type: ignore[assignment]
-        if draft_problems is not None:
-            problems += draft_problems(self.engage_draft_provider, self.engage_draft_endpoint,
-                                       self.engage_draft_secret_ref, self.engage_draft_timeout_s)
         if self.mcp_toolsets != ["core"]:
-            from agentos.mcp.toolsets import FULL_ALIASES, NAMES, OTHER
-
             unknown = [n for n in self.mcp_toolsets if n.strip().lower() not in {*NAMES, OTHER, *FULL_ALIASES}]
             if unknown:
                 problems.append(f"mcp_toolsets may list only full or these toolsets: {', '.join(NAMES)} "
                                 f"(unknown: {', '.join(unknown)[:200]})")
-        from agentos.policy.ceiling import problems as ceiling_problems
-
         problems += ceiling_problems(self.controller_max_effect, self.controller_specials, self.controller_streams,
                                      self.controller_ceiling_by)
         if problems:
@@ -305,6 +286,20 @@ def load_proxies(cfg: NodeConfig) -> dict[str, ProxyConfig]:
 # Fields an agent environment's tunnel sets (agentos.environments keeps those in memory, never saved). A
 # saved proxy that leaves them at their default keeps proxies.json as it was: host, port and credentials.
 _ENV_ONLY_DEFAULTS = {"scheme": "http", "check_exit": True}
+
+
+async def proxies_by_label(service: Any, config: NodeConfig | None) -> dict[str, Any]:
+    """The proxies by label: from the node's proxies service when there is one (an item is a ProxyConfig
+    or a dict with `label`), else from the node's proxies file. Unreadable or no config: none."""
+    if service is not None:
+        items = await maybe_await(service.list())
+        return {(p.label if hasattr(p, "label") else p["label"]): p for p in items}
+    if config is not None:
+        try:
+            return load_proxies(config)
+        except (OSError, ValueError):
+            return {}
+    return {}
 
 
 def save_proxies(cfg: NodeConfig, proxies: dict[str, ProxyConfig]) -> None:

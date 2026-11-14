@@ -10,6 +10,7 @@ from typing import Any
 
 import pytest
 from test_policy_support import Clock
+from testkit.pilot import pick, step
 
 from agentos.core.errors import InvalidRequest, PolicyDenied, ServiceUnavailable
 from agentos.core.models import AccountRef, Effect, LaneSpec
@@ -25,7 +26,6 @@ from agentos.pilot import service as pilot_service
 from agentos.pilot.grant import pins_for
 from agentos.pilot.modes import GOAL
 from agentos.pilot.service import PilotService, Settings, load_settings, parse_values, values_of
-from agentos.pilot.testing import pick, step
 from agentos.pilot.tools import lane_do
 from agentos.policy.service import PolicyService
 from agentos.policy.wrap import bind_request_token, wrap_tool
@@ -412,7 +412,7 @@ def test_error_codes_read_like_the_catalog() -> None:
 
 async def test_the_plugin_builds_the_service_and_it_takes_pilot_runs(tmp_path) -> None:
     """What agentos.node.daemon.build_plugins does with `agentos.pilot.service`."""
-    from agentos.runner.models import RunKind
+    from agentos.core.models import RunKind
 
     runtime = Runtime(interaction=DevInteraction())
     runner = runner_service.build(runtime, home=tmp_path / "runner", max_concurrent=1)

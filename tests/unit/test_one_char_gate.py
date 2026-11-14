@@ -2,17 +2,19 @@
 
 from __future__ import annotations
 
+import hashlib
 from types import SimpleNamespace
 
 import pytest
 from test_policy_support import PRESENT, Clock, make_service
+from testkit.brains import add as add_brain
+from testkit.brains import make_service as make_brain_service
 
 from agentos.brains.models import Budget
-from agentos.brains.testing import add as add_brain
-from agentos.brains.testing import make_service as make_brain_service
 from agentos.core.errors import ApprovalPending
 from agentos.core.models import Effect, Principal
-from agentos.policy.approvals import ActionBinding, action_binding_problem, ask_for_action
+from agentos.policy.approval_binding import ActionBinding, action_binding_problem
+from agentos.policy.approvals import ask_for_action
 
 GRANT = "gr_test"
 GRANT_PATH = "/gr_test/"
@@ -100,7 +102,7 @@ def test_a_card_from_before_action_binding_is_covered_only_by_its_legacy_hash(po
     """A binding-less card with a bare legacy hash: covered by that hash, refused for a hash or content one character away."""
     svc, _ = policy
     bind = keyed()
-    legacy = bind.legacy_engage_hash()
+    legacy = hashlib.sha256(b"a card made before ActionBinding").hexdigest()
     ap = svc.approvals.create_action(
         effect="commit", tool="connector.x.like", lane="biz/x", domain=None, summary="Like a post",
         content_hash=legacy, content_digest=bind.content_digest, preview=None, requester=PRINCIPAL,

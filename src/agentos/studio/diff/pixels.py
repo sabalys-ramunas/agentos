@@ -47,11 +47,6 @@ class Grid:
     width: int                  # image px
     height: int
 
-    def cell_rect(self, i: int) -> Rect:
-        c, r = i % self.cols, i // self.cols
-        s = self.cell / self.scale
-        return Rect(x=c * s, y=r * s, w=s, h=s)
-
     def cells_of(self, rect: Rect, pad: float = 0.0) -> tuple[int, int, int, int]:
         """The cell columns and rows [c0, c1) x [r0, r1) a CSS rect touches."""
         s = self.cell / self.scale

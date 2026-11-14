@@ -17,22 +17,19 @@
 # --watch keeps syncing on save (it checks for changed files every SYNC_POLL_S seconds,
 # default 1, and reuses one ssh connection). After a sync it runs `uv sync` on the node
 # when pyproject.toml or uv.lock changed, and the --restart command (in the remote dir)
-# only when Python code or dependencies changed. --panel rebuilds the panel here first
-# when panel/ changed, so the node serves the new build. With --web, a change under web/
+# only when Python code or dependencies changed. With --web, a change under web/
 # rebuilds web/dist first. A deleted file is synced with the next change. Ctrl-C stops watching.
 set -euo pipefail
 
 usage() { sed -n '2,/^set -euo/{/^set -euo/!p}' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
 
 WATCH=0
-PANEL=0
 WEB=0
 RESTART=""
 REMOTE_DIR=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --watch) WATCH=1; shift ;;
-    --panel) PANEL=1; shift ;;
     --web) WEB=1; shift ;;
     --restart) [ $# -ge 2 ] || { echo "error: --restart needs a command" >&2; exit 2; }; RESTART="$2"; shift 2 ;;
     --restart=*) RESTART="${1#--restart=}"; shift ;;
@@ -41,9 +38,9 @@ while [ $# -gt 0 ]; do
     *) [ -z "$REMOTE_DIR" ] || { echo "error: one remote dir only" >&2; exit 2; }; REMOTE_DIR="$1"; shift ;;
   esac
 done
-[ -n "$REMOTE_DIR" ] || { echo "usage: scripts/sync-node.sh [--watch [--restart CMD] [--panel]] <remote-dir>" >&2; exit 2; }
-if [ "$WATCH" = 0 ] && { [ -n "$RESTART" ] || [ "$PANEL" = 1 ]; }; then
-  echo "error: --restart and --panel go with --watch" >&2; exit 2
+[ -n "$REMOTE_DIR" ] || { echo "usage: scripts/sync-node.sh [--web] [--watch [--restart CMD]] <remote-dir>" >&2; exit 2; }
+if [ "$WATCH" = 0 ] && [ -n "$RESTART" ]; then
+  echo "error: --restart goes with --watch" >&2; exit 2
 fi
 # shellcheck source=scripts/node-env.sh
 . "$(dirname "${BASH_SOURCE[0]}")/node-env.sh"
@@ -116,7 +113,7 @@ sync_once() {
     --exclude /poc/shots/ --exclude /poc/profiles/ --exclude /poc/fingerprints/ --exclude /poc/secrets.json \
     --exclude /.agentos-home/ \
     --exclude /web/node_modules/ --exclude /web/test-results/ --exclude /web/screenshots/ --exclude '/web/.dev-node-*' \
-    --exclude /panel/node_modules/ --exclude /panel/test-results/ --exclude /panel/playwright-report/ \
+    --exclude /panel/ \
     --exclude /redteam/site/ --exclude /redteam/detect/.venv/ \
     "$SRC_DIR/" "$NODE_HOST:$REMOTE_DIR/"
 }
@@ -166,16 +163,12 @@ echo "watching $SRC_DIR (Ctrl-C to stop)"
 while :; do
   sleep "${SYNC_POLL_S:-1}"
   newer="$(find "$SRC_DIR" \( -name .git -o -name .venv -o -name node_modules -o -name __pycache__ \
-      -o -name .pytest_cache -o -name .ruff_cache -o -name .agentos-home -o -path "$SRC_DIR/panel/dist" \
+      -o -name .pytest_cache -o -name .ruff_cache -o -name .agentos-home -o -path "$SRC_DIR/panel" \
       -o -path "$SRC_DIR/web/dist" -o -path "$SRC_DIR/web/dist.previous" \
-      -o -path "$SRC_DIR/panel/test-results" -o -path "$SRC_DIR/panel/playwright-report" \) -prune \
+      \) -prune \
       -o -newer "$stamp" -print 2>/dev/null | head -200)"
   [ -n "$newer" ] || continue
   touch "$stamp"   # before syncing: an edit made during this round is caught by the next one
-  if [ "$PANEL" = 1 ] && grep -q "^$SRC_DIR/panel/" <<<"$newer"; then
-    echo "  panel changed: building"
-    (cd "$SRC_DIR/panel" && npm run -s build >/dev/null) || echo "  the panel build failed; synced the rest" >&2
-  fi
   if [ "$WEB" = 1 ] && grep -q "^$SRC_DIR/web/" <<<"$newer"; then
     ensure_web_build
   fi

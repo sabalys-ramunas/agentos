@@ -21,7 +21,7 @@ import { useKeys } from '@/lib/keyboard';
 import { laneName } from '@/lib/labels';
 import { ControlFrame } from './control';
 import { SignIn } from './sign-in';
-import { LiveView } from './lane';
+import { LiveView } from './live-view';
 import { useFullWindow } from './live/full-window';
 
 /** Only a lane with a screen can fill the window. */

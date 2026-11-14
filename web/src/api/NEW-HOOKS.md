@@ -1,7 +1,8 @@
 # New hooks: Runs, Checks, Brand, Needs you previews, Machines
 
-The data layer for the Mono screens (builder J3). Types are in `types.ts`, calls in `client.ts`
-(`jobs`, `studio`, `brand`, `vms`), keys in `keys.ts`, hooks at the end of `hooks.ts`. Mock data
+The data layer for the Mono screens (builder J3). Types are in `types/` (`jobs.ts`, `studio.ts`,
+`brand.ts`, `vms.ts`), calls in `client.ts` (`jobs`, `studio`, `brand`, `vms`), keys in `keys.ts`, hooks
+in `hooks/` (`jobs.ts`, `studio.ts`, `brand.ts`, `vms.ts`). Mock data
 lives in `src/mocks/jobs.ts`, `studio.ts` and `brand.ts`, in the `northwind-group` org.
 
 Every hook takes `org` first and an optional `enabled` last. Live mode shows only what the node

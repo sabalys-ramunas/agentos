@@ -11,6 +11,7 @@ import stat
 import sys
 
 import pytest
+from testkit.brains import OAUTH, add, dump, make_service
 
 from agentos.brains import cli as brains_cli
 from agentos.brains import decisions
@@ -22,7 +23,6 @@ from agentos.brains.decisions import (
     DecisionUnavailable,
 )
 from agentos.brains.models import Budget
-from agentos.brains.testing import OAUTH, add, dump, make_service
 from agentos.core.errors import InvalidRequest
 from agentos.core.models import Principal
 

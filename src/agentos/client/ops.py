@@ -16,22 +16,29 @@ connect again, or `agentos connect --upgrade` for all of them.
 
 from __future__ import annotations
 
-import re
-import shutil
-import socket
 import time
 from collections.abc import Callable
-from dataclasses import dataclass, field
 from typing import Any, Literal
 
 from agentos.client import skills
 from agentos.client.bridge import bridge_command
+from agentos.client.choices import (
+    AgentOptions,
+    CheckItem,
+    ClientChoice,
+    ClientLine,
+    ConnectResult,
+    Health,
+    InstallChoice,
+    Tools,
+)
 from agentos.client.claude import ClaudeCode, manual_lines
 from agentos.client.codex import CodexConfig
 from agentos.client.codex import installed as codex_installed
+from agentos.client.credentials import Credentials
 from agentos.client.errors import ClientError, NodeMissing, NotConnected, VerifyError
 from agentos.client.install import RemoteInstaller, install_lines, install_source, refusal
-from agentos.client.mcp_http import Failure, McpError, McpSession, ToolError, probe
+from agentos.client.mcp_http import PROBE_TIMEOUT, Failure, McpError, McpSession, ToolError, probe
 from agentos.client.owner import NodePanel, PanelError
 from agentos.client.ports import DEFAULT_LOCAL_PORT, pick_port, wait_free
 from agentos.client.remote import NodeSettings, read_node, valid_host
@@ -55,152 +62,14 @@ from agentos.client.tokens import (
     helper_command,
     install_helper,
 )
-from agentos.client.tunnel import LaunchdService, NoTunnel, ServiceState, SystemdService, TunnelSpec
-from agentos.mcp import toolsets
+from agentos.client.tunnel import LaunchdService, NoTunnel, SystemdService, TunnelSpec
 
 VERIFY_SECONDS = 25.0
-PROBE_TIMEOUT = 5.0
-DEFAULT_CEILING = "commit"
-DEFAULT_AGENT_TTL = "90d"
-DEFAULT_CLIENT = "claude-code"
-# memory_read: the agent reads a workspace's memory first (memory_context), as the node's instructions
-# ask; writing memory stays a special the human adds with --special memory. environments: the agent
-# may open its own cloud computer for the chat (environment_open, which never asks: the node's limits
-# bound it) and run commands there, on lanes env/* only
-DEFAULT_SPECIALS = ["environments", "memory_read"]
-NEWER_SPECIALS = ("environments", "memory_read")  # names an older node refuses
-CEILINGS = ("read", "draft", "commit", "pay", "irreversible")
-CLIENT_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{0,39}$")
-TTL_RE = re.compile(r"^[1-9][0-9]{0,4}[mhdw]$")
 
 Service = LaunchdService | SystemdService | NoTunnel
 
 
-@dataclass
-class Tools:
-    ssh: str | None = None
-    security: str | None = None
-    launchctl: str | None = None
-    systemctl: str | None = None
-    journalctl: str | None = None
-    claude: str | None = None
-    rsync: str | None = None
-
-    @classmethod
-    def find(cls) -> Tools:
-        return cls(**{name: shutil.which(name) for name in cls.__dataclass_fields__})
-
-
-def computer_name() -> str:
-    """This computer, for the agent grant's subject and the device label: `Robin-MacBook.local`
-    becomes `robin-macbook`."""
-    host = socket.gethostname().split(".")[0].lower()
-    return re.sub(r"[^a-z0-9-]+", "-", host).strip("-")[:40] or "computer"
-
-
-def parse_toolsets(value: str) -> list[str] | None:
-    """`--toolsets files,flows` -> ["core", "files", "flows"] (core is always listed), "full" or
-    "all" -> ["full"], "default" -> None (whatever the node lists by default)."""
-    words = [w for w in re.split(r"[\s,]+", value.strip().lower()) if w]
-    if not words:
-        raise ClientError("--toolsets needs toolset names, full or default",
-                          f"toolsets: {', '.join(toolsets.NAMES)}")
-    if words == ["default"]:
-        return None
-    if set(words) & toolsets.FULL_ALIASES:
-        return [toolsets.FULL]
-    known = (*toolsets.NAMES, toolsets.OTHER)
-    unknown = [w for w in words if w not in known]
-    if unknown:
-        raise ClientError(f"--toolsets: no toolset named {', '.join(unknown[:3])}",
-                          f"toolsets: {', '.join(known)}, or full (every tool) or default (the node's)")
-    return [name for name in known if name == toolsets.CORE or name in words]
-
-
-@dataclass
-class AgentOptions:
-    """What the agent grant of a connection says. None: what the connection had, else the default."""
-    ceiling: str | None = None
-    ttl: str | None = None
-    client: str | None = None
-    specials: list[str] | None = None
-    new_grant: bool = False
-    toolsets: str | None = None  # `--toolsets`: names, "full", or "default"; None keeps what it had
-
-    def chosen_toolsets(self, previous: list[str] | None) -> list[str] | None:
-        """The toolsets the connection's URL asks for: None is the node's own default."""
-        if self.toolsets is None:
-            return previous
-        return parse_toolsets(self.toolsets)
-
-    def check(self) -> None:
-        if self.toolsets is not None:
-            parse_toolsets(self.toolsets)
-        if self.ceiling is not None and self.ceiling not in CEILINGS:
-            raise ClientError(f"--ceiling must be one of {', '.join(CEILINGS)}")
-        if self.ttl is not None and not TTL_RE.match(self.ttl):
-            raise ClientError("--agent-ttl looks like 30d, 12w or 8760h")
-        if self.client is not None and not CLIENT_RE.match(self.client):
-            raise ClientError("--client is a short lowercase name, for example claude-code or codex")
-
-
-@dataclass
-class ClientChoice:
-    """Which of this computer's agent clients `connect` sets up (`--no-claude`, `--no-codex`,
-    `--no-skills`). Each one is set up only when it is installed here."""
-    claude: bool = True
-    codex: bool = True
-    skills: bool = True
-
-
-@dataclass
-class InstallChoice:
-    """What connect does on a host with no node: ask once (`confirm`, None when nobody can answer),
-    install without asking (`--install`), or never."""
-    mode: Literal["ask", "yes", "no"] = "ask"
-    confirm: Callable[[str], bool] | None = None
-
-
-@dataclass
-class ClientLine:
-    """One line of connect's summary: a client and what happened to it."""
-    client: str   # "Claude Code", "Codex", "Skills"
-    state: str    # registered, already registered, not installed, skipped, failed, installed, updated
-    detail: str = ""
-
-
-@dataclass
-class ConnectResult:
-    conn: Connection
-    tunnel_reused: bool
-    token_changed: bool
-    claude_lines: list[str] = field(default_factory=list)  # set when it must be registered by hand
-    claude_error: str | None = None
-    grant_issued: bool = False
-    notes: list[str] = field(default_factory=list)  # warnings to show after the summary
-    clients: list[ClientLine] = field(default_factory=list)
-    installed: bool = False                # connect installed the node on the host first
-    sign_in: str | None = None             # then: a one-time panel link through the tunnel
-
-
-@dataclass
-class CheckItem:
-    what: str
-    state: Literal["ok", "fail", "skip"]
-    detail: str
-    fix: str | None = None
-
-
-@dataclass
-class Health:
-    conn: Connection
-    service: ServiceState
-    mcp: str
-    ok: bool = False
-    server: dict[str, Any] = field(default_factory=dict)
-
-
-class Client:
+class Client(Credentials):
     def __init__(self, paths: Paths | None = None, platform: str | None = None, tools: Tools | None = None,
                  out: Callable[[str], None] = print):
         self.paths = paths or Paths.current()
@@ -541,139 +410,6 @@ class Client:
             result.clients.append(ClientLine("Skills", "not installed", "Claude Code is not here"))
         self.records.save(conn)
 
-    @staticmethod
-    def _forget_agent(conn: Connection, credential: str) -> None:
-        conn.credential = credential  # type: ignore[assignment]
-        for key in ("agent_grant_id", "agent_subject", "agent_ceiling", "agent_expires_at", "owner_device_id",
-                    "owner_device_expires_at"):
-            setattr(conn, key, None)
-        conn.agent_specials = []
-
-    def _credentials(self, conn: Connection, previous: Connection | None, node: NodeSettings, tokens: TokenStore,
-                     owner: TokenStore, held: tuple[str | None, str | None], agent: AgentOptions,
-                     result: ConnectResult) -> None:
-        """With the node token (in memory only): the owner's device credential, then the agent grant.
-        A node that has neither route (older agentos, or no policy) keeps the node token, with a note."""
-        name = conn.name
-        panel = NodePanel(conn.local_port)
-        old_agent, old_device = held
-        was_grant = previous is not None and previous.credential == "agent_grant"
-
-        device, minted = None, None
-        if old_device and was_grant:
-            try:
-                panel.whoami(old_device)
-                device = old_device
-            except PanelError as exc:
-                if exc.status not in (401, 403):
-                    raise
-        if device is None:
-            try:
-                minted = panel.mint_device(node.token, label=computer_name())
-            except PanelError as exc:
-                if not exc.missing:
-                    raise
-                return self._keep_node_token(conn, node, tokens, result, exc)
-            device = minted["session"]
-            conn.owner_device_id, conn.owner_device_expires_at = minted.get("id"), minted.get("expires_at")
-
-        was_client = (previous.agent_subject or "").split("@")[0] if was_grant and previous else ""
-        subject = f"{agent.client or was_client or DEFAULT_CLIENT}@{computer_name()}"
-        ceiling = agent.ceiling or (previous.agent_ceiling if was_grant and previous else None) or DEFAULT_CEILING
-        specials = sorted(agent.specials if agent.specials is not None else
-                          (previous.agent_specials if was_grant and previous else DEFAULT_SPECIALS))
-        keep = (was_grant and old_agent and not agent.new_grant and agent.ttl is None and previous is not None
-                and previous.agent_subject == subject and previous.agent_ceiling == ceiling
-                and sorted(previous.agent_specials) == specials and self._answers(conn.local_port, old_agent))
-        if keep:
-            token = old_agent
-            self.out(f"Agent grant {conn.agent_grant_id} kept: {subject}, every lane, up to {ceiling}")
-        else:
-            try:
-                try:
-                    issued = panel.issue_agent_grant(node.token, subject=subject, ceiling=ceiling, specials=specials,
-                                                     ttl=agent.ttl or DEFAULT_AGENT_TTL)
-                except PanelError as exc:
-                    # a node older than these names refuses them: issue without them, as before
-                    refused = [s for s in NEWER_SPECIALS if s in specials and s in exc.message]
-                    if agent.specials is not None or not refused:
-                        raise
-                    specials = [s for s in specials if s not in refused]
-                    issued = panel.issue_agent_grant(node.token, subject=subject, ceiling=ceiling, specials=specials,
-                                                     ttl=agent.ttl or DEFAULT_AGENT_TTL)
-            except PanelError as exc:
-                if minted:
-                    with _quiet():
-                        panel.end_device(device)
-                if not exc.missing:
-                    raise
-                return self._keep_node_token(conn, node, tokens, result, exc)
-            token = issued["token"]
-            conn.agent_grant_id = issued.get("id")
-            conn.agent_expires_at = (issued.get("grant") or {}).get("expires_at")
-            conn.agent_subject, conn.agent_ceiling, conn.agent_specials = subject, ceiling, specials
-            result.grant_issued = True
-            until = f", until {conn.agent_expires_at[:10]}" if conn.agent_expires_at else ""
-            extra = f", specials {', '.join(specials)}" if specials else ", no specials"
-            self.out(f"Agent grant {conn.agent_grant_id} issued for {subject}: every lane, up to {ceiling}{extra}{until}")
-
-        try:
-            result.token_changed = tokens.put(name, token)
-            self.out(f"Token {'stored in' if result.token_changed else 'already in'} {tokens.describe(name)}")
-            stored = owner.put(name, device)
-            self.out(f"Owner credential {'stored in' if stored else 'already in'} {owner.describe(name)}")
-            self.out("  agentos dash, agentos approvals and agentos open use it; MCP refuses it")
-            try:
-                probe(conn.local_port, token, timeout=PROBE_TIMEOUT)
-            except McpError as exc:
-                raise VerifyError(f"the node did not accept the agent grant it issued ({exc.detail})",
-                                  f"run `agentos connect {conn.ssh_host} --name {name} --new-grant`") from None
-        except ClientError:
-            # nothing new may stay behind on the node when this computer could not keep it
-            if result.grant_issued and conn.agent_grant_id:
-                with _quiet():
-                    panel.call("POST", f"/api/grants/{conn.agent_grant_id}/revoke", {}, bearer=node.token)
-            if minted:
-                with _quiet():
-                    panel.end_device(device)
-            raise
-        conn.credential = "agent_grant"
-        if conn.agent_grant_id:
-            # lane_view then gives this computer's agents a link and tunnel that work here (best effort:
-            # a node older than this answers 404 and keeps its own words)
-            with _quiet():
-                panel.record_route(node.token, conn.agent_grant_id, ssh_host=conn.ssh_host,
-                                   local_port=conn.local_port)
-        self.out("  the node accepted the agent grant; its own token was used only for these calls "
-                 "and is not stored here")
-
-        if result.grant_issued and was_grant and previous and previous.agent_grant_id \
-                and previous.agent_grant_id != conn.agent_grant_id:
-            try:
-                panel.revoke_grant(device, previous.agent_grant_id)
-                self.out(f"  revoked the previous agent grant {previous.agent_grant_id}")
-            except PanelError as exc:
-                if exc.status not in (404, 409):
-                    result.notes.append(f"could not revoke the previous agent grant {previous.agent_grant_id}: "
-                                        f"{exc.message}; revoke it on the node with `agentos grants revoke "
-                                        f"{previous.agent_grant_id}`")
-        if old_device and old_device != device:
-            with _quiet():
-                panel.end_device(old_device)
-        if previous is not None and not was_grant:
-            self.out("  moved from the node token to its own grant; rotate the node token once every "
-                     f"connection is moved: `ssh {conn.ssh_host} agentos node rotate-token`")
-
-    def _keep_node_token(self, conn: Connection, node: NodeSettings, tokens: TokenStore, result: ConnectResult,
-                         why: PanelError) -> None:
-        result.token_changed = tokens.put(conn.name, node.token)
-        self._forget_agent(conn, "node_token")
-        self.out(f"Token {'stored in' if result.token_changed else 'already in'} {tokens.describe(conn.name)}")
-        result.notes.append(
-            f"{conn.ssh_host} cannot issue agent grants yet ({why.message}), so this connection holds the node "
-            "token and you cannot approve from here what its agents ask. Update agentos on the node, then run "
-            "`agentos connect --upgrade`.")
-
     def upgrade(self, **kw: Any) -> list[tuple[Connection, ConnectResult | ClientError]]:
         """`agentos connect --upgrade`: every connection still on the node token, connected again."""
         out: list[tuple[Connection, ConnectResult | ClientError]] = []
@@ -957,7 +693,6 @@ class Client:
         except McpError as exc:
             raise ClientError(f"{conn.name}: {explain(exc, conn)}", reconnect_hint(exc, conn)) from None
 
-
     def find_lane(self, lane: str) -> Connection:
         """The one connection whose node has this lane (asks each node when there are several)."""
         conns = self.connections()
@@ -1013,7 +748,6 @@ class Client:
         return {"url": f"http://localhost:{conn.local_port}{path}", "expires_at": viewer.get("expires_at"),
                 "state": view.get("state"), "node": conn.name}
 
-
     def _owner_view_link(self, conn: Connection, lane: str, *, wake: bool) -> dict[str, Any]:
         panel = NodePanel(conn.local_port)
         info = self._owner_call(conn, panel.lane, lane)
@@ -1028,16 +762,6 @@ class Client:
             raise ClientError(f"{conn.name} answered without a view link", "is the node older than this client?")
         return {"url": f"http://localhost:{conn.local_port}{path}", "expires_at": link.get("expires_at"),
                 "state": info.get("state"), "node": conn.name}
-
-
-class _quiet:
-    """Ignore a PanelError in a clean-up step that must not fail the command."""
-
-    def __enter__(self) -> None:
-        return None
-
-    def __exit__(self, kind: type[BaseException] | None, exc: BaseException | None, tb: object) -> bool:
-        return kind is not None and issubclass(kind, PanelError)
 
 
 DEV_HOME = "(agentos dev up)"  # the remote_home connect_dev records: the fake node on this computer

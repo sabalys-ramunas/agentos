@@ -5,10 +5,10 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import pytest
+from testkit.memory import FakeTrace, fake_memory
 
 from agentos.core.models import Principal
 from agentos.memory.errors import OwnerTrustRequired
-from agentos.memory.fakes import FakeTrace, fake_memory
 from agentos.memory.models import Caller, MemoryScope
 
 FAMILY = "family:gr_a"

@@ -10,7 +10,7 @@ from test_policy_support import OWNER, PRESENT, Clock, make_service
 
 from agentos.core.errors import ApprovalPending, InvalidRequest
 from agentos.core.models import Effect
-from agentos.policy.approvals import content_digest
+from agentos.policy.approval_binding import content_digest
 from agentos.policy.errors import Conflict, Denied
 from agentos.policy.grants import BrainCap, InstallCap, LaneCap, ServiceCap, Specials
 from agentos.policy.routing import PolicyConfig, RoutingTable, Rule, load_policy_config

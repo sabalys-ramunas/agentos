@@ -36,10 +36,10 @@ from pathlib import Path
 from typing import Any
 
 from agentos.core.config import NodeConfig, load_proxies
+from agentos.core.layout import lane_dirs, read_json
 from agentos.core.models import LaneState, ProxyConfig
-from agentos.ops.layout import lane_dirs, read_json
-from agentos.ops.system import Host, redact
-from agentos.stealth import fingerprint as fpmod
+from agentos.core.system import Host, redact
+from agentos.node import fingerprint as fpmod
 
 log = logging.getLogger("agentos.ops.health")
 

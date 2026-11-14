@@ -68,7 +68,10 @@ test('data goes into a field as a named chip, and is saved as a reference', asyn
   await page.keyboard.type('Overdue: ');
   await page.getByRole('button', { name: 'Use data' }).first().click();
   await page.getByRole('button', { name: 'Customer' }).first().click();
-  await expect(subject.locator('[data-ref]')).toHaveText('Customer');
+  // The chip is its name and a button that takes it out.
+  const chip = subject.locator('[data-ref]');
+  await expect(chip.locator('span')).toHaveText('Customer');
+  await expect(chip.getByRole('button', { name: 'Remove Customer' })).toBeAttached();
   await expect(subject).toContainText('Overdue: ');
   await expect(subject).not.toContainText('{{');
 });

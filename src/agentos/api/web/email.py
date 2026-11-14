@@ -267,27 +267,32 @@ def routine_of(row: dict[str, Any], names: dict[str, str]) -> dict[str, Any]:
     }
 
 
-def routes(api: Api) -> list[BaseRoute]:
-    def wf() -> Any:
-        return api.svc("workflows")
+class Handlers:
+    """The handlers of the routes below, sharing one Api (and what they keep between calls)."""
 
-    async def list_names(request: Request) -> dict[str, str]:
+    def __init__(self, api: Api) -> None:
+        self.api = api
+
+    def wf(self) -> Any:
+        return self.api.svc("workflows")
+
+    async def list_names(self, request: Request) -> dict[str, str]:
         return {row["id"]: row["name"] for row in await read(request, "/api/workflows/lists")}
 
-    async def waiting_for(request: Request) -> tuple[dict[str, Any], dict[str, str]]:
+    async def waiting_for(self, request: Request) -> tuple[dict[str, Any], dict[str, str]]:
         review = await read(request, "/api/workflows/leads")
         waiting = {batch["list"]: batch["id"] for batch in review["batches"]}
         return review, waiting
 
-    async def mailboxes(request: Request) -> list[dict[str, Any]]:
-        service = wf()
+    async def mailboxes(self, request: Request) -> list[dict[str, Any]]:
+        service = self.wf()
         day = service.sends.day()
         out = []
         for row in await read(request, "/api/mail"):
-            out.append(mailbox_of(api, row, service.sends.store.sent_on(row["id"], day), service.sends.limit_of(row["id"])))
+            out.append(mailbox_of(self.api, row, service.sends.store.sent_on(row["id"], day), service.sends.limit_of(row["id"])))
         return out
 
-    async def discover(request: Request) -> dict[str, Any]:
+    async def discover(self, request: Request) -> dict[str, Any]:
         body = await read_json_object(request)
         address = str(body.get("address") or "")
         try:
@@ -295,44 +300,44 @@ def routes(api: Api) -> list[BaseRoute]:
         except Refused as refused:
             if refused.reply.status != 404:
                 raise
-            return discovery_of(api, address, None)
-        return discovery_of(api, address, found)
+            return discovery_of(self.api, address, None)
+        return discovery_of(self.api, address, found)
 
-    async def form_link(request: Request) -> dict[str, Any]:
+    async def form_link(self, request: Request) -> dict[str, Any]:
         body = await read_json_object(request)
         # The server names a person typed go to the node, which shows them on its form to check. Nothing else does.
         typed = {key: body[key] for key in ("imap", "smtp") if isinstance(body.get(key), dict)}
         out = await write(request, "POST", "/api/mail/form-links", {"address": body.get("address"), "id": body.get("id"), **typed})
-        return {"url": out["url"], "expires_at": out["expires_at"], "computer": api.node_name, "token": out["path"].rsplit("/", 1)[-1]}
+        return {"url": out["url"], "expires_at": out["expires_at"], "computer": self.api.node_name, "token": out["path"].rsplit("/", 1)[-1]}
 
-    async def form_state(request: Request) -> dict[str, Any]:
+    async def form_state(self, request: Request) -> dict[str, Any]:
         token = request.path_params["token"]
         out = await read(request, f"/api/mail/form/{token}/state")
         return {"state": out["state"], "expires_at": out.get("expires_at")}
 
-    async def form_end(request: Request) -> dict[str, Any]:
+    async def form_end(self, request: Request) -> dict[str, Any]:
         token = request.path_params["token"]
         out = await write(request, "DELETE", f"/api/mail/form/{token}")
         return {"state": out["state"]}
 
-    async def messages(request: Request) -> list[dict[str, Any]]:
+    async def messages(self, request: Request) -> list[dict[str, Any]]:
         rows: list[dict[str, Any]] = []
         for box in await read(request, "/api/mail"):
             listed = await read(request, f"/api/mail/{tilde(box['id'])}/messages", query={"limit": 20})
             rows += [message_of(box["id"], row) for row in listed["messages"]]
         return sorted(rows, key=lambda row: row["at"], reverse=True)
 
-    async def message(request: Request) -> dict[str, Any]:
+    async def message(self, request: Request) -> dict[str, Any]:
         box_id, number = split_message(request.path_params["id"])
         whole = await read(request, f"/api/mail/{tilde(box_id)}/messages/{number}")
         return message_of(box_id, whole, whole.get("body") or "")
 
-    async def mark(request: Request) -> Any:
+    async def mark(self, request: Request) -> Any:
         box_id, number = split_message(request.path_params["id"])
         body = await read_json_object(request)
         return await write(request, "POST", f"/api/mail/{tilde(box_id)}/messages/{number}/mark", {"read": body.get("read")})
 
-    async def send(request: Request) -> Any:
+    async def send(self, request: Request) -> Any:
         body = await read_json_object(request)
         reply_to = body.get("reply_to")
         number = None
@@ -345,19 +350,19 @@ def routes(api: Api) -> list[BaseRoute]:
             "body": body.get("body"), "reply_to_id": number,
         })
 
-    async def batches(request: Request) -> list[dict[str, Any]]:
-        review, _ = await waiting_for(request)
-        names = await list_names(request)
+    async def batches(self, request: Request) -> list[dict[str, Any]]:
+        review, _ = await self.waiting_for(request)
+        names = await self.list_names(request)
         out = []
         for summary in review["batches"]:
             out.append(batch_of(await read(request, f"/api/workflows/leads/{summary['id']}"), names))
         return out
 
-    async def batch(request: Request) -> dict[str, Any]:
-        names = await list_names(request)
+    async def batch(self, request: Request) -> dict[str, Any]:
+        names = await self.list_names(request)
         return batch_of(await read(request, f"/api/workflows/leads/{request.path_params['id']}"), names)
 
-    async def decide(request: Request) -> dict[str, Any]:
+    async def decide(self, request: Request) -> dict[str, Any]:
         body = await read_json_object(request)
         keep = body.get("keep")
         if not isinstance(keep, list) or not all(isinstance(address, str) for address in keep):
@@ -365,13 +370,13 @@ def routes(api: Api) -> list[BaseRoute]:
         out = await write(request, "POST", f"/api/workflows/leads/{request.path_params['id']}", {"take": keep})
         return {"list": out["list"] if out["state"] in ("taken", "picked") else None}
 
-    async def lists(request: Request) -> list[dict[str, Any]]:
-        review, waiting = await waiting_for(request)
+    async def lists(self, request: Request) -> list[dict[str, Any]]:
+        review, waiting = await self.waiting_for(request)
         first = review["note"] is not None
         return [list_of(row, waiting, first) for row in await read(request, "/api/workflows/lists")]
 
-    async def one_list(request: Request) -> dict[str, Any]:
-        review, waiting = await waiting_for(request)
+    async def one_list(self, request: Request) -> dict[str, Any]:
+        review, waiting = await self.waiting_for(request)
         list_id = request.path_params["id"]
         row = next((item for item in await read(request, "/api/workflows/lists") if item["id"] == list_id), None)
         if row is None:
@@ -381,31 +386,35 @@ def routes(api: Api) -> list[BaseRoute]:
         out["people"] = [person_of(member) for member in people["people"]]
         return out
 
-    async def change_list(request: Request) -> Response:
+    async def change_list(self, request: Request) -> Response:
         await read_json_object(request)
         raise ApiError("unavailable", "This computer cannot pause a list or change its pace yet. The daily limit is set "
                                       "for each mailbox, and the owner sets it.")
 
-    async def routine(request: Request) -> dict[str, Any]:
+    async def routine(self, request: Request) -> dict[str, Any]:
         row = await read(request, f"/api/workflows/{request.path_params['id']}")
-        return routine_of(row, await list_names(request))
+        return routine_of(row, await self.list_names(request))
+
+
+def routes(api: Api) -> list[BaseRoute]:
+    h = Handlers(api)
 
     return [
-        org_route(api, "/email/mailboxes", mailboxes, ["GET"]),
-        org_route(api, "/email/discover", discover, ["POST"]),
-        org_route(api, "/email/form-links", form_link, ["POST"]),
-        org_route(api, "/email/form-links/{token}/state", form_state, ["GET"]),
-        org_route(api, "/email/form-links/{token}", form_end, ["DELETE"]),
-        org_route(api, "/email/messages", messages, ["GET"]),
-        org_route(api, "/email/messages/{id}", message, ["GET"]),
-        org_route(api, "/email/messages/{id}/mark", mark, ["POST"]),
-        org_route(api, "/email/send", send, ["POST"]),
-        org_route(api, "/email/batches", batches, ["GET"]),
-        org_route(api, "/email/batches/{id}", batch, ["GET"]),
-        org_route(api, "/email/batches/{id}/decide", decide, ["POST"]),
-        org_route(api, "/email/lists", lists, ["GET"]),
-        org_route(api, "/email/lists/{id}", one_list, ["GET"]),
-        org_route(api, "/email/lists/{id}", change_list, ["PATCH"]),
-        org_route(api, "/email/routines/{id}", routine, ["GET"]),
+        org_route(api, "/email/mailboxes", h.mailboxes, ["GET"]),
+        org_route(api, "/email/discover", h.discover, ["POST"]),
+        org_route(api, "/email/form-links", h.form_link, ["POST"]),
+        org_route(api, "/email/form-links/{token}/state", h.form_state, ["GET"]),
+        org_route(api, "/email/form-links/{token}", h.form_end, ["DELETE"]),
+        org_route(api, "/email/messages", h.messages, ["GET"]),
+        org_route(api, "/email/messages/{id}", h.message, ["GET"]),
+        org_route(api, "/email/messages/{id}/mark", h.mark, ["POST"]),
+        org_route(api, "/email/send", h.send, ["POST"]),
+        org_route(api, "/email/batches", h.batches, ["GET"]),
+        org_route(api, "/email/batches/{id}", h.batch, ["GET"]),
+        org_route(api, "/email/batches/{id}/decide", h.decide, ["POST"]),
+        org_route(api, "/email/lists", h.lists, ["GET"]),
+        org_route(api, "/email/lists/{id}", h.one_list, ["GET"]),
+        org_route(api, "/email/lists/{id}", h.change_list, ["PATCH"]),
+        org_route(api, "/email/routines/{id}", h.routine, ["GET"]),
     ]
 

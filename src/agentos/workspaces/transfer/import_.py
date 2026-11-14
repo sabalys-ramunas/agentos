@@ -37,7 +37,6 @@ Rules:
 from __future__ import annotations
 
 import contextlib
-import inspect
 import json
 import logging
 import shutil
@@ -46,18 +45,15 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
+from agentos.core.aio import maybe_await
 from agentos.core.config import load_proxies, save_proxies
 from agentos.core.errors import AgentosError, InvalidRequest
 from agentos.core.models import LaneSpec, ProxyConfig
 from agentos.workspaces.models import Readiness, check_workspace_id, unique_workspace_id
-from agentos.workspaces.transfer.export import (
-    ExportContents,
-    ExportError,
-    ExportRefused,
-    Sources,
-    endpoint_digest,
-    workspace_of,
-)
+from agentos.workspaces.transfer.export import endpoint_digest, workspace_of
+from agentos.workspaces.transfer.format import ExportError, ExportRefused
+from agentos.workspaces.transfer.read import ExportContents
+from agentos.workspaces.transfer.sources import Sources
 
 log = logging.getLogger("agentos.ops")
 
@@ -690,8 +686,6 @@ class ImportResult:
                 "notes": self.notes}
 
 
-async def _maybe_await(value: Any) -> Any:
-    return await value if inspect.isawaitable(value) else value
 
 
 async def remove_lane(src: Sources, lane_id: str) -> None:
@@ -701,7 +695,7 @@ async def remove_lane(src: Sources, lane_id: str) -> None:
     lane_dir = src.config.lane_dir(lane_id)
     remover = getattr(src.lanes, "delete", None)
     if callable(remover):
-        trash = await _maybe_await(remover(lane_id, by="import rollback"))
+        trash = await maybe_await(remover(lane_id, by="import rollback"))
         if trash:
             shutil.rmtree(trash, ignore_errors=True)
         shutil.rmtree(lane_dir, ignore_errors=True)
@@ -723,7 +717,7 @@ async def _remove_device(src: Sources, name: str) -> None:
     for rec in store.list():
         if rec.spec.device == name:
             store.update_spec(rec.spec.model_copy(update={"device": None}))
-    trash = await _maybe_await(src.lanes.remove_device(name, by="import rollback"))
+    trash = await maybe_await(src.lanes.remove_device(name, by="import rollback"))
     if trash:
         shutil.rmtree(trash, ignore_errors=True)
 
@@ -739,7 +733,7 @@ async def _rollback(undo: list[tuple[str, Callable[[], Any]]]) -> list[str]:
     problems = []
     for what, action in reversed(undo):
         try:
-            await _maybe_await(action())
+            await maybe_await(action())
         except Exception as e:  # noqa: BLE001  (keep undoing the rest)
             log.warning("import rollback: could not remove %s: %s", what, type(e).__name__)
             problems.append(what)
@@ -782,7 +776,7 @@ async def apply_import(plan: ImportPlan, contents: ExportContents, src: Sources,
         lenders = {d["from_lane"]: d for d in plan.devices if d["from_lane"]}
         for d in plan.devices:  # a device never pinned: made first, its lanes join it
             if d["from_lane"] is None:
-                await _maybe_await(src.lanes.create_device(d["name"], proxy_label=d["proxy"], by=o.by))
+                await maybe_await(src.lanes.create_device(d["name"], proxy_label=d["proxy"], by=o.by))
                 undo.append((f"device {d['name']}", lambda name=d["name"]: _remove_device(src, name)))
         # the lane whose pin a device takes comes in first, as itself; the device is made from it
         rows = sorted(plan.lanes, key=lambda r: r["to"] not in lenders)
@@ -797,7 +791,7 @@ async def apply_import(plan: ImportPlan, contents: ExportContents, src: Sources,
             undo.append((f"lane {spec.id}", lambda lane=spec.id: remove_lane(src, lane)))
             result.lanes.append(spec.id)
             if lends and device:
-                await _maybe_await(src.lanes.create_device(device, from_lane=spec.id, by=o.by))
+                await maybe_await(src.lanes.create_device(device, from_lane=spec.id, by=o.by))
                 undo.append((f"device {device}", lambda name=device: _remove_device(src, name)))
         result.lanes.sort()
 

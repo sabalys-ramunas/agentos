@@ -620,7 +620,7 @@ def on_list(panel):
     return [p["address"] for p in panel.wf.store.people(LIST)]
 
 
-ANSWER = "/api/questions/{}/answer"  # what the panel's client posts (panel/src/api/client.ts)
+ANSWER = "/api/questions/{}/answer"  # the node's answer route
 
 
 def test_the_owner_signed_in_answers_through_the_panels_own_route(panel):

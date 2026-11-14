@@ -8,10 +8,10 @@ import time
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
+from agentos.core import signing
 from agentos.core.config import NodeConfig
 from agentos.core.errors import InvalidRequest
 from agentos.core.runtime import Runtime
-from agentos.node.channel import wire
 from agentos.policy import tokens
 from agentos.policy.errors import Denied
 from agentos.policy.grants import GrantBlock
@@ -34,7 +34,7 @@ def node(home, org_key, node_id):
     home.mkdir(parents=True, exist_ok=True)
     runtime = Runtime(config=NodeConfig(home=home, mcp_token="owner-token-x", node_id=node_id, org_id=ORG))
     issuers = TrustedIssuers(home)
-    issuers.trust(f"org:{ORG}", wire.public_b64(org_key))
+    issuers.trust(f"org:{ORG}", signing.public_b64(org_key))
     runtime.register(SERVICE_NAME, issuers)
     return build(runtime)
 

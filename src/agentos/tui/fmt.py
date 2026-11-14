@@ -12,6 +12,8 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from rich.cells import cell_len
 from rich.text import Text
 
+from agentos.core.clock import now as now_utc
+
 # ---- palette (matches the Textual theme in agentos.tui.app) ----
 OK = "#8fbf7f"
 WARN = "#e0b45c"
@@ -117,8 +119,6 @@ def status_text(status: str | None, effect: str | None = None, *, glyph: bool = 
 
 
 # ---- time ----
-def now_utc() -> datetime:
-    return datetime.now(UTC)
 
 
 def ago(dt: datetime | None, now: datetime | None = None, *, never: str = "never") -> str:

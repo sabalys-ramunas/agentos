@@ -22,6 +22,7 @@ from websockets.asyncio.client import connect
 
 from agentos.controller import routing
 from agentos.controller.routing import NodeView, RouteError, ToolDef
+from agentos.core import signing
 from agentos.core.config import NodeConfig
 from agentos.core.models import Effect
 from agentos.node.channel import enroll as enrolling
@@ -55,11 +56,11 @@ async def dial(ctl):
 async def enroll(ctl, token, name="raw-node", key=None, **extra):
     """An enroll with the node key's proof over this socket's challenge, unless `extra` sets `proof`."""
     key = key or Ed25519PrivateKey.generate()
-    body = {"join_token": token, "node_pubkey": wire.public_b64(key), "name": name, "version": "0.1.0",
+    body = {"join_token": token, "node_pubkey": signing.public_b64(key), "name": name, "version": "0.1.0",
             "os": "linux", "arch": "x86_64", "capabilities": ["browser", "teleport"], "max_warm_lanes": 3, **extra}
     async with dial(ctl) as (ws, nonce):
         if "proof" not in extra:
-            body["proof"] = wire.b64e(key.sign(wire.enroll_message(nonce, body["node_pubkey"])))
+            body["proof"] = signing.b64e(key.sign(wire.enroll_message(nonce, body["node_pubkey"])))
         await ws.send(wire.Envelope("enroll", body).encode())
         return await recv(ws), key
 
@@ -67,7 +68,7 @@ async def enroll(ctl, token, name="raw-node", key=None, **extra):
 @contextlib.asynccontextmanager
 async def session(ctl, node_id, key):
     async with dial(ctl) as (ws, nonce):
-        sig = wire.b64e(key.sign(wire.hello_message(nonce, node_id)))
+        sig = signing.b64e(key.sign(wire.hello_message(nonce, node_id)))
         await ws.send(wire.Envelope("hello", {"node_id": node_id, "nonce": nonce, "sig": sig}).encode())
         welcome = await recv(ws)
         assert welcome.type == "welcome", welcome.body
@@ -88,9 +89,9 @@ async def test_enrollment_records_the_node_and_consumes_the_token(ctl):
     body = reply.body
     assert body["org_id"] == ctl.org and body["node_id"].startswith("node_")
     assert body["controller_pubkey"] == ctl.controller.keys.controller_pubkey
-    assert len(wire.b64d(body["grant_pubkey"])) == 32 and isinstance(body["config"], dict)
+    assert len(signing.b64d(body["grant_pubkey"])) == 32 and isinstance(body["config"], dict)
     node = ctl.controller.store.node(body["node_id"])
-    assert node["pubkey"] == wire.public_b64(key) and node["capabilities"] == ["browser"]  # limited by the token
+    assert node["pubkey"] == signing.public_b64(key) and node["capabilities"] == ["browser"]  # limited by the token
     again, _ = await enroll(ctl, token, "box-2")
     assert again.type == "error" and again.body["code"] == "already_used"
 
@@ -111,9 +112,9 @@ async def test_enrollment_refusals(ctl, change, code):
 async def enroll_with_proof(ctl, token, *, key, signer=None, nonce_for=None, pubkey=None):
     """An enroll whose proof is signed by `signer` (the node key by default) over the challenge of
     this socket (or `nonce_for`), naming `pubkey` (the key's own by default)."""
-    pubkey = pubkey or wire.public_b64(key)
+    pubkey = pubkey or signing.public_b64(key)
     async with dial(ctl) as (ws, nonce):
-        proof = wire.b64e((signer or key).sign(wire.enroll_message(nonce_for or nonce, pubkey)))
+        proof = signing.b64e((signer or key).sign(wire.enroll_message(nonce_for or nonce, pubkey)))
         body = {"join_token": token, "node_pubkey": pubkey, "name": "proved", "proof": proof}
         await ws.send(wire.Envelope("enroll", body).encode())
         return await recv(ws)
@@ -124,7 +125,7 @@ async def test_an_enroll_proof_must_match_the_key_and_this_sockets_challenge(ctl
     key = Ed25519PrivateKey.generate()
     for bad in ({"signer": Ed25519PrivateKey.generate()},       # someone else's key
                 {"nonce_for": "another-sockets-nonce-0123"},    # another challenge
-                {"pubkey": wire.public_b64(Ed25519PrivateKey.generate())}):  # a key the sender does not hold
+                {"pubkey": signing.public_b64(Ed25519PrivateKey.generate())}):  # a key the sender does not hold
         reply = await enroll_with_proof(ctl, token, key=key, **bad)
         assert reply.type == "error" and reply.body["code"] == "invalid", bad
     garbage, _ = await enroll(ctl, token, proof="not-a-signature")
@@ -132,7 +133,7 @@ async def test_an_enroll_proof_must_match_the_key_and_this_sockets_challenge(ctl
     assert ctl.controller.store.join_tokens(ctl.org)[0]["used_at"] is None  # never spent
     good = await enroll_with_proof(ctl, token, key=key)
     assert good.type == "enrolled", good.body
-    assert ctl.controller.store.node(good.body["node_id"])["pubkey"] == wire.public_b64(key)
+    assert ctl.controller.store.node(good.body["node_id"])["pubkey"] == signing.public_b64(key)
 
 
 async def test_an_enroll_without_proof_is_refused_and_the_token_kept(ctl):
@@ -159,12 +160,12 @@ async def test_hello_needs_this_sockets_nonce_and_the_enrolled_key(ctl):
     async with session(ctl, node_id, key) as (_, welcome):
         assert welcome.body["node_id"] == node_id and "revoked_grants" in welcome.body
     async with dial(ctl) as (ws, nonce):  # signed by another key
-        sig = wire.b64e(Ed25519PrivateKey.generate().sign(wire.hello_message(nonce, node_id)))
+        sig = signing.b64e(Ed25519PrivateKey.generate().sign(wire.hello_message(nonce, node_id)))
         await ws.send(wire.Envelope("hello", {"node_id": node_id, "nonce": nonce, "sig": sig}).encode())
         assert (await recv(ws)).body["code"] == "denied"
     captured = {}
     async with dial(ctl) as (ws, nonce):  # a recorded hello, replayed on a new socket
-        sig = wire.b64e(key.sign(wire.hello_message(nonce, node_id)))
+        sig = signing.b64e(key.sign(wire.hello_message(nonce, node_id)))
         captured = wire.Envelope("hello", {"node_id": node_id, "nonce": nonce, "sig": sig}).encode()
         await ws.send(captured)
         assert (await recv(ws)).type == "welcome"
@@ -237,8 +238,8 @@ async def test_revocations_are_signed_pushes_and_arrive_in_welcome(ctl):
         assert push.type == "revoke"
         ids = set(push.body["revocation_ids"])
         assert {grant.id, grant.rid, child.id, child.rid} <= ids  # the cascade
-        assert wire.verify(ctl.controller.keys.controller_pubkey, push.body["sig"],
-                           wire.controller_message("revoke", body["node_id"], push.body))
+        assert signing.verify(ctl.controller.keys.controller_pubkey, push.body["sig"],
+                           signing.controller_message("revoke", body["node_id"], push.body))
     async with session(ctl, body["node_id"], key) as (_, welcome):
         assert {grant.rid, child.rid} <= set(welcome.body["revoked_grants"])
 
@@ -427,7 +428,7 @@ async def test_the_node_proves_its_key_on_the_sockets_challenge(tmp_path, monkey
     body = fake.enrolls[0]
     public = NodeKey.load_or_create(config.secrets_dir).public
     assert body["node_pubkey"] == public
-    assert wire.verify(public, body["proof"], f"agentos-node-enroll:v1:{fake.nonce}:{public}".encode())
+    assert signing.verify(public, body["proof"], f"agentos-node-enroll:v1:{fake.nonce}:{public}".encode())
     monkeypatch.setattr(enrolling, "CHALLENGE_WAIT", 0.2)
     async with RecordingController(challenge=False) as quiet:  # no challenge: an enroll without proof
         with pytest.raises(enrolling.EnrollmentRefused):

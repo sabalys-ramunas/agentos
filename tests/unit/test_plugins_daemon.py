@@ -17,6 +17,7 @@ from pydantic import Field
 from agentos.core.config import NodeConfig
 from agentos.core.errors import ServiceUnavailable
 from agentos.core.tools import ToolSpec
+from agentos.mcp import providers as mcp_providers
 from agentos.mcp.registry import allow_all_wrap, build_mcp, collect_specs, tool_params
 from agentos.node import daemon
 from agentos.node.daemon import build_plugins, build_services, node_runtime, start_services, stop_services
@@ -98,11 +99,11 @@ def service_names(runtime):
 
 
 def served(runtime):
-    return {spec.name: spec for spec in collect_specs(runtime, daemon.tool_providers())}
+    return {spec.name: spec for spec in collect_specs(runtime, mcp_providers.tool_providers())}
 
 
 def test_the_fixed_lists_hold_no_plugin_module():
-    fixed = {*daemon.FEATURE_SERVICES, *daemon.FEATURE_TOOLS}
+    fixed = {*daemon.FEATURE_SERVICES, *mcp_providers.FEATURE_TOOLS}
     assert not {name for name in fixed if name.startswith("agentos.plugins")}
     assert daemon.REQUIRED_SERVICES == {"agentos.policy.service", "agentos.freeze.service"}
 
@@ -155,7 +156,7 @@ async def test_over_real_mcp_an_agent_is_told_a_person_must_act(runtime, registr
     """The whole path: the MCP client, the registry, the gate, and the catalog's next step."""
     turn_on(config)
     build_plugins(runtime)
-    server = build_mcp(runtime, daemon.tool_providers(), allow_all_wrap)
+    server = build_mcp(runtime, mcp_providers.tool_providers(), allow_all_wrap)
     async with Client(server) as client:
         done = await client.call_tool("worker_do", {"thing": "x"})
         assert not done.is_error
@@ -261,7 +262,7 @@ def test_a_tool_name_that_clashes_fails_the_plugin_not_the_server(runtime, regis
     module(monkeypatch, TOOLS, tool_specs=lambda runtime: [ToolSpec(name="lane_open", handler=worker_do, lane_arg=None)])
     turn_on(config)
     build_plugins(runtime)
-    collect_specs(runtime, daemon.tool_providers())  # would raise on a duplicate
+    collect_specs(runtime, mcp_providers.tool_providers())  # would raise on a duplicate
     view = runtime.get("plugins").view(WORKER.id)
     assert view.status == "failed" and "lane_open" in view.failure
 
@@ -286,12 +287,12 @@ def test_tools_that_will_not_load_fail_the_plugin(runtime, registry, worker, con
 def test_a_module_already_in_the_fixed_lists_is_not_loaded_twice(runtime, registry, worker, config, monkeypatch):
     """When a feature is also listed as always on, the fixed list wins and nothing breaks."""
     monkeypatch.setattr(daemon, "FEATURE_SERVICES", (*daemon.FEATURE_SERVICES, SERVICE))
-    monkeypatch.setattr(daemon, "FEATURE_TOOLS", (*daemon.FEATURE_TOOLS, TOOLS))
+    monkeypatch.setattr(mcp_providers, "FEATURE_TOOLS", (*mcp_providers.FEATURE_TOOLS, TOOLS))
     build_services(runtime, [SERVICE])
     turn_on(config)
     build_plugins(runtime)
     assert service_names(runtime).count(SERVICE) == 1
-    names = [spec.name for spec in collect_specs(runtime, daemon.tool_providers(daemon.FEATURE_TOOLS))]
+    names = [spec.name for spec in collect_specs(runtime, mcp_providers.tool_providers(mcp_providers.FEATURE_TOOLS))]
     assert names.count("worker_do") == 1
 
 
@@ -305,7 +306,7 @@ def test_the_controller_channel_stays_the_last_service(runtime, registry, worker
 
 
 def test_a_caller_that_names_its_modules_gets_only_those(runtime):
-    assert len(daemon.tool_providers(["agentos.plugins.tools"])) == 2  # the node's own, and that one
+    assert len(mcp_providers.tool_providers(["agentos.plugins.tools"])) == 2  # the node's own, and that one
 
 
 def test_build_runtime_goes_through_the_gate(config, monkeypatch, registry, worker):

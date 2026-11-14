@@ -1,7 +1,9 @@
 import { expect, test } from '@playwright/test';
-import type { Locator } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 
 const ROUTINE = '/northwind-group/flows/harbor.xero.invoice-reminders?mock=still';
+/** An account's settings are folded so the page reads calmly; the switch lives inside. */
+const openSettings = (page: Page) => page.locator('summary', { hasText: 'Settings' }).click();
 const rectOf = (locator: Locator) =>
   locator.evaluate((node) => {
     const { x, y, width, height } = node.getBoundingClientRect();
@@ -29,6 +31,7 @@ for (const [name, width, height] of [['desk', 1440, 900], ['phone', 375, 812]] a
 
     test('an account flips without moving, and keeps its honest line', async ({ page }) => {
       await page.goto('/northwind-group/lanes/aster/gmail?mock=still');
+      await openSettings(page);
       const panel = page.getByRole('region', { name: 'Ask me first' });
       const control = panel.getByRole('switch');
       await expect(panel.getByText(/stops posts on sites agentos recognises/)).toBeVisible();
@@ -57,6 +60,7 @@ for (const [name, width, height] of [['desk', 1440, 900], ['phone', 375, 812]] a
     test('nothing is wider than the screen where the switches live', async ({ page }) => {
       for (const path of ['/northwind-group/flows/harbor.xero.invoice-reminders', '/northwind-group/accounts', '/northwind-group/lanes/aster/gmail']) {
         await page.goto(`${path}?mock=still`);
+        if (path.includes('/lanes/')) await openSettings(page);
         await expect(page.getByRole('switch', { name: /Ask me first for/ }).first()).toBeAttached();
         expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
       }

@@ -38,8 +38,8 @@ from test_control_node import LANE, RANGES, home, serve, shot  # noqa: F401  (ho
 
 from agentos.core.config import NodeConfig
 from agentos.core.models import LaneSpec
+from agentos.node.camoufox.engine import browser_pids_under
 from agentos.node.display import kill_processes
-from agentos.node.engine_camoufox import browser_pids_under
 from agentos.node.lanes import build_lane_manager
 from agentos.node.lanes import quarantine as lanes_quarantine
 from agentos.node.viewer_app import build_viewer_app

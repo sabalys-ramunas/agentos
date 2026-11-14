@@ -1,7 +1,7 @@
 """Contracts between node modules. Changed only by the lead.
 
 Implementations:
-  Engine, BrowserSession   -> agentos.node.engine_camoufox   (lanes agent)
+  Engine, BrowserSession   -> agentos.node.camoufox.engine   (lanes agent)
   DisplayManager           -> agentos.node.display           (lanes agent)
   LaneManager              -> agentos.node.lanes             (lanes agent)
   Interaction              -> agentos.node.interaction       (interaction agent)

@@ -92,7 +92,7 @@ def test_the_fixture_names_no_login_post_and_the_interstitials_as_writes():
 
 
 def test_the_repair_format_comes_from_the_locator_model():
-    from agentos.runner.models import Locator
+    from agentos.core.locator import Locator
 
     text = locator_schema()
     for key in PATCH_KEYS:

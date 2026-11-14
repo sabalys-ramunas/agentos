@@ -293,10 +293,6 @@ class ControlMixin:
         control (agentos.node.egress.LaneGuard._notice: rate-limited, host and path only)."""
         self._notice_listeners.append(callback)
 
-    def remove_notice_listener(self, callback: NoticeListener) -> None:
-        if callback in self._notice_listeners:
-            self._notice_listeners.remove(callback)
-
     def add_commit_listener(self, callback: Callable[[str], Any]) -> None:
         """callback(lane_id) on each publish a person makes by hand while in control of the lane
         (the egress guard matched a commit rule): the policy records it on the lane's posting pace."""
@@ -394,7 +390,7 @@ class ControlMixin:
                 or lane.state not in (LaneState.WARM, LaneState.ACTIVE)):
             return None
         from agentos.node.human import quietly
-        from agentos.node.tools import active_page
+        from agentos.node.tools.outline import active_page
 
         page = await quietly(lane.session.page(), None, timeout=2.0)
         if page is None:

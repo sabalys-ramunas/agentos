@@ -345,3 +345,41 @@ def test_an_agents_own_mistake_is_not_blamed_on_the_site():
     assert telling.plain_failure("lane test/linkedin is busy: agent x is using it").startswith("Another job")
     assert telling.plain_failure("a timeout nobody can name better") == "It took too long, so the agent stopped."
     assert telling.plain_failure("no known words") == telling.SOMETHING_WENT_WRONG
+
+
+def test_the_histogram_reads_the_four_approval_states_at_once_and_counts_them(monkeypatch) -> None:
+    import asyncio
+    from datetime import UTC, datetime
+
+    from agentos.api.web import history
+
+    now = datetime.now(UTC).isoformat()
+    waiting: list[str] = []
+    both = asyncio.Event()
+
+    async def fake_read(request, path, query=None):
+        if path == "/api/runs":
+            return []
+        waiting.append(query["state"])
+        if len(waiting) == 4:
+            both.set()
+        await asyncio.wait_for(both.wait(), 2)  # returns only once all four reads are in flight
+        if query["state"] == "approved":
+            return [{"lane": "biz-a/shop", "state": "approved", "created_at": now, "decided_at": now}]
+        if query["state"] == "pending":
+            return [{"lane": "biz-a/shop", "state": "pending", "created_at": now},
+                    {"lane": "biz-a/shop", "kind": "question", "created_at": now}]
+        return []
+
+    async def no_rows(*args, **kwargs):
+        return []
+
+    monkeypatch.setattr(history, "read", fake_read)
+    monkeypatch.setattr(history, "_window", no_rows)
+
+    from types import SimpleNamespace
+
+    chart = asyncio.run(history._activity_chart(SimpleNamespace(query_params={"range": "24h"}), None))
+    assert sorted(waiting) == ["approved", "denied", "expired", "pending"]
+    assert chart["totals"]["approvals"] == 2
+    assert sum(b["approvals"]["approved"] for b in chart["buckets"]) == 1

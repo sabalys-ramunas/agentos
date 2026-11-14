@@ -14,7 +14,6 @@ import type {
   MemoryTrust,
   MemoryType,
   NodeState,
-  PlanSection,
   Role,
   RunStatus,
   Signal,
@@ -209,39 +208,6 @@ export const memoryState: Record<MemoryState, StatusLabel> = {
   forgotten: { label: 'Forgotten', tone: 'idle' },
 };
 
-/** The day plan's sections, in the words the draft itself uses. */
-export const planSection: Record<PlanSection, string> = {
-  blocked: 'Blocked',
-  queue: 'In the queue',
-  due: 'Due today',
-  programs: 'Programs to look at',
-  upkeep: 'Upkeep',
-};
-
-/** Why an account cannot act now, as a plan's readiness word. */
-export const planReadiness: Record<string, StatusLabel> = {
-  ready: { label: 'Ready', tone: 'ok' },
-  human: { label: 'Someone holds it', tone: 'warn' },
-  frozen: { label: 'Frozen', tone: 'bad' },
-  quarantined: { label: 'Quarantined', tone: 'bad' },
-  needs_human: { label: 'Needs you in the live view', tone: 'warn' },
-  paused: { label: 'Paused', tone: 'warn' },
-  backoff: { label: 'Sleeping', tone: 'idle' },
-  connector_broken: { label: 'A connector is broken', tone: 'bad' },
-  no_lane: { label: 'No account chosen', tone: 'warn' },
-};
-
-/** What a person does about a blocked account, in their own words. Home never shows the node's command-line sentence. */
-export const planAction: Record<string, string> = {
-  frozen: 'Lift the freeze on the account when it is safe.',
-  quarantined: 'Check why it stopped, then turn it back on.',
-  needs_human: 'Take over in the live view, then hand it back.',
-  paused: 'Hand it back when you are ready.',
-  human: 'Agents wait until it is handed back.',
-  backoff: 'Nothing to do. It lifts by itself, so there is no need to retry before then.',
-  no_lane: 'Pick the account this program should use, or fix the program.',
-};
-
 /** The two places an account's files are kept. The inbox is what can be attached; the outbox is what came in. */
 export const fileBox: Record<FileBox, string> = {
   inbox: 'Ready to use',
@@ -254,41 +220,6 @@ export const fileStatus: Record<FileStatus, StatusLabel> = {
   partial: { label: 'Stopped part way', tone: 'warn' },
   failed: { label: 'Failed', tone: 'bad' },
 };
-/** An account's plan, as the Engagement page and the account name it. */
-export const planStatus = {
-  approved: { label: 'Plan running', tone: 'ok' },
-  draft: { label: 'Waiting for you', tone: 'warn' },
-  none: { label: 'No plan', tone: 'idle' },
-} as const satisfies Record<string, StatusLabel>;
-
-/** What became of one action the plan asked for, on one day. */
-export const outcomeStatus = {
-  verified: { label: 'Went out', tone: 'ok' },
-  unverified: { label: 'Sent, not checked yet', tone: 'info' },
-  waiting: { label: 'Waiting for you', tone: 'warn' },
-  held: { label: 'Held', tone: 'warn' },
-  failed: { label: 'Did not go out', tone: 'bad' },
-  skipped: { label: 'Skipped', tone: 'idle' },
-} as const satisfies Record<string, StatusLabel>;
-
-/** A visit to an account: planned, running, or how it ended. */
-export const visitStatus = {
-  scheduled: { label: 'Planned', tone: 'idle' },
-  running: { label: 'Running', tone: 'live', pulse: true },
-  done: { label: 'Done', tone: 'ok' },
-  ended_early: { label: 'Ended early', tone: 'warn' },
-  aborted: { label: 'Stopped', tone: 'bad' },
-  refused: { label: 'Did not start', tone: 'warn' },
-  missed: { label: 'Missed', tone: 'neutral' },
-} as const satisfies Record<string, StatusLabel>;
-
-/** A connector operation's health on one surface. */
-export const healthStatus = {
-  healthy: { label: 'Ready', tone: 'ok' },
-  held: { label: 'Held', tone: 'warn' },
-  broken: { label: 'Broken', tone: 'bad' },
-  unknown: { label: 'Not checked yet', tone: 'idle' },
-} as const satisfies Record<string, StatusLabel>;
 
 /** A computer's service (a supervised command in an environment). The node's own state words. */
 export const serviceState: Record<string, StatusLabel> = {

@@ -12,9 +12,9 @@ from __future__ import annotations
 
 from typing import Any
 
+from agentos.core import globs
 from agentos.core.models import Effect
 from agentos.policy import freeze as freeze_gate
-from agentos.policy import globs
 from agentos.policy.errors import Denied
 from agentos.policy.grants import (
     OWNER_GRANT_ID,

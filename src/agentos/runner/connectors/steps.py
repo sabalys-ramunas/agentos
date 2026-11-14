@@ -1,6 +1,6 @@
 """Connector steps: ordinary flow steps plus the extensions connectors need.
 
-A connector's `steps` are runner flow steps (agentos.runner.models.Step) with the extensions
+A connector's `steps` are runner flow steps (agentos.runner.steps.Step) with the extensions
 connectors need (docs/design/connectors.md 4.5). The runner executes all of them (Brief B);
 the source format keeps its own models because a connector writes some of them shorter than
 the compiled flow (assert_identity is filled in from acting_as):
@@ -28,7 +28,8 @@ from typing import Any, Literal, get_args
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError, model_validator
 
-from agentos.runner.models import ACTION_TYPES, AttrMatch, ClickStep, Locator, ReadJsonStep, Step
+from agentos.core.locator import AttrMatch, Locator
+from agentos.runner.steps import ACTION_TYPES, ClickStep, ReadJsonStep, Step
 
 EXTENSION_STEPS = frozenset({"assert_identity", "extract", "for_each", "preflight", "read_json"})
 EXTENSION_LOCATOR_KEYS = ("attr", "names")

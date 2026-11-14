@@ -213,6 +213,124 @@ def _label_self(lane: str, pinned: Any, session: Mapping[str, Any] | None) -> st
     return f"{who} (the lane's own account)"
 
 
+@dataclass
+class _Resolver:
+    """Who one publish on `lane` acts as: the ids that are the lane's own account (`own`), the
+    surfaces through this lane (`mine`) and through other lanes (`others`) on the request's site."""
+
+    r: Read
+    lane: str
+    pinned: Any
+    session: Mapping[str, Any] | None
+    own: set[str]
+    mine: list[Any]
+    others: list[Any]
+
+    @classmethod
+    def of(cls, r: Read, *, lane: str, pinned: Any, session: Mapping[str, Any] | None,
+           surfaces: Iterable[Any]) -> _Resolver:
+        site = r.site
+        own: set[str] = set()
+        if pinned is not None and getattr(pinned, "user_id", None) and _site_key(getattr(pinned, "site", "")) == site:
+            own.add(str(pinned.user_id).casefold())
+        if session and session.get("user_id") and session.get("site") == site:
+            own.add(str(session["user_id"]).casefold())
+        mine = [s for s in surfaces if getattr(s, "lane", None) == lane and getattr(s, "site", None) == site]
+        others = [s for s in surfaces if getattr(s, "lane", None) != lane and getattr(s, "site", None) == site]
+        for s in mine:
+            if s.acts_as.kind == "account" and s.acts_as.user_id:
+                own.add(str(s.acts_as.user_id).casefold())
+        return cls(r, lane, pinned, session, own, mine, others)
+
+    @property
+    def base(self) -> dict[str, Any]:
+        return {"through": self.lane, "site": self.r.site}
+
+    def unrecognized(self, raw: str | None, path: str | None, why: str, short: str,
+                     verified: bool = False) -> dict[str, Any]:
+        return {**self.base, "status": UNRECOGNIZED, "id": raw, "field": path, "verified": verified, "why": why,
+                "short": short,
+                "label": f"an identity agentos does not know ({raw})" if raw else "an identity agentos cannot read"}
+
+    def as_surface(self, s: Any, path: str, value: str, verified: bool) -> dict[str, Any]:
+        return {**self.base, "status": SURFACE, "id": value, "field": path, "verified": verified,
+                "surface": s.id, "kind": s.acts_as.kind, "label": s.acts_as.label()}
+
+    def account_surface(self, ident: str) -> Any:
+        """The account surface through this lane that this id is, when it has an id of its own."""
+        return next((s for s in self.mine if s.id != self.lane and s.acts_as.kind == "account"
+                     and str(s.acts_as.user_id).casefold() == ident.casefold()), None)
+
+    def one(self, path: str, value: str, f: ActingField) -> dict[str, Any]:
+        """The identity one acting field names."""
+        site, lane, spec = self.r.site, self.lane, self.r.spec
+        assert spec is not None
+        verified = bool(f.verified)
+        if not _shaped(value):
+            return self.unrecognized(None, path, f"{path} does not hold an id the gate can read",
+                                     "it cannot be read", verified)
+        kind, ident = _asset_id(site, value)
+        if f.kind == "publication":
+            return self.unrecognized(value, path, f"the body posts into publication {value}, and no surface names "
+                                                  "a publication", "no surface names a publication", verified)
+        known = ident.casefold() in self.own
+        if known and kind in (None, "member"):
+            s = self.account_surface(ident)
+            if s is not None:
+                return self.as_surface(s, path, value, verified)
+            return {**self.base, "status": SELF, "id": value, "field": path, "verified": verified,
+                    "label": _label_self(lane, self.pinned, self.session), **({"assumed": True} if f.fallback else {})}
+        if kind == "member":  # a member only ever posts as itself, but which member the gate cannot compare
+            return {**self.base, "status": SELF, "id": value, "field": path, "verified": verified, "assumed": True,
+                    "label": f"the login's own profile (the request names {value})"}
+        for s in self.mine:
+            if s.acts_as.kind != "account" and s.acts_as.kind == spec.asset_kind and s.acts_as.id == ident:
+                return self.as_surface(s, path, value, verified)
+        elsewhere = next((s for s in self.others if s.acts_as.asset_id == ident), None)
+        if elsewhere is not None:
+            return self.unrecognized(value, path, f"{value} is {elsewhere.acts_as.label()}, the surface "
+                                                  f"{elsewhere.id}, which posts through {elsewhere.lane}, not this lane",
+                                     "it posts through another lane", verified)
+        return self.unrecognized(value, path, f"no surface through {lane} names it, and it is not the lane's own "
+                                              "account", "no surface names it", verified)
+
+    def stray(self) -> dict[str, Any]:
+        """A body that names an id outside the fields that say who it posts as."""
+        path, value = self.r.stray[0]
+        return self.unrecognized(value, path, f"the body names {value} in {path}, outside the fields that say who "
+                                              "it posts as, so the gate cannot tell whether it posts as it",
+                                 "the gate cannot tell whether it posts as it")
+
+    def nameless(self) -> dict[str, Any] | None:
+        """A body with no acting field: the login itself where the site says so, unreadable where its
+        login can post for others, else nothing changes."""
+        spec, site = self.r.spec, self.r.site
+        assert spec is not None
+        if spec.default_self:  # the site names the actor only when it is not the login
+            return {**self.base, "status": SELF, "id": None, "field": None, "verified": False, "assumed": True,
+                    "label": "the login's own profile (the request names no company page)"}
+        if spec.for_others:
+            return self.unrecognized(None, None, f"a login on {site} can post as a Page or company it manages, and "
+                                                 "this request names no identity the gate can read",
+                                     "the request names none")
+        return None  # a body that names nobody on a site whose login posts as itself
+
+    def agreed(self) -> dict[str, Any]:
+        """The identity the first acting field names, when every other field agrees with it."""
+        r = self.r
+        first = self.one(*r.fields[0])
+        for path, value, f in r.fields[1:]:
+            other = self.one(path, value, f)
+            if f.fallback and other["status"] == SELF:
+                continue  # the form keeps the login while the body names who it posts as
+            if (other["status"], other.get("surface")) != (first["status"], first.get("surface")):
+                head, named = r.fields[0][0], r.fields[0][1]
+                return self.unrecognized(named if _shaped(named) else None, head,
+                                         f"{head} names {_safe(named)} and {path} names {_safe(value)}: the fields "
+                                         "disagree on who it posts as", "the fields disagree")
+        return first
+
+
 def resolve(r: Read, *, lane: str, pinned: Any = None, session: Mapping[str, Any] | None = None,
             surfaces: Iterable[Any] = ()) -> dict[str, Any] | None:
     """The acting identity of a publish on `lane`, as the record keeps it (the digest binds it), or
@@ -223,91 +341,13 @@ def resolve(r: Read, *, lane: str, pinned: Any = None, session: Mapping[str, Any
     lane resolve; those through another lane are named in the reason)."""
     if not r.applies:
         return None
-    spec = r.spec
-    assert spec is not None
-    site = r.site
-    own: set[str] = set()
-    if pinned is not None and getattr(pinned, "user_id", None) and _site_key(getattr(pinned, "site", "")) == site:
-        own.add(str(pinned.user_id).casefold())
-    if session and session.get("user_id") and session.get("site") == site:
-        own.add(str(session["user_id"]).casefold())
-    mine = [s for s in surfaces if getattr(s, "lane", None) == lane and getattr(s, "site", None) == site]
-    others = [s for s in surfaces if getattr(s, "lane", None) != lane and getattr(s, "site", None) == site]
-    for s in mine:
-        if s.acts_as.kind == "account" and s.acts_as.user_id:
-            own.add(str(s.acts_as.user_id).casefold())
-    base = {"through": lane, "site": site}
-
-    def unrecognized(raw: str | None, path: str | None, why: str, short: str,
-                     verified: bool = False) -> dict[str, Any]:
-        return {**base, "status": UNRECOGNIZED, "id": raw, "field": path, "verified": verified, "why": why,
-                "short": short,
-                "label": f"an identity agentos does not know ({raw})" if raw else "an identity agentos cannot read"}
-
-    def as_surface(s: Any, path: str, value: str, verified: bool) -> dict[str, Any]:
-        return {**base, "status": SURFACE, "id": value, "field": path, "verified": verified,
-                "surface": s.id, "kind": s.acts_as.kind, "label": s.acts_as.label()}
-
-    def account_surface(ident: str) -> Any:
-        """The account surface through this lane that this id is, when it has an id of its own."""
-        return next((s for s in mine if s.id != lane and s.acts_as.kind == "account"
-                     and str(s.acts_as.user_id).casefold() == ident.casefold()), None)
-
-    def one(path: str, value: str, f: ActingField) -> dict[str, Any]:
-        verified = bool(f.verified)
-        if not _shaped(value):
-            return unrecognized(None, path, f"{path} does not hold an id the gate can read", "it cannot be read",
-                                verified)
-        kind, ident = _asset_id(site, value)
-        if f.kind == "publication":
-            return unrecognized(value, path, f"the body posts into publication {value}, and no surface names "
-                                             "a publication", "no surface names a publication", verified)
-        known = ident.casefold() in own
-        if known and kind in (None, "member"):
-            s = account_surface(ident)
-            if s is not None:
-                return as_surface(s, path, value, verified)
-            return {**base, "status": SELF, "id": value, "field": path, "verified": verified,
-                    "label": _label_self(lane, pinned, session), **({"assumed": True} if f.fallback else {})}
-        if kind == "member":  # a member only ever posts as itself, but which member the gate cannot compare
-            return {**base, "status": SELF, "id": value, "field": path, "verified": verified, "assumed": True,
-                    "label": f"the login's own profile (the request names {value})"}
-        for s in mine:
-            if s.acts_as.kind != "account" and s.acts_as.kind == spec.asset_kind and s.acts_as.id == ident:
-                return as_surface(s, path, value, verified)
-        elsewhere = next((s for s in others if s.acts_as.asset_id == ident), None)
-        if elsewhere is not None:
-            return unrecognized(value, path, f"{value} is {elsewhere.acts_as.label()}, the surface {elsewhere.id}, "
-                                             f"which posts through {elsewhere.lane}, not this lane",
-                                "it posts through another lane", verified)
-        return unrecognized(value, path, f"no surface through {lane} names it, and it is not the lane's own "
-                                         "account", "no surface names it", verified)
-
+    assert r.spec is not None
+    resolver = _Resolver.of(r, lane=lane, pinned=pinned, session=session, surfaces=surfaces)
     if r.stray:
-        path, value = r.stray[0]
-        return unrecognized(value, path, f"the body names {value} in {path}, outside the fields that say who "
-                                         "it posts as, so the gate cannot tell whether it posts as it",
-                            "the gate cannot tell whether it posts as it")
+        return resolver.stray()
     if not r.fields:
-        if spec.default_self:  # the site names the actor only when it is not the login
-            return {**base, "status": SELF, "id": None, "field": None, "verified": False, "assumed": True,
-                    "label": "the login's own profile (the request names no company page)"}
-        if spec.for_others:
-            return unrecognized(None, None, f"a login on {site} can post as a Page or company it manages, and "
-                                            "this request names no identity the gate can read",
-                                "the request names none")
-        return None  # a body that names nobody on a site whose login posts as itself
-    first = one(*r.fields[0])
-    for path, value, f in r.fields[1:]:
-        other = one(path, value, f)
-        if f.fallback and other["status"] == SELF:
-            continue  # the form keeps the login while the body names who it posts as
-        if (other["status"], other.get("surface")) != (first["status"], first.get("surface")):
-            head, named = r.fields[0][0], r.fields[0][1]
-            return unrecognized(named if _shaped(named) else None, head,
-                                f"{head} names {_safe(named)} and {path} names {_safe(value)}: the fields "
-                                "disagree on who it posts as", "the fields disagree")
-    return first
+        return resolver.nameless()
+    return resolver.agreed()
 
 
 def _site_key(name: str) -> str:

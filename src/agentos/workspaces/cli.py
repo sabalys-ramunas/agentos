@@ -356,7 +356,7 @@ def _prepare_vault(src: Any, passphrase_file: Path | None, why: str) -> None:
     import getpass
     import sys
 
-    from agentos.ops.cli import read_secret_file
+    from agentos.ops.cli_common import read_secret_file
     from agentos.vault import control
     from agentos.vault.errors import VaultError
 
@@ -403,8 +403,9 @@ def export_cmd(
     paused for the copy and started again. Nothing here is changed or deleted."""
     from datetime import UTC, datetime
 
-    from agentos.ops.cli import read_passphrase
-    from agentos.workspaces.transfer.export import export_name, export_workspace, node_sources
+    from agentos.ops.cli_common import read_passphrase
+    from agentos.workspaces.transfer.export import export_name, export_workspace
+    from agentos.workspaces.transfer.sources import node_sources
 
     cfg = _config()
     recipients = [r for r in recipient or [] if r.strip()] or None
@@ -511,9 +512,10 @@ def import_cmd(
     any step fails). Existing lanes are never replaced; lanes come in not running (they start on first
     use)."""
     from agentos.core import age
-    from agentos.ops.cli import read_passphrase, read_secret_file
-    from agentos.workspaces.transfer.export import node_sources, read_export, staging_dir
+    from agentos.ops.cli_common import read_passphrase, read_secret_file
     from agentos.workspaces.transfer.import_ import ImportOptions, apply_import, plan_import
+    from agentos.workspaces.transfer.read import read_export, staging_dir
+    from agentos.workspaces.transfer.sources import node_sources
 
     cfg = _config()
     proxy_map: dict[str, str] = {}

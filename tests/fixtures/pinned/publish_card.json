@@ -1,0 +1,1938 @@
+{
+ "minimal no runtime": {
+  "ok": {
+   "type": "publish",
+   "rule": "reddit.post",
+   "kind": "post",
+   "site": "reddit",
+   "site_label": "Reddit",
+   "verified_rule": true,
+   "text": {
+    "param": "text",
+    "value": "hello"
+   },
+   "title": null,
+   "link": null,
+   "links": [],
+   "target": null,
+   "reply_to": null,
+   "body_as": null,
+   "visibility": null,
+   "flags": null,
+   "media": [],
+   "operations": [],
+   "fields": [],
+   "fields_hidden": 0,
+   "surface": "test/reddit",
+   "through": "test/reddit",
+   "acts_as": null,
+   "account": null,
+   "signed_in_as": null,
+   "account_status": "unknown",
+   "line": "on Reddit, through test/reddit (the account it publishes as is not known)",
+   "digest": "sha256:94d3678ee3e8b5372dbcf6aef5cf390eeb57fbc2fd6adf5c5492afd4836a712d",
+   "images": [],
+   "params": [],
+   "editable": [],
+   "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
+   "identity_line": null,
+   "account_warning": "The node could not read which account this browser is signed into on Reddit (it may be signed out, or its cookies could not be read), and no expected account is set for this lane. Check the account in the live view before you approve."
+  }
+ },
+ "unknown rule id and site": {
+  "ok": {
+   "type": "publish",
+   "rule": "mystery.thing",
+   "kind": "post",
+   "site": "mystery",
+   "site_label": "Mystery",
+   "verified_rule": false,
+   "text": {
+    "param": "text",
+    "value": "hi"
+   },
+   "title": null,
+   "link": null,
+   "links": [],
+   "target": null,
+   "reply_to": null,
+   "body_as": null,
+   "visibility": null,
+   "flags": null,
+   "media": [],
+   "operations": [],
+   "fields": [],
+   "fields_hidden": 0,
+   "surface": "test/reddit",
+   "through": "test/reddit",
+   "acts_as": null,
+   "account": null,
+   "signed_in_as": null,
+   "account_status": "unknown",
+   "line": "on Mystery, through test/reddit (the account it publishes as is not known)",
+   "digest": "sha256:e89a7feda673c6f6be2ce3d7acda72d089331eab779cc08d87b6e0f68b8904b6",
+   "images": [],
+   "params": [],
+   "editable": [],
+   "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
+   "identity_line": null,
+   "account_warning": "The node cannot see which account this browser is signed into on Mystery, and no expected account is set for this lane. Check the account in the live view before you approve."
+  }
+ },
+ "rule with no dot": {
+  "ok": {
+   "type": "publish",
+   "rule": "mystery",
+   "kind": "post",
+   "site": "mystery",
+   "site_label": "Mystery",
+   "verified_rule": false,
+   "text": {
+    "param": "text",
+    "value": "hi"
+   },
+   "title": null,
+   "link": null,
+   "links": [],
+   "target": null,
+   "reply_to": null,
+   "body_as": null,
+   "visibility": null,
+   "flags": null,
+   "media": [],
+   "operations": [],
+   "fields": [],
+   "fields_hidden": 0,
+   "surface": "test/reddit",
+   "through": "test/reddit",
+   "acts_as": null,
+   "account": null,
+   "signed_in_as": null,
+   "account_status": "unknown",
+   "line": "on Mystery, through test/reddit (the account it publishes as is not known)",
+   "digest": "sha256:7dbf00299a6e201872412f3fbff8f140759287107ca403be5ab941ab583d2029",
+   "images": [],
+   "params": [],
+   "editable": [],
+   "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
+   "identity_line": null,
+   "account_warning": "The node cannot see which account this browser is signed into on Mystery, and no expected account is set for this lane. Check the account in the live view before you approve."
+  }
+ },
+ "text not a string": {
+  "ok": {
+   "type": "publish",
+   "rule": "reddit.post",
+   "kind": "post",
+   "site": "reddit",
+   "site_label": "Reddit",
+   "verified_rule": true,
+   "text": {
+    "param": "text",
+    "value": "{\"a\": 1}"
+   },
+   "title": null,
+   "link": null,
+   "links": [],
+   "target": null,
+   "reply_to": null,
+   "body_as": null,
+   "visibility": null,
+   "flags": null,
+   "media": [],
+   "operations": [],
+   "fields": [],
+   "fields_hidden": 0,
+   "surface": "test/reddit",
+   "through": "test/reddit",
+   "acts_as": null,
+   "account": null,
+   "signed_in_as": null,
+   "account_status": "unknown",
+   "line": "on Reddit, through test/reddit (the account it publishes as is not known)",
+   "digest": "sha256:e39f0300e857b9aa48806115673bf4376f7c146112efe8b04803587c54a365c0",
+   "images": [],
+   "params": [],
+   "editable": [],
+   "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
+   "identity_line": null,
+   "account_warning": "The node could not read which account this browser is signed into on Reddit (it may be signed out, or its cookies could not be read), and no expected account is set for this lane. Check the account in the live view before you approve."
+  }
+ },
+ "no text title link": {
+  "ok": {
+   "type": "publish",
+   "rule": "reddit.post",
+   "kind": "post",
+   "site": "reddit",
+   "site_label": "Reddit",
+   "verified_rule": true,
+   "text": null,
+   "title": {
+    "value": "T"
+   },
+   "link": {
+    "value": "https://example.com/a"
+   },
+   "links": [
+    "https://example.com/a"
+   ],
+   "target": null,
+   "reply_to": null,
+   "body_as": null,
+   "visibility": null,
+   "flags": null,
+   "media": [],
+   "operations": [],
+   "fields": [],
+   "fields_hidden": 0,
+   "surface": "test/reddit",
+   "through": "test/reddit",
+   "acts_as": null,
+   "account": null,
+   "signed_in_as": null,
+   "account_status": "unknown",
+   "line": "on Reddit, through test/reddit (the account it publishes as is not known)",
+   "digest": "sha256:2e51464b1663a1acfa5c65f4e6a1c390cc5f5e4b55fb40e391fd0eca7d317aa3",
+   "images": [],
+   "params": [],
+   "editable": [],
+   "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
+   "identity_line": null,
+   "account_warning": "The node could not read which account this browser is signed into on Reddit (it may be signed out, or its cookies could not be read), and no expected account is set for this lane. Check the account in the live view before you approve."
+  }
+ },
+ "match by user id": {
+  "ok": {
+   "type": "publish",
+   "rule": "reddit.post",
+   "kind": "post",
+   "site": "reddit",
+   "site_label": "Reddit",
+   "verified_rule": true,
+   "text": {
+    "param": "text",
+    "value": "hi"
+   },
+   "title": null,
+   "link": null,
+   "links": [],
+   "target": null,
+   "reply_to": null,
+   "body_as": null,
+   "visibility": null,
+   "flags": null,
+   "media": [],
+   "operations": [],
+   "fields": [],
+   "fields_hidden": 0,
+   "surface": "test/reddit",
+   "through": "test/reddit",
+   "acts_as": "@Me",
+   "account": {
+    "site": "reddit",
+    "handle": "@Me",
+    "user_id": "u1"
+   },
+   "signed_in_as": {
+    "site": "reddit",
+    "user_id": "u1"
+   },
+   "account_status": "match",
+   "line": "as @Me on Reddit, through test/reddit",
+   "digest": "sha256:705773129ef7974da2d24e3d5cd4ded09d0ab9c74166e442ff6436043cfa9212",
+   "images": [],
+   "params": [],
+   "editable": [],
+   "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
+   "identity_line": "Posts as @Me"
+  }
+ },
+ "wrong account by user id": {
+  "ok": {
+   "type": "publish",
+   "rule": "reddit.post",
+   "kind": "post",
+   "site": "reddit",
+   "site_label": "Reddit",
+   "verified_rule": true,
+   "text": {
+    "param": "text",
+    "value": "hi"
+   },
+   "title": null,
+   "link": null,
+   "links": [],
+   "target": null,
+   "reply_to": null,
+   "body_as": null,
+   "visibility": null,
+   "flags": null,
+   "media": [],
+   "operations": [],
+   "fields": [],
+   "fields_hidden": 0,
+   "surface": "test/reddit",
+   "through": "test/reddit",
+   "acts_as": "u2",
+   "account": {
+    "site": "reddit",
+    "handle": "@Me",
+    "user_id": "u1"
+   },
+   "signed_in_as": {
+    "site": "reddit",
+    "user_id": "u2"
+   },
+   "account_status": "wrong_account",
+   "line": "as u2 on Reddit, through test/reddit",
+   "digest": "sha256:9b9925b67e46dc49db430e048649b48afdbdc0e4048c0010ecfe216d524d1d26",
+   "images": [],
+   "params": [],
+   "editable": [],
+   "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
+   "identity_line": "Posts as u2",
+   "account_warning": "The browser is signed in to Reddit as u2, not as the lane's expected account @Me: this would publish as u2."
+  }
+ },
+ "match by handle": {
+  "ok": {
+   "type": "publish",
+   "rule": "reddit.post",
+   "kind": "post",
+   "site": "reddit",
+   "site_label": "Reddit",
+   "verified_rule": true,
+   "text": {
+    "param": "text",
+    "value": "hi"
+   },
+   "title": null,
+   "link": null,
+   "links": [],
+   "target": null,
+   "reply_to": null,
+   "body_as": null,
+   "visibility": null,
+   "flags": null,
+   "media": [],
+   "operations": [],
+   "fields": [],
+   "fields_hidden": 0,
+   "surface": "test/reddit",
+   "through": "test/reddit",
+   "acts_as": "@Me",
+   "account": {
+    "site": "reddit",
+    "handle": "@Me",
+    "user_id": null
+   },
+   "signed_in_as": {
+    "site": "reddit",
+    "user_id": "me"
+   },
+   "account_status": "match",
+   "line": "as @Me on Reddit, through test/reddit",
+   "digest": "sha256:bebf0748e1dc608b18c051b0cfefff642fd1aeb17a809d556ba2e5eb5d007bef",
+   "images": [],
+   "params": [],
+   "editable": [],
+   "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
+   "identity_line": "Posts as @Me"
+  }
+ },
+ "wrong account by handle": {
+  "ok": {
+   "type": "publish",
+   "rule": "reddit.post",
+   "kind": "post",
+   "site": "reddit",
+   "site_label": "Reddit",
+   "verified_rule": true,
+   "text": {
+    "param": "text",
+    "value": "hi"
+   },
+   "title": null,
+   "link": null,
+   "links": [],
+   "target": null,
+   "reply_to": null,
+   "body_as": null,
+   "visibility": null,
+   "flags": null,
+   "media": [],
+   "operations": [],
+   "fields": [],
+   "fields_hidden": 0,
+   "surface": "test/reddit",
+   "through": "test/reddit",
+   "acts_as": "u2",
+   "account": {
+    "site": "reddit",
+    "handle": "@Me",
+    "user_id": null
+   },
+   "signed_in_as": {
+    "site": "reddit",
+    "user_id": "u2"
+   },
+   "account_status": "wrong_account",
+   "line": "as u2 on Reddit, through test/reddit",
+   "digest": "sha256:9b9925b67e46dc49db430e048649b48afdbdc0e4048c0010ecfe216d524d1d26",
+   "images": [],
+   "params": [],
+   "editable": [],
+   "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
+   "identity_line": "Posts as u2",
+   "account_warning": "The browser is signed in to Reddit as u2, not as the lane's expected account @Me (the lane pins a handle only, so the node compared the handle): this would publish as u2."
+  }
+ },
+ "handle on another site": {
+  "ok": {
+   "type": "publish",
+   "rule": "reddit.post",
+   "kind": "post",
+   "site": "reddit",
+   "site_label": "Reddit",
+   "verified_rule": true,
+   "text": {
+    "param": "text",
+    "value": "hi"
+   },
+   "title": null,
+   "link": null,
+   "links": [],
+   "target": null,
+   "reply_to": null,
+   "body_as": null,
+   "visibility": null,
+   "flags": null,
+   "media": [],
+   "operations": [],
+   "fields": [],
+   "fields_hidden": 0,
+   "surface": "test/reddit",
+   "through": "test/reddit",
+   "acts_as": null,
+   "account": {
+    "site": "reddit",
+    "handle": "@Me",
+    "user_id": null
+   },
+   "signed_in_as": {
+    "site": "facebook",
+    "user_id": "me"
+   },
+   "account_status": "unknown",
+   "line": "on Reddit, through test/reddit (the account it publishes as is not known)",
+   "digest": "sha256:32931057ad213de639a4df6de3177a508f760e81b0740576a469cd082ea68258",
+   "images": [],
+   "params": [],
+   "editable": [],
+   "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
+   "identity_line": null,
+   "account_warning": "The node read the signed-in account me but cannot compare it with the lane's account, so it cannot confirm this publishes as @Me. Check the account in the live view before you approve."
+  }
+ },
+ "unpinned and seen": {
+  "ok": {
+   "type": "publish",
+   "rule": "reddit.post",
+   "kind": "post",
+   "site": "reddit",
+   "site_label": "Reddit",
+   "verified_rule": true,
+   "text": {
+    "param": "text",
+    "value": "hi"
+   },
+   "title": null,
+   "link": null,
+   "links": [],
+   "target": null,
+   "reply_to": null,
+   "body_as": null,
+   "visibility": null,
+   "flags": null,
+   "media": [],
+   "operations": [],
+   "fields": [],
+   "fields_hidden": 0,
+   "surface": "test/reddit",
+   "through": "test/reddit",
+   "acts_as": "u2",
+   "account": null,
+   "signed_in_as": {
+    "site": "reddit",
+    "user_id": "u2"
+   },
+   "account_status": "unpinned",
+   "line": "as u2 on Reddit, through test/reddit",
+   "digest": "sha256:9b9925b67e46dc49db430e048649b48afdbdc0e4048c0010ecfe216d524d1d26",
+   "images": [],
+   "params": [],
+   "editable": [],
+   "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
+   "identity_line": "Posts as u2"
+  }
+ },
+ "unpinned and not seen": {
+  "ok": {
+   "type": "publish",
+   "rule": "reddit.post",
+   "kind": "post",
+   "site": "reddit",
+   "site_label": "Reddit",
+   "verified_rule": true,
+   "text": {
+    "param": "text",
+    "value": "hi"
+   },
+   "title": null,
+   "link": null,
+   "links": [],
+   "target": null,
+   "reply_to": null,
+   "body_as": null,
+   "visibility": null,
+   "flags": null,
+   "media": [],
+   "operations": [],
+   "fields": [],
+   "fields_hidden": 0,
+   "surface": "test/reddit",
+   "through": "test/reddit",
+   "acts_as": null,
+   "account": null,
+   "signed_in_as": null,
+   "account_status": "unknown",
+   "line": "on Reddit, through test/reddit (the account it publishes as is not known)",
+   "digest": "sha256:6825ce9b70c843ce202be690dc34235fe05668492831ddc24080d7a14ad2718f",
+   "images": [],
+   "params": [],
+   "editable": [],
+   "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
+   "identity_line": null,
+   "account_warning": "The node could not read which account this browser is signed into on Reddit (it may be signed out, or its cookies could not be read), and no expected account is set for this lane. Check the account in the live view before you approve."
+  }
+ },
+ "pinned not seen": {
+  "ok": {
+   "type": "publish",
+   "rule": "reddit.post",
+   "kind": "post",
+   "site": "reddit",
+   "site_label": "Reddit",
+   "verified_rule": true,
+   "text": {
+    "param": "text",
+    "value": "hi"
+   },
+   "title": null,
+   "link": null,
+   "links": [],
+   "target": null,
+   "reply_to": null,
+   "body_as": null,
+   "visibility": null,
+   "flags": null,
+   "media": [],
+   "operations": [],
+   "fields": [],
+   "fields_hidden": 0,
+   "surface": "test/reddit",
+   "through": "test/reddit",
+   "acts_as": null,
+   "account": {
+    "site": "reddit",
+    "handle": "@Me",
+    "user_id": "u1"
+   },
+   "signed_in_as": null,
+   "account_status": "unknown",
+   "line": "on Reddit, through test/reddit (the account it publishes as is not known)",
+   "digest": "sha256:6825ce9b70c843ce202be690dc34235fe05668492831ddc24080d7a14ad2718f",
+   "images": [],
+   "params": [],
+   "editable": [],
+   "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
+   "identity_line": null,
+   "account_warning": "The node could not read which account this browser is signed into on Reddit (it may be signed out, or its cookies could not be read), so it cannot confirm this publishes as @Me. Check the account in the live view before you approve."
+  }
+ },
+ "pinned not seen unknown site": {
+  "ok": {
+   "type": "publish",
+   "rule": "mystery.x",
+   "kind": "post",
+   "site": "mystery",
+   "site_label": "Mystery",
+   "verified_rule": false,
+   "text": {
+    "param": "text",
+    "value": "hi"
+   },
+   "title": null,
+   "link": null,
+   "links": [],
+   "target": null,
+   "reply_to": null,
+   "body_as": null,
+   "visibility": null,
+   "flags": null,
+   "media": [],
+   "operations": [],
+   "fields": [],
+   "fields_hidden": 0,
+   "surface": "test/reddit",
+   "through": "test/reddit",
+   "acts_as": null,
+   "account": {
+    "site": "reddit",
+    "handle": "@Me",
+    "user_id": "u1"
+   },
+   "signed_in_as": null,
+   "account_status": "unknown",
+   "line": "on Mystery, through test/reddit (the account it publishes as is not known)",
+   "digest": "sha256:8db53666d797178cb5c82ae0fc5af4fed61f546b95f026c4ea6b3300c644ac82",
+   "images": [],
+   "params": [],
+   "editable": [],
+   "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
+   "identity_line": null,
+   "account_warning": "The node cannot see which account this browser is signed into on Mystery, so it cannot confirm this publishes as @Me. Check the account in the live view before you approve."
+  }
+ },
+ "session account not a dict": {
+  "ok": {
+   "type": "publish",
+   "rule": "reddit.post",
+   "kind": "post",
+   "site": "reddit",
+   "site_label": "Reddit",
+   "verified_rule": true,
+   "text": {
+    "param": "text",
+    "value": "hi"
+   },
+   "title": null,
+   "link": null,
+   "links": [],
+   "target": null,
+   "reply_to": null,
+   "body_as": null,
+   "visibility": null,
+   "flags": null,
+   "media": [],
+   "operations": [],
+   "fields": [],
+   "fields_hidden": 0,
+   "surface": "test/reddit",
+   "through": "test/reddit",
+   "acts_as": null,
+   "account": {
+    "site": "reddit",
+    "handle": "@Me",
+    "user_id": "u1"
+   },
+   "signed_in_as": null,
+   "account_status": "unknown",
+   "line": "on Reddit, through test/reddit (the account it publishes as is not known)",
+   "digest": "sha256:052d76a9e1ae42e2b4d68f461904d174d1976a31a919d823c30c1105ba237396",
+   "images": [],
+   "params": [],
+   "editable": [],
+   "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
+   "identity_line": null,
+   "account_warning": "The node could not read which account this browser is signed into on Reddit (it may be signed out, or its cookies could not be read), so it cannot confirm this publishes as @Me. Check the account in the live view before you approve."
+  }
+ },
+ "lane gone": {
+  "ok": {
+   "type": "publish",
+   "rule": "reddit.post",
+   "kind": "post",
+   "site": "reddit",
+   "site_label": "Reddit",
+   "verified_rule": true,
+   "text": {
+    "param": "text",
+    "value": "hi"
+   },
+   "title": null,
+   "link": null,
+   "links": [],
+   "target": null,
+   "reply_to": null,
+   "body_as": null,
+   "visibility": null,
+   "flags": null,
+   "media": [],
+   "operations": [],
+   "fields": [],
+   "fields_hidden": 0,
+   "surface": "test/reddit",
+   "through": "test/reddit",
+   "acts_as": null,
+   "account": null,
+   "signed_in_as": null,
+   "account_status": "unknown",
+   "line": "on Reddit, through test/reddit (the account it publishes as is not known)",
+   "digest": "sha256:6825ce9b70c843ce202be690dc34235fe05668492831ddc24080d7a14ad2718f",
+   "images": [],
+   "params": [],
+   "editable": [],
+   "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
+   "identity_line": null,
+   "account_warning": "The node could not read which account this browser is signed into on Reddit (it may be signed out, or its cookies could not be read), and no expected account is set for this lane. Check the account in the live view before you approve."
+  }
+ },
+ "acts as self": {
+  "ok": {
+   "type": "publish",
+   "rule": "reddit.post",
+   "kind": "post",
+   "site": "reddit",
+   "site_label": "Reddit",
+   "verified_rule": true,
+   "text": {
+    "param": "text",
+    "value": "hi"
+   },
+   "title": null,
+   "link": null,
+   "links": [],
+   "target": null,
+   "reply_to": null,
+   "body_as": null,
+   "visibility": null,
+   "flags": null,
+   "media": [],
+   "operations": [],
+   "fields": [],
+   "fields_hidden": 0,
+   "surface": "test/reddit",
+   "through": "test/reddit",
+   "acts_as": "@Me",
+   "account": {
+    "site": "reddit",
+    "handle": "@Me",
+    "user_id": "u1"
+   },
+   "signed_in_as": {
+    "site": "reddit",
+    "user_id": "u1"
+   },
+   "account_status": "match",
+   "line": "as @Me on Reddit, through test/reddit",
+   "digest": "sha256:827de874931b5c766d3e552b9bb4d4ff7d5e5935cd5a9dc954e8da855041e392",
+   "images": [],
+   "params": [],
+   "editable": [],
+   "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
+   "identity_line": "Posts as Me",
+   "acting": {
+    "status": "self",
+    "id": "u1",
+    "field": "author",
+    "label": "Me"
+   }
+  }
+ },
+ "acts as surface": {
+  "ok": {
+   "type": "publish",
+   "rule": "reddit.post",
+   "kind": "post",
+   "site": "reddit",
+   "site_label": "Reddit",
+   "verified_rule": true,
+   "text": {
+    "param": "text",
+    "value": "hi"
+   },
+   "title": null,
+   "link": null,
+   "links": [],
+   "target": null,
+   "reply_to": null,
+   "body_as": null,
+   "visibility": null,
+   "flags": null,
+   "media": [],
+   "operations": [],
+   "fields": [],
+   "fields_hidden": 0,
+   "surface": "test/reddit",
+   "through": "personal/fb",
+   "acts_as": "biz-a (Page)",
+   "account": {
+    "site": "reddit",
+    "handle": "@Me",
+    "user_id": "u1"
+   },
+   "signed_in_as": {
+    "site": "reddit",
+    "user_id": "u1"
+   },
+   "account_status": "match",
+   "line": "as biz-a (Page) on Reddit, through personal/fb",
+   "digest": "sha256:60d88f0dd9107132f9b0e8392043a1d0ec732a01ba4bfbf1b30efdefd5a788bd",
+   "images": [],
+   "params": [],
+   "editable": [],
+   "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
+   "identity_line": "Posts as biz-a (Page)",
+   "acting": {
+    "status": "surface",
+    "id": "p9",
+    "surface": "biz-a/page",
+    "kind": "page",
+    "label": "biz-a (Page)",
+    "verified": true
+   }
+  }
+ },
+ "acts as stranger": {
+  "ok": {
+   "type": "publish",
+   "rule": "reddit.post",
+   "kind": "post",
+   "site": "reddit",
+   "site_label": "Reddit",
+   "verified_rule": true,
+   "text": {
+    "param": "text",
+    "value": "hi"
+   },
+   "title": null,
+   "link": null,
+   "links": [],
+   "target": null,
+   "reply_to": null,
+   "body_as": null,
+   "visibility": null,
+   "flags": null,
+   "media": [],
+   "operations": [],
+   "fields": [],
+   "fields_hidden": 0,
+   "surface": "test/reddit",
+   "through": "test/reddit",
+   "acts_as": null,
+   "account": {
+    "site": "reddit",
+    "handle": "@Me",
+    "user_id": "u1"
+   },
+   "signed_in_as": null,
+   "account_status": "unknown",
+   "line": "as an identity agentos does not know (x77) on Reddit, through test/reddit",
+   "digest": "sha256:1f92283267d77860dea6d0fe21878ad2f4a0521e3dc1672b926122f86c2ca14e",
+   "images": [],
+   "params": [],
+   "editable": [],
+   "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
+   "identity_line": "Posts as an identity agentos does not know (x77): s",
+   "acting": {
+    "status": "unrecognized",
+    "id": "x77",
+    "field": "actor_id",
+    "why": "no surface names it."
+   },
+   "identity_warning": "This would post as an identity agentos does not know (x77, from actor_id): no surface names it. It is never automatic: approve only if you know who that is, or add it as a surface first.",
+   "account_warning": "The node could not read which account this browser is signed into on Reddit (it may be signed out, or its cookies could not be read), so it cannot confirm this publishes as @Me. Check the account in the live view before you approve."
+  }
+ },
+ "acts as stranger no field": {
+  "ok": {
+   "type": "publish",
+   "rule": "reddit.post",
+   "kind": "post",
+   "site": "reddit",
+   "site_label": "Reddit",
+   "verified_rule": true,
+   "text": {
+    "param": "text",
+    "value": "hi"
+   },
+   "title": null,
+   "link": null,
+   "links": [],
+   "target": null,
+   "reply_to": null,
+   "body_as": null,
+   "visibility": null,
+   "flags": null,
+   "media": [],
+   "operations": [],
+   "fields": [],
+   "fields_hidden": 0,
+   "surface": "test/reddit",
+   "through": "test/reddit",
+   "acts_as": null,
+   "account": {
+    "site": "reddit",
+    "handle": "@Me",
+    "user_id": "u1"
+   },
+   "signed_in_as": null,
+   "account_status": "unknown",
+   "line": "as an identity agentos does not know (x77) on Reddit, through test/reddit",
+   "digest": "sha256:e43e8f24f41f110f62fb4ba9c84e8c54d8294132f14f39c98e866b05b1c3ff6f",
+   "images": [],
+   "params": [],
+   "editable": [],
+   "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
+   "identity_line": "Posts as an identity agentos does not know (x77): no surface names it",
+   "acting": {
+    "status": "unrecognized",
+    "id": "x77"
+   },
+   "identity_warning": "This would post as an identity agentos does not know (x77): no surface names it. It is never automatic: approve only if you know who that is, or add it as a surface first.",
+   "account_warning": "The node could not read which account this browser is signed into on Reddit (it may be signed out, or its cookies could not be read), so it cannot confirm this publishes as @Me. Check the account in the live view before you approve."
+  }
+ },
+ "acts as stranger no id": {
+  "ok": {
+   "type": "publish",
+   "rule": "reddit.post",
+   "kind": "post",
+   "site": "reddit",
+   "site_label": "Reddit",
+   "verified_rule": true,
+   "text": {
+    "param": "text",
+    "value": "hi"
+   },
+   "title": null,
+   "link": null,
+   "links": [],
+   "target": null,
+   "reply_to": null,
+   "body_as": null,
+   "visibility": null,
+   "flags": null,
+   "media": [],
+   "operations": [],
+   "fields": [],
+   "fields_hidden": 0,
+   "surface": "test/reddit",
+   "through": "test/reddit",
+   "acts_as": null,
+   "account": {
+    "site": "reddit",
+    "handle": "@Me",
+    "user_id": "u1"
+   },
+   "signed_in_as": null,
+   "account_status": "unknown",
+   "line": "as an identity agentos does not know on Reddit, through test/reddit",
+   "digest": "sha256:d79e7adef695ada7fa83960f7f4108a354fcf5a6a439d69441d34df34c118517",
+   "images": [],
+   "params": [],
+   "editable": [],
+   "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
+   "identity_line": "Posts as an identity agentos does not know: no surface names it",
+   "acting": {
+    "status": "unrecognized"
+   },
+   "identity_warning": "This would post as an identity agentos does not know: no surface names it. It is never automatic: approve only if you know who that is, or add it as a surface first.",
+   "account_warning": "The node could not read which account this browser is signed into on Reddit (it may be signed out, or its cookies could not be read), so it cannot confirm this publishes as @Me. Check the account in the live view before you approve."
+  }
+ },
+ "acts as not a dict": {
+  "ok": {
+   "type": "publish",
+   "rule": "reddit.post",
+   "kind": "post",
+   "site": "reddit",
+   "site_label": "Reddit",
+   "verified_rule": true,
+   "text": {
+    "param": "text",
+    "value": "hi"
+   },
+   "title": null,
+   "link": null,
+   "links": [],
+   "target": null,
+   "reply_to": null,
+   "body_as": null,
+   "visibility": null,
+   "flags": null,
+   "media": [],
+   "operations": [],
+   "fields": [],
+   "fields_hidden": 0,
+   "surface": "test/reddit",
+   "through": "test/reddit",
+   "acts_as": null,
+   "account": {
+    "site": "reddit",
+    "handle": "@Me",
+    "user_id": "u1"
+   },
+   "signed_in_as": null,
+   "account_status": "unknown",
+   "line": "on Reddit, through test/reddit (the account it publishes as is not known)",
+   "digest": "sha256:afbc978437dfd5ffee399ab6e323c07c8fd3d6657ba473c9184cab7d0eb5b82b",
+   "images": [],
+   "params": [],
+   "editable": [],
+   "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
+   "identity_line": null,
+   "account_warning": "The node could not read which account this browser is signed into on Reddit (it may be signed out, or its cookies could not be read), so it cannot confirm this publishes as @Me. Check the account in the live view before you approve."
+  }
+ },
+ "one invisible char": {
+  "ok": {
+   "type": "publish",
+   "rule": "reddit.post",
+   "kind": "post",
+   "site": "reddit",
+   "site_label": "Reddit",
+   "verified_rule": true,
+   "text": {
+    "param": "text",
+    "value": "a\u200bb"
+   },
+   "title": null,
+   "link": null,
+   "links": [],
+   "target": null,
+   "reply_to": null,
+   "body_as": null,
+   "visibility": null,
+   "flags": null,
+   "media": [],
+   "operations": [],
+   "fields": [],
+   "fields_hidden": 0,
+   "surface": "test/reddit",
+   "through": "test/reddit",
+   "acts_as": null,
+   "account": null,
+   "signed_in_as": null,
+   "account_status": "unknown",
+   "line": "on Reddit, through test/reddit (the account it publishes as is not known)",
+   "digest": "sha256:2f2b90e3cd79b38a5704368d5eb7d5b1dcf68d5af18ca8a81a7b739fb64dc432",
+   "images": [],
+   "params": [],
+   "editable": [],
+   "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
+   "identity_line": null,
+   "account_warning": "The node could not read which account this browser is signed into on Reddit (it may be signed out, or its cookies could not be read), and no expected account is set for this lane. Check the account in the live view before you approve.",
+   "chars": [
+    "U+200B"
+   ],
+   "chars_warning": "What it sends holds 1 invisible or direction-changing character (U+200B, marked where they sit): they can make text or a link read differently from what is sent."
+  }
+ },
+ "several invisible chars": {
+  "ok": {
+   "type": "publish",
+   "rule": "reddit.post",
+   "kind": "post",
+   "site": "reddit",
+   "site_label": "Reddit",
+   "verified_rule": true,
+   "text": {
+    "param": "text",
+    "value": "a\u200bb\u202ec\u200b"
+   },
+   "title": {
+    "value": "\ufeffT"
+   },
+   "link": null,
+   "links": [],
+   "target": null,
+   "reply_to": null,
+   "body_as": null,
+   "visibility": null,
+   "flags": null,
+   "media": [],
+   "operations": [],
+   "fields": [],
+   "fields_hidden": 0,
+   "surface": "test/reddit",
+   "through": "test/reddit",
+   "acts_as": null,
+   "account": null,
+   "signed_in_as": null,
+   "account_status": "unknown",
+   "line": "on Reddit, through test/reddit (the account it publishes as is not known)",
+   "digest": "sha256:10a136de8da68c89088916e9f995be6e2f30ee35351424d880d0c34c1fe6fad9",
+   "images": [],
+   "params": [],
+   "editable": [],
+   "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
+   "identity_line": null,
+   "account_warning": "The node could not read which account this browser is signed into on Reddit (it may be signed out, or its cookies could not be read), and no expected account is set for this lane. Check the account in the live view before you approve.",
+   "chars": [
+    "U+200B",
+    "U+202E",
+    "U+FEFF"
+   ],
+   "chars_warning": "What it sends holds 4 invisible or direction-changing characters (U+200B, U+202E, U+FEFF, marked where they sit): they can make text or a link read differently from what is sent."
+  }
+ },
+ "lookalike target and as": {
+  "ok": {
+   "type": "publish",
+   "rule": "reddit.post",
+   "kind": "post",
+   "site": "reddit",
+   "site_label": "Reddit",
+   "verified_rule": true,
+   "text": {
+    "param": "text",
+    "value": "hi"
+   },
+   "title": null,
+   "link": null,
+   "links": [],
+   "target": "p\u0430ypal",
+   "reply_to": null,
+   "body_as": "\u0430dmin",
+   "visibility": null,
+   "flags": null,
+   "media": [],
+   "operations": [],
+   "fields": [],
+   "fields_hidden": 0,
+   "surface": "test/reddit",
+   "through": "test/reddit",
+   "acts_as": null,
+   "account": null,
+   "signed_in_as": null,
+   "account_status": "unknown",
+   "line": "on Reddit, through test/reddit (the account it publishes as is not known)",
+   "digest": "sha256:af375db217c373cea07cf115853815e914000684f213c9feb85cbc022a466dd9",
+   "images": [],
+   "params": [],
+   "editable": [],
+   "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
+   "identity_line": null,
+   "account_warning": "The node could not read which account this browser is signed into on Reddit (it may be signed out, or its cookies could not be read), and no expected account is set for this lane. Check the account in the live view before you approve.",
+   "lookalikes": [
+    {
+     "field": "target",
+     "value": "p\u0430ypal",
+     "ascii": "p[U+0430]ypal",
+     "scripts": [
+      "CYRILLIC",
+      "LATIN"
+     ]
+    },
+    {
+     "field": "profile or page",
+     "value": "\u0430dmin",
+     "ascii": "[U+0430]dmin",
+     "scripts": [
+      "CYRILLIC",
+      "LATIN"
+     ]
+    }
+   ],
+   "lookalike_warning": "Some names have letters outside ASCII and may look like another name (p\u0430ypal is p[U+0430]ypal, CYRILLIC/LATIN; \u0430dmin is [U+0430]dmin, CYRILLIC/LATIN). Check each is the one you mean."
+  }
+ },
+ "lookalike link host": {
+  "ok": {
+   "type": "publish",
+   "rule": "reddit.post",
+   "kind": "post",
+   "site": "reddit",
+   "site_label": "Reddit",
+   "verified_rule": true,
+   "text": {
+    "param": "text",
+    "value": "see https://ex\u0430mple.com/x and https://plain.example/y."
+   },
+   "title": null,
+   "link": null,
+   "links": [
+    "https://ex\u0430mple.com/x",
+    "https://plain.example/y"
+   ],
+   "target": null,
+   "reply_to": null,
+   "body_as": null,
+   "visibility": null,
+   "flags": null,
+   "media": [],
+   "operations": [],
+   "fields": [],
+   "fields_hidden": 0,
+   "surface": "test/reddit",
+   "through": "test/reddit",
+   "acts_as": null,
+   "account": null,
+   "signed_in_as": null,
+   "account_status": "unknown",
+   "line": "on Reddit, through test/reddit (the account it publishes as is not known)",
+   "digest": "sha256:a40531118120db54a7fafb95b1e99d447dc230c52d11836210723a3a82570eca",
+   "images": [],
+   "params": [],
+   "editable": [],
+   "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
+   "identity_line": null,
+   "account_warning": "The node could not read which account this browser is signed into on Reddit (it may be signed out, or its cookies could not be read), and no expected account is set for this lane. Check the account in the live view before you approve.",
+   "lookalikes": [
+    {
+     "field": "link host",
+     "value": "ex\u0430mple.com",
+     "ascii": "xn--exmple-4nf.com",
+     "scripts": [
+      "CYRILLIC",
+      "LATIN"
+     ]
+    }
+   ],
+   "lookalike_warning": "Some names have letters outside ASCII and may look like another name (ex\u0430mple.com is xn--exmple-4nf.com, CYRILLIC/LATIN). Check each is the one you mean."
+  }
+ },
+ "lookalike surface label": {
+  "ok": {
+   "type": "publish",
+   "rule": "reddit.post",
+   "kind": "post",
+   "site": "reddit",
+   "site_label": "Reddit",
+   "verified_rule": true,
+   "text": {
+    "param": "text",
+    "value": "hi"
+   },
+   "title": null,
+   "link": null,
+   "links": [],
+   "target": null,
+   "reply_to": null,
+   "body_as": null,
+   "visibility": null,
+   "flags": null,
+   "media": [],
+   "operations": [],
+   "fields": [],
+   "fields_hidden": 0,
+   "surface": "test/reddit",
+   "through": "personal/fb",
+   "acts_as": "b\u0456z",
+   "account": {
+    "site": "reddit",
+    "handle": "@Me",
+    "user_id": "u1"
+   },
+   "signed_in_as": null,
+   "account_status": "unknown",
+   "line": "as b\u0456z on Reddit, through personal/fb",
+   "digest": "sha256:77d5e1ed11ac282976ce1e7b5dcee0b95dbc030534888f4768cc1f6d58e6914c",
+   "images": [],
+   "params": [],
+   "editable": [],
+   "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
+   "identity_line": "Posts as b\u0456z",
+   "acting": {
+    "status": "surface",
+    "id": "p9",
+    "surface": "biz-a/page",
+    "kind": "page",
+    "label": "b\u0456z",
+    "verified": true
+   },
+   "account_warning": "The node could not read which account this browser is signed into on Reddit (it may be signed out, or its cookies could not be read), so it cannot confirm this publishes as @Me. Check the account in the live view before you approve.",
+   "lookalikes": [
+    {
+     "field": "posts as",
+     "value": "b\u0456z",
+     "ascii": "b[U+0456]z",
+     "scripts": [
+      "CYRILLIC",
+      "LATIN"
+     ]
+    }
+   ],
+   "lookalike_warning": "Some names have letters outside ASCII and may look like another name (b\u0456z is b[U+0456]z, CYRILLIC/LATIN). Check each is the one you mean."
+  }
+ },
+ "fields past the limit": {
+  "ok": {
+   "type": "publish",
+   "rule": "reddit.post",
+   "kind": "post",
+   "site": "reddit",
+   "site_label": "Reddit",
+   "verified_rule": true,
+   "text": {
+    "param": "text",
+    "value": "x"
+   },
+   "title": null,
+   "link": null,
+   "links": [],
+   "target": null,
+   "reply_to": null,
+   "body_as": null,
+   "visibility": null,
+   "flags": null,
+   "media": [],
+   "operations": [],
+   "fields": [
+    {
+     "name": "f000",
+     "value": 0
+    },
+    {
+     "name": "f001",
+     "value": 1
+    },
+    {
+     "name": "f002",
+     "value": 2
+    },
+    {
+     "name": "f003",
+     "value": 3
+    },
+    {
+     "name": "f004",
+     "value": 4
+    },
+    {
+     "name": "f005",
+     "value": 5
+    },
+    {
+     "name": "f006",
+     "value": 6
+    },
+    {
+     "name": "f007",
+     "value": 7
+    },
+    {
+     "name": "f008",
+     "value": 8
+    },
+    {
+     "name": "f009",
+     "value": 9
+    },
+    {
+     "name": "f010",
+     "value": 10
+    },
+    {
+     "name": "f011",
+     "value": 11
+    },
+    {
+     "name": "f012",
+     "value": 12
+    },
+    {
+     "name": "f013",
+     "value": 13
+    },
+    {
+     "name": "f014",
+     "value": 14
+    },
+    {
+     "name": "f015",
+     "value": 15
+    },
+    {
+     "name": "f016",
+     "value": 16
+    },
+    {
+     "name": "f017",
+     "value": 17
+    },
+    {
+     "name": "f018",
+     "value": 18
+    },
+    {
+     "name": "f019",
+     "value": 19
+    },
+    {
+     "name": "f020",
+     "value": 20
+    },
+    {
+     "name": "f021",
+     "value": 21
+    },
+    {
+     "name": "f022",
+     "value": 22
+    },
+    {
+     "name": "f023",
+     "value": 23
+    },
+    {
+     "name": "f024",
+     "value": 24
+    },
+    {
+     "name": "f025",
+     "value": 25
+    },
+    {
+     "name": "f026",
+     "value": 26
+    },
+    {
+     "name": "f027",
+     "value": 27
+    },
+    {
+     "name": "f028",
+     "value": 28
+    },
+    {
+     "name": "f029",
+     "value": 29
+    },
+    {
+     "name": "f030",
+     "value": 30
+    },
+    {
+     "name": "f031",
+     "value": 31
+    },
+    {
+     "name": "f032",
+     "value": 32
+    },
+    {
+     "name": "f033",
+     "value": 33
+    },
+    {
+     "name": "f034",
+     "value": 34
+    },
+    {
+     "name": "f035",
+     "value": 35
+    },
+    {
+     "name": "f036",
+     "value": 36
+    },
+    {
+     "name": "f037",
+     "value": 37
+    },
+    {
+     "name": "f038",
+     "value": 38
+    },
+    {
+     "name": "f039",
+     "value": 39
+    }
+   ],
+   "fields_hidden": 5,
+   "surface": "test/reddit",
+   "through": "test/reddit",
+   "acts_as": null,
+   "account": null,
+   "signed_in_as": null,
+   "account_status": "unknown",
+   "line": "on Reddit, through test/reddit (the account it publishes as is not known)",
+   "digest": "sha256:088180e23ccdd489379ea94fb88097a253713b2e6959e712e20d3fca06457ae2",
+   "images": [],
+   "params": [],
+   "editable": [],
+   "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
+   "fields_note": "5 more fields are not shown here; the approval binds them too",
+   "identity_line": null,
+   "account_warning": "The node could not read which account this browser is signed into on Reddit (it may be signed out, or its cookies could not be read), and no expected account is set for this lane. Check the account in the live view before you approve."
+  }
+ },
+ "operations and media": {
+  "ok": {
+   "type": "publish",
+   "rule": "reddit.post",
+   "kind": "post",
+   "site": "reddit",
+   "site_label": "Reddit",
+   "verified_rule": true,
+   "text": null,
+   "title": null,
+   "link": null,
+   "links": [],
+   "target": null,
+   "reply_to": null,
+   "body_as": null,
+   "visibility": null,
+   "flags": null,
+   "media": [
+    {
+     "ref": "1",
+     "seen": false,
+     "note": "media not seen by the node: id only"
+    },
+    {
+     "ref": "2",
+     "note": "media the node saw uploaded but could not hash: id only"
+    },
+    {
+     "ref": "3",
+     "sha256": "s"
+    },
+    {
+     "catalog": true,
+     "label": "a GIF",
+     "note": "a GIF"
+    },
+    {
+     "catalog": true,
+     "note": "from the site's own catalog, not a file"
+    }
+   ],
+   "operations": [
+    {
+     "op": "CreatePost",
+     "title": {
+      "value": "A"
+     },
+     "text": {
+      "value": "B"
+     }
+    }
+   ],
+   "fields": [],
+   "fields_hidden": 0,
+   "surface": "test/reddit",
+   "through": "test/reddit",
+   "acts_as": null,
+   "account": null,
+   "signed_in_as": null,
+   "account_status": "unknown",
+   "line": "on Reddit, through test/reddit (the account it publishes as is not known)",
+   "digest": "sha256:f3cfb8b7cce5c82315edff122002adeb852c4ea99d5088b265e14998c3156a7d",
+   "images": [],
+   "params": [],
+   "editable": [],
+   "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
+   "identity_line": null,
+   "account_warning": "The node could not read which account this browser is signed into on Reddit (it may be signed out, or its cookies could not be read), and no expected account is set for this lane. Check the account in the live view before you approve."
+  }
+ },
+ "reply visibility flags": {
+  "ok": {
+   "type": "publish",
+   "rule": "reddit.post",
+   "kind": "post",
+   "site": "reddit",
+   "site_label": "Reddit",
+   "verified_rule": true,
+   "text": {
+    "param": "text",
+    "value": "hi"
+   },
+   "title": null,
+   "link": null,
+   "links": [],
+   "target": "r/test",
+   "reply_to": "t3_x",
+   "body_as": null,
+   "visibility": "public",
+   "flags": [
+    "nsfw"
+   ],
+   "media": [],
+   "operations": [],
+   "fields": [],
+   "fields_hidden": 0,
+   "surface": "test/reddit",
+   "through": "test/reddit",
+   "acts_as": null,
+   "account": null,
+   "signed_in_as": null,
+   "account_status": "unknown",
+   "line": "on Reddit, through test/reddit (the account it publishes as is not known)",
+   "digest": "sha256:8229f6c444329432d8999d350608bec50d0b3a674abb28cccd5c117693da916e",
+   "images": [],
+   "params": [],
+   "editable": [],
+   "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
+   "identity_line": null,
+   "account_warning": "The node could not read which account this browser is signed into on Reddit (it may be signed out, or its cookies could not be read), and no expected account is set for this lane. Check the account in the live view before you approve."
+  }
+ },
+ "vault value in text": {
+  "ok": {
+   "type": "publish",
+   "rule": "reddit.post",
+   "kind": "post",
+   "site": "reddit",
+   "site_label": "Reddit",
+   "verified_rule": true,
+   "text": {
+    "param": "text",
+    "vault": true,
+    "value": "code [vault] here",
+    "note": "a vault value is here; it will be sent"
+   },
+   "title": null,
+   "link": null,
+   "links": [],
+   "target": null,
+   "reply_to": null,
+   "body_as": null,
+   "visibility": null,
+   "flags": null,
+   "media": [],
+   "operations": [],
+   "fields": [],
+   "fields_hidden": 0,
+   "surface": "test/reddit",
+   "through": "test/reddit",
+   "acts_as": null,
+   "account": null,
+   "signed_in_as": null,
+   "account_status": "unknown",
+   "line": "on Reddit, through test/reddit (the account it publishes as is not known)",
+   "digest": "sha256:f9e1853b663642f318bbd526c45fb3c81c45e16966a9ccf6fa3c8db07041ef5f",
+   "images": [],
+   "params": [],
+   "editable": [],
+   "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
+   "identity_line": null,
+   "account_warning": "The node could not read which account this browser is signed into on Reddit (it may be signed out, or its cookies could not be read), and no expected account is set for this lane. Check the account in the live view before you approve."
+  }
+ },
+ "unknown request typed text": {
+  "ok": {
+   "type": "publish",
+   "rule": "reddit.post",
+   "kind": "unknown",
+   "site": "reddit",
+   "site_label": "Reddit",
+   "verified_rule": true,
+   "text": null,
+   "title": null,
+   "link": null,
+   "links": [],
+   "target": null,
+   "reply_to": null,
+   "body_as": null,
+   "visibility": null,
+   "flags": null,
+   "media": [],
+   "operations": [],
+   "fields": [
+    {
+     "name": "a",
+     "value": 2
+    },
+    {
+     "name": "b",
+     "value": 1
+    }
+   ],
+   "fields_hidden": 0,
+   "surface": "test/reddit",
+   "through": "test/reddit",
+   "acts_as": null,
+   "account": null,
+   "signed_in_as": null,
+   "account_status": "unknown",
+   "line": "on Reddit, through test/reddit (the account it publishes as is not known)",
+   "digest": "sha256:715e4fdfbc0bd2f5c236aad330ac4481a2a3be7f5b67bdf7e89208ba2209b9c1",
+   "images": [],
+   "params": [],
+   "editable": [],
+   "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
+   "identity_line": null,
+   "account_warning": "The node could not read which account this browser is signed into on Reddit (it may be signed out, or its cookies could not be read), and no expected account is set for this lane. Check the account in the live view before you approve.",
+   "headline": "A request agentos does not recognise, to Reddit: PUT /x",
+   "shape": "PUT /x with a, b",
+   "explain": "agentos has no rule for this request, so it cannot tell whether it posts anything on Reddit. It carries text the agent typed as its text, and the agent's own click or Enter sent it. Every field it sends is listed here. Denying it is safe: nothing is sent, and the agent is told. Approve only if you expected the agent to send this.",
+   "deny_safe": true
+  }
+ },
+ "unknown request typed title": {
+  "ok": {
+   "type": "publish",
+   "rule": "reddit.post",
+   "kind": "unknown",
+   "site": "reddit",
+   "site_label": "Reddit",
+   "verified_rule": true,
+   "text": null,
+   "title": null,
+   "link": null,
+   "links": [],
+   "target": null,
+   "reply_to": null,
+   "body_as": null,
+   "visibility": null,
+   "flags": null,
+   "media": [],
+   "operations": [],
+   "fields": [],
+   "fields_hidden": 0,
+   "surface": "test/reddit",
+   "through": "test/reddit",
+   "acts_as": null,
+   "account": null,
+   "signed_in_as": null,
+   "account_status": "unknown",
+   "line": "on Reddit, through test/reddit (the account it publishes as is not known)",
+   "digest": "sha256:7ea44271c23f5b1951822f297e9158bd929b4c4f05f48f55ce6db48491196208",
+   "images": [],
+   "params": [],
+   "editable": [],
+   "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
+   "identity_line": null,
+   "account_warning": "The node could not read which account this browser is signed into on Reddit (it may be signed out, or its cookies could not be read), and no expected account is set for this lane. Check the account in the live view before you approve.",
+   "headline": "A request agentos does not recognise, to Reddit: POST /",
+   "shape": "POST / with no fields",
+   "explain": "agentos has no rule for this request, so it cannot tell whether it posts anything on Reddit. It carries text the agent typed as its title, and the agent's own click or Enter sent it. Every field it sends is listed here. Denying it is safe: nothing is sent, and the agent is told. Approve only if you expected the agent to send this.",
+   "deny_safe": true
+  }
+ },
+ "unknown request typed field": {
+  "ok": {
+   "type": "publish",
+   "rule": "reddit.post",
+   "kind": "unknown",
+   "site": "reddit",
+   "site_label": "Reddit",
+   "verified_rule": true,
+   "text": null,
+   "title": null,
+   "link": null,
+   "links": [],
+   "target": null,
+   "reply_to": null,
+   "body_as": null,
+   "visibility": null,
+   "flags": null,
+   "media": [],
+   "operations": [],
+   "fields": [
+    {
+     "name": "q",
+     "value": "v"
+    }
+   ],
+   "fields_hidden": 0,
+   "surface": "test/reddit",
+   "through": "test/reddit",
+   "acts_as": null,
+   "account": null,
+   "signed_in_as": null,
+   "account_status": "unknown",
+   "line": "on Reddit, through test/reddit (the account it publishes as is not known)",
+   "digest": "sha256:4306b138210a585b3ee71a1f78d5ae28241d0e4eaab16c3b1ebb24f065b0747d",
+   "images": [],
+   "params": [],
+   "editable": [],
+   "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
+   "identity_line": null,
+   "account_warning": "The node could not read which account this browser is signed into on Reddit (it may be signed out, or its cookies could not be read), and no expected account is set for this lane. Check the account in the live view before you approve.",
+   "headline": "A request agentos does not recognise, to Reddit: POST /",
+   "shape": "POST / with q",
+   "explain": "agentos has no rule for this request, so it cannot tell whether it posts anything on Reddit. It carries text the agent typed (in the field body.q), and the agent's own click or Enter sent it. Every field it sends is listed here. Denying it is safe: nothing is sent, and the agent is told. Approve only if you expected the agent to send this.",
+   "deny_safe": true
+  }
+ },
+ "unknown request typed empty": {
+  "ok": {
+   "type": "publish",
+   "rule": "reddit.post",
+   "kind": "unknown",
+   "site": "reddit",
+   "site_label": "Reddit",
+   "verified_rule": true,
+   "text": null,
+   "title": null,
+   "link": null,
+   "links": [],
+   "target": null,
+   "reply_to": null,
+   "body_as": null,
+   "visibility": null,
+   "flags": null,
+   "media": [],
+   "operations": [],
+   "fields": [],
+   "fields_hidden": 0,
+   "surface": "test/reddit",
+   "through": "test/reddit",
+   "acts_as": null,
+   "account": null,
+   "signed_in_as": null,
+   "account_status": "unknown",
+   "line": "on Reddit, through test/reddit (the account it publishes as is not known)",
+   "digest": "sha256:01d029ce5256d38cc323ae615e2313097c48795a442a019e01854eb3a8bfa33d",
+   "images": [],
+   "params": [],
+   "editable": [],
+   "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
+   "identity_line": null,
+   "account_warning": "The node could not read which account this browser is signed into on Reddit (it may be signed out, or its cookies could not be read), and no expected account is set for this lane. Check the account in the live view before you approve.",
+   "headline": "A request agentos does not recognise, to Reddit: POST /",
+   "shape": "POST / with no fields",
+   "explain": "agentos has no rule for this request, so it cannot tell whether it posts anything on Reddit. It carries text the agent typed, and the agent's own click or Enter sent it. Every field it sends is listed here. Denying it is safe: nothing is sent, and the agent is told. Approve only if you expected the agent to send this.",
+   "deny_safe": true
+  }
+ },
+ "unknown request nothing typed": {
+  "ok": {
+   "type": "publish",
+   "rule": "reddit.post",
+   "kind": "unknown",
+   "site": "reddit",
+   "site_label": "Reddit",
+   "verified_rule": true,
+   "text": null,
+   "title": null,
+   "link": null,
+   "links": [],
+   "target": null,
+   "reply_to": null,
+   "body_as": null,
+   "visibility": null,
+   "flags": null,
+   "media": [],
+   "operations": [],
+   "fields": [
+    {
+     "name": "k00",
+     "value": 0
+    },
+    {
+     "name": "k01",
+     "value": 1
+    },
+    {
+     "name": "k02",
+     "value": 2
+    },
+    {
+     "name": "k03",
+     "value": 3
+    },
+    {
+     "name": "k04",
+     "value": 4
+    },
+    {
+     "name": "k05",
+     "value": 5
+    },
+    {
+     "name": "k06",
+     "value": 6
+    },
+    {
+     "name": "k07",
+     "value": 7
+    },
+    {
+     "name": "k08",
+     "value": 8
+    },
+    {
+     "name": "k09",
+     "value": 9
+    },
+    {
+     "name": "k10",
+     "value": 10
+    },
+    {
+     "name": "k11",
+     "value": 11
+    },
+    {
+     "name": "k12",
+     "value": 12
+    },
+    {
+     "name": "k13",
+     "value": 13
+    },
+    {
+     "name": "k14",
+     "value": 14
+    },
+    {
+     "name": "k15",
+     "value": 15
+    },
+    {
+     "name": "k16",
+     "value": 16
+    },
+    {
+     "name": "k17",
+     "value": 17
+    },
+    {
+     "name": "k18",
+     "value": 18
+    },
+    {
+     "name": "k19",
+     "value": 19
+    },
+    {
+     "name": "k20",
+     "value": 20
+    },
+    {
+     "name": "k21",
+     "value": 21
+    },
+    {
+     "name": "k22",
+     "value": 22
+    },
+    {
+     "name": "k23",
+     "value": 23
+    },
+    {
+     "name": "k24",
+     "value": 24
+    }
+   ],
+   "fields_hidden": 0,
+   "surface": "test/reddit",
+   "through": "test/reddit",
+   "acts_as": null,
+   "account": null,
+   "signed_in_as": null,
+   "account_status": "unknown",
+   "line": "on Reddit, through test/reddit (the account it publishes as is not known)",
+   "digest": "sha256:ec57920f853308bb1ad73fe275799ec7bbc33d148e3f8eb87a51ca3ed30b56d0",
+   "images": [],
+   "params": [],
+   "editable": [],
+   "edit_note": "This is the request the page was about to send, so it cannot be edited here: deny it and tell the agent what to change.",
+   "identity_line": null,
+   "account_warning": "The node could not read which account this browser is signed into on Reddit (it may be signed out, or its cookies could not be read), and no expected account is set for this lane. Check the account in the live view before you approve.",
+   "headline": "A request agentos does not recognise, to Reddit: POST /",
+   "shape": "POST / with k00, k01, k02, k03, k04, k05, k06, k07, k08, k09, k10, k11, k12, k13, k14, k15, k16, k17, k18, k19",
+   "explain": "agentos has no rule for this request, so it cannot tell whether it posts anything on Reddit. Every field it sends is listed here. Denying it is safe: nothing is sent, and the agent is told. Approve only if you expected the agent to send this.",
+   "deny_safe": true
+  }
+ }
+}

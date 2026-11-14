@@ -12,11 +12,11 @@ from test_ops_support import FakeHost, GiB, fingerprint, make_home
 
 from agentos.core.models import LaneInfo, LaneSpec, LaneState
 from agentos.core.runtime import Runtime
+from agentos.core.system import Host
 from agentos.ops import health
 from agentos.ops.backup import DaemonCoordinator
 from agentos.ops.health import CRITICAL, OK, WARN, HealthMonitor
 from agentos.ops.service import HealthService, build
-from agentos.ops.system import Host
 
 
 class Lanes:
@@ -78,9 +78,9 @@ def test_levels():
 
 
 def test_one_meminfo_reader_for_every_caller(tmp_path):
-    """agentos.ops.system.read_meminfo: bytes for the health service and doctor, MB for the rest,
+    """agentos.core.system.read_meminfo: bytes for the health service and doctor, MB for the rest,
     None where there is no /proc (a Mac)."""
-    from agentos.ops.system import meminfo_mb, read_meminfo
+    from agentos.core.system import meminfo_mb, read_meminfo
 
     path = tmp_path / "meminfo"
     path.write_text("MemTotal:        3984588 kB\nMemAvailable:    1048576 kB\nHugePages_Total:       0\n")

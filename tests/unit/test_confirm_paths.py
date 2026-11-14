@@ -14,9 +14,10 @@ from test_confirm_api import browser
 from test_node_panel import TOKEN, Node, bearer
 from typer.testing import CliRunner
 
-from agentos.api.auth import PRESENCE_HEADER, RateLimiter
+from agentos.api.auth import PRESENCE_HEADER
 from agentos.core.errors import ApprovalPending
 from agentos.core.models import Effect, Principal
+from agentos.core.ratelimit import RateLimiter
 from agentos.policy.cli import approvals_app, confirmation_app
 from agentos.policy.confirm import ConfirmLevel
 

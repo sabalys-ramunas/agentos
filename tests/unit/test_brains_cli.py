@@ -3,10 +3,10 @@
 import json
 
 import pytest
+from testkit.brains import OAUTH, OWNER_TOKEN, make_service
 from typer.testing import CliRunner
 
 from agentos.brains import cli as brains_cli
-from agentos.brains.testing import OAUTH, OWNER_TOKEN, make_service
 
 
 @pytest.fixture
@@ -116,10 +116,10 @@ def test_brains_auth_stores_into_the_nodes_vault(tmp_path, monkeypatch):
     import asyncio
 
     from test_vault_support import make_vault
+    from testkit.brains import make_service
 
     from agentos import cli as agentos_cli
     from agentos.brains.credentials import DEV_FILE_NAME, brain_ref
-    from agentos.brains.testing import make_service
     from agentos.core.config import NodeConfig, save_config
 
     home = tmp_path / "node"

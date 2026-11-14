@@ -47,7 +47,7 @@ import secrets
 import time
 import zlib
 from collections.abc import AsyncIterator, Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlsplit
@@ -58,6 +58,7 @@ from agentos.git import keys as keymod
 from agentos.git.remotes import RemoteRule, Remotes, scope_workspace
 from agentos.git.upstream import Mirror, Target, UpstreamError, credential_env, target_for
 from agentos.git.wire import (
+    Command,
     Push,
     Remote,
     build_report,
@@ -241,7 +242,7 @@ class GitGateway:
                                 "on the node") from None
 
     def _scrub(self, text: str) -> str:
-        from agentos.vault.scrub import runtime_scrub
+        from agentos.policy.scrub import runtime_scrub
 
         return runtime_scrub(self.runtime)(text)
 
@@ -421,100 +422,69 @@ class GitGateway:
 
     async def _push(self, ctx: Any, caller: Caller, rule: RemoteRule, remote: Remote, target: Target,
                     mirror: Mirror, push: Push, body: bytes, refuse: Callable[[str], Response]) -> Response:
-        ctype = "application/x-git-receive-pack-result"
+        """One push, in its steps: receive the pack into the mirror, read what each ref does, refuse what
+        an environment may not do, ask the policy, then send it upstream. Anything that stops it puts the
+        mirror back as it was."""
         account = self._account(caller, rule)
         before = await mirror.refs()
         rc, out, _ = await mirror.git("receive-pack", "--stateless-rpc", ".", stdin=body)
-        try:
-            report, _msgs = demux(out, push.sideband)
-            unpack, results = parse_report(report)
-        except InvalidRequest:
-            unpack, results = "", {}
-        applied = [c for c in push.commands if c.ref in results and results[c.ref] is None]
-        if unpack != "ok" or len(applied) != len(push.commands):
-            await mirror.restore(before, applied)
-            if unpack != "ok" and rc == 0 and out:
-                return Response(200, ctype, out)  # the pack itself was bad: git's own words, nothing applied
-            reasons = {c.ref: (results.get(c.ref) or "not pushed: another ref of this push was refused")
-                       for c in push.commands}
-            return Response(200, ctype, build_report(reasons, sideband=push.sideband))
-
-        default = mirror.default_branch
-        if default is None:
-            src, head, _ = await mirror.git("symbolic-ref", "--short", "HEAD")
-            default = (head.decode().strip() or None) if src == 0 else None
-        why: list[str] = []
-        rewrites: list[str] = []  # what an environment may not do: rewrite or delete a protected branch, or a tag
-        force: set[str] = set()
-        refs: list[dict[str, Any]] = []
-        for c in push.commands:
-            entry: dict[str, Any] = {"ref": c.ref, "kind": c.kind, "old": oid(c.old), "new": oid(c.new)}
-            protected = bool(c.branch and rule.protected(c.branch, default))
-            if c.kind == "update" and not await mirror.is_ancestor(c.old, c.new):
-                force.add(c.ref)
-                entry["force"] = True
-                why.append(f"it force-pushes {c.ref} (commits on the remote would be lost)")
-                if protected:
-                    rewrites.append(f"it force-pushes {c.branch}, a protected branch of {remote.slug}")
-            if c.kind == "delete":
-                why.append(f"it deletes {c.ref}")
-                if protected or c.tag:
-                    rewrites.append(f"it deletes {c.branch or c.tag}" + (f", a protected branch of {remote.slug}"
-                                                                         if protected else " (a tag)"))
-            elif c.tag and c.kind == "update":
-                why.append(f"it moves the tag {c.tag}")
-                rewrites.append(f"it moves the tag {c.tag}")
-            if protected:
-                entry["protected"] = True
-                why.append(f"{c.branch} is a protected branch of {remote.slug}")
-            if c.kind != "delete":
-                count, log_lines = await mirror.commits(c.new, sorted(set(before.values())))
-                entry["commits"], entry["log"] = count, log_lines
-            refs.append(entry)
+        failed = await _receive_failed(mirror, push, before, rc, out)
+        if failed is not None:
+            return failed
+        plan = await _plan(mirror, push, rule, remote, before)
+        run = _PushRun(ctx, caller, remote, target, mirror, push, before, account, refuse)
         if caller.bound:
             # An agent's own environment (its VM's token): a push never asks a person, on any branch, the
             # default branch included (the owner's decision of 2026-11-13, docs/design/environments.md). What
             # stays is a refusal: history on a protected branch, and tags, are not rewritten from one.
-            if rewrites:
-                await mirror.restore(before, push.commands)
-                ctx.trace("git_push", result="refused", status="denied", reason="push_refused", lane=account,
-                          remote=remote.slug, via=caller.label,
-                          refs=[{k: v for k, v in r.items() if k != "log"} for r in refs])
-                return refuse(f"push_refused: {'; '.join(rewrites)}, which an environment may not do; nothing was "
-                              "pushed. Fix: push your work to a new branch (git push origin HEAD:<branch>) and open a "
-                              "pull request")
-            why = []  # what it does is on the record; none of it waits for a person
-        effect = Effect.IRREVERSIBLE if why else Effect.COMMIT
-        names = ", ".join(r["ref"].removeprefix("refs/heads/") for r in refs)
-        summary = f"Push {names} to {remote.slug} ({caller.label})" + (f": {'; '.join(why)}" if why else "")
-        content = {"git_push": remote.slug, "refs": refs}
-        trace = {"lane": account, "remote": remote.slug, "via": caller.label,
-                 "refs": [{k: v for k, v in r.items() if k != "log"} for r in refs],
+            if plan.rewrites:
+                return await _refuse_rewrites(run, plan)
+            plan.why = []  # what it does is on the record; none of it waits for a person
+        effect = Effect.IRREVERSIBLE if plan.why else Effect.COMMIT
+        trace = {"lane": account, "remote": remote.slug, "via": caller.label, "refs": _without_log(plan.refs),
                  "effect": effect.value, "vault_ref": target.credential.ref if target.credential else None}
+        refused = await self._authorize_push(run, plan, effect, trace)
+        if refused is not None:
+            return refused
+        return await self._send_upstream(run, plan, trace, out)
+
+    async def _authorize_push(self, run: _PushRun, plan: _PushPlan, effect: Effect,
+                              trace: dict[str, Any]) -> Response | None:
+        """Ask the policy for the push at its effect. None when it may go; else the mirror is put back,
+        the refusal is on the record, and git hears it."""
+        names = ", ".join(r["ref"].removeprefix("refs/heads/") for r in plan.refs)
+        summary = (f"Push {names} to {run.remote.slug} ({run.caller.label})"
+                   + (f": {'; '.join(plan.why)}" if plan.why else ""))
+        content = {"git_push": run.remote.slug, "refs": plan.refs}
         try:
-            await ctx.authorize(effect, lane_id=account, summary=summary[:400], content=content)
+            await run.ctx.authorize(effect, lane_id=run.account, summary=summary[:400], content=content)
         except ApprovalPending as e:
-            await mirror.restore(before, push.commands)
-            ctx.trace("git_push", result="approval_pending", approval=e.approval_id, **trace)
-            reason = self._pending_reason(e, why).rstrip(".")
-            return refuse(f"this push waits for a person (approval {e.approval_id}): {reason}. Tell the user; once "
-                          "it is approved, push again with the same commits. Do not change or split the push to "
-                          "get around it")
+            await run.mirror.restore(run.before, run.push.commands)
+            run.ctx.trace("git_push", result="approval_pending", approval=e.approval_id, **trace)
+            reason = self._pending_reason(e, plan.why).rstrip(".")
+            return run.refuse(f"this push waits for a person (approval {e.approval_id}): {reason}. Tell the user; "
+                              "once it is approved, push again with the same commits. Do not change or split the "
+                              "push to get around it")
         except AgentosError as e:
-            await mirror.restore(before, push.commands)
-            ctx.trace("git_push", result="denied", status="denied", reason=e.message[:300], **trace)
-            return refuse(f"this push was refused: {e.message}")
-        purpose = f"git push {remote.slug} for {caller.label}"
+            await run.mirror.restore(run.before, run.push.commands)
+            run.ctx.trace("git_push", result="denied", status="denied", reason=e.message[:300], **trace)
+            return run.refuse(f"this push was refused: {e.message}")
+        return None
+
+    async def _send_upstream(self, run: _PushRun, plan: _PushPlan, trace: dict[str, Any], out: bytes) -> Response:
+        """Push the authorized refs to the real remote with the vault's credential, and answer git with
+        the mirror's own report. A remote that fails puts the mirror back."""
+        purpose = f"git push {run.remote.slug} for {run.caller.label}"
         try:
-            async with credential_env(target, home=self.home, agent_dir=self.agent_dir,
+            async with credential_env(run.target, home=self.home, agent_dir=self.agent_dir,
                                       read_secret=self._read_secret, purpose=purpose) as auth:
-                await mirror.push(target, auth, push.commands, force)
+                await run.mirror.push(run.target, auth, run.push.commands, plan.force)
         except UpstreamError as e:
-            await mirror.restore(before, push.commands)
-            ctx.trace("git_push", result="failed", status="error", reason=e.message[:300], **trace)
-            return refuse(f"the push did not reach {remote.slug}: {e.message}")
-        ctx.trace("git_push", result="pushed", **trace)
-        return Response(200, ctype, out)
+            await run.mirror.restore(run.before, run.push.commands)
+            run.ctx.trace("git_push", result="failed", status="error", reason=e.message[:300], **trace)
+            return run.refuse(f"the push did not reach {run.remote.slug}: {e.message}")
+        run.ctx.trace("git_push", result="pushed", **trace)
+        return Response(200, RECEIVE_RESULT, out)
 
     def _pending_reason(self, e: ApprovalPending, why: list[str]) -> str:
         """Why a push waits, in the words the card has: untrusted text it follows, what makes it
@@ -551,6 +521,117 @@ class GitGateway:
                 await write_response(writer, Response(400, "text/plain", f"agentos git gateway: {e.message}\n".encode()))
         finally:
             writer.close()
+
+
+# ---------------------------------------------------------------------- a push, step by step
+
+RECEIVE_RESULT = "application/x-git-receive-pack-result"
+
+
+@dataclass
+class _PushRun:
+    """One push through the gateway, as its steps share it: who pushes, where, the mirror it went into
+    and the refs the mirror had before it (`before`, what a stopped push restores)."""
+    ctx: Any
+    caller: Caller
+    remote: Remote
+    target: Target
+    mirror: Mirror
+    push: Push
+    before: dict[str, str]
+    account: str | None
+    refuse: Callable[[str], Response]
+
+
+@dataclass
+class _PushPlan:
+    """What a push does, ref by ref: each ref's record (`refs`, the approval binds them), `why` it is
+    irreversible, the `rewrites` an environment may not make, and the refs it force-pushes."""
+    refs: list[dict[str, Any]] = field(default_factory=list)
+    why: list[str] = field(default_factory=list)
+    rewrites: list[str] = field(default_factory=list)
+    force: set[str] = field(default_factory=set)
+
+
+def _without_log(refs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """The refs as the trace keeps them: without the commit log lines."""
+    return [{k: v for k, v in r.items() if k != "log"} for r in refs]
+
+
+async def _receive_failed(mirror: Mirror, push: Push, before: dict[str, str], rc: int, out: bytes) -> Response | None:
+    """None when receive-pack applied every ref to the mirror. Otherwise the mirror goes back and git
+    hears why: git's own words for a bad pack, else each ref's reason."""
+    try:
+        report, _msgs = demux(out, push.sideband)
+        unpack, results = parse_report(report)
+    except InvalidRequest:
+        unpack, results = "", {}
+    applied = [c for c in push.commands if c.ref in results and results[c.ref] is None]
+    if unpack == "ok" and len(applied) == len(push.commands):
+        return None
+    await mirror.restore(before, applied)
+    if unpack != "ok" and rc == 0 and out:
+        return Response(200, RECEIVE_RESULT, out)  # the pack itself was bad: git's own words, nothing applied
+    reasons = {c.ref: (results.get(c.ref) or "not pushed: another ref of this push was refused")
+               for c in push.commands}
+    return Response(200, RECEIVE_RESULT, build_report(reasons, sideband=push.sideband))
+
+
+async def _default_branch(mirror: Mirror) -> str | None:
+    """The mirror's default branch: as it knows it, else its HEAD."""
+    if mirror.default_branch is not None:
+        return mirror.default_branch
+    src, head, _ = await mirror.git("symbolic-ref", "--short", "HEAD")
+    return (head.decode().strip() or None) if src == 0 else None
+
+
+async def _plan(mirror: Mirror, push: Push, rule: RemoteRule, remote: Remote, before: dict[str, str]) -> _PushPlan:
+    """What each ref of the push does, in the order git sent them."""
+    default = await _default_branch(mirror)
+    plan = _PushPlan()
+    for c in push.commands:
+        plan.refs.append(await _plan_ref(plan, c, mirror, rule, remote, default, before))
+    return plan
+
+
+async def _plan_ref(plan: _PushPlan, c: Command, mirror: Mirror, rule: RemoteRule, remote: Remote,
+                    default: str | None, before: dict[str, str]) -> dict[str, Any]:
+    """One ref's record, and what it adds to the plan: a force push, a delete, a tag moved, a protected
+    branch (each a reason it is irreversible), and the rewrites an environment may not make."""
+    entry: dict[str, Any] = {"ref": c.ref, "kind": c.kind, "old": oid(c.old), "new": oid(c.new)}
+    protected = bool(c.branch and rule.protected(c.branch, default))
+    if c.kind == "update" and not await mirror.is_ancestor(c.old, c.new):
+        plan.force.add(c.ref)
+        entry["force"] = True
+        plan.why.append(f"it force-pushes {c.ref} (commits on the remote would be lost)")
+        if protected:
+            plan.rewrites.append(f"it force-pushes {c.branch}, a protected branch of {remote.slug}")
+    if c.kind == "delete":
+        plan.why.append(f"it deletes {c.ref}")
+        if protected or c.tag:
+            plan.rewrites.append(f"it deletes {c.branch or c.tag}" + (f", a protected branch of {remote.slug}"
+                                                                      if protected else " (a tag)"))
+    elif c.tag and c.kind == "update":
+        plan.why.append(f"it moves the tag {c.tag}")
+        plan.rewrites.append(f"it moves the tag {c.tag}")
+    if protected:
+        entry["protected"] = True
+        plan.why.append(f"{c.branch} is a protected branch of {remote.slug}")
+    if c.kind != "delete":
+        count, log_lines = await mirror.commits(c.new, sorted(set(before.values())))
+        entry["commits"], entry["log"] = count, log_lines
+    return entry
+
+
+async def _refuse_rewrites(run: _PushRun, plan: _PushPlan) -> Response:
+    """An environment's push that rewrites a protected branch or a tag: nothing goes, the mirror goes
+    back, and the agent is told to push a new branch instead."""
+    await run.mirror.restore(run.before, run.push.commands)
+    run.ctx.trace("git_push", result="refused", status="denied", reason="push_refused", lane=run.account,
+                  remote=run.remote.slug, via=run.caller.label, refs=_without_log(plan.refs))
+    return run.refuse(f"push_refused: {'; '.join(plan.rewrites)}, which an environment may not do; nothing was "
+                      "pushed. Fix: push your work to a new branch (git push origin HEAD:<branch>) and open a "
+                      "pull request")
 
 
 class Listener:

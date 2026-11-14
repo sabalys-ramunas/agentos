@@ -1046,7 +1046,7 @@ brief below is ready to hand to a builder.
   `handoff.py`, `README.md` (with the terms boundary from section 2.3);
   `src/agentos/brains/shim.py` (run-under-env and PTY options, no change in behavior for
   brain tasks), `brains/seats.py` (seat key by credential), `brains/adapters.py` (split
-  argv builders for reuse), `brains/fakecli.py` (multi-turn sessions, `--resume`, an
+  argv builders for reuse), `dev/fakecli.py` (multi-turn sessions, `--resume`, an
   interactive mode for PTY tests).
 - **Tests:** unit with `fakecli`: a turn runs and parses; two deliveries never run at once
   on one lane; attach blocks turns and detach releases them; a crash retries on the same
@@ -1090,7 +1090,7 @@ brief below is ready to hand to a builder.
   `flow_run(not_before=)`.
 - **Files:** `src/agentos/events/store.py`, `service.py`, `dispatcher.py`, `targets.py`,
   `frame.py`, `sources.py`, `tools.py`, `README.md`; `src/agentos/runner/models.py`,
-  `schedules.py`, `runner.py`, `tools.py`; `src/agentos/node/lanes.py` (listener only, a
+  `schedules.py`, `runner.py`, `tools.py`; `src/agentos/node/lanes/` (listener only, a
   few lines, coordinate with whoever owns lanes.py).
 - **Tests:** clock-driven unit tests with `runner/fakes.py` and a fake `AgentsPort`:
   duplicate emits store one event; quiet hours delay and digest; rate limits wait;
@@ -1111,7 +1111,7 @@ brief below is ready to hand to a builder.
   docs/API.md regenerated.
 - **Files (planned, not written yet; today `agents/` holds only `models.py` and `ports.py`):** `src/agentos/agents/tools.py`, `src/agentos/events/tools.py`,
   `src/agentos/api/routes_resources.py`, `api/realtime.py`, `api/events.py`,
-  `panel/src/...` (lane view, triggers), `src/agentos/tui/views.py`,
+  `web/src/...` (lane view, triggers), `src/agentos/tui/views.py`,
   `src/agentos/client/cli.py` and a new `client/attach.py`,
   `integrations/claude-code/skills/agentos-offload/SKILL.md`, new
   `integrations/claude-code/skills/agentos-agents/SKILL.md`.

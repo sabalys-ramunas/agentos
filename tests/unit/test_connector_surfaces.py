@@ -19,7 +19,8 @@ from test_policy_support import Clock
 
 from agentos.core.errors import InvalidRequest, NotFound, PolicyDenied
 from agentos.core.models import ActsAs, Effect, Principal, RunStatus, Surface
-from agentos.mcp.registry import bind_request_token, build_mcp
+from agentos.core.tools import bind_request_token
+from agentos.mcp.registry import build_mcp
 from agentos.policy.errors import Denied
 from agentos.policy.service import PolicyService
 from agentos.policy.wrap import wrap_tool

@@ -36,10 +36,11 @@ from pathlib import Path
 from typing import Any, Literal
 
 from agentos.core.models import Effect
+from agentos.core.template import TEMPLATE_RE, template_roots
 from agentos.runner.connectors.models import BINDING_PARAMS, WEB_SITE, Connector, Operation
 from agentos.runner.connectors.steps import is_input, is_structural, step_locators, step_urls, walk
-from agentos.runner.models import url_pattern
-from agentos.runner.util import TEMPLATE_RE, host_in, template_roots
+from agentos.runner.urlpattern import url_pattern
+from agentos.runner.util import host_in
 
 _STRING_CONSTRAINTS = ("pattern", "format", "enum", "const", "maxLength")
 _AUTHORITY_RE = re.compile(r"([a-z0-9](?:[a-z0-9.-]*[a-z0-9])?)(?::\d{1,5})?")
@@ -286,52 +287,11 @@ class _Lint:
         if op.commit is None:
             self.error(cw, "a commit operation names its commit step, preflight and request")
             return
-        labelled = [(p, s) for p, s in walk(op.steps) if s.get("label") == op.commit.step]
-        top = [i for i, s in enumerate(op.steps) if s.get("label") == op.commit.step]
-        if len(labelled) != 1 or len(top) != 1:
-            self.error(f"{cw}.step", f"exactly one top-level step is labelled {op.commit.step!r} "
-                                     f"(found {len(labelled)}, {len(top)} at the top level)")
-            idx = None
-        else:
-            idx = top[0]
-            step = op.steps[idx]
-            if step.get("type") not in ("click", "press"):
-                self.error(f"{cw}.step", f"the commit step is a click or press, not {step.get('type')}")
-            if step.get("publishes") is False:
-                self.error(f"{cw}.step", 'the commit step publishes: it cannot be "publishes": false')
-        for path, step in walk(op.steps):
-            if idx is not None and path == str(idx):
-                continue
-            if is_input(step) and step.get("publishes") is not False:
-                self.error(f"{w}.steps.{path}", 'only the commit step may publish: mark this input "publishes": '
-                                                "false (the signed catalog vouches for it)")
-        if not op.commit.preflight:
-            self.error(f"{cw}.preflight", "a commit operation checks the composer right before the commit")
-        for i, check in enumerate(op.commit.preflight):
-            if check.kind == "value_equals":
-                prop = op.input.get("properties", {}).get(check.param)
-                if not isinstance(prop, dict):
-                    self.error(f"{cw}.preflight.{i}", f"param {check.param!r} is not an input")
-                elif prop.get("show") is not True:
-                    self.error(f"{cw}.preflight.{i}", f"param {check.param!r} must be shown (\"show\": true), "
-                                                      "so the owner approves the exact text")
-            if check.kind == "text_differs":
-                for root in template_roots(check.text or ""):
-                    prop = op.input.get("properties", {}).get(root)
-                    if not isinstance(prop, dict) or prop.get("show") is not True:
-                        self.error(f"{cw}.preflight.{i}", f"text_differs names ${{{root}}}, which is not a shown "
-                                                          "input (\"show\": true)")
-            if check.locator is not None and not is_structural(check.locator):
-                self.error(f"{cw}.preflight.{i}", "commit path locators need a structural part (attr, within, "
-                                                  "or a role without a name), not a name or css alone")
+        idx = self._commit_step(cw, op)
+        self._only_commit_publishes(w, op, idx)
+        self._commit_preflight(cw, op)
         if idx is not None:
-            if op.acting_as.kind != "lane" and not any(s.get("type") == "assert_identity" for _, s in walk(op.steps[:idx])):
-                self.error(f"{w}.steps", "a commit operation checks acting as (assert_identity) before the commit")
-            for path, step in walk(op.steps[: idx + 1]):
-                for what, loc in step_locators(step):
-                    if not is_structural(loc):
-                        self.error(f"{w}.steps.{path} {what}", "commit path locators need a structural part "
-                                                               "(attr, within, or a role without a name)")
+            self._commit_path(w, op, idx)
         if op.commit.request is None:
             msg = "no commit gate request block (AUD-03): how the publish request is recognized"
             (self.error if self.commit_gate else self.warn)(f"{cw}.request", msg)
@@ -342,6 +302,64 @@ class _Lint:
             self.error(f"{w}.pace", "a commit operation sets per_day and min_gap_minutes")
         if op.rehearsal_mode == "until_commit" and not op.discard:
             self.warn(f"{w}.discard", "no discard steps, so a rehearsal cannot close the composer (phase 2)")
+
+    def _commit_step(self, cw: str, op: Operation) -> int | None:
+        """The one top-level step labelled as the commit step (a click or press that publishes), or None."""
+        assert op.commit is not None
+        labelled = [(p, s) for p, s in walk(op.steps) if s.get("label") == op.commit.step]
+        top = [i for i, s in enumerate(op.steps) if s.get("label") == op.commit.step]
+        if len(labelled) != 1 or len(top) != 1:
+            self.error(f"{cw}.step", f"exactly one top-level step is labelled {op.commit.step!r} "
+                                     f"(found {len(labelled)}, {len(top)} at the top level)")
+            return None
+        step = op.steps[top[0]]
+        if step.get("type") not in ("click", "press"):
+            self.error(f"{cw}.step", f"the commit step is a click or press, not {step.get('type')}")
+        if step.get("publishes") is False:
+            self.error(f"{cw}.step", 'the commit step publishes: it cannot be "publishes": false')
+        return top[0]
+
+    def _only_commit_publishes(self, w: str, op: Operation, idx: int | None) -> None:
+        for path, step in walk(op.steps):
+            if idx is not None and path == str(idx):
+                continue
+            if is_input(step) and step.get("publishes") is not False:
+                self.error(f"{w}.steps.{path}", 'only the commit step may publish: mark this input "publishes": '
+                                                "false (the signed catalog vouches for it)")
+
+    def _commit_preflight(self, cw: str, op: Operation) -> None:
+        """The preflight checks the composer, on shown inputs and structural locators."""
+        assert op.commit is not None
+        if not op.commit.preflight:
+            self.error(f"{cw}.preflight", "a commit operation checks the composer right before the commit")
+        shown = op.input.get("properties", {})
+        for i, check in enumerate(op.commit.preflight):
+            if check.kind == "value_equals":
+                prop = shown.get(check.param)
+                if not isinstance(prop, dict):
+                    self.error(f"{cw}.preflight.{i}", f"param {check.param!r} is not an input")
+                elif prop.get("show") is not True:
+                    self.error(f"{cw}.preflight.{i}", f"param {check.param!r} must be shown (\"show\": true), "
+                                                      "so the owner approves the exact text")
+            if check.kind == "text_differs":
+                for root in template_roots(check.text or ""):
+                    prop = shown.get(root)
+                    if not isinstance(prop, dict) or prop.get("show") is not True:
+                        self.error(f"{cw}.preflight.{i}", f"text_differs names ${{{root}}}, which is not a shown "
+                                                          "input (\"show\": true)")
+            if check.locator is not None and not is_structural(check.locator):
+                self.error(f"{cw}.preflight.{i}", "commit path locators need a structural part (attr, within, "
+                                                  "or a role without a name), not a name or css alone")
+
+    def _commit_path(self, w: str, op: Operation, idx: int) -> None:
+        """Up to the commit step: acting as is asserted, and every locator is structural."""
+        if op.acting_as.kind != "lane" and not any(s.get("type") == "assert_identity" for _, s in walk(op.steps[:idx])):
+            self.error(f"{w}.steps", "a commit operation checks acting as (assert_identity) before the commit")
+        for path, step in walk(op.steps[: idx + 1]):
+            for what, loc in step_locators(step):
+                if not is_structural(loc):
+                    self.error(f"{w}.steps.{path} {what}", "commit path locators need a structural part "
+                                                           "(attr, within, or a role without a name)")
 
     def fixtures(self, w: str, name: str) -> None:
         if self.root is None:

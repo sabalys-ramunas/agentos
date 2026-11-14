@@ -6,8 +6,11 @@ from __future__ import annotations
 import json
 
 from agentos.api.web import cardwords
+from agentos.core.runtime import Runtime
+from agentos.node.cardfacts import NodeCardFacts
 from agentos.policy import cards
 
+NODE = Runtime(card_facts=NodeCardFacts())  # the facts every node runtime carries
 UNKNOWN = {"publish": "facebook.unknown", "lane": "test/facebook",
            "record": {"kind": "unknown", "fields": {"__a": "1", "__aaid": "0", "fb_dtsg": "x"},
                       "request": {"method": "POST", "path": "/static_resources/webworker/rsrc/"}}}
@@ -21,7 +24,7 @@ def _has_no_record(preview: dict) -> None:
 
 
 def test_an_unknown_request_is_a_short_plain_card_with_the_gates_own_words() -> None:
-    card = cards.publish_card(UNKNOWN)
+    card = cards.publish_card(UNKNOWN, NODE)
     preview = cardwords.preview_of({"card": card, "summary": "publish on test/facebook"}, "Facebook")
     assert preview["kind"] == "form"
     data = preview["data"]
@@ -34,7 +37,7 @@ def test_an_unknown_request_is_a_short_plain_card_with_the_gates_own_words() -> 
 
 def test_a_comment_the_gate_caught_is_the_comment_itself() -> None:
     card = cards.publish_card({"publish": "instagram.comment", "lane": "test/instagram",
-                               "record": {"kind": "comment", "text": "Lovely light!", "target": "C123"}})
+                               "record": {"kind": "comment", "text": "Lovely light!", "target": "C123"}}, NODE)
     preview = cardwords.preview_of({"card": card}, "Instagram")
     if preview["kind"] == "post":  # no warning to show: drawn as the comment it will be
         assert preview["text"] == "Lovely light!"
@@ -48,7 +51,7 @@ def test_a_comment_the_gate_caught_is_the_comment_itself() -> None:
 
 def test_a_like_says_what_it_is_and_never_a_post() -> None:
     card = cards.publish_card({"publish": "facebook.like", "lane": "test/facebook",
-                               "record": {"kind": "like", "target": "post 42", "fields": {"doc_id": "9"}}})
+                               "record": {"kind": "like", "target": "post 42", "fields": {"doc_id": "9"}}}, NODE)
     data = cardwords.preview_of({"card": card}, "Facebook")["data"]
     assert data["ask"] == "Like this on Facebook?" and data["yes"] == "Like it"
     assert {"label": "What it is", "value": "A like"} in data["fields"]
@@ -90,7 +93,7 @@ def test_the_approval_the_app_reads_carries_the_words_not_the_record() -> None:
     from agentos.api.web.decisions import Ctx, approval_out
 
     item = {"id": "ap_1", "state": "pending", "effect": "commit", "lane": "test/facebook", "summary": "publish",
-            "preview": {"text": json.dumps(UNKNOWN)}, "card": cards.publish_card(UNKNOWN), "requested_by": {}}
+            "preview": {"text": json.dumps(UNKNOWN)}, "card": cards.publish_card(UNKNOWN, NODE), "requested_by": {}}
     out = approval_out(item, Ctx({}, set(), {}))
     assert out["preview"]["kind"] == "form" and "text" not in out["preview"]
     _has_no_record(out["preview"])

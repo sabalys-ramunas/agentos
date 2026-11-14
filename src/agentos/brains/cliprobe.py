@@ -159,21 +159,7 @@ def probe(runner: str, *, explicit: str | None = None, bin_dirs: list[str] | Non
         code, help_text = _run([*cmd, *pin["help_cmd"]], env=env)
         if code != 0 and not help_text:
             info.problems.append(f"{runner} {' '.join(pin['help_cmd'])} failed")
-        missing = [f for f in pin["help_flags"] if not _flag_present(help_text, f)]
-        for flag, values in pin.get("choices", {}).items():
-            for v in values:
-                if _flag_present(help_text, flag) and v not in help_text:
-                    missing.append(f"{flag} {v}")
-        for flag, argv in pin.get("hidden_flags", {}).items():
-            _, out2 = _run([path, *argv], env=env, timeout=20)
-            if "unknown option" in out2 and flag in out2:
-                missing.append(flag)
-        for sub, argv in pin.get("subcommands", {}).items():
-            code3, out3 = _run([path, *argv], env=env)
-            if code3 != 0 or "Usage" not in out3:
-                missing.append(f"exec {sub}")
-            else:
-                missing += [f"exec {sub} {f}" for f in pin.get(f"{sub}_flags", []) if not _flag_present(out3, f)]
+        missing = _missing_flags(path, pin, help_text, env)
         if missing:
             info.problems.append(
                 f"{runner} {info.version} no longer offers {', '.join(missing)}; agentos was verified with "
@@ -187,6 +173,26 @@ def probe(runner: str, *, explicit: str | None = None, bin_dirs: list[str] | Non
     info.warnings = [w for w in info.warnings if w]
     _cache[key] = info
     return info
+
+
+def _missing_flags(path: str, pin: dict, help_text: str, env: dict[str, str]) -> list[str]:
+    """The flags, choices and subcommands agentos uses that this CLI no longer offers."""
+    missing = [f for f in pin["help_flags"] if not _flag_present(help_text, f)]
+    for flag, values in pin.get("choices", {}).items():
+        for v in values:
+            if _flag_present(help_text, flag) and v not in help_text:
+                missing.append(f"{flag} {v}")
+    for flag, argv in pin.get("hidden_flags", {}).items():
+        _, out2 = _run([path, *argv], env=env, timeout=20)
+        if "unknown option" in out2 and flag in out2:
+            missing.append(flag)
+    for sub, argv in pin.get("subcommands", {}).items():
+        code3, out3 = _run([path, *argv], env=env)
+        if code3 != 0 or "Usage" not in out3:
+            missing.append(f"exec {sub}")
+        else:
+            missing += [f"exec {sub} {f}" for f in pin.get(f"{sub}_flags", []) if not _flag_present(out3, f)]
+    return missing
 
 
 def clear_cache() -> None:

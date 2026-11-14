@@ -195,7 +195,7 @@ eligible.
 ### 4.1 The options
 
 The lane's browser makes the requests, so signing has to happen where those requests are
-built or sent. The options, against the engine as it is today (`engine_camoufox.py` launches
+built or sent. The options, against the engine as it is today (`node/camoufox/` launches
 `AsyncCamoufox` through Playwright, and `env/netproxy.py` is a CONNECT forwarder that does not
 inspect TLS):
 
@@ -396,13 +396,13 @@ form, used where it helps.
 | Package or file | Change | Phase |
 | --- | --- | --- |
 | `src/agentos/webbotauth/` (new) | Keys per lane, RFC 9421 signature base, `Signature-Input` builder, JWK thumbprint, directory JSON and signing, a strict verifier for tests and `agentos identity check` | 1 |
-| `src/agentos/node/engine_camoufox.py` | Install the signing route only for `sign_hosts`. No route when the list is empty. Block service workers for signed hosts | 1 |
-| `src/agentos/node/lanes.py` | Create the key at lane creation. Rotation command. `sign_hosts` in the lane site policy. Export excludes keys | 1 to 2 |
+| `src/agentos/node/camoufox/` | Install the signing route only for `sign_hosts`. No route when the list is empty. Block service workers for signed hosts | 1 |
+| `src/agentos/node/lanes/` | Create the key at lane creation. Rotation command. `sign_hosts` in the lane site policy. Export excludes keys | 1 to 2 |
 | `src/agentos/node/` daemon and runner | Directory refresh timer, publish with a vault-held outbound credential | 2 |
 | `src/agentos/policy/grants.py`, `routing.py`, `service.py` | `identity` caveat with narrowing only. Enabling a host is an approval-class change | 2 |
 | `src/agentos/policy/traces.py`, `runner/` | Identity fields on action traces (no `Signature` header) | 2 |
 | `src/agentos/ops/doctor.py` | Key file permissions, directory fetch and signature check, expiry headroom | 2 |
-| `src/agentos/api/`, `panel/src` | Identity card, per-host toggle, read routes scoped by grant | 2 |
+| `src/agentos/api/`, `web/src` | Identity card, per-host toggle, read routes scoped by grant | 2 |
 | `src/agentos/mcp/`, `core/tools.py` | `lane_identity` read tool. Set-identity tool is owner-only, effect class `commit` | 2 |
 | `src/agentos/controller/`, the hosted edition | Hosted tenant directories, no tenant keys in the cloud | 3 |
 | `docs/` | ARCHITECTURE gets an identity invariant. A tracking row for each phase. PRINCIPLES 7 wording stays | 1 |
@@ -469,7 +469,7 @@ published, and nothing shows in the panel.
   tests and by `agentos identity check`.
 - Tests against the protocol's Appendix E test vectors, plus golden output from Cloudflare's TypeScript
   `web-bot-auth` package generated once and committed. The spike's test key is not the production key.
-- `src/agentos/node/engine_camoufox.py`: install the route only for hosts in `sign_hosts`. An empty list
+- `src/agentos/node/camoufox/`: install the route only for hosts in `sign_hosts`. An empty list
   installs nothing.
 - A CLI subcommand `agentos identity init | show | test-sign <url>`, following the existing CLI pattern.
 

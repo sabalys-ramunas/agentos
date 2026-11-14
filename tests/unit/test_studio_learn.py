@@ -202,9 +202,11 @@ def test_values_that_fit_nothing_make_no_system_and_no_brand():
 
 def test_the_tool_is_in_the_profiles_toolset_and_says_no_em_dash():
     from agentos.mcp.toolsets import TOOLSETS
-    from agentos.profiles import tools
+    from agentos.studio import tools
 
     specs = {s.name: s for s in tools.tool_specs(None)}
+    assert specs["profile_learn_brand"].tags == ("profiles",)
+    assert specs["profile_learn_brand"].hidden_without == "profiles"
     assert specs["profile_learn_brand"].effect.value == "draft"
     assert "profile_learn_brand" in next(t for t in TOOLSETS if t.name == "profiles").tools
     assert "—" not in (specs["profile_learn_brand"].handler.__doc__ or "")

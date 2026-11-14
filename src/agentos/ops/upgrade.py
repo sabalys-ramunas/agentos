@@ -28,7 +28,6 @@ from __future__ import annotations
 import contextlib
 import json
 import os
-import shutil
 import subprocess
 import time
 from collections.abc import Callable
@@ -36,9 +35,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol
 
-from agentos.ops import migrate as migrate_mod
-from agentos.ops.layout import ops_socket
-from agentos.ops.system import Host
+from agentos.core import migrate as migrate_mod
+from agentos.core.layout import ops_socket
+from agentos.core.system import Host
 
 KEEP_IN_PREFIX = ("runtime", "node")  # runtimes other installers manage (kept by install-node.sh too)
 
@@ -318,6 +317,3 @@ class SystemSteps:
         from agentos.node import lanefmt
         return lanefmt.restore_lanes(backup_dir, plan.home)
 
-
-def remove_snapshot(plan: UpgradePlan) -> None:
-    shutil.rmtree(plan.snapshot_dir, ignore_errors=True)

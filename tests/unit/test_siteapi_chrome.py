@@ -11,9 +11,10 @@ from pathlib import Path
 
 import pytest
 
+from agentos.core.locator import Locator
 from agentos.node.flow_driver import PlaywrightFlowDriver
 from agentos.node.snapshot import take_snapshot
-from agentos.runner.models import ExtractField, ExtractStep, Locator
+from agentos.runner.models import ExtractField, ExtractStep
 from agentos.runner.siteapis.discover import discover, extract_step
 
 pw = pytest.importorskip("playwright.async_api")

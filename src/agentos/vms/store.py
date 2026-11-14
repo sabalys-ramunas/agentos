@@ -3,12 +3,11 @@ history (who made it, why, for how long, what it cost) stays until the owner pru
 
 from __future__ import annotations
 
-import sqlite3
-import threading
 from datetime import datetime
 from pathlib import Path
 
 from agentos.core.errors import NotFound
+from agentos.core.sqlite import SqliteStore
 from agentos.vms.models import LIVE_STATES, VmRecord
 
 SCHEMA = """
@@ -24,23 +23,13 @@ CREATE INDEX IF NOT EXISTS vms_state ON vms (state);
 """
 
 
-class VmStore:
+class VmStore(SqliteStore):
+    """On agentos.core.sqlite: a kept connection per thread, WAL, a 5 s busy timeout as before."""
+
     def __init__(self, path: Path):
-        path.parent.mkdir(parents=True, exist_ok=True)
-        self.path = path
-        self._lock = threading.Lock()
-        self._db = sqlite3.connect(str(path), check_same_thread=False, isolation_level=None)
-        self._db.execute("PRAGMA journal_mode=WAL")
-        self._db.execute("PRAGMA busy_timeout=5000")
-        self._db.executescript(SCHEMA)
-        path.chmod(0o600)
-
-    def close(self) -> None:
-        self._db.close()
-
-    def _q(self, sql: str, args: tuple = ()) -> list[tuple]:
-        with self._lock:
-            return self._db.execute(sql, args).fetchall()
+        super().__init__(path, timeout=5.0)
+        self._conn().executescript(SCHEMA)
+        self.path.chmod(0o600)  # an existing file too, as the store always did
 
     def put(self, rec: VmRecord) -> None:
         self._q("INSERT OR REPLACE INTO vms (id, lane_id, state, created_at, record) VALUES (?, ?, ?, ?, ?)",

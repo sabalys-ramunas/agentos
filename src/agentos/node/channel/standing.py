@@ -51,10 +51,10 @@ from fnmatch import fnmatchcase
 from pathlib import Path
 from typing import Any
 
+from agentos.core import globs
 from agentos.core.errors import AgentosError, InvalidRequest, PolicyDenied
 from agentos.core.models import Effect
 from agentos.node.channel import wire
-from agentos.policy import globs
 from agentos.policy.ceiling import ControllerCeiling
 from agentos.policy.issuers import TrustedIssuers
 
@@ -182,52 +182,14 @@ def parse(raw: Any, *, now: float, ceiling: ControllerCeiling, standing_effects:
     digests and patterns again when it keeps it."""
     if not isinstance(raw, dict):
         raise Refused("invalid", "a standing approval is an object")
-    effect, workspace = raw.get("effect"), raw.get("workspace")
-    if not isinstance(effect, str) or effect not in {e.value for e in Effect}:
-        raise Refused("invalid", "effect must be one of the node's effects")
-    if effect not in LADDER or effect not in standing_effects:
-        raise Refused("effect_not_allowed", f"a standing approval cannot cover {effect} on this node; a person "
-                                            "decides it every time")
-    if not ceiling.allows_effect(Effect(effect)):
-        raise Refused("controller_ceiling", f"this node's owner does not let a controller cover {effect}; it is "
-                                            "raised in node.toml on the node")
-    if not isinstance(workspace, str) or "*" in workspace:
-        raise Refused("invalid", "workspace must name one workspace, not a pattern")
-    try:
-        globs.validate_segment(workspace)
-    except AgentosError:
-        raise Refused("invalid", "workspace must name one workspace (lowercase letters, digits and dashes)") from None
-    lanes = _strings(raw, "lanes")
-    for pattern in lanes:
-        if pattern == "*" or pattern.split("/", 1)[0] != workspace:
-            raise Refused("outside_workspace", f"lane {pattern[:80]!r} is not inside workspace {workspace}")
-        try:
-            globs.validate_lane_pattern(pattern)
-        except AgentosError:
-            raise Refused("invalid", f"lane {pattern[:80]!r} is not a lane pattern (workspace/name)") from None
-    until = wire.parse_time(raw.get("until"))
-    if until is None or isinstance(raw.get("until"), int | float):
-        raise Refused("invalid", "until must be ISO 8601 UTC")
-    if until <= now:
-        raise Refused("expired", "this standing approval has already ended")
-    if until - now > limits.max_days * 86400:
-        raise Refused("too_long", f"this node's owner lets a controller's standing approval last {limits.max_days} "
-                                  "days at most (controller_standing_max_days in node.toml)")
-    count = _int(raw, "count", low=1, high=MAX_COUNT)
-    if count is None:
-        raise Refused("invalid", "count is required (the number of uses)")
-    if count > limits.max_count:
-        raise Refused("over_limit", f"this node's owner lets a controller's standing approval cover {limits.max_count} "
-                                    "uses at most (controller_standing_max_count in node.toml)")
+    effect = _effect(raw, ceiling, standing_effects)
+    workspace = _one_workspace(raw)
+    lanes = _lanes_in(raw, workspace)
+    until = _until(raw, now, limits)
+    count = _count(raw, limits)
     used = _int(raw, "used", low=0, high=MAX_COUNT, default=0) or 0
     per_day = _int(raw, "per_day", low=1, high=MAX_COUNT)
-    targets, contents = sorted(set(_strings(raw, "targets"))), sorted(set(_strings(raw, "contents", 1000)))
-    if effect in content_effects:
-        if not targets:
-            raise Refused("unbound", f"a standing approval for {effect} must name what it covers "
-                                     "(flow:<id>@<version>, connector:<site>.<op>@<contract> or tool:<name>)")
-        if not contents and not all(t.startswith(NAMED) for t in targets):
-            raise Refused("unbound", "a tool target also needs the content digests the owner approved")
+    targets, contents = _bound_to(raw, effect, content_effects)
     note = raw.get("note")
     created_by = raw.get("created_by")
     standing_id = raw.get("id")
@@ -237,6 +199,79 @@ def parse(raw: Any, *, now: float, ceiling: ControllerCeiling, standing_effects:
                 used=used, per_day=per_day, until=until, targets=targets, contents=contents,
                 note=note[:300] if isinstance(note, str) and note else None,
                 created_by=created_by[:80] if isinstance(created_by, str) and created_by else "controller")
+
+
+def _effect(raw: dict, ceiling: ControllerCeiling, standing_effects: list[str]) -> str:
+    """An effect of the node that a standing approval may cover here, within the controller ceiling."""
+    effect = raw.get("effect")
+    if not isinstance(effect, str) or effect not in {e.value for e in Effect}:
+        raise Refused("invalid", "effect must be one of the node's effects")
+    if effect not in LADDER or effect not in standing_effects:
+        raise Refused("effect_not_allowed", f"a standing approval cannot cover {effect} on this node; a person "
+                                            "decides it every time")
+    if not ceiling.allows_effect(Effect(effect)):
+        raise Refused("controller_ceiling", f"this node's owner does not let a controller cover {effect}; it is "
+                                            "raised in node.toml on the node")
+    return effect
+
+
+def _one_workspace(raw: dict) -> str:
+    workspace = raw.get("workspace")
+    if not isinstance(workspace, str) or "*" in workspace:
+        raise Refused("invalid", "workspace must name one workspace, not a pattern")
+    try:
+        globs.validate_segment(workspace)
+    except AgentosError:
+        raise Refused("invalid", "workspace must name one workspace (lowercase letters, digits and dashes)") from None
+    return workspace
+
+
+def _lanes_in(raw: dict, workspace: str) -> list[str]:
+    """The lane patterns, each inside the workspace."""
+    lanes = _strings(raw, "lanes")
+    for pattern in lanes:
+        if pattern == "*" or pattern.split("/", 1)[0] != workspace:
+            raise Refused("outside_workspace", f"lane {pattern[:80]!r} is not inside workspace {workspace}")
+        try:
+            globs.validate_lane_pattern(pattern)
+        except AgentosError:
+            raise Refused("invalid", f"lane {pattern[:80]!r} is not a lane pattern (workspace/name)") from None
+    return lanes
+
+
+def _until(raw: dict, now: float, limits: Limits) -> float:
+    """When it ends: an ISO 8601 time after now, within the owner's longest."""
+    until = wire.parse_time(raw.get("until"))
+    if until is None or isinstance(raw.get("until"), int | float):
+        raise Refused("invalid", "until must be ISO 8601 UTC")
+    if until <= now:
+        raise Refused("expired", "this standing approval has already ended")
+    if until - now > limits.max_days * 86400:
+        raise Refused("too_long", f"this node's owner lets a controller's standing approval last {limits.max_days} "
+                                  "days at most (controller_standing_max_days in node.toml)")
+    return until
+
+
+def _count(raw: dict, limits: Limits) -> int:
+    count = _int(raw, "count", low=1, high=MAX_COUNT)
+    if count is None:
+        raise Refused("invalid", "count is required (the number of uses)")
+    if count > limits.max_count:
+        raise Refused("over_limit", f"this node's owner lets a controller's standing approval cover {limits.max_count} "
+                                    "uses at most (controller_standing_max_count in node.toml)")
+    return count
+
+
+def _bound_to(raw: dict, effect: str, content_effects: list[str]) -> tuple[list[str], list[str]]:
+    """(targets, content digests): an effect on content must name what it covers."""
+    targets, contents = sorted(set(_strings(raw, "targets"))), sorted(set(_strings(raw, "contents", 1000)))
+    if effect in content_effects:
+        if not targets:
+            raise Refused("unbound", f"a standing approval for {effect} must name what it covers "
+                                     "(flow:<id>@<version>, connector:<site>.<op>@<contract> or tool:<name>)")
+        if not contents and not all(t.startswith(NAMED) for t in targets):
+            raise Refused("unbound", "a tool target also needs the content digests the owner approved")
+    return targets, contents
 
 
 def _workspace(sa: Any) -> str:

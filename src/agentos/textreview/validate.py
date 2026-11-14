@@ -56,8 +56,17 @@ def check(proposal: dict[str, Any], current: CurrentText, *, forbidden: Iterable
     `forbidden`: the lane ids and task names the evidence came from."""
     forbidden = [*forbidden, *BENCH_WORDS]
     problems: list[str] = []
-    edits: list[tuple[str, str, str]] = []  # (where, new, old)
+    edits = _edits(proposal, current, problems)
+    _check_instructions(current.merged(proposal), current, problems)
+    for where, new, old in edits:
+        problems += _edit_problems(where, new, old, forbidden)
+    return problems
 
+
+def _edits(proposal: dict[str, Any], current: CurrentText, problems: list[str]) -> list[tuple[str, str, str]]:
+    """Every edit as (where, new, old), for the edits of things that exist. Adds what is wrong
+    with each to `problems`."""
+    edits: list[tuple[str, str, str]] = []
     for name, text in (proposal.get("tools") or {}).items():
         if name not in current.tools:
             problems.append(f"tools.{name}: there is no tool named {name}; only existing tools can be edited")
@@ -76,21 +85,31 @@ def check(proposal: dict[str, Any], current: CurrentText, *, forbidden: Iterable
         if topic not in current.recipes:
             problems.append(f"recipes.{topic}: there is no recipe {topic}; only existing recipes can be edited")
             continue
-        for name, text in fields.items():
-            old = current.recipes[topic].get(name)
-            if old is None:
-                problems.append(f"recipes.{topic}.{name}: that recipe has no {name}")
-                continue
-            if not text.strip():
-                problems.append(f"recipes.{topic}.{name}: the text is empty")
-            if set(PLACEHOLDER_RE.findall(text)) != set(PLACEHOLDER_RE.findall(old)):
-                problems.append(f"recipes.{topic}.{name}: keep exactly its placeholders "
-                                f"({', '.join(sorted(set(PLACEHOLDER_RE.findall(old)))) or 'none'})")
-            edits.append((f"recipes.{topic}.{name}", text, old))
+        edits += _recipe_edits(topic, fields, current.recipes[topic], problems)
     if "instructions" in proposal:
         edits.append(("instructions", proposal["instructions"], current.instructions))
+    return edits
 
-    merged = current.merged(proposal)
+
+def _recipe_edits(topic: str, fields: dict[str, str], recipe: dict[str, str],
+                  problems: list[str]) -> list[tuple[str, str, str]]:
+    edits = []
+    for name, text in fields.items():
+        old = recipe.get(name)
+        if old is None:
+            problems.append(f"recipes.{topic}.{name}: that recipe has no {name}")
+            continue
+        if not text.strip():
+            problems.append(f"recipes.{topic}.{name}: the text is empty")
+        if set(PLACEHOLDER_RE.findall(text)) != set(PLACEHOLDER_RE.findall(old)):
+            problems.append(f"recipes.{topic}.{name}: keep exactly its placeholders "
+                            f"({', '.join(sorted(set(PLACEHOLDER_RE.findall(old)))) or 'none'})")
+        edits.append((f"recipes.{topic}.{name}", text, old))
+    return edits
+
+
+def _check_instructions(merged: CurrentText, current: CurrentText, problems: list[str]) -> None:
+    """The instructions stay short enough and keep every piece of safety guidance they had."""
     if len(merged.instructions) > INSTRUCTIONS_MAX:
         problems.append(f"instructions: {len(merged.instructions)} characters; keep them under {INSTRUCTIONS_MAX}")
     low = merged.instructions.lower()
@@ -100,16 +119,19 @@ def check(proposal: dict[str, Any], current: CurrentText, *, forbidden: Iterable
             problems.append(f"instructions: the safety guidance that {purpose} was removed or reworded away "
                             f"(missing {', '.join(repr(n) for n in missing)}); keep it, you may only make it clearer")
 
-    for where, new, old in edits:
-        if DONT_RE.search(old) and not DONT_RE.search(new):
-            problems.append(f"{where}: it lost its \"do not\" or \"never\" guidance; keep it")
-        if EM_DASH in new:
-            problems.append(f"{where}: it has a long dash (U+2014); use a period, comma, colon or parentheses")
-        named = _new_words(new, old, forbidden)
-        if named:
-            problems.append(f"{where}: it names {', '.join(repr(w) for w in named)}; write general guidance, "
-                            "not about this week's lanes, tasks or tests")
-        ids = sorted(set(EVIDENCE_ID_RE.findall(new)) - set(EVIDENCE_ID_RE.findall(old)))
-        if ids:
-            problems.append(f"{where}: it names evidence ids ({', '.join(ids)}); cite them only in changes")
+
+def _edit_problems(where: str, new: str, old: str, forbidden: list[str]) -> list[str]:
+    """What one edit must not do: drop a "do not", add a long dash, name lanes, tasks or evidence ids."""
+    problems = []
+    if DONT_RE.search(old) and not DONT_RE.search(new):
+        problems.append(f"{where}: it lost its \"do not\" or \"never\" guidance; keep it")
+    if EM_DASH in new:
+        problems.append(f"{where}: it has a long dash (U+2014); use a period, comma, colon or parentheses")
+    named = _new_words(new, old, forbidden)
+    if named:
+        problems.append(f"{where}: it names {', '.join(repr(w) for w in named)}; write general guidance, "
+                        "not about this week's lanes, tasks or tests")
+    ids = sorted(set(EVIDENCE_ID_RE.findall(new)) - set(EVIDENCE_ID_RE.findall(old)))
+    if ids:
+        problems.append(f"{where}: it names evidence ids ({', '.join(ids)}); cite them only in changes")
     return problems

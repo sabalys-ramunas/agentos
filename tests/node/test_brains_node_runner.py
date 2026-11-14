@@ -16,13 +16,14 @@ import tempfile
 from pathlib import Path
 
 import pytest
+from testkit.brains import OAUTH, FakeConfig, add, wait_status
 
-from agentos.brains import cliprobe, fakecli
+from agentos.brains import cliprobe
 from agentos.brains.service import BrainService
 from agentos.brains.settings import BrainsSettings
-from agentos.brains.testing import OAUTH, FakeConfig, add, wait_status
 from agentos.core.models import Principal
 from agentos.core.runtime import Runtime
+from agentos.dev import fakecli
 
 pytestmark = [
     pytest.mark.node,
@@ -119,7 +120,7 @@ import asyncio, sys
 from pathlib import Path
 from agentos.brains.service import BrainService
 from agentos.brains.settings import BrainsSettings
-from agentos.brains.testing import FakeConfig
+from testkit.brains import FakeConfig
 from agentos.core.models import Principal
 from agentos.core.runtime import Runtime
 async def main():

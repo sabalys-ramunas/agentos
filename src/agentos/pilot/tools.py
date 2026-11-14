@@ -95,7 +95,7 @@ async def lane_do(ctx: ToolContext, *, on: str, goal: str, values: dict[str, Any
     """
     service = _service(ctx)
     runner = ctx.runtime.require("runner")
-    from agentos.runner.models import RunKind
+    from agentos.core.models import RunKind
     from agentos.runner.tools import grant_of
 
     text = " ".join(str(goal or "").split())

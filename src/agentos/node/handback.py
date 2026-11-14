@@ -221,7 +221,7 @@ class HandbackTracker:
         if page is None:
             return cap
         cap.warm = True
-        from agentos.node.engine_camoufox import tracker_for
+        from agentos.node.camoufox.engine import tracker_for
 
         tracker = tracker_for(page)
         files = _files(tracker)

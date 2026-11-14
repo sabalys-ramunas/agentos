@@ -2,7 +2,7 @@
  * Metrics, built from the same activity the list shows, so a bar and the rows under it always
  * agree. Empty buckets are zeros, and `at` is the bucket start, as the contract says.
  */
-import type { ActivityBucket, ActivityMetrics, ActivityRange, Lane, LaneMetrics, NodeMetrics, NodePoint, NodeRange, Signal } from '@/api/types';
+import type { ActivityBucket, ActivityMetrics, ActivityRange, NodeMetrics, NodePoint, NodeRange } from '@/api/types';
 import type { NodeRecord, OrgData } from './seed';
 
 const HOUR = 3_600_000;
@@ -100,35 +100,4 @@ export function nodeMetrics(node: NodeRecord, range: NodeRange): NodeMetrics {
     };
   });
   return { range, bucket_seconds: seconds, points };
-}
-
-const WORST: Signal[] = ['blocked', 'logged_out', 'checkpoint', 'captcha', 'rate_limited', 'unknown', 'ok'];
-
-export function laneMetrics(data: OrgData, lane: Lane): LaneMetrics {
-  const seconds = 21_600;
-  const count = 28;
-  const size = seconds * 1000;
-  const end = Math.ceil(Date.now() / size) * size;
-  const start = end - count * size;
-  const buckets = Array.from({ length: count }, (_, index) => ({
-    at: new Date(start + index * size).toISOString(),
-    runs: 0,
-    failed: 0,
-    signal: 'ok' as Signal,
-  }));
-  for (const item of data.activity) {
-    if (item.lane !== lane.id) continue;
-    const bucket = buckets[Math.floor((new Date(item.at).getTime() - start) / size)];
-    if (!bucket) continue;
-    if (item.run_id) bucket.runs += 1;
-    if (item.status === 'failed') bucket.failed += 1;
-  }
-  // The lane's current trouble began in the latest buckets.
-  if (lane.signal !== 'ok' && lane.signal !== 'unknown') {
-    const last = buckets[buckets.length - 1];
-    const before = buckets[buckets.length - 2];
-    if (last) last.signal = lane.signal;
-    if (before) before.signal = WORST.indexOf(lane.signal) < WORST.indexOf('ok') ? lane.signal : 'ok';
-  }
-  return { range: '7d', bucket_seconds: seconds, buckets };
 }

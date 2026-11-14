@@ -10,7 +10,7 @@ import pytest
 from test_node_panel import Node, bearer
 from workflow_support import LIST, MAIL, OWNER, PEOPLE, action, make_node, read_flow, workflow
 
-from agentos.api.routes_resources import withheld_run
+from agentos.api.routes_activity import withheld_run
 from agentos.core.errors import ApprovalPending
 from agentos.core.models import Effect
 from agentos.events.service import build as build_events

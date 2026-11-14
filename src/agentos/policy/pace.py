@@ -284,7 +284,7 @@ class Pace(BaseModel):
     def _tz(cls, v: str | None) -> str | None:
         if v in (None, ""):
             return None
-        from agentos.api.zone import valid_zone
+        from agentos.core.zone import valid_zone
 
         if valid_zone(v) is None:
             raise ValueError(f"{v!r} is not a time zone name like America/New_York or Europe/Vilnius")
@@ -468,9 +468,6 @@ class PaceStore:
         self.db.execute("INSERT INTO pace_workspaces (workspace, timezone, updated_at, by) VALUES (?, ?, ?, ?) "
                         "ON CONFLICT(workspace) DO UPDATE SET timezone = excluded.timezone, "
                         "updated_at = excluded.updated_at, by = excluded.by", (workspace, name, self.clock(), by))
-
-    def workspace_zones(self) -> dict[str, str]:
-        return {r["workspace"]: r["timezone"] for r in self.db.all("SELECT workspace, timezone FROM pace_workspaces")}
 
     # ---- the ledger (read inside the caller's transaction when `conn` is given) ----
     def _q(self, conn: Any, sql: str, args: tuple) -> Any:

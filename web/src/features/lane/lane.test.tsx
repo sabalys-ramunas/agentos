@@ -2,7 +2,8 @@ import { screen, within } from '@testing-library/react';
 import type { Lane } from '@/api/types';
 import { db } from '@/mocks/handlers';
 import { renderApp } from '@/test/render';
-import { holdNotice, proxyHost } from './lane';
+import { holdNotice } from './lane';
+import { proxyHost } from './lane-parts';
 
 const lane = (id: string) => db.orgs.get('northwind-group')!.lanes.find((item) => item.id === id)!;
 

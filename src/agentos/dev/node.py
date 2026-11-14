@@ -4,7 +4,7 @@ build_runtime is agentos.node.daemon.build_runtime with the browser parts swappe
 the lane manager (DevLaneManager), the interaction (DevInteraction) and the flow driver (which
 replays on the lane's own tab, through the same lane gate). Everything after that is the daemon's:
 the feature services in their order (policy, vault, workspaces, runner, brains, env, health), the
-panel at / and MCP at /mcp, and daemon.serve with its signal handling and clean shutdown.
+web app at / and MCP at /mcp, and daemon.serve with its signal handling and clean shutdown.
 """
 
 from __future__ import annotations
@@ -25,11 +25,11 @@ from typing import Any
 import tomli_w
 
 from agentos.api import create_login_code
-from agentos.brains import fakecli
 from agentos.core.config import NodeConfig
-from agentos.core.errors import AgentPaused, HumanInControl, InvalidRequest
+from agentos.core.errors import AgentPaused, HumanInControl
 from agentos.core.models import LaneSpec, Principal
 from agentos.core.runtime import Runtime
+from agentos.dev import fakecli
 from agentos.dev.health import seed_health
 from agentos.dev.lanes import DevLaneManager
 from agentos.dev.web import CHALLENGE_URL, DevInteraction, frame_of_page, new_tab
@@ -47,47 +47,6 @@ OWNER = Principal(kind="human", id="owner", owner="owner")
 AGENT = Principal(kind="agent", id="claude-code", thread="T-91")
 AGENT_CODEX = Principal(kind="agent", id="codex", thread="T-14")
 LANES = ("biz-a/social", "biz-a/shop", "biz-b/social", "biz-b/forum")
-# Engagement programs, drafted and approved through the engage service as the owner would. Only the
-# first two are approved: the third stays a draft, so the program screen has one to approve. Each
-# account is one of the seed's lanes, so the dev node keeps its lane count.
-ENGAGE_PROGRAMS = (
-    ("""program: biz-a-ig-coffee
-surface: biz-a/social
-site: instagram
-risk: careful
-timezone: Europe/Vilnius
-phases:
-  - kind: steady
-    daily: {like: 15, comment: 3, follow: 2, story_view: 10}
-    targets:
-      - {source: own_feed}
-    filters: {language: [lt, en], min_account_age_days: 90}
-comments: {mode: approve, topics: [coffee, cafe life], max_chars: 140}
-""", True),
-    ("""program: biz-b-reddit-coffee
-surface: biz-b/forum
-site: reddit
-risk: careful
-timezone: Europe/Vilnius
-phases:
-  - kind: steady
-    daily: {comment: 1, join: 1}
-    targets:
-      - {source: communities, values: [coffee]}
-comments: {mode: approve, topics: [coffee], max_chars: 300}
-""", True),
-    ("""program: biz-b-ig-bakery
-surface: biz-b/social
-site: instagram
-risk: careful
-timezone: Europe/Vilnius
-phases:
-  - kind: steady
-    daily: {like: 5, follow: 1}
-    targets:
-      - {source: own_feed}
-""", False),
-)
 SEED_SUMMARY = "Post 1 photo with caption to social.example as biz-a"
 SEED_CAPTION = "Autumn menu is here. Pumpkin flat white is back until December."
 SEED_QUESTION = "Two cover images fit the post. Use the bright one or the dark one?"
@@ -110,11 +69,11 @@ class DevNode:
 
 
 def panel_built() -> bool:
-    """Is a UI built to serve: the panel, or the web app (which a checkout with no panel/ serves)."""
+    """Is the web app built to serve (web/dist, or $AGENTOS_PANEL_DIR)?"""
     env = os.environ.get("AGENTOS_PANEL_DIR")
     repo = Path(__file__).resolve().parents[3]
-    roots = [Path(env)] if env else [repo / "panel" / "dist", repo / "web" / "dist"]
-    return any((root / "index.html").is_file() for root in roots)
+    root = Path(env) if env else repo / "web" / "dist"
+    return (root / "index.html").is_file()
 
 
 AGENT_SUBJECT = "claude-code@dev"
@@ -170,7 +129,7 @@ def flow_driver_factory(lanes: DevLaneManager):
 
 def build_runtime(config: NodeConfig, *, lane_manager: type[DevLaneManager] = DevLaneManager,
                   ) -> tuple[Runtime, DevLaneManager]:
-    """`lane_manager`: agentos studio up passes one with no lanes (agentos.studio.local.NoLanes)."""
+    """`lane_manager`: agentos studio up passes one with no lanes (agentos.studio.local_cli.NoLanes)."""
     lanes = lane_manager(config, make_page=new_tab, frame=frame_of_page)
     interaction = DevInteraction()
     runtime = node_runtime(config, lanes, lanes.watch(interaction))
@@ -185,7 +144,7 @@ def build_runtime(config: NodeConfig, *, lane_manager: type[DevLaneManager] = De
 
 def prepare_home(home: Path) -> None:
     """What a node keeps in its home, made once: a vault with a key file, and brains that run the
-    fake CLIs (agentos.brains.fakecli answers from fixed scripts and never reaches a model)."""
+    fake CLIs (agentos.dev.fakecli answers from fixed scripts and never reaches a model)."""
     if not home.exists():
         home.mkdir(parents=True)
         home.chmod(0o700)
@@ -201,34 +160,8 @@ def prepare_home(home: Path) -> None:
         settings.write_text(tomli_w.dumps({"claude_bin": clis["claude"], "codex_bin": clis["codex"]}))
 
 
-def seed_engagement(runtime: Runtime) -> None:
-    """The engagement programs (one waiting for the owner), a rate-limit hold on one account, two items
-    queued on a Reddit account, and the connector surfaces the accounts act through. All through the
-    engage service and the runner's own writers, as the CLI and the owner's panel use them."""
-    from datetime import UTC, datetime, timedelta
-
-    engage = runtime.get("engage")
-    if engage is None:
-        return
-    for text, approve in ENGAGE_PROGRAMS:
-        pv = engage.draft(None, text, by=OWNER)
-        if approve:
-            engage.approve(pv["program"], pv["version"], by=OWNER)
-    now = datetime.now(UTC)
-    if not engage.store.holds("biz-a/social", at=now):
-        engage.store.add_hold("biz-a/social", reason="signal", since=now - timedelta(hours=2),
-                              signal="rate_limit", until=now + timedelta(hours=4),
-                              detail="A rate limit rests the account for a few hours. Nothing is sent until it ends.")
-    if not engage.items.list("biz-b/forum"):
-        expires = (now + timedelta(days=5)).replace(microsecond=0).isoformat()
-        for text, title in (("Our pastry case is restocked: pumpkin, cardamom and the rye loaf.", "Restocked"),
-                            ("Free coffee for anyone who brings a book this Saturday.", "Book Saturday")):
-            try:
-                plan = engage.items.check("biz-b/forum", "post", text, title=title, targets=["r/coffee"],
-                                          expires_at=expires)
-            except InvalidRequest:
-                break  # no Reddit connector here that could post it: an item that could never go out is not queued
-            engage.items.submit(plan, in_person=True, requested_by=None)
+def seed_surfaces(runtime: Runtime) -> None:
+    """The connector surfaces two accounts act through, saved through the runner's own writer."""
     runner = runtime.get("runner")
     if runner is not None and not runner.surfaces.list():
         for surface in (
@@ -268,7 +201,7 @@ async def seed(runtime: Runtime, lanes: DevLaneManager) -> None:
             await interaction.navigate(page, f"{BASE}/")
         await lanes.take_control("biz-b/forum", by="owner")
 
-    seed_engagement(runtime)
+    seed_surfaces(runtime)
     approvals = runtime.approvals
     pending = approvals.list(state="pending")
     if not any(a.summary == SEED_SUMMARY for a in pending):

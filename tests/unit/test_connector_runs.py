@@ -20,13 +20,14 @@ from connector_samples import (
 )
 from pydantic import ValidationError
 
+from agentos.core.driver import DriverTimeout
+from agentos.core.locator import Locator
 from agentos.core.models import ControlState, RunStatus
+from agentos.core.template import TemplateError
 from agentos.runner.connectors.compile import compile_connector
 from agentos.runner.connectors.service import ConnectorService
-from agentos.runner.driver import DriverTimeout
 from agentos.runner.fakes import OWNER, FakeLanes, FakeNotifier, Harness
-from agentos.runner.models import FlowDefinition, Locator, NodeInstall, StepStatus
-from agentos.runner.util import TemplateError
+from agentos.runner.models import FlowDefinition, NodeInstall, StepStatus
 
 CAPTION = "Autumn at the lake"
 PARAMS = {"caption": CAPTION, "image": "photo.jpg"}  # the binding fills acts_as_id and account_language

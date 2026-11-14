@@ -14,9 +14,9 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from test_confirm_methods import FakeWatch
 
+from agentos.core import signing
 from agentos.core.config import NodeConfig
 from agentos.core.models import Principal
-from agentos.node.channel import wire
 from agentos.policy import confirm
 from agentos.policy.confirm import ConfirmLevel, MethodRegistry, Proof, controller_proof, default_registry
 from agentos.policy.errors import MethodUnavailable
@@ -26,8 +26,8 @@ FULL = {"controller_max_effect": "irreversible"}
 
 def hosted_config(home, fake):
     return NodeConfig(home=home, name="node-t", mcp_token="node-owner-token", mcp_port=0, controller_url=fake.url,
-                      node_id=fake.node_id, org_id="org_test", controller_pubkey=wire.public_b64(fake.key),
-                      grant_pubkey=wire.public_b64(fake.grant_key), **FULL)
+                      node_id=fake.node_id, org_id="org_test", controller_pubkey=signing.public_b64(fake.key),
+                      grant_pubkey=signing.public_b64(fake.grant_key), **FULL)
 
 
 @pytest.fixture
@@ -157,8 +157,8 @@ async def test_the_ceiling_still_comes_first(tmp_path):
     home = tmp_path / "node"
     async with FakeController(NODE_ID, node_pubkey(home)) as fake:
         config = NodeConfig(home=home, name="node-t", mcp_token="node-owner-token", mcp_port=0, controller_url=fake.url,
-                            node_id=fake.node_id, org_id="org_test", controller_pubkey=wire.public_b64(fake.key),
-                            grant_pubkey=wire.public_b64(fake.grant_key))
+                            node_id=fake.node_id, org_id="org_test", controller_pubkey=signing.public_b64(fake.key),
+                            grant_pubkey=signing.public_b64(fake.grant_key))
         runtime = await node_runtime(home, fake, config=config)
         await start(runtime)
         peer = await fake.peer()

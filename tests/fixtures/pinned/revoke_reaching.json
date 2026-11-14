@@ -1,0 +1,1216 @@
+{
+ "node": {
+  "ok": {
+   "out": {
+    "grants": [
+     {
+      "id": "<A>",
+      "subject": "agent:agent-a",
+      "note": "the poster"
+     },
+     {
+      "id": "<WIDE>",
+      "subject": "agent:agent-wide",
+      "note": null
+     },
+     {
+      "id": "<SITE>",
+      "subject": "agent:site-key:reddit",
+      "note": null
+     },
+     {
+      "id": "<BROKEN>",
+      "subject": "?:?",
+      "note": null
+     }
+    ],
+    "cascades_to": [
+     "<A_CHILD>",
+     "gr_offline_child"
+    ],
+    "standing": [
+     "sa_by_grant",
+     "sa_by_workspace",
+     "sa_by_lane",
+     "sa_elsewhere"
+    ],
+    "errors": [
+     "grant <FAILS> could not be revoked (OSError)",
+     "standing approval sa_fails could not be revoked (OSError)"
+    ]
+   },
+   "calls": [
+    [
+     "revoke",
+     "<A>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke",
+     "<WIDE>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke",
+     "<SITE>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke",
+     "<BROKEN>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke",
+     "<CONFLICT>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke",
+     "<FAILS>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke_standing",
+     "sa_by_grant",
+     "owner"
+    ],
+    [
+     "revoke_standing",
+     "sa_by_workspace",
+     "owner"
+    ],
+    [
+     "revoke_standing",
+     "sa_by_lane",
+     "owner"
+    ],
+    [
+     "revoke_standing",
+     "sa_elsewhere",
+     "owner"
+    ],
+    [
+     "revoke_standing",
+     "sa_conflict",
+     "owner"
+    ],
+    [
+     "revoke_standing",
+     "sa_fails",
+     "owner"
+    ],
+    [
+     "publish",
+     "grant",
+     {
+      "state": "frozen",
+      "grants": [
+       "<A>",
+       "<A_CHILD>",
+       "<WIDE>",
+       "<SITE>",
+       "<BROKEN>",
+       "gr_offline_child"
+      ],
+      "standing": [
+       "sa_by_grant",
+       "sa_by_workspace",
+       "sa_by_lane",
+       "sa_elsewhere"
+      ]
+     }
+    ]
+   ]
+  }
+ },
+ "node, rows fail": {
+  "ok": {
+   "out": {
+    "grants": [],
+    "cascades_to": [],
+    "standing": [],
+    "errors": [
+     "the grant list could not be read (RuntimeError)"
+    ]
+   },
+   "calls": []
+  }
+ },
+ "node, standing fails": {
+  "ok": {
+   "out": {
+    "grants": [
+     {
+      "id": "<A>",
+      "subject": "agent:agent-a",
+      "note": "the poster"
+     },
+     {
+      "id": "<WIDE>",
+      "subject": "agent:agent-wide",
+      "note": null
+     },
+     {
+      "id": "<SITE>",
+      "subject": "agent:site-key:reddit",
+      "note": null
+     },
+     {
+      "id": "<BROKEN>",
+      "subject": "?:?",
+      "note": null
+     }
+    ],
+    "cascades_to": [
+     "<A_CHILD>",
+     "gr_offline_child"
+    ],
+    "standing": [],
+    "errors": [
+     "grant <FAILS> could not be revoked (OSError)",
+     "standing approvals could not be read (ValueError)"
+    ]
+   },
+   "calls": [
+    [
+     "revoke",
+     "<A>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke",
+     "<WIDE>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke",
+     "<SITE>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke",
+     "<BROKEN>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke",
+     "<CONFLICT>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke",
+     "<FAILS>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "publish",
+     "grant",
+     {
+      "state": "frozen",
+      "grants": [
+       "<A>",
+       "<A_CHILD>",
+       "<WIDE>",
+       "<SITE>",
+       "<BROKEN>",
+       "gr_offline_child"
+      ],
+      "standing": []
+     }
+    ]
+   ]
+  }
+ },
+ "node, bus fails": {
+  "ok": {
+   "out": {
+    "grants": [
+     {
+      "id": "<A>",
+      "subject": "agent:agent-a",
+      "note": "the poster"
+     },
+     {
+      "id": "<WIDE>",
+      "subject": "agent:agent-wide",
+      "note": null
+     },
+     {
+      "id": "<SITE>",
+      "subject": "agent:site-key:reddit",
+      "note": null
+     },
+     {
+      "id": "<BROKEN>",
+      "subject": "?:?",
+      "note": null
+     }
+    ],
+    "cascades_to": [
+     "<A_CHILD>",
+     "gr_offline_child"
+    ],
+    "standing": [
+     "sa_by_grant",
+     "sa_by_workspace",
+     "sa_by_lane",
+     "sa_elsewhere"
+    ],
+    "errors": [
+     "grant <FAILS> could not be revoked (OSError)",
+     "standing approval sa_fails could not be revoked (OSError)"
+    ]
+   },
+   "calls": [
+    [
+     "revoke",
+     "<A>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke",
+     "<WIDE>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke",
+     "<SITE>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke",
+     "<BROKEN>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke",
+     "<CONFLICT>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke",
+     "<FAILS>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke_standing",
+     "sa_by_grant",
+     "owner"
+    ],
+    [
+     "revoke_standing",
+     "sa_by_workspace",
+     "owner"
+    ],
+    [
+     "revoke_standing",
+     "sa_by_lane",
+     "owner"
+    ],
+    [
+     "revoke_standing",
+     "sa_elsewhere",
+     "owner"
+    ],
+    [
+     "revoke_standing",
+     "sa_conflict",
+     "owner"
+    ],
+    [
+     "revoke_standing",
+     "sa_fails",
+     "owner"
+    ]
+   ]
+  }
+ },
+ "node, no approvals": {
+  "ok": {
+   "out": {
+    "grants": [
+     {
+      "id": "<A>",
+      "subject": "agent:agent-a",
+      "note": "the poster"
+     },
+     {
+      "id": "<WIDE>",
+      "subject": "agent:agent-wide",
+      "note": null
+     },
+     {
+      "id": "<SITE>",
+      "subject": "agent:site-key:reddit",
+      "note": null
+     },
+     {
+      "id": "<BROKEN>",
+      "subject": "?:?",
+      "note": null
+     }
+    ],
+    "cascades_to": [
+     "<A_CHILD>",
+     "gr_offline_child"
+    ],
+    "standing": [],
+    "errors": [
+     "grant <FAILS> could not be revoked (OSError)"
+    ]
+   },
+   "calls": [
+    [
+     "revoke",
+     "<A>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke",
+     "<WIDE>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke",
+     "<SITE>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke",
+     "<BROKEN>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke",
+     "<CONFLICT>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke",
+     "<FAILS>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "publish",
+     "grant",
+     {
+      "state": "frozen",
+      "grants": [
+       "<A>",
+       "<A_CHILD>",
+       "<WIDE>",
+       "<SITE>",
+       "<BROKEN>",
+       "gr_offline_child"
+      ],
+      "standing": []
+     }
+    ]
+   ]
+  }
+ },
+ "workspace biz-a": {
+  "ok": {
+   "out": {
+    "grants": [
+     {
+      "id": "<A>",
+      "subject": "agent:agent-a",
+      "note": "the poster"
+     },
+     {
+      "id": "<SITE>",
+      "subject": "agent:site-key:reddit",
+      "note": null
+     },
+     {
+      "id": "<BROKEN>",
+      "subject": "?:?",
+      "note": null
+     }
+    ],
+    "cascades_to": [
+     "<A_CHILD>",
+     "gr_offline_child"
+    ],
+    "standing": [
+     "sa_by_grant",
+     "sa_by_workspace",
+     "sa_by_lane"
+    ],
+    "errors": [
+     "grant <FAILS> could not be revoked (OSError)",
+     "standing approval sa_fails could not be revoked (OSError)"
+    ]
+   },
+   "calls": [
+    [
+     "revoke",
+     "<A>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke",
+     "<SITE>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke",
+     "<BROKEN>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke",
+     "<CONFLICT>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke",
+     "<FAILS>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke_standing",
+     "sa_by_grant",
+     "owner"
+    ],
+    [
+     "revoke_standing",
+     "sa_by_workspace",
+     "owner"
+    ],
+    [
+     "revoke_standing",
+     "sa_by_lane",
+     "owner"
+    ],
+    [
+     "revoke_standing",
+     "sa_conflict",
+     "owner"
+    ],
+    [
+     "revoke_standing",
+     "sa_fails",
+     "owner"
+    ],
+    [
+     "publish",
+     "grant",
+     {
+      "state": "frozen",
+      "grants": [
+       "<A>",
+       "<A_CHILD>",
+       "<SITE>",
+       "<BROKEN>",
+       "gr_offline_child"
+      ],
+      "standing": [
+       "sa_by_grant",
+       "sa_by_workspace",
+       "sa_by_lane"
+      ]
+     }
+    ]
+   ]
+  }
+ },
+ "workspace biz-a, rows fail": {
+  "ok": {
+   "out": {
+    "grants": [],
+    "cascades_to": [],
+    "standing": [],
+    "errors": [
+     "the grant list could not be read (RuntimeError)"
+    ]
+   },
+   "calls": []
+  }
+ },
+ "workspace biz-a, standing fails": {
+  "ok": {
+   "out": {
+    "grants": [
+     {
+      "id": "<A>",
+      "subject": "agent:agent-a",
+      "note": "the poster"
+     },
+     {
+      "id": "<SITE>",
+      "subject": "agent:site-key:reddit",
+      "note": null
+     },
+     {
+      "id": "<BROKEN>",
+      "subject": "?:?",
+      "note": null
+     }
+    ],
+    "cascades_to": [
+     "<A_CHILD>",
+     "gr_offline_child"
+    ],
+    "standing": [],
+    "errors": [
+     "grant <FAILS> could not be revoked (OSError)",
+     "standing approvals could not be read (ValueError)"
+    ]
+   },
+   "calls": [
+    [
+     "revoke",
+     "<A>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke",
+     "<SITE>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke",
+     "<BROKEN>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke",
+     "<CONFLICT>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke",
+     "<FAILS>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "publish",
+     "grant",
+     {
+      "state": "frozen",
+      "grants": [
+       "<A>",
+       "<A_CHILD>",
+       "<SITE>",
+       "<BROKEN>",
+       "gr_offline_child"
+      ],
+      "standing": []
+     }
+    ]
+   ]
+  }
+ },
+ "workspace biz-a, bus fails": {
+  "ok": {
+   "out": {
+    "grants": [
+     {
+      "id": "<A>",
+      "subject": "agent:agent-a",
+      "note": "the poster"
+     },
+     {
+      "id": "<SITE>",
+      "subject": "agent:site-key:reddit",
+      "note": null
+     },
+     {
+      "id": "<BROKEN>",
+      "subject": "?:?",
+      "note": null
+     }
+    ],
+    "cascades_to": [
+     "<A_CHILD>",
+     "gr_offline_child"
+    ],
+    "standing": [
+     "sa_by_grant",
+     "sa_by_workspace",
+     "sa_by_lane"
+    ],
+    "errors": [
+     "grant <FAILS> could not be revoked (OSError)",
+     "standing approval sa_fails could not be revoked (OSError)"
+    ]
+   },
+   "calls": [
+    [
+     "revoke",
+     "<A>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke",
+     "<SITE>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke",
+     "<BROKEN>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke",
+     "<CONFLICT>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke",
+     "<FAILS>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke_standing",
+     "sa_by_grant",
+     "owner"
+    ],
+    [
+     "revoke_standing",
+     "sa_by_workspace",
+     "owner"
+    ],
+    [
+     "revoke_standing",
+     "sa_by_lane",
+     "owner"
+    ],
+    [
+     "revoke_standing",
+     "sa_conflict",
+     "owner"
+    ],
+    [
+     "revoke_standing",
+     "sa_fails",
+     "owner"
+    ]
+   ]
+  }
+ },
+ "workspace biz-a, no approvals": {
+  "ok": {
+   "out": {
+    "grants": [
+     {
+      "id": "<A>",
+      "subject": "agent:agent-a",
+      "note": "the poster"
+     },
+     {
+      "id": "<SITE>",
+      "subject": "agent:site-key:reddit",
+      "note": null
+     },
+     {
+      "id": "<BROKEN>",
+      "subject": "?:?",
+      "note": null
+     }
+    ],
+    "cascades_to": [
+     "<A_CHILD>",
+     "gr_offline_child"
+    ],
+    "standing": [],
+    "errors": [
+     "grant <FAILS> could not be revoked (OSError)"
+    ]
+   },
+   "calls": [
+    [
+     "revoke",
+     "<A>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke",
+     "<SITE>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke",
+     "<BROKEN>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke",
+     "<CONFLICT>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke",
+     "<FAILS>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "publish",
+     "grant",
+     {
+      "state": "frozen",
+      "grants": [
+       "<A>",
+       "<A_CHILD>",
+       "<SITE>",
+       "<BROKEN>",
+       "gr_offline_child"
+      ],
+      "standing": []
+     }
+    ]
+   ]
+  }
+ },
+ "lane biz-a/instagram": {
+  "ok": {
+   "out": {
+    "grants": [
+     {
+      "id": "<A_CHILD>",
+      "subject": "agent:child",
+      "note": null
+     },
+     {
+      "id": "<BROKEN>",
+      "subject": "?:?",
+      "note": null
+     }
+    ],
+    "cascades_to": [],
+    "standing": [
+     "sa_by_workspace",
+     "sa_by_lane"
+    ],
+    "errors": [
+     "standing approval sa_fails could not be revoked (OSError)"
+    ]
+   },
+   "calls": [
+    [
+     "revoke",
+     "<A_CHILD>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke",
+     "<BROKEN>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke_standing",
+     "sa_by_workspace",
+     "owner"
+    ],
+    [
+     "revoke_standing",
+     "sa_by_lane",
+     "owner"
+    ],
+    [
+     "revoke_standing",
+     "sa_conflict",
+     "owner"
+    ],
+    [
+     "revoke_standing",
+     "sa_fails",
+     "owner"
+    ],
+    [
+     "publish",
+     "grant",
+     {
+      "state": "frozen",
+      "grants": [
+       "<A_CHILD>",
+       "<BROKEN>"
+      ],
+      "standing": [
+       "sa_by_workspace",
+       "sa_by_lane"
+      ]
+     }
+    ]
+   ]
+  }
+ },
+ "lane biz-a/instagram, rows fail": {
+  "ok": {
+   "out": {
+    "grants": [],
+    "cascades_to": [],
+    "standing": [],
+    "errors": [
+     "the grant list could not be read (RuntimeError)"
+    ]
+   },
+   "calls": []
+  }
+ },
+ "lane biz-a/instagram, standing fails": {
+  "ok": {
+   "out": {
+    "grants": [
+     {
+      "id": "<A_CHILD>",
+      "subject": "agent:child",
+      "note": null
+     },
+     {
+      "id": "<BROKEN>",
+      "subject": "?:?",
+      "note": null
+     }
+    ],
+    "cascades_to": [],
+    "standing": [],
+    "errors": [
+     "standing approvals could not be read (ValueError)"
+    ]
+   },
+   "calls": [
+    [
+     "revoke",
+     "<A_CHILD>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke",
+     "<BROKEN>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "publish",
+     "grant",
+     {
+      "state": "frozen",
+      "grants": [
+       "<A_CHILD>",
+       "<BROKEN>"
+      ],
+      "standing": []
+     }
+    ]
+   ]
+  }
+ },
+ "lane biz-a/instagram, bus fails": {
+  "ok": {
+   "out": {
+    "grants": [
+     {
+      "id": "<A_CHILD>",
+      "subject": "agent:child",
+      "note": null
+     },
+     {
+      "id": "<BROKEN>",
+      "subject": "?:?",
+      "note": null
+     }
+    ],
+    "cascades_to": [],
+    "standing": [
+     "sa_by_workspace",
+     "sa_by_lane"
+    ],
+    "errors": [
+     "standing approval sa_fails could not be revoked (OSError)"
+    ]
+   },
+   "calls": [
+    [
+     "revoke",
+     "<A_CHILD>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke",
+     "<BROKEN>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke_standing",
+     "sa_by_workspace",
+     "owner"
+    ],
+    [
+     "revoke_standing",
+     "sa_by_lane",
+     "owner"
+    ],
+    [
+     "revoke_standing",
+     "sa_conflict",
+     "owner"
+    ],
+    [
+     "revoke_standing",
+     "sa_fails",
+     "owner"
+    ]
+   ]
+  }
+ },
+ "lane biz-a/instagram, no approvals": {
+  "ok": {
+   "out": {
+    "grants": [
+     {
+      "id": "<A_CHILD>",
+      "subject": "agent:child",
+      "note": null
+     },
+     {
+      "id": "<BROKEN>",
+      "subject": "?:?",
+      "note": null
+     }
+    ],
+    "cascades_to": [],
+    "standing": [],
+    "errors": []
+   },
+   "calls": [
+    [
+     "revoke",
+     "<A_CHILD>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke",
+     "<BROKEN>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "publish",
+     "grant",
+     {
+      "state": "frozen",
+      "grants": [
+       "<A_CHILD>",
+       "<BROKEN>"
+      ],
+      "standing": []
+     }
+    ]
+   ]
+  }
+ },
+ "workspace biz-z": {
+  "ok": {
+   "out": {
+    "grants": [
+     {
+      "id": "<BROKEN>",
+      "subject": "?:?",
+      "note": null
+     }
+    ],
+    "cascades_to": [],
+    "standing": [
+     "sa_elsewhere"
+    ],
+    "errors": []
+   },
+   "calls": [
+    [
+     "revoke",
+     "<BROKEN>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke_standing",
+     "sa_elsewhere",
+     "owner"
+    ],
+    [
+     "publish",
+     "grant",
+     {
+      "state": "frozen",
+      "grants": [
+       "<BROKEN>"
+      ],
+      "standing": [
+       "sa_elsewhere"
+      ]
+     }
+    ]
+   ]
+  }
+ },
+ "workspace biz-z, rows fail": {
+  "ok": {
+   "out": {
+    "grants": [],
+    "cascades_to": [],
+    "standing": [],
+    "errors": [
+     "the grant list could not be read (RuntimeError)"
+    ]
+   },
+   "calls": []
+  }
+ },
+ "workspace biz-z, standing fails": {
+  "ok": {
+   "out": {
+    "grants": [
+     {
+      "id": "<BROKEN>",
+      "subject": "?:?",
+      "note": null
+     }
+    ],
+    "cascades_to": [],
+    "standing": [],
+    "errors": [
+     "standing approvals could not be read (ValueError)"
+    ]
+   },
+   "calls": [
+    [
+     "revoke",
+     "<BROKEN>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "publish",
+     "grant",
+     {
+      "state": "frozen",
+      "grants": [
+       "<BROKEN>"
+      ],
+      "standing": []
+     }
+    ]
+   ]
+  }
+ },
+ "workspace biz-z, bus fails": {
+  "ok": {
+   "out": {
+    "grants": [
+     {
+      "id": "<BROKEN>",
+      "subject": "?:?",
+      "note": null
+     }
+    ],
+    "cascades_to": [],
+    "standing": [
+     "sa_elsewhere"
+    ],
+    "errors": []
+   },
+   "calls": [
+    [
+     "revoke",
+     "<BROKEN>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "revoke_standing",
+     "sa_elsewhere",
+     "owner"
+    ]
+   ]
+  }
+ },
+ "workspace biz-z, no approvals": {
+  "ok": {
+   "out": {
+    "grants": [
+     {
+      "id": "<BROKEN>",
+      "subject": "?:?",
+      "note": null
+     }
+    ],
+    "cascades_to": [],
+    "standing": [],
+    "errors": []
+   },
+   "calls": [
+    [
+     "revoke",
+     "<BROKEN>",
+     "owner",
+     "frozen: test"
+    ],
+    [
+     "publish",
+     "grant",
+     {
+      "state": "frozen",
+      "grants": [
+       "<BROKEN>"
+      ],
+      "standing": []
+     }
+    ]
+   ]
+  }
+ }
+}

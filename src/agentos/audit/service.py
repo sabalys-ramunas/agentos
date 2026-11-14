@@ -195,7 +195,7 @@ class AuditService:
         db = getattr(store, "db", None)
         if not via or db is None:
             return out
-        from agentos.policy.approvals import _row_to_approval, _row_to_standing
+        from agentos.policy.approval_models import _row_to_approval, _row_to_standing
 
         try:
             if route == "approved":
@@ -277,6 +277,30 @@ class AuditService:
         members = [r for r in (start, end, *events) if r is not None]
         statuses = {r["seq"]: (report.row_status(r) if report is not None else "unprovable") for r in members}
         worst = max(statuses.values(), key=lambda s: CHAIN_ORDER[s])
+        run, shot = self._step_run(main, screenshot_url)
+        grant_id = main.get("grant_id")
+        decisions = [self.approval_view(route, via, shared=shared)
+                     for route, via in (_decision(e) for e in events) if route in ("approved", "standing")]
+        capture = _capture_of(events)
+        if shot is None and capture is not None and capture_url is not None and self.capture_path(capture):
+            shot = capture_url(capture["trace"])
+        step = {
+            **_call_fields(start, end, main),
+            "principal": {"kind": main.get("principal_kind"), "id": main.get("principal")}
+            if main.get("principal") else None,
+            "grant": {"id": None if shared else grant_id, "label": self.grant_label(grant_id, labels)}
+            if grant_id else None,
+            "run": run, "screenshot": shot,
+            "approvals": decisions, "after_untrusted": _after_untrusted(events),
+            "capture": capture,
+            "events": [{"seq": e["seq"], "at": iso(e["at"]), "kind": e["kind"], "status": e["status"],
+                        "summary": e["summary"], "args": _args(e)} for e in events],
+            "chain": {"status": worst, "rows": [{"seq": s, "status": st} for s, st in sorted(statuses.items())]},
+        }
+        return step
+
+    def _step_run(self, main: dict, screenshot_url: Callable[[str], str] | None) -> tuple[dict | None, str | None]:
+        """The run a step belongs to, without its screenshots, and the link to its proof screenshot."""
         run = self.run_view(main.get("run_id"))
         shot = None
         if run is not None and self.screenshot_path(run) is not None and screenshot_url is not None:
@@ -285,34 +309,7 @@ class AuditService:
             run = {**run, "proof": {k: v for k, v in (run.get("proof") or {}).items() if k != "screenshot"}
                    if run.get("proof") else None}
             run.pop("error_screenshot", None)
-        grant_id = main.get("grant_id")
-        decisions = [self.approval_view(route, via, shared=shared)
-                     for route, via in (_decision(e) for e in events) if route in ("approved", "standing")]
-        capture = _capture_of(events)
-        if shot is None and capture is not None and capture_url is not None and self.capture_path(capture):
-            shot = capture_url(capture["trace"])
-        untrusted = next((a["after_untrusted"] for a in (_args(e) for e in events if e["kind"] == "authorize")
-                          if isinstance(a, dict) and isinstance(a.get("after_untrusted"), str)), None)
-        step = {
-            "id": start["id"], "seq": start["seq"], "at": iso(start["at"]),
-            "ended_at": iso(end["at"]) if end is not None else None,
-            "kind": "call" if start["kind"] == "tool_start" else start["kind"],
-            "tool": main.get("tool"), "effect": main.get("effect"),
-            "status": main.get("status") if end is not None or start["kind"] != "tool_start" else "unfinished",
-            "summary": main.get("summary"), "args": _args(start), "error": main.get("error"),
-            "duration_ms": main.get("duration_ms"),
-            "principal": {"kind": main.get("principal_kind"), "id": main.get("principal")}
-            if main.get("principal") else None,
-            "grant": {"id": None if shared else grant_id, "label": self.grant_label(grant_id, labels)}
-            if grant_id else None,
-            "run": run, "screenshot": shot,
-            "approvals": decisions, "after_untrusted": untrusted,
-            "capture": capture,
-            "events": [{"seq": e["seq"], "at": iso(e["at"]), "kind": e["kind"], "status": e["status"],
-                        "summary": e["summary"], "args": _args(e)} for e in events],
-            "chain": {"status": worst, "rows": [{"seq": s, "status": st} for s, st in sorted(statuses.items())]},
-        }
-        return step
+        return run, shot
 
     # ---- one trace ----
     def trace_view(self, trace_id: str, *, screenshot_url: Callable[[str], str] | None = None,
@@ -347,18 +344,9 @@ class AuditService:
         {html, steps, images, left_out, mismatched, chain}."""
         from agentos.audit import replay_page
 
-        if bool(trace) == bool(lane or day):
-            raise InvalidRequest("a replay page is either one trace (trace) or one lane-day (lane and day)")
-        if not trace and (not lane or not day):
-            raise InvalidRequest("a lane-day replay page needs both lane and day")
+        self._check_replay_target(lane=lane, day=day, trace=trace, tz=tz)
         zone_key = zone(tz).key
         mark = (lambda run_id: f"run:{run_id}") if screenshots else None
-        if trace:
-            if self.traces.row(trace) is None:
-                raise NotFound(f"No trace {trace}.")
-        else:
-            _replay_lane(lane)
-            day_window(day or "", tz)
         target = {"trace": trace} if trace else {"lane": lane, "day": day, "timezone": zone_key}
         self.traces.write(TraceEvent(kind="replay_export", tool="audit.replay_page", status="ok", principal=by,
                                      workspace=(lane or "").split("/", 1)[0] or None,
@@ -372,8 +360,33 @@ class AuditService:
         else:
             view = self.replay(lane or "", day or "", tz=tz, owner=False, screenshot_url=mark, shared=True)
             steps = view["steps"]
+        images, left_out = self._embed_images(steps, screenshots=screenshots, room=replay_page.EMBED_BYTES)
+        verify = self._replay_verify(view, steps, zone_key)
+        html = replay_page.render(view, steps=steps, images=images, generated_at=iso(self.clock()) or "",
+                                  tz=zone_key, verify=verify, include_args=include_args)
+        return {"html": html, "steps": len(steps), "images": sum(1 for i in images.values() if "data" in i),
+                "left_out": left_out,
+                "mismatched": sum(1 for i in images.values() if i.get("check") == "mismatch"),
+                "chain": view["chain"]["status"]}
+
+    def _check_replay_target(self, *, lane: str | None, day: str | None, trace: str | None, tz: str | None) -> None:
+        """One trace, or one lane-day with both its lane and its day, each one that exists."""
+        if bool(trace) == bool(lane or day):
+            raise InvalidRequest("a replay page is either one trace (trace) or one lane-day (lane and day)")
+        if not trace and (not lane or not day):
+            raise InvalidRequest("a lane-day replay page needs both lane and day")
+        if trace:
+            if self.traces.row(trace) is None:
+                raise NotFound(f"No trace {trace}.")
+        else:
+            _replay_lane(lane)
+            day_window(day or "", tz)
+
+    def _embed_images(self, steps: list[dict], *, screenshots: bool, room: int) -> tuple[dict[str, dict], int]:
+        """The pictures the HTML file carries, by step id, within `room` bytes of base64, and how many
+        were left out for their size. Each step loses its screenshot link and says what was left out."""
         images: dict[str, dict] = {}
-        room, left_out = replay_page.EMBED_BYTES, 0  # as base64, what the file will carry
+        left_out = 0
         for s in steps:
             img = self._step_image(s, room=room) if screenshots else None
             if img is not None and img.get("too_big"):
@@ -385,21 +398,19 @@ class AuditService:
             elif not screenshots and s.get("run"):
                 s["screenshot_left_out"] = self.screenshot_path(self.run_view(s["run"].get("id"))) is not None
             s.pop("screenshot", None)
+        return images, left_out
+
+    def _replay_verify(self, view: dict, steps: list[dict], zone_key: str) -> dict:
+        """How a reader checks the file: what the chain proves, and the commands that verify it."""
         seqs = [r["seq"] for s in steps for r in s["chain"]["rows"]]
         proven = view["chain"].get("proven_through")
         on = view.get("lane")
         export = (f"agentos audit export --day {view.get('day') or _day_of(steps, zone_key)} --tz {zone_key}"
                   + (f" --lane {on}" if on else "") + " -o day.zip")
-        verify = {"proven_through": proven, "chain": _chain_id(self.traces.marks()),
-                  "kid": self._mark_kid(proven.get("mark")) if proven else None,
-                  "seq": [min(seqs), max(seqs)] if seqs else None, "export": export,
-                  "verify": f"agentos audit verify --lane {on}" if on else "agentos audit verify"}
-        html = replay_page.render(view, steps=steps, images=images, generated_at=iso(self.clock()) or "",
-                                  tz=zone_key, verify=verify, include_args=include_args)
-        return {"html": html, "steps": len(steps), "images": sum(1 for i in images.values() if "data" in i),
-                "left_out": left_out,
-                "mismatched": sum(1 for i in images.values() if i.get("check") == "mismatch"),
-                "chain": view["chain"]["status"]}
+        return {"proven_through": proven, "chain": _chain_id(self.traces.marks()),
+                "kid": self._mark_kid(proven.get("mark")) if proven else None,
+                "seq": [min(seqs), max(seqs)] if seqs else None, "export": export,
+                "verify": f"agentos audit verify --lane {on}" if on else "agentos audit verify"}
 
     def _mark_kid(self, n: Any) -> str | None:
         for m in self.traces.marks():
@@ -795,6 +806,25 @@ def _chain_id(marks: list[dict]) -> str | None:
             except ValueError:
                 return None
     return None
+
+
+def _call_fields(start: dict, end: dict | None, main: dict) -> dict:
+    """A step's own fields, from its start row and (once it ended) its end row."""
+    return {
+        "id": start["id"], "seq": start["seq"], "at": iso(start["at"]),
+        "ended_at": iso(end["at"]) if end is not None else None,
+        "kind": "call" if start["kind"] == "tool_start" else start["kind"],
+        "tool": main.get("tool"), "effect": main.get("effect"),
+        "status": main.get("status") if end is not None or start["kind"] != "tool_start" else "unfinished",
+        "summary": main.get("summary"), "args": _args(start), "error": main.get("error"),
+        "duration_ms": main.get("duration_ms"),
+    }
+
+
+def _after_untrusted(events: list[dict]) -> str | None:
+    """What untrusted text the call followed, as its authorize event recorded it."""
+    return next((a["after_untrusted"] for a in (_args(e) for e in events if e["kind"] == "authorize")
+                 if isinstance(a, dict) and isinstance(a.get("after_untrusted"), str)), None)
 
 
 def _label(record: dict) -> str:

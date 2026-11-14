@@ -399,14 +399,14 @@
  "config example": {
   "kind": "command",
   "params": [],
-  "target": "agentos.cli:config_example"
+  "target": "agentos.commands.node:config_example"
  },
  "config show": {
   "kind": "command",
   "params": [
    "--json"
   ],
-  "target": "agentos.cli:config_show"
+  "target": "agentos.commands.node:config_show"
  },
  "confirmation": {
   "kind": "group",
@@ -680,14 +680,14 @@
    "--yes",
    "<name>"
   ],
-  "target": "agentos.cli:device_create"
+  "target": "agentos.commands.devices:device_create"
  },
  "device list": {
   "kind": "command",
   "params": [
    "--json"
   ],
-  "target": "agentos.cli:device_list"
+  "target": "agentos.commands.devices:device_list"
  },
  "device remove": {
   "kind": "command",
@@ -695,7 +695,7 @@
    "--yes",
    "<name>"
   ],
-  "target": "agentos.cli:device_remove"
+  "target": "agentos.commands.devices:device_remove"
  },
  "device show": {
   "kind": "command",
@@ -704,7 +704,7 @@
    "--offline",
    "<name>"
   ],
-  "target": "agentos.cli:device_show"
+  "target": "agentos.commands.devices:device_show"
  },
  "disconnect": {
   "kind": "command",
@@ -722,186 +722,6 @@
    "--unit"
   ],
   "target": "agentos.ops.cli:doctor_cmd"
- },
- "engage": {
-  "kind": "group",
-  "params": [],
-  "target": ""
- },
- "engage cap": {
-  "kind": "command",
-  "params": [
-   "--clear",
-   "<kind>",
-   "<surface>",
-   "<value>"
-  ],
-  "target": "agentos.engage.cli:cap"
- },
- "engage caps": {
-  "kind": "command",
-  "params": [
-   "--json",
-   "<site>"
-  ],
-  "target": "agentos.engage.cli:caps"
- },
- "engage digest": {
-  "kind": "command",
-  "params": [
-   "--day",
-   "--json",
-   "<surface>"
-  ],
-  "target": "agentos.engage.digest_cli:digest"
- },
- "engage drafts": {
-  "kind": "command",
-  "params": [
-   "--json",
-   "--status",
-   "<surface>"
-  ],
-  "target": "agentos.engage.drafts_cli:drafts"
- },
- "engage hold": {
-  "kind": "group",
-  "params": [],
-  "target": ""
- },
- "engage hold clear": {
-  "kind": "command",
-  "params": [
-   "--id",
-   "--kind",
-   "<surface>"
-  ],
-  "target": "agentos.engage.cli:hold_clear"
- },
- "engage holds": {
-  "kind": "command",
-  "params": [
-   "--all",
-   "--json",
-   "<surface>"
-  ],
-  "target": "agentos.engage.cli:holds"
- },
- "engage item": {
-  "kind": "group",
-  "params": [],
-  "target": ""
- },
- "engage item withdraw": {
-  "kind": "command",
-  "params": [
-   "<item_id>"
-  ],
-  "target": "agentos.engage.cli:item_withdraw"
- },
- "engage items": {
-  "kind": "command",
-  "params": [
-   "--json",
-   "--status",
-   "<surface>"
-  ],
-  "target": "agentos.engage.cli:items"
- },
- "engage plan": {
-  "kind": "command",
-  "params": [
-   "--days",
-   "--dry-run",
-   "--json",
-   "--start",
-   "<surface>"
-  ],
-  "target": "agentos.engage.cli:plan"
- },
- "engage profile": {
-  "kind": "group",
-  "params": [],
-  "target": ""
- },
- "engage profile reset": {
-  "kind": "command",
-  "params": [
-   "--field",
-   "<surface>"
-  ],
-  "target": "agentos.engage.cli:profile_reset"
- },
- "engage program": {
-  "kind": "group",
-  "params": [],
-  "target": ""
- },
- "engage program approve": {
-  "kind": "command",
-  "params": [
-   "--version",
-   "<program>"
-  ],
-  "target": "agentos.engage.cli:program_approve"
- },
- "engage program draft": {
-  "kind": "command",
-  "params": [
-   "--json",
-   "<file>",
-   "<surface>"
-  ],
-  "target": "agentos.engage.cli:program_draft"
- },
- "engage program show": {
-  "kind": "command",
-  "params": [
-   "--json",
-   "<ref>"
-  ],
-  "target": "agentos.engage.cli:program_show"
- },
- "engage provider": {
-  "kind": "group",
-  "params": [],
-  "target": ""
- },
- "engage provider test": {
-  "kind": "command",
-  "params": [
-   "--json",
-   "--kind",
-   "--surface"
-  ],
-  "target": "agentos.engage.drafts_cli:provider_test"
- },
- "engage provider token": {
-  "kind": "command",
-  "params": [
-   "--stdin"
-  ],
-  "target": "agentos.engage.drafts_cli:provider_token"
- },
- "engage run": {
-  "kind": "command",
-  "params": [
-   "--day",
-   "--dry-run",
-   "--json",
-   "--now",
-   "--session",
-   "<surface>"
-  ],
-  "target": "agentos.engage.cli:run"
- },
- "engage status": {
-  "kind": "command",
-  "params": [
-   "--json",
-   "<surface>"
-  ],
-  "target": "agentos.engage.cli:status"
  },
  "env": {
   "kind": "group",
@@ -1061,7 +881,6 @@
   "params": [
    "--json",
    "--markdown",
-   "--panel-json",
    "<code>"
   ],
   "target": "agentos.cli:errors"
@@ -1393,7 +1212,7 @@
   "params": [
    "--json"
   ],
-  "target": "agentos.ops.cli:lane_audit_cmd"
+  "target": "agentos.ops.lane_cli:lane_audit_cmd"
  },
  "lane check": {
   "kind": "command",
@@ -1403,7 +1222,7 @@
    "--offline",
    "<lane>"
   ],
-  "target": "agentos.ops.cli:lane_check_cmd"
+  "target": "agentos.ops.lane_cli:lane_check_cmd"
  },
  "lane create": {
   "kind": "command",
@@ -1413,7 +1232,7 @@
    "--proxy",
    "<lane_id>"
   ],
-  "target": "agentos.cli:lane_create"
+  "target": "agentos.commands.lanes:lane_create"
  },
  "lane delete": {
   "kind": "command",
@@ -1421,14 +1240,14 @@
    "--yes",
    "<lane_id>"
   ],
-  "target": "agentos.cli:lane_delete"
+  "target": "agentos.commands.lanes:lane_delete"
  },
  "lane deny": {
   "kind": "command",
   "params": [
    "<lane_id>"
   ],
-  "target": "agentos.cli:lane_deny"
+  "target": "agentos.commands.lane_control:lane_deny"
  },
  "lane gate-log": {
   "kind": "command",
@@ -1443,7 +1262,7 @@
    "--since",
    "<lane_id>"
   ],
-  "target": "agentos.cli:lane_gate_log"
+  "target": "agentos.commands.lane_sites:lane_gate_log"
  },
  "lane handback": {
   "kind": "command",
@@ -1451,7 +1270,7 @@
    "--note",
    "<lane_id>"
   ],
-  "target": "agentos.cli:lane_handback"
+  "target": "agentos.commands.lane_control:lane_handback"
  },
  "lane import": {
   "kind": "command",
@@ -1462,7 +1281,7 @@
    "--proxy",
    "<lane_id>"
   ],
-  "target": "agentos.cli:lane_import"
+  "target": "agentos.commands.lanes:lane_import"
  },
  "lane keepalive": {
   "kind": "command",
@@ -1479,7 +1298,7 @@
  "lane list": {
   "kind": "command",
   "params": [],
-  "target": "agentos.cli:lane_list"
+  "target": "agentos.commands.lanes:lane_list"
  },
  "lane login": {
   "kind": "command",
@@ -1487,7 +1306,7 @@
    "--url",
    "<lane_id>"
   ],
-  "target": "agentos.cli:lane_login"
+  "target": "agentos.commands.lane_control:lane_login"
  },
  "lane pace": {
   "kind": "command",
@@ -1502,7 +1321,7 @@
    "--workspace",
    "<lane_id>"
   ],
-  "target": "agentos.cli:lane_pace"
+  "target": "agentos.commands.lane_sites:lane_pace"
  },
  "lane redteam": {
   "kind": "command",
@@ -1525,7 +1344,7 @@
    "--slot",
    "--targets"
   ],
-  "target": "agentos.ops.cli:redteam_cmd"
+  "target": "agentos.ops.lane_cli:redteam_cmd"
  },
  "lane refresh-fingerprint": {
   "kind": "command",
@@ -1537,7 +1356,7 @@
    "--yes",
    "<lane>"
   ],
-  "target": "agentos.ops.cli:refresh_fingerprint_cmd"
+  "target": "agentos.ops.lane_cli:refresh_fingerprint_cmd"
  },
  "lane rules": {
   "kind": "command",
@@ -1547,7 +1366,7 @@
    "--stale-days",
    "<lane_id>"
   ],
-  "target": "agentos.cli:lane_rules"
+  "target": "agentos.commands.lane_sites:lane_rules"
  },
  "lane set-device": {
   "kind": "command",
@@ -1556,7 +1375,7 @@
    "<device>",
    "<lane_id>"
   ],
-  "target": "agentos.cli:lane_set_device"
+  "target": "agentos.commands.lanes:lane_set_device"
  },
  "lane set-proxy": {
   "kind": "command",
@@ -1565,7 +1384,7 @@
    "<label>",
    "<lane_id>"
   ],
-  "target": "agentos.cli:lane_set_proxy"
+  "target": "agentos.commands.lanes:lane_set_proxy"
  },
  "lane sites": {
   "kind": "command",
@@ -1574,7 +1393,7 @@
    "<lane_id>",
    "<values>"
   ],
-  "target": "agentos.cli:lane_sites"
+  "target": "agentos.commands.lane_sites:lane_sites"
  },
  "lane stealth-check": {
   "kind": "command",
@@ -1592,21 +1411,21 @@
    "--slot",
    "--soak-minutes"
   ],
-  "target": "agentos.ops.cli:stealth_check_cmd"
+  "target": "agentos.ops.lane_cli:stealth_check_cmd"
  },
  "lane stop": {
   "kind": "command",
   "params": [
    "<lane_id>"
   ],
-  "target": "agentos.cli:lane_stop"
+  "target": "agentos.commands.lane_control:lane_stop"
  },
  "lane take": {
   "kind": "command",
   "params": [
    "<lane_id>"
   ],
-  "target": "agentos.cli:lane_take"
+  "target": "agentos.commands.lane_control:lane_take"
  },
  "lane view": {
   "kind": "command",
@@ -1615,7 +1434,7 @@
    "--ttl",
    "<lane_id>"
   ],
-  "target": "agentos.cli:lane_view_link"
+  "target": "agentos.commands.lane_control:lane_view_link"
  },
  "lanebench": {
   "kind": "group",
@@ -1725,14 +1544,14 @@
    "-w",
    "<handle>"
   ],
-  "target": "agentos.cli:members_invite"
+  "target": "agentos.commands.members:members_invite"
  },
  "members list": {
   "kind": "command",
   "params": [
    "--json"
   ],
-  "target": "agentos.cli:members_list"
+  "target": "agentos.commands.members:members_list"
  },
  "members remove": {
   "kind": "command",
@@ -1740,7 +1559,7 @@
    "--yes",
    "<who>"
   ],
-  "target": "agentos.cli:members_remove"
+  "target": "agentos.commands.members:members_remove"
  },
  "members role": {
   "kind": "command",
@@ -1755,7 +1574,7 @@
    "-w",
    "<who>"
   ],
-  "target": "agentos.cli:members_role"
+  "target": "agentos.commands.members:members_role"
  },
  "memory": {
   "kind": "group",
@@ -1931,7 +1750,7 @@
    "--viewer-base",
    "--vnc-base"
   ],
-  "target": "agentos.cli:node_init"
+  "target": "agentos.commands.node:node_init"
  },
  "node join": {
   "kind": "command",
@@ -1942,7 +1761,7 @@
    "<controller_url>",
    "<join_token>"
   ],
-  "target": "agentos.cli:node_join"
+  "target": "agentos.commands.node:node_join"
  },
  "node restart": {
   "kind": "command",
@@ -1958,7 +1777,7 @@
  "node rotate-token": {
   "kind": "command",
   "params": [],
-  "target": "agentos.cli:node_rotate_token"
+  "target": "agentos.commands.node:node_rotate_token"
  },
  "node serve": {
   "kind": "command",
@@ -1966,7 +1785,7 @@
    "--verbose",
    "-v"
   ],
-  "target": "agentos.cli:node_serve"
+  "target": "agentos.commands.node:node_serve"
  },
  "node templates": {
   "kind": "command",
@@ -2015,29 +1834,6 @@
    "--json"
   ],
   "target": "agentos.pilot.cli:show_settings"
- },
- "plan": {
-  "kind": "group",
-  "params": [],
-  "target": ""
- },
- "plan draft": {
-  "kind": "command",
-  "params": [
-   "--json",
-   "--workspace",
-   "-w"
-  ],
-  "target": "agentos.plan.cli:draft"
- },
- "plan status": {
-  "kind": "command",
-  "params": [
-   "--json",
-   "--workspace",
-   "-w"
-  ],
-  "target": "agentos.plan.cli:status"
  },
  "plugins": {
   "kind": "group",
@@ -2439,12 +2235,12 @@
    "<label>",
    "<spec>"
   ],
-  "target": "agentos.cli:proxy_add"
+  "target": "agentos.commands.proxy:proxy_add"
  },
  "proxy list": {
   "kind": "command",
   "params": [],
-  "target": "agentos.cli:proxy_list"
+  "target": "agentos.commands.proxy:proxy_list"
  },
  "runner": {
   "kind": "group",

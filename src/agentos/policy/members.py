@@ -15,17 +15,18 @@ import json
 import math
 import re
 from collections.abc import Iterable
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+from agentos.core import globs
 from agentos.core.errors import InvalidRequest
 from agentos.core.models import Effect
-from agentos.policy import globs
-from agentos.policy.approvals import Approval, decision_problem
+from agentos.policy.approval_models import Approval, decision_problem
 from agentos.policy.errors import Conflict, Denied
 from agentos.policy.grants import ApproveCap, ControlCap, Grant, Specials, Subject, coerce_effect
 
 if TYPE_CHECKING:
-    from agentos.policy.service import PolicyContext
+    from agentos.policy.context import PolicyContext
 
 # member roles; "owner" is the node owner's own grant
 ROLES = ("owner", "admin", "approver", "operator", "viewer", "auditor")
@@ -203,6 +204,29 @@ def member_specials(roles: list[str], options: dict, workspace: str) -> tuple[Ef
     operator  commit (routed like an agent); control: take over for options.max_session_s
     admin     irreversible; approve every effect but read (pay up to options.max_usd); control
     Several roles in one scope combine (the widest of each)."""
+    opts = _member_options(options, workspace)
+    ceiling, approve, control = _role_rights(roles, opts)
+    order = list(Effect)
+    specials = Specials(
+        approve=ApproveCap(effects=sorted(approve, key=order.index), lanes=opts.lanes, max_usd=opts.max_usd)
+        if approve else None,
+        control=ControlCap(lanes=opts.lanes, watch_only=True if all(control) else None,
+                           max_session_s=None if all(control) else opts.takeover) if control else None)
+    return ceiling, specials
+
+
+@dataclass(frozen=True)
+class _MemberOptions:
+    """A member grant's options, checked."""
+    lanes: list[str] | None
+    max_usd: float | None
+    takeover: int
+    watch: bool
+    effects: list[Effect] | None
+
+
+def _member_options(options: dict, workspace: str) -> _MemberOptions:
+    """The options checked, each refused with what it must be."""
     unknown = set(options) - MEMBER_OPTIONS
     if unknown:
         raise InvalidRequest(f"unknown member options: {', '.join(sorted(unknown))} "
@@ -232,6 +256,12 @@ def member_specials(roles: list[str], options: dict, workspace: str) -> tuple[Ef
             raise InvalidRequest("effects is a list of effects this member may decide")
         effects = [coerce_effect(e) for e in effects]
 
+    return _MemberOptions(lanes=lanes, max_usd=max_usd, takeover=takeover, watch=watch, effects=effects)
+
+
+def _role_rights(roles: list[str], opts: _MemberOptions) -> tuple[Effect, set[Effect], list[bool]]:
+    """The ceiling, the effects it may approve, and watch_only for each role that grants control."""
+    effects, max_usd, watch = opts.effects, opts.max_usd, opts.watch
     ceiling = Effect.READ
     approve: set[Effect] = set()
     control: list[bool] = []  # watch_only per role that grants control
@@ -252,10 +282,4 @@ def member_specials(roles: list[str], options: dict, workspace: str) -> tuple[Ef
                 control.append(True)
         elif role != "auditor":
             raise InvalidRequest(f"a member's role is one of {', '.join(MEMBER_ROLES)}, not {role!r}")
-    order = list(Effect)
-    specials = Specials(
-        approve=ApproveCap(effects=sorted(approve, key=order.index), lanes=lanes, max_usd=max_usd) if approve
-        else None,
-        control=ControlCap(lanes=lanes, watch_only=True if all(control) else None,
-                           max_session_s=None if all(control) else takeover) if control else None)
-    return ceiling, specials
+    return ceiling, approve, control

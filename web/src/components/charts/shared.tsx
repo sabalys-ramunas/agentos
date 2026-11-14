@@ -2,6 +2,7 @@
 import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/cn';
+import { clock, monthDay } from '@/lib/format';
 
 /** Width of the element, kept current. A chart draws to real pixels so hairlines stay 1 px. */
 export function useWidth<T extends HTMLElement>(fallback = 640) {
@@ -33,16 +34,16 @@ export function niceMax(value: number): number {
 
 export function shortTime(iso: string, seconds: number): string {
   const date = new Date(iso);
-  if (seconds >= 86_400) return date.toLocaleDateString('en', { month: 'short', day: 'numeric' });
+  if (seconds >= 86_400) return monthDay(date);
   if (seconds >= 21_600) return date.toLocaleDateString('en', { weekday: 'short' });
-  return date.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false });
+  return clock(date);
 }
 
 export function fullTime(iso: string, seconds: number): string {
   const date = new Date(iso);
-  const day = date.toLocaleDateString('en', { month: 'short', day: 'numeric' });
+  const day = monthDay(date);
   if (seconds >= 86_400) return day;
-  return `${day}, ${date.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false })}`;
+  return `${day}, ${clock(date)}`;
 }
 
 /** Three or four evenly spaced indexes for x labels. Few ticks, always including the ends. */

@@ -23,7 +23,7 @@ from agentos.core.config import (
 )
 from agentos.core.errors import ConfirmRequired, InvalidRequest, LaneBusy, LaneNotFound
 from agentos.core.models import LaneSpec, LaneState, ViewerInfo
-from agentos.node.engine_camoufox import window_size_of
+from agentos.node.camoufox.engine import window_size_of
 from agentos.node.lanes import ResourcesLow, ScopeLimiter
 
 MB = 1024 * 1024

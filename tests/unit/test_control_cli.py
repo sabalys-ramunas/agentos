@@ -20,7 +20,8 @@ from agentos.cli import app
 from agentos.core.config import load_config
 from agentos.core.models import ControlState, LaneSpec
 from agentos.mcp.server import BearerAuth
-from agentos.node.viewer_app import ViewTokens, control_api_routes
+from agentos.node.viewer_routes import control_api_routes
+from agentos.node.viewer_tokens import ViewTokens
 
 LANE = "personal/reddit"
 EM_DASH = "\u2014"

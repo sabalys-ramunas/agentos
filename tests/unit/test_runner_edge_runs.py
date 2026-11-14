@@ -11,9 +11,9 @@ import sqlite3
 
 import pytest
 
+from agentos.core.driver import DriverTimeout
 from agentos.core.errors import InvalidRequest
 from agentos.core.models import RunStatus
-from agentos.runner.driver import DriverTimeout
 from agentos.runner.fakes import BASE, FakeCtx, Harness, SimulatedCrash, post_flow
 from agentos.runner.models import TERMINAL
 from agentos.runner.store import RunnerStore

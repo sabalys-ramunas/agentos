@@ -15,7 +15,7 @@ import pytest
 
 from agentos.core.errors import EngineError, InvalidRequest
 from agentos.core.models import LaneSpec
-from agentos.node import engine_camoufox as ec
+from agentos.node.camoufox import engine as ec
 from agentos.node.camoufox import session as camoufox_session
 
 STEPS = ["wait_for_pid", "settle_pin", "place_window", "keyboard", "guard", "identity"]

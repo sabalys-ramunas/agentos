@@ -23,9 +23,6 @@ export const STATE_WORDS: Record<PersonState, string> = {
   working: 'Working now',
 };
 
-/** Heaviest first. A roll-up shows the first state any of its parts is in. */
-export const STATE_ORDER: PersonState[] = ['stuck', 'waiting', 'working', 'good', 'sleeping'];
-
 export interface Condition {
   state: PersonState;
   /** One plain sentence, without a full stop, that fits a row: "Signed in as someone else". */

@@ -71,7 +71,7 @@ def test_guide_and_connect_epilog_name_no_hidden_command(text):
 
 
 def test_node_init_grant_line_names_the_access_group():
-    from agentos.cli import GRANT_FOR_AGENTS
+    from agentos.commands.base import GRANT_FOR_AGENTS
 
     assert GRANT_FOR_AGENTS.startswith("agentos access grants issue ")
 

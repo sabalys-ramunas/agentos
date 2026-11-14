@@ -138,7 +138,7 @@ def _unreachable(exc: httpx.HTTPError) -> NodeUnreachable:
 
 
 def _operator_presence(home: Any) -> dict[str, str] | None:
-    """A one-time code in this node's panel.db, beside the node token (agentos.cli.operator_presence)."""
+    """A one-time code in this node's panel.db, beside the node token (agentos.commands.base.operator_presence)."""
     import sqlite3
 
     from agentos.api.auth import PRESENCE_HEADER, PanelStore, new_login_code

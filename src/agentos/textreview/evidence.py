@@ -304,25 +304,11 @@ def patterns(runs: list[list[Call]]) -> list[str]:
     calls = [c for run in runs for c in run]
     if not calls:
         return ["- No calls."]
-    after_error: Counter[tuple[str, str, str]] = Counter()
-    repeated: Counter[str] = Counter()
-    act_then: Counter[str] = Counter()
-    start_extra: Counter[str] = Counter()
+    seen = _Sequences()
     for run in runs:
-        if not run:
-            continue
-        for a, b in zip(run, [*run[1:], None], strict=True):
-            if not a.ok:
-                nxt = "the session ended" if b is None else "the same tool again" if b.tool == a.tool else f"then {b.tool}"
-                after_error[(a.tool, a.code or a.status, nxt)] += 1
-            if b is not None and a.same_as(b):
-                repeated[a.tool] += 1
-            if a.tool == "browser_act" and b is not None:
-                act_then[b.tool] += 1
-        counts = Counter(c.tool for c in run)
-        for tool in START_TOOLS:
-            if counts[tool] > 1:
-                start_extra[tool] += counts[tool] - 1
+        if run:
+            seen.add(run)
+    after_error, repeated, act_then, start_extra = seen.after_error, seen.repeated, seen.act_then, seen.start_extra
     acts = [c for c in calls if c.tool == "browser_act"]
     delta = sum(1 for c in acts if ("snapshot", "delta") in c.values)
     sizes = [len(run) for run in runs if run]
@@ -343,6 +329,30 @@ def patterns(runs: list[list[Call]]) -> list[str]:
         out.append("- Errors by tool and code, and what the agent did next:")
         out += [f"  - {t} {code}: {n}, {nxt}" for (t, code, nxt), n in after_error.most_common(40)]
     return out
+
+
+class _Sequences:
+    """What follows what in the sessions' calls, counted across runs."""
+
+    def __init__(self) -> None:
+        self.after_error: Counter[tuple[str, str, str]] = Counter()   # (tool, code, what came next)
+        self.repeated: Counter[str] = Counter()
+        self.act_then: Counter[str] = Counter()
+        self.start_extra: Counter[str] = Counter()
+
+    def add(self, run: list[Call]) -> None:
+        for a, b in zip(run, [*run[1:], None], strict=True):
+            if not a.ok:
+                nxt = "the session ended" if b is None else "the same tool again" if b.tool == a.tool else f"then {b.tool}"
+                self.after_error[(a.tool, a.code or a.status, nxt)] += 1
+            if b is not None and a.same_as(b):
+                self.repeated[a.tool] += 1
+            if a.tool == "browser_act" and b is not None:
+                self.act_then[b.tool] += 1
+        counts = Counter(c.tool for c in run)
+        for tool in START_TOOLS:
+            if counts[tool] > 1:
+                self.start_extra[tool] += counts[tool] - 1
 
 
 def _by_who(sessions: list[Session]) -> list[str]:

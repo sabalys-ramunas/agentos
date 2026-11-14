@@ -126,7 +126,7 @@ def all_agentos_errors() -> list[type[AgentosError]]:
     return found
 
 
-# Codes two classes set on purpose. `frozen`: a call in a frozen scope (agentos.freeze.errors.Frozen)
+# Codes two classes set on purpose. `frozen`: a call in a frozen scope (agentos.core.errors.Frozen)
 # and a grant a freeze revoked (agentos.policy.errors.GrantFrozen) are the same news for the agent,
 # stop and tell the user, so both read `frozen` (commit 13a2642a); they differ in their HTTP status.
 SHARED_CODES = {"frozen": {"Frozen", "GrantFrozen"}}

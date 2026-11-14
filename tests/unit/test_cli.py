@@ -15,8 +15,8 @@ from starlette.testclient import TestClient
 from typer.testing import CliRunner
 
 from agentos import __version__
-from agentos import cli as agentos_cli
 from agentos.cli import app
+from agentos.commands import base as cli_base
 from agentos.core.config import load_config
 from agentos.core.models import LaneSpec
 from agentos.node import daemon
@@ -55,7 +55,7 @@ def fake_manager(monkeypatch, inited):
     def no_daemon(method, url, *, body, headers):  # agentosd is not running: the CLI writes the store
         raise httpx.ConnectError("connection refused")
 
-    monkeypatch.setattr(agentos_cli, "_send", no_daemon)
+    monkeypatch.setattr(cli_base, "_send", no_daemon)
     return manager
 
 
@@ -240,7 +240,7 @@ def test_lane_list_asks_the_running_daemon(fake_manager, runner, monkeypatch):
                                           "device": None, "proxy": {"label": "lt1"},
                                           "last_used": "2026-11-10T11:24:49+00:00"}])
 
-    monkeypatch.setattr(agentos_cli, "_send", send)
+    monkeypatch.setattr(cli_base, "_send", send)
     result = runner.invoke(app, ["lane", "list"])
     assert result.exit_code == 0, result.output
     assert seen and seen[0][0] == "GET" and seen[0][1].endswith("/api/lanes")
@@ -262,7 +262,7 @@ def test_missing_lane_modules_give_a_clean_error(inited, runner, monkeypatch):
         raise httpx.ConnectError("connection refused")
 
     monkeypatch.setattr(daemon, "build_lane_manager", missing)
-    monkeypatch.setattr(agentos_cli, "_send", no_daemon)
+    monkeypatch.setattr(cli_base, "_send", no_daemon)
     result = runner.invoke(app, ["lane", "list"])
     assert result.exit_code == 1
     assert "agentos.node.lanes is not part of this build" in result.output
@@ -334,7 +334,8 @@ def test_lane_rules_shows_rule_health_and_drift(fake_manager, runner):
 
 def test_lane_sites_go_through_a_running_daemon(fake_manager, runner, monkeypatch):
     """While agentosd runs, a change goes to its own lane manager, so a warm lane has it at once."""
-    from agentos.node.viewer_app import ViewTokens, control_api_routes
+    from agentos.node.viewer_routes import control_api_routes
+    from agentos.node.viewer_tokens import ViewTokens
 
     asyncio.run(fake_manager.create(LaneSpec(id="personal/reddit")))
     daemon_lanes = FakeLaneManager(fake_manager.config)  # the daemon's manager, not the CLI's
@@ -350,7 +351,7 @@ def test_lane_sites_go_through_a_running_daemon(fake_manager, runner, monkeypatc
             sent.append((urlsplit(url).path, body))
             return client.request(method, urlsplit(url).path, json=body, headers=headers)
 
-        monkeypatch.setattr(agentos_cli, "_send", send)
+        monkeypatch.setattr(cli_base, "_send", send)
         r = runner.invoke(app, ["lane", "sites", "personal/reddit", "suggest", "reddit"])
         assert r.exit_code == 0, r.output
         assert sent[-1][0] == "/api/lanes/personal/reddit/sites" and sent[-1][1]["op"] == "add"
@@ -365,7 +366,7 @@ def test_lane_sites_go_through_a_running_daemon(fake_manager, runner, monkeypatc
         assert fake_manager.lanes["personal/reddit"].spec.sites == []
 
         # an agentosd from before the route: the store, as before
-        monkeypatch.setattr(agentos_cli, "_send", lambda method, url, *, body, headers: httpx.Response(
+        monkeypatch.setattr(cli_base, "_send", lambda method, url, *, body, headers: httpx.Response(
             404, json={"error": {"code": "not_found", "message": "no such route"}}))
         fake_manager.set_sites = FakeLaneManager.set_sites.__get__(fake_manager)
         r = runner.invoke(app, ["lane", "sites", "personal/reddit", "add", "frame:challenges.cloudflare.com"])
@@ -401,7 +402,7 @@ def test_lane_sites_rejects(fake_manager, runner, args):
 
 def test_lane_gate_log_sends_since_url_encoded(fake_manager, runner, inited, monkeypatch):
     """A zone's + would reach the daemon as a space (and fail to parse) unless it is encoded."""
-    from agentos import cli
+    from agentos.commands import lane_sites
 
     sent: list[str] = []
 
@@ -409,7 +410,7 @@ def test_lane_gate_log_sends_since_url_encoded(fake_manager, runner, inited, mon
         sent.append(path)
         return {"lane": "biz-a/reddit", "shapes": [], "promoted": []}
 
-    monkeypatch.setattr(cli, "daemon_request", request)
+    monkeypatch.setattr(lane_sites, "daemon_request", request)
     result = runner.invoke(app, ["lane", "gate-log", "biz-a/reddit", "--since", "2026-11-04T10:00:00+02:00"])
     assert result.exit_code == 0, result.output
     assert sent == ["/api/lanes/biz-a/reddit/gate-log?since=2026-11-04T10%3A00%3A00%2B02%3A00"]
@@ -480,7 +481,7 @@ def test_lane_pace_shows_sets_and_removes_a_lanes_pace_without_the_daemon(fake_m
 def test_device_writes_go_through_a_running_daemon(fake_manager, runner, monkeypatch):
     """While agentosd runs, `lane set-device`, `device create` and `device remove` go to its own lane
     manager (its device locks and running lanes), never a second one in the CLI's process."""
-    from agentos import cli
+    from agentos.commands import devices, lanes
 
     sent: list[tuple[str, str, dict | None]] = []
     plan = {"lane": "biz-a/x", "from": None, "to": "biz-a-pc", "changes": [], "warnings": ["a new computer"],
@@ -496,7 +497,8 @@ def test_device_writes_go_through_a_running_daemon(fake_manager, runner, monkeyp
             return {"name": "biz-a-pc", "proxy": "lt1"}
         return {"removed": "biz-a-pc", "trash": "/trash/device--biz-a-pc"}
 
-    monkeypatch.setattr(cli, "daemon_request", request)
+    monkeypatch.setattr(lanes, "daemon_request", request)
+    monkeypatch.setattr(devices, "daemon_request", request)
     for name in ("set_device", "create_device", "remove_device", "plan_device_move"):
         monkeypatch.setattr(fake_manager, name, None, raising=False)  # the CLI must not write the store itself
     refused = runner.invoke(app, ["lane", "set-device", "biz-a/x", "biz-a-pc"])
@@ -524,3 +526,15 @@ def test_proxy_add_over_an_existing_label_needs_a_yes(fake_manager, runner):
     assert runner.invoke(app, ["proxy", "add", "lt1", "9.9.9.9:12323:u:p", "--yes"]).exit_code == 0
     stored = json.loads((fake_manager.config.home / "secrets" / "proxies.json").read_text())["lt1"]
     assert stored["host"] == "9.9.9.9"
+
+
+def test_lane_pace_options_apply_over_the_current_pace():
+    from agentos.commands.lane_sites import _changed_pace
+
+    current = {"pace": {"active_hours": ["09:00-17:00"], "min_gap_minutes": 30, "timezone": "Europe/Vilnius"},
+               "preset": {"active_hours": ["08:00-22:00"], "min_gap_minutes": 45, "commits_per_day": 3}}
+    assert _changed_pace(current, preset=True, hours=None, gap=None, per_day=None, timezone="auto") == {
+        "active_hours": ["08:00-22:00"], "min_gap_minutes": 45, "commits_per_day": 3}
+    assert _changed_pace(current, preset=False, hours=["10:00-12:00"], gap=5, per_day=None, timezone=None) == {
+        "active_hours": ["10:00-12:00"], "min_gap_minutes": 5, "timezone": "Europe/Vilnius"}
+    assert _changed_pace({"pace": None}, preset=False, hours=None, gap=None, per_day=None, timezone="") is None

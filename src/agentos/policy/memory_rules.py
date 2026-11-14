@@ -35,9 +35,9 @@ from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
+from agentos.core import globs
 from agentos.core.errors import InvalidRequest
 from agentos.core.models import Effect
-from agentos.policy import globs
 from agentos.policy.errors import Denied
 
 if TYPE_CHECKING:

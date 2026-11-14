@@ -2,7 +2,7 @@
 
 There are no entry points and nothing is loaded from outside the repo (docs/PRINCIPLES.md,
 principle 8). A manifest only names modules of this package tree, by string, the way the daemon's
-FEATURE_TOOLS does, so reading a manifest imports no other feature.
+FEATURE_TOOLS (agentos.mcp.providers) does, so reading a manifest imports no other feature.
 """
 
 from __future__ import annotations

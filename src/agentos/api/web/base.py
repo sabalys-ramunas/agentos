@@ -22,11 +22,10 @@ from starlette.types import Message, Receive, Scope, Send
 
 from agentos.api.app import Api, endpoint
 from agentos.api.errors import ApiError, error_body
+from agentos.core.app_paths import ORG
 
 log = logging.getLogger("agentos.api")
 
-ORG = "local"
-"""A node is one org to the app: `/local/needs-you`. Not on the reserved list in web/DESIGN.md."""
 
 Handler = Callable[[Request], Awaitable[Any]]
 _DROPPED = {b"content-length", b"content-type", b"accept-encoding"}

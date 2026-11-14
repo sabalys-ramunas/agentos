@@ -1,0 +1,2 @@
+# Functions with cyclomatic complexity 25 or more (ruff C901), as they are today. This list may
+# only shrink: split a function and delete its line, and never add one. scripts/complexity.py.

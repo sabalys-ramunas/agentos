@@ -55,8 +55,13 @@ def _limit(raw: str | None) -> int:
         raise InvalidRequest("limit is a number.") from None
 
 
-def routes(api: Api) -> list[Route]:
-    def person(request: Request, action: str) -> Caller:
+class Handlers:
+    """The handlers of the routes below, sharing one Api (and what they keep between calls)."""
+
+    def __init__(self, api: Api) -> None:
+        self.api = api
+
+    def person(self, request: Request, action: str) -> Caller:
         """The owner in person, or a refusal that is traced. The service's own checks come after."""
         if not owner_in_person(request):
             access_of(request).trace(action, status="denied", summary="memory is the owner's, in person")
@@ -64,11 +69,11 @@ def routes(api: Api) -> list[Route]:
         return Caller.owner(session=getattr(request.state.auth, "sid", None) or "panel",
                             principal=principal_of(request).id)
 
-    async def workspaces(request: Request) -> dict[str, Any]:
-        who = person(request, "memory.workspaces")
-        if api.optional(SERVICE) is None:
+    async def workspaces(self, request: Request) -> dict[str, Any]:
+        who = self.person(request, "memory.workspaces")
+        if self.api.optional(SERVICE) is None:
             return {"available": False, "workspaces": []}
-        svc = api.svc(SERVICE)
+        svc = self.api.svc(SERVICE)
 
         def build() -> list[dict[str, Any]]:
             out = []
@@ -82,11 +87,11 @@ def routes(api: Api) -> list[Route]:
 
         return {"available": True, "workspaces": await asyncio.to_thread(build)}
 
-    async def entries(request: Request) -> dict[str, Any]:
-        who = person(request, "memory.list")
-        if api.optional(SERVICE) is None:
+    async def entries(self, request: Request) -> dict[str, Any]:
+        who = self.person(request, "memory.list")
+        if self.api.optional(SERVICE) is None:
             return {"available": False, "workspace": None, "entries": []}
-        svc = api.svc(SERVICE)
+        svc = self.api.svc(SERVICE)
         q = request.query_params
         types = [q["type"]] if q.get("type") else None
         trust = q.get("trust") or None
@@ -109,9 +114,9 @@ def routes(api: Api) -> list[Route]:
         named = q.get("workspace") or None
         return {"available": True, "workspace": named, "entries": await asyncio.to_thread(build)}
 
-    async def export(request: Request) -> Response:
-        person(request, "memory.export")
-        svc = api.svc(SERVICE)
+    async def export(self, request: Request) -> Response:
+        self.person(request, "memory.export")
+        svc = self.api.svc(SERVICE)
         fmt = request.query_params.get("format") or "jsonl"
         if fmt not in ("jsonl", "md"):
             raise InvalidRequest("format is jsonl or md.")
@@ -121,7 +126,7 @@ def routes(api: Api) -> list[Route]:
             if fmt == "jsonl":
                 records = [record for name in _scope(svc, request) for record in svc.export_records(name)]
                 return "".join(json.dumps(r, sort_keys=True, default=str) + "\n" for r in records)
-            from agentos.memory.cli import (
+            from agentos.memory.markdown import (
                 markdown_export,  # the same Markdown `agentos memory export --md` writes
             )
 
@@ -137,9 +142,9 @@ def routes(api: Api) -> list[Route]:
             "content-disposition": f'attachment; filename="{name}"', "x-content-type-options": "nosniff",
             "cache-control": "no-store"})
 
-    async def entry(request: Request) -> dict[str, Any]:
-        who = person(request, "memory.get")
-        svc = api.svc(SERVICE)
+    async def entry(self, request: Request) -> dict[str, Any]:
+        who = self.person(request, "memory.get")
+        svc = self.api.svc(SERVICE)
         q = request.query_params
         version = q.get("version")
         if version is not None and not version.isdigit():
@@ -150,9 +155,9 @@ def routes(api: Api) -> list[Route]:
             lambda: svc.get(who, entry_id, version=int(version) if version else None, history=True,
                             workspace=workspace).data)
 
-    async def confirm(request: Request) -> dict[str, Any]:
-        who = person(request, "memory.confirm")
-        svc = api.svc(SERVICE)
+    async def confirm(self, request: Request) -> dict[str, Any]:
+        who = self.person(request, "memory.confirm")
+        svc = self.api.svc(SERVICE)
         body = await read_json_object(request)
         version = body.get("version")
         if not isinstance(version, int) or isinstance(version, bool):
@@ -165,16 +170,16 @@ def routes(api: Api) -> list[Route]:
             lambda: svc.confirm(who, request.path_params["id"], version, edit=edit or None,
                                 workspace=body.get("workspace") or None))
 
-    async def review(request: Request) -> dict[str, Any]:
-        who = person(request, "memory.review")
-        svc = api.svc(SERVICE)
+    async def review(self, request: Request) -> dict[str, Any]:
+        who = self.person(request, "memory.review")
+        svc = self.api.svc(SERVICE)
         body = await read_json_object(request)
         return await asyncio.to_thread(
             lambda: svc.review(who, request.path_params["id"], workspace=body.get("workspace") or None))
 
-    async def forget(request: Request) -> dict[str, Any]:
-        who = person(request, "memory.forget")
-        svc = api.svc(SERVICE)
+    async def forget(self, request: Request) -> dict[str, Any]:
+        who = self.person(request, "memory.forget")
+        svc = self.api.svc(SERVICE)
         body = await read_json_object(request)
         reason = body.get("reason")
         if not isinstance(reason, str):
@@ -182,12 +187,16 @@ def routes(api: Api) -> list[Route]:
         return await asyncio.to_thread(
             lambda: svc.forget(who, request.path_params["id"], reason, workspace=body.get("workspace") or None))
 
+
+def routes(api: Api) -> list[Route]:
+    h = Handlers(api)
+
     return [
-        Route("/api/memory/workspaces", endpoint(api, workspaces, owner=True), methods=["GET"]),
-        Route("/api/memory", endpoint(api, entries, owner=True), methods=["GET"]),
-        Route("/api/memory/export", endpoint(api, export, owner=True), methods=["GET"]),
-        Route("/api/memory/{id}", endpoint(api, entry, owner=True), methods=["GET"]),
-        Route("/api/memory/{id}/confirm", endpoint(api, confirm, owner=True), methods=["POST"]),
-        Route("/api/memory/{id}/review", endpoint(api, review, owner=True), methods=["POST"]),
-        Route("/api/memory/{id}/forget", endpoint(api, forget, owner=True), methods=["POST"]),
+        Route("/api/memory/workspaces", endpoint(api, h.workspaces, owner=True), methods=["GET"]),
+        Route("/api/memory", endpoint(api, h.entries, owner=True), methods=["GET"]),
+        Route("/api/memory/export", endpoint(api, h.export, owner=True), methods=["GET"]),
+        Route("/api/memory/{id}", endpoint(api, h.entry, owner=True), methods=["GET"]),
+        Route("/api/memory/{id}/confirm", endpoint(api, h.confirm, owner=True), methods=["POST"]),
+        Route("/api/memory/{id}/review", endpoint(api, h.review, owner=True), methods=["POST"]),
+        Route("/api/memory/{id}/forget", endpoint(api, h.forget, owner=True), methods=["POST"]),
     ]

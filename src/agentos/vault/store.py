@@ -20,10 +20,11 @@ import sqlite3
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from agentos.core import clock
 from agentos.vault import crypto
 from agentos.vault.errors import (
     EntryExists,
@@ -109,10 +110,6 @@ class _Keys:
 
     def __repr__(self) -> str:
         return f"_Keys(version={self.version})"
-
-
-def _now() -> str:
-    return datetime.now(UTC).isoformat()
 
 
 def _wrap_aad(vault_id: str, version: int) -> bytes:
@@ -273,7 +270,7 @@ class VaultStore:
             values = {
                 "schema_version": str(SCHEMA_VERSION), "vault_id": vault_id, "mode": mode,
                 "kdf": json.dumps(kdf) if kdf else "", "key_version": "1",
-                "wrapped_key": crypto.b64e(wrapped), "created_at": _now(),
+                "wrapped_key": crypto.b64e(wrapped), "created_at": clock.iso(),
             }
             c.executemany("INSERT OR REPLACE INTO meta(key, value) VALUES (?, ?)", list(values.items()))
             header = self._header(c)
@@ -340,7 +337,7 @@ class VaultStore:
 
     def _new_row(self, keys: _Keys, e: NewEntry) -> dict[str, Any]:
         entry_id = "v_" + pysecrets.token_hex(6)
-        now = _now()
+        now = clock.iso()
         r: dict[str, Any] = {
             "id": entry_id, "name": e.name, "kind": e.kind.value, "domain": e.domain,
             "hosts": json.dumps(sorted(e.hosts)), "lanes": json.dumps(sorted(e.lanes)),
@@ -417,7 +414,7 @@ class VaultStore:
                 r["lanes"] = json.dumps(validate_lanes(lanes))
             if config is not None:
                 r["config"] = json.dumps(validate_config(EntryKind(r["kind"]), config), sort_keys=True)
-            r["updated_at"] = _now()
+            r["updated_at"] = clock.iso()
             self._write_row(c, keys, r, insert=False)
             return self._meta(r)
 
@@ -457,7 +454,7 @@ class VaultStore:
     def record_use(self, entry_id: str) -> None:
         with self._conn(write=True) as c:
             c.execute("UPDATE entries SET use_count = use_count + 1, last_used_at = ? WHERE id = ?",
-                      (_now(), entry_id))
+                      (clock.iso(), entry_id))
 
     # ---- machine secrets ----------------------------------------------------------
 
@@ -497,7 +494,7 @@ class VaultStore:
             keys = self._keys(c, master)
             c.execute(_MACHINE_SCHEMA)
             old = c.execute("SELECT created_at FROM machine_secrets WHERE ref = ?", (ref,)).fetchone()
-            now = _now()
+            now = clock.iso()
             r: dict[str, Any] = {"ref": ref, "kind": kind, "label": label, "scope": json.dumps(scope, sort_keys=True),
                                  "created_at": old["created_at"] if old else now, "updated_at": now,
                                  "last_used_at": None, "last_purpose": None, "use_count": 0}
@@ -521,7 +518,7 @@ class VaultStore:
             self._verify_machine(keys, row)
             value = self._open_machine_value(keys, row)
             c.execute("UPDATE machine_secrets SET use_count = use_count + 1, last_used_at = ?, last_purpose = ? "
-                      "WHERE ref = ?", (_now(), purpose, ref))
+                      "WHERE ref = ?", (clock.iso(), purpose, ref))
             return Secret(value.decode("utf-8"))
 
     def machine_values(self, master: bytes) -> list[Secret]:
@@ -580,7 +577,7 @@ class VaultStore:
             new = _Keys(version, enc, mk, h.vault_id)
             for r, values in plain:
                 r.update(self._seal_fields(new, r["id"], values))
-                r["updated_at"] = _now()
+                r["updated_at"] = clock.iso()
                 self._write_row(c, new, r, insert=False)
             for r, value in machine:
                 self._seal_machine(new, r, value)

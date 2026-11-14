@@ -6,8 +6,8 @@ because agents hold it. Memory text is written by agents after reading pages, so
 
 from __future__ import annotations
 
+from agentos.memory.common import WARN_AGENT
 from agentos.memory.models import Caller, MemoryScope
-from agentos.memory.service import WARN_AGENT
 
 TOKEN = "t" * 43
 BASE = "/api/orgs/local/memory"

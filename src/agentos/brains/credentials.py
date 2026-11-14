@@ -26,12 +26,13 @@ Vault contract this module uses (agentos.vault.service.VaultService; sync or asy
 
 from __future__ import annotations
 
-import inspect
 import json
 import os
 import time
 from pathlib import Path
 from typing import Any
+
+from agentos.core.aio import maybe_await
 
 DEV_FILE_NAME = "brains-credentials.DEV-ONLY.json"
 DEV_WARNING = ("DEVELOPMENT FALLBACK, NOT ENCRYPTED. agentos stores brain credentials here only "
@@ -39,10 +40,6 @@ DEV_WARNING = ("DEVELOPMENT FALLBACK, NOT ENCRYPTED. agentos stores brain creden
                "automatically on the next start.")
 
 
-async def _maybe_await(value: Any) -> Any:
-    if inspect.isawaitable(value):
-        return await value
-    return value
 
 
 def brain_ref(name: str) -> str:
@@ -102,7 +99,7 @@ class CredentialStore:
         if not value:
             raise ValueError("empty credential")
         if self.vault is not None:
-            await _maybe_await(self.vault.put_secret(ref, value, kind=kind, label=label, scope=scope or {}))
+            await maybe_await(self.vault.put_secret(ref, value, kind=kind, label=label, scope=scope or {}))
             return
         entries = self._dev_load()
         entries[ref] = {"kind": kind, "label": label, "value": value, "stored_at": time.time()}
@@ -110,20 +107,20 @@ class CredentialStore:
 
     async def get(self, ref: str, *, purpose: str = "brain") -> str | None:
         if self.vault is not None:
-            return await _maybe_await(self.vault.get_secret(ref, purpose=purpose))
+            return await maybe_await(self.vault.get_secret(ref, purpose=purpose))
         entry = self._dev_load().get(ref)
         return entry.get("value") if entry else None
 
     async def has(self, ref: str) -> bool:
         if self.vault is not None:
             if callable(getattr(self.vault, "has_secret", None)):
-                return bool(await _maybe_await(self.vault.has_secret(ref)))  # no unseal needed
+                return bool(await maybe_await(self.vault.has_secret(ref)))  # no unseal needed
             return bool(await self.get(ref, purpose="presence-check"))
         return ref in self._dev_load()
 
     async def delete(self, ref: str) -> None:
         if self.vault is not None:
-            await _maybe_await(self.vault.delete_secret(ref))
+            await maybe_await(self.vault.delete_secret(ref))
             return
         entries = self._dev_load()
         if entries.pop(ref, None) is not None:
@@ -135,7 +132,7 @@ class CredentialStore:
             return 0
         entries = self._dev_load()
         for ref, entry in entries.items():
-            await _maybe_await(self.vault.put_secret(ref, entry["value"], kind=entry.get("kind", "secret"),
+            await maybe_await(self.vault.put_secret(ref, entry["value"], kind=entry.get("kind", "secret"),
                                                      label=entry.get("label", ref), scope={}))
         self.dev_path.unlink(missing_ok=True)
         return len(entries)

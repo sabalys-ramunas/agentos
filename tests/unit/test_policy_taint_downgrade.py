@@ -17,14 +17,14 @@ from test_policy_support import OWNER, Clock, h_post, make_service
 from agentos.core.config import NodeConfig
 from agentos.core.errors import ApprovalPending
 from agentos.core.models import Effect, LaneSpec, SnapshotResult
-from agentos.core.tools import ToolSpec
-from agentos.mcp.registry import bind_request_token, build_mcp
+from agentos.core.tools import ToolSpec, bind_request_token
+from agentos.mcp.registry import build_mcp
 from agentos.node.tools import tool_specs as node_specs
-from agentos.policy.approvals import content_digest
+from agentos.policy.approval_binding import content_digest
 from agentos.policy.errors import Denied
 from agentos.policy.grants import BrainCap, EmptyCap, InstallCap, LaneCap, ServiceCap, Specials
 from agentos.policy.routing import DEFAULT_DOWNGRADE, load_policy_config
-from agentos.policy.service import family_key
+from agentos.policy.taint import family_key
 from agentos.policy.tools import tool_specs as policy_specs
 from agentos.policy.wrap import bind_request_token as bind_policy_token
 from agentos.policy.wrap import wrap_tool
@@ -134,8 +134,8 @@ def test_only_login_and_vault_fill_raise_the_secret_effect():
     # so an exported tree that is not a git repository yet runs it too
     found = [str(path.relative_to(root)) for path in (root / "src" / "agentos").rglob("*.py")
              if "Effect.SECRET" in path.read_text(encoding="utf-8")]
-    assert sorted(found) == ["src/agentos/policy/scope.py", "src/agentos/vault/login.py",
-                             "src/agentos/vault/tools.py"]
+    assert sorted(found) == ["src/agentos/node/vault_tools.py", "src/agentos/policy/scope.py",
+                             "src/agentos/vault/login.py"]
 
 
 async def test_a_policy_toml_that_lists_secret_does_not_stop_a_login(tmp_path, caplog):

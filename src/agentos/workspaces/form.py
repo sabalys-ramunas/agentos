@@ -43,7 +43,9 @@ class WorkspaceExport(Kind):
                 + '<button type="submit">Export and download</button></form>')
 
     async def submit(self, trip: Trip, api: Any, form: Any, trips: Trips) -> Response:
-        from agentos.ops.wsexport import export_name, export_workspace, runtime_sources, staging_dir
+        from agentos.workspaces.transfer.export import export_name, export_workspace
+        from agentos.workspaces.transfer.read import staging_dir
+        from agentos.workspaces.transfer.sources import runtime_sources
 
         passphrase = str(form.get("passphrase") or "")
         if len(passphrase) < 8:
@@ -91,8 +93,9 @@ class WorkspaceImport(Kind):
                 + '<button type="submit">Check and import</button></form>')
 
     async def submit(self, trip: Trip, api: Any, form: Any, trips: Trips) -> Response:
-        from agentos.ops.wsexport import read_export, runtime_sources, staging_dir
-        from agentos.ops.wsimport import ImportOptions, apply_import, plan_import
+        from agentos.workspaces.transfer.import_ import ImportOptions, apply_import, plan_import
+        from agentos.workspaces.transfer.read import read_export, staging_dir
+        from agentos.workspaces.transfer.sources import runtime_sources
 
         passphrase = str(form.get("passphrase") or "")
         upload = form.get("file")

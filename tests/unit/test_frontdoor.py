@@ -95,26 +95,22 @@ def test_the_intro_and_the_skill_say_where_the_terminal_tools_are_and_promise_no
 
 
 def test_a_checkout_without_the_app_says_what_to_use_instead(tmp_path, monkeypatch):
-    # an installation with no panel/ and no web/: the placeholder and the dev banner must not tell a
+    # an installation with no web/: the placeholder and the dev banner must not tell a
     # stranger to build one
     from types import SimpleNamespace
 
-    from agentos.api.static import NO_APP, NOT_BUILT, WEB_NOT_BUILT, placeholder
+    from agentos.api.static import NO_APP, NOT_BUILT, placeholder
     from agentos.dev import cli as dev_cli
 
-    assert placeholder(tmp_path / "panel" / "dist") == NO_APP
-    # the public repository: web/ and no panel/
+    assert placeholder(tmp_path / "web" / "dist") == NO_APP
+    # a checkout with web/, before it is built
     (tmp_path / "web").mkdir()
     (tmp_path / "web" / "package.json").write_text("{}")
-    assert placeholder(tmp_path / "panel" / "dist") == WEB_NOT_BUILT
-    assert "pnpm build" in WEB_NOT_BUILT and "panel/" not in WEB_NOT_BUILT
-    (tmp_path / "panel").mkdir()
-    (tmp_path / "panel" / "package.json").write_text("{}")
-    assert placeholder(tmp_path / "panel" / "dist") == NOT_BUILT
+    assert placeholder(tmp_path / "web" / "dist") == NOT_BUILT
+    assert "pnpm build" in NOT_BUILT and "panel/" not in NOT_BUILT
     assert "/view/" in NO_APP and "agentos environments list" in NO_APP
     node = SimpleNamespace(temporary=True, home=tmp_path, panel_link="http://localhost:7450/login#code=x",
                            mcp_url="http://127.0.0.1:7450/mcp", claude_add="claude mcp add ...", panel_built=False)
-    monkeypatch.setattr(dev_cli, "panel_source", lambda: False)
     monkeypatch.setattr(dev_cli, "web_source", lambda: False)
     text = dev_cli.banner(node)
     assert "no web app" in text and "npm ci" not in text and "\u2014" not in text

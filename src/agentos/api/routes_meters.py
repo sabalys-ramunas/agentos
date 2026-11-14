@@ -44,10 +44,10 @@ from starlette.routing import Route
 from agentos.api.access import Presence
 from agentos.api.app import Api, access_of, endpoint, read_body
 from agentos.api.errors import ApiError
-from agentos.api.jsonable import maybe_await
 from agentos.api.members import OWNER_ID
+from agentos.api.route_ids import path_id
 from agentos.api.routes_core import scoped_lane_id
-from agentos.api.routes_resources import path_id
+from agentos.core.aio import maybe_await
 from agentos.policy.errors import Denied
 from agentos.policy.meters import Limits
 from agentos.policy.pace import PRESET, Pace
@@ -85,22 +85,27 @@ class ClearIn(BaseModel):
     confirm: str | None = None
 
 
-def routes(api: Api) -> list[Route]:
-    def policy() -> Any:
-        svc = api.runtime.get("policy")
+class Handlers:
+    """The handlers of the routes below, sharing one Api (and what they keep between calls)."""
+
+    def __init__(self, api: Api) -> None:
+        self.api = api
+
+    def policy(self) -> Any:
+        svc = self.api.runtime.get("policy")
         if svc is None or not hasattr(svc, "meters"):
             raise ApiError("unavailable", NO_METERS)
         return svc
 
-    async def lane_ids(request: Request) -> list[str]:
-        lanes = api.optional("lanes")
+    async def lane_ids(self, request: Request) -> list[str]:
+        lanes = self.api.optional("lanes")
         if lanes is None:
             return []
         access = access_of(request)
         ids = [i.spec.id for i in await maybe_await(lanes.list())]
         return sorted(lane for lane in ids if access.lane_allowed(lane))
 
-    def grants_for(request: Request, svc: Any) -> list[Any]:
+    def grants_for(self, request: Request, svc: Any) -> list[Any]:
         """The grants whose meters the caller sees: every live agent grant for the owner, a member's
         own agents, a grant's own."""
         access = access_of(request)
@@ -120,86 +125,86 @@ def routes(api: Api) -> list[Route]:
                 continue
         return out
 
-    async def meters(request: Request) -> dict:
-        svc = policy()
+    async def meters(self, request: Request) -> dict:
+        svc = self.policy()
         m, now = svc.meters, svc.clock()
         return {"timezone": m.timezone, "day": m.day(now).isoformat(),
                 "resets_at": iso(m.day_reset(now)),
                 "warn_at": list(m.cfg.warn_at),
-                "grants": [svc.grant_meter(g) for g in grants_for(request, svc)],
-                "lanes": [svc.lane_meter(lane) for lane in await lane_ids(request)]}
+                "grants": [svc.grant_meter(g) for g in self.grants_for(request, svc)],
+                "lanes": [svc.lane_meter(lane) for lane in await self.lane_ids(request)]}
 
-    async def lane_meter(request: Request) -> dict:
-        return policy().lane_meter(scoped_lane_id(request, "lane.meter"))
+    async def lane_meter(self, request: Request) -> dict:
+        return self.policy().lane_meter(scoped_lane_id(request, "lane.meter"))
 
-    async def lane_limits(request: Request) -> dict:
+    async def lane_limits(self, request: Request) -> dict:
         lane_id = scoped_lane_id(request, "lane.limits")
         body = await read_body(request, LimitsIn)
-        out = policy().set_lane_limits(lane_id, body.limits, by="owner")
+        out = self.policy().set_lane_limits(lane_id, body.limits, by="owner")
         words = ", ".join(f"{k} {v}" for k, v in body.limits.given().items()) if body.limits else "removed"
         access_of(request).trace("lane.limits", lane=lane_id, summary=f"Limits for {lane_id}: {words or 'none'}")
-        api.publish("meter", {"scope": "lane", "id": lane_id, "kind": "limits"})
+        self.api.publish("meter", {"scope": "lane", "id": lane_id, "kind": "limits"})
         return out
 
-    async def lane_pace(request: Request) -> dict:
-        return policy().lane_pace(scoped_lane_id(request, "lane.pace"))
+    async def lane_pace(self, request: Request) -> dict:
+        return self.policy().lane_pace(scoped_lane_id(request, "lane.pace"))
 
-    async def set_lane_pace(request: Request) -> dict:
+    async def set_lane_pace(self, request: Request) -> dict:
         lane_id = scoped_lane_id(request, "lane.pace")
         body = await read_body(request, PaceIn)
         if body.preset and body.pace is not None:
             raise ApiError("invalid", "Send either a pace or preset: true, not both.")
         pace = PRESET if body.preset else body.pace
-        out = policy().set_lane_pace(lane_id, pace, by="owner")
+        out = self.policy().set_lane_pace(lane_id, pace, by="owner")
         given = pace.given() if pace is not None else {}
         words = ", ".join(f"{k} {v}" for k, v in given.items()) or "removed"
         access_of(request).trace("lane.pace", lane=lane_id, summary=f"Posting pace for {lane_id}: {words}")
-        api.publish("meter", {"scope": "lane", "id": lane_id, "kind": "pace"})
+        self.api.publish("meter", {"scope": "lane", "id": lane_id, "kind": "pace"})
         return out
 
-    def workspace_of(request: Request) -> str:
-        from agentos.workspaces.models import WORKSPACE_ID_RE
+    def workspace_of(self, request: Request) -> str:
+        from agentos.core.models import WORKSPACE_ID_RE
 
         ws = str(request.path_params.get("ws") or "")
         if not WORKSPACE_ID_RE.fullmatch(ws):
             raise ApiError("invalid", f"{ws!r} is not a workspace id like biz-a.")
         return ws
 
-    async def workspace_zone(request: Request) -> dict:
-        ws = workspace_of(request)
-        return {"workspace": ws, "timezone": policy().pace.workspace_zone(ws)}
+    async def workspace_zone(self, request: Request) -> dict:
+        ws = self.workspace_of(request)
+        return {"workspace": ws, "timezone": self.policy().pace.workspace_zone(ws)}
 
-    async def set_workspace_zone(request: Request) -> dict:
-        ws = workspace_of(request)
+    async def set_workspace_zone(self, request: Request) -> dict:
+        ws = self.workspace_of(request)
         body = await read_body(request, ZoneIn)
         try:
-            out = policy().set_workspace_zone(ws, body.timezone, by="owner")
+            out = self.policy().set_workspace_zone(ws, body.timezone, by="owner")
         except ValueError as e:
             raise ApiError("invalid", str(e).split("\n")[-1].strip()) from None
         access_of(request).trace("workspace.pace", summary=f"Default timezone for {ws}: {body.timezone or 'removed'}")
-        api.publish("meter", {"scope": "workspace", "id": ws, "kind": "pace"})
+        self.api.publish("meter", {"scope": "workspace", "id": ws, "kind": "pace"})
         return out
 
-    async def lane_queue(request: Request) -> dict:
+    async def lane_queue(self, request: Request) -> dict:
         lane_id = scoped_lane_id(request, "lane.queue")
-        lanes = api.svc("lanes")
+        lanes = self.api.svc("lanes")
         info = getattr(lanes, "queue_info", None)
         if callable(info):
-            return {"lane": lane_id, **info(lane_id, viewer=viewer_of(request))}
+            return {"lane": lane_id, **info(lane_id, viewer=self.viewer_of(request))}
         one = await maybe_await(lanes.get(lane_id))  # a lane manager without queues (the fakes)
         return {"lane": lane_id, "claim": getattr(one, "claim", None), "queue_length": getattr(one, "queue_length", 0),
                 "queue": [], "inside": [], "call_estimate_s": None}
 
-    def viewer_of(request: Request) -> Any:
-        """The caller as the lane's queue knows callers (agentos.node.tools.caller), so `yours` is set."""
+    def viewer_of(self, request: Request) -> Any:
+        """The caller as the lane's queue knows callers (agentos.node.tools.session.caller), so `yours` is set."""
         ctx = getattr(access_of(request), "ctx", None)
         if ctx is None:
             return None
-        from agentos.node.tools import caller
+        from agentos.node.tools.session import caller
 
         return caller(ctx)
 
-    def own_roots(request: Request, svc: Any) -> set[str] | None:
+    def own_roots(self, request: Request, svc: Any) -> set[str] | None:
         """The grant families whose taint the caller sees: None (all) for the owner; a member's own
         agents; a grant its own family."""
         access = access_of(request)
@@ -210,27 +215,27 @@ def routes(api: Api) -> list[Route]:
             return {r["root_id"] for r in rows if r["subject"].get("owner") == access.member.id}
         return {r["root_id"] for r in rows if r["id"] == access.grant_id}
 
-    async def lane_taint(request: Request) -> dict:
+    async def lane_taint(self, request: Request) -> dict:
         lane_id = scoped_lane_id(request, "lane.taint")
-        svc = policy()
-        out = svc.lane_taint(lane_id, roots=own_roots(request, svc))
+        svc = self.policy()
+        out = svc.lane_taint(lane_id, roots=self.own_roots(request, svc))
         if not access_of(request).owner:  # which grants: the owner's to know
             out["families"] = [{k: v for k, v in f.items() if k not in ("grant_id", "grants")} for f in out["families"]]
         return out
 
-    def owner_has_passkey() -> bool:
+    def owner_has_passkey(self) -> bool:
         try:
-            return bool(api.members.store.credentials(OWNER_ID))
+            return bool(self.api.members.store.credentials(OWNER_ID))
         except Exception:  # noqa: BLE001  (cannot tell: ask for the passkey, toward safe)
             return True
 
-    async def taint_clear(request: Request) -> dict:
+    async def taint_clear(self, request: Request) -> dict:
         access = access_of(request)
         auth = request.state.auth
         if auth.via != "cookie" or not access.owner or access.member is not None or auth.session is None:
             access.trace("taint.clear", status="denied", summary="clearing taint needs the owner in person")
             raise ApiError("denied", CLEAR_IN_PERSON)
-        session, window = auth.session, api.settings.step_up_window
+        session, window = auth.session, self.api.settings.step_up_window
         if session.via == "device":
             access.trace("taint.clear", status="denied", summary="a device credential never clears taint")
             raise ApiError("denied", CLEAR_NOT_DEVICE)
@@ -238,7 +243,7 @@ def routes(api: Api) -> list[Route]:
         if (body.confirm or "").strip().lower() != CLEAR_WORD:
             raise ApiError("invalid", CLEAR_CONFIRM)
         now = time.time()
-        if owner_has_passkey():
+        if self.owner_has_passkey():
             verified = session.last_verified_at
             if verified is None or now - verified > window:
                 access.trace("taint.clear", status="denied", summary="clearing taint needs a fresh passkey check")
@@ -248,27 +253,31 @@ def routes(api: Api) -> list[Route]:
             access.trace("taint.clear", status="denied", summary="clearing taint needs a fresh sign-in")
             raise ApiError("denied", CLEAR_SIGN_IN_AGAIN.format(minutes=max(1, window // 60)))
         gid = path_id(request)
-        result = policy().clear_taint(gid, by="owner")  # NotFound for a grant never issued here
+        result = self.policy().clear_taint(gid, by="owner")  # NotFound for a grant never issued here
         access.trace("taint.clear", summary=f"Cleared the taint of grant {gid}'s family "
                                             f"({result['origins_cleared']} origins)")
-        api.publish("trace", {})
+        self.api.publish("trace", {})
         return result
+
+
+def routes(api: Api) -> list[Route]:
+    h = Handlers(api)
 
     PERSON = Presence.PERSON  # a lane's limits and pace are protections: a token never lowers them
     return [
-        Route("/api/meters", endpoint(api, meters), methods=["GET"]),
-        Route("/api/lanes/{ws}/{name}/meter", endpoint(api, lane_meter), methods=["GET"]),
-        Route("/api/lanes/{ws}/{name}/meter", endpoint(api, lane_limits, owner=True, action="lane.limits",
+        Route("/api/meters", endpoint(api, h.meters), methods=["GET"]),
+        Route("/api/lanes/{ws}/{name}/meter", endpoint(api, h.lane_meter), methods=["GET"]),
+        Route("/api/lanes/{ws}/{name}/meter", endpoint(api, h.lane_limits, owner=True, action="lane.limits",
                                                              presence=PERSON),
               methods=["PUT"]),
-        Route("/api/lanes/{ws}/{name}/pace", endpoint(api, lane_pace), methods=["GET"]),
-        Route("/api/lanes/{ws}/{name}/pace", endpoint(api, set_lane_pace, owner=True, action="lane.pace",
+        Route("/api/lanes/{ws}/{name}/pace", endpoint(api, h.lane_pace), methods=["GET"]),
+        Route("/api/lanes/{ws}/{name}/pace", endpoint(api, h.set_lane_pace, owner=True, action="lane.pace",
                                                             presence=PERSON),
               methods=["PUT"]),
-        Route("/api/pace/workspaces/{ws}", endpoint(api, workspace_zone, owner=True), methods=["GET"]),
-        Route("/api/pace/workspaces/{ws}", endpoint(api, set_workspace_zone, owner=True, action="workspace.pace"),
+        Route("/api/pace/workspaces/{ws}", endpoint(api, h.workspace_zone, owner=True), methods=["GET"]),
+        Route("/api/pace/workspaces/{ws}", endpoint(api, h.set_workspace_zone, owner=True, action="workspace.pace"),
               methods=["PUT"]),
-        Route("/api/lanes/{ws}/{name}/queue", endpoint(api, lane_queue), methods=["GET"]),
-        Route("/api/lanes/{ws}/{name}/taint", endpoint(api, lane_taint), methods=["GET"]),
-        Route("/api/grants/{id}/taint/clear", endpoint(api, taint_clear, action="taint.clear"), methods=["POST"]),
+        Route("/api/lanes/{ws}/{name}/queue", endpoint(api, h.lane_queue), methods=["GET"]),
+        Route("/api/lanes/{ws}/{name}/taint", endpoint(api, h.lane_taint), methods=["GET"]),
+        Route("/api/grants/{id}/taint/clear", endpoint(api, h.taint_clear, action="taint.clear"), methods=["POST"]),
     ]

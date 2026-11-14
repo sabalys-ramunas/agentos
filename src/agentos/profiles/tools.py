@@ -3,8 +3,8 @@
 profile_list and profile_get read. profile_save, profile_update, profile_attach and
 profile_detach save a version: the owner in person (a signed-in panel session) saves it live; any
 agent, on any token, saves a draft the owner approves in the panel or with `agentos profile
-approve`. No tool approves a profile. profile_sync_status says, per account, which fields the
-engine edits and how far each is, and which ones someone changes in the lane by hand;
+approve`. No tool approves a profile. profile_sync_status says, per account, how far each field is,
+and which ones someone changes in the lane by hand;
 profile_mark_synced records such a change. profile_photo_put keeps a photo (or a brand's logo or
 font) from a lane's inbox.
 
@@ -20,8 +20,7 @@ from typing import Any
 from agentos.core.errors import InvalidRequest, NotFound, PolicyDenied
 from agentos.core.models import Effect, parse_lane_id
 from agentos.core.tools import ToolContext, ToolSpec, covers_workspace
-from agentos.engage.governor import is_owner
-from agentos.profiles.service import SERVICE_NAME, ProfilesService, split_ref
+from agentos.profiles.service import SERVICE_NAME, ProfilesService, is_owner, split_ref
 
 TAG = "profiles"
 
@@ -188,11 +187,10 @@ async def profile_detach(ctx: ToolContext, *, profile: str, surface: str) -> dic
 
 
 async def profile_sync_status(ctx: ToolContext, *, profile: str | None = None, surface: str | None = None) -> dict:
-    """Per account of a profile, each field it should show and its state: in_sync, due (the
-    engine edits it at the next session), awaiting_approval, denied, failed, no_program (the
-    engine edits it but the account has no approved engagement program), manual (no engine
-    operation on this site: change it in the lane by hand, then call profile_mark_synced) or
-    done_by_hand. Also fields left out (people only) and problems.
+    """Per account of a profile, each field it should show and its state: in_sync, failed,
+    syncing, learning, held, relearn, manual (no learned operation on this site yet: teach it
+    with profile_learn_start, or change it in the lane by hand, then call profile_mark_synced)
+    or done_by_hand. Also fields left out (people only) and problems.
 
     Args:
         profile: The profile as "workspace/profile".
@@ -323,7 +321,7 @@ async def profile_learn_finish(ctx: ToolContext, *, surface: str, field: str, re
         profile_url: The URL of that profile page.
     """
     from agentos.node.claims import READ
-    from agentos.node.flow_driver import structural_locator_for
+    from agentos.node.flow_recorder import structural_locator_for
     from agentos.node.tools import driven_session
 
     svc = _svc(ctx)
@@ -345,9 +343,8 @@ async def profile_learn_finish(ctx: ToolContext, *, surface: str, field: str, re
 
 
 def tool_specs(runtime: Any) -> list[ToolSpec]:
-    from agentos.studio.learn.tool import (
-        profile_learn_brand,  # studio part S8: learn a brand from a live site
-    )
+    """The profile tools. profile_learn_brand is in this toolset too, but studio lists it
+    (agentos.studio.tools), since it runs studio's review browser."""
 
     def spec(name: str, handler: Any, effect: Effect, lane_arg: str | None = None) -> ToolSpec:
         return ToolSpec(name=name, handler=handler, effect=effect, lane_arg=lane_arg, tags=(TAG,),
@@ -365,7 +362,6 @@ def tool_specs(runtime: Any) -> list[ToolSpec]:
         spec("profile_photo_put", profile_photo_put, Effect.DRAFT, "on"),
         spec("profile_use", profile_use, Effect.READ),
         spec("profile_propose", profile_propose, Effect.DRAFT),
-        spec("profile_learn_brand", profile_learn_brand, Effect.DRAFT),
         spec("profile_learn_start", profile_learn_start, Effect.DRAFT, "surface"),
         spec("profile_learn_finish", profile_learn_finish, Effect.DRAFT, "surface"),
     ]

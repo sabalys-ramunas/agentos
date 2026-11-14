@@ -167,8 +167,8 @@ def _reload_daemon() -> None:
     """Ask a running agentosd to serve the new tool list now, and say what changed. No daemon (or
     an older one): it serves the tools when it starts, or within seconds by its own poll."""
     from agentos.core.config import home_from_env
-    from agentos.ops.layout import ops_socket
-    from agentos.ops.system import Host
+    from agentos.core.layout import ops_socket
+    from agentos.core.system import Host
 
     resp = Host().unix_request(ops_socket(home_from_env()), {"op": "reload_tools"}, timeout=30)
     if resp is None:
@@ -199,8 +199,7 @@ def verify_cmd(operation: Annotated[str, typer.Argument(help="site.op, like redd
                ) -> None:
     """Mark an operation verified after a test run on a throwaway account (owner only). The mark goes into
     this node's record (AGENTOS_HOME/connector-marks.json) and names the code the test ran: an edit to the
-    operation makes it stale. Marks in connector files or bundles are information only. Until an operation
-    is marked, engagement sessions pause instead of running it (op_unverified)."""
+    operation makes it stale. Marks in connector files or bundles are information only."""
     from datetime import date
 
     from agentos.core.config import home_from_env

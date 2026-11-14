@@ -56,6 +56,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from croniter import croniter
 from pydantic import ValidationError
 
+from agentos.core.aio import maybe_await
 from agentos.core.errors import (
     AgentosError,
     InvalidRequest,
@@ -65,10 +66,13 @@ from agentos.core.errors import (
     ServiceUnavailable,
 )
 from agentos.core.models import Effect, Principal, RunStatus, parse_lane_id
+from agentos.core.template import TEMPLATE_RE, render
 from agentos.runner.flows import FlowService, validation_message
-from agentos.runner.models import (
+from agentos.runner.names import CONNECTOR_PREFIX, is_connector_id
+from agentos.runner.owner import is_owner
+from agentos.runner.proof import BAD_SIGNALS
+from agentos.runner.records import (
     ACTIVE,
-    CONNECTOR_PREFIX,
     SUCCEEDED,
     TERMINAL,
     CronConfig,
@@ -77,13 +81,11 @@ from agentos.runner.models import (
     ScheduleKind,
     WatchConfig,
     WebhookConfig,
-    is_connector_id,
-    is_owner,
 )
-from agentos.runner.proof import BAD_SIGNALS
-from agentos.runner.runner import OWNER_GRANT, RunnerService
+from agentos.runner.run_rules import OWNER_GRANT
+from agentos.runner.runner import RunnerService
 from agentos.runner.store import RunnerStore
-from agentos.runner.util import TEMPLATE_RE, Clock, clip_text, maybe_await, new_id, render, url_problem
+from agentos.runner.util import Clock, clip_text, new_id, url_problem
 
 # a grant refusal that means the grant is gone for good: its schedules are turned off
 GRANT_ENDED = {"revoked": "was revoked", "expired": "has expired", "unknown_grant": "is not known on this node"}
@@ -151,6 +153,29 @@ def sign_webhook(secret: str, timestamp: str, body: bytes) -> str:
     return f"sha256={mac}"
 
 
+def _cron_config(cron: str | dict, timezone: str | None, missed: str | None, jitter_s: int | None,
+                 now: datetime) -> CronConfig:
+    """A cron schedule's config: a valid expression that can fire, with a jitter shorter than its slots."""
+    data = dict(cron) if isinstance(cron, dict) else {"cron": cron}
+    if timezone:
+        data["timezone"] = timezone
+    if missed:
+        data["missed"] = missed
+    if jitter_s is not None:
+        data["jitter_s"] = jitter_s
+    cron_cfg = CronConfig.model_validate(data)
+    if not croniter.is_valid(cron_cfg.cron):
+        raise InvalidRequest(f"invalid cron expression {cron_cfg.cron!r}")
+    if not cron_can_fire(cron_cfg.cron, _zone(cron_cfg.timezone), now):
+        raise InvalidRequest(f"cron expression {cron_cfg.cron!r} never matches a real date")
+    gap = shortest_gap(cron_cfg.cron, _zone(cron_cfg.timezone), now)
+    if cron_cfg.jitter_s and gap is not None and cron_cfg.jitter_s >= gap:
+        raise InvalidRequest(f"jitter_s {cron_cfg.jitter_s} is as long as the {int(gap)} s between two "
+                             "slots of this cron, so a slot would be dropped whenever the next one came "
+                             "due first. Use a smaller jitter_s.")
+    return cron_cfg
+
+
 def _webhook_extras(cfg: WebhookConfig) -> dict[str, Any]:
     """What the sender of a webhook needs, returned once when its secret is made."""
     return {"url_path": f"/api/hooks/{cfg.token}", "secret": cfg.secret,
@@ -197,47 +222,19 @@ class Scheduler:
         if params is not None and not isinstance(params, dict):
             raise InvalidRequest("params must be a JSON object of name: value")
         params = dict(params or {})
-        surface: str | None = None
         if isinstance(principal, Principal):
             principal = principal.model_dump()
         principal = principal or {}
         grant_id = grant_id or principal.get("grant_id") or (
             OWNER_GRANT if not principal.get("id") or is_owner(principal) else None)
-        if route is not None:
-            lane = self._check_route(route, kinds[0], on, params, watch)
-            self.runner.check_grant(grant_id, principal, effect=Effect.READ if lane else None, lane=lane)
-        else:
-            fv = self.flows.get(flow, version)
-            if is_connector_id(fv.id):  # `on` names a surface; its binding decides the lane at every fire
-                surface, lane = self._check_surface(fv, on, params)
-                self.runner.check_grant(grant_id, principal, effect=fv.effect, lane=surface)
-            else:
-                lane = self.flows.resolve_lane(fv, on)
-                self._validate_params(fv, params)
-                self.runner.check_grant(grant_id, principal, effect=fv.effect, lane=lane)
+        fv, lane, surface = self._target(flow, version, route, kinds[0], on, params, watch, grant_id, principal)
         now = self.clock.now()
         sid = new_id("sch")
         extras: dict[str, Any] = {}
         try:
             cron_cfg = watch_cfg = hook_cfg = every_cfg = None
             if cron:
-                data = dict(cron) if isinstance(cron, dict) else {"cron": cron}
-                if timezone:
-                    data["timezone"] = timezone
-                if missed:
-                    data["missed"] = missed
-                if jitter_s is not None:
-                    data["jitter_s"] = jitter_s
-                cron_cfg = CronConfig.model_validate(data)
-                if not croniter.is_valid(cron_cfg.cron):
-                    raise InvalidRequest(f"invalid cron expression {cron_cfg.cron!r}")
-                if not cron_can_fire(cron_cfg.cron, _zone(cron_cfg.timezone), now):
-                    raise InvalidRequest(f"cron expression {cron_cfg.cron!r} never matches a real date")
-                gap = shortest_gap(cron_cfg.cron, _zone(cron_cfg.timezone), now)
-                if cron_cfg.jitter_s and gap is not None and cron_cfg.jitter_s >= gap:
-                    raise InvalidRequest(f"jitter_s {cron_cfg.jitter_s} is as long as the {int(gap)} s between two "
-                                         "slots of this cron, so a slot would be dropped whenever the next one came "
-                                         "due first. Use a smaller jitter_s.")
+                cron_cfg = _cron_config(cron, timezone, missed, jitter_s, now)
             elif watch:
                 watch_cfg = WatchConfig.model_validate(watch)
             elif every:
@@ -260,6 +257,25 @@ class Scheduler:
             raise InvalidRequest(f"invalid schedule: {validation_message(e)}") from e
         self.store.put_schedule(s)
         return s, extras
+
+    def _target(self, flow: str | None, version: str | None, route: str | None, kind: str, on: str | None,
+                params: dict[str, Any], watch: dict | None, grant_id: str | None,
+                principal: dict[str, Any]) -> tuple[Any, str | None, str | None]:
+        """(flow version, lane, surface) a schedule fires, checked under its grant now: a route's lane,
+        a connector's surface (its binding decides the lane at every fire), or a flow's lane."""
+        if route is not None:
+            lane = self._check_route(route, kind, on, params, watch)
+            self.runner.check_grant(grant_id, principal, effect=Effect.READ if lane else None, lane=lane)
+            return None, lane, None
+        fv = self.flows.get(flow, version)
+        if is_connector_id(fv.id):  # `on` names a surface; its binding decides the lane at every fire
+            surface, lane = self._check_surface(fv, on, params)
+            self.runner.check_grant(grant_id, principal, effect=fv.effect, lane=surface)
+            return fv, lane, surface
+        lane = self.flows.resolve_lane(fv, on)
+        self._validate_params(fv, params)
+        self.runner.check_grant(grant_id, principal, effect=fv.effect, lane=lane)
+        return fv, lane, None
 
     def _check_surface(self, fv: Any, on: str | None, params: dict[str, Any]) -> tuple[str, str]:
         """(surface, lane) of a connector schedule, after checking its params with the binding's."""

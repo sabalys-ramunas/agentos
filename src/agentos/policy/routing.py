@@ -19,7 +19,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from agentos.core.models import Effect
-from agentos.policy.approvals import ApprovalPolicy
+from agentos.policy.approval_models import ApprovalPolicy
 from agentos.policy.confirm import ALWAYS_ASK
 from agentos.policy.confirmation import ConfirmationConfig
 from agentos.policy.meters import MeterPolicy

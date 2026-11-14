@@ -9,10 +9,10 @@ from pathlib import Path
 import pytest
 
 from agentos.core.config import NodeConfig, save_config
+from agentos.dev.tuidemo import FakeNode
 from agentos.tui import fmt
 from agentos.tui.client import ApiClient, ApiError, AuthFailed, NodeUnreachable, SseParser, Unavailable
 from agentos.tui.connect import DEFAULT_URL, normalize_url, resolve
-from agentos.tui.demo import FakeNode
 from agentos.tui.state import RESOURCES, DashState
 from agentos.tui.sync import Syncer
 

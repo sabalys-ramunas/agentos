@@ -25,7 +25,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, Protocol
 
-from agentos.policy import globs
+from agentos.core import globs
 from agentos.policy.grants import Grant, parse_block
 from agentos.policy.store import DB
 

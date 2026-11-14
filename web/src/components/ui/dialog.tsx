@@ -6,8 +6,6 @@ import { cn } from '@/lib/cn';
 import { Button, IconButton } from './button';
 import { Input } from './field';
 
-export const DialogTrigger = Primitive.Trigger;
-
 /**
  * Radix returns focus to a Dialog.Trigger, and these dialogs open from state, so without this
  * focus falls to <body> on close and a keyboard user is thrown back to the top of the page.

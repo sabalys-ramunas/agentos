@@ -399,7 +399,7 @@ def test_proxy_host_name_resolving_to_exit(tmp_path):
 
 
 def test_migrations_pending_current_and_newer(tmp_path):
-    from agentos.ops import migrate
+    from agentos.core import migrate
 
     ctx = ctx_for(tmp_path)
     assert doctor.check_migrations(ctx)[0].status == WARN
@@ -472,8 +472,9 @@ def test_fingerprint_drift_is_left_to_the_lane_check(tmp_path):
 # ---- workspace memory files -------------------------------------------------------------------
 
 def test_workspace_memory_files_are_checked(tmp_path):
+    from testkit.memory import fake_memory
+
     from agentos.memory import Caller
-    from agentos.memory.fakes import fake_memory
     from agentos.ops.doctor import DoctorContext, check_workspace_memory
 
     ctx = DoctorContext(home=tmp_path)

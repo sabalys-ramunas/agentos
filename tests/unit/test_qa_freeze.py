@@ -11,11 +11,12 @@ import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from freeze_support import close, make_node, started
 
+from agentos.core import signing
 from agentos.core.errors import InvalidRequest
 from agentos.core.models import Effect
-from agentos.freeze.store import FreezeStore, scope_key
 from agentos.policy import bind_request_token, wrap_tool
 from agentos.policy.errors import Denied
+from agentos.policy.freeze_store import FreezeStore, scope_key
 
 
 @pytest.fixture
@@ -52,7 +53,6 @@ async def test_a_node_freeze_revokes_every_agent_grant_even_one_without_lanes(no
 
 
 async def test_a_local_freeze_revokes_a_controller_grant_that_reaches_only_the_lane(tmp_path):
-    from agentos.node.channel import wire
     from agentos.policy import tokens
     from agentos.policy.grants import GrantBlock
     from agentos.policy.issuers import SERVICE_NAME, TrustedIssuers
@@ -60,7 +60,7 @@ async def test_a_local_freeze_revokes_a_controller_grant_that_reaches_only_the_l
 
     org = Ed25519PrivateKey.generate()
     issuers = TrustedIssuers(tmp_path)
-    issuers.trust("org:test", wire.public_b64(org))
+    issuers.trust("org:test", signing.public_b64(org))
     n = await started(make_node(tmp_path, extra={SERVICE_NAME: issuers}))
     try:
         block = {"v": 1, "id": new_id("gr"), "rid": new_id("rv"), "iat": int(time.time()),

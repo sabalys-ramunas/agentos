@@ -1,0 +1,184 @@
+{
+ "day draft 0": {
+  "ok": "sa_draft_any"
+ },
+ "day template 0": {
+  "ok": "sa_commit_flow_shape"
+ },
+ "day draft 1": {
+  "ok": "sa_draft_any"
+ },
+ "day template 1": {
+  "ok": "sa_commit_flow_shape"
+ },
+ "day draft 2": {
+  "ok": "sa_draft_any"
+ },
+ "day template 2": {
+  "ok": "sa_commit_flow_shape"
+ },
+ "day draft 3": {
+  "ok": null
+ },
+ "day template 3": {
+  "ok": "sa_commit_flow_shape"
+ },
+ "next day draft 0": {
+  "ok": null
+ },
+ "next day template 0": {
+  "ok": "sa_commit_flow_template"
+ },
+ "next day draft 1": {
+  "ok": null
+ },
+ "next day template 1": {
+  "ok": "sa_commit_flow_template"
+ },
+ "next day draft 2": {
+  "ok": null
+ },
+ "next day template 2": {
+  "ok": null
+ },
+ "next day draft 3": {
+  "ok": null
+ },
+ "next day template 3": {
+  "ok": null
+ },
+ "rows": [
+  {
+   "id": "sa_commit_connector",
+   "uses": 0,
+   "day": null,
+   "day_uses": 0
+  },
+  {
+   "id": "sa_commit_day_full",
+   "uses": 0,
+   "day": "2027-01-15",
+   "day_uses": 1
+  },
+  {
+   "id": "sa_commit_expired",
+   "uses": 0,
+   "day": null,
+   "day_uses": 0
+  },
+  {
+   "id": "sa_commit_flow_content",
+   "uses": 0,
+   "day": null,
+   "day_uses": 0
+  },
+  {
+   "id": "sa_commit_flow_shape",
+   "uses": 4,
+   "day": "2027-01-15",
+   "day_uses": 4
+  },
+  {
+   "id": "sa_commit_flow_template",
+   "uses": 2,
+   "day": "2027-01-16",
+   "day_uses": 2
+  },
+  {
+   "id": "sa_commit_future",
+   "uses": 0,
+   "day": null,
+   "day_uses": 0
+  },
+  {
+   "id": "sa_commit_grant",
+   "uses": 0,
+   "day": null,
+   "day_uses": 0
+  },
+  {
+   "id": "sa_commit_issued",
+   "uses": 0,
+   "day": null,
+   "day_uses": 0
+  },
+  {
+   "id": "sa_commit_issued_stale",
+   "uses": 0,
+   "day": null,
+   "day_uses": 0
+  },
+  {
+   "id": "sa_commit_issued_untrusted",
+   "uses": 0,
+   "day": null,
+   "day_uses": 0
+  },
+  {
+   "id": "sa_commit_other_lane",
+   "uses": 0,
+   "day": null,
+   "day_uses": 0
+  },
+  {
+   "id": "sa_commit_revoked",
+   "uses": 0,
+   "day": null,
+   "day_uses": 0
+  },
+  {
+   "id": "sa_commit_tool",
+   "uses": 0,
+   "day": null,
+   "day_uses": 0
+  },
+  {
+   "id": "sa_commit_untargeted",
+   "uses": 0,
+   "day": null,
+   "day_uses": 0
+  },
+  {
+   "id": "sa_commit_used_up",
+   "uses": 2,
+   "day": null,
+   "day_uses": 0
+  },
+  {
+   "id": "sa_commit_withdrawn",
+   "uses": 0,
+   "day": null,
+   "day_uses": 0
+  },
+  {
+   "id": "sa_draft_any",
+   "uses": 3,
+   "day": "2027-01-15",
+   "day_uses": 3
+  },
+  {
+   "id": "sa_draft_content",
+   "uses": 0,
+   "day": null,
+   "day_uses": 0
+  },
+  {
+   "id": "sa_pay_any",
+   "uses": 0,
+   "day": null,
+   "day_uses": 0
+  },
+  {
+   "id": "sa_pay_content",
+   "uses": 0,
+   "day": null,
+   "day_uses": 0
+  },
+  {
+   "id": "sa_plain_read",
+   "uses": 0,
+   "day": null,
+   "day_uses": 0
+  }
+ ]
+}

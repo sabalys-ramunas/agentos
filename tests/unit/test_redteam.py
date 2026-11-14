@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 
 from agentos.stealth.redteam import detectors as d
-from agentos.stealth.redteam import runner, scenario
+from agentos.stealth.redteam import engine, runner, scenario, stats
 from agentos.stealth.redteam.server import DetectorServer
 
 FIREFOX_DOC = ["Host", "User-Agent", "Accept", "Accept-Language", "Accept-Encoding", "Connection", "Referer",
@@ -255,11 +255,11 @@ def test_statistics():
     rng = random.Random(11)
     flat = [rng.uniform(70, 190) for _ in range(300)]
     skewed = [rng.lognormvariate(math.log(150), 0.5) for _ in range(300)]
-    assert d.looks_uniform(flat)
-    assert not d.looks_uniform(skewed)
-    assert not d.looks_uniform(flat[:50])  # too few to say
-    assert d.ks_2samp(flat, flat) == 0
-    assert d.ks_2samp(flat, [x + 1000 for x in flat]) == 1
+    assert stats.looks_uniform(flat)
+    assert not stats.looks_uniform(skewed)
+    assert not stats.looks_uniform(flat[:50])  # too few to say
+    assert stats.ks_2samp(flat, flat) == 0
+    assert stats.ks_2samp(flat, [x + 1000 for x in flat]) == 1
     assert d.phase_concentration([5.0] * 50) == pytest.approx(1.0)
     assert d.phase_concentration([i * 16.667 / 50 for i in range(50)]) < 0.05
 
@@ -428,7 +428,7 @@ DESKTOP = {  # what a stock Firefox on an ordinary desktop shows
 
 
 def test_the_engine_probe_catches_what_a_production_lane_shows():
-    lv = {v.id: v.level for v in d.judge_engine(PROD_LANE)}
+    lv = {v.id: v.level for v in engine.judge_engine(PROD_LANE)}
     assert lv == {"engine.geo_permission": d.SUSPICIOUS, "engine.webgl_limits": d.CAUGHT, "engine.audio": d.SUSPICIOUS,
                   "engine.quota": d.SUSPICIOUS, "engine.hw_decode": d.SUSPICIOUS}
 
@@ -437,13 +437,13 @@ def test_a_claimed_webgl_size_that_does_not_allocate_is_caught():
     # measured on the node: an NVIDIA GTX 980 identity claims 32768 on llvmpipe, which enforces 16384
     probe = {"webglTruth": {"renderer": "NVIDIA GeForce GTX 980, or similar", "claimedMaxTexture": 32768,
                             "allocatesClaimed": False, "allocatesDouble": False, "listedButUnavailable": []}}
-    (v,) = [v for v in d.judge_engine(probe) if v.id == "engine.webgl_limits"]
+    (v,) = [v for v in engine.judge_engine(probe) if v.id == "engine.webgl_limits"]
     assert v.level == d.CAUGHT and "does not allocate" in v.detail
 
 
 def test_the_engine_probe_passes_an_ordinary_desktop():
-    assert {v.level for v in d.judge_engine(DESKTOP)} == {d.CLEAN}
-    assert {v.level for v in d.judge_engine({})} == {d.SKIPPED}
+    assert {v.level for v in engine.judge_engine(DESKTOP)} == {d.CLEAN}
+    assert {v.level for v in engine.judge_engine({})} == {d.SKIPPED}
 
 
 def test_unmerged_pointer_moves_and_keys_without_a_physical_key():

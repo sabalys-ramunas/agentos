@@ -16,22 +16,25 @@ async function start(page: Page, path: string, scenario = 'still') {
   await page.goto(path);
 }
 
-test('Home answers first, and an account opens from its mark on a workspace card', async ({ page }) => {
+test('Home answers first, and an account opens from its card on Accounts', async ({ page }) => {
   await start(page, ORG);
   const main = page.getByRole('main');
-  await expect(main.getByRole('heading', { level: 1 })).toHaveText(/things need you\. Everything else is fine\./);
-  const harbor = main.getByRole('article', { name: 'Harbor Supply' });
-  await expect(harbor).toBeVisible();
-  await harbor.getByRole('link', { name: /^Reddit, / }).click();
+  // One sentence says what runs and what failed; the line under it says what waits for you.
+  await expect(main.getByRole('heading', { level: 1 })).toHaveText(/running on \d+ machines?\./);
+  await expect(main.getByRole('link', { name: /^\d+ things need you$/ })).toHaveAttribute('href', `${ORG}/needs-you`);
+  // The workspace cards moved to Accounts.
+  await page.goto(`${ORG}/accounts`);
+  const harbor = page.getByRole('main').getByRole('region', { name: 'Harbor Supply' });
+  await harbor.getByRole('article', { name: 'Reddit' }).getByRole('link', { name: 'Reddit' }).click();
   await expect(page).toHaveURL(/\/accounts\/harbor\/reddit$/);
-  await expect(page.getByText('The site wants a quick human check.')).toBeVisible();
+  await expect(page.getByText('The site wants a quick human check.').first()).toBeVisible();
 });
 
 test('Cmd-K finds an account, and accounts only appear once you search', async ({ page }) => {
   await start(page, ORG);
-  await expect(page.getByRole('main').getByRole('article', { name: 'Aster Coffee' })).toBeVisible();
+  await expect(page.getByRole('main').getByRole('heading', { level: 1 })).toBeVisible();
   await page.keyboard.press('ControlOrMeta+k');
-  const palette = page.getByRole('dialog', { name: 'Search and commands' });
+  const palette = page.getByRole('dialog', { name: 'Search or run a command' });
   await expect(palette).toBeVisible();
   await expect(palette.getByRole('option', { name: 'Solstice Studio' })).toBeVisible();
   await expect(palette.getByText('Accounts', { exact: true })).toHaveCount(0);
@@ -42,13 +45,15 @@ test('Cmd-K finds an account, and accounts only appear once you search', async (
 
 test('g then n, then a keyboard run through Needs you', async ({ page }) => {
   await start(page, ORG, 'still,computer'); // the passkey check for a yes is the computer's
-  await expect(page.getByRole('main').getByRole('article', { name: 'Aster Coffee' })).toBeVisible();
+  await expect(page.getByRole('main').getByRole('heading', { level: 1 })).toBeVisible();
   await page.keyboard.press('g');
   await page.keyboard.press('n');
   await expect(page).toHaveURL(/needs-you/);
   await expect(page.getByRole('heading', { name: 'Needs you', level: 1 })).toBeVisible();
   const rail = page.getByRole('navigation', { name: 'Main' }).first();
-  await expect(rail.getByRole('link', { name: /Needs you/ })).toContainText('26');
+  const waiting = rail.getByRole('link', { name: /Needs you/ });
+  await expect(waiting).toContainText(/\d+/);
+  const before = Number((await waiting.textContent())?.match(/\d+/)?.[0]);
   // The payment is first: money is the heaviest. It asks again on the desk too, and the confirm
   // arms after a moment.
   await expect(page.getByRole('heading', { level: 2, name: /^Pay \$40/ })).toBeVisible();
@@ -57,7 +62,7 @@ test('g then n, then a keyboard run through Needs you', async ({ page }) => {
   await expect(confirm.getByRole('button', { name: 'Use your passkey' })).toBeEnabled();
   await confirm.getByRole('button', { name: 'Use your passkey' }).click();
   await expect(page.getByRole('button', { name: /^Pay \$40 on Facebook/ })).toHaveCount(0);
-  await expect(rail.getByRole('link', { name: /Needs you/ })).toContainText('25');
+  await expect(waiting).toContainText(String(before - 1));
   // Never "Approved": it says what is under way, and offers Undo.
   await expect(page.getByText(/^Paying from Meridian Travel's Facebook in \d s$/)).toBeVisible();
   await expect(page.getByText('Approved')).toHaveCount(0);
@@ -145,9 +150,10 @@ test('the theme toggle overrides the system and survives a reload', async ({ pag
   await page.getByRole('radio', { name: 'Dark' }).click();
   await page.keyboard.press('Escape');
   const background = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
-  expect(await background()).toBe('rgb(10, 10, 10)');
+  // Mono's dark page is black; its cards are one step up.
+  expect(await background()).toBe('rgb(0, 0, 0)');
   await page.reload();
-  expect(await background()).toBe('rgb(10, 10, 10)');
+  expect(await background()).toBe('rgb(0, 0, 0)');
 });
 
 test('a keyboard user gets a focus ring, and a mouse click leaves none', async ({ page }) => {
@@ -176,7 +182,7 @@ test('Cmd-K gives focus back when dismissed', async ({ page }) => {
   const add = page.getByRole('button', { name: 'Add a machine' });
   await add.focus();
   await page.keyboard.press('ControlOrMeta+k');
-  await expect(page.getByRole('dialog', { name: 'Search and commands' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Search or run a command' })).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(add).toBeFocused();
 });
@@ -197,7 +203,8 @@ test('a node page tails its logs live, and reading never moves under you', async
   await start(page, `${ORG}/nodes/home-mini?tab=logs`, '');
   const log = page.getByRole('log', { name: /Logs from home-mini/ });
   await expect(log.getByText(/heartbeat sent/).first()).toBeVisible();
-  await expect(page.getByText('Live', { exact: true })).toBeVisible();
+  // The top bar has its own Live; this one is the log's.
+  await expect(page.getByRole('region', { name: 'Logs' }).getByText('Live', { exact: true })).toBeVisible();
 
   // Scrolled up, the view holds still and new lines wait behind a pill.
   await log.evaluate((element) => element.scrollTo({ top: 0 }));
@@ -241,20 +248,22 @@ test.describe('at 375 wide', () => {
 
   test('approving works one-handed, and nothing overflows', async ({ page }) => {
     await start(page, `${ORG}/approve`);
-    await expect(page.getByText('20 to decide')).toBeVisible();
+    const left = page.getByText(/^\d+ to decide$/);
+    await expect(left).toBeVisible();
+    const count = Number((await left.textContent())?.match(/\d+/)?.[0]);
     const yes = page.getByRole('button', { name: 'Post it' });
     const box = (await yes.boundingBox())!;
     // A double tap: the second lands on the done state, never on the next post.
     await page.mouse.dblclick(box.x + box.width / 2, box.y + box.height / 2);
-    await expect(page.getByText('19 to decide')).toBeVisible();
+    await expect(page.getByText(`${count - 1} to decide`)).toBeVisible();
     await expect(page.getByRole('heading', { level: 2 })).toHaveText("Post this on Aster Coffee's LinkedIn?");
-    await expect(page.getByText('19 to decide')).toBeVisible();
+    await expect(page.getByText(`${count - 1} to decide`)).toBeVisible();
     // The buttons are in the thumb's reach, at the bottom of the screen.
     expect(box.y + box.height).toBeGreaterThan(812 - 140);
     // Once the next card has armed, a person reading it decides it.
     await expect(page.getByRole('button', { name: "Don't post" })).toBeEnabled();
     await page.getByRole('button', { name: "Don't post" }).click();
-    await expect(page.getByText('18 to decide')).toBeVisible();
+    await expect(page.getByText(`${count - 2} to decide`)).toBeVisible();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow).toBe(0);
   });
@@ -283,7 +292,7 @@ test.describe('at 375 wide', () => {
   test('Home fits the phone, with the answer and what waits first', async ({ page }) => {
     await start(page, ORG);
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-    await expect(page.getByRole('region', { name: 'Needs you' }).getByRole('article').filter({ visible: true })).toHaveCount(2);
+    await expect(page.getByRole('region', { name: 'Needs you' }).getByRole('listitem').filter({ visible: true })).toHaveCount(3);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow).toBe(0);
   });

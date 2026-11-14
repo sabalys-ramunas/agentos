@@ -21,7 +21,7 @@ from starlette.routing import Route
 
 from agentos.api.app import PERSON_ONLY, Api, access_of, endpoint, owner_in_person
 from agentos.api.errors import ApiError
-from agentos.api.jsonable import maybe_await
+from agentos.core.aio import maybe_await
 from agentos.core.presence import Presence
 
 log = logging.getLogger("agentos.api")
@@ -66,7 +66,7 @@ MOUNTS: dict[str, dict[tuple[str, str], tuple[str, str]]] = {
         ("/api/site-apis/{id}/repair", "POST"): ("/api/site-apis/{id}/repair", "site_api.repair"),
         ("/api/site-apis/{id}/keep-updated", "POST"): ("/api/site-apis/{id}/keep-updated", "site_api.keep_updated"),
     },
-    "agentos.node.viewer_app": {  # lane control (take over, hand back, stop, deny), view links, site lists
+    "agentos.node.viewer_routes": {  # lane control (take over, hand back, stop, deny), view links, site lists
         ("/lanes/{workspace}/{name}/control", "POST"): ("/api/lanes/{workspace}/{name}/control", "lane.control"),
         ("/lanes/{workspace}/{name}/view-link", "POST"): ("/api/lanes/{workspace}/{name}/view-link",
                                                            "lane.view_link"),
@@ -139,7 +139,7 @@ async def _schedule_on_needs_a_person(api: Api, request: Request) -> None:
         request.state.auth.access.require_presence(Presence.PERSON, "schedule.toggle")
 
 
-# A lane control's `action` (node.viewer_app.ACTIONS): what a person did, kept on the trace so History can say it.
+# A lane control's `action` (node.viewer_actions.ACTIONS): what a person did, kept on the trace so History can say it.
 CONTROL_ACTIONS = ("take", "hand_back", "stop_agent", "deny_request")
 
 

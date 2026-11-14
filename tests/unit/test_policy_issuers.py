@@ -5,10 +5,10 @@ import time
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
+from agentos.core import signing
 from agentos.core.config import NodeConfig
 from agentos.core.models import Effect
 from agentos.core.runtime import Runtime
-from agentos.node.channel import wire
 from agentos.policy import tokens
 from agentos.policy.errors import Denied
 from agentos.policy.grants import GrantBlock
@@ -23,7 +23,7 @@ def node(tmp_path):
     config = NodeConfig(home=tmp_path, mcp_token="owner-token-x")
     runtime = Runtime(config=config)
     issuers = TrustedIssuers(tmp_path)
-    issuers.trust("org:test", wire.public_b64(org))
+    issuers.trust("org:test", signing.public_b64(org))
     runtime.register(SERVICE_NAME, issuers)
     policy = build(runtime)
     yield policy, issuers, org

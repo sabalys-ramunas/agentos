@@ -22,6 +22,7 @@ from workflow_support import LIST, MAIL, OWNER, action, commit_flow, make_node, 
 from agentos.core.errors import InvalidRequest, NotFound, PolicyDenied
 from agentos.core.models import Effect, LaneSpec
 from agentos.events.service import build as build_events
+from agentos.mcp import providers as mcp_providers
 from agentos.node.channel import reports, wire
 from agentos.node.channel.workflows import WorkflowSync, relay_hook, relay_unsubscribe
 from agentos.runner.schedules import sign_webhook
@@ -310,7 +311,6 @@ async def full_node(home, name, ctl, lanes):
     from channel_support import FAST, RunningNode, extra_tools, join_node
     from fakes import FakeInteraction
 
-    from agentos.node import daemon
     from agentos.node.daemon import build_services, node_runtime, serve
 
     config = await join_node(home, name, ctl)
@@ -325,7 +325,7 @@ async def full_node(home, name, ctl, lanes):
     channel.timings = dataclasses.replace(FAST, doctor_after=600.0)
     channel._backoff.low, channel._backoff.high = FAST.backoff_min, FAST.backoff_max
     stop_it = asyncio.Event()
-    task = asyncio.create_task(serve(config, runtime, stop=stop_it, providers=[*daemon.tool_providers(), extra_tools]))
+    task = asyncio.create_task(serve(config, runtime, stop=stop_it, providers=[*mcp_providers.tool_providers(), extra_tools]))
     await asyncio.wait_for(channel.welcomed.wait(), 15)
     return RunningNode(name, config, runtime, manager, interaction, stop_it, task)
 

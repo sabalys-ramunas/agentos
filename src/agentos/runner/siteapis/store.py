@@ -16,8 +16,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from agentos.core import migrate
 from agentos.core.errors import ServiceUnavailable
-from agentos.ops import migrate
 from agentos.runner.siteapis.migrations import MIGRATIONS, SCHEMA_V1
 from agentos.runner.store import RunnerStore
 from agentos.runner.util import iso

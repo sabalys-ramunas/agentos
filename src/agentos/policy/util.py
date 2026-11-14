@@ -14,6 +14,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
+from agentos.core import clock
 from agentos.core.errors import InvalidRequest
 
 
@@ -80,9 +81,8 @@ def content_hash(obj: Any) -> str:
 
 
 def iso(ts: float | None) -> str | None:
-    if ts is None:
-        return None
-    return datetime.fromtimestamp(ts, UTC).isoformat().replace("+00:00", "Z")
+    """A timestamp as policy's stores write it: UTC with Z, microseconds when not zero."""
+    return clock.iso_or_none(ts, z=True)
 
 
 def utc_day(ts: float) -> str:

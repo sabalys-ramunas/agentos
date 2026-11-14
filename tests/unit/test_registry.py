@@ -25,14 +25,12 @@ from agentos.core.errors import (
 )
 from agentos.core.models import ActionKind, Effect, LaneSpec, Principal, ProxyConfig
 from agentos.core.runtime import Runtime
-from agentos.core.tools import ToolImage, ToolSpec
+from agentos.core.tools import ToolImage, ToolSpec, bind_request_token, current_request_token
 from agentos.mcp.registry import (
     LANE_ARG_DESCRIPTION,
     OwnerContext,
     allow_all_wrap,
-    bind_request_token,
     build_mcp,
-    current_request_token,
     lean_schema,
     split_docstring,
     tool_params,

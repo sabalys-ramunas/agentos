@@ -19,12 +19,14 @@ from typing import Any
 
 import pytest
 
+from agentos.core.locator import Locator
 from agentos.core.models import ControlState, LaneControl, LaneInfo, LaneSpec, LaneState, RunStatus, utcnow
 from agentos.core.runtime import Runtime
 from agentos.node import flow_driver as fd
+from agentos.node import flow_recorder
 from agentos.node.interaction import PlaywrightInteraction
 from agentos.node.snapshot import find_refs
-from agentos.runner.models import Locator, StepStatus
+from agentos.runner.models import StepStatus
 from agentos.runner.recorder import Recorder
 from agentos.runner.service import build
 from agentos.runner.store import RunnerStore
@@ -347,7 +349,7 @@ async def test_upload_from_the_inbox_with_readback(page, site_url, ia, tmp_path)
 
 
 async def round_trip(page: Any, ia: PlaywrightInteraction, ref: str, *, snapshot: str | None = None) -> Locator:
-    loc = await fd.structural_locator_for(page, ref, snapshot=snapshot)
+    loc = await flow_recorder.structural_locator_for(page, ref, snapshot=snapshot)
     driver = fd.PlaywrightFlowDriver(page, lane_id=LANE, interaction=ia, dwell_ms=(0, 0))
     el = await driver.find(loc)
     want = await page.locator(f"aria-ref={ref}").evaluate(fd.PATH_JS)
@@ -416,10 +418,10 @@ async def test_the_recorder_hook_records_a_flow_that_replays_verified(page, site
     rec_rt = Runtime(flows=flows)
     recorder.start(LANE)
     nav = await ia.navigate(page, f"{site_url}/feed.html")
-    fd.record_navigate(rec_rt, LANE, nav.url)
+    flow_recorder.record_navigate(rec_rt, LANE, nav.url)
     snap = (await ia.snapshot(page)).text
     ref = one_ref(snap, "button", "Like 12", "Post by Ada Lovelace")  # a comment Like shows 12 too
-    result = await fd.record_act(rec_rt, LANE, page, ref, "click", None, lambda: ia.act(page, ref, "click"))
+    result = await flow_recorder.record_act(rec_rt, LANE, page, ref, "click", None, lambda: ia.act(page, ref, "click"))
     assert result.ok and result.changed
     events = recorder.stop(LANE)["events"]
     draft, _ = recorder.build(events, lane=LANE, flow_id="fd.feed.recorded", effect="commit")

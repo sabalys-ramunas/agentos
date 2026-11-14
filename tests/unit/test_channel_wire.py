@@ -9,8 +9,10 @@ import time
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
+from agentos.core import signing
+from agentos.core.signing import verify_controller
 from agentos.node.channel import wire
-from agentos.node.channel.identity import KeyFileError, NodeKey, load_or_create_key, verify_controller
+from agentos.node.channel.identity import KeyFileError, NodeKey, load_or_create_key
 from agentos.node.channel.node import Connection, NodeChannel
 from agentos.node.channel.store import ChannelStore
 
@@ -65,29 +67,29 @@ def test_ulids_and_stream_frames():
 
 def test_base64url_is_unpadded_and_strict():
     raw = os.urandom(32)
-    text = wire.b64e(raw)
-    assert "=" not in text and wire.b64d(text) == raw
+    text = signing.b64e(raw)
+    assert "=" not in text and signing.b64d(text) == raw
     for bad in ("a+b/", "abc=", "**"):
         with pytest.raises(ValueError):
-            wire.b64d(bad)
+            signing.b64d(bad)
 
 
 def test_signatures_use_the_pinned_strings():
     key = Ed25519PrivateKey.generate()
-    pub = wire.public_b64(key)
+    pub = signing.public_b64(key)
     assert wire.hello_message("n0nce", "node_1") == b"agentos-node-hello:v1:n0nce:node_1"
     body = {"revocation_ids": ["rv_a"], "é": "ü"}
-    signed = wire.sign_controller(key, "revoke", "node_1", body)
+    signed = signing.sign_controller(key, "revoke", "node_1", body)
     expected = (b"agentos-controller-msg:v1:revoke:node_1:"
                 + json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode())
-    assert wire.controller_message("revoke", "node_1", signed) == expected
+    assert signing.controller_message("revoke", "node_1", signed) == expected
     assert verify_controller(pub, "revoke", "node_1", signed)
     assert not verify_controller(pub, "revoke", "node_2", signed)          # another node
     assert not verify_controller(pub, "config_update", "node_1", signed)   # another type
     assert not verify_controller(pub, "revoke", "node_1", {**signed, "revocation_ids": []})
     assert not verify_controller(pub, "revoke", "node_1", {"revocation_ids": ["rv_a"]})
     assert not verify_controller(pub, "revoke", "node_1", {**signed, "sig": "!!"})
-    assert not wire.verify("not a key", signed["sig"], expected)
+    assert not signing.verify("not a key", signed["sig"], expected)
 
 
 @pytest.mark.parametrize(("typed", "url"), [

@@ -14,7 +14,9 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from agentos.core.driver import AmbiguousLocator, ElementNotFound, ElementState, JsonResponse
 from agentos.core.errors import ApprovalPending, LaneNotFound, NotFound, PolicyDenied
+from agentos.core.locator import Locator
 from agentos.core.models import (
     ControlState,
     Effect,
@@ -26,8 +28,6 @@ from agentos.core.models import (
     Principal,
     Signal,
 )
-from agentos.runner.driver import AmbiguousLocator, ElementNotFound, ElementState, JsonResponse
-from agentos.runner.models import Locator
 from agentos.runner.util import Clock
 
 # ---------------------------------------------------------------- clock
@@ -573,8 +573,8 @@ class FakeApprovals:
 
     def create(self, approval_id: str, **fields: Any) -> None:
         """An action card as the policy gate makes one: it binds the content's digest
-        (agentos.policy.approvals.ActionBinding), which the runner checks again at dispatch."""
-        from agentos.policy.approvals import BINDING_CALL, content_digest
+        (agentos.policy.approval_binding.ActionBinding), which the runner checks again at dispatch."""
+        from agentos.policy.approval_binding import BINDING_CALL, content_digest
 
         bound = {"kind": "action", "binding": BINDING_CALL, "content_digest": content_digest(fields.get("content"))}
         self.items[approval_id] = {"id": approval_id, "state": "pending", **bound, **fields}
@@ -628,7 +628,7 @@ class FakePolicy:
             self._n += 1
             aid = f"ap_{self._n}"
             if self.approvals is not None:
-                from agentos.policy.approvals import named_target
+                from agentos.policy.approval_binding import named_target
 
                 self.approvals.create(aid, content=kw.get("content"), summary=kw.get("summary"),
                                       lane=kw.get("lane_id"),

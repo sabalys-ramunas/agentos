@@ -2,7 +2,7 @@
 
 These commands run the env runtime in this process, as the user agentos runs as on the node.
 While agentosd owns it, `remove` and `doctor` go through agentosd's API (as a person, with the
-one-time code `agentos.cli.operator_presence` writes), and the commands that need the runtime
+one-time code `agentos.commands.base.operator_presence` writes), and the commands that need the runtime
 itself say so and how to go on.
 """
 
@@ -41,7 +41,11 @@ def main(home: Annotated[Path | None, typer.Option(help="AGENTOS_HOME (default: 
 
 def _manager():
     from agentos.env.manager import EnvManager
-    return EnvManager(_state["home"] or home_from_env())
+    from agentos.vms.ssh import SshLauncher
+
+    manager = EnvManager(_state["home"] or home_from_env())
+    manager.remote_launcher = SshLauncher()  # VM lanes run over ssh, as in the daemon (agentos.vms)
+    return manager
 
 
 def _run(coro_fn, *, start: bool = True):
@@ -76,7 +80,7 @@ def _daemon(method: str, path: str, *, person: bool = False):
     home = _state["home"] or home_from_env()
     if not config_path(home).exists():
         return None
-    from agentos.cli import daemon_request, read_config
+    from agentos.commands.base import daemon_request, read_config
     cfg = read_config(home)
     node = getattr(cfg, "name", None) or "node-1"
     return daemon_request(cfg, method, f"/api/nodes/{node}/environments{path}", absent_ok=True, person=person)

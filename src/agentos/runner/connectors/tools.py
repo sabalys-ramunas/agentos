@@ -37,8 +37,9 @@ from agentos.core.tools import TOOL_NAME_RE, LaneCheck, ToolContext, ToolSpec, T
 from agentos.runner.connectors.models import BINDING_PARAMS
 from agentos.runner.connectors.surfaces import dotted, operation_meta
 from agentos.runner.connectors.taint import label_context
-from agentos.runner.executor import learned_flow
-from agentos.runner.models import CONNECTOR_PREFIX, FlowVersion
+from agentos.runner.execution import learned_flow
+from agentos.runner.flowdoc import FlowVersion
+from agentos.runner.names import CONNECTOR_PREFIX
 from agentos.runner.tools import (
     DEFAULT_WAIT_S,
     MAX_WAIT_S,

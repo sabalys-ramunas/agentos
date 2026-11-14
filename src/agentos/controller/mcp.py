@@ -164,9 +164,6 @@ class ControllerMcp(MCPServer):
             out[name] = (tool, nodes)
         return out
 
-    def _tool_input_schema(self, name: str) -> dict[str, Any] | None:
-        return None  # nodes validate arguments; the controller does not second-guess their schemas
-
     def shown_toolsets(self, grant: AgentGrant) -> frozenset[str] | None:
         """What this connection's list shows (None: every tool): its URL's toolsets, else the
         controller's default, plus what it loaded with tools_more in this MCP session."""

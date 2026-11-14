@@ -8,7 +8,7 @@
 A mark names the operation (site.op) and the proof hash (compile.proof_hash) of the
 implementation the canary ran. It is honoured only while the installed operation's proof hash is
 that one: any edit to its steps, locators, readbacks, preflights, commit request or pace makes it
-stale (`verified_stale`), and the engagement engine holds the operation again (`op_unverified`).
+stale (`verified_stale`), and the operation is shown as unverified again.
 
 Provenance: marks live here, on the node, and nowhere else counts. A connector file or a signed
 bundle may carry a `verified` text (and its hash); that is information for a reader, never a
@@ -19,7 +19,7 @@ The file is the owner's (mode 0600) and is written atomically.
 A second provenance, `by: "replay"`, is written only by node code (`mark_replay`, called by the
 profile learner after its model-free replays of a learned operation passed); no MCP tool, API route
 or CLI writes it. It is honoured only for a learned connector (saved_by kind `learned`, keyed
-<site>-profile): agentos.engage.operations.Registry checks the installed flow's kind, and
+<site>-profile): agentos.profiles.learner.ProfileLearner.state checks the installed flow's kind, and
 `mark_replay` refuses any other key. Like an owner's mark it names the proof hash, so a learned
 operation re-installed with other steps makes it stale.
 """
@@ -38,7 +38,7 @@ from typing import Any
 
 from agentos.runner.connectors.compile import ConnectorInvalid, proof_hash
 from agentos.runner.connectors.models import LEARNED_SUFFIX, PROOF_HASH_RE
-from agentos.runner.models import CONNECTOR_PREFIX
+from agentos.runner.names import CONNECTOR_PREFIX
 
 MARKS_FILE = "connector-marks.json"
 VERIFIED_STALE = "verified_stale"

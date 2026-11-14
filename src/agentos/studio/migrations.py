@@ -1,4 +1,4 @@
-"""Where agentos.ops.migrate.discover() finds the studio database's migrations."""
+"""Where agentos.core.migrate.discover() finds the studio database's migrations."""
 
 from agentos.studio.store.migrations import MIGRATIONS
 

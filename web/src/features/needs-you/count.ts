@@ -1,14 +1,14 @@
 /**
  * The one "needs you" count, with its parts: what to decide (approvals and questions), what did not go
- * through after a yes, runs that stopped halfway, plans to approve, login codes, and accounts that need a
+ * through after a yes, runs that stopped halfway, login codes, and accounts that need a
  * hand (an agent's login request among them), and brand changes for the owner. Needs you's header and All clear, the rail's badge and the
  * status pill all read it, so the numbers agree. The node's `/status` (`needs_you`, routes_core.py) counts
  * the same parts, for anything that reads the status alone.
  *
  * `workspace` narrows every part to one business, as the workspace switcher does.
  */
-import { useAccess, useApprovals, useBrandProposals, useCodes, useEnginePlans, useFailedApprovals, useQuestions, useRunsWaiting, useWorkspaces } from '@/api/hooks';
-import type { Approval, BrandProposal, CodeRequest, EngageDay, Question, Role, Run, Workspace } from '@/api/types';
+import { useAccess, useApprovals, useBrandProposals, useCodes, useFailedApprovals, useQuestions, useRunsWaiting, useWorkspaces } from '@/api/hooks';
+import type { Approval, BrandProposal, CodeRequest, Question, Role, Run, Workspace } from '@/api/types';
 import { plural } from '@/lib/format';
 import { needsHand } from '@/lib/lanes';
 
@@ -22,8 +22,6 @@ export interface NeedsYouParts {
   failed: number;
   /** Runs that stopped halfway: the owner says whether the step went through. */
   stopped: number;
-  /** Engagement plans an agent drafted, for the owner's yes. */
-  plans: number;
   /** Login codes a site asked for. */
   codes: number;
   /** Accounts that need a hand, an agent's login request among them. */
@@ -51,7 +49,6 @@ export interface CountLists {
   questions?: Question[];
   failed?: Approval[];
   stopped?: Run[];
-  plans?: EngageDay[];
   codes?: CodeRequest[];
   workspaces?: Workspace[];
   brand?: BrandProposal[];
@@ -69,7 +66,6 @@ export function countParts(lists: CountLists, workspace: string | null | undefin
     decide: (lists.approvals ?? []).filter((item) => item.kind !== 'question' && mine(item.lane)).length + (lists.questions ?? []).filter((item) => mine(item.lane)).length,
     failed: (lists.failed ?? []).filter((item) => mine(item.lane) && !stoppedApprovals.has(item.id)).length,
     stopped: stopped.length,
-    plans: (lists.plans ?? []).filter((row) => mine(row.surface)).length,
     codes: (lists.codes ?? []).filter((item) => item.state === 'open' && Date.parse(item.expires_at) > now && mine(item.lane)).length,
     hands: (lists.workspaces ?? [])
       .filter((item) => !workspace || item.id === workspace)
@@ -88,7 +84,6 @@ export function useNeedsYouCount(org: string, workspace: string | null | undefin
   const workspaces = useWorkspaces(org);
   const codes = useCodes(org, canSeeCodes(access.role));
   const runs = useRunsWaiting(org, owner);
-  const plans = useEnginePlans(org, owner);
   // Only the owner decides a brand change, so only the owner's count reads them.
   const brand = useBrandProposals(org, owner);
 
@@ -99,7 +94,7 @@ export function useNeedsYouCount(org: string, workspace: string | null | undefin
     failed,
     workspaces,
     ...(canSeeCodes(access.role) ? [codes] : []),
-    ...(owner ? [runs, plans, brand] : []),
+    ...(owner ? [runs, brand] : []),
   ];
   const loaded = needed.every((query) => query.isSuccess);
   const failedToLoad = needed.some((query) => query.isError);
@@ -109,7 +104,6 @@ export function useNeedsYouCount(org: string, workspace: string | null | undefin
     questions: questions.data,
     failed: failed.data,
     stopped: runs.data,
-    plans: plans.data,
     codes: codes.data,
     workspaces: workspaces.data,
     brand: brand.data,
@@ -129,7 +123,6 @@ export function partsWords(parts: NeedsYouParts): string[] {
     toDecide ? `${toDecide} to decide` : null,
     parts.failed ? `${parts.failed} that did not go through` : null,
     parts.stopped ? `${plural(parts.stopped, 'run')} stopped halfway` : null,
-    parts.plans ? `${plural(parts.plans, 'plan')} to approve` : null,
     parts.brand ? `${plural(parts.brand, 'brand change')} to approve` : null,
     parts.hands ? `${plural(parts.hands, 'account')} that need${parts.hands === 1 ? 's' : ''} a hand` : null,
   ].filter((part): part is string => part !== null);

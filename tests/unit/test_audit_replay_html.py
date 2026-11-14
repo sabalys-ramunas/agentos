@@ -18,6 +18,7 @@ from agentos.audit import captures
 from agentos.audit.service import AuditService
 from agentos.core.errors import ApprovalPending
 from agentos.core.models import Effect
+from agentos.policy import capture_files
 from agentos.policy.routing import PolicyConfig, RoutingTable
 from agentos.policy.traces import TraceEvent, TraceStore
 
@@ -353,7 +354,7 @@ async def test_a_lane_that_did_not_opt_in_keeps_nothing(capture_node):
     store, home, _, _ = capture_node
     ctx = FakeCtx(store, home, png(seed=1), _act(store))
     assert await captures.after_commit(ctx, LANE, FakePage()) is None
-    assert ctx.taken == 0 and not captures.capture_dir(home).exists()
+    assert ctx.taken == 0 and not capture_files.capture_dir(home).exists()
     captures.settings_for(home).set("biz-b/*", True)  # another workspace only
     assert await captures.after_commit(ctx, LANE, FakePage()) is None and ctx.taken == 0
 
@@ -418,11 +419,11 @@ async def test_retention_and_the_size_cap_delete_captures(capture_node):
         kept.append(captures.capture_file(home, rec["sha256"], "png"))
     old = kept[0]
     os.utime(old, (T0 - 100 * 86400, T0 - 100 * 86400))
-    assert captures.prune(home, retention_days=90, now=T0) == 1 and not old.exists()
+    assert capture_files.prune(home, retention_days=90, now=T0) == 1 and not old.exists()
     os.utime(kept[1], (T0 - 10, T0 - 10))
     os.utime(kept[2], (T0, T0))
     size = kept[2].stat().st_size
-    assert captures.prune(home, retention_days=90, max_bytes=size, now=T0) == 1
+    assert capture_files.prune(home, retention_days=90, max_bytes=size, now=T0) == 1
     assert not kept[1].exists() and kept[2].exists()  # the oldest goes first
 
 
@@ -432,13 +433,13 @@ async def test_a_stale_half_written_file_goes_and_the_sweep_is_throttled(capture
     store, home, _, _ = capture_node
     captures.settings_for(home).set(LANE, True)
     await captures.after_commit(FakeCtx(store, home, png(seed=20), _act(store)), LANE, FakePage())
-    root = captures.capture_dir(home)
+    root = capture_files.capture_dir(home)
     stale, fresh = root / "dead.123.tmp", root / "live.456.tmp"
     stale.write_bytes(b"x")
     fresh.write_bytes(b"y")
     os.utime(stale, (T0 - 2 * 3600, T0 - 2 * 3600))
     os.utime(fresh, (T0 - 60, T0 - 60))
-    assert captures.prune(home, retention_days=90, now=T0) == 1
+    assert capture_files.prune(home, retention_days=90, now=T0) == 1
     assert not stale.exists() and fresh.exists()
     swept = []
     monkeypatch.setattr(captures, "prune", lambda h, **kw: swept.append(h))

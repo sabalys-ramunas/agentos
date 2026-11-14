@@ -200,10 +200,6 @@ def detect_step(values: list[float]) -> tuple[float | None, float]:
     return best
 
 
-def step_name(px: float, step: float) -> str:
-    return str(round(px / step))
-
-
 def radius_names(pxs: list[float]) -> dict[float, str]:
     out = {}
     n = 0
@@ -243,9 +239,3 @@ def type_scale(sizes: list[float], base: float | None) -> tuple[dict[float, str]
 def weight_name(w: float) -> str:
     return WEIGHT_NAMES.get(int(w), str(int(w)))
 
-
-def first_family(stack: list[str]) -> str | None:
-    for f in stack:
-        if f not in GENERIC_FAMILIES:
-            return f
-    return None

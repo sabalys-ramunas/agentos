@@ -24,9 +24,9 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509.oid import NameOID
 
+from agentos.core.driver import MAX_JSON_BYTES
 from agentos.core.models import RunStatus
 from agentos.node.flow_driver import JsonWatch, PlaywrightFlowDriver
-from agentos.runner.driver import MAX_JSON_BYTES
 from agentos.runner.fakes import FakeLanes, FakeNotifier, FakeSite, Harness
 from agentos.runner.models import SUCCEEDED
 from agentos.runner.util import Clock

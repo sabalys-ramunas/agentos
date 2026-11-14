@@ -15,8 +15,9 @@ import pytest
 from test_runas import FakeSystem
 
 from agentos import runas
-from agentos.brains import fakecli, launch
+from agentos.brains import launch
 from agentos.brains.shim import Shim
+from agentos.dev import fakecli
 from agentos.runas import Identity, Server
 
 

@@ -57,8 +57,8 @@ def pin_for(index: int, *, firefox: int, pinned_at: datetime) -> dict[str, Any]:
 def installed_firefox(home: Path) -> int:
     """The installed Camoufox's Firefox version, as the lane check reads it, so the dev pins match it
     (FIREFOX when none is installed: the check then cannot compare, and says so)."""
-    from agentos.ops.system import Host
-    from agentos.stealth.fingerprint import browser_major
+    from agentos.core.system import Host
+    from agentos.node.fingerprint import browser_major
 
     cache = Path(home) / ".cache"
     try:

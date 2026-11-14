@@ -33,7 +33,8 @@ from agentos.core import age
 from agentos.core.models import LaneKind, ProxyConfig
 from agentos.workspaces.transfer import export as wsexport
 from agentos.workspaces.transfer import import_ as wsimport
-from agentos.workspaces.transfer.export import BadExport, ExportRefused
+from agentos.workspaces.transfer import read as wsread
+from agentos.workspaces.transfer.format import BadExport, ExportRefused
 from agentos.workspaces.transfer.import_ import ImportOptions
 
 
@@ -56,7 +57,7 @@ def export(node: Node, dest: Path, workspace: str = "acme", **kw):
 def read(node: Node, path: Path, **kw):
     if "identities" not in kw:
         kw.setdefault("passphrase", PASSPHRASE)
-    return wsexport.read_export(path, wsexport.staging_dir(node.home, "import"), **kw)
+    return wsread.read_export(path, wsread.staging_dir(node.home, "import"), **kw)
 
 
 def plan(node: Node, contents, **options):

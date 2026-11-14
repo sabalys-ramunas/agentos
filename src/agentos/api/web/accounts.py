@@ -22,8 +22,9 @@ from starlette.routing import BaseRoute
 from agentos.api.actors import OWNER_SPELLINGS
 from agentos.api.app import Api
 from agentos.api.errors import ApiError
-from agentos.api.web.base import ORG, Refused, control_of, holder_names, org_route, read, write
+from agentos.api.web.base import Refused, control_of, holder_names, org_route, read, write
 from agentos.api.web.environments import without_environments
+from agentos.core.app_paths import lane_viewer_path
 
 """What a node is to the app: a computer its owner runs, with no plan caps (session.py says the same)."""
 
@@ -46,11 +47,6 @@ async def _body(request: Request) -> dict[str, Any]:
 def lane_path(ws: str, name: str, *tail: str) -> str:
     """The node's path for a lane, each value one segment so an address cannot climb out of it."""
     return "/".join(["/api/lanes", quote(ws, safe=""), quote(name, safe=""), *tail]).rstrip("/")
-
-
-def lane_viewer_path(workspace: str, name: str) -> str:
-    """Where the app opens this lane's live view on this node: the same socket the node serves."""
-    return f"/api/orgs/{ORG}/lanes/{quote(workspace, safe='')}/{quote(name, safe='')}/vnc"
 
 
 def lane_for_app(lane: dict[str, Any], holders: Mapping[str, str] | None = None,

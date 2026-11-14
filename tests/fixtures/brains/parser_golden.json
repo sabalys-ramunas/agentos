@@ -1,0 +1,2347 @@
+{
+ "claude": {
+  "outcomes": [
+   [
+    "limit_cost",
+    "the CLI stopped at its own cost limit"
+   ],
+   [
+    "limit_cost",
+    "the CLI stopped at its own cost limit"
+   ],
+   [
+    "limit_cost",
+    "the CLI stopped at its own cost limit"
+   ]
+  ],
+  "steps": [
+   {
+    "events": [
+     {
+      "kind": "system",
+      "raw": {
+       "claude_code_version": "2.1",
+       "model": "claude-x",
+       "session_id": "s1",
+       "subtype": "init",
+       "type": "system"
+      },
+      "text": "session started: model claude-x"
+     }
+    ],
+    "state": {
+     "cli_version": "2.1",
+     "cost_usd": null,
+     "final_seen": false,
+     "last_error": null,
+     "limit_hit": null,
+     "model": "claude-x",
+     "resets_at": null,
+     "result_is_error": null,
+     "result_text": null,
+     "session_id": "s1",
+     "signal": null,
+     "signal_detail": null,
+     "tokens": 0,
+     "turns": 0,
+     "usage": {
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "input_tokens": 0,
+      "output_tokens": 0
+     },
+     "window_utilization": null
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "retry",
+      "raw": {
+       "attempt": 1,
+       "error": "overloaded",
+       "error_status": 503,
+       "max_retries": 5,
+       "subtype": "api_retry",
+       "type": "system"
+      },
+      "text": "API retry 1/5: 503 overloaded"
+     }
+    ],
+    "state": {
+     "cli_version": "2.1",
+     "cost_usd": null,
+     "final_seen": false,
+     "last_error": null,
+     "limit_hit": null,
+     "model": "claude-x",
+     "resets_at": null,
+     "result_is_error": null,
+     "result_text": null,
+     "session_id": "s1",
+     "signal": "server_error",
+     "signal_detail": "API retry 1/5: 503 overloaded",
+     "tokens": 0,
+     "turns": 0,
+     "usage": {
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "input_tokens": 0,
+      "output_tokens": 0
+     },
+     "window_utilization": null
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "retry",
+      "raw": {
+       "attempt": 2,
+       "error": "",
+       "error_status": 401,
+       "max_retries": 5,
+       "subtype": "api_retry",
+       "type": "system"
+      },
+      "text": "API retry 2/5: 401 "
+     }
+    ],
+    "state": {
+     "cli_version": "2.1",
+     "cost_usd": null,
+     "final_seen": false,
+     "last_error": null,
+     "limit_hit": null,
+     "model": "claude-x",
+     "resets_at": null,
+     "result_is_error": null,
+     "result_text": null,
+     "session_id": "s1",
+     "signal": "auth_failed",
+     "signal_detail": "API retry 2/5: 401 ",
+     "tokens": 0,
+     "turns": 0,
+     "usage": {
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "input_tokens": 0,
+      "output_tokens": 0
+     },
+     "window_utilization": null
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "retry",
+      "raw": {
+       "attempt": 3,
+       "error": "billing_error",
+       "error_status": null,
+       "max_retries": 5,
+       "subtype": "api_retry",
+       "type": "system"
+      },
+      "text": "API retry 3/5: None billing_error"
+     }
+    ],
+    "state": {
+     "cli_version": "2.1",
+     "cost_usd": null,
+     "final_seen": false,
+     "last_error": null,
+     "limit_hit": null,
+     "model": "claude-x",
+     "resets_at": null,
+     "result_is_error": null,
+     "result_text": null,
+     "session_id": "s1",
+     "signal": "auth_failed",
+     "signal_detail": "API retry 3/5: None billing_error",
+     "tokens": 0,
+     "turns": 0,
+     "usage": {
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "input_tokens": 0,
+      "output_tokens": 0
+     },
+     "window_utilization": null
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "retry",
+      "raw": {
+       "attempt": 4,
+       "error": "",
+       "error_status": 429,
+       "max_retries": 5,
+       "subtype": "api_retry",
+       "type": "system"
+      },
+      "text": "API retry 4/5: 429 "
+     }
+    ],
+    "state": {
+     "cli_version": "2.1",
+     "cost_usd": null,
+     "final_seen": false,
+     "last_error": null,
+     "limit_hit": null,
+     "model": "claude-x",
+     "resets_at": null,
+     "result_is_error": null,
+     "result_text": null,
+     "session_id": "s1",
+     "signal": "rate_limited",
+     "signal_detail": "API retry 4/5: 429 ",
+     "tokens": 0,
+     "turns": 0,
+     "usage": {
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "input_tokens": 0,
+      "output_tokens": 0
+     },
+     "window_utilization": null
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "retry",
+      "raw": {
+       "attempt": 5,
+       "error": "bad",
+       "error_status": 400,
+       "max_retries": 5,
+       "subtype": "api_retry",
+       "type": "system"
+      },
+      "text": "API retry 5/5: 400 bad"
+     }
+    ],
+    "state": {
+     "cli_version": "2.1",
+     "cost_usd": null,
+     "final_seen": false,
+     "last_error": null,
+     "limit_hit": null,
+     "model": "claude-x",
+     "resets_at": null,
+     "result_is_error": null,
+     "result_text": null,
+     "session_id": "s1",
+     "signal": "rate_limited",
+     "signal_detail": "API retry 4/5: 429 ",
+     "tokens": 0,
+     "turns": 0,
+     "usage": {
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "input_tokens": 0,
+      "output_tokens": 0
+     },
+     "window_utilization": null
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "system",
+      "raw": {
+       "subtype": "hook",
+       "type": "system"
+      },
+      "text": "hook"
+     }
+    ],
+    "state": {
+     "cli_version": "2.1",
+     "cost_usd": null,
+     "final_seen": false,
+     "last_error": null,
+     "limit_hit": null,
+     "model": "claude-x",
+     "resets_at": null,
+     "result_is_error": null,
+     "result_text": null,
+     "session_id": "s1",
+     "signal": "rate_limited",
+     "signal_detail": "API retry 4/5: 429 ",
+     "tokens": 0,
+     "turns": 0,
+     "usage": {
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "input_tokens": 0,
+      "output_tokens": 0
+     },
+     "window_utilization": null
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "system",
+      "raw": {
+       "type": "system"
+      },
+      "text": "system"
+     }
+    ],
+    "state": {
+     "cli_version": "2.1",
+     "cost_usd": null,
+     "final_seen": false,
+     "last_error": null,
+     "limit_hit": null,
+     "model": "claude-x",
+     "resets_at": null,
+     "result_is_error": null,
+     "result_text": null,
+     "session_id": "s1",
+     "signal": "rate_limited",
+     "signal_detail": "API retry 4/5: 429 ",
+     "tokens": 0,
+     "turns": 0,
+     "usage": {
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "input_tokens": 0,
+      "output_tokens": 0
+     },
+     "window_utilization": null
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "rate_limit",
+      "raw": {
+       "rate_limit_info": {
+        "rateLimitType": "five_hour",
+        "status": "allowed",
+        "utilization": 0.4
+       },
+       "type": "rate_limit_event"
+      },
+      "text": "rate limit allowed five_hour"
+     }
+    ],
+    "state": {
+     "cli_version": "2.1",
+     "cost_usd": null,
+     "final_seen": false,
+     "last_error": null,
+     "limit_hit": null,
+     "model": "claude-x",
+     "resets_at": null,
+     "result_is_error": null,
+     "result_text": null,
+     "session_id": "s1",
+     "signal": "rate_limited",
+     "signal_detail": "API retry 4/5: 429 ",
+     "tokens": 0,
+     "turns": 0,
+     "usage": {
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "input_tokens": 0,
+      "output_tokens": 0
+     },
+     "window_utilization": 0.4
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "rate_limit",
+      "raw": {
+       "rate_limit_info": {
+        "rateLimitType": "five_hour",
+        "resetsAt": 1900000000000,
+        "status": "rejected"
+       },
+       "type": "rate_limit_event"
+      },
+      "text": "rate limit rejected five_hour"
+     }
+    ],
+    "state": {
+     "cli_version": "2.1",
+     "cost_usd": null,
+     "final_seen": false,
+     "last_error": null,
+     "limit_hit": null,
+     "model": "claude-x",
+     "resets_at": 1900000000.0,
+     "result_is_error": null,
+     "result_text": null,
+     "session_id": "s1",
+     "signal": "rate_limited",
+     "signal_detail": "rate limit five_hour rejected",
+     "tokens": 0,
+     "turns": 0,
+     "usage": {
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "input_tokens": 0,
+      "output_tokens": 0
+     },
+     "window_utilization": 0.4
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "rate_limit",
+      "raw": {
+       "rate_limit_info": {
+        "resetsAt": 1900000000,
+        "status": "blocked"
+       },
+       "type": "rate_limit_event"
+      },
+      "text": "rate limit blocked"
+     }
+    ],
+    "state": {
+     "cli_version": "2.1",
+     "cost_usd": null,
+     "final_seen": false,
+     "last_error": null,
+     "limit_hit": null,
+     "model": "claude-x",
+     "resets_at": 1900000000.0,
+     "result_is_error": null,
+     "result_text": null,
+     "session_id": "s1",
+     "signal": "rate_limited",
+     "signal_detail": "rate limit  blocked",
+     "tokens": 0,
+     "turns": 0,
+     "usage": {
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "input_tokens": 0,
+      "output_tokens": 0
+     },
+     "window_utilization": 0.4
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "rate_limit",
+      "raw": {
+       "type": "rate_limit_event"
+      },
+      "text": "rate limit"
+     }
+    ],
+    "state": {
+     "cli_version": "2.1",
+     "cost_usd": null,
+     "final_seen": false,
+     "last_error": null,
+     "limit_hit": null,
+     "model": "claude-x",
+     "resets_at": 1900000000.0,
+     "result_is_error": null,
+     "result_text": null,
+     "session_id": "s1",
+     "signal": "rate_limited",
+     "signal_detail": "rate limit  blocked",
+     "tokens": 0,
+     "turns": 0,
+     "usage": {
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "input_tokens": 0,
+      "output_tokens": 0
+     },
+     "window_utilization": 0.4
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "assistant",
+      "raw": {
+       "message": {
+        "content": [
+         {
+          "text": "hello",
+          "type": "text"
+         },
+         {
+          "input": {
+           "cmd": "ls"
+          },
+          "name": "Bash",
+          "type": "tool_use"
+         },
+         {
+          "thinking": "hmm",
+          "type": "thinking"
+         },
+         {
+          "type": "image"
+         }
+        ],
+        "id": "m1",
+        "model": "claude-y",
+        "usage": {
+         "cache_creation_input_tokens": 7,
+         "cache_read_input_tokens": 100,
+         "input_tokens": 10,
+         "output_tokens": 3
+        }
+       },
+       "type": "assistant"
+      },
+      "text": "hello"
+     },
+     {
+      "kind": "tool_use",
+      "text": "Bash: {\"cmd\": \"ls\"}"
+     },
+     {
+      "kind": "thinking",
+      "text": "hmm"
+     }
+    ],
+    "state": {
+     "cli_version": "2.1",
+     "cost_usd": null,
+     "final_seen": false,
+     "last_error": null,
+     "limit_hit": null,
+     "model": "claude-y",
+     "resets_at": 1900000000.0,
+     "result_is_error": null,
+     "result_text": null,
+     "session_id": "s1",
+     "signal": "rate_limited",
+     "signal_detail": "rate limit  blocked",
+     "tokens": 20,
+     "turns": 1,
+     "usage": {
+      "cache_read_tokens": 100,
+      "cache_write_tokens": 7,
+      "input_tokens": 10,
+      "output_tokens": 3
+     },
+     "window_utilization": 0.4
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "assistant",
+      "raw": {
+       "message": {
+        "content": [],
+        "id": "m1",
+        "usage": {
+         "input_tokens": 12,
+         "output_tokens": 2
+        }
+       },
+       "type": "assistant"
+      },
+      "text": ""
+     }
+    ],
+    "state": {
+     "cli_version": "2.1",
+     "cost_usd": null,
+     "final_seen": false,
+     "last_error": null,
+     "limit_hit": null,
+     "model": "claude-y",
+     "resets_at": 1900000000.0,
+     "result_is_error": null,
+     "result_text": null,
+     "session_id": "s1",
+     "signal": "rate_limited",
+     "signal_detail": "rate limit  blocked",
+     "tokens": 22,
+     "turns": 1,
+     "usage": {
+      "cache_read_tokens": 100,
+      "cache_write_tokens": 7,
+      "input_tokens": 12,
+      "output_tokens": 3
+     },
+     "window_utilization": 0.4
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "assistant",
+      "raw": {
+       "error": "rate_limit",
+       "message": {
+        "content": [
+         {
+          "text": "API Error",
+          "type": "text"
+         }
+        ],
+        "model": "<synthetic>"
+       },
+       "type": "assistant",
+       "uuid": "u2"
+      },
+      "text": "API Error"
+     },
+     {
+      "kind": "error",
+      "text": "API Error"
+     }
+    ],
+    "state": {
+     "cli_version": "2.1",
+     "cost_usd": null,
+     "final_seen": false,
+     "last_error": "API Error",
+     "limit_hit": null,
+     "model": "claude-y",
+     "resets_at": 1900000000.0,
+     "result_is_error": null,
+     "result_text": null,
+     "session_id": "s1",
+     "signal": "rate_limited",
+     "signal_detail": "API Error",
+     "tokens": 22,
+     "turns": 1,
+     "usage": {
+      "cache_read_tokens": 100,
+      "cache_write_tokens": 7,
+      "input_tokens": 12,
+      "output_tokens": 3
+     },
+     "window_utilization": 0.4
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "assistant",
+      "raw": {
+       "api_error_status": 401,
+       "is_api_error_message": true,
+       "message": {
+        "content": [
+         {
+          "text": "Invalid API key",
+          "type": "text"
+         }
+        ],
+        "id": "m3"
+       },
+       "type": "assistant"
+      },
+      "text": "Invalid API key"
+     },
+     {
+      "kind": "error",
+      "text": "Invalid API key"
+     }
+    ],
+    "state": {
+     "cli_version": "2.1",
+     "cost_usd": null,
+     "final_seen": false,
+     "last_error": "Invalid API key",
+     "limit_hit": null,
+     "model": "claude-y",
+     "resets_at": 1900000000.0,
+     "result_is_error": null,
+     "result_text": null,
+     "session_id": "s1",
+     "signal": "rate_limited",
+     "signal_detail": "API Error",
+     "tokens": 22,
+     "turns": 2,
+     "usage": {
+      "cache_read_tokens": 100,
+      "cache_write_tokens": 7,
+      "input_tokens": 12,
+      "output_tokens": 3
+     },
+     "window_utilization": 0.4
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "error",
+      "raw": {
+       "api_error_status": 429,
+       "error": "weird",
+       "message": {
+        "content": [],
+        "id": "m4"
+       },
+       "type": "assistant"
+      },
+      "text": "weird"
+     }
+    ],
+    "state": {
+     "cli_version": "2.1",
+     "cost_usd": null,
+     "final_seen": false,
+     "last_error": "weird",
+     "limit_hit": null,
+     "model": "claude-y",
+     "resets_at": 1900000000.0,
+     "result_is_error": null,
+     "result_text": null,
+     "session_id": "s1",
+     "signal": "rate_limited",
+     "signal_detail": "weird",
+     "tokens": 22,
+     "turns": 3,
+     "usage": {
+      "cache_read_tokens": 100,
+      "cache_write_tokens": 7,
+      "input_tokens": 12,
+      "output_tokens": 3
+     },
+     "window_utilization": 0.4
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "assistant",
+      "raw": {
+       "error": "unknown",
+       "message": {
+        "content": [
+         {
+          "text": "overloaded_error 529",
+          "type": "text"
+         }
+        ],
+        "id": "m5"
+       },
+       "type": "assistant"
+      },
+      "text": "overloaded_error 529"
+     },
+     {
+      "kind": "error",
+      "text": "overloaded_error 529"
+     }
+    ],
+    "state": {
+     "cli_version": "2.1",
+     "cost_usd": null,
+     "final_seen": false,
+     "last_error": "overloaded_error 529",
+     "limit_hit": null,
+     "model": "claude-y",
+     "resets_at": 1900000000.0,
+     "result_is_error": null,
+     "result_text": null,
+     "session_id": "s1",
+     "signal": "rate_limited",
+     "signal_detail": "weird",
+     "tokens": 22,
+     "turns": 4,
+     "usage": {
+      "cache_read_tokens": 100,
+      "cache_write_tokens": 7,
+      "input_tokens": 12,
+      "output_tokens": 3
+     },
+     "window_utilization": 0.4
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "assistant",
+      "raw": {
+       "message": {
+        "content": []
+       },
+       "type": "assistant"
+      },
+      "text": ""
+     }
+    ],
+    "state": {
+     "cli_version": "2.1",
+     "cost_usd": null,
+     "final_seen": false,
+     "last_error": "overloaded_error 529",
+     "limit_hit": null,
+     "model": "claude-y",
+     "resets_at": 1900000000.0,
+     "result_is_error": null,
+     "result_text": null,
+     "session_id": "s1",
+     "signal": "rate_limited",
+     "signal_detail": "weird",
+     "tokens": 22,
+     "turns": 5,
+     "usage": {
+      "cache_read_tokens": 100,
+      "cache_write_tokens": 7,
+      "input_tokens": 12,
+      "output_tokens": 3
+     },
+     "window_utilization": 0.4
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "assistant",
+      "raw": {
+       "type": "assistant"
+      },
+      "text": ""
+     }
+    ],
+    "state": {
+     "cli_version": "2.1",
+     "cost_usd": null,
+     "final_seen": false,
+     "last_error": "overloaded_error 529",
+     "limit_hit": null,
+     "model": "claude-y",
+     "resets_at": 1900000000.0,
+     "result_is_error": null,
+     "result_text": null,
+     "session_id": "s1",
+     "signal": "rate_limited",
+     "signal_detail": "weird",
+     "tokens": 22,
+     "turns": 6,
+     "usage": {
+      "cache_read_tokens": 100,
+      "cache_write_tokens": 7,
+      "input_tokens": 12,
+      "output_tokens": 3
+     },
+     "window_utilization": 0.4
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "tool_result",
+      "raw": {
+       "message": {
+        "content": [
+         {
+          "content": "file1\nfile2",
+          "type": "tool_result"
+         },
+         {
+          "type": "text"
+         }
+        ]
+       },
+       "type": "user"
+      },
+      "text": "file1\nfile2"
+     }
+    ],
+    "state": {
+     "cli_version": "2.1",
+     "cost_usd": null,
+     "final_seen": false,
+     "last_error": "overloaded_error 529",
+     "limit_hit": null,
+     "model": "claude-y",
+     "resets_at": 1900000000.0,
+     "result_is_error": null,
+     "result_text": null,
+     "session_id": "s1",
+     "signal": "rate_limited",
+     "signal_detail": "weird",
+     "tokens": 22,
+     "turns": 6,
+     "usage": {
+      "cache_read_tokens": 100,
+      "cache_write_tokens": 7,
+      "input_tokens": 12,
+      "output_tokens": 3
+     },
+     "window_utilization": 0.4
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "user",
+      "raw": {
+       "message": {
+        "content": "plain"
+       },
+       "type": "user"
+      },
+      "text": "plain"
+     }
+    ],
+    "state": {
+     "cli_version": "2.1",
+     "cost_usd": null,
+     "final_seen": false,
+     "last_error": "overloaded_error 529",
+     "limit_hit": null,
+     "model": "claude-y",
+     "resets_at": 1900000000.0,
+     "result_is_error": null,
+     "result_text": null,
+     "session_id": "s1",
+     "signal": "rate_limited",
+     "signal_detail": "weird",
+     "tokens": 22,
+     "turns": 6,
+     "usage": {
+      "cache_read_tokens": 100,
+      "cache_write_tokens": 7,
+      "input_tokens": 12,
+      "output_tokens": 3
+     },
+     "window_utilization": 0.4
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "user",
+      "raw": {
+       "message": {
+        "content": [
+         {
+          "text": "x",
+          "type": "text"
+         }
+        ]
+       },
+       "type": "user"
+      },
+      "text": "[{\"type\": \"text\", \"text\": \"x\"}]"
+     }
+    ],
+    "state": {
+     "cli_version": "2.1",
+     "cost_usd": null,
+     "final_seen": false,
+     "last_error": "overloaded_error 529",
+     "limit_hit": null,
+     "model": "claude-y",
+     "resets_at": 1900000000.0,
+     "result_is_error": null,
+     "result_text": null,
+     "session_id": "s1",
+     "signal": "rate_limited",
+     "signal_detail": "weird",
+     "tokens": 22,
+     "turns": 6,
+     "usage": {
+      "cache_read_tokens": 100,
+      "cache_write_tokens": 7,
+      "input_tokens": 12,
+      "output_tokens": 3
+     },
+     "window_utilization": 0.4
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "user",
+      "raw": {
+       "type": "user"
+      },
+      "text": ""
+     }
+    ],
+    "state": {
+     "cli_version": "2.1",
+     "cost_usd": null,
+     "final_seen": false,
+     "last_error": "overloaded_error 529",
+     "limit_hit": null,
+     "model": "claude-y",
+     "resets_at": 1900000000.0,
+     "result_is_error": null,
+     "result_text": null,
+     "session_id": "s1",
+     "signal": "rate_limited",
+     "signal_detail": "weird",
+     "tokens": 22,
+     "turns": 6,
+     "usage": {
+      "cache_read_tokens": 100,
+      "cache_write_tokens": 7,
+      "input_tokens": 12,
+      "output_tokens": 3
+     },
+     "window_utilization": 0.4
+    }
+   },
+   {
+    "events": [
+     {
+      "cost_usd": 0.12,
+      "is_error": false,
+      "kind": "result",
+      "raw": {
+       "is_error": false,
+       "num_turns": 9,
+       "result": "done",
+       "subtype": "success",
+       "total_cost_usd": 0.12,
+       "type": "result",
+       "usage": {
+        "cache_creation_input_tokens": 70,
+        "cache_read_input_tokens": 1,
+        "input_tokens": 5,
+        "output_tokens": 50
+       }
+      },
+      "text": "done",
+      "turns": 9
+     }
+    ],
+    "state": {
+     "cli_version": "2.1",
+     "cost_usd": 0.12,
+     "final_seen": true,
+     "last_error": "overloaded_error 529",
+     "limit_hit": null,
+     "model": "claude-y",
+     "resets_at": 1900000000.0,
+     "result_is_error": false,
+     "result_text": "done",
+     "session_id": "s1",
+     "signal": "rate_limited",
+     "signal_detail": "weird",
+     "tokens": 132,
+     "turns": 9,
+     "usage": {
+      "cache_read_tokens": 100,
+      "cache_write_tokens": 70,
+      "input_tokens": 12,
+      "output_tokens": 50
+     },
+     "window_utilization": 0.4
+    }
+   },
+   {
+    "events": [
+     {
+      "cost_usd": 0.12,
+      "is_error": true,
+      "kind": "result",
+      "raw": {
+       "is_error": true,
+       "result": null,
+       "subtype": "error_max_turns",
+       "type": "result"
+      },
+      "text": "",
+      "turns": 9
+     }
+    ],
+    "state": {
+     "cli_version": "2.1",
+     "cost_usd": 0.12,
+     "final_seen": true,
+     "last_error": "overloaded_error 529",
+     "limit_hit": "limit_turns",
+     "model": "claude-y",
+     "resets_at": 1900000000.0,
+     "result_is_error": true,
+     "result_text": null,
+     "session_id": "s1",
+     "signal": "rate_limited",
+     "signal_detail": "weird",
+     "tokens": 132,
+     "turns": 9,
+     "usage": {
+      "cache_read_tokens": 100,
+      "cache_write_tokens": 70,
+      "input_tokens": 12,
+      "output_tokens": 50
+     },
+     "window_utilization": 0.4
+    }
+   },
+   {
+    "events": [
+     {
+      "cost_usd": 0.12,
+      "is_error": true,
+      "kind": "result",
+      "raw": {
+       "api_error_status": 429,
+       "is_error": true,
+       "result": "spent",
+       "subtype": "error",
+       "terminal_reason": "budget",
+       "type": "result"
+      },
+      "text": "spent",
+      "turns": 9
+     }
+    ],
+    "state": {
+     "cli_version": "2.1",
+     "cost_usd": 0.12,
+     "final_seen": true,
+     "last_error": "overloaded_error 529",
+     "limit_hit": "limit_cost",
+     "model": "claude-y",
+     "resets_at": 1900000000.0,
+     "result_is_error": true,
+     "result_text": "spent",
+     "session_id": "s1",
+     "signal": "rate_limited",
+     "signal_detail": "spent",
+     "tokens": 132,
+     "turns": 9,
+     "usage": {
+      "cache_read_tokens": 100,
+      "cache_write_tokens": 70,
+      "input_tokens": 12,
+      "output_tokens": 50
+     },
+     "window_utilization": 0.4
+    }
+   },
+   {
+    "events": [
+     {
+      "cost_usd": 0.12,
+      "is_error": true,
+      "kind": "result",
+      "raw": {
+       "api_error_status": 403,
+       "is_error": true,
+       "result": "nope",
+       "type": "result"
+      },
+      "text": "nope",
+      "turns": 9
+     }
+    ],
+    "state": {
+     "cli_version": "2.1",
+     "cost_usd": 0.12,
+     "final_seen": true,
+     "last_error": "overloaded_error 529",
+     "limit_hit": "limit_cost",
+     "model": "claude-y",
+     "resets_at": 1900000000.0,
+     "result_is_error": true,
+     "result_text": "nope",
+     "session_id": "s1",
+     "signal": "rate_limited",
+     "signal_detail": "spent",
+     "tokens": 132,
+     "turns": 9,
+     "usage": {
+      "cache_read_tokens": 100,
+      "cache_write_tokens": 70,
+      "input_tokens": 12,
+      "output_tokens": 50
+     },
+     "window_utilization": 0.4
+    }
+   },
+   {
+    "events": [
+     {
+      "cost_usd": 0.12,
+      "is_error": true,
+      "kind": "result",
+      "raw": {
+       "api_error_status": 500,
+       "is_error": true,
+       "result": "",
+       "type": "result"
+      },
+      "text": "",
+      "turns": 9
+     }
+    ],
+    "state": {
+     "cli_version": "2.1",
+     "cost_usd": 0.12,
+     "final_seen": true,
+     "last_error": "overloaded_error 529",
+     "limit_hit": "limit_cost",
+     "model": "claude-y",
+     "resets_at": 1900000000.0,
+     "result_is_error": true,
+     "result_text": "",
+     "session_id": "s1",
+     "signal": "rate_limited",
+     "signal_detail": "spent",
+     "tokens": 132,
+     "turns": 9,
+     "usage": {
+      "cache_read_tokens": 100,
+      "cache_write_tokens": 70,
+      "input_tokens": 12,
+      "output_tokens": 50
+     },
+     "window_utilization": 0.4
+    }
+   },
+   {
+    "events": [
+     {
+      "cost_usd": 0.12,
+      "is_error": true,
+      "kind": "result",
+      "raw": {
+       "api_error_status": 404,
+       "is_error": true,
+       "type": "result"
+      },
+      "text": "",
+      "turns": 9
+     }
+    ],
+    "state": {
+     "cli_version": "2.1",
+     "cost_usd": 0.12,
+     "final_seen": true,
+     "last_error": "overloaded_error 529",
+     "limit_hit": "limit_cost",
+     "model": "claude-y",
+     "resets_at": 1900000000.0,
+     "result_is_error": true,
+     "result_text": null,
+     "session_id": "s1",
+     "signal": "rate_limited",
+     "signal_detail": "spent",
+     "tokens": 132,
+     "turns": 9,
+     "usage": {
+      "cache_read_tokens": 100,
+      "cache_write_tokens": 70,
+      "input_tokens": 12,
+      "output_tokens": 50
+     },
+     "window_utilization": 0.4
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "something_else",
+      "raw": {
+       "session_id": "s2",
+       "type": "something_else"
+      },
+      "text": ""
+     }
+    ],
+    "state": {
+     "cli_version": "2.1",
+     "cost_usd": 0.12,
+     "final_seen": true,
+     "last_error": "overloaded_error 529",
+     "limit_hit": "limit_cost",
+     "model": "claude-y",
+     "resets_at": 1900000000.0,
+     "result_is_error": true,
+     "result_text": null,
+     "session_id": "s2",
+     "signal": "rate_limited",
+     "signal_detail": "spent",
+     "tokens": 132,
+     "turns": 9,
+     "usage": {
+      "cache_read_tokens": 100,
+      "cache_write_tokens": 70,
+      "input_tokens": 12,
+      "output_tokens": 50
+     },
+     "window_utilization": 0.4
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "event",
+      "raw": {
+       "no_type": true
+      },
+      "text": ""
+     }
+    ],
+    "state": {
+     "cli_version": "2.1",
+     "cost_usd": 0.12,
+     "final_seen": true,
+     "last_error": "overloaded_error 529",
+     "limit_hit": "limit_cost",
+     "model": "claude-y",
+     "resets_at": 1900000000.0,
+     "result_is_error": true,
+     "result_text": null,
+     "session_id": "s2",
+     "signal": "rate_limited",
+     "signal_detail": "spent",
+     "tokens": 132,
+     "turns": 9,
+     "usage": {
+      "cache_read_tokens": 100,
+      "cache_write_tokens": 70,
+      "input_tokens": 12,
+      "output_tokens": 50
+     },
+     "window_utilization": 0.4
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "raw",
+      "text": "not json"
+     }
+    ],
+    "state": {
+     "cli_version": "2.1",
+     "cost_usd": 0.12,
+     "final_seen": true,
+     "last_error": "overloaded_error 529",
+     "limit_hit": "limit_cost",
+     "model": "claude-y",
+     "resets_at": 1900000000.0,
+     "result_is_error": true,
+     "result_text": null,
+     "session_id": "s2",
+     "signal": "rate_limited",
+     "signal_detail": "spent",
+     "tokens": 132,
+     "turns": 9,
+     "usage": {
+      "cache_read_tokens": 100,
+      "cache_write_tokens": 70,
+      "input_tokens": 12,
+      "output_tokens": 50
+     },
+     "window_utilization": 0.4
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "raw",
+      "text": "[1]"
+     }
+    ],
+    "state": {
+     "cli_version": "2.1",
+     "cost_usd": 0.12,
+     "final_seen": true,
+     "last_error": "overloaded_error 529",
+     "limit_hit": "limit_cost",
+     "model": "claude-y",
+     "resets_at": 1900000000.0,
+     "result_is_error": true,
+     "result_text": null,
+     "session_id": "s2",
+     "signal": "rate_limited",
+     "signal_detail": "spent",
+     "tokens": 132,
+     "turns": 9,
+     "usage": {
+      "cache_read_tokens": 100,
+      "cache_write_tokens": 70,
+      "input_tokens": 12,
+      "output_tokens": 50
+     },
+     "window_utilization": 0.4
+    }
+   },
+   {
+    "events": [],
+    "state": {
+     "cli_version": "2.1",
+     "cost_usd": 0.12,
+     "final_seen": true,
+     "last_error": "overloaded_error 529",
+     "limit_hit": "limit_cost",
+     "model": "claude-y",
+     "resets_at": 1900000000.0,
+     "result_is_error": true,
+     "result_text": null,
+     "session_id": "s2",
+     "signal": "rate_limited",
+     "signal_detail": "spent",
+     "tokens": 132,
+     "turns": 9,
+     "usage": {
+      "cache_read_tokens": 100,
+      "cache_write_tokens": 70,
+      "input_tokens": 12,
+      "output_tokens": 50
+     },
+     "window_utilization": 0.4
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "user",
+      "text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx... [69600 more chars]",
+      "truncated": true
+     }
+    ],
+    "state": {
+     "cli_version": "2.1",
+     "cost_usd": 0.12,
+     "final_seen": true,
+     "last_error": "overloaded_error 529",
+     "limit_hit": "limit_cost",
+     "model": "claude-y",
+     "resets_at": 1900000000.0,
+     "result_is_error": true,
+     "result_text": null,
+     "session_id": "s2",
+     "signal": "rate_limited",
+     "signal_detail": "spent",
+     "tokens": 132,
+     "turns": 9,
+     "usage": {
+      "cache_read_tokens": 100,
+      "cache_write_tokens": 70,
+      "input_tokens": 12,
+      "output_tokens": 50
+     },
+     "window_utilization": 0.4
+    }
+   }
+  ]
+ },
+ "codex": {
+  "outcomes": [
+   [
+    "rate_limited",
+    "turn failed turn failed 429 Too Many Requests"
+   ],
+   [
+    "rate_limited",
+    "turn failed turn failed 429 Too Many Requests"
+   ],
+   [
+    "rate_limited",
+    "turn failed turn failed 429 Too Many Requests"
+   ]
+  ],
+  "steps": [
+   {
+    "events": [
+     {
+      "kind": "system",
+      "raw": {
+       "thread_id": "t1",
+       "type": "thread.started"
+      },
+      "text": "thread started t1"
+     }
+    ],
+    "state": {
+     "cli_version": null,
+     "cost_usd": null,
+     "final_seen": false,
+     "last_error": null,
+     "limit_hit": null,
+     "model": null,
+     "resets_at": null,
+     "result_is_error": null,
+     "result_text": null,
+     "session_id": "t1",
+     "signal": null,
+     "signal_detail": null,
+     "tokens": 0,
+     "turns": 0,
+     "usage": {
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "input_tokens": 0,
+      "output_tokens": 0
+     },
+     "window_utilization": null
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "system",
+      "raw": {
+       "type": "turn.started"
+      },
+      "text": "turn started"
+     }
+    ],
+    "state": {
+     "cli_version": null,
+     "cost_usd": null,
+     "final_seen": false,
+     "last_error": null,
+     "limit_hit": null,
+     "model": null,
+     "resets_at": null,
+     "result_is_error": null,
+     "result_text": null,
+     "session_id": "t1",
+     "signal": null,
+     "signal_detail": null,
+     "tokens": 0,
+     "turns": 0,
+     "usage": {
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "input_tokens": 0,
+      "output_tokens": 0
+     },
+     "window_utilization": null
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "progress",
+      "raw": {
+       "item": {
+        "status": "in_progress",
+        "type": "command_execution"
+       },
+       "type": "item.started"
+      },
+      "text": "command_execution in_progress"
+     }
+    ],
+    "state": {
+     "cli_version": null,
+     "cost_usd": null,
+     "final_seen": false,
+     "last_error": null,
+     "limit_hit": null,
+     "model": null,
+     "resets_at": null,
+     "result_is_error": null,
+     "result_text": null,
+     "session_id": "t1",
+     "signal": null,
+     "signal_detail": null,
+     "tokens": 0,
+     "turns": 0,
+     "usage": {
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "input_tokens": 0,
+      "output_tokens": 0
+     },
+     "window_utilization": null
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "progress",
+      "raw": {
+       "item": {
+        "type": "reasoning"
+       },
+       "type": "item.updated"
+      },
+      "text": "reasoning"
+     }
+    ],
+    "state": {
+     "cli_version": null,
+     "cost_usd": null,
+     "final_seen": false,
+     "last_error": null,
+     "limit_hit": null,
+     "model": null,
+     "resets_at": null,
+     "result_is_error": null,
+     "result_text": null,
+     "session_id": "t1",
+     "signal": null,
+     "signal_detail": null,
+     "tokens": 0,
+     "turns": 0,
+     "usage": {
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "input_tokens": 0,
+      "output_tokens": 0
+     },
+     "window_utilization": null
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "assistant",
+      "raw": {
+       "item": {
+        "text": "hi",
+        "type": "agent_message"
+       },
+       "type": "item.completed"
+      },
+      "text": "hi"
+     }
+    ],
+    "state": {
+     "cli_version": null,
+     "cost_usd": null,
+     "final_seen": false,
+     "last_error": null,
+     "limit_hit": null,
+     "model": null,
+     "resets_at": null,
+     "result_is_error": null,
+     "result_text": "hi",
+     "session_id": "t1",
+     "signal": null,
+     "signal_detail": null,
+     "tokens": 0,
+     "turns": 1,
+     "usage": {
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "input_tokens": 0,
+      "output_tokens": 0
+     },
+     "window_utilization": null
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "tool_use",
+      "raw": {
+       "item": {
+        "aggregated_output": "a\nb",
+        "command": "ls",
+        "type": "command_execution"
+       },
+       "type": "item.completed"
+      },
+      "text": "command_execution: ls -> a\nb"
+     }
+    ],
+    "state": {
+     "cli_version": null,
+     "cost_usd": null,
+     "final_seen": false,
+     "last_error": null,
+     "limit_hit": null,
+     "model": null,
+     "resets_at": null,
+     "result_is_error": null,
+     "result_text": "hi",
+     "session_id": "t1",
+     "signal": null,
+     "signal_detail": null,
+     "tokens": 0,
+     "turns": 2,
+     "usage": {
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "input_tokens": 0,
+      "output_tokens": 0
+     },
+     "window_utilization": null
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "tool_use",
+      "raw": {
+       "item": {
+        "tool": "t",
+        "type": "mcp_tool_call"
+       },
+       "type": "item.completed"
+      },
+      "text": "mcp_tool_call: t"
+     }
+    ],
+    "state": {
+     "cli_version": null,
+     "cost_usd": null,
+     "final_seen": false,
+     "last_error": null,
+     "limit_hit": null,
+     "model": null,
+     "resets_at": null,
+     "result_is_error": null,
+     "result_text": "hi",
+     "session_id": "t1",
+     "signal": null,
+     "signal_detail": null,
+     "tokens": 0,
+     "turns": 3,
+     "usage": {
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "input_tokens": 0,
+      "output_tokens": 0
+     },
+     "window_utilization": null
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "tool_use",
+      "raw": {
+       "item": {
+        "query": "q",
+        "type": "web_search"
+       },
+       "type": "item.completed"
+      },
+      "text": "web_search: q"
+     }
+    ],
+    "state": {
+     "cli_version": null,
+     "cost_usd": null,
+     "final_seen": false,
+     "last_error": null,
+     "limit_hit": null,
+     "model": null,
+     "resets_at": null,
+     "result_is_error": null,
+     "result_text": "hi",
+     "session_id": "t1",
+     "signal": null,
+     "signal_detail": null,
+     "tokens": 0,
+     "turns": 4,
+     "usage": {
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "input_tokens": 0,
+      "output_tokens": 0
+     },
+     "window_utilization": null
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "tool_use",
+      "raw": {
+       "item": {
+        "type": "file_change"
+       },
+       "type": "item.completed"
+      },
+      "text": "file_change: file_change"
+     }
+    ],
+    "state": {
+     "cli_version": null,
+     "cost_usd": null,
+     "final_seen": false,
+     "last_error": null,
+     "limit_hit": null,
+     "model": null,
+     "resets_at": null,
+     "result_is_error": null,
+     "result_text": "hi",
+     "session_id": "t1",
+     "signal": null,
+     "signal_detail": null,
+     "tokens": 0,
+     "turns": 5,
+     "usage": {
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "input_tokens": 0,
+      "output_tokens": 0
+     },
+     "window_utilization": null
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "thinking",
+      "raw": {
+       "item": {
+        "text": "think",
+        "type": "reasoning"
+       },
+       "type": "item.completed"
+      },
+      "text": "think"
+     }
+    ],
+    "state": {
+     "cli_version": null,
+     "cost_usd": null,
+     "final_seen": false,
+     "last_error": null,
+     "limit_hit": null,
+     "model": null,
+     "resets_at": null,
+     "result_is_error": null,
+     "result_text": "hi",
+     "session_id": "t1",
+     "signal": null,
+     "signal_detail": null,
+     "tokens": 0,
+     "turns": 5,
+     "usage": {
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "input_tokens": 0,
+      "output_tokens": 0
+     },
+     "window_utilization": null
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "error",
+      "raw": {
+       "item": {
+        "message": "429 Too Many Requests",
+        "type": "error"
+       },
+       "type": "item.completed"
+      },
+      "text": "429 Too Many Requests"
+     }
+    ],
+    "state": {
+     "cli_version": null,
+     "cost_usd": null,
+     "final_seen": false,
+     "last_error": "429 Too Many Requests",
+     "limit_hit": null,
+     "model": null,
+     "resets_at": null,
+     "result_is_error": null,
+     "result_text": "hi",
+     "session_id": "t1",
+     "signal": "rate_limited",
+     "signal_detail": "429 Too Many Requests",
+     "tokens": 0,
+     "turns": 5,
+     "usage": {
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "input_tokens": 0,
+      "output_tokens": 0
+     },
+     "window_utilization": null
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "event",
+      "raw": {
+       "item": {
+        "type": "todo_list"
+       },
+       "type": "item.completed"
+      },
+      "text": "todo_list"
+     }
+    ],
+    "state": {
+     "cli_version": null,
+     "cost_usd": null,
+     "final_seen": false,
+     "last_error": "429 Too Many Requests",
+     "limit_hit": null,
+     "model": null,
+     "resets_at": null,
+     "result_is_error": null,
+     "result_text": "hi",
+     "session_id": "t1",
+     "signal": "rate_limited",
+     "signal_detail": "429 Too Many Requests",
+     "tokens": 0,
+     "turns": 5,
+     "usage": {
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "input_tokens": 0,
+      "output_tokens": 0
+     },
+     "window_utilization": null
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "event",
+      "raw": {
+       "type": "item.completed"
+      },
+      "text": "None"
+     }
+    ],
+    "state": {
+     "cli_version": null,
+     "cost_usd": null,
+     "final_seen": false,
+     "last_error": "429 Too Many Requests",
+     "limit_hit": null,
+     "model": null,
+     "resets_at": null,
+     "result_is_error": null,
+     "result_text": "hi",
+     "session_id": "t1",
+     "signal": "rate_limited",
+     "signal_detail": "429 Too Many Requests",
+     "tokens": 0,
+     "turns": 5,
+     "usage": {
+      "cache_read_tokens": 0,
+      "cache_write_tokens": 0,
+      "input_tokens": 0,
+      "output_tokens": 0
+     },
+     "window_utilization": null
+    }
+   },
+   {
+    "events": [
+     {
+      "is_error": false,
+      "kind": "result",
+      "raw": {
+       "type": "turn.completed",
+       "usage": {
+        "cached_input_tokens": 4,
+        "input_tokens": 10,
+        "output_tokens": 2,
+        "x": "y"
+       }
+      },
+      "text": "hi",
+      "turns": 5
+     }
+    ],
+    "state": {
+     "cli_version": null,
+     "cost_usd": null,
+     "final_seen": true,
+     "last_error": "429 Too Many Requests",
+     "limit_hit": null,
+     "model": null,
+     "resets_at": null,
+     "result_is_error": false,
+     "result_text": "hi",
+     "session_id": "t1",
+     "signal": "rate_limited",
+     "signal_detail": "429 Too Many Requests",
+     "tokens": 12,
+     "turns": 5,
+     "usage": {
+      "cache_read_tokens": 4,
+      "cache_write_tokens": 0,
+      "input_tokens": 10,
+      "output_tokens": 2
+     },
+     "window_utilization": null
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "retry",
+      "raw": {
+       "message": "Reconnecting... 1/5",
+       "type": "error"
+      },
+      "text": "Reconnecting... 1/5"
+     }
+    ],
+    "state": {
+     "cli_version": null,
+     "cost_usd": null,
+     "final_seen": true,
+     "last_error": "Reconnecting... 1/5",
+     "limit_hit": null,
+     "model": null,
+     "resets_at": null,
+     "result_is_error": false,
+     "result_text": "hi",
+     "session_id": "t1",
+     "signal": "rate_limited",
+     "signal_detail": "429 Too Many Requests",
+     "tokens": 12,
+     "turns": 5,
+     "usage": {
+      "cache_read_tokens": 4,
+      "cache_write_tokens": 0,
+      "input_tokens": 10,
+      "output_tokens": 2
+     },
+     "window_utilization": null
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "error",
+      "raw": {
+       "message": "unauthorized 401",
+       "type": "error"
+      },
+      "text": "unauthorized 401"
+     }
+    ],
+    "state": {
+     "cli_version": null,
+     "cost_usd": null,
+     "final_seen": true,
+     "last_error": "unauthorized 401",
+     "limit_hit": null,
+     "model": null,
+     "resets_at": null,
+     "result_is_error": false,
+     "result_text": "hi",
+     "session_id": "t1",
+     "signal": "rate_limited",
+     "signal_detail": "429 Too Many Requests",
+     "tokens": 12,
+     "turns": 5,
+     "usage": {
+      "cache_read_tokens": 4,
+      "cache_write_tokens": 0,
+      "input_tokens": 10,
+      "output_tokens": 2
+     },
+     "window_utilization": null
+    }
+   },
+   {
+    "events": [
+     {
+      "is_error": true,
+      "kind": "result",
+      "raw": {
+       "error": {
+        "message": "stream error 500"
+       },
+       "type": "turn.failed"
+      },
+      "text": "stream error 500",
+      "turns": 5
+     }
+    ],
+    "state": {
+     "cli_version": null,
+     "cost_usd": null,
+     "final_seen": true,
+     "last_error": "stream error 500",
+     "limit_hit": null,
+     "model": null,
+     "resets_at": null,
+     "result_is_error": true,
+     "result_text": "stream error 500",
+     "session_id": "t1",
+     "signal": "rate_limited",
+     "signal_detail": "429 Too Many Requests",
+     "tokens": 12,
+     "turns": 5,
+     "usage": {
+      "cache_read_tokens": 4,
+      "cache_write_tokens": 0,
+      "input_tokens": 10,
+      "output_tokens": 2
+     },
+     "window_utilization": null
+    }
+   },
+   {
+    "events": [
+     {
+      "is_error": false,
+      "kind": "result",
+      "raw": {
+       "type": "turn.completed"
+      },
+      "text": "stream error 500",
+      "turns": 5
+     }
+    ],
+    "state": {
+     "cli_version": null,
+     "cost_usd": null,
+     "final_seen": true,
+     "last_error": "stream error 500",
+     "limit_hit": null,
+     "model": null,
+     "resets_at": null,
+     "result_is_error": true,
+     "result_text": "stream error 500",
+     "session_id": "t1",
+     "signal": "rate_limited",
+     "signal_detail": "429 Too Many Requests",
+     "tokens": 12,
+     "turns": 5,
+     "usage": {
+      "cache_read_tokens": 4,
+      "cache_write_tokens": 0,
+      "input_tokens": 10,
+      "output_tokens": 2
+     },
+     "window_utilization": null
+    }
+   },
+   {
+    "events": [
+     {
+      "is_error": true,
+      "kind": "result",
+      "raw": {
+       "type": "turn.failed"
+      },
+      "text": "turn failed",
+      "turns": 5
+     }
+    ],
+    "state": {
+     "cli_version": null,
+     "cost_usd": null,
+     "final_seen": true,
+     "last_error": "turn failed",
+     "limit_hit": null,
+     "model": null,
+     "resets_at": null,
+     "result_is_error": true,
+     "result_text": "turn failed",
+     "session_id": "t1",
+     "signal": "rate_limited",
+     "signal_detail": "429 Too Many Requests",
+     "tokens": 12,
+     "turns": 5,
+     "usage": {
+      "cache_read_tokens": 4,
+      "cache_write_tokens": 0,
+      "input_tokens": 10,
+      "output_tokens": 2
+     },
+     "window_utilization": null
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "other",
+      "raw": {
+       "type": "other"
+      },
+      "text": ""
+     }
+    ],
+    "state": {
+     "cli_version": null,
+     "cost_usd": null,
+     "final_seen": true,
+     "last_error": "turn failed",
+     "limit_hit": null,
+     "model": null,
+     "resets_at": null,
+     "result_is_error": true,
+     "result_text": "turn failed",
+     "session_id": "t1",
+     "signal": "rate_limited",
+     "signal_detail": "429 Too Many Requests",
+     "tokens": 12,
+     "turns": 5,
+     "usage": {
+      "cache_read_tokens": 4,
+      "cache_write_tokens": 0,
+      "input_tokens": 10,
+      "output_tokens": 2
+     },
+     "window_utilization": null
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "event",
+      "raw": {},
+      "text": ""
+     }
+    ],
+    "state": {
+     "cli_version": null,
+     "cost_usd": null,
+     "final_seen": true,
+     "last_error": "turn failed",
+     "limit_hit": null,
+     "model": null,
+     "resets_at": null,
+     "result_is_error": true,
+     "result_text": "turn failed",
+     "session_id": "t1",
+     "signal": "rate_limited",
+     "signal_detail": "429 Too Many Requests",
+     "tokens": 12,
+     "turns": 5,
+     "usage": {
+      "cache_read_tokens": 4,
+      "cache_write_tokens": 0,
+      "input_tokens": 10,
+      "output_tokens": 2
+     },
+     "window_utilization": null
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "raw",
+      "text": "not json"
+     }
+    ],
+    "state": {
+     "cli_version": null,
+     "cost_usd": null,
+     "final_seen": true,
+     "last_error": "turn failed",
+     "limit_hit": null,
+     "model": null,
+     "resets_at": null,
+     "result_is_error": true,
+     "result_text": "turn failed",
+     "session_id": "t1",
+     "signal": "rate_limited",
+     "signal_detail": "429 Too Many Requests",
+     "tokens": 12,
+     "turns": 5,
+     "usage": {
+      "cache_read_tokens": 4,
+      "cache_write_tokens": 0,
+      "input_tokens": 10,
+      "output_tokens": 2
+     },
+     "window_utilization": null
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "raw",
+      "text": "[1]"
+     }
+    ],
+    "state": {
+     "cli_version": null,
+     "cost_usd": null,
+     "final_seen": true,
+     "last_error": "turn failed",
+     "limit_hit": null,
+     "model": null,
+     "resets_at": null,
+     "result_is_error": true,
+     "result_text": "turn failed",
+     "session_id": "t1",
+     "signal": "rate_limited",
+     "signal_detail": "429 Too Many Requests",
+     "tokens": 12,
+     "turns": 5,
+     "usage": {
+      "cache_read_tokens": 4,
+      "cache_write_tokens": 0,
+      "input_tokens": 10,
+      "output_tokens": 2
+     },
+     "window_utilization": null
+    }
+   },
+   {
+    "events": [],
+    "state": {
+     "cli_version": null,
+     "cost_usd": null,
+     "final_seen": true,
+     "last_error": "turn failed",
+     "limit_hit": null,
+     "model": null,
+     "resets_at": null,
+     "result_is_error": true,
+     "result_text": "turn failed",
+     "session_id": "t1",
+     "signal": "rate_limited",
+     "signal_detail": "429 Too Many Requests",
+     "tokens": 12,
+     "turns": 5,
+     "usage": {
+      "cache_read_tokens": 4,
+      "cache_write_tokens": 0,
+      "input_tokens": 10,
+      "output_tokens": 2
+     },
+     "window_utilization": null
+    }
+   },
+   {
+    "events": [
+     {
+      "kind": "user",
+      "text": "",
+      "truncated": true
+     }
+    ],
+    "state": {
+     "cli_version": null,
+     "cost_usd": null,
+     "final_seen": true,
+     "last_error": "turn failed",
+     "limit_hit": null,
+     "model": null,
+     "resets_at": null,
+     "result_is_error": true,
+     "result_text": "turn failed",
+     "session_id": "t1",
+     "signal": "rate_limited",
+     "signal_detail": "429 Too Many Requests",
+     "tokens": 12,
+     "turns": 5,
+     "usage": {
+      "cache_read_tokens": 4,
+      "cache_write_tokens": 0,
+      "input_tokens": 10,
+      "output_tokens": 2
+     },
+     "window_utilization": null
+    }
+   }
+  ]
+ }
+}

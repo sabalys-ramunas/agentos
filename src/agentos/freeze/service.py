@@ -8,7 +8,7 @@
 
 One freeze, in one step, for a lane, a workspace, this node, or (from the controller) the mesh:
 
-1. The flag is set in memory and written to its own file (agentos.freeze.store) before anything
+1. The flag is set in memory and written to its own file (agentos.policy.freeze_store) before anything
    is awaited, so from the moment freeze() is called no agent action starts in the scope.
 2. Agent work in flight is interrupted at its next await: calls inside LaneManager.using() on the
    scope's lanes, and MCP calls on them (or every MCP call, for a node or mesh freeze). The
@@ -62,11 +62,12 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
+from agentos.core import clock
 from agentos.core.config import home_from_env
-from agentos.core.errors import InvalidRequest, LaneNotFound, NotFound
+from agentos.core.errors import Frozen, InvalidRequest, LaneNotFound, NotFound
 from agentos.core.models import RunStatus, parse_lane_id
-from agentos.freeze.errors import Frozen
-from agentos.freeze.store import MAX_REASON, SCOPES, FreezeRecord, FreezeStore, parse_key, scope_key
+from agentos.policy.freeze import EXEMPT_TOOLS
+from agentos.policy.freeze_store import MAX_REASON, SCOPES, FreezeRecord, FreezeStore, parse_key, scope_key
 
 log = logging.getLogger("agentos.freeze")
 
@@ -74,7 +75,6 @@ SERVICE_NAME = "freeze"
 POLL_S = 1.0                 # the freeze directory is read again this often (a CLI freeze while the API is down)
 STOP_WAIT_S = 3.0            # freeze() waits this long for interrupted calls to stop
 LINK_TTL_S = 1800            # a push's Freeze link works for 30 minutes, once
-EXEMPT_TOOLS = frozenset({"lane_freeze", "lane_control", "whoami"})
 ACTIVE_RUNS = (RunStatus.QUEUED, RunStatus.RUNNING, RunStatus.WAITING_APPROVAL)
 OPEN_BRAIN_TASKS = frozenset({"queued", "starting", "running", "waiting_approval", "interrupted"})
 
@@ -627,7 +627,7 @@ class FreezeService:
             errors.append(f"triggers could not be listed ({type(exc).__name__})")
             return []
         out = []
-        now = _now()
+        now = clock.now()
         for r in routes:
             if r.state.paused:
                 continue
@@ -844,12 +844,6 @@ def _pattern_hits(rec: FreezeRecord, pattern: str) -> bool:
     if rec.scope == "workspace":
         return fnmatchcase(rec.target, pattern.split("/", 1)[0])
     return fnmatchcase(rec.target, pattern)
-
-
-def _now() -> Any:
-    from datetime import UTC, datetime
-
-    return datetime.now(UTC)
 
 
 def build(runtime: Any) -> FreezeService:

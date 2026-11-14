@@ -21,9 +21,9 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
+from agentos.core.driver import DriverError, ElementNotFound
+from agentos.core.locator import Locator
 from agentos.node import human
-from agentos.runner.driver import DriverError, ElementNotFound
-from agentos.runner.models import Locator
 from lanebench.executors import ExecResult, RunContext
 from lanebench.tasks import Task
 

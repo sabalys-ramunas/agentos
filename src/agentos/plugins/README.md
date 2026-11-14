@@ -127,7 +127,7 @@ in both directions, because a run reads it at every step.
 
 ## How a plugin loads
 
-`agentos.node.daemon.build_plugins` runs after the feature services, and `_plugin_tools` adds the
+`agentos.node.daemon.build_plugins` runs after the feature services, and `agentos.mcp.providers._plugin_tools` adds the
 tools. A plugin's modules must **not** also be in `FEATURE_SERVICES` or `FEATURE_TOOLS`: those
 always load, so the plugin would gate nothing. A plugin that fails to build, start or serve its
 tools is marked `failed`, and the node carries on.

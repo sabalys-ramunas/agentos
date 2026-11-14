@@ -16,7 +16,7 @@ import stat
 import tomllib
 from pathlib import Path
 
-from agentos.core.errors import InvalidRequest, NotFound
+from agentos.core.errors import InvalidRequest
 from agentos.env.models import ImageTemplate
 from agentos.env.paths import EnvPaths
 from agentos.env.sandbox import POINTS, Point
@@ -133,9 +133,3 @@ def point_for(path: str) -> tuple[Point, str]:
         raise InvalidRequest(f"template files must live under /usr, /etc, /opt, /var or /root: {path!r}")
     return best, rel[len(best.path):].lstrip("/")
 
-
-def read_meta(paths: EnvPaths, name: str, version: int) -> dict:
-    meta = paths.image_dir(name, version) / "meta.json"
-    if not meta.exists():
-        raise NotFound(f"image {name}@{version} is not built on this node")
-    return json.loads(meta.read_text())

@@ -412,80 +412,15 @@ async def test_a_flow_run_waits_for_the_brains_claim_then_fails_busy(tmp_path):
             assert t.mgr.queue_info(LANE)["claim"]["run_id"] == "run_43"
 
 
-async def test_an_engagement_session_claims_the_lane_and_its_own_runs_pass_the_claim(tmp_path):
-    from agentos.engage.adapters import NodeLanes
-    from agentos.engage.ports import LaneUnavailable, claim_parent
-
-    t = await lane(tmp_path, queue_timeout=0.3)
-    port = NodeLanes(Runtime(lanes=t.mgr))
-    await port.claim(LANE, holder="engage:biz-a/social", purpose="engagement session 1", ttl_s=600)
-    with logs.log_context(run="run_50", parent=claim_parent("engage:biz-a/social")):
-        async with _using(t.mgr, LANE):  # the session's connector run: inside the claim
-            assert t.mgr.queue_info(LANE)["claim"]["holder"] == "engagement session"
-    assert not t.mgr.queue_info(LANE)["claim"]["implicit"]      # the run ended; the session's claim stays
-    with logs.log_context(run="run_51"), pytest.raises(LaneBusy):
-        async with _using(t.mgr, LANE):  # any other run waits behind it
-            pass
-    with pytest.raises(LaneBusy):
-        await t.mgr.claim(LANE, A, purpose="post", wait_s=0)
-    await port.release(LANE, holder="engage:biz-a/social")
-    assert t.mgr.queue_info(LANE)["claim"] is None
-    await t.mgr.take_control(LANE, by="owner")
-    with pytest.raises(LaneUnavailable) as e:                   # a human has the lane: the window is refused
-        await port.claim(LANE, holder="engage:biz-a/social", purpose="engagement session 2", ttl_s=600)
-    assert e.value.reason == "human_in_control"
-
-
-async def test_a_claim_parent_counts_only_while_its_holder_claims_this_lane(tmp_path):
-    from agentos.engage.adapters import NodeLanes
-    from agentos.engage.ports import claim_parent
-
-    t = await lane(tmp_path, queue_timeout=0.3, lanes=(LANE, "biz-a/other"))
-    port = NodeLanes(Runtime(lanes=t.mgr))
-    holder = "engage:biz-a/social:5f1e0c"                     # the executor adds a random nonce per window
-    await port.claim(LANE, holder=holder, purpose="engagement session 1", ttl_s=600)
-    assert t.mgr.claimed_by(LANE, holder) and not t.mgr.claimed_by("biz-a/other", holder)
-    for guessed in ("engage:biz-a/social", "engage:biz-a/social:000000"):
-        with logs.log_context(run="run_60", parent=claim_parent(guessed)), pytest.raises(LaneBusy):
-            async with _using(t.mgr, LANE):                       # a guessed key matches nothing: it waits
-                pass
-    await t.mgr.claim("biz-a/other", A, purpose="job", ttl_s=600)
-    with logs.log_context(run="run_61", parent=claim_parent(holder)), pytest.raises(LaneBusy):
-        async with _using(t.mgr, "biz-a/other"):                  # the right key, another lane: no pass
-            pass
-    with logs.log_context(run="run_62", parent=claim_parent(holder)):
-        async with _using(t.mgr, LANE):
-            pass
-    await port.release(LANE, holder=holder)
-    assert not t.mgr.claimed_by(LANE, holder)
-
-
-async def test_an_engagement_session_renews_its_claim_and_never_retakes_a_lost_one(tmp_path):
-    from agentos.engage.adapters import NodeLanes
-    from agentos.engage.ports import LaneUnavailable
-
-    t = await lane(tmp_path, queue_timeout=0.3)
-    port = NodeLanes(Runtime(lanes=t.mgr))
-    holder = "engage:biz-a/social:5f1e0c"
-    await port.claim(LANE, holder=holder, purpose="engagement session 1", ttl_s=600)
-    await port.renew(LANE, holder=holder, ttl_s=600)            # renewing a claim it holds
-    assert t.mgr.queue_info(LANE)["claim"]["purpose"] == "engagement session 1"
-    await port.release(LANE, holder=holder)
-    assert not t.mgr.claimed_by(LANE, holder)
-    with pytest.raises(LaneUnavailable) as e:                    # an ended claim is never silently re-taken
-        await port.renew(LANE, holder=holder, ttl_s=600)
-    assert e.value.reason == "claim_lost" and t.mgr.queue_info(LANE)["claim"] is None
-
-
 def test_a_run_never_inherits_a_parent_from_an_outer_log_context():
-    with logs.log_context(run="run_a", parent="claim:engage:biz-a/social:x"):
+    with logs.log_context(run="run_a", parent="claim:node:biz-a/social:x"):
         with logs.log_context(run="run_b", parent=None):
-            assert logs.current()["parent"] == "claim:engage:biz-a/social:x"     # plain merge keeps it
+            assert logs.current()["parent"] == "claim:node:biz-a/social:x"     # plain merge keeps it
         with logs.log_context(drop=("parent",), run="run_b", parent=None):
             assert "parent" not in logs.current() and logs.current()["run"] == "run_b"
         with logs.log_context(drop=("parent",), run="run_c", parent="claim:own"):
             assert logs.current()["parent"] == "claim:own"
-        assert logs.current()["parent"] == "claim:engage:biz-a/social:x"
+        assert logs.current()["parent"] == "claim:node:biz-a/social:x"
     with pytest.raises(ValueError), logs.log_context(drop=("nope",)):
         pass
 
@@ -499,7 +434,7 @@ async def test_the_runner_gives_a_run_only_its_own_parent():
         async def _execute_run(self, run):
             seen.append(logs.current().get("parent"))
 
-    with logs.log_context(parent="claim:engage:biz-a/social:x"):     # whatever context dispatched it
+    with logs.log_context(parent="claim:node:biz-a/social:x"):     # whatever context dispatched it
         await RunnerService._execute(Me(), SimpleNamespace(id="run_1", lane=LANE, grant_id=None, parent=None))
         await RunnerService._execute(Me(), SimpleNamespace(id="run_2", lane=LANE, grant_id=None, parent="claim:y"))
     assert seen == [None, "claim:y"]

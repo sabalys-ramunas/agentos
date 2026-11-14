@@ -39,15 +39,11 @@ from agentos.runner.connectors.models import BINDING_PARAMS, WEB_SITE, Binding, 
 from agentos.runner.connectors.steps import is_input, step_locators, walk
 from agentos.runner.connectors.surfaces import ConnectorBroken, Target
 from agentos.runner.connectors.tools import tool_name
-from agentos.runner.models import (
-    CONNECTOR_PREFIX,
-    SUCCEEDED,
-    TRY_SOURCE,
-    FlowVersion,
-    answered_in_person,
-    is_owner,
-)
+from agentos.runner.flowdoc import FlowVersion
+from agentos.runner.names import CONNECTOR_PREFIX
+from agentos.runner.owner import TRY_SOURCE, answered_in_person, is_owner
 from agentos.runner.recorder import _sensitive
+from agentos.runner.records import SUCCEEDED
 from agentos.runner.siteapis import discover as discovery
 from agentos.runner.siteapis.models import (
     DEFAULT_PACE,

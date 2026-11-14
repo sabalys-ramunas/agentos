@@ -7,6 +7,7 @@ import logging
 from datetime import UTC, datetime
 from typing import Any
 
+from agentos.core import globs
 from agentos.node import publish
 from agentos.node.egress import constants as _constants
 from agentos.node.egress.constants import (
@@ -27,7 +28,6 @@ from agentos.node.egress.shapes import request_shape
 from agentos.node.egress.sites import allow_entry, host_of, in_sites
 from agentos.node.egress.suggested import IDENTITY_SITES
 from agentos.node.egress.verdicts import Block, Refusal
-from agentos.policy import globs
 
 log = logging.getLogger("agentos.node.egress")
 

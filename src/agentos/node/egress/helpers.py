@@ -76,5 +76,3 @@ def _path(url: str) -> str:
         return "?"
 
 
-def _first_line(e: BaseException) -> str:
-    return (str(e).strip() or type(e).__name__).splitlines()[0][:200]

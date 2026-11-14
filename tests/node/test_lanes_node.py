@@ -23,6 +23,14 @@ import pytest
 
 from agentos.core.config import NodeConfig
 from agentos.core.models import LaneSpec, LaneState
+from agentos.node.camoufox.engine import (
+    LAUNCHER_KEYS,
+    PIN_META,
+    PIN_VERSION,
+    browser_pids,
+    browser_pids_under,
+    read_browser_config,
+)
 from agentos.node.display import (
     DisplayManagerImpl,
     iter_processes,
@@ -30,14 +38,6 @@ from agentos.node.display import (
     listening_ports,
     pid_alive,
     tcp_ports_of,
-)
-from agentos.node.engine_camoufox import (
-    LAUNCHER_KEYS,
-    PIN_META,
-    PIN_VERSION,
-    browser_pids,
-    browser_pids_under,
-    read_browser_config,
 )
 from agentos.node.lanes import LaneManagerImpl, build_lane_manager
 

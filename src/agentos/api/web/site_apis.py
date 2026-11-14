@@ -9,7 +9,6 @@ null where the type allows it. A key's secret is returned once, on create, and i
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from statistics import median
 from typing import Any
 from urllib.parse import urlsplit
@@ -20,6 +19,7 @@ from starlette.routing import BaseRoute
 
 from agentos.api.app import Api
 from agentos.api.web.base import org_route, read, write
+from agentos.core import clock
 
 WEEK_HOURS = 168  # the window of the app's totals and sparkline: a week of hours
 SPARK_HOURS = 6  # one bar of the sparkline is six hours, so a week is 28 bars
@@ -34,10 +34,6 @@ def _z(value: str | None) -> str | None:
     if not value:
         return None
     return value.replace("+00:00", "Z") if value.endswith("+00:00") else value
-
-
-def _now() -> str:
-    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
 def _label(key: str) -> str:
@@ -69,12 +65,12 @@ def health_of(row: dict[str, Any]) -> str:
 def problem_of(row: dict[str, Any], health: str) -> dict[str, Any] | None:
     """Why it is not answering, in facts the node recorded. Nothing is guessed about the site."""
     if health == "paused":
-        return {"since": row.get("updated_at") or _now()}
+        return {"since": row.get("updated_at") or clock.iso(z=True)}
     if health in ("good", "unread"):
         return None
     worst = max(row.get("health", {}).values(), key=lambda h: WORSE.get(h.get("state"), 0), default={})
     since = worst.get("since")
-    return {"since": _z(since) or row.get("updated_at") or _now()}
+    return {"since": _z(since) or row.get("updated_at") or clock.iso(z=True)}
 
 
 def points_of(points: list[dict[str, Any]]) -> list[dict[str, int]]:
@@ -138,7 +134,7 @@ def site_api(row: dict[str, Any], points: list[dict[str, int]]) -> dict[str, Any
         "version": row["version"],
     }
     if proposal is not None:
-        out["proposal"] = {"by": proposal.get("by") or "an agent", "at": _z(proposal.get("at")) or _now(),
+        out["proposal"] = {"by": proposal.get("by") or "an agent", "at": _z(proposal.get("at")) or clock.iso(z=True),
                            "steps": proposal.get("steps") or []}
     return out
 
@@ -282,7 +278,7 @@ def routes(api: Api) -> list[BaseRoute]:
         host = urlsplit(found.get("url") or "").hostname or ""
         existing = next((row["api"] for row in (await read(request, "/api/site-apis"))["apis"]
                          if row["domain"] == host and lane in (row.get("surfaces") or [])), "")
-        return JSONResponse(discovery_of(found, lane, existing, _now()))
+        return JSONResponse(discovery_of(found, lane, existing, clock.iso(z=True)))
 
     async def try_it(request: Request) -> dict[str, Any]:
         name = request.path_params["api"]

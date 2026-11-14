@@ -54,10 +54,8 @@ prints a second link for the browser.
 pnpm build                    # writes dist/, in live mode
 ```
 
-A node serves `web/dist` at `/` beside its API. In a checkout with no `panel/` (the public
-repository), it serves the web app as soon as `dist/` is built; in one that has both, choose it with
-`agentos panel use web` (`agentos panel use classic` goes back). Restart agentos after either. The
-node's installer (`deploy/install-node.sh`) builds `web/` whenever its sources changed since the last
+A node serves `web/dist` at `/` beside its API, as soon as `dist/` is built (`AGENTOS_PANEL_DIR`
+points it at another build). The node's installer (`deploy/install-node.sh`) builds `web/` whenever its sources changed since the last
 good build, and keeps that build if a new one fails.
 
 To open it on a node, run `agentos panel login` there: it prints a one-time sign-in link. From your
@@ -66,9 +64,13 @@ computer, reach the node first with `ssh -N -L 7400:localhost:7400 <your node>`.
 ## Tests
 
 ```bash
-pnpm typecheck && pnpm lint && pnpm test && pnpm build
+pnpm typecheck && pnpm lint && pnpm knip && pnpm test && pnpm build
 pnpm test:e2e                 # real browser flows on the mock, in system Chrome
 ```
+
+`pnpm lint` holds every file to 500 lines and every function to a complexity of 25; the files still
+over are listed in `eslint.config.js`, and that list only shrinks. `pnpm knip` finds unused files,
+exports and dependencies (`knip.json`).
 
 `pnpm test` (Vitest, jsdom) includes the source rules in `src/test/source-rules.test.ts` (no em dash,
 no hex colour in screens, screens never import the mock, no password field) and the token checks,

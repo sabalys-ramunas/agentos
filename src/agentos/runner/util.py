@@ -2,31 +2,18 @@
 
 from __future__ import annotations
 
-import asyncio
-import inspect
 import json
 import re
 import secrets
-import time
 from collections.abc import Callable
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any
 from urllib.parse import quote, quote_plus
 
-from agentos.core.errors import InvalidRequest
+from agentos.core import clock
+from agentos.core.template import TEMPLATE_RE
 
-
-class Clock:
-    """Wall time for records and schedules, monotonic time for waits. Tests swap in a fake."""
-
-    def now(self) -> datetime:
-        return datetime.now(UTC)
-
-    def monotonic(self) -> float:
-        return time.monotonic()
-
-    async def sleep(self, seconds: float) -> None:
-        await asyncio.sleep(max(0.0, seconds))
+Clock = clock.Clock  # wall time for records and schedules, monotonic time for waits
 
 
 def new_id(prefix: str) -> str:
@@ -35,57 +22,10 @@ def new_id(prefix: str) -> str:
 
 def iso(dt: datetime | None) -> str | None:
     """Fixed-width UTC ISO 8601, so SQLite string comparison orders correctly."""
-    return dt.astimezone(UTC).isoformat(timespec="microseconds") if dt else None
+    return clock.iso_or_none(dt, timespec="microseconds")
 
 
-def parse_dt(value: str | None) -> datetime | None:
-    if not value:
-        return None
-    dt = datetime.fromisoformat(value)
-    return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
-
-
-async def maybe_await(value: Any) -> Any:
-    return await value if inspect.isawaitable(value) else value
-
-
-# ---- templates: ${name} or ${vars.before.count} ----
-
-TEMPLATE_RE = re.compile(r"\$\{\s*([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z0-9_]+)*)\s*\}")
-
-
-class TemplateError(InvalidRequest):
-    code = "template_invalid"
-
-
-def template_roots(text: str) -> set[str]:
-    return {m.group(1).split(".", 1)[0] for m in TEMPLATE_RE.finditer(text)}
-
-
-def _lookup(scope: dict[str, Any], dotted: str) -> Any:
-    cur: Any = scope
-    for part in dotted.split("."):
-        if isinstance(cur, dict) and part in cur:
-            cur = cur[part]
-        else:
-            raise TemplateError(f"template value ${{{dotted}}} is not set")
-    return cur
-
-
-def render(text: str, scope: dict[str, Any], *, url: bool = False) -> str:
-    """Fill `${name}` placeholders. In URLs, a value is percent-encoded unless the whole
-    template is a single placeholder (so a full URL can be passed as one param)."""
-    whole = TEMPLATE_RE.fullmatch(text.strip())
-    if whole:
-        value = _lookup(scope, whole.group(1))
-        return "" if value is None else str(value)
-
-    def sub(m: re.Match[str]) -> str:
-        value = _lookup(scope, m.group(1))
-        value = "" if value is None else str(value)
-        return quote(value, safe="") if url else value
-
-    return TEMPLATE_RE.sub(sub, text)
+parse_dt = clock.parse  # ISO text (Z, an offset, or none: UTC) as an aware datetime; empty is None
 
 
 _LITERAL_HOST_RE = re.compile(r"^https?://([^/?#]*)", re.IGNORECASE)

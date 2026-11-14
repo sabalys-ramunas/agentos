@@ -12,11 +12,11 @@ from types import SimpleNamespace
 
 import pytest
 from test_runas import FakeSystem
+from testkit.brains import add, make_service, wait_status
 
 from agentos.brains import confine, launch
-from agentos.brains import service as service_mod
+from agentos.brains import identity as identity_mod
 from agentos.brains.confine import BrainUnconfined, Confinement, Targets, collect_targets, judge
-from agentos.brains.testing import add, make_service, wait_status
 from agentos.core.models import Principal
 from agentos.core.runtime import Runtime
 from agentos.runas import Identity, Server
@@ -312,8 +312,8 @@ def helper_mode(tmp_path, monkeypatch):
     threading.Thread(target=server.serve_forever, daemon=True).start()
     brain_home = tmp_path / "brainhome"
     brain_home.mkdir()
-    real = service_mod.pwd.getpwnam
-    monkeypatch.setattr(service_mod.pwd, "getpwnam", lambda n: SimpleNamespace(
+    real = identity_mod.pwd.getpwnam
+    monkeypatch.setattr(identity_mod.pwd, "getpwnam", lambda n: SimpleNamespace(
         pw_name=n, pw_uid=ME + 1, pw_gid=4242, pw_dir=str(brain_home)) if n == "agentos-brain" else real(n))
     yield server, brain_home
     server.stop()
@@ -375,8 +375,8 @@ async def test_with_the_check_off_a_missing_brain_user_still_never_runs_as_agent
 
 async def test_a_helper_serving_another_brain_user_is_refused(tmp_path, helper_mode, monkeypatch):
     server, brain_home = helper_mode
-    real = service_mod.pwd.getpwnam
-    monkeypatch.setattr(service_mod.pwd, "getpwnam", lambda n: SimpleNamespace(
+    real = identity_mod.pwd.getpwnam
+    monkeypatch.setattr(identity_mod.pwd, "getpwnam", lambda n: SimpleNamespace(
         pw_name=n, pw_uid=ME + 2, pw_gid=4243, pw_dir=str(brain_home)) if n == "other-brain" else real(n))
     svc = make_service(tmp_path, runtime=Runtime(), run_as="other-brain", runas_socket=str(server.socket_path),
                        confinement="require")

@@ -105,6 +105,12 @@ class AgentPaused(AgentosError):
     code = "agent_paused"
 
 
+class Frozen(AgentPaused):
+    """The lane, its workspace, this node or the whole mesh is frozen: no agent acts there until
+    the owner unfreezes it, and grants that reached it were revoked. Do not retry; tell your user."""
+    code = "frozen"
+
+
 class Conflict(AgentosError):
     """The request clashes with what exists: a duplicate, a state that already changed (an
     approval decided twice, a revoked grant), or a plan that would break a rule. Nothing was

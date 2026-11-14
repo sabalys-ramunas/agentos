@@ -23,8 +23,8 @@ from starlette.routing import Route
 
 from agentos.api.access import Presence
 from agentos.api.app import Api, access_of, endpoint, principal_of, read_body
-from agentos.api.jsonable import maybe_await
 from agentos.api.routes_core import scoped_lane_id
+from agentos.core.aio import maybe_await
 from agentos.core.errors import ServiceUnavailable
 
 

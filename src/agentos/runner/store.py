@@ -24,16 +24,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from agentos.core.models import RunStatus, Surface
-from agentos.runner.models import (
-    FlowDefinition,
-    FlowVersion,
-    Run,
-    RunKind,
-    Schedule,
-    StepRecord,
-    StepStatus,
-)
+from agentos.core.models import RunKind, RunStatus, Surface
+from agentos.runner.flowdoc import FlowDefinition, FlowVersion
+from agentos.runner.records import Run, Schedule, StepRecord, StepStatus
 from agentos.runner.util import iso, parse_dt
 
 log = logging.getLogger("agentos.runner")

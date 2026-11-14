@@ -17,6 +17,7 @@ from test_qa_controller_up import builder, until_connected
 
 from agentos.controller.config import ControllerConfig, save_controller_config
 from agentos.controller.up import run_up
+from agentos.core import signing
 from agentos.core.config import NodeConfig, load_config, save_config
 from agentos.core.models import ControlState, Effect, Principal
 from agentos.core.runtime import Runtime
@@ -49,7 +50,7 @@ def policy_for(tmp_path, **ceiling):
     org = Ed25519PrivateKey.generate()
     runtime = Runtime(config=NodeConfig(home=tmp_path, mcp_token="owner-token-x", **ceiling))
     issuers = TrustedIssuers(tmp_path)
-    issuers.trust("org:test", wire.public_b64(org))
+    issuers.trust("org:test", signing.public_b64(org))
     runtime.register(SERVICE_NAME, issuers)
     return build(runtime), org
 
@@ -155,8 +156,8 @@ def test_the_nodes_own_grants_are_not_bounded_by_the_controller_ceiling(tmp_path
 
 def hosted_config(home, fake, **ceiling):
     return NodeConfig(home=home, name="node-t", mcp_token="node-owner-token", mcp_port=0, controller_url=fake.url,
-                      node_id=fake.node_id, org_id="org_test", controller_pubkey=wire.public_b64(fake.key),
-                      grant_pubkey=wire.public_b64(fake.grant_key), **ceiling)
+                      node_id=fake.node_id, org_id="org_test", controller_pubkey=signing.public_b64(fake.key),
+                      grant_pubkey=signing.public_b64(fake.grant_key), **ceiling)
 
 
 @pytest.fixture

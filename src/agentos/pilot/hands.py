@@ -38,7 +38,7 @@ class NodeTools:
     its own session, so the lane's claim knows this run as one caller. Only `allowed` exist here,
     and the child grant's pins refuse the rest on the policy's side as well.
 
-    An MCP call's result is masked on its way out (agentos.mcp.redact). A call from inside the node
+    An MCP call's result is masked on its way out (agentos.policy.redactor). A call from inside the node
     skips that layer, so results pass through the same masking here before any model reads them."""
 
     def __init__(self, runtime: Any, *, lane: str, token: str, grant_id: str, run_id: str, allowed: Iterable[str],
@@ -67,7 +67,7 @@ class NodeTools:
         from agentos.node.claims import READ
         from agentos.node.flow_driver import DWELL_MS
         from agentos.node.tools import driven_session
-        from agentos.policy.service import CallMeta
+        from agentos.policy.context import CallMeta
 
         policy = self.runtime.require("policy")
         ctx = policy.context_for_grant(self.grant_id, tool="pilot_look", lane_id=self.lane,

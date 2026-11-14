@@ -1,5 +1,5 @@
 """`agentos studio`: the studio tools on this computer. Imported by agentos.cli for every command,
-so the server itself (agentos.studio.local) is imported only when `up` runs.
+so the server itself (agentos.studio.local_cli) is imported only when `up` runs.
 
 `agentos studio profile ...` is `agentos profile ...` on the profiles studio keeps on this
 computer (~/.agentos/studio/node), so the owner approves what an agent proposed without setting
@@ -31,7 +31,7 @@ def up(
     Code's skills folder when Claude Code is here, and prints the line that connects Claude Code.
     There are no browser lanes here: lane tools answer unavailable."""
     from agentos.dev.cli import port_is_free
-    from agentos.studio.local import instance_path, run, running
+    from agentos.studio.local_cli import instance_path, run, running
 
     other = running()
     if other is not None:
@@ -50,7 +50,7 @@ def up(
 
 
 def studio_node_home() -> Path:
-    """Where `agentos studio up` keeps its node files (agentos.studio.local.node_home)."""
+    """Where `agentos studio up` keeps its node files (agentos.studio.local_cli.node_home)."""
     return Path.home() / ".agentos" / "studio" / "node"
 
 

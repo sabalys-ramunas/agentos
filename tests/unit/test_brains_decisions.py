@@ -10,6 +10,7 @@ from email.utils import formatdate
 
 import httpx
 import pytest
+from testkit.brains import API_KEY, FakeCtx, FakeNotifier, FakePolicy, add, make_service
 from typer.testing import CliRunner
 
 from agentos.brains import adapters, cliprobe, decisions
@@ -33,7 +34,6 @@ from agentos.brains.models import (
 )
 from agentos.brains.service import BrainService
 from agentos.brains.settings import BrainsSettings
-from agentos.brains.testing import API_KEY, FakeCtx, FakeNotifier, FakePolicy, add, make_service
 from agentos.core.errors import ApprovalPending, InvalidRequest, NotFound, PolicyDenied
 from agentos.core.models import Effect, Principal
 from agentos.core.runtime import Runtime

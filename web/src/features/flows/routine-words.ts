@@ -4,6 +4,7 @@ import { routineName } from '@/lib/principal';
 import { dataBefore, refName, sentenceOf, sentenceText } from '@/lib/routines';
 import type { SentencePart } from '@/lib/routines';
 import { siteName } from '@/lib/sites';
+import { clock } from '@/lib/format';
 
 export const routineTitle = (flow: Flow) => flow.name ?? routineName(flow.id);
 
@@ -43,7 +44,7 @@ export const OUTCOME: Partial<Record<RunStatus, { word: string; color: string }>
 /** "tomorrow 09:00", "Monday 08:30", "9 Nov 07:00": said so it fits in the middle of a line. */
 export function whenNext(iso: string, now = Date.now()): string {
   const at = new Date(iso);
-  const time = at.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false });
+  const time = clock(at);
   const days = Math.round((new Date(at).setHours(0, 0, 0, 0) - new Date(now).setHours(0, 0, 0, 0)) / 86_400_000);
   if (days === 0) return `today ${time}`;
   if (days === 1) return `tomorrow ${time}`;

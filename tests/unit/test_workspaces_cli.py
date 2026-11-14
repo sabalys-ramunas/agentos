@@ -6,13 +6,13 @@ from __future__ import annotations
 import json
 
 import pytest
+from testkit.workspaces import FakeLanes
 from typer.testing import CliRunner
 
 from agentos.core.config import save_proxies
 from agentos.core.models import ProxyConfig
 from agentos.workspaces import cli
 from agentos.workspaces.cli import app
-from agentos.workspaces.fakes import FakeLanes
 
 runner = CliRunner()
 

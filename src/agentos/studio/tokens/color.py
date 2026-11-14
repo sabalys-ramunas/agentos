@@ -285,63 +285,86 @@ def parse_color(text: str) -> OKLab | None:
     if s in NAMED:
         s = "#" + NAMED[s]
     if s.startswith("#"):
-        h = s[1:]
-        if len(h) in (3, 4):
-            h = "".join(ch * 2 for ch in h)
-        if len(h) not in (6, 8) or not re.fullmatch(r"[0-9a-f]+", h):
-            return None
-        r, g, b = (int(h[i:i + 2], 16) / 255 for i in (0, 2, 4))
-        a = int(h[6:8], 16) / 255 if len(h) == 8 else 1.0
-        return srgb_to_oklab(r, g, b, a)
+        return _parse_hex(s[1:])
     m = _FUNC.match(s)
     if not m:
         return None
     fn, body = m.group(1), m.group(2)
     if "var(" in body or "calc(" in body or body.startswith("from "):
         return None
+    reader = _COLOR_FUNCTIONS.get(fn)
+    if reader is None:
+        return None
     try:
-        if fn in ("rgb", "rgba"):
-            parts, alpha = _split_args(body)
-            if alpha is None and len(parts) == 4:
-                alpha = parts.pop()
-            if len(parts) != 3:
-                return None
-            ch = [_number(p, 255.0) / 255 for p in parts]
-            return srgb_to_oklab(*ch, alpha=_alpha(alpha))
-        if fn in ("hsl", "hsla", "hwb"):
-            parts, alpha = _split_args(body)
-            if alpha is None and len(parts) == 4:
-                alpha = parts.pop()
-            if len(parts) != 3:
-                return None
-            h = _hue(parts[0])
-            p1 = float(parts[1].rstrip("%")) if parts[1] != "none" else 0.0
-            p2 = float(parts[2].rstrip("%")) if parts[2] != "none" else 0.0
-            return from_space("hwb" if fn == "hwb" else "hsl", [h, p1, p2], _alpha(alpha))
-        if fn in ("lab", "oklab"):
-            parts, alpha = _split_args(body)
-            if len(parts) != 3:
-                return None
-            if fn == "lab":
-                comps = [_number(parts[0], 100.0), _number(parts[1], 125.0), _number(parts[2], 125.0)]
-            else:
-                comps = [_number(parts[0], 1.0), _number(parts[1], 0.4), _number(parts[2], 0.4)]
-            return from_space(fn, comps, _alpha(alpha))
-        if fn in ("lch", "oklch"):
-            parts, alpha = _split_args(body)
-            if len(parts) != 3:
-                return None
-            if fn == "lch":
-                comps = [_number(parts[0], 100.0), _number(parts[1], 150.0), _hue(parts[2])]
-            else:
-                comps = [_number(parts[0], 1.0), _number(parts[1], 0.4), _hue(parts[2])]
-            return from_space(fn, comps, _alpha(alpha))
-        if fn == "color":
-            parts, alpha = _split_args(body)
-            if len(parts) != 4:
-                return None
-            space, comps = parts[0], [_number(p) for p in parts[1:]]
-            return from_space(space, comps, _alpha(alpha))
+        return reader(fn, body)
     except (ValueError, ZeroDivisionError):
         return None
-    return None
+
+
+def _parse_hex(h: str) -> OKLab | None:
+    if len(h) in (3, 4):
+        h = "".join(ch * 2 for ch in h)
+    if len(h) not in (6, 8) or not re.fullmatch(r"[0-9a-f]+", h):
+        return None
+    r, g, b = (int(h[i:i + 2], 16) / 255 for i in (0, 2, 4))
+    a = int(h[6:8], 16) / 255 if len(h) == 8 else 1.0
+    return srgb_to_oklab(r, g, b, a)
+
+
+def _three_and_alpha(body: str) -> tuple[list[str], str | None] | None:
+    """The three channels and the alpha of a legacy or modern rgb()/hsl()/hwb(), or None."""
+    parts, alpha = _split_args(body)
+    if alpha is None and len(parts) == 4:
+        alpha = parts.pop()
+    return (parts, alpha) if len(parts) == 3 else None
+
+
+def _rgb_function(fn: str, body: str) -> OKLab | None:
+    args = _three_and_alpha(body)
+    if args is None:
+        return None
+    parts, alpha = args
+    ch = [_number(p, 255.0) / 255 for p in parts]
+    return srgb_to_oklab(*ch, alpha=_alpha(alpha))
+
+
+def _hsl_function(fn: str, body: str) -> OKLab | None:
+    args = _three_and_alpha(body)
+    if args is None:
+        return None
+    parts, alpha = args
+    h = _hue(parts[0])
+    p1 = float(parts[1].rstrip("%")) if parts[1] != "none" else 0.0
+    p2 = float(parts[2].rstrip("%")) if parts[2] != "none" else 0.0
+    return from_space("hwb" if fn == "hwb" else "hsl", [h, p1, p2], _alpha(alpha))
+
+
+def _lab_function(fn: str, body: str) -> OKLab | None:
+    """lab(), oklab(), lch() and oklch(): percentages scale to each channel's reference range."""
+    parts, alpha = _split_args(body)
+    if len(parts) != 3:
+        return None
+    if fn == "lab":
+        comps = [_number(parts[0], 100.0), _number(parts[1], 125.0), _number(parts[2], 125.0)]
+    elif fn == "oklab":
+        comps = [_number(parts[0], 1.0), _number(parts[1], 0.4), _number(parts[2], 0.4)]
+    elif fn == "lch":
+        comps = [_number(parts[0], 100.0), _number(parts[1], 150.0), _hue(parts[2])]
+    else:
+        comps = [_number(parts[0], 1.0), _number(parts[1], 0.4), _hue(parts[2])]
+    return from_space(fn, comps, _alpha(alpha))
+
+
+def _color_function(fn: str, body: str) -> OKLab | None:
+    """color(<space> c1 c2 c3 [/ alpha])."""
+    parts, alpha = _split_args(body)
+    if len(parts) != 4:
+        return None
+    space, comps = parts[0], [_number(p) for p in parts[1:]]
+    return from_space(space, comps, _alpha(alpha))
+
+
+# A CSS colour function, as the reader of its arguments.
+_COLOR_FUNCTIONS = {"rgb": _rgb_function, "rgba": _rgb_function, "hsl": _hsl_function, "hsla": _hsl_function,
+                    "hwb": _hsl_function, "lab": _lab_function, "oklab": _lab_function, "lch": _lab_function,
+                    "oklch": _lab_function, "color": _color_function}

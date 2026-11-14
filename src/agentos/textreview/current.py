@@ -19,6 +19,8 @@ import typing
 from dataclasses import dataclass, field
 from typing import Any
 
+from agentos.core.tools import TOOL_CATALOG, ToolCatalog
+
 log = logging.getLogger("agentos.textreview")
 
 RECIPE_FIELDS = ("title", "summary", "steps")
@@ -69,13 +71,11 @@ def _choices(annotation: Any) -> frozenset[str] | None:
     return None
 
 
-def enum_args(specs: list[Any]) -> dict[str, dict[str, frozenset[str]]]:
-    from agentos.mcp.registry import tool_params
-
+def enum_args(tools: ToolCatalog, specs: list[Any]) -> dict[str, dict[str, frozenset[str]]]:
     out: dict[str, dict[str, frozenset[str]]] = {}
     for spec in specs:
         try:
-            params = tool_params(spec)
+            params = tools.params(spec)
         except Exception:  # noqa: BLE001  (a tool whose hints do not resolve shows no values)
             log.debug("the argument types of %s could not be read", spec.name)
             continue
@@ -85,41 +85,16 @@ def enum_args(specs: list[Any]) -> dict[str, dict[str, frozenset[str]]]:
     return out
 
 
-def tool_specs(runtime: Any, *, served_only: bool) -> list[Any]:
-    """The tools agents see. In the daemon, what it serves (`served_only`). Anywhere else, every
-    tool this build has, plugins' tools included, as `agentos tools` lists them."""
-    from agentos.core.tools import ToolSpec
-    from agentos.node.daemon import feature_providers, tool_providers
-    from agentos.plugins.entries import PLUGINS
-
-    providers = tool_providers()
-    if not served_only:
-        providers += feature_providers(tuple(m for plugin in PLUGINS for m in plugin.tools))
-    specs: dict[str, Any] = {}
-    for provider in providers:
-        try:
-            found = provider(runtime)
-        except Exception:  # one feature's tools failing must not stop the review
-            log.exception("a tool provider failed while the text review read the tools")
-            continue
-        for spec in found:
-            if not isinstance(spec, ToolSpec) or spec.name in specs:
-                continue
-            if served_only and spec.hidden_without and not runtime.has(spec.hidden_without):
-                continue
-            specs[spec.name] = spec
-    return list(specs.values())
-
-
 def collect(runtime: Any, *, served_only: bool) -> CurrentText:
     from agentos.core import catalog
     from agentos.node import tools as node_tools
 
-    specs = tool_specs(runtime, served_only=served_only)
+    served: ToolCatalog = runtime.require(TOOL_CATALOG)
+    specs = served.specs(served_only=served_only)
     recipes = {topic: {f: str(recipe[f]) for f in RECIPE_FIELDS if f in recipe}
                for topic, recipe in node_tools.RECIPES.items()}
     return CurrentText(instructions=node_tools.INSTRUCTIONS,
                        tools={spec.name: spec.description or "" for spec in specs},
                        recipes=recipes,
                        errors={code: entry.agent for code, entry in sorted(catalog.entries().items())},
-                       enums=enum_args(specs))
+                       enums=enum_args(served, specs))

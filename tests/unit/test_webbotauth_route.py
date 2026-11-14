@@ -11,7 +11,7 @@ from typing import Any
 import pytest
 
 from agentos.core.config import NodeConfig
-from agentos.node.engine_camoufox import CamoufoxEngine
+from agentos.node.camoufox.engine import CamoufoxEngine
 from agentos.webbotauth import keys, settings
 from agentos.webbotauth.keys import IdentityError
 from agentos.webbotauth.route import IdentityProvider, LaneSigner, filter_accept_encoding

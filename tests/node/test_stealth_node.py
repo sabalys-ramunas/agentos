@@ -30,8 +30,8 @@ import pytest
 
 from agentos.core.config import NodeConfig
 from agentos.core.models import LaneSpec, ProxyConfig
+from agentos.node.camoufox.engine import CamoufoxEngine, browser_pids_under
 from agentos.node.display import DisplayManagerImpl, kill_processes
-from agentos.node.engine_camoufox import CamoufoxEngine, browser_pids_under
 from agentos.stealth import stealth, stealthcheck
 
 pytestmark = [

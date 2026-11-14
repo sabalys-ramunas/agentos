@@ -1,0 +1,133 @@
+{
+ "none": {
+  "ok": []
+ },
+ "secret": {
+  "ok": [
+   "The vault may type passwords and codes for it in its lanes; it never sees them.",
+   "Typing a vault secret runs on its own."
+  ]
+ },
+ "secret on lanes": {
+  "ok": [
+   "The vault may type passwords and codes for it in biz-a/instagram and every lane in biz-b; it never sees them.",
+   "Typing a vault secret runs on its own."
+  ]
+ },
+ "exec": {
+  "ok": [
+   "It may run commands in every lane on this node.",
+   "Running a command runs on its own, but waits for your approval when: workbench or shared lane; first use in this lane."
+  ]
+ },
+ "install overlay": {
+  "ok": [
+   "It may install packages into a lane.",
+   "Installing a package into a lane waits for your approval unless a standing approval you gave covers it (it runs on its own when: an agent's own environment; pinned, allowlisted)."
+  ]
+ },
+ "install overlay sources": {
+  "ok": [
+   "It may install packages into a lane, only npm:left-pad@1.3.0 and pip:x==1.",
+   "Installing a package into a lane waits for your approval unless a standing approval you gave covers it (it runs on its own when: an agent's own environment; pinned, allowlisted)."
+  ]
+ },
+ "install base": {
+  "ok": [
+   "It may install into the base image that every lane shares.",
+   "Installing into the base image waits for your approval, and only a person can approve it (it runs on its own when: an agent's own environment)."
+  ]
+ },
+ "service": {
+  "ok": [
+   "It may run background services.",
+   "Starting a service runs on its own, but waits for your approval when: exceeds the grant TTL."
+  ]
+ },
+ "service ports and ttl": {
+  "ok": [
+   "It may run background services on ports 3000 for up to 2 hours each.",
+   "Starting a service runs on its own, but waits for your approval when: exceeds the grant TTL."
+  ]
+ },
+ "service ports": {
+  "ok": [
+   "It may run background services on ports 80, 443 and 8080.",
+   "Starting a service runs on its own, but waits for your approval when: exceeds the grant TTL."
+  ]
+ },
+ "brain": {
+  "ok": [
+   "It may use the node's brain.",
+   "Using the brain runs on its own, but waits for your approval when: metered spend is treated like pay; past the quota threshold."
+  ]
+ },
+ "brain everything": {
+  "ok": [
+   "It may use the node's brain through anthropic, up to the large tier, at most 1,500,000 tokens a day, at most 12.50 USD a day.",
+   "Using the brain runs on its own, but waits for your approval when: metered spend is treated like pay; past the quota threshold."
+  ]
+ },
+ "brain quota": {
+  "ok": [
+   "It may use the node's brain at most 3.00 USD a day.",
+   "Using the brain runs on its own, but waits for your approval when: metered spend is treated like pay; past the quota threshold."
+  ]
+ },
+ "vm": {
+  "ok": [
+   "It may rent disposable cloud VMs as lanes it may use; they bill by the hour until the node deletes them.",
+   "Renting a cloud VM waits for your approval unless a standing approval you gave covers it (it runs on its own when: an agent's own environment)."
+  ]
+ },
+ "vm all caps": {
+  "ok": [
+   "It may rent disposable cloud VMs as every lane in biz-a, only the small and gpu profiles; they bill by the hour until the node deletes them. It may copy only github.com/acme/* onto them.",
+   "Renting a cloud VM waits for your approval unless a standing approval you gave covers it (it runs on its own when: an agent's own environment)."
+  ]
+ },
+ "memory read": {
+  "ok": [
+   "It may read workspace memory in the workspaces of its lanes."
+  ]
+ },
+ "memory write types private": {
+  "ok": [
+   "It may read and write workspace memory in biz-a and biz-b (it writes only decision and fact entries; private entries included)."
+  ]
+ },
+ "memory write": {
+  "ok": [
+   "It may read and write workspace memory in the workspaces of its lanes."
+  ]
+ },
+ "everything": {
+  "ok": [
+   "The vault may type passwords and codes for it in its lanes; it never sees them.",
+   "It may run commands in its lanes.",
+   "It may install packages into a lane.",
+   "It may install into the base image that every lane shares.",
+   "It may run background services.",
+   "It may use the node's brain.",
+   "It may rent disposable cloud VMs as lanes it may use; they bill by the hour until the node deletes them.",
+   "It may read and write workspace memory in the workspaces of its lanes (private entries included).",
+   "Typing a vault secret runs on its own.",
+   "Running a command runs on its own, but waits for your approval when: workbench or shared lane; first use in this lane.",
+   "Installing a package into a lane waits for your approval unless a standing approval you gave covers it (it runs on its own when: an agent's own environment; pinned, allowlisted).",
+   "Installing into the base image waits for your approval, and only a person can approve it (it runs on its own when: an agent's own environment).",
+   "Starting a service runs on its own, but waits for your approval when: exceeds the grant TTL.",
+   "Using the brain runs on its own, but waits for your approval when: metered spend is treated like pay; past the quota threshold.",
+   "Renting a cloud VM waits for your approval unless a standing approval you gave covers it (it runs on its own when: an agent's own environment)."
+  ]
+ },
+ "secret narrowed by a child": {
+  "ok": [
+   "The vault may type passwords and codes for it in biz-a/x; it never sees them.",
+   "It may run background services for up to 5 minutes each.",
+   "It may use the node's brain up to the small tier, at most 5 tokens a day.",
+   "Typing a vault secret runs on its own.",
+   "Starting a service runs on its own, but waits for your approval when: exceeds the grant TTL.",
+   "Using the brain runs on its own, but waits for your approval when: metered spend is treated like pay; past the quota threshold."
+  ]
+ }
+}

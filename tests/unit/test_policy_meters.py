@@ -350,7 +350,7 @@ async def test_a_parent_limit_shows_as_the_parents_and_names_the_parent(env):
 
 
 async def test_lane_taint_includes_turn_scoped_taint_and_clear_clears_it(env):
-    from agentos.policy.service import family_key, turn_key
+    from agentos.policy.taint import family_key, turn_key
 
     svc, _, _ = env
     _g, tok = svc.issue(subject={"id": "agent-1"}, workspaces=["biz-a"], ceiling=Effect.IRREVERSIBLE)

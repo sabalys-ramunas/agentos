@@ -27,6 +27,17 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
+from agentos.stealth.redteam.stats import (
+    ks_2samp,
+    ks_critical,
+    ks_uniform,
+    looks_uniform,
+    median,
+    percentile,
+    rounded,
+    skewness,
+)
+
 CAUGHT, SUSPICIOUS, CLEAN, SKIPPED = "caught", "suspicious", "clean", "skipped"
 RANK = {SKIPPED: -1, CLEAN: 0, SUSPICIOUS: 1, CAUGHT: 2}
 
@@ -58,80 +69,6 @@ class Verdict:
 
 # ---- statistics ---------------------------------------------------------------------------------
 
-def median(xs: Sequence[float]) -> float | None:
-    return statistics.median(xs) if xs else None
-
-
-def percentile(xs: Sequence[float], p: float) -> float | None:
-    if not xs:
-        return None
-    s = sorted(xs)
-    k = (len(s) - 1) * p
-    lo, hi = math.floor(k), math.ceil(k)
-    return s[lo] + (s[hi] - s[lo]) * (k - lo)
-
-
-def ks_uniform(xs: Sequence[float]) -> float | None:
-    """Kolmogorov-Smirnov distance between the sample and a uniform distribution over its own range.
-    Near 0: the values look drawn from `random.uniform(a, b)`. People's timings are skewed (log-normal)
-    and sit far from it."""
-    if len(xs) < 3:
-        return None
-    s = sorted(xs)
-    lo, hi = s[0], s[-1]
-    if hi - lo <= 0:
-        return 1.0
-    n = len(s)
-    return max(max(abs((i + 1) / n - (x - lo) / (hi - lo)), abs(i / n - (x - lo) / (hi - lo)))
-               for i, x in enumerate(s))
-
-
-def looks_uniform(xs: Sequence[float]) -> bool:
-    """True when the sample cannot be told from a flat random range (KS under 1.22/sqrt(n), p above
-    about 0.1) and it is not skewed. Needs 60 values (at 30, a steady typist is flagged a third of
-    the time; at 60, 6%; a flat range 95%). People's timings are log-normal, skewed well
-    past 0.6, and fail this on the skew alone."""
-    if len(xs) < 60:
-        return False
-    ks, sk = ks_uniform(xs), skewness(xs)
-    return ks is not None and ks < 1.22 / math.sqrt(len(xs)) and (sk is None or abs(sk) < 0.6)
-
-
-def ks_2samp(a: Sequence[float], b: Sequence[float]) -> float | None:
-    """Two-sample Kolmogorov-Smirnov distance (0 the same distribution, 1 disjoint)."""
-    if len(a) < 5 or len(b) < 5:
-        return None
-    sa, sb = sorted(a), sorted(b)
-    i = j = 0
-    d = 0.0
-    while i < len(sa) and j < len(sb):
-        x = min(sa[i], sb[j])
-        while i < len(sa) and sa[i] <= x:
-            i += 1
-        while j < len(sb) and sb[j] <= x:
-            j += 1
-        d = max(d, abs(i / len(sa) - j / len(sb)))
-    return d
-
-
-def ks_critical(n: int, m: int, alpha_c: float = 1.95) -> float:
-    """The KS distance two samples of these sizes exceed by chance with p about 0.001."""
-    return alpha_c * math.sqrt((n + m) / (n * m))
-
-
-def skewness(xs: Sequence[float]) -> float | None:
-    if len(xs) < 3:
-        return None
-    m = statistics.fmean(xs)
-    sd = statistics.pstdev(xs)
-    if sd == 0:
-        return 0.0
-    return sum(((x - m) / sd) ** 3 for x in xs) / len(xs)
-
-
-def _r(x: float | None, nd: int = 1) -> float | None:
-    return None if x is None else round(x, nd)
-
 
 # ---- the session --------------------------------------------------------------------------------
 
@@ -150,9 +87,6 @@ class Session:
             for e in page.get("events") or []:
                 if not types or e.get("t") in types:
                     yield i, e
-
-    def page_events(self, index: int) -> list[dict[str, Any]]:
-        return list(self.pages[index].get("events") or [])
 
     def env(self) -> dict[str, Any]:
         """The environment the pages reported, the landing page's active tests included."""
@@ -203,7 +137,7 @@ def kbd_dwell(s: Session) -> Verdict:
     if len(dwell) < 5:
         return v
     med = median(dwell)
-    v.evidence.update(median_ms=_r(med), p10_ms=_r(percentile(dwell, 0.1)), p90_ms=_r(percentile(dwell, 0.9)))
+    v.evidence.update(median_ms=rounded(med), p10_ms=rounded(percentile(dwell, 0.1)), p90_ms=rounded(percentile(dwell, 0.9)))
     if med < 20:
         v.level, v.detail = CAUGHT, f"keys are released {med:.0f} ms after they go down; people hold them 50 to 150 ms"
     elif med < 40:
@@ -420,7 +354,7 @@ def mouse_path(s: Session) -> Verdict:
     straight = median([x["straightness"] for x in shapes])
     corrected = sum(1 for x in shapes if x["correction"])
     peak = median([x["peak_at"] for x in shapes if x["peak_at"] is not None])
-    v.evidence.update(straightness_median=_r(straight, 3), corrections=corrected, peak_at_median=_r(peak, 2))
+    v.evidence.update(straightness_median=rounded(straight, 3), corrections=corrected, peak_at_median=rounded(peak, 2))
     problems = []
     if straight > 0.985:
         problems.append(f"paths are near-straight lines (median straightness {straight:.3f}; people about 0.85 to 0.97)")
@@ -496,7 +430,7 @@ def mouse_press(s: Session) -> Verdict:
                 fix="hold the button for 60 to 150 ms (human._press_release)")
     if not d:
         return v
-    v.evidence.update(median_ms=_r(median(d)), min_ms=_r(min(d)))
+    v.evidence.update(median_ms=rounded(median(d)), min_ms=rounded(min(d)))
     if median(d) < 25:
         v.level, v.detail = CAUGHT, f"the button comes up {median(d):.0f} ms after it goes down"
     else:
@@ -752,7 +686,7 @@ def env_frames(s: Session) -> Verdict:
         return v
     hz = median([r[0] for r in rates])
     late = median([r[1] for r in rates])
-    v.evidence.update(hz=_r(hz), late_share=_r(late, 3))
+    v.evidence.update(hz=rounded(hz), late_share=rounded(late, 3))
     if not any(lo <= hz <= hi for lo, hi in COMMON_HZ):
         v.level, v.detail = SUSPICIOUS, f"the screen refreshes at {hz:.1f} Hz, which no common monitor does"
     elif late > 0.2:
@@ -856,16 +790,16 @@ def judge_pooled(agent: Sequence[Mapping[str, Any]], humans: Sequence[Mapping[st
         a = [v for s in a_s for v in fn(s)]
         h = [v for s in h_s for v in fn(s)]
         v = Verdict(f"pooled.{mid}", layer, SKIPPED, f"too few samples of {what}",
-                    {"agent_n": len(a), "agent_median": _r(median(a))},
+                    {"agent_n": len(a), "agent_median": rounded(median(a))},
                     fix=f"draw {what} from a skewed, human-shaped distribution (log-normal) fitted to the baselines")
         if h:
-            v.evidence.update(human_n=len(h), human_median=_r(median(h)))
+            v.evidence.update(human_n=len(h), human_median=rounded(median(h)))
             d = ks_2samp(a, h)
             if d is None:
                 out.append(v)
                 continue
             crit = ks_critical(len(a), len(h))
-            v.evidence.update(ks=_r(d, 3), ks_critical=_r(crit, 3))
+            v.evidence.update(ks=rounded(d, 3), ks_critical=rounded(crit, 3))
             if d > max(crit, 0.5):
                 v.level, v.detail = CAUGHT, f"{what} is plainly not the people's (KS {d:.2f})"
             elif d > crit:
@@ -875,7 +809,7 @@ def judge_pooled(agent: Sequence[Mapping[str, Any]], humans: Sequence[Mapping[st
         elif len(a) >= 60 and mid in UNIFORM_CHECKED:
             ks = ks_uniform(a)
             sk = skewness(a)
-            v.evidence.update(ks_uniform=_r(ks, 3), skew=_r(sk, 2))
+            v.evidence.update(ks_uniform=rounded(ks, 3), skew=rounded(sk, 2))
             if looks_uniform(a):
                 v.level = SUSPICIOUS
                 v.detail = (f"{what} is flat between {min(a):.0f} and {max(a):.0f} ms, the mark of a uniform random "
@@ -890,10 +824,10 @@ def judge_pooled(agent: Sequence[Mapping[str, Any]], humans: Sequence[Mapping[st
     v = Verdict("pooled.mouse.frame_phase", "mouse", SKIPPED, "too few pointer moves", {"moves": len(phases)},
                 fix="deliver pointer moves on the refresh tick, as stock Firefox does (Camoufox PR #978)")
     if r is not None:
-        v.evidence["concentration"] = _r(r, 3)
+        v.evidence["concentration"] = rounded(r, 3)
         hr = phase_concentration([p for s in h_s for p in _raf_phases(s)])
         if hr is not None:
-            v.evidence["human_concentration"] = _r(hr, 3)
+            v.evidence["human_concentration"] = rounded(hr, 3)
             if r < hr - 0.3:
                 v.level, v.detail = SUSPICIOUS, (f"pointer moves are spread over the frame ({r:.2f}); the people's "
                                                  f"sit on the refresh tick ({hr:.2f})")
@@ -906,95 +840,6 @@ def judge_pooled(agent: Sequence[Mapping[str, Any]], humans: Sequence[Mapping[st
 
 
 # ---- the engine probe (site/deep.html): what the machine and the browser's settings show ----------
-
-def judge_engine(deep: Mapping[str, Any]) -> list[Verdict]:
-    """Verdicts on one lane's engine probe. Each check found by running the probe in stock Firefox,
-    bare Camoufox and a production lane on the node and comparing (docs/design/redteam.md)."""
-    out: list[Verdict] = []
-    perms = deep.get("permissions") or {}
-    v = Verdict("engine.geo_permission", "engine", SKIPPED, "no permission states",
-                fix="permissions.default.geo = 0 and no pinned position: the site sees `prompt` and gets no position "
-                    "until someone answers, as for a real user")
-    if perms.get("geolocation"):
-        v.evidence["geolocation"] = perms["geolocation"]
-        if perms["geolocation"] == "granted":
-            v.level, v.detail = SUSPICIOUS, ("geolocation is already granted on a site never visited: the browser allows "
-                                             "location for every site (Camoufox sets permissions.default.geo = 1)")
-        else:
-            v.level, v.detail = CLEAN, f"geolocation permission is {perms['geolocation']}"
-    out.append(v)
-
-    gl = deep.get("webglTruth") or {}
-    v = Verdict("engine.webgl_limits", "engine", SKIPPED, "no WebGL",
-                fix="pin WebGL limits the renderer really has, or make Camoufox enforce the claimed ones (patch)")
-    if isinstance(gl, dict) and gl.get("claimedMaxTexture"):
-        v.evidence.update({k: gl.get(k) for k in ("renderer", "claimedMaxTexture", "allocatesClaimed", "allocatesDouble",
-                                                  "listedButUnavailable")})
-        problems = []
-        if gl.get("allocatesDouble"):
-            problems.append(f"a texture twice the claimed MAX_TEXTURE_SIZE ({gl['claimedMaxTexture']}) allocates")
-        if gl.get("allocatesClaimed") is False:
-            problems.append(f"a texture of the claimed MAX_TEXTURE_SIZE ({gl['claimedMaxTexture']}) does not allocate")
-        if gl.get("listedButUnavailable"):
-            problems.append(f"{len(gl['listedButUnavailable'])} listed extensions cannot be enabled")
-        if problems:
-            v.level, v.detail = CAUGHT, "the claimed GPU limits are false: " + "; ".join(problems)
-        else:
-            v.level, v.detail = CLEAN, "the claimed WebGL limits hold"
-    out.append(v)
-
-    audio = deep.get("audio") or {}
-    v = Verdict("engine.audio", "engine", SKIPPED, "no audio context",
-                fix="give the node a null audio sink (PipeWire or PulseAudio module-null-sink) so the browser has a "
-                    "stereo output device")
-    if isinstance(audio, dict) and "channels" in audio:
-        v.evidence.update(audio)
-        if not audio.get("channels"):
-            v.level, v.detail = SUSPICIOUS, "the audio output has 0 channels: no sound device, a server"
-        else:
-            v.level, v.detail = CLEAN, f"{audio['channels']} audio channels"
-    out.append(v)
-
-    storage = deep.get("storage") or {}
-    v = Verdict("engine.quota", "engine", SKIPPED, "no storage estimate",
-                fix="pin dom.quotaManager.temporaryStorage.fixedLimit to 50 GiB or more so pages read 10 GiB, as about "
-                    "92% of Firefox users do (Mozilla bug 2037260)")
-    if isinstance(storage, dict) and storage.get("quotaGB") is not None:
-        q = float(storage["quotaGB"])
-        v.evidence["quota_gb"] = q
-        if q < 10.5:
-            v.level, v.detail = SUSPICIOUS, (f"the storage quota is {q:g} GB, a disk under 107 GB; most Firefox users "
-                                             "read 10 GiB, and every lane on this node reads the same value")
-        else:
-            v.level, v.detail = CLEAN, f"storage quota {q:g} GB"
-    out.append(v)
-
-    media = deep.get("mediaCapabilities") or {}
-    renderer = str(gl.get("renderer") or "") if isinstance(gl, dict) else ""
-    v = Verdict("engine.hw_decode", "engine", SKIPPED, "no media capabilities",
-                fix="a GPU node, or Camoufox's media:spoof_codecs and a patched decodingInfo")
-    if isinstance(media, dict) and media.get("h264_1080"):
-        v.evidence.update(media=media, renderer=renderer)
-        hardware = renderer and not any(w in renderer.lower() for w in SOFTWARE_GL)
-        if hardware and media["h264_1080"][2:] == "0":
-            v.level, v.detail = SUSPICIOUS, (f"claims {renderer!r} yet cannot decode 1080p H.264 power-efficiently: "
-                                             "no hardware decoder behind the GPU name")
-        else:
-            v.level, v.detail = CLEAN, "decoding capabilities fit the GPU"
-    out.append(v)
-    return out
-
-
-def judge_botd(judges: Mapping[str, Any]) -> list[Verdict]:
-    """Fingerprint.com's open-source BotD, run on our site: an independent judge we did not write."""
-    result = judges.get("botd") or {}
-    v = Verdict("judge.botd", "engine", SKIPPED, "BotD did not run", {"botd": result})
-    if isinstance(result, dict) and "bot" in result:
-        if result["bot"]:
-            v.level, v.detail = CAUGHT, f"BotD says bot ({result.get('botKind', '?')})"
-        else:
-            v.level, v.detail = CLEAN, "BotD says not a bot"
-    return [v]
 
 
 # ---- across lanes -------------------------------------------------------------------------------

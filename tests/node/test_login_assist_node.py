@@ -39,8 +39,8 @@ from test_vault_support import make_vault, private_home
 from agentos.api import ApiSettings, build_api
 from agentos.core.config import NodeConfig
 from agentos.core.models import ControlState, LaneSpec
+from agentos.node.camoufox.engine import PageTracker
 from agentos.node.daemon import build_services, node_runtime
-from agentos.node.engine_camoufox import PageTracker
 from agentos.node.interaction import PlaywrightInteraction
 from agentos.node.lanes import LaneManagerImpl
 from agentos.node.login_page import REDACT_RGBA

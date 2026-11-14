@@ -315,7 +315,7 @@ class EventStore:
         sql += " ORDER BY rank, due_at, rowid" if by_due else " ORDER BY created_at DESC, rowid DESC"
         return [d for d in (self._delivery(r) for r in self._rows(sql + " LIMIT ?", [*args, limit])) if d]
 
-    def count_deliveries(self, *, states: Iterable[DeliveryState], route_id: str | None = None,
+    def count_deliveries(self, *, states: Iterable[DeliveryState] = OPEN_STATES, route_id: str | None = None,
                          target_lane: str | None = None, target_kind: str | None = None) -> int:
         vals = [s.value for s in states]
         where, args = [f"state IN ({','.join('?' * len(vals))})"], list(vals)

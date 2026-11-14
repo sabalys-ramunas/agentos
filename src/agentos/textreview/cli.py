@@ -23,6 +23,8 @@ import typer
 
 from agentos.core import catalog
 from agentos.core.errors import AgentosError
+from agentos.core.tools import TOOL_CATALOG
+from agentos.mcp.providers import ProviderCatalog
 from agentos.plugins.errors import OnlyAPerson
 from agentos.textreview import review
 from agentos.textreview.bundle import Runs
@@ -41,9 +43,14 @@ JsonOpt = Annotated[bool, typer.Option("--json", help="Print it as JSON.")]
 
 
 def _runtime() -> Any:
-    if runtime_factory is not None:
-        return runtime_factory()
-    from agentos.cli import plugins_cli_runtime  # here, not at the top: the root CLI imports this module
+    runtime = runtime_factory() if runtime_factory is not None else _cli_runtime()
+    if not runtime.has(TOOL_CATALOG):  # the text review reads the tools every build has
+        runtime.register(TOOL_CATALOG, ProviderCatalog(runtime))
+    return runtime
+
+
+def _cli_runtime() -> Any:
+    from agentos.commands.base import plugins_cli_runtime
     from agentos.plugins.service import build
 
     runtime = plugins_cli_runtime()

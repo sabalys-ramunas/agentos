@@ -5,8 +5,7 @@ owner's own saves and text already approved are not screened again."""
 
 from __future__ import annotations
 
-from test_engage_executor import OWNER
-from test_profiles import AGENT
+from test_profiles import AGENT, OWNER
 
 from agentos.profiles.screen import instruction_flags
 from agentos.profiles.service import ProfilesService, parse_profile

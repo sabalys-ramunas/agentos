@@ -283,7 +283,7 @@ def suite_center_rate(runs: list[dict[str, Any]]) -> dict[str, Any]:
 
 def patch_problems(patch: dict[str, Any] | None) -> list[str]:
     """What makes a locator patch unusable before it is tried on a page."""
-    from agentos.runner.models import Locator
+    from agentos.core.locator import Locator
 
     if not patch:
         return ["no patch"]

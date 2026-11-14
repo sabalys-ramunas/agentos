@@ -26,15 +26,15 @@ import contextlib
 import logging
 import re
 import secrets
-import shlex
 import string
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+from agentos.core import clock
 from agentos.core.errors import AgentosError, InvalidRequest, LaneExists, NotFound
-from agentos.core.models import LaneSpec, LaneState, ProxyConfig, utcnow
-from agentos.environments import machine
+from agentos.core.models import LaneState, ProxyConfig, utcnow
+from agentos.environments.bringup import BringUp
 from agentos.environments.errors import (
     EnvironmentFailed,
     EnvironmentInUse,
@@ -47,7 +47,6 @@ from agentos.environments.models import (
     HANDOFFS_KEPT,
     LIVE_STATES,
     QUIET,
-    SIZES,
     WORKSPACE,
     Call,
     Environment,
@@ -57,18 +56,15 @@ from agentos.environments.models import (
     Push,
     load_settings,
 )
+from agentos.environments.sizing import Sizing
 from agentos.environments.store import EnvironmentStore
 from agentos.environments.tunnels import Tunnel
+from agentos.environments.views import Views
 
 log = logging.getLogger("agentos.environments")
 
 TITLE_MAX = 80
 SUMMARY_MAX = 200
-SETUP_POLL_S = 5.0
-VM_POLL_S = 0.25
-CHECK_TIMEOUT_S = 30.0
-CLONE_TIMEOUT_S = 900.0
-UNSAVED_LIST_MAX = 50
 OPEN_NEXT = "environment_open(title=...)"
 # Ids are e + ID_LENGTH characters people can read aloud (no 0/o, 1/l/i): 31^10, about 8e14, so one
 # cannot be guessed, and a lane name (env/<id>-browser) stays short.
@@ -76,41 +72,6 @@ _ID_CHARS = "".join(c for c in string.ascii_lowercase + string.digits if c not i
 ID_LENGTH = 10
 OPENS_LISTED = 10
 OPENING_KEPT = 256
-
-# One command over SSH that says, for every repository under /work (four folders down, past
-# node_modules and .venv), its branch, the commits on any local branch (or a detached HEAD) that no
-# remote has, its stashes, and the files git status lists, untracked ones included. That is the
-# work close and the reaper never delete without discard. A repository git cannot read says
-# `error=`, which counts as unsaved. safe.directory: one made by another user still answers.
-GIT_STATE = r"""
-find /work -maxdepth 4 \( -name node_modules -o -name .venv \) -prune -o -name .git -print -prune 2>/dev/null | sort |
-while IFS= read -r gitdir; do
-  d=$(dirname "$gitdir")
-  g() { git -c safe.directory='*' -C "$d" "$@"; }
-  echo "repo=$d"
-  if ! g status --porcelain=v1 >/dev/null 2>&1; then echo "error=git cannot read it"; continue; fi
-  echo "branch=$(g rev-parse --abbrev-ref HEAD 2>/dev/null)"
-  echo "ahead=$(g rev-list --count HEAD --branches --not --remotes 2>/dev/null \
-    || g rev-list --count --branches --not --remotes 2>/dev/null || echo 0)"
-  echo "dirty_count=$(g status --porcelain=v1 --untracked-files=normal | wc -l | tr -d ' ')"
-  g status --porcelain=v1 --untracked-files=normal | head -n 50 | sed 's/^/dirty=/'
-  { g log --format='unpushed=%h %s' HEAD --branches --not --remotes 2>/dev/null \
-    || g log --format='unpushed=%h %s' --branches --not --remotes 2>/dev/null; } | head -n 50
-  echo "stash_count=$(g stash list 2>/dev/null | wc -l | tr -d ' ')"
-  g stash list --format='stash=%gd %s' 2>/dev/null | head -n 20
-done
-"""
-
-
-# Writes the VM's git config for the gateway, read from stdin (agentos.git.service.vm_gitconfig), to
-# a file of its own that ~/.gitconfig includes once. Nothing secret is on the command line.
-GIT_SETUP = ("umask 077 && mkdir -p ~/.config/agentos && cat > ~/.config/agentos/gitconfig && "
-             "(git config --global --get-all include.path 2>/dev/null | grep -qx '~/.config/agentos/gitconfig' || "
-             "git config --global --add include.path '~/.config/agentos/gitconfig')")
-
-
-def _iso(dt: datetime | None) -> str | None:
-    return dt.astimezone(UTC).isoformat().replace("+00:00", "Z") if dt else None
 
 
 def _when(dt: datetime) -> str:
@@ -139,61 +100,10 @@ def check_ref(ref: str | None) -> str | None:
     return ref
 
 
-def parse_ports(text: str) -> list[dict]:
-    """`ss -ltnpH` lines -> [{port, process}], each port once, without the node's own (ssh, the
-    gateway's reverse tunnel)."""
-    out: dict[int, dict] = {}
-    for line in text.splitlines():
-        parts = line.split()
-        if len(parts) < 4 or parts[0] != "LISTEN":
-            continue
-        local = parts[3]
-        try:
-            port = int(local.rsplit(":", 1)[1])
-        except (IndexError, ValueError):
-            continue
-        m = re.search(r'users:\(\("([^"]+)"', line)
-        proc = m.group(1) if m else None
-        if proc in ("sshd", "sshd-session") or port in (22, 3129):
-            continue
-        out.setdefault(port, {"port": port, "process": proc, "link": None})
-    return [out[p] for p in sorted(out)]
+class EnvironmentManager(Sizing, BringUp, Views):
+    """The environments service. Its sizing and cost (Sizing), its bring-up (BringUp) and its read side
+    (Views) are mixins in their own modules; lookups, opening, closing and the reaper are here."""
 
-
-def parse_git_state(text: str) -> list[dict]:
-    repos: list[dict] = []
-    cur: dict | None = None
-    for line in text.splitlines():
-        key, _, value = line.partition("=")
-        if key == "repo":
-            cur = {"dir": value, "branch": None, "ahead": 0, "dirty": 0, "dirty_files": [], "unpushed": [],
-                   "stash_count": 0, "stashes": [], "error": None}
-            repos.append(cur)
-        elif cur is None:
-            continue
-        elif key == "branch":
-            cur["branch"] = value or None
-        elif key in ("ahead", "dirty_count", "stash_count"):
-            cur["dirty" if key == "dirty_count" else key] = int(value) if value.isdigit() else 0
-        elif key == "dirty":
-            cur["dirty_files"].append(value[3:] if len(value) > 3 else value)
-        elif key == "unpushed":
-            cur["unpushed"].append(value)
-        elif key == "stash":
-            cur["stashes"].append(value)
-        elif key == "error":
-            cur["error"] = value or "git cannot read it"
-    return repos
-
-
-def main_repo(repos: list[dict] | None, workdir: str) -> dict | None:
-    """The repository an environment was opened with (its workdir), else the first one."""
-    if not repos:
-        return None
-    return next((r for r in repos if r["dir"] == workdir), repos[0])
-
-
-class EnvironmentManager:
     def __init__(self, home: Path, *, runtime: Any = None, settings: EnvSettings | None = None, clock=utcnow):
         self.home = Path(home)
         self.runtime = runtime
@@ -288,7 +198,7 @@ class EnvironmentManager:
                 self.last_reap = await self.reap_once()
             except Exception as e:  # noqa: BLE001
                 log.warning("environment reaper: %s", getattr(e, "message", e))
-                self.last_reap = {"at": _iso(self._clock()), "error": str(getattr(e, "message", e))}
+                self.last_reap = {"at": clock.iso_or_none(self._clock(), z=True), "error": str(getattr(e, "message", e))}
             await asyncio.sleep(self.settings.reap_interval_s)
 
     # ================================================================ lookups
@@ -420,7 +330,7 @@ class EnvironmentManager:
         if callable(value_scrub):
             text = value_scrub(text)
         else:
-            from agentos.vault.scrub import runtime_scrub
+            from agentos.policy.scrub import runtime_scrub
 
             text = runtime_scrub(self.runtime)(text)
         return redact_text(" ".join(text.split()), extra=extra, max_len=max_len)
@@ -473,179 +383,6 @@ class EnvironmentManager:
             eid = new_id()
             self._planned[key] = eid
         return eid
-
-    def _size(self, size: str | None) -> tuple[str | None, dict | None]:
-        """`size`: small, medium, large or xlarge (SIZES: the cheapest server type with at least
-        that much, or on the docker provider a container with those limits), a vms.toml profile
-        name, or a server type. None: the environments' profile, else the VM default (the cheapest
-        that fits)."""
-        if not size:
-            return self.settings.profile, None
-        size = str(size).strip().lower()
-        vms = self.vms()
-        if size in SIZES:
-            self._check_size(size)
-            if getattr(vms.provider(), "name", "") == "docker":
-                return self.settings.profile, {"server_type": f"docker-{size}"}
-            cpu, memory = SIZES[size]
-            return self.settings.profile, {"min_cpu": cpu, "min_memory_gb": memory}
-        if size in vms.settings.profiles:
-            return size, None
-        return self.settings.profile, {"server_type": size}
-
-    def _check_size(self, size: str) -> None:
-        names = list(SIZES)
-        top = self.settings.max_size
-        if names.index(size) > names.index(top):
-            raise EnvironmentLimit(f"the biggest environment on this node is {top} ({self._size_words(top)}), so "
-                                   f"{size} is past the limit. Ask for {top} or less; the owner raises it with "
-                                   "`agentos environments allow --max-size xlarge`")
-
-    @staticmethod
-    def _size_words(size: str) -> str:
-        cpu, memory = SIZES[size]
-        return f"{cpu} CPU, {memory} GB"
-
-    def _check_planned(self, plan: dict) -> None:
-        """A server type or a profile asked for by name is bound by max_size too, by what it has."""
-        specs = plan.get("specs") or {}
-        top = self.settings.max_size
-        cpu, memory = SIZES[top]
-        if (specs.get("cores") or 0) > cpu or (specs.get("memory_gb") or 0) > memory:
-            raise EnvironmentLimit(f"{plan['server_type']} has {specs.get('cores')} CPU and {specs.get('memory_gb'):g} "
-                                   f"GB, more than this node's biggest environment, {top} ({self._size_words(top)}). "
-                                   "Ask for a smaller size; the owner raises it with "
-                                   "`agentos environments allow --max-size xlarge`")
-
-    @staticmethod
-    def size_of(cpu: float | None, memory_gb: float | None) -> str | None:
-        """The biggest of SIZES a machine with this much has (None: less than small, or unknown)."""
-        got = None
-        for name, (c, m) in SIZES.items():
-            if (cpu or 0) >= c and (memory_gb or 0) >= m - 0.5:  # a few hundred MB short still counts
-                got = name
-        return got
-
-    async def bigger_sizes(self, env: Environment) -> list[dict]:
-        """The sizes above the one `env` has, up to max_size, with what each would rent here and its
-        price: what an agent reads before it asks for a bigger one. [] when none, or the provider
-        does not answer."""
-        names = list(SIZES)
-        top = names.index(self.settings.max_size)
-        got = env.machine.size
-        start = names.index(got) + 1 if got in names else 0
-        out = []
-        for name in names[start:top + 1]:
-            cpu, memory = SIZES[name]
-            if (env.machine.cpu or 0) >= cpu and (env.machine.memory_gb or 0) >= memory:
-                continue
-            try:
-                profile, custom = self._size(name)
-                plan = await self.vms().plan(f"{WORKSPACE}/{env.id}", profile=profile, ttl_minutes=60, size=custom)
-            except AgentosError:
-                continue
-            specs = plan.get("specs") or {}
-            out.append({"size": name, "server_type": plan["server_type"], "cpu": specs.get("cores"),
-                        "memory_gb": specs.get("memory_gb"), "price_hourly_eur": plan.get("price_hourly_eur")})
-        return out
-
-    def _hours(self, hours: float | None) -> int:
-        h = float(hours if hours is not None else self.settings.default_hours)
-        if h <= 0:
-            raise InvalidRequest("hours is how long the environment may live, more than 0")
-        cap = self._longest()
-        minutes = max(5, round(h * 60))
-        if minutes > cap:
-            raise EnvironmentLimit(f"an environment lives at most {cap / 60:g} hours on this node, so {h:g} hours "
-                                   f"is past the limit. Ask for fewer hours; {self._longest_raise()}")
-        return minutes
-
-    def _longest(self) -> float:
-        """The longest life of an environment here, in minutes: max_hours, and the VMs' max_ttl_minutes."""
-        return min(self.settings.max_hours * 60, self.vms().settings.max_ttl_minutes)
-
-    def _longest_raise(self) -> str:
-        """Which setting holds the longest life, and how the owner raises it."""
-        if self.settings.max_hours * 60 <= self.vms().settings.max_ttl_minutes:
-            return "the owner raises it with `agentos environments allow --max-hours H`"
-        return "the owner raises it with max_ttl_minutes in vms.toml (the longest life of any VM on this node)"
-
-    async def _image(self) -> str:
-        if self.settings.image != "auto":
-            return self.settings.image
-        try:
-            await self.vms().provider().resolve_image(machine.SNAPSHOT_IMAGE)
-            return machine.SNAPSHOT_IMAGE
-        except AgentosError:
-            return machine.BASE_IMAGE
-
-    def month_spend(self, now: datetime | None = None) -> float:
-        now = now or self._clock()
-        start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        total = 0.0
-        for env in self.store.recent(1000):
-            if env.closed_at is not None and env.closed_at < start:
-                continue
-            total += self.cost_now(env) or 0.0
-        return round(total, 4)
-
-    def booked_eur(self, now: datetime | None = None, *, until: dict[str, datetime] | None = None) -> float:
-        """This month's spend on environments with every open one counted to its time limit (or to
-        `until[id]`): what they can still cost if none closes early. The budget is checked against it."""
-        now = now or self._clock()
-        start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        total = 0.0
-        for env in self.store.recent(1000):
-            if env.closed_at is not None and env.closed_at < start:
-                continue
-            spent = self.cost_now(env) or 0.0
-            if env.open and env.price_hourly_eur:
-                end = (until or {}).get(env.id, env.expires_at)
-                hours = max(1, -(-int(max(0.0, (end - env.created_at).total_seconds())) // 3600))
-                spent = max(spent, hours * env.price_hourly_eur)
-            total += spent
-        return round(total, 4)
-
-    def cost_now(self, env: Environment) -> float | None:
-        if env.cost_eur is not None and not env.open:
-            return env.cost_eur
-        if not env.vm_id:
-            return 0.0 if not env.open else None
-        try:
-            return self.vms().store.get(env.vm_id).cost_eur(self._clock())
-        except (NotFound, AgentosError):
-            return env.cost_eur
-
-    async def plan(self, env_id: str, *, size: str | None, hours: float | None) -> dict:
-        """What open would rent, for the limits and the record of the open (agentos.vms plan, with
-        the image the environment boots)."""
-        profile, custom = self._size(size)
-        minutes = self._hours(hours)
-        plan = await self.vms().plan(f"{WORKSPACE}/{env_id}", profile=profile, ttl_minutes=minutes, size=custom)
-        if size and str(size).strip().lower() not in SIZES:
-            self._check_planned(plan)  # a server type or a profile, by what it has (a named size: by its name)
-        plan["image"] = await self._image()
-        return plan
-
-    def check_limits(self, plan: dict) -> None:
-        vms = self.vms()
-        live = len(self.store.open())
-        cap = self.settings.max_live if self.settings.max_live is not None else vms.settings.max_live
-        if live >= cap:
-            raise EnvironmentLimit(f"this node already has {live} open environment{'s' if live != 1 else ''}, and "
-                                   f"its limit is {cap} at once. Close one you no longer need with environment_close, "
-                                   "or tell the user: the owner raises the limit with "
-                                   "`agentos environments allow --max-live N`")
-        budget = self.settings.monthly_eur
-        price = plan.get("price_hourly_eur")
-        if budget and price is not None:
-            worst = max([price, *[q or 0 for _n, q in plan.get("fallbacks") or []]]) * -(-plan["ttl_minutes"] // 60)
-            booked = self.booked_eur()
-            if booked + worst > budget:
-                raise EnvironmentLimit(f"this environment could cost up to EUR {worst:.2f}; with EUR {booked:.2f} "
-                                       "spent and booked by open environments this month, that passes the monthly "
-                                       f"budget of EUR {budget:.2f}. Close one, or ask for fewer hours; the owner "
-                                       "raises the budget with `agentos environments allow --monthly-eur E`")
 
     def opening(self, binding: str) -> asyncio.Lock:
         """One open at a time per chat: a second environment_open in the same chat waits for the
@@ -754,359 +491,9 @@ class EnvironmentManager:
         log.info("environment %s (%s) opening for %s", env_id, title, agent)
         return env
 
-    def _spawn(self, env_id: str, coro: Any) -> None:
-        task = asyncio.create_task(coro, name=f"environment-{env_id}")
-        self._tasks[env_id] = task
-        task.add_done_callback(lambda _t, i=env_id: self._tasks.pop(i, None) if self._tasks.get(i) is _t else None)
-
-    async def wait_ready(self, env_id: str, wait_s: float) -> Environment:
-        task = self._tasks.get(env_id)
-        if task is not None and wait_s > 0:
-            with contextlib.suppress(TimeoutError, asyncio.CancelledError, Exception):
-                await asyncio.wait_for(asyncio.shield(task), timeout=wait_s)
-        return self.store.get(env_id)
 
     # ---------------------------------------------------------------- bring-up
-    async def _bring_up(self, env_id: str, plan: dict | None) -> None:
-        env = self.store.get(env_id)
-        try:
-            vms = self.vms()
-            if env.vm_id is None:
-                if plan is None:
-                    raise EnvironmentFailed("the node restarted before the machine was rented")
-                cloud = machine.cloud_config() if plan["image"] == machine.BASE_IMAGE else ""
-                try:
-                    rec = await vms.create(env.terminal_lane, plan=plan, purpose=f"environment {env.id}: {env.title}",
-                                           created_by=env.grant_id, wait_s=0, cloud_config=cloud, environment=env.id)
-                except AgentosError as e:
-                    if e.code == "vm_limit":
-                        raise EnvironmentLimit(e.message) from None
-                    raise
-                def rented(e: Environment) -> None:
-                    e.vm_id = rec.id
-                    if rec.price_hourly_eur is not None:
-                        e.price_hourly_eur = rec.price_hourly_eur
-                    e.machine.server_type = rec.server_type
 
-                env = self.store.update(env_id, rented)
-            await self._wait_vm(env)
-            await self._wait_setup(env)
-            await self._start_tunnel(env)
-            await self._make_browser(env)
-            if env.repo:
-                await self._clone(env)
-            else:
-                await self.envs().exec(env.terminal_lane, f"mkdir -p {machine.WORK}", timeout_s=CHECK_TIMEOUT_S)
-            def ready(e: Environment) -> bool:
-                if e.state != "starting":
-                    return False
-                e.state, e.ready_at = "ready", self._clock()
-                return True
-
-            env = self.store.update(env_id, ready)
-            if env.state == "ready":
-                log.info("environment %s ready (%s)", env.id, env.workdir)
-        except asyncio.CancelledError:
-            raise
-        except Exception as e:  # noqa: BLE001
-            msg = str(getattr(e, "message", e)) or type(e).__name__
-            log.warning("environment %s failed to come up: %s", env_id, msg)
-            await self._fail(env_id, msg, code=e.code if isinstance(e, AgentosError) else None)
-
-    async def _fail(self, env_id: str, why: str, *, code: str | None = None) -> None:
-        def failed(e: Environment) -> None:
-            e.error = why[:1200]
-            e.error_code = code or "environment_failed"
-
-        env = self.store.update(env_id, failed)
-        await self._teardown(env, reason=f"failed to start: {why[:200]}", final="failed")
-
-    async def _wait_vm(self, env: Environment) -> None:
-        vms = self.vms()
-        loop = asyncio.get_running_loop()
-        deadline = loop.time() + vms.settings.boot_timeout_s + 30
-        while True:
-            rec = vms.store.get(env.vm_id)
-            if rec.state == "ready":
-                return
-            if not rec.live:
-                raise EnvironmentFailed(f"the machine did not come up: {rec.error or rec.state}")
-            if loop.time() > deadline:
-                raise EnvironmentFailed(f"the machine did not answer SSH within {vms.settings.boot_timeout_s} s")
-            await asyncio.sleep(VM_POLL_S)
-
-    async def _wait_setup(self, env: Environment) -> None:
-        envs = self.envs()
-        loop = asyncio.get_running_loop()
-        deadline = loop.time() + self.settings.setup_timeout_s
-        said = ""
-        ran = False
-        while loop.time() < deadline:
-            try:
-                res = await envs.exec(env.terminal_lane, machine.SETUP_STATE, timeout_s=CHECK_TIMEOUT_S)
-                said = (res.stdout or res.stderr or "").strip()
-            except AgentosError as e:
-                said = e.message
-            first = said.split("\n", 1)[0]
-            if first == "ready":
-                return
-            if "error" in first:
-                raise EnvironmentFailed(f"the machine's setup failed: {said[-600:]}")
-            if not ran and machine.boot_done_without_setup(first):
-                # booted and done, but nothing ran the setup: a snapshot made another way (`agentos vm
-                # image build` without the environment's script) or an image with no cloud-init
-                ran = True
-                left = max(60.0, deadline - loop.time())
-                try:
-                    out = await envs.exec(env.terminal_lane, "sh -s", stdin=machine.setup_script(), timeout_s=left)
-                except AgentosError as e:
-                    raise EnvironmentFailed(f"the machine's setup could not run: {e.message}") from None
-                if out.exit_code != 0:
-                    tail = (out.stderr or out.stdout or "").strip()[-600:]
-                    raise EnvironmentFailed(f"the machine's setup failed (exit {out.exit_code}): {tail}")
-                continue
-            await asyncio.sleep(SETUP_POLL_S)
-        raise EnvironmentFailed(f"the machine's setup did not finish within {self.settings.setup_timeout_s} s "
-                                f"({said[-200:] or 'no answer'})")
-
-    async def _start_tunnel(self, env: Environment) -> None:
-        vms = self.vms()
-        rec = vms.store.get(env.vm_id)
-        old = self._tunnels.get(env.id)
-        if old is not None and old.alive:
-            return
-        git = self._get("git")
-        gateway = None
-        if git is not None and callable(getattr(git, "vm_listener", None)):
-            try:  # the gateway's listener for this VM alone: its token is good only through its own tunnel
-                gateway = await git.vm_listener(env.terminal_lane)
-            except Exception as e:  # noqa: BLE001 - the environment works without git through the node
-                log.warning("environment %s: no git gateway listener: %s", env.id, e)
-        tunnel = Tunnel(vms.remote(rec), gateway_port=gateway, socks_port=old.socks_port if old else None)
-        await tunnel.start()
-        self._tunnels[env.id] = tunnel
-        self._wrap_proxies_loader()
-        from agentos.node.interaction import VM_PROXIED_LANES
-
-        VM_PROXIED_LANES.add(env.browser_lane)  # its localhost is the VM's: a page there may open it
-        if gateway is not None:
-            await self._git_setup(env)
-
-    async def _git_setup(self, env: Environment) -> None:
-        """Give the VM the one token it holds: a gateway token that fetches and pushes env.repo and
-        nothing else, good only through this VM's own tunnel, revoked when the environment closes.
-        No declared repository: no token at all. It reaches the VM's git config through the
-        command's stdin, never a command line (which `ps` on the node shows)."""
-        git = self._get("git")
-        if git is None or not env.repo or not callable(getattr(git, "vm_token", None)):
-            return
-        from agentos.git.service import vm_gitconfig
-
-        token = git.vm_token(env.terminal_lane, grant_id=env.grant_id, repo=env.repo)
-        if token is None:
-            return  # not declared for env: a public repository, cloned straight from the VM
-        res = await self.envs().exec(env.terminal_lane, GIT_SETUP, stdin=vm_gitconfig(env.repo, token),
-                                     timeout_s=CHECK_TIMEOUT_S)
-        if res.exit_code != 0:
-            raise EnvironmentFailed(f"setting up git on the machine failed: {(res.stderr or res.stdout).strip()[-300:]}")
-
-    async def _make_browser(self, env: Environment) -> None:
-        """A scratch browser lane made by the node: no account, no vault entry, no keepalive; its
-        proxy is the environment's tunnel, so every request leaves from the VM."""
-        lanes = self._get("lanes")
-        if lanes is None:
-            return
-        with contextlib.suppress(Exception):
-            lanes.get(env.browser_lane)
-            return
-        spec = LaneSpec(id=env.browser_lane, proxy_label=f"env-{env.id}")
-        try:
-            await lanes.create(spec)
-        except LaneExists:
-            return
-
-    async def _clone(self, env: Environment) -> None:
-        from agentos.git.wire import parse_remote
-
-        remote = parse_remote(env.repo or "")
-        name = remote.repo.rsplit("/", 1)[-1]
-        dest = f"{machine.WORK}/{name}"
-        git = self._get("git")
-        declared = git is not None and git.remotes.find(remote, [env.terminal_lane, WORKSPACE]) is not None
-        url = f"https://{remote.host}/{remote.repo}.git"
-        q = shlex.quote
-        checkout = f" && git -C {q(dest)} checkout -q {q(env.ref)}" if env.ref else ""
-        cmd = (f"mkdir -p {machine.WORK} && if [ ! -d {q(dest)}/.git ]; then "
-               f"git clone -q {q(url)} {q(dest)}{checkout}; fi && cd {q(dest)} && "
-               "(git config --global user.name >/dev/null || git config --global user.name "
-               f"{q(env.agent[:60] or 'agentos agent')}) && (git config --global user.email >/dev/null || "
-               "git config --global user.email agent@agentos.invalid) && git rev-parse --abbrev-ref HEAD")
-        # a declared repository goes through the gateway by the VM's own git config (_git_setup)
-        res = await self.envs().exec(env.terminal_lane, cmd, timeout_s=CLONE_TIMEOUT_S)
-        if res.exit_code != 0:
-            from agentos.environments.repos import clone_failure
-
-            raise clone_failure(remote.slug, (res.stderr or "") + "\n" + (res.stdout or ""), via_gateway=declared)
-        branch = (res.stdout.strip().splitlines() or [None])[-1]
-
-        def cloned(e: Environment) -> None:
-            e.workdir, e.via_gateway, e.branch = dest, declared, branch
-
-        self.store.update(env.id, cloned)
-
-    # ================================================================ read
-    async def ports(self, env: Environment) -> list[dict]:
-        try:
-            res = await self.envs().exec(env.terminal_lane, "ss -ltnpH 2>/dev/null || ss -ltnp",
-                                         timeout_s=CHECK_TIMEOUT_S)
-        except AgentosError:
-            return []
-        return parse_ports(res.stdout)
-
-    async def git_repos(self, env: Environment) -> list[dict] | None:
-        """Every repository under /work, the cloned one and any other the agent made: None when the
-        machine does not answer."""
-        try:
-            res = await self.envs().exec(env.terminal_lane, GIT_STATE, timeout_s=CHECK_TIMEOUT_S)
-        except AgentosError:
-            return None
-        if res.exit_code not in (0, None) and not res.stdout:
-            return None
-        return parse_git_state(res.stdout)
-
-    def pushes(self, env: Environment) -> list[dict]:
-        """What the git gateway pushed from this environment (its push traces), newest first."""
-        policy = self._get("policy")
-        traces = getattr(policy, "traces", None)
-        out: list[dict] = []
-        if traces is not None:
-            with contextlib.suppress(Exception):
-                events, _ = traces.query(kind="git_push", lane=env.terminal_lane, limit=50)
-                for ev in events:
-                    args = ev.args if isinstance(ev.args, dict) else {}
-                    if args.get("result") != "pushed":
-                        continue
-                    at = datetime.fromtimestamp(ev.at or 0, UTC)
-                    for ref in args.get("refs") or []:
-                        name = str(ref.get("ref") or "")
-                        commit = str(ref.get("new") or "").split(":", 1)[-1]
-                        out.append({"branch": name.removeprefix("refs/heads/"), "commit": commit[:12], "at": _iso(at)})
-        known = {(p["branch"], p["commit"]) for p in out}
-        for p in env.pushed:
-            if (p.branch, p.commit[:12]) not in known:
-                out.append({"branch": p.branch, "commit": p.commit[:12], "at": _iso(p.at)})
-        return out
-
-    async def git_state(self, env: Environment) -> dict:
-        repos = await self.git_repos(env) if env.open and env.vm_id else None
-        main = main_repo(repos, env.workdir)
-        return {"branch": (main or {}).get("branch") or env.branch, "ahead": (main or {}).get("ahead", 0),
-                "dirty": (main or {}).get("dirty", 0), "pushed": self.pushes(env),
-                "reachable": repos is not None}
-
-    @staticmethod
-    def unsaved_of(repos: list[dict] | None) -> dict | None:
-        """{dirty_files, unpushed, stashes} of every repository (each named by its folder when
-        there are several), or None when all of it is committed and on a remote. A repository git
-        could not read counts as unsaved (`unreadable`)."""
-        if not repos:
-            return None
-        many = len(repos) > 1
-        dirty = [f"{r['dir']}/{f}" if many else f for r in repos for f in r["dirty_files"]]
-        unpushed = [f"{r['dir']}: {c}" if many else c for r in repos for c in r["unpushed"]]
-        stashes = [f"{r['dir']}: {s}" if many else s for r in repos for s in r.get("stashes") or []]
-        unreadable = [r["dir"] for r in repos if r.get("error")]
-        if not (dirty or unpushed or stashes or unreadable) and not any(
-                r["dirty"] or r["ahead"] or r.get("stash_count") for r in repos):
-            return None
-        out = {"dirty_files": dirty[:UNSAVED_LIST_MAX], "unpushed": unpushed[:UNSAVED_LIST_MAX],
-               "stashes": stashes[:UNSAVED_LIST_MAX]}
-        if unreadable:
-            out["unreadable"] = unreadable[:UNSAVED_LIST_MAX]
-        return out
-
-    @staticmethod
-    def unsaved_words(unsaved: dict) -> str:
-        """What unsaved_of found, for an error or a notification."""
-        parts = []
-        if unsaved.get("dirty_files"):
-            parts.append("changed or new files: " + ", ".join(unsaved["dirty_files"][:10]))
-        if unsaved.get("unpushed"):
-            parts.append("commits not on a remote: " + "; ".join(unsaved["unpushed"][:10]))
-        if unsaved.get("stashes"):
-            parts.append("stashes: " + "; ".join(unsaved["stashes"][:5]))
-        if unsaved.get("unreadable"):
-            parts.append("repositories git cannot read: " + ", ".join(unsaved["unreadable"][:5]))
-        return "; ".join(parts) or "changes git counts but did not list"
-
-    def summary(self, env: Environment) -> dict:
-        """EnvSummary of the contract (docs/design/environments.md)."""
-        now = self._clock()
-        return {"id": env.id, "title": env.title, "state": env.shown_state(now), "repo": env.repo,
-                "branch": env.branch, "workdir": env.workdir, "created_at": _iso(env.created_at),
-                "ready_at": _iso(env.ready_at), "last_call_at": _iso(env.last_call_at),
-                "closed_at": _iso(env.closed_at), "expires_at": _iso(env.expires_at),
-                "minutes_left": max(0, int((env.expires_at - now).total_seconds() // 60)) if env.open else None,
-                "machine": env.machine.model_dump(), "price_hourly_eur": env.price_hourly_eur,
-                "cost_eur": self.cost_now(env), "agent": {"name": env.agent, "client": env.client},
-                "lanes": env.lanes, "closed_reason": env.closed_reason, "error": env.error,
-                "error_code": env.error_code}
-
-    def _commands(self, env: Environment) -> list[dict]:
-        out = []
-        envs = self._get("envs")
-        if envs is not None and callable(getattr(envs, "job_list", None)):
-            with contextlib.suppress(Exception):
-                for j in envs.job_list(env.terminal_lane):
-                    out.append({"id": j.id, "cmd": self._scrub(j.cmd, max_len=500), "state": j.state,
-                                "started_at": _iso(j.started_at), "exit_code": j.exit_code})
-        jobs = {self._scrub(r["cmd"]) for r in out}  # as record_call writes a summary
-        for i, c in enumerate(env.calls):
-            summary = self._scrub(c.summary)
-            if c.tool == "lane_exec":
-                out.append({"id": f"exec-{i}", "cmd": summary, "state": "exited" if c.ok else "failed",
-                            "started_at": _iso(c.at), "exit_code": None})
-            elif c.tool == "lane_job_start" and c.ok and summary not in jobs:
-                # a job whose record went with its lane (the machine was deleted, or the node restarted)
-                out.append({"id": f"start-{i}", "cmd": summary, "state": "ended", "started_at": _iso(c.at),
-                            "exit_code": None})
-        out.sort(key=lambda r: r["started_at"] or "", reverse=True)
-        return out[:50]
-
-    def _viewer(self, env: Environment) -> dict | None:
-        lanes = self._get("lanes")
-        if lanes is None:
-            return None
-        try:
-            if lanes.view(env.browser_lane) is None:
-                return None
-        except Exception:  # noqa: BLE001
-            return None
-        from agentos.api.web.accounts import lane_viewer_path
-
-        return {"path": lane_viewer_path(WORKSPACE, f"{env.id}-browser")}
-
-    async def detail(self, env: Environment, *, calls: int = 50) -> dict:
-        """EnvDetail of the contract, and what environment() returns to an agent."""
-        out = self.summary(env)
-        repos = await self.git_repos(env) if env.open and env.state != "starting" and env.vm_id else None
-        main = main_repo(repos, env.workdir)
-        out["ports"] = await self.ports(env) if env.state in ("ready",) else []
-        out["git"] = {"branch": (main or {}).get("branch") or env.branch, "ahead": (main or {}).get("ahead", 0),
-                      "dirty": (main or {}).get("dirty", 0), "pushed": self.pushes(env)}
-        out["branch"] = out["git"]["branch"]  # the branch checked out now, not the one it was cloned on
-        out["calls"] = [{"at": _iso(c.at), "tool": c.tool, "summary": self._scrub(c.summary), "ok": c.ok}
-                        for c in reversed(env.calls[-calls:])]
-        out["commands"] = self._commands(env)
-        out["viewer"] = self._viewer(env)
-        out["unsaved"] = self.unsaved_of(repos)
-        return out
-
-    def links(self, env: Environment) -> dict:
-        """The links an agent gives the human: `browser`, the browser's live view on the node itself
-        (agentos.environments.tools fills it with a signed take-over link once the browser lane
-        exists). No page of the web app: a node from the public repository has none."""
-        return {"browser": None}
 
     # ================================================================ close
     async def close(self, env_id: str, *, discard: bool = False, reason: str = "closed") -> Environment:
@@ -1263,7 +650,7 @@ class EnvironmentManager:
 
     async def reap_once(self, now: datetime | None = None) -> dict:
         now = now or self._clock()
-        out: dict[str, Any] = {"at": _iso(now), "closed": [], "kept_unsaved": [], "tunnels": [], "gone": []}
+        out: dict[str, Any] = {"at": clock.iso_or_none(now, z=True), "closed": [], "kept_unsaved": [], "tunnels": [], "gone": []}
         vms = self._get("vms")
         for env in self.store.open():
             if env.id in self._tasks:
@@ -1339,5 +726,4 @@ def binding_of(session: str | None, grant_id: str | None) -> str:
     return f"grant:{grant_id or 'owner'}"
 
 
-__all__ = ["OPEN_NEXT", "EnvironmentManager", "binding_of", "check_ref", "check_title", "parse_git_state",
-           "parse_ports"]
+__all__ = ["OPEN_NEXT", "EnvironmentManager", "binding_of", "check_ref", "check_title"]

@@ -20,6 +20,7 @@ from typing import Any
 
 from agentos.client.call import CallError, Session, StillPending, call_tool
 from agentos.core.errors import InvalidRequest
+from agentos.runner.flowdoc import FlowDefinition
 from agentos.runner.flowfiles import (
     FlowFile,
     diff_text,
@@ -31,7 +32,7 @@ from agentos.runner.flowfiles import (
     secret_problems,
 )
 from agentos.runner.flows import parse_definition
-from agentos.runner.models import FlowDefinition, is_connector_id
+from agentos.runner.names import is_connector_id
 
 # ---- reading the node --------------------------------------------------------------------
 

@@ -13,7 +13,7 @@ from test_policy_support import Clock, make_service
 from agentos.core.errors import ApprovalPending, AuditUnwritable
 from agentos.core.models import Effect
 from agentos.policy import tokens
-from agentos.policy.approvals import ApprovalPolicy, FourEyesRule
+from agentos.policy.approval_models import ApprovalPolicy, FourEyesRule
 from agentos.policy.errors import Denied, TokenInvalid
 from agentos.policy.grants import Grant, blocks_from_token
 from agentos.policy.routing import PolicyConfig, load_policy_config

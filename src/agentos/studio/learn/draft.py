@@ -477,26 +477,8 @@ def build_draft(reads: Reads) -> BrandDraft:
             scales += [x for x in reads.declared.scales if x.category.value == cat]
             cats[cat] = s
             continue
-        if cat == "color":
-            t, s, u = _colors(origins, dark.get("color", []), have_dark)
-            uncertain += u
-        elif cat == "space":
-            t, sc, s, step = _space(origins)
-            if s.system in ("found", "weak"):
-                scales += sc
-                draft.space_step_px = step
-        elif cat == "radius":
-            t, s = _radius(origins)
-        elif cat == "font_family":
-            t, s, fonts = _families(origins)
-            if s.system in ("found", "weak"):
-                draft.fonts = fonts
-        elif cat == "font_size":
-            t, s, scale, ratio = _sizes(origins)
-            if s.system in ("found", "weak"):
-                draft.type_scale, draft.type_ratio = scale, ratio
-        else:
-            t, s = _weights(origins)
+        t, s, sc = _heuristic(cat, origins, dark, have_dark, draft, uncertain)
+        scales += sc
         cats[cat] = s
         if s.system in ("found", "weak"):
             toks += t
@@ -508,20 +490,7 @@ def build_draft(reads: Reads) -> BrandDraft:
             if s.values:
                 uncertain.append(f"{WORDS[cat]}: no consistent system ({s.on_tokens} of {s.values} values would fit, "
                                  f"{s.one_offs} one-off values); nothing drafted for it")
-    # one token per name and theme set (two clusters can round to one step)
-    kept: dict[tuple, _Tok] = {}
-    for t in toks:
-        k = (t.token.name, tuple(t.token.themes))
-        if k in kept:
-            kept[k].uses += t.uses
-        else:
-            kept[k] = t
-    toks = list(kept.values())
-    # names a DTCG file cannot hold are left out, and said
-    bad = sorted({t.token.name for t in toks if not all(NAME_SEGMENT.match(p) for p in t.token.name.split("."))})
-    if bad:
-        uncertain.append(f"{len(bad)} declared token name(s) cannot be written as DTCG and were left out")
-        toks = [t for t in toks if t.token.name not in set(bad)]
+    toks = _writable(_one_per_name(toks), uncertain)
     for cat in DRAFTED:
         if cat in cats and cats[cat].source == "declared":
             cats[cat].tokens = len({t.token.name for t in toks if t.token.category.value == cat})
@@ -537,6 +506,56 @@ def build_draft(reads: Reads) -> BrandDraft:
     draft.uncertain = uncertain
     draft.brand = _brand(draft, toks)
     return draft
+
+
+def _heuristic(cat: str, origins: list, dark: dict, have_dark: bool, draft: BrandDraft,
+               uncertain: list[str]) -> tuple[list[_Tok], CategorySummary, list[Scale]]:
+    """A category the page does not declare, learned from the values it uses. A found or weak
+    system also sets the draft's step, fonts or type scale."""
+    found = ("found", "weak")
+    scales: list[Scale] = []
+    if cat == "color":
+        t, s, u = _colors(origins, dark.get("color", []), have_dark)
+        uncertain += u
+    elif cat == "space":
+        t, sc, s, step = _space(origins)
+        if s.system in found:
+            scales += sc
+            draft.space_step_px = step
+    elif cat == "radius":
+        t, s = _radius(origins)
+    elif cat == "font_family":
+        t, s, fonts = _families(origins)
+        if s.system in found:
+            draft.fonts = fonts
+    elif cat == "font_size":
+        t, s, scale, ratio = _sizes(origins)
+        if s.system in found:
+            draft.type_scale, draft.type_ratio = scale, ratio
+    else:
+        t, s = _weights(origins)
+    return t, s, scales
+
+
+def _one_per_name(toks: list[_Tok]) -> list[_Tok]:
+    """One token per name and theme set (two clusters can round to one step); the uses add up."""
+    kept: dict[tuple, _Tok] = {}
+    for t in toks:
+        k = (t.token.name, tuple(t.token.themes))
+        if k in kept:
+            kept[k].uses += t.uses
+        else:
+            kept[k] = t
+    return list(kept.values())
+
+
+def _writable(toks: list[_Tok], uncertain: list[str]) -> list[_Tok]:
+    """Names a DTCG file cannot hold are left out, and said."""
+    bad = sorted({t.token.name for t in toks if not all(NAME_SEGMENT.match(p) for p in t.token.name.split("."))})
+    if not bad:
+        return toks
+    uncertain.append(f"{len(bad)} declared token name(s) cannot be written as DTCG and were left out")
+    return [t for t in toks if t.token.name not in set(bad)]
 
 
 def _palette(toks: list[_Tok]) -> list[dict[str, Any]]:

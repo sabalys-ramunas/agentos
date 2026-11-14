@@ -20,7 +20,7 @@ import uuid
 import pytest
 
 from agentos.core.models import LaneSpec, ProxyConfig
-from agentos.node.engine_camoufox import CamoufoxEngine
+from agentos.node.camoufox.engine import CamoufoxEngine
 
 pytestmark = pytest.mark.node
 
@@ -234,7 +234,7 @@ SHIPPED = {"media.peerconnection.ice.proxy_only": False}  # Camoufox's own defau
 
 
 # (proxied, page, script, extra prefs, does UDP reach the STUN port). The rule in
-# agentos.stealth.lanecheck.judge_webrtc rests on these rows: Camoufox's shipped
+# agentos.stealth.lanerules.judge_webrtc rests on these rows: Camoufox's shipped
 # proxy_only_if_behind_proxy holds on a page loaded through the proxy, but not in an about:blank
 # document or a blank iframe a page makes, so it is a warning; proxy_only closes both, and the
 # engine sets it on every proxied lane (WEBRTC_PROXY_PREFS). If a Camoufox update stops the leak,
@@ -256,7 +256,7 @@ async def test_webrtc_and_the_proxy(tmp_path, display, proxied, where, script, p
     """Whether WebRTC sends STUN over UDP from the node itself, around the lane's proxy. The STUN
     server is a UDP port on the node's own address, so a packet that reaches it is one a site's
     STUN server would see from the node's IP. Without a proxy the same page reaches it (the control)."""
-    from agentos.stealth import lanecheck
+    from agentos.stealth import lanerules
 
     sink = _StunSink(SITE_PORT)
     proxy_server = _PageProxy(b"<!doctype html><title>x</title><body></body>")
@@ -278,14 +278,14 @@ async def test_webrtc_and_the_proxy(tmp_path, display, proxied, where, script, p
     assert host_ips == [], f"a host candidate shows a real address: {host_ips}"
     assert (sink.packets > 0) is leaks, f"expected leaks={leaks}, saw {sink.packets} STUN packets"
     if proxied:  # what the lane check says about these prefs matches what happened
-        from agentos.node.engine_camoufox import WEBRTC_PROXY_PREFS
+        from agentos.node.camoufox.engine import WEBRTC_PROXY_PREFS
 
         judged = {"media.peerconnection.enabled": True,
                   "media.peerconnection.ice.proxy_only_if_behind_proxy": True,
                   "media.peerconnection.ice.obfuscate_host_addresses": True, **WEBRTC_PROXY_PREFS, **prefs}
-        verdict = lanecheck.judge_webrtc(judged, proxied=True, known=True, user_js=tmp_path / "user.js").level
+        verdict = lanerules.judge_webrtc(judged, proxied=True, known=True, user_js=tmp_path / "user.js").level
         closed = judged["media.peerconnection.ice.proxy_only"] is True
-        assert verdict == (lanecheck.OK if closed else lanecheck.WARN)
+        assert verdict == (lanerules.OK if closed else lanerules.WARN)
 
 
 COOKIE_PAGE = b"""<!doctype html><title>cookies</title><script>
@@ -300,8 +300,9 @@ async def test_cookie_file_reads_while_the_browser_writes(tmp_path, display):
     to the file, and the browser goes on writing (no lock of ours ever stops it)."""
     from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-    from agentos.ops.system import Host
-    from agentos.stealth.lanecheck import _camou_prefs, read_cookie_db
+    from agentos.core.system import Host
+    from agentos.stealth.lanecheck import _camou_prefs
+    from agentos.stealth.lanecookies import read_cookie_db
 
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):
@@ -359,7 +360,7 @@ async def test_only_a_crash_reads_as_a_crash(tmp_path, display):
     """Firefox leaves its `lock` link behind on a clean exit as well, so the lane check cannot go
     by it: every lane ever closed would warn of a crash. What a kill leaves and a close does not
     is the session recovery file."""
-    from agentos.ops.system import Host
+    from agentos.core.system import Host
     from agentos.stealth.lanecheck import left_by_a_crash
 
     engine = CamoufoxEngine(extra_options={"geoip": False})

@@ -10,6 +10,7 @@ from types import SimpleNamespace
 
 from agentos.core.models import AccountRef
 from agentos.node import publish
+from agentos.node.cardfacts import NodeCardFacts
 from agentos.node.egress import EFFECT_RULES, unknown_rule
 from agentos.policy.cards import REDACTED_SPAN, VAULT_SPAN, publish_card
 
@@ -28,13 +29,15 @@ class Runtime:
             return SimpleNamespace(scrub=lambda text: text.replace(self.secret, "[vault]"))
         if name == "lanes":
             return SimpleNamespace(get=lambda lane: SimpleNamespace(spec=SimpleNamespace(account=self.account)))
+        if name == "card_facts":  # what a node runtime always carries (agentos.node.cardfacts)
+            return NodeCardFacts()
         return None
 
 
 def card_of(body: bytes, rule: str = "reddit.post", runtime=None, record_extra: dict | None = None, rule_obj=None):
     cap = publish.capture(rule_obj or RULES[rule], REDDIT, "POST", JSON, body)
     cap.record.update(record_extra or {})
-    return publish_card(cap.content("test/reddit"), runtime)
+    return publish_card(cap.content("test/reddit"), runtime or Runtime())
 
 
 def reddit(title: str, rich: object | None = None, markdown: str | None = None, **extra) -> bytes:
@@ -79,14 +82,14 @@ def test_an_unrecognised_request_is_named_by_its_shape():
     rule = unknown_rule(EFFECT_RULES, "www.reddit.com", "https://www.reddit.com/submit-form", "POST")
     cap = publish.capture(rule, "https://www.reddit.com/submit-form", "POST", JSON,
                           json.dumps({"title": "x", "body": "y"}).encode())
-    card = publish_card(cap.content("test/reddit"))
+    card = publish_card(cap.content("test/reddit"), Runtime())
     assert card["headline"] == "A request agentos does not recognise, to Reddit: POST /submit-form"
     assert card["shape"].startswith("POST /submit-form with ") and card["kind"] == "unknown"
     # in plain words: what is known, and that denying is safe (finding 27 of 2026-11-10)
     assert "cannot tell whether it posts" in card["explain"] and "Denying it is safe" in card["explain"]
     assert card["deny_safe"] is True and "typed" not in card["explain"] and "\u2014" not in json.dumps(card)
     cap.record["carries_typed"] = "title"
-    typed = publish_card(cap.content("test/reddit"))
+    typed = publish_card(cap.content("test/reddit"), Runtime())
     assert "It carries text the agent typed as its title" in typed["explain"]
 
 

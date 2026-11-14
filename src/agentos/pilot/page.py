@@ -13,7 +13,7 @@ from dataclasses import dataclass, field, replace
 from urllib.parse import urlsplit
 
 from agentos.node.egress import in_sites
-from agentos.node.snapshot import parse_line
+from agentos.node.snapshot import OutlineLine, parse_line
 
 WHERE_CHARS = 60              # a post's name holds its whole body, which a stranger wrote
 TEXT_ROLES = frozenset({"textbox", "searchbox", "combobox", "spinbutton"})
@@ -189,58 +189,91 @@ def parse_page(text: str) -> Page:
     page (the article or form around it is what tells two Like buttons apart), and the text lines."""
     url = re.search(r"https?://\S+", text)
     signal = re.search(r"^signal: (\w+)", text, re.MULTILINE)
-    elements: list[Element] = []
-    lines: list[str] = []
-    stack: list[tuple[int, str, bool]] = []
-    boxes: list[Box] = []
-    opened: list[int | None] = []       # the item open around each box when it began
-    items: list[tuple[int, int]] = []   # (depth, index into boxes) of the items open around this line
-    para: list[int] = []                # depths of the paragraphs open around this line
-    whole: list[tuple[int, int]] = []   # (box, index into its said) of the outermost paragraph open
+    parse = _PageParse(text.splitlines())
+    for at, raw in enumerate(parse.rows):
+        parse.row(at, raw)
+    boxes, elements = _settle(parse.boxes, parse.opened, parse.elements)
+    return Page(url=url.group(0) if url else "", signal=signal.group(1) if signal else "unknown", outline=text,
+                elements=elements, lines=parse.lines, boxes=boxes)
+
+
+@dataclass
+class _PageParse:
+    """parse_page's state while it reads the outline row by row."""
+    rows: list[str]
+    elements: list[Element] = field(default_factory=list)
+    lines: list[str] = field(default_factory=list)
+    stack: list[tuple[int, str, bool]] = field(default_factory=list)  # the context boxes open (where)
+    boxes: list[Box] = field(default_factory=list)
+    opened: list[int | None] = field(default_factory=list)       # the item open around each box when it began
+    items: list[tuple[int, int]] = field(default_factory=list)   # (depth, index into boxes) of the items open
+    para: list[int] = field(default_factory=list)                # depths of the paragraphs open around this line
+    whole: list[tuple[int, int]] = field(default_factory=list)   # (box, index into its said) of the outermost paragraph
     link: tuple[str, bool] = ("", False)  # the name of the last link, and whether it sat in a paragraph
-    rows = text.splitlines()
-    for at, raw in enumerate(rows):
+
+    def row(self, at: int, raw: str) -> None:
         line = parse_line(raw)
         stripped = raw.lstrip()
         if stripped.startswith("- /url:"):
-            href = stripped.split(":", 1)[1].strip()
-            if elements and elements[-1].role == "link" and elements[-1].href is None:
-                elements[-1] = replace(elements[-1], href=href)
-            if items:
-                box = boxes[items[-1][1]]
-                box.hrefs.append(href)
-                box.links.append((link[0], href, link[1], box.lead is not None))
-            continue
+            self._href(stripped.split(":", 1)[1].strip())
+            return
         if line.role is None and not stripped.startswith("- text:"):
-            continue
-        while stack and stack[-1][0] >= line.depth:
-            stack.pop()
-        while items and items[-1][0] >= line.depth:
-            items.pop()
-        while para and para[-1] >= line.depth:
-            para.pop()
-        if not para:
-            whole.clear()
+            return
+        self._close(line.depth)
         if line.role == "link":
-            link = (line.name or "", bool(para))
-        opens = (line.role in ITEM_ROLES or (line.role == "link" and _is_card(rows, at))
-                 or (line.role in SOFT_ROLES and bool(line.name) and bool(items) and _is_block(rows, at)))
-        if opens:
-            boxes.append(Box(line.role, len(items), title=line.name or ""))
-            opened.append(items[-1][1] if items else None)
-            items.append((line.depth, len(boxes) - 1))
-        where = " > ".join(s for _, s, _ in stack[-2:])
+            self.link = (line.name or "", bool(self.para))
+        opens = self._opens(line, at)
+        where = " > ".join(s for _, s, _ in self.stack[-2:])
         tail = raw[line.attrs_span[1]:].strip(": ") if line.attrs_span else ""
         said = [t for t in (line.name, tail) if t]
         if line.role is None:
             said = [raw.split(":", 1)[-1].strip(' "')]
+        self._said(line, opens, tail, said)
+        if line.role in READ_ROLES or stripped.startswith("- text:"):
+            self._read(line.name or tail or raw.split(":", 1)[-1])
+        self._context(line)
+        if line.ref and line.actionable and line.role:
+            self._element(line, tail, where)
+
+    def _opens(self, line: OutlineLine, at: int) -> bool:
+        """Does this row open an item (a post, a comment, a card)? Then it is open from here on."""
+        opens = (line.role in ITEM_ROLES or (line.role == "link" and _is_card(self.rows, at))
+                 or (line.role in SOFT_ROLES and bool(line.name) and bool(self.items) and _is_block(self.rows, at)))
+        if opens:
+            self.boxes.append(Box(line.role, len(self.items), title=line.name or ""))
+            self.opened.append(self.items[-1][1] if self.items else None)
+            self.items.append((line.depth, len(self.boxes) - 1))
+        return opens
+
+    def _href(self, href: str) -> None:
+        if self.elements and self.elements[-1].role == "link" and self.elements[-1].href is None:
+            self.elements[-1] = replace(self.elements[-1], href=href)
+        if self.items:
+            box = self.boxes[self.items[-1][1]]
+            box.hrefs.append(href)
+            box.links.append((self.link[0], href, self.link[1], box.lead is not None))
+
+    def _close(self, depth: int) -> None:
+        """Close what this row is not inside of."""
+        while self.stack and self.stack[-1][0] >= depth:
+            self.stack.pop()
+        while self.items and self.items[-1][0] >= depth:
+            self.items.pop()
+        while self.para and self.para[-1] >= depth:
+            self.para.pop()
+        if not self.para:
+            self.whole.clear()
+
+    def _said(self, line: OutlineLine, opens: bool, tail: str, said: list[str]) -> None:
+        """An item's words, its names and what it says (each piece whole)."""
+        items, boxes, whole = self.items, self.boxes, self.whole
         # words with no role of their own: a text line, or a nameless block that holds only words
         # (`- generic: Thanks`). They are what the item says, never who wrote it
         plain = line.role is None or (line.role in SOFT_ROLES | {"cell", "gridcell"} and not opens and not line.name
                                       and bool(tail))
         if items:  # an item's words are its own: a comment's are not the post's around it
             boxes[items[-1][1]].texts.extend(said)
-            if not para and (opens or line.role in WHO_ROLES):  # a text line is words, never an author slot
+            if not self.para and (opens or line.role in WHO_ROLES):  # a text line is words, never an author slot
                 boxes[items[-1][1]].names.extend(said)
         # what an item says, each piece whole: a paragraph split into text and links is read as one line,
         # so "so pretty" in "Not" + "so pretty" is never a whole line of its own
@@ -257,33 +290,35 @@ def parse_page(text: str) -> Page:
             if line.role == "paragraph":
                 whole.append((items[-1][1], len(box.said) - 1))
         if line.role == "paragraph":
-            para.append(line.depth)
-        if line.role in READ_ROLES or stripped.startswith("- text:"):
-            body = line.name or tail or raw.split(":", 1)[-1]
-            if body.strip(' "'):
-                lines.append(body.strip(' "'))
-                if items:
-                    boxes[items[-1][1]].lines.append(body.strip(' "'))
+            self.para.append(line.depth)
+
+    def _read(self, body: str) -> None:
+        if body.strip(' "'):
+            self.lines.append(body.strip(' "'))
+            if self.items:
+                self.boxes[self.items[-1][1]].lines.append(body.strip(' "'))
+
+    def _context(self, line: OutlineLine) -> None:
+        stack = self.stack
         if line.role in CONTEXT_ROLES:
             named = f'{line.role} "{line.name[:WHERE_CHARS]}"' if line.name else line.role
             stack.append((line.depth, named, line.role in DIALOG_ROLES))
         if line.role == "heading" and line.name and stack and '"' not in stack[-1][1]:
             depth, role, dialog = stack[-1]  # a box with no name of its own goes by its heading
             stack[-1] = (depth, f'{role} "{line.name[:WHERE_CHARS]}"', dialog)
-        if line.ref and line.actionable and line.role:
-            states = tuple(a for a in line.attrs if a in ("pressed", "checked", "disabled", "expanded", "selected"))
-            label = f'{line.role} "{line.name or ""}"'
-            if states:
-                label += " (" + ", ".join(states) + ")"
-            if tail:
-                label += f" {tail}"
-            if where:
-                label += f" in {where}"
-            elements.append(Element(line.ref, line.role, label, name=line.name or "", where=where, states=states,
-                                    in_dialog=any(d for _, _, d in stack), box=items[-1][1] if items else None))
-    boxes, elements = _settle(boxes, opened, elements)
-    return Page(url=url.group(0) if url else "", signal=signal.group(1) if signal else "unknown", outline=text,
-                elements=elements, lines=lines, boxes=boxes)
+
+    def _element(self, line: OutlineLine, tail: str, where: str) -> None:
+        states = tuple(a for a in line.attrs if a in ("pressed", "checked", "disabled", "expanded", "selected"))
+        label = f'{line.role} "{line.name or ""}"'
+        if states:
+            label += " (" + ", ".join(states) + ")"
+        if tail:
+            label += f" {tail}"
+        if where:
+            label += f" in {where}"
+        self.elements.append(Element(line.ref, line.role, label, name=line.name or "", where=where, states=states,
+                                     in_dialog=any(d for _, _, d in self.stack),
+                                     box=self.items[-1][1] if self.items else None))
 
 
 def lean(outline: str) -> str:

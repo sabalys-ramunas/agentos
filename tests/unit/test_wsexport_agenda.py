@@ -15,9 +15,11 @@ from agentos.agenda.models import Action, ActionKind, Entry, EntryState, When
 from agentos.agenda.service import AgendaService
 from agentos.agenda.store import DB_NAME, AgendaStore
 from agentos.core.runtime import Runtime
-from agentos.ops import wsexport, wsimport
-from agentos.ops.wsimport import ImportOptions
 from agentos.workspaces import cli
+from agentos.workspaces.transfer import export as wsexport
+from agentos.workspaces.transfer import import_ as wsimport
+from agentos.workspaces.transfer import read as wsread
+from agentos.workspaces.transfer.import_ import ImportOptions
 
 SOON = datetime.now(UTC).replace(microsecond=0) + timedelta(days=3)
 
@@ -80,7 +82,7 @@ def export(node, dest: Path):
 
 
 def do_import(node, path: Path, **options):
-    contents = wsexport.read_export(path, wsexport.staging_dir(node.home, "import"), passphrase=PASSPHRASE)
+    contents = wsread.read_export(path, wsread.staging_dir(node.home, "import"), passphrase=PASSPHRASE)
     try:
         plan = asyncio.run(wsimport.plan_import(contents, node.sources(), ImportOptions(**options)))
         assert plan.ok, plan.blockers
@@ -142,7 +144,7 @@ def test_a_failed_import_takes_its_entries_back_out(nodes, tmp_path, monkeypatch
         return real(row, *args, **kw)
 
     monkeypatch.setattr(wsimport, "_apply_agenda_entry", flaky)
-    contents = wsexport.read_export(out, wsexport.staging_dir(b.home, "import"), passphrase=PASSPHRASE)
+    contents = wsread.read_export(out, wsread.staging_dir(b.home, "import"), passphrase=PASSPHRASE)
     try:
         plan = asyncio.run(wsimport.plan_import(contents, b.sources(), ImportOptions()))
         with pytest.raises(wsimport.ImportFailed, match="agenda entries"):

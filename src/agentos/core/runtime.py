@@ -10,6 +10,9 @@ Well-known service names (keep this list in sync with the packages that provide 
   events        agentos.api.events.EventBus (live updates for the panel; registered first)
   lanes         agentos.node.interfaces.LaneManager
   interaction   agentos.node.interfaces.Interaction
+  after_commit  agentos.audit.captures.after_commit (handed each agent commit on a lane, by browser_act)
+  tool_catalog  agentos.mcp.providers.ProviderCatalog (the tools agents see, for the text review)
+  card_facts    agentos.node.cardfacts (what an approval card shows that only the node knows: core.cardfacts)
   policy        agentos.policy  (grants, authorization, effect routing)
   freeze        agentos.freeze  (break-glass: frozen lanes, workspaces, the node; checked before every agent call)
   approvals     agentos.policy  (approval queue, notifier)
@@ -29,7 +32,6 @@ Well-known service names (keep this list in sync with the packages that provide 
   files         agentos.node.files (per-lane inbox and outbox)
   workspaces    agentos.workspaces (workspace names and colors, templates, bulk lanes, login queue)
   memory        agentos.memory  (workspace memory with provenance, docs/design/workspace-memory.md)
-  engage        agentos.engage  (engagement programs, personas, planner and governor, docs/design/engagement-engine.md)
   expose        agentos.node.expose (the owner's dev servers in a browser lane, a lane's port on the laptop)
   pilot         agentos.pilot   (lane_do: a cheap worker drives one lane toward one goal, docs/design/browser-and-computer-agents.md)
 """

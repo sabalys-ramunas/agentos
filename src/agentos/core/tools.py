@@ -30,11 +30,13 @@ from __future__ import annotations
 
 import contextvars
 import re
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
-from agentos.core.errors import InvalidRequest, PolicyDenied
+from agentos.core import globs
+from agentos.core.errors import Frozen, InvalidRequest, PolicyDenied
 from agentos.core.models import Effect, Principal
 from agentos.core.presence import Presence
 
@@ -151,13 +153,17 @@ def frozen_off(ctx: Any, *, lanes: Any = (), workspace: str | None = None) -> bo
 
 def refuse_frozen(ctx: Any, *, lanes: Any = (), workspace: str | None = None) -> None:
     """frozen_off for a call that acts on, or returns, one thing: raise `frozen` when it is in a frozen
-    scope. The error comes from agentos.freeze, so its words are the freeze's own."""
+    scope. The error's words are the freeze service's own (its `message`)."""
     if not frozen_off(ctx, lanes=lanes, workspace=workspace):
         return
-    from agentos.policy.freeze import frozen_error
-
     freeze = ctx.runtime.get("freeze")
     raise frozen_error(freeze, ctx.frozen_hits)
+
+
+def frozen_error(freeze: Any, hits: list[tuple[str, Any]]) -> Exception:
+    """The `frozen` error for a call that acted on, or read one thing in, a frozen scope."""
+    what, rec = hits[0]
+    return Frozen(freeze.message(what or None, rec))
 
 
 def _pattern_workspace(pattern: str) -> str | None:
@@ -187,8 +193,6 @@ def covers_workspace(ctx: Any, workspace: str | None) -> bool:
 def pattern_within(ctx: Any, pattern: str) -> bool:
     """Is every lane `pattern` can match inside the caller's grant? `biz-a/insta*` is within a grant for
     `biz-a/*`; `*` and `biz-b/*` are not. A concrete lane id is a pattern that matches one lane."""
-    from agentos.policy import globs  # core stays importable without the policy package loaded
-
     try:
         globs.validate_lane_pattern(pattern)
     except InvalidRequest:
@@ -216,8 +220,6 @@ def pattern_reaches(ctx: Any, pattern: str) -> bool:
     """Can `pattern` match at least one lane inside the caller's grant? For what a grant may see because
     it could use it somewhere (a flow bound to `*/instagram`, seen by a grant for `biz-a/*`). A context
     without a grant answers for a concrete lane only."""
-    from agentos.policy import globs
-
     try:
         globs.validate_lane_pattern(pattern)
     except InvalidRequest:
@@ -346,5 +348,53 @@ class ToolSpec:
             self.description = (self.handler.__doc__ or "").strip()
 
 
-class ToolProvider(Protocol):
-    def __call__(self, runtime: Any) -> list[ToolSpec]: ...
+@dataclass(frozen=True)
+class PromptArg:
+    name: str
+    description: str
+    required: bool = False
+
+
+@dataclass(frozen=True)
+class PromptSpec:
+    """An MCP prompt. `render(**arguments)` returns the text of its one user message; arguments
+    the user left out (or left empty) are not passed."""
+    name: str
+    description: str
+    render: Callable[..., str]
+    arguments: tuple[PromptArg, ...] = ()
+    title: str | None = None
+    hidden_without: str | None = None
+
+
+request_token: contextvars.ContextVar[str | None] = contextvars.ContextVar("agentos_mcp_request_token",
+                                                                           default=None)
+
+
+@contextmanager
+def bind_request_token(token: str | None) -> Iterator[None]:
+    """Bind the caller's bearer token for one request. agentos.mcp.http does this for every HTTP
+    request; the SDK carries the context into the tool call it dispatches."""
+    reset = request_token.set(token)
+    try:
+        yield
+    finally:
+        request_token.reset(reset)
+
+
+def current_request_token() -> str | None:
+    return request_token.get()
+
+
+TOOL_CATALOG = "tool_catalog"  # the runtime service a ToolCatalog is registered as
+
+
+class ToolCatalog(Protocol):
+    """The tools agents see, for a feature that reads their text (the text review): the composition
+    registers one as `tool_catalog` (agentos.mcp.providers.ProviderCatalog)."""
+
+    def specs(self, *, served_only: bool) -> list[ToolSpec]:
+        """`served_only`: what this daemon serves now. Otherwise every tool this build has."""
+
+    def params(self, spec: ToolSpec) -> list[Any]:
+        """The tool's arguments as the MCP server reads them, each with `.name` and `.annotation`."""

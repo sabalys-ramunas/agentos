@@ -778,14 +778,14 @@ def test_show_still_works_when_the_log_cannot_be_read(cli, no_record):
 
 
 def test_the_real_composition_root_wires_the_action_log():
-    from agentos.cli import PluginChanges
+    from agentos.commands.features import PluginChanges
 
     assert plugins_cli.change_log_factory is not None
     assert isinstance(plugins_cli.change_log_factory(Runtime(config=NodeConfig(home=Path("/nowhere")))), PluginChanges)
 
 
 def test_a_row_the_log_will_not_take_is_a_failure(tmp_path):
-    from agentos.cli import PluginChanges
+    from agentos.commands.features import PluginChanges
 
     log = PluginChanges(tmp_path)
     log._open().flush = lambda: 1
@@ -795,7 +795,7 @@ def test_a_row_the_log_will_not_take_is_a_failure(tmp_path):
 
 
 def test_root_never_makes_the_log_for_the_daemon(tmp_path, monkeypatch):
-    from agentos import cli as root_cli
+    from agentos.commands import features as root_cli
 
     monkeypatch.setattr(root_cli.os, "geteuid", lambda: 0)
     with pytest.raises(ServiceUnavailable, match="start agentosd once"):

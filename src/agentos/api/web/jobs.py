@@ -47,7 +47,7 @@ _SUMMARIES_KEPT = 2000
 
 
 def manager(api: Api) -> Any | None:
-    """The env manager (agentos.env.EnvManager), through the panel's adapter when it has one."""
+    """The env manager (agentos.env.manager.EnvManager), through the panel's adapter when it has one."""
     envs = api.optional("envs")
     mgr = getattr(envs, "envs", envs)
     return mgr if mgr is not None and callable(getattr(mgr, "job_list", None)) else None

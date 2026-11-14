@@ -14,8 +14,6 @@ import pytest
 
 from agentos.core.errors import InvalidRequest, PolicyDenied
 from agentos.core.models import RunStatus
-from agentos.engage.adapters import installed_checker, kind_checker, verified_checker
-from agentos.engage.operations import DEFAULT_SPECS, OpSpec, Registry
 from agentos.profiles.learn import LearnRefused, flow_ids, generate
 from agentos.runner.connectors.compile import ConnectorInvalid, compile_connector, compile_path, proof_hash
 from agentos.runner.connectors.marks import BY_REPLAY, MarkLedger, mark_replay
@@ -275,18 +273,7 @@ def test_remove_learned_deletes_the_pair_and_its_marks(tmp_path):
 # ---------------------------------------------------------------- replay marks
 
 
-def _registry(h, home):
-    rt = {"flows": h.flows}
-    return Registry(installed=installed_checker(rt), verified=verified_checker(rt, home), kind=kind_checker(rt),
-                    rules=[_Rule()])
-
-
-class _Rule:
-    id = "instagram.profile.learned_bio"
-    verified = "2026-11-12 instagram.com learn trace"
-
-
-SPEC = OpSpec("instagram", "profile_bio", "connector.instagram-profile.bio", "instagram.profile.learned_bio")
+FID = "connector.instagram-profile.bio"
 
 
 def test_a_replay_mark_verifies_a_learned_operation_until_its_steps_change(tmp_path):
@@ -294,44 +281,35 @@ def test_a_replay_mark_verifies_a_learned_operation_until_its_steps_change(tmp_p
     svc = ConnectorService(h.flows)
     svc.install_learned(_doc(tmp_path))
     home = tmp_path / "home"
-    reg = _registry(h, home)
-    reg.register(SPEC)
-    assert reg.problem(SPEC) == "op_unverified"
-    fv = h.flows.get(SPEC.flow_id)
-    mark = mark_replay(home, SPEC.flow_id, proof_hash(fv.definition.canonical()),
+    fv = h.flows.get(FID)
+    assert MarkLedger(home).state(FID, fv.definition.canonical()) is None
+    mark = mark_replay(home, FID, proof_hash(fv.definition.canonical()),
                        {"rehearsal_run": "r1", "read_run": "r2", "version": "1.0.0"})
     assert mark["by"] == BY_REPLAY and "replay" in mark["text"]
-    assert reg.problem(SPEC) is None
-    assert MarkLedger(home).state(SPEC.flow_id, fv.definition.canonical()).by == BY_REPLAY
+    state = MarkLedger(home).state(FID, fv.definition.canonical())
+    assert state.by == BY_REPLAY and not state.stale and state.reason is None
     # a relearn with other steps: the mark names the old implementation, so it is stale
     svc.install_learned(_doc(tmp_path / "2", readback_locator={"css": "header span", "within": {"role": "main"}}))
-    assert reg.problem(SPEC) == "op_unverified" and reg.reason(SPEC) == "verified_stale"
+    relearned = MarkLedger(home).state(FID, h.flows.get(FID).definition.canonical())
+    assert relearned.stale and relearned.reason == "verified_stale"
 
 
 def test_a_replay_mark_never_counts_for_a_catalog_operation(tmp_path):
     h = Harness(tmp_path)
     ConnectorService(h.flows).install(compile_path(REDDIT), by=OWNER)
     home = tmp_path / "home"
-    spec = next(s for s in DEFAULT_SPECS if s.flow_id == "connector.reddit.comment")
-    fv = h.flows.get(spec.flow_id)
+    fid = "connector.reddit.comment"
+    fv = h.flows.get(fid)
     proof = proof_hash(fv.definition.canonical())
     with pytest.raises(ConnectorInvalid, match="learned operation only"):
-        mark_replay(home, spec.flow_id, proof, {"run": "r1"})
-    # written into the ledger by other means, it is still refused: the flow is not learned
+        mark_replay(home, fid, proof, {"run": "r1"})
+    assert MarkLedger(home).get(fid) is None
+    # the owner's mark verifies it
     ledger = MarkLedger(home)
-    ledger._put("reddit.comment", {"proof": proof, "text": "2026-11-12 reddit replay: x", "by": BY_REPLAY})
-    rt = {"flows": h.flows}
-    reg = Registry(installed=installed_checker(rt), verified=verified_checker(rt, home), kind=kind_checker(rt),
-                   rules=[type("R", (), {"id": spec.rule_id, "verified": "2026-11-04 canary"})()])
-    assert reg.problem(spec) == "op_unverified" and reg.reason(spec) == "replay_not_learned"
-    assert next(r for r in reg.describe("reddit") if r["flow"] == spec.flow_id)["verified"] == ""
-    # without a kind checker no replay mark counts at all (fail closed)
-    assert Registry(installed=installed_checker(rt), verified=verified_checker(rt, home),
-                    rules=[type("R", (), {"id": spec.rule_id, "verified": "x"})()]).problem(spec) == "op_unverified"
-    # the owner's mark still verifies it
     mark_installed(ledger, "reddit.comment", fv.definition.canonical(), domain="reddit.com", note="canary",
                    day=date(2026, 11, 12))
-    assert reg.problem(spec) is None
+    state = ledger.state(fid, fv.definition.canonical())
+    assert state.by == "owner" and not state.stale
 
 
 def test_mark_replay_wants_a_proof_hash_and_small_json_evidence(tmp_path):

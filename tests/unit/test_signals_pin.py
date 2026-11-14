@@ -18,9 +18,9 @@ S = Signal
 PINS = [
     ("agentos.runner.proof", "BAD_SIGNALS",
      frozenset({S.CAPTCHA, S.CHECKPOINT, S.RATE_LIMITED, S.BLOCKED, S.LOGGED_OUT})),
-    ("agentos.stealth.lanecheck", "BAD_SIGNALS",
+    ("agentos.stealth.lanerules", "BAD_SIGNALS",
      (S.CAPTCHA, S.CHECKPOINT, S.RATE_LIMITED, S.BLOCKED, S.LOGGED_OUT)),
-    ("agentos.node.interaction", "STOP_SIGNALS",
+    ("agentos.node.interaction.waits", "STOP_SIGNALS",
      frozenset({S.CAPTCHA, S.CHECKPOINT, S.LOGGED_OUT, S.BLOCKED, S.RATE_LIMITED})),
     ("agentos.keepalive.planner", "BAD_SIGNALS",
      frozenset({S.CAPTCHA, S.CHECKPOINT, S.BLOCKED, S.LOGGED_OUT})),
@@ -31,11 +31,11 @@ PINS = [
     ("agentos.api.lanes_view", "NEEDS_HUMAN_SIGNALS", {"captcha", "checkpoint", "logged_out", "blocked"}),
     ("agentos.api.lanes_view", "ATTENTION_SIGNALS", {"captcha", "checkpoint", "rate_limited", "logged_out"}),
     ("agentos.pilot.loop", "CHALLENGES", frozenset({"captcha", "checkpoint", "blocked", "rate_limited"})),
-    ("agentos.engage.ports", "SIGNALS",
+    ("agentos.profiles.sync", "SIGNALS",
      frozenset({"captcha", "checkpoint", "logged_out", "blocked", "rate_limited", "wrong_account"})),
     ("agentos.runner.siteapis.problems", "SIGNALS",
      frozenset({"signal_captcha", "signal_checkpoint", "signal_logged_out", "signal_blocked"})),
-    ("agentos.engage.adapters", "HELD_CODES", frozenset({"pace_limited", "connector_broken"})),
+    ("agentos.profiles.sync", "HELD_CODES", frozenset({"pace_limited", "connector_broken"})),
     ("agentos.runner.connectors.health", "HELD_CODES", frozenset({"wrong_account", "wrong_surface"})),
 ]
 
@@ -56,7 +56,7 @@ MAPS = [
     ("agentos.runner.executor", "SIGNAL_CODES",
      {S.CAPTCHA: "signal_captcha", S.CHECKPOINT: "signal_checkpoint",
       S.LOGGED_OUT: "signal_logged_out", S.BLOCKED: "signal_blocked"}),
-    ("agentos.engage.adapters", "SIGNAL_CODES",
+    ("agentos.profiles.sync", "SIGNAL_CODES",
      {"signal_captcha": "captcha", "signal_checkpoint": "checkpoint", "signal_logged_out": "logged_out",
       "signal_blocked": "blocked", "rate_limited": "rate_limited", "wrong_account": "wrong_account"}),
 ]
@@ -101,21 +101,23 @@ def test_map_keeps_its_old_entries(module, name, old):
         assert got[_value(key)] == value
 
 
-def test_engage_signal_values_are_plain_strings():
-    """engage.adapters.signal_of returns these as OpResult.signal, stored and compared as text."""
-    from agentos.engage.adapters import SIGNAL_CODES
+def test_run_code_signal_values_are_plain_strings():
+    """core.signals.signal_of returns these, stored and compared as text."""
+    from agentos.core.signals import SIGNAL_OF_RUN_CODE, signal_of
 
-    assert all(type(v) is str for v in SIGNAL_CODES.values())
+    assert all(type(v) is str for v in SIGNAL_OF_RUN_CODE.values())
+    assert signal_of("signal_captcha") == "captcha" and signal_of("wrong_account") == "wrong_account"
+    assert signal_of("pace_limited") is None and signal_of(None) is None
 
 
 def test_held_codes_have_their_new_names():
     from agentos.core import signals
-    from agentos.engage import adapters
+    from agentos.profiles import sync
     from agentos.runner.connectors import health
 
-    assert adapters.HELD_CODES is signals.ENGAGE_HELD_CODES
+    assert sync.HELD_CODES is signals.PACE_HOLD_CODES
     assert health.HELD_CODES is signals.CONNECTOR_HOLD_CODES
-    assert signals.ENGAGE_HELD_CODES.isdisjoint(signals.CONNECTOR_HOLD_CODES)
+    assert signals.PACE_HOLD_CODES.isdisjoint(signals.CONNECTOR_HOLD_CODES)
 
 
 def test_every_module_set_comes_from_core_signals():
@@ -131,7 +133,7 @@ def test_signal_sets_use_only_known_signals():
     from agentos.core import signals
 
     known = {s.value for s in Signal} | {signals.WRONG_ACCOUNT}
-    for name in ("STOP", "NEEDS_HUMAN", "HOLD_FOR_HUMAN", "CHALLENGE", "ATTENTION", "ENGAGE_STOP", "TUI_NEED",
+    for name in ("STOP", "NEEDS_HUMAN", "HOLD_FOR_HUMAN", "CHALLENGE", "ATTENTION", "STOP_OR_WRONG_ACCOUNT", "TUI_NEED",
                  "LOGIN_HUMAN", "FORM_STUCK", "QUIET"):
         assert {_value(x) for x in getattr(signals, name)} <= known, name
     assert Signal.OK.value not in signals.STOP and Signal.UNKNOWN.value not in signals.STOP

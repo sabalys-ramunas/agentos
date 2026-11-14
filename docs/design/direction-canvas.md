@@ -1,8 +1,11 @@
 # Direction: Canvas
 
+> The prototypes under `panel/prototypes/` were removed with the classic panel on 2026-11-14. They are
+> in git history (commit 59634500 and earlier); the commands below run only on such a checkout.
+
 Status: exploration, 2026-11-12. One of two directions for the new centre of the product (the
 other is Workbench). The prototype is
-[panel/prototypes/dashboard/canvas/index.html](../../panel/prototypes/dashboard/canvas/index.html):
+`panel/prototypes/dashboard/canvas/index.html`:
 open it straight from disk, no build. Mock workspace: Acme Shop, a web shop (acme-web, acme-api)
 and its iOS app (acme-ios), three agents (Claude Code, Codex, T3 Code) and four machines.
 

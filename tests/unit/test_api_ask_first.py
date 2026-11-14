@@ -11,7 +11,7 @@ from test_api_members import browser, join, owner, role
 from test_node_panel import TOKEN, Node, bearer
 from typer.testing import CliRunner
 
-from agentos.api.auth import RateLimiter
+from agentos.core.ratelimit import RateLimiter
 from agentos.policy.ask_first import open_store
 from agentos.runner.cli import app as runner_app
 

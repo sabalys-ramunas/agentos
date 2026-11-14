@@ -27,12 +27,13 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from agentos.api.errors import ApiError
+from agentos.core import clock
 from agentos.core.errors import InvalidRequest, NotFound
 
 log = logging.getLogger("agentos.api")
 
 OWNER_ID = "owner"
-MEMBER_ROLES = ("admin", "approver", "operator", "viewer", "auditor")  # agentos.policy.service.MEMBER_ROLES
+MEMBER_ROLES = ("admin", "approver", "operator", "viewer", "auditor")  # agentos.policy.members.MEMBER_ROLES
 INVITE_TTL_S = 24 * 3600
 CEREMONY_TTL_S = 300
 HANDLE_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{0,39}$")
@@ -119,7 +120,7 @@ class Role:
 
     def public(self) -> dict:
         return {"scope": self.scope, "role": self.role, "options": self.options,
-                "expires_at": _iso(self.expires_at)}
+                "expires_at": clock.iso_or_none(self.expires_at)}
 
 
 @dataclass(frozen=True)
@@ -141,8 +142,8 @@ class Member:
     def public(self) -> dict:
         return {"id": self.id, "handle": self.handle, "display_name": self.display_name, "email": self.email,
                 "timezone": self.timezone, "state": self.state, "owner": self.owner,
-                "created_by": self.created_by, "created_at": _iso(self.created_at),
-                "removed_at": _iso(self.removed_at)}
+                "created_by": self.created_by, "created_at": clock.iso_or_none(self.created_at),
+                "removed_at": clock.iso_or_none(self.removed_at)}
 
 
 @dataclass(frozen=True)
@@ -156,8 +157,8 @@ class Credential:
     last_used_at: float | None
 
     def public(self) -> dict:
-        return {"id": self.id, "label": self.label, "created_at": _iso(self.created_at),
-                "last_used_at": _iso(self.last_used_at)}
+        return {"id": self.id, "label": self.label, "created_at": clock.iso_or_none(self.created_at),
+                "last_used_at": clock.iso_or_none(self.last_used_at)}
 
 
 @dataclass(frozen=True)
@@ -186,8 +187,8 @@ class Invite:
     def public(self) -> dict:
         return {"id": self.id, "handle": self.handle, "display_name": self.display_name, "email": self.email,
                 "roles": [r.public() for r in self.roles], "member_ttl_s": self.member_ttl_s,
-                "expires_at": _iso(self.expires_at), "state": self.state, "used_at": _iso(self.used_at),
-                "member_id": self.member_id, "created_by": self.created_by, "created_at": _iso(self.created_at)}
+                "expires_at": clock.iso_or_none(self.expires_at), "state": self.state, "used_at": clock.iso_or_none(self.used_at),
+                "member_id": self.member_id, "created_by": self.created_by, "created_at": clock.iso_or_none(self.created_at)}
 
 
 @dataclass(frozen=True)
@@ -198,13 +199,6 @@ class Ceremony:
     member_id: str | None
     session_hash: str | None
     approval_id: str | None
-
-
-def _iso(ts: float | None) -> str | None:
-    if ts is None:
-        return None
-    from datetime import UTC, datetime
-    return datetime.fromtimestamp(ts, UTC).isoformat()
 
 
 def capabilities(roles: list[str] | set[str]) -> frozenset[str]:
@@ -230,7 +224,7 @@ def validate_role(scope: str, role: str, options: Any) -> Role:
 
 def check_roles_with_policy(roles: list[Role]) -> None:
     """Refuse options the policy would refuse when minting the grant (at invite time, not later)."""
-    from agentos.policy.service import member_specials
+    from agentos.policy.members import member_specials
 
     for scope, rows in group_by_scope(roles).items():
         member_specials([r.role for r in rows], merged_options(rows), scope)

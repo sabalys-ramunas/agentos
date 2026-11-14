@@ -6,12 +6,13 @@ import pytest
 from starlette.testclient import TestClient
 
 from agentos.api import ApiSettings, PanelStore, build_api, create_login_code
-from agentos.api.auth import SESSION_COOKIE, RateLimiter, origin_allowed
-from agentos.api.fakes import demo_runtime
+from agentos.api.auth import SESSION_COOKIE, origin_allowed
 from agentos.core import catalog
 from agentos.core.config import NodeConfig, save_config
 from agentos.core.errors import EngineError, LaneBusy, PolicyDenied
+from agentos.core.ratelimit import RateLimiter
 from agentos.core.runtime import Runtime
+from agentos.dev.apifakes import demo_runtime
 
 OWNER = "owner-token-abc"
 
@@ -272,11 +273,11 @@ def test_static_refuses_path_traversal(tmp_path):
 
 
 def test_panel_not_built_page(tmp_path):
-    # "not built" is for a checkout with the panel's source beside its missing dist; with no source at all
-    # the page says there is no web app (agentos.api.static.placeholder, tests/unit/test_frontdoor.py)
-    (tmp_path / "panel").mkdir()
-    (tmp_path / "panel" / "package.json").write_text("{}")
-    client, _, _ = make(panel_dir=tmp_path / "panel" / "dist")
+    # "not built" is for a checkout with the web app's source beside its missing dist; with no source at
+    # all the page says there is no web app (agentos.api.static.placeholder, tests/unit/test_frontdoor.py)
+    (tmp_path / "web").mkdir()
+    (tmp_path / "web" / "package.json").write_text("{}")
+    client, _, _ = make(panel_dir=tmp_path / "web" / "dist")
     r = client.get("/")
     assert r.status_code == 200 and "not built" in r.text and "—" not in r.text
     r = make(panel_dir=tmp_path / "nope")[0].get("/")

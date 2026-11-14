@@ -11,11 +11,11 @@ from test_publish_normalize import facebook_comment
 
 from agentos.core.models import ActsAs, Surface
 from agentos.core.runtime import Runtime
-from agentos.mcp.redact import Redactor
 from agentos.node import commitgate, daemon, egress, publish
 from agentos.node import tools as node_tools
 from agentos.node.egress import verdicts
 from agentos.policy.errors import Denied
+from agentos.policy.redactor import Redactor
 
 LANE = "personal/facebook"
 
@@ -129,7 +129,7 @@ def test_an_optional_service_that_is_not_installed_is_still_skipped(monkeypatch)
 # ---- MCP redaction: an unreadable proxies file ----------------------------------------------
 
 def test_an_unreadable_proxies_file_still_masks_the_logins_last_read(monkeypatch):
-    from agentos.mcp import redact
+    from agentos.policy import redactor as redact
 
     good = {"home": SimpleNamespace(password="s3cret-proxy-pass", username="proxyuser01")}
     monkeypatch.setattr(redact, "load_proxies", lambda config: good)

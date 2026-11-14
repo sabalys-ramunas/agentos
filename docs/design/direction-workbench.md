@@ -1,7 +1,10 @@
 # Direction: Workbench
 
+> The prototypes under `panel/prototypes/` were removed with the classic panel on 2026-11-14. They are
+> in git history (commit 59634500 and earlier); the commands below run only on such a checkout.
+
 Status: exploration, 2026-11-12. One of the directions the owner chooses from. The prototype is
-[panel/prototypes/dashboard/workbench/index.html](../../panel/prototypes/dashboard/workbench/index.html)
+`panel/prototypes/dashboard/workbench/index.html`
 (plain HTML, CSS and JS, no build step; open the file or serve the folder). Images of every
 screen are in `panel/prototypes/dashboard/workbench/shots/` (git-ignored, 16 MB, rebuilt by
 taking the screenshots again).

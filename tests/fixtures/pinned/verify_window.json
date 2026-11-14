@@ -1,0 +1,146 @@
+{
+ "far swap": {
+  "ok": {
+   "status": "tampered",
+   "checked": 10,
+   "rows": {
+    "1": "ok",
+    "8": "tampered",
+    "3": "tampered",
+    "4": "tampered",
+    "5": "tampered",
+    "6": "tampered",
+    "7": "tampered",
+    "2": "tampered",
+    "9": "ok",
+    "10": "ok"
+   },
+   "proven_through": {
+    "mark": 2,
+    "seq": 10,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "tampered",
+     "text": "rows seq 2-7 are missing from the middle of the log (row seq 8 links to a row that is not there)",
+     "seq": [
+      2,
+      7
+     ]
+    },
+    {
+     "level": "tampered",
+     "text": "rows seq 3-8 are missing from the middle of the log (row seq 9 links to a row that is not there)",
+     "seq": [
+      3,
+      8
+     ]
+    },
+    {
+     "level": "tampered",
+     "text": "rows seq 2 and 3 are out of chain order: row 3 links to row 2, which is stored before it (rows were reordered)",
+     "seq": [
+      2,
+      3
+     ]
+    }
+   ],
+   "bad": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "unproven": [],
+   "exit": 3
+  }
+ },
+ "near swap": {
+  "ok": {
+   "status": "tampered",
+   "checked": 10,
+   "rows": {
+    "1": "ok",
+    "2": "ok",
+    "3": "tampered",
+    "5": "tampered",
+    "4": "tampered",
+    "6": "ok",
+    "7": "ok",
+    "8": "ok",
+    "9": "ok",
+    "10": "ok"
+   },
+   "proven_through": {
+    "mark": 2,
+    "seq": 10,
+    "at": "2026-11-14T00:00:00Z"
+   },
+   "chain": "ch_pinned",
+   "keys": [
+    {
+     "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+     "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+     "from_mark": 1
+    }
+   ],
+   "unchained": 0,
+   "findings": [
+    {
+     "level": "note",
+     "text": "trusting the log's own genesis key ed25519:65b60673d6ed884bf01c2c222d82ada0: compare it with the key the node owner recorded",
+     "mark": 1
+    },
+    {
+     "level": "tampered",
+     "text": "row seq 4 is missing from the middle of the log (row seq 5 links to a row that is not there)",
+     "seq": [
+      4,
+      4
+     ]
+    },
+    {
+     "level": "tampered",
+     "text": "row seq 5 is missing from the middle of the log (row seq 6 links to a row that is not there)",
+     "seq": [
+      5,
+      5
+     ]
+    },
+    {
+     "level": "tampered",
+     "text": "rows seq 3 and 4 are out of chain order: row 4 links to row 3, which is stored before it (rows were reordered)",
+     "seq": [
+      3,
+      4
+     ]
+    }
+   ],
+   "bad": [
+    3,
+    4,
+    5
+   ],
+   "unproven": [],
+   "exit": 3
+  }
+ }
+}

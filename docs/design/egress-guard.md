@@ -365,7 +365,7 @@ a wrong one either misses a publish or treats one more request as a write than i
 
 ## 7. Code
 
-- `src/agentos/node/egress.py`: rules, `judge`, `Driver`, `LaneGuard`, the trace, the tables,
+- `src/agentos/node/egress/` (one file until the split): rules, `judge`, `Driver`, `LaneGuard`, the trace, the tables,
   `gate_pattern` and the gate's route (`acting(gate=...)`, `settle`).
 - `src/agentos/node/commitgate.py` (`ActGate`) and `src/agentos/node/publish.py` (normalization):
   the commit gate (section 8; the drive's route, `_gate_rule`, `gql_verdict`, `end_drive`). `src/agentos/policy/cards.py` `publish_card`,
@@ -374,7 +374,7 @@ a wrong one either misses a publish or treats one more request as a write than i
 - `src/agentos/node/expose/`: the owner's dev server in a lane (its route, `LaneGuard.exposed`).
 - `src/agentos/node/camoufox/session.py` and `engine.py`: every session gets one dispatcher and one guard.
 - `src/agentos/node/lanes/` (`specs.py`, `launch.py`, `control.py`): `set_sites`, and the guard's bindings (control, events, store, hold).
-- `src/agentos/node/tools.py`: `driven_session`, `guarded`, the pre-checks.
+- `src/agentos/node/tools/`: `session.driven_session`, `guarding.guarded`, the pre-checks (`form_check.py`).
 - `src/agentos/node/human.py`: the hit test `human.click` uses, through frames.
 - `src/agentos/cli.py`: `agentos lane sites` (through the daemon while it runs).
 - `src/agentos/node/viewer_app.py`: `change_sites`, `POST /api/lanes/{ws}/{name}/sites`, owner links,

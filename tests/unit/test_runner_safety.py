@@ -12,10 +12,10 @@ import pytest
 from test_policy_support import Clock
 
 from agentos.core.errors import InvalidRequest, PolicyDenied
-from agentos.core.models import ControlState, Effect, LaneControl, RunStatus
+from agentos.core.models import ControlState, Effect, LaneControl, RunKind, RunStatus
 from agentos.policy.service import PolicyService
 from agentos.runner.fakes import BASE, OWNER, El, FakeCtx, FakeLanes, FakePolicy, Harness, post_flow
-from agentos.runner.models import FlowDefinition, RunKind, steps_effect
+from agentos.runner.models import FlowDefinition, steps_effect
 from agentos.runner.schedules import sign_webhook
 from agentos.runner.tools import flow_run, flow_save, flows_list, tool_specs
 
@@ -443,7 +443,7 @@ def test_sensitive_events_keep_no_typed_text_or_values_while_recording(tmp_path)
 
 def test_a_security_check_stops_a_flow_and_asks_the_human():
     from agentos.core.models import Signal
-    from agentos.runner.executor import NEEDS_YOU
+    from agentos.runner.execution import NEEDS_YOU
     from agentos.runner.proof import BAD_SIGNALS
 
     assert Signal.CHECKPOINT in BAD_SIGNALS

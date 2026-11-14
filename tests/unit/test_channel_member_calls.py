@@ -9,11 +9,11 @@ import pytest
 from channel_fake_controller import NODE_ID, FakeController, node_pubkey, node_runtime, start, stop
 from test_channel_node import invoke_body
 
-from agentos.mcp.registry import bind_request_token
+from agentos.core.tools import bind_request_token
 from agentos.policy import tokens
 from agentos.policy.errors import TokenInvalid
 from agentos.policy.grants import GrantBlock, Subject
-from agentos.policy.service import MEMBER_CALL_MAX_TTL_S
+from agentos.policy.members import MEMBER_CALL_MAX_TTL_S
 from agentos.policy.util import new_id
 
 MEMBER = "u_0123456789abcdef"

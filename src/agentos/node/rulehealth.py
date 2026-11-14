@@ -36,12 +36,13 @@ import contextlib
 import re
 import time
 from collections.abc import Iterable, Mapping
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from agentos.core import clock, globs
 from agentos.node import egress, gateshapes
-from agentos.policy import globs
 
 STALE_DAYS = 14     # a verified rule quiet this long, while its site sends unknown writes, is flagged
 RECENT_H = 24       # new unknown shapes within this many hours...
@@ -105,10 +106,6 @@ def _at(value: Any) -> float | None:
     return None
 
 
-def _iso(ts: float | None) -> str | None:
-    return datetime.fromtimestamp(ts, UTC).isoformat(timespec="seconds") if ts is not None else None
-
-
 def site_of(host: str, rules: tuple[egress.EffectRule, ...]) -> str:
     """The site a host belongs to: the rules' site for it, else the site agentos knows it as
     (agentos.node.sites), else the host itself."""
@@ -138,39 +135,47 @@ def owner_rules(promoted: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]]:
             and len(str(p["rule"]).split(".")) >= 2]
 
 
-def report(traces: Mapping[str, list[dict[str, Any]]], *, specs: Iterable[Any] = (),
-           rules: tuple[egress.EffectRule, ...] | None = None, promoted: Iterable[Mapping[str, Any]] = (),
-           now: float | None = None, stale_days: float = STALE_DAYS, recent_h: float = RECENT_H,
-           spike: int = SPIKE) -> dict[str, Any]:
-    """Rule health from the lanes' egress traces (`traces`: lane id -> rows), the lanes' specs (for
-    their site lists), the effect rules and the owner's promotions. See the module docstring."""
-    rules = egress.EFFECT_RULES if rules is None else rules
-    now = time.time() if now is None else now
-    promoted = list(promoted)
-    by_id = {r.id: r for r in rules}
-    promoted_ids = {p.get("id") for p in promoted}
-    hits: dict[str, dict[str, Any]] = {}
-    unknown: dict[str, dict[str, Any]] = {}
+@dataclass
+class _Tally:
+    """How often one rule (or one unknown shape) was seen in the traces, when, and on which lanes."""
+
+    count: int = 0
+    first: float | None = None
+    last: float | None = None
+    lanes: set[str] = field(default_factory=set)
+
+    def add(self, lane: str, at: float | None) -> None:
+        self.count += 1
+        self.lanes.add(lane)
+        if at is not None:
+            self.first = at if self.first is None else min(self.first, at)
+            self.last = at if self.last is None else max(self.last, at)
+
+
+@dataclass
+class _Readings:
+    """What the egress traces say: each rule's matches, the shapes no rule names (by shape id, in
+    the report's own form), and the oldest row's time."""
+
+    rules: tuple[egress.EffectRule, ...]
+    promoted_ids: set[Any]
+    hits: dict[str, _Tally] = field(default_factory=dict)
+    unknown: dict[str, dict[str, Any]] = field(default_factory=dict)
     oldest: float | None = None
 
-    def hit(rule_id: str, lane: str, at: float | None) -> None:
-        h = hits.setdefault(rule_id, {"count": 0, "first": None, "last": None, "lanes": set()})
-        h["count"] += 1
-        h["lanes"].add(lane)
-        if at is not None:
-            h["first"] = at if h["first"] is None else min(h["first"], at)
-            h["last"] = at if h["last"] is None else max(h["last"], at)
+    def hit(self, rule_id: str, lane: str, at: float | None) -> None:
+        self.hits.setdefault(rule_id, _Tally()).add(lane, at)
 
-    def shape(row: dict[str, Any], lane: str, at: float | None, source: str, decision: str) -> None:
+    def shape(self, row: dict[str, Any], lane: str, at: float | None, source: str, decision: str) -> None:
         sh = row.get("shape") if isinstance(row.get("shape"), dict) else {}
         host, path, method = str(row.get("host") or "?"), str(row.get("path") or "/"), str(row.get("method") or "?")
         op = sh.get("op") if isinstance(sh.get("op"), str) else None
         doc_ids = sorted({d for d in sh.get("doc_ids") or [] if isinstance(d, str)})
         sid = gateshapes.shape_id(host, path, method, op, doc_ids)
-        e = unknown.setdefault(sid, {
-            "id": sid, "site": site_of(host, rules), "host": host, "path": path, "method": method, "op": op,
+        e = self.unknown.setdefault(sid, {
+            "id": sid, "site": site_of(host, self.rules), "host": host, "path": path, "method": method, "op": op,
             "count": 0, "decisions": {}, "sources": {}, "lanes": set(), "first": None, "last": None,
-            "write_like": False, "kind": None, "promoted": sid in promoted_ids})
+            "write_like": False, "kind": None, "promoted": sid in self.promoted_ids})
         e["count"] += 1
         e["lanes"].add(lane)
         e["decisions"][decision] = e["decisions"].get(decision, 0) + 1
@@ -181,32 +186,44 @@ def report(traces: Mapping[str, list[dict[str, Any]]], *, specs: Iterable[Any] =
             e["first"] = at if e["first"] is None else min(e["first"], at)
             e["last"] = at if e["last"] is None else max(e["last"], at)
 
-    for lane, rows in traces.items():
-        for row in rows:
-            at = _at(row.get("at"))
-            if at is not None:
-                oldest = at if oldest is None else min(oldest, at)
-            kind = row.get("kind")
-            if kind == "rule_hit" and isinstance(row.get("rule"), str):
-                hit(row["rule"], lane, at)
-            elif kind in ("observed_commit", "blocked") and isinstance(row.get("effect_rule"), str):
-                if not row["effect_rule"].endswith("." + egress.UNKNOWN):
-                    hit(row["effect_rule"], lane, at)
-            elif kind == "gate_classified" and row.get("decision") != "read":
-                shape(row, lane, at, "gate", str(row.get("decision")))
-            elif kind == "unmatched_publish":
-                shape(row, lane, at, "press", "let go")
-            elif kind == "unruled_request":
-                shape(row, lane, at, "unruled", "let go")
-            elif kind == "observed_request":
-                rid = row.get("effect_rule")
-                rule = by_id.get(rid) if isinstance(rid, str) else None
-                if rule is not None and rule.effect in ("commit", "write"):
-                    hit(rule.id, lane, at)
-                elif rid is None or (rule is not None and rule.strict_ops and not _known_read(
-                        rule, (row.get("shape") or {}).get("op") if isinstance(row.get("shape"), dict) else None)):
-                    shape(row, lane, at, "observed", "observed")
 
+def _read_row(found: _Readings, row: dict[str, Any], lane: str, by_id: dict[str, egress.EffectRule]) -> None:
+    """One trace row: a match of a rule, a shape no rule names, or neither."""
+    at = _at(row.get("at"))
+    if at is not None:
+        found.oldest = at if found.oldest is None else min(found.oldest, at)
+    kind = row.get("kind")
+    if kind == "rule_hit" and isinstance(row.get("rule"), str):
+        found.hit(row["rule"], lane, at)
+    elif kind in ("observed_commit", "blocked") and isinstance(row.get("effect_rule"), str):
+        if not row["effect_rule"].endswith("." + egress.UNKNOWN):
+            found.hit(row["effect_rule"], lane, at)
+    elif kind == "gate_classified" and row.get("decision") != "read":
+        found.shape(row, lane, at, "gate", str(row.get("decision")))
+    elif kind == "unmatched_publish":
+        found.shape(row, lane, at, "press", "let go")
+    elif kind == "unruled_request":
+        found.shape(row, lane, at, "unruled", "let go")
+    elif kind == "observed_request":
+        _read_observed(found, row, lane, at, by_id)
+
+
+def _read_observed(found: _Readings, row: dict[str, Any], lane: str, at: float | None,
+                   by_id: dict[str, egress.EffectRule]) -> None:
+    """An observe-mode row: a match of a commit or write rule, or a shape no rule reads by name."""
+    rid = row.get("effect_rule")
+    rule = by_id.get(rid) if isinstance(rid, str) else None
+    if rule is not None and rule.effect in ("commit", "write"):
+        found.hit(rule.id, lane, at)
+    elif rid is None or (rule is not None and rule.strict_ops and not _known_read(
+            rule, (row.get("shape") or {}).get("op") if isinstance(row.get("shape"), dict) else None)):
+        found.shape(row, lane, at, "observed", "observed")
+
+
+def _rule_table(rules: tuple[egress.EffectRule, ...], promoted: list[Mapping[str, Any]],
+                hits: dict[str, _Tally]) -> list[dict[str, Any]]:
+    """One row per commit and write rule (the owner's promotions too), with what the traces say.
+    `_last` (the last match as a number) is for the flags and is dropped before the report goes out."""
     table = [{"id": r.id, "site": r.site, "effect": r.effect, "kind": r.kind, "host": r.host,
               "verified": r.verified or None, "owner": False}
              for r in rules if r.effect in ("commit", "write") and r.kind in egress.EFFECT_KINDS]
@@ -214,13 +231,17 @@ def report(traces: Mapping[str, list[dict[str, Any]]], *, specs: Iterable[Any] =
     table += [t for t in owner_rules(promoted) if t["id"] not in seen_ids]
     for t in table:
         h = hits.get(t["id"])
-        t.update({"count": h["count"] if h else 0, "first": _iso(h["first"]) if h else None,
-                  "last": _iso(h["last"]) if h else None, "lanes": sorted(h["lanes"]) if h else [],
-                  "_last": h["last"] if h else None})
+        t.update({"count": h.count if h else 0, "first": clock.iso_or_none(h.first, timespec="seconds") if h else None,
+                  "last": clock.iso_or_none(h.last, timespec="seconds") if h else None,
+                  "lanes": sorted(h.lanes) if h else [], "_last": h.last if h else None})
+    return table
 
-    shapes = sorted(unknown.values(), key=lambda e: (-e["count"], e["host"], e["path"]))
-    flags: list[dict[str, Any]] = []
-    stale: dict[tuple[str, tuple[str, ...]], dict[str, Any]] = {}  # one flag per site and candidate set
+
+def _stale_flags(table: list[dict[str, Any]], shapes: list[dict[str, Any]], *, now: float, stale_days: float,
+                 oldest: float | None) -> list[dict[str, Any]]:
+    """`stale_rule`: a verified or promoted rule quiet since shapes of its kind (or, quiet for
+    `stale_days`, any write-like shapes) appeared on its site. One flag per site and candidate set."""
+    stale: dict[tuple[str, tuple[str, ...]], dict[str, Any]] = {}
     for t in table:
         if not (t["verified"] or t["owner"]):
             continue  # an unverified rule (an older client) going quiet says nothing
@@ -235,57 +256,95 @@ def report(traces: Mapping[str, list[dict[str, Any]]], *, specs: Iterable[Any] =
         group = stale.setdefault((t["site"], tuple(e["id"] for e in candidates)),
                                  {"site": t["site"], "kind": t["kind"] if same else None, "rules": [],
                                   "candidates": candidates})
-        group["rules"].append(f"{t['id']} last matched {_iso(last)}" if last is not None
-                              else f"{t['id']} never matched in what the traces keep (since {_iso(oldest)})")
+        group["rules"].append(f"{t['id']} last matched {clock.iso_or_none(last, timespec="seconds")}" if last is not None
+                              else f"{t['id']} never matched in what the traces keep (since {clock.iso_or_none(oldest, timespec="seconds")})")
         group.setdefault("ids", []).append(t["id"])
-    for g in stale.values():
-        candidates = g["candidates"]
-        lanes = sorted({lane for e in candidates for lane in e["lanes"]})
-        rules_said = "; ".join(g["rules"])
-        names = ", ".join(_name(e) for e in candidates[:SHAPES_SHOWN])
-        more = f" and {len(candidates) - SHAPES_SHOWN} more" if len(candidates) > SHAPES_SHOWN else ""
-        kind = g["kind"] or "post"
-        flags.append({
-            "kind": "stale_rule", "site": g["site"], "rule": g["ids"][0], "rules": g["ids"], "lanes": lanes,
-            "shapes": [e["id"] for e in candidates],
-            "message": f"{rules_said}. Since then {g['site']} sent {len(candidates)} unknown "
-                       f"{'shape that looks' if len(candidates) == 1 else 'shapes that look'} like "
-                       f"{'a ' + g['kind'] if g['kind'] else 'writes'}: {names}{more}. The site has likely changed "
-                       f"its web client. Check the shape in the gate log, then name it: agentos lane gate-log "
-                       f"{lanes[0] if lanes else '<lane>'} --as-commit {kind}.new --shape {candidates[0]['id']}"})
+    return [_stale_flag(g) for g in stale.values()]
+
+
+def _stale_flag(g: dict[str, Any]) -> dict[str, Any]:
+    candidates = g["candidates"]
+    lanes = sorted({lane for e in candidates for lane in e["lanes"]})
+    rules_said = "; ".join(g["rules"])
+    names = ", ".join(_name(e) for e in candidates[:SHAPES_SHOWN])
+    more = f" and {len(candidates) - SHAPES_SHOWN} more" if len(candidates) > SHAPES_SHOWN else ""
+    kind = g["kind"] or "post"
+    return {
+        "kind": "stale_rule", "site": g["site"], "rule": g["ids"][0], "rules": g["ids"], "lanes": lanes,
+        "shapes": [e["id"] for e in candidates],
+        "message": f"{rules_said}. Since then {g['site']} sent {len(candidates)} unknown "
+                   f"{'shape that looks' if len(candidates) == 1 else 'shapes that look'} like "
+                   f"{'a ' + g['kind'] if g['kind'] else 'writes'}: {names}{more}. The site has likely changed "
+                   f"its web client. Check the shape in the gate log, then name it: agentos lane gate-log "
+                   f"{lanes[0] if lanes else '<lane>'} --as-commit {kind}.new --shape {candidates[0]['id']}"}
+
+
+def _spike_flags(shapes: list[dict[str, Any]], flags: list[dict[str, Any]], *, now: float, recent_h: float,
+                 spike: int) -> list[dict[str, Any]]:
+    """`new_unknowns`: at least `spike` new write-like shapes on one site within `recent_h` hours,
+    unless a stale rule's flag (in `flags`) names them all already."""
+    out: list[dict[str, Any]] = []
     recent = now - recent_h * 3600
     for site in sorted({e["site"] for e in shapes}):
         new = [e for e in shapes if e["site"] == site and e["write_like"] and not e["promoted"]
                and e["first"] is not None and e["first"] >= recent]
-        if len(new) >= spike:
-            flagged = {s for f in flags if f["site"] == site for s in f["shapes"]}
-            if all(e["id"] in flagged for e in new):
-                continue  # a stale rule's flag names them already
-            flags.append({
-                "kind": "new_unknowns", "site": site, "lanes": sorted({lane for e in new for lane in e["lanes"]}),
-                "shapes": [e["id"] for e in new],
-                "message": f"{site} sent {len(new)} new unknown shapes that look like writes in the last "
-                           f"{recent_h:g} h ({', '.join(_name(e) for e in new[:SHAPES_SHOWN])}"
-                           f"{' and more' if len(new) > SHAPES_SHOWN else ''}). Its web client may have changed; "
-                           "the gate log has them"})
+        if len(new) < spike:
+            continue
+        flagged = {s for f in flags if f["site"] == site for s in f["shapes"]}
+        if all(e["id"] in flagged for e in new):
+            continue  # a stale rule's flag names them already
+        out.append({
+            "kind": "new_unknowns", "site": site, "lanes": sorted({lane for e in new for lane in e["lanes"]}),
+            "shapes": [e["id"] for e in new],
+            "message": f"{site} sent {len(new)} new unknown shapes that look like writes in the last "
+                       f"{recent_h:g} h ({', '.join(_name(e) for e in new[:SHAPES_SHOWN])}"
+                       f"{' and more' if len(new) > SHAPES_SHOWN else ''}). Its web client may have changed; "
+                       "the gate log has them"})
+    return out
+
+
+def _unruled_flag(u: dict[str, Any], shapes: list[dict[str, Any]]) -> dict[str, Any]:
+    """`no_rules` for one lane (from no_rules), naming the shapes no rule reads seen there. Adds
+    `shapes` to `u` too, as the report lists it."""
+    seen = [e for e in shapes if u["lane"] in e["lanes"] and e["sources"].get("unruled")]
+    u["shapes"] = [e["id"] for e in seen]
+    what = (f"{', '.join(u['sites'])} ({', '.join(u['hosts'])})" if u["sites"] and u["hosts"]
+            else ", ".join(u["sites"] or u["hosts"]))
+    return {
+        "kind": "no_rules", "site": (u["sites"] or u["hosts"])[0], "lanes": [u["lane"]], "shapes": u["shapes"],
+        "message": f"{u['lane']}: no effect rules for {what}, so publishes there are not gated (no approval is "
+                   "asked; an agent's press is only traced)"
+                   + (f". {len(seen)} request {'shape' if len(seen) == 1 else 'shapes'} no rule reads seen there"
+                      if seen else "")}
+
+
+def report(traces: Mapping[str, list[dict[str, Any]]], *, specs: Iterable[Any] = (),
+           rules: tuple[egress.EffectRule, ...] | None = None, promoted: Iterable[Mapping[str, Any]] = (),
+           now: float | None = None, stale_days: float = STALE_DAYS, recent_h: float = RECENT_H,
+           spike: int = SPIKE) -> dict[str, Any]:
+    """Rule health from the lanes' egress traces (`traces`: lane id -> rows), the lanes' specs (for
+    their site lists), the effect rules and the owner's promotions. See the module docstring."""
+    rules = egress.EFFECT_RULES if rules is None else rules
+    now = time.time() if now is None else now
+    promoted = list(promoted)
+    by_id = {r.id: r for r in rules}
+    found = _Readings(rules, {p.get("id") for p in promoted})
+    for lane, rows in traces.items():
+        for row in rows:
+            _read_row(found, row, lane, by_id)
+
+    table = _rule_table(rules, promoted, found.hits)
+    shapes = sorted(found.unknown.values(), key=lambda e: (-e["count"], e["host"], e["path"]))
+    flags = _stale_flags(table, shapes, now=now, stale_days=stale_days, oldest=found.oldest)
+    flags += _spike_flags(shapes, flags, now=now, recent_h=recent_h, spike=spike)
     unruled = [u for u in (no_rules(spec, rules) for spec in specs) if u is not None]
-    for u in unruled:
-        seen = [e for e in shapes if u["lane"] in e["lanes"] and e["sources"].get("unruled")]
-        u["shapes"] = [e["id"] for e in seen]
-        what = (f"{', '.join(u['sites'])} ({', '.join(u['hosts'])})" if u["sites"] and u["hosts"]
-                else ", ".join(u["sites"] or u["hosts"]))
-        flags.append({
-            "kind": "no_rules", "site": (u["sites"] or u["hosts"])[0], "lanes": [u["lane"]], "shapes": u["shapes"],
-            "message": f"{u['lane']}: no effect rules for {what}, so publishes there are not gated (no approval is "
-                       "asked; an agent's press is only traced)"
-                       + (f". {len(seen)} request {'shape' if len(seen) == 1 else 'shapes'} no rule reads seen there"
-                          if seen else "")})
+    flags += [_unruled_flag(u, shapes) for u in unruled]
     for t in table:
         t.pop("_last")
     for e in shapes:
         e["lanes"] = sorted(e["lanes"])
-        e["first"], e["last"] = _iso(e["first"]), _iso(e["last"])
-    return {"generated_at": _iso(now), "since": _iso(oldest), "stale_days": stale_days, "rules": table,
+        e["first"], e["last"] = clock.iso_or_none(e["first"], timespec="seconds"), clock.iso_or_none(e["last"], timespec="seconds")
+    return {"generated_at": clock.iso_or_none(now, timespec="seconds"), "since": clock.iso_or_none(found.oldest, timespec="seconds"), "stale_days": stale_days, "rules": table,
             "unknown": shapes, "unruled": unruled, "flags": flags}
 
 
@@ -329,7 +388,7 @@ def no_rules(spec: Any, rules: tuple[egress.EffectRule, ...] | None = None) -> d
 
 def lane_traces(home: Path, lane: str | None = None) -> dict[str, list[dict[str, Any]]]:
     """Every lane's egress trace (the rolled file first), or one lane's."""
-    from agentos.ops.layout import lane_dirs
+    from agentos.core.layout import lane_dirs
 
     out = {}
     for d in lane_dirs(home):

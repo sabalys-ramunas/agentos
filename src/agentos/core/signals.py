@@ -14,14 +14,14 @@ from __future__ import annotations
 from agentos.core.models import Signal
 
 # The account check's status for a lane signed into another account (agentos.node.sites.WRONG_ACCOUNT).
-# Not a page signal, but holds and engage treat it like one.
+# Not a page signal, but holds and the profile sync treat it like one.
 WRONG_ACCOUNT = "wrong_account"
 
 # ---- page signals ---------------------------------------------------------------------------------
 
 # Every signal that says the page is not usable: stop the step and do not go on.
-# Users: runner.proof.BAD_SIGNALS (and runner.schedules through it), stealth.lanecheck.BAD_SIGNALS,
-# node.interaction.STOP_SIGNALS.
+# Users: runner.proof.BAD_SIGNALS (and runner.schedules through it), stealth.lanerules.BAD_SIGNALS,
+# node.interaction.waits.STOP_SIGNALS.
 # The widest set: it is the only page-signal set that has all five of captcha, checkpoint,
 # rate_limited, blocked and logged_out.
 STOP: frozenset[Signal] = frozenset({Signal.CAPTCHA, Signal.CHECKPOINT, Signal.RATE_LIMITED, Signal.BLOCKED,
@@ -51,8 +51,8 @@ CHALLENGE: frozenset[Signal] = frozenset({Signal.CAPTCHA, Signal.CHECKPOINT, Sig
 # Differs from STOP: no blocked. Differs from NEEDS_HUMAN: has rate_limited, no blocked.
 ATTENTION: frozenset[Signal] = frozenset({Signal.CAPTCHA, Signal.CHECKPOINT, Signal.RATE_LIMITED, Signal.LOGGED_OUT})
 
-# The signals the TUI shows as a lane's need (tui.state.lane_need and the demo's count, tui.demo._needs_you).
-# Users: tui.state, tui.demo.
+# The signals the TUI shows as a lane's need (tui.state.lane_need).
+# Users: tui.state.
 # Same members as NEEDS_HUMAN (checkpoint was missing until 2026-11-07, so a lane where the site asked
 # the account holder a question never showed in the TUI's Needs you). tui.state.LANE_NEEDS has words for each.
 TUI_NEED: frozenset[str] = frozenset({"captcha", "checkpoint", "logged_out", "blocked"})
@@ -67,14 +67,14 @@ LOGIN_HUMAN: frozenset[Signal] = frozenset({Signal.CHECKPOINT, Signal.BLOCKED, S
 FORM_STUCK: frozenset[Signal] = frozenset({Signal.BLOCKED, Signal.RATE_LIMITED})
 
 # The signals that never set a hold or count as a challenge: the page loaded, or nothing could be read.
-# Users: node.lanes.report_signal, dev.lanes.report_signal, runner.siteapis.service.discover.
+# Users: node.lanes.control.report_signal, dev.lanes.report_signal, runner.siteapis.service.discover.
 # Every other Signal is in STOP. runner.siteapis.cli.format_candidates also skips None, so it keeps its own.
 QUIET: frozenset[Signal] = frozenset({Signal.OK, Signal.UNKNOWN})
 
-# Signals that hold an engage surface and end its window: STOP plus a wrong account.
-# Users: engage.ports.SIGNALS (and engage.adapters.signal_of through it).
-ENGAGE_STOP: frozenset[str] = frozenset({"captcha", "checkpoint", "logged_out", "blocked", "rate_limited",
-                                         WRONG_ACCOUNT})
+# Signals after which a profile sync run waits for the lane rather than failing: STOP plus a wrong
+# account. Users: profiles.sync.SIGNALS (and signal_of below).
+STOP_OR_WRONG_ACCOUNT: frozenset[str] = frozenset({"captcha", "checkpoint", "logged_out", "blocked", "rate_limited",
+                                                   WRONG_ACCOUNT})
 
 # ---- signals and run error codes ---------------------------------------------------------------
 
@@ -87,21 +87,28 @@ RUN_SIGNAL_CODES: dict[Signal, str] = {Signal.CAPTCHA: "signal_captcha", Signal.
 # The run error codes above, as a set. Users: runner.siteapis.problems.SIGNALS (answers needs_human).
 RUN_SIGNAL_CODE_SET: frozenset[str] = frozenset(RUN_SIGNAL_CODES.values())
 
-# The engage executor's signal for a runner error code: the reverse of RUN_SIGNAL_CODES, plus the two
-# codes engage reads as signals although the runner does not spell them signal_*.
-# Users: engage.adapters.SIGNAL_CODES.
-ENGAGE_SIGNAL_OF_CODE: dict[str, str] = {
+# The signal for a runner error code: the reverse of RUN_SIGNAL_CODES, plus the two codes read as
+# signals although the runner does not spell them signal_*. Users: profiles.sync.SIGNAL_CODES.
+SIGNAL_OF_RUN_CODE: dict[str, str] = {
     **{code: sig.value for sig, code in RUN_SIGNAL_CODES.items()},
     "rate_limited": "rate_limited",
     WRONG_ACCOUNT: WRONG_ACCOUNT,
 }
 
+
+def signal_of(code: str | None) -> str | None:
+    """The signal for a runner error code (rate_limited, signal_captcha, ...), or None."""
+    if not code:
+        return None
+    sig = SIGNAL_OF_RUN_CODE.get(code) or (code.removeprefix("signal_") if code.startswith("signal_") else None)
+    return sig if sig in STOP_OR_WRONG_ACCOUNT else None
+
 # ---- held codes ---------------------------------------------------------------------------------
 # Two different things used to share the name HELD_CODES.
 
-# Run error codes after which engage holds the operation rather than failing it: the lane is pacing
-# itself, or the connector is broken. Users: engage.adapters.HELD_CODES.
-ENGAGE_HELD_CODES: frozenset[str] = frozenset({"pace_limited", "connector_broken"})
+# Run error codes after which a profile sync run is held rather than failed: the lane is pacing
+# itself, or the connector is broken. Users: profiles.sync.HELD_CODES.
+PACE_HOLD_CODES: frozenset[str] = frozenset({"pace_limited", "connector_broken"})
 
 # Run error codes that put a connector's health in "held" (as a signal_* code does): the run met the
 # wrong account or the wrong surface. Users: runner.connectors.health, runner.siteapis.problems.

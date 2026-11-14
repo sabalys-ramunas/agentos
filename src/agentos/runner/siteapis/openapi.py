@@ -27,7 +27,7 @@ from typing import Any
 from agentos.core.errors import InvalidRequest
 from agentos.core.models import Effect
 from agentos.runner.connectors.models import BINDING_PARAMS
-from agentos.runner.models import FlowVersion
+from agentos.runner.flowdoc import FlowVersion
 from agentos.runner.siteapis.cache import http_of
 
 MAP_KEYWORDS = frozenset({"properties", "patternProperties", "$defs", "definitions", "dependentSchemas"})

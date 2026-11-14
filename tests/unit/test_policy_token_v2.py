@@ -9,10 +9,10 @@ import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from test_policy_support import T0, Clock, issue_v1, make_service
 
+from agentos.core import signing
 from agentos.core.config import NodeConfig
 from agentos.core.models import Effect
 from agentos.core.runtime import Runtime
-from agentos.node.channel import wire
 from agentos.policy import tokens
 from agentos.policy.errors import Denied
 from agentos.policy.grants import GrantBlock
@@ -268,7 +268,7 @@ def node(tmp_path):
     config = NodeConfig(home=tmp_path, mcp_token="owner-token-x", node_id=NODE, org_id=ORG)
     runtime = Runtime(config=config)
     issuers = TrustedIssuers(tmp_path)
-    issuers.trust(f"org:{ORG}", wire.public_b64(org))
+    issuers.trust(f"org:{ORG}", signing.public_b64(org))
     runtime.register(SERVICE_NAME, issuers)
     policy = build(runtime)
     yield policy, issuers, org
@@ -310,14 +310,14 @@ def test_an_org_key_rotation_overlaps_then_retires(tmp_path):
     clock = Clock(time.time())
     issuers = TrustedIssuers(tmp_path, clock=clock)
     old, new = Ed25519PrivateKey.generate(), Ed25519PrivateKey.generate()
-    old_kid = issuers.trust(f"org:{ORG}", wire.public_b64(old))
+    old_kid = issuers.trust(f"org:{ORG}", signing.public_b64(old))
     config = NodeConfig(home=tmp_path, mcp_token="owner-token-x", node_id=NODE, org_id=ORG)
     runtime = Runtime(config=config)
     runtime.register(SERVICE_NAME, issuers)
     policy = build(runtime)
     try:
         token, _ = org_token(old)
-        issuers.trust(f"org:{ORG}", wire.public_b64(new), overlap_s=300)
+        issuers.trust(f"org:{ORG}", signing.public_b64(new), overlap_s=300)
         policy.resolve(token)
         policy.resolve(org_token(new)[0])
         assert {k["kid"]: k["state"] for k in issuers.keys(f"org:{ORG}")}[old_kid] == "retiring"

@@ -84,7 +84,7 @@ def test_the_app_reads_its_calls() -> None:
 if __name__ == "__main__":
     from agentos.api.app import ApiSettings, build_api
     from agentos.api.auth import PanelStore
-    from agentos.api.fakes import demo_runtime
+    from agentos.dev.apifakes import demo_runtime
 
     wanted = sys.argv[1] if len(sys.argv) > 1 else ""
     app = build_api(demo_runtime(), ApiSettings(store=PanelStore(None), owner_token="t" * 43))
@@ -102,7 +102,7 @@ def test_no_two_modules_claim_a_route() -> None:
 
     from agentos.api.app import ApiSettings, build_api
     from agentos.api.auth import PanelStore
-    from agentos.api.fakes import demo_runtime
+    from agentos.dev.apifakes import demo_runtime
 
     app = build_api(demo_runtime(), ApiSettings(store=PanelStore(None), owner_token="t" * 43))
     seen = Counter((method, route.path) for route in app.routes if isinstance(route, Route)

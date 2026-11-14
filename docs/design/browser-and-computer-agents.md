@@ -5,8 +5,7 @@ computer control agent, need research on it too." Related: [connectors.md](conne
 (deterministic flows, "no model improvises a commit step"), [egress-guard.md](egress-guard.md),
 [desktop-nodes.md](desktop-nodes.md), [always-on-agents.md](always-on-agents.md), the brains
 plugin (`src/agentos/brains/`, docs/ARCHITECTURE.md section 4), human input
-(`src/agentos/node/human.py`). The engagement engine is a sibling design; this document only
-gives it a resolver to call.
+(`src/agentos/node/human.py`).
 
 Benchmark numbers below are mostly self-reported by vendors, on different harnesses, judges
 and task versions. They are useful for ranking families of approach, not as promises. Where a
@@ -52,7 +51,7 @@ grant. Three ways to use it, in order:
 - **Unblock a login:** when a login flow hits a screen it does not know, the pilot gets a
   few minutes to reach "signed in" with a short list of allowed moves (dismiss, "not now",
   fill from the vault). A captcha or "approve on your phone" is always handed to you.
-- **"Do this on this lane":** a tool your agents (and the engagement engine) can call with a
+- **"Do this on this lane":** a tool your agents (and connector runs) can call with a
   goal. Reading and drafting run on their own; anything that posts, likes, follows or
   sends waits for your approval with the exact content, like today.
 
@@ -79,7 +78,7 @@ The owner's steps, and what each one actually requires:
 | Step | What goes wrong today | What the executor must do |
 |---|---|---|
 | A login with unexpected interstitials | A flow or agent meets "Save your login info?", a cookie wall, a new consent page, "Is this you?" | Recognize benign screens and dismiss them; recognize challenges and hold for a human; never guess on identity questions |
-| An engagement action when the layout shifts | The like or follow button moved or lost its label | Find the target again from structure and meaning, prove it is the right one, let the deterministic step act with human input, read back the result |
+| A connector action when the layout shifts | The like or follow button moved or lost its label | Find the target again from structure and meaning, prove it is the right one, let the deterministic step act with human input, read back the result |
 | Repairing a connector locator | A step fails with `connector_contract_broken` | Produce a new structural locator, test it up to the preflight, propose it for review; never post |
 | Desktop apps on future macOS nodes | An app with no web version | The same loop over the AX tree (desktop-nodes.md section 4.2), screenshots and points when the tree is poor |
 
@@ -234,7 +233,7 @@ A node-side package, `agentos.pilot`, that runs a bounded model loop on **one la
 policy path an MCP call takes. It is not a new engine and not a new input layer.
 
 ```
-caller (connector run, login flow, engagement engine, an agent's tool call)
+caller (connector run, login flow, an agent's tool call)
    |
    v
 pilot_start(on, mode, goal, limits)  -- child grant: this lane, mode's tool set, effect ceiling
@@ -274,7 +273,7 @@ Rules that hold in every mode:
 |---|---|---|---|---|
 | `repair` | A connector or flow step fails before its commit (`connector_contract_broken`, `ref_not_found`, ambiguous locator) | `draft` (never `commit`), with the commit step masked | navigate inside the lane's sites, scroll, open menus, type into a composer, snapshot | A **locator patch** (structural: role, `attr`, `names` per language), dry-run through the preflight, sent for review; the run itself stays `failed` |
 | `login_assist` | A login flow ends in `unknown` or an unrecognized interstitial | `secret` plus `read`; `draft` for consent toggles | dismiss, "not now", choose account, vault fill, accept a known consent | `logged_in` (verified by the session cookie signal) or a hold with a reason; a new benign-screen recipe proposed for review |
-| `resolve` | The engagement engine or a connector needs "which element is the like button of this post" | `read` | snapshot, scroll, hover, screenshot | A ref plus evidence (why this is the target); the **deterministic step acts**, with human input and readback |
+| `resolve` | A connector needs "which element is the like button of this post" | `read` | snapshot, scroll, hover, screenshot | A ref plus evidence (why this is the target); the **deterministic step acts**, with human input and readback |
 | `goal` | An agent calls `lane_do(on, goal)` | The caller's grant, capped at `draft` unless the call carries an approval | the mode's full allowlist | The result and a trace; any `commit`, `pay` or `irreversible` step becomes an approval with the exact content |
 
 This keeps the connector rule from connectors.md section 4.8 intact: **no model performs a
@@ -283,7 +282,7 @@ catalog path) accepts it, and the next scheduled run is deterministic again. In 
 model points and the node acts. Only `goal` mode can reach a commit, and only through an
 approval that names the exact effect, like every other tool.
 
-The `resolve` mode is the one the engagement engine needs: "like this post" stays a
+The `resolve` mode is the one connector runs need: "like this post" stays a
 deterministic, paced, read-back action; the pilot only answers "where is it now" when the
 connector's locator misses, and its answer is checked (the ref must sit inside the post's
 container, which the connector identified structurally).
@@ -395,7 +394,7 @@ baseline; the pilot has to beat it on cost or reliability to earn its place.
 |---|---|---|---|
 | 0 | Spike: the subscription brain drives existing MCP tools on 5 fixture tasks; measure tokens per step and latency | S, 2 days | No (uses the node's existing brain seat) |
 | 1 | Lanebench (fixtures, mutations, checkers, input-conformance gate); pilot core with `repair` and `resolve`; `browser_act_point` | about 4 builder-weeks | No |
-| 2 | `login_assist` hooked to login flows; `lane_do` (`goal` mode) as an MCP tool; engagement engine calls `resolve`; real tasks on throwaway accounts | about 3 builder-weeks | Throwaway accounts, presence for live runs, subscription yes or no |
+| 2 | `login_assist` hooked to login flows; `lane_do` (`goal` mode) as an MCP tool; connector runs call `resolve`; real tasks on throwaway accounts | about 3 builder-weeks | Throwaway accounts, presence for live runs, subscription yes or no |
 | 3 | Vision fallback with a native computer-use API model; local grounder on a GPU node; desktop lanes on macOS desks (after desktop-nodes phase 1) | about 4 builder-weeks | GPU decision; Mac mini |
 
 ### 6.1 Builder briefs
@@ -492,8 +491,8 @@ suite is CI's job.
    it.
 3. **Is `repair` allowed to install its own patch?** Default: no. Proposed override, owner or
    reviewer accepts. Revisit after 20 accepted patches with no rollback.
-4. **Is `resolve` on by default for engagement?** Default: on for `read` resolution once
-   lanebench passes; the engagement action itself stays deterministic and paced.
+4. **Is `resolve` on by default for connector runs?** Default: on for `read` resolution once
+   lanebench passes; the connector action itself stays deterministic and paced.
 5. **Vision fallback model.** Default: Claude's native computer-use tool through the API
    (it needs the API anyway for best coordinate scaling); compare against screenshots
    through the subscription brain in lanebench before deciding.

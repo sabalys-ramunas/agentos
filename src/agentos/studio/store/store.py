@@ -1,7 +1,7 @@
 """The studio artifact store: images and manifests addressed by their content, and the captures
 that name them.
 
-`AGENTOS_HOME/studio/studio.db` (WAL, created and migrated through agentos.ops.migrate) indexes
+`AGENTOS_HOME/studio/studio.db` (WAL, created and migrated through agentos.core.migrate) indexes
 `AGENTOS_HOME/studio/blobs/<2 hex>/<sha256>.<ext>` (files 600 in 700 directories). A blob id is
 `sha256:<hex>` of its bytes, as audit screenshots are named (agentos.audit.captures), so the same
 image kept twice is one file and a reader can check the file against its id.
@@ -26,12 +26,12 @@ import threading
 import time
 from collections.abc import Iterator
 from contextlib import contextmanager
-from datetime import UTC, datetime
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from agentos.core import clock, migrate
 from agentos.core.errors import InvalidRequest, NotFound, ServiceUnavailable
-from agentos.ops import migrate
 from agentos.studio.contracts import Capture, Rect, Shot
 from agentos.studio.store.migrations import DB, MIGRATIONS
 from agentos.studio.store.models import CaptureInfo, Manifest
@@ -58,7 +58,7 @@ def new_capture_id() -> str:
 
 
 def _iso(ts: float) -> str:
-    return datetime.fromtimestamp(ts, UTC).isoformat(timespec="seconds")
+    return clock.iso(ts, timespec="seconds")
 
 
 def _parse_iso(value: str) -> float:
@@ -342,10 +342,6 @@ class StudioStore:
         rows = self._rows("SELECT capture_id FROM baselines WHERE url = ? AND profile = ?", (url, profile or ""))
         return self.get(rows[0]["capture_id"]) if rows else None
 
-    def clear_baseline(self, url: str, profile: str | None = None) -> None:
-        with self._tx() as conn:
-            conn.execute("DELETE FROM baselines WHERE url = ? AND profile = ?", (url, profile or ""))
-
     # ---- size ----
 
     def usage(self) -> dict[str, int]:
@@ -407,4 +403,4 @@ def store_for(home: Path) -> StudioStore:
 
 
 def iso_now() -> str:
-    return _iso(time.time())
+    return clock.iso(time.time(), timespec="seconds")

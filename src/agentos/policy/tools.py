@@ -7,7 +7,7 @@ from typing import Any
 from agentos.core.errors import InvalidRequest, NotFound
 from agentos.core.models import Effect
 from agentos.core.tools import ToolSpec, frozen_off, refuse_frozen
-from agentos.policy.approvals import MAX_WAIT_S
+from agentos.policy.approval_models import MAX_WAIT_S
 from agentos.policy.errors import Denied
 from agentos.policy.explain import explain
 from agentos.policy.memory_rules import describe as describe_memory  # memory: grant_info

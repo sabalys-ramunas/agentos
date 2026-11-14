@@ -45,36 +45,50 @@ import ipaddress
 import json
 import logging
 import os
-import re
-import shutil
 import sqlite3
-import tempfile
 import threading
 import time
-from collections.abc import Callable, Iterable, Mapping
-from dataclasses import dataclass, field
+from collections.abc import Callable, Iterable
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from agentos.core.config import NodeConfig, load_proxies
 from agentos.core.errors import LaneNotFound, NotFound
-from agentos.core.models import ControlState, LaneControl, LaneKind, LaneSpec, ProxyConfig, Signal
-from agentos.core.signals import STOP
-from agentos.ops.layout import connect_ro
-from agentos.ops.system import Host, redact
-from agentos.stealth import fingerprint as fpmod
+from agentos.core.models import LaneKind, LaneSpec, ProxyConfig
+from agentos.core.system import Host, redact
+from agentos.node import fingerprint as fpmod
+from agentos.stealth.lanecookies import BUSY, as_number, host_matches, read_cookies, session_expiry
+from agentos.stealth.lanefacts import LaneFacts, ManagerFacts, StoreFacts
+from agentos.stealth.lanereport import (
+    CHECK_IDS,
+    FAIL,
+    OK,
+    UNKNOWN,
+    WARN,
+    Check,
+    LaneReport,
+    format_report,
+    human_size,
+    worst,
+)
+from agentos.stealth.lanerules import (
+    effective_prefs,
+    judge_dns,
+    judge_exit,
+    judge_hold,
+    judge_location,
+    judge_webrtc,
+    parse_prefs,
+)
+
+# The names other packages import from here; each has its home in one of the modules above.
+__all__ = ["CHECK_IDS", "FAIL", "OK", "PIN_META", "PIN_VERSION", "UNKNOWN", "WARN", "Check", "LaneChecker",
+           "LaneFacts", "LaneReport", "format_report", "session_expiry"]
 
 log = logging.getLogger("agentos.ops.lanecheck")
 
-OK, WARN, FAIL, UNKNOWN = "ok", "warn", "fail", "unknown"
-LEVELS = (OK, UNKNOWN, WARN, FAIL)          # worst last
-_RANK = {level: i for i, level in enumerate(LEVELS)}
-
-CHECK_IDS = ("proxy", "exit_ip", "location", "webrtc", "dns", "profile", "session", "account", "hold")
-TITLES = {"proxy": "Proxy", "exit_ip": "Exit IP", "location": "Location", "webrtc": "WebRTC", "dns": "DNS",
-          "profile": "Profile", "session": "Signed in", "account": "Account", "hold": "Hold"}
 
 PROXY_TTL = 60.0                 # a proxy probe is reused for this long (an agent may check before each step)
 NODE_IP_TTL = 600.0              # the node's own IP is read again after this long
@@ -83,126 +97,17 @@ OFFLINE = "not probed (offline)"
 GEO_TTL = 86400.0                # one geo lookup per proxy per day, at most
 INSTALLED_TTL = 3600.0           # the installed Camoufox (a subprocess) and its camoufox.cfg
 COOKIE_TIMEOUT = 5.0             # reading a warm lane's cookies from its browser
-COOKIE_COPY_TRIES = 5
 PROFILE_WARN_BYTES = 2 * 1024**3
 DISK_FAIL_BYTES = 2 * 1024**3    # the lane manager refuses to warm a lane below this (AUD-23)
 DISK_WARN_BYTES = 5 * 1024**3
-BAD_SIGNALS = STOP
-PIN_META = "agentos:pin"         # agentos.node.engine_camoufox.PIN_META
+PIN_META = "agentos:pin"         # agentos.node.camoufox.engine.PIN_META
 PIN_VERSION = 2
-
-WEBRTC_PREFS = ("media.peerconnection.enabled", "media.peerconnection.ice.proxy_only",
-                "media.peerconnection.ice.proxy_only_if_behind_proxy",
-                "media.peerconnection.ice.obfuscate_host_addresses")
-DNS_PREFS = ("network.proxy.socks_remote_dns", "network.dns.disablePrefetch", "network.trr.mode")
-PROXY_ONLY_FIX = ('add user_pref("media.peerconnection.ice.proxy_only", true); to {path} while the lane is '
-                  "cold, so WebRTC never sends UDP around the proxy")
-
-_PREF_RE = re.compile(r'^\s*(defaultPref|pref|lockPref|user_pref)\(\s*"([^"]+)"\s*,\s*(.+?)\s*\)\s*;', re.MULTILINE)
 
 
 # ---- the report ---------------------------------------------------------------------------
 
-@dataclass
-class Check:
-    id: str
-    level: str
-    detail: str
-    fix: str | None = None
-    data: dict[str, Any] = field(default_factory=dict)
-
-    @property
-    def title(self) -> str:
-        return TITLES.get(self.id, self.id)
-
-    def to_dict(self) -> dict[str, Any]:
-        return {"id": self.id, "title": self.title, "level": self.level, "detail": self.detail,
-                "fix": self.fix, "data": self.data}
-
-
-def worst(levels: Iterable[str]) -> str:
-    """The lane's level: fail, then warn, else ok. An unknown check never makes a lane unsafe."""
-    present = set(levels)
-    return FAIL if FAIL in present else WARN if WARN in present else OK
-
-
-@dataclass
-class LaneReport:
-    lane: str
-    state: str
-    at: datetime
-    checks: list[Check]
-
-    @property
-    def level(self) -> str:
-        return worst(c.level for c in self.checks)
-
-    @property
-    def safe(self) -> bool:
-        return self.level != FAIL
-
-    def failing(self) -> list[str]:
-        return [c.id for c in self.checks if c.level == FAIL]
-
-    def summary(self) -> str:
-        bad = [c for c in self.checks if c.level == FAIL] or [c for c in self.checks if c.level == WARN]
-        if bad:
-            return " ".join(c.detail for c in bad)
-        unknown = [c.title for c in self.checks if c.level == UNKNOWN]
-        if unknown:
-            return (f"No known problems: nothing failed, but {len(unknown)} of {len(self.checks)} checks could not "
-                    f"run ({', '.join(unknown)}).")
-        return "No known problems: every check passed."
-
-    def to_dict(self) -> dict[str, Any]:
-        counts = {level: 0 for level in LEVELS}
-        for c in self.checks:
-            counts[c.level] += 1
-        return {"lane": self.lane, "level": self.level, "safe": self.safe, "state": self.state,
-                "at": self.at.isoformat(timespec="seconds"), "summary": self.summary(), "counts": counts,
-                "checks": [c.to_dict() for c in self.checks]}
-
-    @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> LaneReport:
-        checks = [Check(c["id"], c["level"], c["detail"], c.get("fix"), dict(c.get("data") or {}))
-                  for c in data.get("checks", [])]
-        return cls(str(data["lane"]), str(data.get("state", "unknown")), _when(data.get("at")) or datetime.now(UTC),
-                   checks)
-
-    def brief(self) -> dict[str, Any]:
-        """What a list shows: the worst level per lane and which checks fail or warn."""
-        return {"lane": self.lane, "level": self.level, "safe": self.safe, "state": self.state,
-                "at": self.at.isoformat(timespec="seconds"), "failing": self.failing(),
-                "warning": [c.id for c in self.checks if c.level == WARN]}
-
 
 # ---- facts about one lane -----------------------------------------------------------------
-
-@dataclass
-class LaneFacts:
-    spec: LaneSpec
-    state: str = "cold"
-    control: LaneControl | None = None
-    quarantine: dict[str, Any] | None = None    # reason, at, by, kind
-    signal: dict[str, Any] | None = None        # signal, at, detail
-    exit_ip: str | None = None                  # what the lane's own self-check saw last
-    context: Any = None                         # the live browser context of a warm lane
-
-
-def _when(value: Any) -> datetime | None:
-    if isinstance(value, datetime):
-        return value if value.tzinfo else value.replace(tzinfo=UTC)
-    if isinstance(value, str) and value:
-        try:
-            return _when(datetime.fromisoformat(value))
-        except ValueError:
-            return None
-    return None
-
-
-def _stamp(value: Any) -> str | None:
-    when = _when(value)
-    return when.astimezone(UTC).strftime("%Y-%m-%d %H:%M UTC") if when else None
 
 
 def _fresh(at: float, now: float, ttl: float) -> bool:
@@ -211,454 +116,10 @@ def _fresh(at: float, now: float, ttl: float) -> bool:
     return 0 <= now - at < ttl
 
 
-def _value(x: Any) -> Any:
-    return getattr(x, "value", x)
-
-
-class ManagerFacts:
-    """Facts from the running lane manager (inside agentosd)."""
-
-    def __init__(self, lanes: Any):
-        self.lanes = lanes
-
-    def lane_ids(self) -> list[str]:
-        return [info.spec.id for info in self.lanes.list()]
-
-    def facts(self, lane_id: str) -> LaneFacts:
-        info = self.lanes.get(lane_id)
-        state = str(_value(info.state))
-        quarantine = None
-        store = getattr(self.lanes, "store", None)
-        rec = None
-        if store is not None:
-            try:
-                rec = store.get(lane_id)
-            except Exception:  # noqa: BLE001 - the LaneInfo below still says it is quarantined
-                rec = None
-        if rec is not None and rec.quarantine is not None:
-            q = rec.quarantine
-            quarantine = {"reason": q.reason, "at": q.at, "by": q.by, "kind": q.kind}
-        elif state == "quarantined":
-            quarantine = {"reason": info.quarantine_reason or "failed self-check", "at": None, "by": "node",
-                          "kind": "self_check"}
-        signal = None
-        if info.signal is not None:
-            signal = {"signal": str(_value(info.signal)), "at": info.signal_at,
-                      "detail": rec.signal.detail if rec is not None and rec.signal is not None else None}
-        context = None
-        if state in ("warm", "active"):
-            lane = getattr(self.lanes, "_lanes", {}).get(lane_id)  # read only: the warm browser's context
-            session = getattr(lane, "session", None)
-            context = getattr(session, "context", None)
-        return LaneFacts(spec=info.spec, state=state, control=info.control, quarantine=quarantine, signal=signal,
-                         exit_ip=info.exit_ip, context=context)
-
-    def pinned_exit(self, label: str) -> str | None:
-        store = getattr(self.lanes, "store", None)
-        pin = store.proxy_exit(label) if store is not None and hasattr(store, "proxy_exit") else None
-        return pin.exit_ip if pin is not None else None
-
-
-class StoreFacts:
-    """Facts read straight from agentos.db, read-only (the daemon is not running). Every lane is cold."""
-
-    def __init__(self, db_path: Path):
-        self.db_path = Path(db_path)
-
-    def _rows(self, where: str = "", args: tuple = ()) -> list[tuple]:
-        if not self.db_path.exists():
-            return []
-        conn = connect_ro(self.db_path)
-        try:
-            columns = {row[1] for row in conn.execute("PRAGMA table_info(lanes)")}
-            tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-            q = "l.quarantine" if "quarantine" in columns else "NULL"
-            s = "l.signal" if "signal" in columns else "NULL"
-            control = "c.control" if "lane_control" in tables else "NULL"
-            join = " LEFT JOIN lane_control c ON c.id = l.id" if "lane_control" in tables else ""
-            sql = f"SELECT l.id, l.spec, l.last_used, l.exit_ip, {control}, {q}, {s} FROM lanes l{join}{where}"
-            return conn.execute(sql, args).fetchall()
-        finally:
-            conn.close()
-
-    def lane_ids(self) -> list[str]:
-        return sorted(row[0] for row in self._rows())
-
-    def facts(self, lane_id: str) -> LaneFacts:
-        from agentos.node.store import LaneStore
-
-        rows = self._rows(" WHERE l.id = ?", (lane_id,))
-        if not rows:
-            raise LaneNotFound(f"no lane {lane_id}")
-        rec = LaneStore._record(rows[0])
-        quarantine = None
-        if rec.quarantine is not None:
-            q = rec.quarantine
-            quarantine = {"reason": q.reason, "at": q.at, "by": q.by, "kind": q.kind}
-        signal = None
-        if rec.signal is not None:
-            signal = {"signal": rec.signal.signal.value, "at": rec.signal.at, "detail": rec.signal.detail}
-        return LaneFacts(spec=rec.spec, state="quarantined" if quarantine else "cold", control=rec.control,
-                         quarantine=quarantine, signal=signal, exit_ip=rec.exit_ip)
-
-    def pinned_exit(self, label: str) -> str | None:
-        """The pinned exit, or None when there is no pin. A read that fails raises (sqlite3.Error): an
-        unreadable pin is not "no pin"."""
-        if not self.db_path.exists():
-            return None
-        conn = connect_ro(self.db_path)
-        try:
-            tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-            if "proxy_exits" not in tables:
-                return None
-            row = conn.execute("SELECT exit_ip FROM proxy_exits WHERE label = ?", (label,)).fetchone()
-        finally:
-            conn.close()
-        return row[0] if row else None
-
-
 # ---- pure rules -----------------------------------------------------------------------------
-
-def _is_ip(host: str) -> bool:
-    try:
-        ipaddress.ip_address(host)
-    except ValueError:
-        return False
-    return True
-
-
-def judge_exit(proxy: ProxyConfig, ip: str, *, host_ips: set[str], pinned: str | None,
-               node_ip: str | None, node_ip_known: bool | None = None) -> Check:
-    """The lane self-check's rule (agentos.node.lanes._judge_exit) without its side effects: an IP
-    literal proxy must exit from its own address; a gateway (a host name) must keep the exit pinned
-    when a lane first opened through it; no proxy may exit from the node's own IP. An unpinned gateway
-    is not passed while the node's own IP is unknown (`node_ip_known` False): its exit could be the node."""
-    node_ip_known = bool(node_ip) if node_ip_known is None else node_ip_known
-    label = proxy.label
-    data = {"exit_ip": ip, "proxy": label, "host": proxy.host, "pinned": pinned}
-    if node_ip and ip == node_ip:
-        return Check("exit_ip", FAIL, f"Proxy {label} lets traffic out from this node's own IP {ip}, so the "
-                     "account would see the node.", "fix or replace the proxy: agentos proxy add "
-                     f"{label} <host>:<port>:<user>", data)
-    if _is_ip(proxy.host):
-        if ip in host_ips:
-            return Check("exit_ip", OK, f"Exits from {ip}, the proxy's own address.", None, data)
-        return Check("exit_ip", FAIL, f"Proxy {label} exits from {ip}, not from its own address {proxy.host}; "
-                     "opening the lane would quarantine it.", "ask the provider for a static exit, or point the "
-                     f"proxy at its exit: agentos proxy add {label} <exit-host>:<port>:<user>", data)
-    if pinned is None and not node_ip_known:
-        return Check("exit_ip", UNKNOWN, f"Exits from {ip}, but this node's own IP could not be read, so it is "
-                     f"not known whether gateway proxy {label} exits from the node itself.", None,
-                     {**data, "node_ip_known": False})
-    if pinned is None:
-        return Check("exit_ip", OK, f"Exits from {ip}; proxy {label} is a gateway, and its first exit is pinned "
-                     "when a lane opens through it.", None, data)
-    if pinned == ip:
-        return Check("exit_ip", OK, f"Exits from {ip}, the address pinned for gateway proxy {label}.", None, data)
-    return Check("exit_ip", FAIL, f"Proxy {label} now exits from {ip}, not the pinned {pinned}; the account would "
-                 "be seen from a new address, and opening the lane quarantines it.",
-                 "check the proxy; to accept the new address, open the lane and hand it back "
-                 "(agentos lane handback {lane})", data)
-
-
-def locale_region(locale: str | None) -> str | None:
-    """"en-US" -> "US"; None when the locale names no region ("en")."""
-    parts = re.split(r"[-_]", locale or "")
-    region = next((p for p in parts[1:] if len(p) == 2 and p.isalpha()), None)
-    return region.upper() if region else None
-
-
-def utc_offset(tz: str | None, at: datetime) -> str | None:
-    if not tz:
-        return None
-    try:
-        delta = at.astimezone(ZoneInfo(tz)).utcoffset()
-    except (ZoneInfoNotFoundError, ValueError):
-        return None
-    if delta is None:
-        return None
-    minutes = int(delta.total_seconds() // 60)
-    sign = "+" if minutes >= 0 else "-"
-    return f"UTC{sign}{abs(minutes) // 60:02d}:{abs(minutes) % 60:02d}"
-
-
-def judge_location(geo: Mapping[str, Any] | None, *, pinned_tz: str | None, pinned_country: str | None,
-                   locale: str | None, at: datetime, why_unknown: str | None = None) -> Check:
-    """The exit's country against the locale's region and the pin's country; its timezone's UTC offset
-    (now) against the pinned timezone's. A mismatch is a warning with the exact values."""
-    if not geo or not geo.get("country"):
-        return Check("location", UNKNOWN, why_unknown or "Where the exit is could not be looked up.", None,
-                     {"pinned_timezone": pinned_tz, "locale": locale})
-    country = str(geo["country"]).upper()
-    tz = geo.get("timezone")
-    region = locale_region(locale)
-    exit_offset, pinned_offset = utc_offset(tz, at), utc_offset(pinned_tz, at)
-    data = {"exit_ip": geo.get("ip"), "exit_country": country, "exit_timezone": tz, "exit_offset": exit_offset,
-            "pinned_timezone": pinned_tz, "pinned_offset": pinned_offset, "pinned_country": pinned_country,
-            "locale": locale, "looked_up_at": geo.get("at")}
-    where = f"{country} ({tz}, {exit_offset})" if tz and exit_offset else country
-    problems = []
-    if region and region != country:
-        problems.append(f"the lane's locale {locale} says {region}")
-    moved = False
-    if pinned_country and str(pinned_country).upper() != country:
-        problems.append(f"the pin was made in {str(pinned_country).upper()}")
-        moved = True
-    if pinned_offset and exit_offset and pinned_offset != exit_offset:
-        problems.append(f"the pinned timezone is {pinned_tz} ({pinned_offset})")
-        moved = True
-    if problems:
-        fix = ("use a proxy in the place the lane was made, or give the account a lane made in the new place "
-               "(the pinned timezone never follows the proxy)") if moved else \
-              (f"give the lane a locale for {country} (a new lane), or use a proxy in {region}")
-        return Check("location", WARN, f"The exit is in {where}, but {', and '.join(problems)}.", fix, data)
-    if not pinned_tz:
-        return Check("location", OK, f"The exit is in {where}; the timezone is pinned from it on first launch.",
-                     None, data)
-    if exit_offset is None or pinned_offset is None:
-        missing = ("the lookup gave no usable timezone for the exit" if exit_offset is None
-                   else f"the pinned timezone {pinned_tz} is not known to this node")
-        return Check("location", UNKNOWN, f"The exit is in {where}, but its offset was not compared with the "
-                     f"pinned {pinned_tz}: {missing}.", None, data)
-    same = "the same timezone" if tz == pinned_tz else f"the same offset as the pinned {pinned_tz}"
-    return Check("location", OK, f"The exit is in {where}, {same}.", None, data)
-
-
-def strip_comments(text: str) -> str:
-    """`text` without its /* */ and // comments (Firefox's pref parser skips both), leaving string
-    literals alone. A block comment keeps its newlines, so line starts stay where they were."""
-    out: list[str] = []
-    i, n = 0, len(text)
-    while i < n:
-        ch = text[i]
-        if ch in "\"'":
-            j = i + 1
-            while j < n and text[j] != ch and text[j] != "\n":
-                j += 2 if text[j] == "\\" else 1
-            out.append(text[i:j + 1])
-            i = j + 1
-        elif text.startswith("/*", i):
-            end = text.find("*/", i + 2)
-            end = n if end < 0 else end + 2
-            out.append("\n" * text.count("\n", i, end) or " ")
-            i = end
-        elif text.startswith("//", i):
-            end = text.find("\n", i)
-            i = n if end < 0 else end
-        else:
-            out.append(ch)
-            i += 1
-    return "".join(out)
-
-
-def parse_prefs(text: str) -> dict[str, dict[str, Any]]:
-    """Pref calls in a camoufox.cfg, prefs.js or user.js: {kind: {name: value}} where kind is
-    defaultPref, pref, lockPref or user_pref. Calls inside a comment do not count. Values that are not
-    JSON literals are skipped."""
-    out: dict[str, dict[str, Any]] = {}
-    for kind, name, raw in _PREF_RE.findall(strip_comments(text)):
-        try:
-            value = json.loads(raw)
-        except ValueError:
-            continue
-        out.setdefault(kind, {})[name] = value
-    return out
-
-
-def effective_prefs(*, cfg: Mapping[str, dict[str, Any]] | None, launch: Mapping[str, Any] | None,
-                    prefs_js: Mapping[str, Any] | None, user_js: Mapping[str, Any] | None) -> dict[str, Any]:
-    """Firefox's order: defaults (camoufox.cfg defaultPref, then the launch prefs, which Camoufox puts on
-    the default branch), user values (prefs.js, then user.js, and camoufox.cfg's pref()), locked prefs."""
-    cfg = cfg or {}
-    out: dict[str, Any] = {}
-    for layer in (cfg.get("defaultPref"), launch, prefs_js, user_js, cfg.get("pref"), cfg.get("lockPref")):
-        out.update(layer or {})
-    return out
-
-
-def judge_webrtc(prefs: Mapping[str, Any], *, proxied: bool, known: bool, user_js: Path,
-                 missing_proxy: str | None = None) -> Check:
-    data = {k: prefs.get(k) for k in WEBRTC_PREFS}
-    if missing_proxy:
-        return Check("webrtc", UNKNOWN, f"The lane's proxy {missing_proxy} is missing, so where WebRTC would "
-                     "leave from cannot be judged.", None, data)
-    if not proxied:
-        return Check("webrtc", OK, "No proxy, so WebRTC shows the node's own IP, the address sites already see.",
-                     None, data)
-    if prefs.get("media.peerconnection.enabled") is False:
-        return Check("webrtc", OK, "WebRTC is off.", None, data)
-    if not known:
-        return Check("webrtc", UNKNOWN, "The browser's WebRTC settings could not be read (no camoufox.cfg found).",
-                     "check that Camoufox is installed: agentos doctor", data)
-    if prefs.get("media.peerconnection.ice.obfuscate_host_addresses") is False:
-        return Check("webrtc", FAIL, "WebRTC shows the node's real network address in its host candidates.",
-                     'remove media.peerconnection.ice.obfuscate_host_addresses from the profile\'s prefs.js '
-                     "and user.js while the lane is cold", data)
-    if prefs.get("media.peerconnection.ice.proxy_only") is True:
-        return Check("webrtc", OK, "WebRTC only connects through the proxy.", None, data)
-    if prefs.get("media.peerconnection.ice.proxy_only_if_behind_proxy") is True:
-        return Check("webrtc", WARN, "WebRTC stays behind the proxy on normal pages, but a page can make it send "
-                     "UDP from this node's own IP through a blank frame.", PROXY_ONLY_FIX.format(path=user_js),
-                     data)
-    return Check("webrtc", FAIL, "WebRTC can send UDP around the proxy and show this node's own IP.",
-                 PROXY_ONLY_FIX.format(path=user_js), data)
-
-
-def judge_dns(prefs: Mapping[str, Any], *, proxy: ProxyConfig | None, missing_proxy: str | None = None) -> Check:
-    data = {k: prefs.get(k) for k in DNS_PREFS}
-    if missing_proxy:
-        return Check("dns", UNKNOWN, f"The lane's proxy {missing_proxy} is missing, so where host names are "
-                     "resolved cannot be judged.", None, data)
-    if proxy is None:
-        return Check("dns", OK, "No proxy, so names resolve on the node, like all of the lane's traffic.", None,
-                     data)
-    scheme = proxy.server.split(":", 1)[0].lower()
-    data["proxy_scheme"] = scheme
-    if scheme in ("http", "https"):
-        return Check("dns", OK, "Host names go to the proxy, which resolves them; the node resolves none.", None,
-                     data)
-    if scheme in ("socks", "socks5"):
-        return Check("dns", OK, "Host names go to the SOCKS proxy, which resolves them.", None, data)
-    return Check("dns", FAIL, f"A {scheme} proxy cannot take host names, so the node resolves them.",
-                 "use an HTTP or SOCKS5 proxy", data)
-
-
-def judge_hold(facts: LaneFacts, *, now: datetime) -> Check:
-    lane = facts.spec.id
-    handback = f"agentos lane handback {lane}"
-    q = facts.quarantine
-    if q is not None:
-        since = _stamp(q.get("at"))
-        return Check("hold", FAIL, f"Quarantined{' since ' + since if since else ''}: {q.get('reason')}.",
-                     f"a human fixes the cause, then hands the lane back ({handback}, or the panel)",
-                     {"kind": "quarantine", "since": since, "by": q.get("by"), "reason": q.get("reason"),
-                      "quarantine_kind": q.get("kind"), "cleared_by": "human"})
-    control = facts.control or LaneControl()
-    since = _stamp(control.since)
-    if control.state == ControlState.PAUSED and control.reason:
-        until = _when(control.hold_until)
-        data = {"kind": "hold", "since": since, "by": control.by, "reason": control.reason,
-                "until": _stamp(until)}
-        if until is not None and until > now:
-            return Check("hold", WARN, f"Held until {_stamp(until)}: {control.reason}. It clears itself.",
-                         f"wait until {_stamp(until)}, or a human hands it back sooner ({handback})",
-                         {**data, "cleared_by": "time"})
-        if until is not None:
-            return Check("hold", WARN, f"A timed hold ended at {_stamp(until)} ({control.reason}); agentosd lifts "
-                         "it on its next round, and agents wait until then.",
-                         "wait a minute; if it stays, check that agentosd is running (agentos doctor)",
-                         {**data, "cleared_by": "time"})
-        return Check("hold", FAIL, f"Held for a human{' since ' + since if since else ''}: {control.reason}.",
-                     f"a human looks at the lane (agentos lane view {lane} --control), then hands it back "
-                     f"({handback})", {**data, "cleared_by": "human"})
-    if control.state == ControlState.PAUSED:
-        return Check("hold", FAIL, f"Agents were stopped on this lane{' by ' + control.by if control.by else ''}"
-                     f"{' since ' + since if since else ''}.", f"the human hands it back ({handback})",
-                     {"kind": "stopped", "since": since, "by": control.by, "cleared_by": "human"})
-    if control.state == ControlState.HUMAN:
-        return Check("hold", WARN, f"A human has control{' (' + control.by + ')' if control.by else ''}"
-                     f"{' since ' + since if since else ''}; agents wait.",
-                     f"the human hands it back ({handback}), or it returns after a while without input",
-                     {"kind": "human", "since": since, "by": control.by, "cleared_by": "human"})
-    sig = facts.signal
-    if sig is not None:
-        try:
-            value = Signal(sig.get("signal"))
-        except ValueError:
-            value = Signal.UNKNOWN
-        if value in BAD_SIGNALS:
-            at = _stamp(sig.get("at"))
-            where = f" on {sig['detail']}" if sig.get("detail") else ""
-            return Check("hold", WARN, f"The last page showed {value.value}{where}{' at ' + at if at else ''}, "
-                         "and nothing holds the lane.", f"a human looks at the lane before agents go on "
-                         f"(agentos lane view {lane})", {"kind": "signal", "signal": value.value, "since": at})
-    return Check("hold", OK, "No hold, no quarantine; agents have control.", None, {"kind": None})
 
 
 # ---- cookies ----------------------------------------------------------------------------------
-
-def _stat(path: Path) -> tuple[int, int, int] | None:
-    try:
-        st = os.stat(path)
-    except OSError:
-        return None
-    return st.st_size, st.st_mtime_ns, st.st_ino
-
-
-def _host_matches(cookie_host: str, domains: Iterable[str]) -> bool:
-    from agentos.node.sites import host_is
-
-    host = cookie_host.lstrip(".")
-    return any(host_is(host, d) for d in domains)
-
-
-def read_cookie_db(profile: Path, domains: Iterable[str], *, now: float | None = None,
-                   scratch: Path | None = None, tries: int = COOKIE_COPY_TRIES) -> list[dict[str, Any]] | None:
-    """The unexpired cookies for `domains`, or None when they cannot be read (read_cookies says why)."""
-    return read_cookies(profile, domains, now=now, scratch=scratch, tries=tries)[0]
-
-
-BUSY = "the cookie file could not be copied while the browser wrote it"
-DAMAGED = "the cookie file is damaged or is not a cookie database"
-
-
-def read_cookies(profile: Path, domains: Iterable[str], *, now: float | None = None, scratch: Path | None = None,
-                 tries: int = COOKIE_COPY_TRIES) -> tuple[list[dict[str, Any]] | None, str | None]:
-    """The unexpired cookies for `domains` (and their subdomains) in a profile's cookies.sqlite, as
-    [{name, value, domain, path}], or None when they cannot be read. [] when the profile has no
-    cookie file yet.
-
-    The live file is never opened with SQLite (Firefox may hold it and must never meet a lock or a
-    -shm of ours): cookies.sqlite and its -wal are copied with plain reads into a private temporary
-    folder, again until neither changed during the copy, and only the copy is opened (it replays the
-    WAL into the copy). Values stay in this process: callers report names and booleans only."""
-    db = Path(profile) / "cookies.sqlite"
-    if not db.exists():
-        return [], None
-    domains = list(domains)
-    files = [db, db.with_name(db.name + "-wal")]
-    now = time.time() if now is None else now
-    why: str | None = BUSY
-    for attempt in range(max(1, tries)):
-        before = [_stat(f) for f in files]
-        try:
-            with tempfile.TemporaryDirectory(prefix="agentos-cookies-", dir=scratch) as tmp:
-                for f in files:
-                    if before[files.index(f)] is not None:
-                        shutil.copyfile(f, Path(tmp) / f.name)
-                if [_stat(f) for f in files] != before:
-                    why = BUSY
-                    time.sleep(0.05 * (attempt + 1))
-                    continue
-                conn = sqlite3.connect(Path(tmp) / db.name, timeout=1.0)
-                try:
-                    if conn.execute("PRAGMA quick_check").fetchone()[0] != "ok":
-                        why = DAMAGED
-                        continue
-                    rows = conn.execute("SELECT name, value, host, path, expiry FROM moz_cookies").fetchall()
-                finally:
-                    conn.close()
-        except sqlite3.Error:
-            why = DAMAGED      # a stable copy that SQLite cannot read: the file itself is bad
-            time.sleep(0.05 * (attempt + 1))
-            continue
-        except OSError as e:
-            why = f"the cookie file could not be read ({type(e).__name__})"
-            time.sleep(0.05 * (attempt + 1))
-            continue
-        out = []
-        for name, value, host, path, expiry in rows:
-            if not _host_matches(str(host or ""), domains):
-                continue
-            exp = float(expiry or 0)
-            if exp > 1e11:  # Firefox stores milliseconds since version 135, seconds before
-                exp /= 1000.0
-            if exp and exp < now:
-                continue
-            out.append({"name": str(name), "value": str(value or ""), "domain": str(host or ""), "path": path,
-                        "expires": exp or -1})
-        return out, None
-    return None, why
 
 
 # ---- the checker ----------------------------------------------------------------------------
@@ -809,7 +270,7 @@ class LaneChecker:
         """A device's network health (AUD-02, with the AUD-14 self-check): its proxy answers, it
         exits where its proxy's pinned exit says, and the exit is where the device's pin says
         (country, timezone and the locale's region). Reads only; never warms a lane."""
-        from agentos.ops.layout import device_specs, lane_specs
+        from agentos.core.layout import device_specs, lane_specs
 
         device = (await asyncio.to_thread(device_specs, self.home)).get(name)
         if device is None:
@@ -891,7 +352,7 @@ class LaneChecker:
         with self._geo_lock:
             entry = dict(self._geo_cache().get(proxy.label) or {})
         # At most one lookup a day per proxy, so only a checker that can keep the answer asks at all.
-        due = self.write_cache and not _fresh(_number(entry.get("tried")), self.clock(), GEO_TTL)
+        due = self.write_cache and not _fresh(as_number(entry.get("tried")), self.clock(), GEO_TTL)
         info: dict[str, Any] | None = None
         try:
             if due and hasattr(self.host, "proxy_exit_info"):
@@ -1056,7 +517,7 @@ class LaneChecker:
                                  not bool(getattr(self.engine, "extra_options", {}).get("block_webrtc"))}
         # Imported by name (read at each call, so a patched value counts): a renamed pref set fails
         # here loudly instead of reading as no prefs, which would misjudge WebRTC and the cache.
-        from agentos.node.engine_camoufox import (
+        from agentos.node.camoufox.engine import (
             CACHE_PREFS,
             LINUX_HOST_PREFS,
             STEADY_CHROME_PREFS,
@@ -1096,7 +557,6 @@ class LaneChecker:
                        installed: dict[str, Any]) -> Check:
         lane_id = facts.spec.id
         profile = lane_dir / "profile"
-        fp = lane_dir / "fingerprint.json"
         data: dict[str, Any] = {"profile": str(profile)}
         problems: list[tuple[str, str, str | None]] = []   # (level, sentence, fix)
         if not profile.is_dir():
@@ -1107,24 +567,7 @@ class LaneChecker:
             return Check("profile", FAIL, "The profile folder cannot be read by agentos.",
                          f"give it back to the service user: chown -R <user> {lane_dir}", data)
         used = any((profile / n).exists() for n in ("prefs.js", "cookies.sqlite", "times.json"))
-        version = None
-        if pin_error:
-            problems.append((FAIL, f"The pin file cannot be read ({pin_error}).",
-                             f"restore {fp} from a backup; deleting it makes sites see a new device"))
-        elif pin is None:
-            if facts.state == "warming":   # the engine writes the pin once the browser has started (settle_pin)
-                data["pin_pending"] = True
-            elif used:
-                problems.append((FAIL, ("The profile was used, but its pin file is gone, so the next launch "
-                                 "would show sites a new device."), f"restore {fp} from a backup"))
-        else:
-            meta = pin.get(PIN_META)
-            version = meta.get("version") if isinstance(meta, dict) and isinstance(meta.get("version"), int) else 1
-            data["pin_version"] = version
-            data["pin_v1_backup"] = (lane_dir / "fingerprint.json.pin-v1.bak").exists()
-            if version < PIN_VERSION:
-                problems.append((WARN, (f"The pin is version {version}; it is completed on the next launch "
-                                 "(the old file is kept as fingerprint.json.pin-v1.bak)."), None))
+        version = _pin_problems(facts, lane_dir, pin, pin_error, used, data, problems)
         pinned = fpmod.pinned_major(pin) if isinstance(pin, dict) else None
         engine = installed.get("major")
         data.update(pinned_firefox=pinned, engine_firefox=engine)
@@ -1135,6 +578,22 @@ class LaneChecker:
         elif verdict == "newer":
             problems.append((FAIL, (f"The pin says Firefox {pinned}, newer than the installed browser "
                              f"(Firefox {engine})."), "update Camoufox (agentos doctor shows the command)"))
+        self._browser_problems(facts, profile, data, problems)
+        size, free = self._disk_problems(lane_dir, profile, data, problems)
+        if not problems:
+            pin_part = (f"pin version {version}, Firefox {pinned}" if version else
+                        "the pin is written once the browser has started" if data.get("pin_pending") else
+                        "not pinned yet (pinned on first launch)")
+            return Check("profile", OK, f"Profile intact: {pin_part}, {human_size(size)} used"
+                         + (f", {human_size(free)} free." if free is not None else "."), None, data)
+        level = worst(p[0] for p in problems)
+        chosen = [p for p in problems if p[0] == level]
+        fixes = [p[2] for p in chosen if p[2]]
+        return Check("profile", level, " ".join(p[1] for p in chosen), "; ".join(fixes) or None, data)
+
+    def _browser_problems(self, facts: LaneFacts, profile: Path, data: dict[str, Any],
+                          problems: list[tuple[str, str, str | None]]) -> None:
+        """A browser nobody owns with the profile open, or a lock a crash left."""
         pids = self.host.browser_pids(profile)
         warm = facts.state in ("warm", "active", "warming")
         data["browser_running"] = bool(pids)
@@ -1149,28 +608,23 @@ class LaneChecker:
             data["stale_lock"] = True
             problems.append((WARN, "A lock left by a crashed browser is still in the profile.",
                              f"Firefox clears it on the next launch; if the lane will not open, remove {lock}"))
+
+    def _disk_problems(self, lane_dir: Path, profile: Path, data: dict[str, Any],
+                       problems: list[tuple[str, str, str | None]]) -> tuple[int, int | None]:
+        """The lane's size and the disk's free space. Returns both."""
         size = _tree_size(lane_dir)
         usage = self.host.disk_usage(profile)
         free = usage[2] if usage else None
         data.update(size_bytes=size, disk_free_bytes=free)
         if free is not None and free < DISK_FAIL_BYTES:
-            problems.append((FAIL, (f"Only {_size(free)} free on the disk, so the lane will not open and a "
+            problems.append((FAIL, (f"Only {human_size(free)} free on the disk, so the lane will not open and a "
                              "cookie write could log the account out."),
                              "free disk space: agentos backup prune --keep 3, old lanes/*/*/shots"))
         elif free is not None and free < DISK_WARN_BYTES:
-            problems.append((WARN, f"Only {_size(free)} free on the disk.", "free disk space soon"))
+            problems.append((WARN, f"Only {human_size(free)} free on the disk.", "free disk space soon"))
         if size > PROFILE_WARN_BYTES:
-            problems.append((WARN, f"The lane uses {_size(size)} of disk.", f"look for large files under {lane_dir}"))
-        if not problems:
-            pin_part = (f"pin version {version}, Firefox {pinned}" if version else
-                        "the pin is written once the browser has started" if data.get("pin_pending") else
-                        "not pinned yet (pinned on first launch)")
-            return Check("profile", OK, f"Profile intact: {pin_part}, {_size(size)} used"
-                         + (f", {_size(free)} free." if free is not None else "."), None, data)
-        level = worst(p[0] for p in problems)
-        chosen = [p for p in problems if p[0] == level]
-        fixes = [p[2] for p in chosen if p[2]]
-        return Check("profile", level, " ".join(p[1] for p in chosen), "; ".join(fixes) or None, data)
+            problems.append((WARN, f"The lane uses {human_size(size)} of disk.", f"look for large files under {lane_dir}"))
+        return size, free
 
     # ---- session and account -----------------------------------------------------------------
 
@@ -1193,7 +647,7 @@ class LaneChecker:
         session_data: dict[str, Any] = {"source": source, "sites": {}}
         signed_out = []
         for s in wanted:
-            mine = [c for c in cookies if _host_matches(str(c.get("domain", "")), s.hosts)]
+            mine = [c for c in cookies if host_matches(str(c.get("domain", "")), s.hosts)]
             missing = s.missing_session(mine)
             # The site table's names only (`wordpress_logged_in_*`): a site's other cookie names can carry
             # the account id (`wp-settings-<id>`), and the report never holds one.
@@ -1244,7 +698,7 @@ class LaneChecker:
         if s.identity is None:
             return Check("account", UNKNOWN, f"{s.name} keeps no account id in its cookies, so the account is not "
                          "checked.", None, {"pinned": True, "site": s.key, "visible": False})
-        mine = [c for c in cookies if _host_matches(str(c.get("domain", "")), s.hosts)]
+        mine = [c for c in cookies if host_matches(str(c.get("domain", "")), s.hosts)]
         try:
             identity = sites.identity_from_cookies(s, mine)
         except Exception as e:  # noqa: BLE001 - an odd cookie value; its text may quote the value, so the type only
@@ -1268,24 +722,30 @@ class LaneChecker:
 
 # ---- helpers ------------------------------------------------------------------------------------
 
-def session_expiry(s: Any, cookies: Iterable[Mapping[str, Any]]) -> str | None:
-    """When the first of a site's session cookies expires (ISO, UTC), or None when none is there or
-    they all live for the browser session only. A time, never a value (agentos.keepalive plans by it)."""
-    cookies = list(cookies)
-    ends = []
-    for c in s.session:
-        found = c.find(cookies)
-        exp = _number(found.get("expires")) if found is not None else 0.0
-        if exp > 0:
-            ends.append(exp)
-    return datetime.fromtimestamp(min(ends), UTC).isoformat(timespec="seconds") if ends else None
 
-
-def _number(value: Any) -> float:
-    try:
-        return float(value or 0)
-    except (TypeError, ValueError):
-        return 0.0
+def _pin_problems(facts: LaneFacts, lane_dir: Path, pin: dict | None, pin_error: str | None, used: bool,
+                  data: dict[str, Any], problems: list[tuple[str, str, str | None]]) -> int | None:
+    """The pin file: unreadable, missing from a used profile, or an old version. Returns its version."""
+    fp = lane_dir / "fingerprint.json"
+    if pin_error:
+        problems.append((FAIL, f"The pin file cannot be read ({pin_error}).",
+                         f"restore {fp} from a backup; deleting it makes sites see a new device"))
+        return None
+    if pin is None:
+        if facts.state == "warming":   # the engine writes the pin once the browser has started (settle_pin)
+            data["pin_pending"] = True
+        elif used:
+            problems.append((FAIL, ("The profile was used, but its pin file is gone, so the next launch "
+                             "would show sites a new device."), f"restore {fp} from a backup"))
+        return None
+    meta = pin.get(PIN_META)
+    version = meta.get("version") if isinstance(meta, dict) and isinstance(meta.get("version"), int) else 1
+    data["pin_version"] = version
+    data["pin_v1_backup"] = (lane_dir / "fingerprint.json.pin-v1.bak").exists()
+    if version < PIN_VERSION:
+        problems.append((WARN, (f"The pin is version {version}; it is completed on the next launch "
+                         "(the old file is kept as fingerprint.json.pin-v1.bak)."), None))
+    return version
 
 
 def _read_pin(path: Path) -> tuple[dict | None, str | None]:
@@ -1331,26 +791,3 @@ def _tree_size(root: Path) -> int:
     return total
 
 
-def _size(n: float) -> str:
-    for unit in ("B", "KiB", "MiB", "GiB", "TiB"):
-        if abs(n) < 1024 or unit == "TiB":
-            return f"{n:.0f} {unit}" if unit in ("B", "KiB") else f"{n:.1f} {unit}"
-        n /= 1024
-    return f"{n:.1f} TiB"
-
-
-def format_report(report: LaneReport, *, color: bool = False) -> str:
-    """A report as short lines a phone can show."""
-    colors = {OK: "\033[32m", WARN: "\033[33m", FAIL: "\033[31m", UNKNOWN: "\033[2m"}
-
-    def label(level: str) -> str:
-        text = level.upper().ljust(7)
-        return f"{colors[level]}{text}\033[0m" if color else text
-
-    lines = [(f"{report.lane}: {label(report.level).strip()} ({"device" if report.lane.startswith("device:") else "lane"} {report.state}, checked "
-             f"{report.at.strftime('%H:%M UTC')})")]
-    for c in report.checks:
-        lines.append(f"  {label(c.level)} {c.title}: {c.detail}")
-        if c.fix and c.level in (WARN, FAIL):
-            lines.append(f"          fix: {c.fix}")
-    return "\n".join(lines)

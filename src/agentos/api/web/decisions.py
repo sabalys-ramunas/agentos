@@ -20,7 +20,6 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.routing import BaseRoute
 
-from agentos.api.actors import OWNER_SPELLINGS
 from agentos.api.app import Api
 from agentos.api.errors import ApiError, error_body
 from agentos.api.web import cardwords, telling
@@ -158,8 +157,13 @@ async def _approval(request: Request, approval_id: str) -> dict[str, Any]:
     return item
 
 
-def routes(api: Api) -> list[BaseRoute]:
-    async def approvals(request: Request) -> list[dict[str, Any]]:
+class Handlers:
+    """The handlers of the routes below, sharing one Api (and what they keep between calls)."""
+
+    def __init__(self, api: Api) -> None:
+        self.api = api
+
+    async def approvals(self, request: Request) -> list[dict[str, Any]]:
         params = {"state": request.query_params.get("state") or "pending",
                   "limit": request.query_params.get("limit") or 50}
         if request.query_params.get("outcome"):
@@ -168,22 +172,11 @@ def routes(api: Api) -> list[BaseRoute]:
         ctx = await context(request)
         return [approval_out(item, ctx) for item in items]
 
-    async def approval(request: Request) -> dict[str, Any]:
+    async def approval(self, request: Request) -> dict[str, Any]:
         item = await _approval(request, request.path_params["id"])
         return approval_out(item, await context(request))
 
-    def decider(decision: str) -> Any:
-        async def decide(request: Request) -> dict[str, Any]:
-            approval_id = request.path_params["id"]
-            await _approval(request, approval_id)  # not a question, and visible to this caller
-            body = await _body(request)
-            item = await write(request, "POST", f"/api/approvals/{approval_id}/{decision}",
-                               {k: body[k] for k in ("content_hash", "note", "edit") if body.get(k) is not None})
-            return approval_out(item, await context(request))
-
-        return decide
-
-    async def batch(request: Request) -> list[dict[str, Any]]:
+    async def batch(self, request: Request) -> list[dict[str, Any]]:
         body = await _body(request)
         ids = list(body.get("ids") or [])
         reply = await write(request, "POST", "/api/approvals/batch",
@@ -198,13 +191,13 @@ def routes(api: Api) -> list[BaseRoute]:
                     "code": "error", "message": "No answer came back for this item, so treat it as not decided."}})
         return out
 
-    async def clear(request: Request) -> dict[str, Any]:
+    async def clear(self, request: Request) -> dict[str, Any]:
         approval_id = request.path_params["id"]
         await _approval(request, approval_id)
         item = await write(request, "POST", f"/api/approvals/{approval_id}/clear")
         return approval_out(item, await context(request))  # the node's failed list no longer has it
 
-    async def undo(request: Request) -> JSONResponse:
+    async def undo(self, request: Request) -> JSONResponse:
         """The node keeps no undo window. A decision is final there, so the answer says so, and says what to do
         instead. (The catalog's fix for `unavailable` is about setting a feature up, so this answer carries its own.)"""
         await _approval(request, request.path_params["id"])
@@ -212,7 +205,7 @@ def routes(api: Api) -> list[BaseRoute]:
                                        fix="If it was the wrong answer, tell the person who asked, and they can ask again."),
                             status_code=503)
 
-    async def review(request: Request) -> dict[str, Any]:
+    async def review(self, request: Request) -> dict[str, Any]:
         """Where a Review link lands. With the link's signature (`e`, `s`) the node checks it; a signed-in
         person without one reads the approval they may see, as `GET /approvals/{id}` gives it. Decides nothing."""
         approval_id = request.path_params["id"]
@@ -222,13 +215,13 @@ def routes(api: Api) -> list[BaseRoute]:
             item = await read(request, f"/api/approvals/{approval_id}/review", query=query)
         return approval_out(item, await context(request))
 
-    async def proof_options(request: Request) -> dict[str, Any]:
+    async def proof_options(self, request: Request) -> dict[str, Any]:
         """The passkey challenge for one approval: the browser signs it, and `proof` takes the answer."""
         approval_id = request.path_params["id"]
         await _approval(request, approval_id)
         return unwrap(await call(request, "POST", PROOF_OPTIONS, body={"approval_id": approval_id}))["publicKey"]
 
-    async def proof(request: Request) -> dict[str, Any]:
+    async def proof(self, request: Request) -> dict[str, Any]:
         approval_id = request.path_params["id"]
         await _approval(request, approval_id)
         credential = await _body(request)
@@ -237,14 +230,12 @@ def routes(api: Api) -> list[BaseRoute]:
             raise InvalidRequest("This passkey check was not made for this approval. Check again.")
         return {"ok": True, "level": "present"}
 
-    # ---- questions: the node's own list and answer routes already say what the app reads ----
-
-    async def standing_list(request: Request) -> list[dict[str, Any]]:
+    async def standing_list(self, request: Request) -> list[dict[str, Any]]:
         everything = request.query_params.get("all") == "true"
         items = await read(request, "/api/approvals/standing", query={"all": "true" if everything else None})
         return [standing_out(item) for item in items]
 
-    async def standing_create(request: Request) -> dict[str, Any]:
+    async def standing_create(self, request: Request) -> dict[str, Any]:
         body = await _body(request)
         scope = _standing_scope(body)
         ttl = _seconds_until(body.get("until"))
@@ -260,11 +251,11 @@ def routes(api: Api) -> list[BaseRoute]:
         })
         return standing_out(reply)
 
-    async def standing_delete(request: Request) -> dict[str, Any]:
+    async def standing_delete(self, request: Request) -> dict[str, Any]:
         await write(request, "DELETE", f"/api/approvals/standing/{request.path_params['id']}")
         return {"ok": True}
 
-    async def standing_support(request: Request) -> dict[str, Any]:
+    async def standing_support(self, request: Request) -> dict[str, Any]:
         workspace = request.query_params.get("workspace") or ""
         rows = await read(request, "/api/workspaces")
         row = next((item for item in rows if item.get("id") == workspace), None)
@@ -275,12 +266,10 @@ def routes(api: Api) -> list[BaseRoute]:
         return {"state": "applied", "applied_by": ["this computer"], "not_applied_by": [],
                 "message": "This computer checks it before each action that would go out, until it runs out or ends."}
 
-    # ---- the confirmation setting ----
-
-    async def confirmation(request: Request) -> dict[str, Any]:
+    async def confirmation(self, request: Request) -> dict[str, Any]:
         return await _confirmation_view(request, await read(request, "/api/confirmation"))
 
-    async def set_confirmation(request: Request) -> dict[str, Any]:
+    async def set_confirmation(self, request: Request) -> dict[str, Any]:
         body = await _body(request)
         try:
             if "setting" in body:
@@ -295,7 +284,7 @@ def routes(api: Api) -> list[BaseRoute]:
             raise InvalidRequest("The setting names every row: commit, pay, irreversible and after_untrusted.") from None
         return await _confirmation_view(request, await write(request, "PUT", "/api/confirmation", patch))
 
-    async def confirmation_methods(request: Request) -> list[dict[str, Any]]:
+    async def confirmation_methods(self, request: Request) -> list[dict[str, Any]]:
         decided = await _decided(request)
         last: dict[str, str] = {}
         for item in sorted(decided, key=lambda i: str(i.get("decided_at") or ""), reverse=True):
@@ -313,12 +302,10 @@ def routes(api: Api) -> list[BaseRoute]:
                         "last_used_at": last.get(method["id"])})
         return out
 
-    # ---- grants ----
-
-    async def grants(request: Request) -> list[dict[str, Any]]:
+    async def grants(self, request: Request) -> list[dict[str, Any]]:
         return [grant_out(item) for item in await read(request, "/api/grants")]
 
-    async def create_grant(request: Request) -> dict[str, Any]:
+    async def create_grant(self, request: Request) -> dict[str, Any]:
         body = await _body(request)
         if body.get("budget"):
             raise InvalidRequest("A budget is set on the computer, not here yet. Leave it out.")
@@ -328,26 +315,47 @@ def routes(api: Api) -> list[BaseRoute]:
             "specials": body.get("specials") or [], "budget": None, "ttl": body.get("ttl") or "7d"})
         return {"id": issued["id"], "token": issued["token"]}
 
+
+def routes(api: Api) -> list[BaseRoute]:
+    h = Handlers(api)
+
+    def decider(decision: str) -> Any:
+        async def decide(request: Request) -> dict[str, Any]:
+            approval_id = request.path_params["id"]
+            await _approval(request, approval_id)  # not a question, and visible to this caller
+            body = await _body(request)
+            item = await write(request, "POST", f"/api/approvals/{approval_id}/{decision}",
+                               {k: body[k] for k in ("content_hash", "note", "edit") if body.get(k) is not None})
+            return approval_out(item, await context(request))
+
+        return decide
+
+    # ---- questions: the node's own list and answer routes already say what the app reads ----
+
+    # ---- the confirmation setting ----
+
+    # ---- grants ----
+
     return [
-        org_route(api, "/approvals", approvals, ["GET"]),
-        org_route(api, "/approvals/batch", batch, ["POST"]),
-        org_route(api, "/approvals/{id}", approval, ["GET"]),
+        org_route(api, "/approvals", h.approvals, ["GET"]),
+        org_route(api, "/approvals/batch", h.batch, ["POST"]),
+        org_route(api, "/approvals/{id}", h.approval, ["GET"]),
         org_route(api, "/approvals/{id}/approve", decider("approve"), ["POST"]),
         org_route(api, "/approvals/{id}/deny", decider("deny"), ["POST"]),
-        org_route(api, "/approvals/{id}/clear", clear, ["POST"]),
-        org_route(api, "/approvals/{id}/undo", undo, ["POST"]),
-        org_route(api, "/approvals/{id}/review", review, ["GET"]),
-        org_route(api, "/approvals/{id}/proof/options", proof_options, ["POST"]),
-        org_route(api, "/approvals/{id}/proof", proof, ["POST"]),
-        org_route(api, "/standing-approvals", standing_list, ["GET"]),
-        org_route(api, "/standing-approvals", standing_create, ["POST"]),
-        org_route(api, "/standing-approvals/support", standing_support, ["GET"]),
-        org_route(api, "/standing-approvals/{id}", standing_delete, ["DELETE"]),
-        org_route(api, "/confirmation", confirmation, ["GET"]),
-        org_route(api, "/confirmation", set_confirmation, ["PUT"]),
-        org_route(api, "/confirmation/methods", confirmation_methods, ["GET"]),
-        org_route(api, "/grants", grants, ["GET"]),
-        org_route(api, "/grants", create_grant, ["POST"]),
+        org_route(api, "/approvals/{id}/clear", h.clear, ["POST"]),
+        org_route(api, "/approvals/{id}/undo", h.undo, ["POST"]),
+        org_route(api, "/approvals/{id}/review", h.review, ["GET"]),
+        org_route(api, "/approvals/{id}/proof/options", h.proof_options, ["POST"]),
+        org_route(api, "/approvals/{id}/proof", h.proof, ["POST"]),
+        org_route(api, "/standing-approvals", h.standing_list, ["GET"]),
+        org_route(api, "/standing-approvals", h.standing_create, ["POST"]),
+        org_route(api, "/standing-approvals/support", h.standing_support, ["GET"]),
+        org_route(api, "/standing-approvals/{id}", h.standing_delete, ["DELETE"]),
+        org_route(api, "/confirmation", h.confirmation, ["GET"]),
+        org_route(api, "/confirmation", h.set_confirmation, ["PUT"]),
+        org_route(api, "/confirmation/methods", h.confirmation_methods, ["GET"]),
+        org_route(api, "/grants", h.grants, ["GET"]),
+        org_route(api, "/grants", h.create_grant, ["POST"]),
     ]
 
 
@@ -413,24 +421,6 @@ def standing_out(item: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def lane_ask_first_out(setting: dict[str, Any]) -> dict[str, Any]:
-    """A switch as the app reads it (types.ts `LaneAskFirst`): who set it last, and that it really asks."""
-    by = str(setting.get("set_by") or "")
-    if setting.get("by_person") and by in OWNER_SPELLINGS:  # the owner, by hand: `owner:cli` is the command line
-        set_by = {"kind": "user", "id": "owner", **({"via": "cli"} if by == "owner:cli" else {})}
-    elif setting.get("by_person"):
-        set_by = {"kind": "user", "id": by or None}
-    elif by.startswith("agent:"):
-        set_by = {"kind": "agent", "id": by.split(":", 1)[1] or None}
-    elif by:
-        set_by = {"kind": "computer", "id": None}
-    else:
-        set_by = None
-    on = bool(setting.get("ask_first"))
-    return {"lane": setting["id"], "ask_first": on, "asks_first": on, "ask_first_set_by": set_by,
-            "ask_first_set_at": setting.get("set_at"), "ask_first_supported": True, "ask_first_online": True}
-
-
 def grant_out(item: dict[str, Any]) -> dict[str, Any]:
     """A grant as the app reads it (types.ts `Grant`). No token is ever in a grant."""
     specials = item.get("specials") or []
@@ -451,15 +441,6 @@ def grant_out(item: dict[str, Any]) -> dict[str, Any]:
         "revoked": bool(item.get("revoked")),
         "created_at": item.get("issued_at") or "",
     }
-
-
-def _level_row(row: dict[str, Any] | None, *, when: bool) -> dict[str, Any] | None:
-    if row is None:
-        return None
-    out = {"level": row.get("level")}
-    if when:
-        out = {"when": row.get("when") or "ask", **out}
-    return out
 
 
 def _setting(config: dict[str, Any]) -> dict[str, Any]:

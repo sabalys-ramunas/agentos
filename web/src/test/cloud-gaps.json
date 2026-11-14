@@ -180,38 +180,6 @@
     "path": "/api/orgs/:org/email/send"
   },
   {
-    "method": "PUT",
-    "path": "/api/orgs/:org/engage/caps/:id/:id/:id"
-  },
-  {
-    "method": "GET",
-    "path": "/api/orgs/:org/engage/digest"
-  },
-  {
-    "method": "GET",
-    "path": "/api/orgs/:org/engage/digest/:id/:id"
-  },
-  {
-    "method": "POST",
-    "path": "/api/orgs/:org/engage/holds/:id/:id/clear"
-  },
-  {
-    "method": "GET",
-    "path": "/api/orgs/:org/engage/items/:id/:id"
-  },
-  {
-    "method": "POST",
-    "path": "/api/orgs/:org/engage/items/:id/withdraw"
-  },
-  {
-    "method": "GET",
-    "path": "/api/orgs/:org/engage/programs/:id/:id"
-  },
-  {
-    "method": "POST",
-    "path": "/api/orgs/:org/engage/programs/:id/approve"
-  },
-  {
     "method": "GET",
     "path": "/api/orgs/:org/environments"
   },
@@ -486,14 +454,6 @@
   {
     "method": "PUT",
     "path": "/api/orgs/:org/pace/workspaces/:id"
-  },
-  {
-    "method": "GET",
-    "path": "/api/orgs/:org/plan/draft"
-  },
-  {
-    "method": "GET",
-    "path": "/api/orgs/:org/plan/status"
   },
   {
     "method": "POST",

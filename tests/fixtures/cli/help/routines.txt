@@ -1,8 +1,7 @@
 
  Usage: agentos routines [OPTIONS] COMMAND [ARGS]...
 
- Work that runs by itself: runs, flows, schedules, workflows, engagement and
- brains.
+ Work that runs by itself: runs, flows, schedules, workflows and brains.
 
 ╭─ Options ────────────────────────────────────────────────────────────────────╮
 │ --help          Show this message and exit.                                  │
@@ -15,9 +14,6 @@
 │ watches    Page watches that start a flow when a page changes.               │
 │ workflows  Workflows: a trigger, then steps. Apply, run, retry, see what     │
 │            happened.                                                         │
-│ engage     Engagement programs: posting, likes, comments and follows as a    │
-│            system.                                                           │
-│ plan       Planning: what every lane and program needs today. Read-only.     │
 │ connector  Connectors: sites as typed operations, compiled into flows.       │
 │ site-api   Site APIs: a site you can use, as a typed API of your own.        │
 │ brains     Brains: run your agent on the node with your own subscription.    │

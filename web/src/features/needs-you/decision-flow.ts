@@ -18,8 +18,6 @@ import type { Approval } from '@/api/types';
 export const DONE_MS = 900;
 /** How long the next item's buttons stay off once it is on screen. */
 export const ARM_MS = 700;
-/** Until the cloud says how long it holds a decision, assume this. */
-export const UNDO_FALLBACK_MS = 6_000;
 
 /**
  * True once the item on screen may be decided. The first item after a decision waits `ARM_MS`,

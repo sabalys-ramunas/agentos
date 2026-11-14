@@ -8,7 +8,7 @@ from test_policy_support import OWNER, Clock, make_service
 from typer.testing import CliRunner
 
 from agentos.api.bridge import PolicyAdapter
-from agentos.api.routes_resources import SPECIALS, GrantCreate
+from agentos.api.routes_settings import SPECIALS, GrantCreate
 from agentos.core.config import NodeConfig, save_config
 from agentos.core.models import Principal
 from agentos.policy.cli import app

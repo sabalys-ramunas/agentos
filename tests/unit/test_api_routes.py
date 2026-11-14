@@ -6,10 +6,10 @@ import pytest
 from starlette.testclient import TestClient
 
 from agentos.api import ApiSettings, PanelStore, build_api
-from agentos.api.fakes import demo_runtime
 from agentos.api.lanes_view import workspace_health
 from agentos.core.config import NodeConfig, load_proxies
 from agentos.core.runtime import Runtime
+from agentos.dev.apifakes import demo_runtime
 
 H = {"Authorization": "Bearer owner"}
 
@@ -31,7 +31,7 @@ def client(rt, store):
 
 @pytest.fixture
 def person(client, store) -> dict:
-    """The owner signed in to the panel (a one-time code): approving, answering and standing approvals
+    """The owner signed in to the web app (a one-time code): approving, answering and standing approvals
     need a person, which a bearer token never is, the node token included (docs/THREAT-MODEL.md)."""
     store.add_code("code-for-the-routes-tests")
     r = client.post("/api/session", json={"code": "code-for-the-routes-tests"})
@@ -44,10 +44,10 @@ def test_status(client, rt):
     assert s["version"] == "0.1.0" and s["node"] == "node-1"
     # 1 pending approval + 1 lane with a captcha
     assert s["needs_you"] == 2
-    # the parts panel/ reads stay as they were; the web's extra parts (failed outcomes, stopped runs, plans,
+    # the older parts stay as they were; the web's extra parts (failed outcomes, stopped runs, plans,
     # agent login requests) are added beside them and are empty here
     assert s["needs_you_detail"] == {"approvals": 1, "questions": 0, "codes": 0, "lanes": ["biz-b/reddit"],
-                                     "hands": ["biz-b/reddit"], "outcomes": 0, "runs": 0, "plans": 0, "logins": []}
+                                     "hands": ["biz-b/reddit"], "outcomes": 0, "runs": 0, "logins": []}
     assert s["needs_you_all"] == 2
     assert s["cost_today"] == {"tokens": 1200, "usd": 0.01}
     assert s["brain"] == {"name": "claude-max", "state": "ready", "offline_ready": True}
@@ -218,7 +218,7 @@ def test_status_counts_open_questions_with_the_approvals(client, rt):
     s = client.get("/api/status", headers=H).json()
     assert s["needs_you"] == 3 and s["needs_you_detail"] == {"approvals": 1, "questions": 1, "codes": 0,
                                                        "lanes": ["biz-b/reddit"], "hands": ["biz-b/reddit"],
-                                                       "outcomes": 0, "runs": 0, "plans": 0, "logins": []}
+                                                       "outcomes": 0, "runs": 0, "logins": []}
 
 
 def test_activity_and_runs(client, rt):
@@ -369,7 +369,7 @@ def test_status_and_nodes_name_the_node_timezone(rt):
 
 
 def test_host_timezone_comes_from_tz_then_the_clock(monkeypatch):
-    from agentos.api import zone
+    from agentos.core import zone
 
     monkeypatch.setenv("TZ", ":Europe/Paris")
     assert zone.host_zone() == "Europe/Paris"

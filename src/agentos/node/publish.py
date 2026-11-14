@@ -18,7 +18,7 @@ rule (form-encoded, JSON, multipart, and the JSON a form field carries, such as 
   is bound by the sha256 and size of the upload that made it when the guard saw that upload
   (`uploads`), else by its id.
 
-The digest (`Capture.digest`) is agentos.policy.approvals.content_digest over `content(lane)`,
+The digest (`Capture.digest`) is agentos.policy.approval_binding.content_digest over `content(lane)`,
 the dict the gate passes to authorize: so an approval's `content_digest`, a standing approval's
 `contents` and the gate compare the same thing. The record holds the raw text: the vault's scrub
 runs on the card, the summary and the preview, never on what the digest binds.
@@ -40,7 +40,7 @@ from typing import Any
 from urllib.parse import parse_qsl, urlsplit
 
 from agentos.node import acting
-from agentos.policy.approvals import content_digest
+from agentos.policy.approval_binding import content_digest
 
 PARSE_MAX = 2 * 1024 * 1024   # a publish body (its text parts) larger than this is refused, not bound by a prefix
 MAX_FIELDS = 5000             # more leaves than this: refused (the digest never binds a part of a body)

@@ -6,10 +6,10 @@ import sqlite3
 import stat
 
 import pytest
+from testkit.memory import fake_memory
 
 from agentos.core.errors import ServiceUnavailable
 from agentos.memory.errors import EntryNotFound, OwnerTrustRequired
-from agentos.memory.fakes import fake_memory
 from agentos.memory.models import Caller, Limits, load_limits
 from agentos.memory.store import WorkspaceDB
 

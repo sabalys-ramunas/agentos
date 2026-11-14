@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import inspect
 from typing import Any
 
 from pydantic_core import to_jsonable_python
@@ -10,13 +9,6 @@ from pydantic_core import to_jsonable_python
 
 def jsonable(value: Any) -> Any:
     return to_jsonable_python(value, fallback=str)
-
-
-async def maybe_await(value: Any) -> Any:
-    """Services may be sync or async; the API accepts both."""
-    if inspect.isawaitable(value):
-        return await value
-    return value
 
 
 # Keys that never leave the node, whatever a service returns by mistake.

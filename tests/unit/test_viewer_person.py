@@ -30,8 +30,10 @@ from websockets.asyncio.client import connect
 
 from agentos.api.auth import PRESENCE_HEADER, SESSION_COOKIE, PanelStore
 from agentos.core.models import ControlState, LaneSpec
-from agentos.node import viewer_app
-from agentos.node.viewer_app import ViewTokens, build_viewer_app, control_api_routes
+from agentos.node import viewer_app, viewer_tokens
+from agentos.node.viewer_app import build_viewer_app
+from agentos.node.viewer_routes import control_api_routes
+from agentos.node.viewer_tokens import ViewTokens
 
 HOLD = "needs_human:captcha"
 CONTROL = "/view/personal/reddit/control"
@@ -243,11 +245,11 @@ def test_every_link_has_a_hard_end_and_an_agents_is_short(tmp_path):
     clock = Clock()
     tokens = tokens_at(tmp_path, clock)
     agent = tokens.issue(LANE, "control", ttl=10**9)
-    assert agent.hard_until == clock.now + viewer_app.AGENT_LINK_MAX
+    assert agent.hard_until == clock.now + viewer_tokens.AGENT_LINK_MAX
     assert agent.expires_at <= agent.hard_until
     owner = tokens.issue(LANE, "control", ttl=10**9, owner=True)
-    assert owner.hard_until == clock.now + viewer_app.OWNER_LINK_MAX
-    assert viewer_app.AGENT_LINK_MAX <= 3600 < viewer_app.OWNER_LINK_MAX <= 12 * 3600
+    assert owner.hard_until == clock.now + viewer_tokens.OWNER_LINK_MAX
+    assert viewer_tokens.AGENT_LINK_MAX <= 3600 < viewer_tokens.OWNER_LINK_MAX <= 12 * 3600
     assert tokens.verify(agent.token, LANE).hard_until == agent.hard_until
 
 

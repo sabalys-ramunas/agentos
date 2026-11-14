@@ -11,11 +11,7 @@ import pytest
 
 from agentos.core.errors import InvalidRequest, RefNotFound
 from agentos.core.models import Signal
-from agentos.node import interaction as ia
 from agentos.node.interaction import (
-    _MARKERS_JS,
-    _STATE_JS,
-    _VIEW_JS,
     DialogGuard,
     DialogPending,
     PlaywrightInteraction,
@@ -23,6 +19,10 @@ from agentos.node.interaction import (
     ref_state_met,
     url_matches,
 )
+from agentos.node.interaction import pages as ia_pages
+from agentos.node.interaction import waits as ia_waits
+from agentos.node.interaction.readback import _MARKERS_JS, _STATE_JS
+from agentos.node.interaction.waits import _VIEW_JS
 
 UPLOADING = "- main:\n  - paragraph [ref=e3] [box=1,2,3,4]: Uploading 45%\n  - button \"Post\" [ref=e7] [disabled]"
 SHARED = "- main:\n  - paragraph [ref=e3] [box=1,2,3,4]: Your post was shared\n  - button \"Post\" [ref=e7]"
@@ -129,8 +129,8 @@ class FakeRequest:
 
 @pytest.fixture(autouse=True)
 def fast(monkeypatch):
-    monkeypatch.setattr(ia, "WAIT_POLL_MS", 10)
-    monkeypatch.setattr(ia, "WAIT_SIGNAL_EVERY_S", 0.02)
+    monkeypatch.setattr(ia_waits, "WAIT_POLL_MS", 10)
+    monkeypatch.setattr(ia_waits, "WAIT_SIGNAL_EVERY_S", 0.02)
 
 
 @pytest.fixture
@@ -183,7 +183,7 @@ async def test_a_timeout_returns_what_was_seen_and_the_signal(inter):
 
 
 async def test_the_timeout_is_capped(inter, monkeypatch):
-    monkeypatch.setattr(ia, "WAIT_MAX_S", 0.2)
+    monkeypatch.setattr(ia_waits, "WAIT_MAX_S", 0.2)
     loop = asyncio.get_running_loop()
     started = loop.time()
     result = await inter.wait(WaitPage([UPLOADING]), WaitFor(for_text=("never",), timeout_s=9999))
@@ -287,7 +287,7 @@ def test_ref_states(state, now, view, met):
 
 
 def test_every_ref_state_is_known():
-    for state in ia.REF_STATES:
+    for state in ia_waits.REF_STATES:
         ref_state_met(state, {}, {}, {"visible": True})
 
 
@@ -306,7 +306,7 @@ async def test_network_quiet_waits_for_requests_in_flight(inter):
 
 
 async def test_a_long_poll_does_not_keep_the_network_busy(inter, monkeypatch):
-    monkeypatch.setattr(ia, "LONG_REQUEST_S", 0.05)
+    monkeypatch.setattr(ia_pages, "LONG_REQUEST_S", 0.05)
     page = WaitPage()
     inter._track(page)
     page.emit("request", FakeRequest("fetch"))

@@ -180,31 +180,9 @@ def coverage(*, screens: list[str], failed: dict[str, str], items: list[Any], fo
     """What ran and what did not, as plain sentences (AX rule 6). `items` are CoverageItems."""
     problems: list[str] = list(extra)
     ok = len(screens) - len(failed)
-    by_reason: dict[str, list[str]] = {}
-    for key, why in failed.items():
-        by_reason.setdefault(why, []).append(key)
-    for why, keys in by_reason.items():
-        which = keys[0] if len(keys) == 1 else f"{len(keys)} screens ({', '.join(keys[:2])}{', ...' if len(keys) > 2 else ''})"
-        problems.append(f"{which} failed: {cap(why, 360)}")
-    groups: dict[tuple[str, str, str], list[str]] = {}
-    for c in items:
-        if c.status == "ran" or (c.reason or "").startswith(NOT_ASKED):
-            continue
-        groups.setdefault((c.check, c.status, c.reason or "no reason given"), []).append(c.screen)
-    for (check, status, reason), where in groups.items():
-        on = f"on {len(where)} screens" if len(where) > 1 else f"on {where[0]}"
-        problems.append(f"{check} {status} {on}: {cap(reason, 160)}")
-    by_note: dict[str, list[str]] = {}
-    for key, rep in reports.items():
-        for n in rep.get("notes") or []:
-            text = str(n)
-            if "theme not verified" in text or "network was still busy" in text or "load event" in text \
-                    or "fonts fell back" in text or "held too long" in text:
-                by_note.setdefault(cap(text, 160), []).append(key)
-    for text, keys in by_note.items():   # one line per note, however many screens said it
-        keys = list(dict.fromkeys(keys))
-        which = keys[0] if len(keys) == 1 else f"{len(keys)} screens ({', '.join(keys[:2])}{', ...' if len(keys) > 2 else ''})"
-        problems.append(f"{which}: {text}")
+    problems += _failed_screens(failed)
+    problems += _not_ran(items)
+    problems += _capture_notes(reports)
     if not fonts_pinned:
         problems.append("fonts not pinned: text renders in this machine's fonts, so another machine can wrap "
                         "or truncate text differently")
@@ -219,6 +197,48 @@ def coverage(*, screens: list[str], failed: dict[str, str], items: list[Any], fo
     if len(problems) > PROBLEMS:
         out["more"] = f"{len(problems) - PROBLEMS} more problems: call again with detail='full'"
     return out
+
+
+def _which(keys: list[str]) -> str:
+    """One screen by its key, or how many with the first two."""
+    return keys[0] if len(keys) == 1 else f"{len(keys)} screens ({', '.join(keys[:2])}{', ...' if len(keys) > 2 else ''})"
+
+
+def _failed_screens(failed: dict[str, str]) -> list[str]:
+    """One line per reason screens failed."""
+    by_reason: dict[str, list[str]] = {}
+    for key, why in failed.items():
+        by_reason.setdefault(why, []).append(key)
+    return [f"{_which(keys)} failed: {cap(why, 360)}" for why, keys in by_reason.items()]
+
+
+def _not_ran(items: list[Any]) -> list[str]:
+    """One line per check that was skipped or failed for one reason, with the screens it was on."""
+    groups: dict[tuple[str, str, str], list[str]] = {}
+    for c in items:
+        if c.status == "ran" or (c.reason or "").startswith(NOT_ASKED):
+            continue
+        groups.setdefault((c.check, c.status, c.reason or "no reason given"), []).append(c.screen)
+    out = []
+    for (check, status, reason), where in groups.items():
+        on = f"on {len(where)} screens" if len(where) > 1 else f"on {where[0]}"
+        out.append(f"{check} {status} {on}: {cap(reason, 160)}")
+    return out
+
+
+# The capture notes that say a screen may not show what it should.
+_CAPTURE_WARNINGS = ("theme not verified", "network was still busy", "load event", "fonts fell back", "held too long")
+
+
+def _capture_notes(reports: dict[str, dict[str, Any]]) -> list[str]:
+    """One line per capture warning, however many screens said it."""
+    by_note: dict[str, list[str]] = {}
+    for key, rep in reports.items():
+        for n in rep.get("notes") or []:
+            text = str(n)
+            if any(w in text for w in _CAPTURE_WARNINGS):
+                by_note.setdefault(cap(text, 160), []).append(key)
+    return [f"{_which(list(dict.fromkeys(keys)))}: {text}" for text, keys in by_note.items()]
 
 
 def adherence_summary(adherence: dict[str, Adherence], provenance: dict[str, int]) -> dict[str, Any]:

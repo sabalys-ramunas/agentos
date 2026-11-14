@@ -30,9 +30,9 @@ from agentos.core.config import NodeConfig
 from agentos.core.errors import LaneBusy
 from agentos.core.models import LaneSpec, LaneState, Principal
 from agentos.node import human
+from agentos.node.camoufox.engine import browser_pids_under
 from agentos.node.claims import READ, Holder
 from agentos.node.display import kill_processes
-from agentos.node.engine_camoufox import browser_pids_under
 from agentos.node.flow_driver import _using
 from agentos.node.interaction import PlaywrightInteraction
 from agentos.node.lanes import build_lane_manager

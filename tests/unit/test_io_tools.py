@@ -37,7 +37,7 @@ from agentos.core.models import (
 from agentos.core.runtime import Runtime
 from agentos.core.tools import TOOL_NAME_RE, ToolImage
 from agentos.node import io_tools
-from agentos.node.engine_camoufox import PageTracker
+from agentos.node.camoufox.engine import PageTracker
 from agentos.node.files import MB, FileStatus, LaneFiles
 from agentos.node.interaction import UploadResult
 

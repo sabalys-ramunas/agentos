@@ -12,9 +12,9 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from agentos.core import globs
 from agentos.core.errors import InvalidRequest
 from agentos.core.models import Effect, parse_lane_id
-from agentos.policy import globs
 from agentos.policy.errors import Denied
 from agentos.policy.grants import Grant, tier_rank
 

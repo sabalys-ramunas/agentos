@@ -58,7 +58,8 @@ export function ComputerForm() {
 
   const connect = () => {
     const channel = new BroadcastChannel(CHANNEL);
-    channel.postMessage({ kind: 'filled' });
+    // The panel's mock listens, and adds the mailbox the way the node's own form would.
+    channel.postMessage({ kind: 'filled', address, mailbox: search.mailbox, computer });
     channel.close();
     setPhase('checking');
   };

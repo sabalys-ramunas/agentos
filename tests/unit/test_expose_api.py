@@ -17,10 +17,10 @@ import pytest
 from test_node_panel import TOKEN, Node
 from test_presence import Device, Token
 
-from agentos.api.auth import RateLimiter
 from agentos.client.errors import ClientError
 from agentos.client.expose import READY_LINE, LinkRunner, hold_script, local_args, parse_for, reverse_args
 from agentos.client.owner import PanelError
+from agentos.core.ratelimit import RateLimiter
 from agentos.node.expose.service import ExposeService
 
 LANE = "biz-a/instagram"
@@ -96,7 +96,7 @@ def test_no_mcp_tool_opens_one(tmp_path):
     from agentos.core.config import NodeConfig
     from agentos.core.runtime import Runtime
     from agentos.core.tools import ToolSpec
-    from agentos.node.daemon import feature_providers, tool_providers
+    from agentos.mcp.providers import feature_providers, tool_providers
     from agentos.plugins.entries import PLUGINS
 
     runtime = Runtime(config=NodeConfig(home=tmp_path))

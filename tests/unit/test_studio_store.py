@@ -10,8 +10,8 @@ import zlib
 
 import pytest
 
+from agentos.core import migrate
 from agentos.core.errors import InvalidRequest, NotFound, ServiceUnavailable
-from agentos.ops import migrate
 from agentos.studio.capture import screens
 from agentos.studio.contracts import DEFAULT_WIDTHS, Capture, Rect, Screen, Shot, Target, Theme
 from agentos.studio.store import StudioStore, blob_id, iso_now, new_capture_id

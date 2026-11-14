@@ -42,7 +42,8 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from agentos.stealth.lanecheck import CHECK_IDS, FAIL, OK, PIN_META, UNKNOWN, WARN, LaneReport
+from agentos.stealth.lanecheck import PIN_META
+from agentos.stealth.lanereport import CHECK_IDS, FAIL, OK, UNKNOWN, WARN, LaneReport
 
 log = logging.getLogger("agentos.stealth.health")
 
@@ -286,139 +287,155 @@ def build_health(lane: str, *, report: LaneReport | Mapping[str, Any] | None, pi
         report = LaneReport.from_dict(report)
     now = _when(now) or datetime.now(UTC)
     days = max(1, min(int(days), MAX_DAYS))
-    findings: list[HealthFinding] = []
-    facts: list[str] = []
-    counts: dict[str, Any] = {}
-
-    # (a) the lane check
+    acc = _Parts()
     checks = list(report.checks) if report is not None else []
     by_id = {c.id: c for c in checks}
+    _check_part(acc, lane, report, checks)                                  # (a) the lane check
+    active = _quarantine_part(acc, lane, report, by_id.get("hold"), quarantined)
+    _pin_part(acc, pin_findings)                                            # (b) pin findings
+    _events_part(acc, lane, events, now=now, days=days, active=active)      # (c) holds and quarantines
+    _age_part(acc, lane, by_id, pinned_at, now=now)                         # (d) pin, browser, session
+    grade, headline = _grade(acc.findings, active)
+    order = {level: i for i, level in enumerate(FINDING_LEVELS)}
+    check_order = {f"check.{cid}": i for i, cid in enumerate(CHECK_IDS)}
+    acc.findings.sort(key=lambda f: (order.get(f.level, len(order)), check_order.get(f.id, len(check_order))))
+    return LaneHealth(lane=lane, grade=grade, headline=headline, facts=acc.facts, findings=acc.findings, days=days,
+                      now=now, checked_at=report.at if report is not None else None,
+                      state=report.state if report is not None else None, counts=acc.counts)
+
+
+@dataclass
+class _Parts:
+    """What each part of build_health adds to: findings, the facts line, and the counts."""
+    findings: list[HealthFinding] = field(default_factory=list)
+    facts: list[str] = field(default_factory=list)
+    counts: dict[str, Any] = field(default_factory=dict)
+
+    def find(self, *args: Any) -> None:
+        self.findings.append(HealthFinding(*args))
+
+
+def _check_part(acc: _Parts, lane: str, report: LaneReport | None, checks: list[Any]) -> None:
     passed = sum(1 for c in checks if c.level == OK)
     unknown = sum(1 for c in checks if c.level == UNKNOWN)
-    counts.update(checks_total=len(checks), checks_ok=passed, checks_unknown=unknown,
-                  checks_warn=sum(1 for c in checks if c.level == WARN),
-                  checks_fail=sum(1 for c in checks if c.level == FAIL))
+    acc.counts.update(checks_total=len(checks), checks_ok=passed, checks_unknown=unknown,
+                      checks_warn=sum(1 for c in checks if c.level == WARN),
+                      checks_fail=sum(1 for c in checks if c.level == FAIL))
     if report is None:
-        findings.append(HealthFinding("not_checked", WARN, "This lane has not been checked yet, so nothing about "
-                                      "it is known.", f"Run agentos lane check {lane}, or wait for the next "
-                                      "health round (about every 5 minutes).", "check"))
-        facts.append("not checked yet")
-    else:
-        for c in checks:
-            if c.level == OK:
-                continue
-            fix = _sentence(c.fix) if c.fix and c.level in (FAIL, WARN) else None
-            findings.append(HealthFinding(f"check.{c.id}", c.level, _sentence(c.detail), fix, "check"))
-        facts.append(f"{passed} of {_plural(len(checks), 'check')} pass")
-        if unknown:
-            facts.append(f"{unknown} could not run")
-        if checks and passed and unknown * 2 > len(checks):  # most of it is not known: that is not "normal"
-            findings.append(HealthFinding("little_verified", WARN, f"{unknown} of {_plural(len(checks), 'check')} "
-                                          "could not run, so most of this lane is not known.", "Look at why each "
-                                          f"check could not run (agentos lane check {lane}).", "check"))
-        if checks and passed == 0 and not any(c.level in (FAIL, WARN) for c in checks):
-            findings.append(HealthFinding("nothing_verified", WARN, "No check could confirm anything about this "
-                                          "lane.", "Look at why each check could not run (agentos lane check "
-                                          f"{lane}).", "check"))
+        acc.find("not_checked", WARN, "This lane has not been checked yet, so nothing about it is known.",
+                 f"Run agentos lane check {lane}, or wait for the next health round (about every 5 minutes).", "check")
+        acc.facts.append("not checked yet")
+        return
+    for c in checks:
+        if c.level == OK:
+            continue
+        fix = _sentence(c.fix) if c.fix and c.level in (FAIL, WARN) else None
+        acc.find(f"check.{c.id}", c.level, _sentence(c.detail), fix, "check")
+    acc.facts.append(f"{passed} of {_plural(len(checks), 'check')} pass")
+    if unknown:
+        acc.facts.append(f"{unknown} could not run")
+    if checks and passed and unknown * 2 > len(checks):  # most of it is not known: that is not "normal"
+        acc.find("little_verified", WARN, f"{unknown} of {_plural(len(checks), 'check')} could not run, so most "
+                 "of this lane is not known.", f"Look at why each check could not run (agentos lane check {lane}).",
+                 "check")
+    if checks and passed == 0 and not any(c.level in (FAIL, WARN) for c in checks):
+        acc.find("nothing_verified", WARN, "No check could confirm anything about this lane.",
+                 f"Look at why each check could not run (agentos lane check {lane}).", "check")
 
-    # an active quarantine is a stop, whatever else the report says
-    hold = by_id.get("hold")
+
+def _quarantine_part(acc: _Parts, lane: str, report: LaneReport | None, hold: Any, quarantined: bool | None) -> bool:
+    """An active quarantine is a stop, whatever else the report says. Returns whether there is one."""
     active = quarantined if quarantined is not None else bool(
         report is not None and (report.state == "quarantined"
                                 or (hold is not None and (hold.data or {}).get("kind") == "quarantine")))
-    counts["quarantined_now"] = active
+    acc.counts["quarantined_now"] = active
     if active and not (hold is not None and hold.level == FAIL):
-        findings.append(HealthFinding("quarantine", FAIL, "The lane is quarantined: nothing runs there until a "
-                                      "person clears it.", f"A person fixes the cause, then hands the lane back "
-                                      f"(agentos lane handback {lane}).", "check"))
+        acc.find("quarantine", FAIL, "The lane is quarantined: nothing runs there until a person clears it.",
+                 f"A person fixes the cause, then hands the lane back (agentos lane handback {lane}).", "check")
+    return active
 
-    # (b) pin findings
+
+def _pin_part(acc: _Parts, pin_findings: Iterable[Any]) -> None:
     seen_pin: set[tuple[str, str]] = set()
     for f in pin_findings:
         made = _pin_finding(f)
         if made is not None and (made.id, made.sentence) not in seen_pin:
             seen_pin.add((made.id, made.sentence))
-            findings.append(made)
+            acc.findings.append(made)
 
-    # (c) holds and quarantines in the window
+
+def _events_part(acc: _Parts, lane: str, events: Iterable[Any], *, now: datetime, days: int, active: bool) -> None:
+    """Holds and quarantines in the window."""
     seen = count_events(events, now=now, days=days)
     n = len(seen.challenges)
-    counts.update(challenges=n, challenges_recent=len(seen.recent), quarantines=len(seen.quarantines),
-                  other_holds=len(seen.holds))
-    facts.append(f"{_plural(n, 'challenge')} in {days} days" if n else f"no challenges in {days} days")
+    acc.counts.update(challenges=n, challenges_recent=len(seen.recent), quarantines=len(seen.quarantines),
+                      other_holds=len(seen.holds))
+    acc.facts.append(f"{_plural(n, 'challenge')} in {days} days" if n else f"no challenges in {days} days")
     if n:
         listed = ", ".join(f"{CHALLENGES[e.what]} on {_day(e.at)}" for e in seen.challenges[:3])
         more = f", and {n - 3} more" if n > 3 else ""
         sentence = f"Sites showed {listed}{more} ({_plural(n, 'challenge')} in {days} days)."
         if seen.recent or n >= MANY_CHALLENGES:
-            findings.append(HealthFinding(
-                "challenges", WARN, sentence,
-                f"Let the lane rest and lower its pace. Look at what agents did just before each one "
-                f"(agentos lane view {lane}).", "events"))
+            acc.find("challenges", WARN, sentence, "Let the lane rest and lower its pace. Look at what agents did "
+                     f"just before each one (agentos lane view {lane}).", "events")
         else:
-            findings.append(HealthFinding("challenges", NOTE, sentence, None, "events"))
+            acc.find("challenges", NOTE, sentence, None, "events")
     if seen.quarantines:
         q = len(seen.quarantines)
-        counts["last_quarantine"] = _day(seen.quarantines[0].at)
-        facts.append(f"{_plural(q, 'quarantine')} in {days} days")
+        acc.counts["last_quarantine"] = _day(seen.quarantines[0].at)
+        acc.facts.append(f"{_plural(q, 'quarantine')} in {days} days")
         if not active:
             reason = seen.quarantines[0].what
-            findings.append(HealthFinding("quarantines", NOTE, f"Quarantined {_plural(q, 'time')} in {days} days, "
-                                          f"the last on {_day(seen.quarantines[0].at)}"
-                                          + (f" ({reason})." if reason else "."), None, "events"))
+            acc.find("quarantines", NOTE, f"Quarantined {_plural(q, 'time')} in {days} days, the last on "
+                     f"{_day(seen.quarantines[0].at)}" + (f" ({reason})." if reason else "."), None, "events")
     if seen.holds:
         words = sorted({OTHER_HOLDS.get(e.what, e.what.replace("_", " ")) for e in seen.holds})
-        findings.append(HealthFinding("other_holds", NOTE, f"Held {_plural(len(seen.holds), 'time')} in {days} days "
-                                      f"for other reasons: {', '.join(words)}.", None, "events"))
+        acc.find("other_holds", NOTE, f"Held {_plural(len(seen.holds), 'time')} in {days} days for other reasons: "
+                 f"{', '.join(words)}.", None, "events")
 
-    # (d) the pin's age, the browser version, the session's end
+
+def _age_part(acc: _Parts, lane: str, by_id: Mapping[str, Any], pinned_at: datetime | str | None, *,
+              now: datetime) -> None:
+    """The pin's age, the browser version, the session's end."""
     pinned = _when(pinned_at)
     if pinned is not None and pinned <= now:
         age = _days_between(now, pinned)
-        counts["pin_age_days"] = age
-        facts.append(f"pin {_plural(age, 'day')} old")
+        acc.counts["pin_age_days"] = age
+        acc.facts.append(f"pin {_plural(age, 'day')} old")
     profile = by_id.get("profile")
     pdata = (profile.data or {}) if profile is not None else {}
     pin_v, engine_v = pdata.get("pinned_firefox"), pdata.get("engine_firefox")
     if isinstance(pin_v, int) and isinstance(engine_v, int):
         lag = engine_v - pin_v
-        counts["browser_lag"] = lag
+        acc.counts["browser_lag"] = lag
         if lag > 0:
-            facts.append(f"pinned browser {_plural(lag, 'version')} behind")
+            acc.facts.append(f"pinned browser {_plural(lag, 'version')} behind")
     session = by_id.get("session")
-    if session is not None and session.level == OK:
-        ends = [t for t in (_when(s.get("expires_at")) for s in ((session.data or {}).get("sites") or {}).values()
-                            if isinstance(s, Mapping)) if t is not None]
-        if ends:
-            left = _days_between(min(ends), now)
-            counts["session_days_left"] = left
-            facts.append(f"session ends in {_plural(left, 'day')}" if left > 0 else "session ends today")
-            if left <= SESSION_NOTE_DAYS:
-                findings.append(HealthFinding(
-                    "session_ends", WARN if left <= SESSION_WARN_DAYS else NOTE,
-                    f"The session cookie ends on {_day(min(ends))}" + (f", in {_plural(left, 'day')}." if left > 0
-                                                                       else ", today."),
-                    f"A person signs in again before then, through the live view (agentos lane view {lane} "
-                    "--control).", "session"))
+    if session is None or session.level != OK:
+        return
+    ends = [t for t in (_when(s.get("expires_at")) for s in ((session.data or {}).get("sites") or {}).values()
+                        if isinstance(s, Mapping)) if t is not None]
+    if not ends:
+        return
+    left = _days_between(min(ends), now)
+    acc.counts["session_days_left"] = left
+    acc.facts.append(f"session ends in {_plural(left, 'day')}" if left > 0 else "session ends today")
+    if left <= SESSION_NOTE_DAYS:
+        acc.find("session_ends", WARN if left <= SESSION_WARN_DAYS else NOTE,
+                 f"The session cookie ends on {_day(min(ends))}"
+                 + (f", in {_plural(left, 'day')}." if left > 0 else ", today."),
+                 f"A person signs in again before then, through the live view (agentos lane view {lane} --control).",
+                 "session")
 
-    # the grade
+
+def _grade(findings: list[HealthFinding], active: bool) -> tuple[str, str]:
     fails = [f for f in findings if f.level == FAIL]
     warns = [f for f in findings if f.level == WARN]
     if fails or active:
-        grade = STOP
-        k = max(1, len(fails))
-        headline = f"{_plural(k, 'problem')} to fix before agents use this lane"
-    elif warns:
-        grade = CHECK
-        headline = f"{_plural(len(warns), 'thing')} to look at"
-    else:
-        grade, headline = NORMAL, GOOD_HEADLINE
-    order = {level: i for i, level in enumerate(FINDING_LEVELS)}
-    check_order = {f"check.{cid}": i for i, cid in enumerate(CHECK_IDS)}
-    findings.sort(key=lambda f: (order.get(f.level, len(order)), check_order.get(f.id, len(check_order))))
-    return LaneHealth(lane=lane, grade=grade, headline=headline, facts=facts, findings=findings, days=days,
-                      now=now, checked_at=report.at if report is not None else None,
-                      state=report.state if report is not None else None, counts=counts)
+        return STOP, f"{_plural(max(1, len(fails)), 'problem')} to fix before agents use this lane"
+    if warns:
+        return CHECK, f"{_plural(len(warns), 'thing')} to look at"
+    return NORMAL, GOOD_HEADLINE
 
 
 def format_health(health: LaneHealth | Mapping[str, Any]) -> str:
@@ -441,7 +458,7 @@ def format_health(health: LaneHealth | Mapping[str, Any]) -> str:
 
 def read_events(db_path: Path, lane_id: str, *, since: datetime, limit: int = EVENT_LIMIT) -> list[dict[str, Any]]:
     """Hold and quarantine events of one lane from agentos.db, read-only (no daemon running)."""
-    from agentos.ops.layout import connect_ro
+    from agentos.core.layout import connect_ro
 
     if not Path(db_path).exists():
         return []
@@ -511,7 +528,7 @@ def _device(checker: Any, lane_id: str) -> str | None:
             return getattr(lanes.get(lane_id).spec, "device", None)
         except Exception:  # noqa: BLE001 - a lane gone since the check
             return None
-    from agentos.ops.layout import lane_specs
+    from agentos.core.layout import lane_specs
 
     spec = lane_specs(checker.home).get(lane_id)
     return spec.device if spec is not None else None
@@ -519,7 +536,7 @@ def _device(checker: Any, lane_id: str) -> str | None:
 
 def read_pinned_at(home: Path, lane_id: str) -> datetime | None:
     """When the lane's pin (its device's, for a lane on a device) was made, from its PIN_META."""
-    from agentos.ops.layout import lane_pin_path
+    from agentos.core.layout import lane_pin_path
 
     try:
         data = json.loads(lane_pin_path(Path(home), lane_id).read_text())

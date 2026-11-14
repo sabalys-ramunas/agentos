@@ -19,9 +19,9 @@ from agentos.api.auth import PRESENCE_HEADER, SESSION_COOKIE
 from agentos.core.models import Effect
 from agentos.core.tools import ToolSpec
 from agentos.freeze import cli as freeze_cli
-from agentos.freeze.store import FreezeRecord, FreezeStore
 from agentos.freeze.tools import tool_specs
 from agentos.policy import ToolCallError, bind_request_token, wrap_tool
+from agentos.policy.freeze_store import FreezeRecord, FreezeStore
 
 EM_DASH = "—"
 

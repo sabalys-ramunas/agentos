@@ -41,7 +41,7 @@ WRAPPED = {"connect", "status", "open"}  # the old command, plus one option (cli
 
 
 def test_every_old_path_still_resolves_to_the_same_command():
-    assert len(OLD) > 380
+    assert len(OLD) > 350
     broken = []
     for path, old in OLD.items():
         new = TREE.get(path)

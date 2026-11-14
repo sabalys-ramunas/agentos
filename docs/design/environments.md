@@ -17,7 +17,7 @@ on your own accounts (never inside an environment), the vault keeps keys and tok
 and the audit log records every call.
 
 Everything else is a feature on top: studio's page checks (`ui_check`, `ui_diff`), profiles with a
-brand, logged-in browser lanes for your own accounts, routines, the engagement engine.
+brand, logged-in browser lanes for your own accounts and routines.
 
 ## The agent's story
 
@@ -193,4 +193,4 @@ opened; any other is not found. `calls[].summary` is scrubbed as the audit log's
 |---|---|
 | E1 core | `src/agentos/environments/` (new), the `on` default routing, `src/agentos/vms/` changes, `src/agentos/api/web/environments.py`, CLI, tests under `tests/unit/test_environments*.py` |
 | E2 web | `web/src/features/environments/`, the rail and Home entry, mocks and hooks for the routes above |
-| E3 front door | README.md, docs/ENVIRONMENTS.md, docs/VISION.md, docs/ARCHITECTURE.md, the MCP intro (`INSTRUCTIONS` in src/agentos/node/tools.py), `whoami` text, the skill `src/agentos/client/skills/agentos-environment/`, CLI root help, the public export |
+| E3 front door | README.md, docs/ENVIRONMENTS.md, docs/VISION.md, docs/ARCHITECTURE.md, the MCP intro (`INSTRUCTIONS` in src/agentos/node/tools/recipes.py), `whoami` text, the skill `src/agentos/client/skills/agentos-environment/`, CLI root help, the public export |

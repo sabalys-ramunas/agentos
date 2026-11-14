@@ -7,7 +7,7 @@ How to work on agentos on your Mac and test it on a node. This page is the day-t
 
 No VPS, no Linux, no Camoufox or Xvfb: `agentos dev up` runs the node that the daemon runs,
 with fakes for the browser, the display and the network. Claude Code talks to its real MCP
-server, and you use the real panel, on your Mac.
+server, and you use the real web app, on your Mac.
 
 ```
 uv sync                          # once
@@ -19,12 +19,11 @@ once and Claude Code has the `agentos-dev` server. The grant is issued at each s
 `claude-code@dev` (every workspace, up to commit, reading memory but not writing it), the way `agentos connect` issues one
 on a real node. The node token is never printed: the agent is gated as an agent, so a post after
 it read a page waits for a person, as on a real node. With `--home DIR` each start revokes the
-grant the last start printed, so run the new line after each start. A sign-in link for the panel: it works
+grant the last start printed, so run the new line after each start. A sign-in link for the web app: it works
 once and expires in 10 minutes. Ctrl-C stops the node and closes every lane.
 
-The web app is built from `web/` (`pnpm install && pnpm build`, once; [web/README.md](../web/README.md)),
-and the older panel, where the checkout has one, from `panel/` (`npm ci && npm run build`). Until one is
-built the sign-in link opens a placeholder page; the API and MCP work without it.
+The web app is built from `web/` (`pnpm install && pnpm build`, once; [web/README.md](../web/README.md)).
+Until it is built the sign-in link opens a placeholder page; the API and MCP work without it.
 
 What is real, and what is fake:
 
@@ -40,7 +39,7 @@ What is real, and what is fake:
   whose host refuses the connection, so `browser_console` and `browser_network` have something to
   find. The display (`display.py`): each lane's live view is a VNC server that shows its
   tab as a wireframe picture (no words; the snapshot has them).
-- Fake: the brains. They run `agentos.brains.fakecli`, which answers from fixed scripts. No
+- Fake: the brains. They run `agentos.dev.fakecli`, which answers from fixed scripts. No
   model is called and no account is used.
 - Nothing is fetched from the network, and no proxy is used.
 
@@ -114,7 +113,7 @@ scripts stop and say so. Two scripts do the round trip:
 ```
 scripts/sync-node.sh /srv/agentos-dev/mcp           # rsync this checkout (no .venv, .git, poc/shots)
 scripts/node-test.sh mcp                            # sync, uv sync, uv run pytest -m node
-scripts/node-test.sh lanes tests/node/test_lanes.py -x -k warm
+scripts/node-test.sh lanes tests/node/test_lanes_node.py -x -k warm
 ```
 
 `node-test.sh <name>` uses `$AGENTOS_DEV_ROOT/<name>` and exports the agent's display and
@@ -629,10 +628,8 @@ viewer or approver see the live view, which shows whatever the account shows. A 
 click, deletes their passkeys, revokes their member grants and their agents' grants, and retires
 their push topic.
 
-The same is in the panel under Settings, Members (invite, roles, devices, remove). To try it with
-no node at all: `npm run dev:mock` in panel/ and open `/?mock_as=va` (the README lists the other
-people in the mock). `npm run e2e` runs the whole story on `agentos dev up --seed`, with
-Chromium's virtual authenticator standing in for the phone.
+The same is in the web app under Settings, Members (invite, roles, devices, remove). To try it
+with no node at all, run the web app on its mock (`pnpm dev` in web/, [web/README.md](../web/README.md)).
 
 ## Console and network for agents (devtools)
 
@@ -673,15 +670,16 @@ untrusted page data (it taints the grant family as a snapshot does). Tests:
 
 ## Where things live
 
-- `src/agentos/node/tools.py`: the node's own MCP tools as ToolSpecs. Every browser tool runs
-  inside a `lanes.using(on, ...)` session (`lane_session`), which yields the lane's page.
+- `src/agentos/node/tools/`: the node's own MCP tools as ToolSpecs, one module per group (`lanes`,
+  `browser`, `wait`, `recipes`), with `tool_specs` in `__init__.py`. Every browser tool runs inside a
+  `lanes.using(on, ...)` session (`session.lane_session`), which yields the lane's page.
   `src/agentos/node/io_tools.py` holds the file, upload, tab and dialog tools.
   `src/agentos/mcp/registry.py` wraps every call (grant, arguments, approvals, redaction), and
   `src/agentos/mcp/server.py` is a compatibility front for older callers. Errors from
   `agentos.core.errors` come back as tool errors that start with their code (`busy: ...`);
   anything else is `engine_error: ...`. Every result and error passes through a redactor
-  (`src/agentos/mcp/redact.py`) that masks known secrets, the proxy logins among them. Only http
-  and https URLs reach the browser (`check_url` in `src/agentos/node/interaction.py`).
+  (`src/agentos/policy/redactor.py`) that masks known secrets, the proxy logins among them. Only http
+  and https URLs reach the browser (`check_url` in `src/agentos/node/interaction/urls.py`).
 - `src/agentos/node/daemon.py`: the composition root. `_build_lane_manager` and
   `_build_interaction` are the only code that names the concrete classes.
 - `src/agentos/cli.py`: the `agentos` command.
@@ -697,6 +695,17 @@ untrusted page data (it taints the grant family as a snapshot does). Tests:
   templates. `scripts/`: the helpers: the CLI installer (`install.sh`), the node's sync, test and
   check scripts (`sync-node.sh`, `node-test.sh`, `preflight_node.py`), the benchmarks, and the
   public export (`public_export.py`).
+
+## Layers and size limits
+
+`make lint` (and `make merge-check`, and CI's lint step) runs two structure checks:
+
+- `make layers`: no import goes up a layer ([ARCHITECTURE.md](ARCHITECTURE.md), section 13). The
+  imports that still do are in `scripts/layers.toml` with a reason; delete a line when you fix it.
+- `make complexity`: a function of cyclomatic complexity 25 or more (ruff's C901), or a file over
+  1,000 lines, fails unless `scripts/complexity-allowlist.txt` or `scripts/file-length-allowlist.txt`
+  lists it, and a listed one must not grow. Both lists only shrink:
+  `uv run python scripts/complexity.py --update` deletes what you fixed and lowers the numbers.
 
 ## Troubleshooting
 

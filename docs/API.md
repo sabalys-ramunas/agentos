@@ -1,8 +1,8 @@
-# Panel and app API
+# The node's HTTP API
 
-The HTTP API the web panel, the phone view and the Mac menu-bar app use. Served by
-the same process as the MCP endpoint (the node daemon in single-box mode, the
-controller from M5), under `/api`, with the built panel at `/`.
+The node's HTTP API: the web app (through its `/api/orgs/{org}/...` contract, docs/WEB-NODE.md), the
+CLI on the node and the Mac menu-bar app use it. Served by the same process as the MCP endpoint (the
+node daemon in single-box mode, the controller from M5), under `/api`, with the built web app at `/`.
 
 All JSON. Times are ISO 8601 UTC. Secrets never appear in any response: vault entries
 show names, domains and lanes only; proxies show label, host and port only.
@@ -83,7 +83,6 @@ holds the lane for them while it runs; they never get input in the live view.
 | `GET /api/lanes/{ws}/{name}/health` | yes | `see` in `ws` | inside the grant's lanes only (403 outside, checked before any lookup); traced, effect read |
 | `GET /api/lanes/checks` | every lane | the lanes they see | only the lanes the grant covers |
 | `GET /api/lanes/{ws}/{name}/keepalive` | yes | `see` in `ws` | inside the grant's lanes only; traced, effect read |
-| `GET /api/engage/digest`, `GET /api/engage/digest/{ws}/{name}` | every surface, with a short preview of each draft awaiting approval | `see`: the surfaces of their workspaces, draft ids without text | only the surfaces the grant covers (403 outside, checked before any lookup), draft ids without text |
 | `GET /api/lanes/{ws}/{name}/terminal` (WebSocket) | yes | no member role carries `exec` (4403) | the `exec` special on that lane, through policy: scope, the exec special and its routing (a shared lane or a first use waits for approval, close code 4202); 4403 when refused |
 | `GET /api/lanes/{ws}/{name}/vnc` (WebSocket) | yes | `watch` on the lane: watch only, input never passes (4403 without) | no (4403): the relay carries keyboard and pointer input, which is taking over the lane |
 | `GET /api/approvals`, `GET /api/approvals/{id}`, `GET .../preview.png`, `GET .../files/{param}`, `GET /api/questions` | all | `approvals`: those on the lanes of their workspaces (404 for others) | only approvals its own grant family asked for (404 for others) |
@@ -96,7 +95,7 @@ holds the lane for them while it runs; they never get input in the live view.
 | `GET /api/activity` | all | `see`: every principal's events in their workspaces (a member is named by `handle`); a `lane` or `workspace` filter outside them is 403 | its own grant family's events; a `lane` filter outside the grant is 403 |
 | `GET /api/runs`, `GET /api/runs/{id}` | all | `see`: runs on their lanes | runs on its lanes |
 | `GET /api/audit/replay`, `GET /api/audit/runs/{id}/screenshot`, `GET /api/audit/captures/{id}` | all | `see`: every principal's steps on lanes of their workspaces (403 outside) | its own grant family's steps, on lanes its grant covers (403 outside) |
-| `GET /api/audit/verify`, `GET`, `POST /api/audit/shares`, `DELETE /api/audit/shares/{id}`, `GET /api/audit/replay.html` | yes; `POST /api/audit/shares` and `GET /api/audit/replay.html` only as a person (403 `presence_required` for every token and the device credential) | no (403) | no (403); an admin grant reads and revokes, and never makes a link |
+| `GET /api/audit/verify`, `GET`, `POST /api/audit/shares`, `DELETE /api/audit/shares/{id}` | yes; `POST /api/audit/shares` only as a person (403 `presence_required` for every token and the device credential) | no (403) | no (403); an admin grant reads and revokes, and never makes a link |
 | `GET /api/audit/shared/{token}`, `GET /api/audit/shared/{token}/runs/{id}/screenshot` | a read-only share link: its signature is the only credential (404 `share_invalid` when forged, expired or revoked); every view is logged | | |
 | `GET /api/flows` | all | `see`: flows bound to their lanes, and lane-pattern flows | flows bound to its lanes, and lane-pattern flows |
 | `GET /api/ask-first` | all | `see`: the switches on their lanes | the switches on its lanes |
@@ -120,7 +119,7 @@ holds the lane for them while it runs; they never get input in the live view.
 | `GET /api/lanes/{ws}/{name}/pace` | all | `see`: their lanes | its lanes |
 | `PUT /api/lanes/{ws}/{name}/pace`, `GET`/`PUT /api/pace/workspaces/{ws}` (posting pace) | yes | no (403) | no (403) |
 | `POST /api/grants/{id}/taint/clear` | the owner signed in, in person, with a fresh step-up and the typed confirmation; never a token or a device credential | no (403) | no (403) |
-| `GET`, `POST /api/invites`, `DELETE /api/invites/{id}`, `GET /api/members`, `GET`, `PATCH`, `DELETE /api/members/{id}`, `GET /api/members/{id}/devices`, `DELETE /api/members/{id}/devices/{id}` | yes (a session or the node token) | `members`: invites and members whose every role is in a workspace they administer; roles only there (an admin of every workspace for `*`) | no (403, an admin grant too) |
+| `GET`, `POST /api/invites`, `DELETE /api/invites/{id}`, `GET /api/members`, `GET`, `PATCH`, `DELETE /api/members/{id}`, `DELETE /api/members/{id}/devices/{id}` | yes (a session or the node token) | `members`: invites and members whose every role is in a workspace they administer; roles only there (an admin of every workspace for `*`) | no (403, an admin grant too) |
 | `POST /api/workspaces`, `POST /api/templates/apply`, `POST /api/lanes`, `POST /api/schedules`, nodes, brain order and tasks, proxies, notification settings, code cards, and the feature packages' routes below | yes | no (403) | no (403) |
 | `GET /api/site-keys`, `GET /api/site-apis/{api}/usage` | yes (a session, the node token or an admin grant) | no (403) | no (403) |
 | `GET`, `POST /api/site-apis`, `POST /api/site-apis/discover`, `GET`, `PATCH`, `DELETE /api/site-apis/{id}`, `POST /api/site-apis/{id}/pause`, `/try` | yes (a session, the node token or an admin grant); a token counts as an agent's, so it cannot pause, remove or touch what a person wrote | no (403) | no (403) |
@@ -182,7 +181,7 @@ at the next one.
   `{roles, scopes?, ttl?}` (replace the roles in `scopes`, by default the scopes named in
   `roles`; an empty list removes them), `DELETE /api/members/{id}` (revokes their grants and their
   agents' grants, ends their sessions, removes their passkeys; the handle can be invited again as
-  a new member), `GET /api/members/{id}/devices`, `DELETE /api/members/{id}/devices/{id}`.
+  a new member), `DELETE /api/members/{id}/devices/{id}`.
 
 ### The feature packages' own routes
 
@@ -362,12 +361,13 @@ The owner in person only (a session cookie): a bearer token, the owner token inc
 member get 403 `denied`. `{ "available": false }` without the profiles service.
 - `GET /api/profiles[?workspace=]` -> `{ "available": true, "profiles": [{ "profile": "ws/id", "kind",
   "display_name", "headline", "accounts", "version", "state", "draft_waiting" }] }`
-- `GET /api/profiles/sites` -> `[{ "site", "domain", "fields": [{ "name", "source", "limit", "engine",
+- `GET /api/profiles/sites` -> `[{ "site", "domain", "fields": [{ "name", "source", "limit",
   "people_only" }] }]`: each site's profile fields, limits and login domain.
 - `POST /api/profiles` `{ profile }`: save a whole profile, live at once.
 - `GET /api/profiles/{ws}/{id}[?version=]`, `PATCH /api/profiles/{ws}/{id}` `{ "changes" }` (nested fields
   merge, lists replace, null removes), `GET /api/profiles/{ws}/{id}/status` (per account and field:
-  in_sync, due, awaiting_approval, denied, failed, no_program, manual, done_by_hand).
+  in_sync, failed, syncing, learning, learn_failed, proving_elsewhere, held, relearn, manual,
+  done_by_hand).
 - `POST /api/profiles/{ws}/{id}/approve` `{ "version" }`, `.../reject` `{ "version", "note"? }`: an agent's draft.
 - `POST /api/profiles/{ws}/{id}/attach` `{ "surface", "site"?, "overrides"? }`, `.../detach` `{ "surface" }`,
   `.../mark` `{ "surface", "fields" }` (manual fields changed by hand).
@@ -375,35 +375,6 @@ member get 403 `denied`. `{ "available": false }` without the profiles service.
   `GET /api/profile-photos/{sha256 hex}` serves it.
 A save answers `{ "profile", "version", "state", "created", "changes": { surface: [fields] }, "summary",
 "next" }`; a value a site would not take is 400 `profile_invalid` naming the account and field.
-
-### Engagement digest (docs/ENGAGEMENT.md "Daily digest")
-- `GET /api/engage/digest[?day=YYYY-MM-DD]` -> `{ "available": true, "schema": 1, "sessions_on", "surfaces":
-  [DayRecord] }`: every surface the caller may see, each on `day` (default: yesterday in that surface's
-  time zone).
-- `GET /api/engage/digest/{ws}/{name}[?day=]` -> `{ "available": true, "record": DayRecord, "week": [{ "day",
-  "sessions_planned", "sessions_rescheduled", "sessions_run", "attempted", "verified", "awaiting_approval", "holds", "signals" }] }`
-  (`holds` counts the account and kind holds, not a draft provider pause):
-  one surface's day, and its last seven days up to its yesterday (whatever day is open), oldest first.
-  404 `not_found` for a surface with no program, 400 `invalid` for a day that is not YYYY-MM-DD or not
-  within the last 400 days (one day ahead is allowed).
-- DayRecord (agentos.engage.digest, `schema` 1, fields only ever added): `surface`, `site`, `day`,
-  `timezone`, `timezone_fallback` (why the day runs in UTC, else null), `program` {id, version, approved}, `sessions_on`, `plan_saved`, `quiet`, `phase`, `sessions`
-  {planned (the plan's windows), rescheduled (windows a reschedule added), run, scheduled, running, done, ended_early, aborted, refused, missed, windows: [{idx, origin,
-  planned_start, minutes, started_at, ended_at, status, end_reason, operations}]}, `totals`, `operations`
-  [{kind, planned, moved_in, attempted, verified, unverified, failed, awaiting_approval, no_outcome, held,
-  skipped, skip_reasons, pending, failed_reasons, held_reasons}] (`failed_reasons` keys are the run's
-  error code or `signal: <signal>`), `caps` [{kind, used, cap, ceiling, hourly}] (`cap` and `hourly` by
-  the executor's own rule, caps.day_limits), `drafts` {awaiting_approval, created, failed, expired,
-  provider_paused, waiting: [{id, kind, approval_id, target, created_at, run_id, preview, day}]}, `awaiting_now` {count, days, drafts} (every operation of the
-  surface awaiting approval now, whatever its day; `days` counts them per local day), `items` {submitted,
-  used, failed, expired, withdrawn, queued_now, awaiting_now}, `holds` [{id, scope (`surface`, `kind`, or
-  `drafts` for a draft provider pause, which holds nothing else), kind, signal, reason, detail (node-written;
-  for `no_valid_rule` each kind with its problem code, such as `post (op_unverified: verified_stale)`), since, until,
-  cleared_at, created_that_day, active_now}], `signals` [{signal, at, kind, session}], `notices` [{at (UTC, milliseconds,
-  ending in Z), kind, text}]. A notice naming an account the caller may not see says "another account".
-  `preview` (at most 80 characters of the draft) is set only for the owner in person (a panel session):
-  never for a bearer token, the node token included. `{ "available": false }`
-  when agentosd runs no engage service.
 
 - `level` per check: `ok`, `warn`, `fail` or `unknown`. The lane's `level` is the worst of `ok`, `warn` and
   `fail` (`unknown` never raises it); `safe` is false on `fail`. A check that crashed is a `warn`, and the summary names the checks that could not run. `detail` is one sentence, `fix` what to do.
@@ -741,8 +712,7 @@ the parked run with the edited params. A retried call with the old content never
 approval, and a run whose edited params no longer make the approved content fails with `edit_mismatch`.
 Right before a run an approval released executes, the runner makes the run's binding again
 (`ActionBinding` in `agentos.policy.approvals`, the one way every card binds its content): when the
-approval no longer covers it (other content, another lane, or for engage another operation key or
-params), the run fails with `approval_mismatch` and nothing is done. A trigger proposal and a
+approval no longer covers it (other content, another lane, or other params), the run fails with `approval_mismatch` and nothing is done. A trigger proposal and a
 workflow send step check their card the same way; a changed send step asks again.
 
 ### Questions (agent questions from `human_ask`)
@@ -893,10 +863,6 @@ These routes read it; the panel's timeline scrubber is built on `replay`.
 - `GET /api/audit/runs/{id}/screenshot` -> the PNG of a run's proof (or failure) screenshot.
 - `GET /api/audit/captures/{id}` -> the screenshot a `screenshot_kept` row (`id`) recorded, under the same
   scope as the replay (404 for another grant family's call, or once retention removed the file).
-- `GET /api/audit/replay.html?lane=&day=&tz=&screenshots=&include_args=` or `?trace=` (the owner in person) -> the
-  replay as one self-contained HTML file (`Content-Disposition: attachment`), what
-  `agentos audit replay --html` writes. Typed text, the arguments' values and the query of addresses
-  are left out unless `include_args=1` (`--include-args`). Without `lane` or `trace`: the day's lanes, as `replay` lists them.
 - `GET /api/audit/verify?day=&lane=&tz=` (owner) -> the verify report:
   `{ "status": "ok|tampered|unverifiable", "checked", "rows": { "first", "last", "in_scope" },
   "proven_through", "chain", "keys": [ { "kid", "pub", "from_mark" } ], "unchained", "findings" }`.
@@ -977,8 +943,8 @@ routes (the owner or an admin grant), mounted from `agentos.agenda.api`.
 
 - `GET /api/agenda?workspace=&start=&end=&lane=&kind=&state=&managed=` -> the timeline for `[start, end)`
   (ISO 8601; default: from a day ago for 8 days; at most 93 days): `{ "start", "end", "workspace",
-  "items": [...], "truncated", "counts": { "<state>": n }, "managed_by": { "keepalive": {...},
-  "engage": {...} } }`. `kind` is `flow`, `connector`, `route`, `keepalive` or `engage`; `state` is a
+  "items": [...], "truncated", "counts": { "<state>": n }, "managed_by": { "keepalive": {...} } }`.
+  `kind` is `flow`, `connector`, `route` or `keepalive`; `state` is a
   comma list of entry states, `projected` and `planned`. Every item has `type` (`entry`, `projected`,
   `run` or `managed`), `id`, `at`, `workspace`, `lane`, `kind`, `state` and `title`. Without
   `workspace`, every workspace on the node. `managed=0` leaves out what other services plan on their
@@ -1030,10 +996,8 @@ grant was revoked is `cancelled`, with the revocation as its `reason`.
 A managed item (`type: "managed"`, `state: "planned"`) is work another service plans on a lane on its
 own, read only (no approve or cancel; `manage` names the command that manages it). `source` and
 `managed_by` say which: `keepalive` (the next visit per lane, `approx: true`, with `waits` when a gate
-holds it for now) or `engage` (a session nightly drew for today or tomorrow, with `until`, `program`
-and `day`). `managed_by.<source>` says what that service can show: `available`, a `note` (its horizon,
-or why nothing is shown), `skipped` (keepalive: lanes it does not visit, with why) or `paused`
-(engagement: programs whose lane is held, quarantined or frozen) and `drawn_until`.
+holds it for now). `managed_by.<source>` says what that service can show: `available`, a `note` (its
+horizon, or why nothing is shown) and `skipped` (lanes it does not visit, with why).
 ```json
 { "id": "keepalive:biz-a/instagram@2026-11-09T13:42:07+00:00", "type": "managed", "source": "keepalive",
   "managed_by": "keepalive", "kind": "keepalive", "state": "planned", "at": "2026-11-09T13:42:07+00:00",

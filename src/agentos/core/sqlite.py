@@ -20,6 +20,23 @@ and async access that never blocks the event loop.
   write done at once raises, as a plain call would). `await store.flush()` waits for the queue.
 
 A store that already exists keeps working as it is: the base adds no table and changes no file.
+
+Moving a store onto it (14 stores use it, the environments, VM, profiles and channel stores among
+them; these still open their own `sqlite3.connect`: studio, memory, plugins, runner, agenda, events,
+vault, standing grants, the ledger). One store per change, behaviour the same:
+
+1. Pin it first: a test that writes through the old store and reads the rows back, and one that
+   opens a database file the old code wrote. Keep both passing through every step.
+2. Subclass `SqliteStore` and replace the store's own `connect()` (and any `with sqlite3.connect`
+   per call) with `self._connect()`, `self._q(...)` or `self._tx()`. Keep the store's
+   `row_factory` and its pragmas as class attributes. Keep the file name and mode (600).
+3. Schema: leave `CREATE TABLE IF NOT EXISTS` as it is, or move it into the package's
+   `migrations.py` (agentos.core.migrate: `MIGRATIONS = MigrationSet(...)`, version 1 is the
+   schema as it is today, so an existing file is already at 1). Never change a table in the move.
+4. Writes on the event loop go through `await store.run(...)` (or `soon` for a write nothing
+   waits for). A sync caller keeps calling the method directly.
+5. Times keep the format the store already writes (agentos.core.clock lists them): moving a store
+   never changes a stored string.
 """
 
 from __future__ import annotations

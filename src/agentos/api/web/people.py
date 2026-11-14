@@ -278,28 +278,25 @@ def no_content() -> Response:
     return Response(status_code=204)
 
 
-def routes(api: Api) -> list[BaseRoute]:
-    store = api.members.store
+class Handlers:
+    """The handlers of the routes below, sharing one Api (and what they keep between calls)."""
 
-    def refusal(message: str, code: str = "unavailable") -> Any:
-        async def refuse(request: Request) -> None:
-            del request
-            raise ApiError(code, message)
-
-        return refuse
+    def __init__(self, api: Api) -> None:
+        self.api = api
+        self.store = api.members.store
 
     # ---- sign-in by email: none on a node ----
-    async def passkeys(request: Request) -> list[dict[str, Any]]:
+    async def passkeys(self, request: Request) -> list[dict[str, Any]]:
         return [app_passkey(item) for item in (await read(request, "/api/me/devices"))["passkeys"]]
 
-    async def passkey_register_options(request: Request) -> dict[str, Any]:
+    async def passkey_register_options(self, request: Request) -> dict[str, Any]:
         return (await write(request, "POST", "/api/me/passkeys/options"))["publicKey"]
 
-    async def passkey_register_verify(request: Request) -> dict[str, Any]:
+    async def passkey_register_verify(self, request: Request) -> dict[str, Any]:
         saved = await write(request, "POST", "/api/me/passkeys", {"credential": await credential_of(request)})
         return app_passkey(saved)
 
-    async def passkey_delete(request: Request) -> Response:
+    async def passkey_delete(self, request: Request) -> Response:
         ident = request.path_params["id"]
         if ident not in {item["id"] for item in (await read(request, "/api/me/devices"))["passkeys"]}:
             raise ApiError("not_found", "No such passkey.")
@@ -309,38 +306,38 @@ def routes(api: Api) -> list[BaseRoute]:
         await write(request, "DELETE", path_for("/api/me/devices", ident))
         return no_content()
 
-    async def step_up_options(request: Request) -> dict[str, Any]:
+    async def step_up_options(self, request: Request) -> dict[str, Any]:
         return (await write(request, "POST", "/api/session/verify/options", {}))["publicKey"]
 
-    async def step_up_verify(request: Request) -> Response:
+    async def step_up_verify(self, request: Request) -> Response:
         await write(request, "POST", "/api/session/verify", {"credential": await credential_of(request)})
         return no_content()
 
     # ---- sessions and my details ----
-    async def sessions(request: Request) -> list[dict[str, Any]]:
+    async def sessions(self, request: Request) -> list[dict[str, Any]]:
         return [app_device(item) for item in (await read(request, "/api/me/devices"))["sessions"]]
 
-    async def session_delete(request: Request) -> Response:
+    async def session_delete(self, request: Request) -> Response:
         ident = request.path_params["id"]
         if ident not in {item["id"] for item in (await read(request, "/api/me/devices"))["sessions"]}:
             raise ApiError("not_found", "No such session.")
         await write(request, "DELETE", path_for("/api/me/devices", ident))
         return no_content()
 
-    async def me_update(request: Request) -> dict[str, Any]:
+    async def me_update(self, request: Request) -> dict[str, Any]:
         data = await body_of(request)
         if data.get("avatar_color") is not None:
             raise ApiError("invalid", "This computer does not keep an avatar colour.")
         if "name" in data:
             await write(request, "PATCH", "/api/me/details", {"name": data["name"]})
-        return public_user(api, await read(request, "/api/me"))
+        return public_user(self.api, await read(request, "/api/me"))
 
     # ---- the organisation ----
-    async def org_get(request: Request) -> dict[str, Any]:
+    async def org_get(self, request: Request) -> dict[str, Any]:
         del request
-        return org_json(api)
+        return org_json(self.api)
 
-    async def org_update(request: Request) -> dict[str, Any]:
+    async def org_update(self, request: Request) -> dict[str, Any]:
         data = await body_of(request)
         if "slug" in data and data["slug"] not in (None, ORG):
             raise ApiError("invalid", "The address of this computer cannot change.")
@@ -348,26 +345,26 @@ def routes(api: Api) -> list[BaseRoute]:
             name = (data["name"] or "").strip() if isinstance(data["name"], str) else ""
             if not name or len(name) > 80:
                 raise ApiError("invalid", "A name is 1 to 80 characters.")
-            api.store.set_setting("org.name", name)
+            self.api.store.set_setting("org.name", name)
         if "goal" in data:
             goal = data["goal"]
             if goal is not None and not (isinstance(goal, str) and goal in GOAL_TITLES):
                 raise ApiError("invalid", "Pick one of the first jobs.")
-            api.store.set_setting("org.goal", goal)
+            self.api.store.set_setting("org.goal", goal)
         if "goal_note" in data:
             note = data["goal_note"]
             if note is not None and (not isinstance(note, str) or len(note) > 200):
                 raise ApiError("invalid", "A note is up to 200 characters.")
-            api.store.set_setting("org.goal_note", (note or "").strip() or None)
-        return org_json(api)
+            self.api.store.set_setting("org.goal_note", (note or "").strip() or None)
+        return org_json(self.api)
 
-    async def google_unavailable(request: Request) -> RedirectResponse:
+    async def google_unavailable(self, request: Request) -> RedirectResponse:
         """A link to Google opens this, so the person lands back on sign-in with the reason."""
         del request
         return RedirectResponse("/sign-in?error=google_unavailable", status_code=303)
 
-    async def getting_started(request: Request) -> dict[str, Any]:
-        goal = api.store.setting("org.goal")
+    async def getting_started(self, request: Request) -> dict[str, Any]:
+        goal = self.api.store.setting("org.goal")
         status = await read(request, "/api/status")
         approved = await optional(request, "/api/approvals", {"state": "approved", "limit": 1})
         denied = await optional(request, "/api/approvals", {"state": "denied", "limit": 1})
@@ -407,15 +404,15 @@ def routes(api: Api) -> list[BaseRoute]:
         }
 
     # ---- members ----
-    async def members(request: Request) -> list[dict[str, Any]]:
+    async def members(self, request: Request) -> list[dict[str, Any]]:
         return [app_member(item) for item in await read(request, "/api/members")]
 
-    async def member_get(request: Request) -> dict[str, Any]:
+    async def member_get(self, request: Request) -> dict[str, Any]:
         """One member, with the devices they are signed in on (the owner's view, from Settings, Members)."""
         item = await read(request, path_for("/api/members", request.path_params["id"]))
         return {**app_member(item), "devices": app_devices(item)}
 
-    async def member_update(request: Request) -> dict[str, Any]:
+    async def member_update(self, request: Request) -> dict[str, Any]:
         ident = request.path_params["id"]
         data = await body_of(request)
         current = await read(request, path_for("/api/members", ident))
@@ -451,10 +448,10 @@ def routes(api: Api) -> list[BaseRoute]:
         )
         return app_member(updated)
 
-    async def invites_list(request: Request) -> list[dict[str, Any]]:
+    async def invites_list(self, request: Request) -> list[dict[str, Any]]:
         return [app_invite(item) for item in await read(request, "/api/invites")]
 
-    async def invite_create(request: Request) -> dict[str, Any]:
+    async def invite_create(self, request: Request) -> dict[str, Any]:
         # The node decides first: only a person who may invite gets as far as checking the form.
         await read(request, "/api/invites")
         data = await body_of(request)
@@ -462,7 +459,7 @@ def routes(api: Api) -> list[BaseRoute]:
         if not isinstance(email, str) or not email.strip():
             raise ApiError("invalid", "Enter the address the invite goes to.")
         roles = node_roles(data.get("role"), data.get("workspaces"))
-        handle = _free_handle(email.strip(), store.handle_taken)
+        handle = _free_handle(email.strip(), self.store.handle_taken)
         created = await write(
             request, "POST", "/api/invites", {"handle": handle, "email": email.strip(), "roles": roles}
         )
@@ -470,29 +467,29 @@ def routes(api: Api) -> list[BaseRoute]:
         return {**app_invite(created), "token": created["code"]}
 
     # ---- invites, as the person who was invited ----
-    async def invite_preview(request: Request) -> dict[str, Any]:
+    async def invite_preview(self, request: Request) -> dict[str, Any]:
         token = request.path_params["token"]
         found = (await write(request, "POST", "/api/invites/accept/options", {"code": token}))["invite"]
         roles = found.get("roles") or []
         scopes = scopes_of(roles)
-        names = {item["id"]: item["name"] for item in await workspace_meta(api)}
+        names = {item["id"]: item["name"] for item in await workspace_meta(self.api)}
         workspaces = None if scopes is None else [names.get(scope, scope) for scope in scopes]
         return {
-            "org_name": org_name(api),
+            "org_name": org_name(self.api),
             "role": app_role(roles),
             "inviter": found.get("created_by") or "",
-            "business": org_name(api) if workspaces is None else words(workspaces),
+            "business": org_name(self.api) if workspaces is None else words(workspaces),
             "workspaces": workspaces,
             "expires_at": found["expires_at"],
             # Here the invite is accepted with a passkey, so the page offers one.
             "join_by": "passkey",
         }
 
-    async def invite_passkey_options(request: Request) -> dict[str, Any]:
+    async def invite_passkey_options(self, request: Request) -> dict[str, Any]:
         token = request.path_params["token"]
         return (await write(request, "POST", "/api/invites/accept/options", {"code": token}))["publicKey"]
 
-    async def invite_passkey_join(request: Request) -> Response:
+    async def invite_passkey_join(self, request: Request) -> Response:
         token = request.path_params["token"]
         data = await body_of(request)
         if not data.get("credential"):
@@ -503,13 +500,13 @@ def routes(api: Api) -> list[BaseRoute]:
         reply = await call(request, "POST", "/api/invites/accept", body=body)
         if reply.status >= 300:
             raise Refused(reply)
-        return await signed_in(api, request, reply)
+        return await signed_in(self.api, request, reply)
 
     # ---- notifications: my own, on this computer ----
-    async def notify_get(request: Request) -> dict[str, Any]:
+    async def notify_get(self, request: Request) -> dict[str, Any]:
         return app_notify(await read(request, "/api/me/notify"))
 
-    async def notify_put(request: Request) -> dict[str, Any]:
+    async def notify_put(self, request: Request) -> dict[str, Any]:
         data = await body_of(request)
         current = await read(request, "/api/me/notify")
         now = app_notify(current)
@@ -532,60 +529,71 @@ def routes(api: Api) -> list[BaseRoute]:
             body["channel"] = current["channel"]
         return app_notify(await write(request, "PUT", "/api/me/notify", body))
 
-    async def notify_test(request: Request) -> Response:
+    async def notify_test(self, request: Request) -> Response:
         result = await write(request, "POST", "/api/settings/notifications/test")
         if not result.get("ok"):
             raise ApiError("conflict", result.get("detail") or "No notification channel is enabled.")
         return no_content()
 
-    async def push_config(request: Request) -> dict[str, Any]:
+    async def push_config(self, request: Request) -> dict[str, Any]:
         del request
         return {"available": PHONE_PUSH_HERE, "reason": None if PHONE_PUSH_HERE else "not_configured", "public_key": None}
 
-    async def push_devices(request: Request) -> list[dict[str, Any]]:
+    async def push_devices(self, request: Request) -> list[dict[str, Any]]:
         del request
         return []
 
+
+def routes(api: Api) -> list[BaseRoute]:
+    h = Handlers(api)
+
+    def refusal(message: str, code: str = "unavailable") -> Any:
+        async def refuse(request: Request) -> None:
+            del request
+            raise ApiError(code, message)
+
+        return refuse
+
     return [
-        plain_route(api, "/api/auth/passkeys", passkeys, ["GET"]),
-        plain_route(api, "/api/auth/passkey/register/options", passkey_register_options, ["POST"]),
-        plain_route(api, "/api/auth/passkey/register/verify", passkey_register_verify, ["POST"]),
-        plain_route(api, "/api/auth/passkeys/{id}", passkey_delete, ["DELETE"]),
-        plain_route(api, "/api/auth/step-up/passkey/options", step_up_options, ["POST"]),
-        plain_route(api, "/api/auth/step-up/passkey/verify", step_up_verify, ["POST"]),
+        plain_route(api, "/api/auth/passkeys", h.passkeys, ["GET"]),
+        plain_route(api, "/api/auth/passkey/register/options", h.passkey_register_options, ["POST"]),
+        plain_route(api, "/api/auth/passkey/register/verify", h.passkey_register_verify, ["POST"]),
+        plain_route(api, "/api/auth/passkeys/{id}", h.passkey_delete, ["DELETE"]),
+        plain_route(api, "/api/auth/step-up/passkey/options", h.step_up_options, ["POST"]),
+        plain_route(api, "/api/auth/step-up/passkey/verify", h.step_up_verify, ["POST"]),
         plain_route(api, "/api/auth/magic-link", refusal(NOT_BY_EMAIL), ["POST"]),
         plain_route(api, "/api/auth/magic-link/verify", refusal(NOT_BY_EMAIL), ["POST"]),
         plain_route(api, "/api/auth/step-up/magic-link", refusal(NOT_BY_EMAIL_STEP_UP), ["POST"]),
         plain_route(api, "/api/auth/step-up/verify", refusal(NOT_BY_EMAIL_STEP_UP), ["POST"]),
-        plain_route(api, "/api/auth/google/start", google_unavailable, ["GET"]),
-        plain_route(api, "/api/sessions", sessions, ["GET"]),
-        plain_route(api, "/api/sessions/{id}", session_delete, ["DELETE"]),
-        plain_route(api, "/api/me", me_update, ["PATCH"]),
+        plain_route(api, "/api/auth/google/start", h.google_unavailable, ["GET"]),
+        plain_route(api, "/api/sessions", h.sessions, ["GET"]),
+        plain_route(api, "/api/sessions/{id}", h.session_delete, ["DELETE"]),
+        plain_route(api, "/api/me", h.me_update, ["PATCH"]),
         plain_route(api, "/api/orgs", refusal(ONE_ORG, "conflict"), ["POST"]),
-        org_route(api, "", org_get, ["GET"]),
-        org_route(api, "", org_update, ["PATCH"], owner=True),
+        org_route(api, "", h.org_get, ["GET"]),
+        org_route(api, "", h.org_update, ["PATCH"], owner=True),
         org_route(api, "", refusal(ORG_STAYS, "denied"), ["DELETE"], owner=True),
-        org_route(api, "/getting-started", getting_started, ["GET"]),
-        org_route(api, "/members", members, ["GET"]),
-        org_route(api, "/members/{id}", member_get, ["GET"]),
-        org_route(api, "/members/{id}", member_update, ["PATCH"]),
-        org_route(api, "/invites", invites_list, ["GET"]),
-        org_route(api, "/invites", invite_create, ["POST"]),
-        org_route(api, "/settings/notifications", notify_get, ["GET"]),
-        org_route(api, "/settings/notifications", notify_put, ["PUT"]),
-        org_route(api, "/settings/notifications/test", notify_test, ["POST"]),
-        org_route(api, "/push/config", push_config, ["GET"]),
-        org_route(api, "/push/devices", push_devices, ["GET"]),
+        org_route(api, "/getting-started", h.getting_started, ["GET"]),
+        org_route(api, "/members", h.members, ["GET"]),
+        org_route(api, "/members/{id}", h.member_get, ["GET"]),
+        org_route(api, "/members/{id}", h.member_update, ["PATCH"]),
+        org_route(api, "/invites", h.invites_list, ["GET"]),
+        org_route(api, "/invites", h.invite_create, ["POST"]),
+        org_route(api, "/settings/notifications", h.notify_get, ["GET"]),
+        org_route(api, "/settings/notifications", h.notify_put, ["PUT"]),
+        org_route(api, "/settings/notifications/test", h.notify_test, ["POST"]),
+        org_route(api, "/push/config", h.push_config, ["GET"]),
+        org_route(api, "/push/devices", h.push_devices, ["GET"]),
         org_route(api, "/push/devices", refusal(NO_PUSH_DEVICES), ["POST"]),
         org_route(api, "/push/devices/{id}", refusal(NO_PUSH_DEVICES), ["DELETE"]),
         org_route(api, "/push/test", refusal(NO_PUSH_TEST), ["POST"]),
-        plain_route(api, "/api/invites/{token}", invite_preview, ["GET"], public=True),
+        plain_route(api, "/api/invites/{token}", h.invite_preview, ["GET"], public=True),
         plain_route(api, "/api/invites/{token}/accept", refusal(INVITE_NEEDS_PASSKEY), ["POST"]),
         plain_route(api, "/api/invites/{token}/join", refusal(INVITE_NEEDS_PASSKEY), ["POST"]),
         plain_route(
-            api, "/api/invites/{token}/passkey/options", invite_passkey_options, ["POST"], public=True
+            api, "/api/invites/{token}/passkey/options", h.invite_passkey_options, ["POST"], public=True
         ),
-        plain_route(api, "/api/invites/{token}/passkey", invite_passkey_join, ["POST"], public=True),
+        plain_route(api, "/api/invites/{token}/passkey", h.invite_passkey_join, ["POST"], public=True),
     ]
 
 

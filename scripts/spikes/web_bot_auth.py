@@ -791,7 +791,7 @@ def xvfb(display_num: int):
 async def launch_lane(work: Path, display: str, extra: dict[str, Any] | None = None) -> Any:
     sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
     from agentos.core.models import LaneSpec
-    from agentos.node.engine_camoufox import CamoufoxEngine
+    from agentos.node.camoufox.engine import CamoufoxEngine
 
     engine = CamoufoxEngine(extra_options=extra or {})
     # Loopback test servers: lift the engine's private-network PAC for this throwaway lane only.

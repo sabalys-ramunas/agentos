@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from collections.abc import Callable, Iterable
 
+from agentos.core import globs
 from agentos.core.models import split_site
 from agentos.node.egress import rules as _rules
 from agentos.node.egress.constants import SAFE_METHODS, SHAPE_HEADERS
@@ -12,7 +13,6 @@ from agentos.node.egress.rules import EFFECT_KINDS, EffectRule
 from agentos.node.egress.shapes import operations, request_op
 from agentos.node.egress.sites import host_of, norm_path
 from agentos.node.egress.suggested import SUGGESTED_SITES
-from agentos.policy import globs
 
 
 def classify(url: str, method: str, headers: dict[str, str] | None = None,
@@ -52,10 +52,6 @@ def effects_of(url: str, method: str, headers: dict[str, str] | None = None,
     an endpoint whose rules all read (a batch URL, a GraphQL catch-all) a name an action rule of the
     same site names counts too, the path aside. A rule that names no operation counts once."""
     rules = _rules.EFFECT_RULES if rules is None else rules
-
-    def acts(rule: EffectRule | None) -> bool:
-        return rule is not None and rule.kind in EFFECT_KINDS and rule.effect in ("commit", "write")
-
     raw = body() if callable(body) else body
     first = classify(url, method, headers, rules=rules, body=raw)
     low = {k.lower(): v for k, v in (headers or {}).items()}
@@ -65,11 +61,22 @@ def effects_of(url: str, method: str, headers: dict[str, str] | None = None,
     in_body = (ops or [])[:max(0, len(ops or ()) - sum(1 for h in SHAPE_HEADERS
                                                         if h != "x-restli-method" and low.get(h)))]
     names = [o["name"] for o in in_body if o.get("name")]
-    if ops is None and raw and not acts(first) and method.upper() not in SAFE_METHODS \
+    if ops is None and raw and not _acts(first) and method.upper() not in SAFE_METHODS \
             and not (first is not None and first.kind == "draft"):   # an upload's bytes name nothing
-        return _scan_body(url, method, low, raw, rules, acts)   # a body no parser reads: its names decide
+        return _scan_body(url, method, low, raw, rules, _acts)   # a body no parser reads: its names decide
     if len(in_body) <= 1 or not names:
-        return [first] if acts(first) else []
+        return [first] if _acts(first) else []
+    return _batch_effects(url, method, low, names, rules, first)
+
+
+def _acts(rule: EffectRule | None) -> bool:
+    """Is this rule an action the ledger counts (a write or commit of an EFFECT_KINDS kind)?"""
+    return rule is not None and rule.kind in EFFECT_KINDS and rule.effect in ("commit", "write")
+
+
+def _batch_effects(url: str, method: str, low: dict[str, str], names: list[str], rules: tuple[EffectRule, ...],
+                   first: EffectRule | None) -> list[EffectRule]:
+    """A batch's actions, operation by operation (`first`: what classify() said of the request)."""
     host, path = host_of(url), norm_path(url)
     if host is None:
         return []
@@ -79,10 +86,10 @@ def effects_of(url: str, method: str, headers: dict[str, str] | None = None,
     site = first.site if first is not None else None
     for name in names:
         rule = next((r for r in rules if r.matches(host, path, up, low, lambda n=name: n)), None)
-        if not acts(rule) and site is not None:  # the batch endpoint's own rule reads: the name decides
-            rule = next((r for r in rules if r.op is not None and r.site == site and acts(r)
+        if not _acts(rule) and site is not None:  # the batch endpoint's own rule reads: the name decides
+            rule = next((r for r in rules if r.op is not None and r.site == site and _acts(r)
                          and globs.domain_match(r.host, host) and re.search(r.op, name)), None)
-        if not acts(rule):
+        if not _acts(rule):
             continue
         assert rule is not None
         if rule.op is None:   # the endpoint's rule, whatever the operation: one action for the request
@@ -90,7 +97,7 @@ def effects_of(url: str, method: str, headers: dict[str, str] | None = None,
                 continue
             once.add(rule.id)
         out.append(rule)
-    if not out and acts(first):
+    if not out and _acts(first):
         out.append(first)
     return out
 

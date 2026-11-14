@@ -152,6 +152,7 @@ from pathlib import Path  # noqa: F401
 from typing import Any, Protocol  # noqa: F401
 from urllib.parse import unquote, urlsplit  # noqa: F401
 
+from agentos.core import globs  # noqa: F401
 from agentos.core.errors import EgressRefused, EngineError, InvalidRequest  # noqa: F401
 from agentos.core.models import (  # noqa: F401
     COUNTRY_TOKEN,
@@ -236,7 +237,6 @@ from agentos.node.egress.guard_records import (  # noqa: F401 - re-exported
 from agentos.node.egress.helpers import (  # noqa: F401 - re-exported
     QUIET_SCHEMES,
     SUBMIT_KEYS,
-    _first_line,
     _in_subframe,
     _path,
     _post_data,
@@ -325,7 +325,6 @@ from agentos.node.egress.verdicts import (  # noqa: F401 - re-exported
     refusal_message,
 )
 from agentos.node.routes import GUARD_PATTERN  # noqa: F401
-from agentos.policy import globs  # noqa: F401
 from agentos.vault.domains import registrable_domain, same_site  # noqa: F401
 
 log = logging.getLogger("agentos.node.egress")

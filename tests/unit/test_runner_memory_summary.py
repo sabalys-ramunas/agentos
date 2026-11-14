@@ -6,10 +6,10 @@ from __future__ import annotations
 import json
 
 import pytest
+from testkit.memory import fake_memory
 
 from agentos.core.models import RunStatus
 from agentos.memory import Caller
-from agentos.memory.fakes import fake_memory
 from agentos.runner.fakes import Harness, post_flow
 from agentos.runner.memory_summary import summary_record
 

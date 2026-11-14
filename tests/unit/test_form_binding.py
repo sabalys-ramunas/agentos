@@ -16,7 +16,7 @@ from agentos.core.runtime import Runtime
 from agentos.node import fields as fields_mod
 from agentos.node import human
 from agentos.node import tools as node_tools
-from agentos.node.tools import _form_change, form_sent
+from agentos.node.tools.form_check import _form_change, form_sent
 
 FORM = {"action": "https://shop.test/account", "method": "post", "fields": [
     field("input|text|street|0", "text", "Street", "s2", value="22 New Street", was="1 Old Road", dirty=True),

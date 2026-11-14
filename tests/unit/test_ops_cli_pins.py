@@ -16,7 +16,7 @@ from test_ops_support import PASSPHRASE, make_home
 from typer.testing import CliRunner
 
 from agentos import cli as root_cli
-from agentos.ops.system import Host
+from agentos.core.system import Host
 
 GOLDEN = Path(__file__).resolve().parents[1] / "golden" / "ops-cli"
 UPDATE = os.environ.get("AGENTOS_UPDATE_GOLDEN") == "1"

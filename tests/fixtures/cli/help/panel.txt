@@ -9,7 +9,5 @@
 ╭─ Commands ───────────────────────────────────────────────────────────────────╮
 │ login  Print a one-time sign-in link for the panel (valid for 10 minutes,    │
 │        works once).                                                          │
-│ use    Choose which web UI this node serves. It takes effect the next time   │
-│        agentos starts.                                                       │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 

@@ -9,7 +9,8 @@ or from this computer (the SSH tunnel), the same rule as the mailbox and AI key 
 
 Kinds: `vault_unlock`, `vault_entry`, `proxy`, `workspace_export`, `workspace_import` (here and in
 agentos.workspaces.form) and `login` (agentos.node.login_form, which keeps its trip open for the whole
-sign-in). Each kind takes only the plain fields the app may send; the rest is typed on the page.
+sign-in). Each kind takes only the plain fields the app may send; the rest is typed on the page. The
+API's form route lists every kind (agentos.api.routes_forms.kinds), so this module imports none of them.
 """
 
 from __future__ import annotations
@@ -254,9 +255,8 @@ class ProxyForm(Kind):
                 + '<button type="submit">Keep it on this computer</button></form>')
 
     async def submit(self, trip: Trip, api: Any, form: Any, trips: Trips) -> HTMLResponse:
-        from agentos.api.jsonable import maybe_await
-        from agentos.api.routes_core import proxies_by_label
-        from agentos.core.config import load_proxies, save_proxies
+        from agentos.core.aio import maybe_await
+        from agentos.core.config import load_proxies, proxies_by_label, save_proxies
         from agentos.core.models import ProxyConfig
 
         password = str(form.get("password") or "") or None
@@ -266,7 +266,7 @@ class ProxyForm(Kind):
         except (ValueError, TypeError):
             # Never the exception's text: a validation error can echo the password typed on this page.
             return self.again(trip, api, "That address is not valid. Nothing was saved.")
-        old = (await proxies_by_label(api)).get(proxy.label)
+        old = (await proxies_by_label(api.optional("proxies"), api.config)).get(proxy.label)
         if old is not None and not form.get("confirm"):
             was = tuple((old.get(k) if isinstance(old, dict) else getattr(old, k, None)) for k in ("host", "port", "username"))
             if was != (proxy.host, proxy.port, proxy.username):
@@ -286,13 +286,3 @@ class ProxyForm(Kind):
                              "You can close this tab.</p>")
 
 
-def kinds() -> dict[str, Kind]:
-    """Every kind a trip can be, by name. The login and workspace kinds live in their own modules."""
-    from agentos.node.login_form import LoginForm
-    from agentos.workspaces.form import WorkspaceExport, WorkspaceImport
-
-    items: list[Kind] = [VaultUnlock(), VaultEntry(), ProxyForm(), WorkspaceExport(), WorkspaceImport(), LoginForm()]
-    return {item.name: item for item in items}
-
-
-START_KINDS = ("vault_unlock", "vault_entry", "proxy", "workspace_export", "workspace_import")

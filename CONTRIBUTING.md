@@ -12,11 +12,11 @@ uv sync                          # once: the Python env with the dev tools
 uv run python -c "from camoufox.fpgen_model import ensure_fpgen_model; ensure_fpgen_model()"
                                  # once: the fingerprint model a few unit tests read (they may not reach the network)
 uv run agentos dev up --seed     # a fake node on 127.0.0.1:7450 (see README.md)
-make check                       # what CI runs: lint, shell syntax, em dash check, unit tests, panel
+make check                       # what CI runs: lint (with layers and size limits), dead code, shell syntax, em dash check, type check, unit tests
 ```
 
 The web app (`web/`) has its own loop and checks, on Node.js 22 and pnpm:
-`cd web && pnpm install --frozen-lockfile && pnpm typecheck && pnpm lint && pnpm test && pnpm build`.
+`cd web && pnpm install --frozen-lockfile && pnpm typecheck && pnpm lint && pnpm knip && pnpm test && pnpm build`.
 [web/README.md](web/README.md) has the dev loop, on the mock or against the fake node.
 
 `make check` runs the whole unit suite, which takes a while. While you work, run the tests
@@ -43,7 +43,7 @@ for dev checkouts (the scripts only ever write under it). Then:
 
 ```
 scripts/node-test.sh mytopic                      # sync, uv sync, uv run pytest -m node
-scripts/node-test.sh mytopic tests/node/test_lanes.py -x -k warm
+scripts/node-test.sh mytopic tests/node/test_lanes_node.py -x -k warm
 ```
 
 Never point tests at real accounts: the fixture site in `tests/fixtures/site/` and the dev web

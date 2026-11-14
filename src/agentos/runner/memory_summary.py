@@ -19,8 +19,8 @@ import logging
 from typing import Any
 
 from agentos.core.errors import AgentosError
-from agentos.core.models import RunStatus
-from agentos.runner.models import Run, RunKind
+from agentos.core.models import RunKind, RunStatus
+from agentos.runner.records import Run
 
 log = logging.getLogger("agentos.runner")
 

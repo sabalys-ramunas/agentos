@@ -19,9 +19,9 @@ from starlette.routing import Route, WebSocketRoute
 from starlette.websockets import WebSocket, WebSocketDisconnect, WebSocketState
 
 from agentos.api.app import Api, access_of, endpoint
-from agentos.api.jsonable import maybe_await
 from agentos.api.routes_core import NAME_RE, WORKSPACE_RE
 from agentos.core import live as live_sockets
+from agentos.core.aio import maybe_await
 from agentos.core.errors import AgentosError, ApprovalPending
 from agentos.core.models import ControlState, Effect, LaneKind
 
@@ -61,13 +61,6 @@ def _holds(lanes: Any, lane_id: str) -> bool:
         return lanes.get(lane_id).control.state == ControlState.HUMAN
     except Exception:  # noqa: BLE001  (an unknown lane is nobody's to hold)
         return False
-
-
-async def _connect_upstream(url: str, subprotocols: list[str] | None) -> Any:
-    from websockets.asyncio.client import connect
-
-    return await connect(url, subprotocols=subprotocols or None, max_size=None, open_timeout=5,
-                         ping_interval=None, compression=None)
 
 
 def _keys(auth: Any, lane: str | None) -> dict:
@@ -196,27 +189,30 @@ def _may_exec(access: Any, lane_id: str) -> bool:
     return False
 
 
-def routes(api: Api, *, connect_upstream: Callable[[str, list[str] | None], Any] | None = None) -> list:
-    del connect_upstream  # the live view now goes through agentos.node.vnc_relay to x11vnc (no websockify)
-    live = live_sockets.of(api.runtime)
+class Handlers:
+    """The handlers of the routes below, sharing one Api (and what they keep between calls)."""
+
+    def __init__(self, api: Api) -> None:
+        self.api = api
+        self.live = live_sockets.of(api.runtime)
 
     # ---- SSE ----
-    async def events(request: Request) -> StreamingResponse:
+    async def events(self, request: Request) -> StreamingResponse:
         raw = request.headers.get("last-event-id") or request.query_params.get("last_event_id")
         last_id = int(raw) if raw and raw.isdigit() else None
-        heartbeat = api.settings.sse_heartbeat
-        deadline = time.monotonic() + api.settings.sse_max_seconds
+        heartbeat = self.api.settings.sse_heartbeat
+        deadline = time.monotonic() + self.api.settings.sse_max_seconds
         access = access_of(request)
 
         auth = request.state.auth
-        freeze = api.runtime.get("freeze")
+        freeze = self.api.runtime.get("freeze")
 
         async def stream() -> AsyncIterator[str]:
-            yield f"retry: 3000\nid: {last_id if last_id is not None else api.bus.last_id}\n\n"
+            yield f"retry: 3000\nid: {last_id if last_id is not None else self.api.bus.last_id}\n\n"
             last_write = time.monotonic()
             # ends when the caller's access does (agentos.core.live), not only at sse_max_seconds
-            with live.track("events", _recheck(api, request, "events", None, auth), **_keys(auth, None)) as entry:
-                async with api.bus.subscribe(last_id) as sub:
+            with self.live.track("events", _recheck(self.api, request, "events", None, auth), **_keys(auth, None)) as entry:
+                async with self.api.bus.subscribe(last_id) as sub:
                     while not entry.closed.is_set():
                         now = time.monotonic()
                         remaining = deadline - now
@@ -242,34 +238,34 @@ def routes(api: Api, *, connect_upstream: Callable[[str, list[str] | None], Any]
                                  headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
     # ---- WebSocket helpers ----
-    async def ws_auth(websocket: WebSocket) -> Any | None:
+    async def ws_auth(self, websocket: WebSocket) -> Any | None:
         """Authenticate before accepting; a refusal before accept becomes an HTTP 403."""
-        if not api.origin_ok(websocket):
+        if not self.api.origin_ok(websocket):
             await websocket.close(code=WS_UNAUTHORIZED)
             return None
-        auth = await api.authenticate(websocket)
+        auth = await self.api.authenticate(websocket)
         if auth is None:
             await websocket.close(code=WS_UNAUTHORIZED)
             return None
         return auth
 
-    def ws_lane_id(websocket: WebSocket) -> str | None:
+    def ws_lane_id(self, websocket: WebSocket) -> str | None:
         ws, name = websocket.path_params["ws"], websocket.path_params["name"]
         if not WORKSPACE_RE.match(ws) or not NAME_RE.match(name):
             return None
         return f"{ws}/{name}"
 
-    async def refuse(websocket: WebSocket, code: int, reason: str) -> None:
+    async def refuse(self, websocket: WebSocket, code: int, reason: str) -> None:
         """After auth: accept, then close with a reason the panel can show."""
         await websocket.accept()
         await websocket.close(code=code, reason=reason)
 
     # ---- noVNC relay ----
-    async def vnc(websocket: WebSocket) -> None:
-        auth = await ws_auth(websocket)
+    async def vnc(self, websocket: WebSocket) -> None:
+        auth = await self.ws_auth(websocket)
         if auth is None:
             return
-        lane_id = ws_lane_id(websocket)
+        lane_id = self.ws_lane_id(websocket)
         mode = _mode(websocket)
         # A member whose grant carries `control` for the lane watches it (no input: taking over is the
         # owner's in this phase). Anyone else but the owner is refused: the relay forwards input.
@@ -277,22 +273,22 @@ def routes(api: Api, *, connect_upstream: Callable[[str, list[str] | None], Any]
         if watch_only and not (auth.access.member is not None and lane_id is not None
                                and auth.access.watch_terms(lane_id) is not None):
             auth.access.trace("lane.view", status="denied", lane=lane_id, summary="owner only")
-            return await refuse(websocket, WS_DENIED, "the live view needs the owner, or a role that watches")
+            return await self.refuse(websocket, WS_DENIED, "the live view needs the owner, or a role that watches")
         if watch_only:
             auth.access.trace("lane.view", lane=lane_id, summary=f"Watch lane {lane_id}")
-        lanes = api.optional("lanes")
+        lanes = self.api.optional("lanes")
         if lanes is None:
-            return await refuse(websocket, WS_UNAVAILABLE, "lanes are not configured on this node")
+            return await self.refuse(websocket, WS_UNAVAILABLE, "lanes are not configured on this node")
         if lane_id is None:
-            return await refuse(websocket, WS_NOT_FOUND, "no such lane")
+            return await self.refuse(websocket, WS_NOT_FOUND, "no such lane")
         try:
             view = await maybe_await(lanes.view(lane_id))
         except AgentosError:
-            return await refuse(websocket, WS_NOT_FOUND, "no such lane")
+            return await self.refuse(websocket, WS_NOT_FOUND, "no such lane")
         if view is None:
-            return await refuse(websocket, WS_NOT_WARM, "the lane is not open")
+            return await self.refuse(websocket, WS_NOT_WARM, "the lane is not open")
         if mode == CONTROL and (watch_only or not _holds(lanes, lane_id)):
-            return await refuse(websocket, WS_NOT_HOLDING, "not_holding")
+            return await self.refuse(websocket, WS_NOT_HOLDING, "not_holding")
 
         # Always loopback, always the x11vnc port the lane manager reports, never from the request.
         # The same RFB relay as the signed-link viewer: input passes only while a human holds control.
@@ -331,7 +327,7 @@ def routes(api: Api, *, connect_upstream: Callable[[str, list[str] | None], Any]
         if control_view:
             lanes.add_control_listener(on_control)
         try:
-            with live.track("vnc", _recheck(api, websocket, "vnc", lane_id, auth), **_keys(auth, lane_id)) as entry:
+            with self.live.track("vnc", _recheck(self.api, websocket, "vnc", lane_id, auth), **_keys(auth, lane_id)) as entry:
                 await _race(run_relay(), entry.wait_closed(), *([handed.wait()] if control_view else []))
                 if entry.closed.is_set():
                     await _close_ended(websocket, entry)
@@ -343,85 +339,64 @@ def routes(api: Api, *, connect_upstream: Callable[[str, list[str] | None], Any]
                 lanes.remove_control_listener(on_control)
 
     # ---- terminal ----
-    async def terminal(websocket: WebSocket) -> None:
-        auth = await ws_auth(websocket)
+    async def terminal_facts(self, envs: Any, lane_id: str) -> tuple[str | None, dict | None]:
+        """Whether `lane_id` has a terminal: (why not, or None; the env service's facts for the check)."""
+        if hasattr(envs, "has"):  # the real env service: its own lanes
+            if not envs.has(lane_id):
+                return "this lane has no terminal", None
+            try:
+                return None, envs.terminal_facts(lane_id)
+            except AgentosError:
+                return "no such lane", None
+        lanes = self.api.optional("lanes")
+        if lanes is not None:
+            try:
+                info = await maybe_await(lanes.get(lane_id))
+                if info.spec.kind != LaneKind.TERMINAL:
+                    return "this lane has no terminal", None
+            except AgentosError:
+                return "no such lane", None
+        return None, None
+
+    async def terminal(self, websocket: WebSocket) -> None:
+        auth = await self.ws_auth(websocket)
         if auth is None:
             return
-        lane_id = ws_lane_id(websocket)
+        lane_id = self.ws_lane_id(websocket)
         if lane_id is None:
-            return await refuse(websocket, WS_NOT_FOUND, "no such lane")
+            return await self.refuse(websocket, WS_NOT_FOUND, "no such lane")
         access = auth.access
         if not access.lane_allowed(lane_id):
             access.trace("lane.terminal", status="denied", lane=lane_id, summary="out of scope")
-            return await refuse(websocket, WS_DENIED, "this lane is outside your grant")
-        envs = api.optional("envs")
+            return await self.refuse(websocket, WS_DENIED, "this lane is outside your grant")
+        envs = self.api.optional("envs")
         if envs is None:
-            return await refuse(websocket, WS_UNAVAILABLE, "terminals are not configured on this node")
-        facts: dict | None = None
-        if hasattr(envs, "has"):  # the real env service: its own lanes
-            if not envs.has(lane_id):
-                return await refuse(websocket, WS_NOT_FOUND, "this lane has no terminal")
-            try:
-                facts = envs.terminal_facts(lane_id)
-            except AgentosError:
-                return await refuse(websocket, WS_NOT_FOUND, "no such lane")
-        else:
-            lanes = api.optional("lanes")
-            if lanes is not None:
-                try:
-                    info = await maybe_await(lanes.get(lane_id))
-                    if info.spec.kind != LaneKind.TERMINAL:
-                        return await refuse(websocket, WS_NOT_FOUND, "this lane has no terminal")
-                except AgentosError:
-                    return await refuse(websocket, WS_NOT_FOUND, "no such lane")
+            return await self.refuse(websocket, WS_UNAVAILABLE, "terminals are not configured on this node")
+        missing, facts = await self.terminal_facts(envs, lane_id)
+        if missing is not None:
+            return await self.refuse(websocket, WS_NOT_FOUND, missing)
         try:
             # a shell is exec on this lane: scope, the exec special and (for tokens) its routing
             await access.authorize(Effect.EXEC, action="lane.terminal", lane_id=lane_id,
                                    summary=f"Open an interactive shell in lane {lane_id} from the panel",
                                    content={"shell": lane_id, "via": "panel"}, facts=facts)
         except ApprovalPending as exc:
-            return await refuse(websocket, WS_PENDING, f"waiting for approval {exc.approval_id}"[:120])
+            return await self.refuse(websocket, WS_PENDING, f"waiting for approval {exc.approval_id}"[:120])
         except AgentosError as exc:
-            return await refuse(websocket, WS_DENIED, exc.message[:120])
+            return await self.refuse(websocket, WS_DENIED, exc.message[:120])
         mode = _mode(websocket)
         cols = _int(websocket.query_params.get("cols"), 80, 10, 500)
         rows = _int(websocket.query_params.get("rows"), 24, 5, 200)
         try:
             session = await maybe_await(envs.open_terminal(lane_id, principal=auth.principal, cols=cols, rows=rows))
         except AgentosError as exc:
-            return await refuse(websocket, WS_UNAVAILABLE, exc.message[:120])
+            return await self.refuse(websocket, WS_UNAVAILABLE, exc.message[:120])
         await websocket.accept()
-        decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
-
-        async def from_client() -> None:
-            while True:
-                msg = await websocket.receive()
-                if msg["type"] == "websocket.disconnect":
-                    return
-                text = msg.get("text")
-                if text is None and msg.get("bytes") is not None:
-                    text = msg["bytes"].decode("utf-8", errors="replace")
-                if text is None:
-                    continue
-                resize = _resize(text)
-                if resize:
-                    await maybe_await(session.resize(*resize))
-                elif mode != VIEW:  # `mode=view` reads the shell and types nothing into it
-                    await maybe_await(session.write(text))
-
-        async def to_client() -> None:
-            while True:
-                data = await maybe_await(session.read())
-                if data is None:
-                    return
-                text = decoder.decode(data) if isinstance(data, bytes) else data
-                if text:
-                    await websocket.send_text(text)
-
         try:
-            with live.track("terminal", _recheck(api, websocket, "terminal", lane_id, auth),
-                            **_keys(auth, lane_id)) as entry:
-                await _race(from_client(), to_client(), entry.wait_closed())
+            with self.live.track("terminal", _recheck(self.api, websocket, "terminal", lane_id, auth),
+                                 **_keys(auth, lane_id)) as entry:
+                await _race(_keys_to_shell(websocket, session, mode), _shell_to_client(websocket, session),
+                            entry.wait_closed())
                 await _close_ended(websocket, entry)
         finally:
             await maybe_await(session.close())
@@ -431,10 +406,46 @@ def routes(api: Api, *, connect_upstream: Callable[[str, list[str] | None], Any]
                 except (RuntimeError, WebSocketDisconnect):  # the client already left
                     pass
 
+
+async def _keys_to_shell(websocket: WebSocket, session: Any, mode: str | None) -> None:
+    """What the panel types (and its resizes) into a terminal session, until the socket closes."""
+    while True:
+        msg = await websocket.receive()
+        if msg["type"] == "websocket.disconnect":
+            return
+        text = msg.get("text")
+        if text is None and msg.get("bytes") is not None:
+            text = msg["bytes"].decode("utf-8", errors="replace")
+        if text is None:
+            continue
+        resize = _resize(text)
+        if resize:
+            await maybe_await(session.resize(*resize))
+        elif mode != VIEW:  # `mode=view` reads the shell and types nothing into it
+            await maybe_await(session.write(text))
+
+
+async def _shell_to_client(websocket: WebSocket, session: Any) -> None:
+    """What the shell prints, decoded as UTF-8 across reads, until the session ends."""
+    decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
+    while True:
+        data = await maybe_await(session.read())
+        if data is None:
+            return
+        text = decoder.decode(data) if isinstance(data, bytes) else data
+        if text:
+            await websocket.send_text(text)
+
+
+def routes(api: Api, *, connect_upstream: Callable[[str, list[str] | None], Any] | None = None) -> list:
+    h = Handlers(api)
+
+    del connect_upstream  # the live view now goes through agentos.node.vnc_relay to x11vnc (no websockify)
+
     return [
-        Route("/api/events", endpoint(api, events), methods=["GET"]),
-        WebSocketRoute("/api/lanes/{ws}/{name}/vnc", vnc),
-        WebSocketRoute("/api/lanes/{ws}/{name}/terminal", terminal),
+        Route("/api/events", endpoint(api, h.events), methods=["GET"]),
+        WebSocketRoute("/api/lanes/{ws}/{name}/vnc", h.vnc),
+        WebSocketRoute("/api/lanes/{ws}/{name}/terminal", h.terminal),
     ]
 
 

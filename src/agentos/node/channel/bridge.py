@@ -15,10 +15,10 @@ from collections.abc import Callable
 from datetime import datetime
 from typing import Any
 
+from agentos.core.system import MiB, read_meminfo
 from agentos.node.channel.files import preview_param
-from agentos.ops.system import MiB, read_meminfo
 from agentos.policy.redact import redact, redact_text
-from agentos.vault.scrub import walk
+from agentos.policy.scrub import walk
 
 LANE_FIELDS = ("id", "kind", "state", "signal", "last_used")
 MAX_TOOLS = 500

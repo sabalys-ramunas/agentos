@@ -49,6 +49,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
+from agentos.core import clock
 from agentos.core.errors import AgentosError, InvalidRequest, PolicyDenied, ServiceUnavailable
 from agentos.core.models import ControlState, LaneKind, Signal
 from agentos.node import login_page
@@ -81,7 +82,7 @@ Clock = Callable[[], float]
 
 
 def _iso(ts: float | None) -> str | None:
-    return datetime.fromtimestamp(ts, UTC).isoformat().replace("+00:00", "Z") if ts else None
+    return clock.iso(ts, z=True) if ts else None  # 0 is "not yet", as before
 
 
 def _new_id() -> str:
@@ -329,7 +330,7 @@ class LoginAssist:
         if info.spec.kind is not LaneKind.BROWSER:
             raise InvalidRequest(f"{lane_id} is a {info.spec.kind.value} lane; only browser lanes log in.")
         if url is not None:
-            from agentos.node.interaction import check_url
+            from agentos.node.interaction.urls import check_url
 
             interaction = self._svc("interaction")
             url = check_url(url, allow_private=bool(getattr(interaction, "allow_private_targets", False)))
@@ -541,7 +542,7 @@ class LoginAssist:
         return s.task is not None and not s.task.done() and s.task is not asyncio.current_task()
 
     def _page(self, s: Session) -> Any:
-        from agentos.node.tools import lane_session
+        from agentos.node.tools.session import lane_session
 
         holder = Holder(key=f"login:{s.id}", label="assisted login", kind="human", identity=f"login:{s.by}")
         return lane_session(self.lanes, s.lane, "human", holder=holder)
@@ -890,3 +891,25 @@ def service_for(runtime: Any) -> LoginAssist:
 
 
 __all__ = ["LoginAssist", "Session", "assist_entry", "service_for"]
+
+
+VALUE_NAMES = ("username", "password", "code")
+
+
+MAX_VALUE = 1024
+
+
+def read_values(raw: Any) -> dict[str, Secret]:
+    """{name: Secret} from the body's "values". Messages name the field, never its content."""
+    if raw is None:
+        return {}
+    if not isinstance(raw, dict) or len(raw) > len(VALUE_NAMES):
+        raise InvalidRequest('values is an object like {"username": "...", "password": "..."}.')
+    out: dict[str, Secret] = {}
+    for name, value in raw.items():
+        if name not in VALUE_NAMES:
+            raise InvalidRequest(f"values may name {', '.join(VALUE_NAMES)}.")
+        if not isinstance(value, str) or not value or len(value) > MAX_VALUE:
+            raise InvalidRequest(f"The {name} must be text of 1 to {MAX_VALUE} characters.")
+        out[name] = Secret(value)
+    return out

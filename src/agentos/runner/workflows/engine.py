@@ -18,13 +18,14 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
 
+from agentos.core.aio import maybe_await
 from agentos.core.errors import AgentosError, ApprovalPending, InvalidRequest, NotFound, PolicyDenied
 from agentos.core.models import Effect, Principal, RunStatus
 from agentos.runner.connectors.surfaces import ConnectorBroken, PaceLimited
-from agentos.runner.executor import Journal, Outcome, RunControl, _Stop
-from agentos.runner.models import SUCCEEDED, TERMINAL, Run, StepRecord, StepStatus
-from agentos.runner.runner import started_by_schedule
-from agentos.runner.util import clip, maybe_await
+from agentos.runner.execution import Journal, Outcome, RunControl, StopRun
+from agentos.runner.records import SUCCEEDED, TERMINAL, Run, StepRecord, StepStatus
+from agentos.runner.run_rules import started_by_schedule
+from agentos.runner.util import clip
 from agentos.runner.workflows.check import Operation
 from agentos.runner.workflows.mail import SendInDoubt, SendRefused, SendStopped, build_message
 from agentos.runner.workflows.models import (
@@ -684,7 +685,7 @@ class Walk:
         """The message about to go to `address` is the one its authorization covered, filled the same
         way and sent by the same flow version (a step that waited, for the daily limit or a child,
         resolves its operation again); else nothing more is sent (approval_mismatch)."""
-        from agentos.policy.approvals import content_digest
+        from agentos.policy.approval_binding import content_digest
 
         state = self._state(path)
         want = (state.get("rendered") or {}).get(address)
@@ -697,7 +698,7 @@ class Walk:
                               preview: tuple[list[dict[str, Any]], list[str]], from_leads: set[str]) -> None:
         """One authorization for what the step will send, right before it sends: it covers each
         message as filled for its person, and keeps a digest of each for the send to check."""
-        from agentos.policy.approvals import content_digest
+        from agentos.policy.approval_binding import content_digest
 
         state = self._state(path)
         if state.get("authorized"):
@@ -734,11 +735,11 @@ class Walk:
 
     async def _approval_covers(self, approval_id: str, effect: Any, account: str, content: dict[str, Any]) -> bool:
         """Does the approval the run was released with still cover exactly this send (the policy
-        gate's card, agentos.policy.approvals.action_binding_problem)? A node with no approvals
+        gate's card, agentos.policy.approval_binding.action_binding_problem)? A node with no approvals
         service releases it as before."""
         from types import SimpleNamespace
 
-        from agentos.policy.approvals import ActionBinding, action_binding_problem
+        from agentos.policy.approval_binding import ActionBinding, action_binding_problem
 
         get = getattr(self.runner._service("approvals"), "get", None)
         if not callable(get):
@@ -891,7 +892,7 @@ class WorkflowExecutor:
                                                                  "message": "A person answered no, so it stopped here."})
         except _NobodyLeft:
             return self._finished(run)
-        except _Stop as s:
+        except StopRun as s:
             if s.why == "cancel":
                 return Outcome("cancel", RunStatus.CANCELLED, error={"code": "cancelled", "message": "cancelled", "own_words": True})
             return Outcome("requeue")

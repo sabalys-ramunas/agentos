@@ -18,10 +18,11 @@ from typing import Any
 
 import pytest
 
+from agentos.core.driver import AmbiguousLocator, ElementNotFound
+from agentos.core.locator import Locator
 from agentos.runner import fakes
-from agentos.runner.driver import AmbiguousLocator, ElementNotFound
 from agentos.runner.fakes import El, FakeDriver, FakeSite
-from agentos.runner.models import ExtractField, Locator
+from agentos.runner.models import ExtractField
 
 # ---------------------------------------------------------------- pages
 

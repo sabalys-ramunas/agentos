@@ -29,12 +29,12 @@ from test_vault_support import (
 from agentos.core.errors import ApprovalPending
 from agentos.core.models import Effect
 from agentos.node import egress
+from agentos.node import vault_tools as tools
 from agentos.node.egress import LOGIN_WINDOW_S, Driver, EffectRule, EgressTrace, LaneGuard
 from agentos.node.routes import RouteDispatcher
 from agentos.node.typist import PlaywrightTypist
 from agentos.policy.errors import Denied
 from agentos.policy.grants import LaneCap, Specials
-from agentos.vault import tools
 from agentos.vault.errors import ResolutionDenied, SecretTooLong
 from agentos.vault.login import TYPE_MAX, fill_flow, login_flow
 
@@ -268,7 +268,7 @@ def test_only_the_typist_and_the_vault_can_open_a_window():
     found = [str(path.relative_to(root)) for path in (root / "src" / "agentos").rglob("*.py")
              if "open_login" in path.read_text(encoding="utf-8")]
     assert sorted(found) == ["src/agentos/node/egress/__init__.py", "src/agentos/node/egress/guard.py",
-                             "src/agentos/node/egress/rules.py", "src/agentos/node/typist.py",
+                             "src/agentos/node/egress/guard_login.py", "src/agentos/node/egress/rules.py", "src/agentos/node/typist.py",
                              "src/agentos/vault/login.py",
                              "src/agentos/vault/typist.py"]  # the guard (its window's length), its adapter, the fill, the protocol's docs
     assert "guard.open_login(domain)" in inspect.getsource(PlaywrightTypist.open_login)

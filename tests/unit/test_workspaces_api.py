@@ -5,9 +5,9 @@ from __future__ import annotations
 import pytest
 from starlette.applications import Starlette
 from starlette.testclient import TestClient
+from testkit.workspaces import Harness
 
 from agentos.workspaces.api import routes
-from agentos.workspaces.fakes import Harness
 
 
 @pytest.fixture

@@ -1,5 +1,8 @@
 # Foundations: tokens and base components
 
+> The prototypes under `panel/prototypes/` were removed with the classic panel on 2026-11-14. They are
+> in git history (commit 59634500 and earlier); the commands below run only on such a checkout.
+
 Status: design, 2026-11-12. Owner's words: "basic tokens like table headers need a lot of work."
 Built by D1 on the design wave that moves agentos toward developers' and designers' work.
 

@@ -61,7 +61,7 @@ class LanePaceMixin:
         if not path.exists():
             self._pin_zones.pop(lane_id, None)
             return None
-        from agentos.api.zone import valid_zone
+        from agentos.core.zone import valid_zone
 
         try:
             data = json.loads(path.read_text())
@@ -225,7 +225,7 @@ class LanePaceMixin:
 
     def set_workspace_zone(self, workspace: str, name: str | None, *, by: str = "owner") -> dict:
         """The default zone of a workspace's lanes that have no pin and no zone of their own."""
-        from agentos.workspaces.models import WORKSPACE_ID_RE
+        from agentos.core.models import WORKSPACE_ID_RE
 
         if not WORKSPACE_ID_RE.fullmatch(workspace or ""):
             raise InvalidRequest(f"{workspace!r} is not a workspace id like biz-a")

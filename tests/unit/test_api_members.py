@@ -18,14 +18,14 @@ from test_node_panel import TOKEN, WS, Node, bearer, concrete
 from test_node_panel import api_routes as every_route
 
 from agentos.api import realtime
-from agentos.api.auth import RateLimiter
 from agentos.api.members import CAPABILITIES, MEMBER_ROLES
 from agentos.api.realtime import WS_NOT_WARM
 from agentos.core import live
 from agentos.core.errors import ApprovalPending
 from agentos.core.models import Effect
-from agentos.freeze.store import FreezeRecord, scope_key
-from agentos.policy.service import MEMBER_ROLES as POLICY_MEMBER_ROLES
+from agentos.core.ratelimit import RateLimiter
+from agentos.policy.freeze_store import FreezeRecord, scope_key
+from agentos.policy.members import MEMBER_ROLES as POLICY_MEMBER_ROLES
 
 ORIGIN = "http://localhost:7400"
 
@@ -343,14 +343,10 @@ MEMBER_ROUTES: dict[tuple[str, str], frozenset[str]] = {
     ("GET", "/api/lanes/{ws}/{name}/meter"): SEES, ("GET", "/api/lanes/{ws}/{name}/queue"): SEES,
     ("GET", "/api/lanes/{ws}/{name}/pace"): SEES,
     ("GET", "/api/lanes/{ws}/{name}/taint"): SEES,  # which grants: the owner's only
-    ("GET", "/api/engage/digest"): EVERY_MEMBER,  # filtered: the surfaces of their workspaces
-    ("GET", "/api/engage/digest/{ws}/{name}"): SEES,  # draft ids only: the words are the owner's
-    ("GET", "/api/engage/programs/{ws}/{name}"): SEES,  # the program they run under; its caps, and no words of a draft
-    ("GET", "/api/engage/items/{ws}/{name}"): SEES,  # the items' words are the owner's: left out for members
     **{(m, p): frozenset({"admin"}) for m, p in (
         ("GET", "/api/invites"), ("POST", "/api/invites"), ("DELETE", "/api/invites/{id}"), ("GET", "/api/members"),
         ("GET", "/api/members/{id}"), ("PATCH", "/api/members/{id}"), ("DELETE", "/api/members/{id}"),
-        ("GET", "/api/members/{id}/devices"), ("DELETE", "/api/members/{id}/devices/{device}"))},
+        ("DELETE", "/api/members/{id}/devices/{device}"))},
 }
 # The web contract's own reads. Each is built on a node route above, so each is filtered the same way.
 MEMBER_ROUTES.update({
@@ -370,11 +366,9 @@ MEMBER_ROUTES.update({
         ("GET", "/api/orgs/{org}/surfaces/{ws}/{name}"), ("DELETE", "/api/orgs/{org}/surfaces/{ws}/{name}"),
         ("GET", "/api/orgs/{org}/connectors"), ("POST", "/api/orgs/{org}/connectors/{operation}/run"))},
 })
-# The day plan (routes_plan) is a person's read, filtered to the workspaces where their role has `see`.
 # An account's files (routes_files): reading needs `see`, changing them needs `operate` (operator, admin).
 # The web contract passes these through to the node (or checks the same role first), so each has its row too.
 MEMBER_ROUTES.update({
-    ("GET", "/api/plan/status"): SEES, ("GET", "/api/plan/draft"): SEES,  # /api/orgs/{org}/plan passes through
     ("GET", "/api/lanes/{ws}/{name}/files"): SEES, ("GET", "/api/lanes/{ws}/{name}/files/{id}/download"): SEES,
     ("POST", "/api/lanes/{ws}/{name}/files"): frozenset({"operator", "admin"}),
     ("DELETE", "/api/lanes/{ws}/{name}/files/{id}"): frozenset({"operator", "admin"}),
@@ -862,7 +856,7 @@ def test_devices_list_and_remove(node):
     assert opts["excludeCredentials"]  # the browser will not make a second passkey on the same device
     second = SoftAuthenticator(ORIGIN)
     assert va.post("/api/me/passkeys", {"credential": second.create(opts)}).status_code == 200
-    seen = boss.get(f"/api/members/{va.member['id']}/devices").json()
+    seen = boss.get(f"/api/members/{va.member['id']}").json()
     assert len(seen["passkeys"]) == 2
     # the owner removes the first passkey: the session made with it ends
     first = devices["passkeys"][0]["id"]

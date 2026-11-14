@@ -140,81 +140,103 @@ async def analyse(page, tokens: TokenSet, components: list[ComponentRule] | None
         cats = [c for c in (categories or list(PROPS_BY_CAT)) if c in have]
         a = Analysis(records=records, values=[], tokens=tokens, theme=theme, components=components,
                      area=data.get("area"), truncated=bool(data.get("truncated")), typed=bool(data.get("typed")))
-        if a.truncated:
-            a.notes.append(f"only the first {len(records)} of {data.get('total')} elements were read")
-        if data.get("leftOut"):
-            n = data["leftOut"]
-            a.notes.append(f"{n} region{'s' if n != 1 else ''} left out: pictures (role=img, inert) and regions marked "
-                           "as another product (data-studio=\"ignore\", ignore)")
-        if not a.typed:
-            a.notes.append("this engine has no typed computed values, so equal left and right margins "
-                           "were taken as centring and not checked")
+        a.notes += _read_notes(a, data)
         probe = None
         if rules.get("probe", True) and cats:
             probe = await run_probe(page, records, tokens, theme, cats,
                                     timeout_s=float(rules.get("probe_timeout_s", 20)))
             a.notes += probe.notes
-        root_px = data.get("rootFontSize") or 16.0
-        # values, one per element, property family and value
-        grouped: dict[tuple, Value] = {}
-        for rec in records:
-            for prop, cat, v, ua, fs in rec["v"]:
-                if cat == "shadow":
-                    # a ring or an inset edge is a line drawn as a shadow, not elevation: left out
-                    # (its colour is often a translucent tint no token names, so it is not judged)
-                    v = elevation(v)
-                    if v is None:
-                        continue   # only rings, edges and empty layers: borders drawn as a shadow, not one
-                key = (rec["i"], _family(prop), cat, v)
-                if key in grouped:
-                    grouped[key].props.append(prop)
-                else:
-                    grouped[key] = Value(rec, [prop], cat, v, bool(ua), fs)
-        if probe:
-            by_i = {r["i"]: r for r in records}
-            for i, prop, base in probe.hidden:
-                cat = next(c for p, c, _ in page_js.PROPS if p == prop)
-                fs = parse_length((probe.base_rows[i] if probe.base_rows else {}).get("font-size") or "16px") or 16.0
-                key = (i, _family(prop), cat, base)
-                if key not in grouped:
-                    grouped[key] = Value(by_i[i], [prop], cat, base, False, fs)
+        grouped = _grouped_values(records, probe)
         for cat in cats:
             if probe is None:
                 a.method[cat] = "value: the probe was turned off" if not rules.get("probe", True) else "value"
             else:
                 why = probe.ran.get(cat, "value")
                 a.method[cat] = "probe" if why == "probe" else f"value: {why}"
+        root_px = data.get("rootFontSize") or 16.0
         for val in grouped.values():
             if val.category not in cats:
                 continue
             val.match = match(val.value, val.category, tokens, theme=theme, prop=val.props[0],
                               font_size_px=val.fs, root_px=root_px, rules=rules)
             if a.method.get(val.category) == "probe" and probe is not None:
-                provs = [probe.prov.get((val.rec["i"], p)) for p in val.props]
-                provs = [p for p in provs if p is not None]
-                if provs:
-                    val.prov = next((p for p in provs if p.kind == "token"), None) or \
-                        next((p for p in provs if p.kind == "derived"), None) or provs[0]
-                    val.method = "probe"
+                _take_provenance(val, probe)
             a.values.append(val)
-        # a category where nothing moved but values match tokens exactly: the page most likely
-        # writes the values in at build time, so a still value proves nothing
         if probe:
-            for cat in cats:
-                if a.method.get(cat) != "probe":
-                    continue
-                vals = [v for v in a.values if v.category == cat]
-                exact = sum(1 for v in vals if v.match and v.match.kind == "exact")
-                if probe.moved.get(cat, 0) == 0 and exact >= 1:
-                    a.method[cat] = ("value: no value moved when its tokens changed, so the page likely writes "
-                                     "token values in at build time; look-alikes cannot be told apart here")
-                    for v in vals:
-                        v.method = "value"
-                        v.prov = None
+            _distrust_still_categories(a, cats, probe)
         return a
     finally:
         with contextlib.suppress(Exception):   # the page may have been reloaded by the probe
             await page.evaluate(page_js.CLEANUP)
+
+
+def _read_notes(a: Analysis, data: dict) -> list[str]:
+    """What the read of the page left out, for the coverage line."""
+    notes = []
+    if a.truncated:
+        notes.append(f"only the first {len(a.records)} of {data.get('total')} elements were read")
+    if data.get("leftOut"):
+        n = data["leftOut"]
+        notes.append(f"{n} region{'s' if n != 1 else ''} left out: pictures (role=img, inert) and regions marked "
+                     "as another product (data-studio=\"ignore\", ignore)")
+    if not a.typed:
+        notes.append("this engine has no typed computed values, so equal left and right margins "
+                     "were taken as centring and not checked")
+    return notes
+
+
+def _grouped_values(records: list[dict], probe: Any) -> dict[tuple, Value]:
+    """One value per element, property family and value; with the probe, also the values a
+    hidden state showed only to it."""
+    grouped: dict[tuple, Value] = {}
+    for rec in records:
+        for prop, cat, v, ua, fs in rec["v"]:
+            if cat == "shadow":
+                # a ring or an inset edge is a line drawn as a shadow, not elevation: left out
+                # (its colour is often a translucent tint no token names, so it is not judged)
+                v = elevation(v)
+                if v is None:
+                    continue   # only rings, edges and empty layers: borders drawn as a shadow, not one
+            key = (rec["i"], _family(prop), cat, v)
+            if key in grouped:
+                grouped[key].props.append(prop)
+            else:
+                grouped[key] = Value(rec, [prop], cat, v, bool(ua), fs)
+    if probe:
+        by_i = {r["i"]: r for r in records}
+        for i, prop, base in probe.hidden:
+            cat = next(c for p, c, _ in page_js.PROPS if p == prop)
+            fs = parse_length((probe.base_rows[i] if probe.base_rows else {}).get("font-size") or "16px") or 16.0
+            key = (i, _family(prop), cat, base)
+            if key not in grouped:
+                grouped[key] = Value(by_i[i], [prop], cat, base, False, fs)
+    return grouped
+
+
+def _take_provenance(val: Value, probe: Any) -> None:
+    """Where the probe saw this value come from: a token first, then a derived value."""
+    provs = [probe.prov.get((val.rec["i"], p)) for p in val.props]
+    provs = [p for p in provs if p is not None]
+    if provs:
+        val.prov = next((p for p in provs if p.kind == "token"), None) or \
+            next((p for p in provs if p.kind == "derived"), None) or provs[0]
+        val.method = "probe"
+
+
+def _distrust_still_categories(a: Analysis, cats: list[str], probe: Any) -> None:
+    """A category where nothing moved but values match tokens exactly: the page most likely
+    writes the values in at build time, so a still value proves nothing."""
+    for cat in cats:
+        if a.method.get(cat) != "probe":
+            continue
+        vals = [v for v in a.values if v.category == cat]
+        exact = sum(1 for v in vals if v.match and v.match.kind == "exact")
+        if probe.moved.get(cat, 0) == 0 and exact >= 1:
+            a.method[cat] = ("value: no value moved when its tokens changed, so the page likely writes "
+                             "token values in at build time; look-alikes cannot be told apart here")
+            for v in vals:
+                v.method = "value"
+                v.prov = None
 
 
 def _line(la: Any) -> bool:
@@ -316,6 +338,18 @@ def _distance(category: str, m: Match | None) -> tuple[str, dict]:
 def findings_from(a: Analysis, ctx: CheckContext) -> CheckOutput:
     screen = ctx.screen.key
     want = _wanted(ctx.only)
+    findings = [_value_finding(a, key, vals, screen) for key, vals in _off_system(a).items() if key[0] in want]
+    if "component.hand_rolled" in want and a.components:
+        findings += _hand_rolled(a, screen)
+    order = {Severity.BLOCKER: 0, Severity.MAJOR: 1, Severity.MINOR: 2, Severity.INFO: 3}
+    findings.sort(key=lambda f: (order[f.severity], -(f.seen_at[0].count if f.seen_at else 0), f.check, f.id))
+    return CheckOutput(findings=findings, coverage=_coverage(a, screen, want))
+
+
+def _off_system(a: Analysis) -> dict[tuple, list[Value]]:
+    """The values that are not on the system, grouped by (check, component, category, value,
+    browser default, match kind): one finding each. A look-alike (exact by value, but fixed
+    when the tokens moved) is a hard-coded value."""
     groups: dict[tuple, list[Value]] = defaultdict(list)
     for v in a.values:
         if v.on_system or v.match is None:
@@ -326,67 +360,69 @@ def findings_from(a: Analysis, ctx: CheckContext) -> CheckOutput:
         check = "token.hardcoded" if lookalike else CHECK_OF[v.category]
         comp = (v.rec.get("comp") or {}).get("name")
         groups[(check, comp, v.category, _value_key(v), v.ua, v.match.kind)].append(v)
-    findings: list[Finding] = []
-    for (check, comp, cat, vkey, ua, kind), vals in groups.items():
-        if check not in want:
-            continue
-        first = vals[0]
-        m = first.match
-        tok_disp, var = _token_display(a.tokens, m.token if m else None, a.theme)
-        disp = _display(cat, first.value, first.fs)
-        dist_text, dist = _distance(cat, m)
-        props = sorted({p for v in vals for p in v.props})
-        fam = sorted({_family(p) for p in props})
-        sels = []
-        for v in vals:
-            if v.rec["sel"] not in sels:
-                sels.append(v.rec["sel"])
-        measured = {"value": disp, "category": cat, "properties": fam, "count": len(sels),
-                    "selectors": sels[:MAX_SELECTORS], "method": first.method, **dist}
-        if first.value != disp:
-            measured["computed"] = first.value
-        if first.method == "probe":
-            measured["provenance"] = "hard-coded: it did not move when the tokens changed"
-        if ua:
-            measured["origin"] = "browser default"
-        expected = {"token": m.token if m else None, "value": tok_disp, "css_var": var,
-                    "candidates": (m.candidates if m else [])[:6]}
-        if check == "token.hardcoded":
-            severity, fkind = Severity.MINOR, "hardcoded"
-        elif kind == "near":
-            severity, fkind = Severity.MINOR, "near"
-        else:
-            severity, fkind = (Severity.MAJOR if cat == "color" else Severity.MINOR), "off"
-        measured["match"] = kind
-        fix = _fix(fkind, disp, m.token if m else None, tok_disp, var, dist_text, ua, first.rec["tag"], fam)
-        anchor = f"{cat}:{vkey}" + (":ua" if ua else "") + (":near" if kind == "near" and check != "token.hardcoded" else "")
-        findings.append(Finding(
-            id=finding_id(check, comp, anchor), check=check, severity=severity, confidence=Confidence.MEASURED,
-            where=Where(selector=first.rec["sel"], role=first.rec.get("role"), rect=_rect(first.rec)),
-            component=_component(first.rec), seen_at=[SeenAt(screen=screen, count=len(sels))],
-            measured=measured, expected=expected, fix=fix))
-    # hand-rolled controls
-    if "component.hand_rolled" in want and a.components:
-        hand: dict[tuple, list[dict]] = defaultdict(list)
-        for rec in a.records:
-            if rec.get("inter") and not rec.get("inComp"):
-                hand[(rec["tag"], rec.get("role") or "")].append(rec)
-        names = ", ".join(sorted({c.name for c in a.components if c.name != "*"})[:5]) or "a known component"
-        for (tag, role), recs in hand.items():
-            what = f"<{tag}" + (f" role={role}" if role else "") + ">"
-            findings.append(Finding(
-                id=finding_id("component.hand_rolled", None, f"{tag}|{role}"), check="component.hand_rolled",
-                severity=Severity.MINOR, confidence=Confidence.HEURISTIC,
-                where=Where(selector=recs[0]["sel"], role=recs[0].get("role"), rect=_rect(recs[0])),
-                seen_at=[SeenAt(screen=screen, count=len(recs))],
-                measured={"control": what, "count": len(recs), "selectors": [r["sel"] for r in recs][:MAX_SELECTORS]},
-                expected={"rule": "every control comes from a known component", "components": names},
-                fix=f"Use one of the design system's components ({names}) instead of a hand-built {what}.",
-                why_heuristic=("a control outside every known component is taken as hand-built; a component "
-                               "the rules do not list looks the same")))
-    order = {Severity.BLOCKER: 0, Severity.MAJOR: 1, Severity.MINOR: 2, Severity.INFO: 3}
-    findings.sort(key=lambda f: (order[f.severity], -(f.seen_at[0].count if f.seen_at else 0), f.check, f.id))
-    return CheckOutput(findings=findings, coverage=_coverage(a, screen, want))
+    return groups
+
+
+def _value_finding(a: Analysis, key: tuple, vals: list[Value], screen: str) -> Finding:
+    check, comp, cat, vkey, ua, kind = key
+    first = vals[0]
+    m = first.match
+    tok_disp, var = _token_display(a.tokens, m.token if m else None, a.theme)
+    disp = _display(cat, first.value, first.fs)
+    dist_text, dist = _distance(cat, m)
+    props = sorted({p for v in vals for p in v.props})
+    fam = sorted({_family(p) for p in props})
+    sels = []
+    for v in vals:
+        if v.rec["sel"] not in sels:
+            sels.append(v.rec["sel"])
+    measured = {"value": disp, "category": cat, "properties": fam, "count": len(sels),
+                "selectors": sels[:MAX_SELECTORS], "method": first.method, **dist}
+    if first.value != disp:
+        measured["computed"] = first.value
+    if first.method == "probe":
+        measured["provenance"] = "hard-coded: it did not move when the tokens changed"
+    if ua:
+        measured["origin"] = "browser default"
+    expected = {"token": m.token if m else None, "value": tok_disp, "css_var": var,
+                "candidates": (m.candidates if m else [])[:6]}
+    if check == "token.hardcoded":
+        severity, fkind = Severity.MINOR, "hardcoded"
+    elif kind == "near":
+        severity, fkind = Severity.MINOR, "near"
+    else:
+        severity, fkind = (Severity.MAJOR if cat == "color" else Severity.MINOR), "off"
+    measured["match"] = kind
+    fix = _fix(fkind, disp, m.token if m else None, tok_disp, var, dist_text, ua, first.rec["tag"], fam)
+    anchor = f"{cat}:{vkey}" + (":ua" if ua else "") + (":near" if kind == "near" and check != "token.hardcoded" else "")
+    return Finding(
+        id=finding_id(check, comp, anchor), check=check, severity=severity, confidence=Confidence.MEASURED,
+        where=Where(selector=first.rec["sel"], role=first.rec.get("role"), rect=_rect(first.rec)),
+        component=_component(first.rec), seen_at=[SeenAt(screen=screen, count=len(sels))],
+        measured=measured, expected=expected, fix=fix)
+
+
+def _hand_rolled(a: Analysis, screen: str) -> list[Finding]:
+    """Controls outside every known component."""
+    out: list[Finding] = []
+    hand: dict[tuple, list[dict]] = defaultdict(list)
+    for rec in a.records:
+        if rec.get("inter") and not rec.get("inComp"):
+            hand[(rec["tag"], rec.get("role") or "")].append(rec)
+    names = ", ".join(sorted({c.name for c in a.components if c.name != "*"})[:5]) or "a known component"
+    for (tag, role), recs in hand.items():
+        what = f"<{tag}" + (f" role={role}" if role else "") + ">"
+        out.append(Finding(
+            id=finding_id("component.hand_rolled", None, f"{tag}|{role}"), check="component.hand_rolled",
+            severity=Severity.MINOR, confidence=Confidence.HEURISTIC,
+            where=Where(selector=recs[0]["sel"], role=recs[0].get("role"), rect=_rect(recs[0])),
+            seen_at=[SeenAt(screen=screen, count=len(recs))],
+            measured={"control": what, "count": len(recs), "selectors": [r["sel"] for r in recs][:MAX_SELECTORS]},
+            expected={"rule": "every control comes from a known component", "components": names},
+            fix=f"Use one of the design system's components ({names}) instead of a hand-built {what}.",
+            why_heuristic=("a control outside every known component is taken as hand-built; a component "
+                           "the rules do not list looks the same")))
+    return out
 
 
 def _wanted(only: list[str] | None) -> set[str]:

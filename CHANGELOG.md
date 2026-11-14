@@ -4,6 +4,38 @@ All notable changes to agentos are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/) (before 1.0, a minor version may break things).
 
+## [Unreleased]
+
+agentos is now about agent environments. Two older parts are gone.
+
+### Removed
+
+- **The engagement engine and the day plan.** The programs and sessions that liked, followed
+  and commented on their own are removed, with their CLI commands (`agentos engage`,
+  `agentos plan`), their MCP tools and their API routes. A run the engine queued on an older
+  node is cancelled before it starts (`source_retired`), and nothing is sent. Old `engage_*`
+  keys in `node.toml` are ignored, so the file still loads, and `engage.db` is left on disk as
+  it is, never opened. The action ledger stays and keeps counting what each account does.
+- **The classic panel (`panel/`).** A node serves the web app (`web/`) only. Gone with it:
+  `agentos panel use`, `agentos errors --panel-json`, and two routes only it called
+  (`GET /api/audit/replay.html`: `agentos audit replay --html` writes the same file;
+  `GET /api/members/{id}/devices`: `GET /api/members/{id}` carries the devices).
+  `AGENTOS_PANEL_DIR` still points a node at another build, and `agentos panel login` still
+  prints a sign-in link.
+
+### Changed
+
+- The API demo runs as `python -m agentos.dev.apidemo` (it was `agentos.api.demo`).
+- Old import paths of moved modules are gone. Use the new homes, for example
+  `agentos.stealth`, `agentos.node.camoufox`, `agentos.workspaces.transfer` and
+  `agentos.core.age`.
+
+### For contributors
+
+- `make layers` checks one import order between the packages, and `make complexity` fails on a
+  function of complexity 25 or more or a file over 1,000 lines unless it is listed. Both run in
+  `make lint` and CI, and their lists only shrink.
+
 ## [0.1.0] (unreleased)
 
 The first public release. agentos is cloud dev environments for AI coding agents: a chat's agent

@@ -1,0 +1,6924 @@
+{
+ "dump linux / accept language / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "Accept-Language starts with de-DE, navigator.languages with en-US",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / accept language / plain": [
+  [
+   "consistency",
+   "fail",
+   "Accept-Language starts with de-DE, navigator.languages with en-US",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / accept language / proxied": [
+  [
+   "consistency",
+   "fail",
+   "Accept-Language starts with de-DE, navigator.languages with en-US",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / accept language / same tz": [
+  [
+   "consistency",
+   "fail",
+   "Accept-Language starts with de-DE, navigator.languages with en-US",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / as is / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / as is / plain": [
+  [
+   "consistency",
+   "ok",
+   "no automation trace and no inconsistency (linux identity)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / as is / proxied": [
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / as is / same tz": [
+  [
+   "consistency",
+   "ok",
+   "no automation trace and no inconsistency (linux identity)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / auto webdriver / pinned tz": [
+  [
+   "automation",
+   "fail",
+   "navigator.webdriver is true",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / auto webdriver / plain": [
+  [
+   "automation",
+   "fail",
+   "navigator.webdriver is true",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / auto webdriver / proxied": [
+  [
+   "automation",
+   "fail",
+   "navigator.webdriver is true",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / auto webdriver / same tz": [
+  [
+   "automation",
+   "fail",
+   "navigator.webdriver is true",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / avail wide / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "the work area is wider than the screen",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / avail wide / plain": [
+  [
+   "consistency",
+   "fail",
+   "the work area is wider than the screen",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / avail wide / proxied": [
+  [
+   "consistency",
+   "fail",
+   "the work area is wider than the screen",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / avail wide / same tz": [
+  [
+   "consistency",
+   "fail",
+   "the work area is wider than the screen",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / chrome / pinned tz": [
+  [
+   "automation",
+   "fail",
+   "window.chrome is object on a Firefox",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / chrome / plain": [
+  [
+   "automation",
+   "fail",
+   "window.chrome is object on a Firefox",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / chrome / proxied": [
+  [
+   "automation",
+   "fail",
+   "window.chrome is object on a Firefox",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / chrome / same tz": [
+  [
+   "automation",
+   "fail",
+   "window.chrome is object on a Firefox",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / codecs / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / codecs / plain": [
+  [
+   "consistency",
+   "ok",
+   "no automation trace and no inconsistency (linux identity)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / codecs / proxied": [
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / codecs / same tz": [
+  [
+   "consistency",
+   "ok",
+   "no automation trace and no inconsistency (linux identity)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / css / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "CSS device-width is not the screen width the page reads",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "CSS device-height is not the screen height the page reads",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "CSS resolution does not match devicePixelRatio",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / css / plain": [
+  [
+   "consistency",
+   "fail",
+   "CSS device-width is not the screen width the page reads",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "CSS device-height is not the screen height the page reads",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "CSS resolution does not match devicePixelRatio",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / css / proxied": [
+  [
+   "consistency",
+   "fail",
+   "CSS device-width is not the screen width the page reads",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "CSS device-height is not the screen height the page reads",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "CSS resolution does not match devicePixelRatio",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / css / same tz": [
+  [
+   "consistency",
+   "fail",
+   "CSS device-width is not the screen width the page reads",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "CSS device-height is not the screen height the page reads",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "CSS resolution does not match devicePixelRatio",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / fonts empty / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / fonts empty / plain": [
+  [
+   "consistency",
+   "ok",
+   "no automation trace and no inconsistency (linux identity)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / fonts empty / proxied": [
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / fonts empty / same tz": [
+  [
+   "consistency",
+   "ok",
+   "no automation trace and no inconsistency (linux identity)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / fonts linux / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "a linux identity shows windows fonts: Segoe UI",
+   "x/y",
+   {
+    "fonts": [
+     "Segoe UI"
+    ]
+   }
+  ]
+ ],
+ "dump linux / fonts linux / plain": [
+  [
+   "consistency",
+   "fail",
+   "a linux identity shows windows fonts: Segoe UI",
+   "x/y",
+   {
+    "fonts": [
+     "Segoe UI"
+    ]
+   }
+  ]
+ ],
+ "dump linux / fonts linux / proxied": [
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "a linux identity shows windows fonts: Segoe UI",
+   "x/y",
+   {
+    "fonts": [
+     "Segoe UI"
+    ]
+   }
+  ]
+ ],
+ "dump linux / fonts linux / same tz": [
+  [
+   "consistency",
+   "fail",
+   "a linux identity shows windows fonts: Segoe UI",
+   "x/y",
+   {
+    "fonts": [
+     "Segoe UI"
+    ]
+   }
+  ]
+ ],
+ "dump linux / fonts none core / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / fonts none core / plain": [
+  [
+   "consistency",
+   "ok",
+   "no automation trace and no inconsistency (linux identity)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / fonts none core / proxied": [
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / fonts none core / same tz": [
+  [
+   "consistency",
+   "ok",
+   "no automation trace and no inconsistency (linux identity)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / frame differs / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / frame differs / plain": [
+  [
+   "consistency",
+   "ok",
+   "no automation trace and no inconsistency (linux identity)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / frame differs / proxied": [
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / frame differs / same tz": [
+  [
+   "consistency",
+   "ok",
+   "no automation trace and no inconsistency (linux identity)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / globals / pinned tz": [
+  [
+   "automation",
+   "fail",
+   "driver globals on window: __pw",
+   "x/y",
+   {
+    "values": [
+     "__pw"
+    ]
+   }
+  ],
+  [
+   "automation",
+   "fail",
+   "driver attributes on <html>: webdriver",
+   "x/y",
+   {
+    "values": [
+     "webdriver"
+    ]
+   }
+  ],
+  [
+   "automation",
+   "fail",
+   "functions that are not native code: Permissions.query",
+   "x/y",
+   {
+    "values": [
+     "Permissions.query"
+    ]
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / globals / plain": [
+  [
+   "automation",
+   "fail",
+   "driver globals on window: __pw",
+   "x/y",
+   {
+    "values": [
+     "__pw"
+    ]
+   }
+  ],
+  [
+   "automation",
+   "fail",
+   "driver attributes on <html>: webdriver",
+   "x/y",
+   {
+    "values": [
+     "webdriver"
+    ]
+   }
+  ],
+  [
+   "automation",
+   "fail",
+   "functions that are not native code: Permissions.query",
+   "x/y",
+   {
+    "values": [
+     "Permissions.query"
+    ]
+   }
+  ]
+ ],
+ "dump linux / globals / proxied": [
+  [
+   "automation",
+   "fail",
+   "driver globals on window: __pw",
+   "x/y",
+   {
+    "values": [
+     "__pw"
+    ]
+   }
+  ],
+  [
+   "automation",
+   "fail",
+   "driver attributes on <html>: webdriver",
+   "x/y",
+   {
+    "values": [
+     "webdriver"
+    ]
+   }
+  ],
+  [
+   "automation",
+   "fail",
+   "functions that are not native code: Permissions.query",
+   "x/y",
+   {
+    "values": [
+     "Permissions.query"
+    ]
+   }
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / globals / same tz": [
+  [
+   "automation",
+   "fail",
+   "driver globals on window: __pw",
+   "x/y",
+   {
+    "values": [
+     "__pw"
+    ]
+   }
+  ],
+  [
+   "automation",
+   "fail",
+   "driver attributes on <html>: webdriver",
+   "x/y",
+   {
+    "values": [
+     "webdriver"
+    ]
+   }
+  ],
+  [
+   "automation",
+   "fail",
+   "functions that are not native code: Permissions.query",
+   "x/y",
+   {
+    "values": [
+     "Permissions.query"
+    ]
+   }
+  ]
+ ],
+ "dump linux / inner screen / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "the content area is at (0, 85) on the screen, which a window at (206, 2) cannot have (mozInnerScreenX/Y show the real window, Camoufox issue 974)",
+   "x/y",
+   {
+    "values": {
+     "dx": -206,
+     "dy": -2
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / inner screen / plain": [
+  [
+   "consistency",
+   "fail",
+   "the content area is at (0, 85) on the screen, which a window at (206, 2) cannot have (mozInnerScreenX/Y show the real window, Camoufox issue 974)",
+   "x/y",
+   {
+    "values": {
+     "dx": -206,
+     "dy": -2
+    }
+   }
+  ]
+ ],
+ "dump linux / inner screen / proxied": [
+  [
+   "consistency",
+   "fail",
+   "the content area is at (0, 85) on the screen, which a window at (206, 2) cannot have (mozInnerScreenX/Y show the real window, Camoufox issue 974)",
+   "x/y",
+   {
+    "values": {
+     "dx": -206,
+     "dy": -2
+    }
+   }
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / inner screen / same tz": [
+  [
+   "consistency",
+   "fail",
+   "the content area is at (0, 85) on the screen, which a window at (206, 2) cannot have (mozInnerScreenX/Y show the real window, Camoufox issue 974)",
+   "x/y",
+   {
+    "values": {
+     "dx": -206,
+     "dy": -2
+    }
+   }
+  ]
+ ],
+ "dump linux / mac ua / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "a worker sees another browser than the page: userAgent",
+   "x/y",
+   {
+    "values": {
+     "userAgent": [
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:158.0) Gecko/20100101 Firefox/158.0",
+      "Mozilla/5.0 (X11; Linux x86_64; rv:158.0) Gecko/20100101 Firefox/158.0"
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "a frame sees another browser than the page: userAgent",
+   "x/y",
+   {
+    "values": {
+     "userAgent": [
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:158.0) Gecko/20100101 Firefox/158.0",
+      "Mozilla/5.0 (X11; Linux x86_64; rv:158.0) Gecko/20100101 Firefox/158.0"
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "the User-Agent header differs from navigator.userAgent",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "a macos identity shows linux fonts: Ubuntu, Ubuntu Mono",
+   "x/y",
+   {
+    "fonts": [
+     "Ubuntu",
+     "Ubuntu Mono"
+    ]
+   }
+  ]
+ ],
+ "dump linux / mac ua / plain": [
+  [
+   "consistency",
+   "fail",
+   "a worker sees another browser than the page: userAgent",
+   "x/y",
+   {
+    "values": {
+     "userAgent": [
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:158.0) Gecko/20100101 Firefox/158.0",
+      "Mozilla/5.0 (X11; Linux x86_64; rv:158.0) Gecko/20100101 Firefox/158.0"
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "a frame sees another browser than the page: userAgent",
+   "x/y",
+   {
+    "values": {
+     "userAgent": [
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:158.0) Gecko/20100101 Firefox/158.0",
+      "Mozilla/5.0 (X11; Linux x86_64; rv:158.0) Gecko/20100101 Firefox/158.0"
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "the User-Agent header differs from navigator.userAgent",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "a macos identity shows linux fonts: Ubuntu, Ubuntu Mono",
+   "x/y",
+   {
+    "fonts": [
+     "Ubuntu",
+     "Ubuntu Mono"
+    ]
+   }
+  ]
+ ],
+ "dump linux / mac ua / proxied": [
+  [
+   "consistency",
+   "fail",
+   "a worker sees another browser than the page: userAgent",
+   "x/y",
+   {
+    "values": {
+     "userAgent": [
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:158.0) Gecko/20100101 Firefox/158.0",
+      "Mozilla/5.0 (X11; Linux x86_64; rv:158.0) Gecko/20100101 Firefox/158.0"
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "a frame sees another browser than the page: userAgent",
+   "x/y",
+   {
+    "values": {
+     "userAgent": [
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:158.0) Gecko/20100101 Firefox/158.0",
+      "Mozilla/5.0 (X11; Linux x86_64; rv:158.0) Gecko/20100101 Firefox/158.0"
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "the User-Agent header differs from navigator.userAgent",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "a macos identity shows linux fonts: Ubuntu, Ubuntu Mono",
+   "x/y",
+   {
+    "fonts": [
+     "Ubuntu",
+     "Ubuntu Mono"
+    ]
+   }
+  ]
+ ],
+ "dump linux / mac ua / same tz": [
+  [
+   "consistency",
+   "fail",
+   "a worker sees another browser than the page: userAgent",
+   "x/y",
+   {
+    "values": {
+     "userAgent": [
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:158.0) Gecko/20100101 Firefox/158.0",
+      "Mozilla/5.0 (X11; Linux x86_64; rv:158.0) Gecko/20100101 Firefox/158.0"
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "a frame sees another browser than the page: userAgent",
+   "x/y",
+   {
+    "values": {
+     "userAgent": [
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:158.0) Gecko/20100101 Firefox/158.0",
+      "Mozilla/5.0 (X11; Linux x86_64; rv:158.0) Gecko/20100101 Firefox/158.0"
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "the User-Agent header differs from navigator.userAgent",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "a macos identity shows linux fonts: Ubuntu, Ubuntu Mono",
+   "x/y",
+   {
+    "fonts": [
+     "Ubuntu",
+     "Ubuntu Mono"
+    ]
+   }
+  ]
+ ],
+ "dump linux / no inner screen / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / no inner screen / plain": [
+  [
+   "consistency",
+   "ok",
+   "no automation trace and no inconsistency (linux identity)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / no inner screen / proxied": [
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / no inner screen / same tz": [
+  [
+   "consistency",
+   "ok",
+   "no automation trace and no inconsistency (linux identity)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / no languages / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "a worker sees another browser than the page: languages",
+   "x/y",
+   {
+    "values": {
+     "languages": [
+      "en",
+      [
+       "en-US",
+       "en"
+      ]
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "a frame sees another browser than the page: languages",
+   "x/y",
+   {
+    "values": {
+     "languages": [
+      "en",
+      [
+       "en-US",
+       "en"
+      ]
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / no languages / plain": [
+  [
+   "consistency",
+   "fail",
+   "a worker sees another browser than the page: languages",
+   "x/y",
+   {
+    "values": {
+     "languages": [
+      "en",
+      [
+       "en-US",
+       "en"
+      ]
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "a frame sees another browser than the page: languages",
+   "x/y",
+   {
+    "values": {
+     "languages": [
+      "en",
+      [
+       "en-US",
+       "en"
+      ]
+     ]
+    }
+   }
+  ]
+ ],
+ "dump linux / no languages / proxied": [
+  [
+   "consistency",
+   "fail",
+   "a worker sees another browser than the page: languages",
+   "x/y",
+   {
+    "values": {
+     "languages": [
+      "en",
+      [
+       "en-US",
+       "en"
+      ]
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "a frame sees another browser than the page: languages",
+   "x/y",
+   {
+    "values": {
+     "languages": [
+      "en",
+      [
+       "en-US",
+       "en"
+      ]
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / no languages / same tz": [
+  [
+   "consistency",
+   "fail",
+   "a worker sees another browser than the page: languages",
+   "x/y",
+   {
+    "values": {
+     "languages": [
+      "en",
+      [
+       "en-US",
+       "en"
+      ]
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "a frame sees another browser than the page: languages",
+   "x/y",
+   {
+    "values": {
+     "languages": [
+      "en",
+      [
+       "en-US",
+       "en"
+      ]
+     ]
+    }
+   }
+  ]
+ ],
+ "dump linux / no media / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / no media / plain": [
+  [
+   "consistency",
+   "ok",
+   "no automation trace and no inconsistency (linux identity)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / no media / proxied": [
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / no media / same tz": [
+  [
+   "consistency",
+   "ok",
+   "no automation trace and no inconsistency (linux identity)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / no prototype getter / pinned tz": [
+  [
+   "automation",
+   "warn",
+   "Navigator.prototype has no webdriver getter, which stock Firefox has",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / no prototype getter / plain": [
+  [
+   "automation",
+   "warn",
+   "Navigator.prototype has no webdriver getter, which stock Firefox has",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / no prototype getter / proxied": [
+  [
+   "automation",
+   "warn",
+   "Navigator.prototype has no webdriver getter, which stock Firefox has",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / no prototype getter / same tz": [
+  [
+   "automation",
+   "warn",
+   "Navigator.prototype has no webdriver getter, which stock Firefox has",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / no ua / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "a worker sees another browser than the page: userAgent",
+   "x/y",
+   {
+    "values": {
+     "userAgent": [
+      null,
+      "Mozilla/5.0 (X11; Linux x86_64; rv:158.0) Gecko/20100101 Firefox/158.0"
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "a frame sees another browser than the page: userAgent",
+   "x/y",
+   {
+    "values": {
+     "userAgent": [
+      null,
+      "Mozilla/5.0 (X11; Linux x86_64; rv:158.0) Gecko/20100101 Firefox/158.0"
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / no ua / plain": [
+  [
+   "consistency",
+   "fail",
+   "a worker sees another browser than the page: userAgent",
+   "x/y",
+   {
+    "values": {
+     "userAgent": [
+      null,
+      "Mozilla/5.0 (X11; Linux x86_64; rv:158.0) Gecko/20100101 Firefox/158.0"
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "a frame sees another browser than the page: userAgent",
+   "x/y",
+   {
+    "values": {
+     "userAgent": [
+      null,
+      "Mozilla/5.0 (X11; Linux x86_64; rv:158.0) Gecko/20100101 Firefox/158.0"
+     ]
+    }
+   }
+  ]
+ ],
+ "dump linux / no ua / proxied": [
+  [
+   "consistency",
+   "fail",
+   "a worker sees another browser than the page: userAgent",
+   "x/y",
+   {
+    "values": {
+     "userAgent": [
+      null,
+      "Mozilla/5.0 (X11; Linux x86_64; rv:158.0) Gecko/20100101 Firefox/158.0"
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "a frame sees another browser than the page: userAgent",
+   "x/y",
+   {
+    "values": {
+     "userAgent": [
+      null,
+      "Mozilla/5.0 (X11; Linux x86_64; rv:158.0) Gecko/20100101 Firefox/158.0"
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / no ua / same tz": [
+  [
+   "consistency",
+   "fail",
+   "a worker sees another browser than the page: userAgent",
+   "x/y",
+   {
+    "values": {
+     "userAgent": [
+      null,
+      "Mozilla/5.0 (X11; Linux x86_64; rv:158.0) Gecko/20100101 Firefox/158.0"
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "a frame sees another browser than the page: userAgent",
+   "x/y",
+   {
+    "values": {
+     "userAgent": [
+      null,
+      "Mozilla/5.0 (X11; Linux x86_64; rv:158.0) Gecko/20100101 Firefox/158.0"
+     ]
+    }
+   }
+  ]
+ ],
+ "dump linux / notification / pinned tz": [
+  [
+   "consistency",
+   "warn",
+   "Notification.permission is granted but the Permissions API says prompt",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / notification / plain": [
+  [
+   "consistency",
+   "warn",
+   "Notification.permission is granted but the Permissions API says prompt",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / notification / proxied": [
+  [
+   "consistency",
+   "warn",
+   "Notification.permission is granted but the Permissions API says prompt",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / notification / same tz": [
+  [
+   "consistency",
+   "warn",
+   "Notification.permission is granted but the Permissions API says prompt",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / notification same / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / notification same / plain": [
+  [
+   "consistency",
+   "ok",
+   "no automation trace and no inconsistency (linux identity)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / notification same / proxied": [
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / notification same / same tz": [
+  [
+   "consistency",
+   "ok",
+   "no automation trace and no inconsistency (linux identity)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / own property / pinned tz": [
+  [
+   "automation",
+   "fail",
+   "navigator has its own webdriver property (stock Firefox has it on the prototype)",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / own property / plain": [
+  [
+   "automation",
+   "fail",
+   "navigator has its own webdriver property (stock Firefox has it on the prototype)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / own property / proxied": [
+  [
+   "automation",
+   "fail",
+   "navigator has its own webdriver property (stock Firefox has it on the prototype)",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / own property / same tz": [
+  [
+   "automation",
+   "fail",
+   "navigator has its own webdriver property (stock Firefox has it on the prototype)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / pdf / pinned tz": [
+  [
+   "consistency",
+   "warn",
+   "pdfViewerEnabled with no plugins (Firefox lists its PDF viewer five times)",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / pdf / plain": [
+  [
+   "consistency",
+   "warn",
+   "pdfViewerEnabled with no plugins (Firefox lists its PDF viewer five times)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / pdf / proxied": [
+  [
+   "consistency",
+   "warn",
+   "pdfViewerEnabled with no plugins (Firefox lists its PDF viewer five times)",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / pdf / same tz": [
+  [
+   "consistency",
+   "warn",
+   "pdfViewerEnabled with no plugins (Firefox lists its PDF viewer five times)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / probe error / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "the math probe failed: error: x",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "the voices probe failed: error: timeout",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / probe error / plain": [
+  [
+   "consistency",
+   "warn",
+   "the math probe failed: error: x",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "the voices probe failed: error: timeout",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / probe error / proxied": [
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "the math probe failed: error: x",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "the voices probe failed: error: timeout",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / probe error / same tz": [
+  [
+   "consistency",
+   "warn",
+   "the math probe failed: error: x",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "the voices probe failed: error: timeout",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / toolbars / pinned tz": [
+  [
+   "consistency",
+   "warn",
+   "the browser's toolbars are 1023 px tall (outer minus inner height)",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the content area is at (0, 85) on the screen, which a window at (0, 0) cannot have (mozInnerScreenX/Y show the real window, Camoufox issue 974)",
+   "x/y",
+   {
+    "values": {
+     "dx": 0,
+     "dy": -938
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / toolbars / plain": [
+  [
+   "consistency",
+   "warn",
+   "the browser's toolbars are 1023 px tall (outer minus inner height)",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the content area is at (0, 85) on the screen, which a window at (0, 0) cannot have (mozInnerScreenX/Y show the real window, Camoufox issue 974)",
+   "x/y",
+   {
+    "values": {
+     "dx": 0,
+     "dy": -938
+    }
+   }
+  ]
+ ],
+ "dump linux / toolbars / proxied": [
+  [
+   "consistency",
+   "warn",
+   "the browser's toolbars are 1023 px tall (outer minus inner height)",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the content area is at (0, 85) on the screen, which a window at (0, 0) cannot have (mozInnerScreenX/Y show the real window, Camoufox issue 974)",
+   "x/y",
+   {
+    "values": {
+     "dx": 0,
+     "dy": -938
+    }
+   }
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / toolbars / same tz": [
+  [
+   "consistency",
+   "warn",
+   "the browser's toolbars are 1023 px tall (outer minus inner height)",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the content area is at (0, 85) on the screen, which a window at (0, 0) cannot have (mozInnerScreenX/Y show the real window, Camoufox issue 974)",
+   "x/y",
+   {
+    "values": {
+     "dx": 0,
+     "dy": -938
+    }
+   }
+  ]
+ ],
+ "dump linux / toolbars none / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "the content area is at (0, 85) on the screen, which a window at (0, 0) cannot have (mozInnerScreenX/Y show the real window, Camoufox issue 974)",
+   "x/y",
+   {
+    "values": {
+     "dx": 0,
+     "dy": 1033
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / toolbars none / plain": [
+  [
+   "consistency",
+   "fail",
+   "the content area is at (0, 85) on the screen, which a window at (0, 0) cannot have (mozInnerScreenX/Y show the real window, Camoufox issue 974)",
+   "x/y",
+   {
+    "values": {
+     "dx": 0,
+     "dy": 1033
+    }
+   }
+  ]
+ ],
+ "dump linux / toolbars none / proxied": [
+  [
+   "consistency",
+   "fail",
+   "the content area is at (0, 85) on the screen, which a window at (0, 0) cannot have (mozInnerScreenX/Y show the real window, Camoufox issue 974)",
+   "x/y",
+   {
+    "values": {
+     "dx": 0,
+     "dy": 1033
+    }
+   }
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / toolbars none / same tz": [
+  [
+   "consistency",
+   "fail",
+   "the content area is at (0, 85) on the screen, which a window at (0, 0) cannot have (mozInnerScreenX/Y show the real window, Camoufox issue 974)",
+   "x/y",
+   {
+    "values": {
+     "dx": 0,
+     "dy": 1033
+    }
+   }
+  ]
+ ],
+ "dump linux / touch / pinned tz": [
+  [
+   "consistency",
+   "warn",
+   "maxTouchPoints 5 but touch media and events say no touch",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / touch / plain": [
+  [
+   "consistency",
+   "warn",
+   "maxTouchPoints 5 but touch media and events say no touch",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / touch / proxied": [
+  [
+   "consistency",
+   "warn",
+   "maxTouchPoints 5 but touch media and events say no touch",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / touch / same tz": [
+  [
+   "consistency",
+   "warn",
+   "maxTouchPoints 5 but touch media and events say no touch",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / touch media / pinned tz": [
+  [
+   "consistency",
+   "warn",
+   "maxTouchPoints 0 but touch media and events say touch",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / touch media / plain": [
+  [
+   "consistency",
+   "warn",
+   "maxTouchPoints 0 but touch media and events say touch",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / touch media / proxied": [
+  [
+   "consistency",
+   "warn",
+   "maxTouchPoints 0 but touch media and events say touch",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / touch media / same tz": [
+  [
+   "consistency",
+   "warn",
+   "maxTouchPoints 0 but touch media and events say touch",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / ua header / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "the User-Agent header differs from navigator.userAgent",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / ua header / plain": [
+  [
+   "consistency",
+   "fail",
+   "the User-Agent header differs from navigator.userAgent",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / ua header / proxied": [
+  [
+   "consistency",
+   "fail",
+   "the User-Agent header differs from navigator.userAgent",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / ua header / same tz": [
+  [
+   "consistency",
+   "fail",
+   "the User-Agent header differs from navigator.userAgent",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / webdriver / pinned tz": [
+  [
+   "automation",
+   "fail",
+   "navigator.webdriver is true",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "a frame sees another browser than the page: webdriver",
+   "x/y",
+   {
+    "values": {
+     "webdriver": [
+      true,
+      false
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / webdriver / plain": [
+  [
+   "automation",
+   "fail",
+   "navigator.webdriver is true",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "a frame sees another browser than the page: webdriver",
+   "x/y",
+   {
+    "values": {
+     "webdriver": [
+      true,
+      false
+     ]
+    }
+   }
+  ]
+ ],
+ "dump linux / webdriver / proxied": [
+  [
+   "automation",
+   "fail",
+   "navigator.webdriver is true",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "a frame sees another browser than the page: webdriver",
+   "x/y",
+   {
+    "values": {
+     "webdriver": [
+      true,
+      false
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / webdriver / same tz": [
+  [
+   "automation",
+   "fail",
+   "navigator.webdriver is true",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "a frame sees another browser than the page: webdriver",
+   "x/y",
+   {
+    "values": {
+     "webdriver": [
+      true,
+      false
+     ]
+    }
+   }
+  ]
+ ],
+ "dump linux / webgl other os / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "WebGL in a worker names Radeon R9 200 Series, or similar, the page Apple M1, or similar",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / webgl other os / plain": [
+  [
+   "consistency",
+   "fail",
+   "WebGL in a worker names Radeon R9 200 Series, or similar, the page Apple M1, or similar",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / webgl other os / proxied": [
+  [
+   "consistency",
+   "fail",
+   "WebGL in a worker names Radeon R9 200 Series, or similar, the page Apple M1, or similar",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / webgl other os / same tz": [
+  [
+   "consistency",
+   "fail",
+   "WebGL in a worker names Radeon R9 200 Series, or similar, the page Apple M1, or similar",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / webgl software / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "WebGL in a worker names Radeon R9 200 Series, or similar, the page llvmpipe (LLVM 15)",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "WebGL: a software renderer (llvmpipe (LLVM 15)), what a machine without a working GPU driver shows",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / webgl software / plain": [
+  [
+   "consistency",
+   "fail",
+   "WebGL in a worker names Radeon R9 200 Series, or similar, the page llvmpipe (LLVM 15)",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "WebGL: a software renderer (llvmpipe (LLVM 15)), what a machine without a working GPU driver shows",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / webgl software / proxied": [
+  [
+   "consistency",
+   "fail",
+   "WebGL in a worker names Radeon R9 200 Series, or similar, the page llvmpipe (LLVM 15)",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "WebGL: a software renderer (llvmpipe (LLVM 15)), what a machine without a working GPU driver shows",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / webgl software / same tz": [
+  [
+   "consistency",
+   "fail",
+   "WebGL in a worker names Radeon R9 200 Series, or similar, the page llvmpipe (LLVM 15)",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "WebGL: a software renderer (llvmpipe (LLVM 15)), what a machine without a working GPU driver shows",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / webrtc / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ],
+  [
+   "leak",
+   "fail",
+   "WebRTC shows raw addresses: 10.0.0.5",
+   "x/y",
+   {
+    "addresses": [
+     "10.0.0.5"
+    ]
+   }
+  ]
+ ],
+ "dump linux / webrtc / plain": [
+  [
+   "leak",
+   "fail",
+   "WebRTC shows raw addresses: 10.0.0.5",
+   "x/y",
+   {
+    "addresses": [
+     "10.0.0.5"
+    ]
+   }
+  ]
+ ],
+ "dump linux / webrtc / proxied": [
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ],
+  [
+   "leak",
+   "fail",
+   "WebRTC shows raw addresses: 10.0.0.5",
+   "x/y",
+   {
+    "addresses": [
+     "10.0.0.5"
+    ]
+   }
+  ]
+ ],
+ "dump linux / webrtc / same tz": [
+  [
+   "leak",
+   "fail",
+   "WebRTC shows raw addresses: 10.0.0.5",
+   "x/y",
+   {
+    "addresses": [
+     "10.0.0.5"
+    ]
+   }
+  ]
+ ],
+ "dump linux / window wide / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "the content area is at (0, 85) on the screen, which a window at (0, 0) cannot have (mozInnerScreenX/Y show the real window, Camoufox issue 974)",
+   "x/y",
+   {
+    "values": {
+     "dx": 110,
+     "dy": 0
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / window wide / plain": [
+  [
+   "consistency",
+   "fail",
+   "the content area is at (0, 85) on the screen, which a window at (0, 0) cannot have (mozInnerScreenX/Y show the real window, Camoufox issue 974)",
+   "x/y",
+   {
+    "values": {
+     "dx": 110,
+     "dy": 0
+    }
+   }
+  ]
+ ],
+ "dump linux / window wide / proxied": [
+  [
+   "consistency",
+   "fail",
+   "the content area is at (0, 85) on the screen, which a window at (0, 0) cannot have (mozInnerScreenX/Y show the real window, Camoufox issue 974)",
+   "x/y",
+   {
+    "values": {
+     "dx": 110,
+     "dy": 0
+    }
+   }
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / window wide / same tz": [
+  [
+   "consistency",
+   "fail",
+   "the content area is at (0, 85) on the screen, which a window at (0, 0) cannot have (mozInnerScreenX/Y show the real window, Camoufox issue 974)",
+   "x/y",
+   {
+    "values": {
+     "dx": 110,
+     "dy": 0
+    }
+   }
+  ]
+ ],
+ "dump linux / worker differs / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "a worker sees another browser than the page: languages",
+   "x/y",
+   {
+    "values": {
+     "languages": [
+      [
+       "en-US",
+       "en"
+      ],
+      [
+       "de"
+      ]
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / worker differs / plain": [
+  [
+   "consistency",
+   "fail",
+   "a worker sees another browser than the page: languages",
+   "x/y",
+   {
+    "values": {
+     "languages": [
+      [
+       "en-US",
+       "en"
+      ],
+      [
+       "de"
+      ]
+     ]
+    }
+   }
+  ]
+ ],
+ "dump linux / worker differs / proxied": [
+  [
+   "consistency",
+   "fail",
+   "a worker sees another browser than the page: languages",
+   "x/y",
+   {
+    "values": {
+     "languages": [
+      [
+       "en-US",
+       "en"
+      ],
+      [
+       "de"
+      ]
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / worker differs / same tz": [
+  [
+   "consistency",
+   "fail",
+   "a worker sees another browser than the page: languages",
+   "x/y",
+   {
+    "values": {
+     "languages": [
+      [
+       "en-US",
+       "en"
+      ],
+      [
+       "de"
+      ]
+     ]
+    }
+   }
+  ]
+ ],
+ "dump linux / worker gone / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / worker gone / plain": [
+  [
+   "consistency",
+   "ok",
+   "no automation trace and no inconsistency (linux identity)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / worker gone / proxied": [
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / worker gone / same tz": [
+  [
+   "consistency",
+   "ok",
+   "no automation trace and no inconsistency (linux identity)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / worker missing / pinned tz": [
+  [
+   "consistency",
+   "warn",
+   "the worker probe failed: error: timeout",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "the worker probe failed: error: timeout",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / worker missing / plain": [
+  [
+   "consistency",
+   "warn",
+   "the worker probe failed: error: timeout",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "the worker probe failed: error: timeout",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / worker missing / proxied": [
+  [
+   "consistency",
+   "warn",
+   "the worker probe failed: error: timeout",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "the worker probe failed: error: timeout",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / worker missing / same tz": [
+  [
+   "consistency",
+   "warn",
+   "the worker probe failed: error: timeout",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "the worker probe failed: error: timeout",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / worker webgl / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "WebGL in a worker names llvmpipe, the page Radeon R9 200 Series, or similar",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / worker webgl / plain": [
+  [
+   "consistency",
+   "fail",
+   "WebGL in a worker names llvmpipe, the page Radeon R9 200 Series, or similar",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / worker webgl / proxied": [
+  [
+   "consistency",
+   "fail",
+   "WebGL in a worker names llvmpipe, the page Radeon R9 200 Series, or similar",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump linux / worker webgl / same tz": [
+  [
+   "consistency",
+   "fail",
+   "WebGL in a worker names llvmpipe, the page Radeon R9 200 Series, or similar",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / accept language / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "Accept-Language starts with de-DE, navigator.languages with en-US",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / accept language / plain": [
+  [
+   "consistency",
+   "fail",
+   "Accept-Language starts with de-DE, navigator.languages with en-US",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / accept language / proxied": [
+  [
+   "consistency",
+   "fail",
+   "Accept-Language starts with de-DE, navigator.languages with en-US",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / accept language / same tz": [
+  [
+   "consistency",
+   "fail",
+   "Accept-Language starts with de-DE, navigator.languages with en-US",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / as is / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / as is / plain": [
+  [
+   "consistency",
+   "ok",
+   "no automation trace and no inconsistency (windows identity)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / as is / proxied": [
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / as is / same tz": [
+  [
+   "consistency",
+   "ok",
+   "no automation trace and no inconsistency (windows identity)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / auto webdriver / pinned tz": [
+  [
+   "automation",
+   "fail",
+   "navigator.webdriver is true",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / auto webdriver / plain": [
+  [
+   "automation",
+   "fail",
+   "navigator.webdriver is true",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / auto webdriver / proxied": [
+  [
+   "automation",
+   "fail",
+   "navigator.webdriver is true",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / auto webdriver / same tz": [
+  [
+   "automation",
+   "fail",
+   "navigator.webdriver is true",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / avail wide / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "the work area is wider than the screen",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / avail wide / plain": [
+  [
+   "consistency",
+   "fail",
+   "the work area is wider than the screen",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / avail wide / proxied": [
+  [
+   "consistency",
+   "fail",
+   "the work area is wider than the screen",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / avail wide / same tz": [
+  [
+   "consistency",
+   "fail",
+   "the work area is wider than the screen",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / chrome / pinned tz": [
+  [
+   "automation",
+   "fail",
+   "window.chrome is object on a Firefox",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / chrome / plain": [
+  [
+   "automation",
+   "fail",
+   "window.chrome is object on a Firefox",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / chrome / proxied": [
+  [
+   "automation",
+   "fail",
+   "window.chrome is object on a Firefox",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / chrome / same tz": [
+  [
+   "automation",
+   "fail",
+   "window.chrome is object on a Firefox",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / codecs / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "a windows identity cannot play H.264, which every windows Firefox can (the host's codecs show, Camoufox issue 895)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / codecs / plain": [
+  [
+   "consistency",
+   "warn",
+   "a windows identity cannot play H.264, which every windows Firefox can (the host's codecs show, Camoufox issue 895)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / codecs / proxied": [
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "a windows identity cannot play H.264, which every windows Firefox can (the host's codecs show, Camoufox issue 895)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / codecs / same tz": [
+  [
+   "consistency",
+   "warn",
+   "a windows identity cannot play H.264, which every windows Firefox can (the host's codecs show, Camoufox issue 895)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / css / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "CSS device-width is not the screen width the page reads",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "CSS device-height is not the screen height the page reads",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "CSS resolution does not match devicePixelRatio",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / css / plain": [
+  [
+   "consistency",
+   "fail",
+   "CSS device-width is not the screen width the page reads",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "CSS device-height is not the screen height the page reads",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "CSS resolution does not match devicePixelRatio",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / css / proxied": [
+  [
+   "consistency",
+   "fail",
+   "CSS device-width is not the screen width the page reads",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "CSS device-height is not the screen height the page reads",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "CSS resolution does not match devicePixelRatio",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / css / same tz": [
+  [
+   "consistency",
+   "fail",
+   "CSS device-width is not the screen width the page reads",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "CSS device-height is not the screen height the page reads",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "CSS resolution does not match devicePixelRatio",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / fonts empty / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / fonts empty / plain": [
+  [
+   "consistency",
+   "ok",
+   "no automation trace and no inconsistency (windows identity)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / fonts empty / proxied": [
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / fonts empty / same tz": [
+  [
+   "consistency",
+   "ok",
+   "no automation trace and no inconsistency (windows identity)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / fonts linux / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "a windows identity shows linux fonts: Ubuntu Mono",
+   "x/y",
+   {
+    "fonts": [
+     "Ubuntu Mono"
+    ]
+   }
+  ]
+ ],
+ "dump windows / fonts linux / plain": [
+  [
+   "consistency",
+   "fail",
+   "a windows identity shows linux fonts: Ubuntu Mono",
+   "x/y",
+   {
+    "fonts": [
+     "Ubuntu Mono"
+    ]
+   }
+  ]
+ ],
+ "dump windows / fonts linux / proxied": [
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "a windows identity shows linux fonts: Ubuntu Mono",
+   "x/y",
+   {
+    "fonts": [
+     "Ubuntu Mono"
+    ]
+   }
+  ]
+ ],
+ "dump windows / fonts linux / same tz": [
+  [
+   "consistency",
+   "fail",
+   "a windows identity shows linux fonts: Ubuntu Mono",
+   "x/y",
+   {
+    "fonts": [
+     "Ubuntu Mono"
+    ]
+   }
+  ]
+ ],
+ "dump windows / fonts none core / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "a windows identity shows none of Segoe UI, Arial, Calibri",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / fonts none core / plain": [
+  [
+   "consistency",
+   "warn",
+   "a windows identity shows none of Segoe UI, Arial, Calibri",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / fonts none core / proxied": [
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "a windows identity shows none of Segoe UI, Arial, Calibri",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / fonts none core / same tz": [
+  [
+   "consistency",
+   "warn",
+   "a windows identity shows none of Segoe UI, Arial, Calibri",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / frame differs / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "a frame sees another browser than the page: screenWidth",
+   "x/y",
+   {
+    "values": {
+     "screenWidth": [
+      1536,
+      1920
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / frame differs / plain": [
+  [
+   "consistency",
+   "fail",
+   "a frame sees another browser than the page: screenWidth",
+   "x/y",
+   {
+    "values": {
+     "screenWidth": [
+      1536,
+      1920
+     ]
+    }
+   }
+  ]
+ ],
+ "dump windows / frame differs / proxied": [
+  [
+   "consistency",
+   "fail",
+   "a frame sees another browser than the page: screenWidth",
+   "x/y",
+   {
+    "values": {
+     "screenWidth": [
+      1536,
+      1920
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / frame differs / same tz": [
+  [
+   "consistency",
+   "fail",
+   "a frame sees another browser than the page: screenWidth",
+   "x/y",
+   {
+    "values": {
+     "screenWidth": [
+      1536,
+      1920
+     ]
+    }
+   }
+  ]
+ ],
+ "dump windows / globals / pinned tz": [
+  [
+   "automation",
+   "fail",
+   "driver globals on window: __pw",
+   "x/y",
+   {
+    "values": [
+     "__pw"
+    ]
+   }
+  ],
+  [
+   "automation",
+   "fail",
+   "driver attributes on <html>: webdriver",
+   "x/y",
+   {
+    "values": [
+     "webdriver"
+    ]
+   }
+  ],
+  [
+   "automation",
+   "fail",
+   "functions that are not native code: Permissions.query",
+   "x/y",
+   {
+    "values": [
+     "Permissions.query"
+    ]
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / globals / plain": [
+  [
+   "automation",
+   "fail",
+   "driver globals on window: __pw",
+   "x/y",
+   {
+    "values": [
+     "__pw"
+    ]
+   }
+  ],
+  [
+   "automation",
+   "fail",
+   "driver attributes on <html>: webdriver",
+   "x/y",
+   {
+    "values": [
+     "webdriver"
+    ]
+   }
+  ],
+  [
+   "automation",
+   "fail",
+   "functions that are not native code: Permissions.query",
+   "x/y",
+   {
+    "values": [
+     "Permissions.query"
+    ]
+   }
+  ]
+ ],
+ "dump windows / globals / proxied": [
+  [
+   "automation",
+   "fail",
+   "driver globals on window: __pw",
+   "x/y",
+   {
+    "values": [
+     "__pw"
+    ]
+   }
+  ],
+  [
+   "automation",
+   "fail",
+   "driver attributes on <html>: webdriver",
+   "x/y",
+   {
+    "values": [
+     "webdriver"
+    ]
+   }
+  ],
+  [
+   "automation",
+   "fail",
+   "functions that are not native code: Permissions.query",
+   "x/y",
+   {
+    "values": [
+     "Permissions.query"
+    ]
+   }
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / globals / same tz": [
+  [
+   "automation",
+   "fail",
+   "driver globals on window: __pw",
+   "x/y",
+   {
+    "values": [
+     "__pw"
+    ]
+   }
+  ],
+  [
+   "automation",
+   "fail",
+   "driver attributes on <html>: webdriver",
+   "x/y",
+   {
+    "values": [
+     "webdriver"
+    ]
+   }
+  ],
+  [
+   "automation",
+   "fail",
+   "functions that are not native code: Permissions.query",
+   "x/y",
+   {
+    "values": [
+     "Permissions.query"
+    ]
+   }
+  ]
+ ],
+ "dump windows / inner screen / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "the content area is at (0, 85) on the screen, which a window at (206, 2) cannot have (mozInnerScreenX/Y show the real window, Camoufox issue 974)",
+   "x/y",
+   {
+    "values": {
+     "dx": -206,
+     "dy": -2
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / inner screen / plain": [
+  [
+   "consistency",
+   "fail",
+   "the content area is at (0, 85) on the screen, which a window at (206, 2) cannot have (mozInnerScreenX/Y show the real window, Camoufox issue 974)",
+   "x/y",
+   {
+    "values": {
+     "dx": -206,
+     "dy": -2
+    }
+   }
+  ]
+ ],
+ "dump windows / inner screen / proxied": [
+  [
+   "consistency",
+   "fail",
+   "the content area is at (0, 85) on the screen, which a window at (206, 2) cannot have (mozInnerScreenX/Y show the real window, Camoufox issue 974)",
+   "x/y",
+   {
+    "values": {
+     "dx": -206,
+     "dy": -2
+    }
+   }
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / inner screen / same tz": [
+  [
+   "consistency",
+   "fail",
+   "the content area is at (0, 85) on the screen, which a window at (206, 2) cannot have (mozInnerScreenX/Y show the real window, Camoufox issue 974)",
+   "x/y",
+   {
+    "values": {
+     "dx": -206,
+     "dy": -2
+    }
+   }
+  ]
+ ],
+ "dump windows / mac ua / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "a worker sees another browser than the page: userAgent",
+   "x/y",
+   {
+    "values": {
+     "userAgent": [
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:158.0) Gecko/20100101 Firefox/158.0",
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:158.0) Gecko/20100101 Firefox/158.0"
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "a frame sees another browser than the page: userAgent",
+   "x/y",
+   {
+    "values": {
+     "userAgent": [
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:158.0) Gecko/20100101 Firefox/158.0",
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:158.0) Gecko/20100101 Firefox/158.0"
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "the User-Agent header differs from navigator.userAgent",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "WebGL: ANGLE (Intel, Intel(R) HD Graphics Direct3D11 vs_5_0 ps_5_0), or similar is a Windows renderer string",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "a macos identity shows windows fonts: Bahnschrift, Candara, Consolas, Constantia, Corbel, Ebrima",
+   "x/y",
+   {
+    "fonts": [
+     "Bahnschrift",
+     "Candara",
+     "Consolas",
+     "Constantia",
+     "Corbel",
+     "Ebrima",
+     "Gadugi",
+     "Ink Free",
+     "Leelawadee UI",
+     "MS Gothic",
+     "Microsoft YaHei",
+     "Nirmala UI",
+     "Segoe UI",
+     "Segoe UI Emoji",
+     "Segoe UI Symbol",
+     "Sitka Text"
+    ]
+   }
+  ]
+ ],
+ "dump windows / mac ua / plain": [
+  [
+   "consistency",
+   "fail",
+   "a worker sees another browser than the page: userAgent",
+   "x/y",
+   {
+    "values": {
+     "userAgent": [
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:158.0) Gecko/20100101 Firefox/158.0",
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:158.0) Gecko/20100101 Firefox/158.0"
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "a frame sees another browser than the page: userAgent",
+   "x/y",
+   {
+    "values": {
+     "userAgent": [
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:158.0) Gecko/20100101 Firefox/158.0",
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:158.0) Gecko/20100101 Firefox/158.0"
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "the User-Agent header differs from navigator.userAgent",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "WebGL: ANGLE (Intel, Intel(R) HD Graphics Direct3D11 vs_5_0 ps_5_0), or similar is a Windows renderer string",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "a macos identity shows windows fonts: Bahnschrift, Candara, Consolas, Constantia, Corbel, Ebrima",
+   "x/y",
+   {
+    "fonts": [
+     "Bahnschrift",
+     "Candara",
+     "Consolas",
+     "Constantia",
+     "Corbel",
+     "Ebrima",
+     "Gadugi",
+     "Ink Free",
+     "Leelawadee UI",
+     "MS Gothic",
+     "Microsoft YaHei",
+     "Nirmala UI",
+     "Segoe UI",
+     "Segoe UI Emoji",
+     "Segoe UI Symbol",
+     "Sitka Text"
+    ]
+   }
+  ]
+ ],
+ "dump windows / mac ua / proxied": [
+  [
+   "consistency",
+   "fail",
+   "a worker sees another browser than the page: userAgent",
+   "x/y",
+   {
+    "values": {
+     "userAgent": [
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:158.0) Gecko/20100101 Firefox/158.0",
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:158.0) Gecko/20100101 Firefox/158.0"
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "a frame sees another browser than the page: userAgent",
+   "x/y",
+   {
+    "values": {
+     "userAgent": [
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:158.0) Gecko/20100101 Firefox/158.0",
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:158.0) Gecko/20100101 Firefox/158.0"
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "the User-Agent header differs from navigator.userAgent",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "WebGL: ANGLE (Intel, Intel(R) HD Graphics Direct3D11 vs_5_0 ps_5_0), or similar is a Windows renderer string",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "a macos identity shows windows fonts: Bahnschrift, Candara, Consolas, Constantia, Corbel, Ebrima",
+   "x/y",
+   {
+    "fonts": [
+     "Bahnschrift",
+     "Candara",
+     "Consolas",
+     "Constantia",
+     "Corbel",
+     "Ebrima",
+     "Gadugi",
+     "Ink Free",
+     "Leelawadee UI",
+     "MS Gothic",
+     "Microsoft YaHei",
+     "Nirmala UI",
+     "Segoe UI",
+     "Segoe UI Emoji",
+     "Segoe UI Symbol",
+     "Sitka Text"
+    ]
+   }
+  ]
+ ],
+ "dump windows / mac ua / same tz": [
+  [
+   "consistency",
+   "fail",
+   "a worker sees another browser than the page: userAgent",
+   "x/y",
+   {
+    "values": {
+     "userAgent": [
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:158.0) Gecko/20100101 Firefox/158.0",
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:158.0) Gecko/20100101 Firefox/158.0"
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "a frame sees another browser than the page: userAgent",
+   "x/y",
+   {
+    "values": {
+     "userAgent": [
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:158.0) Gecko/20100101 Firefox/158.0",
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:158.0) Gecko/20100101 Firefox/158.0"
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "the User-Agent header differs from navigator.userAgent",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "WebGL: ANGLE (Intel, Intel(R) HD Graphics Direct3D11 vs_5_0 ps_5_0), or similar is a Windows renderer string",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "a macos identity shows windows fonts: Bahnschrift, Candara, Consolas, Constantia, Corbel, Ebrima",
+   "x/y",
+   {
+    "fonts": [
+     "Bahnschrift",
+     "Candara",
+     "Consolas",
+     "Constantia",
+     "Corbel",
+     "Ebrima",
+     "Gadugi",
+     "Ink Free",
+     "Leelawadee UI",
+     "MS Gothic",
+     "Microsoft YaHei",
+     "Nirmala UI",
+     "Segoe UI",
+     "Segoe UI Emoji",
+     "Segoe UI Symbol",
+     "Sitka Text"
+    ]
+   }
+  ]
+ ],
+ "dump windows / no inner screen / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / no inner screen / plain": [
+  [
+   "consistency",
+   "ok",
+   "no automation trace and no inconsistency (windows identity)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / no inner screen / proxied": [
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / no inner screen / same tz": [
+  [
+   "consistency",
+   "ok",
+   "no automation trace and no inconsistency (windows identity)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / no languages / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "a worker sees another browser than the page: languages",
+   "x/y",
+   {
+    "values": {
+     "languages": [
+      "en",
+      [
+       "en-US",
+       "en"
+      ]
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "a frame sees another browser than the page: languages",
+   "x/y",
+   {
+    "values": {
+     "languages": [
+      "en",
+      [
+       "en-US",
+       "en"
+      ]
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / no languages / plain": [
+  [
+   "consistency",
+   "fail",
+   "a worker sees another browser than the page: languages",
+   "x/y",
+   {
+    "values": {
+     "languages": [
+      "en",
+      [
+       "en-US",
+       "en"
+      ]
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "a frame sees another browser than the page: languages",
+   "x/y",
+   {
+    "values": {
+     "languages": [
+      "en",
+      [
+       "en-US",
+       "en"
+      ]
+     ]
+    }
+   }
+  ]
+ ],
+ "dump windows / no languages / proxied": [
+  [
+   "consistency",
+   "fail",
+   "a worker sees another browser than the page: languages",
+   "x/y",
+   {
+    "values": {
+     "languages": [
+      "en",
+      [
+       "en-US",
+       "en"
+      ]
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "a frame sees another browser than the page: languages",
+   "x/y",
+   {
+    "values": {
+     "languages": [
+      "en",
+      [
+       "en-US",
+       "en"
+      ]
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / no languages / same tz": [
+  [
+   "consistency",
+   "fail",
+   "a worker sees another browser than the page: languages",
+   "x/y",
+   {
+    "values": {
+     "languages": [
+      "en",
+      [
+       "en-US",
+       "en"
+      ]
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "a frame sees another browser than the page: languages",
+   "x/y",
+   {
+    "values": {
+     "languages": [
+      "en",
+      [
+       "en-US",
+       "en"
+      ]
+     ]
+    }
+   }
+  ]
+ ],
+ "dump windows / no media / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / no media / plain": [
+  [
+   "consistency",
+   "ok",
+   "no automation trace and no inconsistency (windows identity)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / no media / proxied": [
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / no media / same tz": [
+  [
+   "consistency",
+   "ok",
+   "no automation trace and no inconsistency (windows identity)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / no prototype getter / pinned tz": [
+  [
+   "automation",
+   "warn",
+   "Navigator.prototype has no webdriver getter, which stock Firefox has",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / no prototype getter / plain": [
+  [
+   "automation",
+   "warn",
+   "Navigator.prototype has no webdriver getter, which stock Firefox has",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / no prototype getter / proxied": [
+  [
+   "automation",
+   "warn",
+   "Navigator.prototype has no webdriver getter, which stock Firefox has",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / no prototype getter / same tz": [
+  [
+   "automation",
+   "warn",
+   "Navigator.prototype has no webdriver getter, which stock Firefox has",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / no ua / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "a worker sees another browser than the page: userAgent",
+   "x/y",
+   {
+    "values": {
+     "userAgent": [
+      null,
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:158.0) Gecko/20100101 Firefox/158.0"
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "a frame sees another browser than the page: userAgent",
+   "x/y",
+   {
+    "values": {
+     "userAgent": [
+      null,
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:158.0) Gecko/20100101 Firefox/158.0"
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / no ua / plain": [
+  [
+   "consistency",
+   "fail",
+   "a worker sees another browser than the page: userAgent",
+   "x/y",
+   {
+    "values": {
+     "userAgent": [
+      null,
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:158.0) Gecko/20100101 Firefox/158.0"
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "a frame sees another browser than the page: userAgent",
+   "x/y",
+   {
+    "values": {
+     "userAgent": [
+      null,
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:158.0) Gecko/20100101 Firefox/158.0"
+     ]
+    }
+   }
+  ]
+ ],
+ "dump windows / no ua / proxied": [
+  [
+   "consistency",
+   "fail",
+   "a worker sees another browser than the page: userAgent",
+   "x/y",
+   {
+    "values": {
+     "userAgent": [
+      null,
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:158.0) Gecko/20100101 Firefox/158.0"
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "a frame sees another browser than the page: userAgent",
+   "x/y",
+   {
+    "values": {
+     "userAgent": [
+      null,
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:158.0) Gecko/20100101 Firefox/158.0"
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / no ua / same tz": [
+  [
+   "consistency",
+   "fail",
+   "a worker sees another browser than the page: userAgent",
+   "x/y",
+   {
+    "values": {
+     "userAgent": [
+      null,
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:158.0) Gecko/20100101 Firefox/158.0"
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "a frame sees another browser than the page: userAgent",
+   "x/y",
+   {
+    "values": {
+     "userAgent": [
+      null,
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:158.0) Gecko/20100101 Firefox/158.0"
+     ]
+    }
+   }
+  ]
+ ],
+ "dump windows / notification / pinned tz": [
+  [
+   "consistency",
+   "warn",
+   "Notification.permission is granted but the Permissions API says prompt",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / notification / plain": [
+  [
+   "consistency",
+   "warn",
+   "Notification.permission is granted but the Permissions API says prompt",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / notification / proxied": [
+  [
+   "consistency",
+   "warn",
+   "Notification.permission is granted but the Permissions API says prompt",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / notification / same tz": [
+  [
+   "consistency",
+   "warn",
+   "Notification.permission is granted but the Permissions API says prompt",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / notification same / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / notification same / plain": [
+  [
+   "consistency",
+   "ok",
+   "no automation trace and no inconsistency (windows identity)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / notification same / proxied": [
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / notification same / same tz": [
+  [
+   "consistency",
+   "ok",
+   "no automation trace and no inconsistency (windows identity)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / own property / pinned tz": [
+  [
+   "automation",
+   "fail",
+   "navigator has its own webdriver property (stock Firefox has it on the prototype)",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / own property / plain": [
+  [
+   "automation",
+   "fail",
+   "navigator has its own webdriver property (stock Firefox has it on the prototype)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / own property / proxied": [
+  [
+   "automation",
+   "fail",
+   "navigator has its own webdriver property (stock Firefox has it on the prototype)",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / own property / same tz": [
+  [
+   "automation",
+   "fail",
+   "navigator has its own webdriver property (stock Firefox has it on the prototype)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / pdf / pinned tz": [
+  [
+   "consistency",
+   "warn",
+   "pdfViewerEnabled with no plugins (Firefox lists its PDF viewer five times)",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / pdf / plain": [
+  [
+   "consistency",
+   "warn",
+   "pdfViewerEnabled with no plugins (Firefox lists its PDF viewer five times)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / pdf / proxied": [
+  [
+   "consistency",
+   "warn",
+   "pdfViewerEnabled with no plugins (Firefox lists its PDF viewer five times)",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / pdf / same tz": [
+  [
+   "consistency",
+   "warn",
+   "pdfViewerEnabled with no plugins (Firefox lists its PDF viewer five times)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / probe error / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "the math probe failed: error: x",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "the voices probe failed: error: timeout",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / probe error / plain": [
+  [
+   "consistency",
+   "warn",
+   "the math probe failed: error: x",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "the voices probe failed: error: timeout",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / probe error / proxied": [
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "the math probe failed: error: x",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "the voices probe failed: error: timeout",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / probe error / same tz": [
+  [
+   "consistency",
+   "warn",
+   "the math probe failed: error: x",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "the voices probe failed: error: timeout",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / toolbars / pinned tz": [
+  [
+   "consistency",
+   "warn",
+   "the browser's toolbars are 806 px tall (outer minus inner height)",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the content area is at (0, 85) on the screen, which a window at (0, 0) cannot have (mozInnerScreenX/Y show the real window, Camoufox issue 974)",
+   "x/y",
+   {
+    "values": {
+     "dx": 0,
+     "dy": -721
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / toolbars / plain": [
+  [
+   "consistency",
+   "warn",
+   "the browser's toolbars are 806 px tall (outer minus inner height)",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the content area is at (0, 85) on the screen, which a window at (0, 0) cannot have (mozInnerScreenX/Y show the real window, Camoufox issue 974)",
+   "x/y",
+   {
+    "values": {
+     "dx": 0,
+     "dy": -721
+    }
+   }
+  ]
+ ],
+ "dump windows / toolbars / proxied": [
+  [
+   "consistency",
+   "warn",
+   "the browser's toolbars are 806 px tall (outer minus inner height)",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the content area is at (0, 85) on the screen, which a window at (0, 0) cannot have (mozInnerScreenX/Y show the real window, Camoufox issue 974)",
+   "x/y",
+   {
+    "values": {
+     "dx": 0,
+     "dy": -721
+    }
+   }
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / toolbars / same tz": [
+  [
+   "consistency",
+   "warn",
+   "the browser's toolbars are 806 px tall (outer minus inner height)",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the content area is at (0, 85) on the screen, which a window at (0, 0) cannot have (mozInnerScreenX/Y show the real window, Camoufox issue 974)",
+   "x/y",
+   {
+    "values": {
+     "dx": 0,
+     "dy": -721
+    }
+   }
+  ]
+ ],
+ "dump windows / toolbars none / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "the content area is at (0, 85) on the screen, which a window at (0, 0) cannot have (mozInnerScreenX/Y show the real window, Camoufox issue 974)",
+   "x/y",
+   {
+    "values": {
+     "dx": 0,
+     "dy": 816
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / toolbars none / plain": [
+  [
+   "consistency",
+   "fail",
+   "the content area is at (0, 85) on the screen, which a window at (0, 0) cannot have (mozInnerScreenX/Y show the real window, Camoufox issue 974)",
+   "x/y",
+   {
+    "values": {
+     "dx": 0,
+     "dy": 816
+    }
+   }
+  ]
+ ],
+ "dump windows / toolbars none / proxied": [
+  [
+   "consistency",
+   "fail",
+   "the content area is at (0, 85) on the screen, which a window at (0, 0) cannot have (mozInnerScreenX/Y show the real window, Camoufox issue 974)",
+   "x/y",
+   {
+    "values": {
+     "dx": 0,
+     "dy": 816
+    }
+   }
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / toolbars none / same tz": [
+  [
+   "consistency",
+   "fail",
+   "the content area is at (0, 85) on the screen, which a window at (0, 0) cannot have (mozInnerScreenX/Y show the real window, Camoufox issue 974)",
+   "x/y",
+   {
+    "values": {
+     "dx": 0,
+     "dy": 816
+    }
+   }
+  ]
+ ],
+ "dump windows / touch / pinned tz": [
+  [
+   "consistency",
+   "warn",
+   "maxTouchPoints 5 but touch media and events say no touch",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / touch / plain": [
+  [
+   "consistency",
+   "warn",
+   "maxTouchPoints 5 but touch media and events say no touch",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / touch / proxied": [
+  [
+   "consistency",
+   "warn",
+   "maxTouchPoints 5 but touch media and events say no touch",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / touch / same tz": [
+  [
+   "consistency",
+   "warn",
+   "maxTouchPoints 5 but touch media and events say no touch",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / touch media / pinned tz": [
+  [
+   "consistency",
+   "warn",
+   "maxTouchPoints 0 but touch media and events say touch",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / touch media / plain": [
+  [
+   "consistency",
+   "warn",
+   "maxTouchPoints 0 but touch media and events say touch",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / touch media / proxied": [
+  [
+   "consistency",
+   "warn",
+   "maxTouchPoints 0 but touch media and events say touch",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / touch media / same tz": [
+  [
+   "consistency",
+   "warn",
+   "maxTouchPoints 0 but touch media and events say touch",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / ua header / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "the User-Agent header differs from navigator.userAgent",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / ua header / plain": [
+  [
+   "consistency",
+   "fail",
+   "the User-Agent header differs from navigator.userAgent",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / ua header / proxied": [
+  [
+   "consistency",
+   "fail",
+   "the User-Agent header differs from navigator.userAgent",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / ua header / same tz": [
+  [
+   "consistency",
+   "fail",
+   "the User-Agent header differs from navigator.userAgent",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / webdriver / pinned tz": [
+  [
+   "automation",
+   "fail",
+   "navigator.webdriver is true",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "a frame sees another browser than the page: webdriver",
+   "x/y",
+   {
+    "values": {
+     "webdriver": [
+      true,
+      false
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / webdriver / plain": [
+  [
+   "automation",
+   "fail",
+   "navigator.webdriver is true",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "a frame sees another browser than the page: webdriver",
+   "x/y",
+   {
+    "values": {
+     "webdriver": [
+      true,
+      false
+     ]
+    }
+   }
+  ]
+ ],
+ "dump windows / webdriver / proxied": [
+  [
+   "automation",
+   "fail",
+   "navigator.webdriver is true",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "a frame sees another browser than the page: webdriver",
+   "x/y",
+   {
+    "values": {
+     "webdriver": [
+      true,
+      false
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / webdriver / same tz": [
+  [
+   "automation",
+   "fail",
+   "navigator.webdriver is true",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "a frame sees another browser than the page: webdriver",
+   "x/y",
+   {
+    "values": {
+     "webdriver": [
+      true,
+      false
+     ]
+    }
+   }
+  ]
+ ],
+ "dump windows / webgl other os / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "WebGL in a worker names ANGLE (Intel, Intel(R) HD Graphics Direct3D11 vs_5_0 ps_5_0), or similar, the page Apple M1, or similar",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "WebGL: Apple M1, or similar without ANGLE, which every Windows Firefox reports",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / webgl other os / plain": [
+  [
+   "consistency",
+   "fail",
+   "WebGL in a worker names ANGLE (Intel, Intel(R) HD Graphics Direct3D11 vs_5_0 ps_5_0), or similar, the page Apple M1, or similar",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "WebGL: Apple M1, or similar without ANGLE, which every Windows Firefox reports",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / webgl other os / proxied": [
+  [
+   "consistency",
+   "fail",
+   "WebGL in a worker names ANGLE (Intel, Intel(R) HD Graphics Direct3D11 vs_5_0 ps_5_0), or similar, the page Apple M1, or similar",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "WebGL: Apple M1, or similar without ANGLE, which every Windows Firefox reports",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / webgl other os / same tz": [
+  [
+   "consistency",
+   "fail",
+   "WebGL in a worker names ANGLE (Intel, Intel(R) HD Graphics Direct3D11 vs_5_0 ps_5_0), or similar, the page Apple M1, or similar",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "WebGL: Apple M1, or similar without ANGLE, which every Windows Firefox reports",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / webgl software / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "WebGL in a worker names ANGLE (Intel, Intel(R) HD Graphics Direct3D11 vs_5_0 ps_5_0), or similar, the page llvmpipe (LLVM 15)",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "WebGL: a software renderer (llvmpipe (LLVM 15)), what a machine without a working GPU driver shows",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / webgl software / plain": [
+  [
+   "consistency",
+   "fail",
+   "WebGL in a worker names ANGLE (Intel, Intel(R) HD Graphics Direct3D11 vs_5_0 ps_5_0), or similar, the page llvmpipe (LLVM 15)",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "WebGL: a software renderer (llvmpipe (LLVM 15)), what a machine without a working GPU driver shows",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / webgl software / proxied": [
+  [
+   "consistency",
+   "fail",
+   "WebGL in a worker names ANGLE (Intel, Intel(R) HD Graphics Direct3D11 vs_5_0 ps_5_0), or similar, the page llvmpipe (LLVM 15)",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "WebGL: a software renderer (llvmpipe (LLVM 15)), what a machine without a working GPU driver shows",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / webgl software / same tz": [
+  [
+   "consistency",
+   "fail",
+   "WebGL in a worker names ANGLE (Intel, Intel(R) HD Graphics Direct3D11 vs_5_0 ps_5_0), or similar, the page llvmpipe (LLVM 15)",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "WebGL: a software renderer (llvmpipe (LLVM 15)), what a machine without a working GPU driver shows",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / webrtc / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ],
+  [
+   "leak",
+   "fail",
+   "WebRTC shows raw addresses: 10.0.0.5",
+   "x/y",
+   {
+    "addresses": [
+     "10.0.0.5"
+    ]
+   }
+  ]
+ ],
+ "dump windows / webrtc / plain": [
+  [
+   "leak",
+   "fail",
+   "WebRTC shows raw addresses: 10.0.0.5",
+   "x/y",
+   {
+    "addresses": [
+     "10.0.0.5"
+    ]
+   }
+  ]
+ ],
+ "dump windows / webrtc / proxied": [
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ],
+  [
+   "leak",
+   "fail",
+   "WebRTC shows raw addresses: 10.0.0.5",
+   "x/y",
+   {
+    "addresses": [
+     "10.0.0.5"
+    ]
+   }
+  ]
+ ],
+ "dump windows / webrtc / same tz": [
+  [
+   "leak",
+   "fail",
+   "WebRTC shows raw addresses: 10.0.0.5",
+   "x/y",
+   {
+    "addresses": [
+     "10.0.0.5"
+    ]
+   }
+  ]
+ ],
+ "dump windows / window wide / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "the window (1700 px) is wider than the screen (1536 px)",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the content area is at (0, 85) on the screen, which a window at (0, 0) cannot have (mozInnerScreenX/Y show the real window, Camoufox issue 974)",
+   "x/y",
+   {
+    "values": {
+     "dx": -82,
+     "dy": 0
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / window wide / plain": [
+  [
+   "consistency",
+   "fail",
+   "the window (1700 px) is wider than the screen (1536 px)",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the content area is at (0, 85) on the screen, which a window at (0, 0) cannot have (mozInnerScreenX/Y show the real window, Camoufox issue 974)",
+   "x/y",
+   {
+    "values": {
+     "dx": -82,
+     "dy": 0
+    }
+   }
+  ]
+ ],
+ "dump windows / window wide / proxied": [
+  [
+   "consistency",
+   "fail",
+   "the window (1700 px) is wider than the screen (1536 px)",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the content area is at (0, 85) on the screen, which a window at (0, 0) cannot have (mozInnerScreenX/Y show the real window, Camoufox issue 974)",
+   "x/y",
+   {
+    "values": {
+     "dx": -82,
+     "dy": 0
+    }
+   }
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / window wide / same tz": [
+  [
+   "consistency",
+   "fail",
+   "the window (1700 px) is wider than the screen (1536 px)",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the content area is at (0, 85) on the screen, which a window at (0, 0) cannot have (mozInnerScreenX/Y show the real window, Camoufox issue 974)",
+   "x/y",
+   {
+    "values": {
+     "dx": -82,
+     "dy": 0
+    }
+   }
+  ]
+ ],
+ "dump windows / worker differs / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "a worker sees another browser than the page: languages, platform",
+   "x/y",
+   {
+    "values": {
+     "languages": [
+      [
+       "en-US",
+       "en"
+      ],
+      [
+       "de"
+      ]
+     ],
+     "platform": [
+      "Win32",
+      "Linux x86_64"
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / worker differs / plain": [
+  [
+   "consistency",
+   "fail",
+   "a worker sees another browser than the page: languages, platform",
+   "x/y",
+   {
+    "values": {
+     "languages": [
+      [
+       "en-US",
+       "en"
+      ],
+      [
+       "de"
+      ]
+     ],
+     "platform": [
+      "Win32",
+      "Linux x86_64"
+     ]
+    }
+   }
+  ]
+ ],
+ "dump windows / worker differs / proxied": [
+  [
+   "consistency",
+   "fail",
+   "a worker sees another browser than the page: languages, platform",
+   "x/y",
+   {
+    "values": {
+     "languages": [
+      [
+       "en-US",
+       "en"
+      ],
+      [
+       "de"
+      ]
+     ],
+     "platform": [
+      "Win32",
+      "Linux x86_64"
+     ]
+    }
+   }
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / worker differs / same tz": [
+  [
+   "consistency",
+   "fail",
+   "a worker sees another browser than the page: languages, platform",
+   "x/y",
+   {
+    "values": {
+     "languages": [
+      [
+       "en-US",
+       "en"
+      ],
+      [
+       "de"
+      ]
+     ],
+     "platform": [
+      "Win32",
+      "Linux x86_64"
+     ]
+    }
+   }
+  ]
+ ],
+ "dump windows / worker gone / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / worker gone / plain": [
+  [
+   "consistency",
+   "ok",
+   "no automation trace and no inconsistency (windows identity)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / worker gone / proxied": [
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / worker gone / same tz": [
+  [
+   "consistency",
+   "ok",
+   "no automation trace and no inconsistency (windows identity)",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / worker missing / pinned tz": [
+  [
+   "consistency",
+   "warn",
+   "the worker probe failed: error: timeout",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "the worker probe failed: error: timeout",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / worker missing / plain": [
+  [
+   "consistency",
+   "warn",
+   "the worker probe failed: error: timeout",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "the worker probe failed: error: timeout",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / worker missing / proxied": [
+  [
+   "consistency",
+   "warn",
+   "the worker probe failed: error: timeout",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "the worker probe failed: error: timeout",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / worker missing / same tz": [
+  [
+   "consistency",
+   "warn",
+   "the worker probe failed: error: timeout",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "the worker probe failed: error: timeout",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / worker webgl / pinned tz": [
+  [
+   "consistency",
+   "fail",
+   "WebGL in a worker names llvmpipe, the page ANGLE (Intel, Intel(R) HD Graphics Direct3D11 vs_5_0 ps_5_0), or similar",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "fail",
+   "the page's timezone is UTC, the pin's Europe/Vilnius",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / worker webgl / plain": [
+  [
+   "consistency",
+   "fail",
+   "WebGL in a worker names llvmpipe, the page ANGLE (Intel, Intel(R) HD Graphics Direct3D11 vs_5_0 ps_5_0), or similar",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / worker webgl / proxied": [
+  [
+   "consistency",
+   "fail",
+   "WebGL in a worker names llvmpipe, the page ANGLE (Intel, Intel(R) HD Graphics Direct3D11 vs_5_0 ps_5_0), or similar",
+   "x/y",
+   {}
+  ],
+  [
+   "consistency",
+   "warn",
+   "a proxied lane in UTC: the timezone was not set from the exit",
+   "x/y",
+   {}
+  ]
+ ],
+ "dump windows / worker webgl / same tz": [
+  [
+   "consistency",
+   "fail",
+   "WebGL in a worker names llvmpipe, the page ANGLE (Intel, Intel(R) HD Graphics Direct3D11 vs_5_0 ps_5_0), or similar",
+   "x/y",
+   {}
+  ]
+ ],
+ "pin as is / newer install": [
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ],
+  [
+   "freshness",
+   "warn",
+   "the pin says Firefox 158 and the browser is 170; a user agent that lags its engine is a signal (agentos lane refresh-fingerprint --keep-device)",
+   "x/y",
+   {
+    "installed": 170,
+    "pinned": 158
+   }
+  ]
+ ],
+ "pin as is / no install": [
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ]
+ ],
+ "pin as is / older install": [
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ],
+  [
+   "freshness",
+   "fail",
+   "the pin says Firefox 158, newer than the installed 150",
+   "x/y",
+   {
+    "installed": 150,
+    "pinned": 158
+   }
+  ]
+ ],
+ "pin as is / same install": [
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ]
+ ],
+ "pin fonts / newer install": [
+  [
+   "pin",
+   "fail",
+   "a windows identity lists linux fonts: Ubuntu",
+   "x/y",
+   {
+    "fonts": [
+     "Ubuntu"
+    ]
+   }
+  ],
+  [
+   "pin",
+   "fail",
+   "a windows identity lists macos fonts: Helvetica Neue",
+   "x/y",
+   {
+    "fonts": [
+     "Helvetica Neue"
+    ]
+   }
+  ],
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ],
+  [
+   "freshness",
+   "warn",
+   "the pin says Firefox 158 and the browser is 170; a user agent that lags its engine is a signal (agentos lane refresh-fingerprint --keep-device)",
+   "x/y",
+   {
+    "installed": 170,
+    "pinned": 158
+   }
+  ]
+ ],
+ "pin fonts / no install": [
+  [
+   "pin",
+   "fail",
+   "a windows identity lists linux fonts: Ubuntu",
+   "x/y",
+   {
+    "fonts": [
+     "Ubuntu"
+    ]
+   }
+  ],
+  [
+   "pin",
+   "fail",
+   "a windows identity lists macos fonts: Helvetica Neue",
+   "x/y",
+   {
+    "fonts": [
+     "Helvetica Neue"
+    ]
+   }
+  ],
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ]
+ ],
+ "pin fonts / older install": [
+  [
+   "pin",
+   "fail",
+   "a windows identity lists linux fonts: Ubuntu",
+   "x/y",
+   {
+    "fonts": [
+     "Ubuntu"
+    ]
+   }
+  ],
+  [
+   "pin",
+   "fail",
+   "a windows identity lists macos fonts: Helvetica Neue",
+   "x/y",
+   {
+    "fonts": [
+     "Helvetica Neue"
+    ]
+   }
+  ],
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ],
+  [
+   "freshness",
+   "fail",
+   "the pin says Firefox 158, newer than the installed 150",
+   "x/y",
+   {
+    "installed": 150,
+    "pinned": 158
+   }
+  ]
+ ],
+ "pin fonts / same install": [
+  [
+   "pin",
+   "fail",
+   "a windows identity lists linux fonts: Ubuntu",
+   "x/y",
+   {
+    "fonts": [
+     "Ubuntu"
+    ]
+   }
+  ],
+  [
+   "pin",
+   "fail",
+   "a windows identity lists macos fonts: Helvetica Neue",
+   "x/y",
+   {
+    "fonts": [
+     "Helvetica Neue"
+    ]
+   }
+  ],
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ]
+ ],
+ "pin fonts not a list / newer install": [
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ],
+  [
+   "freshness",
+   "warn",
+   "the pin says Firefox 158 and the browser is 170; a user agent that lags its engine is a signal (agentos lane refresh-fingerprint --keep-device)",
+   "x/y",
+   {
+    "installed": 170,
+    "pinned": 158
+   }
+  ]
+ ],
+ "pin fonts not a list / no install": [
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ]
+ ],
+ "pin fonts not a list / older install": [
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ],
+  [
+   "freshness",
+   "fail",
+   "the pin says Firefox 158, newer than the installed 150",
+   "x/y",
+   {
+    "installed": 150,
+    "pinned": 158
+   }
+  ]
+ ],
+ "pin fonts not a list / same install": [
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ]
+ ],
+ "pin header ua / newer install": [
+  [
+   "pin",
+   "fail",
+   "the User-Agent header and navigator.userAgent differ",
+   "x/y",
+   {}
+  ],
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ],
+  [
+   "freshness",
+   "warn",
+   "the pin says Firefox 158 and the browser is 170; a user agent that lags its engine is a signal (agentos lane refresh-fingerprint --keep-device)",
+   "x/y",
+   {
+    "installed": 170,
+    "pinned": 158
+   }
+  ]
+ ],
+ "pin header ua / no install": [
+  [
+   "pin",
+   "fail",
+   "the User-Agent header and navigator.userAgent differ",
+   "x/y",
+   {}
+  ],
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ]
+ ],
+ "pin header ua / older install": [
+  [
+   "pin",
+   "fail",
+   "the User-Agent header and navigator.userAgent differ",
+   "x/y",
+   {}
+  ],
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ],
+  [
+   "freshness",
+   "fail",
+   "the pin says Firefox 158, newer than the installed 150",
+   "x/y",
+   {
+    "installed": 150,
+    "pinned": 158
+   }
+  ]
+ ],
+ "pin header ua / same install": [
+  [
+   "pin",
+   "fail",
+   "the User-Agent header and navigator.userAgent differ",
+   "x/y",
+   {}
+  ],
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ]
+ ],
+ "pin language / newer install": [
+  [
+   "pin",
+   "warn",
+   "Accept-Language de-DE does not start with the locale's language en",
+   "x/y",
+   {}
+  ],
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ],
+  [
+   "freshness",
+   "warn",
+   "the pin says Firefox 158 and the browser is 170; a user agent that lags its engine is a signal (agentos lane refresh-fingerprint --keep-device)",
+   "x/y",
+   {
+    "installed": 170,
+    "pinned": 158
+   }
+  ]
+ ],
+ "pin language / no install": [
+  [
+   "pin",
+   "warn",
+   "Accept-Language de-DE does not start with the locale's language en",
+   "x/y",
+   {}
+  ],
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ]
+ ],
+ "pin language / older install": [
+  [
+   "pin",
+   "warn",
+   "Accept-Language de-DE does not start with the locale's language en",
+   "x/y",
+   {}
+  ],
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ],
+  [
+   "freshness",
+   "fail",
+   "the pin says Firefox 158, newer than the installed 150",
+   "x/y",
+   {
+    "installed": 150,
+    "pinned": 158
+   }
+  ]
+ ],
+ "pin language / same install": [
+  [
+   "pin",
+   "warn",
+   "Accept-Language de-DE does not start with the locale's language en",
+   "x/y",
+   {}
+  ],
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ]
+ ],
+ "pin mac / newer install": [
+  [
+   "pin",
+   "warn",
+   "WebGL: ANGLE (Intel, Intel(R) HD Graphics Direct3D11 vs_5_0 ps_5_0), or similar is a Windows renderer string",
+   "x/y",
+   {}
+  ],
+  [
+   "pin",
+   "fail",
+   "a macos identity lists windows fonts: Segoe UI",
+   "x/y",
+   {
+    "fonts": [
+     "Segoe UI"
+    ]
+   }
+  ],
+  [
+   "pin",
+   "warn",
+   "a macos identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "macos"
+   }
+  ],
+  [
+   "freshness",
+   "warn",
+   "the pin says Firefox 158 and the browser is 170; a user agent that lags its engine is a signal (agentos lane refresh-fingerprint --keep-device)",
+   "x/y",
+   {
+    "installed": 170,
+    "pinned": 158
+   }
+  ]
+ ],
+ "pin mac / no install": [
+  [
+   "pin",
+   "warn",
+   "WebGL: ANGLE (Intel, Intel(R) HD Graphics Direct3D11 vs_5_0 ps_5_0), or similar is a Windows renderer string",
+   "x/y",
+   {}
+  ],
+  [
+   "pin",
+   "fail",
+   "a macos identity lists windows fonts: Segoe UI",
+   "x/y",
+   {
+    "fonts": [
+     "Segoe UI"
+    ]
+   }
+  ],
+  [
+   "pin",
+   "warn",
+   "a macos identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "macos"
+   }
+  ]
+ ],
+ "pin mac / older install": [
+  [
+   "pin",
+   "warn",
+   "WebGL: ANGLE (Intel, Intel(R) HD Graphics Direct3D11 vs_5_0 ps_5_0), or similar is a Windows renderer string",
+   "x/y",
+   {}
+  ],
+  [
+   "pin",
+   "fail",
+   "a macos identity lists windows fonts: Segoe UI",
+   "x/y",
+   {
+    "fonts": [
+     "Segoe UI"
+    ]
+   }
+  ],
+  [
+   "pin",
+   "warn",
+   "a macos identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "macos"
+   }
+  ],
+  [
+   "freshness",
+   "fail",
+   "the pin says Firefox 158, newer than the installed 150",
+   "x/y",
+   {
+    "installed": 150,
+    "pinned": 158
+   }
+  ]
+ ],
+ "pin mac / same install": [
+  [
+   "pin",
+   "warn",
+   "WebGL: ANGLE (Intel, Intel(R) HD Graphics Direct3D11 vs_5_0 ps_5_0), or similar is a Windows renderer string",
+   "x/y",
+   {}
+  ],
+  [
+   "pin",
+   "fail",
+   "a macos identity lists windows fonts: Segoe UI",
+   "x/y",
+   {
+    "fonts": [
+     "Segoe UI"
+    ]
+   }
+  ],
+  [
+   "pin",
+   "warn",
+   "a macos identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "macos"
+   }
+  ]
+ ],
+ "pin no meta / newer install": [
+  [
+   "pin",
+   "warn",
+   "a version 1 pin: it is completed on the lane's next launch",
+   "x/y",
+   {}
+  ],
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ],
+  [
+   "freshness",
+   "warn",
+   "the pin says Firefox 158 and the browser is 170; a user agent that lags its engine is a signal (agentos lane refresh-fingerprint --keep-device)",
+   "x/y",
+   {
+    "installed": 170,
+    "pinned": 158
+   }
+  ]
+ ],
+ "pin no meta / no install": [
+  [
+   "pin",
+   "warn",
+   "a version 1 pin: it is completed on the lane's next launch",
+   "x/y",
+   {}
+  ],
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ]
+ ],
+ "pin no meta / older install": [
+  [
+   "pin",
+   "warn",
+   "a version 1 pin: it is completed on the lane's next launch",
+   "x/y",
+   {}
+  ],
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ],
+  [
+   "freshness",
+   "fail",
+   "the pin says Firefox 158, newer than the installed 150",
+   "x/y",
+   {
+    "installed": 150,
+    "pinned": 158
+   }
+  ]
+ ],
+ "pin no meta / same install": [
+  [
+   "pin",
+   "warn",
+   "a version 1 pin: it is completed on the lane's next launch",
+   "x/y",
+   {}
+  ],
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ]
+ ],
+ "pin no ua / newer install": [
+  [
+   "pin",
+   "warn",
+   "the pin lacks navigator.userAgent, which Camoufox draws again on every launch",
+   "x/y",
+   {
+    "missing": [
+     "navigator.userAgent"
+    ]
+   }
+  ]
+ ],
+ "pin no ua / no install": [
+  [
+   "pin",
+   "warn",
+   "the pin lacks navigator.userAgent, which Camoufox draws again on every launch",
+   "x/y",
+   {
+    "missing": [
+     "navigator.userAgent"
+    ]
+   }
+  ]
+ ],
+ "pin no ua / older install": [
+  [
+   "pin",
+   "warn",
+   "the pin lacks navigator.userAgent, which Camoufox draws again on every launch",
+   "x/y",
+   {
+    "missing": [
+     "navigator.userAgent"
+    ]
+   }
+  ]
+ ],
+ "pin no ua / same install": [
+  [
+   "pin",
+   "warn",
+   "the pin lacks navigator.userAgent, which Camoufox draws again on every launch",
+   "x/y",
+   {
+    "missing": [
+     "navigator.userAgent"
+    ]
+   }
+  ]
+ ],
+ "pin old pin / newer install": [
+  [
+   "pin",
+   "warn",
+   "a version 1 pin: it is completed on the lane's next launch",
+   "x/y",
+   {}
+  ],
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ],
+  [
+   "freshness",
+   "warn",
+   "the pin says Firefox 158 and the browser is 170; a user agent that lags its engine is a signal (agentos lane refresh-fingerprint --keep-device)",
+   "x/y",
+   {
+    "installed": 170,
+    "pinned": 158
+   }
+  ]
+ ],
+ "pin old pin / no install": [
+  [
+   "pin",
+   "warn",
+   "a version 1 pin: it is completed on the lane's next launch",
+   "x/y",
+   {}
+  ],
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ]
+ ],
+ "pin old pin / older install": [
+  [
+   "pin",
+   "warn",
+   "a version 1 pin: it is completed on the lane's next launch",
+   "x/y",
+   {}
+  ],
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ],
+  [
+   "freshness",
+   "fail",
+   "the pin says Firefox 158, newer than the installed 150",
+   "x/y",
+   {
+    "installed": 150,
+    "pinned": 158
+   }
+  ]
+ ],
+ "pin old pin / same install": [
+  [
+   "pin",
+   "warn",
+   "a version 1 pin: it is completed on the lane's next launch",
+   "x/y",
+   {}
+  ],
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ]
+ ],
+ "pin oscpu / newer install": [
+  [
+   "pin",
+   "fail",
+   "the user agent says windows and navigator.oscpu says macos",
+   "x/y",
+   {
+    "key": "navigator.oscpu"
+   }
+  ],
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ],
+  [
+   "freshness",
+   "warn",
+   "the pin says Firefox 158 and the browser is 170; a user agent that lags its engine is a signal (agentos lane refresh-fingerprint --keep-device)",
+   "x/y",
+   {
+    "installed": 170,
+    "pinned": 158
+   }
+  ]
+ ],
+ "pin oscpu / no install": [
+  [
+   "pin",
+   "fail",
+   "the user agent says windows and navigator.oscpu says macos",
+   "x/y",
+   {
+    "key": "navigator.oscpu"
+   }
+  ],
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ]
+ ],
+ "pin oscpu / older install": [
+  [
+   "pin",
+   "fail",
+   "the user agent says windows and navigator.oscpu says macos",
+   "x/y",
+   {
+    "key": "navigator.oscpu"
+   }
+  ],
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ],
+  [
+   "freshness",
+   "fail",
+   "the pin says Firefox 158, newer than the installed 150",
+   "x/y",
+   {
+    "installed": 150,
+    "pinned": 158
+   }
+  ]
+ ],
+ "pin oscpu / same install": [
+  [
+   "pin",
+   "fail",
+   "the user agent says windows and navigator.oscpu says macos",
+   "x/y",
+   {
+    "key": "navigator.oscpu"
+   }
+  ],
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ]
+ ],
+ "pin other os gl / newer install": [
+  [
+   "pin",
+   "warn",
+   "WebGL: Apple M1, or similar without ANGLE, which every Windows Firefox reports",
+   "x/y",
+   {}
+  ],
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ],
+  [
+   "freshness",
+   "warn",
+   "the pin says Firefox 158 and the browser is 170; a user agent that lags its engine is a signal (agentos lane refresh-fingerprint --keep-device)",
+   "x/y",
+   {
+    "installed": 170,
+    "pinned": 158
+   }
+  ]
+ ],
+ "pin other os gl / no install": [
+  [
+   "pin",
+   "warn",
+   "WebGL: Apple M1, or similar without ANGLE, which every Windows Firefox reports",
+   "x/y",
+   {}
+  ],
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ]
+ ],
+ "pin other os gl / older install": [
+  [
+   "pin",
+   "warn",
+   "WebGL: Apple M1, or similar without ANGLE, which every Windows Firefox reports",
+   "x/y",
+   {}
+  ],
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ],
+  [
+   "freshness",
+   "fail",
+   "the pin says Firefox 158, newer than the installed 150",
+   "x/y",
+   {
+    "installed": 150,
+    "pinned": 158
+   }
+  ]
+ ],
+ "pin other os gl / same install": [
+  [
+   "pin",
+   "warn",
+   "WebGL: Apple M1, or similar without ANGLE, which every Windows Firefox reports",
+   "x/y",
+   {}
+  ],
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ]
+ ],
+ "pin platform / newer install": [
+  [
+   "pin",
+   "fail",
+   "the user agent says windows and navigator.platform says linux",
+   "x/y",
+   {
+    "key": "navigator.platform"
+   }
+  ],
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ],
+  [
+   "freshness",
+   "warn",
+   "the pin says Firefox 158 and the browser is 170; a user agent that lags its engine is a signal (agentos lane refresh-fingerprint --keep-device)",
+   "x/y",
+   {
+    "installed": 170,
+    "pinned": 158
+   }
+  ]
+ ],
+ "pin platform / no install": [
+  [
+   "pin",
+   "fail",
+   "the user agent says windows and navigator.platform says linux",
+   "x/y",
+   {
+    "key": "navigator.platform"
+   }
+  ],
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ]
+ ],
+ "pin platform / older install": [
+  [
+   "pin",
+   "fail",
+   "the user agent says windows and navigator.platform says linux",
+   "x/y",
+   {
+    "key": "navigator.platform"
+   }
+  ],
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ],
+  [
+   "freshness",
+   "fail",
+   "the pin says Firefox 158, newer than the installed 150",
+   "x/y",
+   {
+    "installed": 150,
+    "pinned": 158
+   }
+  ]
+ ],
+ "pin platform / same install": [
+  [
+   "pin",
+   "fail",
+   "the user agent says windows and navigator.platform says linux",
+   "x/y",
+   {
+    "key": "navigator.platform"
+   }
+  ],
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ]
+ ],
+ "pin software gl / newer install": [
+  [
+   "pin",
+   "fail",
+   "WebGL: a software renderer (llvmpipe), what a machine without a working GPU driver shows",
+   "x/y",
+   {}
+  ],
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ],
+  [
+   "freshness",
+   "warn",
+   "the pin says Firefox 158 and the browser is 170; a user agent that lags its engine is a signal (agentos lane refresh-fingerprint --keep-device)",
+   "x/y",
+   {
+    "installed": 170,
+    "pinned": 158
+   }
+  ]
+ ],
+ "pin software gl / no install": [
+  [
+   "pin",
+   "fail",
+   "WebGL: a software renderer (llvmpipe), what a machine without a working GPU driver shows",
+   "x/y",
+   {}
+  ],
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ]
+ ],
+ "pin software gl / older install": [
+  [
+   "pin",
+   "fail",
+   "WebGL: a software renderer (llvmpipe), what a machine without a working GPU driver shows",
+   "x/y",
+   {}
+  ],
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ],
+  [
+   "freshness",
+   "fail",
+   "the pin says Firefox 158, newer than the installed 150",
+   "x/y",
+   {
+    "installed": 150,
+    "pinned": 158
+   }
+  ]
+ ],
+ "pin software gl / same install": [
+  [
+   "pin",
+   "fail",
+   "WebGL: a software renderer (llvmpipe), what a machine without a working GPU driver shows",
+   "x/y",
+   {}
+  ],
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ]
+ ],
+ "pin touch linux / newer install": [
+  [
+   "pin",
+   "warn",
+   "WebGL: ANGLE (Intel, Intel(R) HD Graphics Direct3D11 vs_5_0 ps_5_0), or similar is a Windows renderer string",
+   "x/y",
+   {}
+  ],
+  [
+   "pin",
+   "fail",
+   "a linux identity lists windows fonts: Segoe UI",
+   "x/y",
+   {
+    "fonts": [
+     "Segoe UI"
+    ]
+   }
+  ],
+  [
+   "pin",
+   "warn",
+   "a linux desktop with 5 touch points",
+   "x/y",
+   {}
+  ],
+  [
+   "freshness",
+   "warn",
+   "the pin says Firefox 158 and the browser is 170; a user agent that lags its engine is a signal (agentos lane refresh-fingerprint --keep-device)",
+   "x/y",
+   {
+    "installed": 170,
+    "pinned": 158
+   }
+  ]
+ ],
+ "pin touch linux / no install": [
+  [
+   "pin",
+   "warn",
+   "WebGL: ANGLE (Intel, Intel(R) HD Graphics Direct3D11 vs_5_0 ps_5_0), or similar is a Windows renderer string",
+   "x/y",
+   {}
+  ],
+  [
+   "pin",
+   "fail",
+   "a linux identity lists windows fonts: Segoe UI",
+   "x/y",
+   {
+    "fonts": [
+     "Segoe UI"
+    ]
+   }
+  ],
+  [
+   "pin",
+   "warn",
+   "a linux desktop with 5 touch points",
+   "x/y",
+   {}
+  ]
+ ],
+ "pin touch linux / older install": [
+  [
+   "pin",
+   "warn",
+   "WebGL: ANGLE (Intel, Intel(R) HD Graphics Direct3D11 vs_5_0 ps_5_0), or similar is a Windows renderer string",
+   "x/y",
+   {}
+  ],
+  [
+   "pin",
+   "fail",
+   "a linux identity lists windows fonts: Segoe UI",
+   "x/y",
+   {
+    "fonts": [
+     "Segoe UI"
+    ]
+   }
+  ],
+  [
+   "pin",
+   "warn",
+   "a linux desktop with 5 touch points",
+   "x/y",
+   {}
+  ],
+  [
+   "freshness",
+   "fail",
+   "the pin says Firefox 158, newer than the installed 150",
+   "x/y",
+   {
+    "installed": 150,
+    "pinned": 158
+   }
+  ]
+ ],
+ "pin touch linux / same install": [
+  [
+   "pin",
+   "warn",
+   "WebGL: ANGLE (Intel, Intel(R) HD Graphics Direct3D11 vs_5_0 ps_5_0), or similar is a Windows renderer string",
+   "x/y",
+   {}
+  ],
+  [
+   "pin",
+   "fail",
+   "a linux identity lists windows fonts: Segoe UI",
+   "x/y",
+   {
+    "fonts": [
+     "Segoe UI"
+    ]
+   }
+  ],
+  [
+   "pin",
+   "warn",
+   "a linux desktop with 5 touch points",
+   "x/y",
+   {}
+  ]
+ ],
+ "pin window / newer install": [
+  [
+   "pin",
+   "fail",
+   "the window is 4000 px in width, larger than the 1536 px screen",
+   "x/y",
+   {}
+  ],
+  [
+   "pin",
+   "fail",
+   "the window is 4000 px in height, larger than the 864 px screen",
+   "x/y",
+   {}
+  ],
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ],
+  [
+   "freshness",
+   "warn",
+   "the pin says Firefox 158 and the browser is 170; a user agent that lags its engine is a signal (agentos lane refresh-fingerprint --keep-device)",
+   "x/y",
+   {
+    "installed": 170,
+    "pinned": 158
+   }
+  ]
+ ],
+ "pin window / no install": [
+  [
+   "pin",
+   "fail",
+   "the window is 4000 px in width, larger than the 1536 px screen",
+   "x/y",
+   {}
+  ],
+  [
+   "pin",
+   "fail",
+   "the window is 4000 px in height, larger than the 864 px screen",
+   "x/y",
+   {}
+  ],
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ]
+ ],
+ "pin window / older install": [
+  [
+   "pin",
+   "fail",
+   "the window is 4000 px in width, larger than the 1536 px screen",
+   "x/y",
+   {}
+  ],
+  [
+   "pin",
+   "fail",
+   "the window is 4000 px in height, larger than the 864 px screen",
+   "x/y",
+   {}
+  ],
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ],
+  [
+   "freshness",
+   "fail",
+   "the pin says Firefox 158, newer than the installed 150",
+   "x/y",
+   {
+    "installed": 150,
+    "pinned": 158
+   }
+  ]
+ ],
+ "pin window / same install": [
+  [
+   "pin",
+   "fail",
+   "the window is 4000 px in width, larger than the 1536 px screen",
+   "x/y",
+   {}
+  ],
+  [
+   "pin",
+   "fail",
+   "the window is 4000 px in height, larger than the 864 px screen",
+   "x/y",
+   {}
+  ],
+  [
+   "pin",
+   "warn",
+   "a windows identity on a Linux node: text metrics, codecs, form widgets and system colours still come from Linux (Camoufox issue 895), so a page that measures them sees another OS",
+   "x/y",
+   {
+    "claimed": "windows"
+   }
+  ]
+ ]
+}

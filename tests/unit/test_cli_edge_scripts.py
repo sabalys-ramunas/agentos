@@ -294,7 +294,7 @@ def _watch_tree(tmp_path, changed: str):
 
 @pytest.mark.parametrize("args", [
     ["--restart", "x", "/srv/agentos-dev/qa"],             # restart without --watch
-    ["--panel", "/srv/agentos-dev/qa"],
+    ["--panel", "/srv/agentos-dev/qa"],                   # the removed panel build option
     ["--watch", "/srv/agentos-dev/qa", "/srv/agentos-dev/other"],
     ["--watch"],
     ["--bogus", "/srv/agentos-dev/qa"],

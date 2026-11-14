@@ -145,7 +145,7 @@ async def test_a_lane_close_failure_logs_the_message_not_the_browser_output(tmp_
 
 
 def test_a_download_error_keeps_no_url_query():
-    from agentos.node.engine_camoufox import _first_line
+    from agentos.node.camoufox.engine import _first_line
 
     assert _first_line(Exception("net::ERR_FAILED at https://cdn.example/f.zip?sig=abc123\nmore")) == \
         "net::ERR_FAILED at https://cdn.example/f.zip?..."

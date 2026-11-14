@@ -59,8 +59,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol
 
-from agentos.ops.layout import ops_socket
-from agentos.ops.system import Host
+from agentos.core.layout import ops_socket
+from agentos.core.system import Host
 from agentos.runas import PRIVILEGED_GROUPS
 
 HIDDEN_BY_PROTECT_HOME = ("/root/", "/home/", "/run/user/")

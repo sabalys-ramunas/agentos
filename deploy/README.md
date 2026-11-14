@@ -36,12 +36,11 @@ because they need it. The long form (`sudo -u agentos AGENTOS_HOME=/var/lib/agen
 /opt/agentos/.venv/bin/agentos ...`) still works. A file at that path the installer did not write is
 left alone.
 
-**The web UI.** The installer builds the panel and the web app when Node.js 22 is on the node. Without
-Node.js it uses a build that came with the source (`panel/dist`, and a `web/dist` built from the same
-sources), and with neither the node has **no web UI**: MCP, the API and the CLI work, and the panel
-sign-in link shows a placeholder page. The installer says so at the end. To add one, install Node.js
-22 and run the installer again, or build on your computer (`cd web && pnpm install && pnpm build`,
-and `cd panel && npm ci && npm run build` in a checkout that has `panel/`), copy that checkout to the node with its builds
+**The web UI.** The installer builds the web app when Node.js 22 is on the node. Without Node.js it
+uses a build that came with the source (a `web/dist` built from the same sources), and with neither
+the node has **no web UI**: MCP, the API and the CLI work, and the sign-in link shows a placeholder
+page. The installer says so at the end. To add one, install Node.js 22 and run the installer again,
+or build on your computer (`cd web && pnpm install && pnpm build`), copy that checkout to the node with its builds
 (`scripts/sync-node.sh --web DIR`, or rsync) and run the installer again from that copy.
 `agentos connect HOST --install`, run from a checkout, sends that checkout with its builds.
 

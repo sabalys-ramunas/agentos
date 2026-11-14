@@ -667,7 +667,7 @@ class DevLaneManager(ControlFakeLaneManager):
         self.queue_timeout = float(self.config.queue_timeout)
         self.claim_max_total_s = float(self.config.claim_max_seconds)
 
-    # ---- what the lanes' guards hear, as agentos.node.lanes.LaneManager tells it ----
+    # ---- what the lanes' guards hear, as agentos.node.lanes (LaneManagerImpl) tells it ----
 
     def add_effect_listener(self, callback: Callable[[str, str, str | None, str], Any]) -> None:
         """callback(lane_id, kind, rule_id, actor) on each request an effect rule names that the fake

@@ -35,6 +35,7 @@ from starlette.websockets import WebSocket, WebSocketDisconnect
 from agentos.controller.hub import NodeSession, clean_ceiling
 from agentos.controller.routing import NODE_NAME_RE
 from agentos.controller.store import EnrollRefused
+from agentos.core import signing
 from agentos.node.channel import wire
 
 log = logging.getLogger("agentos.controller.connect")
@@ -56,7 +57,7 @@ def _enroll_fields(body: dict) -> dict:
     if not isinstance(token, str) or not 1 <= len(token) <= 200:
         raise EnrollRefused("invalid", "enroll needs a join_token")
     try:
-        wire.public_key(pubkey)
+        signing.public_key(pubkey)
     except ValueError:
         raise EnrollRefused("invalid", "node_pubkey must be an unpadded base64url Ed25519 key") from None
     if not isinstance(name, str) or not NODE_NAME_RE.match(name):
@@ -126,7 +127,7 @@ class NodeEndpoint:
             if proof is None:  # every node of this version sends it; the join token stays unspent
                 raise EnrollRefused("invalid", "enroll needs proof: node_pubkey's signature over this "
                                                "connection's challenge (update the node)")
-            if not wire.verify(fields["pubkey"], proof, wire.enroll_message(nonce, fields["pubkey"])):
+            if not signing.verify(fields["pubkey"], proof, wire.enroll_message(nonce, fields["pubkey"])):
                 raise EnrollRefused("invalid", "the proof does not match node_pubkey and this connection's challenge")
             node = await store.run(store.enroll, fields.pop("token"), **fields)
         except EnrollRefused as exc:
@@ -145,7 +146,7 @@ class NodeEndpoint:
         node_id, given, sig = body.get("node_id"), body.get("nonce"), body.get("sig")
         node = self.controller.store.node(node_id) if isinstance(node_id, str) and len(node_id) <= 64 else None
         ok = (node is not None and node.get("removed_at") is None and given == nonce
-              and wire.verify(node["pubkey"], sig, wire.hello_message(nonce, node_id)))
+              and signing.verify(node["pubkey"], sig, wire.hello_message(nonce, node_id)))
         store = self.controller.store
         if ok and not await store.run(store.use_nonce, nonce, node_id):
             ok = False  # a replayed hello

@@ -33,7 +33,7 @@ HOMES: dict[str, tuple[str, ...]] = {
         "Events", "LaneGuard", "_GUARDS", "guard_for",
     ),
     "helpers": (
-        "QUIET_SCHEMES", "SUBMIT_KEYS", "_first_line", "_in_subframe", "_path", "_post_data",
+        "QUIET_SCHEMES", "SUBMIT_KEYS", "_in_subframe", "_path", "_post_data",
         "_press_mode", "_short", "_tab_before_newline",
     ),
     "page_js": (
@@ -102,7 +102,7 @@ def test_each_moved_name_is_the_same_object_on_the_package(module):
 def test_what_the_module_imported_still_resolves_on_the_package():
     missing = [name for name in IMPORTED if not hasattr(egress, name)]
     assert missing == []
-    assert egress.globs is importlib.import_module("agentos.policy.globs")
+    assert egress.globs is importlib.import_module("agentos.core.globs")
     assert egress.registrable_domain is egress.sites.registrable_domain
     assert egress.same_site is egress.sites.same_site
 

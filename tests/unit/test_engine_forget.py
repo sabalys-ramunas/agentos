@@ -8,7 +8,7 @@ import gc
 import weakref
 
 from agentos.node import human, interaction, typist
-from agentos.node.engine_camoufox import PageTracker, forget_context, tracker_for
+from agentos.node.camoufox.engine import PageTracker, forget_context, tracker_for
 
 
 class FakeContext:

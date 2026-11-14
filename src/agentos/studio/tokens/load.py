@@ -592,7 +592,6 @@ def raws_from_decls(per_theme_decls: dict[str, dict[str, str]], *, tailwind: boo
     resolved value text the Python parser cannot read (color-mix, light-dark) to a computed
     colour the page gave for it. `uses` says what the page uses a variable for ({"--r-md":
     ["radius"]}): a length whose name says nothing is categorised by that use."""
-    by_use = {"radius": C.RADIUS}
     base = per_theme_decls.get("base", {})
     scales: list[Scale] = []
     out: dict[str, dict[str, _Raw]] = {}
@@ -613,33 +612,16 @@ def raws_from_decls(per_theme_decls: dict[str, dict[str, str]], *, tailwind: boo
                 resolved = pick_light_dark(resolved, theme)
             if canon_extra and resolved in canon_extra:
                 resolved = canon_extra[resolved]
-            if tailwind:
-                if var == "--spacing":
-                    # the step of the spacing scale, and a token too, so the probe can perturb it
-                    # and trace calc(var(--spacing) * n) back to it
-                    px = parse_length(resolved, root_px=root_px)
-                    if px and theme == "base":
-                        scales.append(Scale(category=C.SPACE, step_px=px))
-                    if px:
-                        raws["spacing"] = _Raw("spacing", C.SPACE, fmt_px(px), var, False)
-                    continue
-                cat = _tailwind_category(var)
-                if cat is None and not var.startswith(("--tw-", "--text-", "--color-", "--default-")):
-                    # the app's own variables beside Tailwind's (--background, --type-14): read
-                    # them as in plain CSS
-                    cat = C.COLOR if parse_color(resolved) is not None else category_from_name(var)
-                    if cat == C.COLOR and parse_color(resolved) is None:
-                        cat = None
-            else:
-                # a value that reads as a colour is a colour token whatever its name
-                # (--color-shadow); otherwise the name says what it is for
-                cat = C.COLOR if parse_color(resolved) is not None else category_from_name(var)
-                if cat == C.COLOR and parse_color(resolved) is None:
-                    cat = None
-            used_for = [by_use[u] for u in (uses or {}).get(var, []) if u in by_use]
-            if used_for and (cat is None or (cat == C.SPACE and not re.search(r"space|spacing|gap|gutter|padding|margin", var))) \
-                    and parse_length(resolved, root_px=root_px) is not None:
-                cat = used_for[0]
+            if tailwind and var == "--spacing":
+                # the step of the spacing scale, and a token too, so the probe can perturb it
+                # and trace calc(var(--spacing) * n) back to it
+                px = parse_length(resolved, root_px=root_px)
+                if px and theme == "base":
+                    scales.append(Scale(category=C.SPACE, step_px=px))
+                if px:
+                    raws["spacing"] = _Raw("spacing", C.SPACE, fmt_px(px), var, False)
+                continue
+            cat = _category_of(var, resolved, tailwind=tailwind, uses=uses, root_px=root_px)
             if cat is None:
                 continue
             canon = canonical(cat, resolved, root_px=root_px)
@@ -652,6 +634,36 @@ def raws_from_decls(per_theme_decls: dict[str, dict[str, str]], *, tailwind: boo
     if tailwind and scales:
         scales.append(Scale(category=C.BORDER_WIDTH, step_px=1, max_px=16))
     return out, scales
+
+
+_BY_USE = {"radius": C.RADIUS}
+_SPACE_NAME = re.compile(r"space|spacing|gap|gutter|padding|margin")
+
+
+def _category_of(var: str, resolved: str, *, tailwind: bool, uses: dict[str, list[str]] | None,
+                 root_px: float) -> TokenCategory | None:
+    """What a custom property is a token of, or None when it is none."""
+    if tailwind:
+        cat = _tailwind_category(var)
+        if cat is None and not var.startswith(("--tw-", "--text-", "--color-", "--default-")):
+            # the app's own variables beside Tailwind's (--background, --type-14): read them as in plain CSS
+            cat = _plain_category(var, resolved)
+    else:
+        cat = _plain_category(var, resolved)
+    used_for = [_BY_USE[u] for u in (uses or {}).get(var, []) if u in _BY_USE]
+    if used_for and (cat is None or (cat == C.SPACE and not _SPACE_NAME.search(var))) \
+            and parse_length(resolved, root_px=root_px) is not None:
+        cat = used_for[0]
+    return cat
+
+
+def _plain_category(var: str, resolved: str) -> TokenCategory | None:
+    """A value that reads as a colour is a colour token whatever its name (--color-shadow);
+    otherwise the name says what it is for, but never a colour the value is not."""
+    if parse_color(resolved) is not None:
+        return C.COLOR
+    cat = category_from_name(var)
+    return None if cat == C.COLOR else cat
 
 
 def decls_by_theme(blocks: list[tuple[list[str], dict[str, str]]]) -> dict[str, dict[str, str]]:

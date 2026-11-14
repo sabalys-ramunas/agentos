@@ -75,7 +75,7 @@ class ControlView:
         self.lanes = lanes
         self.hub = None
         if callable(getattr(lanes, "add_control_listener", None)):
-            from agentos.node.viewer_app import ControlHub
+            from agentos.node.viewer_state import ControlHub
 
             self.hub = ControlHub(lanes)
 

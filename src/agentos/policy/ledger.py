@@ -1,8 +1,7 @@
 """The action ledger: what each account (lane) did, by kind, whoever made it do it.
 
-Caps such as "10 likes a day" mean the account's likes, not one engine's. The engagement engine
-counted only its own operations, so likes an agent made over MCP, a pilot run, a flow or a workflow
-on the same account went past its caps unseen. Every one of those paths leaves through the lane's
+Caps such as "10 likes a day" mean the account's likes, not one path's: likes an agent made over
+MCP, a pilot run, a flow or a workflow on the same account all count. Every one of those paths leaves through the lane's
 egress guard, which already names what a request does (agentos.node.egress EFFECT_RULES, by host,
 path and GraphQL or LinkedIn operation name). So the guard is the one place that sees them all: when
 a request an effect rule names finishes (the site answered), the lane manager hands it here and one
@@ -21,12 +20,11 @@ drove the lane when the request left, not when it was answered.
 
 Kinds are the effect kinds: post, comment, like, follow, join, profile (an unlike counts as a like:
 the site sees an action either way). `actor` is who drove the lane: agent (an MCP agent or a pilot
-run through the node's tools), flow (a recorded flow, a connector run, a workflow step, an
-engagement operation) or person (the owner in control). Counts leave out `person` unless asked:
+run through the node's tools), flow (a recorded flow, a connector run, a workflow step) or person (the owner in control). Counts leave out `person` unless asked:
 a person's own clicks are theirs to make, and no cap of the node's stops them.
 
-The ledger only counts: it refuses nothing, so a deploy changes no program by itself. A reader (the
-engagement engine's caps) decides what a count means. Rows older than KEEP_DAYS are pruned.
+The ledger only counts: it refuses nothing. A reader decides what a count means (the engagement
+engine that read it for its caps was removed; the counts stay for what reads them next). Rows older than KEEP_DAYS are pruned.
 """
 
 from __future__ import annotations

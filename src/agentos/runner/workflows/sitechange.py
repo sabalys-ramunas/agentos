@@ -33,7 +33,7 @@ from typing import Any
 
 from agentos.core.errors import AgentosError, NotFound, PolicyDenied
 from agentos.core.models import Effect, RunStatus
-from agentos.runner.models import SUCCEEDED, Run
+from agentos.runner.records import SUCCEEDED, Run
 from agentos.runner.siteapis.cache import below_expected, canonical, http_of
 from agentos.runner.workflows.engine import HIDDEN
 from agentos.runner.workflows.models import Trigger

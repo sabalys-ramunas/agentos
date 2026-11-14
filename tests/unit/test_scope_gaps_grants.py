@@ -1,7 +1,6 @@
 """Scope gaps closed by the grant families change: a trigger proposal checks a lane pattern as a pattern,
 a brain task is steered only by the grant that started it (or one it was narrowed from), a brain
-default is set for a workspace the grant covers (or by a grant for every workspace), an engage item is
-withdrawn only by its asker's grant, a reserved subject needs the node's own issuer, and a device
+default is set for a workspace the grant covers (or by a grant for every workspace), a reserved subject needs the node's own issuer, and a device
 credential's grants stay inside the device ceiling. Two grants may share a subject id; the grant path is
 what tells them apart."""
 
@@ -11,21 +10,17 @@ from types import SimpleNamespace
 
 import pytest
 from events_support import World, no_quiet
-from test_engage_items import RD, Rig, call
-from test_engage_items import Ctx as EngageCtx
 from test_node_panel import TOKEN, Node
 from test_policy_support import make_service
 from test_presence import Device, Token
 from test_wsexport_api import panels  # noqa: F401 - the two-node panel fixture
+from testkit.brains import FakeCtx, add, wait_status
+from testkit.brains import make_service as make_brains
 
 from agentos.api.auth import SESSION_COOKIE
 from agentos.brains import tool_specs
-from agentos.brains.testing import FakeCtx, add, wait_status
-from agentos.brains.testing import make_service as make_brains
 from agentos.core.errors import InvalidRequest, NotFound, PolicyDenied
 from agentos.core.models import Effect, Principal
-from agentos.engage import tools as engage_tools
-from agentos.engage.errors import OwnerOnly
 from agentos.events.tools import trigger_propose
 from agentos.policy.grants import Grant, GrantBlock, Subject
 
@@ -169,37 +164,7 @@ async def test_brain_use_sets_a_default_only_for_a_covered_workspace_or_by_a_gra
         {"workspace": None, "default_brain": "claude-max"}
 
 
-# ---------------------------------------------------------------- 4. engage item withdraw
-
-
-class FamilyCtx(EngageCtx):
-    """An agent's context under the grant at `path`. Every one has the same subject id."""
-
-    def __init__(self, runtime, path: str, **kw):
-        super().__init__(runtime, Principal(kind="agent", id="claude-code"), **kw)
-        self.grant = SimpleNamespace(path=path, admin=False)
-
-
-def test_an_item_is_withdrawn_only_by_the_grant_that_asked(tmp_path):
-    rig = Rig(tmp_path)
-    asked = call(engage_tools.engage_item_submit, FamilyCtx(rig.runtime, "/gr_aaaaaaaaaa/", approve=True),
-                 surface=RD, kind="post", text="Hello coffee people", targets=["r/coffee"])
-    assert asked["status"] == "queued"
-    assert asked["requested_by"] == {"kind": "agent", "id": "claude-code", "owner": "owner"}
-    stored = rig.inbox.get(asked["id"])
-    assert stored["requested_by"]["grant_path"] == "/gr_aaaaaaaaaa/"  # kept on the node
-    assert "grant_path" not in rig.inbox.public(stored)["requested_by"]
-    with pytest.raises(OwnerOnly):  # the same subject id under another root grant: not the asker
-        call(engage_tools.engage_item_withdraw, FamilyCtx(rig.runtime, "/gr_bbbbbbbbbb/"), item_id=asked["id"])
-    with pytest.raises(OwnerOnly):  # nor a narrower child of the asker's grant
-        call(engage_tools.engage_item_withdraw, FamilyCtx(rig.runtime, "/gr_aaaaaaaaaa/gr_cccccccccc/"),
-             item_id=asked["id"])
-    assert rig.inbox.get(asked["id"])["status"] == "queued"
-    out = call(engage_tools.engage_item_withdraw, FamilyCtx(rig.runtime, "/gr_aaaaaaaaaa/"), item_id=asked["id"])
-    assert out["status"] == "withdrawn"
-
-
-# ---------------------------------------------------------------- 5. reserved subjects
+# ---------------------------------------------------------------- 4. reserved subjects
 
 
 @pytest.fixture
@@ -217,7 +182,7 @@ def test_a_reserved_subject_needs_the_nodes_own_issuer(svc):
     assert principal.id == "site-key:k1" and same.id == grant.id
 
 
-# ---------------------------------------------------------------- 6. the device ceiling
+# ---------------------------------------------------------------- 5. the device ceiling
 
 
 def test_the_device_ceiling_bounds_what_a_device_grant_holds(svc):
@@ -233,7 +198,7 @@ def test_the_device_ceiling_bounds_what_a_device_grant_holds(svc):
             svc.issue(**{**within, **change})
 
 
-# ---------------------------------------------------------------- 7. the device credential over HTTP
+# ---------------------------------------------------------------- 6. the device credential over HTTP
 
 
 @pytest.fixture
@@ -260,7 +225,7 @@ def test_the_device_credential_issues_grants_only_within_the_device_ceiling(node
     assert owner.status_code == 200, owner.text
 
 
-# ---------------------------------------------------------------- 8. workspace import reissuing grants
+# ---------------------------------------------------------------- 7. workspace import reissuing grants
 
 
 def test_a_device_credential_cannot_make_an_import_reissue_grants(panels):  # noqa: F811

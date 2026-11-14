@@ -15,6 +15,7 @@ import { Card } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
 import { StatusDot } from '@/components/ui/status';
 import { cn } from '@/lib/cn';
+import { clockSeconds } from '@/lib/format';
 import { Panel } from './parts';
 
 const SHOW = 1_000;
@@ -35,7 +36,6 @@ const LEVELS: { value: LogLevel; label: string }[] = [
   { value: 'error', label: 'Error' },
 ];
 
-const time = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
 function highlight(text: string, query: string): ReactNode {
   if (!query) return text;
@@ -61,7 +61,7 @@ function highlight(text: string, query: string): ReactNode {
 function Line({ line, query }: { line: SeqLine; query: string }) {
   return (
     <div className="grid h-5 grid-cols-[64px_40px_72px_minmax(0,1fr)] items-center gap-3 px-4 whitespace-nowrap hover:bg-fill-1 max-sm:grid-cols-[56px_36px_minmax(0,1fr)] sm:px-6">
-      <span className="text-faint">{time(line.at)}</span>
+      <span className="text-faint">{clockSeconds(line.at)}</span>
       <span className={cn(line.level === 'error' ? 'text-red' : line.level === 'warn' ? 'text-amber' : 'text-faint')}>{line.level}</span>
       <span className="truncate text-muted max-sm:hidden">{line.source}</span>
       <span className="truncate text-fg">

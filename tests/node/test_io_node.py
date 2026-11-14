@@ -23,7 +23,7 @@ import pytest_asyncio
 
 from agentos.core.errors import InvalidRequest
 from agentos.core.models import ActionKind, LaneSpec
-from agentos.node.engine_camoufox import CamoufoxEngine, PageTracker
+from agentos.node.camoufox.engine import CamoufoxEngine, PageTracker
 from agentos.node.files import MB, FilesConfig, FileStatus, LaneFiles
 from agentos.node.interaction import DialogPending, PlaywrightInteraction
 from agentos.node.snapshot import find_refs

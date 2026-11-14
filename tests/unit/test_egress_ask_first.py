@@ -17,6 +17,7 @@ from agentos.core.runtime import Runtime
 from agentos.node import egress, flow_driver
 from agentos.node import tools as node_tools
 from agentos.node.egress import Driver, classify, judge
+from agentos.node.tools import session as tool_session
 
 PUBLISH = "https://i.instagram.com/api/v1/media/configure/"
 LANE = "biz-a/instagram"
@@ -288,8 +289,8 @@ async def test_driven_session_binds_the_switch_and_a_refusal_reaches_needs_you(t
     async def session(*a, **k):
         yield object()
 
-    monkeypatch.setattr(node_tools, "ctx_session", session)
-    monkeypatch.setattr(node_tools.egress, "guard_for", lambda page: g.guard)
+    monkeypatch.setattr(tool_session, "ctx_session", session)
+    monkeypatch.setattr(egress, "guard_for", lambda page: g.guard)
     async with node_tools.driven_session(ctx, LANE):
         pass
     assert g.guard.driver.grant_id == ctx.grant.id

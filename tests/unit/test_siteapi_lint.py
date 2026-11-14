@@ -11,16 +11,17 @@ import pytest
 from connector_samples import SITES as SAMPLE_SITES
 from connector_samples import connector, read_op
 
+from agentos.core.template import render
 from agentos.node.flow_driver import inside, own_filter, record_levels, tree_order
 from agentos.runner.connectors.compile import ConnectorInvalid, compile_connector
 from agentos.runner.connectors.lint import param_problems
 from agentos.runner.connectors.models import Commit
 from agentos.runner.connectors.steps import walk
-from agentos.runner.executor import _typed
 from agentos.runner.fakes import El, _picked
 from agentos.runner.models import ExtractField
+from agentos.runner.readvalues import typed_value
 from agentos.runner.siteapis.models import SAMPLE, compile_api, labelled, parse, shown_effect, to_connector
-from agentos.runner.util import render, url_problem
+from agentos.runner.util import url_problem
 
 SITES = {"instagram": ("instagram.com",)}
 
@@ -333,8 +334,8 @@ def test_a_card_never_climbs_out_of_a_shadow_root():
 
 def test_capture_keeps_one_group_and_no_match_is_no_value():
     f = ExtractField(read="text", capture=r"(€\d+)", max_chars=20)
-    assert _typed("Nida €180 a month", f, "https://x.test/")[0] == "€180"
-    assert _typed("Nida", f, "https://x.test/")[0] is None
+    assert typed_value("Nida €180 a month", f, "https://x.test/")[0] == "€180"
+    assert typed_value("Nida", f, "https://x.test/")[0] is None
     with pytest.raises(ValueError, match="one group"):
         ExtractField(read="text", capture=r"€\d+", max_chars=20)
 
@@ -348,7 +349,7 @@ def test_capture_keeps_one_group_and_no_match_is_no_value():
     {"attr": "href", "capture": r"(/x)?€", "format": "uri", "host": "x.test"},
 ])
 def test_an_optional_group_that_matched_nothing_is_no_value(field):
-    assert _typed("€", ExtractField(**field), "https://x.test/") == (None, False, None)
+    assert typed_value("€", ExtractField(**field), "https://x.test/") == (None, False, None)
 
 
 # ---- where a caller's param may reach a page ----

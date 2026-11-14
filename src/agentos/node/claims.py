@@ -52,10 +52,6 @@ from agentos.core.errors import ClaimLost  # noqa: F401 - raised by the lane man
 log = logging.getLogger("agentos.lanes.claims")
 
 READ, ACT, CLAIM, RUN, SYSTEM = "read", "act", "claim", "run", "system"
-# Run.parent of a flow or connector run that acts inside a claim held by the node itself (an
-# engagement session, agentos.engage): "claim:<holder key>". The flow driver enters the lane as that
-# holder, so the run passes the claim instead of waiting behind it. Only the node sets a run's parent.
-CLAIM_PARENT = "claim:"
 MODES = (READ, ACT, CLAIM, RUN, SYSTEM)
 
 DEFAULT_TTL_S = 120.0
@@ -101,9 +97,6 @@ class Holder:
     def owner(self) -> str:
         """Whose a claim is: the identity (the agent across its sessions), else the key."""
         return self.identity or self.key
-
-    def same_identity(self, other_identity: str) -> bool:
-        return bool(other_identity) and (self.identity or self.key) == other_identity
 
     def public(self) -> dict[str, Any]:
         out: dict[str, Any] = {"label": self.label, "kind": self.kind, "ref": self.ref}

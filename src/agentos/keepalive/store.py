@@ -24,10 +24,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from agentos.core import clock, migrate
 from agentos.core.errors import ServiceUnavailable
 from agentos.core.sqlite import SqliteStore
 from agentos.keepalive.migrations import DB, MIGRATIONS
-from agentos.ops import migrate
 
 OPT_OUT = "keepalive-off"   # in the lane's directory: the lane opted out of keepalive
 STARTED, INTERRUPTED = "started", "interrupted"
@@ -42,13 +42,9 @@ def set_lane_opt_out(lane_dir: Path, opted_out: bool) -> None:
     path = Path(lane_dir) / OPT_OUT
     if opted_out:
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps({"opted_out": True, "at": _now()}) + "\n")
+        path.write_text(json.dumps({"opted_out": True, "at": clock.iso(timespec="seconds")}) + "\n")
     else:
         path.unlink(missing_ok=True)
-
-
-def _now() -> str:
-    return datetime.now(UTC).isoformat(timespec="seconds")
 
 
 def _when(value: str | None) -> datetime | None:
@@ -144,7 +140,7 @@ class KeepaliveStore(SqliteStore):
             if row is None:
                 seed = secrets.token_hex(16)
                 conn.execute("INSERT INTO lanes (lane_id, seed, updated_at) VALUES (?, ?, ?)",
-                             (lane_id, seed, _now()))
+                             (lane_id, seed, clock.iso(timespec="seconds")))
                 return LaneRow(lane_id, seed)
         return row  # another process made it first
 
@@ -152,7 +148,7 @@ class KeepaliveStore(SqliteStore):
         self.lane(lane_id)
         with self._tx() as conn:
             conn.execute("UPDATE lanes SET opted_out = ?, updated_at = ? WHERE lane_id = ?",
-                         (int(opted_out), _now(), lane_id))
+                         (int(opted_out), clock.iso(timespec="seconds"), lane_id))
         return self.lane(lane_id)
 
     def set_status(self, lane_id: str, status: str | None, reason: str | None = None, *,
@@ -168,7 +164,7 @@ class KeepaliveStore(SqliteStore):
             conn.execute("UPDATE lanes SET status = ?, reason = ?, status_at = ?, notified = ?, updated_at = ? "
                          "WHERE lane_id = ?", (status, reason if status else None,
                                                at.isoformat(timespec="seconds") if status else None,
-                                               int(bool(notified)), _now(), lane_id))
+                                               int(bool(notified)), clock.iso(timespec="seconds"), lane_id))
         return self.lane(lane_id)
 
     # ---- visits ----

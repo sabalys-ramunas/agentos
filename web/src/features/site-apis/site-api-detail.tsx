@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { useSiteAction, useSiteApi, useWorkspaces } from '@/api/hooks';
 import { isNotServed } from '@/api/http';
 import type { SiteApiDetail as Api, SiteEndpoint, SitePageColumn } from '@/api/types';
-import type { SiteDoor } from '@/app/router';
+import type { SiteDoor } from '@/app/routes/org';
 import { BusinessMark } from '@/components/brand/identity';
 import { SiteMark } from '@/components/brand/site-mark';
 import { Button } from '@/components/ui/button';

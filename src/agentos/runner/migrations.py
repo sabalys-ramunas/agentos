@@ -1,4 +1,4 @@
-"""The runner package's migration sets, for agentos.ops.migrate.discover(). runner.db migrates itself in
+"""The runner package's migration sets, for agentos.core.migrate.discover(). runner.db migrates itself in
 agentos.runner.store, but for site API drafts; site API keys, cache and usage have their own database."""
 
 from __future__ import annotations

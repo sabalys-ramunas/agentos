@@ -29,9 +29,9 @@ from agentos.core.config import NodeConfig
 from agentos.core.errors import EgressRefused
 from agentos.core.models import ActionKind, LaneSpec
 from agentos.node import egress
+from agentos.node.camoufox.engine import CamoufoxEngine, browser_pids_under
 from agentos.node.display import DisplayManagerImpl, kill_processes
 from agentos.node.egress import Driver, EffectRule
-from agentos.node.engine_camoufox import CamoufoxEngine, browser_pids_under
 
 pytestmark = [
     pytest.mark.node,

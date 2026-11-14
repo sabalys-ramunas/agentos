@@ -16,6 +16,7 @@ from protocol_capture import _start_node
 from test_channel_node import invoke_body, wire_key
 from test_channel_standing import hosted
 
+from agentos.core import signing
 from agentos.core.errors import AgentosError
 from agentos.core.runtime import Runtime
 from agentos.node.channel import reports, wire
@@ -99,7 +100,7 @@ async def test_an_unsigned_tampered_stale_or_replayed_message_changes_nothing(wi
     changes = [{"scope": "lane", "id": LANE, "ask_first": True}]
     body = {"ts": wire.iso(), "nonce": secrets.token_hex(8), "changes": changes}
     assert (await send(peer, body)).body["code"] == "denied"
-    assert (await send(peer, wire.sign_controller(wire_key(), "ask_first", NODE_ID, body))).body["code"] == "denied"
+    assert (await send(peer, signing.sign_controller(wire_key(), "ask_first", NODE_ID, body))).body["code"] == "denied"
     assert (await send(peer, fake.sign("standing", body))).body["code"] == "denied"  # signed for another type
     tampered = signed(fake, changes)
     tampered["changes"][0]["id"] = "personal/other"

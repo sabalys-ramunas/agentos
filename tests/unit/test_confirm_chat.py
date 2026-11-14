@@ -22,7 +22,7 @@ from agentos.core.models import Effect
 from agentos.core.tools import ToolSpec
 from agentos.node import daemon
 from agentos.policy import confirm_chat, wrap_tool
-from agentos.policy.approvals import ApprovalPolicy, FourEyesRule
+from agentos.policy.approval_models import ApprovalPolicy, FourEyesRule
 from agentos.policy.confirm import ConfirmLevel, Proof
 from agentos.policy.confirm_chat import prompt_text, quoted, yes_value
 from agentos.policy.errors import Denied, MethodUnavailable

@@ -4,7 +4,7 @@ already keeps, so every rule is tested without a clock, a browser or a daemon.
 When a visit is due:
 
     activity  the lane's last use: the latest of its last_used (every agent call, flow and connector
-              run, brain and engagement session goes through the lane manager's using(), which stamps
+              run and brain goes through the lane manager's using(), which stamps
               it), the last human input in its live view, and the last keepalive visit that counts
               (`counts`: one that went well, one cut short after the feed loaded, or one agentosd
               did not live to finish). A lane never used counts from its creation.
@@ -22,8 +22,8 @@ When a visit is due:
               not live to finish, at least RESTART_GAP later (`retry_at`). A slot that came before it
               counts as missed at that time (next_visit with `now` the retry time).
 
-Waking hours come from the lane's engagement persona when the engagement engine drew one (its wake
-time, waking span and weekend shift), else from a persona drawn the same way from the keepalive seed.
+Waking hours come from a persona drawn from the lane's keepalive seed (agentos.keepalive.persona:
+its wake time, waking span and weekend shift).
 When the owner set a posting pace on the lane (agentos.policy.pace, AUD-13), its timezone holds and a
 slot outside its active_hours moves to a little after they next open (KeepaliveService._waking): a
 session at 3 am lane time is a signal of its own, so visits keep to the hours posts keep to.
@@ -45,7 +45,7 @@ from zoneinfo import ZoneInfo
 
 from agentos.core.models import ControlState, LaneInfo, LaneState, Signal
 from agentos.core.signals import NEEDS_HUMAN
-from agentos.engage.persona import Persona, draw_persona, rng
+from agentos.keepalive.persona import Persona, draw_persona, rng
 from agentos.keepalive.sites import Entry
 
 EXPIRY_MARGIN = timedelta(days=1)    # visit at least this long before the session cookie expires
@@ -94,9 +94,9 @@ def retry_at(seed: str, outcome: str, started: datetime, finished: datetime,
     return _aware(finished) + timedelta(minutes=r.uniform(*RETRY_MIN))
 
 
-def persona_for(lane_id: str, seed: str, engaged: Persona | None = None) -> Persona:
-    """The lane's habits: the engagement persona when there is one, else one drawn from the seed."""
-    return engaged if engaged is not None else draw_persona(lane_id, seed)
+def persona_for(lane_id: str, seed: str) -> Persona:
+    """The lane's habits, drawn from its keepalive seed."""
+    return draw_persona(lane_id, seed)
 
 
 def cadence(entry: Entry, seed: str, activity: datetime | None) -> timedelta:

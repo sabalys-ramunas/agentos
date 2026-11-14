@@ -102,7 +102,7 @@ agentos lanebench run --executor mcp-agent ...        # the same tasks and seed,
 ```
 
 Compare calls per task, argument errors, the pass rate and the gates, with a weaker model first. What
-holds up becomes a code change: the instructions and recipes in `src/agentos/node/tools.py`, the tool
+holds up becomes a code change: the instructions and recipes in `src/agentos/node/tools/recipes.py`, the tool
 docstrings, and the `agent` lines in `src/agentos/core/error_catalog.toml`.
 
 ## Cost

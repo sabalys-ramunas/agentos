@@ -440,7 +440,8 @@ async def test_the_checks_display_sweep_kills_only_its_own_homes_processes(tmp_p
 
 
 async def test_the_next_check_stops_what_a_killed_one_left(tmp_path, monkeypatch):
-    from agentos.node import display, engine_camoufox
+    from agentos.node import display
+    from agentos.node.camoufox import engine as engine_camoufox
 
     dead, live, mine = (tmp_path / f"agentos-stealth-{n}" for n in ("dead0001", "live0001", "mine0001"))
     for home in (dead, live, mine):

@@ -18,10 +18,10 @@ import json
 import logging
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from agentos.core import clock
 from agentos.core.errors import AgentosError
 from agentos.textreview import evidence as ev
 from agentos.textreview import prompt as prompts
@@ -56,10 +56,6 @@ class Inputs:
     codes: Any = None                             # evidence.Codes; the catalog when left out
 
 
-def _iso(at: float) -> str:
-    return datetime.fromtimestamp(at, UTC).isoformat(timespec="seconds")
-
-
 def gather(inp: Inputs, since: float, until: float) -> tuple[ev.Evidence, ev.Codes]:
     from agentos.core import catalog
 
@@ -88,7 +84,7 @@ async def _run(inp: Inputs, runs: Runs) -> dict[str, Any]:
     found, codes = gather(inp, since, started)
     evidence_md = ev.render(found, codes, max_sessions=s.max_sessions_shown, max_calls=s.max_calls_shown)
     meta: dict[str, Any] = {
-        "id": run_id, "trigger": inp.trigger, "started_at": started, "window": {"from": _iso(since), "to": _iso(started)},
+        "id": run_id, "trigger": inp.trigger, "started_at": started, "window": {"from": clock.iso(since, timespec="seconds"), "to": clock.iso(started, timespec="seconds")},
         "counts": {"calls": found.calls, "sessions": len(found.sessions), "left_out": found.left_out,
                    "probe_tasks": len(found.probes), "probe_failed": sum(not p.passed for p in found.probes),
                    "reports": [p.name for p in found.reports]},

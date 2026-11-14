@@ -35,7 +35,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from agentos.core.errors import AgentosError, InvalidRequest, NotFound, PolicyDenied, ServiceUnavailable
 from agentos.core.models import Principal
-from agentos.runner.models import answered_in_person
+from agentos.runner.owner import answered_in_person
 from agentos.runner.util import iso, new_id, parse_dt
 from agentos.runner.workflows.sends import MAX_LIST_SIZE, base_address, normal_address
 

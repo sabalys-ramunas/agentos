@@ -12,6 +12,7 @@ import json
 import os
 import sqlite3
 import time
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated, Any
@@ -38,7 +39,7 @@ def _fail(e: AgentosError | str) -> None:
 def _tz(tz: str | None) -> str:
     if tz:
         return tz
-    from agentos.api.zone import host_zone
+    from agentos.core.zone import host_zone
 
     return host_zone()
 
@@ -94,6 +95,77 @@ def _service(*, full: bool = False):
                         node=getattr(cfg, "name", None))
 
 
+@dataclass
+class _Gathered:
+    """The anchors read so far, what the reading has to say about them, and where they came from."""
+    held: list[dict] = field(default_factory=list)
+    notes: list[Any] = field(default_factory=list)
+    sources: list[str] = field(default_factory=list)
+
+
+def _anchors_from_files(got: _Gathered, files: list[Path], *, pub: str, node_id: str) -> None:
+    """Saved anchor files: a controller export, receipts, or bare anchors (an S3 copy)."""
+    from agentos.policy import anchors as anchor_rules
+    from agentos.policy.auditlog import Finding
+
+    for f in files:
+        try:
+            doc = json.loads(Path(f).read_text())
+        except (OSError, ValueError) as e:
+            _fail(f"{f} could not be read as anchors: {e}")
+        held, dropped = anchor_rules.from_document(doc, controller_pubkey=pub, node_id=node_id, source=str(f))
+        got.held += held
+        got.sources.append(f"{len(held)} from {f}")
+        bare = sum(1 for a in held if a.get("unsigned"))
+        if bare:
+            got.notes.append(Finding("unprovable", f"{bare} anchor(s) in {f} carry no controller signature (an S3 "
+                                                   "copy or a hand-made list): they are only as good as where the "
+                                                   "file came from"))
+        if dropped:
+            got.notes.append(Finding("unprovable", f"{dropped} anchors in {f} were left out: they are malformed or "
+                                                   "their controller signature does not verify"))
+
+
+def _anchors_from_controller(got: _Gathered, home: Path) -> None:
+    """The controller's anchors, through agentosd."""
+    from agentos.core.layout import ops_socket
+    from agentos.core.system import Host
+    from agentos.policy import anchors as anchor_rules
+    from agentos.policy.auditlog import Finding
+
+    resp = Host().unix_request(ops_socket(home), {"op": "audit_anchors"}, timeout=30)
+    if not resp or not resp.get("ok"):
+        why = (resp or {}).get("error") or "agentosd is not running"
+        got.notes.append(Finding("unprovable", f"the controller's anchors could not be read: "
+                                               f"{why.get('message') if isinstance(why, dict) else why}"))
+        return
+    held = [a for a in resp.get("anchors") or [] if anchor_rules.valid(a) is None]
+    got.held += held
+    got.sources.append(f"{len(held)} from the controller")
+    if resp.get("truncated"):
+        got.notes.append(Finding("unprovable", f"the controller's anchors were read in {resp.get('pages')} pages "
+                                               "and the walk was cut off, so heads after those may be missing"))
+    if resp.get("unsigned"):
+        got.notes.append(Finding("unprovable", f"{resp['unsigned']} anchors from the controller were left out: "
+                                               "their signature does not verify"))
+
+
+def _anchors_from_s3(got: _Gathered, url: str, home: Path) -> None:
+    """An S3 bucket the node anchors to, read directly."""
+    from agentos.core.s3 import S3Error
+    from agentos.node.anchors import fetch_s3
+    from agentos.policy import anchors as anchor_rules
+    from agentos.policy.auditlog import Finding
+
+    try:
+        held = [a for a in fetch_s3(url, home=home) if anchor_rules.valid(a) is None]
+    except S3Error as e:
+        got.notes.append(Finding("unprovable", f"the anchors in {url} could not be read: {e}"))
+        return
+    got.held += held
+    got.sources.append(f"{len(held)} from {url}")
+
+
 def _check_anchors(report: Report, conn: sqlite3.Connection, home: Path, trusted: set[str] | None, *,
                    live: bool, files: list[Path], controller_key: str | None = None) -> None:
     """Gather the anchors (the controller through agentosd, S3 directly, saved files), then fold
@@ -109,56 +181,14 @@ def _check_anchors(report: Report, conn: sqlite3.Connection, home: Path, trusted
                                            "--controller-key, the key `agentos controller anchors` exports")]
     else:
         notes_key = []
-    held: list[dict] = []
-    notes: list[Finding] = []
-    sources: list[str] = []
-    for f in files:
-        try:
-            doc = json.loads(Path(f).read_text())
-        except (OSError, ValueError) as e:
-            _fail(f"{f} could not be read as anchors: {e}")
-        got, dropped = anchor_rules.from_document(doc, controller_pubkey=pub, node_id=node_id, source=str(f))
-        held += got
-        sources.append(f"{len(got)} from {f}")
-        bare = sum(1 for a in got if a.get("unsigned"))
-        if bare:
-            notes.append(Finding("unprovable", f"{bare} anchor(s) in {f} carry no controller signature (an S3 copy "
-                                               "or a hand-made list): they are only as good as where the file came "
-                                               "from"))
-        if dropped:
-            notes.append(Finding("unprovable", f"{dropped} anchors in {f} were left out: they are malformed or "
-                                               "their controller signature does not verify"))
+    got = _Gathered()
+    _anchors_from_files(got, files, pub=pub, node_id=node_id)
     targets = list(getattr(cfg, "audit_anchors", []) or []) if live else []
     if live and "controller" in targets and getattr(cfg, "enrolled", False):
-        from agentos.ops.layout import ops_socket
-        from agentos.ops.system import Host
-
-        resp = Host().unix_request(ops_socket(home), {"op": "audit_anchors"}, timeout=30)
-        if not resp or not resp.get("ok"):
-            why = (resp or {}).get("error") or "agentosd is not running"
-            notes.append(Finding("unprovable", f"the controller's anchors could not be read: "
-                                               f"{why.get('message') if isinstance(why, dict) else why}"))
-        else:
-            got = [a for a in resp.get("anchors") or [] if anchor_rules.valid(a) is None]
-            held += got
-            sources.append(f"{len(got)} from the controller")
-            if resp.get("truncated"):
-                notes.append(Finding("unprovable", f"the controller's anchors were read in {resp.get('pages')} pages "
-                                                   "and the walk was cut off, so heads after those may be missing"))
-            if resp.get("unsigned"):
-                notes.append(Finding("unprovable", f"{resp['unsigned']} anchors from the controller were left out: "
-                                                   "their signature does not verify"))
+        _anchors_from_controller(got, home)
     for url in (t for t in targets if str(t).startswith("s3://")):
-        from agentos.node.anchors import fetch_s3
-        from agentos.ops.s3 import S3Error
-
-        try:
-            got = [a for a in fetch_s3(url, home=home) if anchor_rules.valid(a) is None]
-        except S3Error as e:
-            notes.append(Finding("unprovable", f"the anchors in {url} could not be read: {e}"))
-            continue
-        held += got
-        sources.append(f"{len(got)} from {url}")
+        _anchors_from_s3(got, url, home)
+    held, notes, sources = got.held, got.notes, got.sources
     if live and not targets and not files:
         _fail("this node anchors nowhere: set audit_anchors in node.toml, or pass "
               "--anchors-file")

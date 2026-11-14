@@ -1,6 +1,6 @@
 """SQLite storage for profiles: numbered versions, photos, and the copies of photos in lanes.
 
-`AGENTOS_HOME/profiles/profiles.db` (WAL, created and migrated through agentos.ops.migrate) and
+`AGENTOS_HOME/profiles/profiles.db` (WAL, created and migrated through agentos.core.migrate) and
 `AGENTOS_HOME/profiles/photos/<sha256>.<ext>` (600, in a 700 directory). A version is never
 changed after it is saved, only its state (draft, approved, superseded, rejected). A photo is
 kept once, by the hash of its bytes, so the same picture saved twice is one file. A brand's
@@ -15,15 +15,12 @@ import logging
 import os
 import re
 import sqlite3
-import threading
-from collections.abc import Iterator
-from contextlib import contextmanager
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from agentos.core import clock, migrate
 from agentos.core.errors import InvalidRequest, NotFound, ServiceUnavailable
-from agentos.ops import migrate
+from agentos.core.sqlite import SqliteStore
 from agentos.profiles.migrations import DB, MIGRATIONS
 from agentos.profiles.models import Profile, ProfileState, ProfileVersion
 
@@ -53,45 +50,27 @@ def brand_type(data: bytes) -> str | None:
     return None
 
 
-def _now() -> str:
-    return datetime.now(UTC).isoformat(timespec="seconds")
+class ProfileStore(SqliteStore):
+    """The profiles database (agentos.core.sqlite: a connection per thread, WAL). Its schema is
+    agentos.profiles.migrations'; photos are files beside it, by content hash."""
 
+    row_factory = sqlite3.Row
 
-class ProfileStore:
     def __init__(self, home: Path):
         self.home = Path(home)
-        self.path = self.home / DB
-        self.photos_dir = self.path.parent / "photos"
+        path = self.home / DB
+        self.photos_dir = path.parent / "photos"
         try:
-            self.path.parent.mkdir(parents=True, exist_ok=True)
-            self.path.parent.chmod(0o700)
-            migrate.migrate(self.home, [MIGRATIONS], backup=self.path.exists())
-            self.path.chmod(0o600)
-            self._conn = sqlite3.connect(self.path, check_same_thread=False, isolation_level=None, timeout=30)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.parent.chmod(0o700)
+            migrate.migrate(self.home, [MIGRATIONS], backup=path.exists())
+            path.chmod(0o600)
+            super().__init__(path, timeout=30)
         except (OSError, sqlite3.Error, migrate.MigrationError) as e:
-            raise ServiceUnavailable(f"cannot open {self.path}: {e}") from None
-        self._lock = threading.Lock()
-        self._conn.row_factory = sqlite3.Row
-        self._conn.execute("PRAGMA journal_mode=WAL")
-        self._conn.execute("PRAGMA busy_timeout=30000")
-
-    def close(self) -> None:
-        self._conn.close()
-
-    @contextmanager
-    def _tx(self) -> Iterator[sqlite3.Connection]:
-        with self._lock:
-            self._conn.execute("BEGIN IMMEDIATE")
-            try:
-                yield self._conn
-            except BaseException:
-                self._conn.execute("ROLLBACK")
-                raise
-            self._conn.execute("COMMIT")
+            raise ServiceUnavailable(f"cannot open {path}: {e}") from None
 
     def _rows(self, sql: str, args: tuple = ()) -> list[sqlite3.Row]:
-        with self._lock:
-            return self._conn.execute(sql, args).fetchall()
+        return self._q(sql, args)
 
     # ---- versions ----
     @staticmethod
@@ -123,7 +102,7 @@ class ProfileStore:
                 "INSERT INTO profiles (workspace, id, version, hash, body, state, created_at, created_by, reason) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (ws, pid, n + 1, h, json.dumps(profile.canonical(), sort_keys=True), ProfileState.DRAFT.value,
-                 _now(), json.dumps(created_by) if created_by else None, reason))
+                 clock.iso(timespec="seconds"), json.dumps(created_by) if created_by else None, reason))
             row = conn.execute("SELECT * FROM profiles WHERE workspace = ? AND id = ? AND version = ?",
                                (ws, pid, n + 1)).fetchone()
         return self._version(row), True
@@ -190,7 +169,7 @@ class ProfileStore:
                              (ProfileState.SUPERSEDED.value, workspace, profile_id, ProfileState.APPROVED.value))
             conn.execute("UPDATE profiles SET state = ?, decided_at = ?, decided_by = ?, note = ? "
                          "WHERE workspace = ? AND id = ? AND version = ?",
-                         (state.value, _now(), by, note, workspace, profile_id, version))
+                         (state.value, clock.iso(timespec="seconds"), by, note, workspace, profile_id, version))
             row = conn.execute("SELECT * FROM profiles WHERE workspace = ? AND id = ? AND version = ?",
                                (workspace, profile_id, version)).fetchone()
         return self._version(row)
@@ -222,7 +201,7 @@ class ProfileStore:
             tmp.replace(path)
         with self._tx() as conn:
             conn.execute("INSERT OR IGNORE INTO photos (sha, workspace, name, type, size, created_at) "
-                         "VALUES (?, ?, ?, ?, ?, ?)", (sha, workspace, name[:200], mime, len(data), _now()))
+                         "VALUES (?, ?, ?, ?, ?, ?)", (sha, workspace, name[:200], mime, len(data), clock.iso(timespec="seconds")))
         return {"photo": f"sha256:{sha}", "type": mime, "size": len(data), "name": name[:200]}
 
     def photo(self, ref: str) -> tuple[Path, dict[str, Any]]:
@@ -236,21 +215,11 @@ class ProfileStore:
             raise NotFound(f"profile photo {ref} is missing on disk")
         return path, meta
 
-    def lane_photo(self, surface: str, ref: str) -> dict[str, Any] | None:
-        rows = self._rows("SELECT * FROM lane_photos WHERE surface = ? AND sha = ?",
-                          (surface, ref.removeprefix("sha256:")))
-        return dict(rows[0]) if rows else None
-
-    def set_lane_photo(self, surface: str, ref: str, lane: str, file_id: str) -> None:
-        with self._tx() as conn:
-            conn.execute("INSERT OR REPLACE INTO lane_photos (surface, sha, lane, file_id, created_at) "
-                         "VALUES (?, ?, ?, ?, ?)", (surface, ref.removeprefix("sha256:"), lane, file_id, _now()))
-
     # ---- fields changed by hand ----
     def mark(self, surface: str, field: str, value_hash: str, *, by: str | None) -> None:
         with self._tx() as conn:
             conn.execute("INSERT OR REPLACE INTO marks (surface, field, value_hash, by, at) VALUES (?, ?, ?, ?, ?)",
-                         (surface, field, value_hash, by, _now()))
+                         (surface, field, value_hash, by, clock.iso(timespec="seconds")))
 
     def marks(self, surface: str) -> dict[str, dict[str, Any]]:
         return {r["field"]: dict(r) for r in self._rows("SELECT * FROM marks WHERE surface = ?", (surface,))}
@@ -262,10 +231,10 @@ class ProfileStore:
             row = conn.execute("SELECT relearns FROM sync WHERE surface = ? AND field = ?", (surface, field)).fetchone()
             relearns = json.loads(row["relearns"]) if row is not None else []
             if relearn:
-                relearns = [*relearns[-9:], _now()]
+                relearns = [*relearns[-9:], clock.iso(timespec="seconds")]
             conn.execute("INSERT OR REPLACE INTO sync (surface, field, status, value_hash, run_id, error, relearns, at) "
                          "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                         (surface, field, status, value_hash, run_id, error, json.dumps(relearns), _now()))
+                         (surface, field, status, value_hash, run_id, error, json.dumps(relearns), clock.iso(timespec="seconds")))
 
     def sync(self, surface: str) -> dict[str, dict[str, Any]]:
         out = {}
@@ -280,7 +249,7 @@ class ProfileStore:
                    grant_id: str | None) -> int:
         with self._tx() as conn:
             cur = conn.execute("INSERT INTO lessons (site, field, surface, lane, by, grant_id, status, at) "
-                               "VALUES (?, ?, ?, ?, ?, ?, 'started', ?)", (site, field, surface, lane, by, grant_id, _now()))
+                               "VALUES (?, ?, ?, ?, ?, ?, 'started', ?)", (site, field, surface, lane, by, grant_id, clock.iso(timespec="seconds")))
             return int(cur.lastrowid)
 
     def set_lesson(self, lesson_id: int, status: str, *, error: str | None = None) -> None:

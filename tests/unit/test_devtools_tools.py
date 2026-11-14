@@ -23,9 +23,9 @@ from agentos.mcp.toolsets import toolset_of
 from agentos.node import devtools_tools, egress
 from agentos.node import tools as node_tools
 from agentos.node.devtools import MASKED
+from agentos.policy.scrub import REDACTED
 from agentos.policy.service import PolicyService
 from agentos.runner.fakes import BASE
-from agentos.vault.scrub import REDACTED
 
 LANE = "biz-a/social"
 

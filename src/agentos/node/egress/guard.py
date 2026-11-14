@@ -11,17 +11,16 @@ import re
 import time
 import weakref
 from collections import deque
-from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
+from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Any
 
+from agentos.core.text import first_line
 from agentos.node import publish
 from agentos.node.egress import rules as _rules
-from agentos.node.egress import sites as _sites
 from agentos.node.egress.classify import classify, effects_of, never_sent
 from agentos.node.egress.constants import (
     APPROVED_WINDOW_S,
-    FLOW_RELOAD_S,
     LIVE_TYPES,
     NOTES_KEPT,
     OBSERVE_EVERY_S,
@@ -37,10 +36,12 @@ from agentos.node.egress.constants import (
     STOP_TIMEOUT_S,
     UPLOADS_KEPT,
 )
+from agentos.node.egress.guard_flows import GuardFlows
 from agentos.node.egress.guard_learn import GuardLearn
+from agentos.node.egress.guard_login import GuardLogin
 from agentos.node.egress.guard_prevent import GuardPrevention
 from agentos.node.egress.guard_records import GuardRecords
-from agentos.node.egress.helpers import _first_line, _in_subframe, _path, _post_data, _short, printable_key
+from agentos.node.egress.helpers import _in_subframe, _path, _post_data, _short, printable_key
 from agentos.node.egress.learn_window import LearnWindow
 from agentos.node.egress.rules import ABORTED_KEEP, LOGIN_WINDOW_S, SENT_KEEP, EffectRule
 from agentos.node.egress.shapes import (
@@ -48,7 +49,6 @@ from agentos.node.egress.shapes import (
     TypedStream,
     body_covered,
     gql_verdict,
-    operations,
     read_observe,
     request_shape,
     unknown_rule,
@@ -77,7 +77,7 @@ def guard_for(page_or_context: Any) -> LaneGuard | None:
         return None
 
 
-class LaneGuard(GuardPrevention, GuardRecords, GuardLearn):
+class LaneGuard(GuardFlows, GuardLogin, GuardPrevention, GuardRecords, GuardLearn):
     """The egress guard of one lane's browser context. See the module docstring."""
 
     def __init__(self, lane_id: str, *, sites: list[str] | tuple[str, ...] = (), strict: bool = False,
@@ -103,7 +103,7 @@ class LaneGuard(GuardPrevention, GuardRecords, GuardLearn):
         # the hosts of the owner's dev servers exposed to this lane right now (agentos.node.expose, bound
         # when the lane launches): inside every host list while they last, never past their end
         self.exposed: Callable[[], frozenset[str]] = frozenset
-        # bound with the driver (agentos.node.tools.driven_session): is "Ask me first" on for this
+        # bound with the driver (agentos.node.tools.session.driven_session): is "Ask me first" on for this
         # lane, and how a person hears of a publish it refused (a card in Needs you)
         self.asks_first: Callable[[], bool] = lambda: False
         self.on_ask_first: Callable[[Block], Any] | None = None
@@ -346,137 +346,6 @@ class LaneGuard(GuardPrevention, GuardRecords, GuardLearn):
             log.warning("%s: could not read Ask me first; refusing the publish", self.lane_id, exc_info=True)
             return True
 
-    @contextlib.contextmanager
-    def routine(self, page: Any = None) -> Iterator[None]:
-        """A flow run holds the lane: it was authorized at its own effect (it asked first when the
-        switch was on, its approval or proof binds the flow's version and parameters), so `ask_first`
-        does not refuse what it publishes, and the agent's grant does not judge what it sends. With
-        no drive on, that is every request while the flow holds the lane. During an agent's drive
-        only the requests of `page`, the page the flow drives once flow() reloaded it clean, are the
-        flow's (_flow_owns): they go to the listener (never gated, held or charged as the agent's
-        publish). Everything else stays gated, so a timer the agent's presses armed on another page,
-        or on a page that could not be reloaded (`page` None), cannot publish in the flow's window.
-        The drive's route stays on, and gates everything again once the flow lets go of the lane."""
-        self._learn_close("a flow took the lane")
-        self._routines += 1
-        if page is not None:
-            self._flow_pages.append(page)
-        try:
-            yield
-        finally:
-            self._routines -= 1
-            if page is not None:
-                with contextlib.suppress(ValueError):
-                    self._flow_pages.remove(page)
-
-    @contextlib.asynccontextmanager
-    async def flow(self, page: Any) -> AsyncIterator[None]:
-        """What the flow driver enters when a flow run takes the lane (routine). During an agent's
-        drive the page is reloaded first, while the drive's route still gates (its unload's beacons
-        included), so a timer the agent's presses armed dies with its document before the flow's
-        requests go ungated. A page that does not reload within FLOW_RELOAD_S is not the flow's:
-        the drive keeps gating all it sends (a publish of the flow's is then held too, fail closed)."""
-        clean = page
-        if self._drive_route is not None:
-            try:
-                await asyncio.wait_for(page.reload(wait_until="commit"), FLOW_RELOAD_S)
-            except Exception as e:  # noqa: BLE001 - its old document may still run: keep gating it
-                log.warning("%s: a flow could not reload the page an agent drove (%s); the drive keeps gating it",
-                            self.lane_id, _first_line(e))
-                clean = None
-        try:
-            with self.routine(clean):
-                yield
-        finally:
-            await self._end_flow_scope()
-
-    async def scope_flow(self, commit: FlowCommit) -> None:
-        """A connector run holding the lane (flow()) declared its commit request: from now until it
-        lets go of the lane, its page's commit and write requests leave only when they are that
-        request (FlowCommit.problem), and anything else is aborted before it leaves. The rule hosts'
-        route (gate_route) is bound for that; when it cannot be, this raises EngineError and the run
-        does not start (fail closed). An agent's own browsing is not touched: only the flow's
-        requests (_flow_owns) are judged here."""
-        if self._flow_commit_route is None:
-            pattern = self.gate_route()
-            await self._bind(pattern, "the connector run's commit route")
-            self._flow_commit_route = pattern
-        self._flow_commit = commit
-
-    async def _end_flow_scope(self) -> None:
-        self._flow_commit = None
-        pattern, self._flow_commit_route = self._flow_commit_route, None
-        if pattern is not None and self.dispatcher is not None:
-            with contextlib.suppress(Exception):
-                await self.dispatcher.remove_guard(self._route_handler, pattern)
-
-    def _flow_refusal(self, rule: EffectRule | None, request: Any, url: str, method: str,
-                      headers: dict[str, str]) -> Refusal | None:
-        """The connector run's scope (scope_flow) for one of its page's non-GETs."""
-        commit = self._flow_commit
-        if commit is None:
-            return None
-        if commit.strict:  # a learned operation's run: a known read may also name the owner's promoted reads
-            why = commit.problem(rule, url, method, headers, lambda: _post_data(request),
-                                 read_ops=self._read_ops.get((host_of(url) or "", norm_path(url))))
-            if why is None and method.upper() not in SAFE_METHODS:
-                why = self._strict_form_problem(commit, url, method, headers, _post_data(request))
-        else:
-            why = commit.problem(rule, url, method, headers, lambda: _post_data(request))
-        return Refusal("flow_commit", why) if why else None
-
-    @contextlib.asynccontextmanager
-    async def flow_identity(self, check: Callable[[EffectRule, Any, str, str], Awaitable[Refusal | None]]
-                            ) -> AsyncIterator[None]:
-        """While a flow runs on its own on a lane whose login can post as others (agentos.node.acting):
-        each publish its page sends (a commit rule's request it owns, _flow_owns) is first given to
-        `check`, which refuses one that acts as an identity agentos does not know (nobody is there to
-        ask). The gate's route is bound for it when no drive or other flow has bound it already, and
-        stays for as long as any flow's check is on; a lane whose route cannot be bound refuses the
-        flow (EngineError), as an act would be."""
-        await self._settle_removal()
-        if self._drive_route is None and self._flow_route is None:
-            pattern = self.gate_route()
-            await self._bind(pattern, "the flow identity route")
-            self._flow_route = pattern
-        self._flow_checks.append(check)
-        try:
-            yield
-        finally:
-            with contextlib.suppress(ValueError):
-                self._flow_checks.remove(check)
-            if not self._flow_checks and self._flow_route is not None:
-                pattern, self._flow_route = self._flow_route, None
-                with contextlib.suppress(Exception):
-                    await self.dispatcher.remove_guard(self._route_handler, pattern)
-
-    async def _check_flow(self, rule: EffectRule, request: Any, url: str, method: str) -> Refusal | None:
-        for check in list(self._flow_checks):
-            try:
-                refusal = await check(rule, request, url, method)
-            except Exception:  # fail closed: a publish whose identity cannot be judged is not let go
-                log.warning("%s: the flow identity check failed on %s; the publish is aborted", self.lane_id,
-                            rule.id, exc_info=True)
-                return Refusal("identity_unrecognized", f"this publishes ({rule.id}) and who it posts as could "
-                                                        "not be checked")
-            if refusal is not None:
-                return refusal
-        return None
-
-    def _flow_owns(self, request: Any) -> bool:
-        """Is this request a flow's (routine)? With no drive on, any while a flow holds the lane;
-        during a drive, only one from a page a flow reloaded clean (flow()). A request whose page
-        cannot be read (a service worker's) is not."""
-        if not self._routines:
-            return False
-        if self._drive_route is None:
-            return True
-        try:
-            page = request.frame.page
-        except Exception:  # noqa: BLE001
-            return False
-        return any(page is p for p in self._flow_pages)
-
     def note_typed(self, text: str | None) -> None:
         """An agent types `text` into this lane's page (browser_act type or fill): remember it, so a
         request no rule reads that carries it can be told from the page's own traffic (carries_typed)."""
@@ -576,21 +445,14 @@ class LaneGuard(GuardPrevention, GuardRecords, GuardLearn):
         if not unsafe and not self._windows:
             return False  # only the commit gate's route is on: a GET goes on at once (the listener judges it)
         rule = classify(url, method, headers, body=lambda: _post_data(request), rules=self.rules) if unsafe else None
-        if unsafe and self._flow_commit is not None and not self._human() and self._flow_owns(request):
-            # a connector run's page: only the commit request it declared may write (scope_flow)
-            refusal = self._flow_refusal(rule, request, url, method, headers)
-            if refusal is not None:
-                self._record(url, method, refusal, kind=self._kind_of(request, nav), prevented=True, rule=rule)
-                await self._abort(route, request, "aborted" if nav else "blockedbyclient")
-                return True
+        refusal = self._flow_scope_refusal(rule, request, url, method, headers, unsafe)
+        if refusal is not None:
+            return await self._refuse_routed(route, request, url, method, nav, rule, refusal)
         if self._effect_windows and not self._windows:
             return await self._effects_only(route, request, url, method, nav, rule, headers)
-        if self._flow_checks and rule is not None and rule.effect == "commit" and self._flow_owns(request):
-            refusal = await self._check_flow(rule, request, url, method)  # who a flow's publish acts as
-            if refusal is not None:
-                self._record(url, method, refusal, kind=self._kind_of(request, nav), prevented=True, rule=rule)
-                await self._abort(route, request, "aborted" if nav else "blockedbyclient")
-                return True
+        refusal = await self._flow_identity_refusal(rule, request, url, method)
+        if refusal is not None:
+            return await self._refuse_routed(route, request, url, method, nav, rule, refusal)
         if not self._windows and self._flow_owns(request):
             return False  # a flow run's own page: authorized at its own effect, the listener judges it
         if self._human():
@@ -606,28 +468,58 @@ class LaneGuard(GuardPrevention, GuardRecords, GuardLearn):
                         effect=rule, frame=frame, asks_first=None if gate is not None else self._asks_first,
                         exposed=self._exposed())
         if refusal is None and rule is not None and rule.effect == "commit":
-            released = await self._learn_release(gate, rule, request, url, method, headers, meter=meter) \
-                if gate is not None and self._learn is not None else False
-            if isinstance(released, Refusal):
-                refusal = released  # the window's own request, refused: Ask me first is on, or a limit
-            elif released:
-                pass  # the one request an open learn window lets go (open_learn): no card, metered
-            elif gate is not None:  # the commit gate: authorized (and metered) as a commit
-                refusal = await self._hold(gate, rule, request, url, method)
-            else:
-                refusal = self._charge(rule, sent=False, meter=meter)
+            refusal = await self._authorize_commit(gate, meter, rule, request, url, method, headers)
         if refusal is None:
-            if rule is not None and rule.effect == "commit":
-                self._observed_commit(request, url, method, rule)
-            elif unsafe and self.observing():
-                self._observed_request(request, url, method, rule)
-            if rule is not None and rule.effect == "write" and gate is not None and gate is self._gate:
-                with contextlib.suppress(Exception):  # the act's report says it left (a like, a follow)
-                    gate.left(rule)  # type: ignore[attr-defined]
+            self._routed_on(gate, rule, request, url, method, unsafe)
             return False
+        return await self._refuse_routed(route, request, url, method, nav, rule, refusal, frame=frame)
+
+    def _flow_scope_refusal(self, rule: EffectRule | None, request: Any, url: str, method: str,
+                            headers: dict[str, str], unsafe: bool) -> Refusal | None:
+        """On a connector run's page, only the commit request it declared may write (scope_flow)."""
+        if unsafe and self._flow_commit is not None and not self._human() and self._flow_owns(request):
+            return self._flow_refusal(rule, request, url, method, headers)
+        return None
+
+    async def _flow_identity_refusal(self, rule: EffectRule | None, request: Any, url: str,
+                                     method: str) -> Refusal | None:
+        """Who a flow's publish acts as (flow_identity), for a commit on the flow's own page."""
+        if self._flow_checks and rule is not None and rule.effect == "commit" and self._flow_owns(request):
+            return await self._check_flow(rule, request, url, method)
+        return None
+
+    async def _refuse_routed(self, route: Any, request: Any, url: str, method: str, nav: bool,
+                             rule: EffectRule | None, refusal: Refusal, *, frame: bool = False) -> bool:
+        """Record a request the route refused before it left, and abort it. True: it was aborted."""
         self._record(url, method, refusal, kind=self._kind_of(request, nav), prevented=True, rule=rule, frame=frame)
         await self._abort(route, request, "aborted" if nav else "blockedbyclient")
         return True
+
+    async def _authorize_commit(self, gate: PublishGate | None, meter: CommitMeter | None, rule: EffectRule,
+                                request: Any, url: str, method: str, headers: dict[str, str]) -> Refusal | None:
+        """An agent's publish the route lets through only as authorized: the one request an open
+        learn window lets go, else the commit gate's hold (a person, a proof), else the meter."""
+        released = await self._learn_release(gate, rule, request, url, method, headers, meter=meter) \
+            if gate is not None and self._learn is not None else False
+        if isinstance(released, Refusal):
+            return released  # the window's own request, refused: Ask me first is on, or a limit
+        if released:
+            return None  # the one request an open learn window lets go (open_learn): no card, metered
+        if gate is not None:  # the commit gate: authorized (and metered) as a commit
+            return await self._hold(gate, rule, request, url, method)
+        return self._charge(rule, sent=False, meter=meter)
+
+    def _routed_on(self, gate: PublishGate | None, rule: EffectRule | None, request: Any, url: str, method: str,
+                   unsafe: bool) -> None:
+        """A request the route let go: traced as a commit or an observed request, and a write
+        told to the act's gate (the act's report says it left)."""
+        if rule is not None and rule.effect == "commit":
+            self._observed_commit(request, url, method, rule)
+        elif unsafe and self.observing():
+            self._observed_request(request, url, method, rule)
+        if rule is not None and rule.effect == "write" and gate is not None and gate is self._gate:
+            with contextlib.suppress(Exception):  # the act's report says it left (a like, a follow)
+                gate.left(rule)  # type: ignore[attr-defined]
 
     async def _effects_only(self, route: Any, request: Any, url: str, method: str, nav: bool,
                             rule: EffectRule | None, headers: dict[str, str]) -> bool:
@@ -650,61 +542,21 @@ class LaneGuard(GuardPrevention, GuardRecords, GuardLearn):
     # ---- the listener (containment) ------------------------------------------------------
 
     def _on_request(self, request: Any) -> None:
-        if self._live_at is None:
-            with contextlib.suppress(Exception):
-                if request.resource_type in LIVE_TYPES:
-                    self._live_at = time.monotonic()
-        try:
-            method = request.method
-            nav = request.is_navigation_request()
-            if method.upper() not in SAFE_METHODS:
-                self._note_sender(request)  # the action ledger's actor is who drove the lane now
-            if self._gate is not None and method.upper() not in SAFE_METHODS:
-                self._act_non_get += 1  # what settle() waits on
-                self._act_last = time.monotonic()
-                self._inflight.add(request)
-            if not nav and method.upper() in SAFE_METHODS:
-                return
-            url = request.url
-            hop = request.redirected_from is not None
-        except Exception:  # noqa: BLE001 - a request that went away
-            return
-        rule = None
-        headers: dict[str, str] = {}
-        if method.upper() not in SAFE_METHODS:
-            try:
-                headers = request.headers
-            except Exception:  # noqa: BLE001
-                headers = {}
-            rule = classify(url, method, headers, body=lambda: _post_data(request), rules=self.rules)
-        if rule is not None and rule.kind == "draft":
-            self._learn_upload()
-            self._upload(request, url, headers, rule)  # on every path (a strict or capped act too): media binds by file
-        if rule is not None and rule.effect == "write":
-            self._hit(rule, url, method)  # commits leave observed_commit or blocked rows; writes leave this one
+        self._note_live(request)
+        listened = self._listen(request)
+        if listened is None:
+            return  # a GET that is no navigation, or a request that went away
+        method, sends, nav, url, hop = listened
+        rule, headers = self._classify_sent(request, url, method, sends)
         if self._windows and not hop:
             return  # the strict route judges it (redirect hops are never routed)
         routine = self._flow_owns(request)
-        if routine and not hop and self._flow_commit_route is not None and method.upper() not in SAFE_METHODS \
-                and self._flow_commit_route.match(url) and not self._human() \
-                and self._flow_refusal(rule, request, url, method, headers) is not None:
-            return  # the connector run's route aborted it before it left (scope_flow)
-        if self._drive_route is not None and not hop and not routine and method.upper() not in SAFE_METHODS \
-                and self._drive_route.match(url):
-            return  # the commit gate's route judges it
+        if self._routed(request, url, method, sends, hop, routine, rule, headers):
+            return
         human = self._human()
         if hop and not human and not routine and self._drive is not None and rule is not None \
                 and rule.effect == "commit":
-            # a redirect hop is never routed: a publish that arrived by one went past the gate
-            block = self._record(url, method, Refusal(
-                "commit_gate", f"a redirect carried a publish ({rule.id}) past the commit gate, so the lane is held"),
-                kind="redirect" if nav else "request", prevented=False, rule=rule)
-            self._observed_commit(request, url, method, rule)
-            self.stats["unblocked"] += 1
-            if nav:  # the navigation it carried is stopped, as the listener stops any refused one
-                self._spawn(self._stop(request, url))
-            if self.on_violation is not None:
-                self._spawn(self._violation(block))
+            self._redirected_publish(request, url, method, nav, rule)
             return
         frame = nav and _in_subframe(request)
         # a flow run is not the agent: it was authorized at its own effect, so the agent's grant (its
@@ -716,7 +568,89 @@ class LaneGuard(GuardPrevention, GuardRecords, GuardLearn):
         if refusal is not None and self._effect_route is not None and not hop and rule is not None \
                 and rule.effect in ("commit", "write") and self._effect_route.match(url):
             return  # the route's effects mode aborted it before it left (_effects_only)
-        if refusal is None and rule is not None and rule.effect == "commit" and not human:
+        if refusal is None:
+            self._let_go(request, url, method, sends, nav, frame, human, routine, rule)
+            return
+        self._refused(request, url, method, nav, frame, rule, refusal)
+
+    def _note_live(self, request: Any) -> None:
+        """When the page first loads a live resource (LIVE_TYPES)."""
+        if self._live_at is None:
+            with contextlib.suppress(Exception):
+                if request.resource_type in LIVE_TYPES:
+                    self._live_at = time.monotonic()
+
+    def _listen(self, request: Any) -> tuple[str, bool, bool, str, bool] | None:
+        """(method, whether it sends, whether it navigates, url, whether it is a redirect hop), with
+        a non-GET noted for the ledger and settle(); None for a GET that is no navigation, or a
+        request that went away."""
+        try:
+            method = request.method
+            nav = request.is_navigation_request()
+            sends = method.upper() not in SAFE_METHODS
+            if sends:
+                self._note_sender(request)  # the action ledger's actor is who drove the lane now
+            if self._gate is not None and sends:
+                self._act_non_get += 1  # what settle() waits on
+                self._act_last = time.monotonic()
+                self._inflight.add(request)
+            if not nav and not sends:
+                return None
+            url = request.url
+            hop = request.redirected_from is not None
+        except Exception:  # noqa: BLE001 - a request that went away
+            return None
+        return method, sends, nav, url, hop
+
+    def _classify_sent(self, request: Any, url: str, method: str,
+                       sends: bool) -> tuple[EffectRule | None, dict[str, str]]:
+        """The effect rule a non-GET matches (and its headers), with an upload bound for its media
+        and a write rule's match traced."""
+        rule = None
+        headers: dict[str, str] = {}
+        if sends:
+            try:
+                headers = request.headers
+            except Exception:  # noqa: BLE001
+                headers = {}
+            rule = classify(url, method, headers, body=lambda: _post_data(request), rules=self.rules)
+        if rule is not None and rule.kind == "draft":
+            self._learn_upload()
+            self._upload(request, url, headers, rule)  # on every path (a strict or capped act too): media binds by file
+        if rule is not None and rule.effect == "write":
+            self._hit(rule, url, method)  # commits leave observed_commit or blocked rows; writes leave this one
+        return rule, headers
+
+    def _routed(self, request: Any, url: str, method: str, sends: bool, hop: bool, routine: bool,
+                rule: EffectRule | None, headers: dict[str, str]) -> bool:
+        """Whether a route judges this request instead of the listener: the connector run's route
+        (which aborted it before it left) or the commit gate's."""
+        if routine and not hop and self._flow_commit_route is not None and sends \
+                and self._flow_commit_route.match(url) and not self._human() \
+                and self._flow_refusal(rule, request, url, method, headers) is not None:
+            return True  # the connector run's route aborted it before it left (scope_flow)
+        # the commit gate's route judges it
+        return bool(self._drive_route is not None and not hop and not routine and sends
+                    and self._drive_route.match(url))
+
+    def _redirected_publish(self, request: Any, url: str, method: str, nav: bool, rule: EffectRule) -> None:
+        """A redirect hop is never routed: a publish that arrived by one went past the gate, so the
+        lane is held."""
+        block = self._record(url, method, Refusal(
+            "commit_gate", f"a redirect carried a publish ({rule.id}) past the commit gate, so the lane is held"),
+            kind="redirect" if nav else "request", prevented=False, rule=rule)
+        self._observed_commit(request, url, method, rule)
+        self.stats["unblocked"] += 1
+        if nav:  # the navigation it carried is stopped, as the listener stops any refused one
+            self._spawn(self._stop(request, url))
+        if self.on_violation is not None:
+            self._spawn(self._violation(block))
+
+    def _let_go(self, request: Any, url: str, method: str, sends: bool, nav: bool, frame: bool, human: bool,
+                routine: bool, rule: EffectRule | None) -> None:
+        """A request nothing refused: a commit is charged (one past a limit is recorded and holds the
+        lane), and what it was is traced."""
+        if rule is not None and rule.effect == "commit" and not human:
             over = self._charge(rule, sent=True)
             if over is not None:  # it left past a limit: counted, recorded and the lane held
                 self._observed_commit(request, url, method, rule)
@@ -725,21 +659,24 @@ class LaneGuard(GuardPrevention, GuardRecords, GuardLearn):
                 if self.on_violation is not None:
                     self._spawn(self._violation(block))
                 return
-        if refusal is None:
-            if rule is not None and rule.effect == "commit":
-                self._observed_commit(request, url, method, rule)
-            elif method.upper() not in SAFE_METHODS and self.observing():
-                self._observed_request(request, url, method, rule)
-            gate = self._gate
-            if rule is None and not human and method.upper() not in SAFE_METHODS:
-                host = host_of(url) or ""
-                if gate is not None and gate.submit_like and self._lane_host(host):
-                    self._unmatched(request, url, method)
-                elif self._unruled(host):
-                    self._unruled_request(request, url, method, flow=routine)
-            if human and nav and self.sites:
-                self._note_human(url, method, self._kind_of(request, nav), frame=frame)
-            return
+        if rule is not None and rule.effect == "commit":
+            self._observed_commit(request, url, method, rule)
+        elif sends and self.observing():
+            self._observed_request(request, url, method, rule)
+        gate = self._gate
+        if rule is None and not human and sends:
+            host = host_of(url) or ""
+            if gate is not None and gate.submit_like and self._lane_host(host):
+                self._unmatched(request, url, method)
+            elif self._unruled(host):
+                self._unruled_request(request, url, method, flow=routine)
+        if human and nav and self.sites:
+            self._note_human(url, method, self._kind_of(request, nav), frame=frame)
+
+    def _refused(self, request: Any, url: str, method: str, nav: bool, frame: bool, rule: EffectRule | None,
+                 refusal: Refusal) -> None:
+        """A request the listener refused after it left: recorded, a navigation stopped, a popup
+        closed, and a refused publish reported as a violation."""
         kind = self._kind_of(request, nav)
         block = self._record(url, method, refusal, kind=kind, prevented=False, rule=rule, frame=frame)
         if kind == "popup":  # its page may show up before or after this: close it either way
@@ -843,7 +780,16 @@ class LaneGuard(GuardPrevention, GuardRecords, GuardLearn):
         decision about a shape no rule lists is traced (gate_classified)."""
         host = host_of(url) or ""
         login = self._in_login(rule, request, url, method, headers)
-        if rule is not None and rule.effect == "read" and rule.strict_ops:
+        if rule is not None and rule.effect == "read":
+            return self._gated_read(rule, request, url, method, headers, host=host, login=login)
+        if rule is None and method.upper() not in SAFE_METHODS:
+            return self._gated_unruled(request, url, method, host=host, login=login)
+        return rule
+
+    def _gated_read(self, rule: EffectRule, request: Any, url: str, method: str, headers: dict[str, str], *,
+                    host: str, login: bool) -> EffectRule:
+        """A read rule's request while the gate classifies: still the read, or `<site>.unknown`."""
+        if rule.strict_ops:
             read, why = gql_verdict(rule.site, headers, _post_data(request),
                                     extra=self._read_ops.get((host, norm_path(url))))
             if why != "a known read":
@@ -851,82 +797,31 @@ class LaneGuard(GuardPrevention, GuardRecords, GuardLearn):
             if read or login:
                 return rule
             return unknown_rule(self.rules, host, url, method) or rule
-        if rule is not None and rule.effect == "read" and rule.fields is not None:
+        if rule.fields is not None:
             covered, why = body_covered(rule.fields, headers, _post_data(request))
             if not covered:
                 self._classified(request, url, method, rule, "login" if login else "gated", why)
                 return rule if login else unknown_rule(self.rules, host, url, method) or rule
-        if rule is not None and rule.effect == "read" and rule.untyped and self.carries_typed(request) is not None:
+        if rule.untyped and self.carries_typed(request) is not None:
             # a telemetry or plumbing read that carries the agent's words is no longer only that
             self._classified(request, url, method, rule, "gated", "a read's body carries text the agent typed")
             return unknown_rule(self.rules, host, url, method) or rule
-        if rule is not None and rule.effect == "read" and rule.fields is not None:
-            return rule
-        if rule is None and method.upper() not in SAFE_METHODS:
-            unknown = unknown_rule(self.rules, host, url, method)
-            if unknown is None:
-                return None
-            if login:
-                self._classified(request, url, method, None, "login", f"a {method.upper()} no rule names")
-                return None
-            if method.upper() in _PUT_LIKE or self.gate_unknown_posts:
-                self._classified(request, url, method, None, "gated", f"a {method.upper()} no rule names")
-                return unknown
-            self._classified(request, url, method, None, "let go", f"a {method.upper()} no rule names")
         return rule
 
-    # ---- the vault's login window ----------------------------------------------------------
-
-    def open_login(self, domain: str) -> None:
-        """The vault is filling a login field of `domain`, its entry's registrable domain, on this lane:
-        open that domain's login window, or renew it (a login of several steps). Called by the typist
-        (agentos.node.typist) only, after the entry passed the vault's checks, so a page, a model or a
-        tool argument cannot reach it. See the module docstring."""
-        self._login_until[domain] = self.clock() + self.login_window_s
-
-    def close_login(self, domain: str) -> None:
-        """The fill failed: no window stays open for it, an earlier fill's included."""
-        self._login_until.pop(domain, None)
-
-    def login_open(self, host: str) -> bool:
-        """Is a login window open for this host's site now? The devtools capture asks, so the answer
-        to a post sent inside one (it can carry the session) is never returned (agentos.node.devtools)."""
-        now = self.clock()
-        open_for = [d for d, until in self._login_until.items() if now < until]
-        if not open_for or not host:
-            return False
-        try:
-            site = _sites.registrable_domain(host)
-        except ValueError:
-            return True  # a host the window cannot be told apart from: treated as inside it
-        if site is None:  # no public suffix to read a site from: the domain itself or below it
-            return any(host == d or host.endswith("." + d) for d in open_for)
-        return any(_sites.same_site(site, domain) for domain in open_for)
-
-    def _in_login(self, rule: EffectRule | None, request: Any, url: str, method: str,
-                  headers: dict[str, str]) -> bool:
-        """Is this POST inside an open login window, so the gate need not hold it for a shape it cannot
-        read? Never for what a commit or write rule names: classify reads one operation, so every
-        operation of a batch is checked here. A body that cannot be read as operations is a login's
-        only where no read catch-all matched: on a GraphQL endpoint it could carry anything."""
-        method = method.upper()
-        if method != "POST" or not self._login_until:
-            return False
-        now = self.clock()
-        self._login_until = {d: until for d, until in self._login_until.items() if now < until}
-        host = host_of(url) or ""
-        try:
-            site = _sites.registrable_domain(host)
-        except ValueError:
-            return False
-        if not any(_sites.same_site(site, domain) for domain in self._login_until):
-            return False
-        ops = operations(headers, _post_data(request))
-        if ops is None:
-            return rule is None
-        low, path = {k.lower(): v for k, v in headers.items()}, norm_path(url)
-        return not any(r.effect in ("commit", "write") and r.matches(host, path, method, low, lambda n=op["name"]: n)
-                       for op in ops for r in self.rules)
+    def _gated_unruled(self, request: Any, url: str, method: str, *, host: str, login: bool) -> EffectRule | None:
+        """A non-GET no rule names, to a host the rules know: held as `<site>.unknown` (a PUT,
+        PATCH or DELETE always, a POST while `gate_unknown_posts`), or let go inside a login."""
+        unknown = unknown_rule(self.rules, host, url, method)
+        if unknown is None:
+            return None
+        if login:
+            self._classified(request, url, method, None, "login", f"a {method.upper()} no rule names")
+            return None
+        if method.upper() in _PUT_LIKE or self.gate_unknown_posts:
+            self._classified(request, url, method, None, "gated", f"a {method.upper()} no rule names")
+            return unknown
+        self._classified(request, url, method, None, "let go", f"a {method.upper()} no rule names")
+        return None
 
     def _classified(self, request: Any, url: str, method: str, rule: EffectRule | None, decision: str,
                     why: str) -> None:
@@ -996,7 +891,7 @@ class LaneGuard(GuardPrevention, GuardRecords, GuardLearn):
         try:
             await asyncio.wait_for(frame.evaluate("window.stop()"), STOP_TIMEOUT_S)
         except Exception as e:  # noqa: BLE001 - the frame went away; on_committed is the backstop
-            log.debug("%s: stopping a refused navigation: %s", self.lane_id, _first_line(e))
+            log.debug("%s: stopping a refused navigation: %s", self.lane_id, first_line(e))
 
     async def _close_popup(self, page: Any) -> None:
         try:
@@ -1032,7 +927,7 @@ class LaneGuard(GuardPrevention, GuardRecords, GuardLearn):
             if back is None:
                 await page.goto("about:blank", timeout=10_000)
         except Exception as e:  # noqa: BLE001
-            log.warning("%s: could not leave a refused page: %s", self.lane_id, _first_line(e))
+            log.warning("%s: could not leave a refused page: %s", self.lane_id, first_line(e))
 
     async def _violation(self, block: Block) -> None:
         try:

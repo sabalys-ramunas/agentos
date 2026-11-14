@@ -1,4 +1,4 @@
-"""site_api_drafts in runner.db, found by agentos.ops.migrate.discover() through
+"""site_api_drafts in runner.db, found by agentos.core.migrate.discover() through
 agentos.runner.migrations, and applied when the store opens. Drafts only: an activated API is its
 flows, and keys, cache and usage are the HTTP half's (http_migrations.py)."""
 
@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import sqlite3
 
-from agentos.ops.migrate import Migration, MigrationSet
+from agentos.core.migrate import Migration, MigrationSet
 
 DB = "runner.db"
 

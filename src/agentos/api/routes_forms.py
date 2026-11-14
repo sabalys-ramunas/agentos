@@ -48,12 +48,23 @@ def _check_fields(kind: node_forms.Kind, fields: dict[str, str]) -> dict[str, st
     return dict(fields)
 
 
+def kinds() -> dict[str, node_forms.Kind]:
+    """Every kind a trip can be, by name: the node's own (agentos.node.forms), the workspace kinds
+    (agentos.workspaces.form) and the login (agentos.node.login_form), each built on node.forms."""
+    from agentos.node.login_form import LoginForm
+    from agentos.workspaces.form import WorkspaceExport, WorkspaceImport
+
+    items: list[node_forms.Kind] = [node_forms.VaultUnlock(), node_forms.VaultEntry(), node_forms.ProxyForm(),
+                                    WorkspaceExport(), WorkspaceImport(), LoginForm()]
+    return {item.name: item for item in items}
+
+
+START_KINDS = ("vault_unlock", "vault_entry", "proxy", "workspace_export", "workspace_import")
+
+
 def routes(api: Api) -> list[Route]:
     def trips() -> node_forms.Trips:
         return node_forms.trips_of(api.runtime)
-
-    def kinds() -> dict[str, node_forms.Kind]:
-        return node_forms.kinds()
 
     async def start(request: Request) -> dict[str, Any]:
         access = access_of(request)
@@ -61,8 +72,8 @@ def routes(api: Api) -> list[Route]:
             access.trace("form.start", status="denied", summary="a form for a secret: the owner in person only")
             raise ApiError("denied", NOT_YOURS)
         body = await read_body(request, FormStart)
-        if body.kind not in node_forms.START_KINDS:
-            raise InvalidRequest("Ask for a form this computer has: " + ", ".join(node_forms.START_KINDS) + ".")
+        if body.kind not in START_KINDS:
+            raise InvalidRequest("Ask for a form this computer has: " + ", ".join(START_KINDS) + ".")
         kind = kinds()[body.kind]
         fields = _check_fields(kind, body.fields)
         trip = trips().start(body.kind, "owner", fields, subject=fields.get("workspace") or fields.get("label"))

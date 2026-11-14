@@ -21,13 +21,14 @@ from __future__ import annotations
 import ipaddress
 import json
 import re
-from datetime import UTC, datetime
+from datetime import datetime
 from pathlib import Path
 from typing import Literal
 from urllib.parse import urlsplit
 
 from pydantic import BaseModel, Field, ValidationError
 
+from agentos.core import clock
 from agentos.core.config import write_private
 from agentos.webbotauth import base
 from agentos.webbotauth.keys import IdentityError, check_private, ensure_private_dirs, identity_dir, lane_path
@@ -37,15 +38,11 @@ MAX_HOSTS = 32
 MAX_REASON = 200
 
 
-def _now() -> datetime:
-    return datetime.now(UTC)
-
-
 class SignHost(BaseModel):
     origin: str
     reason: str
     added_by: str
-    added_at: datetime = Field(default_factory=_now)
+    added_at: datetime = Field(default_factory=clock.now)
 
 
 class LaneIdentity(BaseModel):
@@ -56,7 +53,7 @@ class LaneIdentity(BaseModel):
     profile: tuple[int, int] | None = None
     hosts: list[SignHost] = Field(default_factory=list)
     updated_by: str | None = None
-    updated_at: datetime = Field(default_factory=_now)
+    updated_at: datetime = Field(default_factory=clock.now)
 
     @property
     def origins(self) -> list[str]:
@@ -190,7 +187,7 @@ def add_host(ident: LaneIdentity, origin: str, *, reason: str, by: str) -> SignH
     if len(hosts) >= MAX_HOSTS:
         raise IdentityError(f"a lane signs for at most {MAX_HOSTS} hosts")
     ident.hosts = [*hosts, entry]
-    ident.updated_by, ident.updated_at = by, _now()
+    ident.updated_by, ident.updated_at = by, clock.now()
     return entry
 
 
@@ -198,5 +195,5 @@ def remove_host(ident: LaneIdentity, origin: str, *, by: str) -> bool:
     origin = normalize_origin(origin)
     before = len(ident.hosts)
     ident.hosts = [h for h in ident.hosts if h.origin != origin]
-    ident.updated_by, ident.updated_at = by, _now()
+    ident.updated_by, ident.updated_at = by, clock.now()
     return len(ident.hosts) != before

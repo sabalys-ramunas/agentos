@@ -225,7 +225,7 @@ class Ctx:
 
     async def authorize(self, effect: Any, *, content: Any = None, **kw: Any) -> None:
         from agentos.core.errors import ApprovalPending
-        from agentos.policy.approvals import content_digest
+        from agentos.policy.approval_binding import content_digest
 
         digest = content_digest(content)
         if digest in self.approved:

@@ -123,21 +123,6 @@ const routes = [
   }],
   ['accounts-workspace', `/${O}/accounts?workspace=harbor`],
   ['accounts-empty', '/juniper-labs/accounts'],
-  // Engagement: the day across accounts, one account's day, its plan and its connections (concept, on the mock).
-  ['engagement-day', `/${O}/accounts/engagement`],
-  ['engagement-day-yesterday', `/${O}/accounts/engagement`, async (page) => {
-    await page.getByRole('button', { name: 'Yesterday' }).click();
-  }],
-  ['engagement-account', `/${O}/accounts/aster/instagram/engagement`],
-  ['engagement-plan-draft', `/${O}/accounts/meridian/instagram/engagement?tab=plan`],
-  ['engagement-plan-limits', `/${O}/accounts/aster/instagram/engagement?tab=plan`],
-  ['engagement-connected', `/${O}/accounts/harbor/reddit/engagement?tab=connected`],
-  ['engagement-connect', `/${O}/accounts/harbor/reddit/engagement?tab=connected`, async (page) => {
-    await page.getByRole('button', { name: 'Disconnect' }).click();
-    await page.getByRole('dialog', { name: 'Disconnect this account?' }).getByRole('button', { name: 'Disconnect' }).click();
-    await page.getByRole('button', { name: 'Connect', exact: true }).click();
-    await page.getByRole('dialog', { name: 'Connect', exact: true }).waitFor();
-  }],
   ['home-desk', `/${O}`, async (page) => {
     await page.getByRole('button', { name: 'Switch workspace' }).first().click();
     await page.getByRole('menuitem', { name: 'Aster Coffee' }).click();

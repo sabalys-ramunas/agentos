@@ -222,8 +222,7 @@ async def login_flow(ctx: Any, vault: Any, typist: Typist, *, lane_id: str, entr
     if pw is None and user is None and otp is None:
         return _result(False, "no_login_form", None, signal)
     # Pre-check the first field, so a refused login is refused before the vault is opened.
-    first, first_sink = (user, Sink.FORM_USERNAME) if (user is not None and chosen.has_username) else (
-        (pw, Sink.FORM_PASSWORD) if pw is not None else (otp, Sink.FORM_OTP))
+    first, first_sink = _first_field(chosen, user, pw, otp)
     if first is None:  # only a username field, but the entry has no username
         return _result(False, "no_login_form", "human", signal)
     if first_sink is Sink.FORM_OTP and not (chosen.has_totp or chosen.config.get("catcher")):
@@ -283,6 +282,20 @@ async def login_flow(ctx: Any, vault: Any, typist: Typist, *, lane_id: str, entr
 
     signal = await typist.signal()
     url, fields, roles = await _read(typist)
+    return _verdict(chosen, step, signal, url, fields, roles)
+
+
+def _first_field(chosen: Any, user: FieldInfo | None, pw: FieldInfo | None,
+                 otp: FieldInfo | None) -> tuple[FieldInfo | None, Sink]:
+    """The field typed into first, and its sink: the username when the entry has one, else the
+    password, else the code. It is checked before the vault is opened."""
+    return (user, Sink.FORM_USERNAME) if (user is not None and chosen.has_username) else (
+        (pw, Sink.FORM_PASSWORD) if pw is not None else (otp, Sink.FORM_OTP))
+
+
+def _verdict(chosen: Any, step: str, signal: Signal, url: str, fields: list[FieldInfo],
+             roles: dict[str, FieldRole]) -> dict[str, Any]:
+    """How the login ended, from the page it left the lane on."""
     left = {roles[f.locator] for f in fields if f.locator in roles}
     if signal is Signal.CAPTCHA:
         return _result(False, step, "captcha", signal)

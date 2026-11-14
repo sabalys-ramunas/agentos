@@ -12,7 +12,7 @@ grant family with the taint its output carries (agentos.runner.connectors.health
 
 The daemon calls `await runner.start()` after the lanes are up and `await runner.stop()`
 before closing them. The driver comes from `driver_factory=` or, lazily, the runtime
-service "flow_driver" (a DriverFactory, see agentos.runner.driver).
+service "flow_driver" (a DriverFactory, see agentos.core.driver).
 """
 
 from __future__ import annotations
@@ -22,10 +22,11 @@ from pathlib import Path
 from typing import Any
 
 from agentos.core.config import home_from_env
+from agentos.core.driver import DriverFactory
+from agentos.policy.scrub import runtime_scrub
 from agentos.runner.connectors.health import ConnectorHealth
 from agentos.runner.connectors.surfaces import SurfaceService
 from agentos.runner.connectors.taint import record_run
-from agentos.runner.driver import DriverFactory
 from agentos.runner.flows import FlowService
 from agentos.runner.recorder import Recorder
 from agentos.runner.runner import RunnerService
@@ -34,7 +35,6 @@ from agentos.runner.siteapis import service as siteapis
 from agentos.runner.store import RunnerStore
 from agentos.runner.util import Clock
 from agentos.runner.workflows import service as workflows
-from agentos.vault.scrub import runtime_scrub
 
 DB_NAME = "runner.db"
 

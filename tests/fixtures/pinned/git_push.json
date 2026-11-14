@@ -1,0 +1,3105 @@
+{
+ "bad pack, git's own words": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "unpack index-pack abnormal exit\n"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "restore",
+    [
+     [
+      "refs/heads/main",
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     ],
+     [
+      "refs/tags/v1",
+      "cccccccccccccccccccccccccccccccccccccccc"
+     ]
+    ],
+    []
+   ]
+  ],
+  "ctx": []
+ },
+ "bad pack, nothing said": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "000eunpack ok\n004bng refs/heads/feature not pushed: another ref of this push was refused\n0000"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "restore",
+    [
+     [
+      "refs/heads/main",
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     ],
+     [
+      "refs/tags/v1",
+      "cccccccccccccccccccccccccccccccccccccccc"
+     ]
+    ],
+    []
+   ]
+  ],
+  "ctx": []
+ },
+ "bad pack, git failed": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "000eunpack ok\n004bng refs/heads/feature not pushed: another ref of this push was refused\n0000"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "restore",
+    [
+     [
+      "refs/heads/main",
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     ],
+     [
+      "refs/tags/v1",
+      "cccccccccccccccccccccccccccccccccccccccc"
+     ]
+    ],
+    []
+   ]
+  ],
+  "ctx": []
+ },
+ "unpack not ok in the report": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "001dunpack index-pack failed\n001aok refs/heads/feature\n0000"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "restore",
+    [
+     [
+      "refs/heads/main",
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     ],
+     [
+      "refs/tags/v1",
+      "cccccccccccccccccccccccccccccccccccccccc"
+     ]
+    ],
+    [
+     "refs/heads/feature"
+    ]
+   ]
+  ],
+  "ctx": []
+ },
+ "one ref refused by git": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "000eunpack ok\n004bng refs/heads/feature not pushed: another ref of this push was refused\n0025ng refs/heads/main hook declined\n0000"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "restore",
+    [
+     [
+      "refs/heads/main",
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     ],
+     [
+      "refs/tags/v1",
+      "cccccccccccccccccccccccccccccccccccccccc"
+     ]
+    ],
+    [
+     "refs/heads/feature"
+    ]
+   ]
+  ],
+  "ctx": []
+ },
+ "one ref refused, side band": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "000eunpack ok\n001aok refs/heads/feature\n0022ng refs/heads/main stale info\n0000"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "restore",
+    [
+     [
+      "refs/heads/main",
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     ],
+     [
+      "refs/tags/v1",
+      "cccccccccccccccccccccccccccccccccccccccc"
+     ]
+    ],
+    []
+   ]
+  ],
+  "ctx": []
+ },
+ "a ref missing from the report": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "000eunpack ok\n004bng refs/heads/feature not pushed: another ref of this push was refused\n0048ng refs/heads/main not pushed: another ref of this push was refused\n0000"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "restore",
+    [
+     [
+      "refs/heads/main",
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     ],
+     [
+      "refs/tags/v1",
+      "cccccccccccccccccccccccccccccccccccccccc"
+     ]
+    ],
+    [
+     "refs/heads/feature"
+    ]
+   ]
+  ],
+  "ctx": []
+ },
+ "new feature branch": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "000eunpack ok\n001aok refs/heads/feature\n0000"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "commits",
+    "b",
+    [
+     "a",
+     "c"
+    ]
+   ],
+   [
+    "push",
+    "https://github.com/biz-a/site.git",
+    "auth for git push github.com/biz-a/site for lane biz-a/dev",
+    [
+     "refs/heads/feature"
+    ],
+    []
+   ]
+  ],
+  "ctx": [
+   [
+    "authorize",
+    "commit",
+    {
+     "lane_id": "biz-a/dev",
+     "summary": "Push feature to github.com/biz-a/site (lane biz-a/dev)",
+     "content": {
+      "git_push": "github.com/biz-a/site",
+      "refs": [
+       {
+        "ref": "refs/heads/feature",
+        "kind": "create",
+        "old": "sha1:0000000000000000000000000000000000000000",
+        "new": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "commits": 2,
+        "log": [
+         "bbbbbbb a change",
+         "bbbbbbb another"
+        ]
+       }
+      ]
+     }
+    }
+   ],
+   [
+    "trace",
+    "git_push",
+    {
+     "result": "pushed",
+     "lane": "biz-a/dev",
+     "remote": "github.com/biz-a/site",
+     "via": "lane biz-a/dev",
+     "refs": [
+      {
+       "ref": "refs/heads/feature",
+       "kind": "create",
+       "old": "sha1:0000000000000000000000000000000000000000",
+       "new": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+       "commits": 2
+      }
+     ],
+     "effect": "commit",
+     "vault_ref": "git/github"
+    }
+   ]
+  ]
+ },
+ "new feature branch, no credential": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "000eunpack ok\n001aok refs/heads/feature\n0000"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "commits",
+    "b",
+    [
+     "a",
+     "c"
+    ]
+   ],
+   [
+    "push",
+    "https://github.com/biz-a/site.git",
+    "auth for git push github.com/biz-a/site for lane biz-a/dev",
+    [
+     "refs/heads/feature"
+    ],
+    []
+   ]
+  ],
+  "ctx": [
+   [
+    "authorize",
+    "commit",
+    {
+     "lane_id": "biz-a/dev",
+     "summary": "Push feature to github.com/biz-a/site (lane biz-a/dev)",
+     "content": {
+      "git_push": "github.com/biz-a/site",
+      "refs": [
+       {
+        "ref": "refs/heads/feature",
+        "kind": "create",
+        "old": "sha1:0000000000000000000000000000000000000000",
+        "new": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "commits": 2,
+        "log": [
+         "bbbbbbb a change",
+         "bbbbbbb another"
+        ]
+       }
+      ]
+     }
+    }
+   ],
+   [
+    "trace",
+    "git_push",
+    {
+     "result": "pushed",
+     "lane": "biz-a/dev",
+     "remote": "github.com/biz-a/site",
+     "via": "lane biz-a/dev",
+     "refs": [
+      {
+       "ref": "refs/heads/feature",
+       "kind": "create",
+       "old": "sha1:0000000000000000000000000000000000000000",
+       "new": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+       "commits": 2
+      }
+     ],
+     "effect": "commit",
+     "vault_ref": null
+    }
+   ]
+  ]
+ },
+ "fast-forward of the default branch": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "000eunpack ok\n0017ok refs/heads/main\n0000"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "is_ancestor",
+    "a",
+    "b"
+   ],
+   [
+    "commits",
+    "b",
+    [
+     "a",
+     "c"
+    ]
+   ],
+   [
+    "push",
+    "https://github.com/biz-a/site.git",
+    "auth for git push github.com/biz-a/site for lane biz-a/dev",
+    [
+     "refs/heads/main"
+    ],
+    []
+   ]
+  ],
+  "ctx": [
+   [
+    "authorize",
+    "irreversible",
+    {
+     "lane_id": "biz-a/dev",
+     "summary": "Push main to github.com/biz-a/site (lane biz-a/dev): main is a protected branch of github.com/biz-a/site",
+     "content": {
+      "git_push": "github.com/biz-a/site",
+      "refs": [
+       {
+        "ref": "refs/heads/main",
+        "kind": "update",
+        "old": "sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "new": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "protected": true,
+        "commits": 2,
+        "log": [
+         "bbbbbbb a change",
+         "bbbbbbb another"
+        ]
+       }
+      ]
+     }
+    }
+   ],
+   [
+    "trace",
+    "git_push",
+    {
+     "result": "pushed",
+     "lane": "biz-a/dev",
+     "remote": "github.com/biz-a/site",
+     "via": "lane biz-a/dev",
+     "refs": [
+      {
+       "ref": "refs/heads/main",
+       "kind": "update",
+       "old": "sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "new": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+       "protected": true,
+       "commits": 2
+      }
+     ],
+     "effect": "irreversible",
+     "vault_ref": "git/github"
+    }
+   ]
+  ]
+ },
+ "default branch read from HEAD": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "000eunpack ok\n0017ok refs/heads/main\n0000"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "git",
+    "symbolic-ref",
+    "--short",
+    "HEAD",
+    0
+   ],
+   [
+    "is_ancestor",
+    "a",
+    "b"
+   ],
+   [
+    "commits",
+    "b",
+    [
+     "a",
+     "c"
+    ]
+   ],
+   [
+    "push",
+    "https://github.com/biz-a/site.git",
+    "auth for git push github.com/biz-a/site for lane biz-a/dev",
+    [
+     "refs/heads/main"
+    ],
+    []
+   ]
+  ],
+  "ctx": [
+   [
+    "authorize",
+    "irreversible",
+    {
+     "lane_id": "biz-a/dev",
+     "summary": "Push main to github.com/biz-a/site (lane biz-a/dev): main is a protected branch of github.com/biz-a/site",
+     "content": {
+      "git_push": "github.com/biz-a/site",
+      "refs": [
+       {
+        "ref": "refs/heads/main",
+        "kind": "update",
+        "old": "sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "new": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "protected": true,
+        "commits": 2,
+        "log": [
+         "bbbbbbb a change",
+         "bbbbbbb another"
+        ]
+       }
+      ]
+     }
+    }
+   ],
+   [
+    "trace",
+    "git_push",
+    {
+     "result": "pushed",
+     "lane": "biz-a/dev",
+     "remote": "github.com/biz-a/site",
+     "via": "lane biz-a/dev",
+     "refs": [
+      {
+       "ref": "refs/heads/main",
+       "kind": "update",
+       "old": "sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "new": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+       "protected": true,
+       "commits": 2
+      }
+     ],
+     "effect": "irreversible",
+     "vault_ref": "git/github"
+    }
+   ]
+  ]
+ },
+ "default branch HEAD unreadable": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "000eunpack ok\n0017ok refs/heads/main\n0000"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "git",
+    "symbolic-ref",
+    "--short",
+    "HEAD",
+    0
+   ],
+   [
+    "is_ancestor",
+    "a",
+    "b"
+   ],
+   [
+    "commits",
+    "b",
+    [
+     "a",
+     "c"
+    ]
+   ],
+   [
+    "push",
+    "https://github.com/biz-a/site.git",
+    "auth for git push github.com/biz-a/site for lane biz-a/dev",
+    [
+     "refs/heads/main"
+    ],
+    []
+   ]
+  ],
+  "ctx": [
+   [
+    "authorize",
+    "commit",
+    {
+     "lane_id": "biz-a/dev",
+     "summary": "Push main to github.com/biz-a/site (lane biz-a/dev)",
+     "content": {
+      "git_push": "github.com/biz-a/site",
+      "refs": [
+       {
+        "ref": "refs/heads/main",
+        "kind": "update",
+        "old": "sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "new": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "commits": 2,
+        "log": [
+         "bbbbbbb a change",
+         "bbbbbbb another"
+        ]
+       }
+      ]
+     }
+    }
+   ],
+   [
+    "trace",
+    "git_push",
+    {
+     "result": "pushed",
+     "lane": "biz-a/dev",
+     "remote": "github.com/biz-a/site",
+     "via": "lane biz-a/dev",
+     "refs": [
+      {
+       "ref": "refs/heads/main",
+       "kind": "update",
+       "old": "sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "new": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+       "commits": 2
+      }
+     ],
+     "effect": "commit",
+     "vault_ref": "git/github"
+    }
+   ]
+  ]
+ },
+ "default branch HEAD empty": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "000eunpack ok\n0017ok refs/heads/main\n0000"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "git",
+    "symbolic-ref",
+    "--short",
+    "HEAD",
+    0
+   ],
+   [
+    "is_ancestor",
+    "a",
+    "b"
+   ],
+   [
+    "commits",
+    "b",
+    [
+     "a",
+     "c"
+    ]
+   ],
+   [
+    "push",
+    "https://github.com/biz-a/site.git",
+    "auth for git push github.com/biz-a/site for lane biz-a/dev",
+    [
+     "refs/heads/main"
+    ],
+    []
+   ]
+  ],
+  "ctx": [
+   [
+    "authorize",
+    "commit",
+    {
+     "lane_id": "biz-a/dev",
+     "summary": "Push main to github.com/biz-a/site (lane biz-a/dev)",
+     "content": {
+      "git_push": "github.com/biz-a/site",
+      "refs": [
+       {
+        "ref": "refs/heads/main",
+        "kind": "update",
+        "old": "sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "new": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "commits": 2,
+        "log": [
+         "bbbbbbb a change",
+         "bbbbbbb another"
+        ]
+       }
+      ]
+     }
+    }
+   ],
+   [
+    "trace",
+    "git_push",
+    {
+     "result": "pushed",
+     "lane": "biz-a/dev",
+     "remote": "github.com/biz-a/site",
+     "via": "lane biz-a/dev",
+     "refs": [
+      {
+       "ref": "refs/heads/main",
+       "kind": "update",
+       "old": "sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "new": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+       "commits": 2
+      }
+     ],
+     "effect": "commit",
+     "vault_ref": "git/github"
+    }
+   ]
+  ]
+ },
+ "default branch allowed": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "000eunpack ok\n0017ok refs/heads/main\n0000"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "is_ancestor",
+    "a",
+    "b"
+   ],
+   [
+    "commits",
+    "b",
+    [
+     "a",
+     "c"
+    ]
+   ],
+   [
+    "push",
+    "https://github.com/biz-a/site.git",
+    "auth for git push github.com/biz-a/site for lane biz-a/dev",
+    [
+     "refs/heads/main"
+    ],
+    []
+   ]
+  ],
+  "ctx": [
+   [
+    "authorize",
+    "commit",
+    {
+     "lane_id": "biz-a/dev",
+     "summary": "Push main to github.com/biz-a/site (lane biz-a/dev)",
+     "content": {
+      "git_push": "github.com/biz-a/site",
+      "refs": [
+       {
+        "ref": "refs/heads/main",
+        "kind": "update",
+        "old": "sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "new": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "commits": 2,
+        "log": [
+         "bbbbbbb a change",
+         "bbbbbbb another"
+        ]
+       }
+      ]
+     }
+    }
+   ],
+   [
+    "trace",
+    "git_push",
+    {
+     "result": "pushed",
+     "lane": "biz-a/dev",
+     "remote": "github.com/biz-a/site",
+     "via": "lane biz-a/dev",
+     "refs": [
+      {
+       "ref": "refs/heads/main",
+       "kind": "update",
+       "old": "sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "new": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+       "commits": 2
+      }
+     ],
+     "effect": "commit",
+     "vault_ref": "git/github"
+    }
+   ]
+  ]
+ },
+ "force push of the default branch": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "000eunpack ok\n0017ok refs/heads/main\n0000"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "is_ancestor",
+    "a",
+    "d"
+   ],
+   [
+    "commits",
+    "d",
+    [
+     "a",
+     "c"
+    ]
+   ],
+   [
+    "push",
+    "https://github.com/biz-a/site.git",
+    "auth for git push github.com/biz-a/site for lane biz-a/dev",
+    [
+     "refs/heads/main"
+    ],
+    [
+     "refs/heads/main"
+    ]
+   ]
+  ],
+  "ctx": [
+   [
+    "authorize",
+    "irreversible",
+    {
+     "lane_id": "biz-a/dev",
+     "summary": "Push main to github.com/biz-a/site (lane biz-a/dev): it force-pushes refs/heads/main (commits on the remote would be lost); main is a protected branch of github.com/biz-a/site",
+     "content": {
+      "git_push": "github.com/biz-a/site",
+      "refs": [
+       {
+        "ref": "refs/heads/main",
+        "kind": "update",
+        "old": "sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "new": "sha1:dddddddddddddddddddddddddddddddddddddddd",
+        "force": true,
+        "protected": true,
+        "commits": 2,
+        "log": [
+         "ddddddd a change",
+         "ddddddd another"
+        ]
+       }
+      ]
+     }
+    }
+   ],
+   [
+    "trace",
+    "git_push",
+    {
+     "result": "pushed",
+     "lane": "biz-a/dev",
+     "remote": "github.com/biz-a/site",
+     "via": "lane biz-a/dev",
+     "refs": [
+      {
+       "ref": "refs/heads/main",
+       "kind": "update",
+       "old": "sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "new": "sha1:dddddddddddddddddddddddddddddddddddddddd",
+       "force": true,
+       "protected": true,
+       "commits": 2
+      }
+     ],
+     "effect": "irreversible",
+     "vault_ref": "git/github"
+    }
+   ]
+  ]
+ },
+ "force push of a feature branch": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "000eunpack ok\n001aok refs/heads/feature\n0000"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "is_ancestor",
+    "a",
+    "d"
+   ],
+   [
+    "commits",
+    "d",
+    [
+     "a",
+     "c"
+    ]
+   ],
+   [
+    "push",
+    "https://github.com/biz-a/site.git",
+    "auth for git push github.com/biz-a/site for lane biz-a/dev",
+    [
+     "refs/heads/feature"
+    ],
+    [
+     "refs/heads/feature"
+    ]
+   ]
+  ],
+  "ctx": [
+   [
+    "authorize",
+    "irreversible",
+    {
+     "lane_id": "biz-a/dev",
+     "summary": "Push feature to github.com/biz-a/site (lane biz-a/dev): it force-pushes refs/heads/feature (commits on the remote would be lost)",
+     "content": {
+      "git_push": "github.com/biz-a/site",
+      "refs": [
+       {
+        "ref": "refs/heads/feature",
+        "kind": "update",
+        "old": "sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "new": "sha1:dddddddddddddddddddddddddddddddddddddddd",
+        "force": true,
+        "commits": 2,
+        "log": [
+         "ddddddd a change",
+         "ddddddd another"
+        ]
+       }
+      ]
+     }
+    }
+   ],
+   [
+    "trace",
+    "git_push",
+    {
+     "result": "pushed",
+     "lane": "biz-a/dev",
+     "remote": "github.com/biz-a/site",
+     "via": "lane biz-a/dev",
+     "refs": [
+      {
+       "ref": "refs/heads/feature",
+       "kind": "update",
+       "old": "sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "new": "sha1:dddddddddddddddddddddddddddddddddddddddd",
+       "force": true,
+       "commits": 2
+      }
+     ],
+     "effect": "irreversible",
+     "vault_ref": "git/github"
+    }
+   ]
+  ]
+ },
+ "force push of a protected glob": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "000eunpack ok\n001aok refs/heads/feature\n0000"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "is_ancestor",
+    "a",
+    "d"
+   ],
+   [
+    "commits",
+    "d",
+    [
+     "a",
+     "c"
+    ]
+   ],
+   [
+    "push",
+    "https://github.com/biz-a/site.git",
+    "auth for git push github.com/biz-a/site for lane biz-a/dev",
+    [
+     "refs/heads/feature"
+    ],
+    [
+     "refs/heads/feature"
+    ]
+   ]
+  ],
+  "ctx": [
+   [
+    "authorize",
+    "irreversible",
+    {
+     "lane_id": "biz-a/dev",
+     "summary": "Push feature to github.com/biz-a/site (lane biz-a/dev): it force-pushes refs/heads/feature (commits on the remote would be lost); feature is a protected branch of github.com/biz-a/site",
+     "content": {
+      "git_push": "github.com/biz-a/site",
+      "refs": [
+       {
+        "ref": "refs/heads/feature",
+        "kind": "update",
+        "old": "sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "new": "sha1:dddddddddddddddddddddddddddddddddddddddd",
+        "force": true,
+        "protected": true,
+        "commits": 2,
+        "log": [
+         "ddddddd a change",
+         "ddddddd another"
+        ]
+       }
+      ]
+     }
+    }
+   ],
+   [
+    "trace",
+    "git_push",
+    {
+     "result": "pushed",
+     "lane": "biz-a/dev",
+     "remote": "github.com/biz-a/site",
+     "via": "lane biz-a/dev",
+     "refs": [
+      {
+       "ref": "refs/heads/feature",
+       "kind": "update",
+       "old": "sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "new": "sha1:dddddddddddddddddddddddddddddddddddddddd",
+       "force": true,
+       "protected": true,
+       "commits": 2
+      }
+     ],
+     "effect": "irreversible",
+     "vault_ref": "git/github"
+    }
+   ]
+  ]
+ },
+ "delete a feature branch": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "000eunpack ok\n001aok refs/heads/feature\n0000"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "push",
+    "https://github.com/biz-a/site.git",
+    "auth for git push github.com/biz-a/site for lane biz-a/dev",
+    [
+     "refs/heads/feature"
+    ],
+    []
+   ]
+  ],
+  "ctx": [
+   [
+    "authorize",
+    "irreversible",
+    {
+     "lane_id": "biz-a/dev",
+     "summary": "Push feature to github.com/biz-a/site (lane biz-a/dev): it deletes refs/heads/feature",
+     "content": {
+      "git_push": "github.com/biz-a/site",
+      "refs": [
+       {
+        "ref": "refs/heads/feature",
+        "kind": "delete",
+        "old": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "new": "sha1:0000000000000000000000000000000000000000"
+       }
+      ]
+     }
+    }
+   ],
+   [
+    "trace",
+    "git_push",
+    {
+     "result": "pushed",
+     "lane": "biz-a/dev",
+     "remote": "github.com/biz-a/site",
+     "via": "lane biz-a/dev",
+     "refs": [
+      {
+       "ref": "refs/heads/feature",
+       "kind": "delete",
+       "old": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+       "new": "sha1:0000000000000000000000000000000000000000"
+      }
+     ],
+     "effect": "irreversible",
+     "vault_ref": "git/github"
+    }
+   ]
+  ]
+ },
+ "delete the default branch": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "000eunpack ok\n0017ok refs/heads/main\n0000"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "push",
+    "https://github.com/biz-a/site.git",
+    "auth for git push github.com/biz-a/site for lane biz-a/dev",
+    [
+     "refs/heads/main"
+    ],
+    []
+   ]
+  ],
+  "ctx": [
+   [
+    "authorize",
+    "irreversible",
+    {
+     "lane_id": "biz-a/dev",
+     "summary": "Push main to github.com/biz-a/site (lane biz-a/dev): it deletes refs/heads/main; main is a protected branch of github.com/biz-a/site",
+     "content": {
+      "git_push": "github.com/biz-a/site",
+      "refs": [
+       {
+        "ref": "refs/heads/main",
+        "kind": "delete",
+        "old": "sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "new": "sha1:0000000000000000000000000000000000000000",
+        "protected": true
+       }
+      ]
+     }
+    }
+   ],
+   [
+    "trace",
+    "git_push",
+    {
+     "result": "pushed",
+     "lane": "biz-a/dev",
+     "remote": "github.com/biz-a/site",
+     "via": "lane biz-a/dev",
+     "refs": [
+      {
+       "ref": "refs/heads/main",
+       "kind": "delete",
+       "old": "sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "new": "sha1:0000000000000000000000000000000000000000",
+       "protected": true
+      }
+     ],
+     "effect": "irreversible",
+     "vault_ref": "git/github"
+    }
+   ]
+  ]
+ },
+ "delete a tag": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "000eunpack ok\n0014ok refs/tags/v1\n0000"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "push",
+    "https://github.com/biz-a/site.git",
+    "auth for git push github.com/biz-a/site for lane biz-a/dev",
+    [
+     "refs/tags/v1"
+    ],
+    []
+   ]
+  ],
+  "ctx": [
+   [
+    "authorize",
+    "irreversible",
+    {
+     "lane_id": "biz-a/dev",
+     "summary": "Push refs/tags/v1 to github.com/biz-a/site (lane biz-a/dev): it deletes refs/tags/v1",
+     "content": {
+      "git_push": "github.com/biz-a/site",
+      "refs": [
+       {
+        "ref": "refs/tags/v1",
+        "kind": "delete",
+        "old": "sha1:cccccccccccccccccccccccccccccccccccccccc",
+        "new": "sha1:0000000000000000000000000000000000000000"
+       }
+      ]
+     }
+    }
+   ],
+   [
+    "trace",
+    "git_push",
+    {
+     "result": "pushed",
+     "lane": "biz-a/dev",
+     "remote": "github.com/biz-a/site",
+     "via": "lane biz-a/dev",
+     "refs": [
+      {
+       "ref": "refs/tags/v1",
+       "kind": "delete",
+       "old": "sha1:cccccccccccccccccccccccccccccccccccccccc",
+       "new": "sha1:0000000000000000000000000000000000000000"
+      }
+     ],
+     "effect": "irreversible",
+     "vault_ref": "git/github"
+    }
+   ]
+  ]
+ },
+ "move a tag": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "000eunpack ok\n0014ok refs/tags/v1\n0000"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "is_ancestor",
+    "c",
+    "d"
+   ],
+   [
+    "commits",
+    "d",
+    [
+     "a",
+     "c"
+    ]
+   ],
+   [
+    "push",
+    "https://github.com/biz-a/site.git",
+    "auth for git push github.com/biz-a/site for lane biz-a/dev",
+    [
+     "refs/tags/v1"
+    ],
+    []
+   ]
+  ],
+  "ctx": [
+   [
+    "authorize",
+    "irreversible",
+    {
+     "lane_id": "biz-a/dev",
+     "summary": "Push refs/tags/v1 to github.com/biz-a/site (lane biz-a/dev): it moves the tag v1",
+     "content": {
+      "git_push": "github.com/biz-a/site",
+      "refs": [
+       {
+        "ref": "refs/tags/v1",
+        "kind": "update",
+        "old": "sha1:cccccccccccccccccccccccccccccccccccccccc",
+        "new": "sha1:dddddddddddddddddddddddddddddddddddddddd",
+        "commits": 2,
+        "log": [
+         "ddddddd a change",
+         "ddddddd another"
+        ]
+       }
+      ]
+     }
+    }
+   ],
+   [
+    "trace",
+    "git_push",
+    {
+     "result": "pushed",
+     "lane": "biz-a/dev",
+     "remote": "github.com/biz-a/site",
+     "via": "lane biz-a/dev",
+     "refs": [
+      {
+       "ref": "refs/tags/v1",
+       "kind": "update",
+       "old": "sha1:cccccccccccccccccccccccccccccccccccccccc",
+       "new": "sha1:dddddddddddddddddddddddddddddddddddddddd",
+       "commits": 2
+      }
+     ],
+     "effect": "irreversible",
+     "vault_ref": "git/github"
+    }
+   ]
+  ]
+ },
+ "new tag": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "000eunpack ok\n0014ok refs/tags/v2\n0000"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "commits",
+    "d",
+    [
+     "a",
+     "c"
+    ]
+   ],
+   [
+    "push",
+    "https://github.com/biz-a/site.git",
+    "auth for git push github.com/biz-a/site for lane biz-a/dev",
+    [
+     "refs/tags/v2"
+    ],
+    []
+   ]
+  ],
+  "ctx": [
+   [
+    "authorize",
+    "commit",
+    {
+     "lane_id": "biz-a/dev",
+     "summary": "Push refs/tags/v2 to github.com/biz-a/site (lane biz-a/dev)",
+     "content": {
+      "git_push": "github.com/biz-a/site",
+      "refs": [
+       {
+        "ref": "refs/tags/v2",
+        "kind": "create",
+        "old": "sha1:0000000000000000000000000000000000000000",
+        "new": "sha1:dddddddddddddddddddddddddddddddddddddddd",
+        "commits": 2,
+        "log": [
+         "ddddddd a change",
+         "ddddddd another"
+        ]
+       }
+      ]
+     }
+    }
+   ],
+   [
+    "trace",
+    "git_push",
+    {
+     "result": "pushed",
+     "lane": "biz-a/dev",
+     "remote": "github.com/biz-a/site",
+     "via": "lane biz-a/dev",
+     "refs": [
+      {
+       "ref": "refs/tags/v2",
+       "kind": "create",
+       "old": "sha1:0000000000000000000000000000000000000000",
+       "new": "sha1:dddddddddddddddddddddddddddddddddddddddd",
+       "commits": 2
+      }
+     ],
+     "effect": "commit",
+     "vault_ref": "git/github"
+    }
+   ]
+  ]
+ },
+ "several refs at once": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "000eunpack ok\n001aok refs/heads/feature\n0017ok refs/heads/main\n0014ok refs/tags/v2\n0000"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "commits",
+    "b",
+    [
+     "a",
+     "c"
+    ]
+   ],
+   [
+    "is_ancestor",
+    "a",
+    "b"
+   ],
+   [
+    "commits",
+    "b",
+    [
+     "a",
+     "c"
+    ]
+   ],
+   [
+    "commits",
+    "d",
+    [
+     "a",
+     "c"
+    ]
+   ],
+   [
+    "push",
+    "https://github.com/biz-a/site.git",
+    "auth for git push github.com/biz-a/site for lane biz-a/dev",
+    [
+     "refs/heads/feature",
+     "refs/heads/main",
+     "refs/tags/v2"
+    ],
+    []
+   ]
+  ],
+  "ctx": [
+   [
+    "authorize",
+    "irreversible",
+    {
+     "lane_id": "biz-a/dev",
+     "summary": "Push feature, main, refs/tags/v2 to github.com/biz-a/site (lane biz-a/dev): main is a protected branch of github.com/biz-a/site",
+     "content": {
+      "git_push": "github.com/biz-a/site",
+      "refs": [
+       {
+        "ref": "refs/heads/feature",
+        "kind": "create",
+        "old": "sha1:0000000000000000000000000000000000000000",
+        "new": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "commits": 2,
+        "log": [
+         "bbbbbbb a change",
+         "bbbbbbb another"
+        ]
+       },
+       {
+        "ref": "refs/heads/main",
+        "kind": "update",
+        "old": "sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "new": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "protected": true,
+        "commits": 2,
+        "log": [
+         "bbbbbbb a change",
+         "bbbbbbb another"
+        ]
+       },
+       {
+        "ref": "refs/tags/v2",
+        "kind": "create",
+        "old": "sha1:0000000000000000000000000000000000000000",
+        "new": "sha1:dddddddddddddddddddddddddddddddddddddddd",
+        "commits": 2,
+        "log": [
+         "ddddddd a change",
+         "ddddddd another"
+        ]
+       }
+      ]
+     }
+    }
+   ],
+   [
+    "trace",
+    "git_push",
+    {
+     "result": "pushed",
+     "lane": "biz-a/dev",
+     "remote": "github.com/biz-a/site",
+     "via": "lane biz-a/dev",
+     "refs": [
+      {
+       "ref": "refs/heads/feature",
+       "kind": "create",
+       "old": "sha1:0000000000000000000000000000000000000000",
+       "new": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+       "commits": 2
+      },
+      {
+       "ref": "refs/heads/main",
+       "kind": "update",
+       "old": "sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "new": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+       "protected": true,
+       "commits": 2
+      },
+      {
+       "ref": "refs/tags/v2",
+       "kind": "create",
+       "old": "sha1:0000000000000000000000000000000000000000",
+       "new": "sha1:dddddddddddddddddddddddddddddddddddddddd",
+       "commits": 2
+      }
+     ],
+     "effect": "irreversible",
+     "vault_ref": "git/github"
+    }
+   ]
+  ]
+ },
+ "env: new branch": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "000eunpack ok\n001aok refs/heads/feature\n0000"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "commits",
+    "b",
+    [
+     "a",
+     "c"
+    ]
+   ],
+   [
+    "push",
+    "https://github.com/biz-a/site.git",
+    "auth for git push github.com/biz-a/site for lane biz-a/dev",
+    [
+     "refs/heads/feature"
+    ],
+    []
+   ]
+  ],
+  "ctx": [
+   [
+    "authorize",
+    "commit",
+    {
+     "lane_id": "biz-a/dev",
+     "summary": "Push feature to github.com/biz-a/site (lane biz-a/dev)",
+     "content": {
+      "git_push": "github.com/biz-a/site",
+      "refs": [
+       {
+        "ref": "refs/heads/feature",
+        "kind": "create",
+        "old": "sha1:0000000000000000000000000000000000000000",
+        "new": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "commits": 2,
+        "log": [
+         "bbbbbbb a change",
+         "bbbbbbb another"
+        ]
+       }
+      ]
+     }
+    }
+   ],
+   [
+    "trace",
+    "git_push",
+    {
+     "result": "pushed",
+     "lane": "biz-a/dev",
+     "remote": "github.com/biz-a/site",
+     "via": "lane biz-a/dev",
+     "refs": [
+      {
+       "ref": "refs/heads/feature",
+       "kind": "create",
+       "old": "sha1:0000000000000000000000000000000000000000",
+       "new": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+       "commits": 2
+      }
+     ],
+     "effect": "commit",
+     "vault_ref": "git/github"
+    }
+   ]
+  ]
+ },
+ "env: fast-forward of the default branch": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "000eunpack ok\n0017ok refs/heads/main\n0000"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "is_ancestor",
+    "a",
+    "b"
+   ],
+   [
+    "commits",
+    "b",
+    [
+     "a",
+     "c"
+    ]
+   ],
+   [
+    "push",
+    "https://github.com/biz-a/site.git",
+    "auth for git push github.com/biz-a/site for lane biz-a/dev",
+    [
+     "refs/heads/main"
+    ],
+    []
+   ]
+  ],
+  "ctx": [
+   [
+    "authorize",
+    "commit",
+    {
+     "lane_id": "biz-a/dev",
+     "summary": "Push main to github.com/biz-a/site (lane biz-a/dev)",
+     "content": {
+      "git_push": "github.com/biz-a/site",
+      "refs": [
+       {
+        "ref": "refs/heads/main",
+        "kind": "update",
+        "old": "sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "new": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "protected": true,
+        "commits": 2,
+        "log": [
+         "bbbbbbb a change",
+         "bbbbbbb another"
+        ]
+       }
+      ]
+     }
+    }
+   ],
+   [
+    "trace",
+    "git_push",
+    {
+     "result": "pushed",
+     "lane": "biz-a/dev",
+     "remote": "github.com/biz-a/site",
+     "via": "lane biz-a/dev",
+     "refs": [
+      {
+       "ref": "refs/heads/main",
+       "kind": "update",
+       "old": "sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "new": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+       "protected": true,
+       "commits": 2
+      }
+     ],
+     "effect": "commit",
+     "vault_ref": "git/github"
+    }
+   ]
+  ]
+ },
+ "env: force push of a feature branch": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "000eunpack ok\n001aok refs/heads/feature\n0000"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "is_ancestor",
+    "a",
+    "d"
+   ],
+   [
+    "commits",
+    "d",
+    [
+     "a",
+     "c"
+    ]
+   ],
+   [
+    "push",
+    "https://github.com/biz-a/site.git",
+    "auth for git push github.com/biz-a/site for lane biz-a/dev",
+    [
+     "refs/heads/feature"
+    ],
+    [
+     "refs/heads/feature"
+    ]
+   ]
+  ],
+  "ctx": [
+   [
+    "authorize",
+    "commit",
+    {
+     "lane_id": "biz-a/dev",
+     "summary": "Push feature to github.com/biz-a/site (lane biz-a/dev)",
+     "content": {
+      "git_push": "github.com/biz-a/site",
+      "refs": [
+       {
+        "ref": "refs/heads/feature",
+        "kind": "update",
+        "old": "sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "new": "sha1:dddddddddddddddddddddddddddddddddddddddd",
+        "force": true,
+        "commits": 2,
+        "log": [
+         "ddddddd a change",
+         "ddddddd another"
+        ]
+       }
+      ]
+     }
+    }
+   ],
+   [
+    "trace",
+    "git_push",
+    {
+     "result": "pushed",
+     "lane": "biz-a/dev",
+     "remote": "github.com/biz-a/site",
+     "via": "lane biz-a/dev",
+     "refs": [
+      {
+       "ref": "refs/heads/feature",
+       "kind": "update",
+       "old": "sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "new": "sha1:dddddddddddddddddddddddddddddddddddddddd",
+       "force": true,
+       "commits": 2
+      }
+     ],
+     "effect": "commit",
+     "vault_ref": "git/github"
+    }
+   ]
+  ]
+ },
+ "env: force push of the default branch": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "REFUSED push_refused: it force-pushes main, a protected branch of github.com/biz-a/site, which an environment may not do; nothing was pushed. Fix: push your work to a new branch (git push origin HEAD:<branch>) and open a pull request"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "is_ancestor",
+    "a",
+    "d"
+   ],
+   [
+    "commits",
+    "d",
+    [
+     "a",
+     "c"
+    ]
+   ],
+   [
+    "restore",
+    [
+     [
+      "refs/heads/main",
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     ],
+     [
+      "refs/tags/v1",
+      "cccccccccccccccccccccccccccccccccccccccc"
+     ]
+    ],
+    [
+     "refs/heads/main"
+    ]
+   ]
+  ],
+  "ctx": [
+   [
+    "trace",
+    "git_push",
+    {
+     "result": "refused",
+     "status": "denied",
+     "reason": "push_refused",
+     "lane": "biz-a/dev",
+     "remote": "github.com/biz-a/site",
+     "via": "lane biz-a/dev",
+     "refs": [
+      {
+       "ref": "refs/heads/main",
+       "kind": "update",
+       "old": "sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "new": "sha1:dddddddddddddddddddddddddddddddddddddddd",
+       "force": true,
+       "protected": true,
+       "commits": 2
+      }
+     ]
+    }
+   ]
+  ]
+ },
+ "env: delete the default branch": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "REFUSED push_refused: it deletes main, a protected branch of github.com/biz-a/site, which an environment may not do; nothing was pushed. Fix: push your work to a new branch (git push origin HEAD:<branch>) and open a pull request"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "restore",
+    [
+     [
+      "refs/heads/main",
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     ],
+     [
+      "refs/tags/v1",
+      "cccccccccccccccccccccccccccccccccccccccc"
+     ]
+    ],
+    [
+     "refs/heads/main"
+    ]
+   ]
+  ],
+  "ctx": [
+   [
+    "trace",
+    "git_push",
+    {
+     "result": "refused",
+     "status": "denied",
+     "reason": "push_refused",
+     "lane": "biz-a/dev",
+     "remote": "github.com/biz-a/site",
+     "via": "lane biz-a/dev",
+     "refs": [
+      {
+       "ref": "refs/heads/main",
+       "kind": "delete",
+       "old": "sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "new": "sha1:0000000000000000000000000000000000000000",
+       "protected": true
+      }
+     ]
+    }
+   ]
+  ]
+ },
+ "env: delete a feature branch": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "000eunpack ok\n001aok refs/heads/feature\n0000"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "push",
+    "https://github.com/biz-a/site.git",
+    "auth for git push github.com/biz-a/site for lane biz-a/dev",
+    [
+     "refs/heads/feature"
+    ],
+    []
+   ]
+  ],
+  "ctx": [
+   [
+    "authorize",
+    "commit",
+    {
+     "lane_id": "biz-a/dev",
+     "summary": "Push feature to github.com/biz-a/site (lane biz-a/dev)",
+     "content": {
+      "git_push": "github.com/biz-a/site",
+      "refs": [
+       {
+        "ref": "refs/heads/feature",
+        "kind": "delete",
+        "old": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "new": "sha1:0000000000000000000000000000000000000000"
+       }
+      ]
+     }
+    }
+   ],
+   [
+    "trace",
+    "git_push",
+    {
+     "result": "pushed",
+     "lane": "biz-a/dev",
+     "remote": "github.com/biz-a/site",
+     "via": "lane biz-a/dev",
+     "refs": [
+      {
+       "ref": "refs/heads/feature",
+       "kind": "delete",
+       "old": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+       "new": "sha1:0000000000000000000000000000000000000000"
+      }
+     ],
+     "effect": "commit",
+     "vault_ref": "git/github"
+    }
+   ]
+  ]
+ },
+ "env: delete a tag": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "REFUSED push_refused: it deletes v1 (a tag), which an environment may not do; nothing was pushed. Fix: push your work to a new branch (git push origin HEAD:<branch>) and open a pull request"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "restore",
+    [
+     [
+      "refs/heads/main",
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     ],
+     [
+      "refs/tags/v1",
+      "cccccccccccccccccccccccccccccccccccccccc"
+     ]
+    ],
+    [
+     "refs/tags/v1"
+    ]
+   ]
+  ],
+  "ctx": [
+   [
+    "trace",
+    "git_push",
+    {
+     "result": "refused",
+     "status": "denied",
+     "reason": "push_refused",
+     "lane": "biz-a/dev",
+     "remote": "github.com/biz-a/site",
+     "via": "lane biz-a/dev",
+     "refs": [
+      {
+       "ref": "refs/tags/v1",
+       "kind": "delete",
+       "old": "sha1:cccccccccccccccccccccccccccccccccccccccc",
+       "new": "sha1:0000000000000000000000000000000000000000"
+      }
+     ]
+    }
+   ]
+  ]
+ },
+ "env: move a tag": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "REFUSED push_refused: it moves the tag v1, which an environment may not do; nothing was pushed. Fix: push your work to a new branch (git push origin HEAD:<branch>) and open a pull request"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "is_ancestor",
+    "c",
+    "d"
+   ],
+   [
+    "commits",
+    "d",
+    [
+     "a",
+     "c"
+    ]
+   ],
+   [
+    "restore",
+    [
+     [
+      "refs/heads/main",
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     ],
+     [
+      "refs/tags/v1",
+      "cccccccccccccccccccccccccccccccccccccccc"
+     ]
+    ],
+    [
+     "refs/tags/v1"
+    ]
+   ]
+  ],
+  "ctx": [
+   [
+    "trace",
+    "git_push",
+    {
+     "result": "refused",
+     "status": "denied",
+     "reason": "push_refused",
+     "lane": "biz-a/dev",
+     "remote": "github.com/biz-a/site",
+     "via": "lane biz-a/dev",
+     "refs": [
+      {
+       "ref": "refs/tags/v1",
+       "kind": "update",
+       "old": "sha1:cccccccccccccccccccccccccccccccccccccccc",
+       "new": "sha1:dddddddddddddddddddddddddddddddddddddddd",
+       "commits": 2
+      }
+     ]
+    }
+   ]
+  ]
+ },
+ "env: new tag": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "000eunpack ok\n0014ok refs/tags/v2\n0000"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "commits",
+    "d",
+    [
+     "a",
+     "c"
+    ]
+   ],
+   [
+    "push",
+    "https://github.com/biz-a/site.git",
+    "auth for git push github.com/biz-a/site for lane biz-a/dev",
+    [
+     "refs/tags/v2"
+    ],
+    []
+   ]
+  ],
+  "ctx": [
+   [
+    "authorize",
+    "commit",
+    {
+     "lane_id": "biz-a/dev",
+     "summary": "Push refs/tags/v2 to github.com/biz-a/site (lane biz-a/dev)",
+     "content": {
+      "git_push": "github.com/biz-a/site",
+      "refs": [
+       {
+        "ref": "refs/tags/v2",
+        "kind": "create",
+        "old": "sha1:0000000000000000000000000000000000000000",
+        "new": "sha1:dddddddddddddddddddddddddddddddddddddddd",
+        "commits": 2,
+        "log": [
+         "ddddddd a change",
+         "ddddddd another"
+        ]
+       }
+      ]
+     }
+    }
+   ],
+   [
+    "trace",
+    "git_push",
+    {
+     "result": "pushed",
+     "lane": "biz-a/dev",
+     "remote": "github.com/biz-a/site",
+     "via": "lane biz-a/dev",
+     "refs": [
+      {
+       "ref": "refs/tags/v2",
+       "kind": "create",
+       "old": "sha1:0000000000000000000000000000000000000000",
+       "new": "sha1:dddddddddddddddddddddddddddddddddddddddd",
+       "commits": 2
+      }
+     ],
+     "effect": "commit",
+     "vault_ref": "git/github"
+    }
+   ]
+  ]
+ },
+ "env: several rewrites": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "REFUSED push_refused: it force-pushes main, a protected branch of github.com/biz-a/site; it moves the tag v1, which an environment may not do; nothing was pushed. Fix: push your work to a new branch (git push origin HEAD:<branch>) and open a pull request"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "is_ancestor",
+    "a",
+    "d"
+   ],
+   [
+    "commits",
+    "d",
+    [
+     "a",
+     "c"
+    ]
+   ],
+   [
+    "is_ancestor",
+    "c",
+    "d"
+   ],
+   [
+    "commits",
+    "d",
+    [
+     "a",
+     "c"
+    ]
+   ],
+   [
+    "restore",
+    [
+     [
+      "refs/heads/main",
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     ],
+     [
+      "refs/tags/v1",
+      "cccccccccccccccccccccccccccccccccccccccc"
+     ]
+    ],
+    [
+     "refs/heads/main",
+     "refs/tags/v1"
+    ]
+   ]
+  ],
+  "ctx": [
+   [
+    "trace",
+    "git_push",
+    {
+     "result": "refused",
+     "status": "denied",
+     "reason": "push_refused",
+     "lane": "biz-a/dev",
+     "remote": "github.com/biz-a/site",
+     "via": "lane biz-a/dev",
+     "refs": [
+      {
+       "ref": "refs/heads/main",
+       "kind": "update",
+       "old": "sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "new": "sha1:dddddddddddddddddddddddddddddddddddddddd",
+       "force": true,
+       "protected": true,
+       "commits": 2
+      },
+      {
+       "ref": "refs/tags/v1",
+       "kind": "update",
+       "old": "sha1:cccccccccccccccccccccccccccccccccccccccc",
+       "new": "sha1:dddddddddddddddddddddddddddddddddddddddd",
+       "commits": 2
+      }
+     ]
+    }
+   ]
+  ]
+ },
+ "no lane: a brain's push": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "000eunpack ok\n001aok refs/heads/feature\n0000"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "commits",
+    "b",
+    [
+     "a",
+     "c"
+    ]
+   ],
+   [
+    "push",
+    "https://github.com/biz-a/site.git",
+    "auth for git push github.com/biz-a/site for lane biz-a/dev",
+    [
+     "refs/heads/feature"
+    ],
+    []
+   ]
+  ],
+  "ctx": [
+   [
+    "authorize",
+    "commit",
+    {
+     "lane_id": null,
+     "summary": "Push feature to github.com/biz-a/site (lane biz-a/dev)",
+     "content": {
+      "git_push": "github.com/biz-a/site",
+      "refs": [
+       {
+        "ref": "refs/heads/feature",
+        "kind": "create",
+        "old": "sha1:0000000000000000000000000000000000000000",
+        "new": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "commits": 2,
+        "log": [
+         "bbbbbbb a change",
+         "bbbbbbb another"
+        ]
+       }
+      ]
+     }
+    }
+   ],
+   [
+    "trace",
+    "git_push",
+    {
+     "result": "pushed",
+     "lane": null,
+     "remote": "github.com/biz-a/site",
+     "via": "lane biz-a/dev",
+     "refs": [
+      {
+       "ref": "refs/heads/feature",
+       "kind": "create",
+       "old": "sha1:0000000000000000000000000000000000000000",
+       "new": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+       "commits": 2
+      }
+     ],
+     "effect": "commit",
+     "vault_ref": "git/github"
+    }
+   ]
+  ]
+ },
+ "waits for a person": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "REFUSED this push waits for a person (approval ap_1): a person approves pushes from here. Tell the user; once it is approved, push again with the same commits. Do not change or split the push to get around it"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "commits",
+    "b",
+    [
+     "a",
+     "c"
+    ]
+   ],
+   [
+    "restore",
+    [
+     [
+      "refs/heads/main",
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     ],
+     [
+      "refs/tags/v1",
+      "cccccccccccccccccccccccccccccccccccccccc"
+     ]
+    ],
+    [
+     "refs/heads/feature"
+    ]
+   ]
+  ],
+  "ctx": [
+   [
+    "authorize",
+    "commit",
+    {
+     "lane_id": "biz-a/dev",
+     "summary": "Push feature to github.com/biz-a/site (lane biz-a/dev)",
+     "content": {
+      "git_push": "github.com/biz-a/site",
+      "refs": [
+       {
+        "ref": "refs/heads/feature",
+        "kind": "create",
+        "old": "sha1:0000000000000000000000000000000000000000",
+        "new": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "commits": 2,
+        "log": [
+         "bbbbbbb a change",
+         "bbbbbbb another"
+        ]
+       }
+      ]
+     }
+    }
+   ],
+   [
+    "trace",
+    "git_push",
+    {
+     "result": "approval_pending",
+     "approval": "ap_1",
+     "lane": "biz-a/dev",
+     "remote": "github.com/biz-a/site",
+     "via": "lane biz-a/dev",
+     "refs": [
+      {
+       "ref": "refs/heads/feature",
+       "kind": "create",
+       "old": "sha1:0000000000000000000000000000000000000000",
+       "new": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+       "commits": 2
+      }
+     ],
+     "effect": "commit",
+     "vault_ref": "git/github"
+    }
+   ]
+  ]
+ },
+ "waits, irreversible": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "REFUSED this push waits for a person (approval ap_1): main is a protected branch of github.com/biz-a/site, so a person approves it. Tell the user; once it is approved, push again with the same commits. Do not change or split the push to get around it"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "is_ancestor",
+    "a",
+    "b"
+   ],
+   [
+    "commits",
+    "b",
+    [
+     "a",
+     "c"
+    ]
+   ],
+   [
+    "restore",
+    [
+     [
+      "refs/heads/main",
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     ],
+     [
+      "refs/tags/v1",
+      "cccccccccccccccccccccccccccccccccccccccc"
+     ]
+    ],
+    [
+     "refs/heads/main"
+    ]
+   ]
+  ],
+  "ctx": [
+   [
+    "authorize",
+    "irreversible",
+    {
+     "lane_id": "biz-a/dev",
+     "summary": "Push main to github.com/biz-a/site (lane biz-a/dev): main is a protected branch of github.com/biz-a/site",
+     "content": {
+      "git_push": "github.com/biz-a/site",
+      "refs": [
+       {
+        "ref": "refs/heads/main",
+        "kind": "update",
+        "old": "sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "new": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "protected": true,
+        "commits": 2,
+        "log": [
+         "bbbbbbb a change",
+         "bbbbbbb another"
+        ]
+       }
+      ]
+     }
+    }
+   ],
+   [
+    "trace",
+    "git_push",
+    {
+     "result": "approval_pending",
+     "approval": "ap_1",
+     "lane": "biz-a/dev",
+     "remote": "github.com/biz-a/site",
+     "via": "lane biz-a/dev",
+     "refs": [
+      {
+       "ref": "refs/heads/main",
+       "kind": "update",
+       "old": "sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "new": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+       "protected": true,
+       "commits": 2
+      }
+     ],
+     "effect": "irreversible",
+     "vault_ref": "git/github"
+    }
+   ]
+  ]
+ },
+ "waits, with its own why": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "REFUSED this push waits for a person (approval ap_2): it follows text from a web page. Tell the user; once it is approved, push again with the same commits. Do not change or split the push to get around it"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "is_ancestor",
+    "a",
+    "b"
+   ],
+   [
+    "commits",
+    "b",
+    [
+     "a",
+     "c"
+    ]
+   ],
+   [
+    "restore",
+    [
+     [
+      "refs/heads/main",
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     ],
+     [
+      "refs/tags/v1",
+      "cccccccccccccccccccccccccccccccccccccccc"
+     ]
+    ],
+    [
+     "refs/heads/main"
+    ]
+   ]
+  ],
+  "ctx": [
+   [
+    "authorize",
+    "irreversible",
+    {
+     "lane_id": "biz-a/dev",
+     "summary": "Push main to github.com/biz-a/site (lane biz-a/dev): main is a protected branch of github.com/biz-a/site",
+     "content": {
+      "git_push": "github.com/biz-a/site",
+      "refs": [
+       {
+        "ref": "refs/heads/main",
+        "kind": "update",
+        "old": "sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "new": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "protected": true,
+        "commits": 2,
+        "log": [
+         "bbbbbbb a change",
+         "bbbbbbb another"
+        ]
+       }
+      ]
+     }
+    }
+   ],
+   [
+    "trace",
+    "git_push",
+    {
+     "result": "approval_pending",
+     "approval": "ap_2",
+     "lane": "biz-a/dev",
+     "remote": "github.com/biz-a/site",
+     "via": "lane biz-a/dev",
+     "refs": [
+      {
+       "ref": "refs/heads/main",
+       "kind": "update",
+       "old": "sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "new": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+       "protected": true,
+       "commits": 2
+      }
+     ],
+     "effect": "irreversible",
+     "vault_ref": "git/github"
+    }
+   ]
+  ]
+ },
+ "waits, the approval's note": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "REFUSED this push waits for a person (approval ap_1): Ask me first is on for biz-a/dev. Tell the user; once it is approved, push again with the same commits. Do not change or split the push to get around it"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "commits",
+    "b",
+    [
+     "a",
+     "c"
+    ]
+   ],
+   [
+    "restore",
+    [
+     [
+      "refs/heads/main",
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     ],
+     [
+      "refs/tags/v1",
+      "cccccccccccccccccccccccccccccccccccccccc"
+     ]
+    ],
+    [
+     "refs/heads/feature"
+    ]
+   ]
+  ],
+  "ctx": [
+   [
+    "authorize",
+    "commit",
+    {
+     "lane_id": "biz-a/dev",
+     "summary": "Push feature to github.com/biz-a/site (lane biz-a/dev)",
+     "content": {
+      "git_push": "github.com/biz-a/site",
+      "refs": [
+       {
+        "ref": "refs/heads/feature",
+        "kind": "create",
+        "old": "sha1:0000000000000000000000000000000000000000",
+        "new": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "commits": 2,
+        "log": [
+         "bbbbbbb a change",
+         "bbbbbbb another"
+        ]
+       }
+      ]
+     }
+    }
+   ],
+   [
+    "trace",
+    "git_push",
+    {
+     "result": "approval_pending",
+     "approval": "ap_1",
+     "lane": "biz-a/dev",
+     "remote": "github.com/biz-a/site",
+     "via": "lane biz-a/dev",
+     "refs": [
+      {
+       "ref": "refs/heads/feature",
+       "kind": "create",
+       "old": "sha1:0000000000000000000000000000000000000000",
+       "new": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+       "commits": 2
+      }
+     ],
+     "effect": "commit",
+     "vault_ref": "git/github"
+    }
+   ]
+  ]
+ },
+ "refused by policy": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "REFUSED this push was refused: this grant may not commit on biz-a/dev"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "commits",
+    "b",
+    [
+     "a",
+     "c"
+    ]
+   ],
+   [
+    "restore",
+    [
+     [
+      "refs/heads/main",
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     ],
+     [
+      "refs/tags/v1",
+      "cccccccccccccccccccccccccccccccccccccccc"
+     ]
+    ],
+    [
+     "refs/heads/feature"
+    ]
+   ]
+  ],
+  "ctx": [
+   [
+    "authorize",
+    "commit",
+    {
+     "lane_id": "biz-a/dev",
+     "summary": "Push feature to github.com/biz-a/site (lane biz-a/dev)",
+     "content": {
+      "git_push": "github.com/biz-a/site",
+      "refs": [
+       {
+        "ref": "refs/heads/feature",
+        "kind": "create",
+        "old": "sha1:0000000000000000000000000000000000000000",
+        "new": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "commits": 2,
+        "log": [
+         "bbbbbbb a change",
+         "bbbbbbb another"
+        ]
+       }
+      ]
+     }
+    }
+   ],
+   [
+    "trace",
+    "git_push",
+    {
+     "result": "denied",
+     "status": "denied",
+     "reason": "this grant may not commit on biz-a/dev",
+     "lane": "biz-a/dev",
+     "remote": "github.com/biz-a/site",
+     "via": "lane biz-a/dev",
+     "refs": [
+      {
+       "ref": "refs/heads/feature",
+       "kind": "create",
+       "old": "sha1:0000000000000000000000000000000000000000",
+       "new": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+       "commits": 2
+      }
+     ],
+     "effect": "commit",
+     "vault_ref": "git/github"
+    }
+   ]
+  ]
+ },
+ "upstream failed": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "REFUSED the push did not reach github.com/biz-a/site: github.com refused the push: permission denied"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "commits",
+    "b",
+    [
+     "a",
+     "c"
+    ]
+   ],
+   [
+    "push",
+    "https://github.com/biz-a/site.git",
+    "auth for git push github.com/biz-a/site for lane biz-a/dev",
+    [
+     "refs/heads/feature"
+    ],
+    []
+   ],
+   [
+    "restore",
+    [
+     [
+      "refs/heads/main",
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     ],
+     [
+      "refs/tags/v1",
+      "cccccccccccccccccccccccccccccccccccccccc"
+     ]
+    ],
+    [
+     "refs/heads/feature"
+    ]
+   ]
+  ],
+  "ctx": [
+   [
+    "authorize",
+    "commit",
+    {
+     "lane_id": "biz-a/dev",
+     "summary": "Push feature to github.com/biz-a/site (lane biz-a/dev)",
+     "content": {
+      "git_push": "github.com/biz-a/site",
+      "refs": [
+       {
+        "ref": "refs/heads/feature",
+        "kind": "create",
+        "old": "sha1:0000000000000000000000000000000000000000",
+        "new": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "commits": 2,
+        "log": [
+         "bbbbbbb a change",
+         "bbbbbbb another"
+        ]
+       }
+      ]
+     }
+    }
+   ],
+   [
+    "trace",
+    "git_push",
+    {
+     "result": "failed",
+     "status": "error",
+     "reason": "github.com refused the push: permission denied",
+     "lane": "biz-a/dev",
+     "remote": "github.com/biz-a/site",
+     "via": "lane biz-a/dev",
+     "refs": [
+      {
+       "ref": "refs/heads/feature",
+       "kind": "create",
+       "old": "sha1:0000000000000000000000000000000000000000",
+       "new": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+       "commits": 2
+      }
+     ],
+     "effect": "commit",
+     "vault_ref": "git/github"
+    }
+   ]
+  ]
+ }
+}

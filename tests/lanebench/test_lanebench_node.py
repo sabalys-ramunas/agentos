@@ -96,7 +96,7 @@ async def test_the_same_click_through_human_click_passes(bench):
 
 async def test_a_pointer_jump_fails_input_conformance(bench, monkeypatch):
     """A lane started without Camoufox's humanized cursor: raw moves land in one event."""
-    from agentos.node.engine_camoufox import CamoufoxEngine
+    from agentos.node.camoufox.engine import CamoufoxEngine
 
     options = CamoufoxEngine._options
 

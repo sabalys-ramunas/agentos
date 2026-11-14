@@ -1,7 +1,7 @@
 """A workspace freeze holds a kept wide grant off everything in that workspace, not only calls that
 name a lane or a top-level `workspace` (review of the 2026-11-10 fix wave, finding 4). A grant on
 biz-a and biz-b, kept by a freeze of biz-a, could save and read workflows there, propose leads to
-its lists, and read its jobs and engagement records. These started as the reviewer's proofs; they
+its lists, and read its jobs. These started as the reviewer's proofs; they
 now assert the freeze stops each, that a listing leaves the frozen rows out and says so, and that a
 person in person is not stopped. The last tests walk the tool registry, so a new tool that reaches
 a workspace another way must say how the freeze reaches it."""
@@ -16,12 +16,12 @@ import pytest
 from workflow_support import LIST, make_node, workflow
 
 from agentos.core.config import NodeConfig
+from agentos.core.errors import Frozen
 from agentos.core.models import Effect
 from agentos.core.runtime import Runtime
 from agentos.core.tools import ToolSpec, covers_workspace, pattern_reaches, pattern_within, require_lanes
-from agentos.freeze.errors import Frozen
 from agentos.freeze.service import FreezeService
-from agentos.node.daemon import feature_providers, tool_providers
+from agentos.mcp.providers import feature_providers, tool_providers
 from agentos.plugins.entries import PLUGINS
 from agentos.policy.wrap import ToolCallError, bind_request_token, wrap_tool
 from agentos.runner.workflows import tools as wf_tools
@@ -104,7 +104,7 @@ async def test_control_before_the_freeze_the_same_calls_work(frozen):
 
 def test_the_scope_helpers_hold_an_agent_off_a_frozen_workspace_and_a_person_not(frozen):
     """The one place: every helper a tool uses to reach a workspace asks the freeze. A listing of jobs
-    or engagement items (lane_jobs_list, engage_items, engage_digest with no lane) filters with
+    (lane_jobs_list) filters with
     can_access_lane, so it leaves a frozen lane's rows out."""
     n, fz, tok, _specs = frozen
     freeze(fz)
@@ -152,7 +152,6 @@ FREEZE_REACH = {
     # agentos.environments.tools: the chat's environment or an id of the grant family -> its lanes
     # (refuse_frozen); a new one authorizes env/<id>; the listing leaves frozen ones out (frozen_off)
     "environment": "id", "environment_close": "id", "environment_open": "check",
-    "engage_digest": "filter", "engage_item_withdraw": "id", "engage_items": "filter", "engage_status": "filter",
     "env_lanes_list": "filter", "events_list": "filter", "triggers_list": "filter", "trigger_propose": "check",
     "flow_get": "id", "flow_run": "id", "flow_save": "check", "flows_list": "filter",
     "grant_info": "filter", "howto": "none", "human_ask": "none", "image_build": "none", "images_list": "none",

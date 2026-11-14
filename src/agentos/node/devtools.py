@@ -23,7 +23,7 @@ What is kept, and what never is:
   one (a JWT, a long random string) is replaced. The raw URL is never stored; the host is, for the
   egress check a body read makes.
 
-The tools add the rest: the vault scrub on everything returned (agentos.mcp.redact), the grant and
+The tools add the rest: the vault scrub on everything returned (agentos.policy.redactor), the grant and
 lane checks, the egress check before a body is read, and the untrusted-content label.
 """
 
@@ -38,10 +38,10 @@ import weakref
 from collections import Counter, deque
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
+from agentos.core import clock
 from agentos.node import egress
 from agentos.node.egress.sites import host_of
 
@@ -224,9 +224,6 @@ def mask_headers(headers: Any) -> dict[str, str]:
 
 
 # ---- entries ---------------------------------------------------------------------------------------
-
-def _now_iso(at: float) -> str:
-    return datetime.fromtimestamp(at, UTC).isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
 
 def _ref(obj: Any) -> Callable[[], Any] | None:
@@ -545,14 +542,6 @@ class DevtoolsCapture:
     def entry(self, request_id: str) -> NetEntry | None:
         return self._by_id.get(request_id)
 
-    @property
-    def console_cursor(self) -> int:
-        return self._console_seq
-
-    @property
-    def network_cursor(self) -> int:
-        return self._network_seq
-
     def console_view(self, *, level: str = "all", since: int | None = None, last: int = 50,
                      max_chars: int = 500, tab: Callable[[Any], int | str | None] | None = None) -> dict[str, Any]:
         """browser_console's result: the newest `last` entries at `level` or worse after `since`."""
@@ -562,7 +551,7 @@ class DevtoolsCapture:
         rows: list[dict[str, Any]] = []
         page_url = None
         for e in shown:
-            row: dict[str, Any] = {"seq": e.seq, "at": _now_iso(e.at), "level": e.level}
+            row: dict[str, Any] = {"seq": e.seq, "at": clock.iso(e.at, z=True, timespec="milliseconds"), "level": e.level}
             if e.kind != e.level:
                 row["kind"] = e.kind
             row["text"] = _cut(e.text, max_chars)
@@ -579,7 +568,7 @@ class DevtoolsCapture:
         return {"messages": rows, "matched": len(matched), "returned": len(rows), "cursor": self._console_seq,
                 "counts": {lv: self.levels[lv] for lv in LEVELS if self.levels[lv]},
                 "kept": len(self._console), "dropped": self.console_dropped,
-                "since_browser_start": _now_iso(self.started_at)}
+                "since_browser_start": clock.iso(self.started_at, z=True, timespec="milliseconds")}
 
     def network_view(self, *, failed_only: bool = False, min_status: int | None = None,
                      url_contains: str | None = None, type: str | None = None, since: int | None = None,
@@ -605,7 +594,7 @@ class DevtoolsCapture:
                   "http_errors": self.net_counts["http_errors"]}
         return {"requests": rows, "matched": len(matched), "returned": len(rows), "cursor": self._network_seq,
                 "counts": counts, "kept": len(self._network), "dropped": self.network_dropped,
-                "since_browser_start": _now_iso(self.started_at)}
+                "since_browser_start": clock.iso(self.started_at, z=True, timespec="milliseconds")}
 
 
 def summary_row(e: NetEntry) -> dict[str, Any]:
@@ -626,7 +615,7 @@ def summary_row(e: NetEntry) -> dict[str, Any]:
 def detail_row(e: NetEntry) -> dict[str, Any]:
     """One request in full, without its body (read_body adds that)."""
     row = summary_row(e)
-    row["at"] = _now_iso(e.at)
+    row["at"] = clock.iso(e.at, z=True, timespec="milliseconds")
     if e.status_text:
         row["status_text"] = e.status_text
     if e.redirected_from:

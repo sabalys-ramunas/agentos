@@ -49,24 +49,14 @@ link anyone but a person made, OWNER_LINK_MAX for an owner link (docs/THREAT-MOD
 from __future__ import annotations
 
 import asyncio
-import base64
 import contextlib
-import hashlib
-import hmac
 import html
-import inspect
 import json
 import logging
-import os
-import secrets
-import time
 from collections.abc import Callable, Iterator
-from dataclasses import dataclass
-from datetime import UTC, datetime
-from enum import StrEnum
 from pathlib import Path
 from typing import Any
-from urllib.parse import quote, urlsplit
+from urllib.parse import urlsplit
 
 from starlette.applications import Starlette
 from starlette.requests import Request
@@ -77,11 +67,20 @@ from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from agentos.core import live as live_sockets
 from agentos.core.config import NodeConfig
-from agentos.core.errors import AgentosError, InvalidRequest, LaneNotFound
+from agentos.core.errors import AgentosError, LaneNotFound
 from agentos.core.live import CLOSE_DENIED, CLOSE_REVOKED, LiveEntry, LiveSockets
-from agentos.core.models import ControlState, LaneControl, LaneInfo, LaneState, parse_lane_id, validate_sites
-from agentos.core.presence import NEEDS_A_PERSON, Presence, presence_of
+from agentos.core.models import ControlState, LaneInfo, parse_lane_id
+from agentos.core.presence import Presence
 from agentos.node import lane_clipboard
+from agentos.node.viewer_actions import ACTIONS, apply_action, change_sites, handback_warning, person_needed
+from agentos.node.viewer_state import ControlHub, action_dict, control_dict, lane_dict, recent_actions
+from agentos.node.viewer_tokens import (
+    TokenError,
+    ViewLink,
+    ViewMode,
+    ViewTokens,
+    make_view_link,
+)
 from agentos.node.vnc_relay import CLOSE_LANE_NOT_RUNNING, CLOSE_POLICY, VncRelay, upstream
 
 log = logging.getLogger("agentos.viewer")
@@ -90,28 +89,10 @@ VIEWER_DIR = Path(__file__).parent / "viewer"
 ASSETS_DIR = VIEWER_DIR / "assets"
 PAGE_TEMPLATE = VIEWER_DIR / "page.html"
 ASSETS_PATH = "/viewer-assets"
-
-KEY_BYTES = 32
-TOKEN_CONTEXT = b"agentos-view-v2\n"  # v2 signs the hard end: a v1 link no longer verifies
-MIN_TTL = 30
-MAX_TTL = 24 * 3600
-# The hard end of a link, from when it was first made: renewing moves its expiry, never this. A link
-# anything but a person made (lane_view, a grant, the node token, the device credential) may be an
-# agent's, so it is short; an owner link is made in person.
-AGENT_LINK_MAX = 30 * 60
-OWNER_LINK_MAX = 8 * 3600
-MAX_TOKEN_CHARS = 512
 VIEWER_BY = "owner"                # `by` for actions taken from a viewer link or the owner API
 MAX_RELAYS_PER_LANE = 8
 EVENT_POLL_SECONDS = 2.0
 HEARTBEAT_SECONDS = 15.0
-RECENT_ACTIONS = 40
-
-ACTIONS = ("take", "hand_back", "stop_agent", "deny_request")
-HANDBACK_NOTE_CHARS = 300
-SITES_OPS = ("add", "remove", "set")
-OWNER_FLAG = "owner"
-PERSON_ACTIONS = ("hand_back",)    # always a person's: it clears holds, quarantines and a person's stop
 # Reading the lane's clipboard: at most this many reads per link in CLIPBOARD_WINDOW seconds. A person
 # copies a few times a minute; the limit only stops a loop.
 CLIPBOARD_READS = 30
@@ -119,357 +100,6 @@ CLIPBOARD_WINDOW = 60.0
 NEEDS_PERSON_HERE = ("Only a person can do this, and an agent may hold this link. Sign in to the panel on this node "
                      "in this browser (the same address, at /login), then press it again. Or run "
                      "`agentos lane handback` on the node.")
-
-
-# ---- signed links -----------------------------------------------------------------------
-
-class ViewMode(StrEnum):
-    VIEW = "view"
-    CONTROL = "control"
-
-
-class TokenError(Exception):
-    """A viewer token was refused. `message` is safe to show to the human."""
-
-    def __init__(self, code: str, message: str):
-        super().__init__(message)
-        self.code = code
-        self.message = message
-
-
-@dataclass(frozen=True)
-class ViewLink:
-    lane_id: str
-    mode: ViewMode
-    expires_at: float  # unix seconds
-    nonce: str
-    token: str
-    owner: bool = False  # made in person (an owner link): may do what only a person may
-    hard_until: float = 0.0  # unix seconds: no renew moves the link past this
-
-    @property
-    def can_control(self) -> bool:
-        return self.mode == ViewMode.CONTROL
-
-    @property
-    def expires_iso(self) -> str:
-        return iso(self.expires_at)
-
-    def path(self, base: str = "") -> str:
-        workspace, name = parse_lane_id(self.lane_id)
-        return f"{base}/view/{workspace}/{name}?t={quote(self.token)}"
-
-
-def _b64(data: bytes) -> str:
-    return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
-
-
-def _unb64(text: str) -> bytes:
-    return base64.urlsafe_b64decode(text + "=" * (-len(text) % 4))
-
-
-def load_or_create_key(path: Path) -> bytes:
-    """The viewer key: 32 random bytes, chmod 600. Created atomically on first use (a
-    concurrent creator never sees a half-written file); a short or empty key is replaced."""
-    try:
-        key = path.read_bytes()
-        exists = True
-    except FileNotFoundError:
-        key, exists = b"", False
-    if len(key) >= KEY_BYTES:
-        mode = path.stat().st_mode & 0o777
-        if mode & 0o077:
-            log.warning("%s was readable by others (mode %o); fixing it to 600", path, mode)
-            path.chmod(0o600)
-        return key
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.parent.chmod(0o700)
-    tmp = path.with_name(f".{path.name}.{os.getpid()}.{secrets.token_hex(4)}.tmp")
-    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-    try:
-        os.write(fd, secrets.token_bytes(KEY_BYTES))
-        os.fsync(fd)
-    finally:
-        os.close(fd)
-    try:
-        if exists:  # present but empty or too short: replace it
-            log.warning("%s is too short; replacing it (old viewer links stop working)", path)
-            os.replace(tmp, path)
-        else:
-            try:
-                os.link(tmp, path)  # fails if another process created it first
-            except FileExistsError:
-                pass
-    finally:
-        tmp.unlink(missing_ok=True)
-    key = path.read_bytes()
-    if len(key) < KEY_BYTES:
-        raise RuntimeError(f"{path} is unusable; delete it and try again")
-    return key
-
-
-class ViewTokens:
-    """Signs and checks viewer links for one node."""
-
-    def __init__(self, key_path: Path, *, default_ttl: int = 900, clock: Callable[[], float] = time.time):
-        self.key_path = Path(key_path)
-        self.default_ttl = default_ttl
-        self.clock = clock
-        self._key: bytes | None = None
-        self._key_stat: tuple[int, int] | None = None
-
-    @classmethod
-    def for_config(cls, config: NodeConfig, **kw: Any) -> ViewTokens:
-        return cls(config.secrets_dir / "viewer.key", default_ttl=config.view_token_seconds, **kw)
-
-    def _stat(self) -> tuple[int, int] | None:
-        try:
-            st = self.key_path.stat()
-        except FileNotFoundError:
-            return None
-        return st.st_ino, st.st_mtime_ns
-
-    @property
-    def key(self) -> bytes:
-        """The key, read again when the file changed: replacing or deleting it revokes every link,
-        including those already open (the live sockets recheck them)."""
-        stat = self._stat()
-        if self._key is None or stat is None or stat != self._key_stat:
-            self._key = load_or_create_key(self.key_path)
-            self._key_stat = stat if stat is not None else self._stat()  # stat first: a newer key reloads
-        return self._key
-
-    def revoke(self) -> None:
-        """Revoke every link: a new key replaces the old one. Open viewers close on their next recheck."""
-        tmp = self.key_path.with_name(f".{self.key_path.name}.{os.getpid()}.{secrets.token_hex(4)}.tmp")
-        self.key_path.parent.mkdir(parents=True, exist_ok=True)
-        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-        try:
-            os.write(fd, secrets.token_bytes(KEY_BYTES))
-            os.fsync(fd)
-        finally:
-            os.close(fd)
-        os.replace(tmp, self.key_path)
-        self._key = None
-
-    def signed(self, link: ViewLink) -> bool:
-        """Does the link still carry this node's signature (not revoked)? Expiry is not checked here."""
-        body, _, sig = link.token.partition(".")
-        try:
-            return hmac.compare_digest(_unb64(sig), self._mac(_unb64(body)))
-        except ValueError:
-            return False
-
-    def _mac(self, payload: bytes) -> bytes:
-        return hmac.new(self.key, TOKEN_CONTEXT + payload, hashlib.sha256).digest()
-
-    def issue(self, lane_id: str, mode: ViewMode | str = ViewMode.VIEW, ttl: float | None = None, *,
-              owner: bool = False, nonce: str | None = None, hard_until: float | None = None) -> ViewLink:
-        """A signed link. `owner` (control links only) is for a link made in person: only the view-link
-        route called in person, and a viewer request carrying the owner's panel session, set it. `nonce`
-        and `hard_until` keep an old link's (a renew), so the sockets it opened follow the new expiry and
-        the link still ends where it first would have: AGENT_LINK_MAX after it was made, OWNER_LINK_MAX
-        for an owner link."""
-        parse_lane_id(lane_id)
-        mode = ViewMode(mode)
-        owner = owner and mode == ViewMode.CONTROL
-        now = int(self.clock())
-        longest = now + (OWNER_LINK_MAX if owner else AGENT_LINK_MAX)
-        hard = longest if hard_until is None else min(int(hard_until), longest)
-        if hard <= now:
-            raise TokenError("expired", "This viewer link reached the end of its life. Ask for a new one.")
-        ttl = self.default_ttl if ttl is None else ttl
-        ttl = int(max(MIN_TTL, min(MAX_TTL, ttl)))
-        expires = min(now + ttl, hard)
-        nonce = nonce or _b64(secrets.token_bytes(9))
-        payload = f"{lane_id}|{mode.value}|{expires}|{nonce}|{hard}{'|' + OWNER_FLAG if owner else ''}".encode()
-        token = f"{_b64(payload)}.{_b64(self._mac(payload))}"
-        return ViewLink(lane_id, mode, float(expires), nonce, token, owner, float(hard))
-
-    def verify(self, token: str | None, lane_id: str) -> ViewLink:
-        """Raise TokenError unless `token` is a valid, unexpired link for `lane_id`. The
-        signature is checked first, so a tampered token is always "invalid"."""
-        if not token:
-            raise TokenError("missing", "This page needs a viewer link. Ask the agent for one with lane_view.")
-        invalid = TokenError("invalid", "This viewer link is not valid. Ask the agent for a new one.")
-        if len(token) > MAX_TOKEN_CHARS or token.count(".") != 1:
-            raise invalid
-        body, sig = token.split(".")
-        try:
-            payload, mac = _unb64(body), _unb64(sig)
-        except ValueError:
-            raise invalid from None
-        if not hmac.compare_digest(mac, self._mac(payload)):
-            raise invalid
-        try:
-            parts = payload.decode().split("|")
-            owner = len(parts) == 6 and parts[5] == OWNER_FLAG
-            if owner:
-                parts.pop()
-            lane, mode, expires, nonce, hard = parts
-            link = ViewLink(lane, ViewMode(mode), float(int(expires)), nonce, token, owner, float(int(hard)))
-        except ValueError:
-            raise invalid from None
-        if link.expires_at > link.hard_until:
-            raise invalid
-        if link.lane_id != lane_id:
-            raise TokenError("wrong_lane", "This viewer link is for a different lane.")
-        if min(link.expires_at, link.hard_until) <= self.clock():
-            raise TokenError("expired", "This viewer link has expired. Ask the agent for a new one with lane_view.")
-        return link
-
-
-def make_view_link(tokens: ViewTokens, lane_id: str, mode: ViewMode | str = ViewMode.VIEW,
-                   ttl: float | None = None, *, base: str = "", owner: bool = False) -> dict[str, Any]:
-    """`{"url": "/view/ws/name?t=...", "expires_at": "...", "mode": ..., "owner": ...}` (docs/API.md
-    view-link)."""
-    link = tokens.issue(lane_id, mode, ttl, owner=owner)
-    return {"url": link.path(base), "expires_at": link.expires_iso, "mode": link.mode.value, "owner": link.owner}
-
-
-# ---- control hub ------------------------------------------------------------------------
-
-class ControlHub:
-    """One control listener on the lane manager, fanned out to every open relay and event
-    stream, with a per-lane cache so the relay never reads the store per input event."""
-
-    def __init__(self, lanes: Any):
-        self.lanes = lanes
-        self._cache: dict[str, LaneControl] = {}
-        self._watchers: dict[str, list[Callable[[LaneControl], None]]] = {}
-        self._notice_watchers: dict[str, list[Callable[[dict], None]]] = {}
-        lanes.add_control_listener(self._changed)
-        add_notices = getattr(lanes, "add_notice_listener", None)  # a manager without an egress guard has none
-        if callable(add_notices):
-            add_notices(self._noticed)
-
-    def _noticed(self, lane_id: str, notice: dict) -> None:
-        for watcher in list(self._notice_watchers.get(lane_id, ())):
-            try:
-                watcher(notice)
-            except Exception:
-                log.exception("notice watcher failed")
-
-    def watch_notices(self, lane_id: str, callback: Callable[[dict], None]) -> Callable[[], None]:
-        return _watch(self._notice_watchers, lane_id, callback)
-
-    def _changed(self, lane_id: str, old: LaneControl, new: LaneControl) -> None:
-        self._cache[lane_id] = new
-        for watcher in list(self._watchers.get(lane_id, ())):
-            try:
-                watcher(new)
-            except Exception:
-                log.exception("control watcher failed")
-
-    def control(self, lane_id: str) -> LaneControl:
-        control = self._cache.get(lane_id)
-        if control is None:
-            control = self._cache[lane_id] = self.lanes.get(lane_id).control
-        return control
-
-    def state(self, lane_id: str) -> ControlState:
-        """Fail closed: a lane that cannot be read counts as paused."""
-        try:
-            return self.control(lane_id).state
-        except Exception:  # noqa: BLE001
-            return ControlState.PAUSED
-
-    def watch(self, lane_id: str, callback: Callable[[LaneControl], None]) -> Callable[[], None]:
-        return _watch(self._watchers, lane_id, callback)
-
-
-def _watch(table: dict[str, list[Callable]], lane_id: str, callback: Callable) -> Callable[[], None]:
-    table.setdefault(lane_id, []).append(callback)
-
-    def unwatch() -> None:
-        watchers = table.get(lane_id, [])
-        if callback in watchers:
-            watchers.remove(callback)
-        if not watchers:
-            table.pop(lane_id, None)
-
-    return unwatch
-
-
-# ---- serialization ----------------------------------------------------------------------
-
-def iso(value: float | datetime | None) -> str | None:
-    if value is None:
-        return None
-    if isinstance(value, datetime):
-        return value.astimezone(UTC).isoformat().replace("+00:00", "Z")
-    return datetime.fromtimestamp(value, UTC).isoformat().replace("+00:00", "Z")
-
-
-def control_dict(control: LaneControl) -> dict[str, Any]:
-    data = control.model_dump(mode="json")
-    for key in ("since", "last_human_input"):
-        data[key] = iso(getattr(control, key))
-    return data
-
-
-def lane_dict(info: LaneInfo) -> dict[str, Any]:
-    """The Lane shape from docs/API.md, as far as the lane manager knows it."""
-    spec = info.spec
-    out: dict[str, Any] = {
-        "id": spec.id,
-        "workspace": spec.workspace,
-        "name": spec.name,
-        "kind": spec.kind.value,
-        "engine": spec.engine,
-        "state": info.state.value,
-        "proxy": {"label": spec.proxy_label} if spec.proxy_label else None,
-        "exit_ip": info.exit_ip,
-        "last_used": iso(info.last_used),
-        "quarantine_reason": info.quarantine_reason,
-        "live": info.viewer is not None,
-        "control": control_dict(info.control),
-    }
-    signal = getattr(info, "signal", None)
-    if signal is not None:
-        out["signal"] = getattr(signal, "value", signal)
-    return out
-
-
-def action_dict(event: Any) -> dict[str, Any] | None:
-    """A trace event (agentos.policy TraceEvent or a dict) as the page shows it."""
-    if hasattr(event, "public"):
-        event = event.public()
-    elif hasattr(event, "model_dump"):
-        event = event.model_dump(mode="json")
-    if not isinstance(event, dict):
-        return None
-    at = event.get("at")
-    if isinstance(at, (int, float)):
-        at = iso(at)
-    return {
-        "id": event.get("id"),
-        "at": at,
-        "tool": event.get("tool") or event.get("kind"),
-        "status": event.get("status"),
-        "summary": event.get("summary") or event.get("error"),
-        "principal": event.get("principal"),
-        "principal_kind": event.get("principal_kind"),
-        "effect": event.get("effect"),
-    }
-
-
-async def recent_actions(traces: Any, lane_id: str, limit: int = RECENT_ACTIONS) -> list[dict] | None:
-    """Newest first, or None when this node has no traces provider."""
-    if traces is None:
-        return None
-    query = getattr(traces, "query", None) or getattr(traces, "recent", None)
-    if query is None:
-        return None
-    try:
-        result = query(lane=lane_id, limit=limit)
-        if inspect.isawaitable(result):
-            result = await result
-    except Exception:
-        log.warning("could not read recent actions for %s", lane_id, exc_info=True)
-        return []
-    events = result[0] if isinstance(result, tuple) else result
-    return [a for a in (action_dict(e) for e in events or ()) if a is not None]
 
 
 async def _race(*coros: Any) -> None:
@@ -513,7 +143,7 @@ def _token_refusal(exc: TokenError) -> JSONResponse:
 
 
 def _login_status(exc: AgentosError) -> int:
-    from agentos.api.errors import status_for
+    from agentos.core.http_errors import status_for
 
     return status_for(exc)
 
@@ -1068,7 +698,7 @@ class ViewerApp:
     async def login_post(self, request: Request) -> Response:
         """One action on the lane's login. Values arrive as text and become Secrets at once; nothing here
         logs, traces or returns them."""
-        from agentos.api.routes_login import read_values
+        from agentos.node.login_assist import read_values
 
         try:
             lane_id, link, svc = self._login(request)
@@ -1128,110 +758,6 @@ class ViewerApp:
         ]
 
 
-def person_needed(info: LaneInfo, action: Any) -> bool:
-    """Does this control action need a person (docs/THREAT-MODEL.md)? A hand-back always: it clears a
-    hold, a quarantine and a person's stop. Taking over too while the lane is held, stopped or
-    quarantined, since a take there is how a held lane's browser gets used. Stopping an agent and
-    keeping control (deny_request) only ever hold agents off, so any control link may."""
-    if action in PERSON_ACTIONS:
-        return True
-    if action != "take":
-        return False
-    control = info.control
-    return (control.state == ControlState.PAUSED or bool(control.reason) or bool(info.quarantine_reason)
-            or info.state == LaneState.QUARANTINED)
-
-
-def handback_warning(action: Any, info: LaneInfo) -> str | None:
-    """What a person reads when their hand-back did not give agents the lane: the page still shows
-    a challenge (the lane manager read it at the hand-back and held the lane again)."""
-    control = info.control
-    if action != "hand_back" or control.state == ControlState.AGENT or not control.reason:
-        return None
-    what = control.reason.split(" on ", 1)[0].removeprefix("needs_human:").replace("_", " ")
-    return (f"Agents were not given the lane: the page still shows {what}. Agents never act on that page, "
-            "so the lane is held again. Deal with it in the live view (or open another page), then hand back.")
-
-
-CHALLENGES = frozenset({"captcha", "checkpoint", "logged_out", "blocked"})  # what only a person clears
-
-
-def challenge_held(info: Any) -> bool:
-    """The lane is held for a person (a `needs_human:` hold) and its last page still shows the challenge
-    (a robot check, a sign-in, a checkpoint): handing back does not make that go away."""
-    signal = getattr(info.signal, "value", info.signal) if getattr(info, "signal", None) else None
-    reason = getattr(info.control, "reason", None) or getattr(info, "hold", None) or ""
-    return signal in CHALLENGES and str(reason).startswith("needs_human")
-
-
-async def apply_action(lanes: Any, lane_id: str, action: Any, *, by: str, note: Any = None,
-                       done: Any = None) -> tuple[LaneInfo, bool]:
-    """Run one control action. Returns the lane and whether control changed. `note` (hand_back
-    only) is what the human tells the agents, at most HANDBACK_NOTE_CHARS.
-
-    `done` (hand_back only, optional, for the web app): whether the person says the challenge that
-    holds the lane (a robot check, a sign-in) is done. False keeps a challenge hold: agents stay off and
-    the lane waits for the check. True or left out hands back as always: the lane manager reads the page
-    at the hand-back and holds the lane again if it still shows the challenge (handback_warning)."""
-    if action not in ACTIONS:
-        raise InvalidRequest(f"action must be one of {', '.join(ACTIONS)}")
-    if note is not None and (action != "hand_back" or not isinstance(note, str) or len(note) > HANDBACK_NOTE_CHARS):
-        raise InvalidRequest(f"note goes with hand_back only, as text of at most {HANDBACK_NOTE_CHARS} characters")
-    if done is not None and (action != "hand_back" or not isinstance(done, bool)):
-        raise InvalidRequest("done goes with hand_back only, as true or false")
-    current = lanes.get(lane_id)
-    before = current.control
-    if action == "hand_back" and done is False and challenge_held(current):
-        # The check is still there: the person lets go, and the lane stays held for it.
-        info = await lanes.stop_agent(lane_id, by=by) if before.state == ControlState.HUMAN else current
-        return info, info.control != before
-    if action == "take":
-        info = await lanes.take_control(lane_id, by=by)
-    elif action == "hand_back":
-        info = await lanes.hand_back(lane_id, by=by, note=note) if note else await lanes.hand_back(lane_id, by=by)
-    elif action == "stop_agent":
-        info = await lanes.stop_agent(lane_id, by=by)
-    else:
-        info = await lanes.deny_request(lane_id, by=by)
-    return info, info.control != before
-
-
-async def change_sites(lanes: Any, lane_id: str, body: Any, *, by: str) -> dict[str, Any]:
-    """Change a lane's site list on this manager, so a warm lane's guard has it at once:
-    `{"op": "add" | "remove" | "set", "sites": [...], "strict"?: bool}`. `add` appends what is not
-    there yet, `remove` refuses entries that are not on the list, `set` replaces it (`[]`: no lane
-    restriction). Returns {lane, sites, strict, changed, running}."""
-    if not isinstance(body, dict):
-        raise InvalidRequest('send JSON like {"op": "add", "sites": ["reddit.com"]}')
-    op, sites, strict = body.get("op", "add"), body.get("sites", []), body.get("strict")
-    if op not in SITES_OPS:
-        raise InvalidRequest(f"op must be one of {', '.join(SITES_OPS)}")
-    if not isinstance(sites, list) or not all(isinstance(x, str) for x in sites):
-        raise InvalidRequest("sites must be a list of domain patterns")
-    if strict is not None and not isinstance(strict, bool):
-        raise InvalidRequest("strict must be true or false")
-    try:
-        wanted = validate_sites(sites) if sites else []
-    except ValueError as e:
-        raise InvalidRequest(str(e)) from None
-    info = lanes.get(lane_id)
-    current = list(info.spec.sites)
-    if op == "add":
-        new = current + [x for x in wanted if x not in current]
-    elif op == "remove":
-        missing = [x for x in wanted if x not in current]
-        if missing:
-            raise InvalidRequest(f"not on the list: {', '.join(missing)}")
-        new = [x for x in current if x not in wanted]
-    else:
-        new = wanted
-    before = (current, info.spec.egress_strict)
-    info = await lanes.set_sites(lane_id, new, strict=strict, by=by)
-    return {"lane": lane_id, "sites": list(info.spec.sites), "strict": info.spec.egress_strict,
-            "changed": (list(info.spec.sites), info.spec.egress_strict) != before,
-            "running": info.state in (LaneState.WARM, LaneState.ACTIVE)}
-
-
 def _the_owner(request: Request) -> bool:
     """The owner and nobody else: not a member's session, not a grant (an admin grant is the owner's
     for most routes, but it is an agent's credential). Behind the bare node-token check (no panel)
@@ -1247,6 +773,8 @@ def _owner_in_person(request: Request, lanes: Any = None) -> bool:
     """The owner, in person (Presence.PERSON: a panel session or the node's CLI, whose one-time code
     the panel.db of `lanes.config.home` holds). Never the node token or the device credential alone:
     an agent may hold either (docs/THREAT-MODEL.md)."""
+    from agentos.api.auth import presence_of
+
     home = getattr(getattr(lanes, "config", None), "home", None)
     return _the_owner(request) and presence_of(request, home) >= Presence.PERSON
 
@@ -1270,223 +798,3 @@ def viewer_app_from_runtime(runtime: Any) -> Starlette:
     return build_viewer_app(runtime.require("lanes"), runtime.require("config"), traces=runtime.get("traces"),
                             tokens=runtime.get("viewer_links"), login=lambda: service_for(runtime),
                             live=live_sockets.of(runtime), freeze=lambda: runtime.get("freeze"))
-
-
-def control_api_routes(lanes: Any, tokens: ViewTokens, *, by: str = VIEWER_BY, base: str = "",
-                       traces: Any = None) -> list:
-    """The owner's control API. Mount under /api behind the bearer or panel session check."""
-
-    async def control(request: Request) -> Response:
-        try:
-            lane_id = ViewerApp._lane_id(request.path_params)
-            body = await request.json()
-        except ValueError:
-            return _error(400, "invalid", 'send JSON like {"action": "take"}')
-        action = body.get("action") if isinstance(body, dict) else None
-        note = body.get("note") if isinstance(body, dict) else None
-        done = body.get("done") if isinstance(body, dict) else None
-        try:
-            if action in ACTIONS and person_needed(lanes.get(lane_id), action) \
-                    and not _owner_in_person(request, lanes):
-                auth = getattr(request.state, "auth", None)
-                if auth is not None:
-                    auth.access.trace("lane.control", status="denied", lane=lane_id, summary=f"{action}: not in person")
-                return _error(403, "presence_required", NEEDS_A_PERSON)
-            info, changed = await apply_action(lanes, lane_id, action, by=by, note=note, done=done)
-        except AgentosError as e:
-            return _agentos_error(e)
-        out = {**lane_dict(info), "changed": changed}
-        if (warning := handback_warning(action, info)) is not None:
-            out["warning"] = warning
-        return JSONResponse(out)
-
-    async def view_link(request: Request) -> Response:
-        try:
-            lane_id = ViewerApp._lane_id(request.path_params)
-            raw = await request.body()
-            body = json.loads(raw) if raw.strip() else {}
-        except ValueError:
-            return _error(400, "invalid", 'send JSON like {"mode": "control"}')
-        if not isinstance(body, dict):
-            return _error(400, "invalid", 'send JSON like {"mode": "control"}')
-        mode = body.get("mode", "view")
-        ttl = body.get("ttl_s")
-        if mode not in (ViewMode.VIEW.value, ViewMode.CONTROL.value):
-            return _error(400, "invalid", "mode must be view or control")
-        if ttl is not None and (not isinstance(ttl, (int, float)) or isinstance(ttl, bool) or ttl <= 0):
-            return _error(400, "invalid", "ttl_s must be a positive number of seconds")
-        try:
-            lanes.get(lane_id)
-        except AgentosError as e:
-            return _agentos_error(e)
-        return JSONResponse(make_view_link(tokens, lane_id, mode, ttl, base=base,
-                                           owner=_owner_in_person(request, lanes)))
-
-    out = [
-        Route("/lanes/{workspace}/{name}/control", control, methods=["POST"]),
-        Route("/lanes/{workspace}/{name}/view-link", view_link, methods=["POST"]),
-    ]
-    return (out + sites_api_routes(lanes, by=by) + gate_log_api_routes(lanes, by=by, traces=traces)
-            + rule_health_api_routes(lanes))
-
-
-def gate_log_api_routes(lanes: Any, *, by: str = VIEWER_BY, traces: Any = None) -> list:
-    """GET and POST /api/lanes/{ws}/{name}/gate-log (agentos.node.gateshapes): the shapes the commit
-    gate classified without a rule in this lane, and the owner's promotions of one to the node's
-    read allowlist or to a named commit rule (or their removal). The owner reads it (`_the_owner`); a
-    change needs the owner in person (`_owner_in_person`);
-    a refusal and every change are traced, a change as `gate_shape` in the action log."""
-    from agentos.node import gateshapes
-
-    def refuse(request: Request, lane_id: str) -> Response:
-        auth = getattr(request.state, "auth", None)
-        if auth is not None:
-            auth.access.trace("lane.gate_log", status="denied", lane=lane_id, summary="not the owner in person")
-        access = getattr(auth, "access", None)
-        owners = access is None or (bool(getattr(access, "owner", False)) and getattr(access, "member", None) is None)
-        code = "presence_required" if owners and request.method == "POST" else "denied"  # the owner, not in person
-        return _error(403, code, "Only the owner reads the gate log, and only the owner in person (the panel, "
-                                     "or `agentos lane gate-log` on the node) changes what the gate allows. A "
-                                     "member, a grant, the node token or a saved device credential cannot.")
-
-    def home_and_dir(lane_id: str) -> tuple[Path, Path]:
-        lanes.get(lane_id)  # the lane exists
-        config = lanes.config
-        return Path(config.home), config.lane_dir(lane_id)
-
-    async def gate_log(request: Request) -> Response:
-        try:
-            lane_id = ViewerApp._lane_id(request.path_params)
-        except AgentosError as e:
-            return _agentos_error(e)
-        if not (_owner_in_person(request, lanes) if request.method == "POST" else _the_owner(request)):
-            return refuse(request, lane_id)
-        try:
-            home, lane_dir = home_and_dir(lane_id)
-            if request.method == "GET":
-                since = gateshapes.since_of(request.query_params.get("since"))
-                promoted = gateshapes.load(gateshapes.store_path(home))
-                rows = gateshapes.trace_rows(lane_dir)
-                shapes = gateshapes.log(rows, since=since, promoted=promoted,
-                                        observed=request.query_params.get("observed") in ("1", "true"))
-                return JSONResponse({"lane": lane_id, "shapes": shapes, "promoted": promoted,
-                                     "identities": gateshapes.identities(rows, since=since)},
-                                    headers={"Cache-Control": "no-store"})
-            try:
-                body = await request.json()
-            except ValueError:
-                body = None
-            if not isinstance(body, dict):
-                raise InvalidRequest('send JSON like {"allow_read": "sh_..."} or {"as_commit": "post.media", '
-                                     '"shape": "sh_..."}')
-            if isinstance(body.get("remove"), str):
-                entry = gateshapes.remove(home, body["remove"])
-                removed = True
-            elif isinstance(body.get("allow_read"), str):
-                entry = gateshapes.promote(home, lane_dir, body["allow_read"], as_="read", lane=lane_id, by=by,
-                                           base=_base_rules(lanes, lane_id), all_lanes=body.get("all_lanes") is True)
-                removed = False
-            elif isinstance(body.get("as_commit"), str) and isinstance(body.get("shape"), str):
-                entry = gateshapes.promote(home, lane_dir, body["shape"], as_="commit", name=body["as_commit"],
-                                           lane=lane_id, by=by, base=_base_rules(lanes, lane_id),
-                                           all_lanes=body.get("all_lanes") is True)
-                removed = False
-            else:
-                raise InvalidRequest('send {"allow_read": id}, {"as_commit": name, "shape": id} or {"remove": id}')
-        except AgentosError as e:
-            return _agentos_error(e)
-        if traces is not None:
-            gateshapes.audit(traces, entry, lane=lane_id, by=by, removed=removed)
-        else:
-            auth = getattr(request.state, "auth", None)
-            if auth is not None:
-                auth.access.trace("lane.gate_log", lane=lane_id, summary=f"gate shape {entry['id']} "
-                                  f"{'removed' if removed else 'promoted as ' + str(entry.get('rule') or 'read')}")
-        return JSONResponse({"lane": lane_id, "removed" if removed else "promoted": entry},
-                            headers={"Cache-Control": "no-store"})
-
-    return [Route("/lanes/{workspace}/{name}/gate-log", gate_log, methods=["GET", "POST"])]
-
-
-def rule_health_api_routes(lanes: Any) -> list:
-    """GET /api/rules/health?lane=&stale_days= (agentos.node.rulehealth): when each commit and write
-    rule last matched, the shapes no rule names per site, and what looks like drift. The owner only,
-    like the gate log (names and shapes only, but they say what each account does)."""
-    from agentos.node import rulehealth
-
-    async def health(request: Request) -> Response:
-        if not _the_owner(request):  # a read, like the gate log's GET: the owner, not in person
-            auth = getattr(request.state, "auth", None)
-            if auth is not None:
-                auth.access.trace("rules.health", status="denied", summary="not the owner")
-            return _error(403, "denied", "Only the owner reads effect rule health (the node token or the owner's "
-                                         "panel session). A member or a grant cannot.")
-        lane = request.query_params.get("lane") or None
-        try:
-            stale = float(request.query_params.get("stale_days") or rulehealth.STALE_DAYS)
-        except ValueError:
-            return _error(400, "invalid", "stale_days is a number of days")
-        try:
-            if lane is not None:
-                lanes.get(lane)  # the lane exists
-            specs = [info.spec for info in lanes.list()]
-            done = await asyncio.to_thread(rulehealth.for_node, Path(lanes.config.home), specs, lane=lane,
-                                           stale_days=stale)
-        except AgentosError as e:
-            return _agentos_error(e)
-        return JSONResponse(done, headers={"Cache-Control": "no-store"})
-
-    return [Route("/rules/health", health, methods=["GET"])]
-
-
-def _base_rules(lanes: Any, lane_id: str) -> Any:
-    """The built-in rules the lane's guard classifies by (with the dev site's on the dev node)."""
-    from agentos.node import egress
-
-    lane = getattr(lanes, "_lanes", {}).get(lane_id)
-    guard = getattr(getattr(lane, "session", None), "guard", None)
-    return getattr(guard, "_base_rules", None) or egress.EFFECT_RULES
-
-
-def sites_api_routes(lanes: Any, *, by: str = VIEWER_BY) -> list:
-    """POST /api/lanes/{ws}/{name}/sites: the owner changes a lane's site list on the daemon's own
-    lane manager, so a warm lane's guard has it at once (`agentos lane sites` calls it while agentosd
-    runs). The owner in person only (Presence.PERSON: the panel, or the node's CLI with its own session):
-    an agent's grant, the node token and the device credential never widen a lane."""
-
-    async def sites(request: Request) -> Response:
-        try:
-            lane_id = ViewerApp._lane_id(request.path_params)
-            body = await request.json()
-        except ValueError:
-            return _error(400, "invalid", 'send JSON like {"op": "add", "sites": ["reddit.com"]}')
-        if not _owner_in_person(request, lanes):
-            auth = getattr(request.state, "auth", None)
-            if auth is not None:
-                auth.access.trace("lane.sites", status="denied", lane=lane_id, summary="a grant, not the owner")
-            return _error(403, "presence_required", "Only the owner in person changes a lane's site list (the "
-                                         "panel, or `agentos lane sites` on the node). A grant, the node token or "
-                                         "a saved device credential cannot, because an agent may hold them.")
-        try:
-            return JSONResponse(await change_sites(lanes, lane_id, body, by=by), headers={"Cache-Control": "no-store"})
-        except AgentosError as e:
-            return _agentos_error(e)
-
-    return [Route("/lanes/{workspace}/{name}/sites", sites, methods=["POST"])]
-
-
-def routes(runtime: Any) -> list:
-    """The control API for the panel to mount behind its own auth (agentos.api.mounts): take,
-    hand back, stop and deny, signed view links, and the lane's site list. Paths are relative to /api."""
-    lanes = runtime.get("lanes")
-    config = runtime.get("config")
-    if lanes is None or config is None:
-        return []
-    if not callable(getattr(lanes, "take_control", None)):  # no take over on this runtime: no control routes
-        return sites_api_routes(lanes) if callable(getattr(lanes, "set_sites", None)) else []
-    tokens = runtime.get("viewer_links")
-    if tokens is None:
-        tokens = ViewTokens.for_config(config)
-        runtime.register("viewer_links", tokens)
-    return control_api_routes(lanes, tokens, traces=runtime.get("traces"))
-

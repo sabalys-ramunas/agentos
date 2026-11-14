@@ -92,7 +92,7 @@ def _task_scope(task: dict) -> dict:
 
 def _a_workspace(workspace: Any) -> bool:
     """A well-formed workspace id (the service refuses any other with its own words)."""
-    from agentos.policy import globs
+    from agentos.core import globs
 
     try:
         return isinstance(workspace, str) and "*" not in workspace and bool(globs.validate_segment(workspace))

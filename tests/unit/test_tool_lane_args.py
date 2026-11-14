@@ -17,7 +17,7 @@ import pytest
 from agentos.core.config import NodeConfig
 from agentos.core.runtime import Runtime
 from agentos.core.tools import ToolSpec
-from agentos.node.daemon import feature_providers, tool_providers
+from agentos.mcp.providers import feature_providers, tool_providers
 from agentos.plugins.entries import PLUGINS
 from agentos.policy.manifest import handler_params
 
@@ -48,7 +48,6 @@ SELF_AUTHORIZED_INDIRECT = {
     "shell_close": "session -> lane; ctx.authorize(EXEC, lane_id=s.lane_id)",
     "lane_job_read": "job -> lane; ctx.authorize(READ, lane_id=job.lane)",
     "lane_job_cancel": "job -> lane; ctx.authorize(EXEC, lane_id=job.lane)",
-    "engage_item_withdraw": "item_id -> surface; ctx.authorize(DRAFT, lane_id=item['surface'])",
     "workspace_plan": "every planned lane checked with ctx.can_access_lane (_check_grant)",
     "git_remotes": "workspace -> pattern_reaches(ws/*), then lane-scoped remotes filtered by ctx.can_access_lane",
     "workspace_apply": "every planned lane checked with ctx.can_access_lane, then COMMIT is approved",

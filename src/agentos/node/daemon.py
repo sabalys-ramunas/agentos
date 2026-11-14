@@ -7,13 +7,13 @@ place that knows the concrete modules; they call each module's own factory
 (`agentos.node.lanes.build_lane_manager`, `agentos.node.interaction.create_interaction`).
 
 The MCP surface is composed here too: the node's own tools (agentos.node.tools) plus
-every feature package found in FEATURE_TOOLS, each through one wrapper. Until a policy
+every feature package found in FEATURE_TOOLS (agentos.mcp.providers), each through one wrapper. Until a policy
 service is registered on the runtime that wrapper is allow-all (the owner); once one is,
 agentos.policy.wrap decides every call, filters tools/list per token and vouches for
 grant tokens.
 
 Optional features are plugin-gated: agentos.plugins says which are on, and only their services
-(build_plugins) and tools (_plugin_tools) load. FEATURE_TOOLS and FEATURE_SERVICES always load.
+(build_plugins) and tools (agentos.mcp.providers._plugin_tools) load. FEATURE_TOOLS and FEATURE_SERVICES always load.
 """
 
 from __future__ import annotations
@@ -32,9 +32,10 @@ from typing import TYPE_CHECKING, Any
 
 from agentos.core.config import NodeConfig, check_mcp_bind
 from agentos.core.runtime import Runtime
-from agentos.core.tools import ToolSpec
+from agentos.core.tools import TOOL_CATALOG, ToolSpec
+from agentos.mcp.providers import Provider, tool_providers
 from agentos.node.interfaces import Interaction, LaneManager
-from agentos.node.tools import ssh_host as _ssh_host
+from agentos.node.tools.lanes import ssh_host as _ssh_host
 
 if TYPE_CHECKING:
     from agentos.mcp.http import TokenBinder, TokenCheck
@@ -47,31 +48,6 @@ LANES_SHUTDOWN_TIMEOUT = 20.0  # systemd TimeoutStopSec is 30; leave room for th
 SHUTDOWN_DEADLINE = 28.0  # seconds from the first signal to a hard exit, logged; systemd kills at 30
 HARD_EXIT_CODE = 3  # a forced stop: not a crash (1), not a usage error (2)
 
-# Feature packages that may add MCP tools (`tool_specs(runtime) -> list[ToolSpec]`). A package
-# that is not installed is skipped; keep this list explicit, so nothing is imported by accident.
-FEATURE_TOOLS: tuple[str, ...] = (
-    "agentos.node.io_tools",  # files, uploads, tabs and dialogs of browser lanes
-    "agentos.node.control_tools",  # lane_control, lane_request_control, lane_wait_control
-    "agentos.node.devtools_tools",  # browser_console, browser_network: why a page broke
-    "agentos.freeze.tools",  # lane_freeze (an agent can freeze, never unfreeze)
-    "agentos.vault.tools",
-    "agentos.workspaces.tools",
-    "agentos.policy.tools",
-    "agentos.runner.tools",
-    "agentos.runner.mail.tools",  # mail_connect, mail_list, mail_read, mail_mark, mail_send
-    "agentos.brains.tools",
-    "agentos.git.tools",  # git_remotes: what the node can clone and push for a workspace (no secrets)
-    "agentos.env.tools",
-    "agentos.vms.tools",  # vm_create, vm_destroy, vm_extend, vms_list (disposable cloud VMs as lanes)
-    "agentos.environments.tools",  # environment_open, environment, environment_close (a cloud computer per chat)
-    "agentos.events.tools",
-    "agentos.agenda.tools",  # agenda_list, agenda_draft, agenda_propose, ... (approving is not an agent tool)
-    "agentos.engage.tools",  # engage_program_draft, engage_status, engage_item_* (levers, never clicks)
-    "agentos.memory.tools",  # memory_context, memory_search, memory_get, memory_write, memory_forget
-    "agentos.profiles.tools",  # profile_list, profile_get, profile_use, profile_propose, profile_save, ...
-    "agentos.stealth.tools",  # lane_check: is this lane safe to use right now
-    "agentos.studio.tools",  # ui_check, ui_diff, system_check, ...: is this page all right (a URL, not a lane)
-)
 POLICY_WRAP = "agentos.policy.wrap"  # wrap_tool, bind_request_token, visible_tools
 
 # Feature services, built in this order by each module's `build(runtime)` (which registers them
@@ -92,8 +68,7 @@ FEATURE_SERVICES: tuple[str, ...] = (
     "agentos.env.service",
     "agentos.vms.service",  # after env: a VM lane is a terminal lane; its reaper deletes VMs past their time
     "agentos.environments.service",  # after vms and git: an environment is a VM, a browser lane and the gateway
-    "agentos.engage.service",  # engagement programs and nightly dry-run plans
-    "agentos.profiles.service",  # after engage: it hands the engine each account's profile and voice
+    "agentos.profiles.service",  # each account's profile and voice, and the learned-field sync
     "agentos.events.service",  # after the runner and brains: it delivers to them, and hooks their ends
     "agentos.webhooks.service",  # after the event queue: it listens on the bus, and sends what a receiver asked for
     "agentos.agenda.service",  # planned one-off actions, ticked by the runner's scheduler (after events: triggers)
@@ -112,11 +87,8 @@ SERVICE_STOP_TIMEOUTS: dict[str, float] = {"agentos.env.service": 10.0}  # stops
 # Plugin-gated features: the modules are named by the manifests in agentos.plugins.entries, and
 # nothing a plugin does can stop the node. These two are the registry itself.
 PLUGINS_SERVICE = "agentos.plugins.service"
-PLUGINS_TOOLS = "agentos.plugins.tools"
 PLUGIN_START_TIMEOUT = 30.0  # a plugin's service that hangs is a plugin that failed to start
 LAST_SERVICE = "agentos.node.channel.service"  # stays last: controller work arrives once all else runs
-
-Provider = Callable[[Runtime], list[ToolSpec]]
 
 
 def _build_lane_manager(config: NodeConfig) -> LaneManager:
@@ -139,8 +111,19 @@ def build_lane_manager(config: NodeConfig) -> LaneManager:
 
 
 def node_runtime(config: NodeConfig, lanes: LaneManager, interaction: Interaction, **services: Any) -> Runtime:
-    """A Runtime with the node's own services (config, lanes, interaction) plus any others."""
-    return Runtime(config=config, lanes=lanes, interaction=interaction, **services)
+    """A Runtime with the node's own services (config, lanes, interaction, the facts an approval card
+    shows, the tools it serves, what keeps the page after an agent's commit) plus any others."""
+    from agentos.audit.captures import after_commit
+    from agentos.mcp.providers import ProviderCatalog
+    from agentos.node.cardfacts import NodeCardFacts
+    from agentos.node.tools.browser import AFTER_COMMIT
+
+    runtime = Runtime(config=config, lanes=lanes, interaction=interaction, card_facts=NodeCardFacts(), **services)
+    if not runtime.has(AFTER_COMMIT):
+        runtime.register(AFTER_COMMIT, after_commit)
+    if not runtime.has(TOOL_CATALOG):
+        runtime.register(TOOL_CATALOG, ProviderCatalog(runtime))
+    return runtime
 
 
 def build_runtime(config: NodeConfig, services: Sequence[str] = FEATURE_SERVICES) -> Runtime:
@@ -172,7 +155,7 @@ def _install_flow_take_over(runtime: Runtime) -> None:
     runner = runtime.get("runner")
     if runner is None:
         return
-    from agentos.node.flow_driver import install_take_over_pause
+    from agentos.node.flow_lanes import install_take_over_pause
 
     install_take_over_pause(runner)
 
@@ -292,84 +275,6 @@ def ssh_host(config: NodeConfig | None = None) -> str:
     return _ssh_host(config)
 
 
-# ---- MCP composition ----
-
-def _node_tools(runtime: Runtime) -> list[ToolSpec]:
-    from agentos.node.tools import tool_specs
-
-    return tool_specs(runtime)
-
-
-def _guarded(name: str, provider: Provider) -> Provider:
-    """A feature provider that fails is logged and contributes nothing; the node keeps serving."""
-
-    def provide(runtime: Runtime) -> list[ToolSpec]:
-        try:
-            return list(provider(runtime))
-        except Exception:
-            log.exception("%s.tool_specs failed; its tools are not served", name)
-            return []
-
-    return provide
-
-
-def feature_providers(modules: Sequence[str] = FEATURE_TOOLS) -> list[Provider]:
-    """`tool_specs` of every feature package in `modules` that is installed."""
-    found: list[Provider] = []
-    for name in modules:
-        try:
-            module = importlib.import_module(name)
-        except ModuleNotFoundError as exc:
-            if exc.name and (name == exc.name or name.startswith(exc.name + ".")):
-                log.info("%s is not installed; its tools are not served", name)
-            else:
-                log.error("%s needs %s, which is missing; its tools are not served", name, exc.name)
-            continue
-        except Exception:
-            log.exception("%s failed to import; its tools are not served", name)
-            continue
-        provider = getattr(module, "tool_specs", None)
-        if not callable(provider):
-            log.error("%s has no tool_specs(runtime); its tools are not served", name)
-            continue
-        log.info("serving tools from %s", name)
-        found.append(_guarded(name, provider))
-    return found
-
-
-def _plugin_tools(others: Sequence[Provider]) -> Provider:
-    """plugins_list, and the tools of each plugin this daemon loaded, gated so a call stops working
-    when a person disables the plugin. Two tools with one name would stop the whole server, so a
-    plugin that clashes with `others` or with another plugin fails alone."""
-
-    def provide(runtime: Runtime) -> list[ToolSpec]:
-        specs = [spec for provider in feature_providers((PLUGINS_TOOLS,)) for spec in provider(runtime)]
-        registry: Any = runtime.get("plugins")
-        loaded = registry.loaded() if registry is not None else []
-        if not loaded:
-            return specs
-        taken = {spec.name for provider in others for spec in provider(runtime)} | {spec.name for spec in specs}
-        for plugin in loaded:
-            modules = [name for name in plugin.tools if name not in FEATURE_TOOLS]
-            served = [spec for provider in feature_providers(modules) for spec in provider(runtime)]
-            clash = next((spec.name for spec in served if spec.name in taken), None)
-            if clash or (modules and not served):
-                registry.mark_failed(plugin.id, f"tool {clash} is already served" if clash else "its tools did not load")
-                continue
-            taken |= {spec.name for spec in served}
-            specs += [registry.gated(plugin.id, spec) for spec in served]
-        return specs
-
-    return provide
-
-
-def tool_providers(modules: Sequence[str] = FEATURE_TOOLS) -> list[Provider]:
-    providers = [_node_tools, *feature_providers(modules)]
-    if modules is FEATURE_TOOLS:  # a caller that names its own modules named all it wants
-        providers.append(_plugin_tools(tuple(providers)))
-    return providers
-
-
 @dataclass
 class McpHooks:
     """The policy seam of the MCP layer; the defaults are M1's allow-all."""
@@ -448,7 +353,7 @@ def build_node_app(
     what the MCP server tells an agent when it connects (the node's own by default)."""
     from agentos.mcp.http import build_app
     from agentos.mcp.registry import allow_all_wrap, build_mcp
-    from agentos.node.tools import INSTRUCTIONS
+    from agentos.node.tools.recipes import INSTRUCTIONS
 
     if not runtime.has("config"):
         runtime.register("config", config)
@@ -493,7 +398,9 @@ def _control_apps(config: NodeConfig, runtime: Runtime) -> tuple[Any, Any]:
     from starlette.routing import Mount
 
     from agentos.mcp.http import BearerAuth
-    from agentos.node.viewer_app import ViewTokens, build_viewer_app, control_api_routes
+    from agentos.node.viewer_app import build_viewer_app
+    from agentos.node.viewer_routes import control_api_routes
+    from agentos.node.viewer_tokens import ViewTokens
 
     tokens = runtime.get("viewer_links")
     if tokens is None:
@@ -521,8 +428,8 @@ def install_log_scrubbers(config: NodeConfig, runtime: Runtime | None = None, *,
     cookie headers, JWTs, long random strings). Replaces what was registered before, except the
     exact values given in `also`, which every later call keeps (serve() calls this again)."""
     from agentos.core import logs
-    from agentos.mcp.redact import Redactor
-    from agentos.mcp.registry import current_request_token
+    from agentos.core.tools import current_request_token
+    from agentos.policy.redactor import Redactor
 
     logs.clear_scrubbers()
     node_token = config.mcp_token or ""

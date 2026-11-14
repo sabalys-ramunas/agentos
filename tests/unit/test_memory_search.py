@@ -5,8 +5,8 @@ from __future__ import annotations
 import time
 
 import pytest
+from testkit.memory import fake_memory
 
-from agentos.memory.fakes import fake_memory
 from agentos.memory.models import Caller
 
 OWNER = Caller.owner()

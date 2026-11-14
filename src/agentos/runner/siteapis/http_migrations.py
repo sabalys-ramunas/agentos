@@ -1,12 +1,12 @@
 """siteapis/http.db migrations: the HTTP half of site APIs keeps its own database, so the keys, the
 cache and the usage rows never share a migration with the engine's tables in runner.db. Found by
-agentos.ops.migrate.discover() through agentos.runner.migrations, and applied when the store opens."""
+agentos.core.migrate.discover() through agentos.runner.migrations, and applied when the store opens."""
 
 from __future__ import annotations
 
 import sqlite3
 
-from agentos.ops.migrate import Migration, MigrationSet
+from agentos.core.migrate import Migration, MigrationSet
 
 DB = "siteapis/http.db"
 

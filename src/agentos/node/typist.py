@@ -54,9 +54,11 @@ from urllib.parse import urlsplit
 
 from agentos.core.errors import AgentosError, EngineError, InvalidRequest, RefNotFound, ServiceUnavailable
 from agentos.core.models import Signal
+from agentos.core.text import first_line
 from agentos.node import egress, human
 from agentos.node.human import quietly
-from agentos.node.interaction import PlaywrightInteraction, normalize_ref
+from agentos.node.interaction import PlaywrightInteraction
+from agentos.node.interaction.urls import normalize_ref
 from agentos.vault.errors import TypistAborted
 from agentos.vault.typist import FieldInfo
 
@@ -479,11 +481,6 @@ def _default_interaction() -> PlaywrightInteraction:
     return _DEFAULT_INTERACTION
 
 
-def _first_line(e: BaseException) -> str:
-    text = str(e).strip() or type(e).__name__
-    return text.splitlines()[0][:300]
-
-
 class PlaywrightTypist:
     """The Typist protocol for one Playwright page. Cheap to create; one per tool call."""
 
@@ -506,7 +503,7 @@ class PlaywrightTypist:
                 return await self._scan(self.page.main_frame, (), (), True)
             except Exception as e:  # the main document navigated or was replaced mid-read
                 if attempt:
-                    raise EngineError(f"could not read the page's form fields: {_first_line(e)}") from e
+                    raise EngineError(f"could not read the page's form fields: {first_line(e, 300)}") from e
                 await quietly(self.page.wait_for_load_state("domcontentloaded", timeout=READ_RETRY_TIMEOUT_MS))
         raise AssertionError("unreachable")
 
@@ -672,7 +669,7 @@ class PlaywrightTypist:
             except AgentosError:
                 raise
             except Exception as e:
-                raise EngineError(f"could not click the field: {_first_line(e)}") from e
+                raise EngineError(f"could not click the field: {first_line(e, 300)}") from e
             if not await self._refresh(target):
                 raise RefNotFound("the field left the page when it was clicked; read the page again")
             return target.info(ref=field.ref)

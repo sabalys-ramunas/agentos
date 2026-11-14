@@ -419,6 +419,31 @@ class Report:
                 **({"anchors": self.anchors} if self.anchors is not None else {})}
 
 
+@dataclass
+class _MarkWalk:
+    """Where the walk over the marks is: the audit key active at this point (kid, pub), and the mark before."""
+    active: tuple[Any, Any] | None = None
+    prev_n: int | None = None
+    prev_hash: Any = None
+
+
+def _mark_body(m: Mapping[str, Any]) -> dict | None:
+    """A mark's body as stored, or None when it is not a JSON object."""
+    try:
+        body = json.loads(m["body"])
+    except (TypeError, ValueError):
+        return None
+    return body if isinstance(body, dict) else None
+
+
+def _computed_hash(r: Mapping[str, Any]) -> str | None:
+    """The hash a row's contents give (a stub's: from its digest and lane tag), or None when it cannot."""
+    try:
+        return link(str(r.get("prev")), str(r["digest"]), str(r["lane_tag"])) if r.get("stub")             else row_hash(str(r.get("prev")), r)
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
 class Verifier:
     """Feed rows in seq order, then `finish()`.
 
@@ -474,98 +499,122 @@ class Verifier:
         self.findings.append(Finding("tampered", text, first, last, mark))
 
     def _check_marks(self, marks: list[Mapping[str, Any]], trusted: set[str] | None, trust_note: bool) -> None:
-        active: tuple[str, str] | None = None  # (kid, pub)
-        prev_n: int | None = None
-        prev_hash: str | None = None
+        walk = _MarkWalk()
         for m in sorted(marks, key=lambda m: m["n"]):
-            n = int(m["n"])
-            try:
-                body = json.loads(m["body"])
-                if not isinstance(body, dict):
-                    raise TypeError
-            except (TypeError, ValueError):
-                self._tamper(f"mark {n} is not readable: it was edited", mark=n)
-                prev_n, prev_hash = n, m.get("hash")
-                continue
-            data = canonical(body)
-            ok = True
-            if data != str(m["body"]).encode() or mark_hash(body) != m.get("hash") or body.get("n") != n \
-                    or body.get("kind") != m.get("kind"):
-                self._tamper(f"mark {n} ({m.get('kind')}) was edited: its contents no longer match its hash", mark=n)
-                ok = False
-            if prev_n is None:
-                if n != 1 and not self.partial:
-                    self._tamper(f"marks 1-{n - 1} are missing: the log no longer starts at its genesis", mark=n)
-            elif n != prev_n + 1:
-                self._tamper(f"marks {prev_n + 1}-{n - 1} are missing: checkpoints were deleted", mark=n)
-            elif body.get("prev") != prev_hash:
-                self._tamper(f"mark {n} does not follow mark {prev_n}: checkpoints were replaced", mark=n)
-            prev_n, prev_hash = n, m.get("hash")
-            kind = body.get("kind")
-            sig = m.get("sig")
-            if kind == "genesis":
-                if self.genesis is not None:
-                    self._tamper(f"mark {n} is a second genesis: the log was restarted on top of itself", mark=n)
-                    continue
-                self.genesis = {**body, "hash": m.get("hash")}
-                self.chain = body.get("chain")
-                active = (body.get("kid"), body.get("pub"))
-                if active[1] and kid_of(active[1]) is None:
-                    self._tamper(f"mark {n} carries an unreadable public key: it was edited", mark=n)
-                    ok = False
-                elif active[0] and active[1] and kid_of(active[1]) != active[0]:
-                    self._tamper(f"mark {n} names key {active[0]} but carries another public key", mark=n)
-                    ok = False
-                self.keys.append({"kid": active[0], "pub": active[1], "from_mark": n})
-                if trusted is not None and active[0] not in trusted:
-                    self._tamper(f"the log starts from audit key {active[0]}, which this node never trusted "
-                                 f"({', '.join(sorted(trusted)) or 'no key'}): the key or the whole log was swapped",
-                                 mark=n)
-                elif trusted is None and trust_note and active[0]:
-                    self.findings.append(Finding("note", f"trusting the log's own genesis key {active[0]}: "
-                                                         "compare it with the key the node owner recorded", mark=n))
-            if active is None:
-                if kind != "genesis":
-                    self._tamper(f"mark {n} comes before any genesis", mark=n)
-                continue
-            signer = active
-            if kind == "key" and body.get("reset"):
-                signer = (body.get("next_kid"), body.get("next_pub"))
-            if not sig:
-                self.findings.append(Finding("unprovable", f"mark {n} ({kind}) is unsigned: the audit key was "
-                                                           "unavailable when it was written", mark=n))
-                ok = False
-            elif body.get("kid") != signer[0]:
-                self._tamper(f"mark {n} ({kind}) is signed by key {body.get('kid')}, but the audit key at that "
-                             f"point was {signer[0]}: the key was swapped", mark=n)
-                ok = False
-            elif not sig_ok(signer[1], SIG_CTX, data, sig):
-                self._tamper(f"mark {n} ({kind}) has a signature that does not verify: it was forged or edited",
-                             mark=n)
-                ok = False
-            if kind == "key":
-                nxt = (body.get("next_kid"), body.get("next_pub"))
-                if not nxt[1] or kid_of(nxt[1]) is None:
-                    self._tamper(f"mark {n} carries an unreadable public key: it was edited", mark=n)
-                    continue
-                if not nxt[0] or kid_of(nxt[1]) != nxt[0]:
-                    self._tamper(f"mark {n} introduces a key whose id does not match it", mark=n)
-                    continue
-                if body.get("reset") and (trusted is None or nxt[0] not in trusted):
-                    self.findings.append(Finding(
-                        "unprovable", f"mark {n} reset the audit key to {nxt[0]} without a signature from "
-                                      f"{active[0]}, so later checkpoints are only as good as that reset", mark=n))
-                active = nxt
-                self.keys.append({"kid": nxt[0], "pub": nxt[1], "from_mark": n})
-            elif kind == "checkpoint" and ok:
-                self.checkpoints.append({**body, "n": n})
-            elif kind == "pruned":
-                if not ok:
-                    self.findings.append(Finding("unprovable", f"retention mark {n} cannot be trusted, so rows before "
-                                                               f"seq {body.get('through_seq')} are not checked", mark=n))
-                self._prune_mark(body, n, trusted=ok)
+            self._check_mark(m, walk, trusted, trust_note)
         if self.genesis is None and not self.partial:
             self.findings.append(Finding("unprovable", "the log has no genesis mark, so nothing in it can be proven"))
+
+    def _check_mark(self, m: Mapping[str, Any], walk: _MarkWalk, trusted: set[str] | None, trust_note: bool) -> None:
+        """One mark, in order: readable, intact, in sequence, signed by the key active at that point, and
+        then what it says (the genesis, a key change, a checkpoint, a retention mark)."""
+        n = int(m["n"])
+        body = _mark_body(m)
+        if body is None:
+            self._tamper(f"mark {n} is not readable: it was edited", mark=n)
+            walk.prev_n, walk.prev_hash = n, m.get("hash")
+            return
+        data = canonical(body)
+        ok = True
+        if data != str(m["body"]).encode() or mark_hash(body) != m.get("hash") or body.get("n") != n \
+                or body.get("kind") != m.get("kind"):
+            self._tamper(f"mark {n} ({m.get('kind')}) was edited: its contents no longer match its hash", mark=n)
+            ok = False
+        self._check_mark_order(walk, body, n)
+        walk.prev_n, walk.prev_hash = n, m.get("hash")
+        kind = body.get("kind")
+        if kind == "genesis":
+            if self.genesis is not None:
+                self._tamper(f"mark {n} is a second genesis: the log was restarted on top of itself", mark=n)
+                return
+            genesis_ok = self._take_genesis(m, body, n, walk, trusted, trust_note)
+            ok = ok and genesis_ok
+        if walk.active is None:
+            if kind != "genesis":
+                self._tamper(f"mark {n} comes before any genesis", mark=n)
+            return
+        signer = walk.active
+        if kind == "key" and body.get("reset"):
+            signer = (body.get("next_kid"), body.get("next_pub"))
+        signed_ok = self._mark_signed(m, body, data, n, kind, signer)
+        ok = ok and signed_ok
+        if kind == "key":
+            self._key_mark(body, n, walk, trusted)
+        elif kind == "checkpoint" and ok:
+            self.checkpoints.append({**body, "n": n})
+        elif kind == "pruned":
+            if not ok:
+                self.findings.append(Finding("unprovable", f"retention mark {n} cannot be trusted, so rows before "
+                                                           f"seq {body.get('through_seq')} are not checked", mark=n))
+            self._prune_mark(body, n, trusted=ok)
+
+    def _check_mark_order(self, walk: _MarkWalk, body: Mapping[str, Any], n: int) -> None:
+        """Marks run 1, 2, 3 ..., each naming the one before it."""
+        if walk.prev_n is None:
+            if n != 1 and not self.partial:
+                self._tamper(f"marks 1-{n - 1} are missing: the log no longer starts at its genesis", mark=n)
+        elif n != walk.prev_n + 1:
+            self._tamper(f"marks {walk.prev_n + 1}-{n - 1} are missing: checkpoints were deleted", mark=n)
+        elif body.get("prev") != walk.prev_hash:
+            self._tamper(f"mark {n} does not follow mark {walk.prev_n}: checkpoints were replaced", mark=n)
+
+    def _take_genesis(self, m: Mapping[str, Any], body: Mapping[str, Any], n: int, walk: _MarkWalk,
+                      trusted: set[str] | None, trust_note: bool) -> bool:
+        """The genesis starts the chain and names the first audit key. False when its key is unreadable
+        or does not match the id it names."""
+        ok = True
+        self.genesis = {**body, "hash": m.get("hash")}
+        self.chain = body.get("chain")
+        active = walk.active = (body.get("kid"), body.get("pub"))
+        if active[1] and kid_of(active[1]) is None:
+            self._tamper(f"mark {n} carries an unreadable public key: it was edited", mark=n)
+            ok = False
+        elif active[0] and active[1] and kid_of(active[1]) != active[0]:
+            self._tamper(f"mark {n} names key {active[0]} but carries another public key", mark=n)
+            ok = False
+        self.keys.append({"kid": active[0], "pub": active[1], "from_mark": n})
+        if trusted is not None and active[0] not in trusted:
+            self._tamper(f"the log starts from audit key {active[0]}, which this node never trusted "
+                         f"({', '.join(sorted(trusted)) or 'no key'}): the key or the whole log was swapped",
+                         mark=n)
+        elif trusted is None and trust_note and active[0]:
+            self.findings.append(Finding("note", f"trusting the log's own genesis key {active[0]}: "
+                                                 "compare it with the key the node owner recorded", mark=n))
+        return ok
+
+    def _mark_signed(self, m: Mapping[str, Any], body: Mapping[str, Any], data: bytes, n: int, kind: Any,
+                     signer: tuple[Any, Any]) -> bool:
+        """Is the mark signed by the key active at that point (or, for a reset, the key it names)?"""
+        sig = m.get("sig")
+        if not sig:
+            self.findings.append(Finding("unprovable", f"mark {n} ({kind}) is unsigned: the audit key was "
+                                                       "unavailable when it was written", mark=n))
+            return False
+        if body.get("kid") != signer[0]:
+            self._tamper(f"mark {n} ({kind}) is signed by key {body.get('kid')}, but the audit key at that "
+                         f"point was {signer[0]}: the key was swapped", mark=n)
+            return False
+        if not sig_ok(signer[1], SIG_CTX, data, sig):
+            self._tamper(f"mark {n} ({kind}) has a signature that does not verify: it was forged or edited",
+                         mark=n)
+            return False
+        return True
+
+    def _key_mark(self, body: Mapping[str, Any], n: int, walk: _MarkWalk, trusted: set[str] | None) -> None:
+        """A key change: the key it names signs the marks after it."""
+        nxt = (body.get("next_kid"), body.get("next_pub"))
+        if not nxt[1] or kid_of(nxt[1]) is None:
+            self._tamper(f"mark {n} carries an unreadable public key: it was edited", mark=n)
+            return
+        if not nxt[0] or kid_of(nxt[1]) != nxt[0]:
+            self._tamper(f"mark {n} introduces a key whose id does not match it", mark=n)
+            return
+        if body.get("reset") and (trusted is None or nxt[0] not in trusted):
+            self.findings.append(Finding(
+                "unprovable", f"mark {n} reset the audit key to {nxt[0]} without a signature from "
+                              f"{walk.active[0]}, so later checkpoints are only as good as that reset", mark=n))
+        walk.active = nxt
+        self.keys.append({"kid": nxt[0], "pub": nxt[1], "from_mark": n})
 
     def _prune_mark(self, body: Mapping[str, Any], n: int, *, trusted: bool) -> None:
         """Fold one retention mark into the retention state. Marks count cumulatively: retention only
@@ -595,71 +644,80 @@ class Verifier:
     # ---- rows ----
     def feed(self, r: Mapping[str, Any]) -> None:
         seq = int(r["seq"])
+        self._count(r, seq)
+        stored = r.get("hash")
+        if self.prune is not None and seq <= self._through:
+            self._feed_pruned(r, seq, stored)
+        elif self.prune_untrusted is not None and seq <= self._through_u:
+            self._feed_below_untrusted(r, seq, stored)
+        elif stored is None:
+            self._feed_unhashed(r, seq)
+        else:
+            self._feed_chained(r, seq, stored)
+
+    def _count(self, r: Mapping[str, Any], seq: int) -> None:
+        """What every row adds to the walk, before its chain is checked; and a stub of the scope's own
+        lane, which an export must not leave out."""
         self.count += 1
         if seq in self._kept:
             self._kept_seen.add(seq)
         if self.first is None:
             self.first = seq
         self.last = seq
-        is_stub = bool(r.get("stub"))
         if self.scope.covers(r):
             self._scoped.append(seq)
-        if is_stub and self.scope.lane and r.get("lane_tag") == lane_tag(self.scope.lane, str(r.get("id"))):
+        if r.get("stub") and self.scope.lane and r.get("lane_tag") == lane_tag(self.scope.lane, str(r.get("id"))):
             self._tamper(f"row seq {seq} belongs to lane {self.scope.lane}, but the export left it out",
                          first=seq)
             self.bad.add(seq)
-        stored = r.get("hash")
 
-        def computed_hash() -> str | None:
-            try:
-                return link(str(r.get("prev")), str(r["digest"]), str(r["lane_tag"])) if is_stub \
-                    else row_hash(str(r.get("prev")), r)
-            except (KeyError, TypeError, ValueError):
-                return None
+    def _feed_pruned(self, r: Mapping[str, Any], seq: int, stored: Any) -> None:
+        """Retention removed this part of the log: only the rows its signed mark kept may be here."""
+        n = self.prune["n"]
+        if seq not in self._kept:
+            self._tamper(f"row seq {seq} is older than retention mark {n} (pruned through seq "
+                         f"{self._through}), which did not keep it: it was added later", first=seq, mark=n)
+            self.bad.add(seq)
+        elif self._kept[seq] is None and stored is None:
+            self._unchained_row(r, seq)  # a row from before the chain, kept as memory evidence
+        elif self._kept[seq] != stored or _computed_hash(r) != stored:
+            self._tamper(f"row seq {seq} was kept through retention by mark {n}, but its contents "
+                         "changed", first=seq, mark=n)
+            self.bad.add(seq)
 
-        if self.prune is not None and seq <= self._through:
-            # retention removed this part of the log: only the rows its signed mark kept may be here
-            n = self.prune["n"]
-            if seq not in self._kept:
-                self._tamper(f"row seq {seq} is older than retention mark {n} (pruned through seq "
-                             f"{self._through}), which did not keep it: it was added later", first=seq, mark=n)
-                self.bad.add(seq)
-            elif self._kept[seq] is None and stored is None:
-                self._unchained_row(r, seq)  # a row from before the chain, kept as memory evidence
-            elif self._kept[seq] != stored or computed_hash() != stored:
-                self._tamper(f"row seq {seq} was kept through retention by mark {n}, but its contents "
-                             "changed", first=seq, mark=n)
-                self.bad.add(seq)
-            return
-        if self.prune_untrusted is not None and seq <= self._through_u:
-            if stored is not None and computed_hash() != stored:
-                self._tamper(f"row seq {seq} was edited after it was written: its contents no longer match "
-                             "its hash", first=seq)
-                self.bad.add(seq)
-            else:
-                self._unproven.add(seq)  # below a retention mark that cannot be trusted
-            return
-        if stored is None:
-            if self.genesis is not None and seq <= self.after_seq:
-                self._unchained_row(r, seq)
-            else:
-                self._tamper(f"row seq {seq} has no chain hash, though it was written after the chain began",
-                             first=seq)
-                self.bad.add(seq)
-            if self.expected_seq is not None:
-                self.expected_seq = seq + 1
-            return
-        computed = computed_hash()
+    def _feed_below_untrusted(self, r: Mapping[str, Any], seq: int, stored: Any) -> None:
+        """Below a retention mark that cannot be trusted: unproven, unless its own hash shows an edit."""
+        if stored is not None and _computed_hash(r) != stored:
+            self._tamper(f"row seq {seq} was edited after it was written: its contents no longer match "
+                         "its hash", first=seq)
+            self.bad.add(seq)
+        else:
+            self._unproven.add(seq)
+
+    def _feed_unhashed(self, r: Mapping[str, Any], seq: int) -> None:
+        """A row with no chain hash: from before the chain began, or tampered."""
+        if self.genesis is not None and seq <= self.after_seq:
+            self._unchained_row(r, seq)
+        else:
+            self._tamper(f"row seq {seq} has no chain hash, though it was written after the chain began",
+                         first=seq)
+            self.bad.add(seq)
+        if self.expected_seq is not None:
+            self.expected_seq = seq + 1
+
+    def _feed_chained(self, r: Mapping[str, Any], seq: int, stored: str) -> None:
+        """A chained row: it follows the row before it, and its contents still give its hash. What does
+        not is kept as an anomaly, named once the walk ends (_classify: a reorder, a rewrite, an edit)."""
+        computed = _computed_hash(r)
         if self.expected_seq is None:
             base = self._base()
             if base is None or self.partial or self.mid:
                 self.expected_prev, self.expected_seq = None, seq
             else:
                 self.expected_seq, self.expected_prev = base[0] + 1, base[1]
-        gap = seq > self.expected_seq
         link_ok = self.expected_prev is None or r.get("prev") == self.expected_prev
         content_ok = computed == stored
-        if gap:
+        if seq > self.expected_seq:
             self._tamper(f"{_span(self.expected_seq, seq - 1, 'is', 'are')} missing from the middle of the log (row seq {seq} links to a row that is not there)",
                          first=self.expected_seq, last=seq - 1)
             self.bad.update(range(self.expected_seq, seq))
@@ -723,16 +781,30 @@ class Verifier:
 
     def finish(self) -> Report:
         self._classify()
-        g_after = self.after_seq
+        proven = self._check_checkpoints()
+        self._check_kept()
+        self._check_counts()
+        self._note_unproven(proven)
+        if any(f.level == "tampered" for f in self.findings):
+            status = "tampered"
+        elif any(f.level == "unprovable" for f in self.findings):
+            status = "unverifiable"
+        else:
+            status = "ok"
+        return Report(status=status, checked=self.count, first=self.first, last=self.last, proven_through=proven,
+                      findings=self.findings, chain=self.chain, keys=self.keys, bad=self.bad,
+                      unchained=len(self._unchained), in_scope=len(self._scoped), unproven=self._unproven)
+
+    def _check_checkpoints(self) -> dict | None:
+        """Each signed checkpoint against the rows walked; the latest that vouches for one is what the
+        log is proven through."""
         proven: dict | None = None
-        walked_from = self.first
-        through = max(self._through, self._through_u)
         for c in self.checkpoints:
             seq = int(c.get("seq") or 0)
-            if seq <= g_after or (self.to_seq is not None and seq > self.to_seq):
+            if seq <= self.after_seq or (self.to_seq is not None and seq > self.to_seq):
                 continue
-            if self.genesis is not None and c.get("count") != seq - g_after:
-                self._tamper(f"checkpoint {c['n']} counts {c.get('count')} rows but covers {seq - g_after}",
+            if self.genesis is not None and c.get("count") != seq - self.after_seq:
+                self._tamper(f"checkpoint {c['n']} counts {c.get('count')} rows but covers {seq - self.after_seq}",
                              mark=c["n"])
                 continue
             if seq in self._hash_at:
@@ -743,51 +815,57 @@ class Verifier:
                     continue
                 if proven is None or seq > proven["seq"]:
                     proven = {"mark": c["n"], "seq": seq, "at": c.get("at")}
-            elif seq <= through or (walked_from is not None and seq < walked_from) or self.partial \
-                    or (self.mid and walked_from is None):
-                continue
-            elif self.last is None or seq > self.last:
-                last = self.last if self.last is not None else g_after
+            elif not self._outside_walk(seq) and (self.last is None or seq > self.last):
+                last = self.last if self.last is not None else self.after_seq
                 self._tamper(f"the log ends at seq {last}, but checkpoint {c['n']} covers rows through seq {seq}: "
                              f"{_span(last + 1, seq, 'was', 'were')} deleted from the end", first=last + 1, last=seq,
                              mark=c["n"])
                 self.bad.update(range(last + 1, seq + 1))
+        return proven
+
+    def _outside_walk(self, seq: int) -> bool:
+        """A checkpoint seq this walk cannot judge: removed by retention, before the rows walked, or any
+        seq at all in an export bundle (or a mid walk that saw no rows)."""
+        through = max(self._through, self._through_u)
+        walked_from = self.first
+        return seq <= through or (walked_from is not None and seq < walked_from) or self.partial \
+            or (self.mid and walked_from is None)
+
+    def _check_kept(self) -> None:
+        """Every row a signed retention mark kept is still there."""
         for seq in sorted(set(self._kept) - self._kept_seen):
             if self.prune_untrusted is not None and seq <= self._through_u:
                 continue  # the later retention mark that cannot be trusted may have released it
-            if not (self.partial or self.mid) or (walked_from is not None and seq >= walked_from):
+            if not (self.partial or self.mid) or (self.first is not None and seq >= self.first):
                 self._tamper(f"row seq {seq} was kept through retention by mark {self.prune['n']} and is now "
                              "missing", first=seq, mark=self.prune["n"])
+
+    def _check_counts(self) -> None:
+        """No more rows from before the chain than the genesis counted, and no rows gone from the end."""
         counted = (self.genesis or {}).get("unchained")
         if not (self.partial or self.mid) and isinstance(counted, int) and self._unchained_all > counted:
             self._tamper(f"the genesis counted {counted} rows written before the chain began, but "
                          f"{self._unchained_all} are there: rows were added without a chain hash", mark=1)
-        end = max(self.last or 0, through, g_after)
+        end = max(self.last or 0, self._through, self._through_u, self.after_seq)
         if not self.partial and self.to_seq is None and self.max_seq_used is not None and self.max_seq_used > end:
             self._tamper(f"the log has used seq up to {self.max_seq_used}, but it now ends at seq {end}: "
                          f"{_span(end + 1, self.max_seq_used, 'was', 'were')} deleted from the end",
                          first=end + 1, last=self.max_seq_used)
+
+    def _note_unproven(self, proven: dict | None) -> None:
+        """Rows from before the chain, and the scope's rows no checkpoint covers yet."""
         if len(self._unchained):
             first, last = self._unchained[0], self._unchained[-1]
             self.findings.append(Finding("unprovable", f"{_span(first, last, 'was', 'were')} written before the chain "
                                                        "began (genesis, mark 1) and cannot be proven", first, last, 1))
         p_seq = proven["seq"] if proven else None
         tail = [s for s in self._scoped if (p_seq is None or s > p_seq) and s not in self.bad
-                and not (self.genesis is not None and s <= g_after)]
+                and not (self.genesis is not None and s <= self.after_seq)]
         if tail:
             since = f"since checkpoint {proven['mark']} (seq {p_seq}, {proven['at']})" if proven \
                 else "because no checkpoint covers them yet"
             self.findings.append(Finding("unprovable", f"{_span(tail[0], tail[-1], 'is', 'are')} unprovable {since}",
                                          tail[0], tail[-1], proven["mark"] if proven else None))
-        if any(f.level == "tampered" for f in self.findings):
-            status = "tampered"
-        elif any(f.level == "unprovable" for f in self.findings):
-            status = "unverifiable"
-        else:
-            status = "ok"
-        return Report(status=status, checked=self.count, first=self.first, last=self.last, proven_through=proven,
-                      findings=self.findings, chain=self.chain, keys=self.keys, bad=self.bad,
-                      unchained=len(self._unchained), in_scope=len(self._scoped), unproven=self._unproven)
 
 
 def verify(rows: Iterable[Mapping[str, Any]], marks: list[Mapping[str, Any]], **kw: Any) -> Report:

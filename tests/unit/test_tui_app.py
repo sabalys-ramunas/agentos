@@ -8,10 +8,12 @@ import pytest
 from textual.command import CommandInput, CommandPalette
 from typer.testing import CliRunner
 
+from agentos.dev.tuidemo import FakeNode
+from agentos.tui.activity import ActivityView
 from agentos.tui.app import DashApp, browser_available
+from agentos.tui.brains import BrainsView
 from agentos.tui.cli import app as cli_app
 from agentos.tui.connect import Connection
-from agentos.tui.demo import FakeNode
 from agentos.tui.lane import LaneScreen, LaneView
 from agentos.tui.modals import (
     AddScheduleModal,
@@ -23,7 +25,9 @@ from agentos.tui.modals import (
     LinkModal,
     RunModal,
 )
-from agentos.tui.views import ActivityView, BrainsView, LaneTree, NeedsView, RunsView
+from agentos.tui.needs import NeedsView
+from agentos.tui.overview import LaneTree
+from agentos.tui.runs import RunsView
 from agentos.tui.widgets import Banner, TopBar
 
 TOKEN = "tok-3f9a-very-secret"

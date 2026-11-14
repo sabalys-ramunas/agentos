@@ -25,11 +25,12 @@ from datetime import datetime, timedelta
 from typing import Any, Literal
 
 from agentos.agents.ports import TurnBudget, TurnGrant, TurnRequest
+from agentos.core.aio import maybe_await
 from agentos.core.errors import AgentosError, InvalidRequest, NotFound, PolicyDenied, ServiceUnavailable
 from agentos.core.models import Effect, Principal, RunStatus
+from agentos.core.template import render
 from agentos.events import frame
 from agentos.events.models import AgentTarget, BrainTarget, Delivery, Event, FlowTarget, Route, WorkflowTarget
-from agentos.runner.util import maybe_await, render
 
 log = logging.getLogger("agentos.events")
 

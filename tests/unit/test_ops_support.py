@@ -14,7 +14,7 @@ from typing import Any
 
 from agentos.core.config import NodeConfig, save_config, save_proxies
 from agentos.core.models import LaneSpec, ProxyConfig
-from agentos.ops.system import Host
+from agentos.core.system import Host
 
 TOKEN = "tok-SECRET-mcp-0123456789abcdef"
 PROXY_USER = "puser-SECRET"

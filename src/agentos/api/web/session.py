@@ -8,7 +8,6 @@ and the sign-in page offers that. The code itself still goes to the node's `POST
 from __future__ import annotations
 
 import time
-from datetime import UTC, datetime
 from typing import Any
 
 from starlette.requests import Request
@@ -19,6 +18,7 @@ from agentos.api.app import Api
 from agentos.api.auth import SESSION_COOKIE
 from agentos.api.errors import ApiError
 from agentos.api.web.base import ORG, Refused, Reply, call, plain_route, read, unwrap
+from agentos.core import clock
 
 # The app's roles, highest first, and the node's role each one stands for.
 ROLE_OF = {"admin": "admin", "operator": "member", "approver": "approver", "viewer": "viewer", "auditor": "auditor"}
@@ -26,7 +26,7 @@ ORDER = ("admin", "member", "approver", "viewer", "auditor")
 
 
 def iso(stamp: float | None) -> str | None:
-    return None if stamp is None else datetime.fromtimestamp(stamp, UTC).isoformat().replace("+00:00", "Z")
+    return clock.iso_or_none(stamp, z=True)
 
 
 def role_of(me: dict[str, Any]) -> str:

@@ -205,3 +205,8 @@ class ConnectionStore:
             path.unlink()
             return True
         return False
+
+
+def connections_at(home: Path | None = None) -> list[Connection]:
+    """The connections `agentos connect` made for `home` (default: this user's), as the doctor reads them."""
+    return ConnectionStore(Paths(home) if home else Paths.current()).all()

@@ -16,8 +16,9 @@ from typing import Annotated, Any
 import typer
 
 from agentos.client.call import call as call_command
+from agentos.client.choices import AgentOptions, ClientChoice, ConnectResult, Health, InstallChoice
 from agentos.client.errors import ClientError
-from agentos.client.ops import AgentOptions, Client, ClientChoice, ConnectResult, Health, InstallChoice
+from agentos.client.ops import Client
 from agentos.client.state import DEFAULT_REMOTE_HOME, Connection, shown
 
 # Tracebacks never print local variables: they would include the token.
@@ -556,42 +557,3 @@ def mcp_bridge(name: Annotated[str, typer.Argument(help="Connection name, as sho
     from agentos.client.bridge import run
 
     raise typer.Exit(run(name))
-
-
-SETUP_PATHS = (
-    ("Try it on this computer first, with a fake node (nothing to install)", "agentos dev up --seed"),
-    ("On a Linux server you reach over SSH (agentos installs the node there)", "agentos connect root@my-server"),
-    ("On this Linux machine (it becomes the node; not a Mac yet)", "agentos up --here"),
-)
-
-
-@app.command()
-def setup() -> None:
-    """Get started: choose where your agents' browsers run, and connect Claude Code and Codex to it."""
-    from agentos.client.state import current_platform
-
-    typer.echo("agentos: where should your agents' logged-in browsers run?")
-    for i, (what, command) in enumerate(SETUP_PATHS, 1):
-        typer.echo(f"  {i}  {what}")
-        typer.echo(f"       {command}")
-    if not sys.stdin.isatty():
-        typer.echo("Run one of those commands to start.")
-        return
-    choice = typer.prompt("Choose 1, 2 or 3", default="1", show_default=True).strip()
-    if choice == "2":
-        host = typer.prompt("The server's SSH address, for example root@203.0.113.7").strip()
-        connect(ssh_host=host)
-        return
-    if choice == "3":
-        if current_platform() == "macos":
-            typer.echo("A Mac cannot be a node yet (browser lanes need Linux). Try 1 first: agentos dev up --seed")
-            raise typer.Exit(1)
-        from agentos.controller.cli import up_command
-
-        up_command(controller_port=None, ssh_host=None, here=True, verbose=False)
-        return
-    if choice != "1":
-        raise fail(ClientError(f"{choice!r} is not 1, 2 or 3", "run `agentos setup` again"))
-    from agentos.dev.cli import DEFAULT_PORT, up
-
-    up(home=None, port=DEFAULT_PORT, seed=True, connect=True)

@@ -8,7 +8,7 @@ Targets come from `NodeConfig.audit_anchors`:
   signs with its own key (`audit_anchor_receipt`). A node with no controller has nothing to
   send to, so anchoring is off there until the owner adds a target.
 - "s3://bucket/prefix": one small JSON object per head, written with S3 Object Lock
-  (COMPLIANCE, `audit_anchor_retain_days`), using the backup credentials (agentos.ops.s3).
+  (COMPLIANCE, `audit_anchor_retain_days`), using the backup credentials (agentos.core.s3).
 
 Heads wait in home/anchors.db until a target took them, so a controller that is away, an old
 controller that does not know the message, or an S3 outage only delays anchoring. Nothing here
@@ -273,12 +273,10 @@ class AnchorService:
         return channel
 
     async def _ask(self, kind: str, body: dict) -> Any:
-        from agentos.node.channel import wire
-
         channel = self._channel()
         if channel is None:
             return None
-        env = wire.Envelope(kind, body)
+        env = channel.envelope(kind, body)
         future: asyncio.Future = asyncio.get_running_loop().create_future()
         self._waiting[env.id] = future
         try:
@@ -319,7 +317,7 @@ class AnchorService:
             self.last_error = f"the controller refused audit anchors: {code}: {str(reply.body.get('message'))[:200]}"
 
     def receipt_ok(self, receipt: Any) -> bool:
-        from agentos.node.channel.identity import verify_controller
+        from agentos.core.signing import verify_controller
 
         return isinstance(receipt, dict) and isinstance(receipt.get("anchor"), dict) and verify_controller(
             getattr(self.config, "controller_pubkey", ""), anchor_rules.RECEIPT_KIND,
@@ -401,12 +399,12 @@ class AnchorService:
     def _s3(self) -> Any:
         if self._s3_factory is not None:
             return self._s3_factory(self.s3_url)
-        from agentos.ops.s3 import S3Target
+        from agentos.core.s3 import S3Target
 
         return S3Target(self.s3_url, home=Path(self.config.home))
 
     def send_s3(self) -> int:
-        from agentos.ops.s3 import S3Error
+        from agentos.core.s3 import S3Error
 
         try:
             target = self._s3()
@@ -439,7 +437,7 @@ def fetch_s3(url: str, *, home: Path | None = None, target: Any = None) -> list[
     """Every head an S3 anchor target holds (for `agentos audit verify --anchors`)."""
     import tempfile
 
-    from agentos.ops.s3 import S3Target
+    from agentos.core.s3 import S3Target
 
     t = target or S3Target(url, home=home)
     out: list[dict] = []

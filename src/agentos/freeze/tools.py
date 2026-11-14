@@ -1,7 +1,7 @@
 """lane_freeze: an agent pulls the off switch on its own lane, or on anything its grant covers.
 
 It can never unfreeze; no tool does. It is a read-effect call, so no approval routing ever holds
-it up, and it stays callable on a frozen lane (agentos.freeze.service.EXEMPT_TOOLS).
+it up, and it stays callable on a frozen lane (agentos.policy.freeze.EXEMPT_TOOLS).
 """
 
 from __future__ import annotations

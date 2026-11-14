@@ -17,7 +17,6 @@ import type {
   LimitName,
   Lane,
   Meter,
-  Meters,
   MeterLimit,
   Pace,
   TaintFamily,
@@ -225,19 +224,6 @@ export function laneMeter(data: OrgData, lane: Lane): Meter {
 export function setLaneLimits(data: OrgData, lane: Lane, limits: Limits | null): Meter {
   data.account.limits[lane.id] = limits;
   return laneMeter(data, lane);
-}
-
-/** Every lane's meter for the caller. A member or a grant would see fewer; the mock keeps one view. */
-export function allMeters(data: OrgData, lanes: Lane[]): Meters {
-  const zone = data.nodes[0]?.timezone ?? 'UTC';
-  return {
-    timezone: zone,
-    day: new Date().toISOString().slice(0, 10),
-    resets_at: iso(DAY / 2),
-    warn_at: [0.8],
-    grants: [],
-    lanes: lanes.map((lane) => laneMeter(data, lane)),
-  };
 }
 
 export function laneQueue(data: OrgData, lane: Lane): LaneQueue {

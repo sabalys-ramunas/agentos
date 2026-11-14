@@ -108,7 +108,7 @@ be left; over the run agentosd's own RSS may grow at most 40 MB and its file des
 - **A fill cut by a dying browser came back `ok: true`** ("the tab closed during the fill (a popup or
   sign-in window finishing)"). `browser_act` took any closed tab for a popup that closed itself. Now,
   when no tab is left in the browser, it raises `engine_error` saying the action may be half done
-  (`interaction.py`, test in `test_interaction_wait.py`).
+  (`node/interaction/`, test in `test_interaction_wait.py`).
 - **A call cut off by a killed agentosd stayed "started" in the action log forever.** On start, the
   policy service now gives every `tool_start` without an end a `tool_end` with status error,
   "interrupted: agentosd stopped before this call finished" (`TraceStore.end_unfinished`, test in

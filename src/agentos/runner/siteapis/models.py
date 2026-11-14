@@ -43,7 +43,7 @@ from agentos.runner.connectors.models import (
 )
 from agentos.runner.connectors.steps import deep, is_input, walk
 from agentos.runner.flows import FlowService, validation_message
-from agentos.runner.models import NodeInstall
+from agentos.runner.owner import NodeInstall
 from agentos.runner.util import host_in
 
 DEFAULT_CACHE_S = 300

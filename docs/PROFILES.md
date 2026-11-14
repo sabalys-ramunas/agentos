@@ -51,9 +51,6 @@ accounts:
    are your consent; "Ask me first" on a lane still makes that lane wait):
    - **Learned fields change by themselves.** Once an agent has taught agentos how a site's field
      is changed (see "Learning a site"), every account on that site gets it whenever you save.
-   - **LinkedIn person profiles** (name, headline, About, photo, cover) go through the engagement
-     engine: the account needs an approved engagement program in its steady phase (not
-     `risk: off`), and the LinkedIn profile operations must have passed their canary.
    - **Not learned yet:** `agentos profile status acme/acme` (or `profile_sync_status`) lists them.
      An agent can teach one, or change it by hand and mark it done (`profile_mark_synced`).
 
@@ -109,8 +106,7 @@ field a site has is filled in on it.
 ## The voice
 
 `voice` is turned into plain instructions (`voice_prompt` in `profile_get`). Agents writing a post,
-comment or reply on an attached account are told to follow it, and the engine's draft provider gets
-it with every request unless the account's program names its own `comments.voice`.
+comment or reply on an attached account are told to follow it.
 
 ## Products, reviewers and audiences
 
@@ -250,5 +246,5 @@ The tools are in the `profiles` toolset (`tools_more(toolset="profiles")`), and 
 
 Each site's profile fields and limits are in `src/agentos/profiles/mapping.py`: linkedin, facebook,
 instagram, reddit, x, threads, tiktok, youtube, medium. An account's site comes from its name
-(`acme/instagram`), or set `site:` on the account. Only LinkedIn has engine operations today; the
-others become automatic as their connector operations are written and pass their canaries.
+(`acme/instagram`), or set `site:` on the account. A field becomes automatic once an agent has
+taught agentos how it is changed on that site (see "Learning a site").

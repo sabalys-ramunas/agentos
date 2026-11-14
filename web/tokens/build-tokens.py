@@ -1,7 +1,7 @@
 """The agentos web app's design tokens (the Mono style): the one place their values live.
 
-Copied from panel/prototypes/dashboard/style-mono/build-tokens.py, the approved Mono take
-(docs/design/style-style-mono.md). Changes from that copy are marked "web". The values are the
+Copied from the style-mono prototype's build-tokens.py (removed with the classic panel), the
+approved Mono take (docs/design/style-style-mono.md). Changes from that copy are marked "web". The values are the
 prototype's; only where the files go, the font names and the --check mode differ.
 
 Writes:

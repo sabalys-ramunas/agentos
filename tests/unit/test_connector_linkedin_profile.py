@@ -7,7 +7,7 @@ LinkedIn's media host. Nothing here was checked against LinkedIn: the canary rep
 from __future__ import annotations
 
 import pytest
-from test_connector_engage_ops import LI_AS, LI_LANE, LINKEDIN, ME_URL, _harness, _me_redirects
+from test_connector_social_ops import LI_AS, LI_LANE, LINKEDIN, ME_URL, _harness, _me_redirects
 
 from agentos.core.models import RunStatus
 from agentos.runner.connectors.compile import compile_path
@@ -176,7 +176,7 @@ async def test_text_differs_refuses_several_elements_even_with_nth(tmp_path):
     import json
     import shutil
 
-    from test_connector_engage_ops import _harness
+    from test_connector_social_ops import _harness
 
     root = tmp_path / "linkedin"
     shutil.copytree(LINKEDIN, root)

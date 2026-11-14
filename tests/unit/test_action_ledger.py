@@ -1,5 +1,5 @@
 """The action ledger: every path's likes, follows and posts on an account, counted where the egress
-guard sees them, and read by the engagement engine's caps."""
+guard sees them."""
 
 from __future__ import annotations
 

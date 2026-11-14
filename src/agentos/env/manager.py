@@ -13,7 +13,6 @@ import fcntl
 import json
 import logging
 import os
-import re
 import secrets
 import shlex
 import shutil
@@ -39,7 +38,9 @@ from agentos.env import pty as ptys
 from agentos.env import seccomp as sc
 from agentos.env import sync as syncs
 from agentos.env.host import Host, HostError, LinuxHost, NullHost
-from agentos.env.jobs import Job, JobTable, new_job_id
+from agentos.env.jobs import JobTable
+from agentos.env.lane_jobs import Jobs
+from agentos.env.lane_sync import Sync
 from agentos.env.lanes import LaneRuntime, NoSandbox, SandboxError
 from agentos.env.models import (
     EnvLane,
@@ -47,7 +48,6 @@ from agentos.env.models import (
     ExecResult,
     ImageInfo,
     ImageTemplate,
-    JobInfo,
     Limits,
     Policy,
     RemoteHost,
@@ -63,8 +63,6 @@ from agentos.env.store import EnvStore
 log = logging.getLogger("agentos.env")
 
 ENV_KINDS = (LaneKind.TERMINAL, LaneKind.SERVICE)
-_ENV_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,63}$")
-ARGV_BATCH = 500  # paths per rm or rmdir workload, well under the kernel's argument limit
 
 
 class RuntimeOwned(ServiceUnavailable):
@@ -111,7 +109,10 @@ def default_mechanisms(paths: EnvPaths, settings: EnvSettings) -> tuple[Host, An
     return LinuxHost(paths, settings), BwrapLauncher(sc.compile_filter() if sc.supported() else None)
 
 
-class EnvManager:
+class EnvManager(Jobs, Sync):
+    """The env service: terminal and service lanes. Its jobs (Jobs) and file sync (Sync) are mixins in
+    lane_jobs.py and lane_sync.py."""
+
     def __init__(self, home: Path, *, runtime: Any = None, host: Host | None = None, launcher: Any = None,
                  settings: EnvSettings | None = None, use_lock: bool = True):
         self.paths = EnvPaths(Path(home))
@@ -121,6 +122,9 @@ class EnvManager:
             host, launcher = default_mechanisms(self.paths, self.settings)
         self.host: Host = host
         self.launcher = launcher or DirectLauncher()
+        # a VM lane's launcher: one ssh to the VM per workload. agentos.vms sets it (it builds on env),
+        # and so does the env CLI; without it a VM lane does not warm
+        self.remote_launcher: Any = None
         self.store = EnvStore(self.paths.db)
         self.shells: dict[str, ptys.ShellSession] = {}
         self.services: dict[str, Supervisor] = {}
@@ -460,8 +464,9 @@ class EnvManager:
                 plan = plan_lane(lane, self.paths, self.settings, image_layers=layers, image_env=env)
             launcher = self.launcher
             if lane.remote is not None:  # a VM lane: every workload is one ssh to the VM
-                from agentos.vms.ssh import SshLauncher
-                launcher = SshLauncher()
+                if self.remote_launcher is None:
+                    raise SandboxError(f"{lane_id} is a VM lane, and this process has no VMs (agentos.vms)")
+                launcher = self.remote_launcher
             rt = LaneRuntime(lane, plan, paths=self.paths, settings=self.settings, host=self.host,
                              launcher=launcher, upstream=self._upstream(lane), on_egress=self.egress_log.append)
             self._warming.add(lane_id)
@@ -583,196 +588,6 @@ class EnvManager:
         await self.store.run(self.store.touch, lane_id)
         return res
 
-    # =============================================================== jobs
-    def _job_argv(self, lane: EnvLane, cmd: str, cwd: str | None) -> list[str]:
-        if not lane.policy.exec:
-            raise PolicyDenied(f"commands are off in {lane.preset.value} lanes")
-        if not isinstance(cmd, str) or not cmd.strip():
-            raise InvalidRequest("empty command")
-        if cwd is not None:
-            cwd = syncs.check_cwd(cwd, remote=lane.remote is not None)
-            if lane.policy.signed_only:
-                raise InvalidRequest(f"locked lane {lane.id} runs allowlisted programs only, without a cwd")
-            # plain names (check_cwd), so it is safe as one shell word
-            return self.command_argv(lane, f"cd '{cwd}' && {cmd}")
-        return self.command_argv(lane, cmd)
-
-    def check_job(self, lane_id: str, cmd: str, *, cwd: str | None = None, env: dict[str, str] | None = None,
-                  timeout_s: float | None = None) -> float:
-        """What job_start would refuse, before anyone is asked to approve it. Returns the timeout."""
-        lane = self.store.get_lane(lane_id)
-        self._job_argv(lane, cmd, cwd)
-        for k, v in (env or {}).items():
-            if not isinstance(k, str) or not _ENV_NAME_RE.match(k) or not isinstance(v, str) or "\x00" in v \
-                    or len(v) > 4096:
-                raise InvalidRequest(f"env: {str(k)[:64]!r} is not a variable name with a short text value")
-        if len(env or {}) > 32:
-            raise InvalidRequest("env takes at most 32 variables")
-        self.jobs.check_room(lane_id)
-        return min(float(timeout_s or self.settings.max_timeout_s), self.settings.max_timeout_s)
-
-    async def job_start(self, lane_id: str, cmd: str, *, cwd: str | None = None, env: dict[str, str] | None = None,
-                        timeout_s: float | None = None, sync: dict | None = None, by: str | None = None,
-                        grant_id: str | None = None, source: dict | None = None) -> JobInfo:
-        """Start `cmd` in the background (after applying `sync`, the output of sync_prepare). Its output
-        is logged on the node; read it with job_read, from any offset, while it runs and after."""
-        timeout = self.check_job(lane_id, cmd, cwd=cwd, env=env, timeout_s=timeout_s)
-        lane = self.store.get_lane(lane_id)
-        argv = self._job_argv(lane, cmd, cwd)
-        applied = None
-        if sync is not None:
-            async with self._sync_lock(lane_id):
-                busy = [j for j in self.jobs.running_in(lane_id) if (j.info.sync or {}).get("dest") == sync["dest"]]
-                if busy:
-                    raise LaneBusy(f"job {busy[0].info.id} still runs in {sync['dest']} of {lane_id}; a sync now "
-                                   "would change its files under it. Wait for it, or cancel it with lane_job_cancel")
-                applied = await self.sync_apply(lane_id, sync)
-                self.jobs.check_room(lane_id)
-                rt = await self.warm(lane_id)
-                info = JobInfo(id=new_job_id(), lane=lane_id, cmd=cmd, cwd=cwd, timeout_s=timeout, sync=applied,
-                               by=by, source=source)
-                job_env = {**(await self.git_env(rt, grant_id)), **(env or {})}
-                job = await self.jobs.start(rt, argv, info=info, env=job_env or None, on_end=self._job_ended)
-        else:
-            rt = await self.warm(lane_id)
-            self.jobs.check_room(lane_id)
-            info = JobInfo(id=new_job_id(), lane=lane_id, cmd=cmd, cwd=cwd, timeout_s=timeout, by=by, source=source)
-            job_env = {**(await self.git_env(rt, grant_id)), **(env or {})}
-            job = await self.jobs.start(rt, argv, info=info, env=job_env or None, on_end=self._job_ended)
-        await self.store.run(self.store.touch, lane_id)
-        await asyncio.to_thread(self.jobs.prune, lane_id)
-        return job.info.model_copy()
-
-    async def _job_ended(self, job: Job) -> None:
-        if self.store.has_lane(job.info.lane):
-            await self.store.run(self.store.touch, job.info.lane)  # the idle timer starts when the job ends
-
-    def job(self, job_id: str) -> Job:
-        return self.jobs.get(job_id)
-
-    async def job_read(self, job_id: str, *, stdout_offset: int = 0, stderr_offset: int = 0, wait_s: float = 0,
-                       max_bytes: int = 65536) -> tuple[JobInfo, bytes, bytes]:
-        job = self.jobs.get(job_id)
-        out, err = await self.jobs.read(job, stdout_offset, stderr_offset, wait_s=wait_s, max_bytes=max_bytes)
-        info = job.info.model_copy()
-        if job.running:  # what the command wrote so far (the meta has it once it ended)
-            info.stdout_bytes = job.out.total if job.out else info.stdout_bytes
-            info.stderr_bytes = job.err.total if job.err else info.stderr_bytes
-        return info, out, err
-
-    async def job_cancel(self, job_id: str) -> JobInfo:
-        job = self.jobs.get(job_id)
-        await self.jobs.cancel(job)
-        return job.info.model_copy()
-
-    def job_list(self, lane_id: str | None = None) -> list[JobInfo]:
-        return [i.model_copy() for i in self.jobs.infos(lane_id)]
-
-    # =============================================================== sync
-    def _sync_lock(self, lane_id: str) -> asyncio.Lock:
-        return self._sync_locks.setdefault(lane_id, asyncio.Lock())
-
-    def chunk_store(self, lane_id: str) -> syncs.ChunkStore:
-        self.store.get_lane(lane_id)
-        st = self._stores.get(lane_id)
-        if st is None:
-            st = self._stores[lane_id] = syncs.ChunkStore(
-                self.paths.sync(lane_id), max_bytes=self.settings.upload_max_mb * 1048576,
-                chunk_max_bytes=self.settings.upload_chunk_max_bytes)
-        return st
-
-    async def upload_check(self, lane_id: str, chunks: list[str]) -> list[str]:
-        """Which of these chunks the node does not have yet for this lane."""
-        if not isinstance(chunks, list) or len(chunks) > 50_000:
-            raise InvalidRequest("chunks is a list of at most 50000 sha256 names")
-        store = self.chunk_store(lane_id)
-        return await asyncio.to_thread(store.missing, [syncs.check_sha(c) for c in chunks])
-
-    async def upload(self, lane_id: str, chunks: dict[str, bytes]) -> dict:
-        store = self.chunk_store(lane_id)
-        async with self._sync_lock(lane_id):
-            added = 0
-            for sha, data in chunks.items():
-                added += await asyncio.to_thread(store.put, sha, data)
-            return {"stored": len(chunks), "bytes_added": added, "store_bytes": store.size()}
-
-    async def sync_prepare(self, lane_id: str, *, dest: str, manifest: list[str], clean: bool = False) -> dict:
-        """Check a sync before it is approved: the manifest and every chunk it names are on the node.
-        Returns what sync_apply takes, with the counts an approval summary shows."""
-        syncs.check_dir(dest, "sync.dest")
-        lane = self.store.get_lane(lane_id)
-        if lane.policy.signed_only or not lane.policy.exec:
-            raise InvalidRequest(f"{lane.preset.value} lane {lane_id} runs allowlisted programs only, so it takes no "
-                                 "synced files; use a sandbox lane")
-        store = self.chunk_store(lane_id)
-        m = await asyncio.to_thread(syncs.load_manifest, store, manifest)
-        state = syncs.SyncState(store.root)
-        previous = {} if clean else (await asyncio.to_thread(state.get, dest)).get("files") or {}
-        _, changed, deleted = syncs.plan(m, previous)
-        return {"dest": dest, "manifest": list(manifest), "clean": bool(clean), "files": len(m.files),
-                "bytes": m.total_bytes(), "changed": len(changed), "deleted": len(deleted)}
-
-    async def sync_apply(self, lane_id: str, prepared: dict) -> dict:
-        """Make `dest` in the lane hold exactly the manifest's files (what the command made stays,
-        unless `clean`). Runs as workloads inside the lane: rm and rmdir for what went away, then
-        `tar -x` of an archive the node builds from the chunks. The caller holds the sync lock."""
-        dest, shas, clean = prepared["dest"], prepared["manifest"], prepared["clean"]
-        store = self.chunk_store(lane_id)
-        m = await asyncio.to_thread(syncs.load_manifest, store, shas)
-        state = syncs.SyncState(store.root)
-        previous = {} if clean else (await asyncio.to_thread(state.get, dest)).get("files") or {}
-        sigs, changed, deleted = syncs.plan(m, previous)
-        rt = await self.warm(lane_id)
-        loop = asyncio.get_running_loop()
-        started = loop.time()
-        if clean:
-            await self._sync_step(rt, ["/bin/sh", "-c", 'rm -rf -- "$1"', "sh", dest], "clean the destination")
-            await asyncio.to_thread(state.drop, dest)
-        elif deleted:
-            for batch in _batches(deleted):
-                await self._sync_step(rt, ["/bin/sh", "-c", 'cd "$1" || exit 0; shift; rm -f -- "$@"', "sh", dest,
-                                           *batch], "delete files")
-            dirs = syncs.empty_dirs_after(deleted, set(sigs))
-            for batch in _batches(dirs):
-                script = 'cd "$1" || exit 0; shift; rmdir -- "$@" 2>/dev/null; exit 0'
-                await self._sync_step(rt, ["/bin/sh", "-c", script, "sh", dest, *batch], "remove empty directories")
-        tmp_dir = store.root / "tmp"
-        tmp_dir.mkdir(parents=True, exist_ok=True)
-        archive = tmp_dir / f"sync-{secrets.token_hex(4)}.tar"
-        f = await asyncio.to_thread(open, archive, "w+b")
-        try:
-            await asyncio.to_thread(syncs.write_tar, store, m, f)
-            f.seek(0)
-            await self._sync_step(rt, ["/bin/sh", "-c", 'mkdir -p -- "$1" && cd "$1" && exec tar -xf -', "sh", dest],
-                                  "extract the files", stdin_file=f)
-        finally:
-            f.close()
-            archive.unlink(missing_ok=True)
-        await asyncio.to_thread(state.set, dest, list(shas), sigs)
-        await asyncio.to_thread(self._sync_gc, lane_id)
-        return {"dest": dest, "files": len(m.files), "bytes": m.total_bytes(), "changed": len(changed),
-                "deleted": len(deleted), "clean": clean, "duration_s": round(loop.time() - started, 3)}
-
-    async def _sync_step(self, rt: LaneRuntime, argv: list[str], what: str, *, stdin_file=None) -> None:
-        async with rt.exec_sem:
-            res = await execs.run(rt, argv, timeout_s=self.settings.max_timeout_s, max_bytes=8192,
-                                  stdin_file=stdin_file, kind="sync")
-        if res.exit_code != 0:
-            why = (res.stderr or res.stdout).strip()[-1500:] or f"exit {res.exit_code} {res.signal or ''}".strip()
-            raise SandboxError(f"the sync could not {what} in {rt.lane.id}: {why}. A clean sync (sync.clean, "
-                               "`agentos run --fresh`) starts the destination over")
-
-    def _sync_gc(self, lane_id: str) -> None:
-        """Keep the chunks the applied manifests use (and the manifests' own chunks), drop the rest."""
-        store = self.chunk_store(lane_id)
-        keep: set[str] = set()
-        for entry in syncs.SyncState(store.root).load().values():
-            shas = entry.get("manifest") or []
-            try:
-                keep |= set(shas) | syncs.load_manifest(store, shas).chunk_set()
-            except Exception as e:  # noqa: BLE001 - a manifest that no longer loads keeps nothing
-                log.warning("sync state of %s names a manifest that does not load: %s", lane_id, e)
-        store.gc(keep)
 
     # =============================================================== shells
     async def shell_open(self, lane_id: str, *, cols: int = 120, rows: int = 32, term: str = "xterm-256color",
@@ -1038,10 +853,6 @@ def program_allowed(prog: str, allowed: list[str]) -> bool:
         if "/" not in entry and "/" in prog and os.path.dirname(prog) in BIN_DIRS and os.path.basename(prog) == entry:
             return True
     return False
-
-
-def _batches(items: list[str], n: int = ARGV_BATCH) -> list[list[str]]:
-    return [items[i:i + n] for i in range(0, len(items), n)]
 
 
 def _clean_layer(layer: Path) -> None:

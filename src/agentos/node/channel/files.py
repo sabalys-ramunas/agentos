@@ -87,7 +87,7 @@ async def _screenshot(runtime: Any, lane_id: Any) -> bytes:
     if callable(getattr(lanes, "screenshot", None)):
         return await _maybe_await(lanes.screenshot(lane_id))
     from agentos.node.claims import READ
-    from agentos.node.tools import lane_session
+    from agentos.node.tools.session import lane_session
 
     interaction = runtime.get("interaction")
     if interaction is None:

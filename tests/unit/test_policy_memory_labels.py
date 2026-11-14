@@ -12,7 +12,7 @@ from agentos.policy.errors import Denied
 from agentos.policy.grants import Specials
 from agentos.policy.labels import KNOWN_LABELS
 from agentos.policy.memory_rules import MemoryCap
-from agentos.policy.service import TAINT_LABELS, family_key
+from agentos.policy.taint import TAINT_LABELS, family_key
 from agentos.policy.traces import TraceEvent, TraceStore
 
 LANE = "biz-a/instagram"

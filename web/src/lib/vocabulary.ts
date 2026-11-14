@@ -125,11 +125,6 @@ export const FREEZE_WORDS = {
   unfreeze: { word: 'Unfreeze', technical: 'unfreeze' },
 } as const satisfies Record<string, Term>;
 
-/** A one-time code a site asked for. Its technical name is the code card. */
-export const CODE_WORDS = {
-  name: { word: 'Login code', singular: 'login code', technical: 'code card' },
-} as const satisfies Record<string, Term>;
-
 /** A run's outcome. Honest: "checked" means agentos saw it on the site afterwards. */
 export const RUN_WORDS: Record<RunStatus, Term> = {
   queued: { word: 'Queued', technical: 'queued' },
@@ -161,13 +156,6 @@ export const SIGNAL_WORDS: Record<Signal, Term> = {
   logged_out: { word: 'Signed out', technical: 'logged out' },
   unknown: { word: 'Not known yet', technical: 'unknown' },
 };
-
-/** Lane conditions that are not an enum on the wire. */
-export const LANE_WORDS = {
-  wrongAccount: { word: 'Wrong account', technical: 'account.status wrong_account' },
-  personInControl: { word: 'Person in control', technical: 'control.state human' },
-  agentStopped: { word: 'Agent paused', technical: 'control.state paused' },
-} as const satisfies Record<string, Term>;
 
 export const NODE_STATE_WORDS: Record<NodeState, Term> = {
   up: { word: 'Online', technical: 'up' },
@@ -301,20 +289,3 @@ export const GLOSSARY: { today: string; plain: string; techOk?: string }[] = [
   { today: 'Deny / Approve', plain: "The verb of the action: Post it / Don't post, Pay $40 / Don't pay, Delete 3 pages / Keep them", techOk: 'keyboard hints' },
   { today: 'New lane', plain: 'Add an account' },
 ];
-
-/** Engagement: the plan an account follows to like, follow, comment and post by itself (docs/ENGAGEMENT.md). */
-export const ENGAGEMENT = {
-  place: { word: 'Engagement', technical: 'Engagement programs' },
-  plan: { word: 'Plan', singular: 'Plan', technical: 'Program' },
-  limits: { word: 'Daily limits', technical: 'Caps' },
-  visits: { word: 'Visits', singular: 'Visit', technical: 'Sessions' },
-  pause: { word: 'Paused', technical: 'Hold' },
-  startAgain: { word: 'Start again', technical: 'Clear the hold' },
-  queued: { word: 'Queued by you', technical: 'Items' },
-  takeBack: { word: 'Take back', technical: 'Withdraw the item' },
-  approvePlan: { word: 'Approve plan', technical: 'Approve the program' },
-  connected: { word: 'Connected as', technical: 'Surfaces' },
-  canDo: { word: 'What it can do', technical: 'Connector operations' },
-  connect: { word: 'Connect', technical: 'Add the surface' },
-  disconnect: { word: 'Disconnect', technical: 'Remove the surface' },
-} as const satisfies Record<string, Term>;

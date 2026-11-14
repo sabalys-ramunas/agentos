@@ -9,7 +9,7 @@
   mounted only when given, see the full path (their routes are declared as "/api/...") and
   bring their own auth (panel sessions, signed viewer links).
 - `/mcp` (and `/.well-known/...`, where MCP clients look for auth metadata) needs
-  `Authorization: Bearer <token>`. The token is bound (agentos.mcp.registry.bind_request_token,
+  `Authorization: Bearer <token>`. The token is bound (agentos.core.tools.bind_request_token,
   plus an optional extra binder such as agentos.policy's) for the duration of the request, with
   the MCP session id and the `?toolsets=` the URL asks for (agentos.mcp.toolsets). Each HTTP request
   also carries an event in its scope (CLIENT_GONE_KEY), set when the client disconnects or the
@@ -41,7 +41,8 @@ from starlette.websockets import WebSocket
 from agentos.core.http_errors import WWW_AUTHENTICATE, error_body, status_of
 from agentos.core.logs import log_context, new_request_id
 from agentos.core.runtime import Runtime
-from agentos.mcp.registry import CLIENT_GONE_KEY, bind_request_token
+from agentos.core.tools import bind_request_token
+from agentos.mcp.registry import CLIENT_GONE_KEY
 from agentos.mcp.toolsets import bind_connection
 
 log = logging.getLogger(__name__)

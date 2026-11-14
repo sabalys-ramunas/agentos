@@ -4,10 +4,10 @@ partial failures. Runs against an in-memory lane manager and a temporary home. N
 from __future__ import annotations
 
 import pytest
+from testkit.workspaces import Harness
 
 from agentos.core.errors import InvalidRequest, LaneNotFound, NotFound, ServiceUnavailable
 from agentos.workspaces.errors import WorkspaceConflict
-from agentos.workspaces.fakes import Harness
 from agentos.workspaces.models import PLAN_MAX_LANES
 from agentos.workspaces.service import build, derived_name
 
@@ -520,8 +520,9 @@ async def test_a_lane_created_but_not_recorded_is_still_listed_as_created(h, mon
 
 
 def test_delete_is_refused_while_the_workspace_has_memory(h):
+    from testkit.memory import fake_memory
+
     from agentos.memory import Caller
-    from agentos.memory.fakes import fake_memory
 
     h.service.create_workspace("acme")
     m = fake_memory(h.home)
@@ -537,8 +538,9 @@ def test_delete_is_refused_while_the_workspace_has_memory(h):
 
 
 def test_delete_with_memory_through_the_memory_service(h):
+    from testkit.memory import fake_memory
+
     from agentos.memory import Caller
-    from agentos.memory.fakes import fake_memory
 
     h.service.create_workspace("acme")
     m = fake_memory(h.home)

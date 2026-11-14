@@ -17,9 +17,9 @@ from starlette.testclient import TestClient, WebSocketDenialResponse
 from agentos.core.config import NodeConfig
 from agentos.core.models import Effect, LaneSpec
 from agentos.core.runtime import Runtime
-from agentos.core.tools import ToolSpec
+from agentos.core.tools import ToolSpec, current_request_token
 from agentos.mcp.http import BearerAuth, TrustedHosts, build_app, parse_host
-from agentos.mcp.registry import OwnerContext, build_mcp, current_request_token
+from agentos.mcp.registry import OwnerContext, build_mcp
 from agentos.node import daemon
 from agentos.node.tools import tool_specs
 

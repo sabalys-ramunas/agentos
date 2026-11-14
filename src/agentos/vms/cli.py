@@ -46,7 +46,7 @@ def _manager(runtime=None):
 
 def _tokens():
     """The repo tokens, in this node's vault (opened the way the daemon opens it)."""
-    from agentos.cli import cli_runtime
+    from agentos.commands.base import cli_runtime
     from agentos.vms.repos import RepoTokens
     return RepoTokens(cli_runtime().get("vault"))
 

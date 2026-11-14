@@ -12,12 +12,12 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
+from agentos.core.locator import Locator
 from agentos.runner import flowcli
 from agentos.runner.cli import app
 from agentos.runner.fakes import resolve_all, resolve_one
 from agentos.runner.flowfiles import load_yaml
 from agentos.runner.flowtest import parse_outline
-from agentos.runner.models import Locator
 
 ROOT = Path(__file__).resolve().parents[2]
 EXAMPLE = ROOT / "examples" / "flows"

@@ -26,7 +26,7 @@ from agentos.core.http_errors import error_body, status_for
 from agentos.core.models import Principal, RunStatus
 from agentos.core.presence import Presence
 from agentos.runner.flows import lint
-from agentos.runner.models import is_owner
+from agentos.runner.owner import is_owner
 
 PERSON = Presence.PERSON
 
@@ -71,23 +71,25 @@ def _int(value: str | None, default: int, hi: int = 500) -> int:
         raise InvalidRequest(f"not a number: {value!r}") from e
 
 
+def handle(fn):
+    """A route that answers an AgentosError as its JSON error."""
+    async def endpoint(request: Request) -> Response:
+        try:
+            return await fn(request)
+        except AgentosError as e:
+            return _error(e)
+    endpoint.__name__ = fn.__name__
+    return endpoint
+
+
 def routes(runtime: Any) -> list[Route]:
+    return _run_routes(runtime) + _flow_routes(runtime) + _schedule_routes(runtime)
+
+
+def _run_routes(runtime: Any) -> list[Route]:
     def runner():
         return runtime.require("runner")
 
-    def flows():
-        return runtime.require("flows")
-
-    def handle(fn):
-        async def endpoint(request: Request) -> Response:
-            try:
-                return await fn(request)
-            except AgentosError as e:
-                return _error(e)
-        endpoint.__name__ = fn.__name__
-        return endpoint
-
-    # ---- runs ----
     @handle
     async def list_runs(request: Request) -> Response:
         q = request.query_params
@@ -112,7 +114,21 @@ def routes(runtime: Any) -> list[Route]:
                                     by=_principal(request).id, refuse_family=_refuse_family(request))
         return JSONResponse(runner().describe(run))
 
-    # ---- flows ----
+    return [
+        Route("/api/runs", list_runs, methods=["GET"]),
+        Route("/api/runs/{id}", get_run, methods=["GET"]),
+        Route("/api/runs/{id}/cancel", cancel_run, methods=["POST"]),
+        Route("/api/runs/{id}/decide", decide_run, methods=["POST"]),
+    ]
+
+
+def _flow_routes(runtime: Any) -> list[Route]:
+    def runner():
+        return runtime.require("runner")
+
+    def flows():
+        return runtime.require("flows")
+
     @handle
     async def list_flows(request: Request) -> Response:
         out = []
@@ -155,7 +171,18 @@ def routes(runtime: Any) -> list[Route]:
             source="api", authorized=False)  # under the caller's grant; the runner authorizes before it runs
         return JSONResponse({**runner().describe(run), "duplicate": not created}, status_code=202)
 
-    # ---- schedules ----
+    return [
+        Route("/api/flows", list_flows, methods=["GET"]),
+        Route("/api/flows", save_flow, methods=["POST"]),
+        Route("/api/flows/{id}", get_flow, methods=["GET"]),
+        Route("/api/flows/{id}/run", run_flow, methods=["POST"]),
+    ]
+
+
+def _schedule_routes(runtime: Any) -> list[Route]:
+    def runner():
+        return runtime.require("runner")
+
     def scheduler():
         s = runner().scheduler
         if s is None:
@@ -199,14 +226,6 @@ def routes(runtime: Any) -> list[Route]:
         return JSONResponse(scheduler().describe(scheduler().set_enabled(request.path_params["id"], on)))
 
     return [
-        Route("/api/runs", list_runs, methods=["GET"]),
-        Route("/api/runs/{id}", get_run, methods=["GET"]),
-        Route("/api/runs/{id}/cancel", cancel_run, methods=["POST"]),
-        Route("/api/runs/{id}/decide", decide_run, methods=["POST"]),
-        Route("/api/flows", list_flows, methods=["GET"]),
-        Route("/api/flows", save_flow, methods=["POST"]),
-        Route("/api/flows/{id}", get_flow, methods=["GET"]),
-        Route("/api/flows/{id}/run", run_flow, methods=["POST"]),
         Route("/api/schedules", list_schedules, methods=["GET"]),
         Route("/api/schedules", add_schedule, methods=["POST"]),
         Route("/api/schedules/{id}", get_schedule, methods=["GET"]),

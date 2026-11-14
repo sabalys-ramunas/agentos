@@ -11,6 +11,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from agentos.core import globs
 from agentos.core.errors import InvalidRequest
 from agentos.node.egress.constants import (
     _DOTTED_NAME_RE,
@@ -27,7 +28,6 @@ from agentos.node.egress.constants import (
 )
 from agentos.node.egress.rules import UNKNOWN, EffectRule
 from agentos.node.egress.sites import norm_path
-from agentos.policy import globs
 
 # ---- request shapes ----------------------------------------------------------------------
 
@@ -122,55 +122,63 @@ def operations(headers: dict[str, str] | None, body: bytes | None) -> list[dict[
     """Every operation a GraphQL-like request carries, as {name, doc_id, keyword}: the operation
     headers' name, and each element of a batch body (a JSON array, Meta's `queries` form field).
     None when the body cannot be read as one (too large, multipart, another format)."""
-    from urllib.parse import parse_qsl
-
     low = {k.lower(): v for k, v in (headers or {}).items()}
     named = [low[h] for h in SHAPE_HEADERS if h != "x-restli-method" and low.get(h)]
     data = body or b""
     if len(data) > SHAPE_PARSE_MAX:
         return None
     ctype = (low.get("content-type") or "").split(";")[0].strip().lower()
-    text = data.decode("utf-8", "replace")
-    elements: list[Any]
-    if not data:
-        elements = [{}]
-    elif "json" in ctype or (not ctype and text[:1] in "[{"):
-        try:
-            value = json.loads(text)
-        except ValueError:
-            return None
-        elements = value if isinstance(value, list) else [value]
-    elif "x-www-form-urlencoded" in ctype or (not ctype and "=" in text):
-        form = dict(parse_qsl(text, keep_blank_values=True))
-        elements = [form]
-        if isinstance(form.get("queries"), str):  # Meta's batch: {"q0": {"doc_id", "query_params"}, ...}
-            try:
-                batch = json.loads(form["queries"])
-            except ValueError:
-                return None
-            if not isinstance(batch, dict):
-                return None
-            elements = [form | q if isinstance(q, dict) else {"_": q} for q in batch.values()] or [form]
-    else:
+    elements = _body_elements(data, ctype)
+    if elements is None:
         return None
-    out = []
-    for el in elements:
-        if not isinstance(el, dict):
-            out.append({"name": None, "doc_id": None, "keyword": None})
-            continue
-        doc = el.get("query")
-        keyword = None
-        if isinstance(doc, str) and doc.strip():
-            m = _DOC_KEYWORD.match(doc)
-            keyword = "mutation" if _MUTATION_WORD.search(doc) else (m.group(2) if m else "unreadable")
-        doc_id = next((str(el[k]) for k in _DOC_ID_KEYS if isinstance(el.get(k), (str, int))), None)
-        out.append({"name": _op_name(el) or (el.get("query_name") if isinstance(el.get("query_name"), str) else None),
-                    "doc_id": doc_id, "keyword": keyword})
+    out = [_operation(el) for el in elements]
     if named and len(out) == 1 and out[0]["name"] is None:
         out[0]["name"] = named[0]  # the operation only a header names (the body is its variables)
     for name in named:  # a header names the request's operation: it must be a read as well
         out.append({"name": name, "doc_id": None, "keyword": None})
     return out
+
+
+def _body_elements(data: bytes, ctype: str) -> list[Any] | None:
+    """The operations' elements of a body: a JSON object or array, a form (Meta's `queries` batch
+    gives one element per query), or one empty element for no body. None for another format."""
+    from urllib.parse import parse_qsl
+
+    text = data.decode("utf-8", "replace")
+    if not data:
+        return [{}]
+    if "json" in ctype or (not ctype and text[:1] in "[{"):
+        try:
+            value = json.loads(text)
+        except ValueError:
+            return None
+        return value if isinstance(value, list) else [value]
+    if "x-www-form-urlencoded" in ctype or (not ctype and "=" in text):
+        form = dict(parse_qsl(text, keep_blank_values=True))
+        if not isinstance(form.get("queries"), str):
+            return [form]
+        try:  # Meta's batch: {"q0": {"doc_id", "query_params"}, ...}
+            batch = json.loads(form["queries"])
+        except ValueError:
+            return None
+        if not isinstance(batch, dict):
+            return None
+        return [form | q if isinstance(q, dict) else {"_": q} for q in batch.values()] or [form]
+    return None
+
+
+def _operation(el: Any) -> dict[str, Any]:
+    """{name, doc_id, keyword} of one element (all None for one that is not an object)."""
+    if not isinstance(el, dict):
+        return {"name": None, "doc_id": None, "keyword": None}
+    doc = el.get("query")
+    keyword = None
+    if isinstance(doc, str) and doc.strip():
+        m = _DOC_KEYWORD.match(doc)
+        keyword = "mutation" if _MUTATION_WORD.search(doc) else (m.group(2) if m else "unreadable")
+    doc_id = next((str(el[k]) for k in _DOC_ID_KEYS if isinstance(el.get(k), (str, int))), None)
+    return {"name": _op_name(el) or (el.get("query_name") if isinstance(el.get("query_name"), str) else None),
+            "doc_id": doc_id, "keyword": keyword}
 
 
 def gql_verdict(site: str, headers: dict[str, str] | None, body: bytes | None, *,
@@ -414,42 +422,16 @@ def request_shape(headers: dict[str, str] | None, body: bytes | None) -> dict[st
     key in SHAPE_OP_KEYS) and the names of its body's fields (JSON paths, form and multipart
     field names, and the fields inside a form field that holds JSON). Never a value: what a person
     typed never reaches the trace. Names that do not look like identifiers are dropped."""
-    from urllib.parse import parse_qsl
-
     low = {k.lower(): v for k, v in (headers or {}).items()}
     ctype = (low.get("content-type") or "").split(";")[0].strip().lower()
     shape: dict[str, Any] = {"type": ctype or None}
-    op: str | None = None
-    for name in SHAPE_HEADERS:
-        value = low.get(name)
-        if value and _SHAPE_NAME_RE.match(value):
-            shape.setdefault("headers", {})[name] = value
-            op = op or value
+    op = _shape_headers(low, shape)
     fields: list[str] = []
     data = body or b""
     if "multipart/" in ctype:
-        fields = list(dict.fromkeys(m.decode("ascii", "replace") for m in _MULTIPART_NAME_RE.findall(data[:65536])))
-        fields = [f for f in fields if _SHAPE_NAME_RE.match(f)][:SHAPE_MAX_FIELDS]
+        fields = _multipart_fields(data)
     elif data and len(data) <= SHAPE_PARSE_MAX:
-        text = data.decode("utf-8", "replace")
-        if "json" in ctype or (not ctype and text[:1] in "[{"):
-            with contextlib.suppress(ValueError):
-                parsed = json.loads(text)
-                op = op or _op_name(parsed)
-                _shape_paths(parsed[0] if isinstance(parsed, list) and parsed else parsed, "", fields, 1)
-        elif "x-www-form-urlencoded" in ctype or (not ctype and "=" in text):
-            pairs = parse_qsl(text, keep_blank_values=True)
-            form = {k: v for k, v in pairs}
-            op = op or _op_name(form)
-            for key, value in pairs:
-                if len(fields) >= SHAPE_MAX_FIELDS:
-                    break
-                if not _SHAPE_NAME_RE.match(key) or key in fields:
-                    continue
-                fields.append(key)
-                if key in SHAPE_JSON_FIELDS:
-                    with contextlib.suppress(ValueError):
-                        _shape_paths(json.loads(value), key, fields, 2)
+        op = _shape_body(data.decode("utf-8", "replace"), ctype, op, fields)
     if op:
         shape["op"] = op
     if fields:
@@ -464,6 +446,48 @@ def request_shape(headers: dict[str, str] | None, body: bytes | None) -> dict[st
         if doc_ids:
             shape["doc_ids"] = doc_ids[:SHAPE_MAX_FIELDS]
     return shape
+
+
+def _shape_headers(low: dict[str, str], shape: dict[str, Any]) -> str | None:
+    """The operation headers that hold a name, added to `shape`, and the first of them."""
+    op: str | None = None
+    for name in SHAPE_HEADERS:
+        value = low.get(name)
+        if value and _SHAPE_NAME_RE.match(value):
+            shape.setdefault("headers", {})[name] = value
+            op = op or value
+    return op
+
+
+def _multipart_fields(data: bytes) -> list[str]:
+    fields = list(dict.fromkeys(m.decode("ascii", "replace") for m in _MULTIPART_NAME_RE.findall(data[:65536])))
+    return [f for f in fields if _SHAPE_NAME_RE.match(f)][:SHAPE_MAX_FIELDS]
+
+
+def _shape_body(text: str, ctype: str, op: str | None, fields: list[str]) -> str | None:
+    """The field names of a JSON or form body, added to `fields`, and the operation it names
+    (`op` when one is named already)."""
+    from urllib.parse import parse_qsl
+
+    if "json" in ctype or (not ctype and text[:1] in "[{"):
+        with contextlib.suppress(ValueError):
+            parsed = json.loads(text)
+            op = op or _op_name(parsed)
+            _shape_paths(parsed[0] if isinstance(parsed, list) and parsed else parsed, "", fields, 1)
+    elif "x-www-form-urlencoded" in ctype or (not ctype and "=" in text):
+        pairs = parse_qsl(text, keep_blank_values=True)
+        form = {k: v for k, v in pairs}
+        op = op or _op_name(form)
+        for key, value in pairs:
+            if len(fields) >= SHAPE_MAX_FIELDS:
+                break
+            if not _SHAPE_NAME_RE.match(key) or key in fields:
+                continue
+            fields.append(key)
+            if key in SHAPE_JSON_FIELDS:
+                with contextlib.suppress(ValueError):
+                    _shape_paths(json.loads(value), key, fields, 2)
+    return op
 
 
 # top-level body keys that name an operation or a persisted query: a body with one is never covered by

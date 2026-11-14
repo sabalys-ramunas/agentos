@@ -3,13 +3,13 @@ and browser_network (requests, and the response body of one on demand), in the `
 
 Both read what the lane's DevtoolsCapture (agentos.node.devtools) kept since the lane's browser
 started. They are reads (Effect.READ): they run inside the lane's read session like
-browser_snapshot (agentos.node.tools.driven_session with mode READ), so they share the lane, also
+browser_snapshot (agentos.node.tools.session.driven_session with mode READ), so they share the lane, also
 while another caller claims it, and are refused while a person has taken the lane over.
 
 What the agent never gets from them: a request body, a cookie, Set-Cookie, Authorization or any
 header named like a secret, the value of a query parameter named like one, the answer to a login,
 or a body from a host the lane's egress guard would not load. Everything returned also passes the
-vault scrub (agentos.mcp.redact), and the text is labelled untrusted (label_page_text), because
+vault scrub (agentos.policy.redactor), and the text is labelled untrusted (label_page_text), because
 the page and the sites it calls wrote it.
 """
 
@@ -25,7 +25,9 @@ from agentos.core.tools import ToolContext, ToolSpec
 from agentos.node import egress
 from agentos.node.claims import READ
 from agentos.node.devtools import RESOURCE_TYPES, DevtoolsCapture, capture_for, detail_row, read_body
-from agentos.node.tools import active_page, driven_session, label_page_text, lane_id, url_host
+from agentos.node.tools.inputs import lane_id, url_host
+from agentos.node.tools.outline import active_page
+from agentos.node.tools.session import driven_session, label_page_text
 
 ConsoleLevel = Literal["error", "warning", "all"]
 ResourceType = Literal["document", "stylesheet", "image", "media", "font", "script", "texttrack", "xhr", "fetch",

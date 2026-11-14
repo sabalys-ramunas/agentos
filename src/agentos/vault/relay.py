@@ -29,9 +29,10 @@ import threading
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any
 
+from agentos.core import clock
 from agentos.core.errors import InvalidRequest
 from agentos.vault.errors import CodeDeclined, CodeRefused, CodeRequestClosed
 from agentos.vault.secret import Secret
@@ -63,10 +64,6 @@ def normalize_code(raw: Secret) -> Secret:
     return Secret(text)
 
 
-def _iso(ts: float) -> str:
-    return datetime.fromtimestamp(ts, UTC).isoformat().replace("+00:00", "Z")
-
-
 @dataclass
 class CodeRequest:
     id: str
@@ -83,8 +80,8 @@ class CodeRequest:
 
     def public(self) -> dict[str, Any]:
         return {"id": self.id, "state": self.state, "lane": self.lane, "site": self.site,
-                "requested_by": dict(self.requester), "created_at": _iso(self.created_at),
-                "expires_at": _iso(self.expires_at)}
+                "requested_by": dict(self.requester), "created_at": clock.iso(self.created_at, z=True),
+                "expires_at": clock.iso(self.expires_at, z=True)}
 
 
 @dataclass

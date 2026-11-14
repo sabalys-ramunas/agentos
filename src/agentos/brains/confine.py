@@ -199,14 +199,6 @@ def _outside(home: Path) -> Targets:
     return t
 
 
-def _exists(p: Path) -> bool:
-    try:
-        p.lstat()
-    except OSError:
-        return False
-    return True
-
-
 def collect_targets(home: Path, *, display_base: int | None = None, slots: int = 0) -> Targets:
     """What a brain must not reach on this node, as agentosd sees it now (only what exists)."""
     home = Path(home)
@@ -225,7 +217,7 @@ def collect_targets(home: Path, *, display_base: int | None = None, slots: int =
         if (home / sub).is_dir():
             with contextlib.suppress(OSError):
                 t.files += [str(p) for p in sorted((home / sub).iterdir()) if p.is_file()]
-    from agentos.ops.layout import lane_dirs
+    from agentos.core.layout import lane_dirs
 
     for lane in lane_dirs(home):
         if lane.profile.is_dir():

@@ -33,8 +33,8 @@ Three kinds of work sit around one object, the profile:
           +-----------------------+-----------------------+
           v                       v                       v
         BUILD                   DESIGN                 PUBLISH
-   tests on the node,      ui_check, ui_diff,      posts, replies,
-   the dev server in a     the panel, the bench    engagement
+   tests on the node,      ui_check, ui_diff,      posts and replies
+   the dev server in a     the panel, the bench    on account lanes
    browser, keys by name   (studio, this doc)      (exists)
    (mostly exists)
           +-----------------------+-----------------------+

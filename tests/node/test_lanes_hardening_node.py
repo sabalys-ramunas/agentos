@@ -28,8 +28,8 @@ from agentos.core.config import NodeConfig
 from agentos.core.errors import AgentPaused, LaneQuarantined
 from agentos.core.models import ControlState, LaneSpec, LaneState, Signal
 from agentos.core.runtime import Runtime
+from agentos.node.camoufox.engine import browser_pids, browser_pids_under, display_size_of, window_position_of
 from agentos.node.display import iter_processes, kill_processes, listening_ports, process_group, tcp_ports_of
-from agentos.node.engine_camoufox import browser_pids, browser_pids_under, display_size_of, window_position_of
 from agentos.node.flow_driver import LaneAgentPaused, driver_factory
 from agentos.node.lanes import (
     LaneManagerImpl,

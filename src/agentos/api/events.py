@@ -159,11 +159,6 @@ class EventBus:
             with self._lock:
                 self._subs.discard(sub)
 
-    @property
-    def subscriber_count(self) -> int:
-        with self._lock:
-            return len(self._subs)
-
 
 SERVICE_NAME = "events"
 

@@ -8,9 +8,9 @@ from __future__ import annotations
 import pytest
 from test_policy_support import make_service
 
+from agentos.core import globs
 from agentos.core.errors import InvalidRequest
 from agentos.core.models import Effect
-from agentos.policy import globs
 from agentos.policy.errors import Denied
 
 

@@ -1,8 +1,8 @@
 """An approval's preview in words, for the app (types.ts `Approval.preview`): never the raw record.
 
 The node writes a card for most approvals (agentos.policy.cards): a post of a routine or a connector, a publish
-the commit gate caught, or a form a click submits. The classic panel draws those cards itself. The app reads
-`preview.kind` and `preview.data` instead, so this module turns each card into them: a post's own text, or a
+the commit gate caught, or a form a click submits. The app reads `preview.kind` and `preview.data`, so this
+module turns each card into them: a post's own text, or a
 list of plain fields with what to check first. A preview with no card is shown as it is, unless it is a record
 (JSON): then it is told as fields too, or said in one plain line, and never shown raw (finding 24 of the
 2026-11-10 full test). The words about an unknown request are the card's own (`headline`, Builder G's text).

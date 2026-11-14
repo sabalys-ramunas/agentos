@@ -8,8 +8,7 @@ to, never from model text:
   through `GET /api/approvals/{id}/files/{param}`), and where: "as @biza.coffee on Instagram, through
   biz-a/instagram". Text params shown verbatim in the content can be edited by the approver
   (`editable`); hidden and file params cannot, and neither can a param its schema marks
-  `"readOnly": true` (a profile edit's value comes from the engagement program, which keeps the
-  value it asked for as the account's state, so the card approves exactly that value or denies it).
+  `"readOnly": true` (the card approves exactly that value or denies it).
 - `publish`: a publish the commit gate caught (AUD-03, agentos.node.commitgate): built from the
   request the page was about to send, normalized (agentos.node.publish): the text, title, link,
   target, media (by hash and size when the upload was seen), visibility, every other field it sends,
@@ -30,6 +29,9 @@ one (the username the vault typed, a password pasted into a text box) keeps its 
 which field holds a saved value and whether it changed, never the value. The approval still binds
 the real value (the content hash, and browser_act's re-check before the click).
 
+What only the node knows (the effect rule a publish matched, who it acts as, the signed-in account, a
+lane's inbox) comes from the runtime's `card_facts` (agentos.core.cardfacts, agentos.node.cardfacts).
+
 `build_card(tool, lane, content, runtime=...)` returns None for anything else (the card is then the
 summary and preview, as before). It never raises: a card is a view, never a reason to refuse.
 """
@@ -40,9 +42,12 @@ import json
 import logging
 import re
 import unicodedata
+from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urlsplit
 
+from agentos.core.cardfacts import SERVICE as CARD_FACTS
+from agentos.core.cardfacts import CardFacts
 from agentos.policy.redact import redact_text
 
 log = logging.getLogger("agentos.policy")
@@ -73,6 +78,11 @@ def _service(runtime: Any, name: str) -> Any:
         return None
 
 
+def _facts(runtime: Any) -> CardFacts | None:
+    """The node facts a card shows (agentos.core.cardfacts); None off a node, and the card leaves them out."""
+    return _service(runtime, CARD_FACTS)
+
+
 def _flow(runtime: Any, flow_id: str, version: str | None = None) -> Any:
     flows = _service(runtime, "flows")
     if flows is None:
@@ -94,12 +104,10 @@ def _inbox(runtime: Any, lane: str) -> Any:
     files = _service(runtime, "files")
     if files is not None and callable(getattr(files, "lane", None)):
         return files.lane(lane)
-    config = _service(runtime, "config")
-    if config is None:
+    config, facts = _service(runtime, "config"), _facts(runtime)
+    if config is None or facts is None:
         return None
-    from agentos.node.files import FilesConfig, LaneFiles
-
-    return LaneFiles(config.lane_dir(lane) / "files", FilesConfig.from_node(config))
+    return facts.lane_files(config, lane)
 
 
 def find_file(runtime: Any, lane: str, value: str) -> Any:
@@ -143,9 +151,7 @@ def _editable(name: str, value: Any, prop: dict[str, Any] | None) -> bool:
 def _uploads(fv: Any) -> set[str]:
     """Params a flow's upload steps send as files (agentos.runner.flows FlowService.upload_params)."""
     try:
-        from agentos.runner.models import iter_steps
-
-        return {step.param for _, step in iter_steps(fv.definition.steps)
+        return {step.param for _, step in fv.definition.iter_steps()
                 if getattr(step, "type", None) == "upload" and isinstance(getattr(step, "param", None), str)}
     except Exception:  # noqa: BLE001
         return set()
@@ -248,7 +254,7 @@ def form_card(content: dict[str, Any], runtime: Any = None) -> dict[str, Any] | 
     # `bind` is the keyed digest browser_act compares (agentos.node.fields.bind_digest): not for a person
     fields = [{k: v for k, v in f.items() if k != "bind"} for f in form.get("fields") or [] if isinstance(f, dict)]
     if runtime is not None:
-        from agentos.vault.scrub import runtime_scrub
+        from agentos.policy.scrub import runtime_scrub
 
         scrub = runtime_scrub(runtime)
         fields = [_vault_row(f, scrub) for f in fields]
@@ -278,7 +284,7 @@ class _Shown:
     def __init__(self, runtime: Any):
         self.scrub = None
         if runtime is not None:
-            from agentos.vault.scrub import runtime_scrub
+            from agentos.policy.scrub import runtime_scrub
 
             self.scrub = runtime_scrub(runtime)
 
@@ -389,69 +395,63 @@ def _handle(value: Any) -> str:
     return text
 
 
-def _same_account(ref: Any, live: dict[str, Any] | None) -> bool | None:
+def _same_account(facts: CardFacts | None, ref: Any, live: dict[str, Any] | None) -> bool | None:
     """True or False when the signed-in account can be compared with the lane's: by user id when
     one is pinned, else by handle. None when it cannot be (nothing pinned or read, another site)."""
-    from agentos.node.sites import account_matches, site_key
-
-    if ref is None or live is None:
+    if ref is None or live is None or facts is None:
         return None
     if ref.user_id:
-        return account_matches(ref, live)
-    if ref.handle and live.get("user_id") and site_key(ref.site) == live.get("site"):
+        return facts.account_matches(ref, live)
+    if ref.handle and live.get("user_id") and facts.site_key(ref.site) == live.get("site"):
         return _handle(ref.handle) == _handle(live.get("user_id"))
     return None
 
 
-def _cannot_see(site: str) -> str:
-    from agentos.node.sites import site as known_site
-
-    found = known_site(site)
+def _cannot_see(facts: CardFacts | None, site: str) -> str:
+    found = facts.site(site) if facts is not None else None
     if found is None or found.identity is None:
         return f"the node cannot see which account this browser is signed into on {site_label(site)}"
     return (f"the node could not read which account this browser is signed into on {site_label(site)} (it may "
             "be signed out, or its cookies could not be read)")
 
 
-def publish_card(content: dict[str, Any], runtime: Any = None) -> dict[str, Any]:
-    """The card of a publish the commit gate caught: what the page was about to send. A value it
-    cannot show whole says so (a vault value, a secret shape, characters past the limit: all still
-    sent and bound); every link is listed in full; a batch lists each operation the same way; the
-    account the browser is signed into now (AUD-12) is shown, with a warning when it is not the
-    lane's or when the node cannot see it (`account_status`); invisible and direction-changing
-    characters and names outside ASCII are warned."""
-    from agentos.node import acting, egress
-    from agentos.policy.approvals import content_digest
+@dataclass(frozen=True)
+class _PublishAccount:
+    """Whose account a publish goes out as, only as far as the node can tell (AUD-12)."""
+    ref: Any                     # the expected AccountRef of the lane it posts through, or None
+    account: dict[str, Any] | None
+    expected: Any                # the lane's handle, else its user id
+    live: dict[str, Any] | None  # the account the browser is signed into now, as the gate read it
+    match: bool | None           # _same_account
+    facts: CardFacts | None      # the node facts it was read with (agentos.core.cardfacts)
+    seen: Any                    # the signed-in user id, when read
+    status: str                  # match | wrong_account | unpinned | unknown
+    who: Any                     # who the card says it publishes as, or None
 
-    rule_id, lane, record = str(content["publish"]), str(content["lane"]), dict(content["record"])
-    rule = next((r for r in egress.EFFECT_RULES if r.id == rule_id), None)
-    site = rule.site if rule is not None else rule_id.split(".", 1)[0]
-    shown = _Shown(runtime)
-    # who the body acts as (agentos.node.acting): `lane` is then the surface it posts as, `through` the login
-    acts = record.get("acts_as") if isinstance(record.get("acts_as"), dict) else None
-    through = str(acts.get("through")) if acts and acts.get("through") else lane
+
+def _publish_account(runtime: Any, through: str, record: dict[str, Any]) -> _PublishAccount:
     ref = _lane_account(runtime, through)
     account = {"site": ref.site, "handle": ref.handle, "user_id": ref.user_id} if ref is not None else None
     expected = (account or {}).get("handle") or (account or {}).get("user_id")
     live = record.get("session_account") if isinstance(record.get("session_account"), dict) else None
-    match = _same_account(ref, live)
+    facts = _facts(runtime)
+    match = _same_account(facts, ref, live)
     seen = live.get("user_id") if live is not None else None
     # who it publishes as, only as far as the node can tell: never the lane's account unread
     status = ("match" if match else "wrong_account" if match is False
               else "unpinned" if seen and not expected else "unknown")
     who = expected if status == "match" else seen if status in ("wrong_account", "unpinned") else None
+    return _PublishAccount(ref, account, expected, live, match, facts, seen, status, who)
+
+
+def _publish_body(record: dict[str, Any], shown: _Shown, rows: list[tuple[str, Any]]) -> dict[str, Any]:
+    """What the publish sends, as the card shows it (the text, title, link, every link, the other
+    fields up to PUBLISH_FIELDS_SHOWN)."""
     text = record.get("text")
     if text is not None and not isinstance(text, str):
         text = json.dumps(text, ensure_ascii=False)
-    fields = record.get("fields") or {}
-    rows = sorted(fields.items())
     listed = rows[:PUBLISH_FIELDS_SHOWN]
-    hidden = len(rows) - len(listed)
-    unknown = record.get("kind") == egress.UNKNOWN
-    request = record.get("request") if isinstance(record.get("request"), dict) else {}
-    card = {
-        "type": "publish", "rule": rule_id, "kind": record.get("kind"), "site": site, "site_label": site_label(site),
-        "verified_rule": bool(rule is not None and rule.verified),
+    return {
         "text": {"param": "text", **shown(text, MAX_TEXT)} if isinstance(text, str) else None,
         "title": shown(record.get("title")) if record.get("title") is not None else None,
         "link": shown(record.get("link"), 4000) if record.get("link") is not None else None,
@@ -462,45 +462,49 @@ def publish_card(content: dict[str, Any], runtime: Any = None) -> dict[str, Any]
         "operations": [{k: (shown(v)["value"] if k == "op" else shown(v)) for k, v in op.items()}
                        for op in record.get("operations") or [] if isinstance(op, dict)],
         "fields": [{"name": k, **shown(v)} for k, v in listed],
-        "fields_hidden": hidden,
-        "surface": lane, "through": through, "acts_as": who, "account": account, "signed_in_as": live,
-        "account_status": status,
-        "line": (f"as {who} on {site_label(site)}, through {through}" if who
-                 else f"on {site_label(site)}, through {through} (the account it publishes as is not known)"),
-        "digest": content_digest(content), "images": [], "params": [], "editable": [],
-        "edit_note": PUBLISH_EDIT_NOTE,
+        "fields_hidden": len(rows) - len(listed),
     }
-    if hidden:
-        card["fields_note"] = f"{hidden} more fields are not shown here; the approval binds them too"
-    card["identity_line"] = f"Posts as {who}" if who else None  # what a chat confirmation says (from the card)
-    if acts is not None:
-        card["acting"] = {k: acts.get(k) for k in ("status", "id", "field", "surface", "kind", "label", "verified",
-                                                   "why") if acts.get(k) is not None}
-        card["identity_line"] = acting.card_line(acts)
-        if acts.get("status") == acting.SURFACE:
-            card["acts_as"] = acts.get("label")
-            card["line"] = f"as {acts.get('label')} on {site_label(site)}, through {through}"
-        elif acts.get("status") == acting.UNRECOGNIZED:
-            raw = acts.get("id")
-            card["acts_as"] = None
-            card["line"] = (f"as an identity agentos does not know{f' ({raw})' if raw else ''} on "
-                            f"{site_label(site)}, through {through}")
-            named = f" ({raw}, from {acts.get('field')})" if raw and acts.get("field") else f" ({raw})" if raw else ""
-            why = str(acts.get("why") or "no surface names it").rstrip(".")
-            card["identity_warning"] = (
-                f"This would post as an identity agentos does not know{named}: {why}. It is never automatic: "
-                "approve only if you know who that is, or add it as a surface first.")
-    if match is False:
-        by = "" if ref.user_id else " (the lane pins a handle only, so the node compared the handle)"
-        card["account_warning"] = (f"The browser is signed in to {site_label(site)} as {seen}, not as "
-                                   f"the lane's expected account {expected}{by}: this would publish as {seen}.")
-    elif status == "unknown":
-        cannot = _cannot_see(site) if seen is None else (
-            f"the node read the signed-in account {seen} but cannot compare it with the lane's account")
-        whom = (f"so it cannot confirm this publishes as {expected}" if expected
+
+
+def _add_acting(card: dict[str, Any], acts: dict[str, Any], site: str, through: str, facts: CardFacts) -> None:
+    """Who the body acts as, when the gate resolved it (agentos.node.acting): a surface it posts as,
+    or an identity agentos does not know (never automatic)."""
+    card["acting"] = {k: acts.get(k) for k in ("status", "id", "field", "surface", "kind", "label", "verified",
+                                               "why") if acts.get(k) is not None}
+    card["identity_line"] = facts.card_line(acts)
+    if acts.get("status") == facts.surface:
+        card["acts_as"] = acts.get("label")
+        card["line"] = f"as {acts.get('label')} on {site_label(site)}, through {through}"
+    elif acts.get("status") == facts.unrecognized:
+        raw = acts.get("id")
+        card["acts_as"] = None
+        card["line"] = (f"as an identity agentos does not know{f' ({raw})' if raw else ''} on "
+                        f"{site_label(site)}, through {through}")
+        named = f" ({raw}, from {acts.get('field')})" if raw and acts.get("field") else f" ({raw})" if raw else ""
+        why = str(acts.get("why") or "no surface names it").rstrip(".")
+        card["identity_warning"] = (
+            f"This would post as an identity agentos does not know{named}: {why}. It is never automatic: "
+            "approve only if you know who that is, or add it as a surface first.")
+
+
+def _add_account_warning(card: dict[str, Any], who: _PublishAccount, site: str) -> None:
+    """A warning when the browser is signed into another account than the lane's, or when the node
+    cannot tell which account it is."""
+    if who.match is False:
+        by = "" if who.ref.user_id else " (the lane pins a handle only, so the node compared the handle)"
+        card["account_warning"] = (f"The browser is signed in to {site_label(site)} as {who.seen}, not as "
+                                   f"the lane's expected account {who.expected}{by}: this would publish as {who.seen}.")
+    elif who.status == "unknown":
+        cannot = _cannot_see(who.facts, site) if who.seen is None else (
+            f"the node read the signed-in account {who.seen} but cannot compare it with the lane's account")
+        whom = (f"so it cannot confirm this publishes as {who.expected}" if who.expected
                 else "and no expected account is set for this lane")
         card["account_warning"] = (f"{cannot[0].upper()}{cannot[1:]}, {whom}. Check the account in the live view "
                                    "before you approve.")
+
+
+def _add_chars(card: dict[str, Any], record: dict[str, Any]) -> None:
+    """Characters that do not show or turn text around, marked where they sit."""
     chars = _invisible(record)
     if chars:
         card["chars"] = chars
@@ -508,9 +512,16 @@ def publish_card(content: dict[str, Any], runtime: Any = None) -> dict[str, Any]
         card["chars_warning"] = (f"What it sends holds {n} invisible or direction-changing character"
                                  f"{'s' if n != 1 else ''} ({', '.join(chars)}, marked where they sit): they can "
                                  "make text or a link read differently from what is sent.")
+
+
+def _add_lookalikes(card: dict[str, Any], record: dict[str, Any], acts: dict[str, Any] | None,
+                    who: _PublishAccount) -> None:
+    """Names with letters outside ASCII (a target, an account, a link's host) that may look like another."""
+    surface = who.facts.surface if who.facts is not None else None
     names = [("target", record.get("target")), ("profile or page", record.get("as")),
-             ("posts as", (acts or {}).get("label") if (acts or {}).get("status") == acting.SURFACE else None),
-             ("lane's account", expected), ("signed-in account", seen)]
+             ("posts as", (acts or {}).get("label") if surface is not None and (acts or {}).get("status") == surface
+             else None),
+             ("lane's account", who.expected), ("signed-in account", who.seen)]
     names += [("link host", urlsplit(u).hostname) for u in card["links"]]
     look = _lookalikes(names)
     if look:
@@ -518,23 +529,84 @@ def publish_card(content: dict[str, Any], runtime: Any = None) -> dict[str, Any]
         card["lookalike_warning"] = ("Some names have letters outside ASCII and may look like another name ("
                                      + "; ".join(f"{x['value']} is {x['ascii']}, {'/'.join(x['scripts'])}" for x in look)
                                      + "). Check each is the one you mean.")
-    if unknown:
-        names = ", ".join(k for k, _ in rows[:20]) or "no fields"
-        method, path = request.get("method", "POST"), request.get("path", "/")
-        typed = record.get("carries_typed")
-        where = ({"text": " as its text", "title": " as its title"}.get(typed, f" (in the field {typed})")
-                 if isinstance(typed, str) and typed else "")
-        card["headline"] = f"A request agentos does not recognise, to {site_label(site)}: {method} {path}"
-        card["shape"] = f"{method} {path} with {names}"
-        card["explain"] = (
-            f"agentos has no rule for this request, so it cannot tell whether it posts anything on "
-            f"{site_label(site)}. "
-            + (f"It carries text the agent typed{where}, and the agent's own click or Enter sent it. "
-               if typed is not None else "")
-            + "Every field it sends is listed here. Denying it is safe: nothing is sent, and the agent is told. "
-              "Approve only if you expected the agent to send this.")
-        card["deny_safe"] = True
+
+
+def _add_unknown_request(card: dict[str, Any], record: dict[str, Any], rows: list[tuple[str, Any]],
+                         site: str) -> None:
+    """A request agentos has no rule for, named by its shape: denying it is safe."""
+    request = record.get("request") if isinstance(record.get("request"), dict) else {}
+    names = ", ".join(k for k, _ in rows[:20]) or "no fields"
+    method, path = request.get("method", "POST"), request.get("path", "/")
+    typed = record.get("carries_typed")
+    where = ({"text": " as its text", "title": " as its title"}.get(typed, f" (in the field {typed})")
+             if isinstance(typed, str) and typed else "")
+    card["headline"] = f"A request agentos does not recognise, to {site_label(site)}: {method} {path}"
+    card["shape"] = f"{method} {path} with {names}"
+    card["explain"] = (
+        f"agentos has no rule for this request, so it cannot tell whether it posts anything on "
+        f"{site_label(site)}. "
+        + (f"It carries text the agent typed{where}, and the agent's own click or Enter sent it. "
+           if typed is not None else "")
+        + "Every field it sends is listed here. Denying it is safe: nothing is sent, and the agent is told. "
+          "Approve only if you expected the agent to send this.")
+    card["deny_safe"] = True
+
+
+def publish_card(content: dict[str, Any], runtime: Any = None) -> dict[str, Any]:
+    """The card of a publish the commit gate caught: what the page was about to send. A value it
+    cannot show whole says so (a vault value, a secret shape, characters past the limit: all still
+    sent and bound); every link is listed in full; a batch lists each operation the same way; the
+    account the browser is signed into now (AUD-12) is shown, with a warning when it is not the
+    lane's or when the node cannot see it (`account_status`); invisible and direction-changing
+    characters and names outside ASCII are warned."""
+    from agentos.policy.approval_binding import content_digest
+
+    rule_id, lane, record = str(content["publish"]), str(content["lane"]), dict(content["record"])
+    facts = _facts(runtime)
+    rule = facts.effect_rule(rule_id) if facts is not None else None
+    site = rule.site if rule is not None else rule_id.split(".", 1)[0]
+    # who the body acts as (agentos.node.acting): `lane` is then the surface it posts as, `through` the login
+    acts = record.get("acts_as") if isinstance(record.get("acts_as"), dict) else None
+    through = str(acts.get("through")) if acts and acts.get("through") else lane
+    who = _publish_account(runtime, through, record)
+    rows = sorted((record.get("fields") or {}).items())
+    card = {
+        "type": "publish", "rule": rule_id, "kind": record.get("kind"), "site": site, "site_label": site_label(site),
+        "verified_rule": bool(rule is not None and rule.verified),
+        **_publish_body(record, _Shown(runtime), rows),
+        "surface": lane, "through": through, "acts_as": who.who, "account": who.account, "signed_in_as": who.live,
+        "account_status": who.status,
+        "line": (f"as {who.who} on {site_label(site)}, through {through}" if who.who
+                 else f"on {site_label(site)}, through {through} (the account it publishes as is not known)"),
+        "digest": content_digest(content), "images": [], "params": [], "editable": [],
+        "edit_note": PUBLISH_EDIT_NOTE,
+    }
+    if card["fields_hidden"]:
+        card["fields_note"] = f"{card['fields_hidden']} more fields are not shown here; the approval binds them too"
+    card["identity_line"] = f"Posts as {who.who}" if who.who else None  # what a chat confirmation says (from the card)
+    if acts is not None and facts is not None:
+        _add_acting(card, acts, site, through, facts)
+    _add_account_warning(card, who, site)
+    _add_chars(card, record)
+    _add_lookalikes(card, record, acts, who)
+    if facts is not None and record.get("kind") == facts.unknown_kind:
+        _add_unknown_request(card, record, rows, site)
+    if facts is None:
+        _add_no_facts(card, lane)
     return card
+
+
+NO_FACTS_WARNING = ("agentos could not run its own checks on this card: which account it posts as, and the "
+                    "site's rules for this request. Decline unless you know exactly what it sends.")
+
+
+def _add_no_facts(card: dict[str, Any], lane: str) -> None:
+    """A publish card made where the node's facts are not served (no `card_facts` in the runtime)
+    says so, and denying it is safe, rather than quietly showing less than the node knows."""
+    log.error("the approval card for %s was made without the node's card facts (no card_facts service)", lane)
+    card["facts_missing"] = True
+    card["deny_safe"] = True
+    card["identity_warning"] = card.get("identity_warning") or NO_FACTS_WARNING
 
 
 def build_card(tool: str | None, lane: str | None, content: Any, *, runtime: Any = None) -> dict[str, Any] | None:

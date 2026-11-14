@@ -151,7 +151,7 @@ def changes_md(meta: dict[str, Any], proposal: dict[str, Any] | None, problems: 
     if status == "ready" and changes:
         lines += [(f"2. Probe the variant: `agentos lanebench run --variant {folder / 'variant'}`, and compare it with a run "
                   "without it on the same tasks and seed. Weaker models show the difference first."),
-                  ("3. Turn what holds up into a code change: the instructions and recipes in src/agentos/node/tools.py, "
+                  ("3. Turn what holds up into a code change: the instructions and recipes in src/agentos/node/tools/recipes.py, "
                   "the tool docstrings, and the `agent` lines in src/agentos/core/error_catalog.toml. Nothing here is "
                   "applied on its own.")]
     return "\n".join(lines).rstrip() + "\n"

@@ -7,6 +7,7 @@ import typing
 
 import pytest
 from pydantic import TypeAdapter
+from testkit.workspaces import FakeCtx, Harness
 
 from agentos.core.errors import (
     ApprovalPending,
@@ -19,7 +20,6 @@ from agentos.core.models import Effect
 from agentos.core.runtime import Runtime
 from agentos.core.tools import TOOL_NAME_RE
 from agentos.workspaces.errors import WorkspaceConflict
-from agentos.workspaces.fakes import FakeCtx, Harness
 from agentos.workspaces.tools import tool_specs
 
 SOCIAL = ["instagram", "facebook", "reddit", "medium", "blog", "linkedin"]

@@ -40,12 +40,7 @@ describe('plainDetail', () => {
   });
 });
 
-describe('ids on the account and engagement screens', () => {
-  it('says an approved plan without its id', () => {
-    expect(plainDetail('biz-a-ig-coffee version 1 approved')).toBe('Plan approved, version 1');
-    expect(plainDetail('Biz A plan notes stay as written')).toBe('Biz A plan notes stay as written');
-  });
-
+describe('ids on the account screens', () => {
   it('says the profile folder check in words, whichever way the node wrote it', () => {
     expect(fixWords('Restore its profile folder from a backup, or set the account up again.').plain).toBe(
       'Restore its profile from a backup kept on this computer, or set the account up again.',
@@ -115,8 +110,8 @@ describe('plainReason', () => {
 });
 
 describe('auditWords', () => {
-  it('reads an engagement digest line as a sentence about the account', () => {
-    expect(auditWords('panel panel.engage.digest', 'biz-b/forum', NAMES)).toBe("Made the engagement summary for Biz B's Forum");
+  it('reads an audit line as a sentence about the account', () => {
+    expect(auditWords('panel panel.lane.check', 'biz-b/forum', NAMES)).toBe("Checked the account Biz B's Forum");
     expect(auditWords('panel panel.lane.check', 'biz-a/social')).toBe('Checked the account Social');
   });
 
@@ -156,7 +151,6 @@ describe('words a computer says about its workers, environments and tools', () =
     expect(toolPlainTitle('env_create')).toBe('Make an environment');
     expect(toolPlainTitle('lane_exec')).toBe('Run a command in an account');
     expect(toolPlainTitle('lane_install')).toBe('Install a program in an account');
-    expect(toolPlainTitle('engage_program_draft')).toBe('Draft an engagement plan');
     // A tool this build does not list still reads plainly, with a lane as an account.
     expect(toolPlainTitle('lane_new_thing')).toBe('Account new thing');
   });

@@ -75,8 +75,6 @@ export function plainDetail(text: string, names?: PlaceNames): string {
   // "7 problem(s): home is 755 (want 700); ..." is folders that others can read, listed by path.
   out = out.replace(/^(\d+) problem\(s\): .*\(want 700\).*$/, (_match, count: string) => `${count} folders can be read by other users, so they should be private.`);
   out = out.replace(UTC_STAMP, (_match, day: string, time: string) => localWhen(`${day}T${time}:00Z`));
-  // A plan's approval note, as the engagement log wrote it: "biz-a-ig-coffee version 1 approved".
-  out = out.replace(/^[a-z0-9][a-z0-9-]* version (\d+) approved$/, 'Plan approved, version $1');
   for (const [pattern, words] of COMMAND_WORDS) out = out.replace(pattern, words);
   if (names) {
     // "Lane biz-a/shop" reads as the account's own name, without the word lane.
@@ -173,7 +171,6 @@ export function accessDetail(text: string, names?: PlaceNames): string {
 
 /** What an audit line's action did, as a person reads it. The raw action id stays under Technical details. */
 const AUDIT_ACTIONS: Record<string, string> = {
-  'panel.engage.digest': 'Made the engagement summary for',
   'panel.lane.check': 'Checked the account',
   'panel.lane.keepalive': 'Planned the keep-alive visits for',
   'panel.lane.sites': 'Read the site list of',
@@ -181,7 +178,7 @@ const AUDIT_ACTIONS: Record<string, string> = {
 
 /** An audit line in a sentence: "Checked the account Biz B's Forum", whatever action id the node wrote. */
 export function auditWords(action: string, target: string | null, names?: PlaceNames): string {
-  // The node writes `<kind> <tool>`, such as `panel panel.engage.digest`: the tool says what happened.
+  // The node writes `<kind> <tool>`, such as `panel panel.lane.check`: the tool says what happened.
   const tool = action.split(' ').pop() ?? action;
   const fallback = tool.replace(/^panel\./, '').replaceAll('.', ' ');
   const sentence = AUDIT_ACTIONS[tool] ?? fallback.charAt(0).toUpperCase() + fallback.slice(1);
@@ -195,7 +192,6 @@ const PROOF_STEPS: [RegExp, string][] = [
   [/^Site list of lane (\S+)$/, 'Read the site list of $1'],
   [/^Keepalive plan of lane (\S+)$/, 'Planned the keep-alive visits for $1'],
   [/^Check lane (\S+)$/, 'Checked $1'],
-  [/^Engagement digest of (\S+)$/, 'Made the engagement summary for $1'],
 ];
 
 export function proofSummary(text: string, names?: PlaceNames): string {
@@ -333,12 +329,6 @@ export const TOOL_TITLES: Record<string, string> = {
   events_list: 'List the events',
   triggers_list: 'List the triggers',
   trigger_propose: 'Propose a trigger',
-  engage_program_draft: 'Draft an engagement plan',
-  engage_status: 'Check engagement',
-  engage_item_submit: 'Send an engagement item',
-  engage_items: 'List the engagement items',
-  engage_item_withdraw: 'Withdraw an engagement item',
-  engage_digest: 'Read the engagement summary',
   memory_context: 'Read the memory for a workspace',
   memory_search: 'Search the memory',
   memory_get: 'Read a memory',

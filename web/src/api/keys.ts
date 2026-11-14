@@ -32,19 +32,17 @@ export const keys = {
   codes: (org: string) => ['org', org, 'codes', 'open'] as const,
   /** Runs that stopped halfway and wait for the owner's say-so (Needs you counts them). */
   runsWaiting: (org: string) => ['org', org, 'runs', 'waiting'] as const,
-  /** Engagement plans the owner has not approved yet, from the digest. Under the engage prefix. */
-  enginePlans: (org: string) => ['org', org, 'engage', 'plans'] as const,
   /** What is frozen on this node. A freeze changes it, and the live stream says so. */
   freeze: (org: string) => ['org', org, 'freeze'] as const,
   queue: (org: string) => ['org', org, 'queue'] as const,
-  templates: (org: string) => ['org', org, 'templates'] as const,
   activityMetrics: (org: string, range: string, scope: { workspace?: string; lane?: string }) =>
     ['org', org, 'metrics', 'activity', range, scope] as const,
   nodeMetrics: (org: string, id: string, range: string) => ['org', org, 'metrics', 'node', id, range] as const,
-  laneMetrics: (org: string, id: string, range: string) => ['org', org, 'metrics', 'lane', id, range] as const,
+  /** Every activity page, whatever its filters. */
+  activityAll: (org: string) => ['org', org, 'activity'] as const,
   activity: (org: string, filters: ActivityFilters) => ['org', org, 'activity', filters] as const,
+  historyAll: (org: string) => ['org', org, 'history'] as const,
   history: (org: string, scope: { workspace?: string; show?: string }) => ['org', org, 'history', scope] as const,
-  runs: (org: string) => ['org', org, 'runs'] as const,
   run: (org: string, id: string) => ['org', org, 'run', id] as const,
   flows: (org: string) => ['org', org, 'flows'] as const,
   routineDay: (org: string) => ['org', org, 'routine-day'] as const,
@@ -60,12 +58,11 @@ export const keys = {
   mailRoutine: (org: string, id: string) => ['org', org, 'email', 'routines', id] as const,
   siteApis: (org: string) => ['org', org, 'site-apis'] as const,
   /** What agents remember, by workspace; one list per filter; one entry. Only the owner reads these. */
+  /** Everything memory shows: its workspaces, lists and entries. */
+  memoryAll: (org: string) => ['org', org, 'memory'] as const,
   memoryWorkspaces: (org: string) => ['org', org, 'memory', 'workspaces'] as const,
   memoryList: (org: string, filter: string) => ['org', org, 'memory', 'list', filter] as const,
   memoryEntry: (org: string, id: string) => ['org', org, 'memory', 'entry', id] as const,
-  /** The day plan. Its own key, so an account's lane entry is never confused with it. */
-  dayPlan: (org: string, workspace: string) => ['org', org, 'plan', 'draft', workspace] as const,
-  dayPlanStatus: (org: string, workspace: string) => ['org', org, 'plan', 'status', workspace] as const,
   /** An account's inbox and outbox, apart from the account itself. */
   laneFiles: (org: string, id: string) => ['org', org, 'lane-files', id] as const,
   siteApi: (org: string, api: string) => ['org', org, 'site-api', api] as const,
@@ -85,11 +82,11 @@ export const keys = {
   nodes: (org: string) => ['org', org, 'nodes'] as const,
   node: (org: string, id: string) => ['org', org, 'node', id] as const,
   topology: (org: string, window: string) => ['org', org, 'topology', window] as const,
-  topologyEvents: (org: string, from: string, to: string) => ['org', org, 'topology-events', from, to] as const,
   nodeReport: (org: string, id: string, part: string) => ['org', org, 'node', id, 'report', part] as const,
-  joinTokens: (org: string) => ['org', org, 'join-tokens'] as const,
+  serviceLogs: (org: string, id: string, lane: string | null) => ['org', org, 'node', id, 'service-logs', lane] as const,
   brains: (org: string) => ['org', org, 'brains'] as const,
   workers: (org: string) => ['org', org, 'workers'] as const,
+  handover: (org: string, id: string) => ['org', org, 'brains', 'handover', id] as const,
   workersOnComputer: (org: string, node: string) => ['org', org, 'workers', 'computer', node] as const,
   workerOnAccount: (org: string, lane: string) => ['org', org, 'workers', 'account', lane] as const,
   workerAccount: (org: string, lane: string) => ['org', org, 'workers', 'switch', lane] as const,
@@ -99,6 +96,8 @@ export const keys = {
   browserDevices: (org: string) => ['org', org, 'browser-devices'] as const,
   deviceMove: (org: string, ws: string, name: string, to: string) => ['org', org, 'lanes', ws, name, 'device-move', to] as const,
   proxies: (org: string) => ['org', org, 'proxies'] as const,
+  /** Every lane and what hangs off one. */
+  lanesAll: (org: string) => ['org', org, 'lanes'] as const,
   laneLogin: (org: string, ws: string, name: string) => ['org', org, 'lanes', ws, name, 'login'] as const,
   grants: (org: string) => ['org', org, 'grants'] as const,
   /** Both lists, for invalidating after a change. */
@@ -112,16 +111,6 @@ export const keys = {
   webhookDeliveries: (org: string, id: string) => ['org', org, 'webhooks', id, 'deliveries'] as const,
   retention: (org: string) => ['org', org, 'retention'] as const,
   notifications: (org: string) => ['org', org, 'notifications'] as const,
-  /** Every engagement key starts here, so a write can refresh them all. */
-  engage: (org: string) => ['org', org, 'engage'] as const,
-  engageDay: (org: string, day: string | undefined) => ['org', org, 'engage', 'day', day ?? 'yesterday'] as const,
-  engageAccount: (org: string, ws: string, name: string, day: string | undefined) =>
-    ['org', org, 'engage', 'account', ws, name, day ?? 'yesterday'] as const,
-  engageProgram: (org: string, ws: string, name: string) => ['org', org, 'engage', 'program', ws, name] as const,
-  engageItems: (org: string, ws: string, name: string) => ['org', org, 'engage', 'items', ws, name] as const,
-  surfaces: (org: string) => ['org', org, 'surfaces'] as const,
-  surface: (org: string, ws: string, name: string) => ['org', org, 'surfaces', ws, name] as const,
-  connectors: (org: string) => ['org', org, 'connectors'] as const,
   /** Safety checks a person turned off, for the owner's Technical details. */
   overrides: (org: string) => ['org', org, 'overrides'] as const,
   /** What agents handed to an AI model, and one task of it. Live while one is working. */

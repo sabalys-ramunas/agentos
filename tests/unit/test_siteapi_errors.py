@@ -27,6 +27,7 @@ from agentos.api import ApiSettings, build_api
 from agentos.api.auth import PanelStore
 from agentos.core.errors import (
     AgentPaused,
+    Frozen,
     HumanInControl,
     InvalidRequest,
     LaneBusy,
@@ -38,7 +39,6 @@ from agentos.core.errors import (
 )
 from agentos.core.models import RunStatus, Signal
 from agentos.core.runtime import Runtime
-from agentos.freeze.errors import Frozen
 from agentos.policy.errors import Denied, TokenInvalid
 from agentos.policy.meters import LimitReached
 from agentos.runner.connectors.surfaces import ConnectorBroken, PaceLimited

@@ -12,6 +12,7 @@ import sqlite3
 import pytest
 from test_policy_support import Clock
 
+from agentos.core import signing
 from agentos.policy import anchors, auditlog
 from agentos.policy.auditlog import SIG_CTX, canonical, mark_hash, row_hash, sign
 from agentos.policy.traces import TraceEvent, TraceStore
@@ -253,12 +254,11 @@ def export_doc(tmp_path, held_anchors: list[dict]) -> dict:
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
     from agentos.core.config import NodeConfig, save_config
-    from agentos.node.channel import wire
 
     key = Ed25519PrivateKey.generate()
     save_config(NodeConfig(home=tmp_path, controller_url="ws://localhost:1/v1/node/connect", node_id=NODE,
-                           controller_pubkey=wire.public_b64(key), audit_anchors=[]))
-    receipts = [wire.sign_controller(key, anchors.RECEIPT_KIND, NODE,
+                           controller_pubkey=signing.public_b64(key), audit_anchors=[]))
+    receipts = [signing.sign_controller(key, anchors.RECEIPT_KIND, NODE,
                                      {"anchor": anchors.core(a), "received_at": "2026-11-07T00:00:00Z"})
                 for a in held_anchors]
     return {"node": NODE, "receipts": receipts}

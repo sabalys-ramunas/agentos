@@ -43,7 +43,7 @@ from typing import Any
 import httpx
 
 from agentos.core.errors import AgentosError, NotFound
-from agentos.policy.approvals import Approval
+from agentos.policy.approval_models import Approval
 from agentos.policy.confirm import ConfirmLevel, Proof, chat_refusal
 from agentos.policy.confirm_chat import FAMILY_PROMPTS, FAMILY_WINDOW_S, prompt_text, quoted
 from agentos.policy.errors import Conflict

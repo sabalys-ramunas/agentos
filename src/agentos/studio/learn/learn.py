@@ -18,6 +18,7 @@ listed in `failed`.
 
 from __future__ import annotations
 
+from typing import Any
 from urllib.parse import urljoin, urlsplit
 
 from agentos.core.errors import InvalidRequest
@@ -109,6 +110,45 @@ async def _detect_theme(browser, url: str, width: int, light_sig: dict, color_va
     return None, "no dark theme found; tried " + ", ".join(tried)
 
 
+async def _read_widest(page: Any, reads: Reads, path: str, declared: list[Any]) -> Any:
+    """At the widest width only: the declared tokens (added to `declared` as soon as they are read),
+    what uses each variable, and component hints."""
+    pt = await read_page_tokens(page)
+    declared.append(pt.tokens)
+    if pt.unreadable:
+        reads.notes.append(f"{len(pt.unreadable)} stylesheet(s) on {path} could not be read "
+                           "(another origin); tokens declared there are missing")
+    usage = await read_usage(page)
+    for var, n in (usage.get("refs") or {}).items():
+        row = reads.usage.setdefault(var, {"rules": 0, "elements": 0})
+        row["rules"] += int(n)
+        row["elements"] += int((usage.get("els") or {}).get(var, 0))
+    hints = await read_hints(page)
+    for k in ("comp", "slot", "cls", "svg", "util"):
+        for name, n in (hints.get(k) or {}).items():
+            reads.hints[k][name] = reads.hints[k].get(name, 0) + int(n)
+    return pt
+
+
+def _merged_declared(declared: list[Any]) -> Any:
+    """Declared tokens: the first page's, then names only later pages add."""
+    from ..contracts import TokenSet
+
+    names: set[tuple] = set()
+    toks = []
+    scales: list[Any] = []
+    for ts in declared:
+        for t in ts.tokens:
+            k = (t.name, tuple(t.themes))
+            if k not in names:
+                names.add(k)
+                toks.append(t)
+        for s in ts.scales:
+            if all(s.category != x.category for x in scales):
+                scales.append(s)
+    return TokenSet(tokens=toks, scales=scales, source="page")
+
+
 async def learn_brand(browser, url: str, *, pages: list[str] | None = None,
                       widths: tuple[int, ...] = DEFAULT_WIDTHS, max_elements: int = 4000) -> BrandDraft:
     """Draft a brand from a live site. Reads only names and values; no page text is kept."""
@@ -119,7 +159,6 @@ async def learn_brand(browser, url: str, *, pages: list[str] | None = None,
     wide = widths[-1]
     reads = Reads(url=url, pages=[_path(u) for u in urls])
     declared = []
-    scales = []
     light_sig: dict | None = None
     color_vars: list[str] = []
     gone: set[int] = set()                 # pages that failed in light are not tried in dark
@@ -130,20 +169,7 @@ async def learn_brand(browser, url: str, *, pages: list[str] | None = None,
                 async with browser.page(Target(url=u), screen) as page:
                     sr = await read_screen(page, pi, w, "light", max_elements=max_elements)
                     if w == wide:
-                        pt = await read_page_tokens(page)
-                        declared.append(pt.tokens)
-                        if pt.unreadable:
-                            reads.notes.append(f"{len(pt.unreadable)} stylesheet(s) on {_path(u)} could not be read "
-                                               "(another origin); tokens declared there are missing")
-                        usage = await read_usage(page)
-                        for var, n in (usage.get("refs") or {}).items():
-                            row = reads.usage.setdefault(var, {"rules": 0, "elements": 0})
-                            row["rules"] += int(n)
-                            row["elements"] += int((usage.get("els") or {}).get(var, 0))
-                        hints = await read_hints(page)
-                        for k in ("comp", "slot", "cls", "svg", "util"):
-                            for name, n in (hints.get(k) or {}).items():
-                                reads.hints[k][name] = reads.hints[k].get(name, 0) + int(n)
+                        pt = await _read_widest(page, reads, _path(u), declared)
                         if pi == 0:
                             color_vars = sorted({t.css_var for t in pt.tokens.tokens
                                                  if t.css_var and t.category.value == "color"})
@@ -158,22 +184,8 @@ async def learn_brand(browser, url: str, *, pages: list[str] | None = None,
             reads.screens.append(screen.key)
             if sr.truncated:
                 reads.notes.append(f"{_path(u)} at {w} px: only the first {max_elements} elements were read")
-    # declared tokens: the first page's, then names only later pages add
     if declared:
-        names: set[tuple] = set()
-        toks = []
-        for ts in declared:
-            for t in ts.tokens:
-                k = (t.name, tuple(t.themes))
-                if k not in names:
-                    names.add(k)
-                    toks.append(t)
-            for s in ts.scales:
-                if all(s.category != x.category for x in scales):
-                    scales.append(s)
-        from ..contracts import TokenSet
-
-        reads.declared = TokenSet(tokens=toks, scales=scales, source="page")
+        reads.declared = _merged_declared(declared)
     switch, note = await _detect_theme(browser, urls[0], wide, light_sig or {}, color_vars)
     reads.theme, reads.theme_note = switch, note
     if switch is not None:

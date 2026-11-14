@@ -76,55 +76,9 @@ def verify_request(method: str, url: str, headers: Mapping[str, str] | Iterable[
         return Result(signed=False)
     out = Result(signed=True)
     try:
-        try:
-            inputs = parse_dictionary(hd.get("signature-input", ""))
-            sigs = parse_dictionary(hd["signature"]) if "signature" in hd else {}
-        except SFError as e:
-            raise _Reject(f"malformed signature headers: {e}") from None
-        label = next((k for k, (v, p) in inputs.items() if isinstance(v, list) and p.get("tag") == base.TAG), None)
-        if label is None:
-            raise _Reject('no signature with tag="web-bot-auth"')
-        out.label = label
-        items, params = inputs[label]
-        sig = sigs.get(label, (None, {}))[0]
-        if not isinstance(sig, bytes):
-            raise _Reject(f"no Signature for {label}")
-        created, expires, keyid = params.get("created"), params.get("expires"), params.get("keyid")
-        if type(created) is not int or type(expires) is not int:
-            raise _Reject("created and expires are required integers")
-        if not isinstance(keyid, str):
-            raise _Reject("keyid is required")
-        out.keyid, out.created, out.expires = keyid, created, expires
-        if "alg" in params and params["alg"] != "ed25519":
-            raise _Reject(f"unsupported alg {params['alg']!r}")
-        if expires <= created or (max_window is not None and expires - created > max_window):
-            raise _Reject("the window between created and expires is empty or over 24 hours")
-        if created > now + skew:
-            raise _Reject(f"created is {created - now:.1f}s in the future")
-        if now > expires + skew:
-            raise _Reject(f"expired {now - expires:.1f}s ago")
-        if nonce_bytes is not None:
-            nonce = params.get("nonce")
-            try:
-                raw = base64.b64decode(nonce, validate=True) if isinstance(nonce, str) else b""
-            except (binascii.Error, ValueError):
-                raw = b""
-            if len(raw) != nonce_bytes:
-                raise _Reject(f"the nonce is not {nonce_bytes} bytes")
-        names = [n for n, _ in items]
-        out.covered = [base.component_id(n, p) for n, p in items]
-        if "@authority" not in names and "@target-uri" not in names:
-            raise _Reject("neither @authority nor @target-uri is covered")
-        for name, cparams in items:
-            if not isinstance(name, str):
-                raise _Reject("a covered component is not a string")
-            if name.startswith("@") and name not in SUPPORTED:
-                raise _Reject(f"unsupported component {name}")
-            if name == "signature-agent":
-                value = base.field_value(name, cparams, hd)
-                out.signature_agent = _agent_url(value)
-        if "signature-agent" in hd and "signature-agent" not in names:
-            raise _Reject("Signature-Agent is sent but not covered")
+        items, params, sig = _signature(hd, out)
+        keyid = _check_params(params, out, now=now, skew=skew, nonce_bytes=nonce_bytes, max_window=max_window)
+        _check_components(items, hd, out)
         key = keys.get(keyid)
         if key is None:
             raise _Reject("unknown keyid")
@@ -137,3 +91,70 @@ def verify_request(method: str, url: str, headers: Mapping[str, str] | Iterable[
     except (_Reject, SFError, ValueError) as e:
         out.reason = str(e)
     return out
+
+
+def _signature(hd: Mapping[str, str], out: Result) -> tuple[list, dict, bytes]:
+    """(covered components, parameters, signature) of the web-bot-auth signature, with its label
+    recorded on `out` once it is found."""
+    try:
+        inputs = parse_dictionary(hd.get("signature-input", ""))
+        sigs = parse_dictionary(hd["signature"]) if "signature" in hd else {}
+    except SFError as e:
+        raise _Reject(f"malformed signature headers: {e}") from None
+    label = next((k for k, (v, p) in inputs.items() if isinstance(v, list) and p.get("tag") == base.TAG), None)
+    if label is None:
+        raise _Reject('no signature with tag="web-bot-auth"')
+    out.label = label
+    items, params = inputs[label]
+    sig = sigs.get(label, (None, {}))[0]
+    if not isinstance(sig, bytes):
+        raise _Reject(f"no Signature for {label}")
+    return items, params, sig
+
+
+def _check_params(params: dict, out: Result, *, now: float, skew: int, nonce_bytes: int | None,
+                  max_window: int | None) -> str:
+    """The signature's parameters: created and expires around now, the keyid (returned), the alg
+    and the nonce. Records keyid, created and expires on `out` once they are read."""
+    created, expires, keyid = params.get("created"), params.get("expires"), params.get("keyid")
+    if type(created) is not int or type(expires) is not int:
+        raise _Reject("created and expires are required integers")
+    if not isinstance(keyid, str):
+        raise _Reject("keyid is required")
+    out.keyid, out.created, out.expires = keyid, created, expires
+    if "alg" in params and params["alg"] != "ed25519":
+        raise _Reject(f"unsupported alg {params['alg']!r}")
+    if expires <= created or (max_window is not None and expires - created > max_window):
+        raise _Reject("the window between created and expires is empty or over 24 hours")
+    if created > now + skew:
+        raise _Reject(f"created is {created - now:.1f}s in the future")
+    if now > expires + skew:
+        raise _Reject(f"expired {now - expires:.1f}s ago")
+    if nonce_bytes is not None:
+        nonce = params.get("nonce")
+        try:
+            raw = base64.b64decode(nonce, validate=True) if isinstance(nonce, str) else b""
+        except (binascii.Error, ValueError):
+            raw = b""
+        if len(raw) != nonce_bytes:
+            raise _Reject(f"the nonce is not {nonce_bytes} bytes")
+    return keyid
+
+
+def _check_components(items: list, hd: Mapping[str, str], out: Result) -> None:
+    """The covered components: the target, only supported derived ones, and Signature-Agent
+    covered whenever it is sent. Records them (and the agent's URL) on `out`."""
+    names = [n for n, _ in items]
+    out.covered = [base.component_id(n, p) for n, p in items]
+    if "@authority" not in names and "@target-uri" not in names:
+        raise _Reject("neither @authority nor @target-uri is covered")
+    for name, cparams in items:
+        if not isinstance(name, str):
+            raise _Reject("a covered component is not a string")
+        if name.startswith("@") and name not in SUPPORTED:
+            raise _Reject(f"unsupported component {name}")
+        if name == "signature-agent":
+            value = base.field_value(name, cparams, hd)
+            out.signature_agent = _agent_url(value)
+    if "signature-agent" in hd and "signature-agent" not in names:
+        raise _Reject("Signature-Agent is sent but not covered")

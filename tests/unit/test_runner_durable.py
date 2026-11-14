@@ -5,9 +5,9 @@ from contextlib import asynccontextmanager
 
 import pytest
 
+from agentos.core.driver import DriverTimeout
 from agentos.core.errors import InvalidRequest, LaneBusy, PolicyDenied
 from agentos.core.models import Effect, LaneState, RunStatus
-from agentos.runner.driver import DriverTimeout
 from agentos.runner.fakes import (
     BASE,
     FakeApprovals,

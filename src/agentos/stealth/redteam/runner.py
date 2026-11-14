@@ -27,7 +27,7 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from agentos.stealth.redteam import detectors as d
-from agentos.stealth.redteam import scenario
+from agentos.stealth.redteam import engine, scenario
 from agentos.stealth.redteam.server import DetectorServer
 
 PROBE_TIMEOUT_MS = 60_000
@@ -165,8 +165,8 @@ async def run(lab: Lab, opts: Options, *, say: Callable[[str], None] = lambda _:
                         try:
                             deep = await read_deep(page, server.base, sid)
                             report.deep[lane] = deep
-                            report.engine[lane] = d.judge_engine(deep)
-                            report.engine[lane] += d.judge_botd(await read_judges(page, server.base))
+                            report.engine[lane] = engine.judge_engine(deep)
+                            report.engine[lane] += engine.judge_botd(await read_judges(page, server.base))
                         except Exception as e:  # noqa: BLE001
                             report.engine[lane] = [d.Verdict("engine.probe", "engine", d.SKIPPED,
                                                              f"the engine probe did not finish: {type(e).__name__}")]
@@ -358,7 +358,7 @@ class LocalLab:
         if lane not in self._browsers:
             from camoufox.async_api import AsyncCamoufox
 
-            from agentos.node.engine_camoufox import WHEEL_PREFS
+            from agentos.node.camoufox.engine import WHEEL_PREFS
 
             kwargs: dict[str, Any] = {"headless": self.headless, "humanize": True, "i_know_what_im_doing": True,
                                       "firefox_user_prefs": dict(WHEEL_PREFS)}  # a lane's notch, as a page sees it

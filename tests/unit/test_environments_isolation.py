@@ -14,7 +14,7 @@ import pytest
 from test_environments import TITLE, node, opened  # noqa: F401  (node is a fixture)
 
 from agentos.api.bridge import panel_specials
-from agentos.client.ops import DEFAULT_SPECIALS
+from agentos.client.choices import DEFAULT_SPECIALS
 from agentos.core.errors import LaneNotFound
 from agentos.core.models import Effect, utcnow
 from agentos.environments import manager as envmod
@@ -294,7 +294,7 @@ def test_reaches_is_the_family_and_people_outside_mcp():
 def panel(tmp_path):
     from test_api_members import Node
 
-    from agentos.api.auth import RateLimiter
+    from agentos.core.ratelimit import RateLimiter
 
     n = Node(tmp_path)
     n.api_app.state.api.limiter = RateLimiter(per_key=10_000, global_max=10_000)

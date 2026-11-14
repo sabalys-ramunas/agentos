@@ -174,7 +174,8 @@ def brain_user(home: Path) -> pwd.struct_passwd:
 
 @pytest.fixture
 def svc(tmp_path, monkeypatch):
-    from agentos.brains.testing import FakeVault, make_service
+    from testkit.brains import FakeVault, make_service
+
     from agentos.core.runtime import Runtime
 
     s = make_service(tmp_path / "node", runtime=Runtime(vault=FakeVault()))
@@ -210,7 +211,7 @@ def test_files_for_the_brain_are_never_written_through_a_link(svc, host):
 
 
 async def codex(svc):
-    from agentos.brains.testing import add
+    from testkit.brains import add
 
     auth = json.dumps({"tokens": {"access_token": "at-" + "A" * 30, "refresh_token": "rt-a"}})
     await add(svc, "codex-plus", "subscription", "openai", credential=auth)

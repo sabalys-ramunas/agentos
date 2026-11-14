@@ -12,7 +12,6 @@ from starlette.types import ASGIApp
 from agentos.core.config import NodeConfig
 from agentos.core.runtime import Runtime
 from agentos.mcp.http import MCP_PATH, BearerAuth, build_app
-from agentos.mcp.redact import Redactor
 from agentos.mcp.registry import ToolServer, Wrap, allow_all_wrap, build_mcp, error_message, error_result
 from agentos.node.interfaces import Interaction, LaneManager
 from agentos.node.tools import (
@@ -25,6 +24,7 @@ from agentos.node.tools import (
     tool_specs,
     viewer_dict,
 )
+from agentos.policy.redactor import Redactor
 
 __all__ = [
     "INSTRUCTIONS", "MCP_PATH", "NEEDS_TEXT", "BearerAuth", "Redactor", "build_http_app", "build_server",

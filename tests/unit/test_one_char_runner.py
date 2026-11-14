@@ -4,16 +4,12 @@ Each refused run is checked by the runner right before it executes (Runner._appr
 it fails with approval_mismatch and the fake site records no post.
 """
 
-import test_connector_approvals as tca
-from connector_samples import POST_PARAMS
-
 from agentos.core.models import RunStatus
-from agentos.engage.adapters import PRINCIPAL, SOURCE, RunnerOperations
 from agentos.runner.fakes import FakeApprovals, FakePolicy, Harness, post_flow
 
+LANE = "biz-a/social"
+
 PARAMS = {"caption": "Autumn", "image": "files/a.jpg"}
-FID = tca.FID
-LANE = tca.LANE
 
 
 def one_char(text: str) -> str:
@@ -40,17 +36,6 @@ def parked_flow_run(tmp_path):
 async def parked_and_approved(h, fv):
     run = await h.run(fv.id, PARAMS, authorized=False, principal={"kind": "flow", "id": "schedule:x"})
     assert run.status == RunStatus.WAITING_APPROVAL and run.approval_id == "ap_1"
-    return run
-
-
-async def keyed_run_approved(h, svc, ops, key: str):
-    """A connector run on LANE whose keyed card (made the way engage makes it) is approved and queued."""
-    approval_id = ops._ask(h.runner, FID, LANE, POST_PARAMS, key)
-    run, _ = h.runner.submit(flow_id=FID, params=POST_PARAMS, surface=LANE, principal=dict(PRINCIPAL),
-                             source=SOURCE, idempotency_key=key, authorized=False, approval_id=approval_id)
-    assert run.status == RunStatus.WAITING_APPROVAL
-    svc.approvals.decide(approval_id, "approve", by="owner")
-    assert await h.runner.poll_approvals() == 1
     return run
 
 
@@ -110,77 +95,6 @@ async def test_an_approval_gone_before_dispatch_fails_the_run_and_posts_nothing(
     assert h.driver.log == []
 
 
-async def test_a_keyed_connector_card_fails_the_run_when_its_key_or_a_param_changes(tmp_path):
-    """An engage-style keyed card: one character of the idempotency key or of a param changed after approval fails the run and posts nothing."""
-    h, _ = tca._harness(tmp_path, ops={"post_photo": tca._no_pace()})
-    svc, _ = tca._policy(h, tmp_path)
-    h.runtime.register("approvals", svc.approvals)
-    ops = RunnerOperations(h.runtime)
-
-    by_key = await keyed_run_approved(h, svc, ops, "engage-key-1")
-    stored = h.store.get_run(by_key.id)
-    stored.idempotency_key = one_char("engage-key-1")
-    assert h.store.save_run(stored)
-
-    by_param = await keyed_run_approved(h, svc, ops, "engage-key-2")
-    stored = h.store.get_run(by_param.id)
-    stored.params = {**stored.params, "caption": one_char(POST_PARAMS["caption"])}
-    assert h.store.save_run(stored)
-
-    await h.runner.run_until_idle()
-
-    assert_refused(h, by_key.id, because="is for a different action")
-    assert_refused(h, by_param.id, because="is for different content")
-
-
-async def test_the_keyed_connector_card_unchanged_posts_once(tmp_path):
-    """Control: the same keyed connector run, approved and unchanged, posts exactly once."""
-    h, _ = tca._harness(tmp_path, ops={"post_photo": tca._no_pace()})
-    svc, _ = tca._policy(h, tmp_path)
-    h.runtime.register("approvals", svc.approvals)
-    run = await keyed_run_approved(h, svc, RunnerOperations(h.runtime), "engage-key-0")
-    await h.runner.run_until_idle()
-
-    assert h.runner.get(run.id).status == RunStatus.SUCCEEDED_VERIFIED
-    assert len(h.site.state["posts"]) == 1
-
-
-async def test_a_legacy_card_without_binding_runs_unchanged_and_refuses_a_changed_param(tmp_path):
-    """An engage card made before ActionBinding (binding None, bare legacy hash) runs when unchanged and is refused after a one-character param change."""
-    approvals = FakeApprovals()
-    h = Harness(tmp_path, services={"approvals": approvals})
-    fv = h.save(post_flow())
-
-    def legacy_run(key: str, approval_id: str):
-        run, _ = h.runner.submit(flow_id=fv.id, params=PARAMS, authorized=False, idempotency_key=key,
-                                 approval_id=approval_id)
-        binding = h.runner.run_binding(fv, run)
-        approvals.items[approval_id] = {
-            "id": approval_id, "kind": "action", "state": "pending", "binding": None, "tool": fv.id,
-            "lane": run.target,
-            "content_digest": binding.content_digest, "content_hash": binding.legacy_engage_hash(),
-            "summary": binding.summary, "content": binding.content,
-        }
-        return run
-
-    unchanged = legacy_run("legacy-ok", "ap_ok")
-    approvals.set("ap_ok", "approved")
-    assert await h.runner.poll_approvals() == 1
-    await h.runner.run_until_idle()
-    assert h.runner.get(unchanged.id).status == RunStatus.SUCCEEDED_VERIFIED
-    assert len(h.site.state["posts"]) == 1
-
-    changed = legacy_run("legacy-bad", "ap_bad")
-    approvals.set("ap_bad", "approved")
-    assert await h.runner.poll_approvals() == 1
-    stored = h.store.get_run(changed.id)
-    stored.params = {**stored.params, "caption": "Autumm"}
-    assert h.store.save_run(stored)
-    await h.runner.run_until_idle()
-
-    assert_refused(h, changed.id, because="is for different content", posts=1)
-
-
 async def test_an_authorized_run_without_an_approval_and_an_auto_run_skip_the_check(tmp_path):
     """A run started authorized with no approval, and an auto run, are not checked and behave as before."""
     approvals = FakeApprovals()
@@ -216,7 +130,7 @@ async def test_an_authorized_run_without_an_approval_and_an_auto_run_skip_the_ch
 
 async def test_a_run_released_by_a_steps_own_card_is_not_held_to_the_runs_content(tmp_path):
     """A card a step asked for (a fill, an upload) names no flow, so releasing the run with it is not refused."""
-    from agentos.policy.approvals import BINDING_CALL, content_digest
+    from agentos.policy.approval_binding import BINDING_CALL, content_digest
 
     approvals = FakeApprovals()
     h = Harness(tmp_path, services={"approvals": approvals})

@@ -18,6 +18,7 @@ from agentos.core.config import NodeConfig
 from agentos.core.errors import PolicyDenied
 from agentos.core.models import Effect, Principal
 from agentos.core.tools import ToolSpec
+from agentos.mcp import providers as mcp_providers
 from agentos.mcp.registry import allow_all_wrap
 from agentos.node import daemon
 from agentos.node.daemon import node_runtime, serve
@@ -133,7 +134,7 @@ def test_feature_providers_skip_what_is_missing(monkeypatch, tmp_path, caplog):
     monkeypatch.syspath_prepend(str(tmp_path))
     modules = ["agentos.nothere.tools", "featok.tools", "featfails.tools", "featnospecs.tools", "featdep.tools"]
     with caplog.at_level(logging.INFO, logger="agentos.node.daemon"):
-        providers = daemon.tool_providers(modules)
+        providers = mcp_providers.tool_providers(modules)
     levels = {r.getMessage().split()[0]: r.levelno for r in caplog.records}
     assert levels["agentos.nothere.tools"] == logging.INFO
     assert levels["featdep.tools"] == logging.ERROR and levels["featnospecs.tools"] == logging.ERROR
@@ -150,7 +151,7 @@ async def test_the_daemon_serves_feature_tools(monkeypatch, config):
     feature_module(monkeypatch, "featok.tools",
                    tool_specs=lambda runtime: [ToolSpec(name="feat_ok", handler=_extra, lane_arg=None)])
     runtime = node_runtime(config, FakeLaneManager(config), FakeInteraction())
-    app = daemon.build_node_app(config, runtime, providers=daemon.tool_providers(["featok.tools"]))
+    app = daemon.build_node_app(config, runtime, providers=mcp_providers.tool_providers(["featok.tools"]))
     with TestClient(app, base_url="http://localhost:7400") as client:
         headers = MCP_HEADERS | {"Authorization": "Bearer tok"}
         assert client.post("/mcp", json=INIT, headers=headers).status_code == 200

@@ -17,14 +17,15 @@ from fakes import FakeLaneManager
 from starlette.testclient import TestClient
 from typer.testing import CliRunner
 
-from agentos import cli as agentos_cli
-from agentos.api.routes_login import read_values
 from agentos.cli import app
+from agentos.commands import base as cli_base
 from agentos.core.config import NodeConfig
 from agentos.core.errors import InvalidRequest
 from agentos.core.models import LaneSpec
+from agentos.node.login_assist import read_values
 from agentos.node.login_page import REDACT_RGBA, _unfilter, action_locator, parse_action, redact_png
-from agentos.node.viewer_app import ViewMode, ViewTokens, build_viewer_app
+from agentos.node.viewer_app import build_viewer_app
+from agentos.node.viewer_tokens import ViewMode, ViewTokens
 
 PASSWORD = "Tr0ub4dor&3-horse"
 
@@ -152,7 +153,7 @@ def test_agentos_lane_login_asks_for_each_field_and_hides_secrets(tmp_path, monk
         assert (method, parts.path) == (want_method, want_path)
         return httpx.Response(200, json=answer)
 
-    monkeypatch.setattr(agentos_cli, "_send", send)
+    monkeypatch.setattr(cli_base, "_send", send)
     r = runner.invoke(app, ["lane", "login", "biz-a/instagram"],
                       input=f"ada@example.org\n{PASSWORD}\n424 242\ny\n")
     assert r.exit_code == 0, r.output

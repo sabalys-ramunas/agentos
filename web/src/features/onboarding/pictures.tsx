@@ -4,7 +4,7 @@
  * tokens, so they follow light and dark. They are pictures: hidden from screen readers, because
  * the words beside them say the same thing.
  */
-import { Check, Download, Monitor, Share, SquarePlus } from 'lucide-react';
+import { Check, Download, Monitor } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { AgentMark, BusinessMark } from '@/components/brand/identity';
 import { SiteMark } from '@/components/brand/site-mark';
@@ -224,17 +224,6 @@ export function AllowPicture({ agent, business }: { agent: string; business: str
       </span>
       <span className="text-faint">It works on its own, and asks you before it pays or deletes.</span>
       <span className="rounded-sm bg-fg py-px text-center text-bg">Allow</span>
-    </span>
-  );
-}
-
-/** Safari's share sheet, for "Tap Share, then Add to Home Screen". */
-export function SharePicture() {
-  return (
-    <span aria-hidden="true" className="flex items-center gap-3 rounded-lg border border-line bg-bg px-3 py-2 text-faint shadow-card">
-      <Share className="size-5 text-(--current)" />
-      <SquarePlus className="size-5" />
-      <span className="text-12 text-fg">Add to Home Screen</span>
     </span>
   );
 }

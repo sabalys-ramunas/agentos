@@ -22,12 +22,12 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+from agentos.core.driver import ElementNotFound
 from agentos.core.models import ActionKind
 from agentos.node import human
 from agentos.node.flow_driver import PATH_JS, PlaywrightFlowDriver
 from agentos.node.interaction import PlaywrightInteraction
 from agentos.node.tools import full_outline, page_result
-from agentos.runner.driver import ElementNotFound
 from lanebench.executors.jev import planner_values
 from lanebench.executors.replay import ReplayExecutor, locator
 from lanebench.sites.app import Site, photo_png, serve

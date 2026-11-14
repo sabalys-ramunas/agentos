@@ -23,7 +23,7 @@ import pytest
 from test_client_fakes import FakeSystem, NodeServer
 from typer.testing import CliRunner
 
-from agentos.client import ops
+from agentos.client import credentials, ops
 from agentos.client.cli import app
 from agentos.client.mcp_http import Failure, McpError, McpSession
 
@@ -56,7 +56,7 @@ def system(tmp_path, home, monkeypatch):
     monkeypatch.setattr(ops, "current_platform", lambda: "macos")
     monkeypatch.setattr(ops, "DEFAULT_LOCAL_PORT", free_port())
     monkeypatch.setattr(ops, "VERIFY_SECONDS", 8.0)
-    monkeypatch.setattr(ops, "computer_name", lambda: "testmac")
+    monkeypatch.setattr(credentials, "computer_name", lambda: "testmac")  # the grant subject and device label
     for tool in ("ssh", "security", "launchctl", "systemctl", "claude"):
         assert shutil.which(tool) == str(fake.bin / tool), "a real system tool is reachable"
     yield fake
@@ -402,14 +402,14 @@ def test_a_controller_keeps_its_agent_token(system, tmp_path, home):
 
 
 def test_a_failed_connect_leaves_no_grant_or_owner_credential_on_the_node(system, node, home, monkeypatch):
-    real = ops.probe
+    real = credentials.probe  # the agent grant's check, in the credential steps
 
     def refuse_the_grant(port, token, **kw):
         if token != TOKEN:
             raise McpError(Failure.UNAUTHORIZED, "the node refused the token (401)")
         return real(port, token, **kw)
 
-    monkeypatch.setattr(ops, "probe", refuse_the_grant)
+    monkeypatch.setattr(credentials, "probe", refuse_the_grant)
     result = run("connect", "mynode")
     assert result.exit_code == 1 and "did not accept the agent grant" in result.output
     grants = node.runtime.policy.list_grants(include_inactive=True)

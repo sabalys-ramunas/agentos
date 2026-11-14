@@ -14,6 +14,7 @@ from mcp.client.streamable_http import streamable_http_client
 
 from agentos.core.config import NodeConfig
 from agentos.core.models import LaneSpec
+from agentos.mcp import providers as mcp_providers
 from agentos.node import daemon
 from agentos.node.daemon import build_services, node_runtime, serve
 
@@ -183,7 +184,7 @@ async def test_services_named_by_module_are_registered_and_shutdown_is_a_stop(co
 
 
 def test_lane_io_tools_are_served_by_default():
-    names = {spec.name for provider in daemon.tool_providers()
+    names = {spec.name for provider in mcp_providers.tool_providers()
              for spec in provider(node_runtime(NodeConfig(), FakeLaneManager(), FakeInteraction()))}
     assert {"files_put", "browser_upload", "browser_tabs", "browser_dialog_answer"} <= names
 

@@ -52,7 +52,7 @@ write `panel.db` can already mint a panel sign-in link, so this gives the CLI no
 `agentos dash` run on the node with the token from `node.toml` does the same for its writes, so it still approves.
 
 A grant's subject id is a name, not an identity: two grants may share one. Every check of who asked for
-something (self-approval, a brain task's owner, an engagement item's asker) is keyed on the grant family (the
+something (self-approval, a brain task's owner) is keyed on the grant family (the
 root grant id), and the subject ids the node's own issuers use (`site-key:...`) are refused to every other.
 
 The device credential is routed exactly as the node token that made it: its actions go through the policy like a
@@ -81,7 +81,7 @@ network or a protection, and why it is gated or safe (2026-11-07):
 | a flow id whose tool name another flow or tool has | refused: it would take that tool from another workspace |
 | an unknown proxy label | the error names no other label |
 | sites, egress, Ask me first, confirmation, unfreeze, hand back, pace, meters, gate log, standing approvals | gated (above) |
-| workflow on, triggers, engagement items | a person turns on or approves each |
+| workflow on, triggers | a person turns on or approves each |
 | controller `config_update` | applies the heartbeat only; a confirmation layer can only add. The controller key is no agent credential |
 | `agentos proxy add`, `lane set-proxy`, `lane create`, `backup restore` | the node's CLI, in its own process: root on the node, which is the owner (below) |
 
@@ -155,7 +155,7 @@ really do (routing, Ask me first, approvals, budget) before it acts. What each t
 | `worker`, `terminals` | authorized on the lane named; commands, services and installs are their own effects or specials, which a grant must hold |
 | `admin` | the caller's own grant, approvals and traces (its family; an admin grant sees all) |
 | `brains` | `brain_run` checks every lane and the workspace before it authorizes; status, transcript and the task list show an admin grant every task, any other grant its own family's and those whose lanes it all reaches; cancel and resume need the task's own grant family (the root grant that started it, never the subject id, which two grants may share) or an admin grant; `brain_use` needs the whole workspace, and the node's default a grant for every workspace; a task's child grant covers only its lanes |
-| `automation` | `trigger_propose` checks the lanes it listens on, wakes and grants, a pattern as a pattern (every lane it can match is in the grant), and a trigger with no lane needs the whole workspace; the owner approves every trigger as shown; engagement tools check the surface's lane, and only the grant family that queued an item withdraws it |
+| `automation` | `trigger_propose` checks the lanes it listens on, wakes and grants, a pattern as a pattern (every lane it can match is in the grant), and a trigger with no lane needs the whole workspace; the owner approves every trigger as shown |
 
 ## The credentials
 

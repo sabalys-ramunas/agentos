@@ -24,6 +24,8 @@ from textual.theme import Theme
 from textual.widgets import Footer, TabbedContent, TabPane
 
 from agentos.tui import fmt
+from agentos.tui.activity import ActivityView
+from agentos.tui.brains import BrainsView
 from agentos.tui.client import ApiClient, ApiError, NodeUnreachable
 from agentos.tui.connect import Connection
 from agentos.tui.lane import LaneScreen
@@ -48,16 +50,11 @@ from agentos.tui.models import (
     parse_list,
     parse_one,
 )
+from agentos.tui.needs import NeedsView
+from agentos.tui.overview import LaneTree, OverviewView
+from agentos.tui.runs import RunsView
 from agentos.tui.state import ActivityFilter, DashState, merge_lane_detail
 from agentos.tui.sync import Syncer
-from agentos.tui.views import (
-    ActivityView,
-    BrainsView,
-    LaneTree,
-    NeedsView,
-    OverviewView,
-    RunsView,
-)
 from agentos.tui.widgets import Banner, TopBar, View
 
 THEME = Theme(

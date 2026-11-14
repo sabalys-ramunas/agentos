@@ -30,8 +30,8 @@ STATE_MARK = {"draft": "draft", "proposed": "waits", "scheduled": "sched", "runn
 
 
 class DaemonPlans:
-    """What keepalive or engagement plans, asked of agentosd over the ops socket (`op: planned`): the
-    daemon owns the lanes both plans read. Registered under the service's name for the CLI's agenda,
+    """What keepalive plans, asked of agentosd over the ops socket (`op: planned`): the
+    daemon owns the lanes its plan reads. Registered under the service's name for the CLI's agenda,
     which calls `planned(start, end)` like it would on the service itself."""
 
     def __init__(self, home: Path, source: str):
@@ -39,8 +39,8 @@ class DaemonPlans:
 
     def planned(self, start: datetime, end: datetime, *, workspace: str | None = None) -> dict[str, Any]:
         from agentos.core.errors import ServiceUnavailable
-        from agentos.ops.layout import ops_socket
-        from agentos.ops.system import Host
+        from agentos.core.layout import ops_socket
+        from agentos.core.system import Host
 
         resp = Host().unix_request(ops_socket(self.home), {"op": "planned", "source": self.source,
                                                            "start": start.isoformat(), "end": end.isoformat(),
@@ -75,8 +75,8 @@ def _service() -> Any:
         events_build = None
     if events_build is not None:
         events_build(runtime)  # triggers: their workspace, and planning one (never started here)
-    for source in ("keepalive", "engage"):  # what they plan comes from agentosd, which owns the lanes
-        runtime.register(source, DaemonPlans(home, source))
+    # what keepalive plans comes from agentosd, which owns the lanes
+    runtime.register("keepalive", DaemonPlans(home, "keepalive"))
     return agenda_build(runtime, home=home)
 
 
@@ -110,12 +110,12 @@ def agenda_list(workspace: Annotated[str | None, typer.Option(help="one workspac
                 days: Annotated[int, typer.Option(help="how many days from the start")] = 8,
                 state: Annotated[str | None, typer.Option(help="comma list: draft, proposed, scheduled, ...")] = None,
                 lane: Annotated[str | None, typer.Option()] = None,
-                kind: Annotated[str | None, typer.Option(help="flow, connector, route, keepalive or engage")] = None,
-                managed: Annotated[bool, typer.Option(help="show what keepalive and engagement plan on their own "
+                kind: Annotated[str | None, typer.Option(help="flow, connector, route or keepalive")] = None,
+                managed: Annotated[bool, typer.Option(help="show what keepalive plans on its own "
                                                            "(asked of agentosd)")] = True,
                 as_json: Annotated[bool, typer.Option("--json")] = False) -> None:
     """The timeline: one-off entries, the upcoming fires of recurring schedules, past runs, and what
-    keepalive and engagement plan on their own (read only; ~ marks an approximate time)."""
+    keepalive plans on its own (read only; ~ marks an approximate time)."""
     svc = _service()
     try:
         svc.sync()

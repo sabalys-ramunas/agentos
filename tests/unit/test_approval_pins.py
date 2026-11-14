@@ -1,10 +1,9 @@
-"""Characterization pins: the exact content_hash and content_digest the three approval card makers create today."""
+"""Characterization pins: the exact content_hash and content_digest the approval card makers create today."""
 
 from __future__ import annotations
 
 import hashlib
 import json
-from types import SimpleNamespace
 
 import pytest
 from events_support import World, no_quiet
@@ -13,8 +12,7 @@ from test_policy_support import Clock, make_service
 import agentos.events.service as events_service
 from agentos.core.errors import ApprovalPending
 from agentos.core.models import Effect, Principal
-from agentos.engage.adapters import RunnerOperations
-from agentos.policy.approvals import ActionBinding, content_digest
+from agentos.policy.approval_binding import content_digest
 from agentos.policy.util import content_hash
 
 
@@ -55,35 +53,6 @@ async def test_policy_commit_with_a_stated_cost_pins_the_cost_in_the_hash(policy
     assert (ap.tool, ap.lane, ap.effect) == ("t", "biz-a/insta", "commit")
     assert ap.content_hash == "sha256:30d725abb18e8da1311ed765fd9486157e3f4b306fde46feb3cfcb9f07d71b0e"
     assert ap.content_digest == "sha256:cbbbdcd27692344de5dbab3abcaba413fb0f45307267de7081401576df1cb176"
-
-
-class FakeRunner:
-    """The runner lookups _ask reads: one commit flow, and one surface that names the card."""
-
-    def __init__(self, content: dict):
-        self.content = content
-        self.flows = SimpleNamespace(get=lambda flow_id: SimpleNamespace(effect="commit", id=flow_id))
-        self.surfaces = SimpleNamespace(approval=lambda fv, target: ("Like a post", self.content))
-
-    def connector_target(self, fv, surface, params):
-        return {"surface": surface}
-
-
-def test_engage_approval_card_pins_hash_and_digest(policy):
-    """An engage approve-mode card for one like. P1 changed the hash's shape on purpose (ActionBinding, keyed);
-    the bare-hex hash cards made before it hold is still what legacy_engage_hash makes, and the digest is unchanged."""
-    svc, rt = policy
-    content = {"operation": "x.like", "contract": "c1", "surface": "biz/x",
-               "acts_as": {"kind": "account", "id": "a1"}, "params": {"post": "p1"}}
-    ap_id = RunnerOperations(rt)._ask(FakeRunner(content), "connector.x.like", "biz/x", {"post": "p1"}, "eng:1")
-    ap = svc.approvals.get(ap_id)
-    assert (ap.tool, ap.lane, ap.effect, ap.summary) == ("connector.x.like", "biz/x", "commit", "Like a post")
-    assert ap.content_hash == "sha256:06153b55d709a299fad536e8694eb40123ef41e702e6277b2dbda1e82811f0d1"
-    assert ap.binding == "keyed"
-    assert ap.content_digest == "sha256:64a862f272388aa515c6d542576c536a3bc3bea2b5726db9d19e8dfdbd0252c7"
-    old = ActionBinding(effect="commit", tool="connector.x.like", lane="biz/x", params={"post": "p1"},
-                        content=content, key="eng:1", summary="Like a post")
-    assert old.legacy_engage_hash() == "fd041b557323c6761d33f54f6a9dc66b264ed94f091c039edb3305c00badad3e"
 
 
 def test_events_trigger_proposal_card_pins_hash_of_its_preview(tmp_path, monkeypatch):

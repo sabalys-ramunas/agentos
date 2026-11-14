@@ -330,7 +330,7 @@ def close_requests(mail: MailService, approvals: Any, mailbox_id: str) -> None:
 def link_for(runtime: Any, token: str, job: Job) -> dict[str, Any]:
     """The link, on the node's own port, as a lane's view link is: it never passes a controller."""
     config = runtime.require("config")
-    from agentos.node.daemon import ssh_host
+    from agentos.node.tools.lanes import ssh_host
 
     path = f"/api/mail/form/{token}"
     port = config.mcp_port

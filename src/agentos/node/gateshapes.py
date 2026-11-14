@@ -34,7 +34,7 @@ They are stored per node, not in code (GATE_SHAPES in AGENTOS_HOME, mode 600), e
 promoted it and when, and every change writes an audit row to the action log (`gate_shape`). Every
 lane's guard reads the file when it starts and again when it changes (`ShapeSource`, checked at most
 every egress.SITES_TTL_S). Only the owner promotes: the node token or the owner's own panel
-session; a member or a grant is refused (agentos.node.viewer_app.gate_log_api_routes). Field
+session; a member or a grant is refused (agentos.node.viewer_routes.gate_log_api_routes). Field
 names are shown so the owner can judge a shape; they are not matched (optional fields come and go).
 """
 
@@ -251,12 +251,26 @@ def promote(home: Path, lane_dir: Path, shape: str, *, as_: str, lane: str, name
     the node with `all_lanes`. Returns the stored entry; raises NotFound for a shape the lane's log
     does not have, InvalidRequest for one that cannot be promoted that way."""
     base = egress.EFFECT_RULES if base is None else base
+    found = _logged(lane_dir, shape, as_)
+    entry = _promotion(found, shape, as_=as_, lane=lane, name=name, by=by, base=base, all_lanes=all_lanes)
+    _keep(home, entry, shape=shape, as_=as_, lane=lane)
+    return entry
+
+
+def _logged(lane_dir: Path, shape: str, as_: str) -> dict[str, Any]:
+    """The shape in the lane's gate log (with what observe mode saw, for a commit)."""
     found = next((e for e in log(trace_rows(lane_dir), observed=as_ == "commit") if e["id"] == shape), None)
     if found is None:
         raise NotFound(f"no shape {shape} in this lane's gate log; list it with `agentos lane gate-log <lane>`"
                        + (" (--observed lists what observe mode saw)" if as_ == "commit" else ""))
     if as_ == "read" and found.get("observed_only"):  # never reached: log() lists them for commits only
         raise InvalidRequest("a shape only observe mode saw can be promoted to a commit rule, not to a read")
+    return found
+
+
+def _promotion(found: dict[str, Any], shape: str, *, as_: str, lane: str, name: str | None, by: str,
+               base: tuple[egress.EffectRule, ...], all_lanes: bool) -> dict[str, Any]:
+    """The entry promote() stores, once the shape can be promoted that way."""
     site = next((r.site for r in base if egress.globs.domain_match(r.host, found["host"])), None)
     if site is None:
         raise InvalidRequest(f"{found['host']} is not a host the commit gate knows: no effect rule names it, so "
@@ -278,6 +292,12 @@ def promote(home: Path, lane_dir: Path, shape: str, *, as_: str, lane: str, name
         entry["rule"] = commit_rule_id(site, name)
     else:
         raise InvalidRequest("promote a shape as read or as commit")
+    return entry
+
+
+def _keep(home: Path, entry: dict[str, Any], *, shape: str, as_: str, lane: str) -> None:
+    """Store the promotion in place of any other of this shape: the same promotion from another
+    lane adds that lane; a rule name another shape holds, or a full store, refuses it."""
     path = store_path(home)
     with _locked(path):
         before = next((s for s in load(path) if s.get("id") == shape and s.get("as") == as_
@@ -291,7 +311,6 @@ def promote(home: Path, lane_dir: Path, shape: str, *, as_: str, lane: str, name
         if len(shapes) >= KEPT:
             raise InvalidRequest(f"this node keeps {KEPT} promoted shapes; remove one first")
         _save(path, shapes + [entry])
-    return entry
 
 
 def _body_bound(found: dict[str, Any], base: tuple[egress.EffectRule, ...]) -> None:
@@ -383,6 +402,11 @@ def invalid(s: Any, base: tuple[egress.EffectRule, ...]) -> str | None:
     site the one the rules give its host, a commit rule's name one promote() would accept."""
     if not isinstance(s, dict):
         return "not an object"
+    return _invalid_fields(s) or _invalid_shape(s, base) or _invalid_promotion(s)
+
+
+def _invalid_fields(s: dict[str, Any]) -> str | None:
+    """Every field present and of its type: names, doc ids and the lanes it holds for."""
     for key, kind in (("id", str), ("as", str), ("site", str), ("host", str), ("path", str), ("method", str),
                       ("fields", list)):
         if not isinstance(s.get(key), kind):
@@ -399,7 +423,13 @@ def invalid(s: Any, base: tuple[egress.EffectRule, ...]) -> str | None:
     if "lanes" not in s or not (s["lanes"] is None or (isinstance(s["lanes"], list) and s["lanes"]
                                                          and all(isinstance(x, str) for x in s["lanes"]))):
         return "lanes is neither a list of lanes nor null (every lane)"
-    if not _ID_RE.match(s["id"]) or s["id"] != shape_id(s["host"], s["path"], s["method"], op, doc_ids):
+    return None
+
+
+def _invalid_shape(s: dict[str, Any], base: tuple[egress.EffectRule, ...]) -> str | None:
+    """The id its own shape's, a host and path a request has, a gated method, its host's site."""
+    if not _ID_RE.match(s["id"]) or s["id"] != shape_id(s["host"], s["path"], s["method"], s.get("op"),
+                                                         s.get("doc_ids", [])):
         return "id is not its shape's"
     if not _HOST_RE.match(s["host"]) or not s["path"].startswith("/") or any(c.isspace() for c in s["path"]):
         return "host or path is not one a request has"
@@ -408,6 +438,12 @@ def invalid(s: Any, base: tuple[egress.EffectRule, ...]) -> str | None:
     site = next((r.site for r in base if egress.globs.domain_match(r.host, s["host"])), None)
     if not _SITE_RE.match(s["site"]) or s["site"] != site:
         return "site is not the one the rules give its host"
+    return None
+
+
+def _invalid_promotion(s: dict[str, Any]) -> str | None:
+    """A commit promotion names a rule promote() accepts; a read names none, and a read with no
+    operation has a body that names none either."""
     if s["as"] == "commit":
         if not isinstance(s.get("rule"), str):
             return "a commit promotion names no rule"
@@ -416,14 +452,14 @@ def invalid(s: Any, base: tuple[egress.EffectRule, ...]) -> str | None:
                 return "rule is not a commit rule of its site"
         except InvalidRequest:
             return "rule is not a commit rule promote() accepts"
-    elif s["as"] == "read":
+        return None
+    if s["as"] == "read":
         if s.get("rule") is not None:
             return "a read promotion names a rule"
-        if op is None and (set(s["fields"]) & egress.OP_FIELDS or doc_ids):
+        if s.get("op") is None and (set(s["fields"]) & egress.OP_FIELDS or s.get("doc_ids", [])):
             return "a read with no operation whose body names one"
-    else:
-        return "as is neither read nor commit"
-    return None
+        return None
+    return "as is neither read nor commit"
 
 
 def compile_rules(shapes: Iterable[dict[str, Any]], base: tuple[egress.EffectRule, ...],

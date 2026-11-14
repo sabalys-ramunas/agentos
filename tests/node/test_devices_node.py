@@ -23,14 +23,14 @@ from test_fingerprint_pin_node import comparable, differences, keep, site  # noq
 
 from agentos.core.config import NodeConfig
 from agentos.core.models import LaneSpec
-from agentos.node.display import DisplayManagerImpl, kill_processes
-from agentos.node.engine_camoufox import (
+from agentos.node.camoufox.engine import (
     LAUNCHER_KEYS,
     PIN_META,
     CamoufoxEngine,
     browser_pids_under,
     read_browser_config,
 )
+from agentos.node.display import DisplayManagerImpl, kill_processes
 from agentos.node.lanes import LaneManagerImpl
 from agentos.node.store import LaneStore
 

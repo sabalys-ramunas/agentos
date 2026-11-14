@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { SiteMark } from '@/components/brand/site-mark';
 import { cn } from '@/lib/cn';
 import { projectFires } from '@/lib/cron';
-import { plural } from '@/lib/format';
+import { clock, plural } from '@/lib/format';
 import { routineName } from '@/lib/principal';
 import { routineTitle } from './routine-words';
 import { NO_ROUTINE } from './schedule-timeline';
@@ -72,7 +72,6 @@ export function weekOf(flows: Flow[], schedules: Schedule[], now: number, zone: 
   return days;
 }
 
-const clock = (at: number) => new Date(at).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false });
 
 function dayName(at: number, index: number) {
   if (index === 0) return 'Today';

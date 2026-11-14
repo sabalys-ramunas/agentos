@@ -1,10 +1,10 @@
-"""profiles.db migrations, found by agentos.ops.migrate.discover() (and applied when the store opens)."""
+"""profiles.db migrations, found by agentos.core.migrate.discover() (and applied when the store opens)."""
 
 from __future__ import annotations
 
 import sqlite3
 
-from agentos.ops.migrate import Migration, MigrationSet
+from agentos.core.migrate import Migration, MigrationSet
 
 DB = "profiles/profiles.db"
 

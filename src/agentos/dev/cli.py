@@ -57,13 +57,8 @@ def connect_clients(port: int, token: str) -> list[str]:
     return lines
 
 
-def panel_source() -> bool:
-    """Is the panel's source here to build (a checkout with panel/, not the public export)?"""
-    return (Path(__file__).resolve().parents[3] / "panel" / "package.json").is_file()
-
-
 def web_source() -> bool:
-    """Is the web app's source here to build (a checkout with web/, as the public repository is)?"""
+    """Is the web app's source here to build (a checkout with web/)?"""
     return (Path(__file__).resolve().parents[3] / "web" / "package.json").is_file()
 
 
@@ -82,13 +77,7 @@ def banner(node, connected: list[str] | None = None) -> str:
         lines += [*connected, ""]
     else:
         lines += ["Connect Claude Code with:", f"  {node.claude_add}", ""]
-    if not node.panel_built and panel_source():
-        lines += [
-            "The panel is not built yet, so the link shows a placeholder. Build it once with",
-            "`npm ci && npm run build` in panel/, then open the link again.",
-            "",
-        ]
-    elif not node.panel_built and web_source():
+    if not node.panel_built and web_source():
         lines += [
             "The web app is not built yet, so the link shows a placeholder. Build it once with",
             "`pnpm install && pnpm build` in web/, then start agentos dev again.",

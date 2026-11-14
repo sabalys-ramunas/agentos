@@ -4,6 +4,19 @@ A flow run acts on a real account with no agent watching, so it gets the same ch
 call gets, every time, from every entry point (an agent's `flow_run`, a typed `flow_<name>`
 tool, a schedule, a page watch, a webhook, the panel API, the CLI).
 
+## Where the code is
+
+- The flow document: `locator.py` (locators, conditions), `steps.py` (step types and the helpers that
+  walk them), `urlpattern.py`, `names.py` (ids, lane patterns), `owner.py` (who counts as the owner),
+  `flowdoc.py` (FlowDefinition, FlowVersion) and `records.py` (runs, step records, schedules).
+  `models.py` re-exports what other packages import.
+- The runner: `runner.py` (RunnerService: wiring, reads, re-checks, the lifecycle) with its parts in
+  `submit.py` (queueing), `approvals.py`, `gate.py` (right before a run acts) and `dispatch.py`;
+  `run_rules.py` holds what they share.
+- Execution: `executor.py` (FlowExecutor: traversal, steps, outcomes), `connector_steps.py`,
+  `execution.py` (Outcome, Journal, StepFailure, limits) and `readvalues.py` (typed values, the cap).
+- `fakes.py` is the reference driver that `agentos flows test` runs flows against.
+
 ## Every run carries its grant
 
 - `Run.grant_id` is the grant that created the run. `flow_run` records the caller's grant;

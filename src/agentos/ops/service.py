@@ -23,11 +23,11 @@ from typing import Any
 
 from agentos.core.config import home_from_env, load_config
 from agentos.core.errors import AgentosError, InvalidRequest
+from agentos.core.layout import ops_socket
 from agentos.core.models import LaneState, parse_lane_id
+from agentos.core.system import Host
 from agentos.ops.control import start_server
 from agentos.ops.health import HealthMonitor
-from agentos.ops.layout import ops_socket
-from agentos.ops.system import Host
 from agentos.stealth.lanecheck import LaneChecker
 
 log = logging.getLogger("agentos.ops.service")

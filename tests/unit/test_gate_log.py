@@ -22,7 +22,7 @@ from agentos.core.presence import Presence
 from agentos.node import egress, gateshapes
 from agentos.node.egress import EgressTrace, LaneGuard
 from agentos.node.routes import RouteDispatcher
-from agentos.node.viewer_app import gate_log_api_routes
+from agentos.node.viewer_routes import gate_log_api_routes
 
 LANE = "biz-a/reddit"
 GQL = "https://www.reddit.com/svc/shreddit/graphql"

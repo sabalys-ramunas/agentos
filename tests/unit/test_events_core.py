@@ -543,3 +543,27 @@ def test_settings_defaults_follow_the_design():
     assert (s.max_depth, s.backlog_max, s.storm_per_minute, s.failures_to_pause) == (3, 50, 30, 3)
     assert (s.lane_turns_per_hour, s.lane_turns_per_day, s.content_ttl_days, s.retention_days) == (6, 48, 7, 30)
     assert QuietHours().window_end(NOON) is None
+
+
+async def test_the_max_wait_check_reads_each_route_once_per_tick(tmp_path, monkeypatch):
+    """Deliveries waiting past their route's max_wait notify once per route, and the route is read
+    once for all of them, not once per delivery (up to 500 every tick)."""
+    w = World(tmp_path, settings=no_quiet())
+    fv = w.flow()
+    r = w.events.add_route({"name": "slow", "match": {"source": "cron", "workspace": "biz-a"},
+                            "target": {"kind": "flow", "flow": fv.id},
+                            "controls": {"rate": {"per_hour": 1}, "max_wait_s": 60, "concurrency": 5}},
+                           principal=OWNER)
+    for n in range(5):
+        w.events.emit({"source": "cron", "kind": "cron.fired", "workspace": "biz-a", "dedupe_key": f"cron:{n}"})
+    await w.tick()
+    assert sum(d.state == S.WAITING for d in w.deliveries(r.id)) == 4
+    w.clock.advance(120)
+    reads: list[str] = []
+    real = w.store.get_route
+    monkeypatch.setattr(w.store, "get_route", lambda rid: reads.append(rid) or real(rid))
+    w.events.dispatcher._max_wait(w.clock.now())
+    assert reads == [r.id]
+    told = [m for m in w.events.dispatcher.notifications if "have waited over" in m["body"]]
+    assert len(told) == 1 and told[0]["body"].startswith("4 event(s)")
+    assert all("max_wait" in d.notified for d in w.deliveries(r.id) if d.state == S.WAITING)

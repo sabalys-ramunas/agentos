@@ -14,9 +14,10 @@ from channel_fake_controller import NODE_ID, FakeController, node_pubkey, node_r
 from test_channel_node import grant, invoke_body, wire_key
 from typer.testing import CliRunner
 
+from agentos.core import signing
 from agentos.core.config import NodeConfig
 from agentos.node.channel import standing, wire
-from agentos.policy.approvals import content_digest
+from agentos.policy.approval_binding import content_digest
 from agentos.policy.ceiling import ControllerCeiling
 from agentos.policy.freeze import Reach, revoke_reaching
 
@@ -68,7 +69,7 @@ async def hosted(tmp_path, fake, **ceiling) -> object:
     settings = {**ControllerCeiling().settings(), **ceiling}
     config = NodeConfig(home=home, name="node-h", mcp_token="node-owner-token", mcp_port=0,
                         controller_url=fake.url, node_id=fake.node_id, org_id="org_test",
-                        controller_pubkey=wire.public_b64(fake.key), grant_pubkey=wire.public_b64(fake.grant_key),
+                        controller_pubkey=signing.public_b64(fake.key), grant_pubkey=signing.public_b64(fake.grant_key),
                         **settings)
     return await node_runtime(home, fake, config=config)
 
@@ -84,7 +85,7 @@ async def test_an_unsigned_wrongly_signed_or_tampered_message_changes_nothing(wi
     fake, runtime, peer = wired
     body = {"ts": wire.iso(), "nonce": secrets.token_hex(8), "upsert": [item()]}
     assert (await send(peer, body)).body["code"] == "denied"
-    assert (await send(peer, wire.sign_controller(wire_key(), "standing", NODE_ID, body))).body["code"] == "denied"
+    assert (await send(peer, signing.sign_controller(wire_key(), "standing", NODE_ID, body))).body["code"] == "denied"
     # signed for another message type
     assert (await send(peer, fake.sign("config_update", body))).body["code"] == "denied"
     tampered = signed(fake, upsert=[item()])
@@ -288,7 +289,7 @@ async def test_one_its_controller_stops_confirming_covers_nothing_until_it_resen
 
 async def test_a_refused_welcome_set_is_answered_with_an_error(wired):
     fake, runtime, peer = wired
-    fake.welcome_extra = {"standing": wire.sign_controller(wire_key(), "standing", NODE_ID,
+    fake.welcome_extra = {"standing": signing.sign_controller(wire_key(), "standing", NODE_ID,
                                                            {"ts": wire.iso(), "nonce": "n" * 12, "set": [item()]})}
     await peer.ws.close()
     second = await fake.peer()

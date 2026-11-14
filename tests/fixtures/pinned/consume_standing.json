@@ -1,0 +1,62 @@
+{
+ "effect not standing": {
+  "ok": null
+ },
+ "read": {
+  "ok": "sa_plain_read"
+ },
+ "draft, any content, workspace pattern": {
+  "ok": "sa_draft_any"
+ },
+ "draft, after untrusted content": {
+  "ok": null
+ },
+ "draft, bound content after untrusted": {
+  "ok": "sa_draft_content"
+ },
+ "commit, no tool": {
+  "ok": null
+ },
+ "commit, tool target": {
+  "ok": null
+ },
+ "commit, tool target, grant in chain": {
+  "ok": null
+ },
+ "commit, flow content approved": {
+  "ok": "sa_commit_flow_content"
+ },
+ "commit, flow other content": {
+  "ok": "sa_commit_flow_shape"
+ },
+ "commit, flow template": {
+  "ok": "sa_commit_flow_template"
+ },
+ "commit, flow other content after untrusted": {
+  "ok": null
+ },
+ "commit, flow template after untrusted": {
+  "ok": "sa_commit_flow_template"
+ },
+ "commit, other lane": {
+  "ok": null
+ },
+ "commit, connector": {
+  "ok": "sa_commit_connector"
+ },
+ "commit, connector after untrusted": {
+  "ok": "sa_commit_connector"
+ },
+ "pay, content approved": {
+  "ok": "sa_pay_content"
+ },
+ "pay, other content": {
+  "ok": "sa_pay_any"
+ },
+ "pay, after untrusted": {
+  "ok": "sa_pay_content"
+ },
+ "commit, unknown workspace": {
+  "ok": null
+ }
+}

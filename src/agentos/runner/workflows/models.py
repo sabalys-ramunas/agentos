@@ -15,8 +15,9 @@ from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from agentos.core.locator import Locator
 from agentos.core.models import Effect, utcnow
-from agentos.runner.models import FLOW_ID_RE, Locator
+from agentos.runner.names import FLOW_ID_RE
 
 MAX_STEPS = 100
 MAX_LOOP_DEPTH = 2

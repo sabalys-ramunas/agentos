@@ -37,7 +37,7 @@ def _fail(message: str, code: str = "invalid") -> NoReturn:
 
 
 def _vault() -> Any:
-    from agentos.cli import cli_runtime
+    from agentos.commands.base import cli_runtime
 
     vault = cli_runtime().get("vault")
     if vault is None:

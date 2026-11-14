@@ -22,13 +22,13 @@ from pathlib import Path
 import pytest
 
 from agentos.core.config import NodeConfig
+from agentos.core.errors import Frozen
 from agentos.core.models import Effect, LaneSpec, LaneState
 from agentos.core.runtime import Runtime
-from agentos.freeze.errors import Frozen
 from agentos.freeze.service import FreezeService
 from agentos.node import human
+from agentos.node.camoufox.engine import browser_pids_under
 from agentos.node.display import kill_processes
-from agentos.node.engine_camoufox import browser_pids_under
 from agentos.node.lanes import build_lane_manager
 from agentos.policy.service import PolicyService
 

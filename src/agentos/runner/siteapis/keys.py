@@ -35,13 +35,14 @@ import time
 from collections import deque
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import asdict, dataclass
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any
 
-from agentos.api.auth import RateLimiter
+from agentos.core import clock
 from agentos.core.errors import Conflict, InvalidRequest, NotFound, PolicyDenied
 from agentos.core.models import Effect, Principal
-from agentos.runner.models import is_owner
+from agentos.core.ratelimit import RateLimiter
+from agentos.runner.owner import is_owner
 from agentos.runner.siteapis.http_store import HttpStore
 
 KEY_RE = re.compile(r"aos_[A-Za-z0-9_-]{43}")
@@ -70,7 +71,7 @@ def token_hash(token: str) -> str:
 
 
 def iso(ts: float | None) -> str | None:
-    return datetime.fromtimestamp(ts, UTC).isoformat(timespec="seconds").replace("+00:00", "Z") if ts else None
+    return clock.iso(ts, z=True, timespec="seconds") if ts else None  # 0 is "never", as before
 
 
 def parse_time(value: Any) -> float | None:
@@ -380,7 +381,7 @@ class SiteKeys:
 
     def _carry(self, old: str, new: str) -> None:
         """What a family read goes with the key: a key's grant is a root, so its family is its own id
-        (policy.service.family_key), and one that ran out can no longer be asked for."""
+        (policy.taint.family_key), and one that ran out can no longer be asked for."""
         family = f"family:{old}"
         self.policy.taint.inherit(family, family, f"family:{new}", source=f"site key grant {old}")
 

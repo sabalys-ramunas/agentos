@@ -9,8 +9,8 @@ from pathlib import Path
 
 import pytest
 
-from agentos.ops import layout, migrate
-from agentos.ops.migrate import Migration, MigrationError, MigrationSet, NewerSchema
+from agentos.core import layout, migrate
+from agentos.core.migrate import Migration, MigrationError, MigrationSet, NewerSchema
 
 
 def calls_set(log: list[str], *, fail_at: int | None = None, db: str = "thing.db", create: bool = True):

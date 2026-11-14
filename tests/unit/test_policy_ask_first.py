@@ -17,7 +17,7 @@ from test_policy_support import Clock, make_service
 from agentos.core.errors import ApprovalPending, InvalidRequest, PolicyDenied
 from agentos.core.models import Effect, Principal, RunStatus
 from agentos.core.runtime import Runtime
-from agentos.policy.approvals import content_digest
+from agentos.policy.approval_binding import content_digest
 from agentos.policy.ask_first import AskFirst, flow_of_target
 from agentos.policy.grants import LaneCap, Specials
 from agentos.policy.routing import PolicyConfig, RoutingTable, Rule

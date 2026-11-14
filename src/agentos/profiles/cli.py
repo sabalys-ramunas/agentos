@@ -36,9 +36,7 @@ from agentos.profiles.service import ProfilesService, split_ref
 
 app = typer.Typer(no_args_is_help=True, help="Profiles: a person or business, shown on all its accounts.")
 OWNER = {"kind": "human", "id": "owner", "owner": "owner"}
-STATE_WORDS = {"in_sync": "in sync", "due": "due at the next session", "awaiting_approval": "waits for your approval",
-               "denied": "you denied it", "failed": "failed, tried again later",
-               "no_program": "needs an approved engagement program (risk off is enough)",
+STATE_WORDS = {"in_sync": "in sync", "failed": "failed, tried again later",
                "manual": "change by hand in the lane", "done_by_hand": "changed by hand"}
 
 
@@ -59,16 +57,9 @@ def _home() -> Path:
 def _service() -> Iterator[ProfilesService]:
     home = _home()
     cfg = load_config(home) if (home / "node.toml").exists() else None
-    svc = engage = None
+    svc = None
     try:
         runtime = Runtime(config=cfg) if cfg is not None else Runtime()
-        try:
-            from agentos.engage.service import EngageService
-
-            engage = EngageService(runtime, home=home)
-            runtime.register("engage", engage)
-        except AgentosError:
-            engage = None           # the status then says no_program; everything else works
         from agentos.profiles.service import build
 
         svc = build(runtime, home=home)
@@ -79,8 +70,6 @@ def _service() -> Iterator[ProfilesService]:
     finally:
         if svc is not None:
             svc.store.close()
-        if engage is not None:
-            engage.store.close()
 
 
 def _saved(out: dict[str, Any]) -> None:

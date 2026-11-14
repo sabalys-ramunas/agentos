@@ -20,8 +20,8 @@ from pathlib import Path
 from typing import Any
 
 from agentos.core.models import LaneState
+from agentos.core.system import meminfo_mb
 from agentos.node.lanes.base import _HOLDS_SLOT, ResourcesLow
-from agentos.ops.system import meminfo_mb
 
 log = logging.getLogger("agentos.lanes")
 
@@ -32,7 +32,7 @@ DEFAULT_DISK_FLOOR_BYTES = 2 * 1024**3  # AUD-23
 # ---- resource probes ------------------------------------------------------------------
 
 def available_memory_mb() -> int | None:
-    """MemAvailable in MB, or None where there is no /proc (agentos.ops.system.read_meminfo)."""
+    """MemAvailable in MB, or None where there is no /proc (agentos.core.system.read_meminfo)."""
     return meminfo_mb("MemAvailable")
 
 

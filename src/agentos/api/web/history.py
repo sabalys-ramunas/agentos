@@ -8,7 +8,9 @@ free text of a summary. The node keeps no proof screenshot route for a run, so a
 
 from __future__ import annotations
 
+import asyncio
 from collections import defaultdict
+from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -178,7 +180,7 @@ def principal_out(raw: dict[str, Any] | str | None) -> dict[str, Any] | str:
     return {"kind": kind, "id": raw["id"], "thread": raw.get("thread")}
 
 
-# A lane control's action, as the body named it (node.viewer_app.ACTIONS). Only these reach the app.
+# A lane control's action, as the body named it (node.viewer_actions.ACTIONS). Only these reach the app.
 CONTROL_ACTIONS = frozenset({"take", "hand_back", "stop_agent", "deny_request"})
 
 
@@ -722,6 +724,77 @@ async def _calls(request: Request, start: datetime, workspace: str | None) -> li
     return rows
 
 
+@dataclass
+class _Chart:
+    """The Activity histogram's buckets over one window, and what is counted into them."""
+    start: datetime
+    end: datetime
+    size: int
+    lane: str | None
+    workspace: str | None
+    buckets: list[dict[str, Any]]
+
+    @classmethod
+    def over(cls, span: str, lane: str | None, workspace: str | None) -> _Chart:
+        size, count = CHART_WINDOWS[span]
+        stamp = int(datetime.now(UTC).timestamp())
+        end_at = stamp - stamp % size + size  # the bucket that holds now is the last one
+        start = datetime.fromtimestamp(end_at - size * count, UTC)
+        buckets = [{"at": datetime.fromtimestamp(start.timestamp() + index * size, UTC).isoformat()
+                    .replace("+00:00", "Z"), "events": 0,
+                    "runs": {"succeeded_verified": 0, "succeeded_unverified": 0, "partial": 0, "failed": 0},
+                    "approvals": {"requested": 0, "approved": 0, "denied": 0}, "cost": {"tokens": 0, "usd": 0.0}}
+                   for index in range(count)]
+        return cls(start, datetime.fromtimestamp(end_at, UTC), size, lane, workspace, buckets)
+
+    def bucket(self, moment: datetime | None) -> dict[str, Any] | None:
+        """The bucket that holds `moment`, or None outside the window."""
+        if moment is None or not (self.start <= moment < self.end):
+            return None
+        return self.buckets[int((moment - self.start).total_seconds() // self.size)]
+
+    def outside(self, lane: str | None, workspace: str | None = None) -> bool:
+        """Whether a row of this lane (and workspace) is outside the lane or workspace charted."""
+        if self.lane and lane != self.lane:
+            return True
+        return bool(self.workspace and (workspace or (lane or "").split("/", 1)[0]) != self.workspace)
+
+    def add_action(self, row: dict[str, Any]) -> None:
+        bucket = self.bucket(_when(row["at"]))
+        if bucket is None or row.get("kind") == "tool_start":  # one call is one action, not its start and end
+            return
+        bucket["events"] += 1
+        cost = row.get("cost") or {}
+        bucket["cost"]["tokens"] += int(cost.get("tokens") or 0)
+        bucket["cost"]["usd"] = round(bucket["cost"]["usd"] + float(cost.get("usd") or 0), 6)
+
+    def add_run(self, run: dict[str, Any]) -> None:
+        if self.outside(run.get("lane")) or run["status"] not in CHART_RUNS:
+            return
+        bucket = self.bucket(_when(run.get("finished_at")))
+        if bucket is not None:
+            bucket["runs"][run["status"]] += 1
+
+    def add_approval(self, item: dict[str, Any]) -> None:
+        if item.get("kind") == "question" or self.outside(item.get("lane"), item.get("workspace")):
+            return
+        asked = self.bucket(_when(item.get("created_at")))
+        if asked is not None:
+            asked["approvals"]["requested"] += 1
+        decided = self.bucket(_when(item.get("decided_at")))
+        if decided is not None and item.get("state") in ("approved", "denied"):
+            decided["approvals"]["approved" if item["state"] == "approved" else "denied"] += 1
+
+    def totals(self) -> dict[str, Any]:
+        b = self.buckets
+        return {
+            "events": sum(x["events"] for x in b),
+            "runs": sum(sum(x["runs"].values()) for x in b),
+            "approvals": sum(x["approvals"]["requested"] for x in b),
+            "cost": {"tokens": sum(x["cost"]["tokens"] for x in b), "usd": round(sum(x["cost"]["usd"] for x in b), 6)},
+        }
+
+
 async def _activity_chart(request: Request, api: Api) -> dict[str, Any]:
     """The Activity histogram: per bucket, the actions logged, the runs that finished (by what they proved),
     the approvals asked, decided yes and no, and what the model cost. Built from the same facts as Activity."""
@@ -729,66 +802,27 @@ async def _activity_chart(request: Request, api: Api) -> dict[str, Any]:
     span = q.get("range") or "24h"
     if span not in CHART_WINDOWS:
         raise InvalidRequest(f"range is one of {', '.join(CHART_WINDOWS)}.")
-    size, count = CHART_WINDOWS[span]
-    stamp = int(datetime.now(UTC).timestamp())
-    end_at = stamp - stamp % size + size  # the bucket that holds now is the last one
-    start = datetime.fromtimestamp(end_at - size * count, UTC)
-    end = datetime.fromtimestamp(end_at, UTC)
     lane = q.get("lane") or None
     workspace = (lane.split("/", 1)[0] if lane else None) or q.get("workspace") or None
-
-    def bucket_of(moment: datetime) -> int:
-        return int((moment - start).total_seconds() // size)
-
-    def stamp_of(index: int) -> str:
-        return datetime.fromtimestamp(start.timestamp() + index * size, UTC).isoformat().replace("+00:00", "Z")
-
-    buckets = [{"at": stamp_of(index), "events": 0,
-                "runs": {"succeeded_verified": 0, "succeeded_unverified": 0, "partial": 0, "failed": 0},
-                "approvals": {"requested": 0, "approved": 0, "denied": 0}, "cost": {"tokens": 0, "usd": 0.0}}
-               for index in range(count)]
-    rows = await _window(request, start, workspace, lane=lane, limit=MAX_CHART_ROWS,
+    chart = _Chart.over(span, lane, workspace)
+    rows = await _window(request, chart.start, workspace, lane=lane, limit=MAX_CHART_ROWS,
                          too_long="There are too many actions to chart in this range. Try a shorter one.")
     for row in rows:
-        at = _when(row["at"])
-        if not (start <= at < end) or row.get("kind") == "tool_start":  # one call is one action, not its start and end
-            continue
-        bucket = buckets[bucket_of(at)]
-        bucket["events"] += 1
-        cost = row.get("cost") or {}
-        bucket["cost"]["tokens"] += int(cost.get("tokens") or 0)
-        bucket["cost"]["usd"] = round(bucket["cost"]["usd"] + float(cost.get("usd") or 0), 6)
+        chart.add_action(row)
     listed = await read(request, "/api/runs", query={"limit": 500})  # newest first, and the node has no older page
     oldest = _when(listed[-1].get("created_at")) if len(listed) >= 500 else None
-    if oldest is not None and oldest >= start:
+    if oldest is not None and oldest >= chart.start:
         raise InvalidRequest("There are too many runs to chart in this range. Try a shorter one.")
     for run in listed:
-        if (lane and run.get("lane") != lane) or (workspace and (run.get("lane") or "").split("/", 1)[0] != workspace):
-            continue
-        finished = _when(run.get("finished_at"))
-        if finished is None or not (start <= finished < end) or run["status"] not in CHART_RUNS:
-            continue
-        buckets[bucket_of(finished)]["runs"][run["status"]] += 1
-    for state in ("pending", "approved", "denied", "expired"):
-        for item in await read(request, "/api/approvals", query={"state": state, "limit": 500}):
-            if item.get("kind") == "question" or (lane and item.get("lane") != lane):
-                continue
-            if workspace and (item.get("workspace") or (item.get("lane") or "").split("/", 1)[0]) != workspace:
-                continue
-            created = _when(item.get("created_at"))
-            if created is not None and start <= created < end:
-                buckets[bucket_of(created)]["approvals"]["requested"] += 1
-            decided = _when(item.get("decided_at"))
-            if decided is not None and start <= decided < end and item.get("state") in ("approved", "denied"):
-                key = "approved" if item["state"] == "approved" else "denied"
-                buckets[bucket_of(decided)]["approvals"][key] += 1
-    totals = {
-        "events": sum(b["events"] for b in buckets),
-        "runs": sum(sum(b["runs"].values()) for b in buckets),
-        "approvals": sum(b["approvals"]["requested"] for b in buckets),
-        "cost": {"tokens": sum(b["cost"]["tokens"] for b in buckets), "usd": round(sum(b["cost"]["usd"] for b in buckets), 6)},
-    }
-    return {"range": span, "bucket_seconds": size, "buckets": buckets, "totals": totals}
+        chart.add_run(run)
+    # the four states are four reads of the node: at once, not one after another
+    states = ("pending", "approved", "denied", "expired")
+    pages = await asyncio.gather(*(read(request, "/api/approvals", query={"state": state, "limit": 500})
+                                   for state in states))
+    for page in pages:
+        for item in page:
+            chart.add_approval(item)
+    return {"range": span, "bucket_seconds": chart.size, "buckets": chart.buckets, "totals": chart.totals()}
 
 
 CHART_RUNS = {"succeeded_verified", "succeeded_unverified", "partial", "failed"}

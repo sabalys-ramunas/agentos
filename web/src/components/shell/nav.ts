@@ -104,9 +104,6 @@ export function menuFor(role: Role): Menu {
   return role === 'approver' ? APPROVER_MENU : OWNER_MENU;
 }
 
-/** Where the logo goes: Home, or Needs you for someone whose menu has no Home. */
-export const homeFor = (role: Role) => (role === 'approver' ? ('/$org/needs-you' as const) : ('/$org' as const));
-
 /**
  * The place a page belongs to, by the first part of its internal path. A page with no place of its
  * own (an account, a review link, a workspace) is shown under the place a person reached it from.

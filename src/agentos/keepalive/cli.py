@@ -19,9 +19,9 @@ from typing import Annotated, Any
 import typer
 
 from agentos.core.config import config_path, home_from_env, load_config, save_config
+from agentos.core.layout import ops_socket
 from agentos.core.models import parse_lane_id
-from agentos.ops.layout import ops_socket
-from agentos.ops.system import Host
+from agentos.core.system import Host
 
 NOW_TIMEOUT_S = 900.0  # the wait for a slot plus the visit (agentos.keepalive.service.NOW_WAIT_S, Pace)
 

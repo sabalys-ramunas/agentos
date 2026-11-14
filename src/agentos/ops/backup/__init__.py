@@ -64,7 +64,7 @@ from typing import Any, BinaryIO, Protocol
 from agentos import __version__
 from agentos.core import age
 from agentos.core.errors import AgentosError
-from agentos.ops.layout import (
+from agentos.core.layout import (
     PROFILE_LOCKS,
     LaneDir,
     adopt_owner,
@@ -75,8 +75,8 @@ from agentos.ops.layout import (
     ops_socket,
     vault_socket,
 )
-from agentos.ops.migrate import snapshot_db
-from agentos.ops.system import Host
+from agentos.core.migrate import snapshot_db
+from agentos.core.system import Host
 
 FORMAT = "agentos-backup"
 FORMAT_VERSION = 1

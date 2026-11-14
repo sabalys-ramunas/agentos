@@ -8,6 +8,7 @@ is, not as the defaults would be. `agentos grants explain`, `grant_info` and the
 from __future__ import annotations
 
 import time
+from collections.abc import Callable
 from typing import Any
 
 from agentos.core.models import Effect
@@ -166,54 +167,79 @@ def _cap_lanes(caps: list[Any], fallback: str) -> str:
     return _lane_words(lanes) if lanes else fallback
 
 
+def _secret_words(caps: list[Any]) -> str:
+    return f"The vault may type passwords and codes for it in {_cap_lanes(caps, 'its lanes')}; it never sees them."
+
+
+def _exec_words(caps: list[Any]) -> str:
+    return f"It may run commands in {_cap_lanes(caps, 'its lanes')}."
+
+
+def _install_words(caps: list[Any]) -> str:
+    sources = next((c.sources for c in reversed(caps) if c.sources is not None), None)
+    return "It may install packages into a lane" + (f", only {_join(sources)}." if sources else ".")
+
+
+def _install_base_words(caps: list[Any]) -> str:
+    return "It may install into the base image that every lane shares."
+
+
+def _service_words(caps: list[Any]) -> str:
+    ports = next((c.ports for c in reversed(caps) if c.ports is not None), None)
+    ttls = [c.max_ttl_s for c in caps if c.max_ttl_s is not None]
+    return ("It may run background services"
+            + (f" on ports {_join([str(p) for p in ports])}" if ports else "")
+            + (f" for up to {_duration(min(ttls))} each" if ttls else "") + ".")
+
+
+def _brain_words(caps: list[Any]) -> str:
+    bits = []
+    if (p := next((c.provider for c in reversed(caps) if c.provider), None)):
+        bits.append(f"through {p}")
+    if (t := next((c.tier for c in reversed(caps) if c.tier), None)):
+        bits.append(f"up to the {t} tier")
+    tok = [c.quota_tokens for c in caps if c.quota_tokens is not None]
+    usd = [c.quota_usd for c in caps if c.quota_usd is not None]
+    if tok:
+        bits.append(f"at most {min(tok):,} tokens a day")
+    if usd:
+        bits.append(f"at most {min(usd):.2f} USD a day")
+    return "It may use the node's brain" + (f" {', '.join(bits)}" if bits else "") + "."
+
+
+def _vm_words(caps: list[Any]) -> str:
+    profiles = next((c.profiles for c in reversed(caps) if c.profiles is not None), None)
+    vm_repos = next((c.repos for c in reversed(caps) if c.repos is not None), None)
+    return (f"It may rent disposable cloud VMs as {_cap_lanes(caps, 'lanes it may use')}"
+            + (f", only the {_join(profiles)} profiles" if profiles else "")
+            + "; they bill by the hour until the node deletes them."
+            + (f" It may copy only {_join(vm_repos)} onto them." if vm_repos else ""))
+
+
+# each special a grant may hold, in the order the explanation lists them, and how it says it
+_SPECIAL_SENTENCES: tuple[tuple[str, Callable[[list[Any]], str]], ...] = (
+    ("secret", _secret_words), ("exec", _exec_words), ("install_overlay", _install_words),
+    ("install_base", _install_base_words), ("service", _service_words), ("brain", _brain_words), ("vm", _vm_words),
+)
+
+
+def _memory_words(grant: Grant) -> str | None:
+    if (mem := memory_rules.describe(grant)) is None:
+        return None
+    scope = _join(mem["workspaces"]) if mem["workspaces"] else "the workspaces of its lanes"
+    verb = "read and write" if mem["write"] else "read"
+    extra = []
+    if mem["write"] and mem["types"]:
+        extra.append(f"it writes only {_join(mem['types'])} entries")
+    if mem["private"]:
+        extra.append("private entries included")
+    return f"It may {verb} workspace memory in {scope}" + (f" ({'; '.join(extra)})" if extra else "") + "."
+
+
 def _specials(grant: Grant, routing: RoutingTable) -> list[str]:
-    out = []
-    where = "its lanes"
-    if (caps := grant.caps("secret")) is not None:
-        out.append(f"The vault may type passwords and codes for it in {_cap_lanes(caps, where)}; "
-                   "it never sees them.")
-    if (caps := grant.caps("exec")) is not None:
-        out.append(f"It may run commands in {_cap_lanes(caps, where)}.")
-    if (caps := grant.caps("install_overlay")) is not None:
-        sources = next((c.sources for c in reversed(caps) if c.sources is not None), None)
-        out.append("It may install packages into a lane" + (f", only {_join(sources)}." if sources else "."))
-    if grant.caps("install_base") is not None:
-        out.append("It may install into the base image that every lane shares.")
-    if (caps := grant.caps("service")) is not None:
-        ports = next((c.ports for c in reversed(caps) if c.ports is not None), None)
-        ttls = [c.max_ttl_s for c in caps if c.max_ttl_s is not None]
-        out.append("It may run background services"
-                   + (f" on ports {_join([str(p) for p in ports])}" if ports else "")
-                   + (f" for up to {_duration(min(ttls))} each" if ttls else "") + ".")
-    if (caps := grant.caps("brain")) is not None:
-        bits = []
-        if (p := next((c.provider for c in reversed(caps) if c.provider), None)):
-            bits.append(f"through {p}")
-        if (t := next((c.tier for c in reversed(caps) if c.tier), None)):
-            bits.append(f"up to the {t} tier")
-        tok = [c.quota_tokens for c in caps if c.quota_tokens is not None]
-        usd = [c.quota_usd for c in caps if c.quota_usd is not None]
-        if tok:
-            bits.append(f"at most {min(tok):,} tokens a day")
-        if usd:
-            bits.append(f"at most {min(usd):.2f} USD a day")
-        out.append("It may use the node's brain" + (f" {', '.join(bits)}" if bits else "") + ".")
-    if (caps := grant.caps("vm")) is not None:
-        profiles = next((c.profiles for c in reversed(caps) if c.profiles is not None), None)
-        vm_repos = next((c.repos for c in reversed(caps) if c.repos is not None), None)
-        out.append(f"It may rent disposable cloud VMs as {_cap_lanes(caps, 'lanes it may use')}"
-                   + (f", only the {_join(profiles)} profiles" if profiles else "")
-                   + "; they bill by the hour until the node deletes them."
-                   + (f" It may copy only {_join(vm_repos)} onto them." if vm_repos else ""))
-    if (mem := memory_rules.describe(grant)) is not None:
-        scope = _join(mem["workspaces"]) if mem["workspaces"] else "the workspaces of its lanes"
-        verb = "read and write" if mem["write"] else "read"
-        extra = []
-        if mem["write"] and mem["types"]:
-            extra.append(f"it writes only {_join(mem['types'])} entries")
-        if mem["private"]:
-            extra.append("private entries included")
-        out.append(f"It may {verb} workspace memory in {scope}" + (f" ({'; '.join(extra)})" if extra else "") + ".")
+    out = [words(caps) for name, words in _SPECIAL_SENTENCES if (caps := grant.caps(name)) is not None]
+    if (memory := _memory_words(grant)) is not None:
+        out.append(memory)
     for name, label in SPECIAL_WORDS.items():
         if grant.caps(name) is not None:
             out.append(_route_phrase(label, name, routing))
@@ -240,6 +266,11 @@ def _person(grant: Grant) -> list[str]:
 
 
 def _limits(grant: Grant, remaining: dict | None, now: float) -> list[str]:
+    return [*_spend_words(grant, remaining), *_window_words(grant, now), *_delegation_words(grant)]
+
+
+def _spend_words(grant: Grant, remaining: dict | None) -> list[str]:
+    """Its budget (and what is left of it) and its meters."""
     out = []
     usd = [b.usd for _, b in grant.budgets() if b.usd is not None]
     tok = [b.tokens for _, b in grant.budgets() if b.tokens is not None]
@@ -260,6 +291,12 @@ def _limits(grant: Grant, remaining: dict | None, now: float) -> list[str]:
             daily.append(words.format(min(values)))
     if daily:
         out.append(f"Its meters stop it at {', '.join(daily)} (days end at the owner's midnight).")
+    return out
+
+
+def _window_words(grant: Grant, now: float) -> list[str]:
+    """When it starts working and when it expires."""
+    out = []
     nbf, exp = grant.not_before, grant.expires_at
     if nbf is not None and nbf > now:
         out.append(f"It starts working at {iso(nbf)} (in {_duration(nbf - now)}).")
@@ -269,6 +306,12 @@ def _limits(grant: Grant, remaining: dict | None, now: float) -> list[str]:
         out.append(f"It expired at {iso(exp)}.")
     else:
         out.append(f"It expires at {iso(exp)} (in {_duration(exp - now)}).")
+    return out
+
+
+def _delegation_words(grant: Grant) -> list[str]:
+    """Whether it may hand narrower copies of itself on, and its tool pins."""
+    out = []
     depth = _remaining_depth(grant)
     fanout = grant.fanout_limit()
     if depth == 0 or fanout == 0:

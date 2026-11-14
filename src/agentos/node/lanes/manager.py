@@ -440,8 +440,8 @@ def build_lane_manager(config: NodeConfig, **kwargs: Any) -> LaneManagerImpl:
     node's own IP read directly for the self-check. Constructing it starts nothing; the CLI
     can use it for create, import, delete and set-proxy. `displays` replaces the display manager
     (the stealth check's sweeps only its own home)."""
+    from agentos.node.camoufox.engine import CamoufoxEngine
     from agentos.node.display import DisplayManagerImpl
-    from agentos.node.engine_camoufox import CamoufoxEngine
     from agentos.webbotauth.route import IdentityProvider
 
     kwargs.setdefault("node_ip_probe", direct_exit_ip_probe(kwargs.get("self_check_url", SELF_CHECK_URL)))

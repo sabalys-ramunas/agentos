@@ -17,6 +17,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
+from agentos.core import clock
 from agentos.core.errors import InvalidRequest
 
 WORKSPACE_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,30}$")
@@ -105,9 +106,8 @@ def parse_when(value: Any, *, now: float | None = None, name: str = "time") -> f
 
 
 def iso(ts: float | None) -> str | None:
-    if ts is None:
-        return None
-    return datetime.fromtimestamp(ts, UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
+    """A timestamp as the memory store writes it: UTC to the second, with Z."""
+    return clock.iso_or_none(ts, z=True, timespec="seconds")
 
 
 # ---- attributes per type (4.2) ----------------------------------------------------

@@ -5,8 +5,8 @@ from __future__ import annotations
 
 import pytest
 from lockheld import loop_stays_free
+from testkit.workspaces import Harness
 
-from agentos.workspaces.fakes import Harness
 from agentos.workspaces.store import WorkspaceStore
 
 

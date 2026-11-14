@@ -23,7 +23,7 @@ from test_lanes import Clock, FakeDisplays
 
 from agentos.core.config import NodeConfig
 from agentos.core.models import LaneSpec
-from agentos.node.engine_camoufox import PageTracker
+from agentos.node.camoufox.engine import PageTracker
 from agentos.node.fields import read_form_diff
 from agentos.node.interaction import PlaywrightInteraction
 from agentos.node.lanes import LaneManagerImpl

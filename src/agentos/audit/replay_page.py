@@ -16,6 +16,7 @@ from __future__ import annotations
 import base64
 import json
 import re
+from collections.abc import Callable
 from datetime import datetime
 from html import escape
 from typing import Any
@@ -201,6 +202,21 @@ def _step(n: int, s: dict, tz: ZoneInfo, img: dict | None, include_args: bool = 
     def clean(text: Any) -> str:
         return str(text) if include_args else plain_url(str(text))
 
+    dl = "".join(f"<dt>{k}</dt><dd>{v}</dd>" for k, v in _step_rows(s, clean))
+    approvals = "".join(_approval(a, tz) for a in s.get("approvals") or [])
+    events = [e for e in s.get("events") or [] if e.get("kind") in EVENT_KINDS and e.get("summary")]
+    ev = ""
+    if events:
+        ev = "<ul class=\"ev\">" + "".join(
+            f"<li>{esc(_local(e.get('at'), tz))} {esc(clean(e['summary']))}</li>" for e in events[:20]) + "</ul>"
+    args = _step_args(s, include_args)
+    return (f'<li class="step" id="s{n}"><div class="head"><span class="time">{esc(_local(s.get("at"), tz))}</span>'
+            f'{"".join(_step_tags(s))}<span class="n">Step {n} (seq {esc(s.get("seq"))})</span></div>'
+            f"<h2>{esc(describe(s, include_args=include_args))}</h2><dl>{dl}</dl>{approvals}{_image(img, s)}{ev}{args}</li>")
+
+
+def _step_tags(s: dict) -> list[str]:
+    """Its status, its effect, and the two warnings: changed after it was written, after untrusted text."""
     status = STATUS_WORDS.get(str(s.get("status")), str(s.get("status") or ""))
     effect = s.get("effect")
     tags = [f'<span class="tag">{esc(status)}</span>']
@@ -210,6 +226,12 @@ def _step(n: int, s: dict, tz: ZoneInfo, img: dict | None, include_args: bool = 
         tags.append('<span class="tag bad">Changed after it was written</span>')
     if s.get("after_untrusted"):
         tags.append('<span class="tag bad">After untrusted text</span>')
+    return tags
+
+
+def _step_rows(s: dict, clean: Callable[[Any], str]) -> list[tuple[str, str]]:
+    """The step's facts, label and HTML: result, error, who, the grant, untrusted text, its run, the
+    page after it, how long it took."""
     rows: list[tuple[str, str]] = []
     if s.get("summary"):
         rows.append(("Result", esc(clean(s["summary"]))))
@@ -235,25 +257,19 @@ def _step(n: int, s: dict, tz: ZoneInfo, img: dict | None, include_args: bool = 
     if s.get("duration_ms") is not None:
         ms = int(s["duration_ms"])
         rows.append(("Took", f"{ms} ms" if ms < 1000 else f"{ms / 1000:.1f} s"))
-    dl = "".join(f"<dt>{k}</dt><dd>{v}</dd>" for k, v in rows)
-    approvals = "".join(_approval(a, tz) for a in s.get("approvals") or [])
-    events = [e for e in s.get("events") or [] if e.get("kind") in EVENT_KINDS and e.get("summary")]
-    ev = ""
-    if events:
-        ev = "<ul class=\"ev\">" + "".join(
-            f"<li>{esc(_local(e.get('at'), tz))} {esc(clean(e['summary']))}</li>" for e in events[:20]) + "</ul>"
-    args = ""
+    return rows
+
+
+def _step_args(s: dict, include_args: bool) -> str:
+    """Its arguments: their values only with include_args, else their names."""
     if s.get("args") is not None and include_args:
         text = json.dumps(s["args"], indent=1, ensure_ascii=False, default=str)
-        args = (f"<details><summary>Arguments (redacted when they were written)</summary>"
+        return (f"<details><summary>Arguments (redacted when they were written)</summary>"
                 f"<pre>{esc(_cut(text, ARGS_CHARS))}</pre></details>")
-    elif isinstance(s.get("args"), dict) and s["args"]:
+    if isinstance(s.get("args"), dict) and s["args"]:
         names = ", ".join(str(k) for k in list(s["args"])[:30])
-        args = f'<p class="muted">Arguments (names only, their values are left out): {esc(names)}</p>'
-    return (f'<li class="step" id="s{n}"><div class="head"><span class="time">{esc(_local(s.get("at"), tz))}</span>'
-            f'{"".join(tags)}<span class="n">Step {n} (seq {esc(s.get("seq"))})</span></div>'
-            f"<h2>{esc(describe(s, include_args=include_args))}</h2><dl>{dl}</dl>{approvals}{_image(img, s)}{ev}{args}</li>")
-
+        return f'<p class="muted">Arguments (names only, their values are left out): {esc(names)}</p>'
+    return ""
 
 STYLE = """
 :root{color-scheme:light dark;--bg:#fff;--fg:#1b1d21;--mute:#5d6470;--line:#dde1e6;--card:#f6f7f9;

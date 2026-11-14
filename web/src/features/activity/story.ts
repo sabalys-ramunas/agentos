@@ -6,7 +6,7 @@
  * Readback confirmed it.` from a real node or `Posted 1 photo to Instagram as harbor` from older
  * data. Nothing here renders: the screens do.
  */
-import type { Effect, Run, RunStatus, RunStep, TraceEvent } from '@/api/types';
+import type { Effect, RunStatus, RunStep, TraceEvent } from '@/api/types';
 import { siteOf } from '@/lib/sites';
 
 /** The four results a person reads, plus Waiting for you while a run waits on a decision. */
@@ -364,13 +364,4 @@ export function stepWords(step: Pick<RunStep, 'tool' | 'summary' | 'status'>, st
 export function routineSubject(name: string): string {
   const first = name.split(' ')[0] ?? '';
   return `The ${siteOf(first) ? name : lower(name)}`;
-}
-
-/** Who did it, said as why it ran: "Weekly Instagram post", "Asked from a chat", "Started by hand". */
-export function whyItRan(principal: Run['principal'], name: string): string {
-  const kind = typeof principal === 'string' ? (principal.includes('.') ? 'flow' : 'agent') : principal.kind;
-  if (kind === 'flow') return routineSubject(name);
-  if (kind === 'human') return 'Started by hand';
-  if (typeof principal !== 'string' && principal.thread) return 'Asked from a chat';
-  return 'Asked by an agent';
 }

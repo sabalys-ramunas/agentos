@@ -18,7 +18,7 @@ from agentos.node.browser_output import browser_error, mask_urls
 from agentos.node.devtools import DevtoolsCapture
 from agentos.node.files import FileStatus, LaneFiles, human_size, register_download, unregister_download
 from agentos.node.human import quietly
-from agentos.node.interaction import DIALOG_TIMEOUT, DialogGuard
+from agentos.node.interaction.dialogs import DIALOG_TIMEOUT, DialogGuard
 
 log = logging.getLogger("agentos.engine.camoufox")
 
@@ -301,10 +301,11 @@ def forget_context(context: Any) -> int:
     their keys, but their values (a tracker, a dialog or egress guard, a page's requests in flight)
     hold the context or page again, so an entry never goes by itself: each closed lane kept its
     whole Playwright connection alive (found by the soak run, docs/BENCH.md). Returns how many."""
-    from agentos.node import devtools, egress, human, interaction, typist
+    from agentos.node import devtools, egress, human, typist
+    from agentos.node.interaction import dialogs, pages
 
-    registries = (_TRACKERS, egress._GUARDS, interaction._GUARDS, interaction._PAGES, interaction._EXPECT,
-                  interaction._REPORTS, typist._NETWORKS, human.X_KEYBOARDS, human.IDLE_LANES,
+    registries = (_TRACKERS, egress._GUARDS, dialogs._GUARDS, pages._PAGES, pages._EXPECT,
+                  pages._REPORTS, typist._NETWORKS, human.X_KEYBOARDS, human.IDLE_LANES,
                   human._IDLE, human.POINTERS, human._GROUND, devtools._CAPTURES)
     dropped = 0
     for registry in registries:

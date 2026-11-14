@@ -13,9 +13,9 @@ from types import SimpleNamespace
 import pytest
 from typer.testing import CliRunner
 
+from agentos.core import migrate
 from agentos.core.errors import InvalidRequest, NotFound, PolicyDenied
 from agentos.core.models import Effect, Principal, RunStatus, Signal
-from agentos.ops import migrate
 from agentos.runner import tools as runner_tools
 from agentos.runner.connectors.compile import ConnectorInvalid, compile_connector
 from agentos.runner.connectors.pace import counts, pace_problem

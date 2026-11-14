@@ -29,22 +29,22 @@ import secrets
 import sqlite3
 import threading
 import time
-from collections import deque
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
 from agentos.api.errors import ApiError
+from agentos.core import clock
 from agentos.core.models import Principal
+from agentos.core.presence import Presence
 from agentos.core.sqlite import SqliteStore, _is_busy
 
 SESSION_COOKIE = "agentos_session"
 CSRF_HEADER = "x-agentos-csrf"
 # the node's CLI: a one-time code it wrote into panel.db, sent beside the node token, makes that one
-# request a person's (agentos.cli.operator_presence; docs/THREAT-MODEL.md)
+# request a person's (agentos.commands.base.operator_presence; docs/THREAT-MODEL.md)
 PRESENCE_HEADER = "x-agentos-presence"
 CODE_TTL_SECONDS = 600
 MEMBER_IDLE_SECONDS = 12 * 3600
@@ -87,10 +87,6 @@ def _hash(value: str) -> str:
     return hashlib.sha256(value.encode()).hexdigest()
 
 
-def _iso(ts: float | None) -> str | None:
-    return None if ts is None else datetime.fromtimestamp(ts, UTC).isoformat()
-
-
 @dataclass(frozen=True)
 class Session:
     csrf: str
@@ -114,8 +110,8 @@ class Session:
 
     def public(self) -> dict:
         return {"id": self.id_hash[:16], "via": self.via, "device_label": self.device_label,
-                "created_at": _iso(self.created_at), "last_seen_at": _iso(self.last_seen_at or self.created_at),
-                "last_verified_at": _iso(self.last_verified_at), "expires_at": _iso(self.expires_at),
+                "created_at": clock.iso_or_none(self.created_at), "last_seen_at": clock.iso_or_none(self.last_seen_at or self.created_at),
+                "last_verified_at": clock.iso_or_none(self.last_verified_at), "expires_at": clock.iso_or_none(self.expires_at),
                 "credential_id": self.credential_id}
 
 
@@ -385,38 +381,6 @@ class PanelStore(SqliteStore):
         return {"id": id, "name": name, "color": color}
 
 
-class RateLimiter:
-    """Sliding window per key plus a global cap, for login attempts."""
-
-    def __init__(self, *, per_key: int = 10, global_max: int = 60, window: float = 300.0):
-        self.per_key, self.global_max, self.window = per_key, global_max, window
-        self._hits: dict[str, deque[float]] = {}
-        self._all: deque[float] = deque()
-        self._lock = threading.Lock()
-
-    def _trim(self, q: deque[float], now: float) -> None:
-        while q and q[0] <= now - self.window:
-            q.popleft()
-
-    def check(self, key: str) -> float | None:
-        """Record an attempt. Returns None when allowed, else seconds until the next one is."""
-        now = time.monotonic()
-        with self._lock:
-            q = self._hits.setdefault(key, deque())
-            self._trim(q, now)
-            self._trim(self._all, now)
-            if len(q) >= self.per_key:
-                return max(1.0, q[0] + self.window - now)
-            if len(self._all) >= self.global_max:
-                return max(1.0, self._all[0] + self.window - now)
-            q.append(now)
-            self._all.append(now)
-            if len(self._hits) > 10_000:  # bound memory under a spray of addresses
-                for k in [k for k, v in self._hits.items() if not v]:
-                    del self._hits[k]
-            return None
-
-
 def _on_loop() -> bool:
     try:
         asyncio.get_running_loop()
@@ -463,4 +427,19 @@ def create_login_code(home: Path | None = None, *, base_url: str | None = None,
         base_url = f"http://localhost:{cfg.mcp_port}"
     code = new_login_code()
     expires = PanelStore.for_home(home).add_code(code, ttl_seconds)
-    return LoginLink(code=code, url=f"{base_url.rstrip('/')}/login#code={code}", expires_at=_iso(expires))
+    return LoginLink(code=code, url=f"{base_url.rstrip('/')}/login#code={code}", expires_at=clock.iso_or_none(expires))
+
+
+def presence_of(request: object, home: object = None) -> Presence:
+    """The presence of a request the panel API authenticated (`request.state.auth.access`). A request
+    with none came through the bare node-token check (no panel), so it is the node token, or a person
+    when it carries a one-time code from the node's CLI that this node's panel.db (under `home`) holds."""
+    auth = getattr(getattr(request, "state", None), "auth", None)
+    presence = getattr(getattr(auth, "access", None), "presence", None)
+    if isinstance(presence, Presence):
+        return presence
+    headers = getattr(request, "headers", None) or {}
+    code = (headers.get(PRESENCE_HEADER) or "").strip()
+    if code and home is not None and PanelStore.for_home(home).use_code(code):  # type: ignore[arg-type]
+        return Presence.PERSON
+    return Presence.NODE_TOKEN

@@ -15,7 +15,8 @@ from test_policy_support import OWNER, PRESENT, SPECS, Clock, make_service
 from agentos.core.errors import ApprovalPending, InvalidRequest
 from agentos.core.models import Effect
 from agentos.policy import bind_request_token, tokens, wrap_tool
-from agentos.policy.approvals import ApprovalPolicy, ApprovalStore, FourEyesRule
+from agentos.policy.approval_models import ApprovalPolicy, FourEyesRule
+from agentos.policy.approvals import ApprovalStore
 from agentos.policy.errors import Denied, TokenInvalid
 from agentos.policy.grants import ApproveCap, Grant, Specials, Subject
 from agentos.policy.routing import PolicyConfig, load_policy_config

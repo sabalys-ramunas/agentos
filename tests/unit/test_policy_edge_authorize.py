@@ -11,10 +11,10 @@ from test_policy_support import PRESENT, Clock, make_service
 
 from agentos.core.errors import ApprovalPending
 from agentos.core.models import Effect
-from agentos.policy.approvals import content_digest
+from agentos.policy.approval_binding import content_digest
+from agentos.policy.context import PolicyContext
 from agentos.policy.errors import Denied
 from agentos.policy.grants import BrainCap, InstallCap, LaneCap, ServiceCap, Specials
-from agentos.policy.service import PolicyContext
 
 ALL = Specials(secret=LaneCap(), exec=LaneCap(), install_overlay=InstallCap(sources=["npm:left-pad@1.3.0"]),
                install_base={}, service=ServiceCap(max_ttl_s=3600),

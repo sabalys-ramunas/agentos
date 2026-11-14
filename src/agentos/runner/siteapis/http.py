@@ -60,7 +60,9 @@ from agentos.policy.errors import Denied, GrantFrozen
 from agentos.runner.connectors.models import BINDING_PARAMS
 from agentos.runner.connectors.taint import label_context
 from agentos.runner.connectors.tools import _surfaces_for, run_operation, tool_name
-from agentos.runner.models import CONNECTOR_PREFIX, SUCCEEDED, FlowVersion, Run
+from agentos.runner.flowdoc import FlowVersion
+from agentos.runner.names import CONNECTOR_PREFIX
+from agentos.runner.records import SUCCEEDED, Run
 from agentos.runner.siteapis import openapi as oas
 from agentos.runner.siteapis.cache import (
     STALE_MAX_S,

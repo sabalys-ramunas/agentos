@@ -81,7 +81,7 @@ async def public_access(repo: str, home: Path, *, probe: Any = None, timeout_s: 
 
 def agent_dir(home: Path) -> Path:
     """A private directory for the SSH agent's sockets, short enough for a unix socket path."""
-    from agentos.ops.layout import SUN_PATH_MAX, check_socket_dir, short_run_dir
+    from agentos.core.layout import SUN_PATH_MAX, check_socket_dir, short_run_dir
 
     candidate = Path(home) / "run" / "git"
     if len(os.fsencode(str(candidate / "agent-000000000000" / "s"))) > SUN_PATH_MAX:

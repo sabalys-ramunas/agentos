@@ -1,20 +1,18 @@
-"""From one profile to what one account shows: the site fields, their limits, and which the engine edits.
+"""From one profile to what one account shows: the site fields and their limits.
 
     r = resolve(profile, attachment)
     r.values      {site field: value}, after the site's defaults, the account's `map` and `overrides`
-    r.engine      the site fields the engagement engine edits itself (LinkedIn's profile_* operations)
-    r.manual      the site fields with a value but no engine operation: an agent (or the owner)
-                  changes them in the lane by hand, from profile_sync_status
+    r.manual      the site fields with a value: a learned operation brings them in line
+                  (agentos.profiles.sync), or an agent (or the owner) changes them in the lane by
+                  hand, from profile_sync_status
     r.skipped     {site field: why} for a field left out (not on this kind of profile)
     r.problems    values the site would not take (too long, a mapping to nothing): shown to the owner,
                   never cut short
 
 SITES lists each site's profile fields: the profile field it takes by default and the site's own
 length limit. Limits come from each site's own forms as of 2026 and err on the short side; a
-value over one is a problem for that account only (give it an override). Only LinkedIn person
-profiles have engine operations today (agentos.engage.models.PROFILE_SITES); every other field is
-manual until its connector operation exists and is verified. Product, reviewer and audience
-profiles are never shown on a site: they resolve to nothing but a problem.
+value over one is a problem for that account only (give it an override). Product, reviewer and
+audience profiles are never shown on a site: they resolve to nothing but a problem.
 """
 
 from __future__ import annotations
@@ -22,28 +20,28 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from agentos.profiles.models import PHOTO_RE, SOCIAL_KINDS, Attachment, Profile, ProfileKind
+from agentos.profiles.fields import PHOTO_RE
+from agentos.profiles.models import SOCIAL_KINDS, Attachment, Profile, ProfileKind
 
 
 @dataclass(frozen=True)
 class SiteField:
     source: str            # the profile field it takes by default
     limit: int | None      # the site's length limit, None for photos and links
-    engine: bool = False   # the engagement engine has a verified-or-canary operation for it
     people_only: bool = False
 
 
-def _f(source: str, limit: int | None = None, *, engine: bool = False, people_only: bool = False) -> SiteField:
-    return SiteField(source, limit, engine, people_only)
+def _f(source: str, limit: int | None = None, *, people_only: bool = False) -> SiteField:
+    return SiteField(source, limit, people_only)
 
 
 SITES: dict[str, dict[str, SiteField]] = {
     "linkedin": {
-        "name": _f("name", 50, engine=True, people_only=True),
-        "headline": _f("headline", 220, engine=True),
-        "about": _f("bio.long", 2600, engine=True),
-        "photo": _f("photos.avatar", engine=True),
-        "cover": _f("photos.cover", engine=True),
+        "name": _f("name", 50, people_only=True),
+        "headline": _f("headline", 220),
+        "about": _f("bio.long", 2600),
+        "photo": _f("photos.avatar"),
+        "cover": _f("photos.cover"),
         "website": _f("website"),
         "location": _f("location", 100),
         "phone": _f("phone"),
@@ -110,13 +108,12 @@ class Resolved:
     surface: str
     site: str
     values: dict[str, Any] = field(default_factory=dict)
-    engine: list[str] = field(default_factory=list)
     manual: list[str] = field(default_factory=list)
     skipped: dict[str, str] = field(default_factory=dict)
     problems: list[str] = field(default_factory=list)
 
     def public(self) -> dict[str, Any]:
-        return {"surface": self.surface, "site": self.site, "values": self.values, "engine": self.engine,
+        return {"surface": self.surface, "site": self.site, "values": self.values,
                 "manual": self.manual, "skipped": self.skipped, "problems": self.problems}
 
 
@@ -177,10 +174,6 @@ def resolve(profile: Profile, attachment: Attachment) -> Resolved:
         if wrong:
             out.problems.append(f"{attachment.surface}: {name} {wrong} (it takes {source!r})")
             continue
-        if name == "name" and spec.engine and not hasattr(value, "first"):
-            out.problems.append(f"{attachment.surface}: LinkedIn's name takes a first and last name; "
-                                f"map it to `name`, not {source!r}")
-            continue
         if spec.limit is not None:
             n = len(_text(value) or "")
             if n > spec.limit:
@@ -188,37 +181,13 @@ def resolve(profile: Profile, attachment: Attachment) -> Resolved:
                                     f"{spec.limit}. Shorten {source} or give this account an override")
                 continue
         out.values[name] = value.model_dump() if hasattr(value, "model_dump") else value
-        engine = spec.engine and profile.kind is ProfileKind.PERSON
-        (out.engine if engine else out.manual).append(name)
+        out.manual.append(name)
     return out
-
-
-def engine_profile(resolved: Resolved, photo_id: Any = None) -> Any:
-    """The engine's per-account profile (agentos.engage.models.Profile) for the fields the engine
-    edits, or None when it edits none. A photo stays its content hash (`sha256:...`), which is what
-    the engine compares and records, so a photo copied into the lane again (a new inbox id) is not
-    edited again; the executor turns it into the lane's file id only when the edit runs
-    (agentos.engage.profile.lane_file). `photo_id(sha)` says the account's lane has (or now got) a
-    copy; a photo without one, or with no `photo_id`, is left out."""
-    from agentos.engage.models import Profile as EngineProfile
-
-    data: dict[str, Any] = {}
-    for name in resolved.engine:
-        value = resolved.values[name]
-        if name in PHOTO_FIELDS:
-            file_id = photo_id(value) if photo_id is not None else None
-            if file_id:
-                data[name] = value
-        else:
-            data[name] = value
-    if not data:
-        return None
-    return EngineProfile.model_validate(data)
 
 
 def sites() -> list[dict[str, Any]]:
     """Every site an account can be on: its login domain and its profile fields (for the panel)."""
     return [{"site": site, "domain": SITE_DOMAINS.get(site),
-             "fields": [{"name": n, "source": f.source, "limit": f.limit, "engine": f.engine,
+             "fields": [{"name": n, "source": f.source, "limit": f.limit,
                          "people_only": f.people_only} for n, f in fields.items()]}
             for site, fields in SITES.items() if site in SITE_DOMAINS]

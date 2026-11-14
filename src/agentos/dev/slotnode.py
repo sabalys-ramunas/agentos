@@ -533,7 +533,7 @@ def tree_memory_kb(main_pids: Iterable[int]) -> tuple[int, int, int]:
 
 
 def browsers_under(home: Path) -> list[int]:
-    from agentos.node.engine_camoufox import browser_pids_under
+    from agentos.node.camoufox.engine import browser_pids_under
 
     return browser_pids_under(home)
 

@@ -13,14 +13,7 @@ import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import pytest
-from typer.testing import CliRunner
-
-from agentos.brains import adapters, chatcli, cliprobe
-from agentos.brains import cli as brains_cli
-from agentos.brains.models import BrainKind, BrainSpec, Budget, Locality, Outcome, Requirements, Runner
-from agentos.brains.parsers import make_parser
-from agentos.brains.settings import BrainsSettings
-from agentos.brains.testing import (
+from testkit.brains import (
     API_KEY,
     CHILD_TOKEN,
     FakePolicy,
@@ -29,6 +22,13 @@ from agentos.brains.testing import (
     make_service,
     wait_status,
 )
+from typer.testing import CliRunner
+
+from agentos.brains import adapters, chatcli, cliprobe
+from agentos.brains import cli as brains_cli
+from agentos.brains.models import BrainKind, BrainSpec, Budget, Locality, Outcome, Requirements, Runner
+from agentos.brains.parsers import make_parser
+from agentos.brains.settings import BrainsSettings
 from agentos.core.models import Principal
 from agentos.core.runtime import Runtime
 

@@ -28,8 +28,8 @@ from agentos.core.errors import EngineError
 from agentos.core.models import LaneSpec, ProxyConfig, parse_lane_id
 from agentos.mcp.server import Redactor
 from agentos.node import display as display_mod
+from agentos.node.camoufox.engine import CamoufoxEngine, CamoufoxSession
 from agentos.node.display import DisplayManagerImpl, pid_alive
-from agentos.node.engine_camoufox import CamoufoxEngine, CamoufoxSession
 from agentos.node.store import LaneStore
 
 PROXY_ENTRY = {"host": "198.51.100.10", "port": 12323, "username": "user1", "password": "hunter2-secret"}

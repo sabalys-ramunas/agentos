@@ -47,13 +47,13 @@ tools_more lists only tools the caller's grant can see. Connector operations (`<
 | `admin` | your grant, an approval's status without waiting (or all yours still waiting), and the call trail | `approval_status`, `grant_info`, `traces_query` |
 | `terminals` | terminal and service lanes: shells, commands, background jobs, synced files, installs, images, disposable cloud VMs | `env_create`, `env_lanes_list`, `env_remove`, `image_build`, `images_list`, `lane_install`, `lane_jobs_list`, `lane_upload`, `lane_upload_check`, `service_logs`, `service_start`, `service_status`, `service_stop`, `shell_close`, `shell_open`, `shell_read`, `shell_write`, `vm_clone`, `vm_create`, `vm_destroy`, `vm_extend`, `vms_list` |
 | `brains` | agent tasks on the node's brains: run, follow, resume, cancel; the git remotes they reach | `brain_cancel`, `brain_resume`, `brain_run`, `brain_status`, `brain_tail`, `brain_tasks`, `brain_use`, `brains_list`, `git_remotes` |
-| `automation` | events, triggers, engagement programs (likes, comments, follows, visits) and the agenda (planned one-off actions, their approval, runs and proof) | `agenda_cancel`, `agenda_draft`, `agenda_get`, `agenda_list`, `agenda_propose`, `agenda_update`, `engage_digest`, `engage_item_submit`, `engage_item_withdraw`, `engage_items`, `engage_program_draft`, `engage_status`, `events_list`, `trigger_propose`, `triggers_list` |
+| `automation` | events, triggers and the agenda (planned one-off actions, their approval, runs and proof) | `agenda_cancel`, `agenda_draft`, `agenda_get`, `agenda_list`, `agenda_propose`, `agenda_update`, `events_list`, `trigger_propose`, `triggers_list` |
 
 ### tools_more
 
 Meta tool, listed whenever the list is not `full`. Effect: none (it lists tools).
 
-More agentos tools, by toolset: files (files, tabs, scrolling), devtools, control (who has a lane, asking for it, queue, freeze), vault (stored logins), flows (saved flows and runs), workflows (routines on a schedule or a trigger), connectors (site operations), site_apis (a page's data as an API), mail, memory, profiles, studio (check a page you build), workspaces, worker (hand a browser job to the node), admin (grant, approvals, call trail), terminals (shells, commands, services), brains (agent tasks on the node), automation (events, triggers, engagement, agenda). tools_more(toolset) returns its tools with their arguments and adds them to your list (a tool's name works too); with no toolset it lists every toolset's tools. tools_call runs any tool, listed or not.
+More agentos tools, by toolset: files (files, tabs, scrolling), devtools, control (who has a lane, asking for it, queue, freeze), vault (stored logins), flows (saved flows and runs), workflows (routines on a schedule or a trigger), connectors (site operations), site_apis (a page's data as an API), mail, memory, profiles, studio (check a page you build), workspaces, worker (hand a browser job to the node), admin (grant, approvals, call trail), terminals (shells, commands, services), brains (agent tasks on the node), automation (events, triggers, agenda). tools_more(toolset) returns its tools with their arguments and adds them to your list (a tool's name works too); with no toolset it lists every toolset's tools. tools_call runs any tool, listed or not.
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
@@ -107,12 +107,6 @@ Call any agentos tool by name with its arguments, including tools not in your li
 | [`browser_wait`](#browser_wait) | core | read | Wait for something on the page instead of polling with snapshots: a text appears (for_text) or goes away (gone_text), an element reaches a state (for_ref_state), the network goes quiet (network_quiet_ms) or the URL matches (url_matches) |
 | [`connector_status`](#connector_status) | connectors | read | The health of one connector operation on one surface, and its last run there |
 | [`connectors_list`](#connectors_list) | connectors | read | List installed connector operations: each one's tool (<site>_<op>; none for a learned profile operation, which only the profile sync runs), effect, version and contract hash, and the surfaces you can act as with it, each with its health (healthy, broken, held or unknown) |
-| [`engage_digest`](#engage_digest) | automation | read | Read one day of engagement per account (by default yesterday, in each account's time zone): sessions planned and run with what came of each, operations per kind (planned, attempted, verified, failed, skipped with the reasons, awaiting approval), drafts awaiting the owner's approval with their ids (never their text), items used and expired, holds in force that day and the signals sites showed, cap use against the day's cap and the hard ceiling, and the day's notices |
-| [`engage_item_submit`](#engage_item_submit) | automation | commit | Add approved content made outside agentOS (a post, a comment) to a surface's engagement schedule |
-| [`engage_item_withdraw`](#engage_item_withdraw) | automation | draft | Take a queued item back, so no session uses it |
-| [`engage_items`](#engage_items) | automation | read | Read the items waiting for (or used by) engagement sessions: per item its id, surface, kind, status (queued, reserved while a session has it, awaiting while its run waits for an approval, used with the run id, failed when its run failed and may have posted, expired or withdrawn), text, targets, attachments (with each file's name, type, size and sha256) and expiry |
-| [`engage_program_draft`](#engage_program_draft) | automation | draft | Draft an engagement program for one surface (an account such as "biz-a/instagram") |
-| [`engage_status`](#engage_status) | automation | read | Read where engagement stands: per account, its program and whether the owner approved it, its phase (warm-up day or steady ramp week), today's planned sessions and actions per kind, actions done, today's caps, holds (what stopped an account, and until when), recent notices, and the window of the next session (a part of the day, never an exact time) |
 | [`env_create`](#env_create) | terminals | exec | Create a terminal lane `workspace/name` |
 | [`env_lanes_list`](#env_lanes_list) | terminals | read | List terminal and service lanes on this node: preset, state, and an honest one-line description of the isolation each really gets |
 | [`env_remove`](#env_remove) | terminals | irreversible | Delete a terminal or service lane and its files (its writable layer, logs and home) |
@@ -184,7 +178,7 @@ Call any agentos tool by name with its arguments, including tools not in your li
 | [`profile_photo_put`](#profile_photo_put) | profiles | draft | Keep a photo for a workspace's profiles, from a lane's inbox (put it there with files_put first) |
 | [`profile_propose`](#profile_propose) | profiles | draft | Propose a change to a profile's brand, guidelines or references, for the owner to approve |
 | [`profile_save`](#profile_save) | profiles | draft | Save a whole profile (a new one, or a full replacement) as YAML or JSON with: profile (a short name), workspace, kind (person or business), display_name, name {first, last} (people), headline, bio {short, long}, phone (+ and country code), email, website, location, links {name: url}, photos {avatar, cover} (from profile_photo_put), languages, work_history, education, skills, voice {personality, tone, do, dont, emoji (none, sparing, often), topics, examples [{context, reply}]}, and accounts [{surface, overrides {site field: value}}] |
-| [`profile_sync_status`](#profile_sync_status) | profiles | read | Per account of a profile, each field it should show and its state: in_sync, due (the engine edits it at the next session), awaiting_approval, denied, failed, no_program (the engine edits it but the account has no approved engagement program), manual (no engine operation on this site: change it in the lane by hand, then call profile_mark_synced) or done_by_hand |
+| [`profile_sync_status`](#profile_sync_status) | profiles | read | Per account of a profile, each field it should show and its state: in_sync, failed, syncing, learning, held, relearn, manual (no learned operation on this site yet: teach it with profile_learn_start, or change it in the lane by hand, then call profile_mark_synced) or done_by_hand |
 | [`profile_update`](#profile_update) | profiles | draft | Change some fields of a profile, for every account attached to it: changes is YAML or JSON with only the fields to set, such as {headline: ..., bio: {short: ...}, phone: ...} |
 | [`profile_use`](#profile_use) | profiles | read | Call this before you work for a profile: who the work is for and what the rules are, sized for the task |
 | [`run_cancel`](#run_cancel) | flows | draft | Cancel a queued, waiting or running run |
@@ -271,7 +265,7 @@ One agenda entry: its action and inputs, timing, state and why, the approval it 
 
 Toolset: `automation`. Effect: `read`. Needs the `agenda` service.
 
-The workspace's agenda: one timeline of planned actions (posts, reminders, renewals, form submissions, exports, agent tasks), the upcoming fires of its recurring schedules (projected, not stored) and the runs that already happened, with their proof. It also shows the work other services plan on lanes on their own (type managed, state planned: keepalive's next visit per lane, at an approximate time; engagement's sessions drawn for today and tomorrow). Those are read only: they cannot be approved or cancelled here, and `managed_by` says what each service can and cannot show. Default range: from now for 7 days. Filter by lane, kind (flow, connector, route, keepalive, engage) or state (draft, proposed, scheduled, running, done, failed, skipped, expired, cancelled, projected, planned). Shows only what your grant's lanes cover.
+The workspace's agenda: one timeline of planned actions (posts, reminders, renewals, form submissions, exports, agent tasks), the upcoming fires of its recurring schedules (projected, not stored) and the runs that already happened, with their proof. It also shows the work other services plan on lanes on their own (type managed, state planned: keepalive's next visit per lane, at an approximate time). Those are read only: they cannot be approved or cancelled here, and `managed_by` says what each service can and cannot show. Default range: from now for 7 days. Filter by lane, kind (flow, connector, route, keepalive) or state (draft, proposed, scheduled, running, done, failed, skipped, expired, cancelled, projected, planned). Shows only what your grant's lanes cover.
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
@@ -279,9 +273,9 @@ The workspace's agenda: one timeline of planned actions (posts, reminders, renew
 | `start` | `str \| None` | no (default None) | The range's start, ISO 8601 with a timezone (default: an hour ago). |
 | `end` | `str \| None` | no (default None) | The range's end, ISO 8601 with a timezone (default: 7 days after the start; at most 93 days). |
 | `lane` | `str \| None` | no (default None) | Only items on this lane or surface, like biz-a/instagram. |
-| `kind` | `str \| None` | no (default None) | Only this kind of action: flow, connector, route (a trigger), keepalive or engage. |
+| `kind` | `str \| None` | no (default None) | Only this kind of action: flow, connector, route (a trigger) or keepalive. |
 | `state` | `str \| None` | no (default None) | Only items in this state, like proposed (waiting for a person), projected (a schedule's next fire) or planned (another service's own plan). |
-| `managed` | `bool` | no (default True) | Include what keepalive and engagement plan on their own (default true); false hides them. |
+| `managed` | `bool` | no (default True) | Include what keepalive plans on its own (default true); false hides them. |
 
 ## agenda_propose
 
@@ -626,78 +620,6 @@ List installed connector operations: each one's tool (<site>_<op>; none for a le
 | Argument | Type | Required | Description |
 |---|---|---|---|
 | `site` | `str \| None` | no (default None) | only this connector, like 'instagram'. |
-
-## engage_digest
-
-Toolset: `automation`. Effect: `read`. Needs the `engage` service.
-
-Read one day of engagement per account (by default yesterday, in each account's time zone): sessions planned and run with what came of each, operations per kind (planned, attempted, verified, failed, skipped with the reasons, awaiting approval), drafts awaiting the owner's approval with their ids (never their text), items used and expired, holds in force that day and the signals sites showed, cap use against the day's cap and the hard ceiling, and the day's notices. Reads only; an agent cannot change anything here.
-
-| Argument | Type | Required | Description |
-|---|---|---|---|
-| `surface` | `str \| None` | no (default None) | One account, as "workspace/name". Leave out for every account you may see. |
-| `day` | `str \| None` | no (default None) | A calendar day as YYYY-MM-DD. Default: yesterday in each account's time zone. |
-| `format` | `str` | no (default 'json') | "json" (default) for the records, or "text" for the same data as plain text. |
-
-## engage_item_submit
-
-Toolset: `automation`. Effect: `commit`. Needs the `engage` service.
-
-Add approved content made outside agentOS (a post, a comment) to a surface's engagement schedule. The next session that already plans that kind takes the oldest waiting item, under the same caps: items add no extra posts or comments. The surface needs an approved program, and the site must have the kind (for example post or comment on reddit). An item goes out without asking again, so over MCP (any token, the node's own included) it returns status approval_pending: the owner approves this exact item, attachments included, then call again with the same arguments to queue it. Returns the item (id it_..., status queued) and warnings, such as a program that plans none of this kind. Items not used by expires_at expire. Fails with invalid (the message names what to fix) or denied.
-
-| Argument | Type | Required | Description |
-|---|---|---|---|
-| `surface` | `str` | yes | The account, as "workspace/name", for example "biz-a/reddit". |
-| `kind` | `str` | yes | What it is: post or comment (what the site takes). |
-| `text` | `str` | yes | The words to publish, within the site's limit and the program's comments.max_chars. |
-| `title` | `str \| None` | no (default None) | A title, for sites that take one (a Reddit post). Optional. |
-| `targets` | `list[str] \| None` | no (default None) | At most one: where it goes (a subreddit such as r/coffee for a Reddit post, a post link for a comment). Optional. |
-| `attachments` | `list[str] \| None` | no (default None) | File ids on the surface's lane (from files_put), images or videos. Optional. |
-| `expires_at` | `str \| None` | no (default None) | When it stops waiting, ISO 8601 with a time zone (such as 2026-11-12T18:00:00+02:00 or ...Z), at most 30 days away. Default: 7 days after it is queued. |
-
-## engage_item_withdraw
-
-Toolset: `automation`. Effect: `draft`. Needs the `engage` service.
-
-Take a queued item back, so no session uses it. The owner can withdraw any item; an agent only the items it asked for. An item a session has right now, or one already used, expired or withdrawn, cannot be withdrawn. Fails with owner_only, invalid or not_found.
-
-| Argument | Type | Required | Description |
-|---|---|---|---|
-| `item_id` | `str` | yes | The item's id (it_...). |
-
-## engage_items
-
-Toolset: `automation`. Effect: `read`. Needs the `engage` service.
-
-Read the items waiting for (or used by) engagement sessions: per item its id, surface, kind, status (queued, reserved while a session has it, awaiting while its run waits for an approval, used with the run id, failed when its run failed and may have posted, expired or withdrawn), text, targets, attachments (with each file's name, type, size and sha256) and expiry. Pass item_id for one item.
-
-| Argument | Type | Required | Description |
-|---|---|---|---|
-| `surface` | `str \| None` | no (default None) | One account, as "workspace/name". Leave out for every account you may see. |
-| `status` | `str \| None` | no (default None) | Only items in this status. |
-| `item_id` | `str \| None` | no (default None) | One item, by its id (it_...). |
-
-## engage_program_draft
-
-Toolset: `automation`. Effect: `draft`. Needs the `engage` service.
-
-Draft an engagement program for one surface (an account such as "biz-a/instagram"). The program is YAML or JSON with: program (a name), risk (careful, or off for posting only), phases (an optional {kind: warm_up, days} first, then {kind: steady, daily: {like, comment, follow, join, story_view, post}, targets: [{source, values}], filters}), comments ({mode: approve, topics, max_chars}), community, posting and report. Returns the validated YAML, a plain summary, the caps the account will really get (the engine gives less than a target when a cap is lower), and warnings. Nothing runs: only the owner approves a program, on the node. Agents cannot choose risk normal, auto comments or replies, or the followers_of source, and cannot raise caps. Fails with program_invalid (fix the field it names) or owner_only.
-
-| Argument | Type | Required | Description |
-|---|---|---|---|
-| `surface` | `str` | yes | The account the program is for, as "workspace/name", for example "biz-a/instagram". |
-| `program` | `str` | yes | The program as YAML or JSON text. |
-
-## engage_status
-
-Toolset: `automation`. Effect: `read`. Needs the `engage` service.
-
-Read where engagement stands: per account, its program and whether the owner approved it, its phase (warm-up day or steady ramp week), today's planned sessions and actions per kind, actions done, today's caps, holds (what stopped an account, and until when), recent notices, and the window of the next session (a part of the day, never an exact time). `dry_run` says whether this node only draws and reports plans (the default) or runs sessions; either way an agent cannot start, clear or change anything here.
-
-| Argument | Type | Required | Description |
-|---|---|---|---|
-| `surface` | `str \| None` | no (default None) | One account, as "workspace/name". Leave out for every account you may see. |
-| `workspace` | `str \| None` | no (default None) | Only the accounts of this workspace. |
 
 ## env_create
 
@@ -1534,7 +1456,7 @@ Save a whole profile (a new one, or a full replacement) as YAML or JSON with: pr
 
 Toolset: `profiles`. Effect: `read`. Needs the `profiles` service.
 
-Per account of a profile, each field it should show and its state: in_sync, due (the engine edits it at the next session), awaiting_approval, denied, failed, no_program (the engine edits it but the account has no approved engagement program), manual (no engine operation on this site: change it in the lane by hand, then call profile_mark_synced) or done_by_hand. Also fields left out (people only) and problems.
+Per account of a profile, each field it should show and its state: in_sync, failed, syncing, learning, held, relearn, manual (no learned operation on this site yet: teach it with profile_learn_start, or change it in the lane by hand, then call profile_mark_synced) or done_by_hand. Also fields left out (people only) and problems.
 
 | Argument | Type | Required | Description |
 |---|---|---|---|

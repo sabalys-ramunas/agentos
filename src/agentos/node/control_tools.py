@@ -23,7 +23,8 @@ from agentos.core.errors import InvalidRequest
 from agentos.core.models import ControlState, Effect, LaneControl, parse_lane_id
 from agentos.core.tools import ToolContext, ToolSpec
 from agentos.node.handback import claim_note
-from agentos.node.viewer_app import ViewMode, ViewTokens, control_dict
+from agentos.node.viewer_state import control_dict
+from agentos.node.viewer_tokens import ViewMode, ViewTokens
 
 MAX_WAIT_SECONDS = 300.0
 DEFAULT_WAIT_SECONDS = 60.0
@@ -79,7 +80,7 @@ async def with_note(ctx: ToolContext, lane_id: str, out: dict[str, Any]) -> dict
     """`out` with the hand-back note (once per agent session) when agents may act again."""
     if not out.get("agent_may_act"):
         return out
-    from agentos.node.tools import label_page_text, who
+    from agentos.node.tools.session import label_page_text, who
 
     note = await claim_note(ctx.runtime.require("lanes"), lane_id, who(ctx))
     if note is None:
@@ -175,14 +176,14 @@ def take_over_link(runtime: Any, on: str, *, ttl_s: float | None = None, ssh_hos
     """A control-mode viewer link for lane_view: the human opens it (through the SSH tunnel in M1) to watch,
     take control, and hand back. Uses the runtime's `viewer_links` (a ViewTokens) when registered.
     `control=False` issues a link to watch only (a controller's caller whose ceiling has no control).
-    `ssh_host` and `local_port`: how the caller's computer reaches this node (agentos.ops.viewroutes), so
+    `ssh_host` and `local_port`: how the caller's computer reaches this node (agentos.node.viewroutes), so
     the link and the tunnel are right there; without them, this node's port and hostname."""
     lane_id = _lane(on)
     config = runtime.require("config")
     tokens = runtime.get("viewer_links") or ViewTokens.for_config(config)
     link = tokens.issue(lane_id, ViewMode.CONTROL if control else ViewMode.VIEW, ttl_s)
     if ssh_host is None:
-        from agentos.node.daemon import ssh_host as default_ssh_host
+        from agentos.node.tools.lanes import ssh_host as default_ssh_host
         ssh_host = default_ssh_host(config)
     port = port or config.mcp_port
     local = local_port or port

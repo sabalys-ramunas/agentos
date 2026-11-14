@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import re
 
-from agentos.api.auth import RateLimiter
+from agentos.core.ratelimit import RateLimiter
 
 TOKEN_RE = re.compile(r"^[A-Za-z0-9_-]{16,128}$")
 BODY_TIMEOUT_S = 10.0  # a sender that dribbles its body holds a slot for no longer than this

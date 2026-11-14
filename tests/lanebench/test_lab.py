@@ -5,8 +5,8 @@ from __future__ import annotations
 import asyncio
 
 import pytest
+from testkit.pilot import ScriptedDecider, step
 
-from agentos.pilot.testing import ScriptedDecider, step
 from lanebench import tasks
 from lanebench.lab import grade, replay, sets
 from lanebench.lab.harvest import twin

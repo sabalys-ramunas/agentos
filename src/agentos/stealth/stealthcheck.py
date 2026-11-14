@@ -43,7 +43,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Protocol
 
-from agentos.ops.system import meminfo_mb
+from agentos.core.system import meminfo_mb
+from agentos.core.text import first_line
 from agentos.stealth import stealth
 from agentos.stealth.stealth import FAIL, OK, WARN, Finding
 
@@ -135,7 +136,7 @@ def node_configs(homes: Iterable[Path] | None = None) -> list[Any]:
         try:
             out.append(load_config(home))
         except (OSError, ValueError) as e:
-            raise ValueError(f"cannot read {config_path(home)} ({_first_line(e)}), so the slots it uses are "
+            raise ValueError(f"cannot read {config_path(home)} ({first_line(e)}), so the slots it uses are "
                              "unknown") from None
     return out
 
@@ -160,10 +161,6 @@ def daemon_homes() -> list[Path]:
         found = [e.split(b"=", 1)[1].decode(errors="replace") for e in env if e.startswith(b"AGENTOS_HOME=")]
         homes.append(Path(found[0]) if found else DEFAULT_HOME)
     return homes
-
-
-def _first_line(e: BaseException) -> str:
-    return (str(e).strip().splitlines() or [type(e).__name__])[0][:200]
 
 
 # ---- scratch homes ------------------------------------------------------------------------------
@@ -222,8 +219,8 @@ async def sweep_leftovers(root: Path, *, keep: Path | None = None) -> list[int]:
     """Stop what checks killed outright left: every process that names a scratch home whose owner
     is gone (browsers, Xvfb, x11vnc), then remove those homes under `root`. Never `keep` (this
     check's own home) or a home whose check still runs. Returns the pids stopped."""
+    from agentos.node.camoufox.engine import _is_browser
     from agentos.node.display import iter_processes, kill_processes
-    from agentos.node.engine_camoufox import _is_browser
 
     homes: dict[Path, list[int]] = {}
     for pid, argv in iter_processes():
@@ -738,7 +735,7 @@ class NodeLab:
 
     @property
     def installed_major(self) -> int | None:
-        from agentos.stealth.fingerprint import browser_major
+        from agentos.node.fingerprint import browser_major
         return browser_major(self._versions.get("camoufox_browser"))
 
     async def start(self) -> None:
@@ -848,8 +845,8 @@ class NodeLab:
     def census(self) -> dict[str, int]:
         """This check's own processes and descriptors: browsers under its home, the slot's Xvfb and
         x11vnc, Playwright drivers started by this process, and this process's open descriptors."""
+        from agentos.node.camoufox.engine import browser_pids_under
         from agentos.node.display import iter_processes
-        from agentos.node.engine_camoufox import browser_pids_under
 
         displays = {f":{self.slot.display_base + i}" for i in range(10)}
         me = os.getpid()
@@ -886,7 +883,7 @@ def _versions() -> dict[str, Any]:
         except Exception:  # noqa: BLE001
             out[package] = None
     try:
-        from agentos.ops.system import Host
+        from agentos.core.system import Host
         out["camoufox_browser"] = Host().camoufox(None).get("verstr")
     except Exception:  # noqa: BLE001
         out["camoufox_browser"] = None

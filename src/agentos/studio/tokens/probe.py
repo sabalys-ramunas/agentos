@@ -179,10 +179,7 @@ async def run_probe(page, records: list[dict], tokens: TokenSet, theme: Theme | 
     its element list."""
     res = ProbeResult()
     deadline = time.monotonic() + timeout_s
-    by_var: dict[str, dict[str, tuple[str, str]]] = {}
-    for t in tokens.tokens:
-        if t.css_var and (theme is None or theme in t.themes):
-            by_var.setdefault(t.category.value, {}).setdefault(t.css_var, (t.name, t.value))
+    by_var = _vars_by_category(tokens, theme)
     all_vars = sorted({v for d in by_var.values() for v in d})
     res.with_var = len(all_vars)
     if not all_vars:
@@ -191,18 +188,12 @@ async def run_probe(page, records: list[dict], tokens: TokenSet, theme: Theme | 
         return res
     try:
         defs = await _eval(page, page_js.DEFS, all_vars, deadline)
-    except TimeoutError:
-        for c in categories:
-            res.ran[c] = "the probe ran out of time before it started"
-        return res
-    defined = set(defs["defined"])
-    res.defined = len(defined)
-    if defs["unreadable"]:
-        res.notes.append(f"{len(defs['unreadable'])} stylesheet(s) could not be read (cross-origin); "
-                         "tokens declared only there were set on the root element instead")
-    props_all = ALL_PROPS
-    try:
-        first = await _eval(page, page_js.REREAD, props_all, deadline)
+        defined = set(defs["defined"])
+        res.defined = len(defined)
+        if defs["unreadable"]:
+            res.notes.append(f"{len(defs['unreadable'])} stylesheet(s) could not be read (cross-origin); "
+                             "tokens declared only there were set on the root element instead")
+        first = await _eval(page, page_js.REREAD, ALL_PROPS, deadline)
     except TimeoutError:
         for c in categories:
             res.ran[c] = "the probe ran out of time before it started"
@@ -217,70 +208,8 @@ async def run_probe(page, records: list[dict], tokens: TokenSet, theme: Theme | 
                 res.ran[cat] = ("none of its tokens is declared on this page as a custom property"
                                 if by_var.get(cat) else "no token in this category names a custom property")
                 continue
-            props = PROPS_BY_CAT[cat]
-            news: list[dict] = []
-            plans: dict = {}
-            for start in range(0, len(toks), BATCH):
-                chunk = toks[start:start + BATCH]
-                plan, table = _plan(cat, chunk)
-                plans.update(table)
-                if cat == "font_size":
-                    # the root's own font size first, unpinned; then the rest with the root pinned
-                    # so rem lengths hold still
-                    await _eval(page, page_js.APPLY, [plan, defs["decls"], None], deadline)
-                    root_row = (await _eval(page, page_js.REREAD, props, deadline))[:1]
-                    await _eval(page, page_js.RESTORE, None, deadline)
-                    await _eval(page, page_js.APPLY, [plan, defs["decls"], root_px], deadline)
-                    rows = await _eval(page, page_js.REREAD, props, deadline)
-                    await _eval(page, page_js.RESTORE, None, deadline)
-                    if rows and root_row:
-                        rows[0] = root_row[0]
-                else:
-                    await _eval(page, page_js.APPLY, [plan, defs["decls"], None], deadline)
-                    rows = await _eval(page, page_js.REREAD, props, deadline)
-                    await _eval(page, page_js.RESTORE, None, deadline)
-                if not news:
-                    news = rows
-                else:
-                    # a later batch only adds what an earlier one did not already move
-                    for k, row in enumerate(rows):
-                        for p in props:
-                            if row.get(p) != first[k].get(p):
-                                news[k][p] = row[p]
-            moved = 0
-            for rec in records:
-                i = rec["i"]
-                if i >= len(news):
-                    continue
-                for p in props:
-                    base, new = first[i].get(p), news[i].get(p)
-                    fs = parse_length(first[i].get("font-size") or "16px") or 16.0
-                    pi = rec["pi"]
-                    is_counted = (i, p) in counted
-                    if not is_counted:
-                        # an inherited value equal to its parent's can still be written on this
-                        # element: the probe shows it when the parent moves and it does not
-                        if p not in INHERITED or pi < 0 or base is None:
-                            continue
-                        pbase, pnew = first[pi].get(p), news[pi].get(p)
-                        if base != pbase or new == pnew:
-                            continue
-                        res.hidden.append((i, p, base))
-                    if base == new:
-                        res.prov[(i, p)] = Prov("fixed")
-                        continue
-                    moved += 1
-                    prov = _decode(cat, p, new, plans, news[i], fs)
-                    if prov is None and cat == "font_size" and pi >= 0:
-                        # an em or % size under a parent that moved: relative, not a token
-                        pb, pn = parse_length(first[pi].get(p) or ""), parse_length(news[pi].get(p) or "")
-                        b, n = parse_length(base or ""), parse_length(new or "")
-                        if pb and pn and b and n and pb != pn and abs(n / b - pn / pb) < 1e-3:
-                            res.prov[(i, p)] = Prov("fixed")
-                            moved -= 1
-                            continue
-                    res.prov[(i, p)] = prov or Prov("derived")
-            res.moved[cat] = moved
+            news, plans = await _move_category(page, cat, toks, defs["decls"], first, root_px, deadline)
+            res.moved[cat] = _judge_category(res, cat, records, first, news, plans, counted)
             res.ran[cat] = "probe"
     except TimeoutError:
         for cat in categories:
@@ -288,10 +217,112 @@ async def run_probe(page, records: list[dict], tokens: TokenSet, theme: Theme | 
         res.notes.append(f"the probe stopped at its time cap ({timeout_s:g}s)")
         with contextlib.suppress(Exception):   # the came-back check below reloads the page if needed
             await asyncio.wait_for(page.evaluate(page_js.RESTORE), 5)
-    # did the page come back?
+    await _bring_back(page, res, first)
+    return res
+
+
+def _vars_by_category(tokens: TokenSet, theme: Theme | None) -> dict[str, dict[str, tuple[str, str]]]:
+    """{category: {css var: (token name, value)}}, the first token naming a var winning."""
+    by_var: dict[str, dict[str, tuple[str, str]]] = {}
+    for t in tokens.tokens:
+        if t.css_var and (theme is None or theme in t.themes):
+            by_var.setdefault(t.category.value, {}).setdefault(t.css_var, (t.name, t.value))
+    return by_var
+
+
+async def _move_category(page, cat: str, toks: list[tuple[str, str, str]], decls: Any, first: list[dict],
+                         root_px: Any, deadline: float) -> tuple[list[dict], dict]:
+    """Set the category's tokens to sentinels, batch by batch, and read every element again.
+    Returns what each element shows with the sentinels on, and the table that decodes them."""
+    props = PROPS_BY_CAT[cat]
+    news: list[dict] = []
+    plans: dict = {}
+    for start in range(0, len(toks), BATCH):
+        plan, table = _plan(cat, toks[start:start + BATCH])
+        plans.update(table)
+        rows = await _read_with(page, cat, plan, decls, props, root_px, deadline)
+        if not news:
+            news = rows
+            continue
+        # a later batch only adds what an earlier one did not already move
+        for k, row in enumerate(rows):
+            for p in props:
+                if row.get(p) != first[k].get(p):
+                    news[k][p] = row[p]
+    return news, plans
+
+
+async def _read_with(page, cat: str, plan: dict, decls: Any, props: list[str], root_px: Any,
+                     deadline: float) -> list[dict]:
+    """Apply one batch of sentinels, read the rows, restore."""
+    if cat != "font_size":
+        await _eval(page, page_js.APPLY, [plan, decls, None], deadline)
+        rows = await _eval(page, page_js.REREAD, props, deadline)
+        await _eval(page, page_js.RESTORE, None, deadline)
+        return rows
+    # the root's own font size first, unpinned; then the rest with the root pinned so rem lengths
+    # hold still
+    await _eval(page, page_js.APPLY, [plan, decls, None], deadline)
+    root_row = (await _eval(page, page_js.REREAD, props, deadline))[:1]
+    await _eval(page, page_js.RESTORE, None, deadline)
+    await _eval(page, page_js.APPLY, [plan, decls, root_px], deadline)
+    rows = await _eval(page, page_js.REREAD, props, deadline)
+    await _eval(page, page_js.RESTORE, None, deadline)
+    if rows and root_row:
+        rows[0] = root_row[0]
+    return rows
+
+
+def _judge_category(res: ProbeResult, cat: str, records: list[dict], first: list[dict], news: list[dict],
+                    plans: dict, counted: set[tuple[int, str]]) -> int:
+    """Each element's values in the category: fixed, or moved to the token it names (or derived
+    from one). Records the provenance in `res`; returns how many moved."""
+    props = PROPS_BY_CAT[cat]
+    moved = 0
+    for rec in records:
+        i = rec["i"]
+        if i >= len(news):
+            continue
+        pi = rec["pi"]
+        fs = parse_length(first[i].get("font-size") or "16px") or 16.0
+        for p in props:
+            base, new = first[i].get(p), news[i].get(p)
+            if (i, p) not in counted:
+                # an inherited value equal to its parent's can still be written on this
+                # element: the probe shows it when the parent moves and it does not
+                if p not in INHERITED or pi < 0 or base is None:
+                    continue
+                pbase, pnew = first[pi].get(p), news[pi].get(p)
+                if base != pbase or new == pnew:
+                    continue
+                res.hidden.append((i, p, base))
+            prov = _provenance(cat, p, base, new, plans, news[i], fs, first[pi] if pi >= 0 else None,
+                               news[pi] if pi >= 0 else None)
+            res.prov[(i, p)] = prov
+            if prov.kind != "fixed":
+                moved += 1
+    return moved
+
+
+def _provenance(cat: str, p: str, base: Any, new: Any, plans: dict, row: dict, fs: float,
+                parent_first: dict | None, parent_new: dict | None) -> Prov:
+    if base == new:
+        return Prov("fixed")
+    prov = _decode(cat, p, new, plans, row, fs)
+    if prov is None and cat == "font_size" and parent_first is not None and parent_new is not None:
+        # an em or % size under a parent that moved: relative, not a token
+        pb, pn = parse_length(parent_first.get(p) or ""), parse_length(parent_new.get(p) or "")
+        b, n = parse_length(base or ""), parse_length(new or "")
+        if pb and pn and b and n and pb != pn and abs(n / b - pn / pb) < 1e-3:
+            return Prov("fixed")
+    return prov or Prov("derived")
+
+
+async def _bring_back(page, res: ProbeResult, first: list[dict]) -> None:
+    """Did the page come back to its first state? If not, reload it, and say so."""
     try:
         await asyncio.wait_for(page.evaluate(page_js.RESTORE), 5)
-        after = await asyncio.wait_for(page.evaluate(page_js.REREAD, props_all), 10)
+        after = await asyncio.wait_for(page.evaluate(page_js.REREAD, ALL_PROPS), 10)
         diff = _same_rows(first, after)
     except Exception:  # noqa: BLE001 - an unreadable page counts as not back
         diff = -1
@@ -303,4 +334,3 @@ async def run_probe(page, records: list[dict], tokens: TokenSet, theme: Theme | 
             await page.reload(wait_until="load")
         except Exception as e:  # noqa: BLE001 - said in the coverage
             res.notes.append(f"the reload failed: {e}")
-    return res

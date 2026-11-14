@@ -52,7 +52,7 @@ def test_config_show_names_each_source_and_never_prints_the_token(tmp_path, monk
 def test_dashboard_lists_questions_once_and_reads_watch_json():
     from types import SimpleNamespace
 
-    from agentos.tui.views import schedule_when
+    from agentos.tui.runs import schedule_when
 
     assert schedule_when(SimpleNamespace(cron=None, watch='{"url": "x", "every_minutes": 15}')) == "watch every 15m"
     assert schedule_when(SimpleNamespace(cron="0 9 * * *", watch=None)) == "0 9 * * *"

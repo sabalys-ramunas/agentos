@@ -25,7 +25,7 @@ from typing import Any
 
 from agentos.core.catalog import without_mcp_lines
 from agentos.core.errors import AgentosError, EngineError, NotFound, ServiceUnavailable
-from agentos.mcp.registry import bind_request_token
+from agentos.core.tools import bind_request_token
 
 log = logging.getLogger("agentos.channel.invoke")
 

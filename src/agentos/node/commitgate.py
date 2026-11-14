@@ -57,7 +57,7 @@ from urllib.parse import urlsplit
 from agentos.core.errors import AgentosError, ApprovalPending, NotFound, PublishChanged, PublishUnbound
 from agentos.core.models import Effect
 from agentos.node import acting, egress, publish
-from agentos.policy.approvals import content_digest
+from agentos.policy.approval_binding import content_digest
 from agentos.policy.errors import Denied
 from agentos.policy.util import content_hash
 

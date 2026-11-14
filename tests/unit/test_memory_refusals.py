@@ -5,6 +5,7 @@ from __future__ import annotations
 import threading
 
 import pytest
+from testkit.memory import FakeTrace, fake_memory
 
 from agentos.core.errors import InvalidRequest
 from agentos.memory.errors import (
@@ -19,7 +20,6 @@ from agentos.memory.errors import (
     TrustTooLow,
     TypeNotAllowed,
 )
-from agentos.memory.fakes import FakeTrace, fake_memory
 from agentos.memory.models import Caller, Limits, WriteRequest
 
 FAMILY = "family:gr_a"

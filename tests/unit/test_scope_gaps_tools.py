@@ -11,6 +11,7 @@ from typing import Any
 
 import pytest
 from test_node_panel import Node, bearer
+from testkit.workspaces import Harness as WorkspaceHarness
 from workflow_support import LIST, OWNER, action, make_node, read_flow, workflow
 
 from agentos.core.errors import InvalidRequest, NotFound, PolicyDenied
@@ -21,7 +22,6 @@ from agentos.runner import tools as runner_tools
 from agentos.runner.fakes import BASE, Harness
 from agentos.runner.workflows import tools as wf_tools
 from agentos.workspaces import tools as ws_tools
-from agentos.workspaces.fakes import Harness as WorkspaceHarness
 from agentos.workspaces.rules import LaneFact, proxy_conflicts
 
 OWNER_P = {"kind": "human", "id": "owner", "owner": "owner"}

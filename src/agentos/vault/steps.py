@@ -280,16 +280,9 @@ def read_step(page: PageRead) -> Step:
     origin = origin_text(page.url)
     base = {"origin": origin, "heading": heading, "message": message}
 
-    if page.signed_in and page.signal is Signal.OK:
-        return Step(StepKind.SIGNED_IN, **base)
-    if page.signal is Signal.CAPTCHA:
-        return Step(StepKind.CAPTCHA, reason="The page shows a captcha. agentos does not solve captchas: take "
-                                             "control, solve it in the live view, then come back to the form.",
-                    **base)
-    if page.signal in FORM_STUCK:
-        what = "blocked this browser" if page.signal is Signal.BLOCKED else "says to slow down"
-        return Step(StepKind.STUCK, reason=f"The site {what}. Take control to see the page, or try again later.",
-                    **base)
+    stop = _signal_step(page, base)
+    if stop is not None:
+        return stop
     top, _ = secure_origin(page.url)
     if top is None:
         return Step(StepKind.STUCK, reason="This page is not on https, so agentos does not type into it. Take "
@@ -302,13 +295,48 @@ def read_step(page: PageRead) -> Step:
         return Step(StepKind.STUCK, reason="The sign-in form is inside a frame from another site, so agentos "
                                            "does not type into it. Take control to sign in by hand.", **base)
 
+    asks, typed = _asks(page, local, roles)
+    if asks:
+        button = _submit_for(page, typed[-1], top)
+        kind = StepKind.CODE if all(a.name == "code" for a in asks) else StepKind.SIGN_IN
+        return Step(kind, asks=tuple(asks), submit=button.locator if button else None,
+                    submit_label=clean_text(button.label, LABEL_CHARS) if button else "",
+                    choices=tuple(_choices(page, top, alternatives=True)), **base)
+    return _fieldless_step(page, top, roles, base)
+
+
+def _signal_step(page: PageRead, base: dict[str, Any]) -> Step | None:
+    """1 and 2: signed in, or a page the owner must take over (captcha, blocked, rate limited)."""
+    if page.signed_in and page.signal is Signal.OK:
+        return Step(StepKind.SIGNED_IN, **base)
+    if page.signal is Signal.CAPTCHA:
+        return Step(StepKind.CAPTCHA, reason="The page shows a captcha. agentos does not solve captchas: take "
+                                             "control, solve it in the live view, then come back to the form.",
+                    **base)
+    if page.signal in FORM_STUCK:
+        what = "blocked this browser" if page.signal is Signal.BLOCKED else "says to slow down"
+        return Step(StepKind.STUCK, reason=f"The site {what}. Take control to see the page, or try again later.",
+                    **base)
+    return None
+
+
+def _login_fields(local: list[FieldInfo], roles: Mapping[str, FieldRole]
+                  ) -> tuple[FieldInfo | None, FieldInfo | None, FieldInfo | None]:
+    """(username, password, code) fields of this step: the first password, the username of its form
+    (with no password, the first username), and the first code field."""
     pw = next((f for f in local if roles[f.locator] is FieldRole.PASSWORD), None)
     users = [f for f in local if roles[f.locator] is FieldRole.USERNAME]
     user = next((f for f in users if pw is not None and _same_form(f, pw)), None) if pw is not None else None
     if user is None and pw is None and users:
         user = users[0]
     otp = next((f for f in local if roles[f.locator] is FieldRole.OTP), None)
+    return user, pw, otp
 
+
+def _asks(page: PageRead, local: list[FieldInfo], roles: Mapping[str, FieldRole]) -> tuple[list[Ask], list[FieldInfo]]:
+    """4: what the owner's form asks for (username, password, or a code), and the fields typed into,
+    in order."""
+    user, pw, otp = _login_fields(local, roles)
     asks: list[Ask] = []
     typed: list[FieldInfo] = []
     if user is not None:
@@ -325,14 +353,12 @@ def read_step(page: PageRead) -> Step:
         length = len(boxes) if len(boxes) > 1 else otp.maxlength
         asks.append(Ask("code", FieldRole.OTP, _label(page, otp, "code"), True, boxes, length))
         typed.append(group[-1] if group else otp)
+    return asks, typed
 
-    if asks:
-        button = _submit_for(page, typed[-1], top)
-        kind = StepKind.CODE if all(a.name == "code" for a in asks) else StepKind.SIGN_IN
-        return Step(kind, asks=tuple(asks), submit=button.locator if button else None,
-                    submit_label=clean_text(button.label, LABEL_CHARS) if button else "",
-                    choices=tuple(_choices(page, top, alternatives=True)), **base)
 
+def _fieldless_step(page: PageRead, top: Any, roles: Mapping[str, FieldRole], base: dict[str, Any]) -> Step:
+    """5 to 7: no login field to ask for: approve on a phone, a form the vault does not fill, or
+    buttons to choose from (one plain button is a confirm)."""
     others = _choices(page, top, alternatives=False)
     if page.approve or (page.number and not page.fields_visible()):
         return Step(StepKind.APPROVE, choices=tuple(others), number=page.number, **base)

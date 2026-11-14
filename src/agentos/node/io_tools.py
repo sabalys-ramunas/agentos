@@ -6,7 +6,7 @@
     browser_dialog, browser_dialog_answer              alert, confirm, prompt, beforeunload
 
 Browser tools run inside `lanes.using(on)` and act on the lane's active page, as the caller
-(agentos.node.tools.ctx_session): browser_tabs and browser_dialog are reads (they share the lane,
+(agentos.node.tools.session.ctx_session): browser_tabs and browser_dialog are reads (they share the lane,
 also while another caller claims it); browser_upload, browser_tab and browser_dialog_answer act. The file tools
 do not start the browser (listing or storing a file must not warm a lane and evict another);
 they only check that the lane exists, is a browser lane, and that a human has not paused it.
@@ -27,7 +27,7 @@ from agentos.core.errors import AgentPaused, ApprovalPending, InvalidRequest, La
 from agentos.core.models import ControlState, Effect, LaneInfo, LaneKind, ProxyConfig, parse_lane_id
 from agentos.core.tools import ToolContext, ToolImage, ToolSpec, in_person
 from agentos.node import egress
-from agentos.node.engine_camoufox import tracker_for
+from agentos.node.camoufox.engine import tracker_for
 from agentos.node.files import (
     INBOX,
     INLINE_IMAGES,
@@ -36,12 +36,12 @@ from agentos.node.files import (
     LaneFiles,
     human_size,
 )
-from agentos.node.interaction import dialog_guard
+from agentos.node.interaction.dialogs import dialog_guard
 
 
 def _session(ctx: ToolContext, on: str, *, read: bool = False) -> Any:
     from agentos.node.claims import ACT, READ
-    from agentos.node.tools import ctx_session
+    from agentos.node.tools.session import ctx_session
 
     return ctx_session(ctx, on, mode=READ if read else ACT)
 
@@ -132,7 +132,7 @@ def _decode(content_base64: str, cap: int) -> bytes:
 
 
 def _fetch_hint(config: NodeConfig, path: str) -> str:
-    from agentos.node.tools import ssh_host
+    from agentos.node.tools.lanes import ssh_host
     return f"scp {shlex.quote(f'{ssh_host(config)}:{path}')} ."
 
 
@@ -263,7 +263,7 @@ async def browser_upload(ctx: ToolContext, *, on: str, ref: str, file_id: str | 
                             content=[f.sha256 for f in stored])
         result = await upload(page, ref, paths, mimes=[f.mime or "" for f in stored], root=files.root / INBOX)
     ctx.trace("browser_upload", lane=on, ref=ref, file_ids=ids, ok=result.ok)
-    from agentos.node.tools import page_result
+    from agentos.node.tools.outline import page_result
 
     return {"file_ids": ids, **page_result(on, result)}
 
@@ -277,7 +277,7 @@ async def _page_signal(ctx: ToolContext, page: Any) -> str | None:
     read = getattr(interaction, "signal", None)
     if read is None:
         return None
-    from agentos.node.tools import active_page
+    from agentos.node.tools.outline import active_page
 
     value = await read(active_page(page))
     return getattr(value, "value", value)

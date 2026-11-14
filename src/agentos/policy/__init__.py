@@ -12,7 +12,8 @@ Integration surface (everything else is internal):
     unsubscribe = runtime.traces.subscribe(lambda kind, payload: ...)   # "trace", "approval", "grant"
 """
 
-from agentos.policy.service import Decision, PolicyContext, PolicyService, build
+from agentos.policy.context import Decision, PolicyContext
+from agentos.policy.service import PolicyService, build
 from agentos.policy.tools import tool_specs
 from agentos.policy.wrap import (
     ToolCallError,

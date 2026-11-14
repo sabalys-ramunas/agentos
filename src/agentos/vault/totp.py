@@ -12,6 +12,7 @@ import re
 from dataclasses import dataclass
 from urllib.parse import parse_qs, quote, urlsplit
 
+from agentos.policy.scrub import MIN_SECRET
 from agentos.vault.errors import EntryInvalid
 from agentos.vault.secret import Secret
 
@@ -90,3 +91,17 @@ def code_at(spec: TotpSpec, at: float) -> Secret:
 
 def seconds_left(spec: TotpSpec, at: float) -> float:
     return spec.period - (at % spec.period)
+
+
+def seed_forms(stored: str) -> list[str]:
+    """A TOTP seed as a setup page shows it: as stored (a bare seed or an otpauth URI), bare, with
+    its "=" padding, and in groups of four split by spaces or dashes ("JBSW Y3DP ..."). Letter case
+    is the matcher's. An unparsable seed is matched as stored."""
+    out = [stored.strip()]
+    try:
+        seed = parse_totp(stored).seed.reveal()
+    except Exception:  # noqa: BLE001 - a damaged seed is still matched as it was stored
+        return [v for v in out if len(v) >= MIN_SECRET]
+    groups = [seed[i:i + 4] for i in range(0, len(seed), 4)]
+    out += [seed, seed + "=" * (-len(seed) % 8), " ".join(groups), "-".join(groups)]
+    return [v for v in dict.fromkeys(out) if len(v) >= MIN_SECRET]
