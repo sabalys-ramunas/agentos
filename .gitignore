@@ -10,6 +10,9 @@ tests/lanebench/lab/data/
 
 # local settings and secrets
 .env*
+# the web app's build settings (no secrets: VITE_API_MODE), tracked on purpose
+!web/.env.development
+!web/.env.production
 .agentos-node.env
 .agentos-home/
 node_modules/

@@ -52,7 +52,11 @@ jobs:
         # Node tests (-m node) need Camoufox and Xvfb; they run on the node with scripts/node-test.sh.
         env:
           AGENTOS_TEST_SHARD: ${{ matrix.shard }}/4
-        run: uv run pytest -q --durations=15
+        # macOS runners allow 256 open files; a shard of real lanes, sockets and SQLite stores needs more
+        # (seen: "Too many open files", and job logs and servers that could not open theirs).
+        run: |
+          ulimit -n 8192 || ulimit -n "$(ulimit -Hn)"
+          uv run pytest -q --durations=15
       - name: Tool reference is current (make tools-doc)
         if: matrix.shard == 1
         run: uv run agentos tools --markdown | diff -u docs/TOOLS.md -
