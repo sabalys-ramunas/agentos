@@ -24,11 +24,11 @@ async (opts) => {
   // a slow server or a busy machine delays it more). Wait for those images, up to images_ms, and
   // for the frame that paints them.
   const vw = window.innerWidth, vh = window.innerHeight;
-  const loading = [...document.images].filter((im) => {
-    if (im.complete) return false;
+  const onView = [...document.images].filter((im) => {
     const r = im.getBoundingClientRect();
     return r.width > 0 && r.height > 0 && r.top < vh && r.bottom > 0 && r.left < vw && r.right > 0;
   });
+  const loading = onView.filter((im) => !im.complete);
   if (loading.length && opts.images_ms) {
     const settled = (im) => new Promise((resolve) => {
       if (im.complete) { resolve(); return; }
@@ -44,8 +44,11 @@ async (opts) => {
   }
   // An image that has just loaded gets its largest-paint entry a frame or more later, and a busy
   // machine (or a tab with no frames) can be slower than the two frames above: when a loaded image
-  // is bigger than the largest paint so far, wait for its entry, up to paint_ms.
-  const loaded = loading.filter((im) => im.complete && im.naturalWidth > 0);
+  // is bigger than the largest paint so far, wait for its entry, up to paint_ms. That includes one
+  // that loaded just before this pass began, which the wait above does not hold for (on a busy CI
+  // runner the largest paint was then still the text under a lazy hero). The wait ends at once when
+  // the image has its entry, or something as big already holds the largest paint.
+  const loaded = onView.filter((im) => im.complete && im.naturalWidth > 0);
   if (loaded.length && opts.paint_ms && supported.includes('largest-contentful-paint')) {
     const seen = (im) => {
       const r = im.getBoundingClientRect();
