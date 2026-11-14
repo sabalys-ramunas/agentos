@@ -2,9 +2,11 @@ import type { Flow, Schedule } from '@/api/types';
 import { weekOf } from './week-ahead';
 import { NO_ROUTINE } from './schedule-timeline';
 
-const ZONE = 'Europe/Vilnius';
-// A Monday morning, so every day of the week has a 09:00 in it.
-const NOW = Date.parse('2026-11-09T06:00:00+02:00');
+// The zone the app passes: the browser's own, which also splits the days. The tests run in a zone picked by
+// the hour (build/test-zone.ts), so a fixed zone here put the week's last 09:00 past the last midnight.
+const ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
+// A Monday morning in that zone, so every day of the week has a 09:00 in it.
+const NOW = new Date(2026, 10, 9, 6, 0).getTime();
 
 const recorded = (overrides: Partial<Flow> = {}): Flow => ({ id: 'biz-a.social.post', lane: 'biz-a/social', version: 'sha256:1', params: {}, effect: 'commit', last_run: null, name: 'Post a photo', ...overrides });
 const schedule = (overrides: Partial<Schedule>): Schedule => ({ id: 'sch_1', flow: '', params: {}, enabled: true, ...overrides });

@@ -40,7 +40,9 @@ class Node:
         self.runtime = node_runtime(self.config, self.lanes, FakeInteraction())
         build_services(self.runtime, SERVICES)
         self.store = PanelStore.for_home(self.home)
-        self.app = build_api(self.runtime, ApiSettings(lane_pump_seconds=0, sse_max_seconds=0.3, sse_heartbeat=0.1,
+        # The event stream ends at sse_max_seconds and must carry the whole history first: at 0.3 s a busy CI
+        # worker ended it after the first event, before the code events the leak check reads.
+        self.app = build_api(self.runtime, ApiSettings(lane_pump_seconds=0, sse_max_seconds=2.0, sse_heartbeat=0.1,
                                                        panel_dir=tmp_path / "none"))
         self.policy = self.runtime.policy
         self.vault = self.runtime.vault
