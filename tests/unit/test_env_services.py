@@ -89,7 +89,11 @@ async def test_http_health_probe_inside_the_lane(mgr):
         health={"http": f"http://127.0.0.1:{port}/", "interval_s": 0.2, "start_period_s": 0.3})
     st = await mgr.service_start("ws/web")
     assert st.desired == "running"
-    await until(lambda: mgr.services["ws/web"].status.health == "healthy")
+    try:  # a loaded CI runner can take a while to start python3 (failed at 8 s on macOS shards)
+        await until(lambda: mgr.services["ws/web"].status.health == "healthy", timeout=30.0)
+    except AssertionError:
+        status = mgr.services["ws/web"].status
+        raise AssertionError(f"not healthy: {status!r}\nservice log:\n{mgr.service_logs('ws/web', 40)}") from None
     assert mgr.state("ws/web").value == "active"
     st = await mgr.service_stop("ws/web")
     assert st.state == "stopped" and st.pid is None
