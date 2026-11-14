@@ -78,8 +78,13 @@ export function Proposal({ org, profile, draft, onDecided }: { org: string; prof
   const drawnNext = draft.tokens && profile.brand ? drawnButton({ ...profile, brand: { ...profile.brand, tokens: draft.tokens } }) : null;
   const buttonChanges = drawnNow && drawnNext && JSON.stringify(drawnNow) !== JSON.stringify(drawnNext);
   const guidelines = guidelineChanges(profile, draft);
+  // Not mutate(..., { onSuccess }): the refetch after a decision drops the draft, which unmounts this
+  // card, and a call's own callbacks never run once its component is gone, so "Version N is live"
+  // only showed when the callback won that race. The promise always settles; an error shows below.
   const send = (approve: boolean) =>
-    decide.mutate({ ref: profile.ref, version: draft.version, approve, note: approve ? undefined : note.trim() || undefined }, { onSuccess: onDecided });
+    decide
+      .mutateAsync({ ref: profile.ref, version: draft.version, approve, note: approve ? undefined : note.trim() || undefined })
+      .then(onDecided, () => undefined);
   const error = decide.error instanceof Error ? decide.error.message : decide.error ? 'The decision did not go through. Nothing was changed.' : null;
 
   return (

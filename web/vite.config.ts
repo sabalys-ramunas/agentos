@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import { mockGuard } from './build/guard';
+import { afternoonZone } from './build/test-zone';
 
 // Several agents share a machine, so each can point its panel at its own cloud.
 const api = { target: process.env.AGENTOS_API_TARGET ?? 'http://localhost:8300', changeOrigin: false };
@@ -25,6 +26,6 @@ export default defineConfig(({ mode }) => ({
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/*.test.{ts,tsx}', 'build/**/*.test.ts'],
     css: false,
-    env: { VITE_API_MODE: 'live' },
+    env: { VITE_API_MODE: 'live', TZ: afternoonZone() },
   },
 }));

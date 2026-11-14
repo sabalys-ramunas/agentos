@@ -503,7 +503,13 @@ async def _race(*coros: Any) -> None:
     finally:
         for t in tasks:
             t.cancel()
-        await asyncio.gather(*tasks, return_exceptions=True)
+        # wait, not gather: if this task is cancelled meanwhile (a server or a test client ending the
+        # socket), gather raises a side's own CancelledError, which an anyio cancel scope does not take
+        # for its own and passes on as an error
+        await asyncio.wait(tasks)
+        for t in tasks:
+            if not t.cancelled():
+                t.exception()  # read, so asyncio does not log it as never retrieved
 
 
 def _int(raw: str | None, default: int, lo: int, hi: int) -> int:

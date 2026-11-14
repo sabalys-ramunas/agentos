@@ -130,6 +130,9 @@ def test_dev_up_sees_a_listening_port_as_busy_and_a_closing_one_as_free():
     from agentos.dev.cli import port_is_free
 
     with socket.socket() as server:
+        # as uvicorn's listener does: on Linux a closing connection frees the port for a new bind
+        # only when the socket it was accepted on had SO_REUSEADDR too
+        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         server.bind(("127.0.0.1", 0))
         server.listen()
         port = server.getsockname()[1]

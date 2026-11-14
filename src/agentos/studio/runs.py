@@ -13,6 +13,7 @@ import os
 import re
 import secrets
 import threading
+import time
 from pathlib import Path
 from typing import Any
 
@@ -66,10 +67,16 @@ class Runs:
         path = self._path(record.id)
         with self._lock:
             self.dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+            files = self._files()
             tmp = path.with_name(f"{path.name}.{os.getpid()}.{threading.get_ident()}.tmp")
             fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
             with os.fdopen(fd, "w", encoding="utf-8") as f:
                 f.write(record.model_dump_json())
+            # The newest run is the one with the latest mtime. Linux stamps files from a clock that
+            # ticks every few milliseconds, so two quick runs could share one and sort by their random
+            # ids instead: each run is stamped at least 1 ns after the newest one before it.
+            stamp = max(time.time_ns(), files[0].stat().st_mtime_ns + 1 if files else 0)
+            os.utime(tmp, ns=(stamp, stamp))
             os.replace(tmp, path)
             self._prune()
         return record

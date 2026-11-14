@@ -381,7 +381,13 @@ class VncRelay:
             done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
             for task in pending:
                 task.cancel()
-            await asyncio.gather(*pending, return_exceptions=True)
+            if pending:
+                # wait, not gather: a cancel of this task meanwhile stays this task's own (see
+                # agentos.api.realtime._race)
+                await asyncio.wait(pending)
+                for task in pending:
+                    if not task.cancelled():
+                        task.exception()
             for task in done:
                 exc = task.exception()
                 if isinstance(exc, RfbProtocolError):

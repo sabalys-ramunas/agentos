@@ -1,0 +1,107 @@
+# gitleaks settings for the secret scan (.github/workflows/ci.yml, job "secret scan").
+#
+# The default rules stay on. Each allowlist below lets through only the listed fake or published
+# values, only in the listed files, only for the listed rule: a path and a value must both match
+# (condition AND), so a real secret added to the same file is still caught.
+# Prefer building a fake key at run time in the test (see FAKE_STRIPE in
+# tests/unit/test_profiles_studio.py) over adding an entry here. Never add a real secret.
+#
+# Check the tree with: gitleaks detect --no-banner --log-opts=-1
+
+[extend]
+useDefault = true
+
+# Not a secret: the Python type name in signatures such as `key: Ed25519PrivateKey | None`, which
+# generic-api-key reads as "key: <value>".
+[[allowlists]]
+description = "the type name Ed25519PrivateKey in Python signatures"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^src/agentos/.+\.py$''']
+regexes = ['''^Ed25519PrivateKey$''']
+
+# A published test vector: the Ed25519 private key "test-key-ed25519" from RFC 9421, appendix B.1.4.
+[[allowlists]]
+description = "RFC 9421 B.1.4 test key"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^tests/node/test_identity_node\.py$''']
+regexes = ['''^n4Ni-HpISpVObnQMW0wOhCKROaIKqKtW_2ZYb2p9KcU$''']
+
+# The grant token test vectors: a public key derived from a seed printed in the same file
+# (seed = SHA-256("agentos token vector root")).
+[[allowlists]]
+description = "the token vectors' root public key"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^tests/fixtures/tokens/vectors\.json$''']
+regexes = ['''^IF1TfBDhbCuoLkHP5wqHqE1KCa4nA607JjMkvf_-93s$''']
+
+# Not a secret: a studio diff fixture names an element by its test id ("testid=plan-pro").
+[[allowlists]]
+description = "an element key in the studio diff fixture"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^tests/fixtures/studio/diff/pairs\.json$''']
+regexes = ['''^testid=plan-pro$''']
+
+# Example JWTs that the redaction tests must catch. They are signed for no real service: the
+# payloads are {"sub":"1234567890"}, {"sub":"owner"} and {"sub":"1"}, and the signatures are
+# filler text ("signature-value") or a documentation example.
+[[allowlists]]
+description = "example JWTs in the redaction tests"
+targetRules = ["jwt", "generic-api-key"]
+condition = "AND"
+paths = [
+  '''^tests/unit/test_channel_logs\.py$''',
+  '''^tests/unit/test_devtools_capture\.py$''',
+  '''^tests/unit/test_memory_refusals\.py$''',
+  '''^tests/unit/test_policy_traces\.py$''',
+  '''^tests/unit/test_profiles_studio\.py$''',
+]
+regexes = [
+  '''^eyJhbGciOiJIUzI1NiJ9\.eyJzdWIiOiJvd25lciJ9\.c2lnbmF0dXJlLXRoYXQtaXMtbG9uZw$''',
+  '''^eyJhbGciOiJIUzI1NiJ9\.eyJzdWIiOiIxMjM0NTY3ODkwIn0\.c2lnbmF0dXJlLXZhbHVl$''',
+  '''^eyJhbGciOiJIUzI1NiJ9\.eyJzdWIiOiIxMjM0NTY3ODkwIn0\.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U$''',
+  '''^eyJhbGciOiJIUzI1NiJ9\.eyJzdWIiOiIxIn0\.abc123def456$''',
+]
+
+# Not a key: the fixed DER header that starts every PKCS#8 Ed25519 private key, which a redaction
+# test wraps in PEM lines (the 32 key bytes are not there).
+[[allowlists]]
+description = "the PKCS#8 Ed25519 header in a redaction test"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^tests/unit/test_policy_traces\.py$''']
+regexes = ['''^MC4CAQAwBQYDK2VwBCIEIA$''']
+
+# Made-up passwords, tokens and webhook secrets in unit tests. Each is a value the test checks is
+# never echoed, logged or exported, so it must look like a secret; none works anywhere.
+[[allowlists]]
+description = "made-up credentials in unit tests"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = [
+  '''^tests/unit/test_audit_replay_html\.py$''',
+  '''^tests/unit/test_cli_edge\.py$''',
+  '''^tests/unit/test_mcp_edge\.py$''',
+  '''^tests/unit/test_mcp_server\.py$''',
+  '''^tests/unit/test_node_panel\.py$''',
+  '''^tests/unit/test_ops_support\.py$''',
+  '''^tests/unit/test_policy_notifier\.py$''',
+  '''^tests/unit/test_policy_notify_members\.py$''',
+  '''^tests/unit/test_registry\.py$''',
+  '''^tests/unit/test_tui_app\.py$''',
+  '''^tests/unit/test_wsexport_support\.py$''',
+]
+regexes = [
+  '''^vault-secret-hunter22$''',
+  '''^tok-SECRET-123$''',
+  '''^pw-Zx81-secret$''',
+  '''^correct-horse-battery-staple-42$''',
+  '''^tok-SECRET-mcp-0123456789abcdef$''',
+  '''^whsec_0123456789abcdef$''',
+  '''^whsec_va_0123456789$''',
+  '''^tok-3f9a-very-secret$''',
+  '''^VAULTSECRET-api-key-0c1d2e$''',
+]

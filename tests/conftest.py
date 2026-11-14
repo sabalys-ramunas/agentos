@@ -14,10 +14,14 @@
 - A process that starts with SIGINT ignored (some CI shells do this) passes the ignore on to
   every child, so a test shell's Ctrl-C would never interrupt `sleep`. Production is not
   affected: agentosd installs its own SIGINT handler, and handled signals reset on exec.
+- AGENTOS_TEST_SHARD=<i>/<n> runs only shard i of n (CI splits the unit tests over n runners). Whole
+  files go to one shard, the largest first to the shard with the fewest tests, so the n shards
+  together run every selected test exactly once.
 """
 
 import os
 import signal
+from collections import Counter
 
 import _netguard  # tests/_netguard.py: this directory is on sys.path while its conftest loads
 import pytest
@@ -30,6 +34,36 @@ os.environ.setdefault("NO_COLOR", "1")
 
 if signal.getsignal(signal.SIGINT) == signal.SIG_IGN:
     signal.signal(signal.SIGINT, signal.default_int_handler)
+
+
+def shard_of(counts: Counter[str], shards: int) -> dict[str, int]:
+    """Each file's shard (0-based): the file with the most tests first, each to the shard that has
+    the fewest so far (ties to the lower shard), the same on every runner."""
+    load = [0] * shards
+    out = {}
+    for path, count in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0])):
+        shard = min(range(shards), key=lambda i: (load[i], i))
+        out[path] = shard
+        load[shard] += count
+    return out
+
+
+@pytest.hookimpl(trylast=True)  # after -m and -k have deselected, so the shards share what runs
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    spec = os.environ.get("AGENTOS_TEST_SHARD")
+    if not spec:
+        return
+    index, _, total = spec.partition("/")
+    if not (index.isdigit() and total.isdigit() and 1 <= int(index) <= int(total)):
+        raise pytest.UsageError(f"AGENTOS_TEST_SHARD must be <i>/<n> with 1 <= i <= n (got {spec!r})")
+    files = [item.nodeid.split("::", 1)[0] for item in items]
+    shards = shard_of(Counter(files), int(total))
+    mine = int(index) - 1
+    keep = [item for item, path in zip(items, files, strict=True) if shards[path] == mine]
+    drop = [item for item, path in zip(items, files, strict=True) if shards[path] != mine]
+    if drop:
+        config.hook.pytest_deselected(items=drop)
+    items[:] = keep
 
 
 @pytest.fixture(autouse=True)

@@ -19,15 +19,19 @@ concurrency:
 
 jobs:
   test:
-    name: lint and unit tests (${{ matrix.os }})
+    name: lint and unit tests (${{ matrix.os }}, ${{ matrix.shard }}/4)
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
+    # About 13,400 tests take some 31 minutes in one process on ubuntu-24.04 and twice that on
+    # macos-15, so they run in 4 shards of whole files (AGENTOS_TEST_SHARD, tests/conftest.py).
+    # Change the 4 in the name, the list and the Unit tests step together.
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         # macOS minutes cost 10x on private repos: run it on main and pull requests only
         os: ${{ (github.event_name == 'pull_request' || github.ref == 'refs/heads/main')
               && fromJSON('["ubuntu-24.04", "macos-15"]') || fromJSON('["ubuntu-24.04"]') }}
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
@@ -37,24 +41,33 @@ jobs:
         run: uv sync --frozen --extra node
       - name: Camoufox's fingerprint model (fetched here, so the unit tests' network guard stays strict)
         run: uv run python -c "from camoufox.fpgen_model import ensure_fpgen_model; ensure_fpgen_model()"
+      # Lint, shell syntax and the checks after the tests run once, in shard 1.
       - name: Lint
+        if: matrix.shard == 1
         run: uv run ruff check src tests scripts
       - name: Shell syntax
+        if: matrix.shard == 1
         run: for f in deploy/*.sh deploy/templates/*/*.sh scripts/*.sh; do bash -n "$f"; done
       - name: Unit tests
         # Node tests (-m node) need Camoufox and Xvfb; they run on the node with scripts/node-test.sh.
-        run: uv run pytest -q
+        env:
+          AGENTOS_TEST_SHARD: ${{ matrix.shard }}/4
+        run: uv run pytest -q --durations=15
       - name: Tool reference is current (make tools-doc)
+        if: matrix.shard == 1
         run: uv run agentos tools --markdown | diff -u docs/TOOLS.md -
       - name: Error catalog is current (make errors-doc)
+        if: matrix.shard == 1
         run: |
           uv run agentos errors --markdown | diff -u docs/ERRORS.md -
           # the classic panel is not in the public repository; check its copy only where it is
           if [ -d panel ]; then uv run agentos errors --panel-json | diff -u panel/src/api/errors.json -; fi
       - name: Protocol examples are current (make protocol-doc)
+        if: matrix.shard == 1
         run: uv run python scripts/protocol_doc.py --check
       - name: No em dashes in UI strings
         # Comments may use them; anything a person reads may not (strings, docstrings, templates).
+        if: matrix.shard == 1
         run: |
           if grep -rn "—" src --include='*.py' --include='*.html' --include='*.js' --include='*.css' \
               | grep -vE ':[0-9]+: *(#|//|/\*|\*)'; then
@@ -132,6 +145,8 @@ jobs:
       - name: Type check (make typecheck; scope and TODO list in pyproject.toml [tool.mypy])
         run: make -s typecheck
       - name: Publish cards are current (scripts/publish_cards.py)
+        # the script writes panel/src/mock/, and neither is in the public repository
+        if: hashFiles('scripts/publish_cards.py') != ''
         run: uv run python scripts/publish_cards.py --check
 
   audit:
@@ -183,6 +198,11 @@ jobs:
       AGENTOS_TEST_VIEWER_BASE: "6140"
       AGENTOS_TEST_VNC_BASE: "5140"
       AGENTOS_TEST_MCP_PORT_BASE: "7440"
+      # The shared browser's display and fixture site (tests/node/conftest.py) default to the slot's
+      # first display and viewer port, which the lane tests also take as their slot 0 (one sweeps the
+      # other's Xvfb away). They run here in one pytest session, so the shared ones sit just past it.
+      AGENTOS_TEST_DISPLAY: ":150"
+      AGENTOS_TEST_SITE_PORT: "6150"
       # tests/node/conftest.py: run the listed tests, and answer Camoufox's exit-IP lookup locally
       AGENTOS_TEST_SMOKE: tests/node/ci-smoke.txt
       AGENTOS_TEST_OFFLINE: "1"

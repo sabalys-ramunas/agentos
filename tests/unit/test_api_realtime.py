@@ -149,6 +149,7 @@ def upstream():
         await writer.drain()
         while data := await reader.read(4096):
             info["seen"] += data
+        writer.close()  # the relay left: without this the server's close waits for it (5 s per test)
 
     async def main():
         server = await asyncio.start_server(handler, "127.0.0.1", 0)

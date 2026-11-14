@@ -166,7 +166,8 @@ class Lane:
         fp = self.config.fingerprint_path(self.spec.id)
         viewer = await self.displays.acquire(self.spec.id, size=self.engine.display_size(fp))
         self.session = await self.engine.launch(self.spec, profile_dir=self.config.profile_dir(self.spec.id),
-                                                fingerprint_path=fp, display=viewer.display, proxy=None)
+                                                fingerprint_path=fp, display=viewer.display,
+                                                xauthority=viewer.xauthority, proxy=None)
         return self.session
 
     async def __aexit__(self, *exc):

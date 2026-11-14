@@ -25,8 +25,10 @@ describe('Machines', () => {
     expect(screen.getByText(whole('P', /^2 online\. hetzner-1 is the busiest at \d+%\. harbor\/ci-box is a disposable VM with \d+ min left, one of 2 rented\.$/))).toBeInTheDocument();
     // The VM's time left and what it is for are the node's own words.
     expect(within(rows[2]!).getByText('Run the shop end-to-end tests on a clean machine')).toBeInTheDocument();
-    // The running run shows on the machine it runs on.
-    expect(within(rows[1]!).getByText('pnpm vitest run')).toBeInTheDocument();
+    // The running run shows on the machine it runs on. The runs are their own read, which can land after
+    // the machines (on CI the row still said "An agent in 1 account"), so wait for it.
+    const busiest = within(grid).getByRole('row', { name: 'hetzner-1, Online' });
+    expect(await within(busiest).findByText('pnpm vitest run')).toBeInTheDocument();
   });
 
   it('opens a machine beside the table at its own address, with its lanes and a link to each run', async () => {

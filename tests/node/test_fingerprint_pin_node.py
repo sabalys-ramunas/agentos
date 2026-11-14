@@ -34,6 +34,7 @@ from agentos.node.engine_camoufox import (
     PIN_VERSION,
     CamoufoxEngine,
     browser_pids_under,
+    browser_view,
     complete_config,
     os_of,
     read_browser_config,
@@ -179,7 +180,9 @@ async def test_three_launches_show_one_device(rig, site, target_os):
         dump, running, launch_notes = await launch_and_dump(config, displays, engine, spec, site)
         stored = json.loads(fp.read_text())
         pinned = {k: v for k, v in stored.items() if k != PIN_META}
-        assert {k: v for k, v in running.items() if k not in LAUNCHER_KEYS} == pinned, f"launch {n}"
+        # what the browser was handed: a hardened lane's position stays in the pin (browser_view)
+        handed = browser_view(pinned, stored[PIN_META])
+        assert {k: v for k, v in running.items() if k not in LAUNCHER_KEYS} == handed, f"launch {n}"
         dumps.append(dump)
         notes.append(launch_notes)
         keep(f"{target_os}-launch{n}", {"dump": dump, "pin_notes": launch_notes})

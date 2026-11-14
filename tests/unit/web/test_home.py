@@ -15,7 +15,7 @@ from agentos.api.members import Role
 from agentos.api.web import home, topology
 from agentos.core.models import RunStatus
 from agentos.policy.traces import Cost, TraceEvent
-from agentos.runner.models import Run
+from agentos.runner.models import DEFAULT_TIMEZONE, Run
 
 ORG = "/api/orgs/local"
 ANA = "m_ana0001"
@@ -131,7 +131,11 @@ def test_coming_up_names_the_next_routine_on_a_schedule(client) -> None:
     assert up["title"] == "Weekday morning note"
     assert up["workspace_name"] == "Biz A"
     assert up["sentence"].startswith("Biz A: Weekday morning note · ")
-    assert " at 09:00" in up["when"] and up["at"]
+    # The schedule runs at 09:00 in its own zone (the runner's default), and Home says when in the
+    # node's zone: the same clock only where the two agree (a UTC CI runner says 07:00 in winter).
+    at = datetime.fromisoformat(up["at"])
+    assert at.astimezone(ZoneInfo(DEFAULT_TIMEZONE)).strftime("%H:%M") == "09:00"
+    assert up["when"].endswith(at.astimezone(_zone(client)).strftime(" at %H:%M"))
 
 
 def test_a_stuck_account_and_an_offline_computer_are_problems() -> None:
