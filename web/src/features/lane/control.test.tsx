@@ -28,12 +28,13 @@ describe('lane control', () => {
       released = true;
     };
     server.use(
+      // Held here, then answered by the mock's own handler (nothing returned), so the mock's lane says
+      // what the answer says and a later read of it cannot bring the agent back.
       http.post('/api/orgs/:org/lanes/:ws/:name/control', async () => {
         await new Promise<void>((resolve) => (released ? resolve() : (release = resolve)));
-        return HttpResponse.json({ ...lane('aster/instagram'), control: { ...idleControl, state: 'human', by: 'Demo Owner', by_id: 'usr_DEMO' } });
       }),
     );
-    const { user } = renderApp('/northwind-group/lanes/aster/instagram');
+    const { user, client } = renderApp('/northwind-group/lanes/aster/instagram');
     const region = within(await bar('Instagram'));
     await user.click(region.getByRole('button', { name: 'Take over' }));
     const busy = await region.findByRole('button', { name: 'Taking control' });
@@ -44,16 +45,19 @@ describe('lane control', () => {
     // the answer, the lane's refetch and the person's own name all have to land: on a busy CI
     // worker that took longer than the 5 s every other wait gets
     expect(await region.findByText('You have control', {}, { timeout: 15_000 })).toBeInTheDocument();
+    // A later read of the lane, such as the catch-up after the event stream reconnects, agrees.
+    await act(() => client.invalidateQueries({ queryKey: ['org', 'northwind-group'] }));
+    expect(region.getByText('You have control')).toBeInTheDocument();
   }, 20_000); // a slow machine must not turn the wait for the server into a failure
 
   it('keeps focus on Take over while its request runs, and a second press sends nothing', async () => {
     let release = () => {};
     let calls = 0;
     server.use(
+      // held here, then answered by the mock's own handler, as above
       http.post('/api/orgs/:org/lanes/:ws/:name/control', async () => {
         calls += 1;
         await new Promise<void>((resolve) => (release = resolve));
-        return HttpResponse.json({ ...lane('aster/instagram'), control: { ...idleControl, state: 'human', by: 'Demo Owner', by_id: 'usr_DEMO' } });
       }),
     );
     const { user } = renderApp('/northwind-group/lanes/aster/instagram');
