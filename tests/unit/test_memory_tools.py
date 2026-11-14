@@ -175,7 +175,9 @@ async def test_story_decision_through_an_approval(node):
     assert [p["trace_id"] for p in node.policy.traces.pins(ref=stored["id"])] == [ev]
     pack = await node.call(tok, "memory_context", workspace="biz-a")
     assert [r["title"] for r in pack["rules"]] == ["No discounts in posts"]
-    # the write left a memory_write trace with the version hash
+    # the write left a memory_write trace with the version hash (a trace written while the event loop
+    # runs goes through the writer thread, so it is flushed before it is read)
+    node.policy.traces.flush()
     traces, _ = node.policy.traces.query(kind="memory_write")
     assert any((t.args or {}).get("version_hash") == stored["version_hash"] for t in traces)
 

@@ -226,11 +226,13 @@ jobs:
       - name: Prove the group cannot get out
         # The runner itself reaches GitHub; the same request in the group must fail. --resolve skips
         # DNS, so this tests the TCP rule. --nnp: nothing in the group can sudo the rules away.
+        # No -f: any HTTP answer, a rate limit's 403 included, means the request got out. With -f a
+        # 403 failed the runner's own check, and would have hidden a leak from the group.
         run: |
           ip=$(getent ahostsv4 api.github.com | awk 'NR==1{print $1}')
-          curl -fsS -m 10 -o /dev/null --resolve "api.github.com:443:$ip" https://api.github.com/zen
+          curl -sS -m 10 -o /dev/null --resolve "api.github.com:443:$ip" https://api.github.com/zen
           if sudo setpriv --nnp --reuid="$(id -u)" --regid=agentos-offline --clear-groups -- \
-              curl -fsS -m 10 -o /dev/null --resolve "api.github.com:443:$ip" https://api.github.com/zen; then
+              curl -sS -m 10 -o /dev/null --resolve "api.github.com:443:$ip" https://api.github.com/zen; then
             echo "::error::the agentos-offline group reached api.github.com"; exit 1
           fi
       - name: Node tests (tests/node/ci-smoke.txt)
