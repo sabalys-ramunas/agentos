@@ -176,5 +176,9 @@ describe('the command bar', () => {
     await user.type(within(dialog).getByRole('combobox'), 'pytest tests/test_invoices');
     await user.click(await within(dialog).findByRole('option', { name: /^Tests in harbor-api: Lost/ }, { timeout: 4000 }));
     await waitFor(() => expect(router.state.location.pathname).toBe(`/${ORG}/runs/job-6f7a8b9c0d`));
+    // The address changes before the run page has loaded. A load still running when the file ends
+    // lands after jsdom is gone ("window is not defined" on CI), so the test waits for it.
+    await waitFor(() => expect(router.state.status).toBe('idle'));
+    expect(router.state.isLoading).toBe(false);
   });
 });
