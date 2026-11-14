@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Engine probe</title><link rel="icon" href="data:,"></head>
+<body>
+<p>Engine probe: what the browser engine itself shows a page, beyond the fingerprint. Run in Camoufox and in a
+stock Firefox of the same version on the same machine; every difference is something Camoufox, its
+configuration or the driver changed.</p>
+<pre id="out" data-state="running"></pre>
+<script>
+(async () => {
+  const out = {};
+  const timeout = (p, ms, v) => Promise.race([p, new Promise((r) => setTimeout(() => r(v), ms))]);
+  const put = async (name, fn) => {
+    try { out[name] = await timeout(Promise.resolve().then(fn), 8000, "timeout"); }
+    catch (e) { out[name] = "error: " + (e && (e.name + ": " + e.message)); }
+  };
+  const names = (o) => { const s = new Set(); for (let p = o; p && p !== Object.prototype; p = Object.getPrototypeOf(p))
+    for (const k of Object.getOwnPropertyNames(p)) s.add(k); return [...s].sort(); };
+
+  // ---- the API surface: what exists ----
+  await put("windowGlobals", () => Object.getOwnPropertyNames(window).sort());
+  await put("navigatorProps", () => names(navigator));
+  await put("documentProps", () => names(document).filter((k) => !/^on/.test(k)));
+  await put("elementProps", () => names(document.createElement("div")).filter((k) => !/^on/.test(k)));
+  await put("eventHandlers", () => names(window).filter((k) => /^on/.test(k)));
+  await put("cssProps", () => { const s = getComputedStyle(document.body); const a = []; for (let i = 0; i < s.length; i++) a.push(s[i]); return a.sort(); });
+  await put("intl", () => Object.fromEntries(["calendar", "collation", "currency", "numberingSystem", "timeZone", "unit"]
+    .map((k) => { try { const v = Intl.supportedValuesOf(k); return [k, k === "timeZone" ? v.length : v]; } catch (e) { return [k, null]; } })));
+
+  // ---- defaults and permissions ----
+  await put("permissions", async () => {
+    const r = {};
+    for (const n of ["geolocation", "notifications", "push", "persistent-storage", "camera", "microphone", "midi",
+                     "screen-wake-lock", "storage-access", "clipboard-read", "clipboard-write"]) {
+      try { r[n] = (await navigator.permissions.query({ name: n, userVisibleOnly: true })).state; }
+      catch (e) { r[n] = "error: " + e.name; }
+    }
+    return r;
+  });
+  await put("notificationPermission", () => typeof Notification === "undefined" ? null : Notification.permission);
+  await put("features", () => ({
+    serviceWorker: "serviceWorker" in navigator, push: typeof PushManager, credentials: typeof navigator.credentials,
+    publicKeyCredential: typeof PublicKeyCredential, gpu: typeof navigator.gpu, share: typeof navigator.share,
+    clipboard: typeof navigator.clipboard, wakeLock: typeof navigator.wakeLock, mediaSession: typeof navigator.mediaSession,
+    webkitGetUserMedia: typeof navigator.webkitGetUserMedia, sharedArrayBuffer: typeof SharedArrayBuffer,
+    crossOriginIsolated: crossOriginIsolated, isSecureContext: isSecureContext, pdfViewerEnabled: navigator.pdfViewerEnabled,
+    doNotTrack: navigator.doNotTrack, gpc: navigator.globalPrivacyControl, cookieEnabled: navigator.cookieEnabled,
+    onLine: navigator.onLine, webdriver: navigator.webdriver, dump: typeof window.dump, sidebar: typeof window.sidebar,
+    installTrigger: typeof window.InstallTrigger, mozInnerScreenX: typeof window.mozInnerScreenX,
+    mozInputSource: "mozInputSource" in MouseEvent.prototype, pointerRawUpdate: "onpointerrawupdate" in window,
+    getCoalesced: "getCoalescedEvents" in PointerEvent.prototype, scrollend: "onscrollend" in window,
+  }));
+  await put("webauthn", async () => typeof PublicKeyCredential === "undefined" ? null :
+    await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable());
+  await put("webgpu", async () => {
+    if (!navigator.gpu) return null;
+    const a = await navigator.gpu.requestAdapter();
+    return a ? { features: [...a.features].length, vendor: a.info && a.info.vendor, arch: a.info && a.info.architecture } : "no adapter";
+  });
+
+  // ---- what the machine is (memory, disk, media hardware) ----
+  await put("storage", async () => { const e = await navigator.storage.estimate();
+    return { quotaGB: Math.round(e.quota / 1e9 * 10) / 10, persisted: await navigator.storage.persisted() }; });
+  await put("mediaCapabilities", async () => {
+    const r = {};
+    for (const [k, ct] of [["h264_1080", 'video/mp4; codecs="avc1.640028"'], ["vp9_1080", 'video/webm; codecs="vp09.00.10.08"'],
+                           ["av1_1080", 'video/mp4; codecs="av01.0.08M.08"'], ["hevc_1080", 'video/mp4; codecs="hvc1.1.6.L120.90"']]) {
+      const i = await navigator.mediaCapabilities.decodingInfo({ type: "file", video: { contentType: ct, width: 1920,
+        height: 1080, bitrate: 5e6, framerate: 30 } });
+      r[k] = [i.supported, i.smooth, i.powerEfficient].map((b) => b ? 1 : 0).join("");
+    }
+    return r;
+  });
+  await put("mediaDevices", async () => (await navigator.mediaDevices.enumerateDevices()).map((d) => d.kind));
+  await put("audio", () => { const c = new AudioContext(); const r = { sampleRate: c.sampleRate, baseLatency: c.baseLatency,
+    outputLatency: c.outputLatency, channels: c.destination.maxChannelCount, state: c.state }; c.close(); return r; });
+  await put("speech", async () => { let v = speechSynthesis.getVoices(); if (!v.length) { await timeout(new Promise((r) =>
+    speechSynthesis.addEventListener("voiceschanged", r, { once: true })), 2000); v = speechSynthesis.getVoices(); }
+    return v.length; });
+
+  // ---- the JS engine: limits that depend on the OS and the build ----
+  // Recursion depth: the stack size of the thread over the size of a frame. A cold function runs in
+  // the interpreter (big frames); warmed up it runs jitted, so take the deepest of several runs.
+  const depthSrc = `const depth = () => { let best = 0; for (let i = 0; i < 8; i++) { let d = 0;
+    const f = () => { d++; f(); }; try { f(); } catch (e) {} best = Math.max(best, d); }
+    return Math.round(best / 100) * 100; };`;
+  await put("stackDepth", () => (0, eval)(depthSrc + "depth()"));
+  await put("stackDepthLater", () => new Promise((res) => setTimeout(() => res((0, eval)(depthSrc + "depth()")), 1500)));
+  // The same call-heavy work on the page's thread and in a worker: the ratio cancels the machine's
+  // speed, so anything that slows only the page's own scripts (a debugger attached) shows.
+  const benchSrc = `const bench = () => { const fib = (n) => n < 2 ? n : fib(n - 1) + fib(n - 2); fib(24);
+    const r = []; for (let i = 0; i < 7; i++) { const t = performance.now(); fib(25); r.push(performance.now() - t); }
+    r.sort((a, b) => a - b); return r[3]; };`;
+  await put("benchMain", () => (0, eval)(benchSrc + "bench()"));
+  await put("benchWorker", () => new Promise((res) => {
+    const w = new Worker(URL.createObjectURL(new Blob([benchSrc + "postMessage(bench())"])));
+    w.onmessage = (e) => { res(e.data); w.terminate(); }; }));
+  await put("stackDepthWorker", () => new Promise((res) => {
+    const w = new Worker(URL.createObjectURL(new Blob([depthSrc + "postMessage(depth())"])));
+    w.onmessage = (e) => { res(e.data); w.terminate(); }; }));
+  await put("errors", () => { const m = []; try { null.x; } catch (e) { m.push(e.message); } try { undefined(); } catch (e) { m.push(e.message); }
+    try { new Array(-1); } catch (e) { m.push(e.message); } return m; });
+  await put("bigAlloc", () => { const r = {}; for (const gb of [1, 2, 4, 8]) { try { new ArrayBuffer(gb * 2 ** 30); r[gb] = true; }
+    catch (e) { r[gb] = false; } } return r; });
+  await put("wasmMemory", () => { try { const m = new WebAssembly.Memory({ initial: 1, maximum: 65536 }); let g = 0;
+    for (const step of [16384, 16384, 16384, 16383]) { try { m.grow(step); g += step; } catch (e) { break; } }
+    return Math.round((g + 1) * 65536 / 2 ** 30 * 10) / 10; } catch (e) { return "error"; } });
+
+  // ---- rendering: claimed GPU limits against what the GPU really does ----
+  await put("webglTruth", () => {
+    const c = document.createElement("canvas"); const gl = c.getContext("webgl2") || c.getContext("webgl");
+    if (!gl) return null;
+    const claimed = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+    const tryTex = (size) => { const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, size, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+      const ok = gl.getError() === gl.NO_ERROR; gl.deleteTexture(t); return ok; };
+    const exts = gl.getSupportedExtensions() || [];
+    const missing = exts.filter((e) => !gl.getExtension(e));
+    const vs = gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER, gl.HIGH_FLOAT);
+    const info = gl.getExtension("WEBGL_debug_renderer_info");
+    return { renderer: info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : null, claimedMaxTexture: claimed, allocatesClaimed: tryTex(claimed), allocatesDouble: tryTex(claimed * 2),
+             listedButUnavailable: missing, highFloat: [vs.rangeMin, vs.rangeMax, vs.precision],
+             antialias: gl.getContextAttributes().antialias, maxSamples: gl.MAX_SAMPLES ? gl.getParameter(gl.MAX_SAMPLES) : null };
+  });
+
+  // ---- phones: what a mobile browser reveals (an emulator's model name, sensors with no noise) ----
+  await put("mobile", async () => {
+    const r = { maxTouchPoints: navigator.maxTouchPoints, orientation: screen.orientation && screen.orientation.type,
+                pointerCoarse: matchMedia("(pointer: coarse)").matches };
+    if (navigator.userAgentData && navigator.userAgentData.getHighEntropyValues) {
+      r.uaData = await navigator.userAgentData.getHighEntropyValues(
+        ["model", "platform", "platformVersion", "architecture", "bitness", "mobile", "fullVersionList"]);
+    }
+    if (navigator.getBattery) { const b = await navigator.getBattery();
+      r.battery = { level: b.level, charging: b.charging, chargingTime: b.chargingTime, dischargingTime: b.dischargingTime }; }
+    const c = navigator.connection;
+    if (c) r.connection = { type: c.type, effectiveType: c.effectiveType, rtt: c.rtt, downlink: c.downlink };
+    r.motion = await new Promise((res) => {
+      const s = [];
+      const on = (e) => { const a = e.accelerationIncludingGravity || {}; s.push([a.x, a.y, a.z, e.interval]); };
+      addEventListener("devicemotion", on);
+      setTimeout(() => { removeEventListener("devicemotion", on);
+        const z = s.map((v) => v[2]).filter((v) => typeof v === "number");
+        const mean = z.length ? z.reduce((a, b) => a + b, 0) / z.length : null;
+        const sd = z.length ? Math.sqrt(z.reduce((a, b) => a + (b - mean) ** 2, 0) / z.length) : null;
+        res({ samples: s.length, interval: s.length ? s[0][3] : null, meanZ: mean, sdZ: sd, first: s[0] || null }); }, 1500);
+    });
+    return r;
+  });
+
+  // ---- timing and caches ----
+  await put("timer", () => { const s = new Set(); let l = performance.now();
+    for (let i = 0; i < 50000 && s.size < 40; i++) { const t = performance.now(); if (t !== l) { s.add(Math.round((t - l) * 1000)); l = t; } }
+    return Math.min(...s) / 1000; });
+  await put("navigation", () => { const n = performance.getEntriesByType("navigation")[0] || {};
+    return { type: n.type, protocol: n.nextHopProtocol, transferSize: n.transferSize }; });
+  await put("hasFocus", () => document.hasFocus());
+
+  const pre = document.getElementById("out");
+  pre.textContent = JSON.stringify(out);
+  pre.dataset.state = "done";
+  try { await fetch("/collect-deep" + location.search, { method: "POST", body: pre.textContent }); } catch (e) {}
+})();
+</script>
+</body>
+</html>

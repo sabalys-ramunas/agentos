@@ -1,0 +1,23 @@
+/* a one-rule utility class, and icons that carry their library's classes (lucide): neither is a component */
+.tabular { font-variant-numeric: tabular-nums; }
+/* A consistent system with no custom properties: six colours, a 4 px spacing step, radii 4, 8
+   and full, one family, sizes 14, 20, 28 and 36 around the root 16, weights 600 and 800. */
+body { margin: 0; background: #f9fafb; color: #1f2937; font-family: Inter, system-ui, sans-serif; }
+header { padding: 16px 24px; background: #ffffff; border-bottom: 1px solid #e5e7eb; }
+.nav-link { color: #2563eb; margin-right: 16px; font-weight: 600; font-size: 14px; text-decoration: none; }
+main { padding: 32px 24px; }
+h1 { font-size: 36px; font-weight: 800; margin: 0 0 16px; }
+h2 { font-size: 28px; font-weight: 800; margin: 0 0 12px; }
+.card { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 24px; margin-bottom: 16px; }
+.card__title { font-size: 20px; font-weight: 600; margin: 0 0 8px; }
+.card__body { color: #6b7280; font-size: 14px; margin: 0 0 12px; }
+.btn { background: #2563eb; color: #ffffff; border: 0; border-radius: 4px; padding: 8px 16px; font-size: 14px;
+       font-weight: 600; }
+.tag { background: #f9fafb; color: #6b7280; border: 1px solid #e5e7eb; border-radius: 9999px; padding: 4px 12px;
+       font-size: 14px; }
+@media (prefers-color-scheme: dark) {
+  body { background: #111827; color: #f9fafb; }
+  header, .card { background: #1f2937; border-color: #374151; }
+  .card__body, .tag { color: #9ca3af; }
+  .tag { background: #111827; border-color: #374151; }
+}

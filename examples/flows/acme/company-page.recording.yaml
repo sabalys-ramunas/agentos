@@ -1,0 +1,75 @@
+format: 1
+note: |-
+  SYNTHESIZED, NOT CAPTURED: written by hand for docs/WORKFLOWS.md ("Flows in git"), in the shape of a
+  LinkedIn company page's admin view, on a reserved .example host. A recording of your own lane comes from
+  `agentos flows capture`. ${text} is the post's text: each test fills in its own.
+pages:
+- url: https://www.linkedin.example/company/104857/admin/page-posts/published/
+  title: Acme Bakery | Page posts
+  outline: |
+    - banner:
+      - link "Home":
+        - /url: /feed/
+      - button "Me"
+    - main:
+      - heading "Acme Bakery" [level=1]
+      - button "Start a post"
+      - region "Page posts":
+        - article:
+          - link "Acme Bakery":
+            - /url: /company/104857/
+          - paragraph: Our sourdough class on Saturday is full. Thank you!
+          - button "Like" [pressed=false]
+        - article:
+          - link "Acme Bakery":
+            - /url: /company/104857/
+          - paragraph: Open this Sunday from 8 to 14.
+          - button "Like" [pressed=false]
+- url: https://www.linkedin.example/company/104857/admin/page-posts/published/
+  title: Acme Bakery | Page posts
+  after: click button "Start a post"
+  outline: |
+    - main:
+      - heading "Acme Bakery" [level=1]
+      - button "Start a post"
+      - region "Page posts":
+        - article:
+          - paragraph: Our sourdough class on Saturday is full. Thank you!
+        - article:
+          - paragraph: Open this Sunday from 8 to 14.
+    - dialog "Create post modal":
+      - heading "Create a post" [level=2]
+      - button "Post as Acme Bakery"
+      - textbox "Text editor for creating content"
+      - button "Add media"
+      - button "Post"
+- url: https://www.linkedin.example/company/104857/admin/page-posts/published/
+  title: Acme Bakery | Page posts
+  after: click button "Post"
+  outline: |
+    - main:
+      - status: Post successful.
+      - heading "Acme Bakery" [level=1]
+      - button "Start a post"
+- url: https://www.linkedin.example/company/104857/admin/page-posts/published/
+  title: Acme Bakery | Page posts
+  outline: |
+    - main:
+      - heading "Acme Bakery" [level=1]
+      - button "Start a post"
+      - region "Page posts":
+        - article:
+          - link "Acme Bakery":
+            - /url: /company/104857/
+          - paragraph: ${text}
+          - button "Like" [pressed=false]
+        - article:
+          - link "Acme Bakery":
+            - /url: /company/104857/
+          - paragraph: Our sourdough class on Saturday is full. Thank you!
+          - button "Like" [pressed=false]
+        - article:
+          - link "Acme Bakery":
+            - /url: /company/104857/
+          - paragraph: Open this Sunday from 8 to 14.
+          - button "Like" [pressed=false]

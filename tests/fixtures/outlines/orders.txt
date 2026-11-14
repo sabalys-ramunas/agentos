@@ -1,0 +1,63 @@
+- generic [active]:
+  - banner:
+    - heading "North Supply portal" [level=1]
+    - navigation "Main":
+      - link "Orders" [ref=e5] [cursor=pointer]:
+        - /url: /orders
+      - link "Invoices" [ref=e6] [cursor=pointer]:
+        - /url: /invoices
+      - link "Account" [ref=e7] [cursor=pointer]:
+        - /url: /account
+  - main:
+    - search:
+      - generic:
+        - text: Search orders
+        - searchbox "Search orders" [ref=e11]
+      - button "Search" [ref=e12]
+    - table "Orders":
+      - rowgroup:
+        - row:
+          - columnheader "Order number"
+          - columnheader "Placed"
+          - columnheader "Status"
+          - columnheader "Total (EUR)"
+          - columnheader "Link"
+      - rowgroup:
+        - row:
+          - cell "A-1042"
+          - cell "2026-10-28"
+          - cell "Open"
+          - cell "1,204.00"
+          - cell:
+            - link "View order A-1042" [ref=e28] [cursor=pointer]:
+              - /url: /orders/A-1042
+        - row:
+          - cell "A-1043"
+          - cell "2026-10-29"
+          - cell "Late"
+          - cell "88.50"
+          - cell:
+            - link "View order A-1043" [ref=e35] [cursor=pointer]:
+              - /url: /orders/A-1043
+        - row:
+          - cell "A-1044"
+          - cell "2026-11-01"
+          - cell "Open"
+          - cell "312.75"
+          - cell:
+            - link "View order A-1044" [ref=e42] [cursor=pointer]:
+              - /url: /orders/A-1044
+        - row:
+          - cell "A-1045"
+          - cell "2026-11-02"
+          - cell "Open"
+          - cell "19.99"
+          - cell:
+            - link "View order A-1045" [ref=e49] [cursor=pointer]:
+              - /url: /orders/A-1045
+    - paragraph: 4 orders.
+  - contentinfo:
+    - link "Terms" [ref=e52] [cursor=pointer]:
+      - /url: /terms
+    - link "Privacy" [ref=e53] [cursor=pointer]:
+      - /url: /privacy

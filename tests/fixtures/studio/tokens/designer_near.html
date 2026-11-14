@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Near misses four designers found</title>
+  <!-- On its own tokens, with what system_check got wrong on real pages: a radius token named
+       --r-md, a ring and an inset edge drawn as box-shadows from colour tokens, transparent text
+       behind a busy spinner, a drawn page of another brand (role=img) and an exhibit marked
+       data-studio="ignore". -->
+  <style>
+    :root { --bg: #ffffff; --ink: #18181b; --line: #e4e4e7; --accent: #2563eb; --r-md: 8px; --r-sm: 4px;
+            --space-2: 8px; --space-4: 16px; --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.1);
+            --font-sans: Arial, sans-serif; --text-14: 14px; --border-1: 1px; }
+    html { background: var(--bg); color: var(--ink); font-family: var(--font-sans); font-size: var(--text-14); line-height: normal; }
+    body { margin: 0; padding: var(--space-4); }
+    .card { border-radius: var(--r-md); padding: var(--space-4); box-shadow: inset 2px 0 0 var(--accent), 0 0 0 1px var(--line); }
+    .lift { box-shadow: var(--shadow-sm); border-radius: var(--r-sm); padding: var(--space-2); }
+    .btn { border-radius: var(--r-sm); padding: var(--space-2) var(--space-4); background: var(--accent); color: var(--bg);
+           border: var(--border-1) solid var(--accent); font: inherit; margin: 0; }
+    .btn.busy { color: transparent; }
+    .shop { background: #fef3c7; color: #7c2d12; border-radius: 13px; padding: 9px; margin: 0; }
+  </style>
+</head>
+<body>
+  <div class="card"><p style="margin: 0">A card on the system.</p></div>
+  <div class="lift" style="margin-top: var(--space-4)">Lifted.</div>
+  <p style="margin: var(--space-4) 0 0"><button class="btn busy" type="button">Saving</button></p>
+  <div role="img" aria-label="The shop's page, drawn in its own colours"><p class="shop">Summer sale</p></div>
+  <div data-studio="ignore"><p class="shop">The failing chip, shown on purpose</p></div>
+</body>
+</html>

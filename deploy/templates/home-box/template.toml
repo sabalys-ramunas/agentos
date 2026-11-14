@@ -1,0 +1,60 @@
+title = "Home box (Ubuntu 24.04 installer)"
+summary = "A machine at home, installed unattended from an Ubuntu 24.04 Server USB with an autoinstall seed. The installer erases the largest disk. The first boot then does what the Hetzner template does: keys-only SSH, unattended security upgrades, agentos from a git ref, and a doctor report."
+file = "autoinstall.yaml"
+create = "follow deploy/templates/home-box/README.md to write the installer stick"
+
+[[variables]]
+name = "HOSTNAME"
+description = "this machine's name on your network (identity.hostname)"
+example = "agentos-home"
+required = false
+default = "agentos-home"
+
+[[variables]]
+name = "PASSWORD_HASH"
+description = "the first user's password as a hash, from `openssl passwd -6` (identity.password); SSH never uses it"
+example = "$6$..."
+
+[[variables]]
+name = "ADMIN_USER"
+description = "the admin user that signs in over SSH; must be the same as identity.username"
+example = "agentos-admin"
+required = false
+default = "agentos-admin"
+
+[[variables]]
+name = "ADMIN_SSH_KEY"
+description = "that user's public key, on one line (also goes in ssh.authorized-keys)"
+example = "ssh-ed25519 AAAA... you@laptop"
+
+[[variables]]
+name = "NODE_NAME"
+description = "the node's name in agentos"
+example = "home-1"
+required = false
+default = "the hostname"
+
+[[variables]]
+name = "AGENTOS_GIT_URL"
+description = "the repository to install agentos from: the public repository or your fork"
+example = "https://github.com/your-org/agentos.git"
+required = true
+
+[[variables]]
+name = "AGENTOS_GIT_REF"
+description = "the branch, tag or commit to install"
+example = "v0.3.0"
+required = false
+default = "main"
+
+[[variables]]
+name = "CONTROLLER_URL"
+description = "the controller to join over TLS, a wss:// URL (empty: join over SSH after the first boot)"
+example = "wss://controller.example.com"
+required = false
+
+[[variables]]
+name = "JOIN_TOKEN"
+description = "a single-use join token from `agentos controller join-token`, valid one hour (empty: join over SSH later)"
+example = "ajt_..."
+required = false

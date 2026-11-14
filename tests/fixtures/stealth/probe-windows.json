@@ -1,0 +1,275 @@
+{
+ "audio": {
+  "baseLatency": 0,
+  "digest": "8e127fb8b39c7e95",
+  "maxChannelCount": 0,
+  "sampleRate": 44100,
+  "sum": "35.74996626004577"
+ },
+ "automation": {
+  "attributes": [],
+  "chrome": "undefined",
+  "globals": [],
+  "notNative": [],
+  "notification": "default",
+  "webdriver": false,
+  "webdriverOnPrototype": true,
+  "webdriverOwnProperty": false
+ },
+ "canvas": {
+  "digest": "18ef0522b4672f53",
+  "sameWithinPage": false,
+  "textWidth": 192
+ },
+ "codecs": {
+  "aac": "probably",
+  "av1": "probably",
+  "h264": "probably",
+  "hevc": "probably",
+  "opus": "probably",
+  "vp9": "probably"
+ },
+ "css": {
+  "colorBits": 8,
+  "deviceHeight": true,
+  "deviceWidth": true,
+  "resolution": true
+ },
+ "fonts": {
+  "count": 49,
+  "digest": "b0bae830b57ce053",
+  "found": [
+   "Arial",
+   "Arial Black",
+   "Bahnschrift",
+   "Calibri",
+   "Cambria",
+   "Cambria Math",
+   "Candara",
+   "Comic Sans MS",
+   "Consolas",
+   "Constantia",
+   "Corbel",
+   "Courier New",
+   "Ebrima",
+   "Franklin Gothic Medium",
+   "Gabriola",
+   "Gadugi",
+   "Georgia",
+   "Impact",
+   "Ink Free",
+   "Javanese Text",
+   "Leelawadee UI",
+   "Lucida Console",
+   "Lucida Sans Unicode",
+   "Malgun Gothic",
+   "Microsoft Himalaya",
+   "Microsoft JhengHei",
+   "Microsoft YaHei",
+   "MingLiU-ExtB",
+   "Mongolian Baiti",
+   "MS Gothic",
+   "MV Boli",
+   "Myanmar Text",
+   "Nirmala UI",
+   "Palatino Linotype",
+   "Segoe Print",
+   "Segoe Script",
+   "Segoe UI",
+   "Segoe UI Emoji",
+   "Segoe UI Symbol",
+   "SimSun",
+   "Sitka Text",
+   "Sylfaen",
+   "Tahoma",
+   "Times New Roman",
+   "Trebuchet MS",
+   "Verdana",
+   "Yu Gothic",
+   "Helvetica",
+   "Papyrus"
+  ]
+ },
+ "frame": {
+  "hardwareConcurrency": 10,
+  "languages": [
+   "en-US",
+   "en"
+  ],
+  "platform": "Win32",
+  "screenHeight": 864,
+  "screenWidth": 1536,
+  "timeZone": "UTC",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:158.0) Gecko/20100101 Firefox/158.0",
+  "webdriver": false
+ },
+ "geolocation": "timeout",
+ "headers": {
+  "accept": "*/*",
+  "accept-encoding": "gzip, deflate, br, zstd",
+  "accept-language": "en-US,en;q=0.9",
+  "cache-control": "no-cache",
+  "pragma": "no-cache",
+  "priority": "u=4",
+  "referer": "http://127.0.0.1:6337/fingerprint.html",
+  "sec-fetch-dest": "empty",
+  "sec-fetch-mode": "cors",
+  "sec-fetch-site": "same-origin",
+  "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:158.0) Gecko/20100101 Firefox/158.0"
+ },
+ "intl": {
+  "calendar": "gregory",
+  "collator": "en-US",
+  "dateString": "Thu Jan 15 2026 12:00:00 GMT+0000 (Coordinated Universal Time)",
+  "locale": "en-US",
+  "localeString": "1/15/2026, 12:00:00 PM",
+  "number": "1,234,567.891",
+  "numbering": "latn",
+  "offsetJanuary": 0,
+  "offsetJuly": 0,
+  "timeZone": "UTC"
+ },
+ "math": [
+  "-1.4214488238747245",
+  "-0.4875060250875107",
+  "0.9247242387519338",
+  "1.9275814160560206e-50",
+  "1.0000000001",
+  "0.5493061443340548"
+ ],
+ "media": {
+  "anyCoarse": false,
+  "dark": false,
+  "forcedColors": false,
+  "hover": true,
+  "p3": false,
+  "pointerFine": true,
+  "reducedMotion": false,
+  "touch": false
+ },
+ "mediaDevices": {
+  "ids": "ca0a48865ffa7d05",
+  "kinds": [
+   "audioinput",
+   "videoinput"
+  ],
+  "labels": [
+   "",
+   ""
+  ]
+ },
+ "navigator": {
+  "appCodeName": "Mozilla",
+  "appName": "Netscape",
+  "appVersion": "5.0 (Windows)",
+  "buildID": "20181001000000",
+  "cookieEnabled": true,
+  "deviceMemory": null,
+  "doNotTrack": "unspecified",
+  "getBattery": "undefined",
+  "globalPrivacyControl": false,
+  "gpu": "object",
+  "hardwareConcurrency": 10,
+  "language": "en-US",
+  "languages": [
+   "en-US",
+   "en"
+  ],
+  "maxTouchPoints": 0,
+  "mimeTypes": [
+   "application/pdf",
+   "text/pdf"
+  ],
+  "oscpu": "Windows NT 10.0; Win64; x64",
+  "pdfViewerEnabled": true,
+  "platform": "Win32",
+  "plugins": [
+   "PDF Viewer",
+   "Chrome PDF Viewer",
+   "Chromium PDF Viewer",
+   "Microsoft Edge PDF Viewer",
+   "WebKit built-in PDF"
+  ],
+  "product": "Gecko",
+  "productSub": "20100101",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:158.0) Gecko/20100101 Firefox/158.0",
+  "userAgentData": null,
+  "vendor": "",
+  "webdriver": false
+ },
+ "permissions": "prompt",
+ "permissionsNotifications": "prompt",
+ "screen": {
+  "availHeight": 816,
+  "availLeft": 0,
+  "availTop": 0,
+  "availWidth": 1536,
+  "colorDepth": 24,
+  "height": 864,
+  "orientation": "landscape-primary",
+  "pixelDepth": 24,
+  "width": 1536
+ },
+ "storage": {
+  "quota": 6267109785
+ },
+ "voices": {
+  "count": 5,
+  "digest": "1ea68c1ab3d6eca0"
+ },
+ "webgl": {
+  "attributes": "d4b1207803883d4e",
+  "extensions": 29,
+  "extensionsDigest": "6ef4feae5e9a3089",
+  "maxTextureSize": 16384,
+  "params": "12f3c532f0699e9e",
+  "precision": "39a75c1feee963ef",
+  "readback": "fd98b747d9c6efdd",
+  "renderer": "ANGLE (Intel, Intel(R) HD Graphics Direct3D11 vs_5_0 ps_5_0), or similar",
+  "vendor": "Google Inc. (Intel)"
+ },
+ "webgl2": {
+  "attributes": "d4b1207803883d4e",
+  "extensions": 16,
+  "extensionsDigest": "8511dcfc81bbea4b",
+  "maxTextureSize": 16384,
+  "params": "b75d9feb0d6902d2",
+  "precision": "39a75c1feee963ef",
+  "readback": "cadc924d47bc551d",
+  "renderer": "ANGLE (Intel, Intel(R) HD Graphics Direct3D11 vs_5_0 ps_5_0), or similar",
+  "vendor": "Google Inc. (Intel)"
+ },
+ "webrtc": {
+  "available": true,
+  "rawAddresses": []
+ },
+ "window": {
+  "devicePixelRatio": 1,
+  "innerHeight": 731,
+  "innerScreenX": 0,
+  "innerScreenY": 85,
+  "innerWidth": 1536,
+  "outerHeight": 816,
+  "outerWidth": 1536,
+  "screenX": 0,
+  "screenY": 0,
+  "scrollbarWidth": 0
+ },
+ "worker": {
+  "appVersion": "5.0 (Windows)",
+  "hardwareConcurrency": 10,
+  "language": "en-US",
+  "languages": [
+   "en-US",
+   "en"
+  ],
+  "offsetJanuary": 0,
+  "platform": "Win32",
+  "timeZone": "UTC",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:158.0) Gecko/20100101 Firefox/158.0",
+  "webgl": [
+   "Google Inc. (Intel)",
+   "ANGLE (Intel, Intel(R) HD Graphics Direct3D11 vs_5_0 ps_5_0), or similar"
+  ]
+ }
+}

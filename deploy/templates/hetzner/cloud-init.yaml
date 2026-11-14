@@ -1,0 +1,64 @@
+#cloud-config
+# agentos node on Hetzner Cloud, Ubuntu 24.04. create.sh sends this file as the server's user data.
+#
+# 1. Copy it outside the checkout (for example ~/agentos/my-node.yaml) and chmod 600 the copy.
+# 2. Fill in the variables in the bootstrap.env block below. Nothing else needs editing.
+# 3. Create the server with create.sh (docs/NODE-TEMPLATES.md has the command).
+#
+# Variables: one KEY=value per line, the value is the text after the first "=", no quotes.
+#   ADMIN_USER       the admin user that signs in over SSH (default agentos-admin)
+#   ADMIN_SSH_KEY    that user's public key on one line, for example ssh-ed25519 AAAA... you@laptop (required)
+#   NODE_NAME        the node's name in agentos (default: the server's hostname)
+#   AGENTOS_GIT_URL  the repository to install agentos from
+#   AGENTOS_GIT_REF  the branch, tag or commit to install
+#   CONTROLLER_URL   optional: wss://controller.example.com, a controller behind TLS (empty: join over SSH later)
+#   JOIN_TOKEN       optional: a single-use join token, valid one hour. Joining over SSH after the first
+#                    boot keeps the token out of the user data. The first boot blanks it once used.
+#
+# The first boot turns on keys-only SSH with no root login, turns on unattended security upgrades,
+# installs agentos with deploy/install-node.sh (systemd, the agentos user, the hardened unit) and
+# runs agentos doctor. The report is ~/agentos-doctor.txt on the server. The full log is
+# /var/log/cloud-init-output.log.
+
+package_update: true
+package_upgrade: true
+packages:
+  - ca-certificates
+  - git
+  - unattended-upgrades
+
+write_files:
+  - path: /etc/agentos/bootstrap.env
+    owner: root:root
+    permissions: "0600"
+    content: |
+      ADMIN_USER=agentos-admin
+      ADMIN_SSH_KEY=CHANGE-ME
+      NODE_NAME=
+      AGENTOS_GIT_URL=CHANGE-ME
+      AGENTOS_GIT_REF=main
+      CONTROLLER_URL=
+      JOIN_TOKEN=
+  - path: /usr/local/sbin/agentos-first-boot
+    owner: root:root
+    permissions: "0755"
+    content: |
+      #!/bin/sh
+      # agentos first boot: fetch AGENTOS_GIT_REF, then run its bootstrap from that checkout. Run it
+      # again after changing /etc/agentos/bootstrap.env: sudo /usr/local/sbin/agentos-first-boot
+      set -eu
+      env_file=/etc/agentos/bootstrap.env
+      env_get() { awk -F= -v k="$1" '$1 == k { sub(/^[^=]*=/, ""); print; exit }' "$env_file" | sed 's/[[:space:]]*$//'; }
+      url="$(env_get AGENTOS_GIT_URL)"
+      ref="$(env_get AGENTOS_GIT_REF)"
+      [ -n "$ref" ] || { echo "error: AGENTOS_GIT_REF is empty in $env_file" >&2; exit 1; }
+      src=/opt/agentos-src
+      rm -rf "$src"
+      mkdir -p "$src"
+      git -C "$src" init -q
+      git -C "$src" fetch -q --depth 1 "$url" "$ref"
+      git -C "$src" checkout -q --detach FETCH_HEAD
+      exec bash "$src/deploy/templates/common/bootstrap.sh"
+
+runcmd:
+  - [/usr/local/sbin/agentos-first-boot]

@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <link rel="icon" href="data:,">
+  <title>Security check</title>
+  <script src="/signals/watch.js"></script>
+</head>
+<body>
+  <h1>Help us confirm it's you</h1>
+  <p>We sent a code to your email.</p>
+  <form onsubmit="return false">
+    <label>Code <input name="code" inputmode="numeric" autocomplete="one-time-code"></label>
+    <button type="button" aria-expanded="false" id="more"
+            onclick="this.setAttribute('aria-expanded', String(this.getAttribute('aria-expanded') !== 'true'))">
+      Why are we asking?</button>
+  </form>
+</body>
+</html>

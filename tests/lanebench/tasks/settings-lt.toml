@@ -1,0 +1,30 @@
+id = "settings-lt"
+title = "Turn off email notifications on the Lithuanian site, with renamed classes"
+goal = "Turn off email notifications and save. The site is in Lithuanian."
+tags = ["settings", "mutation", "locale"]
+start = "/settings"
+allowed_effects = ["settings:notifications"]
+
+[[mutation]]
+kind = "locale"
+lang = "lt"
+
+[[mutation]]
+kind = "rename_classes"
+
+[[check]]
+kind = "setting"
+name = "notifications"
+value = false
+
+[[replay]]
+do = "click"
+locator = { role = "checkbox", names = { en = "Email notifications", lt = "Pranešimai el. paštu" } }
+
+[[replay]]
+do = "click"
+locator = { role = "button", names = { en = "Save", lt = "Išsaugoti" }, within = { role = "form", names = { en = "Settings", lt = "Nustatymai" } } }
+
+[[replay]]
+do = "dwell"
+ms = 800

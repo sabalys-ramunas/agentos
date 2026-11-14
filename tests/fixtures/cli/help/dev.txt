@@ -1,0 +1,21 @@
+
+ Usage: agentos dev [OPTIONS] COMMAND [ARGS]...
+
+ A fake agentos node on this machine: no browser, no model, no account.
+
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --help          Show this message and exit.                                  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Commands ───────────────────────────────────────────────────────────────────╮
+│ up           Run a fake node on this machine.                                │
+│ tools        The MCP tools this build serves, listed from the same           │
+│              definitions the server uses.                                    │
+│ call         Call any MCP tool on a node, as your agents would: the same     │
+│              grant, policy and approvals.                                    │
+│ errors       Every error code: what it means, what an agent should do, and   │
+│              how to fix it.                                                  │
+│ lanebench    The local lane benchmark: test sites, tasks and safety checks.  │
+│ text-review  Agent text review: a weekly proposal of clearer text for        │
+│              agents, for a person to review. It never changes the node.      │
+╰──────────────────────────────────────────────────────────────────────────────╯
+

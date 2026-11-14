@@ -1,0 +1,49 @@
+$ agentos workspace export personal --to <TMP>/personal.agentos --passphrase-file <TMP>/pw --json
+exit 0
+{
+  "path": "<TMP>/personal.agentos",
+  "size": <N>,
+  "workspace": "personal",
+  "counts": {
+    "lanes": 1,
+    "profile_files": 3,
+    "profile_bytes": <N>,
+    "fingerprints": 1,
+    "vault_entries": 0,
+    "flows": 0,
+    "flow_versions": 0,
+    "schedules": 0,
+    "grants": 0,
+    "proxies": 1,
+    "memory_entries": 0,
+    "memory_versions": 0,
+    "agenda_entries": 0
+  },
+  "lanes": [
+    {
+      "id": "personal/reddit",
+      "name": "reddit",
+      "copied": "cold",
+      "was_warm": false,
+      "fingerprint": true,
+      "files": 3,
+      "bytes": <N>
+    }
+  ],
+  "notes": [],
+  "warnings": [],
+  "skipped": [],
+  "not_exported": [],
+  "never_exported": [
+    "proxy hosts and credentials (labels and an endpoint digest only, unless with_proxies)",
+    "grant tokens (bearer secrets): grants travel as definitions and are re-issued on import",
+    "webhook tokens and secrets of schedules: the importing node makes new ones",
+    "machine secrets (brain subscription tokens, child grant tokens): they belong to the node",
+    "runs, step journals, proofs, screenshots and recordings (history stays where it happened)",
+    "approvals of agenda entries, and entries that ran or finished: an entry comes in as a draft to propose again",
+    "proxy-rule override records and the activity log",
+    "browser caches, profile lock files, symlinks and each lane's shots/ and files/ directories",
+    "terminal and service lanes (only browser lanes move for now)",
+    "the traces memory provenance cites: each version keeps a snapshot of its evidence, the traces stay put"
+  ]
+}

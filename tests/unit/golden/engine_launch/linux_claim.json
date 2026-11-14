@@ -1,0 +1,174 @@
+{
+ "asked": {
+  "enable_cache": true,
+  "env": {
+   "DISPLAY": ":150",
+   "GDK_BACKEND": "x11",
+   "MOZ_ENABLE_WAYLAND": "0"
+  },
+  "firefox_user_prefs": {
+   "browser.cache.disk.capacity": 262144,
+   "browser.cache.disk.smart_size.enabled": false,
+   "browser.startup.couldRestoreSession.count": -1,
+   "gfx.font_rendering.fallback.async": false,
+   "mousewheel.default.delta_multiplier_y": 275,
+   "network.proxy.allow_hijacking_localhost": true,
+   "network.proxy.autoconfig_url": "file://<tmp>/lane/network-guard.pac",
+   "network.proxy.no_proxies_on": "",
+   "network.proxy.type": 2,
+   "privacy.baselineFingerprintingProtection.overrides": ""
+  },
+  "geoip": true,
+  "headless": false,
+  "humanize": true,
+  "i_know_what_im_doing": true,
+  "locale": "en-US",
+  "os": [
+   "linux"
+  ],
+  "persistent_context": true,
+  "screen": "Screen(min_width=None, max_width=1920, min_height=None, max_height=1080)",
+  "user_data_dir": "<tmp>/lane/profile",
+  "webgl_config": [
+   "AMD",
+   "Radeon R9 200 Series, or similar"
+  ]
+ },
+ "backup_label": null,
+ "config": {
+  "addons": [
+   "/opt/agentos/.venv/camoufox/addons/UBO"
+  ],
+  "fonts": [
+   "Calibri",
+   "Arial",
+   "Tahoma"
+  ],
+  "humanize": true,
+  "locale:language": "en",
+  "locale:region": "US",
+  "navigator.appVersion": "5.0 (X11; Ubuntu)",
+  "navigator.hardwareConcurrency": 4,
+  "navigator.maxTouchPoints": 10,
+  "navigator.oscpu": "Linux x86_64",
+  "navigator.platform": "Linux x86_64",
+  "navigator.userAgent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:158.0) Gecko/20100101 Firefox/158.0",
+  "screen.availHeight": 1032,
+  "screen.availLeft": 1920,
+  "screen.availTop": 0,
+  "screen.availWidth": 1920,
+  "screen.colorDepth": 24,
+  "screen.height": 1080,
+  "screen.pixelDepth": 24,
+  "screen.width": 1920,
+  "timezone": "Europe/Vilnius",
+  "webGl:renderer": "ANGLE (Intel, Intel(R) UHD Graphics 620)",
+  "webGl:vendor": "Google Inc. (Intel)",
+  "webrtc:ipv4": "203.0.113.9",
+  "window.outerHeight": 1032,
+  "window.outerWidth": 1920,
+  "window.screenX": 25,
+  "window.screenY": 7
+ },
+ "first": true,
+ "notes": [
+  [
+   "fingerprint_pinned",
+   {
+    "filled": {
+     "screen.availTop": 0
+    },
+    "hardened": {
+     "dom.quotaManager.temporaryStorage.fixedLimit": 52428800,
+     "permissions.default.geo": 0
+    },
+    "keys": 27,
+    "os": "linux"
+   }
+  ]
+ ],
+ "old_version": null,
+ "options": {
+  "args": [],
+  "env": {
+   "CAMOU_CONFIG_1": "{\"navigator.userAgent\":\"Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:158.0) Gecko/20100101 Firefox/158.0\",\"navigator.platform\":\"Linux x86_64\",\"navigator.hardwareConcurrency\":4,\"navigator.maxTouchPoints\":10,\"screen.width\":1920,\"screen.height\":1080,\"screen.colorDepth\":24,\"screen.pixelDepth\":24,\"screen.availWidth\":1920,\"screen.availHeight\":1032,\"screen.availLeft\":1920,\"window.outerWidth\":1920,\"window.outerHeight\":1032,\"window.screenX\":25,\"window.screenY\":7,\"navigator.oscpu\":\"Linux x86_64\",\"navigator.appVersion\":\"5.0 (X11; Ubuntu)\",\"fonts\":[\"Calibri\",\"Arial\",\"Tahoma\"],\"webGl:vendor\":\"Google Inc. (Intel)\",\"webGl:renderer\":\"ANGLE (Intel, Intel(R) UHD Graphics 620)\",\"webrtc:ipv4\":\"203.0.113.9\",\"timezone\":\"Europe/Vilnius\",\"locale:language\":\"en\",\"locale:region\":\"US\",\"screen.availTop\":0,\"addons\":[\"/opt/agentos/.venv/camoufox/addons/UBO\"],\"humanize\":true}",
+   "CAMOU_PREFS_1": "{\"browser.cache.disk.smart_size.enabled\":false,\"browser.cache.disk.capacity\":262144,\"browser.startup.couldRestoreSession.count\":-1,\"mousewheel.default.delta_multiplier_y\":275,\"gfx.font_rendering.fallback.async\":false,\"network.proxy.allow_hijacking_localhost\":true,\"network.proxy.no_proxies_on\":\"\",\"network.proxy.type\":2,\"network.proxy.autoconfig_url\":\"file://<tmp>/lane/network-guard.pac\",\"privacy.baselineFingerprintingProtection.overrides\":\"\",\"webgl.enable-webgl2\":true,\"dom.quotaManager.temporaryStorage.fixedLimit\":52428800,\"intl.locale.requested\":\"en-US\",\"permissions.default.geo\":0}",
+   "DISPLAY": ":150",
+   "GDK_BACKEND": "x11",
+   "MOZ_ENABLE_WAYLAND": "0"
+  },
+  "executable_path": "/x/camoufox-bin",
+  "firefox_user_prefs": {
+   "browser.cache.disk.capacity": 262144,
+   "browser.cache.disk.smart_size.enabled": false,
+   "browser.startup.couldRestoreSession.count": -1,
+   "dom.quotaManager.temporaryStorage.fixedLimit": 52428800,
+   "gfx.font_rendering.fallback.async": false,
+   "intl.locale.requested": "en-US",
+   "mousewheel.default.delta_multiplier_y": 275,
+   "network.proxy.allow_hijacking_localhost": true,
+   "network.proxy.autoconfig_url": "file://<tmp>/lane/network-guard.pac",
+   "network.proxy.no_proxies_on": "",
+   "network.proxy.type": 2,
+   "permissions.default.geo": 0,
+   "privacy.baselineFingerprintingProtection.overrides": "",
+   "webgl.enable-webgl2": true
+  },
+  "headless": false,
+  "user_data_dir": "<tmp>/lane/profile"
+ },
+ "pin": {
+  "agentos:pin": {
+   "camoufox": "<camoufox version>",
+   "canvas_noise": false,
+   "filled": [
+    "screen.availTop"
+   ],
+   "geo": {
+    "country": "LT",
+    "ip": "203.0.113.9"
+   },
+   "hardening": 1,
+   "pinned_at": "<time>",
+   "prefs": {
+    "dom.quotaManager.temporaryStorage.fixedLimit": 52428800,
+    "gfx.font_rendering.fallback.async": false,
+    "intl.locale.requested": "en-US",
+    "permissions.default.geo": 0,
+    "webgl.enable-webgl2": true
+   },
+   "version": 2
+  },
+  "fonts": [
+   "Calibri",
+   "Arial",
+   "Tahoma"
+  ],
+  "geolocation:latitude": 54.69194053536547,
+  "geolocation:longitude": 25.2797,
+  "locale:language": "en",
+  "locale:region": "US",
+  "navigator.appVersion": "5.0 (X11; Ubuntu)",
+  "navigator.hardwareConcurrency": 4,
+  "navigator.maxTouchPoints": 10,
+  "navigator.oscpu": "Linux x86_64",
+  "navigator.platform": "Linux x86_64",
+  "navigator.userAgent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:158.0) Gecko/20100101 Firefox/158.0",
+  "screen.availHeight": 1032,
+  "screen.availLeft": 1920,
+  "screen.availTop": 0,
+  "screen.availWidth": 1920,
+  "screen.colorDepth": 24,
+  "screen.height": 1080,
+  "screen.pixelDepth": 24,
+  "screen.width": 1920,
+  "timezone": "Europe/Vilnius",
+  "webGl:renderer": "ANGLE (Intel, Intel(R) UHD Graphics 620)",
+  "webGl:vendor": "Google Inc. (Intel)",
+  "webrtc:ipv4": "203.0.113.9",
+  "window.outerHeight": 1032,
+  "window.outerWidth": 1920,
+  "window.screenX": 25,
+  "window.screenY": 7
+ }
+}

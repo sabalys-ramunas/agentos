@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Fixture feed</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header>
+    <h1>Feed</h1>
+    <nav aria-label="Pages"><a href="/index.html">Home</a> <a href="/form.html">Form</a></nav>
+  </header>
+  <main>
+    <!--
+      The Facebook lesson: a post and its comments each have their own Like button with the
+      same label. One comment even shows the same count as the post, so only the exact
+      element (the ref) tells them apart.
+    -->
+    <article class="post" id="post-1" aria-label="Post by Ada Lovelace">
+      <h2>Ada Lovelace</h2>
+      <p>The engine weaves algebraic patterns just as the loom weaves flowers and leaves.</p>
+      <div class="actions">
+        <button type="button" class="like" aria-pressed="false">Like <span class="count">12</span></button>
+        <button type="button" class="comment-toggle" aria-expanded="false">Comments</button>
+      </div>
+      <section class="comments" aria-label="Comments on Ada's post">
+        <article class="comment" id="comment-1" aria-label="Comment by Grace Hopper">
+          <p><b>Grace Hopper</b> It is easier to ask forgiveness than permission.</p>
+          <button type="button" class="like" aria-pressed="false">Like <span class="count">12</span></button>
+          <article class="comment" id="comment-1-1" aria-label="Reply by Alan Turing">
+            <p><b>Alan Turing</b> We can only see a short distance ahead.</p>
+            <button type="button" class="like" aria-pressed="false">Like <span class="count">4</span></button>
+          </article>
+        </article>
+        <article class="comment" id="comment-2" aria-label="Comment by Katherine Johnson">
+          <p><b>Katherine Johnson</b> Like what you do, and then you will do your best.</p>
+          <button type="button" class="like" aria-pressed="false">Like <span class="count">7</span></button>
+        </article>
+      </section>
+    </article>
+
+    <article class="post" id="post-2" aria-label="Post by Charles Babbage">
+      <h2>Charles Babbage</h2>
+      <p>Errors using inadequate data are much less than those using no data at all.</p>
+      <div class="actions">
+        <button type="button" class="like" aria-pressed="false">Like <span class="count">5</span></button>
+      </div>
+    </article>
+  </main>
+  <script>
+    document.addEventListener('click', (event) => {
+      const like = event.target.closest('button.like');
+      if (like) {
+        const pressed = like.getAttribute('aria-pressed') === 'true';
+        like.setAttribute('aria-pressed', String(!pressed));
+        const count = like.querySelector('.count');
+        count.textContent = String(Number(count.textContent) + (pressed ? -1 : 1));
+        return;
+      }
+      const toggle = event.target.closest('button.comment-toggle');
+      if (toggle) {
+        toggle.setAttribute('aria-expanded', String(toggle.getAttribute('aria-expanded') !== 'true'));
+      }
+    });
+
+    // What the page itself can see: new window globals or expando properties on elements.
+    // Writes to the DOM only when it finds one, so a clean snapshot leaves the page untouched.
+    const baseline = new Set(Object.getOwnPropertyNames(window));
+    setInterval(() => {
+      if (document.body.dataset.leak) return;
+      const found = Object.getOwnPropertyNames(window).filter((n) => !baseline.has(n)).map((n) => 'window.' + n);
+      for (const el of document.querySelectorAll('*')) {
+        const keys = Object.keys(el);
+        if (keys.length) found.push(el.tagName.toLowerCase() + '.' + keys.join(','));
+      }
+      if (found.length) document.body.dataset.leak = found.slice(0, 10).join(' ');
+    }, 100);
+  </script>
+</body>
+</html>

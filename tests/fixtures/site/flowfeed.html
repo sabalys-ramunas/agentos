@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Flow feed</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header>
+    <h1>Flow feed</h1>
+    <nav aria-label="Pages"><a href="/index.html">Home</a> <a href="/form.html">Form</a></nav>
+  </header>
+  <main>
+    <!--
+      Built to fool a naive driver (the Facebook lesson). Posts and comments are role=article
+      divs; every Like is a role=button div named "Like" ("Remove Like" once pressed).
+      - Post 2 shows a top comment ABOVE its own action bar, so the first Like inside the post
+        belongs to a comment, and a comment Like shows the same count as the post's.
+      - Comments sit inside list wrappers, and replies nest inside comments.
+      - Post 3's own Like is broken (the site ignores the click) while one of its comments is
+        already liked, so "a Remove Like somewhere in the post" would be a false proof.
+      - "Comment by Grace Hopper" exists under post 2 and post 3.
+    -->
+    <div role="article" class="post" aria-label="Post by Ada Lovelace" data-pk="post-1">
+      <h2>Ada Lovelace</h2>
+      <p>The engine weaves algebraic patterns just as the loom weaves flowers and leaves.</p>
+      <div class="actions">
+        <div role="button" tabindex="0" class="like" aria-label="Like" aria-pressed="false"
+             data-pk="like-post-1">Like <span class="count">12</span></div>
+      </div>
+    </div>
+
+    <div role="article" class="post" aria-label="Post by Charles Babbage" data-pk="post-2">
+      <h2>Charles Babbage</h2>
+      <div role="article" class="comment top" aria-label="Comment by Grace Hopper" data-pk="comment-2-1">
+        <p><b>Grace Hopper</b> Top comment: it is easier to ask forgiveness than permission.</p>
+        <div role="button" tabindex="0" class="like" aria-label="Like" aria-pressed="false"
+             data-pk="like-comment-2-1">Like <span class="count">5</span></div>
+      </div>
+      <p>Errors using inadequate data are much less than those using no data at all.</p>
+      <div class="actions">
+        <div role="button" tabindex="0" class="like" aria-label="Like" aria-pressed="false"
+             data-pk="like-post-2">Like <span class="count">5</span></div>
+      </div>
+      <ul class="comments" aria-label="Comments">
+        <li>
+          <div role="article" class="comment" aria-label="Comment by Alan Turing" data-pk="comment-2-2">
+            <p><b>Alan Turing</b> We can only see a short distance ahead.</p>
+            <div role="button" tabindex="0" class="like" aria-label="Like" aria-pressed="false"
+                 data-pk="like-comment-2-2">Like <span class="count">2</span></div>
+            <ul class="replies" aria-label="Replies">
+              <li>
+                <div role="article" class="comment" aria-label="Reply by Katherine Johnson" data-pk="reply-2-2-1">
+                  <p><b>Katherine Johnson</b> Like what you do, and then you will do your best.</p>
+                  <div role="button" tabindex="0" class="like" aria-label="Like" aria-pressed="false"
+                       data-pk="like-reply-2-2-1">Like <span class="count">1</span></div>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div role="article" class="post" aria-label="Post by Hedy Lamarr" data-pk="post-3">
+      <h2>Hedy Lamarr</h2>
+      <p>Improving things comes naturally to me.</p>
+      <div class="actions">
+        <div role="button" tabindex="0" class="like" data-broken="true" aria-label="Like" aria-pressed="false"
+             data-pk="like-post-3">Like <span class="count">8</span></div>
+      </div>
+      <ul class="comments" aria-label="Comments">
+        <li>
+          <div role="article" class="comment" aria-label="Comment by Grace Hopper" data-pk="comment-3-1">
+            <p><b>Grace Hopper</b> Liked by you.</p>
+            <div role="button" tabindex="0" class="like" aria-label="Remove Like" aria-pressed="true"
+                 data-pk="like-comment-3-1">Liked <span class="count">2</span></div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </main>
+  <script>
+    document.addEventListener('click', (event) => {
+      const like = event.target.closest('.like');
+      if (!like || like.dataset.broken) return;
+      const pressed = like.getAttribute('aria-pressed') === 'true';
+      like.setAttribute('aria-pressed', String(!pressed));
+      like.setAttribute('aria-label', pressed ? 'Like' : 'Remove Like');
+      like.firstChild.textContent = pressed ? 'Like ' : 'Liked ';
+      const count = like.querySelector('.count');
+      count.textContent = String(Number(count.textContent) + (pressed ? -1 : 1));
+    });
+
+    // What the page itself can see: new window globals or expando properties on elements.
+    // Writes to the DOM only when it finds one, so clean automation leaves the page untouched.
+    const baseline = new Set(Object.getOwnPropertyNames(window));
+    setInterval(() => {
+      if (document.body.dataset.leak) return;
+      const found = Object.getOwnPropertyNames(window).filter((n) => !baseline.has(n)).map((n) => 'window.' + n);
+      for (const el of document.querySelectorAll('*')) {
+        const keys = Object.keys(el);
+        if (keys.length) found.push(el.tagName.toLowerCase() + '.' + keys.join(','));
+      }
+      if (found.length) document.body.dataset.leak = found.slice(0, 10).join(' ');
+    }, 100);
+  </script>
+</body>
+</html>

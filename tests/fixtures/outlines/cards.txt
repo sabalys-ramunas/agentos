@@ -1,0 +1,45 @@
+- generic [active]:
+  - heading "Catalog" [level=1]
+  - generic:
+    - generic:
+      - heading [level=3]:
+        - link "Rope, 12 mm" [ref=f1e6] [cursor=pointer]:
+          - /url: /p/101
+      - paragraph: €14.90
+      - paragraph: In stock
+      - button "Add to cart" [ref=f1e9]
+    - generic:
+      - heading [level=3]:
+        - link "Shackle, stainless" [ref=f1e12] [cursor=pointer]:
+          - /url: /p/102
+      - paragraph: €8.40
+      - paragraph: In stock
+      - button "Add to cart" [ref=f1e15]
+    - generic:
+      - heading [level=3]:
+        - link "Fender, medium" [ref=f1e18] [cursor=pointer]:
+          - /url: /p/103
+      - paragraph: €31.00
+      - paragraph: 2 left
+      - button "Add to cart" [ref=f1e21]
+    - generic:
+      - heading [level=3]:
+        - link "Anchor chain, 5 m" [ref=f1e24] [cursor=pointer]:
+          - /url: /p/104
+      - paragraph: €120.00
+      - paragraph: In stock
+      - button "Add to cart" [ref=f1e27]
+    - generic:
+      - heading [level=3]:
+        - link "Deck brush" [ref=f1e30] [cursor=pointer]:
+          - /url: /p/105
+      - paragraph: €11.25
+      - paragraph: Sold out
+      - button "Add to cart" [ref=f1e33]
+    - generic:
+      - heading [level=3]:
+        - link "Bilge pump" [ref=f1e36] [cursor=pointer]:
+          - /url: /p/106
+      - paragraph: €64.00
+      - paragraph: In stock
+      - button "Add to cart" [ref=f1e39]

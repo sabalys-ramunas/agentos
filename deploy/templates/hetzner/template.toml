@@ -1,0 +1,48 @@
+title = "Hetzner Cloud server"
+summary = "An Ubuntu 24.04 server on Hetzner Cloud. cloud-init makes an admin user with your key, turns SSH to keys only, turns on unattended security upgrades, installs agentos from a git ref and writes a doctor report."
+file = "cloud-init.yaml"
+create = "deploy/templates/hetzner/create.sh --name NAME --type TYPE --location LOCATION --image IMAGE --ssh-key KEY_NAME --user-data FILE"
+
+[[variables]]
+name = "ADMIN_USER"
+description = "the admin user that signs in over SSH"
+example = "agentos-admin"
+required = false
+default = "agentos-admin"
+
+[[variables]]
+name = "ADMIN_SSH_KEY"
+description = "that user's public key, on one line"
+example = "ssh-ed25519 AAAA... you@laptop"
+
+[[variables]]
+name = "NODE_NAME"
+description = "the node's name in agentos"
+example = "hetzner-1"
+required = false
+default = "the server's hostname"
+
+[[variables]]
+name = "AGENTOS_GIT_URL"
+description = "the repository to install agentos from: the public repository or your fork"
+example = "https://github.com/your-org/agentos.git"
+required = true
+
+[[variables]]
+name = "AGENTOS_GIT_REF"
+description = "the branch, tag or commit to install"
+example = "v0.3.0"
+required = false
+default = "main"
+
+[[variables]]
+name = "CONTROLLER_URL"
+description = "the controller to join over TLS, a wss:// URL (empty: join over SSH after the first boot)"
+example = "wss://controller.example.com"
+required = false
+
+[[variables]]
+name = "JOIN_TOKEN"
+description = "a single-use join token from `agentos controller join-token`, valid one hour (empty: join over SSH later)"
+example = "ajt_..."
+required = false

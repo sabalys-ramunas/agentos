@@ -1,0 +1,25 @@
+<!-- SYNTHESIZED, NOT CAPTURED. Written by hand on 2026-11-05 (brief B2) from the structure the operation's locators
+     assume. Nobody has recorded LinkedIn's profile edits: no real page was loaded and no request was seen. A canary
+     on a throwaway account (observe mode on) replaces this with the captured page (text replaced), and the egress
+     rule linkedin.profile.* with the request it saw, before the operation is marked verified. -->
+<!-- The photo is an img in the top card (class pv-top-card-profile-picture__image...), wrapped in a button that opens
+     the Profile photo dialog. Upload photo opens a file chooser; the crop step shows the image, then Save photo. -->
+<main>
+  <section class="pv-top-card">
+    <button aria-label="Edit profile photo">
+      <img class="pv-top-card-profile-picture__image--show evi-image" alt="Ada Lovelace"
+           src="https://media.licdn.com/dms/image/v2/D4D03AQOLD0000/profile-displayphoto-shrink_200_200/0/1?e=1&amp;v=beta">
+    </button>
+    <h1>Ada Lovelace</h1>
+  </section>
+</main>
+<div role="dialog" aria-label="Profile photo">
+  <img alt="Crop your photo" src="blob:https://www.linkedin.com/0000">
+  <button>Upload photo</button>
+  <button>Save photo</button>
+</div>
+<!-- The upload goes the way a post's photo does (a guess for the profile): a registration (registerMediaUpload,
+     rule linkedin.draft.register) answers with the urn and the /dms-uploads/ URL, a PUT carries the bytes
+     (linkedin.draft.upload), then Save sends requestId com.linkedin.sdui.requests.profile.update...ProfilePhoto...
+     naming the urn (rule linkedin.profile.photo). Proof: on a fresh load the photo's src differs from the one
+     noted before and is on media.licdn.com. -->

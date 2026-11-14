@@ -1,0 +1,7 @@
+$ agentos lane audit
+exit 0
+1 pinned lanes, installed Firefox 150: warn
+  warn  pin         personal/reddit      WebGL: ANGLE (Intel) is a Windows renderer string
+  warn  pin         personal/reddit      the pin lacks navigator.maxTouchPoints, screen.availLeft, screen.availTop, screen.availWidth, screen.availHeight, screen.colorDepth, screen.pixelDepth, window.outerWidth, window.outerHeight, window.screenX, window.screenY, which Camoufox draws again on every launch
+  warn  pin         personal/reddit      a version 1 pin: it is completed on the lane's next launch
+  warn  pin         personal/reddit      Camoufox coherence rule gpu-matches-os: Linux identity with 'ANGLE (Intel)'

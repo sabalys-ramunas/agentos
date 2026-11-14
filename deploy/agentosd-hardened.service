@@ -1,0 +1,69 @@
+[Unit]
+Description=agentos node daemon (agentosd, hardened): browser lanes and the MCP server
+Documentation=file:/opt/agentos/deploy/README.md
+After=network-online.target agentos-runas.service
+Wants=network-online.target agentos-runas.service
+
+# Installed by `deploy/install-node.sh --systemd --user agentos --hardened`, which replaces the
+# user, /opt/agentos and /var/lib/agentos below. AGENTOS_HOME must not live under /home or /root
+# with this unit (ProtectHome), and the code under /opt/agentos stays read-only to the service.
+# agentosd is not root here, so brains start through agentos-runas (deploy/agentos-runas.service),
+# which the installer sets up with this unit: brains run as agentos-brain, never as agentos.
+
+[Service]
+Type=simple
+User=agentos
+Group=agentos
+Environment="AGENTOS_HOME=/var/lib/agentos"
+Environment="HOME=/var/lib/agentos"
+# The service user's Camoufox browser lives here; backups leave it out (installer recreates it).
+Environment="XDG_CACHE_HOME=/var/lib/agentos/.cache"
+Environment=PYTHONUNBUFFERED=1
+WorkingDirectory=/opt/agentos
+ExecStart="/opt/agentos/.venv/bin/agentos" node serve
+Restart=on-failure
+RestartSec=3
+# SIGTERM goes to agentosd only, so it can close every browser gracefully (cookies flush);
+# whatever is left after TimeoutStopSec is killed.
+KillMode=mixed
+TimeoutStopSec=30
+UMask=0077
+LimitNOFILE=65536
+
+# Memory: a browser the kernel kills for memory is relaunched by the lane manager, so the
+# service keeps running (OOMPolicy=continue); the caps keep a 4 GB node reachable over SSH.
+OOMPolicy=continue
+MemoryHigh=85%
+MemoryMax=92%
+
+# Logs go to the journal (bounded by deploy/journald-agentos.conf); this stops a log storm.
+LogRateLimitIntervalSec=30s
+LogRateLimitBurst=5000
+
+# Least privilege. Firefox needs user namespaces for its own sandbox and W^X off for its JIT, so
+# RestrictNamespaces, MemoryDenyWriteExecute and SystemCallFilter are left off on purpose.
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ReadWritePaths="/var/lib/agentos"
+ProtectHome=yes
+# Xvfb's /tmp/.X11-unix and lock files live in the unit's own /tmp; the X server's abstract
+# socket and the viewer ports stay in the host's network namespace, so tunnels still work.
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectProc=invisible
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+LockPersonality=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target

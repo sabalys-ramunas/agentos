@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Feed · Riverside Hikers</title><link rel="stylesheet" href="/style.css"><link rel="icon" href="data:,"></head>
+<body>
+<header><strong>Riverside Hikers</strong><a href="/" id="home">Home</a><a href="/signup">Sign up</a></header>
+<main>
+  <h1>Latest posts</h1>
+  <div id="posts"></div>
+  <p><a href="/feed?page=2" id="next">Next page</a></p>
+</main>
+<script src="/sensor.js"></script>
+<script>
+  const names = ["Aiste", "Mantas", "Greta", "Tomas", "Ieva", "Lukas", "Rugile", "Paulius"];
+  const lines = ["Saw two herons by the weir this morning.", "The path past the mill is muddy, bring boots.",
+    "Who is up for the long loop on Saturday?", "Photos from last week are in the shared album.",
+    "Coffee stop at the bakery was a good call.", "New bench by the bridge, finally."];
+  const page = new URLSearchParams(location.search).get("page") || "1";
+  const box = document.getElementById("posts");
+  for (let i = 1; i <= 30; i++) {
+    const n = (Number(page) - 1) * 30 + i;
+    const d = document.createElement("div");
+    d.className = "post";
+    d.innerHTML = `<div class="who">${names[n % names.length]}</div><p>Post ${n}. ${lines[n % lines.length]}</p>` +
+      `<button type="button" data-rt="like-${n}" aria-pressed="false">Like post ${n}</button>`;
+    box.appendChild(d);
+  }
+  box.addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-rt]");
+    if (b) { b.setAttribute("aria-pressed", "true"); b.textContent = b.textContent.replace("Like", "Liked"); }
+  });
+</script>
+</body>
+</html>

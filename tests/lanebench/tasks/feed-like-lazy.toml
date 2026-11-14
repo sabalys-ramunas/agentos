@@ -1,0 +1,27 @@
+id = "feed-like-lazy"
+title = "Like a post that loads as the feed is scrolled"
+goal = "Like the post by @mira about her tomatoes. It is further down the feed."
+tags = ["feed", "mutation"]
+allowed_effects = ["like:post:mira-tomatoes"]
+
+[[mutation]]
+kind = "lazy_list"
+
+[[check]]
+kind = "liked"
+post = "mira-tomatoes"
+
+[[replay]]
+do = "scroll_until"
+locator = { role = "button", name = "Like", within = { role = "article", name = "@mira.*tomatoes", match = "regex" } }
+max_steps = 16
+
+[[replay]]
+do = "click"
+locator = { role = "button", name = "Like", within = { role = "article", name = "@mira.*tomatoes", match = "regex" } }
+
+[[replay]]
+do = "expect"
+locator = { role = "button", name = "Like", within = { role = "article", name = "@mira.*tomatoes", match = "regex" } }
+attr = "aria-pressed"
+value = "true"

@@ -1,0 +1,17 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="/base.css"><title>Decorative</title><style>
+.hero { position: relative; overflow: hidden; background: #0b3d91; color: #fff; padding: 24px; border-radius: 12px; }
+.blob { position: absolute; right: -80px; top: -60px; width: 220px; height: 220px; border-radius: 50%; background: #1e5bc6; }
+.hero h2 { position: relative; }
+.scroller { overflow-x: auto; }
+.scroller table { width: 640px; border-collapse: collapse; }
+.scroller td { padding: 6px; border: 1px solid #ccc; }
+.carousel { overflow: hidden; margin-top: 16px; }
+.track { display: flex; gap: 12px; width: max-content; }
+.slide { width: 240px; background: #f2f2f2; padding: 12px; }
+</style></head>
+<body><section class="hero" data-component="Hero"><div class="blob" aria-hidden="true"></div><h2>Plan your trip</h2><p>Fares from 19 EUR.</p></section>
+<div class="scroller" data-component="Fares"><table><tr><td>Vilnius</td><td>Riga</td><td>Tallinn</td><td>Helsinki</td><td>Stockholm</td></tr></table></div>
+<div class="carousel" data-component="Carousel"><div class="track">
+<div class="slide"><p>Old town walks</p><button>Book</button></div><div class="slide"><p>Sea kayaking</p><button>Book</button></div>
+<div class="slide"><p>Forest saunas</p><button>Book</button></div><div class="slide"><p>Night markets</p><button>Book</button></div></div></div>
+<p><svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/></svg> Icons beside text are decorative.</p></body></html>

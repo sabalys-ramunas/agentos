@@ -1,0 +1,60 @@
+/* app.css as a build step writes it: token values inlined. Generated, do not edit. */
+body {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #111827;
+  background-color: #ffffff;
+}
+.wrap { max-width: 640px; margin: 0 auto; padding: 24px 16px; }
+.title {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.25;
+  margin: 0 0 16px;
+}
+.lead { color: #4b5563; margin: 0 0 0.75rem; }
+.lead .strong { color: #111827; }
+.ds-card {
+  width: 333px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.1);
+}
+.btn {
+  font: inherit;
+  color: #ffffff;
+  background-color: #3b82f6;
+  border: 0;
+  padding: 8px 16px;
+  border-radius: 4px;
+}
+.link { color: #3b82f6; }
+.code { font-family: "Courier New", monospace; font-size: 0.875rem; }
+.pill {
+  display: inline-block;
+  padding: 0 8px;
+  border-radius: 9999px;
+  background-color: #ef4444;
+  color: #ffffff;
+}
+.pill::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 4px;
+  border-radius: 9999px; background-color: #ffffff; }
+.spacer { height: 37px; width: 123px; }
+.plants { display: grid; gap: 0.75rem; margin-top: 24px; }
+.plant { margin: 0; }
+.sub { font-size: 20px; font-weight: 700; line-height: 1.25; }
+.fake-btn {
+  padding: 8px;
+  border-radius: 4px;
+  background-color: #3b82f6;
+  color: #ffffff;
+}
+.tag { border-radius: 4px; padding: 0 4px; }

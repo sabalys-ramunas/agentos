@@ -1,0 +1,246 @@
+$ agentos lane check --all --offline --json
+exit 1
+{
+  "lanes": [
+    {
+      "lane": "personal/reddit",
+      "level": "warn",
+      "safe": true,
+      "state": "cold",
+      "at": "<TS>",
+      "summary": "The pin is version 1; it is completed on the next launch (the old file is kept as fingerprint.json.pin-v1.bak).",
+      "counts": {
+        "ok": 2,
+        "unknown": 6,
+        "warn": 1,
+        "fail": 0
+      },
+      "checks": [
+        {
+          "id": "proxy",
+          "title": "Proxy",
+          "level": "unknown",
+          "detail": "Proxy lt1 was not probed (offline).",
+          "fix": null,
+          "data": {
+            "proxy": "lt1",
+            "host": "203.0.113.7",
+            "port": 12323
+          }
+        },
+        {
+          "id": "exit_ip",
+          "title": "Exit IP",
+          "level": "unknown",
+          "detail": "Where the lane exits was not checked: the proxy was not probed (offline).",
+          "fix": null,
+          "data": {
+            "proxy": "lt1"
+          }
+        },
+        {
+          "id": "location",
+          "title": "Location",
+          "level": "unknown",
+          "detail": "Where the exit is was not checked: the proxy was not probed (offline).",
+          "fix": null,
+          "data": {
+            "pinned_timezone": "Europe/Vilnius",
+            "locale": "en-US"
+          }
+        },
+        {
+          "id": "webrtc",
+          "title": "WebRTC",
+          "level": "unknown",
+          "detail": "The browser's WebRTC settings could not be read (no camoufox.cfg found).",
+          "fix": "check that Camoufox is installed: agentos doctor",
+          "data": {
+            "media.peerconnection.enabled": true,
+            "media.peerconnection.ice.proxy_only": true,
+            "media.peerconnection.ice.proxy_only_if_behind_proxy": null,
+            "media.peerconnection.ice.obfuscate_host_addresses": null
+          }
+        },
+        {
+          "id": "dns",
+          "title": "DNS",
+          "level": "ok",
+          "detail": "Host names go to the proxy, which resolves them; the node resolves none.",
+          "fix": null,
+          "data": {
+            "network.proxy.socks_remote_dns": null,
+            "network.dns.disablePrefetch": null,
+            "network.trr.mode": null,
+            "proxy_scheme": "http"
+          }
+        },
+        {
+          "id": "profile",
+          "title": "Profile",
+          "level": "warn",
+          "detail": "The pin is version 1; it is completed on the next launch (the old file is kept as fingerprint.json.pin-v1.bak).",
+          "fix": null,
+          "data": {
+            "profile": "<TMP>/home/lanes/personal/reddit/profile",
+            "pin_version": 1,
+            "pin_v1_backup": false,
+            "pinned_firefox": 150,
+            "engine_firefox": 150,
+            "browser_running": false,
+            "size_bytes": 550,
+            "disk_free_bytes": <N>
+          }
+        },
+        {
+          "id": "session",
+          "title": "Signed in",
+          "level": "unknown",
+          "detail": "The session cookies could not be read (the cookie file is damaged or is not a cookie database).",
+          "fix": null,
+          "data": {
+            "source": "file"
+          }
+        },
+        {
+          "id": "account",
+          "title": "Account",
+          "level": "unknown",
+          "detail": "The session cookies could not be read.",
+          "fix": null,
+          "data": {}
+        },
+        {
+          "id": "hold",
+          "title": "Hold",
+          "level": "ok",
+          "detail": "No hold, no quarantine; agents have control.",
+          "fix": null,
+          "data": {
+            "kind": null
+          }
+        }
+      ]
+    },
+    {
+      "lane": "work/site",
+      "level": "fail",
+      "safe": false,
+      "state": "cold",
+      "at": "<TS>",
+      "summary": "The profile was used, but its pin file is gone, so the next launch would show sites a new device.",
+      "counts": {
+        "ok": 2,
+        "unknown": 6,
+        "warn": 0,
+        "fail": 1
+      },
+      "checks": [
+        {
+          "id": "proxy",
+          "title": "Proxy",
+          "level": "unknown",
+          "detail": "Proxy lt1 was not probed (offline).",
+          "fix": null,
+          "data": {
+            "proxy": "lt1",
+            "host": "203.0.113.7",
+            "port": 12323
+          }
+        },
+        {
+          "id": "exit_ip",
+          "title": "Exit IP",
+          "level": "unknown",
+          "detail": "Where the lane exits was not checked: the proxy was not probed (offline).",
+          "fix": null,
+          "data": {
+            "proxy": "lt1"
+          }
+        },
+        {
+          "id": "location",
+          "title": "Location",
+          "level": "unknown",
+          "detail": "Where the exit is was not checked: the proxy was not probed (offline).",
+          "fix": null,
+          "data": {
+            "pinned_timezone": null,
+            "locale": "en-US"
+          }
+        },
+        {
+          "id": "webrtc",
+          "title": "WebRTC",
+          "level": "unknown",
+          "detail": "The browser's WebRTC settings could not be read (no camoufox.cfg found).",
+          "fix": "check that Camoufox is installed: agentos doctor",
+          "data": {
+            "media.peerconnection.enabled": true,
+            "media.peerconnection.ice.proxy_only": true,
+            "media.peerconnection.ice.proxy_only_if_behind_proxy": null,
+            "media.peerconnection.ice.obfuscate_host_addresses": null
+          }
+        },
+        {
+          "id": "dns",
+          "title": "DNS",
+          "level": "ok",
+          "detail": "Host names go to the proxy, which resolves them; the node resolves none.",
+          "fix": null,
+          "data": {
+            "network.proxy.socks_remote_dns": null,
+            "network.dns.disablePrefetch": null,
+            "network.trr.mode": null,
+            "proxy_scheme": "http"
+          }
+        },
+        {
+          "id": "profile",
+          "title": "Profile",
+          "level": "fail",
+          "detail": "The profile was used, but its pin file is gone, so the next launch would show sites a new device.",
+          "fix": "restore <TMP>/home/lanes/work/site/fingerprint.json from a backup",
+          "data": {
+            "profile": "<TMP>/home/lanes/work/site/profile",
+            "pinned_firefox": null,
+            "engine_firefox": 150,
+            "browser_running": false,
+            "size_bytes": 121,
+            "disk_free_bytes": <N>
+          }
+        },
+        {
+          "id": "session",
+          "title": "Signed in",
+          "level": "unknown",
+          "detail": "The lane names no site (its account or name), so there is no session to look for.",
+          "fix": null,
+          "data": {
+            "sites": []
+          }
+        },
+        {
+          "id": "account",
+          "title": "Account",
+          "level": "unknown",
+          "detail": "No expected account for this lane.",
+          "fix": null,
+          "data": {}
+        },
+        {
+          "id": "hold",
+          "title": "Hold",
+          "level": "ok",
+          "detail": "No hold, no quarantine; agents have control.",
+          "fix": null,
+          "data": {
+            "kind": null
+          }
+        }
+      ]
+    }
+  ],
+  "ok": false,
+  "note": "--offline: every lane was read from disk as cold, and no proxy was probed"
+}

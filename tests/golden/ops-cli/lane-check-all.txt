@@ -1,0 +1,26 @@
+$ agentos lane check --all --offline
+exit 1
+personal/reddit: WARN (lane cold, checked <HM> UTC)
+  UNKNOWN Proxy: Proxy lt1 was not probed (offline).
+  UNKNOWN Exit IP: Where the lane exits was not checked: the proxy was not probed (offline).
+  UNKNOWN Location: Where the exit is was not checked: the proxy was not probed (offline).
+  UNKNOWN WebRTC: The browser's WebRTC settings could not be read (no camoufox.cfg found).
+  OK      DNS: Host names go to the proxy, which resolves them; the node resolves none.
+  WARN    Profile: The pin is version 1; it is completed on the next launch (the old file is kept as fingerprint.json.pin-v1.bak).
+  UNKNOWN Signed in: The session cookies could not be read (the cookie file is damaged or is not a cookie database).
+  UNKNOWN Account: The session cookies could not be read.
+  OK      Hold: No hold, no quarantine; agents have control.
+
+work/site: FAIL (lane cold, checked <HM> UTC)
+  UNKNOWN Proxy: Proxy lt1 was not probed (offline).
+  UNKNOWN Exit IP: Where the lane exits was not checked: the proxy was not probed (offline).
+  UNKNOWN Location: Where the exit is was not checked: the proxy was not probed (offline).
+  UNKNOWN WebRTC: The browser's WebRTC settings could not be read (no camoufox.cfg found).
+  OK      DNS: Host names go to the proxy, which resolves them; the node resolves none.
+  FAIL    Profile: The profile was used, but its pin file is gone, so the next launch would show sites a new device.
+          fix: restore <TMP>/home/lanes/work/site/fingerprint.json from a backup
+  UNKNOWN Signed in: The lane names no site (its account or name), so there is no session to look for.
+  UNKNOWN Account: No expected account for this lane.
+  OK      Hold: No hold, no quarantine; agents have control.
+
+(--offline: every lane was read from disk as cold, and no proxy was probed)

@@ -1,0 +1,18 @@
+<!-- SYNTHESIZED, NOT CAPTURED. Written by hand on 2026-11-05 from the notes of the 2026-11-04 canary
+     and the structure the operation's locators assume. No real page was loaded. A canary on a throwaway account
+     replaces this with the captured page (text replaced) before the operation is marked verified. -->
+<!-- https://www.reddit.com/user/me/comments/ before the run: the account's newest comment on the post is noted (its link) -->
+<!-- https://www.reddit.com/r/test/comments/1demo02/ : the post, then its comment composer (the first form in main) -->
+<main>
+  <shreddit-post id="t3_1demo02" permalink="/r/test/comments/1demo02/a_post/" author="someone">
+    <h1>A post</h1>
+  </shreddit-post>
+  <form>
+    <div role="textbox" contenteditable="true" aria-label="Join the conversation"></div>
+    <button type="button">Cancel</button>
+    <button type="submit">Comment</button>
+  </form>
+</main>
+<!-- after Comment: POST /svc/shreddit/t3_1demo02/create-comment (form: content, mode, richTextMedia, recaptchaToken),
+     the textbox clears. https://www.reddit.com/user/me/comments/ then starts with the new comment on that post, a
+     link to /r/test/comments/1demo02/comment/19s4nze6wq4yq/ (not the one noted) whose text is the exact text -->

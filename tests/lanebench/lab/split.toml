@@ -1,0 +1,16 @@
+# Written down before any tuning, and never changed after. tuning_seeds are the only ones a change
+# may be measured on. heldout_seeds and heldout_tasks are scored once, at the end.
+#
+# A seed changes the feed's order, its comments, class names and modal timing, so a seed split alone
+# says little about the login pages, which are the same on every seed. That is why some whole tasks,
+# and the Lithuanian twin of every task, are held out as well: those are pages tuning never saw.
+
+tuning_seeds = [103, 104, 107, 109, 112, 113, 116, 118, 119, 121, 122, 124]
+quick_seeds = [103, 109, 116, 122]          # a subset of tuning_seeds, for a first look at an idea
+heldout_seeds = [101, 102, 105, 106, 108, 110, 111, 114, 115, 117, 120, 123]
+heldout_tasks = ["adv-alt-text", "compose-draft", "feed-like-combo", "login-lt", "settings-lt"]
+twin_seeds = [101, 105, 108, 111, 115, 120]  # held out too: the Lithuanian twins, on these seeds
+excluded_tasks = ["repair-follow-renamed", "repair-like-lt"]  # they need a locator written
+
+# Added when the tuning set saturated at 735 of 746. Nothing above changed. The hard variant
+# (hard.py) runs on quick_seeds for tuning and on twin_seeds, with the held-out tasks, for the end.

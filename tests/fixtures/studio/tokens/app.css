@@ -1,0 +1,60 @@
+/* Component styles: every value through a token. */
+body {
+  margin: 0;
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--font-line-height-normal);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-page);
+}
+.wrap { max-width: 640px; margin: 0 auto; padding: var(--space-6) var(--space-4); }
+.title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--font-line-height-tight);
+  margin: 0 0 var(--space-4);
+}
+.lead { color: var(--color-text-muted); margin: 0 0 var(--space-3); }
+.lead .strong { color: var(--color-text-primary); }
+.ds-card {
+  width: 333px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background-color: var(--color-bg-surface);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+.btn {
+  font: inherit;
+  color: var(--color-action-on-primary);
+  background-color: var(--color-action-primary);
+  border: 0;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-sm);
+}
+.link { color: var(--color-action-primary); }
+.code { font-family: var(--font-family-mono); font-size: var(--font-size-sm); }
+.pill {
+  display: inline-block;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-full);
+  background-color: var(--color-danger);
+  color: var(--color-white);
+}
+.pill::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: var(--space-1);
+  border-radius: var(--radius-full); background-color: var(--color-white); }
+.spacer { height: 37px; width: 123px; }
+.plants { display: grid; gap: var(--space-3); margin-top: var(--space-6); }
+.plant { margin: 0; }
+.sub { font-size: var(--font-size-lg); font-weight: var(--font-weight-bold); line-height: var(--font-line-height-tight); }
+.fake-btn {
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-action-primary);
+  color: var(--color-action-on-primary);
+}
+.tag { border-radius: var(--radius-sm); padding: 0 var(--space-1); }

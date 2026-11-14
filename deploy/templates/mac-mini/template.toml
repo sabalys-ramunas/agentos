@@ -1,0 +1,11 @@
+title = "Mac mini controller"
+summary = "A Mac mini that runs the agentos controller as a LaunchAgent, with the power settings that keep it on and a self-check. Browser lanes do not run on macOS yet: run them on a Linux node and join that node to this controller."
+file = "dev.agentos.controller.plist"
+create = "deploy/templates/mac-mini/setup.sh, then power.sh once"
+
+[[variables]]
+name = "AGENTOS_HOME"
+description = "the controller's settings and database (controller.toml, controller.db)"
+example = "~/.agentos"
+required = false
+default = "~/.agentos"

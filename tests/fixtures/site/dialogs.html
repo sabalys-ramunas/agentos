@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Fixture dialogs</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main>
+    <h1>Draft</h1>
+    <button type="button" id="save">Save</button>
+    <button type="button" id="delete">Delete draft</button>
+    <button type="button" id="rename">Rename</button>
+    <label for="draft">Draft text</label>
+    <textarea id="draft"></textarea>
+    <p><a href="/help.html" id="leave">Leave</a></p>
+    <p id="result">-</p>
+  </main>
+  <script>
+    const result = (t) => { document.getElementById('result').textContent = t; };
+    document.getElementById('save').addEventListener('click', () => { alert('Saved!'); result('saved'); });
+    document.getElementById('delete').addEventListener('click', () => {
+      result(confirm('Delete this draft?') ? 'deleted' : 'kept');
+    });
+    document.getElementById('rename').addEventListener('click', () => {
+      const name = prompt('New name?', 'Untitled');
+      result(name === null ? 'rename cancelled' : 'renamed to ' + name);
+    });
+    document.getElementById('draft').addEventListener('input', () => {
+      window.onbeforeunload = (e) => { e.preventDefault(); e.returnValue = ''; return ''; };
+    });
+  </script>
+</body>
+</html>

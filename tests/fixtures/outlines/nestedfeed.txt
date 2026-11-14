@@ -1,0 +1,10 @@
+- main:
+  - heading "Nested feed" [level=1]
+  - link [ref=f7e4] [cursor=pointer]:
+    - /url: /index.html
+    - paragraph: A post whose whole card is a link.
+    - button "Like" [ref=f7e6]
+  - link [ref=f7e7] [cursor=pointer]:
+    - /url: /index.html
+    - paragraph: Another post.
+    - button "Like" [ref=f7e9]

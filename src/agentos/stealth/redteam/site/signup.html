@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Join Riverside Hikers</title><link rel="stylesheet" href="/style.css"><link rel="icon" href="data:,"></head>
+<body>
+<header><strong>Riverside Hikers</strong><a href="/">Home</a><a href="/feed">Feed</a></header>
+<main>
+  <div class="task" data-human-task hidden>
+    Type these exactly (no copy and paste): name <code>Jonas Petraitis</code>, email
+    <code>jonas.petraitis@example.com</code>, about you
+    <code>Labas! Mėgstu ilgus žygius prie upės, kavą ir gerą muziką. Šeštadienį būsiu prie tilto 😀</code>,
+    country Lithuania, tick the box, then press Join.
+  </div>
+  <h1>Create an account</h1>
+  <form method="post" action="/signup">
+    <label for="name">Full name</label><input type="text" id="name" name="name" autocomplete="off">
+    <label for="email">Email</label><input type="email" id="email" name="email" autocomplete="off">
+    <label for="about">About you</label><textarea id="about" name="about"></textarea>
+    <label for="country">Country</label>
+    <select id="country" name="country">
+      <option value="">Choose one</option><option>Estonia</option><option>Latvia</option><option>Lithuania</option>
+      <option>Poland</option><option>Finland</option>
+    </select>
+    <label><input type="checkbox" id="terms" name="terms"> I agree to the club rules</label>
+    <button type="submit" id="join">Join</button>
+  </form>
+</main>
+<script src="/sensor.js"></script>
+<script>
+  if (document.cookie.includes("rt_mode=human")) document.querySelectorAll("[data-human-task]").forEach((e) => e.hidden = false);
+</script>
+</body>
+</html>

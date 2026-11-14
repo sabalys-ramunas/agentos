@@ -1,0 +1,41 @@
+
+ Usage: agentos [OPTIONS] COMMAND [ARGS]...
+
+ agentos gives every agent its own computer in the cloud: a terminal, a real
+ browser and your repo. New here? `agentos setup`. Every day: `agentos help`.
+
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --version                     Print the agentos version and exit.            │
+│ --install-completion          Install completion for the current shell.      │
+│ --show-completion             Show completion for the current shell, to copy │
+│                               it or customize the installation.              │
+│ --help                        Show this message and exit.                    │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Start here ─────────────────────────────────────────────────────────────────╮
+│ setup         Start here: pick a node, connect Claude Code and Codex.        │
+│ up            Set up and start this box, then print a sign-in link.          │
+│ connect       Let the agents on your computer use a node.                    │
+│ status        Is it up, and which lanes it has (--check: what is wrong).     │
+│ open          Watch a lane live and take control (--terminal: a dashboard).  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Build and check ────────────────────────────────────────────────────────────╮
+│ run           Run a command on the node against this working tree.           │
+│ expose        Your laptop's dev server, opened in one browser lane.          │
+│ environments  Your agents' cloud computers: list, show, close, setup, repo.  │
+│ studio        Check the pages you build: layout, contrast, brand, changes.   │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Lanes and work ─────────────────────────────────────────────────────────────╮
+│ lane          Browser lanes (one account each), devices and proxies.         │
+│ workspace     Workspaces: one per business or person, with memory, members.  │
+│ vault         Logins, codes and keys the lanes use, and mailboxes.           │
+│ access        What agents may do: grants, approvals, freezes, the log.       │
+│ routines      Work that runs by itself: flows, schedules, workflows, brains. │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ This box ───────────────────────────────────────────────────────────────────╮
+│ node          Set up, run, back up and upgrade this node.                    │
+│ controller    One address for Claude Code to reach several nodes.            │
+│ panel         The web panel: sign in, see lanes, approve from a browser.     │
+│ dev           For builders: a fake node, the tool and error references.      │
+│ help          The everyday commands, and the version.                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+

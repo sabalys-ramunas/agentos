@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Sign in - Google Accounts</title>
+<style>body{font:15px sans-serif;margin:40px} input{display:block;margin:8px 0;width:200px;height:34px}</style></head>
+<body>
+<form method="post" action="/v3/signin/challenge/totp">
+  <h1>2-Step Verification</h1>
+  <div>Get a verification code from the Google Authenticator app.</div>
+  <input type="tel" name="totpPin" id="totpPin" autocomplete="one-time-code" aria-label="Enter code">
+  <button type="button">Try another way</button>
+  <button type="submit">Next</button>
+</form>
+</body></html>

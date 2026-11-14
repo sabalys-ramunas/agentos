@@ -1,0 +1,3364 @@
+{
+ "approvals": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "approvals approve": {
+  "kind": "command",
+  "params": [
+   "--answer",
+   "--node",
+   "--note",
+   "<approval_id>"
+  ],
+  "target": "agentos.policy.cli:approvals_approve"
+ },
+ "approvals batch": {
+  "kind": "command",
+  "params": [
+   "--deny",
+   "--note",
+   "<ids>"
+  ],
+  "target": "agentos.policy.cli:approvals_batch"
+ },
+ "approvals deny": {
+  "kind": "command",
+  "params": [
+   "--node",
+   "--note",
+   "<approval_id>"
+  ],
+  "target": "agentos.policy.cli:approvals_deny"
+ },
+ "approvals list": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "--limit",
+   "--node",
+   "--state"
+  ],
+  "target": "agentos.policy.cli:approvals_list"
+ },
+ "approvals standing": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "approvals standing add": {
+  "kind": "command",
+  "params": [
+   "--content",
+   "--count",
+   "--effect",
+   "--from-approval",
+   "--grant",
+   "--lane",
+   "--note",
+   "--per-day",
+   "--target",
+   "--until",
+   "--workspace"
+  ],
+  "target": "agentos.policy.cli:standing_add"
+ },
+ "approvals standing list": {
+  "kind": "command",
+  "params": [
+   "--all"
+  ],
+  "target": "agentos.policy.cli:standing_list"
+ },
+ "approvals standing revoke": {
+  "kind": "command",
+  "params": [
+   "<standing_id>"
+  ],
+  "target": "agentos.policy.cli:standing_revoke"
+ },
+ "audit": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "audit checkpoint": {
+  "kind": "command",
+  "params": [],
+  "target": "agentos.audit.cli:checkpoint_cmd"
+ },
+ "audit export": {
+  "kind": "command",
+  "params": [
+   "--day",
+   "--lane",
+   "--out",
+   "--tz",
+   "-o"
+  ],
+  "target": "agentos.audit.cli:export_cmd"
+ },
+ "audit keys": {
+  "kind": "command",
+  "params": [
+   "--json"
+  ],
+  "target": "agentos.audit.cli:keys_cmd"
+ },
+ "audit replay": {
+  "kind": "command",
+  "params": [
+   "--day",
+   "--json",
+   "--lane",
+   "--tz"
+  ],
+  "target": "agentos.audit.cli:replay_cmd"
+ },
+ "audit rotate-key": {
+  "kind": "command",
+  "params": [
+   "--no-reset",
+   "--reset"
+  ],
+  "target": "agentos.audit.cli:rotate_key_cmd"
+ },
+ "audit share": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "audit share create": {
+  "kind": "command",
+  "params": [
+   "--day",
+   "--lane",
+   "--no-screenshots",
+   "--screenshots",
+   "--trace",
+   "--ttl",
+   "--tz"
+  ],
+  "target": "agentos.audit.cli:share_create_cmd"
+ },
+ "audit share list": {
+  "kind": "command",
+  "params": [
+   "--json"
+  ],
+  "target": "agentos.audit.cli:share_list_cmd"
+ },
+ "audit share revoke": {
+  "kind": "command",
+  "params": [
+   "<share_id>"
+  ],
+  "target": "agentos.audit.cli:share_revoke_cmd"
+ },
+ "audit verify": {
+  "kind": "command",
+  "params": [
+   "--bundle",
+   "--json",
+   "--lane",
+   "--since",
+   "--trust-key",
+   "--tz",
+   "--until"
+  ],
+  "target": "agentos.audit.cli:verify_cmd"
+ },
+ "backup": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "backup create": {
+  "kind": "command",
+  "params": [
+   "--allow-live",
+   "--include-caches",
+   "--json",
+   "--keep",
+   "--passphrase-file",
+   "--to"
+  ],
+  "target": "agentos.ops.cli:backup_create"
+ },
+ "backup list": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "--to"
+  ],
+  "target": "agentos.ops.cli:backup_list"
+ },
+ "backup prune": {
+  "kind": "command",
+  "params": [
+   "--keep",
+   "--to"
+  ],
+  "target": "agentos.ops.cli:backup_prune"
+ },
+ "backup restore": {
+  "kind": "command",
+  "params": [
+   "--force",
+   "--json",
+   "--owner",
+   "--passphrase-file",
+   "--to",
+   "<archive>"
+  ],
+  "target": "agentos.ops.cli:backup_restore"
+ },
+ "backup verify": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "--passphrase-file",
+   "<archive>"
+  ],
+  "target": "agentos.ops.cli:backup_verify"
+ },
+ "brains": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "brains add": {
+  "kind": "command",
+  "params": [
+   "--auth-file",
+   "--base-url",
+   "--context",
+   "--insecure-dev-store",
+   "--kind",
+   "--model",
+   "--no-credential",
+   "--no-no-credential",
+   "--no-vision",
+   "--price-in",
+   "--price-out",
+   "--provider",
+   "--seats",
+   "--stdin",
+   "--tier",
+   "--vision",
+   "--window-hours",
+   "--window-tokens",
+   "<name>"
+  ],
+  "target": "agentos.brains.cli:add"
+ },
+ "brains auth": {
+  "kind": "command",
+  "params": [
+   "--auth-file",
+   "--insecure-dev-store",
+   "--stdin",
+   "<name>"
+  ],
+  "target": "agentos.brains.cli:auth"
+ },
+ "brains child-token": {
+  "kind": "command",
+  "params": [
+   "--stdin"
+  ],
+  "target": "agentos.brains.cli:child_token"
+ },
+ "brains confinement": {
+  "kind": "command",
+  "params": [
+   "--json"
+  ],
+  "target": "agentos.brains.cli:confinement"
+ },
+ "brains doctor": {
+  "kind": "command",
+  "params": [],
+  "target": "agentos.brains.cli:doctor"
+ },
+ "brains list": {
+  "kind": "command",
+  "params": [
+   "--json"
+  ],
+  "target": "agentos.brains.cli:list_cmd"
+ },
+ "brains order": {
+  "kind": "command",
+  "params": [
+   "<names>"
+  ],
+  "target": "agentos.brains.cli:order"
+ },
+ "brains privacy": {
+  "kind": "command",
+  "params": [
+   "<level>",
+   "<workspace>"
+  ],
+  "target": "agentos.brains.cli:privacy"
+ },
+ "brains remove": {
+  "kind": "command",
+  "params": [
+   "<name>"
+  ],
+  "target": "agentos.brains.cli:remove"
+ },
+ "brains signin": {
+  "kind": "command",
+  "params": [
+   "--effort",
+   "--insecure-dev-store",
+   "--model",
+   "--name",
+   "--stdin",
+   "<provider>"
+  ],
+  "target": "agentos.brains.cli:signin"
+ },
+ "brains tasks": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "brains tasks cancel": {
+  "kind": "command",
+  "params": [
+   "--no-wait",
+   "--wait",
+   "<task_id>"
+  ],
+  "target": "agentos.brains.cli:tasks_cancel"
+ },
+ "brains tasks list": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "--limit",
+   "--status",
+   "--workspace"
+  ],
+  "target": "agentos.brains.cli:tasks_list"
+ },
+ "brains tasks resume": {
+  "kind": "command",
+  "params": [
+   "--brain",
+   "<task_id>"
+  ],
+  "target": "agentos.brains.cli:tasks_resume"
+ },
+ "brains tasks show": {
+  "kind": "command",
+  "params": [
+   "<task_id>"
+  ],
+  "target": "agentos.brains.cli:tasks_show"
+ },
+ "brains tasks tail": {
+  "kind": "command",
+  "params": [
+   "--follow",
+   "--limit",
+   "--since",
+   "-f",
+   "<task_id>"
+  ],
+  "target": "agentos.brains.cli:tasks_tail"
+ },
+ "brains test": {
+  "kind": "command",
+  "params": [
+   "--live",
+   "--no-live",
+   "--timeout",
+   "<name>"
+  ],
+  "target": "agentos.brains.cli:test"
+ },
+ "brains use": {
+  "kind": "command",
+  "params": [
+   "--workspace",
+   "<name>"
+  ],
+  "target": "agentos.brains.cli:use"
+ },
+ "config": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "config example": {
+  "kind": "command",
+  "params": [],
+  "target": "agentos.cli:config_example"
+ },
+ "config show": {
+  "kind": "command",
+  "params": [
+   "--json"
+  ],
+  "target": "agentos.cli:config_show"
+ },
+ "confirmation": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "confirmation set": {
+  "kind": "command",
+  "params": [
+   "--apply-to-waiting",
+   "<key>",
+   "<value>"
+  ],
+  "target": "agentos.policy.cli:confirmation_set"
+ },
+ "confirmation show": {
+  "kind": "command",
+  "params": [
+   "--json"
+  ],
+  "target": "agentos.policy.cli:confirmation_show"
+ },
+ "connect": {
+  "kind": "command",
+  "params": [
+   "--agent-ttl",
+   "--ceiling",
+   "--client",
+   "--local-port",
+   "--name",
+   "--new-grant",
+   "--remote-home",
+   "--special",
+   "--token-store",
+   "--toolsets",
+   "--upgrade",
+   "<ssh_host>"
+  ],
+  "target": "agentos.client.cli:connect"
+ },
+ "connector": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "connector bind": {
+  "kind": "command",
+  "params": [
+   "--acts-as",
+   "--id",
+   "--lane",
+   "--language",
+   "--name",
+   "--site",
+   "--title",
+   "<surface>"
+  ],
+  "target": "agentos.runner.connectors.cli:bind_cmd"
+ },
+ "connector compile": {
+  "kind": "command",
+  "params": [
+   "--commit-gate",
+   "--no-commit-gate",
+   "--out",
+   "<path>"
+  ],
+  "target": "agentos.runner.connectors.cli:compile_cmd"
+ },
+ "connector health": {
+  "kind": "command",
+  "params": [
+   "--clear",
+   "--json",
+   "--no-clear",
+   "--on",
+   "<operation>"
+  ],
+  "target": "agentos.runner.connectors.cli:health_cmd"
+ },
+ "connector install": {
+  "kind": "command",
+  "params": [
+   "--force",
+   "--no-force",
+   "--trust",
+   "<path>"
+  ],
+  "target": "agentos.runner.connectors.cli:install_cmd"
+ },
+ "connector keygen": {
+  "kind": "command",
+  "params": [
+   "<out>"
+  ],
+  "target": "agentos.runner.connectors.cli:keygen_cmd"
+ },
+ "connector list": {
+  "kind": "command",
+  "params": [
+   "--json"
+  ],
+  "target": "agentos.runner.connectors.cli:list_cmd"
+ },
+ "connector remove": {
+  "kind": "command",
+  "params": [
+   "--yes",
+   "-y",
+   "<connector>"
+  ],
+  "target": "agentos.runner.connectors.cli:remove_cmd"
+ },
+ "connector run": {
+  "kind": "command",
+  "params": [
+   "--idempotency-key",
+   "--on",
+   "--param",
+   "--params-file",
+   "--wait",
+   "-p",
+   "<operation>"
+  ],
+  "target": "agentos.runner.connectors.cli:run_cmd"
+ },
+ "connector sign": {
+  "kind": "command",
+  "params": [
+   "--key",
+   "--out",
+   "<paths>"
+  ],
+  "target": "agentos.runner.connectors.cli:sign_cmd"
+ },
+ "connector surfaces": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "--site"
+  ],
+  "target": "agentos.runner.connectors.cli:surfaces_cmd"
+ },
+ "connector unbind": {
+  "kind": "command",
+  "params": [
+   "<surface>"
+  ],
+  "target": "agentos.runner.connectors.cli:unbind_cmd"
+ },
+ "connector verify": {
+  "kind": "command",
+  "params": [
+   "--date",
+   "--dir",
+   "--install",
+   "--no-install",
+   "--no-revoke",
+   "--note",
+   "--revoke",
+   "<operation>"
+  ],
+  "target": "agentos.runner.connectors.cli:verify_cmd"
+ },
+ "controller": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "controller agent-token": {
+  "kind": "command",
+  "params": [
+   "--new",
+   "--ssh-host"
+  ],
+  "target": "agentos.controller.cli:agent_token"
+ },
+ "controller freeze": {
+  "kind": "command",
+  "params": [
+   "--reason",
+   "-r"
+  ],
+  "target": "agentos.controller.cli:freeze"
+ },
+ "controller freeze-status": {
+  "kind": "command",
+  "params": [],
+  "target": "agentos.controller.cli:freeze_status"
+ },
+ "controller init": {
+  "kind": "command",
+  "params": [
+   "--host",
+   "--port",
+   "--public-url"
+  ],
+  "target": "agentos.controller.cli:init"
+ },
+ "controller join-token": {
+  "kind": "command",
+  "params": [
+   "--capability",
+   "--name",
+   "--ttl-minutes"
+  ],
+  "target": "agentos.controller.cli:join_token"
+ },
+ "controller login": {
+  "kind": "command",
+  "params": [],
+  "target": "agentos.controller.cli:login"
+ },
+ "controller nodes": {
+  "kind": "command",
+  "params": [],
+  "target": "agentos.controller.cli:nodes"
+ },
+ "controller serve": {
+  "kind": "command",
+  "params": [
+   "--host",
+   "--port",
+   "--verbose",
+   "-v"
+  ],
+  "target": "agentos.controller.cli:serve"
+ },
+ "controller unfreeze": {
+  "kind": "command",
+  "params": [],
+  "target": "agentos.controller.cli:unfreeze"
+ },
+ "dash": {
+  "kind": "command",
+  "params": [
+   "--demo",
+   "--node",
+   "--refresh",
+   "--shots-dir",
+   "--token",
+   "--url"
+  ],
+  "target": "agentos.tui.cli:dash"
+ },
+ "dev": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "dev up": {
+  "kind": "command",
+  "params": [
+   "--home",
+   "--port",
+   "--seed"
+  ],
+  "target": "agentos.dev.cli:up"
+ },
+ "device": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "device create": {
+  "kind": "command",
+  "params": [
+   "--from-lane",
+   "--note",
+   "--proxy",
+   "--yes",
+   "<name>"
+  ],
+  "target": "agentos.cli:device_create"
+ },
+ "device list": {
+  "kind": "command",
+  "params": [
+   "--json"
+  ],
+  "target": "agentos.cli:device_list"
+ },
+ "device remove": {
+  "kind": "command",
+  "params": [
+   "--yes",
+   "<name>"
+  ],
+  "target": "agentos.cli:device_remove"
+ },
+ "device show": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "--offline",
+   "<name>"
+  ],
+  "target": "agentos.cli:device_show"
+ },
+ "disconnect": {
+  "kind": "command",
+  "params": [
+   "<name>"
+  ],
+  "target": "agentos.client.cli:disconnect"
+ },
+ "doctor": {
+  "kind": "group",
+  "params": [
+   "--json",
+   "--offline",
+   "--only",
+   "--unit"
+  ],
+  "target": "agentos.ops.cli:doctor_cmd"
+ },
+ "engage": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "engage cap": {
+  "kind": "command",
+  "params": [
+   "--clear",
+   "<kind>",
+   "<surface>",
+   "<value>"
+  ],
+  "target": "agentos.engage.cli:cap"
+ },
+ "engage caps": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "<site>"
+  ],
+  "target": "agentos.engage.cli:caps"
+ },
+ "engage digest": {
+  "kind": "command",
+  "params": [
+   "--day",
+   "--json",
+   "<surface>"
+  ],
+  "target": "agentos.engage.digest_cli:digest"
+ },
+ "engage drafts": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "--status",
+   "<surface>"
+  ],
+  "target": "agentos.engage.drafts_cli:drafts"
+ },
+ "engage hold": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "engage hold clear": {
+  "kind": "command",
+  "params": [
+   "--id",
+   "--kind",
+   "<surface>"
+  ],
+  "target": "agentos.engage.cli:hold_clear"
+ },
+ "engage holds": {
+  "kind": "command",
+  "params": [
+   "--all",
+   "--json",
+   "<surface>"
+  ],
+  "target": "agentos.engage.cli:holds"
+ },
+ "engage item": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "engage item withdraw": {
+  "kind": "command",
+  "params": [
+   "<item_id>"
+  ],
+  "target": "agentos.engage.cli:item_withdraw"
+ },
+ "engage items": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "--status",
+   "<surface>"
+  ],
+  "target": "agentos.engage.cli:items"
+ },
+ "engage plan": {
+  "kind": "command",
+  "params": [
+   "--days",
+   "--dry-run",
+   "--json",
+   "--start",
+   "<surface>"
+  ],
+  "target": "agentos.engage.cli:plan"
+ },
+ "engage profile": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "engage profile reset": {
+  "kind": "command",
+  "params": [
+   "--field",
+   "<surface>"
+  ],
+  "target": "agentos.engage.cli:profile_reset"
+ },
+ "engage program": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "engage program approve": {
+  "kind": "command",
+  "params": [
+   "--version",
+   "<program>"
+  ],
+  "target": "agentos.engage.cli:program_approve"
+ },
+ "engage program draft": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "<file>",
+   "<surface>"
+  ],
+  "target": "agentos.engage.cli:program_draft"
+ },
+ "engage program show": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "<ref>"
+  ],
+  "target": "agentos.engage.cli:program_show"
+ },
+ "engage provider": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "engage provider test": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "--kind",
+   "--surface"
+  ],
+  "target": "agentos.engage.drafts_cli:provider_test"
+ },
+ "engage provider token": {
+  "kind": "command",
+  "params": [
+   "--stdin"
+  ],
+  "target": "agentos.engage.drafts_cli:provider_token"
+ },
+ "engage run": {
+  "kind": "command",
+  "params": [
+   "--day",
+   "--dry-run",
+   "--json",
+   "--now",
+   "--session",
+   "<surface>"
+  ],
+  "target": "agentos.engage.cli:run"
+ },
+ "engage status": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "<surface>"
+  ],
+  "target": "agentos.engage.cli:status"
+ },
+ "env": {
+  "kind": "group",
+  "params": [
+   "--home"
+  ],
+  "target": "agentos.env.cli:main"
+ },
+ "env confinement": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "<lane>"
+  ],
+  "target": "agentos.env.cli:confinement"
+ },
+ "env create": {
+  "kind": "command",
+  "params": [
+   "--allow",
+   "--allow-program",
+   "--cmd",
+   "--cpus",
+   "--disk-mb",
+   "--filesystem",
+   "--health-cmd",
+   "--health-http",
+   "--image",
+   "--json",
+   "--kind",
+   "--memory-mb",
+   "--network",
+   "--pids",
+   "--preset",
+   "--processes",
+   "--programs",
+   "--proxy",
+   "--restart",
+   "--volume",
+   "<lane>"
+  ],
+  "target": "agentos.env.cli:create"
+ },
+ "env doctor": {
+  "kind": "command",
+  "params": [
+   "--json"
+  ],
+  "target": "agentos.env.cli:doctor"
+ },
+ "env exec": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "--timeout",
+   "<lane>"
+  ],
+  "target": "agentos.env.cli:exec_"
+ },
+ "env images": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "env images build": {
+  "kind": "command",
+  "params": [
+   "<name>"
+  ],
+  "target": "agentos.env.cli:images_build"
+ },
+ "env images list": {
+  "kind": "command",
+  "params": [
+   "--json"
+  ],
+  "target": "agentos.env.cli:images_list"
+ },
+ "env install": {
+  "kind": "command",
+  "params": [
+   "--source",
+   "<lane>",
+   "<packages>"
+  ],
+  "target": "agentos.env.cli:install"
+ },
+ "env list": {
+  "kind": "command",
+  "params": [
+   "--json"
+  ],
+  "target": "agentos.env.cli:list_"
+ },
+ "env remove": {
+  "kind": "command",
+  "params": [
+   "--yes",
+   "<lane>"
+  ],
+  "target": "agentos.env.cli:remove"
+ },
+ "env reset": {
+  "kind": "command",
+  "params": [
+   "<lane>"
+  ],
+  "target": "agentos.env.cli:reset"
+ },
+ "env services": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "env services logs": {
+  "kind": "command",
+  "params": [
+   "--lines",
+   "<lane>"
+  ],
+  "target": "agentos.env.cli:services_logs"
+ },
+ "env services start": {
+  "kind": "command",
+  "params": [
+   "--foreground",
+   "--no-foreground",
+   "--ttl",
+   "<lane>"
+  ],
+  "target": "agentos.env.cli:services_start"
+ },
+ "env services status": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "<lane>"
+  ],
+  "target": "agentos.env.cli:services_status"
+ },
+ "env services stop": {
+  "kind": "command",
+  "params": [
+   "<lane>"
+  ],
+  "target": "agentos.env.cli:services_stop"
+ },
+ "env shell": {
+  "kind": "command",
+  "params": [
+   "<lane>"
+  ],
+  "target": "agentos.env.cli:shell"
+ },
+ "errors": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "--markdown",
+   "--panel-json",
+   "<code>"
+  ],
+  "target": "agentos.cli:errors"
+ },
+ "flows": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "flows ask-first": {
+  "kind": "command",
+  "params": [
+   "--account",
+   "--json",
+   "<words>"
+  ],
+  "target": "agentos.runner.cli:flows_ask_first"
+ },
+ "flows list": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "--prefix"
+  ],
+  "target": "agentos.runner.cli:flows_list"
+ },
+ "flows remove": {
+  "kind": "command",
+  "params": [
+   "<flow_id>"
+  ],
+  "target": "agentos.runner.cli:flows_remove"
+ },
+ "flows run": {
+  "kind": "command",
+  "params": [
+   "--idempotency-key",
+   "--on",
+   "--param",
+   "--params-file",
+   "--wait",
+   "-p",
+   "<flow_id>"
+  ],
+  "target": "agentos.runner.cli:flows_run"
+ },
+ "flows save": {
+  "kind": "command",
+  "params": [
+   "<file>"
+  ],
+  "target": "agentos.runner.cli:flows_save"
+ },
+ "flows show": {
+  "kind": "command",
+  "params": [
+   "--version",
+   "<flow_id>"
+  ],
+  "target": "agentos.runner.cli:flows_show"
+ },
+ "flows versions": {
+  "kind": "command",
+  "params": [
+   "<flow_id>"
+  ],
+  "target": "agentos.runner.cli:flows_versions"
+ },
+ "freeze": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "freeze lane": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "--reason",
+   "-r",
+   "<lane_id>"
+  ],
+  "target": "agentos.freeze.cli:freeze_lane"
+ },
+ "freeze node": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "--reason",
+   "-r",
+   "<target>"
+  ],
+  "target": "agentos.freeze.cli:freeze_node"
+ },
+ "freeze status": {
+  "kind": "command",
+  "params": [
+   "--json"
+  ],
+  "target": "agentos.freeze.cli:freeze_status"
+ },
+ "freeze workspace": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "--reason",
+   "-r",
+   "<workspace>"
+  ],
+  "target": "agentos.freeze.cli:freeze_workspace"
+ },
+ "grants": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "grants attenuate": {
+  "kind": "command",
+  "params": [
+   "--budget-tokens",
+   "--budget-usd",
+   "--ceiling",
+   "--depth",
+   "--domain",
+   "--drop-specials",
+   "--from",
+   "--lane",
+   "--no-drop-specials",
+   "--note",
+   "--subject",
+   "--ttl",
+   "--workspace"
+  ],
+  "target": "agentos.policy.cli:grants_attenuate"
+ },
+ "grants explain": {
+  "kind": "command",
+  "params": [
+   "<grant_id>"
+  ],
+  "target": "agentos.policy.cli:grants_explain"
+ },
+ "grants issue": {
+  "kind": "command",
+  "params": [
+   "--admin",
+   "--brain-credential-owner",
+   "--brain-provider",
+   "--brain-quota-tokens",
+   "--brain-tier",
+   "--budget-tokens",
+   "--budget-usd",
+   "--ceiling",
+   "--depth",
+   "--domain",
+   "--egress",
+   "--exec-lane",
+   "--fanout",
+   "--kind",
+   "--lane",
+   "--memory-audience-owner",
+   "--memory-private",
+   "--memory-type",
+   "--memory-workspace",
+   "--memory-write",
+   "--no-admin",
+   "--no-memory-audience-owner",
+   "--no-memory-private",
+   "--no-memory-write",
+   "--note",
+   "--secret-lane",
+   "--service-ttl",
+   "--source",
+   "--special",
+   "--subject",
+   "--thread",
+   "--ttl",
+   "--workspace"
+  ],
+  "target": "agentos.policy.cli:grants_issue"
+ },
+ "grants keys": {
+  "kind": "command",
+  "params": [
+   "--json"
+  ],
+  "target": "agentos.policy.cli:grants_keys"
+ },
+ "grants list": {
+  "kind": "command",
+  "params": [
+   "--all",
+   "--json"
+  ],
+  "target": "agentos.policy.cli:grants_list"
+ },
+ "grants meters": {
+  "kind": "command",
+  "params": [
+   "--lane",
+   "--limit",
+   "--unset",
+   "<grant_id>"
+  ],
+  "target": "agentos.policy.cli:grants_meters"
+ },
+ "grants retire-key": {
+  "kind": "command",
+  "params": [
+   "--at",
+   "<kid>"
+  ],
+  "target": "agentos.policy.cli:grants_retire_key"
+ },
+ "grants revoke": {
+  "kind": "command",
+  "params": [
+   "--reason",
+   "<grant_id>"
+  ],
+  "target": "agentos.policy.cli:grants_revoke"
+ },
+ "grants rotate-key": {
+  "kind": "command",
+  "params": [
+   "--overlap",
+   "--yes"
+  ],
+  "target": "agentos.policy.cli:grants_rotate_key"
+ },
+ "grants show": {
+  "kind": "command",
+  "params": [
+   "<grant_id>"
+  ],
+  "target": "agentos.policy.cli:grants_show"
+ },
+ "grants taint": {
+  "kind": "command",
+  "params": [
+   "--clear",
+   "<grant_id>"
+  ],
+  "target": "agentos.policy.cli:grants_taint"
+ },
+ "health": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "health check": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "--offline"
+  ],
+  "target": "agentos.ops.cli:health_check"
+ },
+ "health status": {
+  "kind": "command",
+  "params": [
+   "--json"
+  ],
+  "target": "agentos.ops.cli:health_status"
+ },
+ "identity": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "identity hosts": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "identity hosts add": {
+  "kind": "command",
+  "params": [
+   "--reason",
+   "<lane_id>",
+   "<origin>"
+  ],
+  "target": "agentos.webbotauth.cli:hosts_add"
+ },
+ "identity hosts remove": {
+  "kind": "command",
+  "params": [
+   "<lane_id>",
+   "<origin>"
+  ],
+  "target": "agentos.webbotauth.cli:hosts_remove"
+ },
+ "identity init": {
+  "kind": "command",
+  "params": [
+   "--agent",
+   "--force",
+   "--form",
+   "--json",
+   "<lane_id>"
+  ],
+  "target": "agentos.webbotauth.cli:init"
+ },
+ "identity show": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "<lane_id>"
+  ],
+  "target": "agentos.webbotauth.cli:show"
+ },
+ "identity test-sign": {
+  "kind": "command",
+  "params": [
+   "--method",
+   "--reveal",
+   "--send",
+   "<lane_id>",
+   "<url>"
+  ],
+  "target": "agentos.webbotauth.cli:test_sign"
+ },
+ "lane": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "lane audit": {
+  "kind": "command",
+  "params": [
+   "--json"
+  ],
+  "target": "agentos.ops.cli:lane_audit_cmd"
+ },
+ "lane check": {
+  "kind": "command",
+  "params": [
+   "--all",
+   "--json",
+   "--offline",
+   "<lane>"
+  ],
+  "target": "agentos.ops.cli:lane_check_cmd"
+ },
+ "lane create": {
+  "kind": "command",
+  "params": [
+   "--device",
+   "--engine",
+   "--proxy",
+   "<lane_id>"
+  ],
+  "target": "agentos.cli:lane_create"
+ },
+ "lane delete": {
+  "kind": "command",
+  "params": [
+   "--yes",
+   "<lane_id>"
+  ],
+  "target": "agentos.cli:lane_delete"
+ },
+ "lane deny": {
+  "kind": "command",
+  "params": [
+   "<lane_id>"
+  ],
+  "target": "agentos.cli:lane_deny"
+ },
+ "lane gate-log": {
+  "kind": "command",
+  "params": [
+   "--all-lanes",
+   "--allow-read",
+   "--as-commit",
+   "--json",
+   "--observed",
+   "--remove",
+   "--shape",
+   "--since",
+   "<lane_id>"
+  ],
+  "target": "agentos.cli:lane_gate_log"
+ },
+ "lane handback": {
+  "kind": "command",
+  "params": [
+   "--note",
+   "<lane_id>"
+  ],
+  "target": "agentos.cli:lane_handback"
+ },
+ "lane import": {
+  "kind": "command",
+  "params": [
+   "--engine",
+   "--fingerprint",
+   "--profile",
+   "--proxy",
+   "<lane_id>"
+  ],
+  "target": "agentos.cli:lane_import"
+ },
+ "lane keepalive": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "--node",
+   "--now",
+   "--off",
+   "--on",
+   "<lane>"
+  ],
+  "target": "agentos.keepalive.cli:keepalive_cmd"
+ },
+ "lane list": {
+  "kind": "command",
+  "params": [],
+  "target": "agentos.cli:lane_list"
+ },
+ "lane login": {
+  "kind": "command",
+  "params": [
+   "--url",
+   "<lane_id>"
+  ],
+  "target": "agentos.cli:lane_login"
+ },
+ "lane pace": {
+  "kind": "command",
+  "params": [
+   "--gap",
+   "--hours",
+   "--json",
+   "--off",
+   "--per-day",
+   "--preset",
+   "--timezone",
+   "--workspace",
+   "<lane_id>"
+  ],
+  "target": "agentos.cli:lane_pace"
+ },
+ "lane redteam": {
+  "kind": "command",
+  "params": [
+   "--gauntlet",
+   "--home-root",
+   "--host",
+   "--humans",
+   "--json",
+   "--lanes",
+   "--local",
+   "--no-probe",
+   "--no-record",
+   "--os",
+   "--out",
+   "--probe",
+   "--proxy-file",
+   "--runs",
+   "--serve",
+   "--slot",
+   "--targets"
+  ],
+  "target": "agentos.ops.cli:redteam_cmd"
+ },
+ "lane refresh-fingerprint": {
+  "kind": "command",
+  "params": [
+   "--dry-run",
+   "--json",
+   "--keep-device",
+   "--version",
+   "--yes",
+   "<lane>"
+  ],
+  "target": "agentos.ops.cli:refresh_fingerprint_cmd"
+ },
+ "lane rules": {
+  "kind": "command",
+  "params": [
+   "--all",
+   "--json",
+   "--stale-days",
+   "<lane_id>"
+  ],
+  "target": "agentos.cli:lane_rules"
+ },
+ "lane set-device": {
+  "kind": "command",
+  "params": [
+   "--yes",
+   "<device>",
+   "<lane_id>"
+  ],
+  "target": "agentos.cli:lane_set_device"
+ },
+ "lane set-proxy": {
+  "kind": "command",
+  "params": [
+   "--yes",
+   "<label>",
+   "<lane_id>"
+  ],
+  "target": "agentos.cli:lane_set_proxy"
+ },
+ "lane sites": {
+  "kind": "command",
+  "params": [
+   "<action>",
+   "<lane_id>",
+   "<values>"
+  ],
+  "target": "agentos.cli:lane_sites"
+ },
+ "lane stealth-check": {
+  "kind": "command",
+  "params": [
+   "--home-root",
+   "--json",
+   "--kill-every",
+   "--lanes",
+   "--min-available-mb",
+   "--os",
+   "--out",
+   "--proxy",
+   "--public",
+   "--relaunches",
+   "--slot",
+   "--soak-minutes"
+  ],
+  "target": "agentos.ops.cli:stealth_check_cmd"
+ },
+ "lane stop": {
+  "kind": "command",
+  "params": [
+   "<lane_id>"
+  ],
+  "target": "agentos.cli:lane_stop"
+ },
+ "lane take": {
+  "kind": "command",
+  "params": [
+   "<lane_id>"
+  ],
+  "target": "agentos.cli:lane_take"
+ },
+ "lane view": {
+  "kind": "command",
+  "params": [
+   "--control",
+   "--ttl",
+   "<lane_id>"
+  ],
+  "target": "agentos.cli:lane_view_link"
+ },
+ "lanebench": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "lanebench list": {
+  "kind": "command",
+  "params": [
+   "--tasks",
+   "-t"
+  ],
+  "target": "agentos.lanebench_cli:list_tasks"
+ },
+ "lanebench run": {
+  "kind": "command",
+  "params": [
+   "--agent-cmd",
+   "--executor",
+   "--json",
+   "--out",
+   "--seed",
+   "--slot",
+   "--tasks",
+   "-e",
+   "-t"
+  ],
+  "target": "agentos.lanebench_cli:run"
+ },
+ "logs": {
+  "kind": "command",
+  "params": [
+   "--follow",
+   "--grant",
+   "--json",
+   "--lane",
+   "--level",
+   "--request",
+   "--run",
+   "--since",
+   "--source",
+   "--unit",
+   "--workspace",
+   "-f"
+  ],
+  "target": "agentos.ops.cli:logs_cmd"
+ },
+ "mail": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "mail connect": {
+  "kind": "command",
+  "params": [
+   "--id",
+   "--imap-host",
+   "--imap-port",
+   "--imap-security",
+   "--smtp-host",
+   "--smtp-port",
+   "--smtp-security",
+   "<address>"
+  ],
+  "target": "agentos.runner.mail.cli:connect"
+ },
+ "mail list": {
+  "kind": "command",
+  "params": [],
+  "target": "agentos.runner.mail.cli:list_"
+ },
+ "mail remove": {
+  "kind": "command",
+  "params": [
+   "--yes",
+   "-y",
+   "<mailbox>"
+  ],
+  "target": "agentos.runner.mail.cli:remove"
+ },
+ "mail test": {
+  "kind": "command",
+  "params": [
+   "<mailbox>"
+  ],
+  "target": "agentos.runner.mail.cli:test"
+ },
+ "members": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "members invite": {
+  "kind": "command",
+  "params": [
+   "--email",
+   "--json",
+   "--max-usd",
+   "--name",
+   "--no-qr",
+   "--qr",
+   "--role",
+   "--ttl",
+   "--watch",
+   "--workspace",
+   "-r",
+   "-w",
+   "<handle>"
+  ],
+  "target": "agentos.cli:members_invite"
+ },
+ "members list": {
+  "kind": "command",
+  "params": [
+   "--json"
+  ],
+  "target": "agentos.cli:members_list"
+ },
+ "members remove": {
+  "kind": "command",
+  "params": [
+   "--yes",
+   "<who>"
+  ],
+  "target": "agentos.cli:members_remove"
+ },
+ "members role": {
+  "kind": "command",
+  "params": [
+   "--max-usd",
+   "--none",
+   "--role",
+   "--ttl",
+   "--watch",
+   "--workspace",
+   "-r",
+   "-w",
+   "<who>"
+  ],
+  "target": "agentos.cli:members_role"
+ },
+ "memory": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "memory confirm": {
+  "kind": "command",
+  "params": [
+   "--body-from",
+   "--json",
+   "--title",
+   "<entry_id>",
+   "<version>"
+  ],
+  "target": "agentos.memory.cli:confirm"
+ },
+ "memory export": {
+  "kind": "command",
+  "params": [
+   "--jsonl",
+   "--md",
+   "<workspace>"
+  ],
+  "target": "agentos.memory.cli:export"
+ },
+ "memory forget": {
+  "kind": "command",
+  "params": [
+   "--reason",
+   "--yes",
+   "-y",
+   "<entry_id>"
+  ],
+  "target": "agentos.memory.cli:forget"
+ },
+ "memory import": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "<file>",
+   "<workspace>"
+  ],
+  "target": "agentos.memory.cli:import_cmd"
+ },
+ "memory list": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "--limit",
+   "--no-unreviewed",
+   "--state",
+   "--trust",
+   "--type",
+   "--unreviewed",
+   "-t",
+   "<workspace>"
+  ],
+  "target": "agentos.memory.cli:list_cmd"
+ },
+ "memory review": {
+  "kind": "command",
+  "params": [
+   "<entry_id>"
+  ],
+  "target": "agentos.memory.cli:review"
+ },
+ "memory search": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "--limit",
+   "--since",
+   "--type",
+   "-t",
+   "<query>",
+   "<workspace>"
+  ],
+  "target": "agentos.memory.cli:search"
+ },
+ "memory show": {
+  "kind": "command",
+  "params": [
+   "--history",
+   "--json",
+   "--no-history",
+   "--version",
+   "<entry_id>"
+  ],
+  "target": "agentos.memory.cli:show"
+ },
+ "memory stats": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "<workspace>"
+  ],
+  "target": "agentos.memory.cli:stats"
+ },
+ "memory verify": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "<workspace>"
+  ],
+  "target": "agentos.memory.cli:verify"
+ },
+ "memory write": {
+  "kind": "command",
+  "params": [
+   "--attrs",
+   "--audience",
+   "--body-from",
+   "--json",
+   "--key",
+   "--supersedes",
+   "--title",
+   "--type",
+   "-t",
+   "<workspace>"
+  ],
+  "target": "agentos.memory.cli:write"
+ },
+ "migrate": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "migrate run": {
+  "kind": "command",
+  "params": [
+   "--dry-run",
+   "--json",
+   "--no-backup"
+  ],
+  "target": "agentos.ops.cli:migrate_run"
+ },
+ "migrate status": {
+  "kind": "command",
+  "params": [
+   "--json"
+  ],
+  "target": "agentos.ops.cli:migrate_status"
+ },
+ "migrate-service-user": {
+  "kind": "command",
+  "params": [
+   "--health-timeout",
+   "--json",
+   "--prefix",
+   "--rollback",
+   "--unit",
+   "--user",
+   "--yes",
+   "-y"
+  ],
+  "target": "agentos.ops.cli:migrate_service_user_cmd"
+ },
+ "node": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "node init": {
+  "kind": "command",
+  "params": [
+   "--display-base",
+   "--max-warm-lanes",
+   "--mcp-port",
+   "--name",
+   "--new-token",
+   "--ssh-host",
+   "--viewer-base",
+   "--vnc-base"
+  ],
+  "target": "agentos.cli:node_init"
+ },
+ "node join": {
+  "kind": "command",
+  "params": [
+   "--capability",
+   "--name",
+   "--self-hosted",
+   "<controller_url>",
+   "<join_token>"
+  ],
+  "target": "agentos.cli:node_join"
+ },
+ "node restart": {
+  "kind": "command",
+  "params": [
+   "--check",
+   "--json",
+   "--unit",
+   "--yes",
+   "-y"
+  ],
+  "target": "agentos.ops.restart:restart_command"
+ },
+ "node rotate-token": {
+  "kind": "command",
+  "params": [],
+  "target": "agentos.cli:node_rotate_token"
+ },
+ "node serve": {
+  "kind": "command",
+  "params": [
+   "--verbose",
+   "-v"
+  ],
+  "target": "agentos.cli:node_serve"
+ },
+ "node templates": {
+  "kind": "command",
+  "params": [
+   "<name>"
+  ],
+  "target": "agentos.ops.templates:templates_command"
+ },
+ "nodes": {
+  "kind": "command",
+  "params": [],
+  "target": "agentos.client.cli:nodes"
+ },
+ "open": {
+  "kind": "command",
+  "params": [
+   "--node",
+   "--print",
+   "--wake",
+   "<lane>"
+  ],
+  "target": "agentos.client.cli:open_lane"
+ },
+ "panel": {
+  "kind": "group",
+  "params": [],
+  "target": "agentos.api.cli:panel"
+ },
+ "panel login": {
+  "kind": "command",
+  "params": [
+   "--base-url",
+   "--home",
+   "--ttl"
+  ],
+  "target": "agentos.api.cli:login"
+ },
+ "pilot": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "pilot settings": {
+  "kind": "command",
+  "params": [
+   "--json"
+  ],
+  "target": "agentos.pilot.cli:show_settings"
+ },
+ "plan": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "plan draft": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "--workspace",
+   "-w"
+  ],
+  "target": "agentos.plan.cli:draft"
+ },
+ "plan status": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "--workspace",
+   "-w"
+  ],
+  "target": "agentos.plan.cli:status"
+ },
+ "plugins": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "plugins assign": {
+  "kind": "command",
+  "params": [
+   "<brain>",
+   "<job>",
+   "<plugin_id>"
+  ],
+  "target": "agentos.plugins.cli:assign"
+ },
+ "plugins disable": {
+  "kind": "command",
+  "params": [
+   "<plugin_id>"
+  ],
+  "target": "agentos.plugins.cli:disable"
+ },
+ "plugins enable": {
+  "kind": "command",
+  "params": [
+   "<plugin_id>"
+  ],
+  "target": "agentos.plugins.cli:enable"
+ },
+ "plugins lane": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "<lane>",
+   "<state>"
+  ],
+  "target": "agentos.plugins.cli:lane_switch"
+ },
+ "plugins list": {
+  "kind": "command",
+  "params": [
+   "--json"
+  ],
+  "target": "agentos.plugins.cli:list_plugins"
+ },
+ "plugins show": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "<plugin_id>"
+  ],
+  "target": "agentos.plugins.cli:show_plugin"
+ },
+ "plugins unassign": {
+  "kind": "command",
+  "params": [
+   "<job>",
+   "<plugin_id>"
+  ],
+  "target": "agentos.plugins.cli:unassign"
+ },
+ "policy": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "policy approvals": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "policy approvals approve": {
+  "kind": "command",
+  "params": [
+   "--answer",
+   "--node",
+   "--note",
+   "<approval_id>"
+  ],
+  "target": "agentos.policy.cli:approvals_approve"
+ },
+ "policy approvals batch": {
+  "kind": "command",
+  "params": [
+   "--deny",
+   "--note",
+   "<ids>"
+  ],
+  "target": "agentos.policy.cli:approvals_batch"
+ },
+ "policy approvals deny": {
+  "kind": "command",
+  "params": [
+   "--node",
+   "--note",
+   "<approval_id>"
+  ],
+  "target": "agentos.policy.cli:approvals_deny"
+ },
+ "policy approvals list": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "--limit",
+   "--node",
+   "--state"
+  ],
+  "target": "agentos.policy.cli:approvals_list"
+ },
+ "policy approvals standing": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "policy approvals standing add": {
+  "kind": "command",
+  "params": [
+   "--content",
+   "--count",
+   "--effect",
+   "--from-approval",
+   "--grant",
+   "--lane",
+   "--note",
+   "--per-day",
+   "--target",
+   "--until",
+   "--workspace"
+  ],
+  "target": "agentos.policy.cli:standing_add"
+ },
+ "policy approvals standing list": {
+  "kind": "command",
+  "params": [
+   "--all"
+  ],
+  "target": "agentos.policy.cli:standing_list"
+ },
+ "policy approvals standing revoke": {
+  "kind": "command",
+  "params": [
+   "<standing_id>"
+  ],
+  "target": "agentos.policy.cli:standing_revoke"
+ },
+ "policy grants": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "policy grants attenuate": {
+  "kind": "command",
+  "params": [
+   "--budget-tokens",
+   "--budget-usd",
+   "--ceiling",
+   "--depth",
+   "--domain",
+   "--drop-specials",
+   "--from",
+   "--lane",
+   "--no-drop-specials",
+   "--note",
+   "--subject",
+   "--ttl",
+   "--workspace"
+  ],
+  "target": "agentos.policy.cli:grants_attenuate"
+ },
+ "policy grants explain": {
+  "kind": "command",
+  "params": [
+   "<grant_id>"
+  ],
+  "target": "agentos.policy.cli:grants_explain"
+ },
+ "policy grants issue": {
+  "kind": "command",
+  "params": [
+   "--admin",
+   "--brain-credential-owner",
+   "--brain-provider",
+   "--brain-quota-tokens",
+   "--brain-tier",
+   "--budget-tokens",
+   "--budget-usd",
+   "--ceiling",
+   "--depth",
+   "--domain",
+   "--egress",
+   "--exec-lane",
+   "--fanout",
+   "--kind",
+   "--lane",
+   "--memory-audience-owner",
+   "--memory-private",
+   "--memory-type",
+   "--memory-workspace",
+   "--memory-write",
+   "--no-admin",
+   "--no-memory-audience-owner",
+   "--no-memory-private",
+   "--no-memory-write",
+   "--note",
+   "--secret-lane",
+   "--service-ttl",
+   "--source",
+   "--special",
+   "--subject",
+   "--thread",
+   "--ttl",
+   "--workspace"
+  ],
+  "target": "agentos.policy.cli:grants_issue"
+ },
+ "policy grants keys": {
+  "kind": "command",
+  "params": [
+   "--json"
+  ],
+  "target": "agentos.policy.cli:grants_keys"
+ },
+ "policy grants list": {
+  "kind": "command",
+  "params": [
+   "--all",
+   "--json"
+  ],
+  "target": "agentos.policy.cli:grants_list"
+ },
+ "policy grants meters": {
+  "kind": "command",
+  "params": [
+   "--lane",
+   "--limit",
+   "--unset",
+   "<grant_id>"
+  ],
+  "target": "agentos.policy.cli:grants_meters"
+ },
+ "policy grants retire-key": {
+  "kind": "command",
+  "params": [
+   "--at",
+   "<kid>"
+  ],
+  "target": "agentos.policy.cli:grants_retire_key"
+ },
+ "policy grants revoke": {
+  "kind": "command",
+  "params": [
+   "--reason",
+   "<grant_id>"
+  ],
+  "target": "agentos.policy.cli:grants_revoke"
+ },
+ "policy grants rotate-key": {
+  "kind": "command",
+  "params": [
+   "--overlap",
+   "--yes"
+  ],
+  "target": "agentos.policy.cli:grants_rotate_key"
+ },
+ "policy grants show": {
+  "kind": "command",
+  "params": [
+   "<grant_id>"
+  ],
+  "target": "agentos.policy.cli:grants_show"
+ },
+ "policy grants taint": {
+  "kind": "command",
+  "params": [
+   "--clear",
+   "<grant_id>"
+  ],
+  "target": "agentos.policy.cli:grants_taint"
+ },
+ "policy key": {
+  "kind": "command",
+  "params": [],
+  "target": "agentos.policy.cli:key"
+ },
+ "policy notify": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "policy notify hours": {
+  "kind": "command",
+  "params": [
+   "--batch",
+   "--defaults",
+   "--digest",
+   "--member",
+   "--quiet",
+   "--timezone",
+   "--urgent-breaks-quiet",
+   "--urgent-waits"
+  ],
+  "target": "agentos.policy.cli:notify_hours"
+ },
+ "policy notify member": {
+  "kind": "command",
+  "params": [
+   "--channel",
+   "--no-summary",
+   "--secret-from",
+   "--server",
+   "--show-summary",
+   "--webhook-url",
+   "<member>"
+  ],
+  "target": "agentos.policy.cli:notify_member"
+ },
+ "policy notify ntfy": {
+  "kind": "command",
+  "params": [
+   "--disable",
+   "--server",
+   "--token-from",
+   "<topic>"
+  ],
+  "target": "agentos.policy.cli:notify_ntfy"
+ },
+ "policy notify remove": {
+  "kind": "command",
+  "params": [
+   "<member>"
+  ],
+  "target": "agentos.policy.cli:notify_remove"
+ },
+ "policy notify rotate": {
+  "kind": "command",
+  "params": [
+   "<member>"
+  ],
+  "target": "agentos.policy.cli:notify_rotate"
+ },
+ "policy notify show": {
+  "kind": "command",
+  "params": [
+   "--member"
+  ],
+  "target": "agentos.policy.cli:notify_show"
+ },
+ "policy notify test": {
+  "kind": "command",
+  "params": [
+   "--member"
+  ],
+  "target": "agentos.policy.cli:notify_test"
+ },
+ "policy notify urls": {
+  "kind": "command",
+  "params": [
+   "--panel-url",
+   "--public-base-url"
+  ],
+  "target": "agentos.policy.cli:notify_urls"
+ },
+ "policy notify webhook": {
+  "kind": "command",
+  "params": [
+   "--disable",
+   "--secret-from",
+   "<url>"
+  ],
+  "target": "agentos.policy.cli:notify_webhook"
+ },
+ "policy routing": {
+  "kind": "command",
+  "params": [
+   "--json"
+  ],
+  "target": "agentos.policy.cli:routing"
+ },
+ "policy traces": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "--lane",
+   "--limit",
+   "--status",
+   "--tool"
+  ],
+  "target": "agentos.policy.cli:traces"
+ },
+ "proxy": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "proxy add": {
+  "kind": "command",
+  "params": [
+   "--yes",
+   "<label>",
+   "<spec>"
+  ],
+  "target": "agentos.cli:proxy_add"
+ },
+ "proxy list": {
+  "kind": "command",
+  "params": [],
+  "target": "agentos.cli:proxy_list"
+ },
+ "runner": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "runner flows": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "runner flows ask-first": {
+  "kind": "command",
+  "params": [
+   "--account",
+   "--json",
+   "<words>"
+  ],
+  "target": "agentos.runner.cli:flows_ask_first"
+ },
+ "runner flows list": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "--prefix"
+  ],
+  "target": "agentos.runner.cli:flows_list"
+ },
+ "runner flows remove": {
+  "kind": "command",
+  "params": [
+   "<flow_id>"
+  ],
+  "target": "agentos.runner.cli:flows_remove"
+ },
+ "runner flows run": {
+  "kind": "command",
+  "params": [
+   "--idempotency-key",
+   "--on",
+   "--param",
+   "--params-file",
+   "--wait",
+   "-p",
+   "<flow_id>"
+  ],
+  "target": "agentos.runner.cli:flows_run"
+ },
+ "runner flows save": {
+  "kind": "command",
+  "params": [
+   "<file>"
+  ],
+  "target": "agentos.runner.cli:flows_save"
+ },
+ "runner flows show": {
+  "kind": "command",
+  "params": [
+   "--version",
+   "<flow_id>"
+  ],
+  "target": "agentos.runner.cli:flows_show"
+ },
+ "runner flows versions": {
+  "kind": "command",
+  "params": [
+   "<flow_id>"
+  ],
+  "target": "agentos.runner.cli:flows_versions"
+ },
+ "runner runs": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "runner runs cancel": {
+  "kind": "command",
+  "params": [
+   "<run_id>"
+  ],
+  "target": "agentos.runner.cli:runs_cancel"
+ },
+ "runner runs decide": {
+  "kind": "command",
+  "params": [
+   "<decision>",
+   "<run_id>"
+  ],
+  "target": "agentos.runner.cli:runs_decide"
+ },
+ "runner runs list": {
+  "kind": "command",
+  "params": [
+   "--flow",
+   "--json",
+   "--lane",
+   "--limit",
+   "--status"
+  ],
+  "target": "agentos.runner.cli:runs_list"
+ },
+ "runner runs show": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "<run_id>"
+  ],
+  "target": "agentos.runner.cli:runs_show"
+ },
+ "runner schedules": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "runner schedules add": {
+  "kind": "command",
+  "params": [
+   "--accept-params",
+   "--cron",
+   "--deadman",
+   "--jitter",
+   "--missed",
+   "--no-accept-params",
+   "--no-webhook",
+   "--on",
+   "--param",
+   "--params-file",
+   "--tz",
+   "--webhook",
+   "-p",
+   "<flow>"
+  ],
+  "target": "agentos.runner.cli:schedules_add"
+ },
+ "runner schedules disable": {
+  "kind": "command",
+  "params": [
+   "<schedule_id>"
+  ],
+  "target": "agentos.runner.cli:schedules_disable"
+ },
+ "runner schedules enable": {
+  "kind": "command",
+  "params": [
+   "<schedule_id>"
+  ],
+  "target": "agentos.runner.cli:schedules_enable"
+ },
+ "runner schedules list": {
+  "kind": "command",
+  "params": [
+   "--json"
+  ],
+  "target": "agentos.runner.cli:schedules_list"
+ },
+ "runner schedules remove": {
+  "kind": "command",
+  "params": [
+   "<schedule_id>"
+  ],
+  "target": "agentos.runner.cli:schedules_remove"
+ },
+ "runner schedules show": {
+  "kind": "command",
+  "params": [
+   "<schedule_id>"
+  ],
+  "target": "agentos.runner.cli:schedules_show"
+ },
+ "runner watches": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "runner watches add": {
+  "kind": "command",
+  "params": [
+   "--css",
+   "--deadman",
+   "--debounce",
+   "--every",
+   "--locator",
+   "--name",
+   "--on",
+   "--param",
+   "--read",
+   "--role",
+   "--url",
+   "--within-name",
+   "--within-role",
+   "-p",
+   "<flow>"
+  ],
+  "target": "agentos.runner.cli:watches_add"
+ },
+ "runner watches list": {
+  "kind": "command",
+  "params": [
+   "--json"
+  ],
+  "target": "agentos.runner.cli:watches_list"
+ },
+ "runner watches remove": {
+  "kind": "command",
+  "params": [
+   "<watch_id>"
+  ],
+  "target": "agentos.runner.cli:watches_remove"
+ },
+ "runs": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "runs cancel": {
+  "kind": "command",
+  "params": [
+   "<run_id>"
+  ],
+  "target": "agentos.runner.cli:runs_cancel"
+ },
+ "runs decide": {
+  "kind": "command",
+  "params": [
+   "<decision>",
+   "<run_id>"
+  ],
+  "target": "agentos.runner.cli:runs_decide"
+ },
+ "runs list": {
+  "kind": "command",
+  "params": [
+   "--flow",
+   "--json",
+   "--lane",
+   "--limit",
+   "--status"
+  ],
+  "target": "agentos.runner.cli:runs_list"
+ },
+ "runs show": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "<run_id>"
+  ],
+  "target": "agentos.runner.cli:runs_show"
+ },
+ "schedules": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "schedules add": {
+  "kind": "command",
+  "params": [
+   "--accept-params",
+   "--cron",
+   "--deadman",
+   "--jitter",
+   "--missed",
+   "--no-accept-params",
+   "--no-webhook",
+   "--on",
+   "--param",
+   "--params-file",
+   "--tz",
+   "--webhook",
+   "-p",
+   "<flow>"
+  ],
+  "target": "agentos.runner.cli:schedules_add"
+ },
+ "schedules disable": {
+  "kind": "command",
+  "params": [
+   "<schedule_id>"
+  ],
+  "target": "agentos.runner.cli:schedules_disable"
+ },
+ "schedules enable": {
+  "kind": "command",
+  "params": [
+   "<schedule_id>"
+  ],
+  "target": "agentos.runner.cli:schedules_enable"
+ },
+ "schedules list": {
+  "kind": "command",
+  "params": [
+   "--json"
+  ],
+  "target": "agentos.runner.cli:schedules_list"
+ },
+ "schedules remove": {
+  "kind": "command",
+  "params": [
+   "<schedule_id>"
+  ],
+  "target": "agentos.runner.cli:schedules_remove"
+ },
+ "schedules show": {
+  "kind": "command",
+  "params": [
+   "<schedule_id>"
+  ],
+  "target": "agentos.runner.cli:schedules_show"
+ },
+ "site-api": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "site-api activate": {
+  "kind": "command",
+  "params": [
+   "--vouch",
+   "<api>"
+  ],
+  "target": "agentos.runner.siteapis.cli:activate"
+ },
+ "site-api discover": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "<on>",
+   "<url>"
+  ],
+  "target": "agentos.runner.siteapis.cli:discover"
+ },
+ "site-api keys": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "site-api keys add": {
+  "kind": "command",
+  "params": [
+   "--api",
+   "--ceiling",
+   "--endpoint",
+   "--expires",
+   "--rate",
+   "--surface",
+   "<label>"
+  ],
+  "target": "agentos.runner.siteapis.http_cli:add"
+ },
+ "site-api keys list": {
+  "kind": "command",
+  "params": [
+   "--json"
+  ],
+  "target": "agentos.runner.siteapis.http_cli:list_keys"
+ },
+ "site-api keys revoke": {
+  "kind": "command",
+  "params": [
+   "<key_id>"
+  ],
+  "target": "agentos.runner.siteapis.http_cli:revoke"
+ },
+ "site-api list": {
+  "kind": "command",
+  "params": [
+   "--json"
+  ],
+  "target": "agentos.runner.siteapis.cli:list_cmd"
+ },
+ "site-api new": {
+  "kind": "command",
+  "params": [
+   "--endpoint",
+   "--file",
+   "--pick",
+   "--recording",
+   "--surface",
+   "--url",
+   "--vouch",
+   "<api>"
+  ],
+  "target": "agentos.runner.siteapis.cli:new"
+ },
+ "site-api openapi": {
+  "kind": "command",
+  "params": [
+   "--out",
+   "--server",
+   "<api>"
+  ],
+  "target": "agentos.runner.siteapis.http_cli:openapi_cmd"
+ },
+ "site-api pause": {
+  "kind": "command",
+  "params": [
+   "<api>"
+  ],
+  "target": "agentos.runner.siteapis.cli:pause"
+ },
+ "site-api remove": {
+  "kind": "command",
+  "params": [
+   "<api>"
+  ],
+  "target": "agentos.runner.siteapis.cli:remove"
+ },
+ "site-api show": {
+  "kind": "command",
+  "params": [
+   "<api>"
+  ],
+  "target": "agentos.runner.siteapis.cli:show"
+ },
+ "site-api try": {
+  "kind": "command",
+  "params": [
+   "--on",
+   "--param",
+   "-p",
+   "<api>",
+   "<endpoint>"
+  ],
+  "target": "agentos.runner.siteapis.cli:try_cmd"
+ },
+ "status": {
+  "kind": "command",
+  "params": [
+   "<name>"
+  ],
+  "target": "agentos.client.cli:status"
+ },
+ "tools": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "--markdown"
+  ],
+  "target": "agentos.cli:tools"
+ },
+ "unfreeze": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "unfreeze lane": {
+  "kind": "command",
+  "params": [
+   "<lane_id>"
+  ],
+  "target": "agentos.freeze.cli:unfreeze_lane"
+ },
+ "unfreeze mesh": {
+  "kind": "command",
+  "params": [],
+  "target": "agentos.freeze.cli:unfreeze_mesh"
+ },
+ "unfreeze node": {
+  "kind": "command",
+  "params": [],
+  "target": "agentos.freeze.cli:unfreeze_node"
+ },
+ "unfreeze workspace": {
+  "kind": "command",
+  "params": [
+   "<workspace>"
+  ],
+  "target": "agentos.freeze.cli:unfreeze_workspace"
+ },
+ "up": {
+  "kind": "command",
+  "params": [
+   "--controller-port",
+   "--ssh-host",
+   "--verbose",
+   "-v"
+  ],
+  "target": "agentos.controller.cli:up_command"
+ },
+ "upgrade": {
+  "kind": "group",
+  "params": [
+   "--hardened",
+   "--health-timeout",
+   "--json",
+   "--no-service",
+   "--prefix",
+   "--skip-apt",
+   "--skip-browser",
+   "--source",
+   "--unit",
+   "--user",
+   "--yes",
+   "-y"
+  ],
+  "target": "agentos.ops.cli:upgrade_cmd"
+ },
+ "vault": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "vault add": {
+  "kind": "command",
+  "params": [
+   "--domain",
+   "--header",
+   "--host",
+   "--kind",
+   "--lane",
+   "--no-username",
+   "--prefix",
+   "--replace",
+   "--stdin",
+   "--totp",
+   "--username",
+   "<name>"
+  ],
+  "target": "agentos.vault.cli:add"
+ },
+ "vault bind": {
+  "kind": "command",
+  "params": [
+   "<lanes>",
+   "<name>"
+  ],
+  "target": "agentos.vault.cli:bind"
+ },
+ "vault catcher": {
+  "kind": "command",
+  "params": [
+   "--account",
+   "--host",
+   "--mailbox",
+   "--off",
+   "--pattern",
+   "--port",
+   "--relay",
+   "--sender",
+   "--timeout",
+   "--window",
+   "<name>"
+  ],
+  "target": "agentos.vault.cli:catcher"
+ },
+ "vault import": {
+  "kind": "command",
+  "params": [
+   "--bind",
+   "--dry-run",
+   "--format",
+   "--on-conflict",
+   "--only-bound",
+   "--shred",
+   "<file>"
+  ],
+  "target": "agentos.vault.cli:import_"
+ },
+ "vault init": {
+  "kind": "command",
+  "params": [
+   "--passphrase"
+  ],
+  "target": "agentos.vault.cli:init"
+ },
+ "vault list": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "--lane"
+  ],
+  "target": "agentos.vault.cli:list_"
+ },
+ "vault remove": {
+  "kind": "command",
+  "params": [
+   "--yes",
+   "-y",
+   "<name>"
+  ],
+  "target": "agentos.vault.cli:remove"
+ },
+ "vault rotate-key": {
+  "kind": "command",
+  "params": [
+   "--master"
+  ],
+  "target": "agentos.vault.cli:rotate_key"
+ },
+ "vault seal": {
+  "kind": "command",
+  "params": [],
+  "target": "agentos.vault.cli:seal"
+ },
+ "vault show": {
+  "kind": "command",
+  "params": [
+   "<name>"
+  ],
+  "target": "agentos.vault.cli:show"
+ },
+ "vault status": {
+  "kind": "command",
+  "params": [
+   "--json"
+  ],
+  "target": "agentos.vault.cli:status"
+ },
+ "vault unbind": {
+  "kind": "command",
+  "params": [
+   "<lanes>",
+   "<name>"
+  ],
+  "target": "agentos.vault.cli:unbind"
+ },
+ "vault unseal": {
+  "kind": "command",
+  "params": [],
+  "target": "agentos.vault.cli:unseal"
+ },
+ "version": {
+  "kind": "command",
+  "params": [],
+  "target": "agentos.cli:version"
+ },
+ "workflows": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "workflows apply": {
+  "kind": "command",
+  "params": [
+   "--enable",
+   "<path>"
+  ],
+  "target": "agentos.runner.workflows.cli:apply"
+ },
+ "workflows disable": {
+  "kind": "command",
+  "params": [
+   "<flow_id>"
+  ],
+  "target": "agentos.runner.workflows.cli:disable"
+ },
+ "workflows enable": {
+  "kind": "command",
+  "params": [
+   "--version",
+   "<flow_id>"
+  ],
+  "target": "agentos.runner.workflows.cli:enable"
+ },
+ "workflows export": {
+  "kind": "command",
+  "params": [
+   "<flow_id>"
+  ],
+  "target": "agentos.runner.workflows.cli:export"
+ },
+ "workflows leads": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "workflows leads drop": {
+  "kind": "command",
+  "params": [
+   "<batch>"
+  ],
+  "target": "agentos.runner.workflows.cli:leads_drop"
+ },
+ "workflows leads erase": {
+  "kind": "command",
+  "params": [
+   "<email>",
+   "<workspace>"
+  ],
+  "target": "agentos.runner.workflows.cli:leads_erase"
+ },
+ "workflows leads export": {
+  "kind": "command",
+  "params": [
+   "<list_id>"
+  ],
+  "target": "agentos.runner.workflows.cli:leads_export"
+ },
+ "workflows leads list": {
+  "kind": "command",
+  "params": [],
+  "target": "agentos.runner.workflows.cli:leads_list"
+ },
+ "workflows leads seen": {
+  "kind": "command",
+  "params": [],
+  "target": "agentos.runner.workflows.cli:leads_seen"
+ },
+ "workflows leads show": {
+  "kind": "command",
+  "params": [
+   "<batch>"
+  ],
+  "target": "agentos.runner.workflows.cli:leads_show"
+ },
+ "workflows leads take": {
+  "kind": "command",
+  "params": [
+   "--only",
+   "<batch>"
+  ],
+  "target": "agentos.runner.workflows.cli:leads_take"
+ },
+ "workflows list": {
+  "kind": "command",
+  "params": [
+   "--json"
+  ],
+  "target": "agentos.runner.workflows.cli:list_"
+ },
+ "workflows retry": {
+  "kind": "command",
+  "params": [
+   "--force",
+   "<flow_id>",
+   "<run_id>"
+  ],
+  "target": "agentos.runner.workflows.cli:retry"
+ },
+ "workflows run": {
+  "kind": "command",
+  "params": [
+   "--values",
+   "<flow_id>"
+  ],
+  "target": "agentos.runner.workflows.cli:run"
+ },
+ "workflows runs": {
+  "kind": "command",
+  "params": [
+   "--limit",
+   "<flow_id>"
+  ],
+  "target": "agentos.runner.workflows.cli:runs"
+ },
+ "workflows templates": {
+  "kind": "command",
+  "params": [
+   "--workspace",
+   "<template>"
+  ],
+  "target": "agentos.runner.workflows.cli:templates"
+ },
+ "workflows watch": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "<flow_id>"
+  ],
+  "target": "agentos.runner.workflows.cli:watch"
+ },
+ "workspace": {
+  "kind": "group",
+  "params": [],
+  "target": ""
+ },
+ "workspace apply": {
+  "kind": "command",
+  "params": [
+   "--lane-proxy",
+   "--override-proxy-rules",
+   "--proxy",
+   "--reason",
+   "--workspace",
+   "--yes",
+   "-w",
+   "-y",
+   "<template>"
+  ],
+  "target": "agentos.workspaces.cli:apply_template"
+ },
+ "workspace create": {
+  "kind": "command",
+  "params": [
+   "--color",
+   "--name",
+   "--notes",
+   "--proxy",
+   "<workspace_id>"
+  ],
+  "target": "agentos.workspaces.cli:create_workspace"
+ },
+ "workspace delete": {
+  "kind": "command",
+  "params": [
+   "--with-memory",
+   "--yes",
+   "-y",
+   "<workspace_id>"
+  ],
+  "target": "agentos.workspaces.cli:delete_workspace"
+ },
+ "workspace export": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "--passphrase-file",
+   "--recipient",
+   "--to",
+   "--vault-passphrase-file",
+   "--with-proxies",
+   "-r",
+   "<workspace_id>"
+  ],
+  "target": "agentos.workspaces.cli:export_cmd"
+ },
+ "workspace import": {
+  "kind": "command",
+  "params": [
+   "--allow-missing-proxy",
+   "--as",
+   "--dry-run",
+   "--enable-schedules",
+   "--identity",
+   "--json",
+   "--map-proxy",
+   "--on-vault-conflict",
+   "--passphrase-file",
+   "--reissue-grants",
+   "--vault-passphrase-file",
+   "--yes",
+   "-i",
+   "-y",
+   "<file>"
+  ],
+  "target": "agentos.workspaces.cli:import_cmd"
+ },
+ "workspace list": {
+  "kind": "command",
+  "params": [
+   "--json"
+  ],
+  "target": "agentos.workspaces.cli:list_workspaces"
+ },
+ "workspace overrides": {
+  "kind": "command",
+  "params": [
+   "--limit"
+  ],
+  "target": "agentos.workspaces.cli:show_overrides"
+ },
+ "workspace plan": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "--lane-proxy",
+   "--override-proxy-rules",
+   "--proxy",
+   "--reason",
+   "--workspace",
+   "-w",
+   "<template>"
+  ],
+  "target": "agentos.workspaces.cli:plan_template"
+ },
+ "workspace queue": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "<workspace>"
+  ],
+  "target": "agentos.workspaces.cli:show_queue"
+ },
+ "workspace ready": {
+  "kind": "command",
+  "params": [
+   "<lane>"
+  ],
+  "target": "agentos.workspaces.cli:mark_ready"
+ },
+ "workspace show": {
+  "kind": "command",
+  "params": [
+   "--json",
+   "<workspace_id>"
+  ],
+  "target": "agentos.workspaces.cli:show_workspace"
+ },
+ "workspace templates": {
+  "kind": "command",
+  "params": [
+   "--json"
+  ],
+  "target": "agentos.workspaces.cli:list_templates"
+ },
+ "workspace unready": {
+  "kind": "command",
+  "params": [
+   "--attention",
+   "--note",
+   "<lane>"
+  ],
+  "target": "agentos.workspaces.cli:mark_unready"
+ },
+ "workspace update": {
+  "kind": "command",
+  "params": [
+   "--color",
+   "--name",
+   "--no-color",
+   "--no-proxy",
+   "--notes",
+   "--proxy",
+   "<workspace_id>"
+  ],
+  "target": "agentos.workspaces.cli:update_workspace"
+ }
+}

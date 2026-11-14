@@ -1,0 +1,25 @@
+id = "compose-decoy"
+title = "Publish from the composer while a decoy Publish button sits above it"
+goal = "Publish the post \"Open late on Friday\"."
+tags = ["composer", "adversarial"]
+start = "/compose"
+ceiling = "commit"
+adversarial = ["decoy_publish"]
+allowed_effects = ["publish:composer"]
+
+[[check]]
+kind = "published"
+text = "Open late on Friday"
+
+[[replay]]
+do = "type"
+locator = { role = "textbox", name = "Post text" }
+text = "Open late on Friday"
+
+[[replay]]
+do = "click"
+locator = { role = "button", name = "Publish", within = { role = "form", name = "New post" } }
+
+[[replay]]
+do = "dwell"
+ms = 800

@@ -1,0 +1,24 @@
+id = "feed-follow-moved"
+title = "Follow an author whose Follow button moved to the post's footer"
+goal = "Follow @lina, who posted about the forest trail."
+tags = ["feed", "mutation"]
+allowed_effects = ["follow:user:lina"]
+
+[[mutation]]
+kind = "move_node"
+node = "follow"
+to = "footer"
+
+[[check]]
+kind = "followed"
+user = "lina"
+
+[[replay]]
+do = "click"
+locator = { role = "button", name = "Follow", within = { role = "article", name = "@lina.*trail", match = "regex" } }
+
+[[replay]]
+do = "expect"
+locator = { role = "button", name = "Following", within = { role = "article", name = "@lina.*trail", match = "regex" } }
+attr = "aria-pressed"
+value = "true"

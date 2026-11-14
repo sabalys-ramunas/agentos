@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Fixture sign in</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main>
+    <h1>Sign in</h1>
+    <button type="button" id="signin">Continue with Fixture ID</button>
+    <p><a href="/help.html" target="_blank" id="help">Open help</a></p>
+    <p id="who">Signed out</p>
+  </main>
+  <script>
+    document.getElementById('signin').addEventListener('click', () => {
+      window.open('/auth.html', 'fixture-auth', 'width=520,height=620');
+    });
+    window.addEventListener('message', (e) => {
+      if (e.origin === location.origin && e.data && e.data.user) {
+        document.getElementById('who').textContent = 'Signed in as ' + e.data.user;
+      }
+    });
+  </script>
+</body>
+</html>

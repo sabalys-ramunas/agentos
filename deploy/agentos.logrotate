@@ -1,0 +1,15 @@
+# agentos: the display logs (Xvfb, x11vnc, websockify) under AGENTOS_HOME/logs. The daemon's own
+# log is in the journal (or, outside systemd, logs/agentosd.jsonl, which agentosd rotates itself;
+# the *.log pattern below leaves it alone). Installed as /etc/logrotate.d/agentos by `deploy/install-node.sh --systemd`,
+# which replaces the path and the user below.
+/var/lib/agentos/logs/*.log {
+    su root root
+    weekly
+    rotate 4
+    maxsize 20M
+    missingok
+    notifempty
+    compress
+    delaycompress
+    copytruncate
+}

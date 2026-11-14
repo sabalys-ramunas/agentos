@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="lt">
+<head>
+  <meta charset="utf-8">
+  <link rel="icon" href="data:,">
+  <title>Saugumo patikra</title>
+  <script src="/signals/watch.js"></script>
+</head>
+<body>
+  <h1>Padėkite mums patvirtinti, kad tai jūs</h1>
+  <p>Išsiuntėme kodą į jūsų el. paštą.</p>
+  <form onsubmit="return false">
+    <label>Kodas <input name="code" inputmode="numeric" autocomplete="one-time-code"></label>
+    <button type="button" aria-expanded="false" id="more"
+            onclick="this.setAttribute('aria-expanded', String(this.getAttribute('aria-expanded') !== 'true'))">
+      Kodėl to prašome?</button>
+  </form>
+</body>
+</html>

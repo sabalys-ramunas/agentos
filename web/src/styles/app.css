@@ -1,0 +1,574 @@
+@import 'tailwindcss';
+/* Generated from web/tokens/build-tokens.py: the Mono token set, the one source. */
+@import './tokens.css';
+/* The names the screens used before Mono, mapped onto it, and the app-only tokens. */
+@import './aliases.css';
+@import './instrument.css';
+/* The Mono primitives' own rules (table, status shapes, kinds, terminal, slider). */
+@import './primitives.css';
+
+/*
+ * A control that cannot act right now. A busy button is `aria-disabled`, not `disabled`, because
+ * a browser drops keyboard focus from a disabled button, and a person on the keyboard would be
+ * thrown back to the top of the page mid-request. Both look the same.
+ */
+@custom-variant off (&:disabled, &[aria-disabled='true']);
+
+/*
+ * Tailwind is only a thin layer over tokens.css. The default palette, radii and shadows
+ * are cleared, so a class like bg-red-500 does not exist and cannot drift in.
+ *
+ * Two sets of names live here. The first is the one every existing screen uses (bg-bg, text-fg,
+ * text-muted, border-line, text-red, text-13 ...): each now points at a Mono role, so the screens
+ * took the new look without edits. The second is the Mono roles by name (bg-card, bg-page,
+ * text-ok, bg-kind-test-soft, text-table-header ...): new code uses these. web/DESIGN.md has both.
+ */
+@theme inline {
+  --color-*: initial;
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  /* ---- The names the screens already use, onto Mono roles ---- */
+  --color-bg: var(--surface-card);
+  --color-subtle: var(--surface-inset);
+  --color-raised: var(--surface-raised);
+  --color-overlay: var(--overlay-scrim);
+  --color-fill-1: var(--fill-hover);
+  --color-fill-2: var(--fill-pressed);
+  --color-fill-3: var(--fill-3);
+  --color-line: var(--line-default);
+  --color-line-strong: var(--line-strong);
+  --color-control: var(--line-control);
+  --color-fg: var(--text-primary);
+  --color-muted: var(--text-secondary);
+  --color-faint: var(--text-tertiary);
+  --color-disabled: var(--text-disabled);
+  --color-primary: var(--accent-fill);
+  --color-primary-hover: var(--neutral-11);
+  --color-on-primary: var(--text-inverse);
+  /* Links: ink with an underline in Mono (see .text-blue below). Focus is the one blue. */
+  --color-blue: var(--accent-text);
+  --color-green: var(--status-ok-text);
+  --color-amber: var(--status-warn-text);
+  --color-red: var(--status-bad-text);
+  --color-brand: var(--brand-mark);
+  /* An agent acting now. Named live because `current` already means currentColor. Ink in Mono. */
+  --color-live: var(--status-live-text);
+  --color-live-soft: var(--status-live-fill);
+  --color-board: var(--board);
+  --color-board-raised: var(--board-raised);
+  --color-board-line: var(--board-line);
+  --color-board-line-strong: var(--board-line-strong);
+
+  /* ---- Mono roles by name ---- */
+  --color-page: var(--surface-page);
+  --color-card: var(--surface-card);
+  --color-inset: var(--surface-inset);
+  --color-inverse: var(--surface-inverse);
+  --color-on-inverse: var(--text-inverse);
+  --color-hover: var(--fill-hover);
+  --color-pressed: var(--fill-pressed);
+  --color-focus: var(--focus-ring);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-line: var(--accent-line);
+
+  /* Status families: text reads as words, dot is the mark, fill tints, line edges a tint. */
+  --color-ok: var(--status-ok-text);
+  --color-ok-dot: var(--status-ok-dot);
+  --color-ok-fill: var(--status-ok-fill);
+  --color-ok-line: var(--status-ok-line);
+  --color-warn: var(--status-warn-text);
+  --color-warn-dot: var(--status-warn-dot);
+  --color-warn-fill: var(--status-warn-fill);
+  --color-warn-line: var(--status-warn-line);
+  --color-bad: var(--status-bad-text);
+  --color-bad-dot: var(--status-bad-dot);
+  --color-bad-fill: var(--status-bad-fill);
+  --color-bad-line: var(--status-bad-line);
+  --color-live-dot: var(--status-live-dot);
+  --color-live-line: var(--status-live-line);
+  --color-idle: var(--status-idle-text);
+  --color-idle-dot: var(--status-idle-dot);
+  --color-idle-fill: var(--status-idle-fill);
+  --color-idle-line: var(--status-idle-line);
+  --color-status-ink: var(--status-ink);
+
+  /* The kind of work. Never a status: a kind is a tile with its icon, a status a shape and a word. */
+  --color-kind-test: var(--kind-test-text);
+  --color-kind-test-mark: var(--kind-test-mark);
+  --color-kind-test-soft: var(--kind-test-soft);
+  --color-kind-test-line: var(--kind-test-line);
+  --color-kind-design: var(--kind-design-text);
+  --color-kind-design-mark: var(--kind-design-mark);
+  --color-kind-design-soft: var(--kind-design-soft);
+  --color-kind-design-line: var(--kind-design-line);
+  --color-kind-build: var(--kind-build-text);
+  --color-kind-build-mark: var(--kind-build-mark);
+  --color-kind-build-soft: var(--kind-build-soft);
+  --color-kind-build-line: var(--kind-build-line);
+  --color-kind-server: var(--kind-server-text);
+  --color-kind-server-mark: var(--kind-server-mark);
+  --color-kind-server-soft: var(--kind-server-soft);
+  --color-kind-server-line: var(--kind-server-line);
+
+  /* Terminals are dark in both themes. */
+  --color-terminal: var(--terminal-bg);
+  --color-terminal-text: var(--terminal-text);
+  --color-terminal-dim: var(--terminal-dim);
+  --color-ansi-red: var(--ansi-red);
+  --color-ansi-green: var(--ansi-green);
+  --color-ansi-yellow: var(--ansi-yellow);
+  --color-ansi-blue: var(--ansi-blue);
+  --color-ansi-magenta: var(--ansi-magenta);
+  --color-ansi-cyan: var(--ansi-cyan);
+
+  --color-diff-add: var(--diff-add-fill);
+  --color-diff-add-mark: var(--diff-add-mark);
+  --color-diff-del: var(--diff-del-fill);
+  --color-diff-del-mark: var(--diff-del-mark);
+
+  --color-chart-line: var(--chart-line);
+  --color-chart-area: var(--chart-area);
+  --color-chart-bar: var(--chart-bar);
+  --color-chart-bar-strong: var(--chart-bar-strong);
+  --color-chart-grid: var(--chart-grid);
+
+  --color-identity-1: var(--identity-1);
+  --color-identity-2: var(--identity-2);
+  --color-identity-3: var(--identity-3);
+  --color-identity-4: var(--identity-4);
+  --color-identity-5: var(--identity-5);
+  --color-identity-6: var(--identity-6);
+  --color-identity-7: var(--identity-7);
+  --color-identity-8: var(--identity-8);
+  --color-identity-ink: var(--identity-ink);
+
+  --font-sans: var(--font-family-sans);
+  --font-mono: var(--font-family-mono);
+
+  /* The old size scale (text-11 to text-32): kept, on the Mono sizes. */
+  --text-*: initial;
+  --text-11: var(--font-11);
+  --text-11--line-height: var(--line-height-16);
+  --text-12: var(--font-12);
+  --text-12--line-height: var(--line-height-16);
+  --text-13: var(--font-13);
+  --text-13--line-height: var(--line-height-20);
+  --text-14: var(--font-14);
+  --text-14--line-height: var(--line-height-20);
+  --text-16: var(--font-16);
+  --text-16--line-height: var(--line-height-24);
+  --text-16--letter-spacing: var(--tracking-16);
+  --text-20: var(--font-20);
+  --text-20--line-height: var(--line-height-28);
+  --text-20--letter-spacing: var(--tracking-20);
+  --text-24: var(--font-24);
+  --text-24--line-height: var(--line-height-32);
+  --text-24--letter-spacing: var(--tracking-24);
+  --text-32: var(--font-32);
+  --text-32--line-height: var(--line-height-40);
+  --text-32--letter-spacing: var(--tracking-32);
+
+  /*
+   * Type roles: one class sets size, line height, weight and tracking. The mono roles (number, code,
+   * code-caption, eyebrow) also take Geist Mono and tabular figures, below in @layer components.
+   */
+  --text-display: var(--type-display-font-size);
+  --text-display--line-height: var(--type-display-line-height);
+  --text-display--font-weight: var(--type-display-font-weight);
+  --text-display--letter-spacing: var(--type-display-tracking);
+  --text-page-title: var(--type-page-title-font-size);
+  --text-page-title--line-height: var(--type-page-title-line-height);
+  --text-page-title--font-weight: var(--type-page-title-font-weight);
+  --text-page-title--letter-spacing: var(--type-page-title-tracking);
+  --text-page-title-compact: var(--type-page-title-compact-font-size);
+  --text-page-title-compact--line-height: var(--type-page-title-compact-line-height);
+  --text-page-title-compact--font-weight: var(--type-page-title-compact-font-weight);
+  --text-page-title-compact--letter-spacing: var(--type-page-title-compact-tracking);
+  --text-section-title: var(--type-section-title-font-size);
+  --text-section-title--line-height: var(--type-section-title-line-height);
+  --text-section-title--font-weight: var(--type-section-title-font-weight);
+  --text-section-title--letter-spacing: var(--type-section-title-tracking);
+  --text-lede: var(--type-lede-font-size);
+  --text-lede--line-height: var(--type-lede-line-height);
+  --text-lede--font-weight: var(--type-lede-font-weight);
+  --text-lede--letter-spacing: var(--type-lede-tracking);
+  --text-card-title: var(--type-card-title-font-size);
+  --text-card-title--line-height: var(--type-card-title-line-height);
+  --text-card-title--font-weight: var(--type-card-title-font-weight);
+  --text-card-title--letter-spacing: var(--type-card-title-tracking);
+  --text-table-header: var(--type-table-header-font-size);
+  --text-table-header--line-height: var(--type-table-header-line-height);
+  --text-table-header--font-weight: var(--type-table-header-font-weight);
+  --text-table-header--letter-spacing: var(--type-table-header-tracking);
+  --text-label: var(--type-label-font-size);
+  --text-label--line-height: var(--type-label-line-height);
+  --text-label--font-weight: var(--type-label-font-weight);
+  --text-label--letter-spacing: var(--type-label-tracking);
+  --text-body: var(--type-body-font-size);
+  --text-body--line-height: var(--type-body-line-height);
+  --text-body--font-weight: var(--type-body-font-weight);
+  --text-body--letter-spacing: var(--type-body-tracking);
+  --text-secondary: var(--type-secondary-font-size);
+  --text-secondary--line-height: var(--type-secondary-line-height);
+  --text-secondary--font-weight: var(--type-secondary-font-weight);
+  --text-secondary--letter-spacing: var(--type-secondary-tracking);
+  --text-caption: var(--type-caption-font-size);
+  --text-caption--line-height: var(--type-caption-line-height);
+  --text-caption--font-weight: var(--type-caption-font-weight);
+  --text-caption--letter-spacing: var(--type-caption-tracking);
+  --text-number: var(--type-number-font-size);
+  --text-number--line-height: var(--type-number-line-height);
+  --text-number--font-weight: var(--type-number-font-weight);
+  --text-number--letter-spacing: var(--type-number-tracking);
+  --text-stat: var(--type-stat-font-size);
+  --text-stat--line-height: var(--type-stat-line-height);
+  --text-stat--font-weight: var(--type-stat-font-weight);
+  --text-stat--letter-spacing: var(--type-stat-tracking);
+  --text-code: var(--type-code-font-size);
+  --text-code--line-height: var(--type-code-line-height);
+  --text-code--font-weight: var(--type-code-font-weight);
+  --text-code--letter-spacing: var(--type-code-tracking);
+  --text-code-caption: var(--type-code-caption-font-size);
+  --text-code-caption--line-height: var(--type-code-caption-line-height);
+  --text-code-caption--font-weight: var(--type-code-caption-font-weight);
+  --text-code-caption--letter-spacing: var(--type-code-caption-tracking);
+  --text-eyebrow: var(--type-eyebrow-font-size);
+  --text-eyebrow--line-height: var(--type-eyebrow-line-height);
+  --text-eyebrow--font-weight: var(--type-eyebrow-font-weight);
+  --text-eyebrow--letter-spacing: var(--type-eyebrow-tracking);
+  --text-micro: var(--type-micro-font-size);
+  --text-micro--line-height: var(--type-micro-line-height);
+  --text-micro--font-weight: var(--type-micro-font-weight);
+  --text-micro--letter-spacing: var(--type-micro-tracking);
+
+  /*
+   * Spacing on the Mono space tokens, so p-4 is var(--space-4) and studio reads it as a token. Steps
+   * that are not tokens (7, 9, 11 ...) keep Tailwind's 4 px multiplier, so the grid is unchanged.
+   */
+  --spacing-0: var(--space-0);
+  --spacing-px: var(--space-px);
+  --spacing-1: var(--space-1);
+  --spacing-2: var(--space-2);
+  --spacing-3: var(--space-3);
+  --spacing-4: var(--space-4);
+  --spacing-5: var(--space-5);
+  --spacing-6: var(--space-6);
+  --spacing-8: var(--space-8);
+  --spacing-10: var(--space-10);
+  --spacing-12: var(--space-12);
+  --spacing-16: var(--space-16);
+
+  --radius-*: initial;
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-full: 9999px;
+
+  --shadow-*: initial;
+  --shadow-popover: var(--shadow-popover);
+  --shadow-dialog: var(--shadow-dialog);
+  /* The lift every card, button and tile shares: 1 px shadow in light, 1 px top light in dark. */
+  --shadow-lift: var(--lift);
+
+  --ease-*: initial;
+  --ease-standard: var(--ease-standard);
+  --ease-enter: var(--ease-enter);
+  --ease-exit: var(--ease-exit);
+
+  --animate-*: initial;
+  --animate-fade-in: fade-in var(--duration-base) var(--ease);
+  --animate-fade-out: fade-out var(--duration-fast) var(--ease);
+  --animate-pop-in: pop-in var(--duration-base) var(--ease);
+  --animate-pop-out: pop-out var(--duration-fast) var(--ease);
+  --animate-drawer-in: drawer-in var(--duration-slow) var(--ease);
+  --animate-drawer-out: drawer-out var(--duration-base) var(--ease);
+  --animate-sheet-in: sheet-in var(--duration-slow) var(--ease);
+  --animate-sheet-out: sheet-out var(--duration-base) var(--ease);
+  --animate-shimmer: shimmer 1.6s linear infinite;
+  --animate-pulse-dot: pulse-dot 1.8s var(--ease) infinite;
+  --animate-spin: spin 0.7s linear infinite;
+  --animate-selection-rise: selection-rise var(--duration-base) var(--ease-enter);
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+}
+@keyframes fade-out {
+  to { opacity: 0; }
+}
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(-2px) scale(0.985); }
+}
+@keyframes pop-out {
+  to { opacity: 0; transform: scale(0.985); }
+}
+@keyframes drawer-in {
+  from { transform: translateX(16px); opacity: 0; }
+}
+@keyframes drawer-out {
+  to { transform: translateX(16px); opacity: 0; }
+}
+@keyframes sheet-in {
+  from { transform: translateY(16px); opacity: 0; }
+}
+@keyframes sheet-out {
+  to { transform: translateY(16px); opacity: 0; }
+}
+/* Rows open and close through a grid track, so the height needs no measuring. */
+@keyframes row-in {
+  from { opacity: 0; grid-template-rows: 0fr; }
+}
+@keyframes row-out {
+  to { opacity: 0; grid-template-rows: 0fr; }
+}
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+@keyframes pulse-dot {
+  50% { opacity: 0.4; }
+}
+/* The Working now glyph: a ring that breathes out from the pink disc. */
+@keyframes state-ring {
+  from { opacity: 0.55; transform: scale(1); }
+  to { opacity: 0; transform: scale(1.6); }
+}
+.state-ring {
+  /* With reduced motion the ring stays still at this strength. */
+  opacity: 0.35;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: state-ring 1.8s var(--ease-out) infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+:root {
+  /* The lift every card, button and tile shares: a 1 px shadow in light, a 1 px top light in dark. */
+  --lift: var(--shadow-card), inset 0 1px 0 var(--highlight-card);
+}
+
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: var(--line-default);
+  }
+
+  html {
+    background: var(--surface-page);
+    line-height: var(--type-body-line-height);
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    min-height: 100dvh;
+    /* Page and card differ in Mono: the page is one step off the white (or black) cards. */
+    background: var(--surface-page);
+    color: var(--text-primary);
+    font-family: var(--font-family-sans);
+    font-size: var(--type-body-font-size);
+    line-height: var(--type-body-line-height);
+    letter-spacing: var(--type-body-tracking);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-weight: 600;
+  }
+
+  button,
+  [role='button'] {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+
+  /* One focus ring for the whole product, shown for keyboard users only. The one blue. */
+  :focus-visible {
+    outline: var(--border-width-focus) solid var(--focus-ring);
+    outline-offset: var(--focus-offset);
+  }
+
+  /* On a field the ring sits on the border, so a focused field is not wider than its neighbours. */
+  input:focus-visible,
+  textarea:focus-visible,
+  [role='combobox']:focus-visible {
+    outline-offset: -1px;
+  }
+
+  /* After a click, only fields keep a ring. See lib/input-modality.ts. */
+  html[data-input='pointer'] :focus-visible:not(input, textarea, select) {
+    outline: none;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--focus-ring) 22%, transparent);
+  }
+
+  /* Thin, quiet scrollbars. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
+  }
+
+  /*
+   * A bare grid gets a shrinkable track. The default auto track grows to fit nowrap content,
+   * which is how a truncated line pushes a phone layout wider than the screen.
+   * Utilities such as grid-cols-2 sit in a later layer and still win.
+   */
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* lucide draws at 2; the product draws at 1.5 everywhere. */
+  .lucide {
+    stroke-width: 1.5;
+    flex-shrink: 0;
+  }
+}
+
+@layer components {
+  /*
+   * An inline text link. Mono has no hue for links: a link is ink with a quiet underline that
+   * darkens on hover. Screens that wrote `text-blue` on a link get the same, so a link never relies
+   * on colour alone now that --blue is ink.
+   */
+  .link,
+  a.text-blue,
+  button.text-blue {
+    color: var(--accent-text);
+    text-decoration-line: underline;
+    text-decoration-color: var(--line-control);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 4px;
+    transition: text-decoration-color var(--duration-fast) var(--ease-standard);
+  }
+  .link:hover,
+  a.text-blue:hover,
+  button.text-blue:hover {
+    text-decoration-color: currentColor;
+  }
+
+  /* The mono type roles take Geist Mono and tabular figures; the eyebrow is the one caps style. */
+  .text-number,
+  .text-code,
+  .text-code-caption,
+  .text-eyebrow {
+    font-family: var(--font-family-mono);
+    font-variant-numeric: tabular-nums;
+  }
+  .text-stat {
+    font-variant-numeric: tabular-nums;
+  }
+  .text-eyebrow {
+    text-transform: uppercase;
+  }
+
+  /* The lift: on a card, a button, a tile. One token to switch off. */
+  .lift {
+    box-shadow: var(--lift);
+  }
+
+  /* Skeletons shimmer with a hairline-coloured band, not a grey pulse. */
+  .skeleton {
+    border-radius: var(--radius-md);
+    background: linear-gradient(90deg, var(--fill-2) 25%, var(--fill-3) 37%, var(--fill-2) 63%);
+    background-size: 400% 100%;
+    animation: var(--animate-shimmer);
+  }
+
+  .row-motion {
+    display: grid;
+    grid-template-rows: 1fr;
+  }
+  .row-motion > * {
+    min-height: 0;
+    overflow: hidden;
+  }
+  .row-motion[data-motion='in'] {
+    animation: row-in var(--duration-slow) var(--ease);
+  }
+  .row-motion[data-motion='out'] {
+    animation: row-out var(--duration-base) var(--ease) forwards;
+    pointer-events: none;
+  }
+
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@utility mono {
+  font-family: var(--font-mono);
+  font-size: 0.93em;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* For rows and tabs inside a clipped container, where an outer ring would be cut off. */
+@utility focus-inset {
+  &:focus-visible {
+    outline-offset: -2px;
+  }
+}
+
+@utility safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/*
+ * Step-up can open over a confirm dialog. Only one dialog is ever visible, so the one
+ * underneath steps aside until re-auth finishes, and then the request retries.
+ */
+html[data-step-up] [role='dialog']:not([data-step-up-dialog]),
+html[data-step-up] [data-dialog-overlay]:not([data-step-up-dialog]) {
+  visibility: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* The quiet stage a picture sits on while it loads, or when the computer cannot send one. */
+.picture-stage {
+  background-color: var(--background-subtle);
+  background-image: radial-gradient(circle at 1px 1px, var(--board-dot) 1px, transparent 0);
+  background-size: 12px 12px;
+}
+/* Home's sections arrive one after another, once, on first paint. */
+@keyframes home-rise {
+  from { opacity: 0; transform: translateY(6px); }
+}
+.home-rise {
+  animation: home-rise 520ms var(--ease-out) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-rise { animation: none; }
+}

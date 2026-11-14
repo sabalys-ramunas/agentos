@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Fixture login in a web component</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main>
+    <h1>Log in</h1>
+    <login-box></login-box>
+    <label for="after">After the component</label>
+    <input id="after" name="after" type="text">
+  </main>
+  <script>
+    customElements.define('login-box', class extends HTMLElement {
+      constructor() {
+        super();
+        this.attachShadow({mode: 'open'}).innerHTML = `
+          <style>input { font-size: 15px; padding: 4px; width: 320px; display: block; margin: 8px 0; }</style>
+          <form id="login" action="/login/submit?next=/login-done.html" method="post">
+            <label>Username <input name="username" type="text" autocomplete="username"></label>
+            <label>Password <input name="password" type="password" autocomplete="current-password"></label>
+            <button type="submit">Log in</button>
+          </form>`;
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Fixture login</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>input { font-size: 15px; padding: 4px; width: 320px; }</style>
+</head>
+<body>
+  <header>
+    <h1>Log in</h1>
+    <form id="search" role="search" action="/login.html" method="get">
+      <label for="q">Search</label>
+      <input id="q" name="q" type="search">
+    </form>
+  </header>
+  <main>
+    <form id="login" action="/login/submit?next=/login-done.html" method="post">
+      <input type="hidden" name="csrf" value="fixture-token">
+      <label for="username">Email or username</label>
+      <input id="username" name="username" type="text" autocomplete="username">
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password">
+      <button type="submit">Log in</button>
+    </form>
+  </main>
+  <script>
+    // ?next=/login-otp.html sends the form on to a code step instead of the signed-in page.
+    const next = new URLSearchParams(location.search).get('next');
+    if (next && next.startsWith('/')) {
+      document.getElementById('login').action = '/login/submit?next=' + encodeURIComponent(next);
+    }
+  </script>
+</body>
+</html>

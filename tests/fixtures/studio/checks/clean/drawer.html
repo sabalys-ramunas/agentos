@@ -1,0 +1,10 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="/base.css"><title>Drawer</title><style>
+.drawer { position: fixed; top: 0; right: 0; width: 280px; height: 100vh; background: #fff; transform: translateX(100%); box-shadow: 0 0 8px #0003; }
+.drawer a { display: block; padding: 12px 16px; }
+.wrap { position: relative; overflow-x: hidden; }
+.panel { position: absolute; top: 0; left: 100%; width: 260px; background: #f6f6f6; padding: 12px; }
+</style></head>
+<body><header><h1>Shop</h1><button aria-expanded="false">Menu</button></header>
+<nav class="drawer" data-component="Drawer"><a href="/a">Account</a><a href="/o">Orders</a><a href="/h">Help</a></nav>
+<div class="wrap"><p>Filters live in a side panel that slides in from the right.</p>
+<div class="panel" data-component="FilterPanel"><p>Price</p><button>Apply</button></div></div></body></html>

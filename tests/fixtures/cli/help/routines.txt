@@ -1,0 +1,30 @@
+
+ Usage: agentos routines [OPTIONS] COMMAND [ARGS]...
+
+ Work that runs by itself: runs, flows, schedules, workflows, engagement and
+ brains.
+
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --help          Show this message and exit.                                  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Commands ───────────────────────────────────────────────────────────────────╮
+│ runs       Runs: list, show, cancel, decide.                                 │
+│ flows      Saved flows: list, show, save, run, remove; and flows as files in │
+│            git: pull, diff, push, validate, test.                            │
+│ schedules  Cron schedules and webhook triggers.                              │
+│ watches    Page watches that start a flow when a page changes.               │
+│ workflows  Workflows: a trigger, then steps. Apply, run, retry, see what     │
+│            happened.                                                         │
+│ engage     Engagement programs: posting, likes, comments and follows as a    │
+│            system.                                                           │
+│ plan       Planning: what every lane and program needs today. Read-only.     │
+│ connector  Connectors: sites as typed operations, compiled into flows.       │
+│ site-api   Site APIs: a site you can use, as a typed API of your own.        │
+│ brains     Brains: run your agent on the node with your own subscription.    │
+│ pilot      The pilot: a cheap worker that drives one lane toward one goal    │
+│            (lane_do).                                                        │
+│ plugins    Plugins: the workers this node can run, and who does their jobs.  │
+│ agenda     The agenda: planned actions per workspace, their approval and     │
+│            proof.                                                            │
+╰──────────────────────────────────────────────────────────────────────────────╯
+

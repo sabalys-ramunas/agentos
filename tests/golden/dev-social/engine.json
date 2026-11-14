@@ -1,0 +1,273 @@
+{
+ "format": 1,
+ "calls": [
+  {
+   "call": "navigate",
+   "lane": "biz-a/social",
+   "args": [
+    "https://social.example/"
+   ],
+   "kwargs": {},
+   "result": {
+    "url": "https://social.example/",
+    "title": "Home",
+    "status": 200,
+    "signal": "ok",
+    "signal_detail": null,
+    "account": null
+   }
+  },
+  {
+   "call": "snapshot",
+   "lane": "biz-a/social",
+   "args": [],
+   "kwargs": {},
+   "result": {
+    "url": "https://social.example/",
+    "title": "Home",
+    "text": "- main\n  - heading \"Feed\"\n  - button \"New post\" [ref=e1]",
+    "ref_count": 1,
+    "truncated": false,
+    "signal": "ok",
+    "signal_detail": null,
+    "account": null,
+    "notices": [],
+    "frozen": false
+   }
+  },
+  {
+   "call": "act",
+   "lane": "biz-a/social",
+   "args": [
+    "e1",
+    "click",
+    null
+   ],
+   "kwargs": {},
+   "result": {
+    "ok": true,
+    "action": "click",
+    "ref": "e1",
+    "url": "https://social.example/compose",
+    "signal": "ok",
+    "changed": true,
+    "detail": null,
+    "signal_detail": null,
+    "account": null
+   }
+  },
+  {
+   "call": "snapshot",
+   "lane": "biz-a/social",
+   "args": [],
+   "kwargs": {},
+   "result": {
+    "url": "https://social.example/compose",
+    "title": "Create post",
+    "text": "- dialog \"Create new post\"\n  - button \"Select from computer\" [ref=e1]\n  - textbox \"Write a caption...\" [ref=e2]\n  - button \"Share\" [ref=e3]",
+    "ref_count": 3,
+    "truncated": false,
+    "signal": "ok",
+    "signal_detail": null,
+    "account": null,
+    "notices": [],
+    "frozen": false
+   }
+  },
+  {
+   "call": "navigate",
+   "lane": "biz-a/social",
+   "args": [
+    "https://social.example/p/1"
+   ],
+   "kwargs": {},
+   "result": {
+    "url": "https://social.example/p/1",
+    "title": "Post",
+    "status": 200,
+    "signal": "ok",
+    "signal_detail": null,
+    "account": null
+   }
+  },
+  {
+   "call": "snapshot",
+   "lane": "biz-a/social",
+   "args": [],
+   "kwargs": {},
+   "result": {
+    "url": "https://social.example/p/1",
+    "title": "Post",
+    "text": "- main\n  - article \"Post by Ieva\"\n    - text: \"Lovely day at the lake\"\n    - button \"Like\" [ref=e1] pressed=false\n    - article \"Comment by Beata\"\n      - text: \"So pretty\"\n      - button \"Like\" [ref=e2] pressed=false\n    - article \"Comment by Ieva\"\n      - text: \"dekui\"\n      - button \"Like\" [ref=e3] pressed=false",
+    "ref_count": 3,
+    "truncated": false,
+    "signal": "ok",
+    "signal_detail": null,
+    "account": null,
+    "notices": [],
+    "frozen": false
+   }
+  },
+  {
+   "call": "act",
+   "lane": "biz-a/social",
+   "args": [
+    "e1",
+    "click",
+    null
+   ],
+   "kwargs": {},
+   "result": {
+    "ok": true,
+    "action": "click",
+    "ref": "e1",
+    "url": "https://social.example/p/1",
+    "signal": "ok",
+    "changed": true,
+    "detail": null,
+    "signal_detail": null,
+    "account": null
+   }
+  },
+  {
+   "call": "snapshot",
+   "lane": "biz-a/social",
+   "args": [],
+   "kwargs": {},
+   "result": {
+    "url": "https://social.example/p/1",
+    "title": "Post",
+    "text": "- main\n  - article \"Post by Ieva\"\n    - text: \"Lovely day at the lake\"\n    - button \"Like\" [ref=e1] pressed=true\n    - article \"Comment by Beata\"\n      - text: \"So pretty\"\n      - button \"Like\" [ref=e2] pressed=false\n    - article \"Comment by Ieva\"\n      - text: \"dekui\"\n      - button \"Like\" [ref=e3] pressed=false",
+    "ref_count": 3,
+    "truncated": false,
+    "signal": "ok",
+    "signal_detail": null,
+    "account": null,
+    "notices": [],
+    "frozen": false
+   }
+  },
+  {
+   "call": "act",
+   "lane": "biz-a/social",
+   "args": [
+    "e99",
+    "click",
+    null
+   ],
+   "kwargs": {},
+   "error": {
+    "type": "RefNotFound",
+    "module": "agentos.core.errors",
+    "message": "ref e99 is gone; take a new snapshot",
+    "code": "ref_not_found"
+   }
+  },
+  {
+   "call": "navigate",
+   "lane": "biz-a/social",
+   "args": [
+    "https://social.example/compose"
+   ],
+   "kwargs": {},
+   "result": {
+    "url": "https://social.example/compose",
+    "title": "Create post",
+    "status": 200,
+    "signal": "ok",
+    "signal_detail": null,
+    "account": null
+   }
+  },
+  {
+   "call": "snapshot",
+   "lane": "biz-a/social",
+   "args": [],
+   "kwargs": {},
+   "result": {
+    "url": "https://social.example/compose",
+    "title": "Create post",
+    "text": "- dialog \"Create new post\"\n  - button \"Select from computer\" [ref=e1]\n  - textbox \"Write a caption...\" [ref=e2]\n  - button \"Share\" [ref=e3]",
+    "ref_count": 3,
+    "truncated": false,
+    "signal": "ok",
+    "signal_detail": null,
+    "account": null,
+    "notices": [],
+    "frozen": false
+   }
+  },
+  {
+   "call": "act",
+   "lane": "biz-a/social",
+   "args": [
+    "e2",
+    "type",
+    "Fresh rye"
+   ],
+   "kwargs": {},
+   "result": {
+    "ok": true,
+    "action": "type",
+    "ref": "e2",
+    "url": "https://social.example/compose",
+    "signal": "ok",
+    "changed": true,
+    "detail": null,
+    "signal_detail": null,
+    "account": null
+   }
+  },
+  {
+   "call": "snapshot",
+   "lane": "biz-a/social",
+   "args": [],
+   "kwargs": {},
+   "result": {
+    "url": "https://social.example/compose",
+    "title": "Create post",
+    "text": "- dialog \"Create new post\"\n  - button \"Select from computer\" [ref=e1]\n  - textbox \"Write a caption...\" [ref=e2] value=\"Fresh rye\"\n  - button \"Share\" [ref=e3]",
+    "ref_count": 3,
+    "truncated": false,
+    "signal": "ok",
+    "signal_detail": null,
+    "account": null,
+    "notices": [],
+    "frozen": false
+   }
+  },
+  {
+   "call": "screenshot",
+   "lane": "biz-a/social",
+   "args": [],
+   "kwargs": {},
+   "result": {
+    "bytes_b64": "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gEBAAwBAIKABACAQ0AAAEAhoAAAIBDQAAAQCGgAAAgENAACBgAYAgEBAAwBAIKABACAQ0AAAEAhoAAAIBDQAAAQCGgAAAgENAACBgAYAgEBAAwBAIKABACAQ0AAAEAhoAAAIBDQAAAQCGgAAAgENAACBgAYAgEBAAwBAIKABACAQ0AAAEAhoAAAIBDQAAAQCGgAAAgENAACBgAYAgEBAAwBAIKABACAQ0AAAEAhoAAAIBDQAAAQCGgAAAgENAACBgAYAgEBAAwBAIKABACAQ0AAAEAhoAAAIBDQAAAQCGgAAAgENAACBgAYAgEBAAwBAIKABACAQ0AAAEAhoAAAIBDQAAAQCGgAAAgENAACBgAYAgEBAAwBAIKABACAQ0AAAEAhoAAAIBDQAAAQCGgAAAgENAACBgAYAgEBAAwBAIKABACAQ0AAAEAhoAAAIBDQAAAQCGgAAAgENAACBgAYAgEBAAwBAIKABACAQ0AAAEAhoAAAIBDQAAAQCGgAAAgENAACBgAYAgEBAAwBAIKABACAQ0AAAEAhoAAAIBDQAAAQCGgAAAgENAACBgAYAgEBAAwBAIKABACAQ0AAAEAhoAAAIBDQAAAQCGgAAAgENAACBgAYAgEBAAwBAIKABACAQ0AAAEAhoAAAIBDQAAAQCGgAAAgENAACBgAYAgEBAAwBAIKABACAQ0AAAEAhoAAAIBDQAAAQCGgAAAgENAACBgAYAgEBAAwBAIKABACAQ0AAAEAhoAAAIBDQAAAQCGgAAAgENAACBgAYAgEBAAwBAIKABACAQ0AAAEAhoAAAIBDQAAAQCGgAAAgENAACBgAYAgEBAAwBAIKABACAQ0AAAEAhoAAAIBDQAAAQCGgAAAgENAACBgAYAgEBAAwBAIKABACAQ0AAAEAhoAAAIBDQAAAQCGgAAAgENAACBgAYAgEBAAwBAIKABACAQ0AAAEAhoAAAIBDQAAAQCGgAAAgENAACBgAYAgEBAAwBAIKABACAQ0AAAEAhoAAAIBDQAAAQCGgAAAgENAACBgAYAgEBAAwBAIKABACAQ0AAAEAhoAAAIBDQAAAQCGgAAAgENAACBgAYAgEBAAwBAIKABACAQ0AAAEAhoAAAIBDQAAAQCGgAAAgENAACBgAYAgEBAAwBAIKABACAQ0AAAEAhoAAAIBDQAAAQCGgAAAgENAACBgAYAgEBAAwBAIKABACAQ0AAAEAhoAAAIBDQAAAQCGgAAAgENAACBgAYAgEBAAwBAIKABACAQ0AAAEAhoAAAIBDQAAAQCGgAAAgENAACBgAYAgEBAAwBAIKABACAQ0AAAEAhoAAAIBDQAAAQCGgAAAgENAACBgAYAgEBAAwBAIKABACAQ0AAAEAhoAAAIBDQAAAQCGgAAAgENAACBgAYAgEBAAwBAIKABACAQ0AAAEAhoAAAIBDQAAAQCGgAAAgENAACBgAYAgEBAAwBAIKABACAQ0AAAEAhoAAAIBDQAAAQCGgAAAgENAACBgAYAgEBAAwBAIKABACAQ0AAAEAhoAAAIBDQAAAQCGgAAAgENAACBgAYAgEBAAwBAIKABACAQ0AAAEAhoAAAIBDQAAAQCGgAAAgENAACBgAYAgEBAAwBAIKABACAQ0AAAEAhoAAAIBDQAAAQCGgAAAgENAACBgAYAgEBAAwBAIKABACAQ0AAAEAhoAAAIBDQAAAQCGgAAAgENAACBgAYAgEBAAwBAIKABACAQ0AAAEAhoAAAIBDQAAAQCGgAAAgENAACBgAYAgEBAAwBAIKABACAQ0AAAEAhoAAAIBDQAAAQCGgAAAgENAACBgAYAgEBAAwBAIKABACAQ0AAAEPwPYmymm92hhgIAAAAASUVORK5CYII=",
+    "sha256": "f47eca96468eb0fe2527d6dcefb022ed4a2bd54aa4ff0288d997bc5428add0fb"
+   }
+  },
+  {
+   "call": "signal",
+   "lane": "biz-a/social",
+   "args": [],
+   "kwargs": {},
+   "result": "ok"
+  },
+  {
+   "call": "navigate",
+   "lane": "biz-a/social",
+   "args": [
+    "https://social.example/challenge"
+   ],
+   "kwargs": {},
+   "result": {
+    "url": "https://social.example/challenge",
+    "title": "Confirm you are human",
+    "status": 200,
+    "signal": "captcha",
+    "signal_detail": null,
+    "account": null
+   }
+  }
+ ]
+}

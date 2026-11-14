@@ -1,0 +1,19 @@
+# Weekly update pull requests for the Python dependencies (uv.lock) and the pinned GitHub Actions.
+# Actions are pinned by commit SHA in .github/workflows; Dependabot moves the SHA and its comment.
+version: 2
+updates:
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      python-minor:
+        update-types: [minor, patch]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]

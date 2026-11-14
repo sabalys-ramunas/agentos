@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Fixture long page</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body data-wheels="0" data-clicked="no">
+  <header>
+    <h1>A long page</h1>
+    <nav aria-label="Pages"><a href="/index.html">Home</a></nav>
+  </header>
+  <main>
+    <p>The target sits far below the fold. Reaching it takes a lot of wheel scrolling.</p>
+    <div class="spacer" aria-hidden="true"></div>
+    <button type="button" id="far">Far target</button>
+    <p id="far-status">Not clicked yet</p>
+    <div style="height: 400px"></div>
+  </main>
+  <script>
+    let wheels = 0;
+    window.addEventListener('wheel', () => {
+      wheels += 1;
+      document.body.dataset.wheels = String(wheels);
+    }, { passive: true });
+    document.getElementById('far').addEventListener('click', (event) => {
+      document.body.dataset.clicked = event.isTrusted ? 'trusted' : 'untrusted';
+      document.getElementById('far-status').textContent = 'Clicked';
+    });
+  </script>
+</body>
+</html>

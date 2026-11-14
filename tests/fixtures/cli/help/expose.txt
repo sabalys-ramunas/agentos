@@ -1,0 +1,34 @@
+
+ Usage: agentos expose [OPTIONS] {port}
+
+ Open your dev server (localhost:PORT here) in one browser lane, so you can try
+ your app with the lane's real, logged-in accounts: "Sign in with LinkedIn" and
+ the redirect back, embeds, cookies.
+
+ The lane opens it at https://NAME.expose.agentos.invalid, and agents driving
+ the lane see it in lanes_list.
+
+ Only that lane, only while this command runs: Ctrl-C, --for or a dropped SSH
+ session ends it.
+
+ No port opens anywhere and the lane's proxy never carries it. WebSockets (hot
+ reload) do not pass: reload.
+
+╭─ Arguments ──────────────────────────────────────────────────────────────────╮
+│ *    port      <int>  The port your dev server listens on here, for example  │
+│                       5173.                                                  │
+│                       [required]                                             │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ *  --lane        <str>  The browser lane that may open it, for example       │
+│                         personal/linkedin.                                   │
+│                         [required]                                           │
+│    --node        <str>  Connection name (default: the node that has the      │
+│                         lane).                                               │
+│    --name        <str>  The address's name:                                  │
+│                         https://NAME.expose.agentos.invalid (default: dev).  │
+│    --for         <str>  How long at most: 30m, 2h, 1d (default 2h, at most   │
+│                         12h).                                                │
+│    --help               Show this message and exit.                          │
+╰──────────────────────────────────────────────────────────────────────────────╯
+

@@ -1,0 +1,905 @@
+{
+  "connector": "reddit",
+  "version": "0.3.0",
+  "site": "reddit",
+  "domain": "reddit.com",
+  "title": "Reddit",
+  "account_languages": [
+    "en"
+  ],
+  "operations": {
+    "post_text": {
+      "title": "Post a text post to a subreddit",
+      "description": "Opens the subreddit's text composer as the bound account, types the title and the body, presses Post, then opens the new post from the subreddit's New list and reads its permalink. The commit counts as done only when Reddit leaves the composer: navigating away while the publish is still pending opens a leave-page dialog that freezes it (seen 2026-11-04). The post page must name the account as its author (the post element's author-id is the surface's user id), so a post by someone else with the same title never proves it.",
+      "verified": "2026-11-04 reddit.com canary: a post in r/test on a test account, made through reddit_post_text (0.1.0, approved), read back on its permalink; the 0.1.1 readback fix was not run again",
+      "effect": "commit",
+      "input": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "subreddit",
+          "title",
+          "body"
+        ],
+        "properties": {
+          "subreddit": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_]{2,21}$",
+            "show": true,
+            "description": "the subreddit name without r/"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300,
+            "show": true
+          },
+          "body": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40000,
+            "show": true
+          }
+        }
+      },
+      "output": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "post_url"
+        ],
+        "properties": {
+          "post_url": {
+            "type": "string",
+            "format": "uri",
+            "x-agentos-host": "reddit.com",
+            "pattern": "^https://www\\.reddit\\.com/r/[A-Za-z0-9_]+/comments/[a-z0-9]+/"
+          }
+        }
+      },
+      "acting_as": {
+        "kind": "account"
+      },
+      "pace": {
+        "min_gap_minutes": 45,
+        "per_day": 1,
+        "active_hours": true
+      },
+      "signals": {
+        "hold": [
+          "captcha",
+          "checkpoint",
+          "logged_out",
+          "blocked",
+          "rate_limited",
+          "wrong_account"
+        ]
+      },
+      "commit": {
+        "step": "post",
+        "preflight": [
+          {
+            "kind": "value_equals",
+            "locator": {
+              "role": "textbox",
+              "names": {
+                "en": "Title"
+              },
+              "within": {
+                "role": "group",
+                "nth": 0,
+                "own": true,
+                "within": {
+                  "role": "main"
+                }
+              },
+              "own": true
+            },
+            "param": "title"
+          },
+          {
+            "kind": "acting_as"
+          }
+        ],
+        "request": {
+          "method": "POST",
+          "url": "^https://www\\.reddit\\.com/svc/shreddit/graphql$",
+          "text": "json:variables.input.title"
+        }
+      },
+      "readback": {
+        "live": {
+          "save_as": "post",
+          "outputs": {
+            "post_url": "post.url"
+          }
+        },
+        "public": "cookieless",
+        "public_check": {
+          "url": "post.url",
+          "text": "param:title"
+        }
+      },
+      "steps": [
+        {
+          "type": "navigate",
+          "url": "https://www.reddit.com/r/${subreddit}/submit/?type=TEXT"
+        },
+        {
+          "type": "assert_identity",
+          "label": "acting as"
+        },
+        {
+          "type": "wait_for",
+          "locator": {
+            "role": "textbox",
+            "names": {
+              "en": "Title"
+            },
+            "within": {
+              "role": "group",
+              "nth": 0,
+              "own": true,
+              "within": {
+                "role": "main"
+              }
+            },
+            "own": true
+          }
+        },
+        {
+          "type": "type",
+          "locator": {
+            "role": "textbox",
+            "names": {
+              "en": "Title"
+            },
+            "within": {
+              "role": "group",
+              "nth": 0,
+              "own": true,
+              "within": {
+                "role": "main"
+              }
+            },
+            "own": true
+          },
+          "param": "title",
+          "publishes": false,
+          "readback": {
+            "condition": {
+              "kind": "value",
+              "equals": "${title}"
+            }
+          }
+        },
+        {
+          "type": "click",
+          "locator": {
+            "role": "textbox",
+            "names": {
+              "en": "Post body text field"
+            },
+            "within": {
+              "role": "group",
+              "nth": 1,
+              "own": true,
+              "within": {
+                "role": "main"
+              }
+            },
+            "own": true
+          },
+          "publishes": false
+        },
+        {
+          "type": "type",
+          "locator": {
+            "role": "textbox",
+            "names": {
+              "en": "Post body text field"
+            },
+            "within": {
+              "role": "group",
+              "nth": 1,
+              "own": true,
+              "within": {
+                "role": "main"
+              }
+            },
+            "own": true
+          },
+          "param": "body",
+          "publishes": false
+        },
+        {
+          "type": "click",
+          "label": "post",
+          "writes": true,
+          "locator": {
+            "role": "button",
+            "names": {
+              "en": "Post"
+            },
+            "match": "exact",
+            "within": {
+              "role": "main"
+            }
+          },
+          "readback": {
+            "condition": {
+              "kind": "url",
+              "matches": "^https://www\\.reddit\\.com/(?!.*/submit)"
+            },
+            "timeout_ms": 45000
+          }
+        },
+        {
+          "type": "navigate",
+          "url": "https://www.reddit.com/r/${subreddit}/new/"
+        },
+        {
+          "type": "click",
+          "publishes": false,
+          "locator": {
+            "role": "link",
+            "name": "${title}",
+            "match": "exact",
+            "nth": 0,
+            "within": {
+              "role": "main"
+            }
+          }
+        },
+        {
+          "type": "readback",
+          "condition": {
+            "kind": "url",
+            "matches": "^https://www\\.reddit\\.com/r/[A-Za-z0-9_]+/comments/[a-z0-9]+/"
+          },
+          "save_as": "post",
+          "timeout_ms": 20000
+        },
+        {
+          "type": "readback",
+          "locator": {
+            "role": "heading",
+            "name": "${title}",
+            "match": "contains",
+            "nth": 0,
+            "within": {
+              "role": "main"
+            }
+          },
+          "condition": {
+            "kind": "exists"
+          }
+        },
+        {
+          "type": "readback",
+          "locator": {
+            "css": "shreddit-post",
+            "attr": {
+              "name": "author-id",
+              "equals": "${acts_as_id}"
+            },
+            "within": {
+              "role": "main"
+            }
+          },
+          "condition": {
+            "kind": "exists"
+          }
+        }
+      ]
+    },
+    "comment": {
+      "title": "Comment on a post",
+      "description": "Not verified yet: written from the notes of the 2026-11-04 canary, not recorded, so the engagement engine holds it until a canary on a throwaway account passes (docs/design/connectors.md 4.13). Notes the account's newest comment on the post first (its own comments page), then opens the post as the bound account, types the comment into the post's composer, presses Comment and waits for the composer to clear (Reddit runs an invisible reCAPTCHA before it sends, so the request lags the click). Proved on the account's own comments page, as the canary did (a 0-karma account's comment can be missing from the thread itself): the newest comment on that post is a new one (not the one noted before the run) and its text is exactly the text. Its permalink is the output.",
+      "effect": "commit",
+      "input": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "subreddit",
+          "post_id",
+          "text"
+        ],
+        "properties": {
+          "subreddit": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_]{2,21}$",
+            "show": true,
+            "description": "the subreddit name without r/"
+          },
+          "post_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9]{5,10}$",
+            "show": true,
+            "description": "the post's id, as in /comments/<id>/"
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 10000,
+            "show": true
+          }
+        }
+      },
+      "output": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "comment_url"
+        ],
+        "properties": {
+          "comment_url": {
+            "type": "string",
+            "format": "uri",
+            "x-agentos-host": "reddit.com",
+            "pattern": "^https://www\\.reddit\\.com/r/[A-Za-z0-9_]+/comments/[a-z0-9]+/comment/[a-z0-9]+/"
+          }
+        }
+      },
+      "acting_as": {
+        "kind": "account"
+      },
+      "pace": {
+        "min_gap_minutes": 30,
+        "per_day": 4,
+        "per_hour": 2,
+        "active_hours": true
+      },
+      "signals": {
+        "hold": [
+          "captcha",
+          "checkpoint",
+          "logged_out",
+          "blocked",
+          "rate_limited",
+          "wrong_account"
+        ]
+      },
+      "commit": {
+        "step": "comment",
+        "preflight": [
+          {
+            "kind": "value_equals",
+            "locator": {
+              "role": "textbox",
+              "nth": 0,
+              "within": {
+                "role": "form",
+                "nth": 0,
+                "within": {
+                  "role": "main"
+                }
+              }
+            },
+            "param": "text"
+          },
+          {
+            "kind": "acting_as"
+          }
+        ],
+        "request": {
+          "method": "POST",
+          "url": "^https://www\\.reddit\\.com/svc/shreddit/t3_[a-z0-9]+/create-comment$",
+          "text": "form:content"
+        }
+      },
+      "readback": {
+        "live": {
+          "save_as": "comment",
+          "outputs": {
+            "comment_url": "comment.url"
+          }
+        }
+      },
+      "steps": [
+        {
+          "type": "navigate",
+          "url": "https://www.reddit.com/user/me/comments/"
+        },
+        {
+          "type": "assert_identity",
+          "label": "acting as"
+        },
+        {
+          "type": "wait_for",
+          "locator": {
+            "role": "main"
+          }
+        },
+        {
+          "type": "readback",
+          "save_as": "before",
+          "timeout_ms": 5000,
+          "locator": {
+            "role": "link",
+            "attr": {
+              "name": "href",
+              "regex": "(?i)/r/${subreddit}/comments/${post_id}/comment/[a-z0-9]+/"
+            },
+            "nth": 0,
+            "within": {
+              "role": "main"
+            }
+          },
+          "condition": {
+            "kind": "count",
+            "at_least": 0
+          }
+        },
+        {
+          "type": "navigate",
+          "url": "https://www.reddit.com/r/${subreddit}/comments/${post_id}/"
+        },
+        {
+          "type": "wait_for",
+          "locator": {
+            "role": "textbox",
+            "nth": 0,
+            "within": {
+              "role": "form",
+              "nth": 0,
+              "within": {
+                "role": "main"
+              }
+            }
+          }
+        },
+        {
+          "type": "click",
+          "locator": {
+            "role": "textbox",
+            "nth": 0,
+            "within": {
+              "role": "form",
+              "nth": 0,
+              "within": {
+                "role": "main"
+              }
+            }
+          },
+          "publishes": false
+        },
+        {
+          "type": "type",
+          "locator": {
+            "role": "textbox",
+            "nth": 0,
+            "within": {
+              "role": "form",
+              "nth": 0,
+              "within": {
+                "role": "main"
+              }
+            }
+          },
+          "param": "text",
+          "publishes": false
+        },
+        {
+          "type": "click",
+          "label": "comment",
+          "writes": true,
+          "locator": {
+            "role": "button",
+            "names": {
+              "en": "Comment"
+            },
+            "match": "exact",
+            "within": {
+              "role": "form",
+              "nth": 0,
+              "within": {
+                "role": "main"
+              }
+            }
+          },
+          "readback": {
+            "locator": {
+              "role": "textbox",
+              "nth": 0,
+              "within": {
+                "role": "form",
+                "nth": 0,
+                "within": {
+                  "role": "main"
+                }
+              }
+            },
+            "condition": {
+              "kind": "value",
+              "not_equals": "${text}"
+            },
+            "timeout_ms": 45000
+          }
+        },
+        {
+          "type": "navigate",
+          "url": "https://www.reddit.com/user/me/comments/"
+        },
+        {
+          "type": "readback",
+          "timeout_ms": 20000,
+          "locator": {
+            "role": "link",
+            "attr": {
+              "name": "href",
+              "regex": "(?i)/r/${subreddit}/comments/${post_id}/comment/[a-z0-9]+/"
+            },
+            "nth": 0,
+            "within": {
+              "role": "main"
+            }
+          },
+          "condition": {
+            "kind": "attribute",
+            "name": "href",
+            "changed_from": "before",
+            "empty_before_ok": true
+          }
+        },
+        {
+          "type": "readback",
+          "timeout_ms": 5000,
+          "locator": {
+            "role": "link",
+            "attr": {
+              "name": "href",
+              "regex": "(?i)/r/${subreddit}/comments/${post_id}/comment/[a-z0-9]+/"
+            },
+            "nth": 0,
+            "within": {
+              "role": "main"
+            }
+          },
+          "condition": {
+            "kind": "text",
+            "equals": "${text}"
+          }
+        },
+        {
+          "type": "click",
+          "publishes": false,
+          "locator": {
+            "role": "link",
+            "attr": {
+              "name": "href",
+              "regex": "(?i)/r/${subreddit}/comments/${post_id}/comment/[a-z0-9]+/"
+            },
+            "nth": 0,
+            "within": {
+              "role": "main"
+            }
+          }
+        },
+        {
+          "type": "readback",
+          "save_as": "comment",
+          "timeout_ms": 20000,
+          "condition": {
+            "kind": "url",
+            "matches": "^https://www\\.reddit\\.com/r/[A-Za-z0-9_]+/comments/[a-z0-9]+/comment/[a-z0-9]+/"
+          }
+        }
+      ]
+    },
+    "join": {
+      "title": "Join a subreddit",
+      "description": "Not verified yet: written from the notes of the 2026-11-04 canary, not recorded, so the engagement engine holds it until a canary on a throwaway account passes (docs/design/connectors.md 4.13). Opens the subreddit as the bound account and presses Join. The preflight refuses when the subreddit already shows Joined, because pressing that button leaves. Proved as the canary did: after a reload the subreddit shows Joined.",
+      "effect": "commit",
+      "input": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "subreddit"
+        ],
+        "properties": {
+          "subreddit": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_]{2,21}$",
+            "show": true,
+            "description": "the subreddit name without r/"
+          }
+        }
+      },
+      "output": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "subreddit_url"
+        ],
+        "properties": {
+          "subreddit_url": {
+            "type": "string",
+            "format": "uri",
+            "x-agentos-host": "reddit.com",
+            "pattern": "^https://www\\.reddit\\.com/r/[A-Za-z0-9_]+/?$"
+          }
+        }
+      },
+      "acting_as": {
+        "kind": "account"
+      },
+      "pace": {
+        "min_gap_minutes": 60,
+        "per_day": 2,
+        "per_hour": 1,
+        "active_hours": true
+      },
+      "signals": {
+        "hold": [
+          "captcha",
+          "checkpoint",
+          "logged_out",
+          "blocked",
+          "rate_limited",
+          "wrong_account"
+        ]
+      },
+      "commit": {
+        "step": "join",
+        "preflight": [
+          {
+            "kind": "count",
+            "locator": {
+              "role": "button",
+              "names": {
+                "en": "Joined"
+              },
+              "match": "exact",
+              "nth": 0,
+              "within": {
+                "role": "main"
+              }
+            },
+            "equals": 0
+          },
+          {
+            "kind": "count",
+            "locator": {
+              "role": "button",
+              "names": {
+                "en": "Join"
+              },
+              "match": "exact",
+              "nth": 0,
+              "within": {
+                "role": "main"
+              }
+            },
+            "equals": 1
+          },
+          {
+            "kind": "acting_as"
+          }
+        ],
+        "request": {
+          "method": "POST",
+          "url": "^https://www\\.reddit\\.com/svc/shreddit/graphql$",
+          "op": "^UpdateSubredditSubscriptions$",
+          "match": {
+            "json:variables.input.inputs[].subscribeState": "^SUBSCRIBED$"
+          }
+        }
+      },
+      "readback": {
+        "live": {
+          "save_as": "community",
+          "outputs": {
+            "subreddit_url": "community.url"
+          }
+        }
+      },
+      "steps": [
+        {
+          "type": "navigate",
+          "url": "https://www.reddit.com/r/${subreddit}/"
+        },
+        {
+          "type": "assert_identity",
+          "label": "acting as"
+        },
+        {
+          "type": "wait_for",
+          "locator": {
+            "role": "main"
+          }
+        },
+        {
+          "type": "click",
+          "label": "join",
+          "writes": true,
+          "locator": {
+            "role": "button",
+            "names": {
+              "en": "Join"
+            },
+            "match": "exact",
+            "nth": 0,
+            "within": {
+              "role": "main"
+            }
+          },
+          "readback": {
+            "locator": {
+              "role": "button",
+              "names": {
+                "en": "Joined"
+              },
+              "match": "exact",
+              "nth": 0,
+              "within": {
+                "role": "main"
+              }
+            },
+            "condition": {
+              "kind": "exists"
+            },
+            "timeout_ms": 20000
+          }
+        },
+        {
+          "type": "navigate",
+          "url": "https://www.reddit.com/r/${subreddit}/"
+        },
+        {
+          "type": "readback",
+          "locator": {
+            "role": "button",
+            "names": {
+              "en": "Joined"
+            },
+            "match": "exact",
+            "nth": 0,
+            "within": {
+              "role": "main"
+            }
+          },
+          "condition": {
+            "kind": "exists"
+          },
+          "timeout_ms": 15000
+        },
+        {
+          "type": "readback",
+          "condition": {
+            "kind": "url",
+            "matches": "^https://www\\.reddit\\.com/r/[A-Za-z0-9_]+/?$"
+          },
+          "save_as": "community"
+        }
+      ]
+    },
+    "browse_subreddit": {
+      "title": "List a subreddit's newest posts",
+      "description": "Not verified yet: written from the notes of the 2026-11-04 canary, not recorded, so it is a read the engine may use until a canary on a throwaway account passes (docs/design/connectors.md 4.13). Opens the subreddit's New list as the bound account and returns up to 10 posts: each post's permalink, its id and its author's name, read from the post elements' attributes. No titles or text: page text is untrusted, and target choice needs none.",
+      "effect": "read",
+      "input": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "subreddit"
+        ],
+        "properties": {
+          "subreddit": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_]{2,21}$",
+            "show": true,
+            "description": "the subreddit name without r/"
+          }
+        }
+      },
+      "output": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "posts"
+        ],
+        "properties": {
+          "posts": {
+            "type": "array",
+            "maxItems": 10,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "url",
+                "id"
+              ],
+              "properties": {
+                "url": {
+                  "type": "string",
+                  "format": "uri",
+                  "x-agentos-host": "reddit.com",
+                  "pattern": "^https://www\\.reddit\\.com/r/[A-Za-z0-9_]+/comments/[a-z0-9]+/"
+                },
+                "id": {
+                  "type": "string",
+                  "pattern": "^t3_[a-z0-9]+$"
+                },
+                "author": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "pattern": "^(\\[deleted\\]|[A-Za-z0-9_-]{1,40})$"
+                }
+              }
+            }
+          }
+        }
+      },
+      "acting_as": {
+        "kind": "account"
+      },
+      "pace": {
+        "per_hour": 6,
+        "per_day": 40,
+        "max_items": 10,
+        "active_hours": true
+      },
+      "signals": {
+        "hold": [
+          "captcha",
+          "checkpoint",
+          "logged_out",
+          "blocked",
+          "rate_limited",
+          "wrong_account"
+        ]
+      },
+      "readback": {
+        "live": {
+          "outputs": {
+            "posts": "posts.items"
+          }
+        }
+      },
+      "steps": [
+        {
+          "type": "navigate",
+          "url": "https://www.reddit.com/r/${subreddit}/new/"
+        },
+        {
+          "type": "assert_identity",
+          "label": "acting as"
+        },
+        {
+          "type": "extract",
+          "save_as": "posts",
+          "max_items": 10,
+          "items": {
+            "attr": {
+              "name": "permalink",
+              "regex": "^/r/[A-Za-z0-9_]+/comments/[a-z0-9]+/"
+            },
+            "within": {
+              "role": "main"
+            }
+          },
+          "fields": {
+            "url": {
+              "attr": "permalink",
+              "format": "uri",
+              "host": "reddit.com",
+              "pattern": "^https://www\\.reddit\\.com/r/[A-Za-z0-9_]+/comments/[a-z0-9]+/"
+            },
+            "id": {
+              "attr": "id",
+              "pattern": "^t3_[a-z0-9]+$"
+            },
+            "author": {
+              "attr": "author",
+              "pattern": "^(\\[deleted\\]|[A-Za-z0-9_-]{1,40})$",
+              "untrusted": true
+            }
+          }
+        }
+      ]
+    }
+  }
+}

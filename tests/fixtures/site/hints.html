@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Fixture hints</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header>
+    <h1>Hints</h1>
+    <nav aria-label="Pages"><a href="/index.html">Home</a> <a href="/feed.html">Feed</a></nav>
+  </header>
+  <main>
+    <!--
+      Icon-only controls with no accessible name. Each one gives a hint from a different source:
+      a vote group (own boolean attributes), an open shadow root, a title, an svg title, an icon
+      attribute, a class, and visually hidden text. The password input gets no hint at all.
+    -->
+    <div role="group" aria-label="Actions available for this post">
+      <button type="button" class="vote" upvote><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M5 0 10 10H0Z"/></svg></button>
+      <span>6.2K</span>
+      <button type="button" class="vote" downvote><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M5 10 0 0H10Z"/></svg></button>
+    </div>
+
+    <vote-widget role="button" tabindex="0"></vote-widget>
+    <share-widget role="button" tabindex="0"></share-widget>
+
+    <button type="button" title="Share this post"><svg viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="4"/></svg></button>
+    <button type="button"><svg viewBox="0 0 10 10" role="img"><title>Save post</title><rect width="10" height="10"/></svg></button>
+    <button type="button" data-icon="reply"><svg viewBox="0 0 10 10" aria-hidden="true"><rect width="10" height="10"/></svg></button>
+    <button type="button" class="open-menu"><svg viewBox="0 0 10 10" aria-hidden="true"><rect width="10" height="2"/></svg></button>
+    <button type="button"><span class="sr-only" aria-hidden="true">Hide post</span><svg viewBox="0 0 10 10" aria-hidden="true"><rect width="10" height="10"/></svg></button>
+    <a href="/index.html" data-icon="home"><svg viewBox="0 0 10 10" aria-hidden="true"><rect width="10" height="10"/></svg></a>
+    <button type="button" id="plain"><svg viewBox="0 0 10 10" aria-hidden="true"><rect width="10" height="10"/></svg></button>
+    <button type="button">Submit</button>
+
+    <label>Pin <input type="password" name="pin" data-icon="reveal" value="hunter2"></label>
+  </main>
+  <script>
+    class VoteWidget extends HTMLElement {
+      constructor() {
+        super();
+        this.attachShadow({mode: 'open'}).innerHTML =
+          '<button type="button" aria-label="upvote"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M5 0 10 10H0Z"/></svg></button>';
+      }
+    }
+    class ShareWidget extends HTMLElement {
+      constructor() {
+        super();
+        this.attachShadow({mode: 'open'}).innerHTML =
+          '<svg viewBox="0 0 10 10" role="img" aria-labelledby="share-label"><title id="share-label">Share</title><rect width="10" height="10"/></svg>';
+      }
+    }
+    customElements.define('vote-widget', VoteWidget);
+    customElements.define('share-widget', ShareWidget);
+  </script>
+</body>
+</html>

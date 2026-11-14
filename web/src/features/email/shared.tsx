@@ -1,0 +1,72 @@
+/** The pieces every email page shares: where a person is, and the line that says where text came from. */
+import { Link } from '@tanstack/react-router';
+import { Monitor } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { cn } from '@/lib/cn';
+import './email.css';
+
+type Place = 'mailboxes' | 'new-mail' | 'leads';
+
+export function EmailTabs({ org, here, newCount, waiting }: { org: string; here: Place; newCount?: number; waiting?: number }) {
+  const item = (place: Place, word: string, count?: number) => ({ place, word, count });
+  const items = [item('mailboxes', 'Mailboxes'), item('new-mail', 'New mail', newCount), item('leads', 'Leads', waiting)];
+  const to = { mailboxes: '/$org/email', 'new-mail': '/$org/email/new-mail', leads: '/$org/email/leads' } as const;
+  return (
+    <nav aria-label="Email" className="scrollbar-none mb-8 flex gap-6 overflow-x-auto border-b border-line">
+      {items.map(({ place, word, count }) => (
+        <Link
+          key={place}
+          to={to[place]}
+          params={{ org }}
+          aria-current={place === here ? 'page' : undefined}
+          className={cn(
+            'focus-inset -mb-px flex h-10 items-center gap-2 border-b text-14 whitespace-nowrap transition-colors duration-(--duration-base) ease-standard',
+            place === here ? 'border-fg text-fg' : 'border-transparent text-faint hover:text-fg',
+          )}
+        >
+          {word}
+          {count ? <span className="tabular rounded-sm bg-fill-2 px-1 text-12 text-muted">{count}</span> : null}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
+/** Mail text and leads' addresses stay on the computer. This says so wherever they are shown. */
+export function FromComputer({ computers, className }: { computers: string[]; className?: string }) {
+  return (
+    <p className={cn('flex items-center gap-2 text-12 text-faint', className)}>
+      <Monitor aria-hidden="true" className="size-3 shrink-0" />
+      <span>
+        Read live from <span className="mono">{computers.join(' and ')}</span>. It stays there.
+      </span>
+    </p>
+  );
+}
+
+/** A lock, a rule, no control: what the computer always does. */
+export function Rule({ icon, children }: { icon: ReactNode; children: ReactNode }) {
+  return (
+    <li className="flex items-start gap-3 py-2 text-14 text-pretty">
+      <span className="mt-px shrink-0 text-faint">{icon}</span>
+      <span className="min-w-0">{children}</span>
+    </li>
+  );
+}
+
+/** The gauge for a day's limit. Sent is ink, what is planned is an outline, the rest is room. */
+export function DayGauge({ sent, planned = 0, limit, className }: { sent: number; planned?: number; limit: number; className?: string }) {
+  const ticks = 50;
+  const per = limit / ticks;
+  const filled = Math.round(sent / per);
+  const ahead = Math.round((sent + planned) / per);
+  const share = limit ? sent / limit : 0;
+  const tone = share >= 0.95 ? 'top' : share >= 0.8 ? 'high' : undefined;
+  return (
+    <div role="meter" aria-label="Sent today" aria-valuenow={sent} aria-valuemin={0} aria-valuemax={limit} className={cn('gauge', className)}>
+      {Array.from({ length: ticks }, (_, index) => (
+        <span key={index} className="gauge-tick" data-kind={index < filled ? 'sent' : index < ahead ? 'planned' : undefined} data-tone={tone} />
+      ))}
+    </div>
+  );
+}

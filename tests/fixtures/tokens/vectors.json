@@ -1,0 +1,264 @@
+{
+  "about": "Grant token test vectors; see src/agentos/policy/TOKENS.md. Keys are Ed25519 with seed = SHA-256(\"agentos token vector \" + name); public keys are unpadded base64url.",
+  "keys": {
+    "root": {
+      "seed": "6f1ea64979fc3546768382155bd2ca01dccf3e70fdd98063a9161e0c332f7c9a",
+      "public": "IF1TfBDhbCuoLkHP5wqHqE1KCa4nA607JjMkvf_-93s",
+      "kid": "ed25519:ea615e9d5d8da0d3bd62e43357a8e17c"
+    },
+    "next-0": {
+      "seed": "797d168ed1f6eecdde1dc35766a42dd86fe66ace3e2866ccfefe3f485fb4b2e5",
+      "public": "t59X8eg2e9DUPtv9jy9qdfYur1tBPhnAq_4pZ2XWeyE",
+      "kid": "ed25519:31afe630b13a1c34d04401cb3f532c71"
+    },
+    "next-1": {
+      "seed": "1273cdf9b9e2bfdd19081d71d849aa7bd6182e102dd88fa6bdea86c69fbc92bb",
+      "public": "s7FCVvqUNh2-m-kzGFaNlC7pbJIHk3s5a3LGBZoTlpw",
+      "kid": "ed25519:9054bcef24d53fe68a4b5b6ae0da719a"
+    },
+    "other-org": {
+      "seed": "60fa5e164d3d0c55b0285174c70d1111693bd577dd57fbc1b42f44a5b6ffc613",
+      "public": "WxJWdJ5tADfwuNHQjaVB15rcEwpOn15wECGEILTGvHo",
+      "kid": "ed25519:8ad51318910ab22088e881e4074e3a9e"
+    }
+  },
+  "verifier": {
+    "trusted": [
+      {
+        "iss": "org:org_vectors",
+        "kid": "ed25519:ea615e9d5d8da0d3bd62e43357a8e17c",
+        "public": "IF1TfBDhbCuoLkHP5wqHqE1KCa4nA607JjMkvf_-93s"
+      }
+    ],
+    "audiences": [
+      "node:node_vectors",
+      "org:org_vectors"
+    ],
+    "v1_key": "IF1TfBDhbCuoLkHP5wqHqE1KCa4nA607JjMkvf_-93s"
+  },
+  "signing": {
+    "authority_block": {
+      "aud": [
+        "node:node_vectors"
+      ],
+      "budget": {
+        "tokens": 100000,
+        "usd": 2.5
+      },
+      "ceiling": "commit",
+      "depth": 2,
+      "exp": 1900000000,
+      "iat": 1800000000,
+      "id": "gr_vectorroot00000",
+      "iss": "org:org_vectors",
+      "kid": "ed25519:ea615e9d5d8da0d3bd62e43357a8e17c",
+      "sub": {
+        "id": "claude-code",
+        "kind": "agent",
+        "owner": "owner"
+      },
+      "v": 2,
+      "workspaces": [
+        "biz-a"
+      ]
+    },
+    "authority_canonical": "{\"aud\":[\"node:node_vectors\"],\"budget\":{\"tokens\":100000,\"usd\":2.5},\"ceiling\":\"commit\",\"depth\":2,\"exp\":1900000000,\"iat\":1800000000,\"id\":\"gr_vectorroot00000\",\"iss\":\"org:org_vectors\",\"kid\":\"ed25519:ea615e9d5d8da0d3bd62e43357a8e17c\",\"sub\":{\"id\":\"claude-code\",\"kind\":\"agent\",\"owner\":\"owner\"},\"v\":2,\"workspaces\":[\"biz-a\"]}",
+    "authority_signature_input_hex": "6167656e746f732e6772616e742e626c6f636b2e763200000000000000013b7b22617564223a5b226e6f64653a6e6f64655f766563746f7273225d2c22627564676574223a7b22746f6b656e73223a3130303030302c22757364223a322e357d2c226365696c696e67223a22636f6d6d6974222c226465707468223a322c22657870223a313930303030303030302c22696174223a313830303030303030302c226964223a2267725f766563746f72726f6f743030303030222c22697373223a226f72673a6f72675f766563746f7273222c226b6964223a22656432353531393a6561363135653964356438646130643362643632653433333537613865313763222c22737562223a7b226964223a22636c617564652d636f6465222c226b696e64223a226167656e74222c226f776e6572223a226f776e6572227d2c2276223a322c22776f726b737061636573223a5b2262697a2d61225d7db79f57f1e8367bd0d43edbfd8f2f6a75f62eaf5b413e19c0abfe296765d67b21",
+    "child_block": {
+      "v": 2,
+      "id": "gr_vectorchild0000",
+      "parent": "gr_vectorroot00000",
+      "iat": 1800000100,
+      "label": "codex-worker",
+      "kind": "agent",
+      "lanes": [
+        "biz-a/insta"
+      ],
+      "ceiling": "read"
+    },
+    "child_canonical": "{\"ceiling\":\"read\",\"iat\":1800000100,\"id\":\"gr_vectorchild0000\",\"kind\":\"agent\",\"label\":\"codex-worker\",\"lanes\":[\"biz-a/insta\"],\"parent\":\"gr_vectorroot00000\",\"v\":2}"
+  },
+  "vectors": [
+    {
+      "name": "v2 authority block",
+      "token": "agt2_QUcCAQAAATt7ImF1ZCI6WyJub2RlOm5vZGVfdmVjdG9ycyJdLCJidWRnZXQiOnsidG9rZW5zIjoxMDAwMDAsInVzZCI6Mi41fSwiY2VpbGluZyI6ImNvbW1pdCIsImRlcHRoIjoyLCJleHAiOjE5MDAwMDAwMDAsImlhdCI6MTgwMDAwMDAwMCwiaWQiOiJncl92ZWN0b3Jyb290MDAwMDAiLCJpc3MiOiJvcmc6b3JnX3ZlY3RvcnMiLCJraWQiOiJlZDI1NTE5OmVhNjE1ZTlkNWQ4ZGEwZDNiZDYyZTQzMzU3YThlMTdjIiwic3ViIjp7ImlkIjoiY2xhdWRlLWNvZGUiLCJraW5kIjoiYWdlbnQiLCJvd25lciI6Im93bmVyIn0sInYiOjIsIndvcmtzcGFjZXMiOlsiYml6LWEiXX23n1fx6DZ70NQ-2_2PL2p19i6vW0E-GcCr_ilnZdZ7IYnI2VKOBlZ8hlurKx9DSpkh8hwCwSdBo4lk747ks_j07UUSkvTkwvwVTkLf5mEoVOK5aiphR2rcF19LVVhHxgwBeX0WjtH27s3eHcNXZqQt2G_mas4-KGbM_v4_SF-0suU",
+      "expect": "valid",
+      "decoded": {
+        "version": 2,
+        "sealed": false,
+        "blocks": [
+          {
+            "canonical": "{\"aud\":[\"node:node_vectors\"],\"budget\":{\"tokens\":100000,\"usd\":2.5},\"ceiling\":\"commit\",\"depth\":2,\"exp\":1900000000,\"iat\":1800000000,\"id\":\"gr_vectorroot00000\",\"iss\":\"org:org_vectors\",\"kid\":\"ed25519:ea615e9d5d8da0d3bd62e43357a8e17c\",\"sub\":{\"id\":\"claude-code\",\"kind\":\"agent\",\"owner\":\"owner\"},\"v\":2,\"workspaces\":[\"biz-a\"]}",
+            "rid": "rv_mbak5vb5ee33m6eesliymvymxtdyvckf",
+            "sig": "icjZUo4GVnyGW6srH0NKmSHyHALBJ0GjiWTvjuSz-PTtRRKS9OTC_BVOQt_mYShU4rlqKmFHatwXX0tVWEfGDA"
+          }
+        ]
+      }
+    },
+    {
+      "name": "v2 attenuated",
+      "token": "agt2_QUcCAgAAATt7ImF1ZCI6WyJub2RlOm5vZGVfdmVjdG9ycyJdLCJidWRnZXQiOnsidG9rZW5zIjoxMDAwMDAsInVzZCI6Mi41fSwiY2VpbGluZyI6ImNvbW1pdCIsImRlcHRoIjoyLCJleHAiOjE5MDAwMDAwMDAsImlhdCI6MTgwMDAwMDAwMCwiaWQiOiJncl92ZWN0b3Jyb290MDAwMDAiLCJpc3MiOiJvcmc6b3JnX3ZlY3RvcnMiLCJraWQiOiJlZDI1NTE5OmVhNjE1ZTlkNWQ4ZGEwZDNiZDYyZTQzMzU3YThlMTdjIiwic3ViIjp7ImlkIjoiY2xhdWRlLWNvZGUiLCJraW5kIjoiYWdlbnQiLCJvd25lciI6Im93bmVyIn0sInYiOjIsIndvcmtzcGFjZXMiOlsiYml6LWEiXX23n1fx6DZ70NQ-2_2PL2p19i6vW0E-GcCr_ilnZdZ7IYnI2VKOBlZ8hlurKx9DSpkh8hwCwSdBo4lk747ks_j07UUSkvTkwvwVTkLf5mEoVOK5aiphR2rcF19LVVhHxgwAAACfeyJjZWlsaW5nIjoicmVhZCIsImlhdCI6MTgwMDAwMDEwMCwiaWQiOiJncl92ZWN0b3JjaGlsZDAwMDAiLCJraW5kIjoiYWdlbnQiLCJsYWJlbCI6ImNvZGV4LXdvcmtlciIsImxhbmVzIjpbImJpei1hL2luc3RhIl0sInBhcmVudCI6ImdyX3ZlY3RvcnJvb3QwMDAwMCIsInYiOjJ9s7FCVvqUNh2-m-kzGFaNlC7pbJIHk3s5a3LGBZoTlpzCK7nodQ6cm459tDJ5zZe5CrX7lccftJzX1G3C1Li9RG5V7yzdMMpEyj30GU8WoM3U52-OP9G0zheAhVDQnO4OARJzzfm54r_dGQgdcdhJqnvWGC4QLdiPpr3qhsafvJK7",
+      "expect": "valid",
+      "decoded": {
+        "version": 2,
+        "sealed": false,
+        "blocks": [
+          {
+            "canonical": "{\"aud\":[\"node:node_vectors\"],\"budget\":{\"tokens\":100000,\"usd\":2.5},\"ceiling\":\"commit\",\"depth\":2,\"exp\":1900000000,\"iat\":1800000000,\"id\":\"gr_vectorroot00000\",\"iss\":\"org:org_vectors\",\"kid\":\"ed25519:ea615e9d5d8da0d3bd62e43357a8e17c\",\"sub\":{\"id\":\"claude-code\",\"kind\":\"agent\",\"owner\":\"owner\"},\"v\":2,\"workspaces\":[\"biz-a\"]}",
+            "rid": "rv_mbak5vb5ee33m6eesliymvymxtdyvckf",
+            "sig": "icjZUo4GVnyGW6srH0NKmSHyHALBJ0GjiWTvjuSz-PTtRRKS9OTC_BVOQt_mYShU4rlqKmFHatwXX0tVWEfGDA"
+          },
+          {
+            "canonical": "{\"ceiling\":\"read\",\"iat\":1800000100,\"id\":\"gr_vectorchild0000\",\"kind\":\"agent\",\"label\":\"codex-worker\",\"lanes\":[\"biz-a/insta\"],\"parent\":\"gr_vectorroot00000\",\"v\":2}",
+            "rid": "rv_d6jmpw4h2gdynky6ay6xwvziqifnfdku",
+            "sig": "wiu56HUOnJuOfbQyec2XuQq1-5XHH7Sc19RtwtS4vURuVe8s3TDKRMo99BlPFqDN1Odvjj_RtM4XgIVQ0JzuDg"
+          }
+        ]
+      }
+    },
+    {
+      "name": "v2 sealed",
+      "token": "agt2_QUcCAgAAATt7ImF1ZCI6WyJub2RlOm5vZGVfdmVjdG9ycyJdLCJidWRnZXQiOnsidG9rZW5zIjoxMDAwMDAsInVzZCI6Mi41fSwiY2VpbGluZyI6ImNvbW1pdCIsImRlcHRoIjoyLCJleHAiOjE5MDAwMDAwMDAsImlhdCI6MTgwMDAwMDAwMCwiaWQiOiJncl92ZWN0b3Jyb290MDAwMDAiLCJpc3MiOiJvcmc6b3JnX3ZlY3RvcnMiLCJraWQiOiJlZDI1NTE5OmVhNjE1ZTlkNWQ4ZGEwZDNiZDYyZTQzMzU3YThlMTdjIiwic3ViIjp7ImlkIjoiY2xhdWRlLWNvZGUiLCJraW5kIjoiYWdlbnQiLCJvd25lciI6Im93bmVyIn0sInYiOjIsIndvcmtzcGFjZXMiOlsiYml6LWEiXX23n1fx6DZ70NQ-2_2PL2p19i6vW0E-GcCr_ilnZdZ7IYnI2VKOBlZ8hlurKx9DSpkh8hwCwSdBo4lk747ks_j07UUSkvTkwvwVTkLf5mEoVOK5aiphR2rcF19LVVhHxgwAAACfeyJjZWlsaW5nIjoicmVhZCIsImlhdCI6MTgwMDAwMDEwMCwiaWQiOiJncl92ZWN0b3JjaGlsZDAwMDAiLCJraW5kIjoiYWdlbnQiLCJsYWJlbCI6ImNvZGV4LXdvcmtlciIsImxhbmVzIjpbImJpei1hL2luc3RhIl0sInBhcmVudCI6ImdyX3ZlY3RvcnJvb3QwMDAwMCIsInYiOjJ9s7FCVvqUNh2-m-kzGFaNlC7pbJIHk3s5a3LGBZoTlpzCK7nodQ6cm459tDJ5zZe5CrX7lccftJzX1G3C1Li9RG5V7yzdMMpEyj30GU8WoM3U52-OP9G0zheAhVDQnO4OAtaXk2aItCeeat2Fcsp1WAVa4e3X0eI7tRdCVsTlG-3BIgjpLbYmz_PoBcpRcoSY-QY5CS38W_COKJMw18EWvAI",
+      "expect": "valid",
+      "decoded": {
+        "version": 2,
+        "sealed": true,
+        "blocks": [
+          {
+            "canonical": "{\"aud\":[\"node:node_vectors\"],\"budget\":{\"tokens\":100000,\"usd\":2.5},\"ceiling\":\"commit\",\"depth\":2,\"exp\":1900000000,\"iat\":1800000000,\"id\":\"gr_vectorroot00000\",\"iss\":\"org:org_vectors\",\"kid\":\"ed25519:ea615e9d5d8da0d3bd62e43357a8e17c\",\"sub\":{\"id\":\"claude-code\",\"kind\":\"agent\",\"owner\":\"owner\"},\"v\":2,\"workspaces\":[\"biz-a\"]}",
+            "rid": "rv_mbak5vb5ee33m6eesliymvymxtdyvckf",
+            "sig": "icjZUo4GVnyGW6srH0NKmSHyHALBJ0GjiWTvjuSz-PTtRRKS9OTC_BVOQt_mYShU4rlqKmFHatwXX0tVWEfGDA"
+          },
+          {
+            "canonical": "{\"ceiling\":\"read\",\"iat\":1800000100,\"id\":\"gr_vectorchild0000\",\"kind\":\"agent\",\"label\":\"codex-worker\",\"lanes\":[\"biz-a/insta\"],\"parent\":\"gr_vectorroot00000\",\"v\":2}",
+            "rid": "rv_d6jmpw4h2gdynky6ay6xwvziqifnfdku",
+            "sig": "wiu56HUOnJuOfbQyec2XuQq1-5XHH7Sc19RtwtS4vURuVe8s3TDKRMo99BlPFqDN1Odvjj_RtM4XgIVQ0JzuDg"
+          }
+        ]
+      }
+    },
+    {
+      "name": "v1 authority block (migration window)",
+      "token": "agt1_QUcBAQAAAMB7ImNlaWxpbmciOiJyZWFkIiwiZXhwIjoxOTAwMDAwMDAwLCJpYXQiOjE4MDAwMDAwMDAsImlkIjoiZ3JfdmVjdG9ydjFyb290MDAwIiwicmlkIjoicnZfdmVjdG9ydjFyb290MDAwIiwic3ViIjp7ImlkIjoiY2xhdWRlLWNvZGUiLCJraW5kIjoiYWdlbnQiLCJvd25lciI6Im93bmVyIn0sInYiOjEsIndvcmtzcGFjZXMiOlsiYml6LWEiXX23n1fx6DZ70NQ-2_2PL2p19i6vW0E-GcCr_ilnZdZ7IYxyc89WXNgbNE-XzGxTWnPR0gMfBvTgFfddstVfs57BD5fgnKbzCkLisKYPR93fOaVu5yBOHgZRwEfsDhzD1ggBeX0WjtH27s3eHcNXZqQt2G_mas4-KGbM_v4_SF-0suU",
+      "expect": "valid",
+      "decoded": {
+        "version": 1,
+        "sealed": false,
+        "blocks": [
+          {
+            "canonical": "{\"ceiling\":\"read\",\"exp\":1900000000,\"iat\":1800000000,\"id\":\"gr_vectorv1root000\",\"rid\":\"rv_vectorv1root000\",\"sub\":{\"id\":\"claude-code\",\"kind\":\"agent\",\"owner\":\"owner\"},\"v\":1,\"workspaces\":[\"biz-a\"]}",
+            "rid": "rv_vectorv1root000",
+            "sig": "jHJzz1Zc2Bs0T5fMbFNac9HSAx8G9OAV912y1V-znsEPl-CcpvMKQuKwpg9H3d85pW7nIE4eBlHAR-wOHMPWCA"
+          }
+        ]
+      }
+    },
+    {
+      "name": "data byte flipped",
+      "token": "agt2_QUcCAQAAATt7I2F1ZCI6WyJub2RlOm5vZGVfdmVjdG9ycyJdLCJidWRnZXQiOnsidG9rZW5zIjoxMDAwMDAsInVzZCI6Mi41fSwiY2VpbGluZyI6ImNvbW1pdCIsImRlcHRoIjoyLCJleHAiOjE5MDAwMDAwMDAsImlhdCI6MTgwMDAwMDAwMCwiaWQiOiJncl92ZWN0b3Jyb290MDAwMDAiLCJpc3MiOiJvcmc6b3JnX3ZlY3RvcnMiLCJraWQiOiJlZDI1NTE5OmVhNjE1ZTlkNWQ4ZGEwZDNiZDYyZTQzMzU3YThlMTdjIiwic3ViIjp7ImlkIjoiY2xhdWRlLWNvZGUiLCJraW5kIjoiYWdlbnQiLCJvd25lciI6Im93bmVyIn0sInYiOjIsIndvcmtzcGFjZXMiOlsiYml6LWEiXX23n1fx6DZ70NQ-2_2PL2p19i6vW0E-GcCr_ilnZdZ7IYnI2VKOBlZ8hlurKx9DSpkh8hwCwSdBo4lk747ks_j07UUSkvTkwvwVTkLf5mEoVOK5aiphR2rcF19LVVhHxgwBeX0WjtH27s3eHcNXZqQt2G_mas4-KGbM_v4_SF-0suU",
+      "expect": "invalid_token"
+    },
+    {
+      "name": "block stripped",
+      "token": "agt2_QUcCAQAAATt7ImF1ZCI6WyJub2RlOm5vZGVfdmVjdG9ycyJdLCJidWRnZXQiOnsidG9rZW5zIjoxMDAwMDAsInVzZCI6Mi41fSwiY2VpbGluZyI6ImNvbW1pdCIsImRlcHRoIjoyLCJleHAiOjE5MDAwMDAwMDAsImlhdCI6MTgwMDAwMDAwMCwiaWQiOiJncl92ZWN0b3Jyb290MDAwMDAiLCJpc3MiOiJvcmc6b3JnX3ZlY3RvcnMiLCJraWQiOiJlZDI1NTE5OmVhNjE1ZTlkNWQ4ZGEwZDNiZDYyZTQzMzU3YThlMTdjIiwic3ViIjp7ImlkIjoiY2xhdWRlLWNvZGUiLCJraW5kIjoiYWdlbnQiLCJvd25lciI6Im93bmVyIn0sInYiOjIsIndvcmtzcGFjZXMiOlsiYml6LWEiXX23n1fx6DZ70NQ-2_2PL2p19i6vW0E-GcCr_ilnZdZ7IYnI2VKOBlZ8hlurKx9DSpkh8hwCwSdBo4lk747ks_j07UUSkvTkwvwVTkLf5mEoVOK5aiphR2rcF19LVVhHxgwBEnPN-bniv90ZCB1x2Emqe9YYLhAt2I-mveqGxp-8krs",
+      "expect": "invalid_token"
+    },
+    {
+      "name": "prefix names another version",
+      "token": "agt1_QUcCAgAAATt7ImF1ZCI6WyJub2RlOm5vZGVfdmVjdG9ycyJdLCJidWRnZXQiOnsidG9rZW5zIjoxMDAwMDAsInVzZCI6Mi41fSwiY2VpbGluZyI6ImNvbW1pdCIsImRlcHRoIjoyLCJleHAiOjE5MDAwMDAwMDAsImlhdCI6MTgwMDAwMDAwMCwiaWQiOiJncl92ZWN0b3Jyb290MDAwMDAiLCJpc3MiOiJvcmc6b3JnX3ZlY3RvcnMiLCJraWQiOiJlZDI1NTE5OmVhNjE1ZTlkNWQ4ZGEwZDNiZDYyZTQzMzU3YThlMTdjIiwic3ViIjp7ImlkIjoiY2xhdWRlLWNvZGUiLCJraW5kIjoiYWdlbnQiLCJvd25lciI6Im93bmVyIn0sInYiOjIsIndvcmtzcGFjZXMiOlsiYml6LWEiXX23n1fx6DZ70NQ-2_2PL2p19i6vW0E-GcCr_ilnZdZ7IYnI2VKOBlZ8hlurKx9DSpkh8hwCwSdBo4lk747ks_j07UUSkvTkwvwVTkLf5mEoVOK5aiphR2rcF19LVVhHxgwAAACfeyJjZWlsaW5nIjoicmVhZCIsImlhdCI6MTgwMDAwMDEwMCwiaWQiOiJncl92ZWN0b3JjaGlsZDAwMDAiLCJraW5kIjoiYWdlbnQiLCJsYWJlbCI6ImNvZGV4LXdvcmtlciIsImxhbmVzIjpbImJpei1hL2luc3RhIl0sInBhcmVudCI6ImdyX3ZlY3RvcnJvb3QwMDAwMCIsInYiOjJ9s7FCVvqUNh2-m-kzGFaNlC7pbJIHk3s5a3LGBZoTlpzCK7nodQ6cm459tDJ5zZe5CrX7lccftJzX1G3C1Li9RG5V7yzdMMpEyj30GU8WoM3U52-OP9G0zheAhVDQnO4OARJzzfm54r_dGQgdcdhJqnvWGC4QLdiPpr3qhsafvJK7",
+      "expect": "invalid_token"
+    },
+    {
+      "name": "child with whitespace",
+      "token": "agt2_QUcCAgAAATt7ImF1ZCI6WyJub2RlOm5vZGVfdmVjdG9ycyJdLCJidWRnZXQiOnsidG9rZW5zIjoxMDAwMDAsInVzZCI6Mi41fSwiY2VpbGluZyI6ImNvbW1pdCIsImRlcHRoIjoyLCJleHAiOjE5MDAwMDAwMDAsImlhdCI6MTgwMDAwMDAwMCwiaWQiOiJncl92ZWN0b3Jyb290MDAwMDAiLCJpc3MiOiJvcmc6b3JnX3ZlY3RvcnMiLCJraWQiOiJlZDI1NTE5OmVhNjE1ZTlkNWQ4ZGEwZDNiZDYyZTQzMzU3YThlMTdjIiwic3ViIjp7ImlkIjoiY2xhdWRlLWNvZGUiLCJraW5kIjoiYWdlbnQiLCJvd25lciI6Im93bmVyIn0sInYiOjIsIndvcmtzcGFjZXMiOlsiYml6LWEiXX23n1fx6DZ70NQ-2_2PL2p19i6vW0E-GcCr_ilnZdZ7IYnI2VKOBlZ8hlurKx9DSpkh8hwCwSdBo4lk747ks_j07UUSkvTkwvwVTkLf5mEoVOK5aiphR2rcF19LVVhHxgwAAACmeyJjZWlsaW5nIjoicmVhZCIsICJpYXQiOjE4MDAwMDAxMDAsICJpZCI6ImdyX3ZlY3RvcmNoaWxkMDAwMCIsICJraW5kIjoiYWdlbnQiLCAibGFiZWwiOiJjb2RleC13b3JrZXIiLCAibGFuZXMiOlsiYml6LWEvaW5zdGEiXSwgInBhcmVudCI6ImdyX3ZlY3RvcnJvb3QwMDAwMCIsICJ2IjoyfbOxQlb6lDYdvpvpMxhWjZQu6WySB5N7OWtyxgWaE5acbGNKsERvyVGGMcOZh4uSckNxkzYcG0AZwr-KckY_MiU_kcx1MFahyD0BLoTmIHlzqOja73JsBSChLVSxRYsfBAESc835ueK_3RkIHXHYSap71hguEC3Yj6a96obGn7ySuw",
+      "expect": "invalid_token"
+    },
+    {
+      "name": "child with duplicate keys",
+      "token": "agt2_QUcCAgAAATt7ImF1ZCI6WyJub2RlOm5vZGVfdmVjdG9ycyJdLCJidWRnZXQiOnsidG9rZW5zIjoxMDAwMDAsInVzZCI6Mi41fSwiY2VpbGluZyI6ImNvbW1pdCIsImRlcHRoIjoyLCJleHAiOjE5MDAwMDAwMDAsImlhdCI6MTgwMDAwMDAwMCwiaWQiOiJncl92ZWN0b3Jyb290MDAwMDAiLCJpc3MiOiJvcmc6b3JnX3ZlY3RvcnMiLCJraWQiOiJlZDI1NTE5OmVhNjE1ZTlkNWQ4ZGEwZDNiZDYyZTQzMzU3YThlMTdjIiwic3ViIjp7ImlkIjoiY2xhdWRlLWNvZGUiLCJraW5kIjoiYWdlbnQiLCJvd25lciI6Im93bmVyIn0sInYiOjIsIndvcmtzcGFjZXMiOlsiYml6LWEiXX23n1fx6DZ70NQ-2_2PL2p19i6vW0E-GcCr_ilnZdZ7IYnI2VKOBlZ8hlurKx9DSpkh8hwCwSdBo4lk747ks_j07UUSkvTkwvwVTkLf5mEoVOK5aiphR2rcF19LVVhHxgwAAACyeyJjZWlsaW5nIjoicmVhZCIsImNlaWxpbmciOiJjb21taXQiLCJpYXQiOjE4MDAwMDAxMDAsImlkIjoiZ3JfdmVjdG9yY2hpbGQwMDAwIiwia2luZCI6ImFnZW50IiwibGFiZWwiOiJjb2RleC13b3JrZXIiLCJsYW5lcyI6WyJiaXotYS9pbnN0YSJdLCJwYXJlbnQiOiJncl92ZWN0b3Jyb290MDAwMDAiLCJ2IjoyfbOxQlb6lDYdvpvpMxhWjZQu6WySB5N7OWtyxgWaE5ac9sqoLWTh0n_PbNX8t8_CEGr4tT4oI4PoyREvG1bgag9smB1PsQ7QSjtBU7JscG02eGnqm0ztlgmXm_HiV8VuAgESc835ueK_3RkIHXHYSap71hguEC3Yj6a96obGn7ySuw",
+      "expect": "invalid_token"
+    },
+    {
+      "name": "child with keys out of order",
+      "token": "agt2_QUcCAgAAATt7ImF1ZCI6WyJub2RlOm5vZGVfdmVjdG9ycyJdLCJidWRnZXQiOnsidG9rZW5zIjoxMDAwMDAsInVzZCI6Mi41fSwiY2VpbGluZyI6ImNvbW1pdCIsImRlcHRoIjoyLCJleHAiOjE5MDAwMDAwMDAsImlhdCI6MTgwMDAwMDAwMCwiaWQiOiJncl92ZWN0b3Jyb290MDAwMDAiLCJpc3MiOiJvcmc6b3JnX3ZlY3RvcnMiLCJraWQiOiJlZDI1NTE5OmVhNjE1ZTlkNWQ4ZGEwZDNiZDYyZTQzMzU3YThlMTdjIiwic3ViIjp7ImlkIjoiY2xhdWRlLWNvZGUiLCJraW5kIjoiYWdlbnQiLCJvd25lciI6Im93bmVyIn0sInYiOjIsIndvcmtzcGFjZXMiOlsiYml6LWEiXX23n1fx6DZ70NQ-2_2PL2p19i6vW0E-GcCr_ilnZdZ7IYnI2VKOBlZ8hlurKx9DSpkh8hwCwSdBo4lk747ks_j07UUSkvTkwvwVTkLf5mEoVOK5aiphR2rcF19LVVhHxgwAAACfeyJ2IjoyLCJpZCI6ImdyX3ZlY3RvcmNoaWxkMDAwMCIsInBhcmVudCI6ImdyX3ZlY3RvcnJvb3QwMDAwMCIsImlhdCI6MTgwMDAwMDEwMCwibGFiZWwiOiJjb2RleC13b3JrZXIiLCJraW5kIjoiYWdlbnQiLCJsYW5lcyI6WyJiaXotYS9pbnN0YSJdLCJjZWlsaW5nIjoicmVhZCJ9s7FCVvqUNh2-m-kzGFaNlC7pbJIHk3s5a3LGBZoTlpzrO510lmh11QjU-5j9YrjA_xBOczPmOTEJQ68bLszA95m_UW-iyusDydIdkXNYO-ggW_fBs3hIFnkXuG3j5w8AARJzzfm54r_dGQgdcdhJqnvWGC4QLdiPpr3qhsafvJK7",
+      "expect": "invalid_token"
+    },
+    {
+      "name": "child chooses its revocation id",
+      "token": "agt2_QUcCAgAAATt7ImF1ZCI6WyJub2RlOm5vZGVfdmVjdG9ycyJdLCJidWRnZXQiOnsidG9rZW5zIjoxMDAwMDAsInVzZCI6Mi41fSwiY2VpbGluZyI6ImNvbW1pdCIsImRlcHRoIjoyLCJleHAiOjE5MDAwMDAwMDAsImlhdCI6MTgwMDAwMDAwMCwiaWQiOiJncl92ZWN0b3Jyb290MDAwMDAiLCJpc3MiOiJvcmc6b3JnX3ZlY3RvcnMiLCJraWQiOiJlZDI1NTE5OmVhNjE1ZTlkNWQ4ZGEwZDNiZDYyZTQzMzU3YThlMTdjIiwic3ViIjp7ImlkIjoiY2xhdWRlLWNvZGUiLCJraW5kIjoiYWdlbnQiLCJvd25lciI6Im93bmVyIn0sInYiOjIsIndvcmtzcGFjZXMiOlsiYml6LWEiXX23n1fx6DZ70NQ-2_2PL2p19i6vW0E-GcCr_ilnZdZ7IYnI2VKOBlZ8hlurKx9DSpkh8hwCwSdBo4lk747ks_j07UUSkvTkwvwVTkLf5mEoVOK5aiphR2rcF19LVVhHxgwAAAC6eyJjZWlsaW5nIjoicmVhZCIsImlhdCI6MTgwMDAwMDEwMCwiaWQiOiJncl92ZWN0b3JjaGlsZDAwMDAiLCJraW5kIjoiYWdlbnQiLCJsYWJlbCI6ImNvZGV4LXdvcmtlciIsImxhbmVzIjpbImJpei1hL2luc3RhIl0sInBhcmVudCI6ImdyX3ZlY3RvcnJvb3QwMDAwMCIsInJpZCI6InJ2X3ZlY3RvcmNoaWxkMDAwMCIsInYiOjJ9s7FCVvqUNh2-m-kzGFaNlC7pbJIHk3s5a3LGBZoTlpyjWuFJDhc5SJjDHqTXAfuB_XIGdgeaDhyELOZY9XxkLA01dTa2rL5KYWqgGFFAsvA51gYOWuRBQnXiPDR--bANARJzzfm54r_dGQgdcdhJqnvWGC4QLdiPpr3qhsafvJK7",
+      "expect": "invalid_token"
+    },
+    {
+      "name": "child replaces the subject",
+      "token": "agt2_QUcCAgAAATt7ImF1ZCI6WyJub2RlOm5vZGVfdmVjdG9ycyJdLCJidWRnZXQiOnsidG9rZW5zIjoxMDAwMDAsInVzZCI6Mi41fSwiY2VpbGluZyI6ImNvbW1pdCIsImRlcHRoIjoyLCJleHAiOjE5MDAwMDAwMDAsImlhdCI6MTgwMDAwMDAwMCwiaWQiOiJncl92ZWN0b3Jyb290MDAwMDAiLCJpc3MiOiJvcmc6b3JnX3ZlY3RvcnMiLCJraWQiOiJlZDI1NTE5OmVhNjE1ZTlkNWQ4ZGEwZDNiZDYyZTQzMzU3YThlMTdjIiwic3ViIjp7ImlkIjoiY2xhdWRlLWNvZGUiLCJraW5kIjoiYWdlbnQiLCJvd25lciI6Im93bmVyIn0sInYiOjIsIndvcmtzcGFjZXMiOlsiYml6LWEiXX23n1fx6DZ70NQ-2_2PL2p19i6vW0E-GcCr_ilnZdZ7IYnI2VKOBlZ8hlurKx9DSpkh8hwCwSdBo4lk747ks_j07UUSkvTkwvwVTkLf5mEoVOK5aiphR2rcF19LVVhHxgwAAACteyJjZWlsaW5nIjoicmVhZCIsImlhdCI6MTgwMDAwMDEwMCwiaWQiOiJncl92ZWN0b3JjaGlsZDAwMDAiLCJsYW5lcyI6WyJiaXotYS9pbnN0YSJdLCJwYXJlbnQiOiJncl92ZWN0b3Jyb290MDAwMDAiLCJzdWIiOnsiaWQiOiJvd25lciIsImtpbmQiOiJodW1hbiIsIm93bmVyIjoib3duZXIifSwidiI6Mn2zsUJW-pQ2Hb6b6TMYVo2ULulskgeTezlrcsYFmhOWnBMlygW1VwZPjW2l4QsEkOkm6OCM94b7JTVePIHa4OX5H6dZIYCy-yqwDma0T8PANUnl_laY5h1DpJ3mTx_bDAcBEnPN-bniv90ZCB1x2Emqe9YYLhAt2I-mveqGxp-8krs",
+      "expect": "invalid_token"
+    },
+    {
+      "name": "unknown key id",
+      "token": "agt2_QUcCAQAAATt7ImF1ZCI6WyJub2RlOm5vZGVfdmVjdG9ycyJdLCJidWRnZXQiOnsidG9rZW5zIjoxMDAwMDAsInVzZCI6Mi41fSwiY2VpbGluZyI6ImNvbW1pdCIsImRlcHRoIjoyLCJleHAiOjE5MDAwMDAwMDAsImlhdCI6MTgwMDAwMDAwMCwiaWQiOiJncl92ZWN0b3Jyb290MDAwMDAiLCJpc3MiOiJvcmc6b3JnX3ZlY3RvcnMiLCJraWQiOiJlZDI1NTE5OjhhZDUxMzE4OTEwYWIyMjA4OGU4ODFlNDA3NGUzYTllIiwic3ViIjp7ImlkIjoiY2xhdWRlLWNvZGUiLCJraW5kIjoiYWdlbnQiLCJvd25lciI6Im93bmVyIn0sInYiOjIsIndvcmtzcGFjZXMiOlsiYml6LWEiXX23n1fx6DZ70NQ-2_2PL2p19i6vW0E-GcCr_ilnZdZ7IW6MlXcbcOViwZwAGSXrWJ6oIp-2jEKRA89hPhW0ZXUs7zjSZiqN3zQ8dr8LrhSETbTzEAUMcorMoLdG4dBWogABeX0WjtH27s3eHcNXZqQt2G_mas4-KGbM_v4_SF-0suU",
+      "expect": "unknown_key"
+    },
+    {
+      "name": "kid of a trusted key, signed by another",
+      "token": "agt2_QUcCAQAAATt7ImF1ZCI6WyJub2RlOm5vZGVfdmVjdG9ycyJdLCJidWRnZXQiOnsidG9rZW5zIjoxMDAwMDAsInVzZCI6Mi41fSwiY2VpbGluZyI6ImNvbW1pdCIsImRlcHRoIjoyLCJleHAiOjE5MDAwMDAwMDAsImlhdCI6MTgwMDAwMDAwMCwiaWQiOiJncl92ZWN0b3Jyb290MDAwMDAiLCJpc3MiOiJvcmc6b3JnX3ZlY3RvcnMiLCJraWQiOiJlZDI1NTE5OmVhNjE1ZTlkNWQ4ZGEwZDNiZDYyZTQzMzU3YThlMTdjIiwic3ViIjp7ImlkIjoiY2xhdWRlLWNvZGUiLCJraW5kIjoiYWdlbnQiLCJvd25lciI6Im93bmVyIn0sInYiOjIsIndvcmtzcGFjZXMiOlsiYml6LWEiXX23n1fx6DZ70NQ-2_2PL2p19i6vW0E-GcCr_ilnZdZ7IYz4mL2JR2C5gmCKbDDPNOnHfAR5HKkHMV89Dr-MJoswcK_7gLN-Kr9iDLu-N06zIudnKJ73ckQf0GoNZgZ84gQBeX0WjtH27s3eHcNXZqQt2G_mas4-KGbM_v4_SF-0suU",
+      "expect": "invalid_token"
+    },
+    {
+      "name": "unknown issuer",
+      "token": "agt2_QUcCAQAAAT17ImF1ZCI6WyJub2RlOm5vZGVfdmVjdG9ycyJdLCJidWRnZXQiOnsidG9rZW5zIjoxMDAwMDAsInVzZCI6Mi41fSwiY2VpbGluZyI6ImNvbW1pdCIsImRlcHRoIjoyLCJleHAiOjE5MDAwMDAwMDAsImlhdCI6MTgwMDAwMDAwMCwiaWQiOiJncl92ZWN0b3Jyb290MDAwMDAiLCJpc3MiOiJvcmc6b3JnX2Vsc2V3aGVyZSIsImtpZCI6ImVkMjU1MTk6ZWE2MTVlOWQ1ZDhkYTBkM2JkNjJlNDMzNTdhOGUxN2MiLCJzdWIiOnsiaWQiOiJjbGF1ZGUtY29kZSIsImtpbmQiOiJhZ2VudCIsIm93bmVyIjoib3duZXIifSwidiI6Miwid29ya3NwYWNlcyI6WyJiaXotYSJdfbefV_HoNnvQ1D7b_Y8vanX2Lq9bQT4ZwKv-KWdl1nshqVBnyMH1mdU6Krlzmts2rYs-b5aNWNvkHCwlsF4_Xzg6KjfrC-a9SjxG8wQMQlDGV_X_jIttPupiEKMQKIkPCQF5fRaO0fbuzd4dw1dmpC3Yb-Zqzj4oZsz-_j9IX7Sy5Q",
+      "expect": "unknown_issuer"
+    },
+    {
+      "name": "audience is another node",
+      "token": "agt2_QUcCAQAAATl7ImF1ZCI6WyJub2RlOm5vZGVfb3RoZXIiXSwiYnVkZ2V0Ijp7InRva2VucyI6MTAwMDAwLCJ1c2QiOjIuNX0sImNlaWxpbmciOiJjb21taXQiLCJkZXB0aCI6MiwiZXhwIjoxOTAwMDAwMDAwLCJpYXQiOjE4MDAwMDAwMDAsImlkIjoiZ3JfdmVjdG9ycm9vdDAwMDAwIiwiaXNzIjoib3JnOm9yZ192ZWN0b3JzIiwia2lkIjoiZWQyNTUxOTplYTYxNWU5ZDVkOGRhMGQzYmQ2MmU0MzM1N2E4ZTE3YyIsInN1YiI6eyJpZCI6ImNsYXVkZS1jb2RlIiwia2luZCI6ImFnZW50Iiwib3duZXIiOiJvd25lciJ9LCJ2IjoyLCJ3b3Jrc3BhY2VzIjpbImJpei1hIl19t59X8eg2e9DUPtv9jy9qdfYur1tBPhnAq_4pZ2XWeyHmoywni6aaV7WDDRfo6Wk8_hPdIRpaRZML0slHUYY_cB64ZDjI8KG6Oul9qH_7O-kRrypCalO9u9K1GqnmRrkBAXl9Fo7R9u7N3h3DV2akLdhv5mrOPihmzP7-P0hftLLl",
+      "expect": "audience"
+    },
+    {
+      "name": "org-wide audience",
+      "token": "agt2_QUcCAQAAATl7ImF1ZCI6WyJvcmc6b3JnX3ZlY3RvcnMiXSwiYnVkZ2V0Ijp7InRva2VucyI6MTAwMDAwLCJ1c2QiOjIuNX0sImNlaWxpbmciOiJjb21taXQiLCJkZXB0aCI6MiwiZXhwIjoxOTAwMDAwMDAwLCJpYXQiOjE4MDAwMDAwMDAsImlkIjoiZ3JfdmVjdG9ycm9vdDAwMDAwIiwiaXNzIjoib3JnOm9yZ192ZWN0b3JzIiwia2lkIjoiZWQyNTUxOTplYTYxNWU5ZDVkOGRhMGQzYmQ2MmU0MzM1N2E4ZTE3YyIsInN1YiI6eyJpZCI6ImNsYXVkZS1jb2RlIiwia2luZCI6ImFnZW50Iiwib3duZXIiOiJvd25lciJ9LCJ2IjoyLCJ3b3Jrc3BhY2VzIjpbImJpei1hIl19t59X8eg2e9DUPtv9jy9qdfYur1tBPhnAq_4pZ2XWeyH1PZZ-0OWSIfDsN2Jr9ZS8pxB9NrPDOYzZC3PlWfFyccYgtXVMv4fuLI1FHd9ssVZVc0I8ME7zSm3NlDQeJbwKAXl9Fo7R9u7N3h3DV2akLdhv5mrOPihmzP7-P0hftLLl",
+      "expect": "valid",
+      "decoded": {
+        "version": 2,
+        "sealed": false,
+        "blocks": [
+          {
+            "canonical": "{\"aud\":[\"org:org_vectors\"],\"budget\":{\"tokens\":100000,\"usd\":2.5},\"ceiling\":\"commit\",\"depth\":2,\"exp\":1900000000,\"iat\":1800000000,\"id\":\"gr_vectorroot00000\",\"iss\":\"org:org_vectors\",\"kid\":\"ed25519:ea615e9d5d8da0d3bd62e43357a8e17c\",\"sub\":{\"id\":\"claude-code\",\"kind\":\"agent\",\"owner\":\"owner\"},\"v\":2,\"workspaces\":[\"biz-a\"]}",
+            "rid": "rv_56uaqegox7zokqxpk2lo224wpy5mch3r",
+            "sig": "9T2WftDlkiHw7Ddia_WUvKcQfTazwzmM2Qtz5VnxcnHGILV1TL-H7iyNRR3fbLFWVXNCPDBO80ptzZQ0HiW8Cg"
+          }
+        ]
+      }
+    },
+    {
+      "name": "child narrows to this node",
+      "token": "agt2_QUcCAgAAATl7ImF1ZCI6WyJvcmc6b3JnX3ZlY3RvcnMiXSwiYnVkZ2V0Ijp7InRva2VucyI6MTAwMDAwLCJ1c2QiOjIuNX0sImNlaWxpbmciOiJjb21taXQiLCJkZXB0aCI6MiwiZXhwIjoxOTAwMDAwMDAwLCJpYXQiOjE4MDAwMDAwMDAsImlkIjoiZ3JfdmVjdG9ycm9vdDAwMDAwIiwiaXNzIjoib3JnOm9yZ192ZWN0b3JzIiwia2lkIjoiZWQyNTUxOTplYTYxNWU5ZDVkOGRhMGQzYmQ2MmU0MzM1N2E4ZTE3YyIsInN1YiI6eyJpZCI6ImNsYXVkZS1jb2RlIiwia2luZCI6ImFnZW50Iiwib3duZXIiOiJvd25lciJ9LCJ2IjoyLCJ3b3Jrc3BhY2VzIjpbImJpei1hIl19t59X8eg2e9DUPtv9jy9qdfYur1tBPhnAq_4pZ2XWeyH1PZZ-0OWSIfDsN2Jr9ZS8pxB9NrPDOYzZC3PlWfFyccYgtXVMv4fuLI1FHd9ssVZVc0I8ME7zSm3NlDQeJbwKAAAAu3siYXVkIjpbIm5vZGU6bm9kZV92ZWN0b3JzIl0sImNlaWxpbmciOiJyZWFkIiwiaWF0IjoxODAwMDAwMTAwLCJpZCI6ImdyX3ZlY3RvcmNoaWxkMDAwMCIsImtpbmQiOiJhZ2VudCIsImxhYmVsIjoiY29kZXgtd29ya2VyIiwibGFuZXMiOlsiYml6LWEvaW5zdGEiXSwicGFyZW50IjoiZ3JfdmVjdG9ycm9vdDAwMDAwIiwidiI6Mn2zsUJW-pQ2Hb6b6TMYVo2ULulskgeTezlrcsYFmhOWnH7MJd3ejEhzVoqrXQRCkV4g_Txf_MubAzHjo7UadSgXPDLkAdWtirCR4-BaJTy7gtzjojNkIRh9LB8VPCaVugkBEnPN-bniv90ZCB1x2Emqe9YYLhAt2I-mveqGxp-8krs",
+      "expect": "valid",
+      "decoded": {
+        "version": 2,
+        "sealed": false,
+        "blocks": [
+          {
+            "canonical": "{\"aud\":[\"org:org_vectors\"],\"budget\":{\"tokens\":100000,\"usd\":2.5},\"ceiling\":\"commit\",\"depth\":2,\"exp\":1900000000,\"iat\":1800000000,\"id\":\"gr_vectorroot00000\",\"iss\":\"org:org_vectors\",\"kid\":\"ed25519:ea615e9d5d8da0d3bd62e43357a8e17c\",\"sub\":{\"id\":\"claude-code\",\"kind\":\"agent\",\"owner\":\"owner\"},\"v\":2,\"workspaces\":[\"biz-a\"]}",
+            "rid": "rv_56uaqegox7zokqxpk2lo224wpy5mch3r",
+            "sig": "9T2WftDlkiHw7Ddia_WUvKcQfTazwzmM2Qtz5VnxcnHGILV1TL-H7iyNRR3fbLFWVXNCPDBO80ptzZQ0HiW8Cg"
+          },
+          {
+            "canonical": "{\"aud\":[\"node:node_vectors\"],\"ceiling\":\"read\",\"iat\":1800000100,\"id\":\"gr_vectorchild0000\",\"kind\":\"agent\",\"label\":\"codex-worker\",\"lanes\":[\"biz-a/insta\"],\"parent\":\"gr_vectorroot00000\",\"v\":2}",
+            "rid": "rv_indhrthgtty2i2y7yd7y2n4qb62zvoxv",
+            "sig": "fswl3d6MSHNWiqtdBEKRXiD9PF_8y5sDMeOjtRp1KBc8MuQB1a2KsJHj4FolPLuC3OOiM2QhGH0sHxU8JpW6CQ"
+          }
+        ]
+      }
+    },
+    {
+      "name": "child names another node",
+      "token": "agt2_QUcCAgAAATl7ImF1ZCI6WyJvcmc6b3JnX3ZlY3RvcnMiXSwiYnVkZ2V0Ijp7InRva2VucyI6MTAwMDAwLCJ1c2QiOjIuNX0sImNlaWxpbmciOiJjb21taXQiLCJkZXB0aCI6MiwiZXhwIjoxOTAwMDAwMDAwLCJpYXQiOjE4MDAwMDAwMDAsImlkIjoiZ3JfdmVjdG9ycm9vdDAwMDAwIiwiaXNzIjoib3JnOm9yZ192ZWN0b3JzIiwia2lkIjoiZWQyNTUxOTplYTYxNWU5ZDVkOGRhMGQzYmQ2MmU0MzM1N2E4ZTE3YyIsInN1YiI6eyJpZCI6ImNsYXVkZS1jb2RlIiwia2luZCI6ImFnZW50Iiwib3duZXIiOiJvd25lciJ9LCJ2IjoyLCJ3b3Jrc3BhY2VzIjpbImJpei1hIl19t59X8eg2e9DUPtv9jy9qdfYur1tBPhnAq_4pZ2XWeyH1PZZ-0OWSIfDsN2Jr9ZS8pxB9NrPDOYzZC3PlWfFyccYgtXVMv4fuLI1FHd9ssVZVc0I8ME7zSm3NlDQeJbwKAAAAuXsiYXVkIjpbIm5vZGU6bm9kZV9vdGhlciJdLCJjZWlsaW5nIjoicmVhZCIsImlhdCI6MTgwMDAwMDEwMCwiaWQiOiJncl92ZWN0b3JjaGlsZDAwMDAiLCJraW5kIjoiYWdlbnQiLCJsYWJlbCI6ImNvZGV4LXdvcmtlciIsImxhbmVzIjpbImJpei1hL2luc3RhIl0sInBhcmVudCI6ImdyX3ZlY3RvcnJvb3QwMDAwMCIsInYiOjJ9s7FCVvqUNh2-m-kzGFaNlC7pbJIHk3s5a3LGBZoTlpylFtCqOIk4b--m5h4gyXgsDPHBKA4IlqJqVHtLGwk_bBv5uLbnIG8kigz-4F-LREqB4N3sfhQv3hrDC8CWjBgJARJzzfm54r_dGQgdcdhJqnvWGC4QLdiPpr3qhsafvJK7",
+      "expect": "audience"
+    },
+    {
+      "name": "authority without a key id",
+      "token": "agt2_QUcCAQAAAQp7ImF1ZCI6WyJub2RlOm5vZGVfdmVjdG9ycyJdLCJidWRnZXQiOnsidG9rZW5zIjoxMDAwMDAsInVzZCI6Mi41fSwiY2VpbGluZyI6ImNvbW1pdCIsImRlcHRoIjoyLCJleHAiOjE5MDAwMDAwMDAsImlhdCI6MTgwMDAwMDAwMCwiaWQiOiJncl92ZWN0b3Jyb290MDAwMDAiLCJpc3MiOiJvcmc6b3JnX3ZlY3RvcnMiLCJzdWIiOnsiaWQiOiJjbGF1ZGUtY29kZSIsImtpbmQiOiJhZ2VudCIsIm93bmVyIjoib3duZXIifSwidiI6Miwid29ya3NwYWNlcyI6WyJiaXotYSJdfbefV_HoNnvQ1D7b_Y8vanX2Lq9bQT4ZwKv-KWdl1nshwIfa6zfs2ahleYfRPLYPZbDq6xJuXu7ykhWKeei4z91waXVTjnVwuETYZzbGMYAJ8OF_43drwMcWXew-KqB_CAF5fRaO0fbuzd4dw1dmpC3Yb-Zqzj4oZsz-_j9IX7Sy5Q",
+      "expect": "unknown_key"
+    }
+  ]
+}

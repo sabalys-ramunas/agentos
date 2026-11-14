@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Fixture upload</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header>
+    <h1>New post</h1>
+  </header>
+  <main>
+    <div role="dialog" aria-label="Create new post">
+      <!-- The common pattern: a visible button opens the chooser of a hidden file input. -->
+      <button type="button" id="pick">Select from computer</button>
+      <input type="file" id="photo" accept="image/*" hidden>
+      <p role="status" aria-label="Selected photo" id="photo-status">No photo selected</p>
+
+      <!-- A visible file input a person clicks directly. -->
+      <label for="attachment">Attachment</label>
+      <input type="file" id="attachment">
+      <p role="status" aria-label="Selected attachment" id="attachment-status">No attachment</p>
+
+      <!-- A hidden input with no visible control at all (set directly, like the OS dialog would). -->
+      <input type="file" id="bare" aria-label="Bare file" style="display: none">
+      <p role="status" aria-label="Selected bare file" id="bare-status">Nothing</p>
+    </div>
+  </main>
+  <script>
+    document.getElementById('pick').addEventListener('click', () => document.getElementById('photo').click());
+    const show = (inputId, statusId) => {
+      document.getElementById(inputId).addEventListener('change', (event) => {
+        const names = Array.from(event.target.files, (f) => f.name + ' (' + f.size + ' bytes)');
+        document.getElementById(statusId).textContent = names.length ? 'Selected ' + names.join(', ') : 'None';
+      });
+    };
+    show('photo', 'photo-status');
+    show('attachment', 'attachment-status');
+    show('bare', 'bare-status');
+  </script>
+</body>
+</html>

@@ -1,0 +1,164 @@
+"""One-shot commands inside a lane: capped, binary-safe output, exit code, duration, timeouts."""
+
+from __future__ import annotations
+
+import asyncio
+import base64
+import signal as _signal
+from typing import Any, BinaryIO
+
+from agentos.env.lanes import LaneRuntime, new_wid, wait_exit
+from agentos.env.models import ExecResult
+from agentos.env.sandbox import Workload
+
+LEFTOVER_GRACE_S = 0.5
+
+
+class Capture:
+    """Keeps the first quarter and the last three quarters of `cap` bytes; counts the rest."""
+
+    def __init__(self, cap: int):
+        self.head_cap = max(cap // 4, 1)
+        self.tail_cap = max(cap - self.head_cap, 1)
+        self.head = bytearray()
+        self.tail = bytearray()
+        self.total = 0
+
+    def feed(self, data: bytes) -> None:
+        self.total += len(data)
+        room = self.head_cap - len(self.head)
+        if room > 0:
+            self.head += data[:room]
+            data = data[room:]
+        if data:
+            self.tail += data
+            if len(self.tail) > self.tail_cap:
+                del self.tail[: len(self.tail) - self.tail_cap]
+
+    @property
+    def dropped(self) -> int:
+        return self.total - len(self.head) - len(self.tail)
+
+
+def _trim_utf8_end(b: bytes) -> tuple[bytes, bytes]:
+    """Split off an incomplete multi-byte sequence at the end."""
+    for i in range(1, min(4, len(b)) + 1):
+        c = b[-i]
+        if c & 0xC0 == 0x80:
+            continue
+        need = 2 if c & 0xE0 == 0xC0 else 3 if c & 0xF0 == 0xE0 else 4 if c & 0xF8 == 0xF0 else 1
+        return (b[:-i], b[-i:]) if need > i else (b, b"")
+    return b, b""
+
+
+def _trim_utf8_start(b: bytes) -> bytes:
+    i = 0
+    while i < min(3, len(b)) and b[i] & 0xC0 == 0x80:
+        i += 1
+    return b[i:]
+
+
+def encode_output(cap: Capture) -> tuple[str, str]:
+    """(text, encoding). Text with a marker when the middle was dropped; base64 for binary."""
+    head, tail = bytes(cap.head), bytes(cap.tail)
+    dropped = cap.dropped
+    h, h_rest = _trim_utf8_end(head) if (tail or dropped) else (head, b"")
+    t = _trim_utf8_start(tail) if dropped else tail
+    try:
+        if b"\x00" in head or b"\x00" in tail:
+            raise UnicodeDecodeError("utf-8", b"", 0, 1, "nul")
+        if not dropped:
+            text = (head + tail).decode("utf-8")
+        else:
+            lost = dropped + len(h_rest) + (len(tail) - len(t))
+            text = (h.decode("utf-8") + f"\n[agentos: {lost} bytes truncated]\n" + t.decode("utf-8"))
+        return text, "utf-8"
+    except UnicodeDecodeError:
+        return base64.b64encode(head + tail).decode(), "base64"
+
+
+async def _pump(stream: asyncio.StreamReader | None, cap: Capture) -> None:
+    if stream is None:
+        return
+    while True:
+        data = await stream.read(65536)
+        if not data:
+            return
+        cap.feed(data)
+
+
+def exit_status(rt: LaneRuntime, rc: int | None) -> tuple[int | None, str | None]:
+    """(exit_code, signal name) of a finished workload. A signal death has no exit code; bubblewrap
+    reports a payload killed by a signal as 128+N, which keeps its exit code and names the signal."""
+    if rc is not None and rc < 0:
+        try:
+            return None, _signal.Signals(-rc).name
+        except ValueError:
+            return None, f"signal {-rc}"
+    if rc is not None and rc > 128 and rt.lane.isolated:
+        try:
+            return rc, _signal.Signals(rc - 128).name
+        except ValueError:
+            pass
+    return rc, None
+
+
+async def run(rt: LaneRuntime, argv: list[str], *, timeout_s: float, stdin: bytes | None = None,
+              max_bytes: int = 65536, env: dict[str, str] | None = None, install: bool = False,
+              cwd: str | None = None, kind: str = "exec", stdin_file: BinaryIO | None = None) -> ExecResult:
+    """`stdin_file` (an open file) is the workload's stdin as it is, for input too large to hold in
+    memory (a sync's tar archive); `stdin` is fed from memory."""
+    loop = asyncio.get_running_loop()
+    oom_before = rt.stat().get("oom_kills", 0)
+    wl = Workload(new_wid("i" if install else "x"), argv, rt.base_env(env), cwd=cwd, install=install)
+    start = loop.time()
+    stdin_arg: Any = stdin_file if stdin_file is not None else (
+        asyncio.subprocess.PIPE if stdin is not None else asyncio.subprocess.DEVNULL)
+    sp = await rt.spawn(wl, kind=kind, stdin=stdin_arg, stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.PIPE)
+    out, err = Capture(max_bytes), Capture(max_bytes)
+    proc = sp.proc
+
+    async def feed() -> None:
+        if stdin is None or proc.stdin is None:
+            return
+        try:
+            proc.stdin.write(stdin)
+            await proc.stdin.drain()
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+        finally:
+            try:
+                proc.stdin.close()
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+
+    readers = asyncio.gather(_pump(proc.stdout, out), _pump(proc.stderr, err), feed())
+    timed_out = False
+    try:
+        try:
+            await wait_exit(proc, timeout_s)
+        except TimeoutError:
+            timed_out = True
+            await rt.terminate(sp, grace=2.0)
+        # background children may hold the pipes open: give them a moment, then end the workload
+        try:
+            await asyncio.wait_for(asyncio.shield(readers), LEFTOVER_GRACE_S)
+        except TimeoutError:
+            await rt.kill(sp)
+            try:
+                await asyncio.wait_for(readers, 2)
+            except TimeoutError:
+                readers.cancel()
+    finally:
+        await rt.release(sp)
+    duration = loop.time() - start
+    exit_code, sig_name = exit_status(rt, proc.returncode)
+    oom_after = rt.stat().get("oom_kills", 0)
+    so, so_enc = encode_output(out)
+    se, se_enc = encode_output(err)
+    return ExecResult(
+        exit_code=exit_code, signal=sig_name, stdout=so, stderr=se, stdout_encoding=so_enc,
+        stderr_encoding=se_enc, stdout_bytes=out.total, stderr_bytes=err.total,
+        truncated=bool(out.dropped or err.dropped), timed_out=timed_out,
+        oom_killed=oom_after > oom_before, duration_s=round(duration, 3))

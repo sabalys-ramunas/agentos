@@ -1,0 +1,54 @@
+/* The fixture design system as a page declares it: primitives and light semantics on :root,
+   dark semantics on [data-theme="dark"]. Names follow the DTCG paths in core.json. */
+:root {
+  --color-blue-500: #3b82f6;
+  --color-blue-700: #1d4ed8;
+  --color-gray-50: #f9fafb;
+  --color-gray-200: #e5e7eb;
+  --color-gray-600: #4b5563;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
+  --color-white: #ffffff;
+  --color-red-500: #ef4444;
+  --color-green-500: #22c55e;
+  --color-shadow: rgb(0 0 0 / 0.1);
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 0.75rem;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-full: 9999px;
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 20px;
+  --font-size-xl: 24px;
+  --font-family-sans: Arial, Helvetica, sans-serif;
+  --font-family-mono: "Courier New", monospace;
+  --font-weight-regular: 400;
+  --font-weight-bold: 700;
+  --font-line-height-normal: 1.5;
+  --font-line-height-tight: 1.25;
+  --border-width-thin: 1px;
+  --border-width-thick: 2px;
+  --shadow-sm: 0 1px 2px 0 var(--color-shadow);
+
+  --color-text-primary: var(--color-gray-900);
+  --color-text-muted: var(--color-gray-600);
+  --color-bg-page: var(--color-white);
+  --color-bg-surface: var(--color-gray-50);
+  --color-border-default: var(--color-gray-200);
+  --color-action-primary: var(--color-blue-500);
+  --color-action-on-primary: var(--color-white);
+  --color-danger: var(--color-red-500);
+}
+
+[data-theme="dark"] {
+  --color-text-primary: var(--color-gray-50);
+  --color-text-muted: var(--color-gray-200);
+  --color-bg-page: var(--color-gray-900);
+  --color-bg-surface: var(--color-gray-800);
+  --color-border-default: var(--color-gray-600);
+}

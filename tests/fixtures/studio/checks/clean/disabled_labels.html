@@ -1,0 +1,9 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="/base.css"><title>Disabled controls</title><style>
+.dis { color: #b3b3b3; }
+.switch { display: inline-flex; gap: 8px; align-items: center; }
+.switch button { width: 36px; min-height: 24px; height: 24px; padding: 0; }
+</style></head>
+<body><p><label class="dis"><input type="checkbox" disabled checked aria-describedby="why"> Record video</label> <span id="why">Needs a browser lane on this computer.</span></p>
+<p class="switch"><button type="button" role="switch" aria-checked="false" aria-disabled="true" aria-labelledby="sw-push"></button><span id="sw-push" class="dis">Run on push</span></p>
+<p><label for="mode" class="dis">Mode</label> <select id="mode" disabled><option>Fast</option></select></p>
+</body></html>

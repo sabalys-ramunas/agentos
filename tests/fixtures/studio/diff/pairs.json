@@ -1,0 +1,48 @@
+{
+  "_about": "Ground truth for the studio diff. Each pair is base.html before and base.html with the replacements after: one planted change. `cause` is the first change of the 1280 px light screen; `moved` its moved_with; `line` text its sentence must hold. Counts are the elements in base.html below or beside the change: wrap moves intro, section, 3 cards with their heading, paragraph and button each, the photo, the footer and its paragraph (17).",
+  "wrap": {
+    "replace": [["<h1>Welcome back</h1>", "<h1>Welcome back to the studio, where every screen is measured</h1>"]],
+    "cause": {"kind": "text", "key_starts": "main > heading \"Welcome back to the studio"},
+    "moved": 17,
+    "line": ["Heading 'Welcome back' text changed to 'Welcome back to the studio, where every…'", "wrapped from 1 to 2 lines (+40 px)", "which moved 17 elements down by 40 px"]
+  },
+  "color": {
+    "replace": [["<div class=\"card\" data-testid=\"plan-pro\"><h2>Pro</h2><p>For small teams.</p><button class=\"save\">", "<div class=\"card\" data-testid=\"plan-pro\"><h2>Pro</h2><p>For small teams.</p><button class=\"save\" style=\"background: #1d4ed8\">"]],
+    "cause": {"kind": "restyled", "key": "testid=plan-pro > button \"Save\""},
+    "moved": 0,
+    "line": ["Button 'Save' background-color color.blue.600 -> color.blue.700 (#2563eb -> #1d4ed8)"]
+  },
+  "removed": {
+    "replace": [["<p class=\"intro\">Pick the plan that fits the work.</p>", ""]],
+    "cause": {"kind": "removed", "key_starts": "main > p[1]"},
+    "moved": 16,
+    "line": ["Removed Paragraph 'Pick the plan that fits the work.'", "which moved 16 elements up by 48 px"]
+  },
+  "banner": {
+    "replace": [["<!--banner-->", "<div class=\"banner\">Sale ends Friday</div>"]],
+    "cause": {"kind": "added", "key_starts": "div[1]"},
+    "moved": 26,
+    "line": ["Added Box 'Sale ends Friday' (1280x44 at 0,0)", "which moved 26 elements down by 44 px"]
+  },
+  "padding": {
+    "replace": [["<div class=\"card\" data-testid=\"plan-free\">", "<div class=\"card\" data-testid=\"plan-free\" style=\"padding: 24px\">"]],
+    "cause": {"kind": "restyled", "key": "testid=plan-free"},
+    "moved": 6,
+    "line": ["Box (testid=plan-free) padding space.4 -> space.6 (16px -> 24px), 16 px taller", "which moved 6 elements"]
+  },
+  "image": {
+    "replace": [["src=\"/photo-a.svg\"", "src=\"/photo-b.svg\""]],
+    "cause": null,
+    "moved": 0,
+    "line": ["Pixels changed in a", "inside Image 'Team photo', and nothing in the layout, styles or text explains it"]
+  },
+  "reflow": {
+    "replace": [["<a href=\"/pricing\">Pricing</a>", "<a href=\"/pricing\">Plans and pricing</a>"]],
+    "cause": {"kind": "text", "key": "banner > navigation \"Main\" > link \"Plans and pricing\""},
+    "moved": 2,
+    "line": ["Link 'Pricing' text changed to 'Plans and pricing', ", "px wider, which moved 2 elements right by"]
+  },
+  "noise": {
+    "replace": [["<!--noise-->", "<p>Updated <span class=\"clock\"></span></p><p>Request <code class=\"rid\"></code></p><script>document.querySelector('.clock').textContent = new Date().toISOString().slice(11, 23); document.querySelector('.rid').textContent = 'req-' + Math.random().toString(36).slice(2, 10);</script>"]]
+  }
+}

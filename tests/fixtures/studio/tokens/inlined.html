@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<title>Inlined</title>
+<link rel="stylesheet" href="ds.css">
+<link rel="stylesheet" href="app-inlined.css">
+<style>
+  /* Every off-system value on this page is planted here and listed in truth.json. */
+  #p-look-color { color: #3b82f6; }
+  #p-near-color { background-color: #3f86f8; }
+  #p-off-color { color: #e11d48; }
+  #p-look-space { padding: 16px; }
+  #p-near-space { padding: 13px; }
+  #p-off-space { padding: 20px; }
+  #p-off-radius { border-radius: 6px; }
+  #p-near-fs { font-size: 15px; }
+  #p-off-fs { font-size: 18px; }
+  #p-off-weight { font-weight: 500; }
+  #p-off-family { font-family: Georgia, serif; }
+  #p-off-lh { line-height: 1.8; }
+  #p-off-shadow { box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); }
+  #p-off-border { border: 5px solid #e5e7eb; }
+  #p-pseudo::before { content: ""; display: inline-block; width: 8px; height: 8px; background-color: #10b981; }
+  #p-hidden { color: #111827; }
+</style>
+<script src="badge-inlined.js" defer></script>
+</head>
+<body>
+<main class="wrap">
+  <h1 class="title">Billing</h1>
+  <p class="lead">Your plan and invoices, with <span class="strong">one alias</span> in the middle.</p>
+  <div class="ds-card">
+    <button class="btn" data-ds="button">Save</button>
+    <a class="link" data-ds="link" href="#docs">Docs</a>
+    <span class="code">plan_42</span>
+    <span><span class="pill">3</span></span>
+    <span><span id="p-near-color" class="tag">Almost blue</span></span>
+  </div>
+  <div class="spacer"></div>
+  <section class="plants">
+    <p class="plant" id="p-look-color">Blue, written by hand</p>
+    <p class="plant" id="p-off-color">Rose, not a token</p>
+    <p class="plant" id="p-look-space">16px of padding, by hand</p>
+    <p class="plant" id="p-near-space">13px of padding</p>
+    <p class="plant" id="p-off-space">20px of padding</p>
+    <p class="plant" id="p-off-radius">6px corners</p>
+    <p class="plant" id="p-near-fs">15px text</p>
+    <p class="plant" id="p-off-fs">18px text</p>
+    <p class="plant" id="p-off-weight">Weight 500</p>
+    <p class="plant" id="p-off-family">Georgia</p>
+    <p class="plant" id="p-off-lh">Line height 1.8</p>
+    <p class="plant" id="p-off-shadow">A shadow of its own</p>
+    <p class="plant" id="p-off-border">A 5px border</p>
+    <p class="plant" id="p-pseudo">A dot before</p>
+    <p class="plant">Text with <span id="p-hidden">the same dark, by hand</span> inside.</p>
+    <h2 class="sub" id="p-ua">A heading with the browser's margins</h2>
+    <div class="fake-btn" id="p-hand" role="button" tabindex="0">Hand-built button</div>
+  </section>
+  <x-badge planted></x-badge>
+</main>
+</body>
+</html>

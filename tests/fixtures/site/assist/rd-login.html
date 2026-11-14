@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Reddit - Log in</title>
+<style>body{font:15px sans-serif;margin:40px} input{display:block;margin:8px 0;width:280px;height:32px}</style></head>
+<body>
+<main>
+  <h1>Log In</h1>
+  <p>By continuing, you agree to our User Agreement and acknowledge our Privacy Policy.</p>
+  <div role="button" tabindex="0" data-provider="google" id="google-sso" style="border:1px solid #888;padding:8px;width:260px;cursor:pointer"
+       onclick="window.open('https://accounts.google.com/o/oauth2/v2/auth?client_id=reddit', 'google', 'width=520,height=640')">Continue with Google</div>
+  <form method="post" action="/login/">
+    <input name="username" type="text" autocomplete="username" aria-label="Email or username">
+    <input name="password" type="password" autocomplete="current-password" aria-label="Password">
+    <button type="submit">Log In</button>
+  </form>
+  <script>
+    // The site moves on once the Google window closes (as Reddit does after its OAuth callback).
+    const watch = setInterval(() => { if (document.cookie.includes('rd_done=1')) { clearInterval(watch); location.assign('/'); } }, 300);
+  </script>
+</main>
+</body></html>

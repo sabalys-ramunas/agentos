@@ -1,0 +1,13 @@
+<!-- SYNTHESIZED, NOT CAPTURED. Written by hand on 2026-11-05 from the notes of the 2026-11-04 canary
+     and the structure the operation's locators assume. No real page was loaded. A canary on a throwaway account
+     replaces this with the captured page (text replaced) before the operation is marked verified. -->
+<!-- https://www.reddit.com/r/test/ before joining: the header's first button in main is Join -->
+<main>
+  <shreddit-subreddit-header name="test">
+    <h1>r/test</h1>
+    <button>Join</button>
+  </shreddit-subreddit-header>
+</main>
+<!-- after Join: POST /svc/shreddit/graphql, operation UpdateSubredditSubscriptions
+     (variables.input.inputs[].{subredditId, subscribeState}); the run's request must say subscribeState SUBSCRIBED
+     (a leave is refused by the egress guard). After a reload the button reads Joined -->

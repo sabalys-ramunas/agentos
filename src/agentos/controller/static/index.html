@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>agentos controller</title>
+  <link rel="stylesheet" href="/assets/style.css">
+  <script type="module" src="/assets/controller.js"></script>
+</head>
+<body>
+  <header>
+    <h1>agentos</h1>
+    <span class="muted" id="org"></span>
+    <button id="signout" class="hidden">Sign out</button>
+  </header>
+  <main>
+    <section id="signin" class="hidden">
+      <h2>Sign in</h2>
+      <p>Run <code>agentos controller login</code> on the controller and open the link it prints.</p>
+    </section>
+    <section id="approvals">
+      <h2>Needs you</h2>
+      <div id="approval-list"></div>
+    </section>
+    <section>
+      <h2>Nodes</h2>
+      <div id="node-list"></div>
+      <div class="card">
+        <button id="add-node" class="primary">Add a node</button>
+        <pre id="join" class="hidden mono"></pre>
+      </div>
+    </section>
+    <section>
+      <h2>Agents</h2>
+      <p class="muted">Agents connect to <code id="mcp-url"></code> with a token.</p>
+      <div id="grant-list"></div>
+      <div class="card">
+        <button id="add-agent">New agent token</button>
+        <pre id="agent-token" class="hidden mono"></pre>
+      </div>
+    </section>
+    <section>
+      <h2>Activity</h2>
+      <div id="activity"></div>
+    </section>
+  </main>
+</body>
+</html>

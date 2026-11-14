@@ -1,0 +1,369 @@
+/*
+ * Email. Two pictures do most of the talking: the route a password takes, and the wires a mailbox
+ * keeps open. Wires and marks wear colour, words stay in text tokens. Pink is the computer acting
+ * right now, and nothing else. A hatch is what was left out, as it is on Site APIs.
+ */
+
+/* The route. */
+.route-wire {
+  fill: none;
+  stroke: var(--board-wire-strong);
+  stroke-width: 1;
+  transition: stroke var(--duration-base) var(--ease), opacity var(--duration-base) var(--ease);
+}
+.route-wire[data-kind='quiet'] {
+  stroke-dasharray: 2 4;
+}
+.route-wire[data-kind='yes'] {
+  stroke: var(--ok-dot);
+  stroke-width: 1.5;
+}
+.route-wire[data-kind='no'] {
+  stroke: var(--stuck-dot);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
+}
+.route-wire[data-kind='stopped'] {
+  stroke: var(--wait-dot);
+  stroke-width: 1.5;
+  stroke-dasharray: 2 4;
+}
+.route-run {
+  fill: none;
+  stroke: var(--current);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 0.16 1;
+  animation: route-run 1100ms var(--ease) infinite;
+}
+@keyframes route-run {
+  from { stroke-dashoffset: 1.16; }
+  to { stroke-dashoffset: 0; }
+}
+.route-node {
+  fill: var(--background);
+  stroke: var(--board-line-strong);
+  stroke-width: 1;
+  transition: stroke var(--duration-base) var(--ease);
+}
+.route-node[data-lit] {
+  stroke: var(--foreground);
+}
+.route-cloud {
+  stroke: var(--board-line-strong);
+  stroke-dasharray: 3 3;
+  fill: url(#route-hatch);
+}
+.route-label {
+  fill: var(--foreground);
+  font-size: 12px;
+  font-weight: 500;
+  text-anchor: middle;
+}
+.route-note {
+  fill: var(--foreground-subtle);
+  font-size: 11px;
+  text-anchor: middle;
+}
+/* The password, on its way. Its place is a transform, so it moves and never jumps. */
+.route-key {
+  transition: transform 700ms var(--ease-out), opacity var(--duration-base) var(--ease);
+}
+
+/* The steps down the left of Connect. */
+.spine {
+  position: relative;
+}
+.spine::before {
+  content: '';
+  position: absolute;
+  inset-block: 12px;
+  left: 11.5px;
+  width: 1px;
+  background: var(--border);
+}
+.spine-step {
+  position: relative;
+  padding-left: 40px;
+}
+.spine-mark {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--background);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+  color: var(--foreground-subtle);
+  font-size: 12px;
+  font-weight: 500;
+}
+.spine-step[data-now] > .spine-mark {
+  background: var(--foreground);
+  box-shadow: none;
+  color: var(--background);
+}
+.spine-step[data-done] > .spine-mark {
+  box-shadow: none;
+}
+@keyframes spine-rise {
+  from { opacity: 0; transform: translateY(6px); }
+}
+.spine-rise {
+  animation: spine-rise 320ms var(--ease-out) both;
+}
+
+/* The address, as the one thing on the page. */
+.address-field {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--border-strong);
+  background: transparent;
+  padding: 8px 0;
+  font-size: 28px;
+  line-height: 36px;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+  outline: none;
+  transition: border-color var(--duration-base) var(--ease);
+}
+.address-field:focus {
+  border-bottom-color: var(--foreground);
+}
+.address-field::placeholder {
+  color: var(--foreground-disabled);
+}
+
+/* A tick gauge: one tick for a slice of the day's limit. */
+.gauge {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+}
+.gauge-tick {
+  flex: 1 1 0;
+  min-width: 2px;
+  height: 14px;
+  border-radius: 1px;
+  background: var(--fill-2);
+  transition: background-color var(--duration-base) var(--ease), box-shadow var(--duration-base) var(--ease);
+}
+.gauge-tick[data-kind='sent'] {
+  background: var(--foreground);
+}
+.gauge-tick[data-kind='sent'][data-tone='high'] {
+  background: var(--mark-partial);
+}
+.gauge-tick[data-kind='sent'][data-tone='top'] {
+  background: var(--mark-failed);
+}
+.gauge-tick[data-kind='planned'] {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--control);
+}
+
+/* A mailbox: mail comes in along one wire and goes out along the other. */
+.post-wire {
+  position: relative;
+  height: 24px;
+}
+.post-wire::before {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  top: 50%;
+  height: 1px;
+  background: var(--board-wire-strong);
+}
+.post-wire[data-broken]::before {
+  height: 0;
+  background: none;
+  border-top: 1.5px dashed var(--stuck-dot);
+}
+.post-wire[data-quiet]::before {
+  height: 0;
+  background: none;
+  border-top: 1px dotted var(--board-wire-strong);
+}
+.post-tick {
+  position: absolute;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  border-radius: 999px;
+  background: var(--control);
+  box-shadow: 0 0 0 2px var(--background-subtle);
+}
+.post-tick[data-kind='reply'] {
+  background: var(--foreground);
+}
+.post-tick[data-kind='unsubscribe'] {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--control), 0 0 0 2px var(--background-subtle);
+}
+
+/* Something a stranger wrote: its own edge, so it can never pass for agentos's own words. */
+.stranger {
+  position: relative;
+  padding-left: 20px;
+}
+.stranger::before {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 6px;
+  border-radius: 2px;
+  background-image: repeating-linear-gradient(135deg, var(--board-wire-strong) 0 2px, transparent 2px 5px);
+}
+.left-out {
+  background-image: repeating-linear-gradient(135deg, transparent 0 5px, var(--fill-3) 5px 6px);
+}
+
+/* The sheet of leads. */
+.sheet-tile {
+  position: relative;
+  min-width: 0;
+  text-align: left;
+  background: var(--background);
+  box-shadow: 0 0 0 1px var(--border);
+  transition: background-color var(--duration-fast) var(--ease), opacity var(--duration-base) var(--ease);
+  user-select: none;
+}
+.sheet-tile:hover {
+  background: var(--background-subtle);
+}
+.sheet-tile[data-out] {
+  background-color: var(--background-subtle);
+  background-image: repeating-linear-gradient(135deg, transparent 0 5px, var(--fill-2) 5px 6px);
+}
+.sheet-tile[data-out] .sheet-name {
+  text-decoration: line-through;
+  text-decoration-color: var(--foreground-subtle);
+  color: var(--foreground-subtle);
+}
+.sheet-tile[data-out] .sheet-sub {
+  opacity: 0.55;
+}
+.sheet-tile[data-dim] {
+  opacity: 0.32;
+}
+.sheet-tile[data-look]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px var(--wait-dot);
+}
+.sheet-tile[data-never] {
+  background-color: var(--background-subtle);
+  background-image: repeating-linear-gradient(135deg, transparent 0 5px, var(--fill-3) 5px 6px);
+}
+/* The batch at a glance, on the desk: the tiles fall into these when they are taken. */
+.desk-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--foreground);
+  transition: background-color var(--duration-base) var(--ease), box-shadow var(--duration-base) var(--ease), transform var(--duration-fast) var(--ease);
+}
+.desk-dot[data-look] {
+  background: var(--wait-dot);
+}
+.desk-dot[data-out] {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--control);
+}
+.desk-dot[data-never] {
+  background: var(--fill-3);
+}
+.desk-dot[data-point] {
+  transform: scale(1.7);
+}
+
+/* The send plan: one dot for one person, in a day that has room for so many. */
+.plan-dot {
+  position: absolute;
+  border-radius: 999px;
+  transition: transform 260ms var(--ease-out), background-color var(--duration-base) var(--ease), box-shadow var(--duration-base) var(--ease);
+}
+.plan-dot[data-kind='first'] {
+  background: var(--mark-fresh);
+}
+.plan-dot[data-kind='sent'] {
+  background: var(--foreground);
+}
+.plan-dot[data-kind='follow'] {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--mark-fresh);
+}
+.plan-dot[data-kind='other'] {
+  background: var(--mark-cached);
+}
+@keyframes plan-arrive {
+  from { opacity: 0; }
+}
+.plan-arrive {
+  animation: plan-arrive 320ms var(--ease-out) both;
+}
+.plan-slider {
+  width: 100%;
+  accent-color: var(--foreground);
+}
+
+/* The chase: one line for one person, cut short by an answer. */
+.chase-row {
+  position: relative;
+  height: 8px;
+  transition: opacity var(--duration-fast) var(--ease);
+}
+.chase-line {
+  position: absolute;
+  top: 3px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--board-wire-strong);
+}
+.chase-row[data-lit] .chase-line {
+  background: var(--foreground);
+}
+.chase-dim .chase-row:not([data-lit]) {
+  opacity: 0.25;
+}
+.chase-end {
+  position: absolute;
+  top: 0;
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  border-radius: 999px;
+}
+.chase-end[data-kind='replied'] {
+  background: var(--ok-dot);
+}
+.chase-end[data-kind='unsubscribed'] {
+  background: var(--background);
+  box-shadow: inset 0 0 0 1.5px var(--foreground-subtle);
+}
+.chase-end[data-kind='followed'] {
+  background: var(--foreground);
+  border-radius: 2px;
+  transform: rotate(45deg) scale(0.8);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .route-run {
+    animation: none;
+    stroke-dasharray: none;
+    opacity: 0.7;
+  }
+  .route-key,
+  .sheet-tile,
+  .plan-dot {
+    transition: none;
+  }
+}

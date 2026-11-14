@@ -1,0 +1,23 @@
+id = "feed-like-icon"
+title = "Like a post whose Like label became an icon"
+goal = "Like the post by @mira about her tomatoes."
+tags = ["feed", "mutation"]
+allowed_effects = ["like:post:mira-tomatoes"]
+
+[[mutation]]
+kind = "label_to_icon"
+node = "like"
+
+[[check]]
+kind = "liked"
+post = "mira-tomatoes"
+
+[[replay]]
+do = "click"
+locator = { role = "button", name = "Like", within = { role = "article", name = "@mira.*tomatoes", match = "regex" } }
+
+[[replay]]
+do = "expect"
+locator = { role = "button", name = "Like", within = { role = "article", name = "@mira.*tomatoes", match = "regex" } }
+attr = "aria-pressed"
+value = "true"

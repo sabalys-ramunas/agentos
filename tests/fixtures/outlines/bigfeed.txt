@@ -1,0 +1,561 @@
+- generic [active]:
+  - banner:
+    - heading "Big feed" [level=1]
+    - navigation "Pages":
+      - link "Home" [ref=f8e5] [cursor=pointer]:
+        - /url: /index.html
+      - link "Form" [ref=f8e6] [cursor=pointer]:
+        - /url: /form.html
+      - link "Help" [ref=f8e7] [cursor=pointer]:
+        - /url: /help.html
+    - searchbox "Search the feed" [ref=f8e8]
+  - complementary "Topics":
+    - list:
+      - listitem:
+        - 'link "Topic 1: as engine" [ref=f8e12] [cursor=pointer]':
+          - /url: /index.html#topic-0
+      - listitem:
+        - 'link "Topic 2: that cards" [ref=f8e14] [cursor=pointer]':
+          - /url: /index.html#topic-1
+      - listitem:
+        - 'link "Topic 3: become where" [ref=f8e16] [cursor=pointer]':
+          - /url: /index.html#topic-2
+      - listitem:
+        - 'link "Topic 4: a engine" [ref=f8e18] [cursor=pointer]':
+          - /url: /index.html#topic-3
+      - listitem:
+        - 'link "Topic 5: a become" [ref=f8e20] [cursor=pointer]':
+          - /url: /index.html#topic-4
+      - listitem:
+        - 'link "Topic 6: flowers algebraic" [ref=f8e22] [cursor=pointer]':
+          - /url: /index.html#topic-5
+      - listitem:
+        - 'link "Topic 7: leaves gears" [ref=f8e24] [cursor=pointer]':
+          - /url: /index.html#topic-6
+      - listitem:
+        - 'link "Topic 8: numbers cards" [ref=f8e26] [cursor=pointer]':
+          - /url: /index.html#topic-7
+      - listitem:
+        - 'link "Topic 9: machines in" [ref=f8e28] [cursor=pointer]':
+          - /url: /index.html#topic-8
+      - listitem:
+        - 'link "Topic 10: where weaves" [ref=f8e30] [cursor=pointer]':
+          - /url: /index.html#topic-9
+      - listitem:
+        - 'link "Topic 11: in while" [ref=f8e32] [cursor=pointer]':
+          - /url: /index.html#topic-10
+      - listitem:
+        - 'link "Topic 12: weaves and" [ref=f8e34] [cursor=pointer]':
+          - /url: /index.html#topic-11
+  - main:
+    - article "Post by Ada Lovelace":
+      - heading "Ada Lovelace" [level=2]
+      - paragraph: A weaves cards while engine become and algebraic a in in and engine. And leaves engine a engine cards machines patterns weaves while patterns cards algebraic and weaves cards become.
+      - generic:
+        - button "Like 334" [ref=f8e40]
+        - button "Comments" [ref=f8e41]
+        - button "Share" [ref=f8e42]
+        - button [ref=f8e43] (hint: more options)
+      - region "Comments on the post by Ada Lovelace":
+        - article "Comment by Alan Turing":
+          - paragraph: Alan Turing Leaves in engine weaves become cards algebraic and.
+          - button "Like 37" [ref=f8e49]
+          - button "Reply" [ref=f8e50]
+        - article "Comment by Katherine Johnson":
+          - paragraph: Katherine Johnson Think through as engine weaves while.
+          - button "Like 26" [ref=f8e53]
+          - button "Reply" [ref=f8e54]
+    - article "Post by Charles Babbage":
+      - heading "Charles Babbage" [level=2]
+      - paragraph: And think numbers and weaves a ideas just quiet where a weaves and weaves through dance that flowers room. Weaves gears weaves algebraic through while just where flowers patterns think dance while engine a.
+      - generic:
+        - button "Like 701" [ref=f8e59]
+        - button "Comments" [ref=f8e60]
+        - button "Share" [ref=f8e61]
+        - button [ref=f8e62] (hint: more options)
+      - region "Comments on the post by Charles Babbage":
+        - article "Comment by Katherine Johnson":
+          - paragraph: Katherine Johnson Algebraic and and in as and algebraic cards.
+          - button "Like 4" [ref=f8e68]
+          - button "Reply" [ref=f8e69]
+        - article "Comment by Edsger Dijkstra":
+          - paragraph: Edsger Dijkstra Gears as dance a cards while.
+          - button "Like 20" [ref=f8e72]
+          - button "Reply" [ref=f8e73]
+    - article "Post by Grace Hopper":
+      - heading "Grace Hopper" [level=2]
+      - paragraph: Quiet leaves that a and the numbers and just gears algebraic dance engine as where weaves. Room a leaves leaves think machines dance weaves just numbers.
+      - generic:
+        - button "Like 82" [ref=f8e78]
+        - button "Comments" [ref=f8e79]
+        - button "Share" [ref=f8e80]
+        - button [ref=f8e81] (hint: more options)
+      - region "Comments on the post by Grace Hopper":
+        - article "Comment by Edsger Dijkstra":
+          - paragraph: Edsger Dijkstra And ideas that become flowers flowers quiet and gears dance and ideas numbers weaves.
+          - button "Like 5" [ref=f8e87]
+          - button "Reply" [ref=f8e88]
+        - article "Comment by Barbara Liskov":
+          - paragraph: Barbara Liskov Dance quiet a weaves engine room quiet weaves in and.
+          - button "Like 28" [ref=f8e91]
+          - button "Reply" [ref=f8e92]
+    - article "Post by Alan Turing":
+      - heading "Alan Turing" [level=2]
+      - paragraph: Loom weaves the patterns while cards and gears and flowers patterns quiet machines through. In a room engine numbers that machines where machines a ideas cards leaves leaves leaves leaves algebraic.
+      - generic:
+        - button "Like 414" [ref=f8e97]
+        - button "Comments" [ref=f8e98]
+        - button "Share" [ref=f8e99]
+        - button [ref=f8e100] (hint: more options)
+      - region "Comments on the post by Alan Turing":
+        - article "Comment by Barbara Liskov":
+          - paragraph: Barbara Liskov Loom that patterns become while machines cards loom quiet while and a that leaves.
+          - button "Like 14" [ref=f8e106]
+          - button "Reply" [ref=f8e107]
+        - article "Comment by Donald Knuth":
+          - paragraph: Donald Knuth Weaves just patterns a a a the dance.
+          - button "Like 37" [ref=f8e110]
+          - button "Reply" [ref=f8e111]
+    - article "Post by Katherine Johnson":
+      - heading "Katherine Johnson" [level=2]
+      - paragraph: Patterns in loom and gears and dance algebraic algebraic machines dance numbers dance dance weaves weaves patterns algebraic. Room loom dance become quiet just through the as through and patterns quiet.
+      - generic:
+        - button "Like 496" [ref=f8e116]
+        - button "Comments" [ref=f8e117]
+        - button "Share" [ref=f8e118]
+        - button [ref=f8e119] (hint: more options)
+      - region "Comments on the post by Katherine Johnson":
+        - article "Comment by Donald Knuth":
+          - paragraph: Donald Knuth Engine as weaves as numbers just algebraic flowers gears engine algebraic the.
+          - button "Like 36" [ref=f8e125]
+          - button "Reply" [ref=f8e126]
+        - article "Comment by Margaret Hamilton":
+          - paragraph: Margaret Hamilton Cards algebraic and gears the weaves machines as.
+          - button "Like 39" [ref=f8e129]
+          - button "Reply" [ref=f8e130]
+    - article "Post by Edsger Dijkstra":
+      - heading "Edsger Dijkstra" [level=2]
+      - paragraph: A become leaves room ideas a as through dance and room the the ideas loom dance loom as quiet gears and numbers ideas think. And weaves a algebraic a dance as flowers as dance gears that gears.
+      - generic:
+        - button "Like 559" [ref=f8e135]
+        - button "Comments" [ref=f8e136]
+        - button "Share" [ref=f8e137]
+        - button [ref=f8e138] (hint: more options)
+      - region "Comments on the post by Edsger Dijkstra":
+        - article "Comment by Margaret Hamilton":
+          - paragraph: Margaret Hamilton Where through weaves in machines weaves.
+          - button "Like 16" [ref=f8e144]
+          - button "Reply" [ref=f8e145]
+        - article "Comment by John von Neumann":
+          - paragraph: John von Neumann And think just and where a cards cards where through flowers in a gears.
+          - button "Like 12" [ref=f8e148]
+          - button "Reply" [ref=f8e149]
+    - article "Post by Barbara Liskov":
+      - heading "Barbara Liskov" [level=2]
+      - paragraph: Ideas in flowers weaves ideas room leaves numbers leaves room weaves room just just patterns the patterns and. Ideas in patterns gears become gears dance a think and patterns cards cards patterns the.
+      - generic:
+        - button "Like 863" [ref=f8e154]
+        - button "Comments" [ref=f8e155]
+        - button "Share" [ref=f8e156]
+        - button [ref=f8e157] (hint: more options)
+      - region "Comments on the post by Barbara Liskov":
+        - article "Comment by John von Neumann":
+          - paragraph: John von Neumann Dance think in and ideas in.
+          - button "Like 5" [ref=f8e163]
+          - button "Reply" [ref=f8e164]
+        - article "Comment by Hedy Lamarr":
+          - paragraph: Hedy Lamarr Think leaves ideas quiet where as dance.
+          - button "Like 11" [ref=f8e167]
+          - button "Reply" [ref=f8e168]
+    - article "Post by Donald Knuth":
+      - heading "Donald Knuth" [level=2]
+      - paragraph: Loom cards while become patterns engine think room and that numbers a and become that through while. Patterns cards patterns through through the machines numbers where just gears the where ideas patterns just.
+      - generic:
+        - button "Like 17" [ref=f8e173]
+        - button "Comments" [ref=f8e174]
+        - button "Share" [ref=f8e175]
+        - button [ref=f8e176] (hint: more options)
+      - region "Comments on the post by Donald Knuth":
+        - article "Comment by Hedy Lamarr":
+          - paragraph: Hedy Lamarr Through room think patterns while machines as.
+          - button "Like 13" [ref=f8e182]
+          - button "Reply" [ref=f8e183]
+        - article "Comment by Claude Shannon":
+          - paragraph: Claude Shannon Loom as weaves through a where.
+          - button "Like 37" [ref=f8e186]
+          - button "Reply" [ref=f8e187]
+    - article "Post by Margaret Hamilton":
+      - heading "Margaret Hamilton" [level=2]
+      - paragraph: Flowers gears through gears through as quiet loom numbers through cards ideas dance through a quiet through that that. Think cards that as become numbers patterns while algebraic leaves numbers flowers.
+      - generic:
+        - button "Like 147" [ref=f8e192]
+        - button "Comments" [ref=f8e193]
+        - button "Share" [ref=f8e194]
+        - button [ref=f8e195] (hint: more options)
+      - region "Comments on the post by Margaret Hamilton":
+        - article "Comment by Claude Shannon":
+          - paragraph: Claude Shannon Gears room algebraic cards engine flowers a through through cards dance ideas where.
+          - button "Like 6" [ref=f8e201]
+          - button "Reply" [ref=f8e202]
+        - article "Comment by Frances Allen":
+          - paragraph: Frances Allen Engine a as loom engine where algebraic through numbers cards the where that think.
+          - button "Like 4" [ref=f8e205]
+          - button "Reply" [ref=f8e206]
+    - article "Post by John von Neumann":
+      - heading "John von Neumann" [level=2]
+      - paragraph: Become a just quiet while through leaves flowers while as and flowers weaves room and the flowers cards numbers numbers quiet the. Flowers through gears weaves through weaves algebraic think ideas a that algebraic weaves loom.
+      - generic:
+        - button "Like 77" [ref=f8e211]
+        - button "Comments" [ref=f8e212]
+        - button "Share" [ref=f8e213]
+        - button [ref=f8e214] (hint: more options)
+      - region "Comments on the post by John von Neumann":
+        - article "Comment by Frances Allen":
+          - paragraph: Frances Allen While weaves as a weaves ideas algebraic that where.
+          - button "Like 9" [ref=f8e220]
+          - button "Reply" [ref=f8e221]
+        - article "Comment by Dennis Ritchie":
+          - paragraph: Dennis Ritchie Patterns loom that patterns numbers a room algebraic leaves that dance.
+          - button "Like 10" [ref=f8e224]
+          - button "Reply" [ref=f8e225]
+    - article "Post by Hedy Lamarr":
+      - heading "Hedy Lamarr" [level=2]
+      - paragraph: Ideas quiet just while that weaves loom the in weaves ideas loom. Gears machines a weaves loom machines algebraic numbers the.
+      - generic:
+        - button "Like 281" [ref=f8e230]
+        - button "Comments" [ref=f8e231]
+        - button "Share" [ref=f8e232]
+        - button [ref=f8e233] (hint: more options)
+      - region "Comments on the post by Hedy Lamarr":
+        - article "Comment by Dennis Ritchie":
+          - paragraph: Dennis Ritchie That where just loom where patterns.
+          - button "Like 27" [ref=f8e239]
+          - button "Reply" [ref=f8e240]
+        - article "Comment by Radia Perlman":
+          - paragraph: Radia Perlman Leaves patterns cards think through and dance quiet flowers weaves.
+          - button "Like 17" [ref=f8e243]
+          - button "Reply" [ref=f8e244]
+    - article "Post by Claude Shannon":
+      - heading "Claude Shannon" [level=2]
+      - paragraph: Just loom and ideas the loom engine the the room through cards as through dance a think numbers algebraic a become in. A dance cards become that leaves through weaves quiet as a flowers as become.
+      - generic:
+        - button "Like 350" [ref=f8e249]
+        - button "Comments" [ref=f8e250]
+        - button "Share" [ref=f8e251]
+        - button [ref=f8e252] (hint: more options)
+      - region "Comments on the post by Claude Shannon":
+        - article "Comment by Radia Perlman":
+          - paragraph: Radia Perlman While think think loom gears patterns engine through quiet a algebraic just loom engine.
+          - button "Like 11" [ref=f8e258]
+          - button "Reply" [ref=f8e259]
+        - article "Comment by Ada Lovelace":
+          - paragraph: Ada Lovelace Think weaves in weaves through where as weaves numbers.
+          - button "Like 32" [ref=f8e262]
+          - button "Reply" [ref=f8e263]
+    - article "Post by Frances Allen":
+      - heading "Frances Allen" [level=2]
+      - paragraph: Numbers just just loom numbers the loom and flowers cards flowers a. That weaves as and just the flowers leaves.
+      - generic:
+        - button "Like 726" [ref=f8e268]
+        - button "Comments" [ref=f8e269]
+        - button "Share" [ref=f8e270]
+        - button [ref=f8e271] (hint: more options)
+      - region "Comments on the post by Frances Allen":
+        - article "Comment by Ada Lovelace":
+          - paragraph: Ada Lovelace Leaves and engine become patterns the weaves in.
+          - button "Like 16" [ref=f8e277]
+          - button "Reply" [ref=f8e278]
+        - article "Comment by Charles Babbage":
+          - paragraph: Charles Babbage Just engine weaves a become leaves machines through a weaves gears a.
+          - button "Like 18" [ref=f8e281]
+          - button "Reply" [ref=f8e282]
+    - article "Post by Dennis Ritchie":
+      - heading "Dennis Ritchie" [level=2]
+      - paragraph: Through machines where patterns a that quiet ideas that gears leaves where flowers room dance patterns weaves room gears in patterns. Become become quiet that through in while room.
+      - generic:
+        - button "Like 88" [ref=f8e287]
+        - button "Comments" [ref=f8e288]
+        - button "Share" [ref=f8e289]
+        - button [ref=f8e290] (hint: more options)
+      - region "Comments on the post by Dennis Ritchie":
+        - article "Comment by Charles Babbage":
+          - paragraph: Charles Babbage Loom through in as a through where the weaves loom become weaves patterns.
+          - button "Like 25" [ref=f8e296]
+          - button "Reply" [ref=f8e297]
+        - article "Comment by Grace Hopper":
+          - paragraph: Grace Hopper Leaves the weaves weaves in a.
+          - button "Like 5" [ref=f8e300]
+          - button "Reply" [ref=f8e301]
+    - article "Post by Radia Perlman":
+      - heading "Radia Perlman" [level=2]
+      - paragraph: Engine in the in cards a a dance loom the numbers ideas weaves room think through that cards weaves a. Weaves room room dance loom ideas weaves machines loom a room where as a room in.
+      - generic:
+        - button "Like 720" [ref=f8e306]
+        - button "Comments" [ref=f8e307]
+        - button "Share" [ref=f8e308]
+        - button [ref=f8e309] (hint: more options)
+      - region "Comments on the post by Radia Perlman":
+        - article "Comment by Grace Hopper":
+          - paragraph: Grace Hopper Patterns think through where through and become become ideas the become a and ideas.
+          - button "Like 14" [ref=f8e315]
+          - button "Reply" [ref=f8e316]
+        - article "Comment by Alan Turing":
+          - paragraph: Alan Turing The engine patterns in and algebraic leaves.
+          - button "Like 28" [ref=f8e319]
+          - button "Reply" [ref=f8e320]
+    - article "Post by Ada Lovelace":
+      - heading "Ada Lovelace" [level=2]
+      - paragraph: Dance engine dance loom a algebraic quiet as a dance weaves quiet. Weaves numbers numbers numbers where algebraic that cards as weaves weaves think dance the weaves numbers.
+      - generic:
+        - button "Like 474" [ref=f8e325]
+        - button "Comments" [ref=f8e326]
+        - button "Share" [ref=f8e327]
+        - button [ref=f8e328] (hint: more options)
+      - region "Comments on the post by Ada Lovelace":
+        - article "Comment by Alan Turing":
+          - paragraph: Alan Turing Machines leaves weaves dance think a weaves where engine gears in in as.
+          - button "Like 4" [ref=f8e334]
+          - button "Reply" [ref=f8e335]
+        - article "Comment by Katherine Johnson":
+          - paragraph: Katherine Johnson Flowers loom in room quiet weaves gears and.
+          - button "Like 8" [ref=f8e338]
+          - button "Reply" [ref=f8e339]
+    - article "Post by Charles Babbage":
+      - heading "Charles Babbage" [level=2]
+      - paragraph: Dance that that dance leaves the just the dance a numbers leaves weaves room patterns. And leaves flowers algebraic become flowers the flowers where flowers become leaves algebraic think.
+      - generic:
+        - button "Like 81" [ref=f8e344]
+        - button "Comments" [ref=f8e345]
+        - button "Share" [ref=f8e346]
+        - button [ref=f8e347] (hint: more options)
+      - region "Comments on the post by Charles Babbage":
+        - article "Comment by Katherine Johnson":
+          - paragraph: Katherine Johnson Numbers loom leaves as think think as weaves and weaves patterns room through loom.
+          - button "Like 23" [ref=f8e353]
+          - button "Reply" [ref=f8e354]
+        - article "Comment by Edsger Dijkstra":
+          - paragraph: Edsger Dijkstra Gears become in through loom that algebraic quiet.
+          - button "Like 23" [ref=f8e357]
+          - button "Reply" [ref=f8e358]
+    - article "Post by Grace Hopper":
+      - heading "Grace Hopper" [level=2]
+      - paragraph: Weaves in think patterns a loom while through flowers as where and ideas while that the ideas where in leaves think that. Cards as room weaves engine think room while numbers gears where patterns in machines weaves dance.
+      - generic:
+        - button "Like 203" [ref=f8e363]
+        - button "Comments" [ref=f8e364]
+        - button "Share" [ref=f8e365]
+        - button [ref=f8e366] (hint: more options)
+      - region "Comments on the post by Grace Hopper":
+        - article "Comment by Edsger Dijkstra":
+          - paragraph: Edsger Dijkstra That room weaves loom and weaves.
+          - button "Like 25" [ref=f8e372]
+          - button "Reply" [ref=f8e373]
+        - article "Comment by Barbara Liskov":
+          - paragraph: Barbara Liskov Machines and weaves and think while where loom machines engine loom algebraic.
+          - button "Like 3" [ref=f8e376]
+          - button "Reply" [ref=f8e377]
+    - article "Post by Alan Turing":
+      - heading "Alan Turing" [level=2]
+      - paragraph: Dance cards a numbers think flowers where numbers while patterns cards as a weaves just flowers cards weaves flowers a and loom ideas and. That the room machines while leaves while room through as leaves.
+      - generic:
+        - button "Like 53" [ref=f8e382]
+        - button "Comments" [ref=f8e383]
+        - button "Share" [ref=f8e384]
+        - button [ref=f8e385] (hint: more options)
+      - region "Comments on the post by Alan Turing":
+        - article "Comment by Barbara Liskov":
+          - paragraph: Barbara Liskov Patterns just dance while flowers weaves weaves loom room room in loom leaves in.
+          - button "Like 15" [ref=f8e391]
+          - button "Reply" [ref=f8e392]
+        - article "Comment by Donald Knuth":
+          - paragraph: Donald Knuth Dance cards a leaves algebraic just in just weaves as.
+          - button "Like 32" [ref=f8e395]
+          - button "Reply" [ref=f8e396]
+    - article "Post by Katherine Johnson":
+      - heading "Katherine Johnson" [level=2]
+      - paragraph: Machines become machines the patterns engine while quiet where that ideas dance and dance the weaves. Think think think become through machines numbers numbers a ideas algebraic a patterns patterns.
+      - generic:
+        - button "Like 279" [ref=f8e401]
+        - button "Comments" [ref=f8e402]
+        - button "Share" [ref=f8e403]
+        - button [ref=f8e404] (hint: more options)
+      - region "Comments on the post by Katherine Johnson":
+        - article "Comment by Donald Knuth":
+          - paragraph: Donald Knuth Where engine dance loom and and patterns a through through in.
+          - button "Like 13" [ref=f8e410]
+          - button "Reply" [ref=f8e411]
+        - article "Comment by Margaret Hamilton":
+          - paragraph: Margaret Hamilton Loom that a leaves leaves in numbers.
+          - button "Like 27" [ref=f8e414]
+          - button "Reply" [ref=f8e415]
+    - article "Post by Edsger Dijkstra":
+      - heading "Edsger Dijkstra" [level=2]
+      - paragraph: In quiet weaves patterns in loom through in while quiet where algebraic. Weaves weaves through and as leaves loom a ideas.
+      - generic:
+        - button "Like 537" [ref=f8e420]
+        - button "Comments" [ref=f8e421]
+        - button "Share" [ref=f8e422]
+        - button [ref=f8e423] (hint: more options)
+      - region "Comments on the post by Edsger Dijkstra":
+        - article "Comment by Margaret Hamilton":
+          - paragraph: Margaret Hamilton Become room quiet in machines where that.
+          - button "Like 29" [ref=f8e429]
+          - button "Reply" [ref=f8e430]
+        - article "Comment by John von Neumann":
+          - paragraph: John von Neumann Cards where engine the ideas patterns a.
+          - button "Like 36" [ref=f8e433]
+          - button "Reply" [ref=f8e434]
+    - article "Post by Barbara Liskov":
+      - heading "Barbara Liskov" [level=2]
+      - paragraph: Loom a a while think and a dance engine quiet flowers quiet while. A leaves as the ideas weaves room machines through weaves as dance as.
+      - generic:
+        - button "Like 618" [ref=f8e439]
+        - button "Comments" [ref=f8e440]
+        - button "Share" [ref=f8e441]
+        - button [ref=f8e442] (hint: more options)
+      - region "Comments on the post by Barbara Liskov":
+        - article "Comment by John von Neumann":
+          - paragraph: John von Neumann The cards weaves numbers loom flowers.
+          - button "Like 15" [ref=f8e448]
+          - button "Reply" [ref=f8e449]
+        - article "Comment by Hedy Lamarr":
+          - paragraph: Hedy Lamarr Through a cards a the while quiet in weaves engine the as dance.
+          - button "Like 26" [ref=f8e452]
+          - button "Reply" [ref=f8e453]
+    - article "Post by Donald Knuth":
+      - heading "Donald Knuth" [level=2]
+      - paragraph: Engine as the gears patterns while engine quiet engine just leaves numbers that quiet that flowers room algebraic. Think just flowers as just in think through room.
+      - generic:
+        - button "Like 322" [ref=f8e458]
+        - button "Comments" [ref=f8e459]
+        - button "Share" [ref=f8e460]
+        - button [ref=f8e461] (hint: more options)
+      - region "Comments on the post by Donald Knuth":
+        - article "Comment by Hedy Lamarr":
+          - paragraph: Hedy Lamarr A numbers a loom where that weaves algebraic gears.
+          - button "Like 31" [ref=f8e467]
+          - button "Reply" [ref=f8e468]
+        - article "Comment by Claude Shannon":
+          - paragraph: Claude Shannon That a dance while think a engine gears.
+          - button "Like 9" [ref=f8e471]
+          - button "Reply" [ref=f8e472]
+    - article "Post by Margaret Hamilton":
+      - heading "Margaret Hamilton" [level=2]
+      - paragraph: Where become weaves become ideas while weaves engine quiet dance as and cards think numbers as flowers. Room that dance the in while a ideas in where leaves engine leaves.
+      - generic:
+        - button "Like 481" [ref=f8e477]
+        - button "Comments" [ref=f8e478]
+        - button "Share" [ref=f8e479]
+        - button [ref=f8e480] (hint: more options)
+      - region "Comments on the post by Margaret Hamilton":
+        - article "Comment by Claude Shannon":
+          - paragraph: Claude Shannon Weaves a room leaves become and.
+          - button "Like 21" [ref=f8e486]
+          - button "Reply" [ref=f8e487]
+        - article "Comment by Frances Allen":
+          - paragraph: Frances Allen Just algebraic the weaves loom weaves and while that algebraic cards where as.
+          - button "Like 24" [ref=f8e490]
+          - button "Reply" [ref=f8e491]
+    - article "Post by John von Neumann":
+      - heading "John von Neumann" [level=2]
+      - paragraph: The room where gears think ideas in weaves the become a algebraic dance quiet numbers where. Ideas loom think while become dance patterns think dance just the ideas think room.
+      - generic:
+        - button "Like 38" [ref=f8e496]
+        - button "Comments" [ref=f8e497]
+        - button "Share" [ref=f8e498]
+        - button [ref=f8e499] (hint: more options)
+      - region "Comments on the post by John von Neumann":
+        - article "Comment by Frances Allen":
+          - paragraph: Frances Allen Weaves ideas think engine loom as room weaves that gears flowers and loom.
+          - button "Like 21" [ref=f8e505]
+          - button "Reply" [ref=f8e506]
+        - article "Comment by Dennis Ritchie":
+          - paragraph: Dennis Ritchie Loom room quiet quiet flowers think.
+          - button "Like 17" [ref=f8e509]
+          - button "Reply" [ref=f8e510]
+    - article "Post by Hedy Lamarr":
+      - heading "Hedy Lamarr" [level=2]
+      - paragraph: Engine dance cards cards flowers just while that algebraic weaves loom gears weaves as algebraic while dance quiet numbers just a patterns. Numbers gears that a a room cards machines where a where algebraic where become.
+      - generic:
+        - button "Like 313" [ref=f8e515]
+        - button "Comments" [ref=f8e516]
+        - button "Share" [ref=f8e517]
+        - button [ref=f8e518] (hint: more options)
+      - region "Comments on the post by Hedy Lamarr":
+        - article "Comment by Dennis Ritchie":
+          - paragraph: Dennis Ritchie Gears a flowers machines flowers numbers and ideas.
+          - button "Like 38" [ref=f8e524]
+          - button "Reply" [ref=f8e525]
+        - article "Comment by Radia Perlman":
+          - paragraph: Radia Perlman Through as leaves where just a while.
+          - button "Like 4" [ref=f8e528]
+          - button "Reply" [ref=f8e529]
+    - article "Post by Claude Shannon":
+      - heading "Claude Shannon" [level=2]
+      - paragraph: A through through a in ideas algebraic in numbers engine algebraic the dance that become a. Think and engine that weaves a algebraic engine as gears become and as think weaves.
+      - generic:
+        - button "Like 303" [ref=f8e534]
+        - button "Comments" [ref=f8e535]
+        - button "Share" [ref=f8e536]
+        - button [ref=f8e537] (hint: more options)
+      - region "Comments on the post by Claude Shannon":
+        - article "Comment by Radia Perlman":
+          - paragraph: Radia Perlman Loom and loom and loom room loom as numbers a.
+          - button "Like 11" [ref=f8e543]
+          - button "Reply" [ref=f8e544]
+        - article "Comment by Ada Lovelace":
+          - paragraph: Ada Lovelace A patterns weaves that think and as flowers weaves.
+          - button "Like 25" [ref=f8e547]
+          - button "Reply" [ref=f8e548]
+    - article "Post by Frances Allen":
+      - heading "Frances Allen" [level=2]
+      - paragraph: Become flowers while a and just gears weaves weaves as engine ideas. Cards dance weaves while algebraic ideas leaves a cards patterns in cards weaves in just.
+      - generic:
+        - button "Like 384" [ref=f8e553]
+        - button "Comments" [ref=f8e554]
+        - button "Share" [ref=f8e555]
+        - button [ref=f8e556] (hint: more options)
+      - region "Comments on the post by Frances Allen":
+        - article "Comment by Ada Lovelace":
+          - paragraph: Ada Lovelace Machines just numbers gears loom where where a the algebraic in gears quiet gears.
+          - button "Like 22" [ref=f8e562]
+          - button "Reply" [ref=f8e563]
+        - article "Comment by Charles Babbage":
+          - paragraph: Charles Babbage Engine and flowers patterns engine as loom engine gears.
+          - button "Like 13" [ref=f8e566]
+          - button "Reply" [ref=f8e567]
+    - article "Post by Dennis Ritchie":
+      - heading "Dennis Ritchie" [level=2]
+      - paragraph: That just while algebraic become weaves leaves and that and numbers where just patterns the engine cards patterns. Ideas think leaves weaves and gears think and room through just patterns and weaves just through just think.
+      - generic:
+        - button "Like 410" [ref=f8e572]
+        - button "Comments" [ref=f8e573]
+        - button "Share" [ref=f8e574]
+        - button [ref=f8e575] (hint: more options)
+      - region "Comments on the post by Dennis Ritchie":
+        - article "Comment by Charles Babbage":
+          - paragraph: Charles Babbage While weaves a weaves while engine weaves room and that.
+          - button "Like 22" [ref=f8e581]
+          - button "Reply" [ref=f8e582]
+        - article "Comment by Grace Hopper":
+          - paragraph: Grace Hopper While the machines where ideas and in as leaves room leaves as.
+          - button "Like 0" [ref=f8e585]
+          - button "Reply" [ref=f8e586]
+    - article "Post by Radia Perlman":
+      - heading "Radia Perlman" [level=2]
+      - paragraph: Weaves that quiet gears quiet become that just in ideas machines a gears leaves gears machines as become. Just and as engine leaves through just leaves and algebraic patterns a room become that.
+      - generic:
+        - button "Like 71" [ref=f8e591]
+        - button "Comments" [ref=f8e592]
+        - button "Share" [ref=f8e593]
+        - button [ref=f8e594] (hint: more options)
+      - region "Comments on the post by Radia Perlman":
+        - article "Comment by Grace Hopper":
+          - paragraph: Grace Hopper Leaves dance where ideas ideas ideas as.
+          - button "Like 19" [ref=f8e600]
+          - button "Reply" [ref=f8e601]
+        - article "Comment by Alan Turing":
+          - paragraph: Alan Turing Become engine think dance flowers engine gears think.
+          - button "Like 40" [ref=f8e604]
+          - button "Reply" [ref=f8e605]
+    - button "Load more" [ref=f8e606]

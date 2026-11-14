@@ -1,0 +1,48 @@
+$ agentos lane audit --json
+exit 0
+{
+  "level": "warn",
+  "pins": 1,
+  "installed_firefox": 150,
+  "findings": [
+    {
+      "check": "pin",
+      "level": "warn",
+      "detail": "WebGL: ANGLE (Intel) is a Windows renderer string",
+      "lane": "personal/reddit"
+    },
+    {
+      "check": "pin",
+      "level": "warn",
+      "detail": "the pin lacks navigator.maxTouchPoints, screen.availLeft, screen.availTop, screen.availWidth, screen.availHeight, screen.colorDepth, screen.pixelDepth, window.outerWidth, window.outerHeight, window.screenX, window.screenY, which Camoufox draws again on every launch",
+      "lane": "personal/reddit",
+      "data": {
+        "missing": [
+          "navigator.maxTouchPoints",
+          "screen.availLeft",
+          "screen.availTop",
+          "screen.availWidth",
+          "screen.availHeight",
+          "screen.colorDepth",
+          "screen.pixelDepth",
+          "window.outerWidth",
+          "window.outerHeight",
+          "window.screenX",
+          "window.screenY"
+        ]
+      }
+    },
+    {
+      "check": "pin",
+      "level": "warn",
+      "detail": "a version 1 pin: it is completed on the lane's next launch",
+      "lane": "personal/reddit"
+    },
+    {
+      "check": "pin",
+      "level": "warn",
+      "detail": "Camoufox coherence rule gpu-matches-os: Linux identity with 'ANGLE (Intel)'",
+      "lane": "personal/reddit"
+    }
+  ]
+}

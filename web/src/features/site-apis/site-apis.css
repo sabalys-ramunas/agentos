@@ -1,0 +1,189 @@
+/*
+ * The page-to-data view: a sheet of the page as the computer saw it, a ribbon of wires, and the
+ * data it became. A field keeps one hue on both sides (`--hue`). Only the wires and the outlines
+ * wear it; text stays in text tokens. Pink is the computer reading right now, and nothing else.
+ */
+.split-column {
+  --hue: var(--border-strong);
+  position: relative;
+  border-radius: var(--radius-sm);
+  transition: background-color var(--duration-fast) var(--ease), box-shadow var(--duration-fast) var(--ease), opacity var(--duration-fast) var(--ease);
+}
+.split-column[data-kept] {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--hue) 42%, transparent);
+}
+.split-column[data-lit] {
+  background-color: color-mix(in srgb, var(--hue) 9%, transparent);
+  box-shadow: inset 0 0 0 1px var(--hue);
+}
+/* What the computer saw and left out: there, but struck through with a fine hatch. */
+.split-column[data-out] {
+  background-image: repeating-linear-gradient(135deg, transparent 0 5px, var(--fill-2) 5px 6px);
+}
+.split-column[data-gone] {
+  box-shadow: inset 0 0 0 1px var(--stuck-dot);
+}
+.split-column[data-new] {
+  box-shadow: inset 0 0 0 1px var(--wait-dot);
+  background-color: var(--wait-soft);
+}
+.split-cell {
+  --hue: var(--border-strong);
+  border-radius: var(--radius-sm);
+  transition: background-color var(--duration-fast) var(--ease), box-shadow var(--duration-fast) var(--ease);
+}
+.split-cell[data-lit] {
+  background-color: color-mix(in srgb, var(--hue) 14%, transparent);
+  box-shadow: inset 0 0 0 1px var(--hue);
+}
+.split-cell[data-row-lit] {
+  background-color: var(--fill-1);
+}
+/* A field on a card or in a comment, outlined where it sits. */
+.split-spot {
+  --hue: var(--border-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--hue) 42%, transparent);
+  transition: background-color var(--duration-fast) var(--ease), box-shadow var(--duration-fast) var(--ease);
+}
+.split-spot[data-lit] {
+  background-color: color-mix(in srgb, var(--hue) 14%, transparent);
+  box-shadow: 0 0 0 1px var(--hue);
+}
+
+.split-wire {
+  fill: none;
+  stroke: var(--hue);
+  stroke-width: 1;
+  stroke-opacity: 0.7;
+  stroke-linecap: round;
+  transition: stroke-opacity var(--duration-fast) var(--ease);
+}
+.split-wires[data-any-lit] .split-wire {
+  stroke-opacity: 0.16;
+}
+.split-wires[data-quiet] .split-wire {
+  stroke: var(--board-wire-strong);
+  stroke-opacity: 1;
+  stroke-dasharray: 2 4;
+}
+.split-lit {
+  fill: none;
+  stroke: var(--hue);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.split-stub {
+  stroke: var(--board-wire-strong);
+  stroke-width: 1;
+}
+.split-candidate {
+  fill: none;
+  stroke: var(--wait-dot);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+.split-broken {
+  fill: none;
+  stroke: var(--stuck-dot);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 3;
+}
+/* The computer reading now: a short run of light down each wire. */
+.split-current {
+  fill: none;
+  stroke: var(--current);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 0.14 1;
+  animation: split-run 1100ms var(--ease) infinite;
+}
+@keyframes split-run {
+  from { stroke-dashoffset: 1.14; }
+  to { stroke-dashoffset: 0; }
+}
+.split-scan {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 56px;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, var(--current-soft));
+  border-bottom: 1px solid var(--current-line);
+  animation: split-scan 1400ms var(--ease) infinite;
+}
+@keyframes split-scan {
+  from { transform: translateY(-56px); }
+  to { transform: translateY(380px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .split-current {
+    animation: none;
+    stroke-dasharray: none;
+    opacity: 0.7;
+  }
+  .split-scan {
+    animation: none;
+    transform: none;
+    height: 100%;
+    border-bottom: 0;
+  }
+}
+
+/* A row that arrived since the last read settles once. */
+@keyframes split-settle {
+  from { background-color: var(--current-soft); }
+}
+.split-settle {
+  animation: split-settle 900ms var(--ease-out);
+}
+
+/* Teach it: a thing on the page a person can point at. */
+.teach-region {
+  position: relative;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  outline: 1px dashed var(--board-wire-strong);
+  outline-offset: 3px;
+  transition: outline-color var(--duration-fast) var(--ease), background-color var(--duration-fast) var(--ease);
+}
+.teach-region:hover,
+.teach-region[data-picked] {
+  outline: 1.5px solid var(--blue);
+  background-color: color-mix(in srgb, var(--blue) 5%, transparent);
+}
+.teach-column {
+  cursor: pointer;
+}
+.teach-column:hover:not([data-lit]) {
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+
+/* The name of a thing on the page, on the thing itself. Shown for the one picked or pointed at. */
+.teach-tag {
+  position: absolute;
+  z-index: 1;
+  top: -14px;
+  left: 8px;
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease);
+}
+.teach-region:hover .teach-tag,
+.teach-region:focus-visible .teach-tag,
+.teach-region[data-picked] .teach-tag {
+  opacity: 1;
+}
+
+/* A door that is open joins what is under it: the card's top edge opens where the door stands. */
+.door {
+  transition: background-color var(--duration-fast) var(--ease), border-color var(--duration-fast) var(--ease), transform var(--duration-fast) var(--ease);
+}
+.door:active {
+  transform: translateY(1px);
+}
+
+/* One read of an account's pace: a tick. */
+.pace-tick {
+  transition: background-color var(--duration-base) var(--ease), height var(--duration-base) var(--ease);
+}

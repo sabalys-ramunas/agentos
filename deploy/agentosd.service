@@ -1,0 +1,26 @@
+[Unit]
+Description=agentos node daemon (agentosd): browser lanes and the MCP server
+Documentation=file:/opt/agentos/deploy/README.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment="AGENTOS_HOME=/var/lib/agentos"
+Environment=PYTHONUNBUFFERED=1
+WorkingDirectory=/opt/agentos
+ExecStart="/opt/agentos/.venv/bin/agentos" node serve
+Restart=on-failure
+RestartSec=3
+# SIGTERM goes to agentosd only, so it can close every browser gracefully (cookies flush);
+# whatever is left after TimeoutStopSec is killed.
+KillMode=mixed
+TimeoutStopSec=30
+UMask=0077
+# A browser the kernel kills for memory is relaunched by the lane manager; keep the service up.
+OOMPolicy=continue
+LogRateLimitIntervalSec=30s
+LogRateLimitBurst=5000
+
+[Install]
+WantedBy=multi-user.target

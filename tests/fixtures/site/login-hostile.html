@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Fixture hostile login</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>input { font-size: 15px; padding: 4px; width: 320px; } iframe { border: 1px solid #bbb; }</style>
+</head>
+<body data-keydowns="0">
+  <main>
+    <h1>Log in</h1>
+    <form id="login" action="/login/submit?next=/login-done.html" method="post">
+      <label for="username">Username</label>
+      <input id="username" name="username" type="text" autocomplete="username">
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password">
+      <button type="submit">Log in</button>
+    </form>
+    <label for="decoy">Comment</label>
+    <input id="decoy" name="comment" type="text">
+    <iframe id="trap" title="Partner widget" width="320" height="90"></iframe>
+  </main>
+  <script>
+    // After `after` keydowns in the password field, move focus away: to=field (the comment
+    // box) or to=frame (the iframe; cross-origin when `other` is set); how=timeout (a task
+    // later) or how=sync (inside the keydown handler, so that key itself lands elsewhere).
+    const q = new URLSearchParams(location.search);
+    const after = Number(q.get('after') || 3), to = q.get('to') || 'field', how = q.get('how') || 'timeout';
+    const trap = document.getElementById('trap');
+    trap.src = (q.get('other') || '') + '/capture.html';
+    const steal = () => (to === 'frame' ? trap : document.getElementById('decoy')).focus();
+    let n = 0;
+    document.getElementById('password').addEventListener('keydown', (e) => {
+      if (e.key.length !== 1) return;  // characters only, not Shift
+      n += 1;
+      document.body.dataset.keydowns = String(n);
+      if (n === after) {
+        if (how === 'sync') steal(); else setTimeout(steal, 0);
+      }
+    });
+  </script>
+</body>
+</html>

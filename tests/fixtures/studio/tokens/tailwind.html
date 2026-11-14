@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tailwind v4</title>
+<style>
+  /* The shape Tailwind v4 builds: theme variables in a layer, utilities through var(). */
+  @layer theme {
+    :root, :host {
+      --spacing: 0.25rem;
+      --color-blue-500: oklch(62.3% 0.214 259.815);
+      --color-white: #fff;
+      --radius-md: 0.375rem;
+      --text-sm: 0.875rem;
+      --text-sm--line-height: calc(1.25 / 0.875);
+      --font-sans: Arial, Helvetica, sans-serif;
+      --font-weight-bold: 700;
+    }
+  }
+  @layer base { body { margin: 0; font-family: var(--font-sans); } div { margin: 0; } }
+  @layer utilities {
+    .p-3 { padding: calc(var(--spacing) * 3); }
+    .-mt-2 { margin-top: calc(var(--spacing) * -2); }
+    .bg-blue-500 { background-color: var(--color-blue-500); }
+    .text-white { color: var(--color-white); }
+    .rounded-md { border-radius: var(--radius-md); }
+    .text-sm { font-size: var(--text-sm); line-height: var(--tw-leading, var(--text-sm--line-height)); }
+    .font-bold { font-weight: var(--font-weight-bold); }
+  }
+  /* planted, see the test */
+  #p-look-scale { padding: 12px; }
+  #p-near-scale { padding: 13px; }
+  #p-off-color { color: #e11d48; }
+</style>
+</head>
+<body>
+  <div class="p-3 bg-blue-500 text-white rounded-md text-sm font-bold">On the system</div>
+  <div class="-mt-2 p-3">Negative margin from the scale</div>
+  <div id="p-look-scale">12px by hand</div>
+  <div id="p-near-scale">13px by hand</div>
+  <div id="p-off-color">Rose</div>
+</body>
+</html>

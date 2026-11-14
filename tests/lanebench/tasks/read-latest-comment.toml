@@ -1,0 +1,17 @@
+id = "read-latest-comment"
+title = "Read the newest comment on a post"
+goal = "Read the newest comment on @jonas's sourdough post and report its text. Change nothing."
+mode = "resolve"
+ceiling = "read"
+tags = ["feed", "read"]
+allowed_effects = []
+
+[[check]]
+kind = "answer"
+key = "latest_comment"
+latest_comment = "jonas-bread"
+
+[[replay]]
+do = "read"
+key = "latest_comment"
+locator = { role = "listitem", nth = 2, within = { role = "list", name = "Comments", within = { role = "article", name = "@jonas.*Sourdough", match = "regex" } } }

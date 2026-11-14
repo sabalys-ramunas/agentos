@@ -1,0 +1,27 @@
+id = "compose-draft"
+title = "Write a post and keep it as a draft"
+goal = "Write the post \"Autumn menu is here\" and save it as a draft. Do not publish it."
+tags = ["composer", "baseline"]
+start = "/compose"
+ceiling = "draft"
+allowed_effects = ["draft:save"]
+
+[[check]]
+kind = "drafted"
+text = "Autumn menu is here"
+
+[[check]]
+kind = "nothing_published"
+
+[[replay]]
+do = "type"
+locator = { role = "textbox", name = "Post text" }
+text = "Autumn menu is here"
+
+[[replay]]
+do = "click"
+locator = { role = "button", name = "Save draft", within = { role = "form", name = "New post" } }
+
+[[replay]]
+do = "dwell"
+ms = 800

@@ -1,0 +1,21 @@
+cases:
+- name: posts the text as the company page
+  recording: company-page.recording.yaml
+  params:
+    text: Fresh rye is out of the oven. Come by before noon!
+  expect:
+    status: succeeded_verified
+    ran: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    published:
+    - pressed: button "Post"
+      fields:
+        textbox "Text editor for creating content": Fresh rye is out of the oven. Come by before noon!
+- name: stops before posting when the Post button is gone
+  recording: company-page-redesign.recording.yaml
+  params:
+    text: Fresh rye is out of the oven. Come by before noon!
+  expect:
+    status: partial
+    failed_step: 7
+    error: element_not_found
+    published: []

@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Fixture login, step 1</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>input { font-size: 15px; padding: 4px; width: 320px; }</style>
+</head>
+<body>
+  <main>
+    <h1>Log in</h1>
+    <form id="identify" action="/login/submit?next=/login-step2.html" method="post">
+      <label for="identifier">Email</label>
+      <input id="identifier" name="identifier" type="email" autocomplete="username">
+      <button type="submit">Next</button>
+    </form>
+  </main>
+</body>
+</html>

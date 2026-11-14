@@ -1,0 +1,12 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="/base.css"><title>Rows that move</title><style>
+.bad { color: #aaaaaa; }
+</style></head>
+<body><table aria-label="Jobs"><tbody id="rows"></tbody></table>
+<script>
+const JOBS = [['Build', 'ok'], ['Lint', 'ok'], ['Deploy', 'bad'], ['Test', 'ok']];
+window.render = (order) => {
+  document.getElementById('rows').innerHTML = order.map((j, i) => '<tr id="row-' + i + '"><td>' + JOBS[j][0] +
+    '</td><td' + (JOBS[j][1] === 'bad' ? ' class="bad"' : '') + '>' + (JOBS[j][1] === 'bad' ? 'Failed after 3 tries' : 'Passed') + '</td></tr>').join('');
+};
+render([0, 1, 2, 3]);
+</script></body></html>

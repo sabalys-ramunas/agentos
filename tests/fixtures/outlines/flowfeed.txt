@@ -1,0 +1,39 @@
+- generic [active]:
+  - banner:
+    - heading "Flow feed" [level=1]
+    - navigation "Pages":
+      - link "Home" [ref=f6e5] [cursor=pointer]:
+        - /url: /index.html
+      - link "Form" [ref=f6e6] [cursor=pointer]:
+        - /url: /form.html
+  - main:
+    - article "Post by Ada Lovelace":
+      - heading "Ada Lovelace" [level=2]
+      - paragraph: The engine weaves algebraic patterns just as the loom weaves flowers and leaves.
+      - button "Like" [ref=f6e12]: Like 12
+    - article "Post by Charles Babbage":
+      - heading "Charles Babbage" [level=2]
+      - article "Comment by Grace Hopper":
+        - paragraph: "Grace Hopper Top comment: it is easier to ask forgiveness than permission."
+        - button "Like" [ref=f6e17]: Like 5
+      - paragraph: Errors using inadequate data are much less than those using no data at all.
+      - button "Like" [ref=f6e20]: Like 5
+      - list "Comments":
+        - listitem:
+          - article "Comment by Alan Turing":
+            - paragraph: Alan Turing We can only see a short distance ahead.
+            - button "Like" [ref=f6e25]: Like 2
+            - list "Replies":
+              - listitem:
+                - article "Reply by Katherine Johnson":
+                  - paragraph: Katherine Johnson Like what you do, and then you will do your best.
+                  - button "Like" [ref=f6e30]: Like 1
+    - article "Post by Hedy Lamarr":
+      - heading "Hedy Lamarr" [level=2]
+      - paragraph: Improving things comes naturally to me.
+      - button "Like" [ref=f6e35]: Like 8
+      - list "Comments":
+        - listitem:
+          - article "Comment by Grace Hopper":
+            - paragraph: Grace Hopper Liked by you.
+            - button "Remove Like" [pressed] [ref=f6e40]: Liked 2

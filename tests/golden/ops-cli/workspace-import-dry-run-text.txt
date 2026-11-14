@@ -1,0 +1,13 @@
+$ agentos workspace import <TMP>/personal.agentos --as copy --dry-run --passphrase-file <TMP>/pw
+exit 0
+Import workspace personal from node test-node (host <HOST>), exported <TS> by agentos <VER>
+  as workspace copy
+
+LANE         PROXY  FINGERPRINT  FILES  READINESS
+copy/reddit  lt1    pinned       3      needs_login
+
+proxy lt1: exists
+
+WARNING: SAME DEVICE TWICE: this makes a second copy of 1 lane of personal on this node, with the same cookies and the same pinned fingerprint. Never warm both copies: to the sites it looks like one device in two places, which can trigger checkpoints and locked accounts.
+
+Dry run: nothing was changed.

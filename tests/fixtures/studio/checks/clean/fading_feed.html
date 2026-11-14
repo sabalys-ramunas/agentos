@@ -1,0 +1,25 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="/base.css"><title>A feed that fades out</title><style>
+.side { display: flex; flex-direction: column; height: 420px; width: 300px; }
+.feed { position: relative; flex: 1; min-height: 80px; overflow: hidden; padding: 2px 16px 10px; }
+.feed::after { content: ''; position: absolute; inset: auto 0 0 0; height: 48px; background: linear-gradient(transparent, #fff); pointer-events: none; }
+.feed ol { list-style: none; margin: 0; padding: 0; }
+.feed li { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 8px; padding: 8px 0; border-bottom: 1px solid #ebebeb; font-size: 13px; line-height: 18px; }
+.feed time { color: #6b6b6b; font-size: 11.5px; }
+.story { margin: 0 16px 14px; padding: 14px; border: 1px solid #ebebeb; border-radius: 12px; background: #fff; }
+.list { position: relative; height: 120px; overflow: hidden; -webkit-mask-image: linear-gradient(#000 60%, transparent); mask-image: linear-gradient(#000 60%, transparent); }
+.list p { margin: 0; padding: 6px 0; }
+</style></head>
+<body><aside class="side" data-component="Side"><div class="feed" data-component="Feed"><ol>
+<li><time>10:26</time><span><b>Claude Code</b> is looking at the inbox.</span></li>
+<li><time>10:26</time><span><b>Claude Code</b> worked in the shop.</span></li>
+<li><time>10:25</time><span><b>Aster Coffee</b> posted on Instagram.</span></li>
+<li><time>10:25</time><span><b>Claude Code</b> looked at the order.</span></li>
+<li><time>10:25</time><span><b>Harbor Supply</b> waits for your yes.</span></li>
+<li><time>10:24</time><span><b>Claude Code</b> took 2 steps.</span></li>
+<li><time>10:24</time><span><b>Claude Code</b> is working in the shop.</span></li>
+<li><time>10:23</time><span><b>Harbor Supply</b> replied on Reddit.</span></li>
+<li><time>10:22</time><span><b>Claude Code</b> looked at the cart.</span></li>
+<li><time>10:21</time><span><b>Claude Code</b> took 3 steps.</span></li>
+</ol></div><section class="story" data-component="Story"><p>While you slept, 4 things happened.</p></section></aside>
+<div class="list" data-component="Masked"><p>First line</p><p>Second line</p><p>Third line</p><p>Fourth line</p><p>Fifth line</p><p>Sixth line</p></div>
+</body></html>

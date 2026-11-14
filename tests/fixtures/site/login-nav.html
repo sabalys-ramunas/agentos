@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Fixture login that navigates away</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>input { font-size: 15px; padding: 4px; width: 320px; }</style>
+</head>
+<body>
+  <main>
+    <h1>Log in</h1>
+    <form id="login" action="/login/submit?next=/login-done.html" method="post">
+      <label for="username">Username</label>
+      <input id="username" name="username" type="text" autocomplete="username">
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password">
+      <button type="submit">Log in</button>
+    </form>
+  </main>
+  <script>
+    // After `after` keydowns in the password field, the page navigates to `to` (another
+    // origin's capture page, whose input takes focus as soon as it loads).
+    const q = new URLSearchParams(location.search);
+    const after = Number(q.get('after') || 3), to = q.get('to') || '/capture.html';
+    let n = 0;
+    document.getElementById('password').addEventListener('keydown', (e) => {
+      if (e.key.length !== 1) return;  // characters only, not Shift
+      n += 1;
+      if (n === after) setTimeout(() => { location.href = to; }, 0);
+    });
+  </script>
+</body>
+</html>

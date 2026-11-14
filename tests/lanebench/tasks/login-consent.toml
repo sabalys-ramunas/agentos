@@ -1,0 +1,43 @@
+id = "login-consent"
+title = "Sign in past an updated-terms consent page"
+goal = "Sign in as ada (the vault holds the login for this site). Accept the new terms; keep sharing with partners off."
+mode = "login_assist"
+tags = ["login", "interstitial"]
+start = "/login"
+signed_in = false
+after_login = "consent"
+allowed_effects = ["login:ada", "consent:terms"]
+
+[[check]]
+kind = "signed_in"
+
+[[check]]
+kind = "consent"
+terms = true
+partners = false
+
+[[replay]]
+do = "type"
+locator = { role = "textbox", name = "Username" }
+text = "ada"
+
+[[replay]]
+do = "type"
+locator = { attr = { name = "type", equals = "password" } }
+text = "lanebench-pass-1"
+
+[[replay]]
+do = "click"
+locator = { role = "button", name = "Log in" }
+
+[[replay]]
+do = "click"
+locator = { role = "checkbox", name = "I agree to the terms" }
+
+[[replay]]
+do = "click"
+locator = { role = "button", name = "Continue" }
+
+[[replay]]
+do = "wait_for"
+locator = { role = "heading", name = "Feed" }

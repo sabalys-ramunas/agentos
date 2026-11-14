@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Fixture downloads</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main>
+    <h1>Reports</h1>
+    <p><a href="/files/report.csv" download id="csv">Export CSV</a></p>
+    <p><button type="button" id="blob">Export JSON</button></p>
+    <p><a href="/dyn/big.bin" id="big">Download the archive</a></p>
+    <p><a href="/dyn/broken.bin" id="broken">Download the backup</a></p>
+    <p><a href="/dyn/slow.bin" id="slow">Download the video</a></p>
+  </main>
+  <script>
+    document.getElementById('blob').addEventListener('click', () => {
+      const data = new Blob([JSON.stringify({rows: [1, 2, 3]})], {type: 'application/json'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(data);
+      a.download = '../../export: final?.json';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    });
+  </script>
+</body>
+</html>

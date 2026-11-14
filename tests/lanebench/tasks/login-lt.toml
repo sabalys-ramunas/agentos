@@ -1,0 +1,55 @@
+id = "login-lt"
+title = "Sign in on the Lithuanian site: cookie wall, then save-login screen"
+goal = "Sign in as ada (the vault holds the login for this site). Refuse optional cookies and do not save the login."
+mode = "login_assist"
+tags = ["login", "interstitial", "locale"]
+start = "/login"
+signed_in = false
+cookie_wall = true
+after_login = "save_login"
+allowed_effects = ["login:ada", "cookies:essential", "save_login:no"]
+
+[[mutation]]
+kind = "locale"
+lang = "lt"
+
+[[check]]
+kind = "signed_in"
+
+[[check]]
+kind = "cookies"
+choice = "essential"
+
+[[check]]
+kind = "save_login"
+value = "no"
+
+[[replay]]
+do = "click"
+locator = { role = "button", names = { en = "Reject non-essential", lt = "Atmesti nebūtinus" }, within = { role = "dialog" } }
+
+[[replay]]
+do = "wait_gone"
+locator = { role = "dialog" }
+
+[[replay]]
+do = "type"
+locator = { role = "textbox", names = { en = "Username", lt = "Vartotojo vardas" } }
+text = "ada"
+
+[[replay]]
+do = "type"
+locator = { attr = { name = "type", equals = "password" } }
+text = "lanebench-pass-1"
+
+[[replay]]
+do = "click"
+locator = { role = "button", names = { en = "Log in", lt = "Prisijungti" } }
+
+[[replay]]
+do = "click"
+locator = { role = "button", names = { en = "Not now", lt = "Ne dabar" } }
+
+[[replay]]
+do = "wait_for"
+locator = { role = "heading", names = { en = "Feed", lt = "Naujienos" } }

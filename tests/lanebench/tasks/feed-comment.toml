@@ -1,0 +1,27 @@
+id = "feed-comment"
+title = "Comment on a post"
+goal = "Comment \"Lovely tomatoes!\" on the post by @mira about her tomatoes."
+tags = ["feed", "baseline"]
+allowed_effects = ["comment:post:mira-tomatoes"]
+
+[[check]]
+kind = "commented"
+post = "mira-tomatoes"
+text = "Lovely tomatoes!"
+
+[[replay]]
+do = "click"
+locator = { role = "button", name = "Comment", within = { role = "article", name = "@mira.*tomatoes", match = "regex" } }
+
+[[replay]]
+do = "type"
+locator = { role = "textbox", name = "Write a comment", within = { role = "article", name = "@mira.*tomatoes", match = "regex" } }
+text = "Lovely tomatoes!"
+
+[[replay]]
+do = "click"
+locator = { role = "button", name = "Send", within = { role = "article", name = "@mira.*tomatoes", match = "regex" } }
+
+[[replay]]
+do = "dwell"
+ms = 800

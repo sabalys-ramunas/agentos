@@ -1,0 +1,23 @@
+name: Feature request
+description: An idea for agentos.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What you are trying to do, and what gets in the way today.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would help
+      description: How you imagine it working. Plain words are fine.
+  - type: checkboxes
+    id: use
+    attributes:
+      label: Responsible use
+      options:
+        - label: This is for my own accounts and stays within each platform's rules (docs/RESPONSIBLE-USE.md).
+          required: true

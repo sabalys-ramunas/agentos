@@ -1,0 +1,27 @@
+- generic [active]:
+  - banner:
+    - heading "Sign up" [level=1]
+    - navigation "Pages":
+      - link "Home" [ref=f10e5] [cursor=pointer]:
+        - /url: /index.html
+      - link "Feed" [ref=f10e6] [cursor=pointer]:
+        - /url: /feed.html
+  - main:
+    - generic:
+      - text: Name
+      - textbox "Name" [ref=f10e9]
+      - text: Bio
+      - textbox "Bio" [ref=f10e10]: Old bio text
+      - text: Favourite color
+      - combobox "Favourite color" [ref=f10e11]:
+        - option "Choose one" [selected]
+        - option "Red"
+        - option "Green"
+        - option "Blue"
+      - generic:
+        - checkbox "Subscribe to news" [ref=f10e13]
+        - text: Subscribe to news
+      - button "Submit" [ref=f10e14]
+    - paragraph:
+      - text: "Result:"
+      - status

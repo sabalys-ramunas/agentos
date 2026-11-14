@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Fixture ID</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main>
+    <h1>Fixture ID</h1>
+    <p>Fixture sign in wants to know your name.</p>
+    <button type="button" id="allow">Allow</button>
+  </main>
+  <script>
+    document.getElementById('allow').addEventListener('click', () => {
+      if (window.opener) window.opener.postMessage({user: 'Ada'}, location.origin);
+      window.close();
+    });
+  </script>
+</body>
+</html>

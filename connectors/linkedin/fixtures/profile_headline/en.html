@@ -1,0 +1,18 @@
+<!-- SYNTHESIZED, NOT CAPTURED. Written by hand on 2026-11-05 (brief B2) from the structure the operation's locators
+     assume. Nobody has recorded LinkedIn's profile edits: no real page was loaded and no request was seen. A canary
+     on a throwaway account (observe mode on) replaces this with the captured page (text replaced), and the egress
+     rule linkedin.profile.* with the request it saw, before the operation is marked verified. -->
+<!-- The headline is the line under the name in the top card; it is edited in the Edit intro dialog. -->
+<main>
+  <section class="pv-top-card">
+    <h1>Ada Lovelace</h1>
+    <div class="text-body-medium break-words">Analyst of engines</div>
+    <button aria-label="Edit intro">Edit</button>
+  </section>
+</main>
+<div role="dialog" aria-label="Edit intro">
+  <input aria-label="Headline*" value="Analyst of engines">
+  <button>Save</button>
+</div>
+<!-- After Save (a guess): requestId com.linkedin.sdui.requests.profile.update...Headline...
+     (rule linkedin.profile.headline). Proof: a fresh load of /in/<public id>/ shows exactly the headline. -->

@@ -1,0 +1,9 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="/base.css"><title>Modal</title><style>
+dialog { width: 280px; border: 0; border-radius: 8px; padding: 16px; }
+dialog::backdrop { background: #0008; }
+.under { color: #999; }
+.under a { display: inline-block; width: 12px; height: 12px; overflow: hidden; }
+</style></head>
+<body><main class="under"><h1>Settings</h1><p>Everything here is behind the dialog.</p><a href="/x">x</a><a href="/y">y</a></main>
+<dialog id="d" data-component="ConfirmDialog" aria-labelledby="dt"><h2 id="dt">Delete the file?</h2><p>This cannot be undone.</p><button>Cancel</button> <button>Delete</button></dialog>
+<script>document.getElementById('d').showModal();</script></body></html>

@@ -1,0 +1,16 @@
+{
+  "commit": {"when": "auto", "level": "chat"},
+  "pay": {"when": "ask", "level": "present"},
+  "irreversible": {"when": "ask", "level": "present"},
+  "after_untrusted": {"level": "signed_in"},
+  "methods_off": ["chat"],
+  "workspaces": {
+    "harbor": {
+      "commit": {"when": "ask", "level": "signed_in"},
+      "pay": {"when": "ask", "level": "present"},
+      "irreversible": {"when": "ask", "level": "present"},
+      "after_untrusted": {"level": "present"},
+      "methods_off": ["chat"]
+    }
+  }
+}

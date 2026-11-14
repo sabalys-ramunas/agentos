@@ -1,0 +1,22 @@
+<!-- SYNTHESIZED, NOT CAPTURED. Written by hand on 2026-11-05 (brief B2) from the structure the operation's locators
+     assume. Nobody has recorded LinkedIn's profile edits: no real page was loaded and no request was seen. A canary
+     on a throwaway account (observe mode on) replaces this with the captured page (text replaced), and the egress
+     rule linkedin.profile.* with the request it saw, before the operation is marked verified. -->
+<!-- The cover is img#profile-background-image-target-image in the profile's main column; a camera button opens the
+     Background photo dialog: Change photo (a file chooser), the crop step, then Apply. -->
+<main>
+  <section class="pv-top-card">
+    <img id="profile-background-image-target-image" alt=""
+         src="https://media.licdn.com/dms/image/v2/D4D16AQOLD0000/profile-displaybackgroundimage-shrink_350_1400/0/1">
+    <button aria-label="Edit background photo">Edit</button>
+    <h1>Ada Lovelace</h1>
+  </section>
+</main>
+<div role="dialog" aria-label="Background photo">
+  <img alt="Crop your background" src="blob:https://www.linkedin.com/0001">
+  <button>Change photo</button>
+  <button>Apply</button>
+</div>
+<!-- Registration and PUT as for the photo; then requestId com.linkedin.sdui.requests.profile.update...BackgroundPhoto...
+     (rule linkedin.profile.cover, a guess). Proof: on a fresh load the cover's src differs from the one noted
+     before and is on media.licdn.com. -->

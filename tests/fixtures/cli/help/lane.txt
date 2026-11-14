@@ -1,0 +1,178 @@
+
+ Usage: agentos lane [OPTIONS] COMMAND [ARGS]...
+
+ Browser lanes: one logged-in account each.
+
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --help          Show this message and exit.                                  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Commands ───────────────────────────────────────────────────────────────────╮
+│ create               Create a lane with an empty profile. It stays off (not  │
+│                      running) until first use. Log in later through          │
+│                      lane_view.                                              │
+│ import               Create a lane from an existing logged-in profile (for   │
+│                      example, one from the first prototype).                 │
+│ delete               Remove a lane that is not running. Its profile and      │
+│                      files move to AGENTOS_HOME/trash, nothing               │
+│                      is erased.                                              │
+│ set-proxy            Move a lane that is not running to another proxy. The   │
+│                      lane's sites see a new IP next time, so do this         │
+│                      rarely. A lane that has launched needs --yes.           │
+│ list                 Lanes on this node: from the running agentosd (which    │
+│                      knows which browsers run), else from the store.         │
+│ set-device           Move a lane that is not running onto a device, or off   │
+│                      it. A lane that has launched gets the device's          │
+│                      fingerprint (the browser details a site sees), which is │
+│                      a new computer to its site: expect a re-login           │
+│                      or a checkpoint (the site asks the account owner a      │
+│                      question). That needs --yes. To share a lane's own      │
+│                      fingerprint instead, make the device from it: agentos   │
+│                      device create <name> --from-lane <lane>.                │
+│ sites                The lane's site list: the only hosts its pages may load │
+│                      documents from (every navigation, redirect,             │
+│                      frame and popup, checked on the node). Empty means no   │
+│                      restriction on this lane. `frame:<host>` allows a       │
+│                      host only inside a frame (a captcha), never as a page;  │
+│                      `accounts.google.@cc` is that host on any of            │
+│                      Google's country domains. `suggest` without a platform  │
+│                      lists the suggested lists; with one, it adds            │
+│                      that list (with the sign-in and captcha hosts every     │
+│                      login can need). `strict on` also blocks refused        │
+│                      requests before they leave while an agent acts, at the  │
+│                      cost of the HTTP cache for that moment. While           │
+│                      agentosd runs, a change reaches a running lane at once. │
+│                      `observe on <minutes>` (default 60, at most             │
+│                      240) records every non-GET request of the lane by its   │
+│                      shape (its host, method, path, and the names of         │
+│                      its operation and fields, never a value), so you can    │
+│                      check the lane's rules against a throwaway              │
+│                      account's real traffic.                                 │
+│ gate-log             What the commit gate (the check that holds a publish    │
+│                      until a person approves exactly what it publishes)      │
+│                      classified without a rule while agents drove this lane: │
+│                      each request shape (its host, method, path, and         │
+│                      the names of its operation and fields, never a value),  │
+│                      with how it was classified and how often.               │
+│                      `--allow-read <shape>` adds a shape that publishes      │
+│                      nothing to the node's read list; `--as-commit <name>    │
+│                      --shape <shape>` makes it a named commit rule (the gate │
+│                      files it under that name). Either one applies           │
+│                      to exactly that host, path and method, on this lane     │
+│                      only unless `--all-lanes`. Stored on this node          │
+│                      (AGENTOS_HOME/gate-shapes.json), each change written to │
+│                      the action log; every lane's gate reads it              │
+│                      within seconds. `--observed` adds what observe mode saw │
+│                      that no commit or write rule matched (a publish         │
+│                      the gate takes for a read): name one with               │
+│                      `--as-commit`. The owner only.                          │
+│ rules                Rule health: when each commit rule (a publish) and      │
+│                      write rule (a change that needs only draft              │
+│                      permission) last matched on this node; the request      │
+│                      shapes no rule covers that each site sent (gated,       │
+│                      let through or observed); and what looks like drift: a  │
+│                      verified rule that went quiet while its site            │
+│                      sends unknown requests of the same kind, a burst of new │
+│                      unknown writes, a lane on a site with no rules          │
+│                      (its publishes are not gated). Read from the lanes'     │
+│                      request logs (names and shapes only, never a            │
+│                      value). Fix a stale rule without a code change:         │
+│                      `agentos lane gate-log <lane> --as-commit               │
+│                      <kind>.<detail> --shape <id>`.                          │
+│ pace                 A lane's posting pace: its waking hours, read on the    │
+│                      lane's own clock (its proxy's region from its           │
+│                      fixed browser fingerprint, unless you set a timezone),  │
+│                      the gap between posts and the posts a day. A            │
+│                      person driving the lane by hand is never paced; runs    │
+│                      and agents are, including runs you start. A             │
+│                      publish outside those hours is refused (lane_paced),    │
+│                      whatever is approved; a queued or scheduled run         │
+│                      moves to the next allowed time. Without options, shows  │
+│                      the pace, whose clock it reads and when the lane        │
+│                      may post next. Off for every lane until you set one.    │
+│ take                 Take control of a lane: agents stop acting on it until  │
+│                      you hand it back.                                       │
+│ handback             Hand a lane back to agents (also resumes a stopped      │
+│                      agent and clears a pending request). The                │
+│                      next thing an agent sees on the lane says what changed  │
+│                      while you had it.                                       │
+│ stop                 Stop the agent on a lane: its runs there are cancelled  │
+│                      and nothing acts until you hand it back.                │
+│ deny                 Refuse an agent's request for control back. You keep    │
+│                      control.                                                │
+│ login                Log a lane in by typing into the terminal: agentos      │
+│                      reads each sign-in step, asks you for exactly           │
+│                      its fields (passwords and codes hidden), and types them │
+│                      into the lane's browser at a person's pace.             │
+│                      Agents stop on the lane while it runs. Nothing you type │
+│                      is logged or shown to an agent.                         │
+│ view                 Print a signed live-view link for a lane and the SSH    │
+│                      tunnel that reaches it.                                 │
+│ freeze               Freeze one lane.                                        │
+│ unfreeze             Unfreeze one lane.                                      │
+│ forward              Reach a port of a terminal or service lane at           │
+│                      http://localhost here, while this command runs.         │
+│ redteam              Try to catch our own lanes as bots. Lanes visit a       │
+│                      detector site the way an agent drives them              │
+│                      (navigate, snapshot, act), and about 30 detectors judge │
+│                      what a vendor's sensor and server would                 │
+│                      see: keystroke and mouse dynamics, scrolling, focus,    │
+│                      navigation and headers, claimed versus                  │
+│                      measured hardware, the stealth probe, and lanes linked  │
+│                      to each other. Exits 1 when a detector                  │
+│                      catches a visit. docs/design/redteam.md says what each  │
+│                      detector means.                                         │
+│ refresh-fingerprint  Bump the browser version in a lane's pinned fingerprint │
+│                      to the installed Camoufox, keeping                      │
+│                      every other pinned value (navigator.userAgent and       │
+│                      headers.User-Agent change; nothing else).               │
+│                      For a lane on a device the change is the device's, so   │
+│                      it needs --yes, after the list of every                 │
+│                      lane it affects.                                        │
+│ check                Is this lane safe to use right now? A checklist per     │
+│                      lane: proxy, exit IP and its location,                  │
+│                      WebRTC and DNS leaks, profile and pin, signed in (from  │
+│                      the cookies already in the profile), the                │
+│                      expected account, and any hold. Never warms a lane,     │
+│                      opens a page or contacts an account's site.             │
+│                      Exits 1 when any lane fails a check.                    │
+│ health               One grade per lane from the checks agentos already      │
+│                      runs: Looks normal, Check this or Stop, with            │
+│                      countable facts and each finding's fix. It reports      │
+│                      consistency, leaks and the challenges sites             │
+│                      actually showed. It cannot see a site's own risk model, │
+│                      the exit IP's reputation or whether a                   │
+│                      site's terms allow automation                           │
+│                      (docs/RESPONSIBLE-USE.md). Exits 1 when any lane grades │
+│                      Stop.                                                   │
+│ audit                Does every lane pin one consistent, ordinary device,    │
+│                      and do any two lanes pin the same one?                  │
+│                      Reads the pinned fingerprints on disk only: no browser  │
+│                      starts and nothing is sent (safe on a                   │
+│                      node with live lanes). Exits 1 when a pin fails.        │
+│                      docs/design/stealth.md lists the rules.                 │
+│ stealth-check        Open scratch lanes (no account) in a throwaway home on  │
+│                      a test slot and check, the way a page's                 │
+│                      own script sees them: automation traces, one consistent │
+│                      device, the same device on every launch,                │
+│                      no two lanes alike, no WebRTC leak; plus memory per     │
+│                      warm lane, wake times and, with --soak-minutes,         │
+│                      lanes cycling while browsers are killed. Never touches  │
+│                      this node's own lanes, home or ports.                   │
+│                      Exits 1 when a check fails. docs/design/stealth.md says │
+│                      what each finding means.                                │
+│ keepalive            Session keepalive: a short read-only visit to an idle   │
+│                      lane's site every few days, inside its waking           │
+│                      hours, so its login does not go stale. Shows the next   │
+│                      planned visit and the last ones. Off on a node          │
+│                      until the owner turns it on (--node on), because it     │
+│                      opens real accounts unattended.                         │
+│ device               Devices: one fixed browser fingerprint and one proxy    │
+│                      shared by a company's lanes.                            │
+│ proxy                Proxies that lanes exit through.                        │
+│ env                  Terminal and service lanes: isolation, programs,        │
+│                      shells.                                                 │
+│ identity             Signed agent identity (Web Bot Auth) for browser lanes. │
+│ vm                   Disposable cloud VMs that agents use as lanes           │
+│                      (Hetzner).                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+

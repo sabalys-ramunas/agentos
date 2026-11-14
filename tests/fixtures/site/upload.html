@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Fixture upload</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>.drop { border: 2px dashed #999; padding: 12px; margin: 8px 0; }</style>
+</head>
+<body>
+  <main>
+    <h1>New post</h1>
+    <section aria-label="Cover">
+      <label for="cover">Cover image</label>
+      <input type="file" id="cover" accept="image/*">
+      <p id="cover-out">no cover</p>
+    </section>
+    <section aria-label="Gallery" class="drop">
+      <input type="file" id="gallery" accept="image/png,image/jpeg,.webp,video/mp4" multiple hidden>
+      <button type="button" id="add">Add photos</button>
+      <p id="gallery-out">no photos</p>
+    </section>
+    <section aria-label="Attachment" class="drop">
+      <!-- An upload widget that reads the file, then clears the input so the same file can be picked again. -->
+      <input type="file" id="attach" hidden>
+      <button type="button" id="attach-btn">Attach a file</button>
+      <ul id="attach-out"></ul>
+    </section>
+    <button type="button" id="nothing">Does nothing</button>
+  </main>
+  <script>
+    const show = (files) => Array.from(files, (f) => `${f.name} ${f.size} ${f.type}`).join(' | ');
+    document.getElementById('cover').addEventListener('change', (e) => {
+      document.getElementById('cover-out').textContent = show(e.target.files);
+    });
+    document.getElementById('add').addEventListener('click', () => document.getElementById('gallery').click());
+    document.getElementById('gallery').addEventListener('change', (e) => {
+      document.getElementById('gallery-out').textContent = show(e.target.files);
+    });
+    document.getElementById('attach-btn').addEventListener('click', () => document.getElementById('attach').click());
+    document.getElementById('attach').addEventListener('change', (e) => {
+      for (const f of e.target.files) {
+        const li = document.createElement('li');
+        li.textContent = `${f.name} ${f.size}`;
+        document.getElementById('attach-out').appendChild(li);
+      }
+      e.target.value = '';
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+Day plan draft · 2026-11-06
+A draft: nothing here is queued or sent. Engagement is a dry run on this node.
+
+Blocked
+  biz-a/facebook: needs human (checkpoint). Clear it in the live view, then hand it back: agentos lane handback.
+  biz-a/linkedin: backoff (rate_limited until 2026-11-06 14:30 UTC). Nothing to do: it lifts by itself. Do not retry before then.
+  biz-b/reddit: quarantined (exit IP changed). Check why, then hand it back: agentos lane handback.
+  personal/x: human (robin). Someone holds this lane. Agents wait until it is handed back.
+
+In the queue
+  biz-a/instagram: 2 approvals waiting.
+  biz-a/instagram: 1 run queued or in flight.
+  biz-b: 1 question waiting for an answer.
+
+Due today
+  biz-a/instagram: Instagram (steady day 12): 2 comment, 8 like.
+  biz-b/instagram: Instagram (warm-up day 3 of 10): 4 story view.
+
+Programs to look at
+  personal/medium: Medium: waiting for your approval.
+
+Upkeep
+  personal/medium: Connector broken: medium_post. Its runs wait until it is repaired.
+  personal/medium: Check this lane: last signal 2026-11-01.
+  personal/reddit: Check this lane: no signal yet.
+
+Content
+  None drafted: a brain task will write this batch later.

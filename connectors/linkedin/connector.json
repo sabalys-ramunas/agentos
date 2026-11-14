@@ -1,0 +1,2400 @@
+{
+  "connector": "linkedin",
+  "version": "0.3.0",
+  "site": "linkedin",
+  "domain": "linkedin.com",
+  "title": "LinkedIn",
+  "account_languages": [
+    "en"
+  ],
+  "operations": {
+    "post": {
+      "title": "Post text, with an optional photo, as the member",
+      "description": "Not verified yet: written from the notes of the 2026-11-04 canary, not recorded, so the engagement engine holds it until a canary on a throwaway account passes (docs/design/connectors.md 4.13). Notes the newest update on the member's own activity page first, then opens the feed's share box (Photo when an image is given, which the canary found works where a click on Start a post then an upload did not), types the text in the editor and presses Post. The preflight refuses unless the editor holds exactly the text and the audience reads Post to Anyone. The photo goes up as registerMediaUpload and a PUT to /dms-uploads/ before the post names it. Proved on the activity page: the newest update is not the one noted before the run, and its text is exactly the text. LinkedIn offers no readable permalink (Copy link writes to the clipboard), so the output is the update's urn.",
+      "effect": "commit",
+      "input": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "text"
+        ],
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 3000,
+            "show": true
+          },
+          "image": {
+            "type": "string",
+            "format": "agentos-file",
+            "media": [
+              "image/jpeg",
+              "image/png"
+            ],
+            "max_bytes": 8000000,
+            "show": true
+          }
+        }
+      },
+      "output": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "post_urn"
+        ],
+        "properties": {
+          "post_urn": {
+            "type": "string",
+            "pattern": "^urn:li:activity:[0-9]{10,25}$"
+          }
+        }
+      },
+      "acting_as": {
+        "kind": "account",
+        "source": "url",
+        "pattern": "^https://www\\.linkedin\\.com/in/([A-Za-z0-9_-]+)/"
+      },
+      "pace": {
+        "min_gap_minutes": 180,
+        "per_day": 2,
+        "active_hours": true
+      },
+      "signals": {
+        "hold": [
+          "captcha",
+          "checkpoint",
+          "logged_out",
+          "blocked",
+          "rate_limited",
+          "wrong_account"
+        ]
+      },
+      "commit": {
+        "step": "post",
+        "preflight": [
+          {
+            "kind": "value_equals",
+            "locator": {
+              "role": "textbox",
+              "nth": 0,
+              "within": {
+                "role": "dialog"
+              }
+            },
+            "param": "text"
+          },
+          {
+            "kind": "count",
+            "equals": 1,
+            "locator": {
+              "role": "button",
+              "names": {
+                "en": "Post to Anyone"
+              },
+              "match": "contains",
+              "within": {
+                "role": "dialog"
+              }
+            }
+          }
+        ],
+        "request": {
+          "method": "POST",
+          "url": "^https://www\\.linkedin\\.com/flagship-web/rsc-action/actions/server-request$",
+          "op": "^com\\.linkedin\\.sdui\\.requests\\.sharing\\.CreatePost$"
+        }
+      },
+      "readback": {
+        "live": {
+          "save_as": "post",
+          "outputs": {
+            "post_urn": "post.attributes.data-urn"
+          }
+        }
+      },
+      "steps": [
+        {
+          "type": "navigate",
+          "url": "https://www.linkedin.com/in/me/"
+        },
+        {
+          "type": "assert_identity",
+          "label": "acting as"
+        },
+        {
+          "type": "navigate",
+          "url": "https://www.linkedin.com/in/me/recent-activity/all/"
+        },
+        {
+          "type": "wait_for",
+          "locator": {
+            "role": "main"
+          }
+        },
+        {
+          "type": "readback",
+          "save_as": "before",
+          "timeout_ms": 5000,
+          "locator": {
+            "attr": {
+              "name": "data-urn",
+              "regex": "^urn:li:activity:[0-9]{10,25}$"
+            },
+            "nth": 0,
+            "within": {
+              "role": "main"
+            }
+          },
+          "condition": {
+            "kind": "count",
+            "at_least": 0
+          }
+        },
+        {
+          "type": "navigate",
+          "url": "https://www.linkedin.com/feed/"
+        },
+        {
+          "type": "branch",
+          "if": {
+            "param": "image",
+            "is_set": true
+          },
+          "then": [
+            {
+              "type": "upload",
+              "param": "image",
+              "publishes": false,
+              "locator": {
+                "role": "button",
+                "names": {
+                  "en": "Photo"
+                },
+                "match": "exact",
+                "nth": 0,
+                "within": {
+                  "role": "main"
+                }
+              }
+            },
+            {
+              "type": "click",
+              "publishes": false,
+              "locator": {
+                "role": "button",
+                "names": {
+                  "en": "Next"
+                },
+                "match": "exact",
+                "within": {
+                  "role": "dialog"
+                }
+              }
+            }
+          ],
+          "else": [
+            {
+              "type": "click",
+              "publishes": false,
+              "locator": {
+                "role": "button",
+                "names": {
+                  "en": "Start a post"
+                },
+                "match": "contains",
+                "nth": 0,
+                "within": {
+                  "role": "main"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "wait_for",
+          "locator": {
+            "role": "textbox",
+            "nth": 0,
+            "within": {
+              "role": "dialog"
+            }
+          }
+        },
+        {
+          "type": "click",
+          "locator": {
+            "role": "textbox",
+            "nth": 0,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "publishes": false
+        },
+        {
+          "type": "type",
+          "locator": {
+            "role": "textbox",
+            "nth": 0,
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "param": "text",
+          "publishes": false
+        },
+        {
+          "type": "click",
+          "label": "post",
+          "writes": true,
+          "locator": {
+            "role": "button",
+            "names": {
+              "en": "Post"
+            },
+            "match": "exact",
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "readback": {
+            "locator": {
+              "role": "dialog"
+            },
+            "condition": {
+              "kind": "absent"
+            },
+            "timeout_ms": 45000
+          }
+        },
+        {
+          "type": "navigate",
+          "url": "https://www.linkedin.com/in/me/recent-activity/all/"
+        },
+        {
+          "type": "readback",
+          "save_as": "post",
+          "timeout_ms": 20000,
+          "locator": {
+            "attr": {
+              "name": "data-urn",
+              "regex": "^urn:li:activity:[0-9]{10,25}$"
+            },
+            "nth": 0,
+            "within": {
+              "role": "main"
+            }
+          },
+          "condition": {
+            "kind": "attribute",
+            "name": "data-urn",
+            "changed_from": "before",
+            "empty_before_ok": true
+          }
+        },
+        {
+          "type": "readback",
+          "timeout_ms": 5000,
+          "locator": {
+            "css": ".update-components-text",
+            "nth": 0,
+            "within": {
+              "attr": {
+                "name": "data-urn",
+                "regex": "^urn:li:activity:[0-9]{10,25}$"
+              },
+              "nth": 0,
+              "within": {
+                "role": "main"
+              }
+            }
+          },
+          "condition": {
+            "kind": "text",
+            "equals": "${text}"
+          }
+        }
+      ]
+    },
+    "comment": {
+      "title": "Comment on a post",
+      "description": "Not verified yet: written from the notes of the 2026-11-04 canary, not recorded, so the engagement engine holds it until a canary on a throwaway account passes (docs/design/connectors.md 4.13). Opens the post's own page as the member, types the comment into the comment box of that post (inside the post's own container) and presses Comment, then waits for the box to clear. Proved on the member's own comments activity: in the newest entry for that post, the member's comment holds exactly the text.",
+      "effect": "commit",
+      "input": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "post_urn",
+          "text"
+        ],
+        "properties": {
+          "post_urn": {
+            "type": "string",
+            "pattern": "^urn:li:(activity|share|ugcPost):[0-9]{10,25}$",
+            "show": true,
+            "description": "the post's urn, as in /feed/update/<urn>/"
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1250,
+            "show": true
+          }
+        }
+      },
+      "output": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "proof_url"
+        ],
+        "properties": {
+          "proof_url": {
+            "type": "string",
+            "format": "uri",
+            "x-agentos-host": "linkedin.com",
+            "maxLength": 300,
+            "description": "the page where the readback found the effect",
+            "pattern": "^https://www\\.linkedin\\.com/in/[A-Za-z0-9_-]+/recent-activity/comments/"
+          }
+        }
+      },
+      "acting_as": {
+        "kind": "account",
+        "source": "url",
+        "pattern": "^https://www\\.linkedin\\.com/in/([A-Za-z0-9_-]+)/"
+      },
+      "pace": {
+        "min_gap_minutes": 30,
+        "per_day": 3,
+        "per_hour": 2,
+        "active_hours": true
+      },
+      "signals": {
+        "hold": [
+          "captcha",
+          "checkpoint",
+          "logged_out",
+          "blocked",
+          "rate_limited",
+          "wrong_account"
+        ]
+      },
+      "commit": {
+        "step": "comment",
+        "preflight": [
+          {
+            "kind": "value_equals",
+            "locator": {
+              "role": "textbox",
+              "nth": 0,
+              "within": {
+                "role": "form",
+                "nth": 0,
+                "within": {
+                  "role": "article",
+                  "attr": {
+                    "name": "data-urn",
+                    "equals": "${post_urn}"
+                  },
+                  "within": {
+                    "role": "main"
+                  }
+                }
+              }
+            },
+            "param": "text"
+          }
+        ],
+        "request": {
+          "method": "POST",
+          "url": "^https://www\\.linkedin\\.com/flagship-web/rsc-action/actions/server-request$",
+          "op": "^com\\.linkedin\\.sdui\\.comments\\.createComment$"
+        }
+      },
+      "readback": {
+        "live": {
+          "save_as": "activity",
+          "outputs": {
+            "proof_url": "activity.url"
+          }
+        }
+      },
+      "steps": [
+        {
+          "type": "navigate",
+          "url": "https://www.linkedin.com/in/me/"
+        },
+        {
+          "type": "assert_identity",
+          "label": "acting as"
+        },
+        {
+          "type": "navigate",
+          "url": "https://www.linkedin.com/feed/update/${post_urn}/"
+        },
+        {
+          "type": "wait_for",
+          "locator": {
+            "role": "textbox",
+            "nth": 0,
+            "within": {
+              "role": "form",
+              "nth": 0,
+              "within": {
+                "role": "article",
+                "attr": {
+                  "name": "data-urn",
+                  "equals": "${post_urn}"
+                },
+                "within": {
+                  "role": "main"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "click",
+          "locator": {
+            "role": "textbox",
+            "nth": 0,
+            "within": {
+              "role": "form",
+              "nth": 0,
+              "within": {
+                "role": "article",
+                "attr": {
+                  "name": "data-urn",
+                  "equals": "${post_urn}"
+                },
+                "within": {
+                  "role": "main"
+                }
+              }
+            }
+          },
+          "publishes": false
+        },
+        {
+          "type": "type",
+          "locator": {
+            "role": "textbox",
+            "nth": 0,
+            "within": {
+              "role": "form",
+              "nth": 0,
+              "within": {
+                "role": "article",
+                "attr": {
+                  "name": "data-urn",
+                  "equals": "${post_urn}"
+                },
+                "within": {
+                  "role": "main"
+                }
+              }
+            }
+          },
+          "param": "text",
+          "publishes": false
+        },
+        {
+          "type": "click",
+          "label": "comment",
+          "writes": true,
+          "locator": {
+            "role": "button",
+            "names": {
+              "en": "Comment"
+            },
+            "match": "exact",
+            "within": {
+              "role": "form",
+              "nth": 0,
+              "within": {
+                "role": "article",
+                "attr": {
+                  "name": "data-urn",
+                  "equals": "${post_urn}"
+                },
+                "within": {
+                  "role": "main"
+                }
+              }
+            }
+          },
+          "readback": {
+            "locator": {
+              "role": "textbox",
+              "nth": 0,
+              "within": {
+                "role": "form",
+                "nth": 0,
+                "within": {
+                  "role": "article",
+                  "attr": {
+                    "name": "data-urn",
+                    "equals": "${post_urn}"
+                  },
+                  "within": {
+                    "role": "main"
+                  }
+                }
+              }
+            },
+            "condition": {
+              "kind": "value",
+              "not_equals": "${text}"
+            },
+            "timeout_ms": 30000
+          }
+        },
+        {
+          "type": "navigate",
+          "url": "https://www.linkedin.com/in/me/recent-activity/comments/"
+        },
+        {
+          "type": "readback",
+          "save_as": "activity",
+          "timeout_ms": 20000,
+          "locator": {
+            "css": ".comments-comment-item__main-content",
+            "nth": 0,
+            "within": {
+              "role": "article",
+              "nth": 0,
+              "within": {
+                "attr": {
+                  "name": "data-urn",
+                  "equals": "${post_urn}"
+                },
+                "nth": 0,
+                "within": {
+                  "role": "main"
+                }
+              }
+            }
+          },
+          "condition": {
+            "kind": "text",
+            "equals": "${text}"
+          }
+        }
+      ]
+    },
+    "react": {
+      "title": "Like a post",
+      "description": "Not verified yet: written from the notes of the 2026-11-04 canary, not recorded, so the engagement engine holds it until a canary on a throwaway account passes (docs/design/connectors.md 4.13). Opens the post's own page as the member and presses the Like toggle of that post: every locator is inside the post's own container (the article whose data-urn is the post's urn), never a comment's. The preflight refuses when the post already carries any reaction of the member's (Like, Celebrate, ...), because pressing again takes it back or changes it, and unless exactly one Like toggle is there. Proved after a reload: the post's own Like is pressed, and the post is on the member's own reactions activity.",
+      "effect": "commit",
+      "input": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "post_urn"
+        ],
+        "properties": {
+          "post_urn": {
+            "type": "string",
+            "pattern": "^urn:li:(activity|share|ugcPost):[0-9]{10,25}$",
+            "show": true,
+            "description": "the post's urn, as in /feed/update/<urn>/"
+          }
+        }
+      },
+      "output": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "proof_url"
+        ],
+        "properties": {
+          "proof_url": {
+            "type": "string",
+            "format": "uri",
+            "x-agentos-host": "linkedin.com",
+            "maxLength": 300,
+            "description": "the page where the readback found the effect",
+            "pattern": "^https://www\\.linkedin\\.com/in/[A-Za-z0-9_-]+/recent-activity/reactions/"
+          }
+        }
+      },
+      "acting_as": {
+        "kind": "account",
+        "source": "url",
+        "pattern": "^https://www\\.linkedin\\.com/in/([A-Za-z0-9_-]+)/"
+      },
+      "pace": {
+        "min_gap_minutes": 3,
+        "per_day": 20,
+        "per_hour": 8,
+        "active_hours": true
+      },
+      "signals": {
+        "hold": [
+          "captcha",
+          "checkpoint",
+          "logged_out",
+          "blocked",
+          "rate_limited",
+          "wrong_account"
+        ]
+      },
+      "commit": {
+        "step": "react",
+        "preflight": [
+          {
+            "kind": "count",
+            "locator": {
+              "role": "button",
+              "names": {
+                "en": "\\b(Like|Celebrate|Support|Love|Insightful|Funny|Curious)\\b"
+              },
+              "match": "regex",
+              "attr": {
+                "name": "aria-pressed",
+                "equals": "true"
+              },
+              "within": {
+                "role": "article",
+                "attr": {
+                  "name": "data-urn",
+                  "equals": "${post_urn}"
+                },
+                "within": {
+                  "role": "main"
+                }
+              }
+            },
+            "equals": 0
+          },
+          {
+            "kind": "count",
+            "locator": {
+              "role": "button",
+              "names": {
+                "en": "Like"
+              },
+              "match": "contains",
+              "attr": {
+                "name": "aria-pressed",
+                "equals": "false"
+              },
+              "within": {
+                "role": "article",
+                "attr": {
+                  "name": "data-urn",
+                  "equals": "${post_urn}"
+                },
+                "within": {
+                  "role": "main"
+                }
+              }
+            },
+            "equals": 1
+          }
+        ],
+        "request": {
+          "method": "POST",
+          "url": "^https://www\\.linkedin\\.com/flagship-web/rsc-action/actions/server-request$",
+          "op": "^com\\.linkedin\\.sdui\\.reactions\\.create$"
+        }
+      },
+      "readback": {
+        "live": {
+          "save_as": "reacted",
+          "outputs": {
+            "proof_url": "reacted.url"
+          }
+        }
+      },
+      "steps": [
+        {
+          "type": "navigate",
+          "url": "https://www.linkedin.com/in/me/"
+        },
+        {
+          "type": "assert_identity",
+          "label": "acting as"
+        },
+        {
+          "type": "navigate",
+          "url": "https://www.linkedin.com/feed/update/${post_urn}/"
+        },
+        {
+          "type": "wait_for",
+          "locator": {
+            "role": "article",
+            "attr": {
+              "name": "data-urn",
+              "equals": "${post_urn}"
+            },
+            "within": {
+              "role": "main"
+            }
+          }
+        },
+        {
+          "type": "click",
+          "label": "react",
+          "writes": true,
+          "locator": {
+            "role": "button",
+            "names": {
+              "en": "Like"
+            },
+            "match": "contains",
+            "attr": {
+              "name": "aria-pressed",
+              "equals": "false"
+            },
+            "within": {
+              "role": "article",
+              "attr": {
+                "name": "data-urn",
+                "equals": "${post_urn}"
+              },
+              "within": {
+                "role": "main"
+              }
+            }
+          },
+          "readback": {
+            "locator": {
+              "role": "button",
+              "names": {
+                "en": "Like"
+              },
+              "match": "contains",
+              "attr": {
+                "name": "aria-pressed",
+                "equals": "true"
+              },
+              "within": {
+                "role": "article",
+                "attr": {
+                  "name": "data-urn",
+                  "equals": "${post_urn}"
+                },
+                "within": {
+                  "role": "main"
+                }
+              }
+            },
+            "condition": {
+              "kind": "exists"
+            },
+            "timeout_ms": 15000
+          }
+        },
+        {
+          "type": "navigate",
+          "url": "https://www.linkedin.com/feed/update/${post_urn}/"
+        },
+        {
+          "type": "readback",
+          "timeout_ms": 20000,
+          "locator": {
+            "role": "button",
+            "names": {
+              "en": "Like"
+            },
+            "match": "contains",
+            "attr": {
+              "name": "aria-pressed",
+              "equals": "true"
+            },
+            "within": {
+              "role": "article",
+              "attr": {
+                "name": "data-urn",
+                "equals": "${post_urn}"
+              },
+              "within": {
+                "role": "main"
+              }
+            }
+          },
+          "condition": {
+            "kind": "exists"
+          }
+        },
+        {
+          "type": "navigate",
+          "url": "https://www.linkedin.com/in/me/recent-activity/reactions/"
+        },
+        {
+          "type": "readback",
+          "save_as": "reacted",
+          "timeout_ms": 20000,
+          "locator": {
+            "attr": {
+              "name": "data-urn",
+              "equals": "${post_urn}"
+            },
+            "nth": 0,
+            "within": {
+              "role": "main"
+            }
+          },
+          "condition": {
+            "kind": "exists"
+          }
+        }
+      ]
+    },
+    "follow": {
+      "title": "Follow a member or a company",
+      "description": "Not verified yet: written from the notes of the 2026-11-04 canary, not recorded, so the engagement engine holds it until a canary on a throwaway account passes (docs/design/connectors.md 4.13). Opens the profile (/in/<name>/) or the company page (/company/<name>/) as the member and presses the Follow button of the page's own top card, never Connect (a connection request is aimed at a person and is out of scope) and never a Follow in a suggestion list. The preflight refuses when the top card already shows Following, and when it has no Follow button (only Connect). Proved after a reload: the top card shows Following.",
+      "effect": "commit",
+      "input": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "profile_kind",
+          "name"
+        ],
+        "properties": {
+          "profile_kind": {
+            "type": "string",
+            "enum": [
+              "in",
+              "company"
+            ],
+            "show": true,
+            "description": "in for a member, company for a company page"
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{2,100}$",
+            "show": true,
+            "description": "the public name in the page's URL"
+          }
+        }
+      },
+      "output": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "proof_url"
+        ],
+        "properties": {
+          "proof_url": {
+            "type": "string",
+            "format": "uri",
+            "x-agentos-host": "linkedin.com",
+            "maxLength": 300,
+            "description": "the page where the readback found the effect",
+            "pattern": "^https://www\\.linkedin\\.com/(in|company)/[A-Za-z0-9_-]+/"
+          }
+        }
+      },
+      "acting_as": {
+        "kind": "account",
+        "source": "url",
+        "pattern": "^https://www\\.linkedin\\.com/in/([A-Za-z0-9_-]+)/"
+      },
+      "pace": {
+        "min_gap_minutes": 20,
+        "per_day": 5,
+        "per_hour": 3,
+        "active_hours": true,
+        "per_week": 25
+      },
+      "signals": {
+        "hold": [
+          "captcha",
+          "checkpoint",
+          "logged_out",
+          "blocked",
+          "rate_limited",
+          "wrong_account"
+        ]
+      },
+      "commit": {
+        "step": "follow",
+        "preflight": [
+          {
+            "kind": "count",
+            "locator": {
+              "role": "button",
+              "names": {
+                "en": "^(Following|Unfollow)\\b"
+              },
+              "match": "regex",
+              "nth": 0,
+              "within": {
+                "css": ".pv-top-card, .org-top-card",
+                "nth": 0,
+                "within": {
+                  "role": "main"
+                }
+              }
+            },
+            "equals": 0
+          },
+          {
+            "kind": "count",
+            "locator": {
+              "role": "button",
+              "names": {
+                "en": "^Follow(?!ing)\\b"
+              },
+              "match": "regex",
+              "within": {
+                "css": ".pv-top-card, .org-top-card",
+                "nth": 0,
+                "within": {
+                  "role": "main"
+                }
+              }
+            },
+            "equals": 1
+          }
+        ],
+        "request": {
+          "method": "POST",
+          "url": "^https://www\\.linkedin\\.com/flagship-web/rsc-action/actions/server-request$",
+          "op": "^com\\.linkedin\\.sdui\\.requests\\.mynetwork\\.addaUpdateFollowState$"
+        }
+      },
+      "readback": {
+        "live": {
+          "save_as": "followed",
+          "outputs": {
+            "proof_url": "followed.url"
+          }
+        }
+      },
+      "steps": [
+        {
+          "type": "navigate",
+          "url": "https://www.linkedin.com/in/me/"
+        },
+        {
+          "type": "assert_identity",
+          "label": "acting as"
+        },
+        {
+          "type": "navigate",
+          "url": "https://www.linkedin.com/${profile_kind}/${name}/"
+        },
+        {
+          "type": "wait_for",
+          "locator": {
+            "css": ".pv-top-card, .org-top-card",
+            "nth": 0,
+            "within": {
+              "role": "main"
+            }
+          }
+        },
+        {
+          "type": "click",
+          "label": "follow",
+          "writes": true,
+          "locator": {
+            "role": "button",
+            "names": {
+              "en": "^Follow(?!ing)\\b"
+            },
+            "match": "regex",
+            "within": {
+              "css": ".pv-top-card, .org-top-card",
+              "nth": 0,
+              "within": {
+                "role": "main"
+              }
+            }
+          },
+          "readback": {
+            "locator": {
+              "role": "button",
+              "names": {
+                "en": "^(Following|Unfollow)\\b"
+              },
+              "match": "regex",
+              "nth": 0,
+              "within": {
+                "css": ".pv-top-card, .org-top-card",
+                "nth": 0,
+                "within": {
+                  "role": "main"
+                }
+              }
+            },
+            "condition": {
+              "kind": "exists"
+            },
+            "timeout_ms": 15000
+          }
+        },
+        {
+          "type": "navigate",
+          "url": "https://www.linkedin.com/${profile_kind}/${name}/"
+        },
+        {
+          "type": "readback",
+          "save_as": "followed",
+          "locator": {
+            "role": "button",
+            "names": {
+              "en": "^(Following|Unfollow)\\b"
+            },
+            "match": "regex",
+            "nth": 0,
+            "within": {
+              "css": ".pv-top-card, .org-top-card",
+              "nth": 0,
+              "within": {
+                "role": "main"
+              }
+            }
+          },
+          "condition": {
+            "kind": "exists"
+          },
+          "timeout_ms": 15000
+        }
+      ]
+    },
+    "feed": {
+      "title": "List posts from the member's own feed",
+      "description": "Not verified yet: written from the notes of the 2026-11-04 canary, not recorded, so it is a read the engine may use until a canary on a throwaway account passes (docs/design/connectors.md 4.13). Opens the home feed as the member and returns up to 10 updates: each update's urn and the link to its author's profile or company page, read from attributes. No text: page text is untrusted, and target choice needs none.",
+      "effect": "read",
+      "input": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {}
+      },
+      "output": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "posts"
+        ],
+        "properties": {
+          "posts": {
+            "type": "array",
+            "maxItems": 10,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "urn"
+              ],
+              "properties": {
+                "urn": {
+                  "type": "string",
+                  "pattern": "^urn:li:activity:[0-9]{10,25}$"
+                },
+                "author_url": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "uri",
+                  "x-agentos-host": "linkedin.com",
+                  "maxLength": 300
+                }
+              }
+            }
+          }
+        }
+      },
+      "acting_as": {
+        "kind": "account",
+        "source": "url",
+        "pattern": "^https://www\\.linkedin\\.com/in/([A-Za-z0-9_-]+)/"
+      },
+      "pace": {
+        "per_hour": 6,
+        "per_day": 40,
+        "max_items": 10,
+        "active_hours": true
+      },
+      "signals": {
+        "hold": [
+          "captcha",
+          "checkpoint",
+          "logged_out",
+          "blocked",
+          "rate_limited",
+          "wrong_account"
+        ]
+      },
+      "readback": {
+        "live": {
+          "outputs": {
+            "posts": "posts.items"
+          }
+        }
+      },
+      "steps": [
+        {
+          "type": "navigate",
+          "url": "https://www.linkedin.com/in/me/"
+        },
+        {
+          "type": "assert_identity",
+          "label": "acting as"
+        },
+        {
+          "type": "navigate",
+          "url": "https://www.linkedin.com/feed/"
+        },
+        {
+          "type": "extract",
+          "save_as": "posts",
+          "max_items": 10,
+          "items": {
+            "attr": {
+              "name": "data-urn",
+              "regex": "^urn:li:activity:[0-9]{10,25}$"
+            },
+            "within": {
+              "role": "main"
+            }
+          },
+          "fields": {
+            "urn": {
+              "attr": "data-urn",
+              "pattern": "^urn:li:activity:[0-9]{10,25}$"
+            },
+            "author_url": {
+              "locator": {
+                "role": "link",
+                "attr": {
+                  "name": "href",
+                  "regex": "/(in|company)/[^/?#]+"
+                },
+                "nth": 0
+              },
+              "attr": "href",
+              "format": "uri",
+              "host": "linkedin.com",
+              "pattern": "^https://www\\.linkedin\\.com/(in|company)/[^/?#]+",
+              "untrusted": true
+            }
+          }
+        }
+      ]
+    },
+    "profile_name": {
+      "title": "Set the member's first and last name",
+      "description": "Not verified yet, and not captured: nobody has recorded LinkedIn's profile edits, so every locator and the commit request below are a best reading of the web client, to be replaced at the canary (docs/ENGAGEMENT.md, Profile). The engine holds it until then (rule_unverified, op_unverified). Opens the member's own profile at its public address (/in/<id>/, the page every read and the proof use), opens Edit intro from the top card and fills First name and Last name. The preflight wants both boxes to hold exactly the names and the top card's name to differ from them (the same name ends already_current, with nothing saved). Proved on the profile page reloaded as the account (a signed-in view, not a signed-out visitor's; the canary checks a signed-out view once): its name heading reads exactly the first and last name.",
+      "effect": "commit",
+      "input": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "properties": {
+          "first_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50,
+            "show": true,
+            "pattern": "^[^\\u0000-\\u001F\\u007F]+$",
+            "readOnly": true
+          },
+          "last_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50,
+            "show": true,
+            "pattern": "^[^\\u0000-\\u001F\\u007F]+$",
+            "readOnly": true
+          }
+        }
+      },
+      "output": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "proof_url"
+        ],
+        "properties": {
+          "proof_url": {
+            "type": "string",
+            "format": "uri",
+            "x-agentos-host": "linkedin.com",
+            "maxLength": 300,
+            "description": "the profile page, reloaded as the account, where the readback found the new value",
+            "pattern": "^https://www\\.linkedin\\.com/in/[A-Za-z0-9_-]+/"
+          }
+        }
+      },
+      "acting_as": {
+        "kind": "account",
+        "source": "url",
+        "pattern": "^https://www\\.linkedin\\.com/in/([A-Za-z0-9_-]+)/"
+      },
+      "pace": {
+        "min_gap_minutes": 60,
+        "per_day": 2,
+        "per_week": 5,
+        "active_hours": true
+      },
+      "signals": {
+        "hold": [
+          "captcha",
+          "checkpoint",
+          "logged_out",
+          "blocked",
+          "rate_limited",
+          "wrong_account"
+        ]
+      },
+      "commit": {
+        "step": "save",
+        "preflight": [
+          {
+            "kind": "value_equals",
+            "locator": {
+              "role": "textbox",
+              "names": {
+                "en": "First name"
+              },
+              "match": "contains",
+              "within": {
+                "role": "dialog"
+              }
+            },
+            "param": "first_name"
+          },
+          {
+            "kind": "value_equals",
+            "locator": {
+              "role": "textbox",
+              "names": {
+                "en": "Last name"
+              },
+              "match": "contains",
+              "within": {
+                "role": "dialog"
+              }
+            },
+            "param": "last_name"
+          },
+          {
+            "kind": "text_differs",
+            "locator": {
+              "role": "heading",
+              "within": {
+                "css": ".pv-top-card",
+                "within": {
+                  "role": "main"
+                }
+              }
+            },
+            "text": "${first_name} ${last_name}"
+          }
+        ],
+        "request": {
+          "method": "POST",
+          "url": "^https://www\\.linkedin\\.com/flagship-web/rsc-action/actions/server-request$",
+          "op": "^com\\.linkedin\\.sdui\\.requests\\.profile\\.(update|save)(Profile|Member)?(Full)?Names?$"
+        }
+      },
+      "readback": {
+        "live": {
+          "save_as": "public",
+          "outputs": {
+            "proof_url": "public.url"
+          }
+        }
+      },
+      "discard": [
+        {
+          "type": "press",
+          "key": "Escape",
+          "publishes": false
+        }
+      ],
+      "steps": [
+        {
+          "type": "navigate",
+          "url": "https://www.linkedin.com/in/me/"
+        },
+        {
+          "type": "assert_identity",
+          "label": "acting as"
+        },
+        {
+          "type": "navigate",
+          "url": "https://www.linkedin.com/in/${acts_as_id}/"
+        },
+        {
+          "type": "wait_for",
+          "locator": {
+            "css": ".pv-top-card",
+            "within": {
+              "role": "main"
+            }
+          }
+        },
+        {
+          "type": "click",
+          "publishes": false,
+          "locator": {
+            "role": "button",
+            "names": {
+              "en": "Edit intro"
+            },
+            "match": "exact",
+            "within": {
+              "css": ".pv-top-card",
+              "within": {
+                "role": "main"
+              }
+            }
+          }
+        },
+        {
+          "type": "wait_for",
+          "locator": {
+            "role": "textbox",
+            "names": {
+              "en": "First name"
+            },
+            "match": "contains",
+            "within": {
+              "role": "dialog"
+            }
+          }
+        },
+        {
+          "type": "fill",
+          "locator": {
+            "role": "textbox",
+            "names": {
+              "en": "First name"
+            },
+            "match": "contains",
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "param": "first_name",
+          "publishes": false
+        },
+        {
+          "type": "fill",
+          "locator": {
+            "role": "textbox",
+            "names": {
+              "en": "Last name"
+            },
+            "match": "contains",
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "param": "last_name",
+          "publishes": false
+        },
+        {
+          "type": "click",
+          "label": "save",
+          "writes": true,
+          "locator": {
+            "role": "button",
+            "names": {
+              "en": "Save"
+            },
+            "match": "exact",
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "readback": {
+            "locator": {
+              "role": "dialog"
+            },
+            "condition": {
+              "kind": "absent"
+            },
+            "timeout_ms": 30000
+          }
+        },
+        {
+          "type": "navigate",
+          "url": "https://www.linkedin.com/in/${acts_as_id}/"
+        },
+        {
+          "type": "readback",
+          "save_as": "public",
+          "timeout_ms": 20000,
+          "locator": {
+            "role": "heading",
+            "within": {
+              "css": ".pv-top-card",
+              "within": {
+                "role": "main"
+              }
+            }
+          },
+          "condition": {
+            "kind": "text",
+            "equals": "${first_name} ${last_name}"
+          }
+        }
+      ]
+    },
+    "profile_headline": {
+      "title": "Set the member's headline",
+      "description": "Not verified yet, and not captured: nobody has recorded LinkedIn's profile edits, so every locator and the commit request below are a best reading of the web client, to be replaced at the canary (docs/ENGAGEMENT.md, Profile). The engine holds it until then (rule_unverified, op_unverified). Opens the member's own profile at its public address (/in/<id>/, the page every read and the proof use), opens Edit intro from the top card and fills Headline. The preflight wants the box to hold exactly the headline and the top card's one headline to differ from it (the same headline ends already_current, with nothing saved). Proved on the profile page reloaded as the account (a signed-in view, not a signed-out visitor's; the canary checks a signed-out view once): the headline under the name is exactly the text.",
+      "effect": "commit",
+      "input": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "headline"
+        ],
+        "properties": {
+          "headline": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 220,
+            "show": true,
+            "pattern": "^[^\\u0000-\\u001F\\u007F]+$",
+            "readOnly": true
+          }
+        }
+      },
+      "output": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "proof_url"
+        ],
+        "properties": {
+          "proof_url": {
+            "type": "string",
+            "format": "uri",
+            "x-agentos-host": "linkedin.com",
+            "maxLength": 300,
+            "description": "the profile page, reloaded as the account, where the readback found the new value",
+            "pattern": "^https://www\\.linkedin\\.com/in/[A-Za-z0-9_-]+/"
+          }
+        }
+      },
+      "acting_as": {
+        "kind": "account",
+        "source": "url",
+        "pattern": "^https://www\\.linkedin\\.com/in/([A-Za-z0-9_-]+)/"
+      },
+      "pace": {
+        "min_gap_minutes": 60,
+        "per_day": 2,
+        "per_week": 5,
+        "active_hours": true
+      },
+      "signals": {
+        "hold": [
+          "captcha",
+          "checkpoint",
+          "logged_out",
+          "blocked",
+          "rate_limited",
+          "wrong_account"
+        ]
+      },
+      "commit": {
+        "step": "save",
+        "preflight": [
+          {
+            "kind": "value_equals",
+            "locator": {
+              "role": "textbox",
+              "names": {
+                "en": "Headline"
+              },
+              "match": "contains",
+              "within": {
+                "role": "dialog"
+              }
+            },
+            "param": "headline"
+          },
+          {
+            "kind": "text_differs",
+            "locator": {
+              "css": ".text-body-medium",
+              "within": {
+                "css": ".pv-top-card",
+                "within": {
+                  "role": "main"
+                }
+              }
+            },
+            "text": "${headline}"
+          }
+        ],
+        "request": {
+          "method": "POST",
+          "url": "^https://www\\.linkedin\\.com/flagship-web/rsc-action/actions/server-request$",
+          "op": "^com\\.linkedin\\.sdui\\.requests\\.profile\\.(update|save)(Profile)?Headline$"
+        }
+      },
+      "readback": {
+        "live": {
+          "save_as": "public",
+          "outputs": {
+            "proof_url": "public.url"
+          }
+        }
+      },
+      "discard": [
+        {
+          "type": "press",
+          "key": "Escape",
+          "publishes": false
+        }
+      ],
+      "steps": [
+        {
+          "type": "navigate",
+          "url": "https://www.linkedin.com/in/me/"
+        },
+        {
+          "type": "assert_identity",
+          "label": "acting as"
+        },
+        {
+          "type": "navigate",
+          "url": "https://www.linkedin.com/in/${acts_as_id}/"
+        },
+        {
+          "type": "wait_for",
+          "locator": {
+            "css": ".pv-top-card",
+            "within": {
+              "role": "main"
+            }
+          }
+        },
+        {
+          "type": "click",
+          "publishes": false,
+          "locator": {
+            "role": "button",
+            "names": {
+              "en": "Edit intro"
+            },
+            "match": "exact",
+            "within": {
+              "css": ".pv-top-card",
+              "within": {
+                "role": "main"
+              }
+            }
+          }
+        },
+        {
+          "type": "wait_for",
+          "locator": {
+            "role": "textbox",
+            "names": {
+              "en": "Headline"
+            },
+            "match": "contains",
+            "within": {
+              "role": "dialog"
+            }
+          }
+        },
+        {
+          "type": "fill",
+          "locator": {
+            "role": "textbox",
+            "names": {
+              "en": "Headline"
+            },
+            "match": "contains",
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "param": "headline",
+          "publishes": false
+        },
+        {
+          "type": "click",
+          "label": "save",
+          "writes": true,
+          "locator": {
+            "role": "button",
+            "names": {
+              "en": "Save"
+            },
+            "match": "exact",
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "readback": {
+            "locator": {
+              "role": "dialog"
+            },
+            "condition": {
+              "kind": "absent"
+            },
+            "timeout_ms": 30000
+          }
+        },
+        {
+          "type": "navigate",
+          "url": "https://www.linkedin.com/in/${acts_as_id}/"
+        },
+        {
+          "type": "readback",
+          "save_as": "public",
+          "timeout_ms": 20000,
+          "locator": {
+            "css": ".text-body-medium",
+            "within": {
+              "css": ".pv-top-card",
+              "within": {
+                "role": "main"
+              }
+            }
+          },
+          "condition": {
+            "kind": "text",
+            "equals": "${headline}"
+          }
+        }
+      ]
+    },
+    "profile_about": {
+      "title": "Set the member's About section",
+      "description": "Not verified yet, and not captured: nobody has recorded LinkedIn's profile edits, so every locator and the commit request below are a best reading of the web client, to be replaced at the canary (docs/ENGAGEMENT.md, Profile). The engine holds it until then (rule_unverified, op_unverified). Opens the member's own profile at its public address (/in/<id>/, the page every read and the proof use), opens the About section's edit dialog and fills its text box. The preflight wants the box to hold exactly the text and the section's one text to differ from it, line breaks kept (the same text ends already_current, with nothing saved). Proved on the profile page reloaded as the account (a signed-in view, not a signed-out visitor's; the canary checks a signed-out view once): the About text is exactly the text (spaces normalized, line breaks kept). A profile with no About section yet has no edit button there: the run fails before anything is typed.",
+      "effect": "commit",
+      "input": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "about"
+        ],
+        "properties": {
+          "about": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2600,
+            "show": true,
+            "readOnly": true
+          }
+        }
+      },
+      "output": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "proof_url"
+        ],
+        "properties": {
+          "proof_url": {
+            "type": "string",
+            "format": "uri",
+            "x-agentos-host": "linkedin.com",
+            "maxLength": 300,
+            "description": "the profile page, reloaded as the account, where the readback found the new value",
+            "pattern": "^https://www\\.linkedin\\.com/in/[A-Za-z0-9_-]+/"
+          }
+        }
+      },
+      "acting_as": {
+        "kind": "account",
+        "source": "url",
+        "pattern": "^https://www\\.linkedin\\.com/in/([A-Za-z0-9_-]+)/"
+      },
+      "pace": {
+        "min_gap_minutes": 60,
+        "per_day": 2,
+        "per_week": 5,
+        "active_hours": true
+      },
+      "signals": {
+        "hold": [
+          "captcha",
+          "checkpoint",
+          "logged_out",
+          "blocked",
+          "rate_limited",
+          "wrong_account"
+        ]
+      },
+      "commit": {
+        "step": "save",
+        "preflight": [
+          {
+            "kind": "value_equals",
+            "locator": {
+              "role": "textbox",
+              "within": {
+                "role": "dialog"
+              }
+            },
+            "param": "about"
+          },
+          {
+            "kind": "text_differs",
+            "locator": {
+              "css": ".inline-show-more-text span[aria-hidden=\"true\"]",
+              "within": {
+                "css": "section:has(#about)",
+                "within": {
+                  "role": "main"
+                }
+              }
+            },
+            "text": "${about}",
+            "lines": true
+          }
+        ],
+        "request": {
+          "method": "POST",
+          "url": "^https://www\\.linkedin\\.com/flagship-web/rsc-action/actions/server-request$",
+          "op": "^com\\.linkedin\\.sdui\\.requests\\.profile\\.(update|save)(Profile)?(About|Summary)(Section)?$"
+        }
+      },
+      "readback": {
+        "live": {
+          "save_as": "public",
+          "outputs": {
+            "proof_url": "public.url"
+          }
+        }
+      },
+      "discard": [
+        {
+          "type": "press",
+          "key": "Escape",
+          "publishes": false
+        }
+      ],
+      "steps": [
+        {
+          "type": "navigate",
+          "url": "https://www.linkedin.com/in/me/"
+        },
+        {
+          "type": "assert_identity",
+          "label": "acting as"
+        },
+        {
+          "type": "navigate",
+          "url": "https://www.linkedin.com/in/${acts_as_id}/"
+        },
+        {
+          "type": "wait_for",
+          "locator": {
+            "css": ".pv-top-card",
+            "within": {
+              "role": "main"
+            }
+          }
+        },
+        {
+          "type": "click",
+          "publishes": false,
+          "locator": {
+            "role": "button",
+            "names": {
+              "en": "Edit about"
+            },
+            "match": "exact",
+            "within": {
+              "css": "section:has(#about)",
+              "within": {
+                "role": "main"
+              }
+            }
+          }
+        },
+        {
+          "type": "wait_for",
+          "locator": {
+            "role": "textbox",
+            "within": {
+              "role": "dialog"
+            }
+          }
+        },
+        {
+          "type": "fill",
+          "locator": {
+            "role": "textbox",
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "param": "about",
+          "publishes": false
+        },
+        {
+          "type": "click",
+          "label": "save",
+          "writes": true,
+          "locator": {
+            "role": "button",
+            "names": {
+              "en": "Save"
+            },
+            "match": "exact",
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "readback": {
+            "locator": {
+              "role": "dialog"
+            },
+            "condition": {
+              "kind": "absent"
+            },
+            "timeout_ms": 30000
+          }
+        },
+        {
+          "type": "navigate",
+          "url": "https://www.linkedin.com/in/${acts_as_id}/"
+        },
+        {
+          "type": "readback",
+          "save_as": "public",
+          "timeout_ms": 20000,
+          "locator": {
+            "css": ".inline-show-more-text span[aria-hidden=\"true\"]",
+            "within": {
+              "css": "section:has(#about)",
+              "within": {
+                "role": "main"
+              }
+            }
+          },
+          "condition": {
+            "kind": "text",
+            "equals": "${about}",
+            "lines": true
+          }
+        }
+      ]
+    },
+    "profile_photo": {
+      "title": "Set the member's profile photo",
+      "description": "Not verified yet, and not captured: nobody has recorded LinkedIn's profile edits, so every locator and the commit request below are a best reading of the web client, to be replaced at the canary (docs/ENGAGEMENT.md, Profile). The engine holds it until then (rule_unverified, op_unverified). Opens the member's own profile at its public address (/in/<id>/, the page every read and the proof use), waits for the top card's one photo and notes its src (no photo there, nothing is done), opens the photo dialog from the top card, uploads the image (its upload is registered the way a post's photo is: registerMediaUpload and a PUT to /dms-uploads/), and saves it. The preflight wants exactly one image in the dialog. Proved on the profile page reloaded as the account (a signed-in view, not a signed-out visitor's; the canary checks a signed-out view once): the photo's src names another media asset on media.licdn.com than the one noted before the run (compared by the asset id, not the size or signature in the URL).",
+      "effect": "commit",
+      "input": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "image"
+        ],
+        "properties": {
+          "image": {
+            "type": "string",
+            "format": "agentos-file",
+            "media": [
+              "image/jpeg",
+              "image/png"
+            ],
+            "max_bytes": 8000000,
+            "show": true,
+            "description": "a files_put id in the lane's inbox",
+            "readOnly": true
+          }
+        }
+      },
+      "output": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "proof_url"
+        ],
+        "properties": {
+          "proof_url": {
+            "type": "string",
+            "format": "uri",
+            "x-agentos-host": "linkedin.com",
+            "maxLength": 300,
+            "description": "the profile page, reloaded as the account, where the readback found the new value",
+            "pattern": "^https://www\\.linkedin\\.com/in/[A-Za-z0-9_-]+/"
+          }
+        }
+      },
+      "acting_as": {
+        "kind": "account",
+        "source": "url",
+        "pattern": "^https://www\\.linkedin\\.com/in/([A-Za-z0-9_-]+)/"
+      },
+      "pace": {
+        "min_gap_minutes": 60,
+        "per_day": 2,
+        "per_week": 5,
+        "active_hours": true
+      },
+      "signals": {
+        "hold": [
+          "captcha",
+          "checkpoint",
+          "logged_out",
+          "blocked",
+          "rate_limited",
+          "wrong_account"
+        ]
+      },
+      "commit": {
+        "step": "save",
+        "preflight": [
+          {
+            "kind": "count",
+            "equals": 1,
+            "locator": {
+              "role": "img",
+              "within": {
+                "role": "dialog"
+              }
+            }
+          }
+        ],
+        "request": {
+          "method": "POST",
+          "url": "^https://www\\.linkedin\\.com/flagship-web/rsc-action/actions/server-request$",
+          "op": "^com\\.linkedin\\.sdui\\.requests\\.profile\\.(update|save)(Profile|Display)(Photo|Picture)$"
+        }
+      },
+      "readback": {
+        "live": {
+          "save_as": "public",
+          "outputs": {
+            "proof_url": "public.url"
+          }
+        }
+      },
+      "discard": [
+        {
+          "type": "press",
+          "key": "Escape",
+          "publishes": false
+        }
+      ],
+      "steps": [
+        {
+          "type": "navigate",
+          "url": "https://www.linkedin.com/in/me/"
+        },
+        {
+          "type": "assert_identity",
+          "label": "acting as"
+        },
+        {
+          "type": "navigate",
+          "url": "https://www.linkedin.com/in/${acts_as_id}/"
+        },
+        {
+          "type": "wait_for",
+          "locator": {
+            "css": ".pv-top-card",
+            "within": {
+              "role": "main"
+            }
+          }
+        },
+        {
+          "type": "readback",
+          "save_as": "before",
+          "timeout_ms": 15000,
+          "locator": {
+            "role": "img",
+            "attr": {
+              "name": "class",
+              "regex": "\\bpv-top-card-profile-picture__image"
+            },
+            "within": {
+              "css": ".pv-top-card",
+              "within": {
+                "role": "main"
+              }
+            }
+          },
+          "condition": {
+            "kind": "attribute",
+            "name": "src",
+            "matches": "\\S"
+          }
+        },
+        {
+          "type": "click",
+          "publishes": false,
+          "locator": {
+            "role": "button",
+            "names": {
+              "en": "profile photo"
+            },
+            "match": "contains",
+            "within": {
+              "css": ".pv-top-card",
+              "within": {
+                "role": "main"
+              }
+            }
+          }
+        },
+        {
+          "type": "upload",
+          "param": "image",
+          "publishes": false,
+          "locator": {
+            "role": "button",
+            "names": {
+              "en": "^(Upload|Add|Change) photo$"
+            },
+            "match": "regex",
+            "within": {
+              "role": "dialog"
+            }
+          }
+        },
+        {
+          "type": "wait_for",
+          "locator": {
+            "role": "img",
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "timeout_ms": 30000
+        },
+        {
+          "type": "click",
+          "label": "save",
+          "writes": true,
+          "locator": {
+            "role": "button",
+            "names": {
+              "en": "^(Save|Apply)( photo)?$"
+            },
+            "match": "regex",
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "readback": {
+            "locator": {
+              "role": "dialog"
+            },
+            "condition": {
+              "kind": "absent"
+            },
+            "timeout_ms": 45000
+          }
+        },
+        {
+          "type": "navigate",
+          "url": "https://www.linkedin.com/in/${acts_as_id}/"
+        },
+        {
+          "type": "readback",
+          "save_as": "public",
+          "timeout_ms": 20000,
+          "locator": {
+            "role": "img",
+            "attr": {
+              "name": "class",
+              "regex": "\\bpv-top-card-profile-picture__image"
+            },
+            "within": {
+              "css": ".pv-top-card",
+              "within": {
+                "role": "main"
+              }
+            }
+          },
+          "condition": {
+            "kind": "attribute",
+            "name": "src",
+            "changed_from": "before",
+            "identity": "^https://media\\.licdn\\.com/dms/image/(?:v2/)?([A-Za-z0-9_-]+)/"
+          }
+        },
+        {
+          "type": "readback",
+          "timeout_ms": 5000,
+          "locator": {
+            "role": "img",
+            "attr": {
+              "name": "class",
+              "regex": "\\bpv-top-card-profile-picture__image"
+            },
+            "within": {
+              "css": ".pv-top-card",
+              "within": {
+                "role": "main"
+              }
+            }
+          },
+          "condition": {
+            "kind": "attribute",
+            "name": "src",
+            "matches": "^https://media\\.licdn\\.com/dms/image/"
+          }
+        }
+      ]
+    },
+    "profile_cover": {
+      "title": "Set the member's cover image",
+      "description": "Not verified yet, and not captured: nobody has recorded LinkedIn's profile edits, so every locator and the commit request below are a best reading of the web client, to be replaced at the canary (docs/ENGAGEMENT.md, Profile). The engine holds it until then (rule_unverified, op_unverified). Opens the member's own profile at its public address (/in/<id>/, the page every read and the proof use), waits for the one cover image and notes its src (none there, nothing is done), opens the background photo dialog, uploads the image (registered like a post's photo) and applies it. The preflight wants exactly one image in the dialog. Proved on the profile page reloaded as the account (a signed-in view, not a signed-out visitor's; the canary checks a signed-out view once): the cover's src names another media asset on media.licdn.com than the one noted before the run (compared by the asset id, not the size or signature in the URL).",
+      "effect": "commit",
+      "input": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "image"
+        ],
+        "properties": {
+          "image": {
+            "type": "string",
+            "format": "agentos-file",
+            "media": [
+              "image/jpeg",
+              "image/png"
+            ],
+            "max_bytes": 8000000,
+            "show": true,
+            "description": "a files_put id in the lane's inbox",
+            "readOnly": true
+          }
+        }
+      },
+      "output": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "proof_url"
+        ],
+        "properties": {
+          "proof_url": {
+            "type": "string",
+            "format": "uri",
+            "x-agentos-host": "linkedin.com",
+            "maxLength": 300,
+            "description": "the profile page, reloaded as the account, where the readback found the new value",
+            "pattern": "^https://www\\.linkedin\\.com/in/[A-Za-z0-9_-]+/"
+          }
+        }
+      },
+      "acting_as": {
+        "kind": "account",
+        "source": "url",
+        "pattern": "^https://www\\.linkedin\\.com/in/([A-Za-z0-9_-]+)/"
+      },
+      "pace": {
+        "min_gap_minutes": 60,
+        "per_day": 2,
+        "per_week": 5,
+        "active_hours": true
+      },
+      "signals": {
+        "hold": [
+          "captcha",
+          "checkpoint",
+          "logged_out",
+          "blocked",
+          "rate_limited",
+          "wrong_account"
+        ]
+      },
+      "commit": {
+        "step": "save",
+        "preflight": [
+          {
+            "kind": "count",
+            "equals": 1,
+            "locator": {
+              "role": "img",
+              "within": {
+                "role": "dialog"
+              }
+            }
+          }
+        ],
+        "request": {
+          "method": "POST",
+          "url": "^https://www\\.linkedin\\.com/flagship-web/rsc-action/actions/server-request$",
+          "op": "^com\\.linkedin\\.sdui\\.requests\\.profile\\.(update|save)(Profile)?(Background|Cover)(Photo|Image|Picture)$"
+        }
+      },
+      "readback": {
+        "live": {
+          "save_as": "public",
+          "outputs": {
+            "proof_url": "public.url"
+          }
+        }
+      },
+      "discard": [
+        {
+          "type": "press",
+          "key": "Escape",
+          "publishes": false
+        }
+      ],
+      "steps": [
+        {
+          "type": "navigate",
+          "url": "https://www.linkedin.com/in/me/"
+        },
+        {
+          "type": "assert_identity",
+          "label": "acting as"
+        },
+        {
+          "type": "navigate",
+          "url": "https://www.linkedin.com/in/${acts_as_id}/"
+        },
+        {
+          "type": "wait_for",
+          "locator": {
+            "css": ".pv-top-card",
+            "within": {
+              "role": "main"
+            }
+          }
+        },
+        {
+          "type": "readback",
+          "save_as": "before",
+          "timeout_ms": 15000,
+          "locator": {
+            "role": "img",
+            "attr": {
+              "name": "id",
+              "equals": "profile-background-image-target-image"
+            },
+            "within": {
+              "role": "main"
+            }
+          },
+          "condition": {
+            "kind": "attribute",
+            "name": "src",
+            "matches": "\\S"
+          }
+        },
+        {
+          "type": "click",
+          "publishes": false,
+          "locator": {
+            "role": "button",
+            "names": {
+              "en": "background photo"
+            },
+            "match": "contains",
+            "within": {
+              "role": "main"
+            }
+          }
+        },
+        {
+          "type": "upload",
+          "param": "image",
+          "publishes": false,
+          "locator": {
+            "role": "button",
+            "names": {
+              "en": "^(Upload|Add|Change) photo$"
+            },
+            "match": "regex",
+            "within": {
+              "role": "dialog"
+            }
+          }
+        },
+        {
+          "type": "wait_for",
+          "locator": {
+            "role": "img",
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "timeout_ms": 30000
+        },
+        {
+          "type": "click",
+          "label": "save",
+          "writes": true,
+          "locator": {
+            "role": "button",
+            "names": {
+              "en": "^(Save|Apply)( photo)?$"
+            },
+            "match": "regex",
+            "within": {
+              "role": "dialog"
+            }
+          },
+          "readback": {
+            "locator": {
+              "role": "dialog"
+            },
+            "condition": {
+              "kind": "absent"
+            },
+            "timeout_ms": 45000
+          }
+        },
+        {
+          "type": "navigate",
+          "url": "https://www.linkedin.com/in/${acts_as_id}/"
+        },
+        {
+          "type": "readback",
+          "save_as": "public",
+          "timeout_ms": 20000,
+          "locator": {
+            "role": "img",
+            "attr": {
+              "name": "id",
+              "equals": "profile-background-image-target-image"
+            },
+            "within": {
+              "role": "main"
+            }
+          },
+          "condition": {
+            "kind": "attribute",
+            "name": "src",
+            "changed_from": "before",
+            "identity": "^https://media\\.licdn\\.com/dms/image/(?:v2/)?([A-Za-z0-9_-]+)/"
+          }
+        },
+        {
+          "type": "readback",
+          "timeout_ms": 5000,
+          "locator": {
+            "role": "img",
+            "attr": {
+              "name": "id",
+              "equals": "profile-background-image-target-image"
+            },
+            "within": {
+              "role": "main"
+            }
+          },
+          "condition": {
+            "kind": "attribute",
+            "name": "src",
+            "matches": "^https://media\\.licdn\\.com/dms/image/"
+          }
+        }
+      ]
+    }
+  }
+}

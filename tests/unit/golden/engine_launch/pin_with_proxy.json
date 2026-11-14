@@ -1,0 +1,316 @@
+{
+ "asked": {
+  "config": {
+   "addons": [
+    "/root/agentos/.venv/lib/python3.12/site-packages/camoufox/addons/UBO"
+   ],
+   "fonts": [
+    "Arial",
+    "Calibri",
+    "Segoe UI",
+    "Tahoma"
+   ],
+   "geolocation:latitude": 54.6872,
+   "geolocation:longitude": 25.2797,
+   "humanize": true,
+   "input:windowsKeyboard": true,
+   "locale:language": "en",
+   "locale:region": "US",
+   "mediaDevices:enabled": true,
+   "mediaDevices:micros": 1,
+   "mediaDevices:speakers": 1,
+   "mediaDevices:webcams": 1,
+   "navigator.appVersion": "5.0 (Windows)",
+   "navigator.hardwareConcurrency": 4,
+   "navigator.oscpu": "Windows NT 10.0; Win64; x64",
+   "navigator.platform": "Win32",
+   "navigator.userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:158.0) Gecko/20100101 Firefox/158.0",
+   "screen.availHeight": 1032,
+   "screen.availWidth": 1920,
+   "screen.colorDepth": 24,
+   "screen.height": 1080,
+   "screen.pixelDepth": 24,
+   "screen.width": 1920,
+   "timezone": "Europe/Vilnius",
+   "voices": [
+    {
+     "isDefault": true,
+     "isLocalService": true,
+     "lang": "en-US",
+     "name": "Microsoft David",
+     "voiceUri": "x"
+    }
+   ],
+   "voices:blockIfNotDefined": true,
+   "webGl2:parameters": {
+    "3379": 16384
+   },
+   "webGl2:shaderPrecisionFormats": {
+    "35633,36338": {}
+   },
+   "webGl2:supportedExtensions": [
+    "EXT_color_buffer_float"
+   ],
+   "webGl:parameters": {
+    "3379": 16384
+   },
+   "webGl:renderer": "ANGLE (Intel, Intel(R) UHD Graphics 620)",
+   "webGl:shaderPrecisionFormats": {
+    "35633,36338": {}
+   },
+   "webGl:supportedExtensions": [
+    "ANGLE_instanced_arrays"
+   ],
+   "webGl:vendor": "Google Inc. (Intel)",
+   "webrtc:ipv4": "203.0.113.9",
+   "window.outerHeight": 1032,
+   "window.outerWidth": 1920,
+   "window.screenY": 0
+  },
+  "enable_cache": true,
+  "env": {
+   "DISPLAY": ":150",
+   "GDK_BACKEND": "x11",
+   "MOZ_ENABLE_WAYLAND": "0"
+  },
+  "firefox_user_prefs": {
+   "browser.cache.disk.capacity": 262144,
+   "browser.cache.disk.smart_size.enabled": false,
+   "browser.startup.couldRestoreSession.count": -1,
+   "gfx.font_rendering.fallback.async": false,
+   "media.peerconnection.ice.proxy_only": true,
+   "mousewheel.default.delta_multiplier_y": 275,
+   "network.proxy.allow_hijacking_localhost": true,
+   "network.proxy.no_proxies_on": "",
+   "privacy.baselineFingerprintingProtection.overrides": ""
+  },
+  "geoip": false,
+  "headless": false,
+  "humanize": true,
+  "i_know_what_im_doing": true,
+  "locale": "en-US",
+  "os": "windows",
+  "persistent_context": true,
+  "proxy": {
+   "password": "p",
+   "server": "http://198.51.100.4:3128",
+   "username": "u"
+  },
+  "screen": "Screen(min_width=None, max_width=1920, min_height=None, max_height=1080)",
+  "user_data_dir": "<tmp>/lane/profile"
+ },
+ "backup_label": null,
+ "config": {
+  "addons": [
+   "/opt/agentos/.venv/camoufox/addons/UBO"
+  ],
+  "fonts": [
+   "Arial",
+   "Calibri",
+   "Segoe UI",
+   "Tahoma"
+  ],
+  "geolocation:latitude": 54.6872,
+  "geolocation:longitude": 25.2797,
+  "humanize": true,
+  "input:windowsKeyboard": true,
+  "locale:language": "en",
+  "locale:region": "US",
+  "mediaDevices:enabled": true,
+  "mediaDevices:micros": 1,
+  "mediaDevices:speakers": 1,
+  "mediaDevices:webcams": 1,
+  "navigator.appVersion": "5.0 (Windows)",
+  "navigator.hardwareConcurrency": 4,
+  "navigator.maxTouchPoints": 0,
+  "navigator.oscpu": "Windows NT 10.0; Win64; x64",
+  "navigator.platform": "Win32",
+  "navigator.userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:158.0) Gecko/20100101 Firefox/158.0",
+  "screen.availHeight": 1032,
+  "screen.availLeft": 0,
+  "screen.availTop": 0,
+  "screen.availWidth": 1920,
+  "screen.colorDepth": 24,
+  "screen.height": 1080,
+  "screen.pixelDepth": 24,
+  "screen.width": 1920,
+  "timezone": "Europe/Vilnius",
+  "voices": [
+   {
+    "isDefault": true,
+    "isLocalService": true,
+    "lang": "en-US",
+    "name": "Microsoft David",
+    "voiceUri": "x"
+   }
+  ],
+  "voices:blockIfNotDefined": true,
+  "webGl2:parameters": {
+   "3379": 16384
+  },
+  "webGl2:shaderPrecisionFormats": {
+   "35633,36338": {}
+  },
+  "webGl2:supportedExtensions": [
+   "EXT_color_buffer_float"
+  ],
+  "webGl:parameters": {
+   "3379": 16384
+  },
+  "webGl:renderer": "ANGLE (Intel, Intel(R) UHD Graphics 620)",
+  "webGl:shaderPrecisionFormats": {
+   "35633,36338": {}
+  },
+  "webGl:supportedExtensions": [
+   "ANGLE_instanced_arrays"
+  ],
+  "webGl:vendor": "Google Inc. (Intel)",
+  "webrtc:ipv4": "203.0.113.9",
+  "window.outerHeight": 1032,
+  "window.outerWidth": 1920,
+  "window.screenX": 0,
+  "window.screenY": 0
+ },
+ "first": false,
+ "notes": [
+  [
+   "fingerprint_completed",
+   {
+    "filled": {
+     "navigator.maxTouchPoints": 0,
+     "screen.availLeft": 0,
+     "screen.availTop": 0,
+     "window.screenX": 0
+    },
+    "from_version": 1
+   }
+  ]
+ ],
+ "old_version": 1,
+ "options": {
+  "args": [],
+  "env": {
+   "CAMOU_CONFIG_1": "{\"fonts\":[\"Arial\",\"Calibri\",\"Segoe UI\",\"Tahoma\"],\"geolocation:latitude\":54.6872,\"geolocation:longitude\":25.2797,\"input:windowsKeyboard\":true,\"locale:language\":\"en\",\"locale:region\":\"US\",\"mediaDevices:enabled\":true,\"mediaDevices:micros\":1,\"mediaDevices:speakers\":1,\"mediaDevices:webcams\":1,\"navigator.appVersion\":\"5.0 (Windows)\",\"navigator.hardwareConcurrency\":4,\"navigator.oscpu\":\"Windows NT 10.0; Win64; x64\",\"navigator.platform\":\"Win32\",\"navigator.userAgent\":\"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:158.0) Gecko/20100101 Firefox/158.0\",\"screen.availHeight\":1032,\"screen.availWidth\":1920,\"screen.colorDepth\":24,\"screen.height\":1080,\"screen.pixelDepth\":24,\"screen.width\":1920,\"timezone\":\"Europe/Vilnius\",\"voices\":[{\"lang\":\"en-US\",\"name\":\"Microsoft David\",\"voiceUri\":\"x\",\"isDefault\":true,\"isLocalService\":true}],\"voices:blockIfNotDefined\":true,\"webGl2:parameters\":{\"3379\":16384},\"webGl2:shaderPrecisionFormats\":{\"35633,36338\":{}},\"webGl2:supportedExtensions\":[\"EXT_color_buffer_float\"],\"webGl:parameters\":{\"3379\":16384},\"webGl:renderer\":\"ANGLE (Intel, Intel(R) UHD Graphics 620)\",\"webGl:shaderPrecisionFormats\":{\"35633,36338\":{}},\"webGl:supportedExtensions\":[\"ANGLE_instanced_arrays\"],\"webGl:vendor\":\"Google Inc. (Intel)\",\"webrtc:ipv4\":\"203.0.113.9\",\"window.outerHeight\":1032,\"window.outerWidth\":1920,\"window.screenY\":0,\"screen.availLeft\":0,\"screen.availTop\":0,\"window.screenX\":0,\"navigator.maxTouchPoints\":0,\"addons\":[\"/opt/agentos/.venv/camoufox/addons/UBO\"],\"humanize\":true}",
+   "CAMOU_PREFS_1": "{\"browser.cache.disk.smart_size.enabled\": false, \"browser.cache.disk.capacity\": 262144, \"browser.startup.couldRestoreSession.count\": -1, \"mousewheel.default.delta_multiplier_y\": 275, \"gfx.font_rendering.fallback.async\": false, \"network.proxy.allow_hijacking_localhost\": true, \"network.proxy.no_proxies_on\": \"\", \"media.peerconnection.ice.proxy_only\": true, \"privacy.baselineFingerprintingProtection.overrides\": \"+CanvasImageExtractionPrompt,+CanvasExtractionBeforeUserInputIsBlocked,+CanvasExtractionFromThirdPartiesIsBlocked\", \"webgl.enable-webgl2\": false, \"dom.quotaManager.temporaryStorage.fixedLimit\": 19510009, \"intl.locale.requested\": \"en-US\"}",
+   "DISPLAY": ":150",
+   "GDK_BACKEND": "x11",
+   "MOZ_ENABLE_WAYLAND": "0"
+  },
+  "executable_path": "/x/camoufox-bin",
+  "firefox_user_prefs": {
+   "browser.cache.disk.capacity": 262144,
+   "browser.cache.disk.smart_size.enabled": false,
+   "browser.startup.couldRestoreSession.count": -1,
+   "dom.quotaManager.temporaryStorage.fixedLimit": 19510009,
+   "gfx.font_rendering.fallback.async": false,
+   "intl.locale.requested": "en-US",
+   "media.peerconnection.ice.proxy_only": true,
+   "mousewheel.default.delta_multiplier_y": 275,
+   "network.proxy.allow_hijacking_localhost": true,
+   "network.proxy.no_proxies_on": "",
+   "privacy.baselineFingerprintingProtection.overrides": "+CanvasImageExtractionPrompt,+CanvasExtractionBeforeUserInputIsBlocked,+CanvasExtractionFromThirdPartiesIsBlocked",
+   "webgl.enable-webgl2": false
+  },
+  "headless": false,
+  "proxy": {
+   "password": "p",
+   "server": "http://198.51.100.4:3128",
+   "username": "u"
+  },
+  "user_data_dir": "<tmp>/lane/profile"
+ },
+ "pin": {
+  "addons": [
+   "/root/agentos/.venv/lib/python3.12/site-packages/camoufox/addons/UBO"
+  ],
+  "agentos:pin": {
+   "camoufox": "<camoufox version>",
+   "canvas_noise": true,
+   "completed_at": "<time>",
+   "completed_from": 1,
+   "filled": [
+    "navigator.maxTouchPoints",
+    "screen.availLeft",
+    "screen.availTop",
+    "window.screenX"
+   ],
+   "geo": {
+    "country": "LT",
+    "ip": "203.0.113.9"
+   },
+   "prefs": {
+    "dom.quotaManager.temporaryStorage.fixedLimit": 19510009,
+    "gfx.font_rendering.fallback.async": false,
+    "intl.locale.requested": "en-US",
+    "webgl.enable-webgl2": false
+   },
+   "version": 2
+  },
+  "fonts": [
+   "Arial",
+   "Calibri",
+   "Segoe UI",
+   "Tahoma"
+  ],
+  "geolocation:latitude": 54.6872,
+  "geolocation:longitude": 25.2797,
+  "humanize": true,
+  "input:windowsKeyboard": true,
+  "locale:language": "en",
+  "locale:region": "US",
+  "mediaDevices:enabled": true,
+  "mediaDevices:micros": 1,
+  "mediaDevices:speakers": 1,
+  "mediaDevices:webcams": 1,
+  "navigator.appVersion": "5.0 (Windows)",
+  "navigator.hardwareConcurrency": 4,
+  "navigator.maxTouchPoints": 0,
+  "navigator.oscpu": "Windows NT 10.0; Win64; x64",
+  "navigator.platform": "Win32",
+  "navigator.userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:158.0) Gecko/20100101 Firefox/158.0",
+  "screen.availHeight": 1032,
+  "screen.availLeft": 0,
+  "screen.availTop": 0,
+  "screen.availWidth": 1920,
+  "screen.colorDepth": 24,
+  "screen.height": 1080,
+  "screen.pixelDepth": 24,
+  "screen.width": 1920,
+  "timezone": "Europe/Vilnius",
+  "voices": [
+   {
+    "isDefault": true,
+    "isLocalService": true,
+    "lang": "en-US",
+    "name": "Microsoft David",
+    "voiceUri": "x"
+   }
+  ],
+  "voices:blockIfNotDefined": true,
+  "webGl2:parameters": {
+   "3379": 16384
+  },
+  "webGl2:shaderPrecisionFormats": {
+   "35633,36338": {}
+  },
+  "webGl2:supportedExtensions": [
+   "EXT_color_buffer_float"
+  ],
+  "webGl:parameters": {
+   "3379": 16384
+  },
+  "webGl:renderer": "ANGLE (Intel, Intel(R) UHD Graphics 620)",
+  "webGl:shaderPrecisionFormats": {
+   "35633,36338": {}
+  },
+  "webGl:supportedExtensions": [
+   "ANGLE_instanced_arrays"
+  ],
+  "webGl:vendor": "Google Inc. (Intel)",
+  "webrtc:ipv4": "203.0.113.9",
+  "window.outerHeight": 1032,
+  "window.outerWidth": 1920,
+  "window.screenX": 0,
+  "window.screenY": 0
+ }
+}

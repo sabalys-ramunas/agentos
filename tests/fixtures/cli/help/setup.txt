@@ -1,0 +1,10 @@
+
+ Usage: agentos setup [OPTIONS]
+
+ Get started: choose where your agents' browsers run, and connect Claude Code
+ and Codex to it.
+
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --help          Show this message and exit.                                  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+

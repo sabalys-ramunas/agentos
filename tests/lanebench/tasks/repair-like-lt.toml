@@ -1,0 +1,32 @@
+id = "repair-like-lt"
+title = "Repair a Like locator that broke when the account switched to Lithuanian"
+goal = "The connector step 'like the post' no longer finds its button on this lane. Propose a structural locator that works in English and in Lithuanian. Do not like anything."
+mode = "repair"
+ceiling = "draft"
+tags = ["feed", "repair", "locale"]
+allowed_effects = []
+
+[[mutation]]
+kind = "locale"
+lang = "lt"
+
+[repair]
+stale = { role = "button", name = "Like", within = { role = "article", name = "@mira.*tomatoes", match = "regex" } }
+target = "like:mira-tomatoes"
+page = "/feed"
+parity = [
+  { name = "english", mutations = [] },
+  { name = "lithuanian, renamed classes", mutations = [{ kind = "locale", lang = "lt" }, { kind = "rename_classes" }] },
+]
+
+[[check]]
+kind = "not_liked"
+post = "mira-tomatoes"
+
+[[replay]]
+do = "wait_for"
+locator = { role = "button", names = { en = "Like", lt = "Patinka" }, within = { role = "article", name = "@mira.*tomatoes", match = "regex" } }
+
+[[replay]]
+do = "patch"
+locator = { role = "button", names = { en = "Like", lt = "Patinka" }, within = { role = "article", name = "@mira.*tomatoes", match = "regex" } }

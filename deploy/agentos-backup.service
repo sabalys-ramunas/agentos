@@ -1,0 +1,17 @@
+[Unit]
+Description=agentos encrypted backup of AGENTOS_HOME
+Documentation=file:/opt/agentos/deploy/README.md
+After=agentosd.service
+
+# Installed with agentos-backup.timer by `deploy/install-node.sh --systemd --backup-timer`. Runs as
+# root so it can read a home owned by the service user and pause warm lanes over the ops socket.
+# Put the passphrase in secrets/backup.pass (chmod 600) first. To send backups off the node, add
+# --to s3://bucket/prefix with credentials in secrets/backup-s3.json (see deploy/README.md).
+
+[Service]
+Type=oneshot
+Environment="AGENTOS_HOME=/var/lib/agentos"
+ExecStart="/opt/agentos/.venv/bin/agentos" backup create --passphrase-file "/var/lib/agentos/secrets/backup.pass" --keep 7
+Nice=10
+IOSchedulingClass=idle
+UMask=0077

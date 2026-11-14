@@ -1,0 +1,22 @@
+<!-- SYNTHESIZED, NOT CAPTURED. Written by hand on 2026-11-05 from the notes of the 2026-11-04 canary
+     and the structure the operation's locators assume. No real page was loaded. A canary on a throwaway account
+     replaces this with the captured page (text replaced) before the operation is marked verified. -->
+<!-- https://www.linkedin.com/feed/update/urn:li:activity:7392000000000000001/ : the comment box is the first form
+     inside the post's own container (role article, data-urn the post's urn) -->
+<main>
+  <div role="article" data-urn="urn:li:activity:7392000000000000001">
+    <a href="https://www.linkedin.com/in/mira-kestrel/">Mira Kestrel</a>
+    <button aria-pressed="false" aria-label="React Like">Like</button>
+    <button>Comment</button>
+    <form>
+      <div role="textbox" contenteditable="true" aria-label="Add a comment"></div>
+      <button type="submit">Comment</button>
+    </form>
+  </div>
+</main>
+<!-- after Comment: server-request with requestId com.linkedin.sdui.comments.createComment; the box clears.
+     https://www.linkedin.com/in/me/recent-activity/comments/ then starts with the entry for that post, the member's
+     own comment first:
+     <div data-urn="urn:li:activity:7392000000000000001">
+       <article class="comments-comment-entity"><span class="comments-comment-item__main-content">the exact text</span></article>
+     </div> -->

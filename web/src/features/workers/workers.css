@@ -1,0 +1,206 @@
+/*
+ * The step line: one thing done, one tick a step. Each row is who thought, so a step that needed
+ * help falls out of the stream as far as it had to go, the way a stop does on What needs a yes.
+ * The rail is as long as the worker's limit, so a step past it cannot be drawn.
+ */
+.steps {
+  --row: 28px;
+  --tick: 20px;
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  column-gap: 12px;
+}
+@media (min-width: 640px) {
+  .steps {
+    grid-template-columns: 72px minmax(0, 1fr) 40px;
+    column-gap: 16px;
+  }
+}
+/* A phone has about four pixels a step, so a tick gives some back. */
+@media (max-width: 639px) {
+  .steps .steps-tick {
+    width: 2px;
+    margin-left: -1px;
+  }
+}
+.steps-rails {
+  position: relative;
+  height: calc(var(--row) * 4);
+  touch-action: pan-y;
+  outline: none;
+  cursor: crosshair;
+}
+.steps-rails:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 4px;
+  border-radius: var(--radius-sm);
+}
+.steps-rail {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 1px dotted var(--board-wire-strong);
+}
+/* The end of the rail, where it stops by itself. */
+.steps-cap {
+  position: absolute;
+  top: calc(var(--row) / 2 - var(--tick) / 2);
+  right: 0;
+  width: 0;
+  height: var(--tick);
+  border-right: 1px solid var(--board-wire-strong);
+}
+.steps-tick {
+  position: absolute;
+  width: 3px;
+  margin-left: -1.5px;
+  top: calc(var(--row) / 2 - var(--tick) / 2);
+  height: var(--tick);
+  background: var(--foreground);
+  border-radius: 1px;
+  transition: opacity var(--duration-fast) var(--ease);
+}
+/* A stem falls from the stream to the row that thought. */
+.steps-stem {
+  position: absolute;
+  width: 1px;
+  margin-left: -0.5px;
+  top: calc(var(--row) / 2);
+  height: var(--drop);
+  background: var(--board-wire-strong);
+}
+.steps-face {
+  position: absolute;
+  top: calc(var(--row) / 2 + var(--drop));
+  translate: -50% -50%;
+  display: grid;
+  place-items: center;
+}
+.steps-face[data-kind='write'] {
+  width: 3px;
+  height: 14px;
+  border-radius: 1px;
+  background: var(--foreground);
+}
+.steps-face[data-kind='rescue'],
+.steps-face[data-kind='yes'] {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--board);
+  border: 1.5px solid var(--foreground);
+}
+.steps-face[data-kind='yes'] {
+  border-radius: 2px;
+  rotate: 45deg;
+}
+.steps[data-reading] .steps-tick:not([data-on]),
+.steps[data-reading] .steps-face:not([data-on]) {
+  opacity: 0.32;
+}
+.steps-face[data-on] {
+  outline: 2px solid var(--foreground);
+  outline-offset: 2px;
+}
+/* Only the step being taken right now is pink, and it is the only pink thing here. */
+.steps-tick[data-now],
+.steps-face[data-now][data-kind='write'] {
+  background: var(--current);
+}
+.steps-face[data-now][data-kind='rescue'] {
+  border-color: var(--current);
+}
+.steps-now {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border-radius: 999px;
+  border: 1.5px solid var(--current);
+  pointer-events: none;
+  animation: state-ring 1.8s var(--ease-out) infinite;
+}
+
+/* The small one, for a row: the stream alone, with help as a tick that reaches further. */
+.steps-mini {
+  position: relative;
+  height: 20px;
+  min-width: 96px;
+}
+.steps-mini .steps-rail {
+  top: 10px;
+}
+.steps-mini .steps-tick {
+  top: 4px;
+  height: 12px;
+  width: 1.5px;
+}
+.steps-mini .steps-tick[data-reach] {
+  top: 0;
+  height: 20px;
+  width: 2px;
+}
+
+/* An example of a thing done, before there has been one. It is drawn, and says so. */
+.steps[data-example] .steps-tick,
+.steps[data-example] .steps-face {
+  opacity: 0.45;
+}
+
+/* Where a key goes. You, the computer and the AI service stand in a line, and agentos Cloud to one side. */
+.key-node {
+  fill: var(--background);
+  stroke: var(--border);
+  transition: stroke var(--duration-base) var(--ease);
+}
+.key-node[data-lit] {
+  stroke: var(--foreground);
+}
+.key-cloud {
+  fill: none;
+  stroke: var(--border-strong);
+  stroke-dasharray: 3 3;
+}
+.key-label {
+  fill: var(--foreground);
+  font-size: 12px;
+  font-weight: 500;
+  text-anchor: middle;
+}
+.key-note {
+  fill: var(--foreground-subtle);
+  font-size: 11px;
+  text-anchor: middle;
+}
+.key-wire {
+  fill: none;
+  stroke: var(--border-strong);
+  stroke-width: 1.5;
+}
+.key-wire[data-kind='quiet'] {
+  stroke-dasharray: 2 4;
+  stroke-width: 1;
+}
+.key-wire[data-kind='yes'] {
+  stroke: var(--foreground);
+}
+.key-wire[data-kind='no'] {
+  stroke: var(--red);
+  stroke-dasharray: 5 4;
+}
+.key-run {
+  fill: none;
+  stroke: var(--current);
+  stroke-width: 1.5;
+  stroke-dasharray: 0.2 1;
+  animation: key-run 1.2s linear infinite;
+}
+@keyframes key-run {
+  to {
+    stroke-dashoffset: -1.2;
+  }
+}
+.key-token {
+  transition: transform var(--duration-slow) var(--ease);
+}

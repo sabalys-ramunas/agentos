@@ -1,0 +1,37 @@
+- generic [active]:
+  - heading "Harbor feed" [level=1]
+  - main:
+    - article "Notice by Harbor master":
+      - heading "Harbor master" [level=2]
+      - paragraph: Dredging on Thursday, basin two is closed.
+      - link "Permalink" [ref=f3e7] [cursor=pointer]:
+        - /url: /n/1
+      - region "Replies":
+        - list:
+          - listitem:
+            - article "Reply by Ruta":
+              - paragraph: "Ruta: thanks for the notice."
+              - link "Permalink" [ref=f3e13] [cursor=pointer]:
+                - /url: /n/1#r1
+          - listitem:
+            - article "Reply by Jonas":
+              - paragraph: "Jonas: is the fuel dock open?"
+              - link "Permalink" [ref=f3e17] [cursor=pointer]:
+                - /url: /n/1#r2
+    - article "Notice by Fuel dock":
+      - heading "Fuel dock" [level=2]
+      - paragraph: Diesel delivery on Friday morning.
+      - link "Permalink" [ref=f3e21] [cursor=pointer]:
+        - /url: /n/2
+    - article "Notice by Yacht club":
+      - heading "Yacht club" [level=2]
+      - paragraph: Autumn regatta results are up.
+      - link "Permalink" [ref=f3e25] [cursor=pointer]:
+        - /url: /n/3
+      - region "Replies":
+        - list:
+          - listitem:
+            - article "Reply by Ona":
+              - paragraph: "Ona: well sailed."
+              - link "Permalink" [ref=f3e31] [cursor=pointer]:
+                - /url: /n/3#r1

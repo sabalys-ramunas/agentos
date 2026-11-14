@@ -1,0 +1,35 @@
+id = "repair-follow-renamed"
+title = "Repair a CSS-class locator for Follow after the site renamed its classes"
+goal = "The connector step 'follow the author' used the CSS class follow-btn, which is gone. Propose a structural locator for the Follow button of @lina's trail post. Do not follow anyone."
+mode = "repair"
+ceiling = "draft"
+tags = ["feed", "repair"]
+allowed_effects = []
+
+[[mutation]]
+kind = "rename_classes"
+
+[repair]
+stale = { css = ".follow-btn", within = { css = "article.post:nth-of-type(4)" } }
+target = "follow:lina-trail"
+page = "/feed"
+parity = [
+  { name = "as before", mutations = [] },
+  { name = "renamed with another seed", seed = 99, mutations = [{ kind = "rename_classes" }] },
+  { name = "follow moved to the footer", mutations = [{ kind = "rename_classes" }, { kind = "move_node", node = "follow", to = "footer" }] },
+]
+
+[[check]]
+kind = "nothing_published"
+
+[[check]]
+kind = "not_following"
+user = "lina"
+
+[[replay]]
+do = "wait_for"
+locator = { role = "button", name = "Follow", within = { role = "article", name = "@lina.*trail", match = "regex" } }
+
+[[replay]]
+do = "patch"
+locator = { role = "button", name = "Follow", within = { role = "article", name = "@lina.*trail", match = "regex" } }

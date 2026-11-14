@@ -1,0 +1,61 @@
+$ agentos workspace import <TMP>/personal.agentos --as copy --dry-run --passphrase-file <TMP>/pw --json
+exit 0
+{
+  "ok": true,
+  "source": {
+    "hostname": "<HOST>",
+    "node": "test-node",
+    "created_at": "<TS>",
+    "agentos_version": "<VER>"
+  },
+  "workspace": {
+    "from": "personal",
+    "to": "copy",
+    "record": false
+  },
+  "lanes": [
+    {
+      "from": "personal/reddit",
+      "to": "copy/reddit",
+      "proxy_from": "lt1",
+      "proxy": "lt1",
+      "fingerprint": true,
+      "device": null,
+      "files": 3,
+      "bytes": <N>,
+      "readiness": "needs_login"
+    }
+  ],
+  "devices": [],
+  "proxies": [
+    {
+      "label": "lt1",
+      "to": "lt1",
+      "action": "exists",
+      "lanes": [
+        "copy/reddit"
+      ]
+    }
+  ],
+  "vault": {
+    "entries": 0,
+    "state": null,
+    "conflicts": [],
+    "on_conflict": "error"
+  },
+  "flows": [],
+  "schedules": [],
+  "grants": [],
+  "memory": {
+    "entries": 0,
+    "versions": 0,
+    "forgotten": 0,
+    "action": "none"
+  },
+  "agenda": [],
+  "blockers": [],
+  "warnings": [
+    "SAME DEVICE TWICE: this makes a second copy of 1 lane of personal on this node, with the same cookies and the same pinned fingerprint. Never warm both copies: to the sites it looks like one device in two places, which can trigger checkpoints and locked accounts."
+  ],
+  "notes": []
+}

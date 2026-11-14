@@ -1,0 +1,122 @@
+/* agentos live view: the assisted login section (login.js). A side sheet on wide screens, a bottom
+   sheet on phones; it sits above the live view and never changes the viewer's own layout. */
+
+.la {
+  position: fixed;
+  top: 64px;
+  right: 16px;
+  bottom: 16px;
+  z-index: 40;
+  width: min(400px, calc(100vw - 32px));
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.la[hidden], .la-launch[hidden] { display: none; }
+
+.la-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.la-head h2 { margin: 0; font-size: 16px; font-weight: 600; }
+.la-sub { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+.la-close span { font-size: 20px; line-height: 1; }
+
+.la-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.la-body p { margin: 0; }
+
+.la-shot {
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--screen-bg);
+}
+
+.la-shot img { display: block; width: 100%; height: auto; min-height: 60px; }
+
+.la-heading { margin: 0; font-size: 17px; font-weight: 600; }
+.la-message { color: var(--muted); }
+.la-number {
+  font-size: 44px;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 0.02em;
+  padding: 6px 0;
+}
+.la-note { color: var(--text); background: var(--accent-soft); border-radius: var(--radius-sm); padding: 10px 12px; }
+.la-error { color: var(--danger); background: var(--danger-soft); border-radius: var(--radius-sm); padding: 10px 12px; }
+
+.la-form { display: flex; flex-direction: column; gap: 6px; }
+.la-form input {
+  height: 42px;
+  padding: 0 12px;
+  margin-bottom: 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px; /* phones do not zoom into a field of 16px or more */
+}
+.la-form input:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+
+.la-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.la-actions .btn { flex: 1 1 auto; }
+.la-secondary { padding-top: 4px; }
+.la-choices { display: flex; flex-direction: column; gap: 8px; }
+.la-choice { justify-content: flex-start; white-space: normal; height: auto; min-height: 42px; padding: 8px 14px; text-align: left; }
+.btn-quiet { border-color: transparent; color: var(--muted); }
+.la-working { display: flex; align-items: center; gap: 12px; color: var(--muted); }
+.la-working .spinner { margin: 0; width: 22px; height: 22px; }
+
+.la-launch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  gap: 8px;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+.la-launch-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+
+@media (max-width: 640px) {
+  .la {
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-height: 88vh;
+    border-radius: var(--radius) var(--radius) 0 0;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}

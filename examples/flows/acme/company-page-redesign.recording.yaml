@@ -1,0 +1,28 @@
+format: 1
+note: |-
+  SYNTHESIZED, NOT CAPTURED: the same company page after a redesign renamed the share box's Post button
+  to Publish. The flow must stop before it presses anything else.
+pages:
+- url: https://www.linkedin.example/company/104857/admin/page-posts/published/
+  title: Acme Bakery | Page posts
+  outline: |
+    - main:
+      - heading "Acme Bakery" [level=1]
+      - button "Start a post"
+      - region "Page posts":
+        - article:
+          - paragraph: Open this Sunday from 8 to 14.
+- url: https://www.linkedin.example/company/104857/admin/page-posts/published/
+  title: Acme Bakery | Page posts
+  after: click button "Start a post"
+  outline: |
+    - main:
+      - heading "Acme Bakery" [level=1]
+      - button "Start a post"
+      - region "Page posts":
+        - article:
+          - paragraph: Open this Sunday from 8 to 14.
+    - dialog "Create post modal":
+      - button "Post as Acme Bakery"
+      - textbox "Text editor for creating content"
+      - button "Publish"

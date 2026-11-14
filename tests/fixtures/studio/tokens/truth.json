@@ -1,0 +1,31 @@
+{
+  "about": "Every off-system value planted in planted.html (and inlined.html, its build-time-inlined copy). The tests assert each is found and nothing else is. `inlined` says what value matching alone can see once token values are written in at build time: a look-alike cannot be told from a token there.",
+  "components": [
+    {"name": "Button", "attr": "data-ds=button"},
+    {"name": "Link", "attr": "data-ds=link"},
+    {"name": "Card", "class_pattern": "^ds-card$"}
+  ],
+  "planted": [
+    {"id": "p-look-color", "check": "token.hardcoded", "match": "exact", "token": "color.action.primary", "inlined": "missed"},
+    {"id": "p-near-color", "check": "token.color", "match": "near", "token": "color.action.primary", "component": "Card"},
+    {"id": "p-off-color", "check": "token.color", "match": "off"},
+    {"id": "p-look-space", "check": "token.hardcoded", "match": "exact", "token": "space.4", "inlined": "missed"},
+    {"id": "p-near-space", "check": "token.space", "match": "near", "token": "space.3"},
+    {"id": "p-off-space", "check": "token.space", "match": "off"},
+    {"id": "p-off-radius", "check": "token.radius", "match": "off"},
+    {"id": "p-near-fs", "check": "token.font", "match": "near"},
+    {"id": "p-off-fs", "check": "token.font", "match": "off"},
+    {"id": "p-off-weight", "check": "token.font", "match": "off"},
+    {"id": "p-off-family", "check": "token.font", "match": "off"},
+    {"id": "p-off-lh", "check": "token.font", "match": "off"},
+    {"id": "p-off-shadow", "check": "token.shadow", "match": "off"},
+    {"id": "p-off-border", "check": "token.border", "match": "off"},
+    {"id": "p-pseudo", "check": "token.color", "match": "off"},
+    {"id": "p-hidden", "check": "token.hardcoded", "match": "exact", "inlined": "missed",
+     "note": "in light it equals its parent's colour, so only the probe sees it originate here"},
+    {"id": "p-ua", "check": "token.space", "match": "near", "token": "space.4", "origin": "browser default"},
+    {"id": "p-hand", "check": "component.hand_rolled"},
+    {"id": "p-shadow-bad", "check": "token.color", "match": "off"},
+    {"id": "p-shadow-hand", "check": "component.hand_rolled"}
+  ]
+}

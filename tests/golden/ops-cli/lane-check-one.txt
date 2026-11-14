@@ -1,0 +1,15 @@
+$ agentos lane check work/site --offline
+exit 1
+work/site: FAIL (lane cold, checked <HM> UTC)
+  UNKNOWN Proxy: Proxy lt1 was not probed (offline).
+  UNKNOWN Exit IP: Where the lane exits was not checked: the proxy was not probed (offline).
+  UNKNOWN Location: Where the exit is was not checked: the proxy was not probed (offline).
+  UNKNOWN WebRTC: The browser's WebRTC settings could not be read (no camoufox.cfg found).
+  OK      DNS: Host names go to the proxy, which resolves them; the node resolves none.
+  FAIL    Profile: The profile was used, but its pin file is gone, so the next launch would show sites a new device.
+          fix: restore <TMP>/home/lanes/work/site/fingerprint.json from a backup
+  UNKNOWN Signed in: The lane names no site (its account or name), so there is no session to look for.
+  UNKNOWN Account: No expected account for this lane.
+  OK      Hold: No hold, no quarantine; agents have control.
+
+(--offline: every lane was read from disk as cold, and no proxy was probed)

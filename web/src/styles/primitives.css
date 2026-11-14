@@ -1,0 +1,494 @@
+/*
+ * The Mono primitives whose rules need real selectors (a row's state reaching its cells, a mark's
+ * shape, a kind's colours, the terminal). The components in src/components/ui set these classes;
+ * screens never write them. Every value is a token. web/DESIGN.md says why each rule is what it is.
+ */
+
+@layer components {
+  /* ---------- Table ----------
+   * No grey band: the head is the table-header role in the tertiary ink on the card, over one
+   * hairline, sticky in its scroll box. Rows 52 (40 compact, 60 relaxed), a hairline between them,
+   * 20 px gutters at both ends. Hover is a fill; selected is accent.soft with a 2 px ink edge. */
+  .ui-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    text-align: left;
+    font-size: var(--type-body-font-size);
+    line-height: var(--type-body-line-height);
+  }
+  .ui-table > thead > tr > th {
+    position: sticky;
+    top: 0;
+    z-index: var(--z-raised);
+    height: var(--row-height-header);
+    padding: var(--space-0) var(--space-3);
+    vertical-align: middle;
+    white-space: nowrap;
+    background: var(--surface-card);
+    color: var(--text-tertiary);
+    font-size: var(--type-table-header-font-size);
+    line-height: var(--type-table-header-line-height);
+    font-weight: var(--type-table-header-font-weight);
+    letter-spacing: var(--type-table-header-tracking);
+    border-bottom: var(--border-width-hairline) solid var(--line-default);
+  }
+  .ui-table > tbody > tr > td {
+    height: var(--row-height-default);
+    padding: var(--space-2) var(--space-3);
+    vertical-align: middle;
+    border-bottom: var(--border-width-hairline) solid var(--line-default);
+    transition: background-color var(--duration-fast) var(--ease-standard);
+  }
+  .ui-table > tbody > tr:last-child > td {
+    border-bottom: 0;
+  }
+  .ui-table > thead > tr > th:first-child,
+  .ui-table > tbody > tr > td:first-child {
+    padding-left: var(--space-5);
+  }
+  .ui-table > thead > tr > th:last-child,
+  .ui-table > tbody > tr > td:last-child {
+    padding-right: var(--space-5);
+  }
+  .ui-table[data-density='compact'] > tbody > tr > td {
+    height: var(--row-height-compact);
+    padding-top: var(--space-1);
+    padding-bottom: var(--space-1);
+  }
+  .ui-table[data-density='compact'] [data-second-line] {
+    display: none;
+  }
+  .ui-table[data-density='relaxed'] > tbody > tr > td {
+    height: var(--row-height-relaxed);
+  }
+  .ui-table > thead > tr > th[aria-sort] {
+    color: var(--text-primary);
+  }
+  .ui-table > tbody > tr[data-interactive] {
+    cursor: pointer;
+  }
+  .ui-table > tbody > tr[data-interactive]:hover > td {
+    background: var(--fill-hover);
+  }
+  .ui-table > tbody > tr[aria-selected='true'] > td {
+    background: var(--accent-soft);
+  }
+  .ui-table > tbody > tr[aria-selected='true'] > td:first-child {
+    position: relative;
+  }
+  .ui-table > tbody > tr[aria-selected='true'] > td:first-child::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: var(--border-width-focus);
+    background: var(--accent-fill);
+  }
+  /* On a tint, quiet lines step up a level so they keep their contrast. */
+  .ui-table > tbody > tr[aria-selected='true'] .text-faint {
+    color: var(--text-secondary);
+  }
+  .ui-table > tbody > tr:focus-visible {
+    outline-offset: calc(var(--border-width-focus) * -1);
+  }
+  /* Row actions fade in on hover and focus, and stay out of the way otherwise. */
+  .ui-table [data-row-actions] {
+    opacity: 0;
+    transition: opacity var(--duration-fast) var(--ease-standard);
+  }
+  .ui-table > tbody > tr:hover [data-row-actions],
+  .ui-table > tbody > tr:focus-within [data-row-actions],
+  .ui-table > tbody > tr:focus-visible [data-row-actions] {
+    opacity: 1;
+  }
+  @media (hover: none) {
+    .ui-table [data-row-actions] {
+      opacity: 1;
+    }
+  }
+
+  /*
+   * The list form: under 768 px a table that asks for it (stack) becomes a list. The head is read by
+   * screen readers but not drawn; each row is a block; cells marked phone="hide" fold away, and a
+   * cell with a label shows it before its value.
+   */
+  @media (max-width: 767px) {
+    .ui-table[data-stack] > thead {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+    .ui-table[data-stack],
+    .ui-table[data-stack] > tbody {
+      display: block;
+    }
+    .ui-table[data-stack] > tbody > tr {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--space-1) var(--space-3);
+      padding: var(--space-3) var(--space-4);
+      border-bottom: var(--border-width-hairline) solid var(--line-default);
+      position: relative;
+    }
+    .ui-table[data-stack] > tbody > tr:last-child {
+      border-bottom: 0;
+    }
+    .ui-table[data-stack] > tbody > tr > td {
+      display: block;
+      height: auto;
+      padding: var(--space-0) !important;
+      border: 0;
+      white-space: normal;
+      min-width: 0;
+    }
+    /* The main cell gets a line of its own: its desktop widths (w-full max-w-0) give way. */
+    .ui-table[data-stack] > tbody > tr > td[data-main] {
+      flex: 1 0 100%;
+      max-width: none !important;
+      width: auto !important;
+    }
+    .ui-table[data-stack] > tbody > tr[aria-selected='true'] {
+      background: var(--accent-soft);
+    }
+    .ui-table[data-stack] > tbody > tr[aria-selected='true']::before {
+      content: '';
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: var(--border-width-focus);
+      background: var(--accent-fill);
+    }
+    .ui-table[data-stack] > tbody > tr[aria-selected='true'] > td {
+      background: none;
+    }
+    .ui-table[data-stack] > tbody > tr[aria-selected='true'] > td:first-child::before {
+      content: none;
+    }
+    .ui-table[data-stack] > tbody > tr > td[data-phone='hide'] {
+      display: none;
+    }
+    .ui-table[data-stack] > tbody > tr > td[data-label]::before {
+      content: attr(data-label) ' ';
+      color: var(--text-tertiary);
+      font-size: var(--type-caption-font-size);
+    }
+    .ui-table[data-stack] > tbody > tr > td[data-numeric] {
+      text-align: left;
+    }
+    .ui-table[data-stack] [data-row-actions] {
+      opacity: 1;
+    }
+  }
+
+  /* ---------- Status: a shape and a word ----------
+   * dot fine, diamond needs a look, square failed, ringed and pulsing dot running, hollow ring idle,
+   * a quiet solid dot for neutral. Colour never stands alone. */
+  .ui-mark {
+    display: inline-block;
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: var(--radius-full);
+    background: var(--status-ok-dot);
+  }
+  .ui-mark[data-tone='warn'] {
+    width: 7px;
+    height: 7px;
+    margin: var(--space-0) var(--space-px);
+    border-radius: var(--radius-none);
+    background: var(--status-warn-dot);
+    transform: rotate(45deg);
+  }
+  .ui-mark[data-tone='bad'] {
+    border-radius: var(--radius-none);
+    background: var(--status-bad-dot);
+  }
+  .ui-mark[data-tone='idle'] {
+    background: none;
+    border: var(--border-width-mark) solid var(--status-idle-dot);
+  }
+  .ui-mark[data-tone='neutral'] {
+    background: var(--status-idle-dot);
+  }
+  .ui-mark[data-tone='live'] {
+    width: 10px;
+    height: 10px;
+    padding: var(--space-px);
+    background: var(--status-live-dot);
+    background-clip: content-box;
+    border: var(--border-width-mark) solid var(--status-live-dot);
+  }
+  .ui-mark[data-tone='live'][data-pulse] {
+    animation: live-ring 1.8s var(--ease-standard) infinite;
+  }
+  @keyframes live-ring {
+    0% {
+      outline: var(--border-width-focus) solid var(--status-live-line);
+      outline-offset: 0;
+    }
+    80%,
+    100% {
+      outline: var(--border-width-focus) solid transparent;
+      outline-offset: 4px;
+    }
+  }
+
+  /* ---------- Kinds of work ----------
+   * One device everywhere a kind shows: a tile in the kind's soft tint with its icon in the mark
+   * colour, and its word in mono caps in its text colour. A job card takes the mark as a 2 px top
+   * edge. Never a dot: a dot is a status. */
+  [data-kind='test'] {
+    --k-mark: var(--kind-test-mark);
+    --k-text: var(--kind-test-text);
+    --k-soft: var(--kind-test-soft);
+    --k-line: var(--kind-test-line);
+  }
+  [data-kind='design'] {
+    --k-mark: var(--kind-design-mark);
+    --k-text: var(--kind-design-text);
+    --k-soft: var(--kind-design-soft);
+    --k-line: var(--kind-design-line);
+  }
+  [data-kind='build'] {
+    --k-mark: var(--kind-build-mark);
+    --k-text: var(--kind-build-text);
+    --k-soft: var(--kind-build-soft);
+    --k-line: var(--kind-build-line);
+  }
+  [data-kind='server'] {
+    --k-mark: var(--kind-server-mark);
+    --k-text: var(--kind-server-text);
+    --k-soft: var(--kind-server-soft);
+    --k-line: var(--kind-server-line);
+  }
+  .ui-kind-tile {
+    display: inline-grid;
+    place-items: center;
+    flex: none;
+    border: var(--border-width-hairline) solid var(--k-line, var(--line-default));
+    background: var(--k-soft, var(--surface-inset));
+    color: var(--k-mark, var(--text-secondary));
+  }
+  .ui-kind-tile[data-waiting] {
+    border-style: dashed;
+    background: none;
+  }
+  .ui-kind-word {
+    color: var(--k-text, var(--text-secondary));
+  }
+  .ui-kind-edge {
+    position: relative;
+  }
+  .ui-kind-edge::after {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: var(--border-width-focus);
+    background: var(--k-mark, transparent);
+    z-index: var(--z-raised);
+    pointer-events: none;
+  }
+  /* The small square on a filter chip that doubles as the legend. */
+  .ui-kind-square {
+    display: inline-block;
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    background: var(--k-mark, var(--text-tertiary));
+  }
+
+  /* ---------- Terminal: dark in both themes ---------- */
+  .ui-terminal {
+    background: var(--terminal-bg);
+    color: var(--terminal-text);
+    font-family: var(--font-family-mono);
+    font-size: var(--type-code-font-size);
+    line-height: var(--type-code-line-height);
+    font-variant-numeric: tabular-nums;
+    color-scheme: dark;
+  }
+  .ui-terminal [data-line] {
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr);
+    padding-right: var(--space-4);
+    white-space: pre;
+  }
+  .ui-terminal[data-numbers='off'] [data-line] {
+    grid-template-columns: minmax(0, 1fr);
+    padding-left: var(--space-4);
+  }
+  .ui-terminal[data-wrap] [data-line] {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .ui-terminal [data-line]:hover {
+    background: rgb(255 255 255 / 0.04);
+  }
+  /* Tints stay light enough that the dim line numbers keep 4.5:1 on them (yellow is the brightest). */
+  .ui-terminal [data-line][data-highlight] {
+    background: color-mix(in srgb, var(--ansi-yellow) 10%, transparent);
+  }
+  .ui-terminal [data-line][data-highlight='bad'] {
+    background: color-mix(in srgb, var(--ansi-red) 14%, transparent);
+  }
+  .ui-terminal [data-line][data-highlight='ok'] {
+    background: color-mix(in srgb, var(--ansi-green) 12%, transparent);
+  }
+  .ui-terminal [data-line-no] {
+    color: var(--terminal-dim);
+    text-align: right;
+    padding-right: var(--space-4);
+    user-select: none;
+  }
+  .ui-terminal [data-line-text] {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .ui-terminal[data-wrap] [data-line-text] {
+    overflow: visible;
+  }
+  @media (max-width: 767px) {
+    .ui-terminal [data-line] {
+      grid-template-columns: 32px minmax(0, 1fr);
+    }
+    .ui-terminal [data-line-no] {
+      padding-right: var(--space-2);
+    }
+  }
+  /* A focus ring that shows on black. */
+  .ui-terminal :focus-visible,
+  .ui-terminal:focus-visible {
+    outline-color: var(--ansi-blue);
+  }
+
+  /* ---------- Image frame: a page screenshot with numbered findings ---------- */
+  .ui-finding {
+    position: absolute;
+    border: var(--border-width-focus) solid var(--mk);
+    border-radius: var(--radius-sm);
+    pointer-events: none;
+    transition: opacity var(--duration-base) var(--ease-standard);
+  }
+  .ui-finding[data-dim] {
+    opacity: 0.35;
+  }
+  .ui-finding[data-active] {
+    outline: 4px solid var(--accent-line);
+  }
+  .ui-finding [data-pin] {
+    position: absolute;
+    left: 0;
+    top: 0;
+    transform: translate(-50%, -50%);
+    min-width: 20px;
+    height: 20px;
+    padding: var(--space-0) var(--space-1);
+    border-radius: var(--radius-full);
+    display: grid;
+    place-items: center;
+    font-family: var(--font-family-mono);
+    font-size: var(--type-micro-font-size);
+    line-height: var(--type-micro-line-height);
+    font-weight: var(--font-weight-semibold);
+    color: var(--mk-ink);
+    background: var(--mk);
+    outline: var(--border-width-focus) solid var(--identity-ink);
+    pointer-events: auto;
+  }
+  .ui-finding[data-inside] [data-pin] {
+    transform: translate(var(--space-1), var(--space-1));
+  }
+  .ui-finding[data-tone='bad'] {
+    --mk: var(--status-bad-dot);
+    --mk-ink: var(--status-ink);
+  }
+  .ui-finding[data-tone='warn'] {
+    --mk: var(--status-warn-dot);
+    --mk-ink: var(--status-ink);
+  }
+  .ui-finding[data-tone='idle'] {
+    --mk: var(--status-idle-text);
+    --mk-ink: var(--text-inverse);
+  }
+  .ui-finding[data-tone='ok'] {
+    --mk: var(--status-ok-dot);
+    --mk-ink: var(--status-ink);
+  }
+
+  /* ---------- Slider: a horizontal card carousel with a peeking next card ---------- */
+  .ui-slider {
+    container-type: inline-size;
+  }
+  .ui-slider-track {
+    --gap: var(--space-4);
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: calc((100% - 3 * var(--gap)) / 3.3);
+    gap: var(--gap);
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    padding: var(--space-1);
+    margin: calc(var(--space-1) * -1);
+    scroll-padding: var(--space-1);
+  }
+  .ui-slider-track::-webkit-scrollbar {
+    display: none;
+  }
+  .ui-slider-track > * {
+    scroll-snap-align: start;
+    min-width: 0;
+  }
+  .ui-slider-track[data-count='1'] {
+    grid-auto-columns: minmax(0, 1fr);
+  }
+  .ui-slider-track[data-count='2'] {
+    grid-auto-columns: calc((100% - var(--gap)) / 2);
+  }
+  .ui-slider-track[data-count='3'] {
+    grid-auto-columns: calc((100% - 2 * var(--gap)) / 3);
+  }
+  .ui-slider-track[data-dragging] {
+    scroll-snap-type: none;
+    cursor: grabbing;
+    user-select: none;
+  }
+  @container (max-width: 1000px) {
+    .ui-slider-track:not([data-count='1'], [data-count='2']) {
+      grid-auto-columns: calc((100% - 2 * var(--gap)) / 2.25);
+    }
+  }
+  @container (max-width: 620px) {
+    .ui-slider-track:not([data-count='1']) {
+      --gap: var(--space-3);
+      grid-auto-columns: 84%;
+    }
+  }
+
+  /* ---------- Before and after ---------- */
+  .ui-before-after input[type='range'] {
+    accent-color: var(--accent-fill);
+  }
+}
+
+@keyframes selection-rise {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Under reduced motion the live dot is a still ring, and nothing else moves. */
+  .ui-mark[data-tone='live'][data-pulse] {
+    animation: none;
+    outline: var(--border-width-hairline) solid var(--status-live-line);
+    outline-offset: 2px;
+  }
+}

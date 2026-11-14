@@ -1,0 +1,11 @@
+<!doctype html>
+<title>Orders</title>
+<link rel="icon" href="data:,">
+<main><h1>Orders</h1><ul id="rows"></ul></main>
+<script>
+  fetch('/api/orders?status=open')
+    .then((r) => r.json())
+    .then((d) => {
+      for (const o of d.data.orders) document.getElementById('rows').append(Object.assign(document.createElement('li'), {textContent: o.id}));
+    });
+</script>

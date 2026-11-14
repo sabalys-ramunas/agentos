@@ -1,0 +1,353 @@
+{
+ "contexts": {
+  "row": "agentos.audit.row.v1\u0000",
+  "lane": "agentos.audit.lane.v1\u0000",
+  "link": "agentos.audit.link.v1\u0000",
+  "mark": "agentos.audit.mark.v1\u0000",
+  "sig": "agentos.audit.sig.v1\u0000"
+ },
+ "key": {
+  "seed_hex": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+  "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+  "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ"
+ },
+ "reals": [
+  [
+   1793750400.25,
+   "1793750400.25"
+  ],
+  [
+   0.0,
+   "0.0"
+  ],
+  [
+   1e-05,
+   "0.00001"
+  ],
+  [
+   1.5e+20,
+   "150000000000000000000.0"
+  ],
+  [
+   0.1,
+   "0.1"
+  ],
+  [
+   42.0,
+   "42.0"
+  ],
+  [
+   -3.75,
+   "-3.75"
+  ]
+ ],
+ "rows": [
+  {
+   "row": {
+    "principal": "claude-code",
+    "principal_kind": "agent",
+    "grant_id": "gr_abc",
+    "grant_path": "/gr_root/gr_abc/",
+    "workspace": "biz-a",
+    "cost_tokens": 0,
+    "cost_usd": 0.0,
+    "duration_ms": null,
+    "run_id": null,
+    "parent_id": null,
+    "error": null,
+    "seq": 3,
+    "id": "tr_aaaaaaaaaaaaaaaa",
+    "at": 1793750400.25,
+    "kind": "tool_start",
+    "tool": "browser_act",
+    "lane": "biz-a/instagram",
+    "effect": "commit",
+    "status": "started",
+    "summary": null,
+    "args": "{\"on\": \"biz-a/instagram\", \"ref\": \"e12\"}"
+   },
+   "canonical": "{\"args\":\"{\\\"on\\\": \\\"biz-a/instagram\\\", \\\"ref\\\": \\\"e12\\\"}\",\"at\":\"1793750400.25\",\"cost_tokens\":0,\"cost_usd\":\"0.0\",\"duration_ms\":null,\"effect\":\"commit\",\"error\":null,\"grant_id\":\"gr_abc\",\"grant_path\":\"/gr_root/gr_abc/\",\"id\":\"tr_aaaaaaaaaaaaaaaa\",\"kind\":\"tool_start\",\"lane\":\"biz-a/instagram\",\"parent_id\":null,\"principal\":\"claude-code\",\"principal_kind\":\"agent\",\"run_id\":null,\"seq\":3,\"status\":\"started\",\"summary\":null,\"tool\":\"browser_act\",\"v\":1,\"workspace\":\"biz-a\"}",
+   "digest": "52aea6a15119e30c8c663daa705ee59a9ebc588dcf6882da2e0e793ab01bc09f",
+   "lane_tag": "ef0310da43d8c102afff0bcb8e2434afb8ffb33bb76413e208b1f7c430edef29",
+   "prev": "sha256:8139d9223cccca5bbe14713c52abff3742799408cd1955b7d80472634f0b42f7",
+   "hash": "sha256:afd1ef4860428d76aaaecfb1b43fbbb4d4f5cde2f227e2438099bda7dcd95fc1"
+  },
+  {
+   "row": {
+    "principal": "claude-code",
+    "principal_kind": "agent",
+    "grant_id": "gr_abc",
+    "grant_path": "/gr_root/gr_abc/",
+    "workspace": "biz-a",
+    "cost_tokens": 1200,
+    "cost_usd": 1e-05,
+    "duration_ms": 750,
+    "run_id": null,
+    "parent_id": "tr_aaaaaaaaaaaaaaaa",
+    "error": null,
+    "seq": 4,
+    "id": "tr_bbbbbbbbbbbbbbbb",
+    "at": 1793750401.0,
+    "kind": "tool_end",
+    "tool": "browser_act",
+    "lane": "biz-a/instagram",
+    "effect": "commit",
+    "status": "ok",
+    "summary": "Posted “hello” à la page \"biz-a\"\n\ttab\\slash \u0001ctl 😀",
+    "args": null
+   },
+   "canonical": "{\"args\":null,\"at\":\"1793750401.0\",\"cost_tokens\":1200,\"cost_usd\":\"0.00001\",\"duration_ms\":750,\"effect\":\"commit\",\"error\":null,\"grant_id\":\"gr_abc\",\"grant_path\":\"/gr_root/gr_abc/\",\"id\":\"tr_bbbbbbbbbbbbbbbb\",\"kind\":\"tool_end\",\"lane\":\"biz-a/instagram\",\"parent_id\":\"tr_aaaaaaaaaaaaaaaa\",\"principal\":\"claude-code\",\"principal_kind\":\"agent\",\"run_id\":null,\"seq\":4,\"status\":\"ok\",\"summary\":\"Posted “hello” à la page \\\"biz-a\\\"\\n\\ttab\\\\slash \\u0001ctl 😀\",\"tool\":\"browser_act\",\"v\":1,\"workspace\":\"biz-a\"}",
+   "digest": "1e40f7678ff2a866a6a0c00b1ef6f4b8fa06cb68ff97cac30197b2d28c403686",
+   "lane_tag": "a7255206faf6a46039246ce4e8e8282342ebd091de91822fb8feea3cb479b2b1",
+   "prev": "sha256:afd1ef4860428d76aaaecfb1b43fbbb4d4f5cde2f227e2438099bda7dcd95fc1",
+   "hash": "sha256:6b3344e460314ee30e887d8ee0e92b28682e546aa4193a510ed3d2ed62110fd9"
+  },
+  {
+   "row": {
+    "principal": "owner",
+    "principal_kind": "human",
+    "grant_id": "owner",
+    "grant_path": "/owner/",
+    "workspace": null,
+    "cost_tokens": 0,
+    "cost_usd": 0.0,
+    "duration_ms": null,
+    "run_id": null,
+    "parent_id": null,
+    "error": null,
+    "seq": 5,
+    "id": "tr_cccccccccccccccc",
+    "at": 1793750402.5,
+    "kind": "panel",
+    "tool": "panel.approve",
+    "lane": null,
+    "effect": null,
+    "status": "denied",
+    "summary": "[redacted]",
+    "args": "{\"password\": \"[redacted]\"}"
+   },
+   "canonical": "{\"args\":\"{\\\"password\\\": \\\"[redacted]\\\"}\",\"at\":\"1793750402.5\",\"cost_tokens\":0,\"cost_usd\":\"0.0\",\"duration_ms\":null,\"effect\":null,\"error\":null,\"grant_id\":\"owner\",\"grant_path\":\"/owner/\",\"id\":\"tr_cccccccccccccccc\",\"kind\":\"panel\",\"lane\":null,\"parent_id\":null,\"principal\":\"owner\",\"principal_kind\":\"human\",\"run_id\":null,\"seq\":5,\"status\":\"denied\",\"summary\":\"[redacted]\",\"tool\":\"panel.approve\",\"v\":1,\"workspace\":null}",
+   "digest": "ec74bab2ee9d926b06697041ea1f5265d9cf5ed94a50a43da7f0c288e7215823",
+   "lane_tag": "a5453951fe7109c6ea263d6a561d5d59e45ba871a4d77408a7318f3e0ec78b4a",
+   "prev": "sha256:6b3344e460314ee30e887d8ee0e92b28682e546aa4193a510ed3d2ed62110fd9",
+   "hash": "sha256:8d653d5e7662cf7b3c93414064bcdac7adbd63adeb927b2a9f34320af721693f"
+  }
+ ],
+ "marks": [
+  {
+   "body": {
+    "v": 1,
+    "kind": "genesis",
+    "chain": "ch_testvectorchain00",
+    "n": 1,
+    "prev": null,
+    "at": "2026-11-03T00:00:00Z",
+    "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+    "pub": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+    "after_seq": 2,
+    "unchained": 2
+   },
+   "canonical": "{\"after_seq\":2,\"at\":\"2026-11-03T00:00:00Z\",\"chain\":\"ch_testvectorchain00\",\"kid\":\"ed25519:65b60673d6ed884bf01c2c222d82ada0\",\"kind\":\"genesis\",\"n\":1,\"prev\":null,\"pub\":\"ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ\",\"unchained\":2,\"v\":1}",
+   "hash": "sha256:8139d9223cccca5bbe14713c52abff3742799408cd1955b7d80472634f0b42f7",
+   "sig": "iLiJGdPesMS_v5klLHrNWkqdLbocYPveezk5olthnSbX2SWqbpYqRaWqTB_RIMbkxtAcdAevF6YQHDqsLF42Dw"
+  },
+  {
+   "body": {
+    "v": 1,
+    "kind": "checkpoint",
+    "chain": "ch_testvectorchain00",
+    "n": 2,
+    "prev": "sha256:8139d9223cccca5bbe14713c52abff3742799408cd1955b7d80472634f0b42f7",
+    "at": "2026-11-03T00:10:00Z",
+    "kid": "ed25519:65b60673d6ed884bf01c2c222d82ada0",
+    "seq": 5,
+    "hash": "sha256:8d653d5e7662cf7b3c93414064bcdac7adbd63adeb927b2a9f34320af721693f",
+    "count": 3,
+    "reason": "rows"
+   },
+   "canonical": "{\"at\":\"2026-11-03T00:10:00Z\",\"chain\":\"ch_testvectorchain00\",\"count\":3,\"hash\":\"sha256:8d653d5e7662cf7b3c93414064bcdac7adbd63adeb927b2a9f34320af721693f\",\"kid\":\"ed25519:65b60673d6ed884bf01c2c222d82ada0\",\"kind\":\"checkpoint\",\"n\":2,\"prev\":\"sha256:8139d9223cccca5bbe14713c52abff3742799408cd1955b7d80472634f0b42f7\",\"reason\":\"rows\",\"seq\":5,\"v\":1}",
+   "hash": "sha256:c36e95b9579d0f9996577fe1058bf5bbc5082d595bfe02a6390fa1d6d0f94c1d",
+   "sig": "G-jlrqazzNY8CRyYahI2IbfxfHYqX5T5Nd5kojS9iFCEcqkDnCS-dd0CBE17Rvo11VaZ0HRYcO8C2P_N9sVDDA"
+  }
+ ],
+ "typed": [
+  {
+   "column": "cost_usd",
+   "type": "text",
+   "value": "Infinity",
+   "record_value": {
+    "text": "Infinity"
+   },
+   "digest": "5194478c3869376b5891ae43c55c45cf7f79ff94d70e43c53de6b135df769cd2"
+  },
+  {
+   "column": "cost_usd",
+   "type": "text",
+   "value": "0.00001",
+   "record_value": {
+    "text": "0.00001"
+   },
+   "digest": "b8d5264707618c9d9f4f599667993ba0e47f858bf774d3afe809aea49216f6db"
+  },
+  {
+   "column": "cost_tokens",
+   "type": "bool",
+   "value": true,
+   "record_value": {
+    "bool": true
+   },
+   "digest": "9936f5e4316d64b4a65037e9d6e6ab29269600f94bb50ddd255fc7139b1e836f"
+  },
+  {
+   "column": "cost_tokens",
+   "type": "real",
+   "value": 1.0,
+   "record_value": {
+    "real": "1.0"
+   },
+   "digest": "1f1b1b225ffc8127664f63357993a44a6cb5a27c3ee64a4016d77d5c09a3b11a"
+  },
+  {
+   "column": "summary",
+   "type": "int",
+   "value": 7,
+   "record_value": {
+    "int": "7"
+   },
+   "digest": "91c3971cd42890a4badf4d6993b63b9c745bb77165bada6cefd064b37e925f07"
+  },
+  {
+   "column": "summary",
+   "type": "blob",
+   "value": "41",
+   "record_value": {
+    "blob": "41"
+   },
+   "digest": "1e46fe4232f558a875070e4f3857fe4517d21a83bebddd181104feadaf1a5d54"
+  }
+ ],
+ "stored": [
+  {
+   "given": "{\"lane\": \"biz-a/x\\ud800\", \"summary\": \"a\\udc00b\"}",
+   "stored": {
+    "lane": "biz-a/x�",
+    "summary": "a�b"
+   },
+   "row": {
+    "seq": 1,
+    "id": "tr_stored00000000000",
+    "at": 1793750400.5,
+    "kind": "tool_end",
+    "principal": null,
+    "principal_kind": null,
+    "grant_id": null,
+    "grant_path": null,
+    "tool": "browser_act",
+    "lane": "biz-a/x�",
+    "workspace": "biz-a",
+    "effect": null,
+    "status": "ok",
+    "summary": "a�b",
+    "args": null,
+    "error": null,
+    "cost_tokens": 0,
+    "cost_usd": 0.0,
+    "duration_ms": null,
+    "run_id": null,
+    "parent_id": null
+   },
+   "digest": "7415377eb9523246be022bd138ecdc4839515f3fcd278d89cb45423e04d0794c"
+  },
+  {
+   "given": "{\"cost\": {\"tokens\": 9223372036854775808}, \"duration_ms\": -9223372036854775809}",
+   "stored": {
+    "cost_tokens": 9223372036854775807,
+    "duration_ms": -9223372036854775808
+   },
+   "row": {
+    "seq": 1,
+    "id": "tr_stored00000000001",
+    "at": 1793750400.5,
+    "kind": "tool_end",
+    "principal": null,
+    "principal_kind": null,
+    "grant_id": null,
+    "grant_path": null,
+    "tool": "browser_act",
+    "lane": null,
+    "workspace": null,
+    "effect": null,
+    "status": "ok",
+    "summary": null,
+    "args": null,
+    "error": null,
+    "cost_tokens": 9223372036854775807,
+    "cost_usd": 0.0,
+    "duration_ms": -9223372036854775808,
+    "run_id": null,
+    "parent_id": null
+   },
+   "digest": "3e5688adeb00b7b556ab74f02c8d956f0faee3ef0300a0c06bb729e3a537f849"
+  },
+  {
+   "given": "{\"cost\": {\"usd\": -0.0}}",
+   "stored": {
+    "cost_usd": 0.0
+   },
+   "row": {
+    "seq": 1,
+    "id": "tr_stored00000000002",
+    "at": 1793750400.5,
+    "kind": "tool_end",
+    "principal": null,
+    "principal_kind": null,
+    "grant_id": null,
+    "grant_path": null,
+    "tool": "browser_act",
+    "lane": null,
+    "workspace": null,
+    "effect": null,
+    "status": "ok",
+    "summary": null,
+    "args": null,
+    "error": null,
+    "cost_tokens": 0,
+    "cost_usd": 0.0,
+    "duration_ms": null,
+    "run_id": null,
+    "parent_id": null
+   },
+   "digest": "6940f4ad8b48cbff6eb0f11422b2ba89111a0bd7416816a8784c861dbe566aec"
+  },
+  {
+   "given": "{\"cost\": {\"usd\": NaN}}",
+   "stored": {
+    "cost_usd": 0.0
+   },
+   "row": {
+    "seq": 1,
+    "id": "tr_stored00000000003",
+    "at": 1793750400.5,
+    "kind": "tool_end",
+    "principal": null,
+    "principal_kind": null,
+    "grant_id": null,
+    "grant_path": null,
+    "tool": "browser_act",
+    "lane": null,
+    "workspace": null,
+    "effect": null,
+    "status": "ok",
+    "summary": null,
+    "args": null,
+    "error": null,
+    "cost_tokens": 0,
+    "cost_usd": 0.0,
+    "duration_ms": null,
+    "run_id": null,
+    "parent_id": null
+   },
+   "digest": "68de3b98e647d2a26839df9e47063d1f03c634350775ac3109aaf0c54cf3583b"
+  }
+ ]
+}

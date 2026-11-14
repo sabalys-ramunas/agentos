@@ -1,0 +1,15 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="/base.css"><title>Marks that keep their colours</title><style>
+:root { --bg: #ffffff; --fg: #111111; --surface: #f4f4f5; }
+@media (prefers-color-scheme: dark) { :root { --bg: #111111; --fg: #eeeeee; --surface: #222222; } }
+html { background: var(--bg); color: var(--fg); }
+.row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.avatar { display: inline-flex; width: 28px; height: 28px; border-radius: 50%; background: #c2410c; color: #ffffff;
+  align-items: center; justify-content: center; font-weight: 700; font-size: 13px; }
+.ws { display: inline-flex; width: 28px; height: 28px; border-radius: 6px; background: #f4f4f5; color: #111111;
+  align-items: center; justify-content: center; font-size: 12px; }
+.shot { width: 240px; padding: 8px; background: #ffffff; color: #111111; border: 1px solid #ddd; }
+</style></head>
+<body><div class="row"><span class="avatar">MK</span><span>Maya, the agent who ran it</span></div>
+<div class="row"><span class="ws">AC</span><span>Acme Shop</span></div>
+<div class="shot" role="img" aria-label="The shop's home page, drawn in its own light colours"><p>Summer sale</p></div>
+</body></html>

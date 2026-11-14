@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<title>Declared</title>
+<style>
+:root {
+  --color-text: #18181b;
+  --color-muted: #71717a;
+  --color-bg: #ffffff;
+  --color-surface: #f4f4f5;
+  --color-border: #e4e4e7;
+  --color-accent: #7c3aed;
+  --color-unused: #ff6600;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --radius-md: 6px;
+  --radius-lg: 12px;
+  --font-size-sm: 14px;
+  --font-size-lg: 20px;
+}
+[data-theme="dark"] {
+  --color-text: #fafafa;
+  --color-muted: #a1a1aa;
+  --color-bg: #09090b;
+  --color-surface: #18181b;
+  --color-border: #27272a;
+}
+body { margin: 0; background: var(--color-bg); color: var(--color-text); font-family: Arial, sans-serif; }
+header { padding: var(--space-4) var(--space-6); border-bottom: 1px solid var(--color-border); }
+main { padding: var(--space-6); }
+.card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg);
+        padding: var(--space-4); margin-bottom: var(--space-4); }
+.card h2 { font-size: var(--font-size-lg); margin: 0 0 var(--space-2); }
+.card p { color: var(--color-muted); font-size: var(--font-size-sm); margin: 0 0 var(--space-2); }
+[data-slot="button"] { background: var(--color-accent); color: var(--color-bg); border: 0;
+        border-radius: var(--radius-md); padding: var(--space-2) var(--space-4); font-size: var(--font-size-sm); }
+</style>
+</head>
+<body>
+<header><strong>Declared</strong></header>
+<main>
+  <section class="card" data-component="Card"><h2>One</h2><p>First card</p><button data-slot="button">Go</button></section>
+  <section class="card" data-component="Card"><h2>Two</h2><p>Second card</p><button data-slot="button">Go</button></section>
+  <section class="card" data-component="Card"><h2>Three</h2><p>Third card</p><button data-slot="button">Go</button></section>
+</main>
+</body>
+</html>

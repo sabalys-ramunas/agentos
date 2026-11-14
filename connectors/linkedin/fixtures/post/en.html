@@ -1,0 +1,19 @@
+<!-- SYNTHESIZED, NOT CAPTURED. Written by hand on 2026-11-05 from the notes of the 2026-11-04 canary
+     and the structure the operation's locators assume. No real page was loaded. A canary on a throwaway account
+     replaces this with the captured page (text replaced) before the operation is marked verified. -->
+<!-- https://www.linkedin.com/in/me/recent-activity/all/ before the run: the newest update is noted (its data-urn) -->
+<!-- https://www.linkedin.com/feed/ : the share box in main (Start a post, Photo); the editor opens as a dialog,
+     with the audience button reading Post to Anyone -->
+<main>
+  <button>Start a post</button>
+  <button>Photo</button>
+</main>
+<div role="dialog" aria-label="Create post modal">
+  <button aria-label="Arlo Fenwick, Post to Anyone">Post to Anyone</button>
+  <div role="textbox" contenteditable="true" aria-label="Text editor for creating content"></div>
+  <button>Post</button>
+</div>
+<!-- after Post: registerMediaUpload, PUT /dms-uploads/... and RegisterImageMedia for a photo, then
+     server-request with requestId com.linkedin.sdui.requests.sharing.CreatePost; the dialog closes.
+     https://www.linkedin.com/in/me/recent-activity/all/ then starts with a new update (not the one noted):
+     <div data-urn="urn:li:activity:7392000000000000000"><div class="update-components-text">the exact text</div></div> -->

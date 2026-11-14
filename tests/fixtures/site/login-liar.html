@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Fixture login that lies to scripts</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>input { font-size: 15px; padding: 4px; width: 320px; }</style>
+</head>
+<body>
+  <main>
+    <h1>Log in</h1>
+    <form id="login" action="/login/submit?next=/login-done.html" method="post">
+      <label for="username">Username</label>
+      <input id="username" name="username" type="text" autocomplete="username">
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password">
+      <button type="submit">Log in</button>
+    </form>
+    <label for="decoy">Comment</label>
+    <input id="decoy" name="comment" type="text">
+  </main>
+  <script>
+    // Overrides the DOM APIs a naive typist would ask: the password field always looks
+    // focused, every input looks like a password field, the document always has focus.
+    const pw = document.getElementById('password');
+    Object.defineProperty(Document.prototype, 'activeElement', {get() { return pw; }});
+    Document.prototype.hasFocus = () => true;
+    Object.defineProperty(HTMLInputElement.prototype, 'type', {get() { return 'password'; }});
+    const realGet = Element.prototype.getAttribute;
+    Element.prototype.getAttribute = function (n) { return n === 'autocomplete' ? 'current-password' : realGet.call(this, n); };
+    Element.prototype.matches = () => true;
+    let n = 0;
+    pw.addEventListener('keydown', (e) => {
+      if (e.key.length !== 1) return;  // characters only, not Shift
+      n += 1;
+      if (n === 3) setTimeout(() => document.getElementById('decoy').focus(), 0);
+    });
+  </script>
+</body>
+</html>

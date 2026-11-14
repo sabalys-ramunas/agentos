@@ -1,0 +1,257 @@
+name: ci
+
+on:
+  push:
+    branches: ["**"]
+    # docs-only pushes (the build log, designs) do not start a run, so they never cancel a code run
+    paths-ignore: ["docs/**", "**/*.md"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  # a running check finishes (so a busy branch still gets a result); GitHub keeps only the
+  # newest pending run behind it
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: lint and unit tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        # macOS minutes cost 10x on private repos: run it on main and pull requests only
+        os: ${{ (github.event_name == 'pull_request' || github.ref == 'refs/heads/main')
+              && fromJSON('["ubuntu-24.04", "macos-15"]') || fromJSON('["ubuntu-24.04"]') }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+        with:
+          enable-cache: true
+      - name: Install
+        run: uv sync --frozen --extra node
+      - name: Camoufox's fingerprint model (fetched here, so the unit tests' network guard stays strict)
+        run: uv run python -c "from camoufox.fpgen_model import ensure_fpgen_model; ensure_fpgen_model()"
+      - name: Lint
+        run: uv run ruff check src tests scripts
+      - name: Shell syntax
+        run: for f in deploy/*.sh deploy/templates/*/*.sh scripts/*.sh; do bash -n "$f"; done
+      - name: Unit tests
+        # Node tests (-m node) need Camoufox and Xvfb; they run on the node with scripts/node-test.sh.
+        run: uv run pytest -q
+      - name: Tool reference is current (make tools-doc)
+        run: uv run agentos tools --markdown | diff -u docs/TOOLS.md -
+      - name: Error catalog is current (make errors-doc)
+        run: |
+          uv run agentos errors --markdown | diff -u docs/ERRORS.md -
+          # the classic panel is not in the public repository; check its copy only where it is
+          if [ -d panel ]; then uv run agentos errors --panel-json | diff -u panel/src/api/errors.json -; fi
+      - name: Protocol examples are current (make protocol-doc)
+        run: uv run python scripts/protocol_doc.py --check
+      - name: No em dashes in UI strings
+        # Comments may use them; anything a person reads may not (strings, docstrings, templates).
+        run: |
+          if grep -rn "—" src --include='*.py' --include='*.html' --include='*.js' --include='*.css' \
+              | grep -vE ':[0-9]+: *(#|//|/\*|\*)'; then
+            echo "::error::em dash in user-facing text (see above); use a period, comma, colon or parentheses"
+            exit 1
+          fi
+
+  panel:
+    name: panel (lint, unit tests, build)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    # the classic panel is not in the public repository: every step checks for it
+    defaults:
+      run:
+        working-directory: panel
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        if: hashFiles('panel/package-lock.json') != ''
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: panel/package-lock.json
+      - run: npm ci --no-audit --no-fund
+        if: hashFiles('panel/package-lock.json') != ''
+      - run: npm run lint
+        if: hashFiles('panel/package-lock.json') != ''
+      - run: npm test
+        if: hashFiles('panel/package-lock.json') != ''
+      - run: npm run build
+        if: hashFiles('panel/package-lock.json') != ''
+      - name: No em dashes in UI strings
+        if: hashFiles('panel/package-lock.json') != ''
+        run: |
+          if grep -rn "—" src --include='*.ts' --include='*.tsx' --include='*.css' --include='*.html' \
+              | grep -vE ':[0-9]+: *(\*|//|/\*)'; then
+            echo "::error::em dash in user-facing text (see above)"
+            exit 1
+          fi
+
+
+  web:
+    name: web (typecheck, lint, unit tests, build)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      # pnpm at the version that wrote web/pnpm-lock.yaml, through corepack (no third-party action).
+      - run: corepack enable && corepack prepare pnpm@10.33.0 --activate
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      # Includes src/styles/tokens.test.ts, which runs python3 tokens/build-tokens.py --check: the Mono
+      # token files match their script, and the contrast and colour-blind checks pass.
+      - run: pnpm test
+      - run: pnpm build
+
+  typecheck:
+    name: type check and generated files
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+        with:
+          enable-cache: true
+      - name: Install
+        run: uv sync --frozen --extra node
+      - name: Type check (make typecheck; scope and TODO list in pyproject.toml [tool.mypy])
+        run: make -s typecheck
+      - name: Publish cards are current (scripts/publish_cards.py)
+        run: uv run python scripts/publish_cards.py --check
+
+  audit:
+    name: dependency audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+      - name: Known vulnerabilities in the locked Python dependencies (make audit)
+        run: make -s audit
+
+  secrets:
+    name: secret scan
+    # every push, and pull requests from this repository (a fork's pull request is scanned when
+    # its commits are pushed here)
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read  # the action lists a pull request's commits
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0  # gitleaks reads the commits of the push, not only the tree
+          persist-credentials: false
+      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_COMMENTS: "false"
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "false"
+          GITLEAKS_VERSION: "8.30.1"
+
+  node:
+    name: real browser (node smoke tests)
+    # Camoufox on Xvfb, the only tests of the real browser and human-input path. Pull requests,
+    # main and manual runs (Actions, "Run workflow"); other branch pushes skip it.
+    # A fork's pull request does not start it (it would spend this repository's minutes).
+    if: >-
+      (github.event_name != 'push' || github.ref == 'refs/heads/main') &&
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      # scripts/node-test.sh's slot 14, as on the node
+      AGENTOS_TEST_NAME: ci
+      AGENTOS_TEST_DISPLAY_BASE: "140"
+      AGENTOS_TEST_VIEWER_BASE: "6140"
+      AGENTOS_TEST_VNC_BASE: "5140"
+      AGENTOS_TEST_MCP_PORT_BASE: "7440"
+      # tests/node/conftest.py: run the listed tests, and answer Camoufox's exit-IP lookup locally
+      AGENTOS_TEST_SMOKE: tests/node/ci-smoke.txt
+      AGENTOS_TEST_OFFLINE: "1"
+      AGENTOS_TEST_NO_INTERNET: "1"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+        with:
+          enable-cache: true
+      - name: System packages (deploy/install-node.sh's list, plus xwininfo)
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -yq --no-install-recommends xvfb x11vnc xdotool x11-xkb-utils x11-utils \
+            imagemagick fonts-liberation fonts-noto-color-emoji openssl iproute2
+      - name: Install
+        run: uv sync --frozen --extra node
+      - name: Firefox's system libraries
+        run: sudo env "PATH=$PATH" "$(command -v uv)" run --no-sync python -P -m playwright install-deps firefox
+      - name: Cache the Camoufox browser
+        id: camoufox
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.cache/camoufox
+          key: camoufox-${{ runner.os }}-${{ hashFiles('uv.lock') }}-v1
+      - name: Fetch the Camoufox browser
+        if: steps.camoufox.outputs.cache-hit != 'true'
+        run: uv run --no-sync python -m camoufox fetch
+      - name: Cut the tests off from everything but loopback
+        # The tests run with the group agentos-offline; packets of that group may leave only
+        # through lo, and not to the local DNS stub either, so no browser, lookup or helper can
+        # reach a real site. The counters are printed at the end.
+        run: |
+          sudo groupadd --system agentos-offline
+          for t in iptables ip6tables; do
+            sudo "$t" -I OUTPUT 1 -m owner --gid-owner agentos-offline ! -o lo -j REJECT
+            sudo "$t" -I OUTPUT 1 -m owner --gid-owner agentos-offline -p udp --dport 53 -j REJECT
+            sudo "$t" -I OUTPUT 1 -m owner --gid-owner agentos-offline -p tcp --dport 53 -j REJECT
+          done
+          sudo mkdir -p /tmp/.X11-unix && sudo chmod 1777 /tmp/.X11-unix
+      - name: Prove the group cannot get out
+        # The runner itself reaches GitHub; the same request in the group must fail. --resolve skips
+        # DNS, so this tests the TCP rule. --nnp: nothing in the group can sudo the rules away.
+        run: |
+          ip=$(getent ahostsv4 api.github.com | awk 'NR==1{print $1}')
+          curl -fsS -m 10 -o /dev/null --resolve "api.github.com:443:$ip" https://api.github.com/zen
+          if sudo setpriv --nnp --reuid="$(id -u)" --regid=agentos-offline --clear-groups -- \
+              curl -fsS -m 10 -o /dev/null --resolve "api.github.com:443:$ip" https://api.github.com/zen; then
+            echo "::error::the agentos-offline group reached api.github.com"; exit 1
+          fi
+      - name: Node tests (tests/node/ci-smoke.txt)
+        run: |
+          sudo --preserve-env setpriv --nnp --reuid="$(id -u)" --regid=agentos-offline --clear-groups -- \
+            env "PATH=$PATH" HOME="$HOME" timeout --signal=INT --kill-after=60s 16m \
+            uv run --no-sync pytest -m node tests/node -p no:cacheprovider -rs --durations=25 -q
+      - name: Packets the tests tried to send out (refused)
+        if: always()
+        run: |
+          sudo iptables -L OUTPUT -v -n | sed -n '1,6p'
+          sudo ip6tables -L OUTPUT -v -n | sed -n '1,6p'
+
+  public-export:
+    name: public export (allowlist and scan)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+      - name: Export the public tree and scan it (make export-check)
+        # the script stays in the private repository; the public tree skips this job's step
+        run: |
+          if [ -f scripts/public_export.py ]; then uv run --no-project python scripts/public_export.py --check
+          else echo "no scripts/public_export.py here: nothing to check"; fi

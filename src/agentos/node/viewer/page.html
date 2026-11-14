@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en" data-theme="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="dark light">
+<meta name="robots" content="noindex, nofollow">
+<title>{{TITLE}}</title>
+<link rel="stylesheet" href="{{ASSETS}}/viewer.css">
+<link rel="stylesheet" href="{{ASSETS}}/login.css">
+<script type="application/json" id="agentos-boot">{{BOOT}}</script>
+<script type="module" src="{{ASSETS}}/viewer.js"></script>
+<script type="module" src="{{ASSETS}}/login.js"></script>
+</head>
+<body>
+<div class="app" id="app" data-control="agent" data-mode="view" data-activity="closed">
+
+  <header class="topbar">
+    <div class="identity">
+      <span class="logo" aria-hidden="true"></span>
+      <h1 class="lane-id" id="lane-id"><span class="ws" id="lane-ws"></span><span class="slash" aria-hidden="true">/</span><span class="name" id="lane-name"></span></h1>
+      <span class="chip" id="state-chip" data-tone="muted"><span class="chip-dot" aria-hidden="true"></span><span class="chip-label" id="state-label">Connecting</span></span>
+      <span class="chip" id="signal-chip" data-tone="muted" hidden><span class="chip-dot" aria-hidden="true"></span><span class="chip-label" id="signal-label"></span></span>
+      <span class="chip" id="exit-chip" data-tone="muted"><span class="chip-label" id="exit-label"></span></span>
+    </div>
+    <div class="who" id="who" role="status" aria-live="polite">
+      <span class="who-dot" aria-hidden="true"></span>
+      <span class="who-text" id="who-text">Agent in control</span>
+      <span class="who-since" id="who-since"></span>
+      <span class="sr-only" id="mode-status"></span>
+    </div>
+    <nav class="tools" aria-label="View options">
+      <button type="button" class="icon-btn" id="btn-activity" aria-label="Agent activity" aria-keyshortcuts="Alt+Shift+A" aria-controls="activity" aria-expanded="false" title="Show agent activity">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h13"/></svg>
+      </button>
+      <button type="button" class="icon-btn" id="btn-fullscreen" aria-label="Full screen" aria-keyshortcuts="Alt+Shift+F">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+      </button>
+      <button type="button" class="icon-btn" id="btn-theme" aria-label="Theme: automatic">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path class="theme-half" d="M12 4a8 8 0 0 1 0 16z"/></svg>
+      </button>
+      <button type="button" class="icon-btn" id="btn-help" aria-label="Keyboard shortcuts" aria-keyshortcuts="Alt+Shift+/">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M8 14h8"/></svg>
+      </button>
+    </nav>
+  </header>
+
+  <div class="banner" id="request-banner" role="alert" hidden>
+    <svg class="banner-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v5M12 16h.01"/><circle cx="12" cy="12" r="9"/></svg>
+    <p class="banner-text"><strong>The agent wants control back:</strong> <span id="request-reason"></span></p>
+    <div class="banner-actions" id="request-actions">
+      <button type="button" class="btn btn-primary" id="btn-request-handback">Hand back</button>
+      <button type="button" class="btn" id="btn-request-keep">Keep control</button>
+    </div>
+  </div>
+
+  <section class="notices" id="notices" aria-label="Blocked by the site list" aria-live="polite" hidden></section>
+
+  <main class="layout">
+    <section class="stage" id="stage" aria-label="Live view">
+      <div class="screen-wrap" id="screen-wrap">
+        <div class="screen" id="screen" role="application" aria-roledescription="remote screen" aria-label="Live view of the lane's browser"></div>
+        <div class="mode-pill" id="mode-pill" aria-hidden="true"><span class="pill-dot"></span><span id="mode-text">View only</span></div>
+        <div class="overlay" id="overlay" role="status" aria-live="polite">
+          <div class="overlay-card">
+            <div class="spinner" id="overlay-spinner" aria-hidden="true"></div>
+            <p class="overlay-title" id="overlay-title">Connecting</p>
+            <p class="overlay-text" id="overlay-text"></p>
+          </div>
+        </div>
+      </div>
+      <div class="actionbar" id="actionbar">
+        <p class="hint" id="hint"></p>
+        <div class="actions" id="actions">
+          <button type="button" class="btn btn-quiet-danger" id="btn-stop" aria-keyshortcuts="Alt+Shift+S" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg><span>Stop agent</span>
+          </button>
+          <button type="button" class="btn" id="btn-copy-out" title="Puts what the lane copied on this computer's clipboard" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg><span>Copy from the lane</span>
+          </button>
+          <button type="button" class="btn" id="btn-paste" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="4" width="10" height="4" rx="1"/><path d="M8 6H6a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1h-2"/></svg><span>Paste text</span>
+          </button>
+          <button type="button" class="btn btn-primary" id="btn-take" aria-keyshortcuts="Alt+Shift+T" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12m0-1.5a1.5 1.5 0 0 1 3 0V12m0-.5a1.5 1.5 0 0 1 3 0V16a5 5 0 0 1-5 5h-1.5a5 5 0 0 1-4-2l-2.6-3.5a1.5 1.5 0 0 1 2.3-1.9L8 15"/></svg><span>Take control</span>
+          </button>
+          <button type="button" class="btn btn-primary" id="btn-handback" aria-keyshortcuts="Alt+Shift+H" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg><span>Hand back to agent</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="activity" id="activity" aria-labelledby="activity-title">
+      <div class="activity-head">
+        <h2 id="activity-title">Agent activity</h2>
+      </div>
+      <ol class="activity-list" id="activity-list" aria-live="polite"></ol>
+      <p class="activity-empty" id="activity-empty">No agent actions on this lane yet.</p>
+      <footer class="activity-foot" id="link-info"></footer>
+    </aside>
+  </main>
+</div>
+
+<dialog class="dialog" id="dlg-stop" aria-labelledby="dlg-stop-title" aria-describedby="dlg-stop-text">
+  <h2 id="dlg-stop-title">Stop the agent on this lane?</h2>
+  <p id="dlg-stop-text">The agent finishes the step it is on and then stops. Its runs on this lane are cancelled, and nothing runs here until you take control or hand it back.</p>
+  <div class="dialog-actions">
+    <button type="button" class="btn" id="btn-stop-cancel">Cancel</button>
+    <button type="button" class="btn btn-danger" id="btn-stop-confirm">Stop agent</button>
+  </div>
+</dialog>
+
+<dialog class="dialog" id="dlg-paste" aria-labelledby="dlg-paste-title">
+  <h2 id="dlg-paste-title">Paste text into the lane</h2>
+  <p>The text is typed in where the cursor is in the lane, so click that place first. Pasting with the keyboard does the same without this window.</p>
+  <label class="field-label" for="paste-text">Text</label>
+  <textarea id="paste-text" rows="4" spellcheck="false" autocomplete="off"></textarea>
+  <div class="dialog-actions">
+    <button type="button" class="btn" id="btn-paste-cancel">Cancel</button>
+    <button type="button" class="btn btn-primary" id="btn-paste-send">Paste into the lane</button>
+  </div>
+</dialog>
+
+<dialog class="dialog" id="dlg-help" aria-labelledby="dlg-help-title">
+  <h2 id="dlg-help-title">Keyboard shortcuts</h2>
+  <p>They work even while your keys go to the lane.</p>
+  <dl class="shortcuts" id="shortcut-list">
+    <div><dt><kbd data-mod></kbd><kbd>T</kbd></dt><dd>Take control</dd></div>
+    <div><dt><kbd data-mod></kbd><kbd>H</kbd></dt><dd>Hand back to agent</dd></div>
+    <div><dt><kbd data-mod></kbd><kbd>S</kbd></dt><dd>Stop agent</dd></div>
+    <div><dt><kbd data-mod></kbd><kbd>A</kbd></dt><dd>Show or hide agent activity</dd></div>
+    <div><dt><kbd data-mod></kbd><kbd>F</kbd></dt><dd>Full screen</dd></div>
+    <div><dt><kbd data-mod></kbd><kbd>/</kbd></dt><dd>This list</dd></div>
+  </dl>
+  <p id="help-clipboard"></p>
+  <div class="dialog-actions">
+    <button type="button" class="btn btn-primary" id="btn-help-close">Done</button>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>

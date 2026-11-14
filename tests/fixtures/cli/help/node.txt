@@ -1,0 +1,37 @@
+
+ Usage: agentos node [OPTIONS] COMMAND [ARGS]...
+
+ Set up and run this node.
+
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --help          Show this message and exit.                                  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Commands ───────────────────────────────────────────────────────────────────╮
+│ init                  Create AGENTOS_HOME, write node.toml with an MCP       │
+│                       token, and print how to connect.                       │
+│ rotate-token          Replace the node's own token (node.toml mcp_token), so │
+│                       copies of the old one stop working.                    │
+│ serve                 Run agentosd: the lanes and the MCP server (systemd    │
+│                       runs this).                                            │
+│ join                  Join this node to a controller. agentosd keeps the     │
+│                       channel up from its next start.                        │
+│ templates             List the node templates, or show one: where its files  │
+│                       are and the variables to fill in.                      │
+│ restart               Restart agentosd, after naming the open lanes and who  │
+│                       holds them (asks when any is held).                    │
+│ logs                  agentosd's log, filtered on the ids every line carries │
+│                       (lane, grant, run, workspace, request).                │
+│ migrate-service-user  Run agentosd as its own user with the hardened unit    │
+│                       instead of root (or --rollback).                       │
+│ config                This node's settings.                                  │
+│ doctor                Check this node and say how to fix what is wrong.      │
+│ health                Node health: exit IPs, proxies, disk, RAM, browser     │
+│                       drift.                                                 │
+│ backup                Encrypted backups of AGENTOS_HOME (profiles, vault,    │
+│                       databases).                                            │
+│ migrate               Versioned migrations of the databases and the lane     │
+│                       directories.                                           │
+│ upgrade               Drain, install, migrate, restart; roll back on         │
+│                       failure.                                               │
+╰──────────────────────────────────────────────────────────────────────────────╯
+

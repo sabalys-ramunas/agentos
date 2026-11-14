@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Fixture form</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body data-keydowns="0" data-trusted-keydowns="0">
+  <header>
+    <h1>Sign up</h1>
+    <nav aria-label="Pages"><a href="/index.html">Home</a> <a href="/feed.html">Feed</a></nav>
+  </header>
+  <main>
+    <form id="signup" action="/form.html" method="get">
+      <label for="name">Name</label>
+      <input id="name" name="name" type="text" autocomplete="off">
+
+      <label for="bio">Bio</label>
+      <textarea id="bio" name="bio" rows="3">Old bio text</textarea>
+
+      <label for="color">Favourite color</label>
+      <select id="color" name="color">
+        <option value="">Choose one</option>
+        <option value="r">Red</option>
+        <option value="g">Green</option>
+        <option value="b">Blue</option>
+      </select>
+
+      <label><input type="checkbox" id="subscribe" name="subscribe"> Subscribe to news</label>
+
+      <button type="submit">Submit</button>
+    </form>
+    <p>Result: <output id="result" for="name bio color subscribe"></output></p>
+  </main>
+  <script>
+    let keydowns = 0, trusted = 0;
+    document.addEventListener('keydown', (event) => {
+      keydowns += 1;
+      if (event.isTrusted) trusted += 1;
+      document.body.dataset.keydowns = String(keydowns);
+      document.body.dataset.trustedKeydowns = String(trusted);
+    });
+    document.getElementById('signup').addEventListener('submit', (event) => {
+      event.preventDefault();
+      const f = event.target;
+      document.getElementById('result').textContent = JSON.stringify({
+        name: f.name.value, bio: f.bio.value, color: f.color.value, subscribe: f.subscribe.checked,
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="/base.css"><title>App shell</title><style>
+.toolbar { display: flex; align-items: center; justify-content: space-between; overflow: hidden; border-bottom: 1px solid #ddd; }
+.ghost { background: none; border: 0; margin-right: -12px; padding: 8px 16px; }
+.more { max-height: 72px; overflow: hidden; }
+.avatar { position: relative; width: 48px; height: 48px; padding: 0; border-radius: 24px; background: #dde; border: 0; }
+.avatar .count { position: absolute; right: -6px; top: -6px; background: #b00020; color: #fff; font-size: 11px; line-height: 16px; min-width: 16px; border-radius: 8px; }
+.field { position: relative; margin: 24px 0; }
+.field input { width: 240px; padding: 18px 8px 6px; font: inherit; }
+.field label { position: absolute; left: 9px; top: 2px; font-size: 12px; color: #444; }
+.tip { position: absolute; background: #222; color: #fff; padding: 4px 8px; font-size: 12px; left: 60px; top: 0; }
+.cookie { position: fixed; left: 0; right: 0; bottom: 0; background: #fff; border-top: 1px solid #ccc; padding: 12px 16px; }
+.label { font-size: 14px; }
+</style></head>
+<body><div class="toolbar" data-component="Toolbar"><strong>Inbox</strong><button class="ghost">Edit</button></div>
+<p>Water boils at 100 degrees<sup><a href="#n1">1</a></sup><sup><a href="#n2">2</a></sup> at sea level. </p>
+<div id="bio" class="more"><p>A long biography that is cut on purpose. It goes on for a few lines, about the places this person lived and the work they did, and it keeps going so that it needs more than three lines of space.</p></div>
+<button aria-expanded="false" aria-controls="bio">Read more</button>
+<p><button class="avatar" aria-label="Messages"><span class="count">3</span></button></p>
+<div class="field"><input id="em" type="email" placeholder=" "><label for="em">Email</label></div>
+<div style="position:relative"><button>Help</button><div role="tooltip" class="tip">Opens the help centre</div></div>
+<p class="label">Total <span style="font-weight:700">  42 EUR  </span> </p>
+<div class="cookie" data-component="CookieBar">We use one cookie to keep you signed in. <button>OK</button></div>
+<div style="height:600px"></div></body></html>

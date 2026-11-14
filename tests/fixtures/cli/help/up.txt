@@ -1,0 +1,38 @@
+
+ Usage: agentos up [OPTIONS]
+
+ Set up and start this box, then print a sign-in link.
+
+ The first time, it writes node.toml (as `agentos node init`) and
+ controller.toml.
+
+ It runs a controller and this node, joined, and prints the panel and a
+ one-time sign-in link.
+
+ Safe to run again: settings and tokens are kept. By hand: `agentos connect
+ --by-hand`.
+
+ With Claude Code or Codex on this machine (or `--here`), they connect to it
+ too, with no tunnel.
+
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --controller-port                    <int range>         Controller port     │
+│                                      [1<=x<=65535]       (default from       │
+│                                                          controller.toml).   │
+│ --ssh-host                           <str>               This box's SSH      │
+│                                                          alias, for the      │
+│                                                          connect line.       │
+│ --here                 --not-here                        Also connect Claude │
+│                                                          Code and Codex on   │
+│                                                          this machine        │
+│                                                          straight to the     │
+│                                                          node, with their    │
+│                                                          own grant (Linux;   │
+│                                                          the default when    │
+│                                                          either is installed │
+│                                                          here).              │
+│ --verbose          -v                                    Debug logging.      │
+│ --help                                                   Show this message   │
+│                                                          and exit.           │
+╰──────────────────────────────────────────────────────────────────────────────╯
+

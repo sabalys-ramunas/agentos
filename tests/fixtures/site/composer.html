@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Fixture composer</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <!--
+    What agents wait for on real sites, done by the page's own scripts: an upload that reports
+    progress and then says it is shared (and moves the URL), a section that opens a moment after
+    its button is pressed, a confirm that pops up later, and a burst of requests.
+  -->
+  <main>
+    <h1>New post</h1>
+    <label for="caption">Caption</label>
+    <textarea id="caption"></textarea>
+    <p>
+      <button type="button" id="share">Share</button>
+      <button type="button" id="details" aria-expanded="false">Details</button>
+      <button type="button" id="ask">Discard</button>
+      <button type="button" id="sync">Sync</button>
+    </p>
+    <p id="status" role="status">Draft</p>
+    <section id="extra" aria-label="Post details" hidden><p>Posting as Ada Lovelace</p></section>
+  </main>
+  <script>
+    const status = document.getElementById('status');
+    const share = document.getElementById('share');
+    share.addEventListener('click', () => {
+      share.disabled = true;
+      let pct = 0;
+      status.textContent = 'Uploading 0%';
+      const tick = setInterval(() => {
+        pct += 25;
+        if (pct < 100) { status.textContent = `Uploading ${pct}%`; return; }
+        clearInterval(tick);
+        status.textContent = 'Your post was shared';
+        share.disabled = false;
+        history.pushState({}, '', '?posted=1');
+      }, 300);
+    });
+    const details = document.getElementById('details');
+    details.addEventListener('click', () => {
+      setTimeout(() => {
+        const open = details.getAttribute('aria-expanded') !== 'true';
+        details.setAttribute('aria-expanded', String(open));
+        document.getElementById('extra').hidden = !open;
+      }, 400);
+    });
+    document.getElementById('ask').addEventListener('click', () => {
+      setTimeout(() => { status.textContent = confirm('Discard this post?') ? 'Discarded' : 'Kept'; }, 400);
+    });
+    document.getElementById('sync').addEventListener('click', async () => {
+      status.textContent = 'Syncing';
+      for (let i = 0; i < 4; i++) {
+        await fetch(`/status/200?sync=${i}`, {cache: 'no-store'});
+        await new Promise((resolve) => setTimeout(resolve, 250));
+      }
+      status.textContent = 'Synced';
+    });
+
+    // What the page itself can see: new window globals or expando properties on elements.
+    // Writes to the DOM only when it finds one, so reads that leave no trace leave it alone.
+    const baseline = new Set(Object.getOwnPropertyNames(window));
+    setInterval(() => {
+      if (document.body.dataset.leak) return;
+      const found = Object.getOwnPropertyNames(window).filter((n) => !baseline.has(n)).map((n) => 'window.' + n);
+      for (const el of document.querySelectorAll('*')) {
+        const keys = Object.keys(el);
+        if (keys.length) found.push(el.tagName.toLowerCase() + '.' + keys.join(','));
+      }
+      if (found.length) document.body.dataset.leak = found.slice(0, 10).join(' ');
+    }, 100);
+  </script>
+</body>
+</html>

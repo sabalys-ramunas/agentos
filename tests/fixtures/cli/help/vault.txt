@@ -1,0 +1,35 @@
+
+ Usage: agentos vault [OPTIONS] COMMAND [ARGS]...
+
+ Sealed vault: logins, TOTP seeds and API keys bound to domains and lanes.
+
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --help          Show this message and exit.                                  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Commands ───────────────────────────────────────────────────────────────────╮
+│ init        Create the vault (vault.db plus a key file, or a passphrase).    │
+│ unseal      Unseal the running daemon's vault (asks for the passphrase).     │
+│ seal        Seal the running daemon's vault: the key is dropped from memory. │
+│ status      Show whether the vault exists, its mode, entry count, and the    │
+│             daemon's state.                                                  │
+│ add         Add an entry. Secrets are prompted for (hidden) or read from     │
+│             stdin, never from argv.                                          │
+│ list        List entries: names, kinds, domains and lanes only.              │
+│ show        Show an entry's metadata (never its username, secret or seed).   │
+│ bind        Bind an entry to lanes (it resolves only on bound lanes).        │
+│ unbind      Remove lane bindings from an entry.                              │
+│ remove      Delete an entry for good.                                        │
+│ catcher     Configure the code source of an entry: the email code catcher,   │
+│             or the code card (--relay).                                      │
+│             Codes are typed by the node, never shown.                        │
+│ rotate-key  Re-seal every entry under a fresh data key; with --master,       │
+│             replace the master key too.                                      │
+│ import      Import an Apple Passwords, Bitwarden (unencrypted JSON),         │
+│             1Password or generic CSV export.                                 │
+│ mail        Mailboxes on this node: connect one in a minute, mail in and     │
+│             out.                                                             │
+│ git         Git credentials for lanes and brains: deploy keys and tokens     │
+│             kept in the vault, and the remotes each workspace or lane may    │
+│             fetch from and push to. See docs/GIT.md.                         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+

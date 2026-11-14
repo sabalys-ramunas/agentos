@@ -1,0 +1,21 @@
+
+ Usage: agentos open [OPTIONS] [lane]
+
+ Open a lane's live view in your browser, through the node's tunnel.
+
+ In the viewer you can take control (the agent waits) and hand it back. The
+ link expires.
+
+╭─ Arguments ──────────────────────────────────────────────────────────────────╮
+│   lane      <str>  Lane id, for example biz-a/instagram.                     │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --node            <str>  Connection name (default: the node that has the     │
+│                          lane).                                              │
+│ --wake                   Start the lane's browser first if it is asleep.     │
+│ --print                  Print the link instead of opening the browser.      │
+│ --terminal               Open the terminal dashboard instead: Needs you,     │
+│                          runs, activity (--node picks the connection).       │
+│ --help                   Show this message and exit.                         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+

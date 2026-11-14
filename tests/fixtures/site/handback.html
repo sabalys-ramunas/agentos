@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Shipping details</title>
+</head>
+<body>
+  <h1>Shipping details</h1>
+  <nav aria-label="Pages"><a href="#review">Review</a> <a href="/feed.html" target="_blank">Open the feed</a></nav>
+  <form id="ship" action="/handback.html" method="post">
+    <label for="fullname">Full name</label>
+    <input id="fullname" name="fullname" type="text" value="Ana">
+    <label for="street">Street</label>
+    <input id="street" name="street" type="text" value="1 Old Road">
+    <label for="pw">Password</label>
+    <input id="pw" name="pw" type="password" autocomplete="current-password">
+    <label for="otp">Verification code</label>
+    <input id="otp" name="otp" type="text" autocomplete="one-time-code">
+    <label for="speed">Delivery</label>
+    <select id="speed" name="speed">
+      <option value="std" selected>Standard</option>
+      <option value="exp">Express</option>
+    </select>
+    <label><input type="checkbox" id="gift" name="gift"> Gift wrap</label>
+    <label for="note">Note</label>
+    <textarea id="note" name="note"></textarea>
+    <input type="hidden" name="csrf" value="tok-1">
+    <button type="submit">Save address</button>
+  </form>
+  <section id="review"><h2>Review</h2><p>Check the address before saving.</p></section>
+</body>
+</html>

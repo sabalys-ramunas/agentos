@@ -1,0 +1,19 @@
+
+ Usage: agentos access [OPTIONS] COMMAND [ARGS]...
+
+ What agents may do: grants, approvals, freezes and the action log.
+
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --help          Show this message and exit.                                  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Commands ───────────────────────────────────────────────────────────────────╮
+│ grants        Issue, narrow, inspect and revoke grants.                      │
+│ approvals     The Needs-you queue.                                           │
+│ confirmation  How strong a yes must be, and where it can be given.           │
+│ freeze        Freeze a lane, a workspace or this node: every agent stops at  │
+│               once.                                                          │
+│ unfreeze      Lift a freeze (owner only; nothing is restored).               │
+│ audit         The tamper-evident action log: verify, replay, export, share.  │
+│ policy        Grants, approvals, the action log and notifications.           │
+╰──────────────────────────────────────────────────────────────────────────────╯
+

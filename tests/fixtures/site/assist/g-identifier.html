@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Sign in - Google Accounts</title>
+<style>body{font:15px sans-serif;margin:40px} input{display:block;margin:8px 0;width:300px;height:34px}</style></head>
+<body>
+<form onkeydown="if (event.key === 'Enter') { event.preventDefault(); this.submit(); }" method="post" action="/v3/signin/identifier" novalidate>
+  <h1>Sign in</h1>
+  <div>to continue to Gmail and the rest of your Google Account</div>
+  <input type="email" name="identifier" id="identifierId" autocomplete="username webauthn" aria-label="Email or phone">
+  <input type="hidden" name="flowName" value="GlifWebSignIn">
+  <button type="button">Forgot email?</button>
+  <button type="button">Create account</button>
+  <button type="button" onclick="this.form.submit()">Next</button>
+</form>
+</body></html>

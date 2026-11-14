@@ -1,0 +1,35 @@
+id = "compose-publish"
+title = "Publish a post with a photo"
+goal = "Publish the post \"Fresh bread on Saturday\" with the photo photo.png from the lane's inbox."
+tags = ["composer", "baseline"]
+start = "/compose"
+ceiling = "commit"
+allowed_effects = ["upload:photo", "publish:composer"]
+files = ["photo.png"]      # staged in the lane's inbox: files_list shows it, browser_upload takes its id
+
+[[check]]
+kind = "published"
+text = "Fresh bread on Saturday"
+photo = true
+
+[[replay]]
+do = "type"
+locator = { role = "textbox", name = "Post text" }
+text = "Fresh bread on Saturday"
+
+[[replay]]
+do = "upload"
+locator = { role = "button", name = "Add photo", within = { role = "form", name = "New post" } }
+file = "photo.png"
+
+[[replay]]
+do = "dwell"
+ms = 1500
+
+[[replay]]
+do = "click"
+locator = { role = "button", name = "Publish", within = { role = "form", name = "New post" } }
+
+[[replay]]
+do = "dwell"
+ms = 800

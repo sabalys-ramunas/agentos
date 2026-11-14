@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Riverside Hikers</title><link rel="stylesheet" href="/style.css"><link rel="icon" href="data:,"></head>
+<body data-deep>
+<header><strong>Riverside Hikers</strong><a href="/feed">Feed</a><a href="/signup">Sign up</a></header>
+<main>
+  <div class="task" data-human-task hidden>
+    <strong>Human baseline.</strong> Use this site the way you normally would, with your own mouse and keyboard.
+    1. Click "Create an account". 2. Fill in the form with the text shown there and press "Join". 3. On the feed,
+    scroll down to post 25 and click its "Like" button. 4. Click "Next page", then "Home". Your session is saved
+    when you reach this page again.
+  </div>
+  <h1>Welcome to Riverside Hikers</h1>
+  <p>A small club for weekend walks along the river. We meet on Saturdays at the old bridge, rain or shine.</p>
+  <p><a href="/signup" data-rt="cta">Create an account</a></p>
+  <p>Already a member? Read the <a href="/feed">latest posts</a>.</p>
+</main>
+<script src="/sensor.js"></script>
+<script>
+  if (/[?&]mode=human/.test(location.search) || document.cookie.includes("rt_mode=human"))
+    document.querySelectorAll("[data-human-task]").forEach((e) => e.hidden = false);
+</script>
+</body>
+</html>

@@ -1,0 +1,55 @@
+[Unit]
+Description=agentos-runas: starts brains as agentos-brain for an unprivileged agentosd
+Documentation=file:/opt/agentos/deploy/README.md
+# agentosd asks it to start each brain; it starts before agentosd and stops after it.
+Before=agentosd.service
+
+# Installed by `deploy/install-node.sh --systemd --user agentos --hardened`, which replaces the
+# users and /opt/agentos below. The helper serves exactly two identities, both fixed here: the
+# brain user (attached) and the caller itself (detached shims). It refuses root for either, a
+# brain user in the caller's group, and code under /opt/agentos that anyone but root can change.
+# See src/agentos/runas.py.
+
+[Service]
+Type=simple
+# Root, by leaving User= out: an explicit User=root next to the seccomp-based options below makes
+# systemd drop CAP_SETUID from the permitted set, and every spawn fails with EPERM.
+# Run as a script with -I -S: only the standard library is on sys.path, so no site-packages and no
+# .pth file (an editable install's own) runs as root, and the helper checks what is left is root's.
+ExecStartPre="/opt/agentos/.venv/bin/python" -I -S -B /opt/agentos/src/agentos/runas.py check --caller agentos --brain-user agentos-brain
+ExecStart="/opt/agentos/.venv/bin/python" -I -S -B /opt/agentos/src/agentos/runas.py serve --caller agentos --brain-user agentos-brain
+# However the helper ended (a crash, a SIGKILL, a stop), kill the brains it recorded as running
+# under /run/agentos-runas/brains. The next start sweeps them again.
+ExecStopPost=-"/opt/agentos/.venv/bin/python" -I -S -B /opt/agentos/src/agentos/runas.py sweep --caller agentos --brain-user agentos-brain
+WorkingDirectory=/
+Restart=on-failure
+RestartSec=3
+# A stop kills attached brains (their tasks resume from the transcript); detached shims live in
+# scopes of their own and keep running.
+KillMode=mixed
+TimeoutStopSec=15
+
+# Everything the helper starts inherits these: no setuid or file-capability gain, ever, for a
+# brain or for a shim started outside agentosd's own sandbox.
+NoNewPrivileges=yes
+RestrictSUIDSGID=yes
+# What the helper itself needs as root: setuid/setgid/setgroups for the drop, kill for the sweep,
+# sys_resource for prlimit on another user's process, chown for its socket, sys_admin for each
+# brain's PID and mount namespace (unshare, and its own /proc). Brains get none of them (the
+# drop to a non-root user clears every capability).
+CapabilityBoundingSet=CAP_SETUID CAP_SETGID CAP_KILL CAP_SYS_RESOURCE CAP_CHOWN CAP_SYS_ADMIN
+RuntimeDirectory=agentos-runas
+RuntimeDirectoryMode=0750
+# Kept across a stop or a restart: brains/ records what is running, for the sweep above.
+RuntimeDirectoryPreserve=yes
+LockPersonality=yes
+RestrictRealtime=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectClock=yes
+SystemCallArchitectures=native
+# No ProtectSystem, ProtectHome, PrivateTmp or PrivateDevices: brains run in this unit's mount
+# namespace, and a brain needs its own home (/var/lib/agentos-brain), /tmp and the CLIs as usual.
+
+[Install]
+WantedBy=multi-user.target

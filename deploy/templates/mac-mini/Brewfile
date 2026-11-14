@@ -1,0 +1,5 @@
+# Homebrew packages for the Mac mini controller:
+#   brew bundle --file deploy/templates/mac-mini/Brewfile
+# uv runs the Python environment and fetches Python 3.12 itself. Nothing here installs a browser:
+# browser lanes are Linux-only in this build.
+brew "uv"

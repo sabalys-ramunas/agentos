@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Judges</title><link rel="icon" href="data:,"></head>
+<body>
+<p>Independent judges: open-source detectors we did not write, run on this page. BotD (Fingerprint.com, MIT).</p>
+<pre id="out" data-state="running"></pre>
+<script type="module">
+import { load } from "/vendor/botd.esm.js";
+const out = {};
+try {
+  const botd = await load({ monitoring: false });  // no request to Fingerprint's servers
+  out.botd = botd.detect();
+  const c = botd.getComponents ? botd.getComponents() : null;
+  if (c) out.botdSignals = Object.fromEntries(Object.entries(c).map(([k, v]) => [k, v.state === 0 ? v.value : "error"]));
+} catch (e) { out.botd = { error: String(e) }; }
+const pre = document.getElementById("out");
+pre.textContent = JSON.stringify(out);
+pre.dataset.state = "done";
+</script>
+</body>
+</html>

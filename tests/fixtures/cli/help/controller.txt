@@ -1,0 +1,33 @@
+
+ Usage: agentos controller [OPTIONS] COMMAND [ARGS]...
+
+ The controller: one MCP URL for every node.
+
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --help          Show this message and exit.                                  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Commands ───────────────────────────────────────────────────────────────────╮
+│ init           Create or update controller.toml (tokens are kept unless      │
+│                missing).                                                     │
+│ serve          Run the controller until Ctrl-C.                              │
+│ join-token     Make a single-use join token and print the line to run on the │
+│                new node.                                                     │
+│ login          Print a one-time sign-in link for the panel (valid for 10     │
+│                minutes).                                                     │
+│ nodes          Enrolled nodes and when each was last seen.                   │
+│ anchors        The audit checkpoints that nodes keep here, each with this    │
+│                controller's signed receipt (its proof of                     │
+│                storing it).                                                  │
+│ agent-token    Show how to connect an agent (the token lives in              │
+│                controller.toml, mode 600).                                   │
+│ freeze         Freeze every node under this controller: online nodes at      │
+│                once, offline ones when they connect, before                  │
+│                anything else runs there. Every agent grant under it is       │
+│                revoked.                                                      │
+│ unfreeze       Lift the controller's freeze on every node (never a freeze    │
+│                made on a node itself). Restores                              │
+│                no grant.                                                     │
+│ freeze-status  Whether the controller's freeze is on, and which nodes have   │
+│                it.                                                           │
+╰──────────────────────────────────────────────────────────────────────────────╯
+

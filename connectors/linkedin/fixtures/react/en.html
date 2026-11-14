@@ -1,0 +1,20 @@
+<!-- SYNTHESIZED, NOT CAPTURED. Written by hand on 2026-11-05 from the notes of the 2026-11-04 canary
+     and the structure the operation's locators assume. No real page was loaded. A canary on a throwaway account
+     replaces this with the captured page (text replaced) before the operation is marked verified. -->
+<!-- https://www.linkedin.com/feed/update/urn:li:activity:7392000000000000001/ : every locator is inside the post's own
+     container (role article, data-urn the post's urn); a comment is a nested article, so its Like never counts -->
+<main>
+  <div role="article" data-urn="urn:li:activity:7392000000000000001">
+    <a href="https://www.linkedin.com/in/mira-kestrel/">Mira Kestrel</a>
+    <button aria-pressed="false" aria-label="React Like">Like</button>
+    <article class="comments-comment-entity">
+      <a href="https://www.linkedin.com/in/someone-else/">Someone Else</a>
+      <button aria-pressed="false" aria-label="React Like to Someone Else's comment">Like</button>
+    </article>
+  </div>
+</main>
+<!-- the preflight refuses when any reaction toggle of the post is pressed (aria-pressed="true": Like, Celebrate,
+     Support, Love, Insightful, Funny, Curious), and unless exactly one unpressed Like is there.
+     After Like: server-request with requestId com.linkedin.sdui.reactions.create (hover cards and other reads go to
+     the same URL with other requestIds); the post's own toggle turns aria-pressed="true", also after a reload.
+     https://www.linkedin.com/in/me/recent-activity/reactions/ then lists data-urn="urn:li:activity:7392000000000000001" -->

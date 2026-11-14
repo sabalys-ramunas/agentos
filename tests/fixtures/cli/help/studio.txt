@@ -1,0 +1,15 @@
+
+ Usage: agentos studio [OPTIONS] COMMAND [ARGS]...
+
+ Studio on this computer: check the pages you build, with a real browser.
+
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --help          Show this message and exit.                                  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Commands ───────────────────────────────────────────────────────────────────╮
+│ up       Run the studio tools (ui_check, ui_diff, system_check, ...) on this │
+│          computer, with a real browser.                                      │
+│ profile  Profiles on this computer's studio: list, show, approve or reject   │
+│          what an agent proposed.                                             │
+╰──────────────────────────────────────────────────────────────────────────────╯
+

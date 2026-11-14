@@ -1,0 +1,50 @@
+
+ Usage: agentos workspace [OPTIONS] COMMAND [ARGS]...
+
+ Workspaces: one per business or person, lanes from templates, and the login
+ queue.
+
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --help          Show this message and exit.                                  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Commands ───────────────────────────────────────────────────────────────────╮
+│ list       Workspaces with their readiness (for example "18 of 29 ready")    │
+│            and health.                                                       │
+│ create     Create a workspace. Lanes from templates go into a workspace that │
+│            exists.                                                           │
+│ show       One workspace with its lanes, readiness, login URL and note.      │
+│ update     Change a workspace. Changing its default proxy never moves        │
+│            existing lanes.                                                   │
+│ delete     Delete a workspace. Refused while it still has lanes, and while   │
+│            it has memory unless                                              │
+│            --with-memory.                                                    │
+│ templates  Templates you can apply: the built-in ones and the valid files in │
+│            $AGENTOS_HOME/templates.                                          │
+│ plan       Show what applying a template would do, without creating          │
+│            anything. Exits 1 when there are conflicts.                       │
+│ apply      Create a template's lanes in workspaces. Shows the plan first.    │
+│            Safe to run again: it only creates                                │
+│            what is missing, and a partial run says exactly what it made.     │
+│ queue      Lanes the owner still has to log into or fix, with their login    │
+│            URLs. Attention first.                                            │
+│ ready      Mark a lane as logged in and ready.                               │
+│ unready    Mark a lane as needing login, or with --attention as needing      │
+│            attention.                                                        │
+│ overrides  The proxy-rule overrides that were applied, newest first.         │
+│ export     Write one workspace into one encrypted file: lanes (profiles and  │
+│            fixed fingerprints), the workspace                                │
+│            record and readiness, its vault entries, flows, schedules and     │
+│            grant definitions. Running lanes are                              │
+│            paused for the copy and started again. Nothing here is changed or │
+│            deleted.                                                          │
+│ import     Import a workspace export: verify every checksum, plan, then add  │
+│            everything as one unit (rolled back if                            │
+│            any step fails). Existing lanes are never replaced; lanes come in │
+│            not running (they start on first                                  │
+│            use).                                                             │
+│ memory     Workspace memory: what agents and the owner wrote, with           │
+│            provenance.                                                       │
+│ members    People who sign in to the panel: invite, list, roles, remove.     │
+│ profile    Profiles: a person or business, shown on all its accounts.        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+

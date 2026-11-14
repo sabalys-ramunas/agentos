@@ -1,0 +1,90 @@
+id: acme.linkedin.post
+title: Post on the Acme Bakery company page
+description: Writes a post in the company page's share box and posts it as the page. Proved on the page's posts list (one more post, and the newest one has the text).
+lane: acme/linkedin
+domain: linkedin.example
+effect: commit
+params:
+  type: object
+  additionalProperties: false
+  required:
+  - text
+  properties:
+    text:
+      type: string
+      minLength: 1
+      maxLength: 3000
+      description: the post's text
+      show: true
+steps:
+- type: navigate
+  url: https://www.linkedin.example/company/104857/admin/page-posts/published/
+- type: assert_identity
+  acting_as: li_company
+  source: url
+  pattern: ^https://www\.linkedin\.example/company/([0-9]+)/admin/
+  expect: '104857'
+- type: wait_for
+  locator:
+    role: article
+    within:
+      role: region
+      name: Page posts
+  state: any
+  save_as: posts_before
+- type: click
+  locator:
+    role: button
+    name: Start a post
+- type: fill
+  locator:
+    role: textbox
+    name: Text editor for creating content
+    within:
+      role: dialog
+      name: Create post modal
+  param: text
+  readback:
+    condition:
+      kind: value
+      equals: ${text}
+- type: wait_for
+  label: the post goes out as the page, not as a member
+  locator:
+    role: button
+    name: Post as Acme Bakery
+    within:
+      role: dialog
+      name: Create post modal
+- type: pause
+  min_ms: 400
+  max_ms: 1200
+- type: click
+  locator:
+    role: button
+    name: Post
+    within:
+      role: dialog
+      name: Create post modal
+  writes: true
+- type: readback
+  url: https://www.linkedin.example/company/104857/admin/page-posts/published/
+  locator:
+    role: article
+    within:
+      role: region
+      name: Page posts
+  condition:
+    kind: count
+    changed_by: 1
+    baseline: posts_before
+- type: readback
+  locator:
+    role: article
+    nth: 0
+    within:
+      role: region
+      name: Page posts
+  condition:
+    kind: text
+    contains: ${text}

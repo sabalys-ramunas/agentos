@@ -1,0 +1,175 @@
+/*
+ * Names the app used before Mono, mapped onto the Mono roles in tokens.css, and the few tokens the
+ * app has that are not foundations (the board, Site API fields, layout sizes).
+ *
+ * Why this file exists: about 1,900 class names and 600 var() calls in the screens use the old
+ * names. Mapping them here gives every screen the Mono look without touching it. New code uses the
+ * Mono names (web/DESIGN.md, "Tokens"); a screen that is rebuilt moves to them, and an alias goes
+ * when nothing uses it.
+ *
+ * Every colour here is a reference to a Mono token, except the app-only tokens at the end, which
+ * keep light-dark() because they are not part of the token set studio checks.
+ */
+
+:root {
+  /* Surfaces. Page and card now differ: the page is --surface-page, a card --surface-card. */
+  --background: var(--surface-card);
+  --background-subtle: var(--surface-inset);
+  --background-raised: var(--surface-raised);
+  --overlay: var(--overlay-scrim);
+
+  --fill-1: var(--fill-hover);
+  --fill-2: var(--fill-pressed);
+  /* No Mono role: one step stronger than pressed, for a skeleton's band and a few bars. */
+  --fill-3: light-dark(rgb(0 0 0 / 0.09), rgb(255 255 255 / 0.13));
+
+  --border: var(--line-default);
+  --border-strong: var(--line-strong);
+  --control: var(--line-control);
+
+  --foreground: var(--text-primary);
+  --foreground-muted: var(--text-secondary);
+  --foreground-subtle: var(--text-tertiary);
+  --foreground-disabled: var(--text-disabled);
+
+  /* The primary is ink, never a hue. */
+  --primary: var(--accent-fill);
+  --primary-hover: var(--neutral-11);
+  --on-primary: var(--text-inverse);
+
+  /*
+   * Blue was links and focus. In Mono focus is the one blue, and a link is ink with an underline
+   * (app.css gives a link that uses text-blue its underline). So --blue is ink, and --focus is the
+   * focus ring.
+   */
+  --blue: var(--accent-text);
+  --focus: var(--focus-ring);
+
+  --green: var(--status-ok-text);
+  --amber: var(--status-warn-text);
+  --red: var(--status-bad-text);
+
+  /* Chart marks for run status: the status dots. */
+  --mark-verified: var(--status-ok-dot);
+  --mark-unverified: var(--status-idle-dot);
+  --mark-partial: var(--status-warn-dot);
+  --mark-failed: var(--status-bad-dot);
+
+  /* The four states a person reads at once: dot, tint and edge of each status family. */
+  --ok-dot: var(--status-ok-dot);
+  --wait-dot: var(--status-warn-dot);
+  --wait-ink: var(--status-ink);
+  --stuck-dot: var(--status-bad-dot);
+  --sleep-dot: var(--status-idle-dot);
+  --ok-soft: var(--status-ok-fill);
+  --wait-soft: var(--status-warn-fill);
+  --stuck-soft: var(--status-bad-fill);
+  --wait-line: var(--status-warn-line);
+  --stuck-line: var(--status-bad-line);
+
+  /*
+   * The current: an agent acting right now. It was pink; in Mono running is ink with the ringed,
+   * pulsing dot, so no status shares a hue with a kind of work. One place changes the meaning for
+   * every screen that says bg-live, text-live or var(--current).
+   */
+  --current: var(--status-live-dot);
+  --current-soft: var(--status-live-fill);
+  --current-line: var(--status-live-line);
+
+  --ws-1: var(--identity-1);
+  --ws-2: var(--identity-2);
+  --ws-3: var(--identity-3);
+  --ws-4: var(--identity-4);
+  --ws-5: var(--identity-5);
+  --ws-6: var(--identity-6);
+  --ws-7: var(--identity-7);
+  --ws-8: var(--identity-8);
+  --brand: var(--brand-mark);
+
+  --font-sans: var(--font-family-sans);
+  --font-mono: var(--font-family-mono);
+
+  /* The old size scale, still used by text-11 to text-56. New code uses a type role. */
+  --type-11: var(--font-11);
+  --type-11-line: var(--line-height-16);
+  --type-12: var(--font-12);
+  --type-12-line: var(--line-height-16);
+  --type-13: var(--font-13);
+  --type-13-line: var(--line-height-20);
+  --type-14: var(--font-14);
+  --type-14-line: var(--line-height-20);
+  --type-16: var(--font-16);
+  --type-16-line: var(--line-height-24);
+  --type-20: var(--font-20);
+  --type-20-line: var(--line-height-28);
+  --type-24: var(--font-24);
+  --type-24-line: var(--line-height-32);
+  --type-32: var(--font-32);
+  --type-32-line: var(--line-height-40);
+  --type-40: var(--font-40);
+  --type-40-line: var(--line-height-44);
+  --type-56: 56px;
+  --type-56-line: 56px;
+
+  --tracking-14: -0.006em;
+  --tracking-16: -0.012em;
+  --tracking-20: -0.02em;
+  --tracking-24: -0.03em;
+  --tracking-32: -0.035em;
+  --tracking-40: -0.045em;
+  --tracking-56: -0.05em;
+  --tracking-silk: 0.04em;
+
+  /* Shadows: the old three steps onto the Mono shadow colours. */
+  --shadow-1: var(--shadow-color-1);
+  --shadow-2: var(--shadow-color-1);
+  --shadow-3: var(--shadow-color-2);
+  --shadow-hover: var(--shadow-card), 0 12px 32px -12px light-dark(rgb(0 0 0 / 0.16), rgb(0 0 0 / 0.7));
+  /* Cards are 10, pictures 8. */
+  --radius-card: var(--radius-xl);
+  --radius-thumb: var(--radius-lg);
+
+  --ease: var(--ease-standard);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-settle: 280ms;
+
+  /* ---- App-only tokens: not foundations, so not in tokens.json. ---- */
+
+  /*
+   * The board: the surface the fleet map and instruments sit on. Wires are hairlines a step off
+   * the surface, and marks are the registration crosses where two wires pass without connecting.
+   */
+  --board: var(--surface-page);
+  --board-raised: var(--surface-card);
+  --board-wire: light-dark(rgb(0 0 0 / 0.13), rgb(255 255 255 / 0.11));
+  --board-wire-strong: light-dark(rgb(0 0 0 / 0.3), rgb(255 255 255 / 0.26));
+  --board-lit: var(--text-primary);
+  --board-mark: light-dark(rgb(0 0 0 / 0.2), rgb(255 255 255 / 0.2));
+  --board-dot: light-dark(rgb(0 0 0 / 0.07), rgb(255 255 255 / 0.055));
+  --board-line: var(--line-default);
+  --board-line-strong: var(--line-strong);
+
+  /*
+   * The fields of a Site API: one hue per field, so a column on the page and the same column in the
+   * data read as one thing. Marks and wires only, never text and never a surface.
+   */
+  --field-1: light-dark(#2a78d6, #3987e5);
+  --field-2: light-dark(#eb6834, #d95926);
+  --field-3: light-dark(#1baf7a, #199e70);
+  --field-4: light-dark(#eda100, #c98500);
+  --field-5: light-dark(#6250d6, #9085e9);
+  --field-6: light-dark(#008300, #2f9e2f);
+
+  /* Calls to a Site API on a chart: the cache is the quiet majority, a fresh read is what cost pace. */
+  --mark-cached: var(--chart-bar);
+  --mark-fresh: var(--chart-bar-strong);
+
+  /* The map's night band: the hours the person was asleep. */
+  --night: light-dark(#3b4cca, #8f9bff);
+
+  /* Layout */
+  --topbar-height: 56px;
+  --rail-width: 240px;
+  --tabbar-height: 56px;
+  --page-max: 1120px;
+}

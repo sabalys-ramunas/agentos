@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <link rel="icon" href="data:,">
+  <title>Sign up</title>
+  <script src="/signals/watch.js"></script>
+</head>
+<body>
+  <h1>Sign up</h1>
+  <!-- Turnstile lives in a closed shadow root, where a DOM query cannot see its frame. -->
+  <div id="widget"></div>
+  <script>
+    const root = document.getElementById('widget').attachShadow({mode: 'closed'});
+    root.innerHTML = '<iframe title="Widget containing a Cloudflare security challenge" style="width:300px;height:65px;border:0" ' +
+      'src="https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/b/turnstile/if/ov2/av0/rcv0/0/fixture/normal/auto/"></iframe>';
+  </script>
+</body>
+</html>

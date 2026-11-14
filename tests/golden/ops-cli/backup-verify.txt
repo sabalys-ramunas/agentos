@@ -1,0 +1,30 @@
+$ agentos backup verify <TMP>/backups/agentos-test-node-<TS>.tar.gz.age --passphrase-file <TMP>/pw --json
+exit 0
+{
+  "ok": true,
+  "node": "test-node",
+  "created_at": "<TS>",
+  "agentos_version": "<VER>",
+  "files": 10,
+  "bytes": <N>,
+  "lanes": [
+    {
+      "bytes": <N>,
+      "copied": "cold",
+      "files": 4,
+      "fingerprint": true,
+      "id": "personal/reddit"
+    },
+    {
+      "bytes": <N>,
+      "copied": "cold",
+      "files": 3,
+      "fingerprint": false,
+      "id": "work/site"
+    }
+  ],
+  "skipped": [],
+  "sqlite_checked": [
+    "agentos.db"
+  ]
+}

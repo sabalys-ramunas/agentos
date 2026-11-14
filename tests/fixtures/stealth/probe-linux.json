@@ -1,0 +1,246 @@
+{
+ "audio": {
+  "baseLatency": 0,
+  "digest": "8e127fb8b39c7e95",
+  "maxChannelCount": 0,
+  "sampleRate": 44100,
+  "sum": "35.74996626004577"
+ },
+ "automation": {
+  "attributes": [],
+  "chrome": "undefined",
+  "globals": [],
+  "notNative": [],
+  "notification": "default",
+  "webdriver": false,
+  "webdriverOnPrototype": true,
+  "webdriverOwnProperty": false
+ },
+ "canvas": {
+  "digest": "b14b25d5943c2f80",
+  "sameWithinPage": true,
+  "textWidth": 213.1666717529297
+ },
+ "codecs": {
+  "aac": "probably",
+  "av1": "probably",
+  "h264": "probably",
+  "hevc": "probably",
+  "opus": "probably",
+  "vp9": "probably"
+ },
+ "css": {
+  "colorBits": 8,
+  "deviceHeight": true,
+  "deviceWidth": true,
+  "resolution": true
+ },
+ "fonts": {
+  "count": 20,
+  "digest": "bcc216fc2e4049f6",
+  "found": [
+   "Arial",
+   "Arial Narrow",
+   "Calibri",
+   "Cambria",
+   "Courier New",
+   "Palatino Linotype",
+   "Times New Roman",
+   "Helvetica",
+   "Palatino",
+   "DejaVu Sans",
+   "DejaVu Sans Mono",
+   "DejaVu Serif",
+   "Liberation Mono",
+   "Liberation Sans",
+   "Liberation Serif",
+   "Noto Color Emoji",
+   "Noto Sans",
+   "Noto Serif",
+   "Ubuntu",
+   "Ubuntu Mono"
+  ]
+ },
+ "frame": {
+  "hardwareConcurrency": 10,
+  "languages": [
+   "en-US",
+   "en"
+  ],
+  "platform": "Linux x86_64",
+  "screenHeight": 1080,
+  "screenWidth": 1920,
+  "timeZone": "UTC",
+  "userAgent": "Mozilla/5.0 (X11; Linux x86_64; rv:158.0) Gecko/20100101 Firefox/158.0",
+  "webdriver": false
+ },
+ "geolocation": "timeout",
+ "headers": {
+  "accept": "*/*",
+  "accept-encoding": "gzip, deflate, br, zstd",
+  "accept-language": "en-US,en;q=0.9",
+  "cache-control": "no-cache",
+  "pragma": "no-cache",
+  "priority": "u=4",
+  "referer": "http://127.0.0.1:6337/fingerprint.html",
+  "sec-fetch-dest": "empty",
+  "sec-fetch-mode": "cors",
+  "sec-fetch-site": "same-origin",
+  "user-agent": "Mozilla/5.0 (X11; Linux x86_64; rv:158.0) Gecko/20100101 Firefox/158.0"
+ },
+ "intl": {
+  "calendar": "gregory",
+  "collator": "en-US",
+  "dateString": "Thu Jan 15 2026 12:00:00 GMT+0000 (Coordinated Universal Time)",
+  "locale": "en-US",
+  "localeString": "1/15/2026, 12:00:00 PM",
+  "number": "1,234,567.891",
+  "numbering": "latn",
+  "offsetJanuary": 0,
+  "offsetJuly": 0,
+  "timeZone": "UTC"
+ },
+ "math": [
+  "-1.4214488238747245",
+  "-0.4875060250875107",
+  "0.9247242387519338",
+  "1.9275814160560206e-50",
+  "1.0000000001",
+  "0.5493061443340548"
+ ],
+ "media": {
+  "anyCoarse": false,
+  "dark": false,
+  "forcedColors": false,
+  "hover": true,
+  "p3": false,
+  "pointerFine": true,
+  "reducedMotion": false,
+  "touch": false
+ },
+ "mediaDevices": {
+  "ids": "ca0a48865ffa7d05",
+  "kinds": [
+   "audioinput",
+   "videoinput"
+  ],
+  "labels": [
+   "",
+   ""
+  ]
+ },
+ "navigator": {
+  "appCodeName": "Mozilla",
+  "appName": "Netscape",
+  "appVersion": "5.0 (X11)",
+  "buildID": "20181001000000",
+  "cookieEnabled": true,
+  "deviceMemory": null,
+  "doNotTrack": "unspecified",
+  "getBattery": "undefined",
+  "globalPrivacyControl": false,
+  "gpu": "undefined",
+  "hardwareConcurrency": 10,
+  "language": "en-US",
+  "languages": [
+   "en-US",
+   "en"
+  ],
+  "maxTouchPoints": 0,
+  "mimeTypes": [
+   "application/pdf",
+   "text/pdf"
+  ],
+  "oscpu": "Linux x86_64",
+  "pdfViewerEnabled": true,
+  "platform": "Linux x86_64",
+  "plugins": [
+   "PDF Viewer",
+   "Chrome PDF Viewer",
+   "Chromium PDF Viewer",
+   "Microsoft Edge PDF Viewer",
+   "WebKit built-in PDF"
+  ],
+  "product": "Gecko",
+  "productSub": "20100101",
+  "userAgent": "Mozilla/5.0 (X11; Linux x86_64; rv:158.0) Gecko/20100101 Firefox/158.0",
+  "userAgentData": null,
+  "vendor": "",
+  "webdriver": false
+ },
+ "permissions": "prompt",
+ "permissionsNotifications": "prompt",
+ "screen": {
+  "availHeight": 1080,
+  "availLeft": 0,
+  "availTop": 0,
+  "availWidth": 1920,
+  "colorDepth": 24,
+  "height": 1080,
+  "orientation": "landscape-primary",
+  "pixelDepth": 24,
+  "width": 1920
+ },
+ "storage": {
+  "quota": 6267109785
+ },
+ "voices": {
+  "count": 131,
+  "digest": "c8aa02ada4216853"
+ },
+ "webgl": {
+  "attributes": "d4b1207803883d4e",
+  "extensions": 30,
+  "extensionsDigest": "a560726260c807c0",
+  "maxTextureSize": 16384,
+  "params": "da7fe1fd84096927",
+  "precision": "7df1bf9201febc53",
+  "readback": "d17424c3d09af203",
+  "renderer": "Radeon R9 200 Series, or similar",
+  "vendor": "AMD"
+ },
+ "webgl2": {
+  "attributes": "d4b1207803883d4e",
+  "extensions": 16,
+  "extensionsDigest": "cf50408dd5960d9c",
+  "maxTextureSize": 16384,
+  "params": "3710729f7517ba6d",
+  "precision": "7df1bf9201febc53",
+  "readback": "d17424c3d09af203",
+  "renderer": "Radeon R9 200 Series, or similar",
+  "vendor": "AMD"
+ },
+ "webrtc": {
+  "available": true,
+  "rawAddresses": []
+ },
+ "window": {
+  "devicePixelRatio": 1,
+  "innerHeight": 948,
+  "innerScreenX": 0,
+  "innerScreenY": 85,
+  "innerWidth": 1920,
+  "outerHeight": 1033,
+  "outerWidth": 1920,
+  "screenX": 0,
+  "screenY": 0,
+  "scrollbarWidth": 0
+ },
+ "worker": {
+  "appVersion": "5.0 (X11)",
+  "hardwareConcurrency": 10,
+  "language": "en-US",
+  "languages": [
+   "en-US",
+   "en"
+  ],
+  "offsetJanuary": 0,
+  "platform": "Linux x86_64",
+  "timeZone": "UTC",
+  "userAgent": "Mozilla/5.0 (X11; Linux x86_64; rv:158.0) Gecko/20100101 Firefox/158.0",
+  "webgl": [
+   "AMD",
+   "Radeon R9 200 Series, or similar"
+  ]
+ }
+}

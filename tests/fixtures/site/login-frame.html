@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Fixture login in a frame</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>input { font-size: 15px; padding: 4px; width: 320px; } iframe { border: 1px solid #bbb; }</style>
+</head>
+<body>
+  <main>
+    <h1>Partner login</h1>
+    <label for="q">Search</label>
+    <input id="q" name="q" type="search">
+    <iframe id="login-frame" title="Login" width="560" height="320"></iframe>
+    <label for="news">Newsletter</label>
+    <input id="news" name="newsletter" type="email" autocomplete="email">
+  </main>
+  <script>
+    // ?src=<url> picks the framed page (another origin, or another frame page for nesting).
+    const src = new URLSearchParams(location.search).get('src') || '/login.html';
+    document.getElementById('login-frame').src = src;
+  </script>
+</body>
+</html>

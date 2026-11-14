@@ -1,0 +1,9 @@
+body { font-family: sans-serif; margin: 0 auto; max-width: 760px; padding: 16px; line-height: 1.4; }
+header nav a { margin-right: 12px; }
+article.post { border: 1px solid #bbb; border-radius: 8px; padding: 12px 16px; margin: 16px 0; }
+article.comment { border-left: 3px solid #ddd; padding: 4px 12px; margin: 8px 0 8px 8px; }
+button { font-size: 15px; padding: 6px 12px; margin: 4px 4px 4px 0; cursor: pointer; }
+button[aria-pressed="true"] { background: #2d6cdf; color: #fff; }
+label { display: block; margin-top: 12px; }
+input[type="text"], textarea, select { font-size: 15px; padding: 4px; width: 320px; }
+.spacer { height: 5200px; background: linear-gradient(#fafafa, #e8e8e8); }

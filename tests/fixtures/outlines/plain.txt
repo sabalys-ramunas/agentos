@@ -1,0 +1,6 @@
+- generic [active]:
+  - heading "About the harbor" [level=1]
+  - paragraph: The harbor has served the town since 1923. It has two basins and a fuel dock.
+  - paragraph: The office is open on weekdays.
+  - link "Contact us" [ref=f4e5] [cursor=pointer]:
+    - /url: /contact

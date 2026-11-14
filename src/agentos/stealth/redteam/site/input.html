@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Input probe</title><link rel="icon" href="data:,">
+<style>body { margin: 0; height: 3000px; font: 16px sans-serif; } textarea { position: absolute; left: 300px; top: 300px; width: 400px; height: 120px; }</style>
+</head>
+<body>
+<textarea id="box"></textarea>
+<script>
+// Every input event with the fields a sensor reads, posted to /collect-deep?who=... once a second.
+const log = [];
+const pick = (e) => {
+  const o = { t: e.type, ts: Math.round(e.timeStamp * 100) / 100, tr: e.isTrusted };
+  if ("clientX" in e) Object.assign(o, { x: e.clientX, y: e.clientY, mx: e.movementX, my: e.movementY, b: e.buttons });
+  if (e.pointerType !== undefined) Object.assign(o, { pt: e.pointerType, pr: e.pressure, w: e.width, h: e.height,
+    co: e.getCoalescedEvents ? e.getCoalescedEvents().length : null, pe: e.getPredictedEvents ? e.getPredictedEvents().length : null });
+  if (e.type === "wheel") Object.assign(o, { dx: e.deltaX, dy: e.deltaY, dm: e.deltaMode, wdy: e.wheelDeltaY });
+  if (e.type.startsWith("key")) Object.assign(o, { k: e.key, c: e.code, kc: e.keyCode, sh: e.shiftKey, loc: e.location,
+    rep: e.repeat, ag: e.getModifierState("AltGraph") });
+  if (e.type === "input" || e.type === "beforeinput") Object.assign(o, { it: e.inputType, d: e.data });
+  if (e.type === "DOMMouseScroll" || e.type === "MozMousePixelScroll") Object.assign(o, { det: e.detail, ax: e.axis });
+  return o;
+};
+for (const t of ["pointermove", "pointerrawupdate", "mousemove", "pointerdown", "pointerup", "mousedown", "mouseup", "click",
+                 "wheel", "DOMMouseScroll", "MozMousePixelScroll", "keydown", "keyup", "keypress", "beforeinput", "input",
+                 "compositionstart", "compositionupdate", "compositionend", "focus", "blur"])
+  addEventListener(t, (e) => log.push(pick(e)), { capture: true, passive: true });
+const who = new URLSearchParams(location.search).get("who") || "?";
+setInterval(() => fetch("/collect-deep?who=" + who, { method: "POST", body: JSON.stringify({ hasFocus: document.hasFocus(), events: log }) }), 1000);
+</script>
+</body>
+</html>

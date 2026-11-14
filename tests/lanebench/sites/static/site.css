@@ -1,0 +1,53 @@
+/* Lanebench fixture site. Every class here is listed in mutations.CSS_CLASSES. */
+.page { margin: 0; font: 16px/1.45 system-ui, sans-serif; background: #f4f5f7; color: #1d2330; }
+.topnav { position: sticky; top: 0; z-index: 5; display: flex; gap: 18px; align-items: center;
+  padding: 12px 24px; background: #fff; border-bottom: 1px solid #dde1e8; }
+.brand { font-weight: 700; margin-right: 18px; }
+.nav-link { color: #2851c7; text-decoration: none; padding: 6px 10px; border-radius: 6px; }
+.nav-link:hover { background: #eef2fd; }
+.content { max-width: 640px; margin: 24px auto 120px; padding: 0 16px; }
+.card { background: #fff; border: 1px solid #dde1e8; border-radius: 10px; padding: 18px 20px; margin: 0 0 18px; }
+.login-card { max-width: 380px; margin: 60px auto; }
+.field { display: flex; flex-direction: column; gap: 4px; margin: 0 0 14px; }
+.field input { font: inherit; padding: 9px 10px; border: 1px solid #b9c0cc; border-radius: 6px; }
+.check { display: flex; gap: 10px; align-items: center; margin: 0 0 12px; padding: 4px 0; }
+.check input { width: 20px; height: 20px; }
+.error { color: #b3261e; }
+.btn { font: inherit; min-height: 38px; min-width: 84px; padding: 7px 16px; border: 1px solid #b9c0cc;
+  border-radius: 8px; background: #fff; color: #1d2330; cursor: pointer; }
+.btn[aria-pressed="true"] { background: #fde7ec; border-color: #e0567a; color: #a3163c; }
+.btn-primary { background: #2851c7; border-color: #2851c7; color: #fff; }
+.row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 10px 0; }
+.wall { position: fixed; inset: 0; z-index: 20; background: rgba(20, 24, 33, .55); display: flex;
+  align-items: center; justify-content: center; }
+.wall[hidden] { display: none; }
+.modal { background: #fff; border-radius: 12px; padding: 22px 26px; max-width: 420px; }
+.post { padding: 16px 20px; }
+.post-head { display: flex; gap: 6px; align-items: center; }
+.name { font-weight: 650; }
+.handle { color: #5b6476; flex: 1; }
+.follow-btn { min-width: 96px; }
+.post-body { margin: 10px 0 12px; }
+.post-actions { display: flex; gap: 12px; }
+.like-btn, .comment-btn { min-width: 100px; }
+.count { color: inherit; }
+.comments { list-style: none; padding: 0; margin: 12px 0 0; }
+.comment { padding: 6px 0; border-top: 1px solid #eef0f4; }
+.comment-form { display: flex; gap: 10px; align-items: flex-start; margin: 10px 0 0; }
+.comment-form textarea, .composer textarea { flex: 1; font: inherit; padding: 8px; border: 1px solid #b9c0cc;
+  border-radius: 6px; width: 100%; box-sizing: border-box; }
+.post-foot { display: flex; gap: 12px; align-items: center; margin-top: 10px; color: #5b6476; font-size: 14px; }
+.when { flex: 1; }
+.post-img { display: block; margin: 8px 0; border-radius: 6px; background: #dfe7f5; }
+.feed { display: block; }
+.title { font-size: 22px; margin: 0 0 16px; }
+.composer h1, .settings h1 { font-size: 22px; margin: 0 0 14px; }
+.preview { color: #2a7a3b; }
+.status { min-height: 1.5em; color: #2a7a3b; }
+.settings { }
+.sentinel { text-align: center; color: #5b6476; padding: 30px 0 300px; }
+.icon { vertical-align: -3px; }
+.box { display: block; }
+.promo { background: #fff8e1; border-color: #f0d68a; display: flex; gap: 12px; align-items: center; }
+.hidden-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.lookalike { font-weight: 600; }

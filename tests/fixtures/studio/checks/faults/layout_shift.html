@@ -1,0 +1,8 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="/base.css"><title>Shift</title></head>
+<body><div id="slot"></div><main>
+<p>First paragraph of the article, visible on load and pushed down later.</p>
+<p>Second paragraph of the article, visible on load and pushed down later.</p>
+<p>Third paragraph of the article, visible on load and pushed down later.</p>
+<p>Fourth paragraph of the article, visible on load and pushed down later.</p></main>
+<script>setTimeout(() => { const d = document.createElement('div'); d.style.height = '300px'; d.style.background = '#eee'; document.getElementById('slot').appendChild(d); }, 150);</script>
+</body></html>

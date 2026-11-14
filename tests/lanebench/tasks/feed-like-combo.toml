@@ -1,0 +1,35 @@
+id = "feed-like-combo"
+title = "Like a post after a redesign: new classes, icon buttons, moved follow buttons"
+goal = "Like the post by @jonas about his sourdough."
+tags = ["feed", "mutation"]
+allowed_effects = ["like:post:jonas-bread"]
+
+[[mutation]]
+kind = "rename_classes"
+
+[[mutation]]
+kind = "label_to_icon"
+node = "like"
+
+[[mutation]]
+kind = "move_node"
+node = "follow"
+to = "footer"
+
+[[check]]
+kind = "liked"
+post = "jonas-bread"
+
+[[check]]
+kind = "not_liked"
+post = "mira-tomatoes"
+
+[[replay]]
+do = "click"
+locator = { role = "button", name = "Like", within = { role = "article", name = "@jonas.*Sourdough", match = "regex" } }
+
+[[replay]]
+do = "expect"
+locator = { role = "button", name = "Like", within = { role = "article", name = "@jonas.*Sourdough", match = "regex" } }
+attr = "aria-pressed"
+value = "true"

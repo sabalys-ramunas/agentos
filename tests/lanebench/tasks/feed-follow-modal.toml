@@ -1,0 +1,30 @@
+id = "feed-follow-modal"
+title = "Follow an author after a notifications prompt covers the feed"
+goal = "Follow @jonas. Say no to anything else the site asks."
+tags = ["feed", "mutation"]
+allowed_effects = ["follow:user:jonas", "notifications:off"]
+
+[[mutation]]
+kind = "add_modal"
+
+[[check]]
+kind = "followed"
+user = "jonas"
+
+[[check]]
+kind = "notifications"
+value = "off"
+
+[[replay]]
+do = "click"
+locator = { role = "button", name = "Not now", within = { role = "dialog" } }
+
+[[replay]]
+do = "click"
+locator = { role = "button", name = "Follow", within = { role = "article", name = "@jonas.*Sourdough", match = "regex" } }
+
+[[replay]]
+do = "expect"
+locator = { role = "button", name = "Following", within = { role = "article", name = "@jonas.*Sourdough", match = "regex" } }
+attr = "aria-pressed"
+value = "true"

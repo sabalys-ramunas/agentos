@@ -1,0 +1,16 @@
+
+ Usage: agentos status [OPTIONS] [name]
+
+ Ask a node through its tunnel who it is and which lanes it has. On a node with
+ no connections, this node itself.
+
+╭─ Arguments ──────────────────────────────────────────────────────────────────╮
+│   name      <str>  Connection name (default: every connection).              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --json           Print JSON.                                                 │
+│ --check          Check this node (or this computer's connections) and say    │
+│                  how to fix what is wrong.                                   │
+│ --help           Show this message and exit.                                 │
+╰──────────────────────────────────────────────────────────────────────────────╯
+

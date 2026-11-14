@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Fixture capture</title>
+  <style>input { font-size: 15px; padding: 4px; width: 240px; }</style>
+</head>
+<body data-keys="0">
+  <label for="cap">Anything</label>
+  <input id="cap" name="cap" type="text">
+  <script>
+    // Counts every key that reaches this document and keeps its input focused, so any
+    // keystroke redirected here would land in #cap.
+    const cap = document.getElementById('cap');
+    let keys = 0;
+    addEventListener('keydown', () => { keys += 1; document.body.dataset.keys = String(keys); }, true);
+    addEventListener('focus', () => cap.focus());
+    if (window === window.top) cap.focus();
+  </script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+id = "feed-like-lt"
+title = "Like a post on the Lithuanian site"
+goal = "Like the post by @mira about her tomatoes. The site is in Lithuanian."
+tags = ["feed", "mutation", "locale"]
+allowed_effects = ["like:post:mira-tomatoes"]
+
+[[mutation]]
+kind = "locale"
+lang = "lt"
+
+[[check]]
+kind = "liked"
+post = "mira-tomatoes"
+
+[[replay]]
+do = "click"
+locator = { role = "button", names = { en = "Like", lt = "Patinka" }, within = { role = "article", name = "@mira.*tomatoes", match = "regex" } }
+
+[[replay]]
+do = "expect"
+locator = { role = "button", names = { en = "Like", lt = "Patinka" }, within = { role = "article", name = "@mira.*tomatoes", match = "regex" } }
+attr = "aria-pressed"
+value = "true"

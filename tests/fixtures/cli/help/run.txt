@@ -1,0 +1,88 @@
+
+ Usage: agentos run [OPTIONS] [command]...
+
+ Run one command on a node against this working tree, and stream its output
+ here. Sends the git working tree (tracked files, and untracked ones .gitignore
+ keeps) into a terminal lane on the node, only what changed since the last run,
+ then runs the command there in the same directory as here. stdout and stderr
+ come back as they are written, and agentos run exits with the command's exit
+ code. Ctrl-C cancels the command on the node. Status lines go to stderr.
+
+ The lane keeps what the command made (.venv, node_modules, caches) for the
+ next run. --fresh wipes it.
+
+ It runs under the connection's agents' grant: a step that needs approval says
+ what waits, and waits.
+
+╭─ Arguments ──────────────────────────────────────────────────────────────────╮
+│   command      <str>  The command, after --. One quoted word runs as a shell │
+│                       line ("make check && make lint").                      │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --node              <str>                   Connection name (default: the    │
+│                                             only one).                       │
+│ --lane              <str>                   The terminal lane,               │
+│                                             workspace/name (default:         │
+│                                             WORKSPACE/run-REPO).             │
+│ --workspace         <str>                   Workspace of the default lane.   │
+│                                             [default: dev]                   │
+│ --fresh                                     Wipe the synced directory first, │
+│                                             with what earlier runs left      │
+│                                             there (.venv, node_modules,      │
+│                                             build output).                   │
+│ --detach                                    Start it and return; follow it   │
+│                                             later.                           │
+│ --follow            JOB                     Stream a job's output from the   │
+│                                             start until it ends. Ctrl-C      │
+│                                             stops following and leaves it    │
+│                                             running.                         │
+│ --logs              JOB                     Print a job's output so far.     │
+│ --cancel            JOB                     Stop a running job.              │
+│ --list                                      The jobs on the node, newest     │
+│                                             first.                           │
+│ --no-sync                                   Run in the lane's copy as it is, │
+│                                             without sending this tree.       │
+│ --allow-host        <str>                   A host the command may reach     │
+│                                             (repeatable), through the lane's │
+│                                             egress forwarder. Applies when   │
+│                                             the lane is made.                │
+│ --image             <str>                   A base image the node built, for │
+│                                             a new lane (for example          │
+│                                             dev-box@1).                      │
+│ --memory            <int range> [x>=64]     Memory of a new lane, in MB.     │
+│                                             [default: 4096]                  │
+│ --cpus              <float range> [x>=0.1]  CPUs of a new lane.              │
+│                                             [default: 2.0]                   │
+│ --disk              <int range> [x>=64]     Disk of a new lane, in MB (its   │
+│                                             files, .venv included).          │
+│                                             [default: 8192]                  │
+│ --recreate                                  Delete the lane and make it      │
+│                                             again (new --allow-host, --image │
+│                                             or size). Asks for approval:     │
+│                                             deleting cannot be undone.       │
+│ --timeout           <float range> [x>=1]    Stop the command after this many │
+│                                             seconds (default: the node's     │
+│                                             maximum, an hour unless env.toml │
+│                                             says otherwise).                 │
+│ --help                                      Show this message and exit.      │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+ Examples:
+
+   agentos run -- make check
+
+   agentos run --node mynode -- uv run pytest -q tests/unit -k policy
+
+   agentos run --allow-host pypi.org --allow-host files.pythonhosted.org -- uv
+ sync
+
+   agentos run --detach -- make check      (then agentos run --follow JOB)
+
+ The lane's network is off unless --allow-host names hosts, when it is made: a
+ command that installs
+ packages needs its index (for uv and pip: pypi.org and files.pythonhosted.org;
+ for npm:
+ registry.npmjs.org). Your connection's grant needs the exec special
+ (`agentos connect HOST --special exec --special memory_read`).
+
+

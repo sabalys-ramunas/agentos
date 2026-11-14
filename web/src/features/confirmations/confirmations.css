@@ -1,0 +1,304 @@
+/*
+ * How a person says yes. The ladder and the day share one idea: a stronger yes sits further along,
+ * and what can never go lower is hatched, because seeing the floor is half of trusting it. Colour
+ * stays in text tokens: pink means an agent is acting now, and nothing here is.
+ */
+.yes-ticks-look line {
+  stroke: var(--board-wire, var(--border-strong));
+  stroke-width: 1;
+}
+.yes-ticks-out {
+  transform-origin: 0 36px;
+  transition: transform var(--duration-slow) var(--ease);
+}
+.yes-ticks-out line {
+  stroke: var(--foreground);
+  stroke-width: 1;
+  transition: opacity var(--duration-slow) var(--ease);
+}
+.yes-ticks-out[data-held] line {
+  opacity: 0.5;
+}
+
+.yes-lane {
+  position: absolute;
+  inset-inline: 0;
+  height: 1px;
+  background-image: repeating-linear-gradient(90deg, var(--border-strong) 0 2px, transparent 2px 6px);
+  transition: opacity var(--duration-fast) var(--ease);
+  opacity: 0.7;
+}
+.yes-lane[data-lit] {
+  background-image: linear-gradient(90deg, var(--foreground-subtle), var(--foreground-subtle));
+  opacity: 1;
+}
+
+.yes-stop-pin {
+  position: absolute;
+  top: 0;
+  width: 24px;
+  height: 24px;
+  margin-left: -12px;
+  margin-top: -12px;
+  transform: translateY(var(--y));
+  transition: transform var(--duration-slow) var(--ease), opacity var(--duration-fast) var(--ease);
+  border-radius: 9999px;
+}
+.yes-stop-pin[data-dim] {
+  opacity: 0.32;
+}
+.yes-stop-stem {
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  width: 1px;
+  height: 216px;
+  background: var(--border-strong);
+  transform-origin: bottom;
+  transform: scaleY(var(--stem));
+  transition: transform var(--duration-slow) var(--ease), background-color var(--duration-fast) var(--ease);
+}
+.yes-stop-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 1px solid var(--border-strong);
+  background: var(--background);
+  transition: border-color var(--duration-fast) var(--ease), box-shadow var(--duration-fast) var(--ease);
+}
+.yes-stop-pin:hover .yes-stop-face {
+  border-color: var(--foreground-subtle);
+}
+.yes-stop-pin[data-chosen] .yes-stop-face {
+  border-color: var(--foreground);
+  box-shadow: 0 0 0 3px var(--fill-2);
+}
+.yes-stop-pin[data-chosen] .yes-stop-stem {
+  background: var(--foreground);
+}
+/* A no stayed on the line it was stopped at, with a hollow face. */
+.yes-stop-pin[data-no] .yes-stop-face {
+  border-style: dashed;
+}
+
+/* The ladder. `--at` is the rung, `--floor` the lowest it may take, both counted from zero. */
+.yes-track {
+  --cols: 4;
+  position: relative;
+  height: 40px;
+  min-width: 0;
+}
+.yes-track-floor {
+  position: absolute;
+  inset-block: 4px;
+  left: 0;
+  width: calc(var(--floor) / var(--cols) * 100%);
+  border-radius: var(--radius-md);
+  background-image: repeating-linear-gradient(135deg, transparent 0 5px, var(--fill-3) 5px 6px);
+  transition: width var(--duration-slow) var(--ease);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-inline: 8px;
+  color: var(--foreground-subtle);
+}
+.yes-track-rail {
+  position: absolute;
+  top: 50%;
+  height: 1px;
+  background: var(--border-strong);
+  left: calc((var(--floor) + 0.5) / var(--cols) * 100%);
+  right: calc(0.5 / var(--cols) * 100%);
+  transition: left var(--duration-slow) var(--ease);
+}
+.yes-track-reach {
+  position: absolute;
+  top: 50%;
+  height: 1px;
+  background: var(--foreground);
+  left: calc((var(--floor) + 0.5) / var(--cols) * 100%);
+  width: calc((var(--at) - var(--floor)) / var(--cols) * 100%);
+  transition: width var(--duration-slow) var(--ease), left var(--duration-slow) var(--ease);
+}
+.yes-track-stop {
+  position: absolute;
+  inset-block: 0;
+  left: calc(var(--i) / var(--cols) * 100%);
+  width: calc(100% / var(--cols));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+}
+.yes-track-stop:not(:disabled) {
+  cursor: pointer;
+}
+.yes-track-stop::before {
+  content: '';
+  width: 9px;
+  height: 9px;
+  border-radius: 9999px;
+  background: var(--background);
+  border: 1px solid var(--control);
+  transition: transform var(--duration-fast) var(--ease), border-color var(--duration-fast) var(--ease);
+}
+.yes-track-stop:not(:disabled):hover::before {
+  transform: scale(1.4);
+  border-color: var(--foreground);
+}
+.yes-track-bead {
+  position: absolute;
+  top: 50%;
+  left: calc((var(--at) + 0.5) / var(--cols) * 100%);
+  width: 32px;
+  height: 32px;
+  margin-left: -16px;
+  margin-top: -16px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary);
+  color: var(--on-primary);
+  pointer-events: none;
+  transition: left var(--duration-slow) var(--ease);
+}
+.yes-track[data-movable] .yes-track-bead {
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+}
+.yes-track[data-dragging] .yes-track-bead {
+  cursor: grabbing;
+  transform: scale(1.08);
+}
+/* A bead nobody may move is drawn in outline: it is a fact, not a control. */
+.yes-track[data-fixed] .yes-track-bead {
+  background: var(--background);
+  color: var(--foreground-muted);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+
+/* Where you can say yes: how far each place reaches along the same ladder. */
+.yes-reach {
+  --cols: 3;
+  position: relative;
+  min-height: 32px;
+  min-width: 0;
+}
+.yes-reach-bar {
+  position: absolute;
+  top: 50%;
+  left: calc(0.5 / var(--cols) * 100%);
+  width: calc(var(--to) / var(--cols) * 100%);
+  height: 3px;
+  margin-top: -1px;
+  border-radius: 9999px;
+  background: var(--foreground);
+  transition: opacity var(--duration-base) var(--ease), background-color var(--duration-base) var(--ease);
+}
+.yes-reach-end {
+  position: absolute;
+  top: 50%;
+  left: calc((var(--to) + 0.5) / var(--cols) * 100%);
+  width: 13px;
+  height: 13px;
+  margin: -6px 0 0 -6px;
+  border-radius: 9999px;
+  background: var(--foreground);
+  transition: opacity var(--duration-base) var(--ease), background-color var(--duration-base) var(--ease);
+}
+/* The rung the chosen job needs, as a band down every row. */
+.yes-reach-need {
+  position: absolute;
+  inset-block: 0;
+  left: calc(var(--need) / var(--cols) * 100%);
+  width: calc(100% / var(--cols));
+  background: var(--fill-1);
+  transition: left var(--duration-slow) var(--ease);
+}
+[data-short] > .yes-reach .yes-reach-bar,
+[data-short] > .yes-reach .yes-reach-end {
+  background: var(--border-strong);
+}
+
+/* The ring around a proof: it fills while the check runs, and that is the only thing that moves. */
+.yes-prove-ring {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  display: grid;
+  place-items: center;
+  border-radius: 9999px;
+  background: var(--fill-1);
+  color: var(--foreground);
+}
+.yes-prove-ring::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 9999px;
+  border: 1px solid var(--border-strong);
+  animation: yes-breathe 1.8s var(--ease) infinite;
+}
+.yes-prove-ring[data-checking]::after {
+  animation: none;
+  border-color: var(--foreground);
+  border-right-color: transparent;
+  animation: yes-turn 0.9s linear infinite;
+}
+.yes-prove-ring[data-proved] {
+  color: var(--green);
+}
+.yes-prove-ring[data-proved]::after {
+  animation: none;
+  border-color: var(--ok-dot);
+}
+.yes-prove-ring[data-failed] {
+  color: var(--red);
+}
+.yes-prove-ring[data-failed]::after {
+  animation: none;
+  border-color: color-mix(in srgb, var(--red) 50%, transparent);
+}
+@keyframes yes-breathe {
+  from {
+    opacity: 0.9;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.1);
+  }
+}
+@keyframes yes-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* The chat concept: who wrote what, drawn round each part and named on its edge. */
+.yes-voice {
+  position: relative;
+  border-radius: var(--radius-lg);
+}
+.yes-voice[data-outline='agent'] {
+  outline: 1px dashed var(--control);
+}
+.yes-voice[data-outline='agentos'] {
+  outline: 1.5px solid var(--foreground);
+  outline-offset: 2px;
+}
+.yes-voice-name {
+  position: absolute;
+  top: -9px;
+  right: 12px;
+  padding-inline: 4px;
+  background: var(--background);
+  font-size: 11px;
+  line-height: 16px;
+  animation: fade-in var(--duration-base) var(--ease);
+}

@@ -1,0 +1,19 @@
+id = "feed-like"
+title = "Like a post"
+goal = "Like the post by @mira about her tomatoes."
+tags = ["feed", "baseline"]
+allowed_effects = ["like:post:mira-tomatoes"]
+
+[[check]]
+kind = "liked"
+post = "mira-tomatoes"
+
+[[replay]]
+do = "click"
+locator = { role = "button", name = "Like", within = { role = "article", name = "@mira.*tomatoes", match = "regex" } }
+
+[[replay]]
+do = "expect"
+locator = { role = "button", name = "Like", within = { role = "article", name = "@mira.*tomatoes", match = "regex" } }
+attr = "aria-pressed"
+value = "true"

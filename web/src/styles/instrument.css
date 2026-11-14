@@ -1,0 +1,291 @@
+/*
+ * The instrument layer: the board, the wires and the marks that make agentos recognisable.
+ * Tokens are in tokens.css and the rules for using them are in DESIGN.md.
+ */
+@theme inline {
+  --text-40: var(--type-40);
+  --text-40--line-height: var(--type-40-line);
+  --text-40--letter-spacing: var(--tracking-40);
+  --text-56: var(--type-56);
+  --text-56--line-height: var(--type-56-line);
+  --text-56--letter-spacing: var(--tracking-56);
+  --ease-settle: var(--ease-out);
+  --animate-current: current-breathe 2.4s var(--ease) infinite;
+  --animate-rise: rise var(--duration-settle) var(--ease-out);
+  --animate-beat: beat 900ms var(--ease-out);
+}
+
+@keyframes current-breathe {
+  50% { opacity: 0.45; }
+}
+/* One heartbeat: a ring leaves the dot and fades. Plays once per report that arrives. */
+@keyframes beat {
+  from { box-shadow: 0 0 0 0 color-mix(in srgb, var(--green) 55%, transparent); }
+  to { box-shadow: 0 0 0 6px transparent; }
+}
+@keyframes rise {
+  from { opacity: 0; transform: translateY(4px); }
+}
+@keyframes wire-draw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+
+/* Silkscreen: the small printed label on a board. The one place capitals are allowed. */
+@utility silk {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: var(--tracking-silk);
+  text-transform: uppercase;
+  color: var(--foreground-subtle);
+}
+
+/*
+ * A full-bleed page takes the whole window, and the rail steps down to its icons. Not in a layer,
+ * because these undo utilities on the shell.
+ */
+.page-frame:has([data-bleed]) {
+  max-width: none;
+  padding: 0;
+}
+main:has([data-bleed]) {
+  padding-bottom: 0;
+}
+.app-rail {
+  transition: width var(--duration-settle) var(--ease-out);
+}
+.app-shell:has([data-bleed]) .app-rail {
+  width: 64px;
+}
+.app-shell:has([data-bleed]) .app-rail [data-rail-body] {
+  padding: 8px;
+}
+.app-shell:has([data-bleed]) .app-rail [data-technical-toggle] {
+  padding-inline: 0;
+}
+.app-shell:has([data-bleed]) .app-rail [data-technical-toggle] > div {
+  justify-content: center;
+}
+.app-shell:has([data-bleed]) .app-rail a,
+.app-shell:has([data-bleed]) .app-rail button {
+  justify-content: center;
+  padding-inline: 0;
+}
+.app-shell:has([data-bleed]) .app-rail [data-rail-hairline] {
+  display: block;
+}
+.app-shell:has([data-bleed]) .app-rail [data-rail-label],
+.app-shell:has([data-bleed]) .app-rail [data-rail-count] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@layer components {
+  .board-surface {
+    background-color: var(--board);
+    background-image: radial-gradient(circle, var(--board-dot) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  /* Registration crosses in the corners of a panel. Set on a relative element. */
+  .registered {
+    position: relative;
+  }
+  .registered::before,
+  .registered::after {
+    content: '';
+    position: absolute;
+    width: 9px;
+    height: 9px;
+    pointer-events: none;
+    background:
+      linear-gradient(var(--board-line-strong), var(--board-line-strong)) center / 100% 1px no-repeat,
+      linear-gradient(var(--board-line-strong), var(--board-line-strong)) center / 1px 100% no-repeat;
+  }
+  .registered::before {
+    top: -5px;
+    left: -5px;
+  }
+  .registered::after {
+    right: -5px;
+    bottom: -5px;
+  }
+
+  /* The fleet map. Wires and cells are SVG, so their look lives here and not in attributes. */
+  .fleet {
+    --dim: 0.14;
+    contain: strict;
+    touch-action: none;
+    user-select: none;
+    outline: none;
+    cursor: grab;
+  }
+  .fleet[data-panning] {
+    cursor: grabbing;
+  }
+
+  .fleet-wire {
+    fill: none;
+    stroke: var(--board-wire);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+    transition: opacity var(--duration-base) var(--ease), stroke var(--duration-base) var(--ease);
+  }
+  .fleet-wire[data-flow] {
+    stroke: var(--board-wire-strong);
+  }
+  .fleet-wire[data-state='down'] {
+    stroke: var(--red);
+    stroke-opacity: 0.5;
+    stroke-dasharray: 3 4;
+  }
+  .fleet-wire[data-state='degraded'] {
+    stroke: var(--amber);
+    stroke-opacity: 0.6;
+  }
+  .fleet-wire[data-state='dead'] {
+    stroke-opacity: 0.45;
+    stroke-dasharray: 2 5;
+  }
+  .fleet-marks {
+    fill: none;
+    stroke: var(--board-mark);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+    transition: opacity var(--duration-base) var(--ease);
+  }
+  .fleet-route {
+    fill: none;
+    stroke: var(--board-lit);
+    stroke-width: 1.25;
+    vector-effect: non-scaling-stroke;
+    stroke-linejoin: round;
+    pointer-events: none;
+  }
+  .fleet-route[data-tone='blast'] {
+    stroke: var(--red);
+  }
+  .fleet-route[data-tone='current'] {
+    stroke: var(--current);
+  }
+
+  .fleet-e {
+    cursor: pointer;
+    outline: none;
+    transition: opacity var(--duration-base) var(--ease);
+  }
+  .fleet[data-focused] .fleet-e:not([data-lit]),
+  .fleet[data-focused] .fleet-wire:not([data-lit]),
+  .fleet[data-focused] .fleet-marks {
+    opacity: var(--dim);
+  }
+  .fleet-box {
+    fill: var(--board-raised);
+    stroke: var(--board-line);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+    transition: stroke var(--duration-fast) var(--ease), fill var(--duration-fast) var(--ease);
+  }
+  .fleet-e:hover .fleet-box,
+  .fleet-e[data-lit] .fleet-box {
+    stroke: var(--board-line-strong);
+  }
+  .fleet-e[data-selected] .fleet-box {
+    stroke: var(--board-lit);
+  }
+  .fleet-e:focus-visible .fleet-box,
+  html[data-input='keyboard'] .fleet-e:focus .fleet-box {
+    stroke: var(--focus);
+    stroke-width: 2;
+  }
+  .fleet-e[data-hot] .fleet-box {
+    stroke: var(--current);
+    fill: color-mix(in srgb, var(--current) 9%, var(--board-raised));
+    filter: drop-shadow(0 0 10px var(--current-soft));
+  }
+  .fleet-e[data-tone='attention'] .fleet-box {
+    stroke: color-mix(in srgb, var(--amber) 55%, var(--board-line));
+  }
+  .fleet-e[data-tone='blocked'] .fleet-box {
+    stroke: color-mix(in srgb, var(--red) 60%, var(--board-line));
+  }
+  .fleet-e[data-tone='down'] .fleet-box {
+    fill: url(#fleet-hatch);
+    stroke-dasharray: 3 3;
+  }
+  .fleet-e[data-tone='idle'] .fleet-box {
+    fill: transparent;
+  }
+  /* An outline says it with less weight than a red fill, and the words stay readable. */
+  .fleet-e[data-blast] .fleet-box {
+    stroke: var(--red);
+  }
+  /* Dark boards dim further than light ones at the same opacity, so they dim less, and the
+     labels around a lit path stay readable. Isolate keeps its own level below. */
+  :root[data-theme='dark'] .fleet:not([data-isolated]) {
+    --dim: 0.3;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) .fleet:not([data-isolated]) {
+      --dim: 0.3;
+    }
+  }
+  /* Isolate: only what depends on the selection stays on the board. */
+  .fleet[data-isolated] {
+    --dim: 0.035;
+  }
+  .fleet[data-isolated] .fleet-marks {
+    opacity: 0;
+  }
+
+  .fleet-t {
+    fill: var(--foreground);
+    font-family: var(--font-sans);
+    font-size: 12px;
+    letter-spacing: -0.006em;
+    font-weight: 500;
+    pointer-events: none;
+  }
+  .fleet-t2 {
+    fill: var(--foreground-subtle);
+    font-family: var(--font-sans);
+    font-size: 11px;
+    pointer-events: none;
+  }
+  .fleet-m {
+    fill: var(--foreground-subtle);
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+  }
+  .fleet-silk {
+    fill: var(--foreground-subtle);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: var(--tracking-silk);
+    pointer-events: none;
+  }
+  /* Far out, the second lines and small values go. Names (.fleet-name) never do: a box without
+     its name is a box nobody can read, and a fitted map often opens just under this cut-off. */
+  .fleet[data-lod='far'] .fleet-t2,
+  .fleet[data-lod='far'] .fleet-m:not(.fleet-name) {
+    display: none;
+  }
+  .fleet:not([data-lod='near']) .fleet-near {
+    display: none;
+  }
+
+  /* Instrument faces: a live number over a strip of its own history. */
+  .strip-now {
+    filter: drop-shadow(0 0 3px var(--current-line));
+  }
+}

@@ -1,0 +1,37 @@
+# The node tests the CI's real-browser job runs (.github/workflows/ci.yml, job "node"): a fresh
+# ubuntu-24.04 runner with Xvfb and Camoufox, outbound traffic dropped for the test process, so
+# only loopback fixture sites are reachable. One pytest node id per line (a test without its
+# [param] runs every parametrization); blank lines and # comments are ignored. A test can also opt
+# in with @pytest.mark.ci_smoke instead of a line here. Keep the job under 20 minutes.
+#
+# Leave out tests that need root, systemd, Docker, bubblewrap, a real CLI or a real website
+# (test_env_*, test_runas, test_ops, test_logs, test_brains_*, the lane self-check in
+# test_lanes_node.py::test_real_lane_pins_then_reuses_fingerprint).
+
+# lanes: open, close, sleep (eviction) and wake, restart, launch refusal, orphans
+tests/node/test_lanes_node.py::test_display_slots_start_bind_localhost_and_release
+tests/node/test_lanes_node.py::test_close_forces_a_hung_browser
+tests/node/test_lanes_node.py::test_cap_evicts_least_recently_used_real_lane
+tests/node/test_lanes_node.py::test_start_sweeps_orphans_from_a_previous_run
+tests/node/test_lanes_hardening_node.py::test_the_memory_floor_refuses_a_warm_with_a_clear_error
+tests/node/test_lanes_hardening_node.py::test_quarantine_closes_the_real_browser_and_survives_a_restart
+tests/node/test_freeze_node.py::test_a_frozen_lane_survives_a_restart_of_the_lane_manager
+
+# snapshot and act on the local fixture site, with human input (node/human.py)
+tests/node/test_interaction_node.py::test_snapshot_has_refs_and_leaves_the_page_untouched
+tests/node/test_interaction_node.py::test_click_post_like_by_ref_changes_the_post_only
+tests/node/test_interaction_node.py::test_type_fill_select_check_and_submit
+tests/node/test_interaction_node.py::test_scroll_to_a_far_target_uses_the_wheel
+tests/node/test_snapshot_hints_node.py::test_hints_tell_the_unnamed_controls_apart
+tests/node/test_agentux_node.py::test_a_wait_resolves_when_the_upload_finishes
+tests/node/test_typist_node.py::test_focus_and_type_fill_the_right_fields
+tests/node/test_flow_driver_node.py::test_a_form_filled_with_human_input
+
+# the egress guard and the network guard
+tests/node/test_qa_egress_node.py::test_link_around_a_shadow_dom_target_is_refused
+tests/node/test_qa_egress_node.py::test_human_click_refuses_a_frame_target_covered_in_the_parent
+tests/node/test_egress_node.py::test_a_click_on_a_refused_link_or_form_sends_nothing
+tests/node/test_network_guard_node.py::test_proxied_lane_sends_localhost_through_the_proxy
+
+# fingerprint pins: one device across launches
+tests/node/test_fingerprint_pin_node.py::test_three_launches_show_one_device[linux]

@@ -1,0 +1,3 @@
+$ agentos lane redteam
+exit 1
+error: pick one: --local (Camoufox on this machine) or --slot S (scratch lanes on this node)

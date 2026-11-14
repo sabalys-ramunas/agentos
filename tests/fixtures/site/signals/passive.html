@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <link rel="icon" href="data:,">
+  <title>Checkout</title>
+  <!-- Vendor scripts that load on ordinary pages: sensors and API scripts, not challenges. -->
+  <script src="https://js.datadome.co/tags.js"></script>
+  <script src="https://client.px-cloud.net/PXfixture/main.min.js"></script>
+  <script src="https://www.google.com/recaptcha/api.js?render=fixture"></script>
+  <script src="https://js.hcaptcha.com/1/api.js"></script>
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>
+  <script src="/cdn-cgi/challenge-platform/scripts/jsd/main.js"></script>
+  <script src="/signals/watch.js"></script>
+</head>
+<body>
+  <h1>Checkout</h1>
+  <p>Captcha, verify you are human, access denied: words only.</p>
+  <!-- The reCAPTCHA v3 badge: a 256x60 anchor frame with size=invisible. -->
+  <div style="position: fixed; bottom: 14px; right: -186px; width: 256px; height: 60px">
+    <iframe title="reCAPTCHA" width="256" height="60" style="border:0"
+            src="https://www.google.com/recaptcha/api2/anchor?ar=1&amp;k=fixture&amp;co=x&amp;hl=en&amp;v=1&amp;size=invisible&amp;cb=1"></iframe>
+  </div>
+  <!-- reCAPTCHA's idle challenge frame, parked off the page until a puzzle is shown. -->
+  <div style="visibility: hidden; position: absolute; width: 100%; top: -10000px; left: 0">
+    <iframe title="recaptcha challenge expires in two minutes" width="400" height="580"
+            src="https://www.google.com/recaptcha/api2/bframe?hl=en&amp;v=1&amp;k=fixture"></iframe>
+  </div>
+  <!-- hCaptcha's challenge frame before it is needed, an Arkose pre-check, a transparent DataDome frame. -->
+  <iframe title="hCaptcha challenge" width="400" height="580" style="visibility: hidden; position: absolute; top: 0"
+          src="https://newassets.hcaptcha.com/captcha/v1/fixture/static/hcaptcha.html#frame=challenge&amp;id=1"></iframe>
+  <iframe title="Verification" width="0" height="0" style="border:0"
+          src="https://client-api.arkoselabs.com/v2/FIXTURE-KEY/enforcement.fixture.html"></iframe>
+  <iframe title="dd" width="300" height="300" style="opacity: 0; position: absolute; top: 0"
+          src="https://geo.captcha-delivery.com/captcha/?initialCid=fixture&amp;t=fe"></iframe>
+  <div id="px-captcha" style="display: none"></div>
+  <!-- An invisible Turnstile in a closed shadow root: only the frame tree finds it, and it is hidden. -->
+  <div id="hidden-widget"></div>
+  <script>
+    document.getElementById('hidden-widget').attachShadow({mode: 'closed'}).innerHTML =
+      '<iframe title="Turnstile" style="visibility:hidden;width:300px;height:65px;border:0" ' +
+      'src="https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/b/turnstile/if/ov2/av0/rcv0/0/passive/invisible/auto/"></iframe>';
+  </script>
+</body>
+</html>

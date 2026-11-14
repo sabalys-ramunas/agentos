@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Fixture overlay</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    #banner { position: fixed; inset: 0 0 auto 0; height: 340px; background: #fffbe6; border-bottom: 2px solid #c90;
+              padding: 24px; box-sizing: border-box; }
+    #covered { position: absolute; top: 180px; left: 40%; }
+    #menu { position: absolute; top: 420px; left: 16px; }
+  </style>
+</head>
+<body data-covered-clicks="0">
+  <h1>Overlay</h1>
+  <button type="button" id="covered">Covered action</button>
+  <button type="button" id="menu" aria-haspopup="menu" aria-expanded="false">Menu</button>
+  <div id="banner" role="dialog" aria-label="Cookie notice">
+    <p>This fixture uses no cookies, but it covers the button below anyway.</p>
+    <button type="button" id="accept">Accept</button>
+  </div>
+  <script>
+    let clicks = 0;
+    document.getElementById('covered').addEventListener('click', () => {
+      clicks += 1;
+      document.body.dataset.coveredClicks = String(clicks);
+    });
+    document.getElementById('accept').addEventListener('click', () => document.getElementById('banner').remove());
+    const menu = document.getElementById('menu');
+    menu.addEventListener('mouseenter', () => menu.setAttribute('aria-expanded', 'true'));
+    menu.addEventListener('mouseleave', () => menu.setAttribute('aria-expanded', 'false'));
+  </script>
+</body>
+</html>

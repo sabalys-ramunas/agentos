@@ -1,0 +1,769 @@
+"""Agent environments (agentos.environments): open, the routing of calls without `on`, no asking inside,
+close with the unsaved-work check, the reaper, and the parsers. The VM is the fake cloud of agentos.vms
+and its commands are answered by a fake (no SSH here); tests/unit/test_environments_docker.py runs the
+same story on a real machine."""
+
+from __future__ import annotations
+
+import asyncio
+import shlex
+import subprocess
+from datetime import timedelta
+
+import pytest
+from test_policy_support import Clock, make_service
+
+from agentos.core.errors import PolicyDenied
+from agentos.core.models import Effect, utcnow
+from agentos.dev.lanes import FakeLaneManager
+from agentos.env.host import FakeHost
+from agentos.env.manager import EnvManager
+from agentos.env.models import ExecResult
+from agentos.env.paths import EnvSettings as TermSettings
+from agentos.env.sandbox import DirectLauncher
+from agentos.environments import machine, routing
+from agentos.environments import manager as envmod
+from agentos.environments.manager import EnvironmentManager, parse_git_state, parse_ports
+from agentos.environments.models import Environment, EnvSettings
+from agentos.environments.tools import tool_specs as env_tool_specs
+from agentos.policy.wrap import ToolCallError, bind_request_token, wrap_tool
+from agentos.vms.manager import VmManager
+from agentos.vms.models import VmSettings
+from agentos.vms.provider import FakeProvider
+
+TITLE = "Black Friday page"
+
+
+async def ok_probe(remote, *, timeout_s=15):
+    return True, ""
+
+
+async def readable_repo(url, env, *, timeout_s=20, allow_file=False):
+    """Every repository reads (environment_open's check before it rents; no network here)."""
+    return True, b""
+
+
+class FakeTunnel:
+    def __init__(self, remote, *, gateway_port, socks_port=None):
+        self.remote, self.gateway_port, self.socks_port = remote, gateway_port, socks_port or 41080
+        self.alive = False
+
+    async def start(self):
+        self.alive = True
+
+    async def stop(self):
+        self.alive = False
+
+
+class Machine:
+    """What the fake VM answers: setup state, the repo's git state, listening ports."""
+
+    def __init__(self):
+        self.setup = "ready"
+        self.git = "repo=/work/shop\nbranch=main\nahead=0\ndirty_count=0\n"
+        self.ports = 'LISTEN 0 511 127.0.0.1:3000 0.0.0.0:* users:(("node",pid=7,fd=20))\n' \
+                     'LISTEN 0 128 0.0.0.0:22 0.0.0.0:* users:(("sshd",pid=1,fd=3))\n'
+        self.ran: list[tuple[str, str | None]] = []
+
+    async def exec(self, lane_id, cmd, *, timeout_s=None, stdin=None, grant_id=None):
+        self.ran.append((cmd, grant_id))
+        out = ""
+        if cmd == machine.SETUP_STATE:
+            out = self.setup + "\n"
+        elif cmd == "sh -s" and stdin == machine.setup_script():
+            self.setup = "ready"  # the setup script writes its marker
+            out = ""
+        elif cmd == envmod.GIT_STATE:
+            out = self.git
+        elif cmd.startswith("ss "):
+            out = self.ports
+        elif "git clone" in cmd:
+            out = "main\n"
+        else:
+            out = "ran\n"
+        return ExecResult(exit_code=0, stdout=out, stderr="", duration_s=0.01)
+
+
+@pytest.fixture
+async def node(tmp_path, monkeypatch):
+    home = tmp_path / "home"
+    home.mkdir()
+    policy, rt = make_service(home, clock=Clock())
+    envs = EnvManager(home, runtime=rt, host=FakeHost(), launcher=DirectLauncher(),
+                      settings=TermSettings(proxy_port=0))
+    fake = Machine()
+    monkeypatch.setattr(envs, "exec", fake.exec)
+    rt.register("envs", envs)
+    prov = FakeProvider()
+    vms = VmManager(home, runtime=rt, provider=prov, settings=VmSettings(ssh_from=["198.51.100.7/32"]),
+                    node_name="node-1", probe=ok_probe)
+    rt.register("vms", vms)
+    lanes = FakeLaneManager()
+    rt.register("lanes", lanes)
+    monkeypatch.setattr(envmod, "Tunnel", FakeTunnel)
+    mgr = EnvironmentManager(home, runtime=rt, settings=EnvSettings())
+    mgr.repo_probe = readable_repo
+    rt.register("environments", mgr)
+    grant, token = policy.issue(subject={"id": "agent-1"}, workspaces=["*"], ceiling=Effect.COMMIT,
+                                specials={"vm": {}, "exec": {}})
+    from agentos.env import tool_specs as term_specs
+
+    specs = {s.name: s for s in [*env_tool_specs(rt), *term_specs(rt)]}
+    calls = {name: wrap_tool(spec, rt) for name, spec in specs.items()}
+
+    async def call(name, *, session="chat-1", tok=token, **kw):
+        with bind_request_token(tok, session=session):
+            return await calls[name](**kw)
+
+    yield {"rt": rt, "policy": policy, "mgr": mgr, "vms": vms, "prov": prov, "lanes": lanes, "machine": fake,
+           "envs": envs, "grant": grant, "token": token, "call": call}
+    await mgr.shutdown()
+    await vms.shutdown()
+    await envs.shutdown()
+    policy.close()
+
+
+async def opened(node, **kw):
+    """environment_open, which never asks a person."""
+    out = await node["call"]("environment_open", title=kw.pop("title", TITLE), **kw)
+    assert out.get("status") != "approval_pending", out
+    return out
+
+
+# ------------------------------------------------------------------ open
+
+
+def _run_clone_locally(cmd: str, tmp_path):
+    """The environment's clone command, run on this machine against a local repository with a
+    `feature` branch, with /work moved under tmp_path."""
+    src = tmp_path / "src"
+    subprocess.run(["git", "init", "-q", "-b", "main", str(src)], check=True)
+    for args in (["commit", "-q", "--allow-empty", "-m", "one"], ["branch", "feature"]):
+        subprocess.run(["git", "-C", str(src), "-c", "user.name=t", "-c", "user.email=t@example.test", *args],
+                       check=True)
+    local = (cmd.replace(shlex.quote("https://example.test/me/shop.git"), shlex.quote(str(src)))
+                .replace("/work", str(tmp_path / "work")))
+    return subprocess.run(["sh", "-c", local], check=False, capture_output=True, text=True, cwd=tmp_path,
+                          env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp_path)})
+
+
+async def test_environment_names_the_branch_checked_out_now(node):
+    """After the agent switched branches, environment() still said the branch it was cloned on."""
+    await opened(node, repo="example.test/me/shop")
+    node["machine"].git = "repo=/work/shop\nbranch=fix/rail\nahead=1\ndirty_count=0\n"
+    out = await node["call"]("environment")
+    assert out["branch"] == out["git"]["branch"] == "fix/rail"
+
+
+async def test_a_ref_is_checked_out_inside_the_clone(node, tmp_path):
+    """`ref` was checked out in the shell's own folder, not the clone (a real Hetzner open with
+    ref="main" failed with "not a git repository", 2026-11-13). The clone command runs for real
+    against a local repository, so the checkout must land in it."""
+    await opened(node, repo="example.test/me/shop", ref="feature")
+    [cmd] = [c for c, _ in node["machine"].ran if "git clone" in c]
+    out = await asyncio.to_thread(_run_clone_locally, cmd, tmp_path)
+    assert out.returncode == 0, out.stderr
+    assert out.stdout.strip().splitlines()[-1] == "feature"
+
+
+async def test_a_snapshot_that_never_ran_the_setup_gets_it_from_the_node(node):
+    """A `dev` snapshot from `agentos vm image build` (its own script) boots with cloud-init done and
+    no setup marker: the node runs setup.sh over SSH instead of waiting out setup_timeout_s (a real
+    Hetzner environment sat in starting for this, 2026-11-13)."""
+    node["machine"].setup = "status: done"
+    out = await opened(node, repo="example.test/me/shop")
+    assert out["state"] == "ready", out
+    assert [c for c, _ in node["machine"].ran].count("sh -s") == 1
+
+
+async def test_open_never_asks_then_rents_clones_and_is_ready(node):
+    """No standing approval, and the agent read a web page first: opening one still asks nobody (the
+    owner's decision of 2026-11-13). The node's limits bound it instead."""
+    call = node["call"]
+    ctx = node["policy"].context(node["grant"], tool="browser_snapshot")
+    ctx.taint("untrusted", source="browser_snapshot", kind="web_page", host="evil.example")
+    assert node["policy"].approvals.list_standing() == []
+    out = await call("environment_open", title=TITLE, repo="example.test/me/shop")
+    assert out.get("status") != "approval_pending" and out["state"] == "ready", out
+    assert node["policy"].approvals.list(state="pending") == []
+    # what it rented is on the record, as a vm call
+    [end] = [e for e in node["policy"].traces.query(kind="tool_end", limit=50)[0] if e.tool == "environment_open"]
+    assert end.effect == "vm" and end.status == "ok"
+    assert out["workdir"] == "/work/shop" and out["branch"] == "main" and out["repo"] == "example.test/me/shop"
+    assert out["lanes"] == {"terminal": f"env/{out['id']}", "browser": f"env/{out['id']}-browser"}
+    assert out["machine"]["provider"] == "fake"
+    # the node's own live view, never a page of the web app (the public repository has none)
+    assert set(out["links"]) == {"browser"} and "/environments/" not in str(out["links"]["browser"])
+    # the agent finds its terminal without guessing: the tools it needs are named, and where the rest are
+    for words in ("calls without `on` use this environment", 'lane_exec(cmd="ls", cwd="/work/shop")',
+                  "lane_job_start(", "lane_job_read", "in your list", 'tools_more("terminals")',
+                  'tools_more("studio")', "links.browser"):
+        assert words in out["next"], words
+    # the VM is the environment's, its browser lane was made by the node, with the tunnel as its proxy
+    rec = node["vms"].store.get(node["mgr"].get(out["id"]).vm_id)
+    assert rec.environment == out["id"] and rec.lane_id == f"env/{out['id']}"
+    browser = node["lanes"].get(f"env/{out['id']}-browser")
+    assert browser.spec.proxy_label == f"env-{out['id']}" and browser.spec.account is None
+    proxy = node["lanes"].proxies_loader()[f"env-{out['id']}"]
+    assert proxy.server == "socks5://127.0.0.1:41080"
+    # a public repo that is not declared is cloned straight from the VM, with no gateway token
+    [(clone, grant)] = [r for r in node["machine"].ran if "git clone" in r[0]]
+    assert "https://example.test/me/shop.git" in clone and "/work/shop" in clone and grant is None
+
+
+async def test_cloud_init_sets_up_a_plain_ubuntu_machine(node):
+    out = await opened(node)
+    rec = node["vms"].store.get(node["mgr"].get(out["id"]).vm_id)
+    data = node["prov"].user_data[rec.provider_id]
+    assert "runcmd:" in data and machine.SETUP_PATH in data and "ssh_pwauth: false" in data
+    assert "Node 22" in machine.setup_script() and "uv" in machine.setup_script()
+
+
+async def test_the_same_chat_gets_the_same_environment_and_a_new_chat_reattaches_by_title(node):
+    call = node["call"]
+    a = await opened(node)
+    again = await call("environment_open", title="Something else")
+    assert again["id"] == a["id"]  # one per chat
+    # a resumed chat of the same grant takes it over once the first chat has been quiet for 10 minutes
+    mgr = node["mgr"]
+    mgr._clock = lambda: utcnow() + timedelta(minutes=11)
+    other = await call("environment_open", title=TITLE, session="chat-2")
+    assert other["id"] == a["id"]
+    assert mgr.get(a["id"]).binding == "session:chat-2"
+
+
+async def test_another_grant_does_not_reattach_or_see_it(node):
+    a = await opened(node)
+    _g2, tok2 = node["policy"].issue(subject={"id": "agent-2"}, workspaces=["*"], ceiling=Effect.COMMIT,
+                                     specials={"vm": {}, "exec": {}})
+    seen = await node["call"]("environment", session="chat-9", tok=tok2)
+    assert seen["environment"] is None and seen["open"] == []
+    with pytest.raises(ToolCallError, match="no environment"):
+        await node["call"]("environment", id=a["id"], session="chat-9", tok=tok2)
+
+
+async def test_open_past_the_nodes_limit_is_refused(node):
+    node["mgr"].settings.max_live = 1
+    await opened(node)
+    with pytest.raises(ToolCallError, match="environment_limit"):
+        await node["call"]("environment_open", title="Second", session="chat-2")
+    with pytest.raises(ToolCallError, match="environment_limit"):
+        await node["call"]("environment_open", title="Too long", session="chat-3", hours=500)
+
+
+def test_the_limits_hold_without_agentos_environments_allow():
+    s = EnvSettings()  # no environments.toml: what a node has before anyone ran `agentos environments allow`
+    assert (s.max_live, s.max_hours, s.monthly_eur) == (3, 8.0, 50.0)
+
+
+async def test_a_fourth_open_is_refused_with_the_limit_and_the_command_that_raises_it(node):
+    """No standing approval, after a page read: three open without asking anyone, the fourth is refused
+    by the default max_live, and the error says which limit and how the owner raises it."""
+    ctx = node["policy"].context(node["grant"], tool="browser_snapshot")
+    ctx.taint("untrusted", source="browser_snapshot", kind="web_page", host="evil.example")
+    for n in range(3):
+        out = await opened(node, title=f"Work {n}", session=f"chat-{n}")
+        assert out["state"] == "ready", out
+    with pytest.raises(ToolCallError, match="environment_limit") as err:
+        await node["call"]("environment_open", title="Fourth", session="chat-4")
+    words = str(err.value)
+    assert "limit is 3 at once" in words and "agentos environments allow --max-live" in words
+    assert len(node["mgr"].store.open()) == 3
+    # too long a life: the same, naming --max-hours (8 hours by default)
+    with pytest.raises(ToolCallError, match="environment_limit") as err:
+        await node["call"]("environment_open", title="Long", session="chat-5", hours=9)
+    assert "at most 8 hours" in str(err.value) and "--max-hours" in str(err.value)
+
+
+async def test_a_machine_whose_setup_fails_is_deleted_and_says_why(node):
+    node["machine"].setup = "status: error\nE: Unable to locate package nodejs"
+    out = await opened(node)
+    assert out["state"] == "failed" and "setup failed" in out["error"]
+    env = node["mgr"].get(out["id"])
+    assert env.closed_reason.startswith("failed to start") and node["vms"].store.get(env.vm_id).state == "deleted"
+
+
+# ------------------------------------------------------------------ routing
+
+
+async def test_terminal_calls_without_on_go_to_the_environment_and_never_wait(node):
+    call = node["call"]
+    with pytest.raises(ToolCallError, match="no_environment"):
+        await call("lane_exec", cmd="echo hi")
+    out = await opened(node)
+    # untrusted page text in this grant's context does not hold a command on its own VM
+    ctx = node["policy"].context(node["grant"], tool="browser_snapshot")
+    ctx.taint("untrusted", source="browser_snapshot")
+    res = await call("lane_exec", cmd="npm test", cwd="/work/shop")
+    assert res["exit_code"] == 0 and res.get("status") != "approval_pending"
+    assert ("cd '/work/shop' && npm test", node["grant"].id) in node["machine"].ran
+    env = node["mgr"].get(out["id"])
+    assert env.last_call_at is not None and [c.tool for c in env.calls][-1] == "lane_exec"
+    assert env.calls[-1].summary == "npm test"
+    # with `on`, a call behaves as before: another lane is another lane
+    with pytest.raises(ToolCallError):
+        await call("lane_exec", on="dev/other", cmd="echo hi")
+
+
+async def test_a_command_on_another_vm_lane_still_asks_after_untrusted_text(node):
+    await opened(node)
+    await node["vms"].create("dev/plain", ttl_minutes=30)
+    ctx = node["policy"].context(node["grant"], tool="browser_snapshot")
+    ctx.taint("untrusted", source="browser_snapshot")
+    out = await node["call"]("lane_exec", on="dev/plain", cmd="echo hi")
+    assert out["status"] == "approval_pending"
+
+
+async def test_browser_calls_without_on_resolve_to_the_browser_lane(node):
+    out = await opened(node)
+    rt = node["rt"]
+    kwargs: dict = {"url": "http://localhost:3000"}
+    routing.route(rt, "browser_navigate", kwargs, session="chat-1", grant_id=node["grant"].id)
+    assert kwargs["on"] == f"env/{out['id']}-browser"
+    kept = {"on": "biz-a/social", "url": "https://example.com"}
+    routing.route(rt, "browser_navigate", kept, session="chat-1", grant_id=node["grant"].id)
+    assert kept["on"] == "biz-a/social"
+    other: dict = {"url": "x"}
+    with pytest.raises(Exception, match="no environment") as err:
+        routing.route(rt, "browser_navigate", other, session="chat-2", grant_id="gr_other")
+    # an agent doing account work that forgot `on` is told so, not only to rent a machine
+    assert "account lane" in str(err.value) and "`on`" in str(err.value) and "lanes_list" in str(err.value)
+
+
+async def test_studio_checks_get_the_environments_proxy(node):
+    from agentos.studio.browser.pool import review_proxy
+
+    out = await opened(node)
+    with routing.studio_proxy(node["rt"], "ui_check", {"url": "http://localhost:3000"}, session="chat-1",
+                              grant_id=node["grant"].id) as lane:
+        assert lane == f"env/{out['id']}"
+        assert review_proxy.get() == {"server": "socks5://127.0.0.1:41080", "bypass": "<-loopback>"}
+    assert review_proxy.get() is None
+    with routing.studio_proxy(node["rt"], "ui_check", {"url": "x"}, session="chat-2", grant_id="g") as lane:
+        assert lane is None and review_proxy.get() is None
+
+
+async def test_a_studio_check_never_checks_the_node_while_the_environment_cannot_be_reached(node):
+    """With an environment bound, ui_check goes through its tunnel or fails: while the machine starts,
+    after a restart of the node or while the tunnel is down, it says so and how to go on."""
+    from agentos.core.tools import ToolSpec
+    from agentos.studio.browser.pool import review_proxy
+
+    seen: list = []
+
+    async def ui_check(ctx, *, url: str) -> dict:
+        """A stand-in for studio's ui_check: notes the browser proxy it would check through."""
+        seen.append(review_proxy.get())
+        return {"checked": url}
+
+    call = wrap_tool(ToolSpec("ui_check", ui_check, Effect.READ, lane_arg=None), node["rt"])
+    out = await opened(node)
+    mgr = node["mgr"]
+
+    async def check(session: str = "chat-1"):
+        with bind_request_token(node["token"], session=session):
+            return await call(url="http://localhost:3000")
+
+    assert (await check())["checked"] and seen[-1]["server"].startswith("socks5://")
+    await mgr.shutdown()  # agentosd restarted: the machine is there, its tunnel is not yet
+    with pytest.raises(ToolCallError, match="environment_not_ready") as err:
+        await check()
+    assert out["id"] in str(err.value) and "environment()" in str(err.value) and len(seen) == 1
+    env = mgr.get(out["id"])
+    env.state = "starting"
+    mgr.store.put(env)
+    with pytest.raises(ToolCallError, match="environment_not_ready.*starting"):
+        await check()
+    env.state = "ready"
+    mgr.store.put(env)
+    await mgr.reap_once()  # the reaper brings the tunnel back
+    assert (await check())["checked"] and seen[-1]["server"].startswith("socks5://")
+    # a chat with no environment: studio checks what the node reaches, as before
+    await check(session="chat-2")
+    assert seen[-1] is None
+
+
+def test_routed_tools_take_on_as_optional_in_their_schema():
+    from agentos.core.tools import ToolSpec
+    from agentos.mcp.registry import tool_params
+
+    async def lane_exec(ctx, *, on: str, cmd: str) -> dict:
+        return {}
+
+    [on, _cmd] = tool_params(ToolSpec("lane_exec", lane_exec, Effect.EXEC))
+    assert not on.required and on.default is None and "environment" in on.description
+    async def vm_create(ctx, *, on: str) -> dict:
+        return {}
+
+    [kept] = tool_params(ToolSpec("vm_create", vm_create, Effect.VM))
+    assert kept.required
+
+
+# ------------------------------------------------------------------ status and close
+
+
+async def test_environment_reads_ports_git_and_calls(node):
+    out = await opened(node, repo="example.test/me/shop")
+    await node["call"]("lane_exec", cmd="ls")
+    st = await node["call"]("environment")
+    assert st["id"] == out["id"] and st["state"] == "working"
+    assert st["ports"] == [{"port": 3000, "process": "node", "link": None}]
+    assert st["git"] == {"branch": "main", "ahead": 0, "dirty": 0, "pushed": []}
+    assert st["calls"][0]["tool"] == "lane_exec" and st["unsaved"] is None
+
+
+async def test_close_refuses_unsaved_work_then_discard_deletes_everything(node):
+    out = await opened(node, repo="example.test/me/shop")
+    node["machine"].git = ("repo=/work/shop\nbranch=feature\nahead=1\ndirty_count=1\n"
+                           "dirty= M index.html\nunpushed=abc1234 Thirty percent off\n")
+    with pytest.raises(ToolCallError, match="unsaved_work") as err:
+        await node["call"]("environment_close")
+    assert "index.html" in str(err.value) and "abc1234 Thirty percent off" in str(err.value)
+    closed = await node["call"]("environment_close", discard=True)
+    assert closed["id"] == out["id"] and closed["state"] == "closed" and closed["cost_eur"] is not None
+    env = node["mgr"].get(out["id"])
+    assert node["vms"].store.get(env.vm_id).state == "deleted" and env.closed_reason.endswith("(discarded)")
+    assert f"env/{out['id']}-browser" in node["lanes"].deleted
+    assert node["lanes"].proxies_loader() == {}
+    with pytest.raises(ToolCallError, match="no_environment"):
+        await node["call"]("lane_exec", cmd="echo after")
+
+
+async def test_close_of_another_grants_environment_is_refused(node):
+    a = await opened(node)
+    _g2, tok2 = node["policy"].issue(subject={"id": "agent-2"}, workspaces=["*"], ceiling=Effect.COMMIT,
+                                     specials={"vm": {}, "exec": {}})
+    with pytest.raises(ToolCallError, match="no environment"):
+        await node["call"]("environment_close", id=a["id"], session="chat-9", tok=tok2)
+    assert node["mgr"].get(a["id"]).open
+
+
+@pytest.mark.parametrize("scope", ["lane", "workspace", "node"])
+async def test_a_freeze_stops_every_environment_tool_and_closes_nothing(node, tmp_path, scope):
+    # the environment tools name no lane, so each reaches the environment's lanes itself: a freeze of its
+    # terminal lane, of the `env` workspace or of the node refuses them, and its machine is left as it is
+    from agentos.freeze.service import FreezeService
+
+    out = await opened(node)
+    fz = FreezeService(node["rt"], home=tmp_path / "fz")
+    node["rt"].register("freeze", fz)
+    target = {"lane": f"env/{out['id']}", "workspace": "env", "node": fz.node_name}[scope]
+    fz.mark(scope, target, reason="stop", by="owner")
+    for tool, kw in (("environment", {}), ("environment_close", {"discard": True}),
+                     ("environment_open", {"title": TITLE})):
+        with pytest.raises(ToolCallError, match="^frozen"):
+            await node["call"](tool, **kw)
+    with pytest.raises(ToolCallError, match="^frozen"):  # by id from another chat
+        await node["call"]("environment", id=out["id"], session="chat-2")
+    if scope != "lane":  # a new one would have its lane in the frozen workspace (a lane freeze is that lane)
+        with pytest.raises(ToolCallError, match="^frozen"):
+            await node["call"]("environment_open", title="Another page", session="chat-2")
+        assert [e.id for e in node["mgr"].store.open()] == [out["id"]]
+    env = node["mgr"].get(out["id"])
+    assert env.open and node["vms"].store.get(env.vm_id).state != "deleted"
+    assert f"env/{out['id']}-browser" not in node["lanes"].deleted
+    if scope == "lane":  # another chat's listing leaves the frozen one out and says so
+        listed = await node["call"]("environment", session="chat-3")
+        assert listed["open"] == [] and "frozen" in listed
+
+
+# ------------------------------------------------------------------ reaper
+
+
+async def test_the_reaper_closes_an_idle_clean_environment(node):
+    out = await opened(node)
+    mgr = node["mgr"]
+    later = utcnow() + timedelta(minutes=mgr.settings.idle_minutes + 1)
+    got = await mgr.reap_once(later)
+    assert got["closed"] == [out["id"]] and mgr.get(out["id"]).state == "closed"
+    assert mgr.get(out["id"]).closed_reason.startswith("idle")
+
+
+async def test_a_person_working_in_the_live_view_keeps_the_environment_open(node):
+    """Input from a human in the environment's browser (the live view, taken over) is activity: the
+    reaper does not close a clean environment someone is using."""
+    out = await opened(node)
+    mgr, lanes = node["mgr"], node["lanes"]
+    idle = timedelta(minutes=mgr.settings.idle_minutes)
+    later = utcnow() + idle + timedelta(minutes=1)
+    browser = lanes.lanes[out["lanes"]["browser"]]
+    browser.control = browser.control.model_copy(update={"last_human_input": later - timedelta(minutes=2)})
+    got = await mgr.reap_once(later)
+    assert got["closed"] == [] and mgr.get(out["id"]).open
+    # once the person stops too, an idle stretch closes it
+    got = await mgr.reap_once(later + idle)
+    assert got["closed"] == [out["id"]]
+
+
+async def test_the_reaper_keeps_unsaved_work_and_tells_the_owner_once(node, monkeypatch):
+    out = await opened(node)
+    mgr = node["mgr"]
+    told: list[str] = []
+
+    async def notify(title, body):
+        told.append(title)
+
+    monkeypatch.setattr(mgr, "_notify", notify)
+    node["machine"].git = "repo=/work/shop\nbranch=main\nahead=0\ndirty_count=2\ndirty= M a\ndirty=?? b\n"
+    later = utcnow() + timedelta(minutes=mgr.settings.idle_minutes + 1)
+    first = await mgr.reap_once(later)
+    second = await mgr.reap_once(later + timedelta(minutes=1))
+    assert first["kept_unsaved"] == [out["id"]] and second["kept_unsaved"] == []
+    assert len(told) == 1 and "not pushed" in told[0] and mgr.get(out["id"]).open
+    # at its time limit it goes, unsaved work or not
+    end = await mgr.reap_once(mgr.get(out["id"]).expires_at + timedelta(seconds=1))
+    assert end["closed"] == [out["id"]] and mgr.get(out["id"]).closed_reason == "time limit"
+
+
+async def test_the_reaper_marks_an_environment_whose_vm_is_gone(node):
+    out = await opened(node)
+    mgr, vms = node["mgr"], node["vms"]
+    await vms.destroy(mgr.get(out["id"]).vm_id, reason="by hand")
+    got = await mgr.reap_once()
+    assert got["gone"] == [out["id"]] and mgr.get(out["id"]).closed_reason == "its machine was deleted"
+
+
+async def test_the_vm_reaper_leaves_an_environments_idle_vm_to_the_environment(node):
+    out = await opened(node)
+    vms = node["vms"]
+    rec = vms.store.get(node["mgr"].get(out["id"]).vm_id)
+    # idle into the last minutes of a paid hour: a plain VM would go now
+    later = rec.created_at + timedelta(minutes=58)
+    await vms.reap_once(later)
+    assert vms.store.get(rec.id).state == "ready"
+
+
+async def test_a_restart_keeps_the_environment_and_the_reaper_brings_its_tunnel_back(node):
+    out = await opened(node)
+    mgr = node["mgr"]
+    await mgr.shutdown()  # agentosd stops: the VM stays, the tunnels go
+    assert mgr.proxies() == {} and node["vms"].store.get(mgr.get(out["id"]).vm_id).state == "ready"
+    got = await mgr.reap_once()
+    assert got["tunnels"] == [out["id"]] and f"env-{out['id']}" in mgr.proxies()
+    assert mgr.get(out["id"]).state == "ready"
+
+
+async def test_the_budget_counts_the_hours_open_environments_have_booked(node):
+    """An open environment can still bill to its time limit: the next open counts those hours, not
+    only what was spent so far. cx23 at EUR 0.006 an hour, cpx22 (EUR 0.0095) its fallback."""
+    mgr = node["mgr"]
+    mgr.settings = EnvSettings(monthly_eur=0.05)
+    a = await opened(node, hours=4)                  # booked: 4 h x 0.006 = 0.024 (0.006 spent so far)
+    assert a["state"] == "ready"
+    with pytest.raises(ToolCallError, match="environment_limit") as err:
+        await opened(node, title="Second", session="chat-2", hours=4)  # up to 4 h x 0.0095 = 0.038 more
+    assert "booked" in str(err.value)
+    assert len(mgr.store.open()) == 1
+    await node["call"]("environment_close")
+    again = await opened(node, title="Second", session="chat-2", hours=4)
+    assert again.get("state") == "ready", again
+
+
+async def test_extend_checks_the_budget_and_the_longest_life(node):
+    from agentos.environments.errors import EnvironmentLimit
+
+    mgr, vms = node["mgr"], node["vms"]
+    out = await opened(node, hours=1)
+    mgr.settings = EnvSettings(monthly_eur=0.04)
+    with pytest.raises(EnvironmentLimit, match="budget") as err:
+        await mgr.extend(out["id"], 10 * 60)         # up to the longest life, 8 h x 0.006 = 0.048
+    assert "agentos environments allow --monthly-eur" in str(err.value)
+    mgr.settings = EnvSettings()
+    vms.settings = vms.settings.model_copy(update={"monthly_budget_eur": 0.04})
+    with pytest.raises(EnvironmentLimit, match="budget"):
+        await mgr.extend(out["id"], 10 * 60)         # the node's VM budget holds too
+    vms.settings = vms.settings.model_copy(update={"monthly_budget_eur": 50.0})
+    env = await mgr.extend(out["id"], 100 * 60)       # past the longest life: up to it, no further
+    assert env.expires_at == env.created_at + timedelta(hours=mgr.settings.max_hours)
+    assert vms.store.get(env.vm_id).expires_at == env.expires_at
+    with pytest.raises(EnvironmentLimit, match="longest life of 8 hours") as err:
+        await mgr.extend(out["id"], 30)
+    assert "agentos environments allow --max-hours" in str(err.value)
+
+
+async def test_extend_moves_the_vms_limit_too(node):
+    out = await opened(node, hours=1)
+    mgr = node["mgr"]
+    before = mgr.get(out["id"]).expires_at
+    env = await mgr.extend(out["id"], 30)
+    assert env.expires_at - before == timedelta(minutes=30)
+    assert node["vms"].store.get(env.vm_id).expires_at == env.expires_at
+
+
+# ------------------------------------------------------------------ pieces
+
+
+def test_ports_and_git_state_are_read_from_the_machines_own_output():
+    ss = ('LISTEN 0 511 *:3000 *:* users:(("node",pid=12,fd=20))\n'
+          'LISTEN 0 511 [::]:3000 [::]:* users:(("node",pid=12,fd=21))\n'
+          'LISTEN 0 128 127.0.0.1:3129 0.0.0.0:* users:(("sshd-session",pid=3,fd=9))\n'
+          'LISTEN 0 4096 127.0.0.1:5432 0.0.0.0:*\n')
+    assert parse_ports(ss) == [{"port": 3000, "process": "node", "link": None},
+                               {"port": 5432, "process": None, "link": None}]
+    repos = parse_git_state("repo=/work/a\nbranch=main\nahead=2\ndirty_count=1\ndirty= M x.py\n"
+                            "unpushed=abc first\nunpushed=def second\n")
+    assert repos == [{"dir": "/work/a", "branch": "main", "ahead": 2, "dirty": 1, "dirty_files": ["x.py"],
+                      "unpushed": ["abc first", "def second"], "stash_count": 0, "stashes": [], "error": None}]
+    assert EnvironmentManager.unsaved_of(repos) == {"dirty_files": ["x.py"], "unpushed": ["abc first", "def second"],
+                                                    "stashes": []}
+    clean = {**repos[0], "ahead": 0, "dirty": 0, "dirty_files": [], "unpushed": []}
+    assert EnvironmentManager.unsaved_of([clean]) is None
+    stashed = parse_git_state("repo=/work/a\nstash_count=1\nstash=stash@{0} WIP on main\n")
+    assert EnvironmentManager.unsaved_of(stashed)["stashes"] == ["stash@{0} WIP on main"]
+    unreadable = parse_git_state("repo=/work/b\nerror=git cannot read it\n")
+    assert EnvironmentManager.unsaved_of([clean, *unreadable])["unreadable"] == ["/work/b"]
+
+
+def test_the_shown_state_follows_the_last_call():
+    now = utcnow()
+    env = Environment(id="e7k2", title="t", grant_id="g", binding="grant:g", state="ready", created_at=now,
+                      ready_at=now, expires_at=now + timedelta(hours=1))
+    assert env.shown_state(now) == "ready"
+    env.last_call_at = now
+    assert env.shown_state(now + timedelta(minutes=1)) == "working"
+    assert env.shown_state(now + timedelta(minutes=11)) == "idle"
+    with pytest.raises(ValueError):
+        Environment(id="../x", title="t", grant_id="g", binding="b", created_at=now, expires_at=now)
+
+
+async def test_a_grant_without_the_vm_special_cannot_open_one(node):
+    _g, tok = node["policy"].issue(subject={"id": "reader"}, workspaces=["*"], ceiling=Effect.COMMIT)
+    with pytest.raises((ToolCallError, PolicyDenied)):
+        await node["call"]("environment_open", title=TITLE, tok=tok)
+    assert node["mgr"].store.open() == []
+
+
+async def test_the_grant_agentos_connect_gives_opens_one_and_works_only_on_env_lanes(node):
+    # the `environments` special (agentos connect, agentos dev up): vm and exec on env/* only. The open
+    # names no lane, so its check waits for the lane the node picks (env/<id>)
+    from agentos.api.bridge import panel_specials
+    from agentos.dev.node import AGENT_SPECIALS
+
+    specials = panel_specials(["environments", "memory_read"])
+    assert {k: specials[k] for k in ("vm", "exec")} == {k: AGENT_SPECIALS[k] for k in ("vm", "exec")}
+    _g, tok = node["policy"].issue(subject={"id": "claude-code"}, workspaces=["*"], ceiling=Effect.COMMIT,
+                                   specials=specials)
+    out = await opened(node, tok=tok, session="chat-c", repo="example.test/me/shop")
+    assert out["state"] == "ready", out
+    ran = await node["call"]("lane_exec", tok=tok, session="chat-c", cmd="npm test", cwd=out["workdir"])
+    assert ran["exit_code"] == 0
+    with pytest.raises((ToolCallError, PolicyDenied)):  # an account lane is not covered
+        await node["call"]("lane_exec", tok=tok, session="chat-c", on="personal/code", cmd="ls")
+
+
+async def test_a_job_on_the_environment_is_cancelled_with_the_connect_grant(node, monkeypatch):
+    # lane_job_cancel names a job, not a lane: the check waits for the job's lane (env/<id>)
+    from types import SimpleNamespace
+
+    from agentos.api.bridge import panel_specials
+    from agentos.env.models import JobInfo
+
+    _g, tok = node["policy"].issue(subject={"id": "claude-code"}, workspaces=["*"], ceiling=Effect.COMMIT,
+                                   specials=panel_specials(["environments"]))
+    out = await opened(node, tok=tok, session="chat-j")
+    info = JobInfo(id="job-1", lane=out["lanes"]["terminal"], cmd="npm run dev", timeout_s=60)
+    cancelled = info.model_copy(update={"state": "cancelled"})
+    monkeypatch.setattr(node["envs"], "job", lambda _id: SimpleNamespace(info=info))
+
+    async def job_cancel(_id):
+        return cancelled
+
+    monkeypatch.setattr(node["envs"], "job_cancel", job_cancel)
+    done = await node["call"]("lane_job_cancel", tok=tok, session="chat-j", job="job-1")
+    assert done["state"] == "cancelled"
+    # a job on an account lane stays out of reach: the handler's own check refuses it
+    info = JobInfo(id="job-2", lane="personal/code", cmd="ls", timeout_s=60)
+    lane = node["envs"].get(out["lanes"]["terminal"])
+    monkeypatch.setattr(node["envs"], "get", lambda _id: lane)
+    with pytest.raises((ToolCallError, PolicyDenied), match="exec is not granted for personal/code"):
+        await node["call"]("lane_job_cancel", tok=tok, session="chat-j", job="job-2")
+
+
+# ------------------------------------------------------------------ unsaved work, with real git
+
+GIT_ENV = {"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "GIT_CONFIG_NOSYSTEM": "1",
+           "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@x", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@x"}
+
+
+def _git(*args: str, cwd) -> str:
+    import subprocess
+
+    return subprocess.run(["git", *args], cwd=cwd, env={**GIT_ENV, "HOME": str(cwd)}, capture_output=True,
+                          text=True, check=True).stdout
+
+
+def _machine_here(root):
+    """envs.exec running the command on this computer, with the machine's /work at `root`."""
+    import asyncio
+
+    async def run(lane_id, cmd, *, timeout_s=None, stdin=None, grant_id=None):
+        proc = await asyncio.create_subprocess_exec("sh", "-c", cmd.replace("/work", str(root)),
+                                                    env={**GIT_ENV, "HOME": str(root.parent)},
+                                                    stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+        out, err = await proc.communicate()
+        return ExecResult(exit_code=proc.returncode, stdout=out.decode().replace(str(root), "/work"),
+                          stderr=err.decode(), duration_s=0.01)
+
+    return run
+
+
+async def test_unsaved_work_is_every_repo_every_branch_stashes_and_new_files(node, tmp_path, monkeypatch):
+    """What close and the reaper must never delete without discard: commits on any local branch not on
+    a remote, stashes, untracked files, and all of that in every repository under /work."""
+    from agentos.environments.errors import UnsavedWork
+
+    out = await opened(node, repo="example.test/me/shop")
+    mgr = node["mgr"]
+    up, work = tmp_path / "up.git", tmp_path / "machine" / "work"
+    work.mkdir(parents=True)
+    _git("init", "-q", "--bare", "-b", "main", str(up), cwd=tmp_path)
+    shop = work / "shop"
+    _git("clone", "-q", str(up), str(shop), cwd=tmp_path)
+    (shop / "index.html").write_text("<h1>Sale</h1>\n")
+    _git("add", ".", cwd=shop)
+    _git("commit", "-qm", "first", cwd=shop)
+    _git("push", "-q", "origin", "main", cwd=shop)
+    monkeypatch.setattr(node["envs"], "exec", _machine_here(work))
+
+    async def refused(why: str) -> dict:
+        with pytest.raises(UnsavedWork) as err:
+            await mgr.close(out["id"])
+        later = utcnow() + timedelta(minutes=mgr.settings.idle_minutes + 1)
+        assert out["id"] not in (await mgr.reap_once(later))["closed"], why
+        assert mgr.get(out["id"]).open, why
+        return err.value.details
+
+    # 1. a commit on another local branch, while the checked-out one is pushed and clean
+    _git("checkout", "-q", "-b", "feature", cwd=shop)
+    (shop / "a.txt").write_text("a\n")
+    _git("add", ".", cwd=shop)
+    _git("commit", "-qm", "Feature work", cwd=shop)
+    _git("checkout", "-q", "main", cwd=shop)
+    details = await refused("a commit on another branch")
+    assert any("Feature work" in c for c in details["unpushed"]), details
+    _git("push", "-q", "origin", "feature", cwd=shop)
+
+    # 2. a stash
+    (shop / "index.html").write_text("<h1>Bigger sale</h1>\n")
+    _git("stash", "-q", cwd=shop)
+    details = await refused("a stash")
+    assert details.get("stashes") and "stash@{0}" in details["stashes"][0], details
+    _git("stash", "drop", "-q", cwd=shop)
+
+    # 3. a second repository under /work (not the one opened with), with only an untracked file
+    notes = work / "tools" / "notes"
+    notes.mkdir(parents=True)
+    _git("init", "-q", "-b", "main", str(notes), cwd=tmp_path)
+    (notes / "todo.md").write_text("ship it\n")
+    details = await refused("another repository")
+    assert any("todo.md" in f for f in details["dirty_files"]), details
+    (notes / "todo.md").unlink()
+
+    # 4. an untracked file in the opened one
+    (shop / "new.css").write_text("h1 {}\n")
+    details = await refused("an untracked file")
+    assert any("new.css" in f for f in details["dirty_files"]), details
+    (shop / "new.css").unlink()
+
+    closed = await mgr.close(out["id"])
+    assert closed.state == "closed"

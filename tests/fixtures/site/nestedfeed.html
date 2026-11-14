@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Fixture nested feed</title>
+</head>
+<body>
+  <!-- Post links with a Like button nested inside each link, the way some sites lay out a card: a
+       press anywhere on the card's box can land on the Like, which sends a write (POST /like). -->
+  <main>
+    <h1>Nested feed</h1>
+    <a class="post" href="/index.html" style="display:block;padding:40px;margin:20px;border:1px solid #ccc">
+      <p>A post whose whole card is a link.</p>
+      <button type="button" class="like" aria-pressed="false" style="width:90%;height:120px"
+              onclick="event.preventDefault(); this.setAttribute('aria-pressed', 'true');
+                       fetch('/like', {method: 'POST', body: 'x'}).catch(() => null);">Like</button>
+    </a>
+    <a class="post" href="/index.html" style="display:block;padding:40px;margin:20px;border:1px solid #ccc">
+      <p>Another post.</p>
+      <button type="button" class="like" aria-pressed="false" style="width:90%;height:120px"
+              onclick="event.preventDefault(); this.setAttribute('aria-pressed', 'true');
+                       fetch('/like', {method: 'POST', body: 'x'}).catch(() => null);">Like</button>
+    </a>
+  </main>
+</body>
+</html>

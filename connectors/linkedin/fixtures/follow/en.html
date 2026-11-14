@@ -1,0 +1,19 @@
+<!-- SYNTHESIZED, NOT CAPTURED. Written by hand on 2026-11-05 from the notes of the 2026-11-04 canary
+     and the structure the operation's locators assume. No real page was loaded. A canary on a throwaway account
+     replaces this with the captured page (text replaced) before the operation is marked verified. -->
+<!-- https://www.linkedin.com/company/example-robotics/ : Follow is the button of the page's own top card (.org-top-card,
+     .pv-top-card on a member's profile); a Follow in a suggestion list further down never counts -->
+<main>
+  <section class="org-top-card">
+    <h1>Example Robotics</h1>
+    <button aria-label="Follow Example Robotics">Follow</button>
+  </section>
+  <section>
+    <h2>Pages people also viewed</h2>
+    <button aria-label="Follow Other Company">Follow</button>
+  </section>
+</main>
+<!-- a profile whose top card offers only Connect (Follow under More) is refused in the preflight: never Connect.
+     After Follow: server-request with requestId com.linkedin.sdui.requests.mynetwork.addaUpdateFollowState;
+     after a reload the top card's button reads Following (the canary saw it [pressed]; the canary for this
+     operation checks which of the two it is) -->

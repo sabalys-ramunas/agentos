@@ -1,0 +1,21 @@
+<!-- SYNTHESIZED, NOT CAPTURED. Written by hand on 2026-11-05 (brief B2) from the structure the operation's locators
+     assume. Nobody has recorded LinkedIn's profile edits: no real page was loaded and no request was seen. A canary
+     on a throwaway account (observe mode on) replaces this with the captured page (text replaced), and the egress
+     rule linkedin.profile.* with the request it saw, before the operation is marked verified. -->
+<!-- The About section follows an anchor div#about; its pencil opens a dialog with one text box. A profile with no
+     About section has no such button (Add profile section adds one): the operation fails before typing. -->
+<main>
+  <section class="pv-top-card"><h1>Ada Lovelace</h1></section>
+  <section>
+    <div id="about"></div>
+    <h2>About</h2>
+    <button aria-label="Edit about">Edit</button>
+    <div class="inline-show-more-text"><span aria-hidden="true">Notes on the analytical engine.</span></div>
+  </section>
+</main>
+<div role="dialog" aria-label="Edit about">
+  <textarea aria-label="Summary">Notes on the analytical engine.</textarea>
+  <button>Save</button>
+</div>
+<!-- After Save (a guess): requestId com.linkedin.sdui.requests.profile.update...(About|Summary)...
+     (rule linkedin.profile.about). Proof: the About text on a fresh load is exactly the text. -->

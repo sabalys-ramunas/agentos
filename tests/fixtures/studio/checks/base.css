@@ -1,0 +1,6 @@
+/* Shared by the fixture pages: a plain, stable look. */
+html { font: 16px/1.5 Arial, Helvetica, sans-serif; color: #111; background: #fff; }
+body { margin: 0; padding: 16px; }
+h1, h2, h3, p { margin: 0 0 12px; }
+button { font: inherit; padding: 8px 16px; min-height: 40px; }
+a { color: #0645ad; }

@@ -1,0 +1,702 @@
+[
+  {
+    "method": "POST",
+    "path": "/api/invites/:id/passkey"
+  },
+  {
+    "method": "POST",
+    "path": "/api/invites/:id/passkey/options"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/approvals/:id/proof"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/approvals/:id/proof/options"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/audit/days"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/audit/lanes/:id/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/audit/runs/:id/screenshot"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/audit/shared/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/audit/shared/:id/runs/:id/screenshot"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/audit/shares"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/audit/shares"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/orgs/:org/audit/shares/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/audit/verify"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/brains/handovers"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/brains/handovers/:id"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/brains/handovers/:id/filled"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/brains/tasks/:id/cancel"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/brains/tasks/:id/resume"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/brand"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/brand/:id/:id"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/brand/:id/:id/approve"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/brand/:id/:id/reject"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/brand/proposals"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/browser-devices"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/browser-devices"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/orgs/:org/browser-devices/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/codes"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/codes/:id"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/codes/:id/decline"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/connectors"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/connectors/:id/run"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/email/batches"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/email/batches/:id"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/email/batches/:id/decide"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/email/discover"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/email/form-links"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/email/lists"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/email/lists/:id"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/orgs/:org/email/lists/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/email/mailboxes"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/email/messages"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/email/messages/:id"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/email/messages/:id/mark"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/email/routines/:id"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/email/send"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/orgs/:org/engage/caps/:id/:id/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/engage/digest"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/engage/digest/:id/:id"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/engage/holds/:id/:id/clear"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/engage/items/:id/:id"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/engage/items/:id/withdraw"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/engage/programs/:id/:id"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/engage/programs/:id/approve"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/environments"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/environments/:id"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/environments/:id/close"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/environments/:id/extend"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/flows"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/orgs/:org/flows/:id/routine"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/flows/:id/runs"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/flows/:id/runs/:id/retry"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/forms"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/forms/trips/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/freeze"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/freeze"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/grants/:id/taint/clear"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/jobs"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/jobs/:id"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/jobs/:id/cancel"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/lanes/:id/:id/check"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/lanes/:id/:id/device"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/lanes/:id/:id/device-move"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/lanes/:id/:id/files"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/lanes/:id/:id/files"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/orgs/:org/lanes/:id/:id/files/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/lanes/:id/:id/files/:id/download"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/lanes/:id/:id/keepalive"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/lanes/:id/:id/login"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/lanes/:id/:id/login/cancel"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/lanes/:id/:id/login/form"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/lanes/:id/:id/login/refresh"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/lanes/:id/:id/login/resume"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/lanes/:id/:id/login/take"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/lanes/:id/:id/login/vault"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/lanes/:id/:id/meter"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/orgs/:org/lanes/:id/:id/meter"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/lanes/:id/:id/pace"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/orgs/:org/lanes/:id/:id/pace"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/lanes/:id/:id/queue"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/lanes/:id/:id/readiness"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/lanes/:id/:id/sites"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/lanes/:id/:id/sites"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/lanes/:id/:id/taint"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/lanes/:id/:id/view-link"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/lanes/checks"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/members/:id"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/orgs/:org/members/:id/devices/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/memory"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/memory/:id"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/memory/:id/confirm"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/memory/:id/forget"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/memory/:id/review"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/memory/export"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/memory/workspaces"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/meters"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/nodes/:id/backups"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/nodes/:id/backups"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/nodes/:id/backups/check"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/nodes/:id/environments"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/nodes/:id/health/rounds"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/nodes/:id/health/run"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/nodes/:id/identity"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/orgs/:org/nodes/:id/identity/:id/:id/sites"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/nodes/:id/identity/:id/:id/sites"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/nodes/:id/services/:id/:id/logs"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/nodes/:id/services/:id/:id/start"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/nodes/:id/services/:id/:id/stop"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/nodes/:id/settings"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/nodes/:id/upgrade"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/overrides"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/pace/workspaces/:id"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/orgs/:org/pace/workspaces/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/plan/draft"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/plan/status"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/proxies"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/queue"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/routines/catalog"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/routines/day"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/runs/:id/cancel"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/runs/:id/decide"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/orgs/:org/schedules/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/site-apis"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/site-apis/:id"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/site-apis/:id/accept-empty"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/site-apis/:id/activate"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/site-apis/:id/decline"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/site-apis/:id/keep-updated"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/site-apis/:id/pause"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/site-apis/:id/read"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/site-apis/:id/repair"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/site-apis/:id/resume"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/site-apis/:id/try"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/site-apis/:id/usage"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/site-apis/discover"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/site-keys"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/site-keys"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/orgs/:org/site-keys/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/studio/baseline"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/studio/captures/:id/screens/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/studio/diff"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/studio/profiles/:id/:id/components"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/studio/runs"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/studio/runs/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/studio/runs/:id/findings/:id/crop"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/surfaces"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/surfaces"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/orgs/:org/surfaces/:id/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/surfaces/:id/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/templates"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/unfreeze"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/orgs/:org/vault/:id"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/vault/seal"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/vault/status"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/vms"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/workers"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/workers/accounts"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/workers/accounts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/workers/computers/:id"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/workers/computers/:id"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/workers/jobs/:id"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/workers/limits"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/workers/things"
+  },
+  {
+    "method": "POST",
+    "path": "/api/orgs/:org/workers/things"
+  },
+  {
+    "method": "GET",
+    "path": "/api/orgs/:org/workspaces/:id/queue"
+  },
+  {
+    "method": "POST",
+    "path": "/api/session"
+  }
+]

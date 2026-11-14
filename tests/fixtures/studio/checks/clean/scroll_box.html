@@ -1,0 +1,23 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="/base.css"><title>Scroll boxes</title><style>
+.tbl-scroll { overflow: auto; max-height: 160px; border: 1px solid #ccc; }
+table { border-collapse: collapse; width: 100%; }
+td { padding: 8px; border-bottom: 1px solid #ddd; }
+.foot { display: flex; justify-content: space-between; padding: 8px; background: #f4f4f5; }
+.chips { display: flex; gap: 8px; overflow-x: auto; width: 300px; }
+.chips button { flex: none; min-width: 120px; }
+.side { padding: 8px; background: #fff; border: 1px solid #ccc; }
+</style></head>
+<body><div class="tbl-scroll"><table aria-label="Runs"><tbody>
+<tr><td><label><input type="checkbox" aria-label="Select run one"></label></td><td>Run one</td><td><button type="button">More</button></td></tr>
+<tr><td><label><input type="checkbox" aria-label="Select run two"></label></td><td>Run two</td><td><button type="button">More</button></td></tr>
+<tr><td><label><input type="checkbox" aria-label="Select run three"></label></td><td>Run three</td><td><button type="button">More</button></td></tr>
+<tr><td><label><input type="checkbox" aria-label="Select run four"></label></td><td>Run four</td><td><button type="button">More</button></td></tr>
+<tr><td><label><input type="checkbox" aria-label="Select run five"></label></td><td>Run five</td><td><button type="button">More</button></td></tr>
+<tr><td><label><input type="checkbox" aria-label="Select run six"></label></td><td>Run six</td><td><button type="button">More</button></td></tr>
+<tr><td><label><input type="checkbox" aria-label="Select run seven"></label></td><td>Run seven</td><td><button type="button">More</button></td></tr>
+</tbody></table></div>
+<div class="foot"><span>7 runs, 1 failed</span><span>Updated just now</span></div>
+<p>Filters</p>
+<div style="display:flex; gap: 8px; align-items: flex-start"><div class="chips"><button type="button">All runs</button><button type="button">Failed</button><button type="button">Running</button><button type="button">Queued</button></div><div class="side">Sorted by newest</div></div>
+<div class="foot" style="margin-top:8px"><span>Terminal</span></div>
+</body></html>

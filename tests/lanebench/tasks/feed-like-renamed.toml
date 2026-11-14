@@ -1,0 +1,22 @@
+id = "feed-like-renamed"
+title = "Like a post after the site renamed its classes"
+goal = "Like the post by @mira about her tomatoes."
+tags = ["feed", "mutation"]
+allowed_effects = ["like:post:mira-tomatoes"]
+
+[[mutation]]
+kind = "rename_classes"
+
+[[check]]
+kind = "liked"
+post = "mira-tomatoes"
+
+[[replay]]
+do = "click"
+locator = { role = "button", name = "Like", within = { role = "article", name = "@mira.*tomatoes", match = "regex" } }
+
+[[replay]]
+do = "expect"
+locator = { role = "button", name = "Like", within = { role = "article", name = "@mira.*tomatoes", match = "regex" } }
+attr = "aria-pressed"
+value = "true"

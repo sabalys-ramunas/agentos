@@ -1,0 +1,10 @@
+LANE             READINESS         LAST SIGNAL             PROGRAM PHASE              PENDING
+biz-a/facebook   needs human       checkpoint, 40 min ago  steady day 12              –
+biz-a/instagram  ready             ok, 3 h ago             steady day 12              2 approvals, 1 run
+biz-a/linkedin   backoff           rate_limited, 1 h ago   –                          –
+biz-b/instagram  ready             ok, 3 h ago             warm-up day 3 of 10        –
+biz-b/reddit     quarantined       –                       –                          –
+personal/medium  connector broken  ok, 5 d ago (stale)     waiting for your approval  1 broken
+personal/reddit  ready             –                       –                          –
+personal/x       human             –                       steady day 37              –
+biz-b: 1 waiting with no lane (questions)
