@@ -52,10 +52,15 @@ jobs:
         # Node tests (-m node) need Camoufox and Xvfb; they run on the node with scripts/node-test.sh.
         env:
           AGENTOS_TEST_SHARD: ${{ matrix.shard }}/4
-        # macOS runners allow 256 open files; a shard of real lanes, sockets and SQLite stores needs more
-        # (seen: "Too many open files", and job logs and servers that could not open theirs).
+        # A shard runs ~3,350 tests in one process, and some leave stores and sockets for the garbage
+        # collector to close: raise the open-file limit as far as the runner allows, never lower it
+        # (macOS starts at 256; seen: "Too many open files").
         run: |
-          ulimit -n 8192 || ulimit -n "$(ulimit -Hn)"
+          want=65536
+          hard=$(ulimit -Hn); [ "$hard" = unlimited ] || [ "$hard" -ge "$want" ] || want=$hard
+          max=$(sysctl -n kern.maxfilesperproc 2>/dev/null || echo "$want"); [ "$max" -ge "$want" ] || want=$max
+          [ "$(ulimit -Sn)" != unlimited ] && [ "$(ulimit -Sn)" -lt "$want" ] && ulimit -Sn "$want"
+          echo "open files: $(ulimit -Sn)"
           uv run pytest -q --durations=15
       - name: Tool reference is current (make tools-doc)
         if: matrix.shard == 1
@@ -234,6 +239,9 @@ jobs:
       - name: Fetch the Camoufox browser
         if: steps.camoufox.outputs.cache-hit != 'true'
         run: uv run --no-sync python -m camoufox fetch
+      - name: Fetch the fingerprint model
+        # fpgen downloads its model into the venv on first use; the tests below have no network
+        run: uv run --no-sync python -m fpgen fetch
       - name: Cut the tests off from everything but loopback
         # The tests run with the group agentos-offline; packets of that group may leave only
         # through lo, and not to the local DNS stub either, so no browser, lookup or helper can
