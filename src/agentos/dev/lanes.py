@@ -172,6 +172,16 @@ class FakeLaneManager:
     async def shutdown(self) -> None:
         for info in self.lanes.values():
             info.state, info.viewer = LaneState.COLD, None
+        # A dev tab's context sits in the node's page registries (egress guard, devtools capture),
+        # whose values hold the context again, so the entries never go by themselves: each manager
+        # kept its tabs, itself and the runtime behind its listeners (every store's SQLite files)
+        # for the rest of the process. The node does the same when a lane's browser closes.
+        from agentos.node.camoufox.pages import forget_context
+
+        for page in self.pages.values():
+            context = getattr(page, "context", None)
+            if context is not None:
+                forget_context(context)
         self.shut_down = True
 
     async def create(self, spec: LaneSpec) -> LaneInfo:

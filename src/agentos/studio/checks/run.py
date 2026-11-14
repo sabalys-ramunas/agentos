@@ -35,6 +35,9 @@ from agentos.studio.contracts import (
 )
 
 SEV_RANK = {Severity.INFO: 0, Severity.MINOR: 1, Severity.MAJOR: 2, Severity.BLOCKER: 3}
+# How long the performance pass waits for images on first view that are still loading, so the
+# largest paint it reads is the one they make (perf.js)
+IMAGES_WAIT_MS = 1500
 
 # Glyphs as they are, without colour, black and white: the pixel route's four screenshots.
 _GLYPH_PSEUDOS = "*,*::before,*::after,*::first-letter,*::first-line,*::marker"
@@ -390,7 +393,8 @@ def _images(raw: dict, perf: dict | None, fold: _Folder, ctx: CheckContext) -> l
                      fix=f"Serve an image near {round(2 * w * dpr)} by {round(2 * h * dpr)} px (srcset and sizes); "
                          f"this one is {m['factor']} times larger than shown.", anchor_extra=" | oversized")
     lcp = (perf or {}).get("lcp")
-    if (perf or {}).get("supported", {}).get("lcp"):
+    pending = (perf or {}).get("images_pending") or 0
+    if (perf or {}).get("supported", {}).get("lcp") and not (pending and raw.get("lazy_guess")):
         if lcp and lcp.get("lazy"):
             it = {"sel": lcp.get("sel"), "group": lcp.get("group"), "comp": lcp.get("comp"), "role": "img", "name": None}
             fold.add("health.images", it, severity=Severity.MAJOR,
@@ -400,11 +404,17 @@ def _images(raw: dict, perf: dict | None, fold: _Folder, ctx: CheckContext) -> l
                      anchor_extra=" | lazy_largest")
     elif raw.get("lazy_guess"):
         g = raw["lazy_guess"]
+        why = (f"images on first view were still loading after {IMAGES_WAIT_MS / 1000:g} s, so the largest paint "
+               "was not final" if pending else "this browser does not report the largest paint")
         fold.add("health.images", g, severity=Severity.MINOR, measured=dict(g["measured"], problem="lazy_largest"),
                  expected={"loading": "eager"}, confidence=Confidence.HEURISTIC,
-                 why_heuristic="this browser does not report the largest paint; the largest image on first view stands in for it",
+                 why_heuristic=why + "; the largest image on first view stands in for it",
                  fix='Remove loading="lazy" from the largest image on first view.', anchor_extra=" | lazy_largest")
-        notes.append("largest paint not reported by this browser: lazy check is heuristic")
+        notes.append("images on first view still loading: lazy check is heuristic" if pending
+                     else "largest paint not reported by this browser: lazy check is heuristic")
+    elif pending:
+        notes.append(f"{pending} image{'s' if pending != 1 else ''} on first view still loading after "
+                     f"{IMAGES_WAIT_MS / 1000:g} s: the largest paint may still change")
     return notes
 
 
@@ -715,7 +725,7 @@ async def run_checks(page: Any, ctx: CheckContext, *, other_theme: Any | None = 
     perf: dict | None = None
     if any(c in want for c in ("health.layout_shift", "health.long_tasks", "health.images")):
         try:
-            perf = await page.evaluate(script("perf"), {"wait_ms": 60})
+            perf = await page.evaluate(script("perf"), {"wait_ms": 60, "images_ms": IMAGES_WAIT_MS})
         except Exception as e:  # noqa: BLE001 - recorded in coverage
             perf = None
             for c in ("health.layout_shift", "health.long_tasks"):

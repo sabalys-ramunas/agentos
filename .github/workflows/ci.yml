@@ -54,7 +54,8 @@ jobs:
           AGENTOS_TEST_SHARD: ${{ matrix.shard }}/4
         # A shard runs ~3,350 tests in one process, and some leave stores and sockets for the garbage
         # collector to close: raise the open-file limit as far as the runner allows, never lower it
-        # (macOS starts at 256; seen: "Too many open files").
+        # (macOS starts at 256). A real leak fails the shard by name first (tests/conftest.py,
+        # "open files"): seen as "Too many open files" at macOS's 10,240.
         run: |
           want=65536
           hard=$(ulimit -Hn); [ "$hard" = unlimited ] || [ "$hard" -ge "$want" ] || want=$hard

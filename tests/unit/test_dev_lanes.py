@@ -139,3 +139,25 @@ async def test_a_flow_replays_on_the_lanes_own_tab_and_waits_for_a_hold(tmp_path
         async with flow_driver_factory(lanes)("biz-b/social"):
             pass
     await lanes.shutdown()
+
+
+async def test_a_shut_down_manager_leaves_nothing_in_the_page_registries(tmp_path):
+    """A dev tab's context sits in the node's registries (egress guard, devtools capture), whose
+    values hold the context again: without shutdown forgetting it, every manager and the runtime
+    behind its listeners stayed for the rest of the process (10,000 open files in a macOS shard)."""
+    import gc
+    import weakref
+
+    from agentos.node import devtools, egress
+
+    lanes = manager(tmp_path)
+    await lanes.start()
+    await lanes.create(LaneSpec(id="biz-a/social"))
+    context = lanes._page_for("biz-a/social").context
+    assert egress.guard_for(context) is not None and devtools.capture_for(context) is not None
+    gone = weakref.ref(lanes)
+    await lanes.shutdown()
+    assert egress.guard_for(context) is None and devtools.capture_for(context) is None
+    del lanes, context
+    gc.collect()
+    assert gone() is None

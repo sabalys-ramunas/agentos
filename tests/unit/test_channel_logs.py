@@ -118,8 +118,11 @@ async def test_a_followed_stream_sends_new_lines_until_the_controller_closes_it(
     path.write_text(line("in the new file", ago=0))
     assert (await drain(peer, stream_id, until=lambda lines: lines))[0]["message"] == "in the new file"
     await peer.send("stream_close", {"stream_id": stream_id, "reason": "closed"})
-    await asyncio.sleep(1.2)
-    assert not [t for t in threading.enumerate() if t.name == "channel-logs"]
+    # the reader thread ends within a poll of the close (0.5 s each for the worker and the reader);
+    # waited for, not slept on, because a busy runner took longer than a fixed 1.2 s
+    async with asyncio.timeout(10):
+        while [t for t in threading.enumerate() if t.name == "channel-logs"]:
+            await asyncio.sleep(0.05)
 
 
 async def test_a_flood_of_lines_is_capped_and_says_how_many_it_left_out(node):

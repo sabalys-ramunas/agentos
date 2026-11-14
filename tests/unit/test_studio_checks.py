@@ -283,6 +283,30 @@ async def test_health_reports_console_requests_fonts_and_images(opened):
     assert lazy.measured["problem"] == "lazy_largest" and lazy.confidence == Confidence.MEASURED
 
 
+@pytest.mark.parametrize("delay_s, confidence", [(0.6, Confidence.MEASURED), (2.5, Confidence.HEURISTIC)])
+async def test_a_lazy_hero_from_a_slow_server_is_still_found(browser, delay_s, confidence):
+    """A lazy image does not hold up the load event: read at once, the largest paint was the text
+    under it (seen on a busy CI runner). The check waits for it, and past its wait says so."""
+    import asyncio
+
+    async def slow(route):
+        if route.request.url.endswith("/img/hero.png"):
+            await asyncio.sleep(delay_s)
+        await _serve(route)
+
+    ctx = await browser.new_context(viewport={"width": 360, "height": 800}, reduced_motion="reduce")
+    try:
+        page = await ctx.new_page()
+        await page.route("**/*", slow)
+        await page.goto(f"{HOST}/faults/health_lazy.html", wait_until="load")
+        out = await run_checks(page, CheckContext(screen=Screen(width=360, height=800, theme=Theme.LIGHT)))
+    finally:
+        await ctx.close()
+    [lazy] = by_check(out)["health.images"]
+    assert lazy.measured["problem"] == "lazy_largest" and lazy.confidence == confidence
+    assert set(by_check(out)) == {"health.images"}
+
+
 async def test_layout_shift_and_long_tasks_are_measured_on_chromium(opened):
     [ls] = by_check(await check(opened, "faults/layout_shift"))["health.layout_shift"]
     assert ls.measured["cls"] > 0.1

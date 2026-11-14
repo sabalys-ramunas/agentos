@@ -1,6 +1,8 @@
 import asyncio
 import re
+import shlex
 import socket
+import sys
 from datetime import timedelta
 
 import pytest
@@ -85,11 +87,16 @@ async def test_http_health_probe_inside_the_lane(mgr):
     s.bind(("127.0.0.1", 0))
     port = s.getsockname()[1]
     s.close()
-    svc(mgr, "ws/web", f"exec python3 -m http.server {port} --bind 127.0.0.1",
+    # The test's own Python and a plain TCPServer: `python3 -m http.server` looks up the name of
+    # 127.0.0.1 (socket.getfqdn) before it listens, and on GitHub's macOS runners that lookup takes
+    # about 35 s, so the probe failed three times and the service restarted, again and again.
+    serve = ("import http.server, socketserver, sys; socketserver.TCPServer(('127.0.0.1', int(sys.argv[1])), "
+             "http.server.SimpleHTTPRequestHandler).serve_forever()")
+    svc(mgr, "ws/web", f"exec {shlex.quote(sys.executable)} -c {shlex.quote(serve)} {port}",
         health={"http": f"http://127.0.0.1:{port}/", "interval_s": 0.2, "start_period_s": 0.3})
     st = await mgr.service_start("ws/web")
     assert st.desired == "running"
-    try:  # a loaded CI runner can take a while to start python3 (failed at 8 s on macOS shards)
+    try:  # a loaded CI runner can take a while to start Python
         await until(lambda: mgr.services["ws/web"].status.health == "healthy", timeout=30.0)
     except AssertionError:
         status = mgr.services["ws/web"].status

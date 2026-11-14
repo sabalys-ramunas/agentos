@@ -226,7 +226,7 @@ class Reader:
                 return
             if self.query.follow:
                 follow = (node_logs.journal_lines(self.unit, start, True, popen=self._popen) if follower is None
-                          else follower.lines(self._stop.is_set))
+                          else follower.lines(self._stop.is_set, self._stop.wait))  # stop() wakes its wait
                 for line in follow:
                     if self._stop.is_set():
                         return

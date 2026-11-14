@@ -4,6 +4,7 @@ Skips where Chrome cannot start: the outlines in tests/fixtures/outlines are wha
 from __future__ import annotations
 
 import asyncio
+import gc
 import json
 import time
 from pathlib import Path
@@ -112,23 +113,34 @@ async def test_a_huge_page_and_a_deep_one_read_within_bounds_in_real_chrome(chro
 
 
 async def _longest_stall(work) -> tuple[object, float]:
-    """(what `work` returned, the longest the event loop went without a turn while it ran)."""
+    """(what `work` returned, the most CPU time the event loop's thread spent between two turns
+    while it ran).
+
+    CPU time of this thread, not wall time: on a busy runner the process waits for a core, and
+    that is not the node's code holding the loop (seen: a 1.6 s gap on a macOS runner, for work
+    that takes 0.03 to 0.1 s on a laptop). The heap the rest of the test session left is frozen
+    first, so a full collection of it does not count either. What this does catch is the read's
+    own work on the loop: parsing what Chrome sends and picking records, which the quadratic
+    `outermost` pick this replaced made 3.4 s of CPU for 5000 matches."""
     worst, done = 0.0, False
 
     async def beat() -> None:
         nonlocal worst
-        last = time.monotonic()
+        last = time.thread_time()
         while not done:
             await asyncio.sleep(0.01)
-            now = time.monotonic()
+            now = time.thread_time()
             worst, last = max(worst, now - last), now
 
+    gc.collect()
+    gc.freeze()
     task = asyncio.create_task(beat())
     try:
         out = await work
     finally:
         done = True
         await task
+        gc.unfreeze()
     return out, worst
 
 

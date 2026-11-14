@@ -1,5 +1,7 @@
 import asyncio
 import base64
+import shlex
+import sys
 import time
 
 import pytest
@@ -50,7 +52,7 @@ async def test_exec_basic_exit_codes_and_stdin(mgr):
 
 
 async def test_exec_output_is_capped_with_a_marker(mgr):
-    r = await mgr.exec("ws/bench", "python3 -c \"print('x' * 200000)\"")
+    r = await mgr.exec("ws/bench", f"{shlex.quote(sys.executable)} -c \"print('x' * 200000)\"")
     assert r.truncated and r.stdout_bytes == 200001 and "bytes truncated]" in r.stdout
     assert len(r.stdout) < 5000
 

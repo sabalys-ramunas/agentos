@@ -19,6 +19,30 @@ async (opts) => {
     return c ? { name: c.name, source: c.source } : null;
   };
   const group = (el) => (el && el.nodeType === 1 ? groupKey(el, component(el)) : null);
+  // An image on first view that is still loading has no largest-paint entry yet, so the largest
+  // paint read now would name something smaller (a lazy image does not hold up the load event, and
+  // a slow server or a busy machine delays it more). Wait for those images, up to images_ms, and
+  // for the frame that paints them.
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const loading = [...document.images].filter((im) => {
+    if (im.complete) return false;
+    const r = im.getBoundingClientRect();
+    return r.width > 0 && r.height > 0 && r.top < vh && r.bottom > 0 && r.left < vw && r.right > 0;
+  });
+  if (loading.length && opts.images_ms) {
+    const settled = (im) => new Promise((resolve) => {
+      if (im.complete) { resolve(); return; }
+      im.addEventListener('load', resolve, { once: true });
+      im.addEventListener('error', resolve, { once: true });
+    });
+    await Promise.race([Promise.all(loading.map(settled)),
+      new Promise((resolve) => setTimeout(resolve, opts.images_ms))]);
+    await new Promise((resolve) => {
+      const done = setTimeout(resolve, 100);  // no frames in a hidden tab: do not wait for one
+      requestAnimationFrame(() => requestAnimationFrame(() => { clearTimeout(done); resolve(); }));
+    });
+  }
+  const pending = loading.filter((im) => !im.complete).length;
   const [allShifts, allTasks, frames, lcp] = await Promise.all([
     read('layout-shift'), read('longtask'), read('long-animation-frame'), read('largest-contentful-paint'),
   ]);
@@ -28,7 +52,7 @@ async (opts) => {
   const shifts = allShifts && allShifts.filter((e) => e.startTime < cut);
   const tasks = allTasks && allTasks.filter((e) => e.startTime < cut);
   const res = { supported: { layout_shift: shifts !== null, long_tasks: tasks !== null, lcp: lcp !== null },
-    after_capture: allShifts ? allShifts.length - shifts.length : 0 };
+    after_capture: allShifts ? allShifts.length - shifts.length : 0, images_pending: pending };
   if (shifts) {
     // CLS: the largest session window (gaps under 1 s, windows at most 5 s), inputs excluded.
     let best = 0, bestEntries = [], cur = 0, curEntries = [], start = 0, last = 0;
