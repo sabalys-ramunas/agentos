@@ -11,7 +11,7 @@ Everything except the real browser runs on a laptop (macOS or Linux, Python 3.12
 uv sync                          # once: the Python env with the dev tools
 uv run python -c "from camoufox.fpgen_model import ensure_fpgen_model; ensure_fpgen_model()"
                                  # once: the fingerprint model a few unit tests read (they may not reach the network)
-uv run agentos dev up --seed     # a fake node on 127.0.0.1:7450 (see README.md)
+uv run agentos dev up --seed     # a fake node on 127.0.0.1:7450 (see docs/DEVELOPING.md)
 make check                       # what CI runs: lint (with layers and size limits), dead code, shell syntax, em dash check, type check, unit tests
 ```
 

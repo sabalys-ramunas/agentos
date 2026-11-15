@@ -35,6 +35,7 @@ FEATURE_TOOLS: tuple[str, ...] = (
     "agentos.env.files",  # lane_file_read, lane_file_write, lane_file_edit: code on a lane's machine
     "agentos.vms.tools",  # vm_create, vm_destroy, vm_extend, vms_list (disposable cloud VMs as lanes)
     "agentos.environments.tools",  # environment_open, environment, environment_close (a cloud computer per chat)
+    "agentos.environments.uploads",  # environment_upload: a one-use link for a local checkout's tarball
     "agentos.events.tools",
     "agentos.agenda.tools",  # agenda_list, agenda_draft, agenda_propose, ... (approving is not an agent tool)
     "agentos.memory.tools",  # memory_context, memory_search, memory_get, memory_write, memory_forget

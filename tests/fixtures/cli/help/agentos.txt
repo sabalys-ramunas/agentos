@@ -12,11 +12,12 @@
 │ --help                        Show this message and exit.                    │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ╭─ Start here ─────────────────────────────────────────────────────────────────╮
-│ setup         Start here: pick a node, connect Claude Code and Codex.        │
+│ setup         Start here: VMs, GitHub, limits, and Claude Code and Codex.    │
 │ up            Set up and start this box, then print a sign-in link.          │
 │ connect       Let the agents on your computer use a node.                    │
 │ status        Is it up, and which lanes it has (--check: what is wrong).     │
 │ open          Watch a lane live and take control (--terminal: a dashboard).  │
+│ local         agentos on this computer: start, stop, status, logs.           │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ╭─ Build and check ────────────────────────────────────────────────────────────╮
 │ run           Run a command on the node against this working tree.           │

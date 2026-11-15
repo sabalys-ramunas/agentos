@@ -116,6 +116,8 @@ export const CLEARING_TAINT = 'An agent that read outside text would stop asking
 export const TURNING_ON_ACCOUNT_WORKER = 'The worker will act on this account again, so agentos checks it is you first. An agent can never do this for you.';
 
 /** Asked once, before a freeze is lifted. Lifting one restores nothing, so the words say so. */
+/** Said in the step-up dialog before a repository token goes to the node. */
+export const GIVING_A_TOKEN = 'A token opens your code to this computer, so agentos checks it is you first.';
 export const LIFTING_A_FREEZE = 'Lifting the freeze lets agents start again, and agentos checks it is you first. Nothing comes back by itself: grants stay revoked and paused schedules stay paused.';
 
 /** What a freeze is, in the words a person reads. Its technical name is the break-glass freeze. */

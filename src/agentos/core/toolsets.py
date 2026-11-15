@@ -106,7 +106,7 @@ TOOLSETS: tuple[Toolset, ...] = (
         "lane_upload", "lane_jobs_list", "shell_open",
         "shell_read", "shell_write", "shell_close", "service_start", "service_stop", "service_status",
         "service_logs", "image_build", "images_list", "vm_create", "vm_destroy", "vm_extend", "vm_clone",
-        "vms_list",
+        "vms_list", "environment_upload",
     ), ("env",), "shells, commands, services"),
     Toolset("brains", "agent tasks on the node's brains: run, follow, resume, cancel; the git remotes they reach", (
         "brains_list", "brain_run", "brain_status", "brain_tail", "brain_tasks", "brain_resume",

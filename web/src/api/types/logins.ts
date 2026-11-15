@@ -5,7 +5,9 @@ import type { Readiness } from './lanes';
  * workspace's passphrase, a file). The app starts it and opens `form_url` on the computer; the app never
  * holds the value. `stage` is how far it got: waiting, done, or ended (it ran out or was closed).
  */
-export type FormKind = 'vault_unlock' | 'vault_entry' | 'proxy' | 'workspace_export' | 'workspace_import' | 'login';
+export type FormKind = 'vault_unlock' | 'vault_entry' | 'proxy' | 'workspace_export' | 'workspace_import' | 'login' | 'repo_token';
+/** The kinds the app starts with `POST /forms`. A sign-in and a repository's token each have their own route. */
+export type StartFormKind = Exclude<FormKind, 'login' | 'repo_token'>;
 export type FormStage = 'waiting' | 'done' | 'ended';
 export interface FormTrip {
   id: string;
@@ -14,6 +16,8 @@ export interface FormTrip {
   subject: string | null;
   form_url: string | null;
   expires_at: string;
+  /** What a finished form may tell the app, never a value typed on it. A repository's token page: the repository, and when GitHub says the token expires. */
+  outcome?: { repo?: string; token_expires_at?: string | null } | null;
 }
 
 /** One sign-in, as the lane's login service reports it (`GET /api/orgs/{org}/lanes/{ws}/{name}/login`). */

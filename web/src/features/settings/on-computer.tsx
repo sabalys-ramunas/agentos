@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { toast } from 'sonner';
 import { useFormTrip, useStartForm } from '@/api/hooks';
-import type { FormKind, FormTrip } from '@/api/types';
+import type { FormTrip, StartFormKind } from '@/api/types';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 
@@ -20,7 +20,7 @@ export function useFormOnComputer(org: string) {
   const [trip, setTrip] = useState<string | undefined>();
   const [link, setLink] = useState<string | null>(null);
   const status = useFormTrip(org, trip);
-  const open = async (kind: Exclude<FormKind, 'login'>, fields?: Record<string, string>) => {
+  const open = async (kind: StartFormKind, fields?: Record<string, string>) => {
     const tab = window.open('', '_blank');
     const made = await start.mutateAsync({ kind, fields });
     setTrip(made.id);
@@ -63,7 +63,7 @@ export function FormDialog({
   onOpenChange: (open: boolean) => void;
   title: string;
   description: string;
-  kind: Exclude<FormKind, 'login'>;
+  kind: StartFormKind;
   fields?: Record<string, string>;
   confirmLabel: string;
   doneWords: string;

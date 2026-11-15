@@ -1,0 +1,774 @@
+"""The steps of `agentos setup` (agentos.setup.cli): VMs, GitHub, limits, the local service and
+the agents, the health check, a test VM, and the summary.
+
+Everything that leaves this process (the Hetzner and GitHub APIs, gh, docker, the local service, a
+test VM) goes through one small function here, so the tests replace exactly those. A token is read
+from a hidden prompt or a file, checked, stored (the Hetzner token where `agentos vm setup` keeps
+it, a GitHub token sealed in the vault) and never printed.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import importlib
+import re
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
+
+import typer
+
+from agentos.core.errors import AgentosError
+
+if TYPE_CHECKING:
+    from agentos.setup.cli import Ctx
+
+# Local mode's limits: low, because a laptop that sleeps keeps a VM billing until it wakes.
+LOCAL_MONTHLY_EUR = 10.0
+LOCAL_MAX_HOURS = 4.0
+LOCAL_MAX_LIVE = 2
+HETZNER_HOURLY = "about EUR 0.011 an hour"
+LOCATIONS = (("nbg1", "Nuremberg, Germany"), ("fsn1", "Falkenstein, Germany"), ("hel1", "Helsinki, Finland"),
+             ("ash", "Ashburn, USA"), ("hil", "Hillsboro, USA"), ("sin", "Singapore"))
+VM_SIZES = (("small", "small: 2 CPU, 4 GB (the cheapest, a cx23)"), ("medium", "medium: 4 CPU, 8 GB"),
+            ("large", "large: 8 CPU, 16 GB"))
+TEST_LANE = "setup/test-vm"
+# The `dev` snapshot (agentos vm image build dev): Ubuntu with the tools and the environment's browser.
+SNAPSHOT_GB = 4
+SNAPSHOT_PRICE = "about EUR 0.012 per GB a month"  # Hetzner's snapshot storage
+GH_UNREACHABLE = "could not reach GitHub to check it"
+ANY_REPO_QUESTION = "Let environments clone and push any repository this GitHub login can reach?"
+PUSH_RULES = "Push rules still apply: no force push or delete of branches the environment did not create."
+
+
+# ------------------------------------------------------------------ the outside world (tests replace these)
+
+
+def local(name: str) -> Any:
+    """agentos.local.<name> (the local runtime: paths, service, register)."""
+    return importlib.import_module(f"agentos.local.{name}")
+
+
+def local_home() -> Path:
+    try:
+        return Path(local("paths").default_home())
+    except ModuleNotFoundError:
+        return Path.home() / ".agentos"
+
+
+def hetzner_check(token: str, api_url: str) -> str | None:
+    """None when Hetzner takes the token, else what is wrong, in words."""
+    from agentos.vms.hetzner import HetznerProvider
+
+    try:
+        asyncio.run(HetznerProvider(token, api_url=api_url).check())
+    except AgentosError as e:
+        return e.message
+    return None
+
+
+def docker_state(docker_bin: str, image: str) -> tuple[bool, bool, bool]:
+    """(installed, running, the image is built)."""
+    exe = shutil.which(docker_bin)
+    if exe is None:
+        return False, False, False
+    try:
+        running = subprocess.run([exe, "info", "--format", "{{.ServerVersion}}"], capture_output=True,
+                                 timeout=20, check=False).returncode == 0
+        built = running and subprocess.run([exe, "image", "inspect", image], capture_output=True, timeout=20,
+                                           check=False).returncode == 0
+    except (OSError, subprocess.TimeoutExpired):
+        return True, False, False
+    return True, running, built
+
+
+def build_docker_image(image: str, docker_bin: str) -> bool:
+    from agentos.environments import cli as envcli
+
+    try:
+        envcli._build_image(image, docker_bin)
+    except typer.Exit as e:
+        return not e.exit_code
+    return True
+
+
+def gh_available() -> bool:
+    return shutil.which("gh") is not None
+
+
+def gh(*args: str, interactive: bool = False) -> tuple[int, str]:
+    """Run gh: (exit code, what it printed). Interactive runs on this terminal and prints nothing back."""
+    exe = shutil.which("gh")
+    if exe is None:
+        return 127, ""
+    if interactive:
+        return subprocess.run([exe, *args], check=False).returncode, ""
+    try:
+        done = subprocess.run([exe, *args], capture_output=True, text=True, timeout=30, check=False)
+    except (OSError, subprocess.TimeoutExpired):
+        return 1, ""
+    return done.returncode, (done.stdout or "") + (done.stderr or "")
+
+
+def github_user(token: str) -> tuple[str | None, str | None]:
+    """(the login the token belongs to, None) or (None, what is wrong)."""
+    import httpx
+
+    headers = {"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json",
+               "User-Agent": "agentos-setup"}
+    try:
+        r = httpx.get("https://api.github.com/user", headers=headers, timeout=15)
+    except httpx.HTTPError:
+        return None, GH_UNREACHABLE
+    if r.status_code == 401:
+        return None, "GitHub refused it (expired, revoked or mistyped)"
+    if r.status_code >= 400:
+        return None, f"GitHub answered {r.status_code}"
+    try:
+        return str((r.json() or {}).get("login") or ""), None
+    except ValueError:
+        return "", None
+
+
+def vault(home: Path, *, create: bool = True) -> Any:
+    """This home's vault (AGENTOS_HOME is `home`), made with a key file when there is none yet and
+    `create`; else None."""
+    from agentos.commands.base import cli_runtime
+
+    found = cli_runtime().get("vault")
+    if found is not None or not create:
+        return found
+    make_vault(home)
+    return cli_runtime().get("vault")
+
+
+def make_vault(home: Path) -> None:
+    """A key-file vault, as `agentos vault init` makes one: the key in secrets/vault.key (0600)."""
+    import os
+
+    from agentos.vault import crypto
+    from agentos.vault.service import keyfile_path, pending_keyfile_path
+    from agentos.vault.store import VaultStore
+
+    store = VaultStore(home / "vault.db")
+    keyfile = keyfile_path(home)
+    pending = pending_keyfile_path(keyfile)
+    master = os.urandom(crypto.KEY_LEN)
+    crypto.write_keyfile(pending, master)
+    store.initialize(mode="keyfile", master=master, kdf=None)
+    os.replace(pending, keyfile)
+    crypto.fsync_dir(keyfile.parent)
+
+
+class _NoLanes:
+    """The test VM is no lane: VmManager asks the lanes for nothing it keeps."""
+    remote_launcher = "none"  # not None: the manager gives no ssh launcher
+
+    def has(self, lane_id: str) -> bool:
+        return False
+
+    def create_remote(self, lane_id: str, remote: Any) -> None:
+        return None
+
+
+def open_test_vm(home: Path) -> tuple[str, float | None]:
+    """Rent a VM, run `uname -a` on it, delete it: (what it printed, what it cost in EUR)."""
+    from agentos.core.models import utcnow
+    from agentos.core.runtime import Runtime
+    from agentos.vms import ssh
+    from agentos.vms.manager import VmManager
+    from agentos.vms.models import VmError
+
+    rt = Runtime()
+    rt.register("envs", _NoLanes())
+    mgr = VmManager(home, runtime=rt)
+
+    async def go() -> tuple[str, float | None]:
+        rec = await mgr.create(TEST_LANE, ttl_minutes=15, purpose="agentos setup: a test VM")
+        try:
+            if rec.state != "ready":
+                raise VmError(rec.error or f"the VM is {rec.state}, not ready")
+            code, out = await ssh.run(mgr.remote(rec), "uname -a", timeout_s=60)
+            if code != 0:
+                raise VmError(f"uname -a ended with {code}")
+            said = out.strip().splitlines()[-1] if out.strip() else ""
+        finally:
+            rec = await mgr.destroy(rec.id, reason="agentos setup: the test is done")
+        return said, rec.cost_eur(utcnow())
+
+    return asyncio.run(go())
+
+
+def dev_snapshot_state(home: Path) -> bool | None:
+    """True when the Hetzner project has the `dev` snapshot, False when it has none, None when it
+    cannot tell (Hetzner did not answer)."""
+    from agentos.vms.manager import VmManager
+
+    try:
+        asyncio.run(VmManager(home).provider().resolve_image("snapshot:dev"))
+    except AgentosError as e:
+        return False if e.message.startswith("no snapshot named dev") else None
+    return True
+
+
+def build_dev_snapshot(home: Path, say: Any) -> float | None:
+    """`agentos vm image build dev`: a VM from Ubuntu, the tools and the environment's browser, a
+    snapshot, the VM deleted. Returns what it cost in EUR; raises AgentosError when it fails."""
+    from agentos.core.runtime import Runtime
+    from agentos.environments.vmbrowser import install_script
+    from agentos.vms.manager import VmManager, image_script
+
+    rt = Runtime()
+    rt.register("envs", _NoLanes())
+    mgr = VmManager(home, runtime=rt, follow_ip=True)  # a laptop: SSH from where it is now
+    out = asyncio.run(mgr.build_image("dev", script=image_script(install_script()), on_step=say))
+    return out.get("cost_eur")
+
+
+def read_token_file(path: Path) -> str:
+    text = sys.stdin.readline() if str(path) == "-" else Path(path).expanduser().read_text()
+    return text.strip()
+
+
+# ------------------------------------------------------------------ settings files
+
+
+def _write_toml(path: Path, updates: dict[str, Any], check: Any) -> None:
+    import tomllib
+
+    import tomli_w
+
+    from agentos.core.config import write_private
+
+    data = tomllib.loads(path.read_text()) if path.exists() else {}
+    data.update(updates)
+    check(**data)  # refuse what the service would not start with
+    write_private(path, tomli_w.dumps(data))
+
+
+def write_vm_settings(home: Path, updates: dict[str, Any]) -> None:
+    from agentos.vms.models import SETTINGS_FILE, VmSettings
+
+    _write_toml(home / SETTINGS_FILE, updates, VmSettings)
+
+
+def size_updates(home: Path, size: str) -> dict[str, Any]:
+    """vms.toml keys that make `size` the default machine."""
+    from agentos.environments.models import SIZES
+    from agentos.vms.models import load_settings
+
+    if size == "small":
+        return {"default_profile": "small"}
+    cpu, memory = SIZES[size]
+    profiles = {n: p.model_dump(exclude_defaults=True) for n, p in load_settings(home).profiles.items()}
+    profiles[size] = {"min_cpu": cpu, "min_memory_gb": memory, "description": f"the default: {cpu}+ CPU, {memory}+ GB"}
+    return {"profiles": profiles, "default_profile": size}
+
+
+# ------------------------------------------------------------------ step: VMs
+
+
+def vms(ctx: Ctx) -> None:
+    from agentos.vms.models import TOKEN_FILE, load_settings
+
+    ui, home = ctx.ui, ctx.home
+    try:
+        settings = load_settings(home)
+    except (ValueError, OSError) as e:
+        ui.say(f"vms.toml cannot be read ({type(e).__name__}); fix or remove {home / 'vms.toml'} first.")
+        ctx.todo.append("VMs")
+        return
+    has_token = (home / TOKEN_FILE).exists()
+    installed, running, built = docker_state(settings.docker_bin, settings.docker_image)
+    options = []
+    if has_token:
+        options.append(("keep", "Keep the saved Hetzner token"))
+    options.append(("hetzner", f"Hetzner Cloud: a real VM for each chat, {HETZNER_HOURLY} while one is open"))
+    if running:
+        options.append(("docker", "Docker on this computer: free, but less isolated than a cloud VM"))
+    options.append(("skip", "Skip for now (agentos setup vms later)"))
+    if installed and not running:
+        ui.say("Docker is installed but not running. Start it and run `agentos setup vms` to use it.")
+    choice = ui.choose("Where should VMs come from?", options, _vm_default(ctx, settings, has_token, running))
+    if choice == "docker":
+        _use_docker(ctx, settings, built)
+    elif choice in ("hetzner", "keep"):
+        _use_hetzner(ctx, settings, keep=choice == "keep")
+    else:
+        ui.say("No VMs for now. Agents cannot open an environment until you run `agentos setup vms`.")
+        ctx.todo.append("VMs")
+
+
+def _vm_default(ctx: Ctx, settings: Any, has_token: bool, running: bool) -> str:
+    opts = ctx.opts
+    if opts.docker and running:
+        return "docker"
+    if opts.hetzner_token_file is not None:
+        return "hetzner"
+    if settings.provider == "docker" and running:
+        return "docker"
+    if has_token:
+        return "keep"
+    return "skip" if ctx.ui.yes else "hetzner"
+
+
+def _use_docker(ctx: Ctx, settings: Any, built: bool) -> None:
+    ui = ctx.ui
+    write_vm_settings(ctx.home, {"provider": "docker"})
+    ui.say("VMs are Docker containers on this computer. They are free, and share this computer's kernel.")
+    ui.say("The machine image has each environment's browser, so the browser starts at once.")
+    if not built and ui.confirm(f"Build the machine image {settings.docker_image} now? The first time takes a few "
+                                "minutes.", default=True):
+        built = build_docker_image(settings.docker_image, settings.docker_bin)
+        ui.say("The image is built." if built else "The image did not build. Try again: agentos setup vms")
+    if not built:
+        ctx.todo.append("the Docker image (agentos environments setup --build)")
+    ctx.vms = "Docker on this computer (free)"
+
+
+def _hetzner_token(ctx: Ctx, api_url: str) -> str | None:
+    """A token Hetzner takes, from the file or the prompt (three tries), or None."""
+    ui, opts = ctx.ui, ctx.opts
+    if opts.hetzner_token_file is not None:
+        token = read_token_file(opts.hetzner_token_file)
+        problem = hetzner_check(token, api_url) if token else "the file is empty"
+        if problem:
+            ui.say(f"The Hetzner token in {opts.hetzner_token_file} did not work: {problem}")
+            return None
+        return token
+    ui.say("Make a token in the Hetzner Cloud console: your project, Security, API tokens, Read & Write.")
+    ui.say("Use a project for agentos alone: the token can delete any server in it.")
+    for _ in range(3):
+        token = ui.secret("Paste the Hetzner token (hidden; Enter to skip)")
+        if not token:
+            return None
+        problem = hetzner_check(token, api_url)
+        if problem is None:
+            return token
+        ui.say(f"That token did not work: {problem}")
+    return None
+
+
+def _use_hetzner(ctx: Ctx, settings: Any, *, keep: bool) -> None:
+    from agentos.core.config import write_private
+    from agentos.vms.models import TOKEN_FILE
+
+    ui, home = ctx.ui, ctx.home
+    path = home / TOKEN_FILE
+    problem = None
+    if keep:
+        problem = hetzner_check(path.read_text().strip(), settings.api_url)
+        ui.say("The saved Hetzner token works." if problem is None else f"The saved Hetzner token did not work: "
+               f"{problem}. Run `agentos setup vms` with a new one.")
+        if problem is not None:
+            ctx.todo.append("VMs")
+    else:
+        token = _hetzner_token(ctx, settings.api_url)
+        if token is None:
+            ui.say("No Hetzner token saved. Run `agentos setup vms` when you have one.")
+            ctx.todo.append("VMs")
+            return
+        write_private(path, token + "\n")
+        ui.say(f"The token works. It is saved in {path}, and only you can read it.")
+    location, size = settings.location if settings.provider == "hetzner" else "nbg1", settings.default_profile
+    if not ctx.quick:
+        location = ui.choose("Where should VMs run?", [(k, f"{k}: {w}") for k, w in LOCATIONS],
+                             location if location in dict(LOCATIONS) else "nbg1")
+        size = ui.choose("How big is a VM, unless an agent asks for more?", list(VM_SIZES),
+                         size if size in dict(VM_SIZES) else "small")
+    updates = {"provider": "hetzner", "location": location}
+    if size in dict(VM_SIZES):
+        updates.update(size_updates(home, size))
+    write_vm_settings(home, updates)
+    where = dict(LOCATIONS).get(location, location)
+    ctx.vms = f"Hetzner Cloud in {where}, {size if size in dict(VM_SIZES) else 'small'} machines ({HETZNER_HOURLY})"
+    if problem is None:
+        _offer_dev_snapshot(ctx)
+
+
+def _offer_dev_snapshot(ctx: Ctx) -> None:
+    """Each environment's browser runs on its VM. The `dev` snapshot has it (and the tools) ready;
+    without it, every VM installs the browser when it opens."""
+    ui = ctx.ui
+    state = dev_snapshot_state(ctx.home)
+    if state is True:
+        ui.say("The dev snapshot is there, so each VM boots with its tools and browser ready.")
+        return
+    if state is None:
+        ui.say("agentos could not check for the dev snapshot just now. `agentos setup vms` checks again.")
+        return
+    ui.say("Each environment gets a real browser, which runs on its VM.")
+    ui.say("Without a snapshot, each VM installs the browser when it opens. That adds 2 to 4 minutes to every "
+           "environment.")
+    ui.say("The dev snapshot has it ready. Building it takes a few minutes and costs a cent or two. Hetzner "
+           f"then bills its storage (about {SNAPSHOT_GB} GB, {SNAPSHOT_PRICE}) until you delete it.")
+    if not ui.confirm("Build the dev snapshot now?", default=not ui.yes):
+        ui.say("No snapshot for now. `agentos setup vms` offers it again, or run `agentos vm image build dev`.")
+        return
+    ui.say("Building the dev snapshot (a few minutes)...")
+    try:
+        cost = build_dev_snapshot(ctx.home, lambda step: ui.say(f"  {step}"))
+    except AgentosError as e:
+        ui.say(f"The dev snapshot was not built: {e.message}")
+        ui.say("Environments still work: each VM installs the browser when it opens. Try again with "
+               "`agentos setup vms`.")
+        ctx.todo.append("the dev snapshot")
+        return
+    ui.say("The dev snapshot is built. Each VM now boots with its tools and browser ready." +
+           (f" It cost EUR {cost:.3f}." if cost else ""))
+
+
+# ------------------------------------------------------------------ step: GitHub
+
+
+def _gh_login() -> str | None:
+    """The account gh is signed in to on github.com, or None."""
+    if not gh_available():
+        return None
+    code, out = gh("auth", "status", "--hostname", "github.com")
+    if code != 0:
+        return None
+    m = re.search(r"(?:account|as)\s+([A-Za-z0-9-]+)", out)
+    return m.group(1) if m else ""
+
+
+def _saved_login(ctx: Ctx) -> Any:
+    from agentos.git import login
+
+    saved = login.load(ctx.home)
+    if saved is None:
+        return None
+    store = vault(ctx.home, create=False)
+    try:
+        held = store is not None and asyncio.run(store.has_secret(login.REF))
+    except AgentosError:
+        held = False
+    return saved if held else None
+
+
+def _github_options(saved: Any, gh_account: str | None) -> list[tuple[str, str]]:
+    options = []
+    if saved is not None:
+        options.append(("keep", f"Keep the saved login{f' ({saved.login})' if saved.login else ''}"))
+    if gh_account is not None:
+        options.append(("gh", f"Use your gh login{f' ({gh_account})' if gh_account else ''}"))
+    elif gh_available():
+        options.append(("gh-login", "Sign in with gh now (gh auth login)"))
+    options.append(("token", "Paste a GitHub token"))
+    options.append(("skip", "Skip: public repositories only"))
+    if saved is not None:
+        options.append(("forget", "Remove the saved login"))
+    return options
+
+
+def _github_default(ctx: Ctx, saved: Any, gh_account: str | None) -> str:
+    if ctx.opts.github_token_file is not None:
+        return "token"
+    if saved is not None:
+        return "keep"
+    if gh_account is not None:
+        return "gh"
+    if ctx.ui.yes:
+        return "skip"
+    return "gh-login" if gh_available() else "token"
+
+
+def github(ctx: Ctx) -> None:
+    ui = ctx.ui
+    ui.say("Environments clone and push your repositories through agentos on this computer.")
+    ui.say("Your GitHub token stays here. A VM never sees it.")
+    saved = _saved_login(ctx)
+    gh_account = _gh_login()
+    choice = ui.choose("How should agentos reach GitHub?", _github_options(saved, gh_account),
+                       _github_default(ctx, saved, gh_account))
+    if choice == "skip":
+        ctx.github = "public repositories only"
+        ui.say("Public repositories only. Run `agentos setup github` to add a login later.")
+        return
+    if choice == "forget":
+        _forget_login(ctx)
+        return
+    if choice == "keep":
+        _keep_login(ctx, saved)
+        return
+    if choice == "gh-login":
+        if gh("auth", "login", "--hostname", "github.com", "--git-protocol", "https", interactive=True)[0] != 0:
+            ui.say("gh did not sign in. Run `agentos setup github` to try again.")
+            ctx.github = "public repositories only"
+            return
+        gh_account, choice = _gh_login() or "", "gh"
+    token = _github_token(ctx, choice)
+    if token is None:
+        ctx.github = "public repositories only"
+        return
+    _store_login(ctx, token, gh_account if choice == "gh" else None, source="gh" if choice == "gh" else "token")
+
+
+def _github_token(ctx: Ctx, choice: str) -> str | None:
+    ui, opts = ctx.ui, ctx.opts
+    if choice == "gh":
+        code, out = gh("auth", "token", "--hostname", "github.com")
+        token = out.strip().splitlines()[0].strip() if code == 0 and out.strip() else ""
+        if not token:
+            ui.say("gh did not give a token. Run `gh auth login`, then `agentos setup github`.")
+            return None
+        return token
+    if opts.github_token_file is not None:
+        return read_token_file(opts.github_token_file) or None
+    ui.say("Make one at https://github.com/settings/personal-access-tokens: the repositories agents may use,")
+    ui.say("with Contents: read and write, and Pull requests: read and write.")
+    return ui.secret("Paste the GitHub token (hidden; Enter to skip)") or None
+
+
+def _store_login(ctx: Ctx, token: str, gh_account: str | None, *, source: str) -> None:
+    from agentos.git import login
+
+    ui = ctx.ui
+    user, problem = github_user(token)
+    if problem == GH_UNREACHABLE:
+        ui.say(f"agentos {problem} now. It is saved anyway, and checked on the first clone.")
+        user = gh_account or ""
+    elif problem is not None:
+        ui.say(f"That token did not work: {problem}. Nothing was saved.")
+        ctx.github, ctx.todo = "public repositories only", [*ctx.todo, "GitHub"]
+        return
+    ui.say(PUSH_RULES)
+    any_repo = ui.confirm(ANY_REPO_QUESTION, default=True)
+    saved = asyncio.run(login.store(vault(ctx.home), ctx.home, token, login=user or "", source=source,
+                                    any_repo=any_repo))
+    ui.say(f"Saved the GitHub login{f' {saved.login}' if saved.login else ''}, sealed in the agentos vault "
+           f"({ctx.home / 'vault.db'}).")
+    if source == "gh":
+        ui.say("It is gh's token. When gh signs in again or the token changes, run `agentos setup github` again.")
+    _say_reach(ctx, saved)
+
+
+def _keep_login(ctx: Ctx, saved: Any) -> None:
+    from agentos.git import login
+
+    ctx.ui.say(PUSH_RULES)
+    any_repo = ctx.ui.confirm(ANY_REPO_QUESTION, default=saved.any_repo or ctx.quick)
+    _say_reach(ctx, login.set_any_repo(ctx.home, any_repo) or saved)
+
+
+def _forget_login(ctx: Ctx) -> None:
+    from agentos.git import login
+
+    asyncio.run(login.forget(vault(ctx.home), ctx.home))
+    ctx.github = "public repositories only"
+    ctx.ui.say("Removed the saved GitHub login. Public repositories only now.")
+
+
+def _say_reach(ctx: Ctx, saved: Any) -> None:
+    who = saved.login or "this login"
+    ctx.github_login = saved.login or ""
+    if saved.any_repo:
+        ctx.github = f"{who}: any repository it can reach"
+        ctx.ui.say(f"Environments may clone and push any repository {who} can reach.")
+    else:
+        ctx.github = f"{who}: repositories you connect one by one"
+        ctx.ui.say("Connect repositories one by one: agentos environments repo add github.com/<owner>/<name>")
+
+
+# ------------------------------------------------------------------ step: limits
+
+
+def limits(ctx: Ctx) -> None:
+    from agentos.environments import cli as envcli
+    from agentos.environments.models import SETTINGS_FILE, load_settings
+
+    ui, home = ctx.ui, ctx.home
+    path = home / SETTINGS_FILE
+    first = not path.exists()
+    current = load_settings(home)
+    monthly = LOCAL_MONTHLY_EUR if first else (current.monthly_eur or 0.0)
+    hours = LOCAL_MAX_HOURS if first else current.max_hours
+    live = LOCAL_MAX_LIVE if first else (current.max_live if current.max_live is not None else LOCAL_MAX_LIVE)
+    ui.say("agentos refuses a VM past these limits, whatever an agent asks.")
+    if not ctx.quick:
+        monthly = ui.number("Monthly cap for VMs, in EUR (0: no cap)", monthly)
+        hours = ui.number("Hours one VM may stay open, at most", hours)
+        live = int(ui.number("VMs open at once, at most", live, whole=True))
+    try:
+        envcli._write_settings({"monthly_eur": monthly, "max_hours": hours, "max_live": live}, home)
+    except ValueError as e:
+        ui.say(f"Those limits were not saved: {str(e).splitlines()[0]}. Run `agentos setup limits` again.")
+        ctx.todo.append("limits")
+        return
+    ctx.limits = limit_words(load_settings(home))
+    ui.say(f"Limits: {ctx.limits}.")
+
+
+def limit_words(s: Any) -> str:
+    cap = "no monthly cap" if not s.monthly_eur else f"EUR {s.monthly_eur:g} a month"
+    live = "the VM limit" if s.max_live is None else str(s.max_live)
+    return f"{cap}, {s.max_hours:g} hours per VM, {live} at once"
+
+
+# ------------------------------------------------------------------ step: the service and the agents
+
+
+def _service_state(ctx: Ctx, *, start: bool) -> Any:
+    try:
+        service = local("service")
+    except ModuleNotFoundError:
+        return None
+    state = service.status(ctx.home)
+    if start and not state.running:
+        state = service.start(ctx.home)
+    return state
+
+
+def agents(ctx: Ctx) -> None:
+    ui = ctx.ui
+    state = _service_state(ctx, start=True)
+    if state is None:
+        ui.say("The local service is not part of this build of agentos yet. Update agentos and run "
+               "`agentos setup agents`.")
+        ctx.todo.append("the local service")
+        return
+    if not state.running:
+        ui.say(f"The agentos service did not start{f': {state.note}' if state.note else ''}.")
+        ui.say(f"Its log: {state.log_path}")
+        ctx.todo.append("the local service")
+        return
+    ctx.service_url = state.url
+    ui.say(f"The agentos service runs on this computer at {state.url}.")
+    claude = codex = skills = True
+    if not ctx.quick:
+        claude = ui.confirm("Connect Claude Code?", default=True)
+        codex = ui.confirm("Connect Codex?", default=True)
+        skills = ui.confirm("Add the agentos skills (how to work in an environment)?", default=True)
+    try:
+        done = local("register").register_clients(ctx.home, state.port, claude=claude, codex=codex, skills=skills)
+    except (AgentosError, OSError) as e:
+        ui.say(f"Connecting the agents failed: {getattr(e, 'message', e)}. Run `agentos setup agents` again.")
+        ctx.todo.append("the agents")
+        return
+    ctx.agents = list(done)
+    for line in ctx.agents:
+        ui.say(f"  {line}")
+
+
+def restart_if_running(ctx: Ctx) -> None:
+    """A changed vms.toml or environments.toml is read when the service starts."""
+    try:
+        service = local("service")
+    except ModuleNotFoundError:
+        return
+    if service.status(ctx.home).running:
+        service.stop(ctx.home)
+        state = service.start(ctx.home)
+        ctx.ui.say("Restarted the agentos service, so it uses the new settings." if state.running else
+                   f"The agentos service did not start again: {state.note}. Run `agentos setup agents`.")
+
+
+# ------------------------------------------------------------------ step: health check
+
+
+def _check_service(ctx: Ctx) -> tuple[bool, str]:
+    state = _service_state(ctx, start=False)
+    if state is None:
+        return False, "not part of this build yet"
+    if state.running:
+        return True, f"running at {state.url}"
+    return False, "not running: `agentos setup agents` starts it"
+
+
+def _check_vms(ctx: Ctx) -> tuple[bool, str]:
+    from agentos.vms.models import TOKEN_FILE, load_settings
+
+    try:
+        s = load_settings(ctx.home)
+    except (ValueError, OSError):
+        return False, "vms.toml cannot be read"
+    if s.provider == "docker":
+        _installed, running, built = docker_state(s.docker_bin, s.docker_image)
+        if not running:
+            return False, "Docker is not running"
+        return (True, "Docker answers, and the image is built") if built else (
+            False, "Docker answers, but the image is not built: agentos environments setup --build")
+    path = ctx.home / TOKEN_FILE
+    if not path.exists():
+        return False, "not set up: agentos setup vms"
+    problem = hetzner_check(path.read_text().strip(), s.api_url)
+    where = dict(LOCATIONS).get(s.location, s.location)
+    return (True, f"Hetzner answers ({where})") if problem is None else (False, f"Hetzner: {problem}")
+
+
+def _check_github(ctx: Ctx) -> tuple[bool | None, str]:
+    saved = _saved_login(ctx)
+    if saved is None:
+        return None, "no login: public repositories only (agentos setup github)"
+    reach = "any repository it can reach" if saved.any_repo else "repositories you connect one by one"
+    via = "from gh" if saved.source == "gh" else "a pasted token"
+    return True, f"{saved.login or 'a login'} ({via}): {reach}"
+
+
+def _check_limits(ctx: Ctx) -> tuple[bool, str]:
+    from agentos.environments.models import load_settings
+
+    return True, limit_words(load_settings(ctx.home))
+
+
+def check(ctx: Ctx) -> None:
+    rows = [("Service", *_check_service(ctx)), ("VMs", *_check_vms(ctx)), ("GitHub", *_check_github(ctx)),
+            ("Limits", *_check_limits(ctx))]
+    if ctx.agents:
+        rows.append(("Agents", True, "connected: " + ", ".join(line.split(":")[0] for line in ctx.agents)))
+    for what, ok, words in rows:
+        mark, color = {True: ("ready", typer.colors.GREEN), False: ("to do", typer.colors.YELLOW),
+                       None: ("note", None)}[ok]
+        ctx.ui.say(f"  {mark:<6} {what:<8} {words}", **({"fg": color} if color else {}))
+        if ok is False and what not in ctx.todo:
+            ctx.todo.append(what)
+
+
+# ------------------------------------------------------------------ step: a test VM, and the summary
+
+
+def test_vm(ctx: Ctx) -> None:
+    from agentos.vms.models import TOKEN_FILE, load_settings
+
+    ui = ctx.ui
+    try:
+        s = load_settings(ctx.home)
+    except (ValueError, OSError):
+        return
+    if s.provider != "docker" and not (ctx.home / TOKEN_FILE).exists():
+        ui.say("No VMs are set up, so there is nothing to test yet.")
+        return
+    cost = "free on Docker" if s.provider == "docker" else "about EUR 0.01"
+    if not ui.confirm(f"Open a test VM now? It starts one, runs `uname -a` and closes it ({cost}).",
+                      default=False):
+        ui.say("No test VM. `agentos setup test-vm` runs one later.")
+        return
+    ui.say("Opening a test VM (a minute or two)...")
+    try:
+        said, spent = open_test_vm(ctx.home)
+    except AgentosError as e:
+        ui.say(f"The test VM failed: {e.message}")
+        ctx.todo.append("the test VM")
+        return
+    ui.say(f"It answered: {said}")
+    ui.say("Closed." + (f" It cost EUR {spent:.3f}." if spent else ""))
+
+
+def summary(ctx: Ctx) -> None:
+    ui = ctx.ui
+    ui.say()
+    if ctx.todo:
+        ui.say(f"Almost done. Still to do: {', '.join(dict.fromkeys(ctx.todo))} (see above).", bold=True)
+    else:
+        ui.say("All set. Nothing bills until an agent opens a VM.", bold=True)
+    for what, words in (("VMs", ctx.vms), ("GitHub", ctx.github), ("Limits", ctx.limits),
+                        ("Service", ctx.service_url)):
+        if words:
+            ui.say(f"  {what:<8} {words}")
+    owner = ctx.github_login or "<you>"
+    ui.say()
+    ui.say("Next: start a new Claude Code session and ask:")
+    ui.say(f'  "work in agentos on github.com/{owner}/<repo>: fix the failing test and open a pull request"')
+    ui.say("Change one thing later: agentos setup vms, github, limits, agents, check or test-vm.")

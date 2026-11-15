@@ -31,7 +31,7 @@ from typing import Any
 
 from agentos.core.config import home_from_env
 from agentos.git.gateway import TOKEN_HEADER, Caller, GitGateway, Listener
-from agentos.git.remotes import Remotes
+from agentos.git.login import LoginRemotes
 from agentos.git.upstream import Target, config_env, explain
 
 log = logging.getLogger("agentos.git")
@@ -130,7 +130,8 @@ class GitService:
                  lane_port: int = LANE_PORT):
         self.runtime = runtime
         self.home = Path(home)
-        self.remotes = Remotes(self.home / "git" / "remotes.json")
+        # the declared remotes, and any github.com repository for env while the GitHub login says so
+        self.remotes = LoginRemotes(self.home / "git" / "remotes.json", self.home)
         self.gateway = GitGateway(home=self.home, remotes=self.remotes, runtime=runtime, allow_file=allow_file,
                                   agent_dir=None)
         self.lane_port = lane_port
@@ -242,7 +243,7 @@ class GitService:
         (the gateway's way, `git ls-remote` with that credential, as a fetch would), or readable with
         no credential at all (a public repository, cloned straight from the machine). `probe` is
         upstream.ls_remote (tests pass their own)."""
-        from agentos.git import keys as keymod
+        from agentos.git import login
         from agentos.git.upstream import UpstreamError, credential_env, ls_remote, target_for
         from agentos.git.wire import parse_remote
 
@@ -251,7 +252,7 @@ class GitService:
         rule = self.remotes.find(remote, scopes)
         if rule is None:
             return await public_access(remote.slug, self.home, probe=probe, timeout_s=timeout_s)
-        cred = keymod.pick(await self.gateway.credentials(), remote)
+        cred = login.pick(await self.gateway.credentials(), remote, rule.scope)
         target = target_for(rule, remote, cred)
         if self.gateway.agent_dir is None:
             self.gateway.agent_dir = await asyncio.to_thread(agent_dir, self.home)

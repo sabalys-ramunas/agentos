@@ -260,6 +260,54 @@ export function useAnswerQuestion(org: string) {
   });
 }
 
+// Repository cards: a question an agent's environment_open raised for a private repository. Owner only, in person.
+
+/** The card leaves the list, and the count with it, once its repository is connected or declined. */
+function dropQuestion(client: ReturnType<typeof useQueryClient>, org: string, id: string) {
+  client.setQueryData<Question[]>(keys.questions(org), (current) => current?.filter((item) => item.id !== id));
+  void client.invalidateQueries({ queryKey: keys.status(org) });
+}
+
+/** A connected card stays on screen to say so, and leaves the list when the person is done with it. */
+export function useDropQuestion(org: string) {
+  const client = useQueryClient();
+  return useCallback((id: string) => dropQuestion(client, org, id), [client, org]);
+}
+
+/**
+ * The link to the computer's own page for a card's token. The token is typed there, so it never reaches the app. A
+ * card that closed meanwhile (404) leaves; any other failure keeps it, to try again.
+ */
+export function useRepoTokenForm(org: string) {
+  const client = useQueryClient();
+  return useMutation({
+    meta: { inline: true },
+    mutationFn: (id: string) => fleet.repoTokenForm(org, id),
+    onError: (error, id) => {
+      if (error instanceof ApiError && error.status === 404) dropQuestion(client, org, id);
+    },
+  });
+}
+
+export const useRepoDeployKey = (org: string) =>
+  useMutation({ meta: { inline: true }, mutationFn: (id: string) => fleet.repoDeployKey(org, id) });
+
+export function useCheckRepo(org: string) {
+  const client = useQueryClient();
+  return useMutation({
+    meta: { inline: true },
+    mutationFn: (id: string) => fleet.checkRepo(org, id),
+    onError: (error, id) => {
+      if (error instanceof ApiError && error.status === 404) dropQuestion(client, org, id);
+    },
+  });
+}
+
+export function useDeclineRepo(org: string) {
+  const client = useQueryClient();
+  return useMutation({ meta: { inline: true }, mutationFn: (id: string) => fleet.declineRepo(org, id), onSuccess: (_done, id) => dropQuestion(client, org, id) });
+}
+
 // Code cards. Owner only. The code is never a mutation's variables, so no cache keeps it.
 
 export const useCodes = (org: string, enabled: boolean) =>

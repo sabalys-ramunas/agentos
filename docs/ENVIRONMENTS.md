@@ -16,13 +16,49 @@ Everything here runs on the node, as the owner (`sudo agentos ...` on a node ins
 ### Connect a repository
 
 A public repository needs nothing: the VM clones it directly. A private one is connected once, by
-you, on the node. An agent cannot do it: `environment_open` with a repository that is not connected
-is refused with `repo_not_connected` before any VM is rented, and its message gives the agent these
-commands to pass on to you.
+you. An agent cannot do it, and never sees the token: `environment_open` with a repository the node
+cannot read rents nothing and gives the agent a card instead (`status: "approval_pending"`, `kind:
+"repo_connect"`). The agent hands you its `review_url`. In T3 Code it opens beside the chat (the
+preview pane), and that is the in-chat way to connect it.
+
+On the card, in Needs you:
+
+- **Paste a token** (the default). It needs no admin rights on the repository, so a collaborator can
+  connect one. A classic token needs the `repo` scope; a fine-grained one needs this repository with
+  Contents: Read (Read and write, so agents can push). The button opens a small page the node serves
+  itself, in a new tab, and you paste the token there: the web app never holds it. The node checks it
+  with GitHub, then with `git ls-remote` the way the git gateway fetches, and keeps it in the vault for
+  this one repository only. The page says connected, the card moves on by itself, and the agent's
+  `approval_wait` returns, so it opens again. When GitHub says when the token expires, the page and
+  the card show it. The page's link works once, for 15 minutes; a token that did not work can be
+  pasted again on the same page until then.
+- **Use a deploy key instead (repo admins)**: the card shows the node's public key and the
+  repository's deploy keys page. An admin adds it with Allow write access, then you press "I added
+  it, check".
+
+The token goes only to GitHub, to git and into the vault: never into the chat, a tool result, an
+error, the card, the web app, an approval, the action log or a log file. Only the owner signed in to
+the panel can open the token page (a person present, with a fresh passkey check when you have a
+passkey): no agent's token, grant or link can. Never paste a token into the chat. No tool takes one, because anything in a tool
+argument is in the transcript, and the node cannot read a chat client's secret references (T3 Code's
+`request_secret`) either.
+
+What the token page says when a token does not work:
+
+| It says | What to do |
+|---|---|
+| wrong, expired or revoked (GitHub's 401) | make a new token and paste it |
+| this token cannot see the repository (404) | check you are a collaborator; a fine-grained token needs the right resource owner and this repository in its repository access |
+| must be authorized for the organization's single sign-on | open the link it gives, authorize the token, paste it again |
+| waits for the organization's approval | an organization admin approves it (Personal access tokens, Pending requests) |
+| the organization does not allow this kind of token | make the kind it allows (often fine-grained), or ask an admin |
+| GitHub accepts it, but git cannot read the code | give it Contents: Read (classic: the `repo` scope) |
+
+At the node, the same in one command, and the card closes on its own within a minute:
 
 ```
-agentos environments repo add github.com/me/shop           # a deploy key: it prints the key to paste into the repo
-agentos environments repo add github.com/me/shop --token   # or a fine-grained token, read from a prompt
+agentos environments repo add github.com/me/shop --token   # a token, read from a prompt (no admin rights needed)
+agentos environments repo add github.com/me/shop           # a deploy key: it prints the key for a repo admin to add
 agentos environments repo list                             # what is connected, with which key or token
 agentos environments repo remove github.com/me/shop        # disconnect it, and delete the key made for it
 ```
@@ -30,7 +66,8 @@ agentos environments repo remove github.com/me/shop        # disconnect it, and 
 `repo add` is the two steps of section 3 in one: `agentos vault git key add --host github.com --repo
 me/shop` (or `--token`) and `agentos vault git remote allow env github.com/me/shop`. Add the deploy
 key it prints with write access, so agents can push. When a key or token stops working later (the
-deploy key was removed, the token expired), the open names which one, with the same fix.
+deploy key was removed, the token expired), the agent's next open gives the same card, to give a new
+one (at the node: `repo add ... --token --replace`).
 
 ### 1. Where the VMs come from
 
@@ -103,7 +140,31 @@ Python with uv on first boot, which takes a few minutes. A snapshot boots ready 
 agentos vm image build dev    # Hetzner: a snapshot with git, build tools, Python with uv, Node 22, Docker
 ```
 
-The node uses the `dev` snapshot when it has one.
+The node uses the `dev` snapshot when it has one. It also holds the browser for `browser = "vm"`
+(below), as does the docker image: Xvfb, x11vnc, fonts and Camoufox at the node's own versions, about
+3.3 GB more (Camoufox's build is 2.4 GB, most of it the fonts of the systems it can look like) and
+about two minutes more to build.
+
+### Where the browser runs
+
+`browser` in `$AGENTOS_HOME/environments.toml` says where each new environment's browser runs:
+
+```toml
+browser = "node"   # the default: on the node, with its traffic through the VM
+browser = "vm"     # on the VM itself: for a node with no browser of its own, such as agentos on a Mac
+```
+
+With `"vm"` the browser, its screen and its live view run on the VM, bound to the VM's loopback only.
+The node starts them over the SSH connection it already holds and drives the browser through that
+connection. Every browser tool works the same way, `browser_screenshot(proof=..., width=...)`
+included (proofs stay on the node), and so do the live view and take over. On the VM, `localhost` is
+the VM, so no proxy is needed. It is a fresh browser each time it opens. A VM booted from an image
+without the browser installs it while the environment starts (a few minutes). `ui_check` still runs
+studio's browser on the node, through the tunnel. An environment keeps the setting it opened with.
+
+A VM with the browser and one page open uses about 1 GB of memory (measured on the docker provider).
+The smallest size (`small`, 2 CPU and 4 GB, a Hetzner cx23) leaves room for a typical dev server; a
+heavy build next to a big dev server wants `size="medium"`.
 
 ### 3. Git: keys and declared repositories
 
@@ -188,10 +249,32 @@ What the agent does:
 | `environment()` | state, time left, cost so far, listening ports, git (branch, ahead, dirty, `pushed`: each branch at its commit on the remote now, `deleted`: branches it deleted, and `compare`: the GitHub link that opens a pull request for the pushed branch), proofs, the last calls (a command's `exit_code`, a refusal's `error`) |
 | `environment_close(discard=False)` | refuses with `unsaved_work` while any repository under `/work` has work that is not on a remote (changed or new files, commits on any branch, stashes); then deletes the VM, the browser and both lanes; `machine` says `deleted` only once the provider has no such server (`deleting` while the node still deletes it) |
 
-Work that is only on your computer (changes not committed yet) gets there two ways. The agent
-commits it to a branch, pushes it, and opens with `ref=<branch>`; or, without a commit, it uploads
-the files (`lane_upload`, in `tools_more("terminals")`) and a job's sync puts them on the VM next
-to the clone: `lane_job_start(cmd="cp -a ~/local/. /work/shop/", sync={"dest": "local", ...})`.
+Work that is only on your computer (changes not committed yet, or a project with no repository the
+node can clone) gets there two ways. The agent commits it to a branch, pushes it, and opens with
+`ref=<branch>`; or, without a commit, it uploads its checkout:
+
+1. `environment_upload(dest)` (in `tools_more("terminals")`, or `tools_call`) gives a signed link on
+   the node's own address (for an agent on your Mac, `http://localhost:7400` through its tunnel),
+   good once and for 15 minutes, and two commands.
+2. The agent runs them in its own shell, in the checkout. `pack` takes the tracked and new files
+   and leaves out what git ignores (`node_modules`, `.env`); `send` puts the archive on the node
+   with curl, so the bytes never go through tool calls:
+
+   ```
+   git ls-files -co --exclude-standard -z | COPYFILE_DISABLE=1 tar --null -T - -czf work.tgz
+   curl --fail-with-body -T work.tgz "<url>"
+   ```
+
+3. The node checks every file in the archive, then extracts it into the workdir (`/work/<name>`,
+   or `/work` for an environment opened without a repository; `dest` may name a folder under
+   `/work`). Files in it replace the same paths, and nothing else is deleted. The reply lists the
+   files; the upload is in the audit log and in `environment()`'s last calls.
+
+The checks: at most 512 MB sent and 4 GB unpacked, 200,000 files, and no absolute path, no `..`,
+no link that leaves the folder, no device or fifo (Python's tarfile data filter, and more). One bad
+file refuses the whole archive before the VM sees any of it. The link ends when the environment
+closes or the node restarts, and a used, expired or changed one gets a 403. For a few small files
+without a shell of its own, the agent still has `lane_upload` and a job's sync.
 
 One environment per chat. A new chat starts clean. A resumed or reconnected chat that opens the
 same title again, with the same grant, gets the one still open (only one that is starting or
@@ -293,8 +376,9 @@ On it:
 Not on it:
 
 - agentos itself, a node token, a grant, the vault, any key or token, any account.
-- The browser. It runs on the node, with its traffic carried through the VM (a SOCKS tunnel over
-  SSH, DNS included), so `localhost` is the VM and sites see the VM's address. It has no account,
+- The browser, with the default `browser = "node"`. It runs on the node, with its traffic carried
+  through the VM (a SOCKS tunnel over SSH, DNS included), so `localhost` is the VM and sites see the
+  VM's address. With `browser = "vm"` it runs on the VM (above). Either way it has no account,
   no saved login and no vault entry, and it is deleted with the environment. Its window fills a
   1920x1080 screen, so pages show their desktop layout (an account lane's window is the size its
   identity drew).
@@ -306,7 +390,8 @@ Not on it:
   Its ports are seen through the environment's browser (the live view).
 - A chat that talks to the node over stdio (no `mcp-session-id`) is bound by its grant, so two
   such chats with one grant share an environment.
-- Files go in through git, or `lane_upload` and a job's `sync` (above); they come out through git.
+- Files go in through git, `environment_upload` (a tarball of a local checkout, at most 512 MB), or
+  `lane_upload` and a job's `sync` (above); they come out through git.
 - The node checks where a push goes (declared repository, protected branch), not what the commits
   contain. Review a branch before you merge it.
 - On the dev node (`agentos dev up`), account lanes are simulated. The environment's machine,
@@ -322,7 +407,9 @@ Not on it:
 | `no_environment` | a call without `on` in a chat with no environment | the agent calls `environment_open(title=...)` first, or names an account lane with `on` |
 | `environment_not_ready` | the environment is starting, or its tunnel is down after a restart | wait a minute; `agentos environments show ID` |
 | `unsaved_work` on close | uncommitted changes or commits not pushed | commit and push, or close with `discard=true` if the work may go |
-| `repo_not_connected` | the repository is private and not connected, or its key or token was refused; nothing was rented | `agentos environments repo add github.com/me/shop` (the message names the repository) |
+| `approval_pending` with `kind: "repo_connect"` | the repository is private and not connected, or its key or token was refused; nothing was rented | open the card's `review_url` and paste a token (see "Connect a repository"), or at the node `agentos environments repo add github.com/me/shop --token` |
+| the token page says it did not work | the token did not work, and nothing was kept; the page says why | do what the page says (table in "Connect a repository"), then paste it again on the same page |
+| `repo_not_connected` | a node without approvals, or the clone on the machine still failed (its machine was deleted) | `agentos environments repo add github.com/me/shop` (the message names the repository) |
 | a push is refused | the repository is not declared for `env`, or it is fetch only | `agentos environments repo add github.com/me/shop` |
 | a push is refused with `push_refused` | it would force-push or delete the default branch (or a protected one), force-push or delete a branch the environment did not create, or move a tag | push a new branch and open a pull request |
 | `localhost:3000` does not load in the browser | nothing listens on that port on the VM | `environment()` lists the ports that listen; start the dev server with `lane_job_start` |

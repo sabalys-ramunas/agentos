@@ -4,7 +4,8 @@
 #   curl -fsSL https://raw.githubusercontent.com/sabalys-ramunas/agentos/main/scripts/install.sh | sh
 #
 # It installs uv if you do not have it (into ~/.local/bin), then agentos as a uv tool from the
-# git repository, puts both on your PATH, and starts `agentos setup` when a terminal is attached
+# git repository with its `local` extra (Playwright, which drives each environment's browser on its
+# VM; no browser is downloaded to this computer), puts both on your PATH, and starts `agentos setup` when a terminal is attached
 # (otherwise it prints that one next step). Safe to run again: it updates agentos in place.
 #
 # Environment:
@@ -36,7 +37,7 @@ if ! command -v uv >/dev/null 2>&1; then
 fi
 
 say "Installing agentos from $url ($ref)"
-uv tool install --force --python 3.12 "agentos @ git+$url@$ref"
+uv tool install --force --python 3.12 "agentos[local] @ git+$url@$ref"
 
 # Puts ~/.local/bin on PATH in your shell's startup file, when it is not there yet.
 uv tool update-shell >/dev/null 2>&1 || true

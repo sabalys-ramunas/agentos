@@ -22,6 +22,12 @@ CREATE TABLE IF NOT EXISTS environments (
 );
 CREATE INDEX IF NOT EXISTS environments_state ON environments (state);
 CREATE INDEX IF NOT EXISTS environments_binding ON environments (binding);
+CREATE TABLE IF NOT EXISTS repo_requests (
+  approval_id TEXT PRIMARY KEY,
+  repo TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
 """
 
 
@@ -77,3 +83,15 @@ class EnvironmentStore(SqliteStore):
     def recent(self, limit: int = 100) -> list[Environment]:
         rows = self._q("SELECT record FROM environments ORDER BY created_at DESC LIMIT ?", (limit,))
         return [Environment.model_validate_json(r[0]) for r in rows]
+
+    # ---- the cards that ask a person to connect a repository (agentos.environments.connect) ----
+    def request_put(self, approval_id: str, repo: str, reason: str, created_at: str) -> None:
+        self._q("INSERT OR REPLACE INTO repo_requests (approval_id, repo, reason, created_at) VALUES (?, ?, ?, ?)",
+                (approval_id, repo, reason, created_at))
+
+    def requests(self) -> list[dict[str, str]]:
+        rows = self._q("SELECT approval_id, repo, reason, created_at FROM repo_requests ORDER BY created_at")
+        return [{"id": r[0], "repo": r[1], "reason": r[2], "created_at": r[3]} for r in rows]
+
+    def request_drop(self, approval_id: str) -> None:
+        self._q("DELETE FROM repo_requests WHERE approval_id = ?", (approval_id,))

@@ -122,18 +122,28 @@ PRIVATE = b"fatal: could not read Username for 'https://example.test': terminal 
 
 async def test_a_private_repo_nobody_connected_rents_nothing(node):  # noqa: F811
     """Report 1: the VM was rented, then the clone failed with `could not read Username`, twice.
-    Now the node asks first, anonymously, and refuses before it rents, with the fix for the human."""
+    Now the node asks first, anonymously, and before it rents gives a card for the human
+    (agentos.environments.connect): a link to paste a token in, and the command at the node."""
     node["mgr"].repo_probe = probe = _refusing(PRIVATE)
+    card = await node["call"]("environment_open", title=TITLE, repo=REPO)
+    assert card["status"] == "approval_pending" and card["kind"] == "repo_connect" and card["repo"] == REPO
+    assert "Nothing was rented" in card["why"] and "not declared for environments" in card["why"]
+    assert f"agentos environments repo add {REPO} --token" in card["fallback"] and "no admin rights" in card["fallback"]
+    assert node["vms"].store.recent() == [] and node["mgr"].store.recent() == []
+    # it asked with no credential: the URL carries none and nothing would prompt
+    [(url, env)] = probe.seen
+    assert url == f"https://{REPO}.git" and env["GIT_TERMINAL_PROMPT"] == "0"
+
+
+async def test_a_node_without_approvals_still_says_the_fix(node):  # noqa: F811
+    node["rt"].register("approvals", None)
+    node["mgr"].repo_probe = _refusing(PRIVATE)
     with pytest.raises(ToolCallError, match="repo_not_connected") as err:
         await node["call"]("environment_open", title=TITLE, repo=REPO)
     words = str(err.value)
     assert "Nothing was rented" in words and "not declared for environments" in words
     for cmd in (f"agentos environments repo add {REPO}", "--token", "deploy key", "never you"):
         assert cmd in words, cmd
-    assert node["vms"].store.recent() == [] and node["mgr"].store.recent() == []
-    # it asked with no credential: the URL carries none and nothing would prompt
-    [(url, env)] = probe.seen
-    assert url == f"https://{REPO}.git" and env["GIT_TERMINAL_PROMPT"] == "0"
 
 
 async def test_a_public_repo_opens_without_a_declaration(node):  # noqa: F811
@@ -177,21 +187,20 @@ async def test_a_declared_repo_with_a_refused_token_says_so_before_renting(node,
     node["rt"].register("vault", TokenVault())
     node["mgr"].repo_probe = probe = _refusing(b"remote: Invalid username or password.\n"
                                                b"fatal: Authentication failed for 'https://example.test/me/shop.git/'\n")
-    with pytest.raises(ToolCallError, match="repo_not_connected") as err:
-        await node["call"]("environment_open", title=TITLE, repo=REPO)
-    words = str(err.value)
-    assert "token shop-token was refused" in words and "Nothing was rented" in words
-    assert f"repo add {REPO} --replace" in words  # the vault has one: a new one replaces it
-    assert f"agentos environments repo add {REPO}" in words and node["vms"].store.recent() == []
+    card = await node["call"]("environment_open", title=TITLE, repo=REPO)
+    assert card["status"] == "approval_pending" and card["kind"] == "repo_connect"
+    assert "token shop-token was refused" in card["why"] and "Nothing was rented" in card["why"]
+    assert node["vms"].store.recent() == []
+    [row] = node["mgr"].store.requests()
+    assert row["reason"] == "refused"  # the card asks for a new token
     [(_url, env)] = probe.seen  # with the token, in the process's own config, never on a command line
     assert any(v.startswith("Authorization: Basic ") for k, v in env.items() if k.startswith("GIT_CONFIG_VALUE"))
 
 
 async def test_a_declared_repo_without_a_credential_that_is_private_says_so(node, declared):  # noqa: F811
     node["mgr"].repo_probe = _refusing(PRIVATE)
-    with pytest.raises(ToolCallError, match="repo_not_connected") as err:
-        await node["call"]("environment_open", title=TITLE, repo=REPO)
-    assert "no key or token in the vault" in str(err.value)
+    card = await node["call"]("environment_open", title=TITLE, repo=REPO)
+    assert "no key or token in the vault" in card["why"]
 
 
 async def test_a_declared_repo_with_a_working_credential_opens(node, declared):  # noqa: F811

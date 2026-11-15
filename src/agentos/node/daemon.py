@@ -110,15 +110,18 @@ def build_lane_manager(config: NodeConfig) -> LaneManager:
     return _build_lane_manager(config)
 
 
-def node_runtime(config: NodeConfig, lanes: LaneManager, interaction: Interaction, **services: Any) -> Runtime:
+def node_runtime(config: NodeConfig, lanes: LaneManager, interaction: Interaction | None, **services: Any) -> Runtime:
     """A Runtime with the node's own services (config, lanes, interaction, the facts an approval card
-    shows, the tools it serves, what keeps the page after an agent's commit) plus any others."""
+    shows, the tools it serves, what keeps the page after an agent's commit) plus any others. No
+    `interaction` (agentos local: no browser here) leaves it off, so the browser tools are not served."""
     from agentos.audit.captures import after_commit
     from agentos.mcp.providers import ProviderCatalog
     from agentos.node.cardfacts import NodeCardFacts
     from agentos.node.tools.browser import AFTER_COMMIT
 
-    runtime = Runtime(config=config, lanes=lanes, interaction=interaction, card_facts=NodeCardFacts(), **services)
+    if interaction is not None:
+        services["interaction"] = interaction
+    runtime = Runtime(config=config, lanes=lanes, card_facts=NodeCardFacts(), **services)
     if not runtime.has(AFTER_COMMIT):
         runtime.register(AFTER_COMMIT, after_commit)
     if not runtime.has(TOOL_CATALOG):

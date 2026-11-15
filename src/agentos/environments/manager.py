@@ -62,6 +62,7 @@ from agentos.environments.proofs import Proofs
 from agentos.environments.sizing import Sizing
 from agentos.environments.store import EnvironmentStore
 from agentos.environments.tunnels import Tunnel
+from agentos.environments.uploads import Uploads
 from agentos.environments.views import Views
 
 log = logging.getLogger("agentos.environments")
@@ -106,7 +107,7 @@ def check_ref(ref: str | None) -> str | None:
     return ref
 
 
-class EnvironmentManager(Sizing, BringUp, Views, Proofs):
+class EnvironmentManager(Sizing, BringUp, Views, Proofs, Uploads):
     """The environments service. Its sizing and cost (Sizing), its bring-up (BringUp) and its read side
     (Views) are mixins in their own modules; lookups, opening, closing and the reaper are here."""
 
@@ -117,6 +118,7 @@ class EnvironmentManager(Sizing, BringUp, Views, Proofs):
         self.store = EnvironmentStore(self.home / "environments.db")
         self._clock = clock
         self._tunnels: dict[str, Tunnel] = {}
+        self._vm_browsers: Any = None  # agentos.environments.vmbrowser.VmBrowsers, once a "vm" browser is made
         self._tasks: dict[str, asyncio.Task] = {}
         self._planned: dict[tuple[str, str], str] = {}
         self._locks: dict[str, asyncio.Lock] = {}
@@ -124,6 +126,7 @@ class EnvironmentManager(Sizing, BringUp, Views, Proofs):
         self._reaper: asyncio.Task | None = None
         self._loader_wrapped = False
         self.last_reap: dict = {}
+        self._reap_lock = asyncio.Lock()  # the reaper's loop and a catch-up after a wake never overlap
         self.repo_probe: Any = None  # how check_repo reads a repository (None: `git ls-remote`; tests set one)
 
     # ================================================================ wiring
@@ -150,6 +153,9 @@ class EnvironmentManager(Sizing, BringUp, Views, Proofs):
         return {f"env-{eid}": ProxyConfig(label=f"env-{eid}", host="127.0.0.1", port=t.socks_port, scheme="socks5",
                                            check_exit=False)
                 for eid, t in self._tunnels.items()}
+
+    def tunnel_of(self, env_id: str) -> Tunnel | None:
+        return self._tunnels.get(env_id)
 
     def proxy_for(self, env: Environment) -> ProxyConfig | None:
         return self.proxies().get(f"env-{env.id}")
@@ -410,19 +416,27 @@ class EnvironmentManager(Sizing, BringUp, Views, Proofs):
         self.store.update(found[0].id, change)
 
     # ================================================================ open
-    async def check_repo(self, repo: str) -> Any:
-        """Can a machine clone `repo`? Asked before anything is rented: declared for env with the
-        vault's credential (checked as the git gateway fetches it), or public. Else
-        repo_not_connected, with the fix the human runs on the node (agentos.environments.repos)."""
-        from agentos.environments import repos
+    async def repo_access(self, repo: str) -> Any:
+        """What GitService.access finds for `repo`: declared for env with the vault's credential
+        (checked as the git gateway fetches it), or public, or neither."""
         from agentos.git.service import public_access
 
         git = self._get("git")
         if git is not None and callable(getattr(git, "access", None)):
-            access = await git.access(repo, [WORKSPACE], probe=self.repo_probe)
-        else:  # a node without the git gateway: only a public repository clones
-            access = await public_access(repo, self.home, probe=self.repo_probe)
+            return await git.access(repo, [WORKSPACE], probe=self.repo_probe)
+        return await public_access(repo, self.home, probe=self.repo_probe)  # no git gateway: public only
+
+    async def check_repo(self, repo: str) -> Any:
+        """Can a machine clone `repo`? Asked before anything is rented: declared for env with the
+        vault's credential (checked as the git gateway fetches it), or public. Else
+        repo_not_connected, with the fix the human runs on the node (agentos.environments.repos).
+        A repository that can be cloned closes the cards that asked a person to connect it."""
+        from agentos.environments import connect, repos
+
+        access = await self.repo_access(repo)
         if access.ok:
+            with contextlib.suppress(Exception):  # a card left open is closed by the reaper's sweep
+                connect.close(self.store, self._get("approvals"), access.slug)
             return access
         if access.unreachable:
             raise repos.unreachable(access)
@@ -547,6 +561,7 @@ class EnvironmentManager(Sizing, BringUp, Views, Proofs):
         env = Environment(
             id=env_id, title=title, grant_id=grant_id, grant_root=grant_root, binding=binding, agent=agent,
             subject=subject, member=member, client=client, repo=repo, ref=ref, image=plan["image"], created_at=now,
+            browser=self.settings.browser,
             expires_at=now + timedelta(minutes=plan["ttl_minutes"]), price_hourly_eur=plan.get("price_hourly_eur"),
             machine=Machine(provider=getattr(self.vms().provider(), "name", ""), server_type=plan["server_type"],
                             cpu=specs.get("cores"), memory_gb=specs.get("memory_gb"), location=plan["location"],
@@ -606,6 +621,8 @@ class EnvironmentManager(Sizing, BringUp, Views, Proofs):
             e.closed_reason = e.closed_reason or why
 
         env = self.store.update(env.id, closing)
+        if env.browser == "vm":  # its browser and screen stop on the machine while the tunnel still reaches it
+            await self._remove_browser(env)
         tunnel = self._tunnels.pop(env.id, None)
         if tunnel is not None:
             await tunnel.stop()
@@ -812,11 +829,21 @@ class EnvironmentManager(Sizing, BringUp, Views, Proofs):
             log.exception("could not send an environment notification")
 
     async def reap_once(self, now: datetime | None = None) -> dict:
+        """One pass of the reaper (its loop runs one every reap_interval_s). Past its time limit means
+        past it by the wall clock, so the first pass after a laptop slept closes it at once."""
+        async with self._reap_lock:
+            return await self._reap(now)
+
+    async def _reap(self, now: datetime | None) -> dict:
         now = now or self._clock()
         out: dict[str, Any] = {"at": clock.iso_or_none(now, z=True), "closed": [], "kept_unsaved": [], "tunnels": [], "gone": []}
         vms = self._get("vms")
         with contextlib.suppress(Exception):  # proofs past their retention (agentos.environments.proofs)
             self.prune_proofs(now)
+        with contextlib.suppress(Exception):  # a repository connected at the node closes its cards
+            from agentos.environments import connect
+
+            await connect.sweep(self)
         for env in self.store.open():
             if env.id in self._tasks:
                 continue  # still coming up, or closing

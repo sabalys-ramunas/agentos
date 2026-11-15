@@ -1,0 +1,167 @@
+"""`agentos local`: agentos on this computer, for the agents on it. Imported by agentos.cli for every
+command, so the node itself (agentos.local.node) is imported only when `serve` runs."""
+
+from __future__ import annotations
+
+import asyncio
+import dataclasses
+import json
+import logging
+import time
+from pathlib import Path
+from typing import Annotated
+
+import typer
+
+from agentos.client.errors import ClientError
+from agentos.local.paths import DEFAULT_PORT, default_home, log_path
+
+app = typer.Typer(no_args_is_help=True, help=(
+    "agentos on this computer: it serves your agents (Claude Code, Codex) and rents a cloud VM only "
+    "while an agent has an environment open."))
+
+HomeOption = Annotated[Path | None, typer.Option("--home", help="The local node's folder (default: ~/.agentos).")]
+PortOption = Annotated[int | None, typer.Option(
+    "--port", min=1, max=65535,
+    help=f"Port on 127.0.0.1 (default: the one it used before, else {DEFAULT_PORT} or the next free one).")]
+
+
+def _home(home: Path | None) -> Path:
+    return (home or default_home()).expanduser()
+
+
+def _fail(exc: ClientError) -> typer.Exit:
+    typer.secho(f"error: {exc.message}", err=True, fg=typer.colors.RED)
+    if exc.hint:
+        typer.echo(f"  {exc.hint}", err=True)
+    return typer.Exit(1)
+
+
+def _show(state, *, as_json: bool = False) -> None:
+    if as_json:
+        data = dataclasses.asdict(state)
+        data["log_path"] = str(state.log_path)
+        typer.echo(json.dumps(data, indent=2))
+        return
+    typer.echo(state.note)
+    if state.url:
+        typer.echo(f"  MCP   {state.url}")
+    if state.pid:
+        typer.echo(f"  pid   {state.pid}")
+    typer.echo(f"  log   {state.log_path}")
+
+
+@app.command("serve")
+def serve(home: HomeOption = None, port: PortOption = None,
+          verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Debug logging.")] = False) -> None:
+    """Run the local node in the foreground (the service runs this). Ctrl-C stops it."""
+    from agentos.core import logs
+    from agentos.local import home as local_home
+    from agentos.local.node import run
+    from agentos.node.daemon import install_log_scrubbers
+
+    root = _home(home)
+    try:
+        # the remembered port as it is: Claude Code and Codex were given it. Only `start` moves it (and
+        # registers them again); a port someone else took fails here, in the log, until then.
+        known = local_home.read(root)
+        chosen = port or (known.mcp_port if known is not None else local_home.choose_port(root, None))
+        cfg = local_home.ensure(root, chosen)
+    except ClientError as exc:
+        raise _fail(exc) from None
+    logs.setup(root, verbose=verbose, journal=False)
+    install_log_scrubbers(cfg)
+    try:
+        asyncio.run(run(cfg))
+    except KeyboardInterrupt:
+        pass
+    except ClientError as exc:  # a setting the person can fix, in words (environments.toml browser = "node")
+        logging.getLogger("agentos.local").error("the local node did not start: %s %s", exc.message, exc.hint or "")
+        raise _fail(exc) from None
+    except Exception:
+        # through the log (scrubbed), never a raw traceback: it can quote anything
+        logging.getLogger("agentos.local").exception("the local node stopped on an unexpected error")
+        raise typer.Exit(1) from None
+
+
+@app.command("start")
+def start(
+    home: HomeOption = None,
+    port: PortOption = None,
+    register: Annotated[bool, typer.Option("--register/--no-register",
+                                           help="Register Claude Code and Codex here as agentos-local.")] = True,
+    claude: Annotated[bool, typer.Option("--claude/--no-claude", help="Register Claude Code.")] = True,
+    codex: Annotated[bool, typer.Option("--codex/--no-codex", help="Register Codex.")] = True,
+    skills: Annotated[bool, typer.Option("--skills/--no-skills", help="Install the Claude Code skills.")] = True,
+) -> None:
+    """Start the local node as a service (launchd on macOS, systemd on Linux), now and at every login."""
+    from agentos.local import service
+    from agentos.local.register import register_clients
+
+    root = _home(home)
+    try:
+        state = service.start(root, port)
+        _show(state)
+        if register and state.port:
+            typer.echo("")
+            for line in register_clients(root, state.port, claude=claude, codex=codex, skills=skills):
+                typer.echo(line)
+    except ClientError as exc:
+        raise _fail(exc) from None
+    if not state.running:
+        raise typer.Exit(1)
+
+
+@app.command("stop")
+def stop(home: HomeOption = None) -> None:
+    """Stop the local node. It stays stopped, also after a restart, until `agentos local start`."""
+    from agentos.local import service
+
+    try:
+        _show(service.stop(_home(home)))
+    except ClientError as exc:
+        raise _fail(exc) from None
+
+
+@app.command("status")
+def status(home: HomeOption = None,
+           as_json: Annotated[bool, typer.Option("--json", help="Machine-readable.")] = False) -> None:
+    """Is it running, on which port, which environments are open, and what it closed after a sleep."""
+    from agentos.local import service
+
+    try:
+        state = service.status(_home(home))
+    except ClientError as exc:
+        raise _fail(exc) from None
+    _show(state, as_json=as_json)
+    if not state.running:
+        raise typer.Exit(1)
+
+
+@app.command("logs")
+def logs(home: HomeOption = None,
+         lines: Annotated[int, typer.Option("--lines", "-n", min=1, help="How many lines.")] = 50,
+         follow: Annotated[bool, typer.Option("--follow", "-f", help="Keep printing new lines.")] = False) -> None:
+    """The end of the local node's log."""
+    from agentos.local import service
+
+    root = _home(home)
+    path = log_path(root)
+    if not path.exists():
+        typer.echo(f"No log yet at {path}. Start it with `agentos local start`.")
+        return
+    for line in service.log_tail(root, lines):
+        typer.echo(line)
+    if not follow:
+        return
+    with path.open(errors="replace") as f:
+        f.seek(0, 2)
+        try:
+            while True:
+                line = f.readline()
+                if line:
+                    typer.echo(line.rstrip("\n"))
+                else:
+                    time.sleep(0.5)
+        except KeyboardInterrupt:
+            pass

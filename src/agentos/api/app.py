@@ -565,7 +565,7 @@ class SecurityHeaders:
 
 # Route modules a feature owns in full that build on this module's helpers (endpoint, read_body):
 # imported by name, as agentos.api.mounts finds the others, since importing them here is a circle.
-FEATURE_ROUTES = ("agentos.runner.mail.api",)
+FEATURE_ROUTES = ("agentos.runner.mail.api", "agentos.environments.api")
 
 
 def build_api(runtime: Any, settings: ApiSettings | None = None) -> Starlette:

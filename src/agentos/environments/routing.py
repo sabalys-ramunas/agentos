@@ -29,7 +29,7 @@ PICKS_LANE = frozenset({"environment_open", "lane_job_cancel", "shell_write", "s
 
 TERMINAL = frozenset({
     "lane_exec", "lane_file_edit", "lane_file_read", "lane_file_write", "lane_install", "lane_job_start",
-    "lane_upload", "lane_upload_check", "shell_open",
+    "lane_upload", "lane_upload_check", "shell_open", "environment_upload",
 })  # not lane_jobs_list: without `on` it already lists every run the caller may see (`agentos run --list`)
 BROWSER = frozenset({
     "browser_act", "browser_console", "browser_dialog", "browser_dialog_answer", "browser_navigate",

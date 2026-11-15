@@ -58,7 +58,7 @@ STATUS_BY_CODE: dict[str, int] = {
     # 400: what was sent cannot be used as it is
     "bad_archive": 400, "bad_evidence": 400, "bad_export": 400, "bundle_invalid": 400,
     "connector_invalid": 400, "edit_mismatch": 400, "invalid_pattern": 400, "mail_confirm_hosts": 400,
-    "mail_connect_failed": 400, "mail_id_taken": 400, "missing_param": 400, "profile_invalid": 400,
+    "mail_connect_failed": 400, "mail_id_taken": 400, "repo_connect_failed": 400, "missing_param": 400, "profile_invalid": 400,
     "secret_in_memory": 400, "secret_in_profile": 400, "template_invalid": 400, "vault_entry_invalid": 400, "vault_secret_too_long": 400,
     # 403: a rule refuses it, and asking again the same way will not change that. A run's grant that no
     # longer counts is 403 too, never 401: the request's own sign-in is fine, and a 401 signs the panel out

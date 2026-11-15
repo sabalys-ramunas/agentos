@@ -50,12 +50,14 @@ def _check_fields(kind: node_forms.Kind, fields: dict[str, str]) -> dict[str, st
 
 def kinds() -> dict[str, node_forms.Kind]:
     """Every kind a trip can be, by name: the node's own (agentos.node.forms), the workspace kinds
-    (agentos.workspaces.form) and the login (agentos.node.login_form), each built on node.forms."""
+    (agentos.workspaces.form), the login (agentos.node.login_form) and a repository's token
+    (agentos.environments.form), each built on node.forms."""
+    from agentos.environments.form import RepoToken
     from agentos.node.login_form import LoginForm
     from agentos.workspaces.form import WorkspaceExport, WorkspaceImport
 
     items: list[node_forms.Kind] = [node_forms.VaultUnlock(), node_forms.VaultEntry(), node_forms.ProxyForm(),
-                                    WorkspaceExport(), WorkspaceImport(), LoginForm()]
+                                    WorkspaceExport(), WorkspaceImport(), LoginForm(), RepoToken()]
     return {item.name: item for item in items}
 
 

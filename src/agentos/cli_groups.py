@@ -56,13 +56,14 @@ HOME: dict[str, str] = {
 # (name, panel, one-line help in the top-level list). Commands come before groups in Typer's
 # listing, so this is also the order on screen.
 VISIBLE: tuple[tuple[str, str, str], ...] = (
-    ("setup", START, "Start here: pick a node, connect Claude Code and Codex."),
+    ("setup", START, "Start here: VMs, GitHub, limits, and Claude Code and Codex."),
     ("up", START, "Set up and start this box, then print a sign-in link."),
     ("connect", START, "Let the agents on your computer use a node."),
     ("status", START, "Is it up, and which lanes it has (--check: what is wrong)."),
     ("open", START, "Watch a lane live and take control (--terminal: a dashboard)."),
     ("run", BUILD, "Run a command on the node against this working tree."),
     ("expose", BUILD, "Your laptop's dev server, opened in one browser lane."),
+    ("local", START, "agentos on this computer: start, stop, status, logs."),
     ("environments", BUILD, "Your agents' cloud computers: list, show, close, setup, repo."),
     ("studio", BUILD, "Check the pages you build: layout, contrast, brand, changes."),
     ("lane", WORK, "Browser lanes (one account each), devices and proxies."),
@@ -81,8 +82,9 @@ GUIDE = """\
 agentos {version}: a computer in the cloud for each of your agents.
 
 First time, on your computer:
-  agentos setup                   choose a node, connect Claude Code and Codex
-  agentos dev up --seed           try it here with a fake node
+  agentos setup                   VMs, GitHub, limits, and Claude Code and Codex, in a few questions
+  agentos setup <step>            change one thing: vms, github, limits, agents, check, test-vm
+Or run it on a server (always on, account browsers):
   agentos connect <user@host>     install a node on your server (if needed) and connect to it
   agentos connect --check         do Claude Code and Codex see it? what to try first
   agentos status                  your connections (agentos connect --remove NAME removes one)
@@ -374,7 +376,7 @@ def _built_groups(m: _Mounted) -> dict[str, typer.Typer]:
                                commands=[*m.as_cmd("logs"), *m.as_cmd("migrate-service-user")],
                                groups=[*m.as_group("config"), *m.as_group("doctor"), *m.as_group("health"),
                                        *m.as_group("backup"), *m.as_group("migrate"), *m.as_group("upgrade")])
-    for name in ("controller", "panel", "studio", "environments"):
+    for name in ("controller", "panel", "studio", "environments", "local"):
         if name in m.groups:
             built[name] = m.group_typer(name)
     if "dev" in m.groups:

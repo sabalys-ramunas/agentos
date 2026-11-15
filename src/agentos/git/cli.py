@@ -61,11 +61,9 @@ async def _credentials(vault: Any) -> list[keymod.Credential]:
 
 
 def _deploy_key_hint(host: str, repos: list[str]) -> str:
-    if host == "github.com" and not repos[0].endswith("/*"):
-        return f"https://github.com/{repos[0]}/settings/keys/new"
-    if host == "gitlab.com" and not repos[0].endswith("/*"):
-        return f"https://gitlab.com/{repos[0]}/-/settings/repository (Deploy keys)"
-    return f"the repository's deploy keys on {host}"
+    from agentos.git.credentials import deploy_key_hint
+
+    return deploy_key_hint(host, repos)
 
 
 @key_app.command("add")
@@ -105,25 +103,20 @@ def make_credential(host: str, repo: list[str], *, token: bool = False, name: st
         cname = keymod.check_name(name) if name else keymod.default_name(h, repos, kind)
     except InvalidRequest as e:
         _fail(e.message)
-    ref = keymod.REF_PREFIX + cname
     vault = _vault()
 
     async def go() -> dict[str, Any]:
-        existing = {c.ref for c in await _credentials(vault)}
-        if ref in existing and not replace:
+        from agentos.git.credentials import put_deploy_key, put_token
+
+        if keymod.REF_PREFIX + cname in {c.ref for c in await _credentials(vault)} and not replace:
             raise InvalidRequest(f"a credential named {cname} exists; pick another --name, or pass --replace")
         if token:
             raw = sys.stdin.readline() if stdin else getpass.getpass(f"Token for {h} ({', '.join(repos)}): ")
-            secret = keymod.check_token(raw)
-            scope = keymod.token_scope(h, repos, username)
-            await vault.put_secret(ref, secret.reveal(), kind=kind, label=f"git token for {h}", scope=scope)
-            return {"name": cname, "type": "token", "host": h, "repos": repos}
+            return await put_token(vault, h, repos, keymod.check_token(raw), name=cname, username=username,
+                                   replace=True)
         if h not in keymod.KNOWN_HOSTS or port not in (None, 22):
             _keep_host_key(h, port, host_key)
-        private, public, fp = keymod.generate_ed25519(f"agentos-{cname}")
-        scope = keymod.ssh_scope(h, repos, public)
-        await vault.put_secret(ref, private.reveal(), kind=kind, label=f"git deploy key for {h}", scope=scope)
-        return {"name": cname, "type": "ssh", "host": h, "repos": repos, "public_key": public, "fingerprint": fp}
+        return await put_deploy_key(vault, h, repos, name=cname, replace=True)
 
     return _run(go())
 

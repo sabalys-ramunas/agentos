@@ -11,7 +11,6 @@ The helpers they share are in agentos.commands.base.
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 from typing import Annotated
 
@@ -27,6 +26,8 @@ from agentos.commands.proxy import proxy_app
 from agentos.core import catalog
 from agentos.core.config import NodeConfig
 from agentos.dev import cli as dev_cli
+from agentos.local import cli as local_cli
+from agentos.setup.cli import setup as setup_command
 from agentos.studio import cli as studio_cli
 
 # isort: off
@@ -128,48 +129,8 @@ def errors(
             typer.echo(f"{item.code:<26} {item.meaning[:90]}")
 
 
-SETUP_PATHS = (
-    ("Try it on this computer first, with a fake node (nothing to install)", "agentos dev up --seed"),
-    ("On a Linux server you reach over SSH (agentos installs the node there)", "agentos connect root@my-server"),
-    ("On this Linux machine (it becomes the node; not a Mac yet)", "agentos up --here"),
-)
-
-
-# `agentos setup` is here, not in agentos.client.cli: it starts a controller or a dev node, and both
-# of those CLIs build on the client's
-@app.command()
-def setup() -> None:
-    """Get started: choose where your agents' browsers run, and connect Claude Code and Codex to it."""
-    from agentos.client.cli import connect
-    from agentos.client.cli import fail as client_fail
-    from agentos.client.errors import ClientError
-    from agentos.client.state import current_platform
-
-    typer.echo("agentos: where should your agents' logged-in browsers run?")
-    for i, (what, command) in enumerate(SETUP_PATHS, 1):
-        typer.echo(f"  {i}  {what}")
-        typer.echo(f"       {command}")
-    if not sys.stdin.isatty():
-        typer.echo("Run one of those commands to start.")
-        return
-    choice = typer.prompt("Choose 1, 2 or 3", default="1", show_default=True).strip()
-    if choice == "2":
-        host = typer.prompt("The server's SSH address, for example root@203.0.113.7").strip()
-        connect(ssh_host=host)
-        return
-    if choice == "3":
-        if current_platform() == "macos":
-            typer.echo("A Mac cannot be a node yet (browser lanes need Linux). Try 1 first: agentos dev up --seed")
-            raise typer.Exit(1)
-        from agentos.controller.cli import up_command
-
-        up_command(controller_port=None, ssh_host=None, here=True, verbose=False)
-        return
-    if choice != "1":
-        raise client_fail(ClientError(f"{choice!r} is not 1, 2 or 3", "run `agentos setup` again"))
-    from agentos.dev.cli import DEFAULT_PORT, up
-
-    up(home=None, port=DEFAULT_PORT, seed=True, connect=True)
+# `agentos setup`: the guided setup of local mode (agentos.setup.cli)
+app.command("setup")(setup_command)
 
 
 app.add_typer(config_app, name="config")
@@ -180,6 +141,7 @@ app.add_typer(members_app, name="members")
 mount_features(app)
 wire_feature_clis()
 app.add_typer(dev_cli.app, name="dev")  # agentos dev up: a fake node on this machine (agentos.dev)
+app.add_typer(local_cli.app, name="local")  # agentos local: the node on this computer, environments only
 app.add_typer(studio_cli.app, name="studio")  # agentos studio up: the studio tools with a real browser, on a laptop
 app.add_typer(lanebench_cli.app, name="lanebench")  # the local lane benchmark (tests/lanebench)
 

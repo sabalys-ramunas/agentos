@@ -503,6 +503,11 @@ A save answers `{ "profile", "version", "state", "created", "changes": { surface
 - `GET /view/env/{id}-browser/proof/{proof}.png?t=<token>` -> the PNG of a proof an agent kept in that
   environment (`browser_screenshot(proof=...)`), `Cache-Control: private, no-store`. The token is the proof's
   own signed link (15 minutes, from `environment()`), not a viewer token; any other answers 403 `denied`.
+- `PUT /view/env/{id}/upload?t=<token>` (or `POST`) with a `.tar.gz` or `.tar` body -> `{dest, files, bytes,
+  unpacked_bytes, paths, more?, sha256, next}`: the archive extracted into `dest` on the environment's machine
+  (an overlay, nothing deleted). The token is a one-use link from `environment_upload` (15 minutes); a changed,
+  expired or used one answers 403 `denied`. Also 400 `invalid` (a member it names), 409 `busy`, 413
+  `too_large` (over 512 MB), 502 `error` (tar on the machine failed). docs/design/environments.md, "Uploads".
 
 ### Exposes and forwards (`agentos expose`, `agentos lane forward`)
 - `GET /api/exposes` -> `{ links: [{ id, kind, lane, port, state, by, created_at, expires_at, socket, name?,
@@ -757,6 +762,35 @@ gives it. Requests live in the node's memory only.
 Both are traced as `panel.code.enter` and `panel.code.decline`; the login's own call traces
 `vault.code_requested`, then `vault.code_used` (`source: "manual"`), `vault.code_declined` or
 `vault.code_timeout`.
+
+### Repository cards (a token the owner pastes for a private repository, on the node's own page)
+`environment_open` on a repository the node cannot read opens a question in Needs you, one per
+repository (agentos.environments.connect). `GET /api/questions` marks it with `repo_connect`:
+`{ "repo": "github.com/acme/app", "host": "github.com", "reason": "not_connected" | "refused",
+"token_url", "classic_token_url", "deploy_keys_url" }` (the last three on GitHub only). The routes take
+the card's approval id, and all of them need the owner signed in with a person present: an agent's
+token, any grant and the node token alone are `presence_required`, a member is `denied`.
+- `POST /api/repo-connect/{id}/form` -> a form trip (`{ "id", "kind": "repo_token", "stage": "waiting",
+  "subject", "form_url", "expires_at", "repo" }`, as `POST /api/forms` answers). An owner with a passkey
+  confirms first (`step_up_required`). No route takes the token: the web app never holds one
+  (docs/WEB-NODE.md). The app opens `form_url`, the node's own page (`GET /api/forms/{token}`: no
+  script, no outside asset, a strict CSP, `no-store`, only over https or on this computer), and waits on
+  `GET /api/forms/trips/{id}`. The page's POST (urlencoded `token`) asks
+  `GET https://api.github.com/repos/{owner}/{name}` with the token, then runs `git ls-remote` with it as
+  the gateway fetches, keeps it as `agentos environments repo add --token` does (this one repository,
+  declared for `env`), and approves the card. A check that fails shows what to do on the page (400), and
+  nothing is kept; the same link takes another try until it runs out (15 minutes). One that works ends
+  the link, and the trip says `"stage": "done"` with `"outcome": { "repo", "token_expires_at" }`
+  (GitHub's `github-authentication-token-expiration`, or null). A card closed meanwhile ends its link
+  (410). The token is write-only: no response, trace, approval, log line or database row holds it (the
+  vault holds it sealed).
+- `POST /api/repo-connect/{id}/deploy-key` -> `{ "repo", "name", "public_key", "fingerprint",
+  "settings_url" }`: the vault's deploy key for the repository, or a new one (the same on every call).
+- `POST /api/repo-connect/{id}/check` -> `{ "repo", "connected": true }` once a machine can clone it (the
+  card closes), else 400 `repo_connect_failed` (`Not yet: ...`).
+- `POST /api/repo-connect/{id}/decline` -> `{ "repo", "declined": true }`: the card is denied.
+A closed card is 404. They are traced as `panel.repo.token_form`, `panel.repo.deploy_key`,
+`panel.repo.check` and `panel.repo.decline`, without the token.
 
 ### Assisted login (the owner fills a form, the node types it)
 A person should almost never log in through the live view. `agentos.node.login_assist` reads the

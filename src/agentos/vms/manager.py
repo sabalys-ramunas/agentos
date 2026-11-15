@@ -25,6 +25,7 @@ import logging
 import re
 import secrets
 import shutil
+from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -46,6 +47,7 @@ log = logging.getLogger("agentos.vms")
 OVERDUE_ALERT = timedelta(minutes=10)     # a live VM this far past its limit pushes a notification
 ORPHAN_GRACE = timedelta(minutes=10)      # an unknown server younger than this may still be ours, being made
 EXIT_IP_URLS = ("https://api.ipify.org", "https://ipinfo.io/ip")
+EXIT_IP6_URLS = ("https://api6.ipify.org", "https://v6.ipinfo.io/ip")
 MAX_DELETE_BACKOFF_S = 600
 BOOT_POLL_S = 3.0                         # between SSH probes while a VM boots
 IMAGE_BUILD_MAX = timedelta(hours=2)      # a build VM older than this is deleted by any reaper
@@ -67,13 +69,21 @@ curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin s
 curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
 apt-get install -y -q nodejs
 systemctl enable docker
-apt-get clean
+"""
+# The end of every image build with the default script: no package lists, no caches, no keys, no
+# machine id, so each VM booted from the snapshot is new.
+IMAGE_CLEANUP = """apt-get clean
 rm -rf /var/lib/apt/lists/* /root/.cache
 cloud-init clean --logs --seed
 rm -f /etc/ssh/ssh_host_* /root/.ssh/authorized_keys
 truncate -s 0 /etc/machine-id
 sync
 """
+
+
+def image_script(extra: str = "") -> str:
+    """The default image script, with `extra` (more to install) run before the cleanup."""
+    return DEFAULT_IMAGE_SCRIPT + (extra.rstrip() + "\n" if extra else "") + IMAGE_CLEANUP
 
 
 def _label_value(text: str) -> str:
@@ -89,6 +99,23 @@ def _iso(dt: datetime | None) -> str | None:
 
 
 
+async def lookup_public_ips() -> list[str]:
+    """This computer's public IPv4 address and, when it has one, its IPv6 address, as the internet
+    sees them: each asked over its own address family. [] when nothing answered."""
+    out: list[str] = []
+    for local, urls in (("0.0.0.0", EXIT_IP_URLS), ("::", EXIT_IP6_URLS)):
+        for url in urls:
+            try:
+                transport = httpx.AsyncHTTPTransport(local_address=local)
+                async with httpx.AsyncClient(timeout=10, transport=transport) as c:
+                    r = await c.get(url, headers={"User-Agent": "agentos-vms", "Accept": "text/plain"})
+                out.append(str(ipaddress.ip_address(r.text.strip())))
+                break
+            except (httpx.HTTPError, ValueError, OSError):
+                continue
+    return out
+
+
 def _give_launcher(envs: Any) -> None:
     """VM lanes run over ssh: the env manager (which vms builds on) gets the launcher from here."""
     if getattr(envs, "remote_launcher", "absent") is None:
@@ -99,7 +126,8 @@ def _give_launcher(envs: Any) -> None:
 class VmManager:
     def __init__(self, home: Path, *, runtime: Any = None, provider: Provider | None = None,
                  settings: VmSettings | None = None, node_name: str | None = None, probe=None,
-                 public_ip: str | None = None, clock=utcnow):
+                 public_ip: str | None = None, clock=utcnow, follow_ip: bool = False,
+                 ip_lookup: Callable[[], Awaitable[list[str]]] | None = None):
         self.home = Path(home)
         self.runtime = runtime
         if runtime is not None and runtime.get("envs") is not None:
@@ -122,6 +150,11 @@ class VmManager:
         self._offers: tuple[datetime, list[dict]] | None = None
         self._home_id: str | None = None
         self.last_reap: dict = {}
+        self._reap_lock = asyncio.Lock()  # the reaper's loop and a catch-up after a wake never overlap
+        # follow_ip: SSH is let in from this computer's public address as it is now, read again for
+        # every new VM and on refresh_firewall (agentos local: a laptop moves between networks)
+        self.follow_ip = follow_ip
+        self._ip_lookup = ip_lookup or lookup_public_ips
 
     # ================================================================ wiring
     @property
@@ -256,6 +289,8 @@ class VmManager:
     async def _ssh_from(self) -> list[str]:
         if self.settings.ssh_from:
             return [str(ipaddress.ip_network(c, strict=False)) for c in self.settings.ssh_from]
+        if self.follow_ip:
+            return await self._current_ips()
         if self._public_ip is None:
             for url in EXIT_IP_URLS:
                 try:
@@ -269,6 +304,34 @@ class VmManager:
             raise VmError("could not find this node's public IP for the VM firewall; set ssh_from in vms.toml")
         ip = ipaddress.ip_address(self._public_ip)
         return [f"{ip}/{32 if ip.version == 4 else 128}"]
+
+    async def _current_ips(self) -> list[str]:
+        """This computer's public addresses now, as /32 and /128 networks: the IPv4 one (a VM is
+        reached at its IPv4 address, so it is needed) and the IPv6 one when there is one."""
+        try:
+            found = [ipaddress.ip_address(a) for a in await self._ip_lookup()]
+        except (ValueError, httpx.HTTPError, OSError):
+            found = []
+        if not any(ip.version == 4 for ip in found):
+            raise VmError("could not find this computer's public IPv4 address, so the VM firewall cannot let it in "
+                          f"({' and '.join(u.split('//')[1] for u in EXIT_IP_URLS)} did not answer). Check that this "
+                          "computer is online and try again, or set ssh_from in vms.toml to the addresses SSH may "
+                          "come from.")
+        nets = {f"{ip}/{32 if ip.version == 4 else 128}" for ip in found}
+        return sorted(nets, key=lambda n: (":" in n, n))
+
+    async def refresh_firewall(self) -> list[str] | None:
+        """With follow_ip: set the node's VM firewall to this computer's address now, so the tunnels
+        of the VMs already running reach them again after the laptop moved to another network. None
+        when there is nothing to set (no provider yet, no firewall, or a fixed ssh_from)."""
+        if not (self.follow_ip and self.configured and self.settings.firewall and not self.settings.ssh_from):
+            return None
+        prov = self.provider()
+        if not getattr(prov, "firewall", True):
+            return None
+        nets = await self._current_ips()
+        await prov.ensure_firewall(f"agentos-{self.node}-{self.home_id}", self._labels(), nets)
+        return nets
 
     async def offers(self, location: str) -> list[dict]:
         """Server types that can be ordered in `location` now, cheapest first, with `price` (EUR
@@ -626,7 +689,7 @@ class VmManager:
                     raise VmError(f"SSH did not answer within {self.settings.boot_timeout_s} s ({last})")
                 await asyncio.sleep(BOOT_POLL_S)
             say("running the setup script (several minutes)")
-            code, output = await ssh.run(remote, script or DEFAULT_IMAGE_SCRIPT, timeout_s=1800)
+            code, output = await ssh.run(remote, script or image_script(), timeout_s=1800)
             if code != 0:
                 raise VmError(f"the setup script failed with exit code {code}: {output[-1500:]}")
             say("taking the snapshot")
@@ -706,6 +769,10 @@ class VmManager:
         return minute >= 60 - self.settings.hour_margin_minutes
 
     async def reap_once(self, now: datetime | None = None) -> dict:
+        async with self._reap_lock:
+            return await self._reap(now)
+
+    async def _reap(self, now: datetime | None) -> dict:
         now = now or self._clock()
         out: dict[str, Any] = {"at": now.isoformat(), "deleted": [], "orphans": [], "gone": [], "overdue": []}
         for rec in self.store.live():

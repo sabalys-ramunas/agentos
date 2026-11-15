@@ -16,6 +16,7 @@ Two pieces for the daemon's HTTP server (docs/API.md, "Lane control"):
       POST /view/{ws}/{name}/login?t=...     {"action": start|step|refresh|take|resume|cancel|save, ...}
       GET  /view/{ws}/{name}/login.png?t=... the login step's redacted screenshot
       GET  /view/env/{id}-browser/proof/{proof}.png?t=...  an environment's proof image (its own signed link)
+      PUT  /view/env/{id}/upload?t=...       a .tar.gz into an environment's machine (a one-use signed link; POST too)
       GET  /viewer-assets/...                the page's JS, CSS and vendored noVNC
 - `control_api_routes(lanes, links)`: the owner's API, mounted under /api BEHIND the
   bearer (or panel session) check:
@@ -515,7 +516,10 @@ class ViewerApp:
             return _error(429, "rate_limited", f"That is more than {CLIPBOARD_READS} copies in a minute. Wait a "
                                                "moment, then copy again.")
         try:
-            text = await lane_clipboard.read_clipboard(viewer.display, viewer.xauthority)
+            # an environment's browser on its machine reads there (agentos.environments.vmbrowser)
+            read = getattr(getattr(self.lanes, "displays", None), "read_clipboard", None)
+            text = await (read(lane_id, viewer) if callable(read)
+                          else lane_clipboard.read_clipboard(viewer.display, viewer.xauthority))
         except AgentosError as e:
             return _error(_login_status(e), e.code, e.message)
         self._record_clipboard(lane_id, len(text), by=LINK_HOLDER_BY if holder else VIEWER_BY)
@@ -795,9 +799,22 @@ class ViewerApp:
             "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff",
             "Content-Security-Policy": "default-src 'none'", "Referrer-Policy": "no-referrer"})
 
+    async def upload(self, request: Request) -> Response:
+        """Files into an environment's machine (agentos.environments.uploads), for its own one-use signed
+        link: the environments service checks the link, streams the body and answers in JSON."""
+        svc = self.environments() if self.environments is not None else None
+        receive = getattr(svc, "receive_upload", None)
+        if not callable(receive):
+            return _error(403, "denied", "This node takes no uploads.")
+        params = request.path_params
+        status, body = await receive(params["workspace"], params["name"], request.query_params.get("t"),
+                                     request.stream(), request.headers.get("content-length"))
+        return JSONResponse(body, status_code=status, headers={"Cache-Control": "no-store"})
+
     def routes(self) -> list:
         return [
             Route("/view/{workspace}/{name}/proof/{proof}.png", self.proof, methods=["GET"]),
+            Route("/view/{workspace}/{name}/upload", self.upload, methods=["PUT", "POST"]),
             Route("/view/{workspace}/{name}/login", self.login_get, methods=["GET"]),
             Route("/view/{workspace}/{name}/login", self.login_post, methods=["POST"]),
             Route("/view/{workspace}/{name}/login.png", self.login_shot, methods=["GET"]),

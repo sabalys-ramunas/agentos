@@ -67,6 +67,12 @@ node = [
   "camoufox[geoip]>=0.5.9,<0.6",
   "playwright>=1.62,<1.63",
 ]
+# agentos on a laptop (`agentos local`, scripts/install.sh installs `agentos[local]`): Playwright's client
+# drives each environment's browser, which runs on the environment's VM (agentos.environments.vmbrowser).
+# No Camoufox here, and no browser binary: nothing runs `playwright install` or `camoufox fetch`.
+local = [
+  "playwright>=1.62,<1.63",
+]
 # Studio's review browser and image work, on a laptop or a node (`uv sync --extra studio`). The
 # engines themselves come from `python -m playwright install chromium` or the installed Chrome.
 studio = [

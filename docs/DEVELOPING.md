@@ -65,6 +65,40 @@ in process, calls MCP over HTTP with the printed agent grant (and checks a post 
 page asks first), signs in with the printed code and
 checks the live view over the viewer's WebSocket, then shuts down and checks every port closed.
 
+## Environments on Docker, with the dev node
+
+For working on environments themselves: the dev node with the docker provider, so each
+environment is an Ubuntu container with SSH instead of a cloud VM. People who only use agentos
+run `agentos setup` instead (the [README](../README.md) quickstart). You need Docker running.
+
+```sh
+uv sync --extra studio
+mkdir -p ~/agentos-try && echo 'provider = "docker"' > ~/agentos-try/vms.toml
+uv run agentos dev up --home ~/agentos-try
+```
+
+`dev up` starts a node on `127.0.0.1:7450` and registers it with Claude Code and Codex (when they
+are installed) as `agentos-dev`, with the `agentos-environment` skill. Leave it running. In a
+second terminal, build the environment image once (a few minutes):
+
+```sh
+export AGENTOS_HOME=~/agentos-try
+uv run agentos environments setup --build
+```
+
+Connect the repository the agent should work on: a deploy key to paste into the repository's
+deploy keys (with write access), or a fine-grained token with `--token`. A public repository clones
+without this, read only; a private one that is not connected is refused before anything is
+rented, with this command in the error.
+
+```sh
+uv run agentos environments repo add github.com/you/app
+```
+
+Then start a new Claude Code session and ask it to work on that repository in agentos. On the dev
+node the account lanes are simulated; the environment's container, terminal, browser, git and
+studio's checks are real.
+
 ## On the Mac
 
 ```

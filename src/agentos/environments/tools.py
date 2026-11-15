@@ -11,7 +11,7 @@ from typing import Any
 from agentos.core.errors import AgentosError, NotFound, PolicyDenied
 from agentos.core.models import Effect
 from agentos.core.tools import ToolContext, ToolSpec, current_elicitor, frozen_off, refuse_frozen
-from agentos.environments.errors import NoEnvironment
+from agentos.environments.errors import NoEnvironment, RepoNotConnected
 from agentos.environments.manager import EnvironmentManager, binding_of, check_ref, check_title
 from agentos.environments.models import Environment
 
@@ -187,6 +187,9 @@ def _open_result(ctx: ToolContext, mgr: EnvironmentManager, env: Environment, bi
                        "Nothing here waits for a person, a push to any branch included; a delete or a force "
                        "push of a branch this environment did not create is refused, so push your work to a new "
                        "branch")
+        # code from the agent's own checkout, uncommitted work included (agentos.environments.uploads)
+        out["next"] += ('. Code in your own checkout: tools_call(name="environment_upload") gives a link and the '
+                        "commands that pack and send it")
     elif env.state == "starting":
         out["next"] = ("still starting (the machine boots and installs its tools): call environment() in a minute; "
                        "it gives links.browser for the human once the browser is up")
@@ -214,8 +217,8 @@ async def environment_open(ctx: ToolContext, *, title: str, repo: str | None = N
     machine (cpu, memory_gb, size; `bigger`: what each bigger size costs an hour), expires_at, lanes,
     and links.browser (its live view) for the human. The same chat gets the same one back; an open
     one's title gets it back in a new chat (environment_in_use if another chat used it in the last 10
-    minutes). Errors: repo_not_connected (a private repo the human has not connected: pass its
-    message on), environment_limit (a node limit: close one, fewer hours, a smaller size, or tell the
+    minutes). A private repo the node cannot read returns status approval_pending with review_url:
+    give it to the human, approval_wait, then call again. Errors: environment_limit (a node limit: close one, fewer hours, a smaller size, or tell the
     user), environment_already_open (this chat has one with another repo), environment_failed (it
     did not come up).
 
@@ -236,6 +239,8 @@ async def environment_open(ctx: ToolContext, *, title: str, repo: str | None = N
     wait = max(0.0, min(float(wait_s), WAIT_MAX_S))
     async with mgr.opening(binding):  # one open at a time in a chat: a second one gets the first's
         env = await _open_locked(ctx, mgr, binding, family, title=title, repo=repo, ref=ref, size=size, hours=hours)
+    if isinstance(env, dict):  # a card for the human to connect the repository: nothing was rented
+        return env
     if env.state == "starting":
         env = await mgr.wait_ready(env.id, wait)
     bigger: list[dict] = []
@@ -246,7 +251,8 @@ async def environment_open(ctx: ToolContext, *, title: str, repo: str | None = N
 
 
 async def _open_locked(ctx: ToolContext, mgr: EnvironmentManager, binding: str, family: str | None, *, title: str,
-                       repo: str | None, ref: str | None, size: str | None, hours: float | None) -> Environment:
+                       repo: str | None, ref: str | None, size: str | None, hours: float | None
+                       ) -> Environment | dict:
     if repo:
         from agentos.git.wire import parse_remote
 
@@ -275,7 +281,15 @@ async def _open_locked(ctx: ToolContext, mgr: EnvironmentManager, binding: str, 
     if callable(check):
         check(Effect.VM, lane_id=lane, facts={"profile": plan["profile"]})
     if repo:  # after the limits and the grant (both local), before anything is rented: repo_not_connected
-        await mgr.check_repo(repo)
+        try:
+            await mgr.check_repo(repo)
+        except RepoNotConnected as e:  # a card the human answers in the panel (agentos.environments.connect)
+            from agentos.environments.connect import card_result
+
+            card = await card_result(ctx, mgr, repo, e)
+            if card is None:
+                raise
+            return card
     await ctx.authorize(Effect.READ, lane_id=lane, summary=summary,
                         content={"environment_open": title, "repo": repo, "ref": ref,
                                  "server_type": plan["server_type"], "ttl_minutes": plan["ttl_minutes"],

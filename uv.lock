@@ -32,6 +32,9 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
+local = [
+    { name = "playwright" },
+]
 node = [
     { name = "camoufox", extra = ["geoip"] },
     { name = "playwright" },
@@ -61,6 +64,7 @@ requires-dist = [
     { name = "jsonschema", specifier = ">=4.26.0" },
     { name = "mcp", specifier = ">=2.3,<3" },
     { name = "pillow", marker = "extra == 'studio'", specifier = ">=11" },
+    { name = "playwright", marker = "extra == 'local'", specifier = ">=1.62,<1.63" },
     { name = "playwright", marker = "extra == 'node'", specifier = ">=1.62,<1.63" },
     { name = "playwright", marker = "extra == 'studio'", specifier = ">=1.62,<1.63" },
     { name = "publicsuffixlist", specifier = ">=1.1.2.20261101" },
@@ -75,7 +79,7 @@ requires-dist = [
     { name = "webauthn", specifier = ">=3.0.1" },
     { name = "websockets", specifier = ">=17.4" },
 ]
-provides-extras = ["node", "studio"]
+provides-extras = ["node", "local", "studio"]
 
 [package.metadata.requires-dev]
 dev = [

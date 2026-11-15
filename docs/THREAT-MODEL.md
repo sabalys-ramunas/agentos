@@ -133,6 +133,14 @@ proof of its work in an environment, and nothing else: no live view, no control.
 key for that one image (purpose `proof`, 15 minutes), so replacing the key revokes it, and a live-view token
 does not open it. The image is the agent's own work, which the agent may already pass on.
 
+An **upload link** (`/view/env/<id>/upload?t=...`, from `environment_upload`) puts one archive into an
+environment's machine, a machine the agent can already write to with `lane_exec`. It is signed with the viewer
+key (purpose `upload`, 15 minutes), spent on its first use, kept only in the node's memory and dead once the
+environment closes, so a link that leaks into a log is good for one upload into that one VM at most. The node
+takes at most 512 MB, removes the temp file in every case, and checks every member before the VM sees any:
+no absolute path, no `..`, no link out of the folder, no device or fifo (tarfile's data filter, run on an
+empty folder so it never reads the node's own files). It never extracts anything on the node itself.
+
 Copying out of a lane (`POST /view/{ws}/{name}/clipboard`) reads the lane's clipboard for the person's own
 computer. A clipboard can hold what was never on the screen (a password a page's Copy button put there, a
 token), so the read is at least as strict as the relay's input gate: a control link, control `human`, and a

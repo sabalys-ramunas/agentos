@@ -8,6 +8,14 @@
   alone (agentos.git.service.vm_listener), so git on the VM clones and pushes the environment's
   repository through the node (the credential never reaches the VM; its token works only here).
 
+With the browser on the machine (environments.toml browser = "vm", agentos.environments.vmbrowser) the
+same connection carries two more, both from a Unix socket in that folder:
+
+- `-L <folder>/vnc:/run/agentos-browser/vnc.sock`: the machine's x11vnc, for the live view (the node's
+  viewer relay opens it as it opens a local display's socket);
+- `-L <folder>/browser:127.0.0.1:47613`: the browser server on the machine's loopback, which the node
+  drives with Playwright through a guard like the SOCKS one (`browser_port`).
+
 Browsers speak SOCKS over TCP only, so the node relays 127.0.0.1:<port> to that socket (`Guard`).
 Who may use the port:
 
@@ -40,6 +48,8 @@ from agentos.vms.ssh import ssh_base
 log = logging.getLogger("agentos.environments")
 
 GATEWAY_PORT_ON_VM = 3129  # as inside an isolated lane (agentos.git.service.LANE_PORT)
+VM_BROWSER_PORT = 47613    # the browser server on the machine's loopback (vmbrowser_ctl.py)
+VM_VNC_SOCKET = "/run/agentos-browser/vnc.sock"  # its x11vnc (vmbrowser_ctl.py)
 START_WAIT_S = 10.0
 RELAY_CHUNK = 65536
 PROC_TCP = ("/proc/net/tcp", "/proc/net/tcp6")
@@ -51,8 +61,10 @@ def free_port() -> int:
         return int(s.getsockname()[1])
 
 
-def tunnel_argv(remote: RemoteHost, *, socks_path: str, gateway_port: int | None) -> list[str]:
-    """ssh_base with forwarding allowed for exactly these two, and no remote command."""
+def tunnel_argv(remote: RemoteHost, *, socks_path: str, gateway_port: int | None,
+                forwards: tuple[tuple[str, str], ...] = ()) -> list[str]:
+    """ssh_base with forwarding allowed for exactly these (and each `-L local:remote` of `forwards`), and
+    no remote command."""
     base = ssh_base(remote)
     i = base.index("ClearAllForwardings=yes")
     base = base[: i - 1] + base[i + 1:]          # drop "-o ClearAllForwardings=yes"
@@ -61,6 +73,8 @@ def tunnel_argv(remote: RemoteHost, *, socks_path: str, gateway_port: int | None
                        "-o", "StreamLocalBindMask=0177", "-N", "-D", socks_path]
     if gateway_port:
         out += ["-R", f"127.0.0.1:{GATEWAY_PORT_ON_VM}:127.0.0.1:{gateway_port}"]
+    for local, remote_end in forwards:
+        out += ["-L", f"{local}:{remote_end}"]
     return out + target
 
 
@@ -173,18 +187,35 @@ class Tunnel:
     """One ssh process holding both forwards, and the guard in front of its SOCKS socket. `start`
     returns once the SOCKS port answers."""
 
-    def __init__(self, remote: RemoteHost, *, gateway_port: int | None, socks_port: int | None = None):
+    def __init__(self, remote: RemoteHost, *, gateway_port: int | None, socks_port: int | None = None,
+                 vm_browser: bool = False, browser_port: int | None = None):
         self.remote = remote
         self.gateway_port = gateway_port
         self.socks_port = socks_port or free_port()
+        # the browser on the machine (vm_browser): its live view and its server, forwarded too
+        self.vm_browser = vm_browser
+        self.browser_port = (browser_port or free_port()) if vm_browser else None
         self.proc: asyncio.subprocess.Process | None = None
         self.guard: Guard | None = None
+        self.browser_guard: Guard | None = None
         self.dir: str | None = None
         self.last_error = ""
 
     @property
     def alive(self) -> bool:
-        return self.proc is not None and self.proc.returncode is None and self.guard is not None and self.guard.serving
+        up = self.proc is not None and self.proc.returncode is None and self.guard is not None and self.guard.serving
+        return up and (not self.vm_browser or (self.browser_guard is not None and self.browser_guard.serving))
+
+    @property
+    def vnc_path(self) -> str | None:
+        """The machine's x11vnc, as a Unix socket on this computer (vm_browser only)."""
+        return os.path.join(self.dir, "vnc") if self.vm_browser and self.dir else None
+
+    def _forwards(self) -> tuple[tuple[str, str], ...]:
+        if not self.vm_browser or not self.dir:
+            return ()
+        return ((os.path.join(self.dir, "vnc"), VM_VNC_SOCKET),
+                (os.path.join(self.dir, "browser"), f"127.0.0.1:{VM_BROWSER_PORT}"))
 
     async def start(self) -> None:
         if self.alive:
@@ -193,7 +224,7 @@ class Tunnel:
         # a short path (a Unix socket's is at most 104 bytes on macOS), in a folder only we can open
         self.dir = tempfile.mkdtemp(prefix="agentos-env-")
         sock = os.path.join(self.dir, "socks")
-        argv = tunnel_argv(self.remote, socks_path=sock, gateway_port=self.gateway_port)
+        argv = tunnel_argv(self.remote, socks_path=sock, gateway_port=self.gateway_port, forwards=self._forwards())
         self.proc = await asyncio.create_subprocess_exec(
             *argv, stdin=asyncio.subprocess.DEVNULL, stdout=asyncio.subprocess.DEVNULL,
             stderr=asyncio.subprocess.PIPE, env={"PATH": "/usr/sbin:/usr/bin:/sbin:/bin", "LANG": "C.UTF-8"})
@@ -207,11 +238,16 @@ class Tunnel:
                 raise OSError(f"the tunnel to the environment's machine did not start: {self.last_error}")
             if await _answers(sock):
                 self.guard = Guard(self.socks_port, sock)
-                try:
-                    await self.guard.start()
-                except OSError as e:
-                    await self.stop()
-                    raise OSError(f"the tunnel's port {self.socks_port} on this computer is taken: {e}") from None
+                if self.vm_browser and self.browser_port:
+                    self.browser_guard = Guard(self.browser_port, os.path.join(self.dir, "browser"))
+                for guard in (self.guard, self.browser_guard):
+                    if guard is None:
+                        continue
+                    try:
+                        await guard.start()
+                    except OSError as e:
+                        await self.stop()
+                        raise OSError(f"the tunnel's port {guard.port} on this computer is taken: {e}") from None
                 return
             await asyncio.sleep(0.2)
         await self.stop()
@@ -219,9 +255,10 @@ class Tunnel:
                       f"{START_WAIT_S:g} s")
 
     async def stop(self) -> None:
-        guard, self.guard = self.guard, None
-        if guard is not None:
-            await guard.stop()
+        for guard in (self.guard, self.browser_guard):
+            if guard is not None:
+                await guard.stop()
+        self.guard = self.browser_guard = None
         proc, self.proc = self.proc, None
         if proc is not None and proc.returncode is None:
             with contextlib.suppress(ProcessLookupError):

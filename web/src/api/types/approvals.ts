@@ -1,4 +1,5 @@
 import type { ApprovalLaneState, ApprovalState, Effect, Outcome, Principal, Site } from './lanes';
+import type { FormTrip } from './logins';
 import type { WorkerThing } from './workers';
 
 /**
@@ -194,6 +195,45 @@ export interface Question {
   answered_by: string | null;
   /** Concept stage: a worker asked, and this is how it got here. */
   worker?: WorkerThing | null;
+  /** An agent asks the owner to connect a private repository (docs/ENVIRONMENTS.md). Absent on any other question. */
+  repo_connect?: RepoConnect | null;
+}
+
+/**
+ * What a repository card needs: the repository, why the node cannot read it, and GitHub's pages. The node checks a
+ * token with GitHub before it keeps it, and the token is in no answer.
+ */
+export interface RepoConnect {
+  repo: string;
+  host: string;
+  /** `refused`: the node had a key or token for it, and the host refused it. */
+  reason: 'not_connected' | 'refused';
+  /** GitHub only: where a person makes a fine-grained token, a classic one, and the repository's deploy keys. */
+  token_url?: string;
+  classic_token_url?: string;
+  deploy_keys_url?: string;
+}
+
+/** The link to the node's own page for a card's token: a form trip, for the repository it names. */
+export interface RepoTokenForm extends FormTrip {
+  repo: string;
+}
+
+/** The card's answer once the node can read the repository. */
+export interface RepoConnected {
+  repo: string;
+  connected: true;
+  /** When GitHub says the token expires, or null when it does not say. */
+  expires_at?: string | null;
+}
+
+/** The node's deploy key for the repository, for an admin of it to add. */
+export interface RepoDeployKey {
+  repo: string;
+  name: string;
+  public_key: string;
+  fingerprint: string;
+  settings_url: string;
 }
 
 /**

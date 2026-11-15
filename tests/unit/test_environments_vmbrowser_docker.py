@@ -1,0 +1,180 @@
+"""An environment's browser on its own machine, for real: the docker provider's container with the
+browser stack (deploy/environments, browser.sh), the node's real lane manager with its routing, and
+Playwright on this computer driving the machine's Camoufox through the environment's SSH tunnel.
+
+Skipped unless docker answers and the image has the browser (label org.agentos.browser). Build it with
+`agentos environments setup --build`, or name another image with AGENTOS_TEST_ENV_IMAGE. What it proves:
+the environment opens with browser = "vm"; a page served on the machine's localhost loads in the
+machine's browser and reads back as an outline; a screenshot at a phone width is kept as proof on the
+node; the live view's socket speaks VNC; closing the environment stops it all and deletes the container.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import os
+import shutil
+import socket
+import subprocess
+import uuid
+
+import pytest
+from test_policy_support import make_service
+
+from agentos.core.config import NodeConfig
+from agentos.core.models import Effect
+from agentos.env.host import FakeHost
+from agentos.env.manager import EnvManager
+from agentos.env.paths import EnvSettings as TermSettings
+from agentos.env.sandbox import DirectLauncher
+from agentos.environments import vmbrowser
+from agentos.environments.manager import EnvironmentManager
+from agentos.environments.models import EnvSettings
+from agentos.vms.manager import VmManager
+from agentos.vms.models import VmSettings
+
+IMAGE = os.environ.get("AGENTOS_TEST_ENV_IMAGE", "agentos-env:latest")
+
+
+def _ready() -> bool:
+    if not shutil.which("docker") or not shutil.which("ssh"):
+        return False
+    try:
+        import playwright  # noqa: F401
+    except ImportError:
+        return False
+    try:
+        out = subprocess.run(["docker", "image", "inspect", "-f", '{{index .Config.Labels "org.agentos.browser"}}',
+                              IMAGE], capture_output=True, text=True, timeout=20, check=False)
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return out.returncode == 0 and out.stdout.strip() == "1"
+
+
+pytestmark = pytest.mark.skipif(not _ready(), reason=f"needs docker with the {IMAGE} image built with its browser")
+
+
+def containers(node_name: str) -> list[str]:
+    return subprocess.run(["docker", "ps", "-aq", "--filter", f"label=agentos-node={node_name}"],
+                          capture_output=True, text=True, check=False).stdout.split()
+
+
+@pytest.fixture
+async def node(tmp_path):
+    from agentos.node.lanes import build_lane_manager
+
+    home = tmp_path / "h"  # short: the tunnel's sockets live in a temp folder, the lanes' under home
+    home.mkdir()
+    policy, rt = make_service(home)
+    envs = EnvManager(home, runtime=rt, host=FakeHost(), launcher=DirectLauncher(),
+                      settings=TermSettings(proxy_port=0, max_timeout_s=600))
+    rt.register("envs", envs)
+    node_name = f"t-{uuid.uuid4().hex[:8]}"  # this test's containers only
+    vms = VmManager(home, runtime=rt, settings=VmSettings(provider="docker", location="local", docker_image=IMAGE,
+                                                          docker_memory_gb=4),
+                    node_name=node_name)
+    rt.register("vms", vms)
+    lanes = build_lane_manager(NodeConfig(home=home, self_check=False), node_ip_probe=None)
+    rt.register("lanes", lanes)
+    await lanes.start()
+    mgr = EnvironmentManager(home, runtime=rt, settings=EnvSettings(browser="vm"))
+    rt.register("environments", mgr)
+    grant, _ = policy.issue(subject={"id": "agent-1"}, workspaces=["*"], ceiling=Effect.COMMIT,
+                            specials={"vm": {}, "exec": {}})
+    yield {"mgr": mgr, "envs": envs, "lanes": lanes, "grant": grant, "node_name": node_name}
+    for env in mgr.store.open():
+        await mgr.close(env.id, discard=True, reason="test end")
+    await lanes.shutdown()
+    await mgr.shutdown()
+    await vms.shutdown()
+    await envs.shutdown()
+    policy.close()
+    left = await asyncio.to_thread(containers, node_name)
+    if left:
+        await asyncio.to_thread(subprocess.run, ["docker", "rm", "-f", *left], capture_output=True, check=False)
+
+
+async def _rfb_banner(path: str) -> bytes:
+    reader, writer = await asyncio.wait_for(asyncio.open_unix_connection(path), 10)
+    try:
+        return await asyncio.wait_for(reader.readexactly(12), 10)
+    finally:
+        writer.close()
+
+
+async def test_the_browser_runs_on_the_machine(node):
+    from agentos.node.interaction import create_interaction
+    from agentos.node.tools.shots import png_size, shot_at_width
+
+    mgr, envs, lanes, grant = node["mgr"], node["envs"], node["lanes"], node["grant"]
+    eid = mgr.planned_id("session:s1", "Shop page")
+    plan = await mgr.plan(eid, size=None, hours=1)
+    env = await mgr.create(eid, plan, binding="session:s1", title="Shop page", grant_id=grant.id,
+                           grant_root=grant.root_id, agent="agent-1", client=None, repo=None, ref=None)
+    env = await mgr.wait_ready(env.id, 600)
+    assert env.state == "ready", env.error
+    assert env.browser == "vm" and isinstance(lanes.engine, vmbrowser.RoutedEngine)
+
+    marker = f"served on the vm {uuid.uuid4().hex[:6]}"
+    await envs.job_start(env.terminal_lane, f"mkdir -p /srv/t && printf '%s' '<title>On the VM</title>"
+                                            f"<main><h1>{marker}</h1><a href=\"/next\">Next</a></main>' > "
+                                            "/srv/t/index.html && cd /srv/t && exec python3 -m http.server 3000 "
+                                            "--bind 127.0.0.1")
+    await asyncio.sleep(1.0)
+
+    lane = env.browser_lane
+    info = await lanes.open(lane)
+    assert info.viewer is not None and info.viewer.vnc_socket == mgr.tunnel_of(env.id).vnc_path
+    assert (await _rfb_banner(info.viewer.vnc_socket)).startswith(b"RFB 003.")  # the live view reaches x11vnc
+
+    interaction = create_interaction()
+    session = lanes.live_session(lane)
+    page = await session.page()
+    nav = await interaction.navigate(page, "http://localhost:3000/")
+    assert nav.url.startswith("http://localhost:3000"), nav
+    snap = await interaction.snapshot(page)
+    assert marker in snap.text and "Next" in snap.text  # rendered and read on the machine
+    wide = await interaction.screenshot(page)
+    assert png_size(wide)[0] == 1920
+    phone = await shot_at_width(interaction, page, 390, full_page=False)
+    assert png_size(phone)[0] == 390
+    proof = mgr.keep_proof(mgr.get(env.id), phone, title="the page on a phone", page_url=page.url,
+                           width=390, height=png_size(phone)[1])
+    assert mgr.proof_png(env.id, proof["id"]) == phone
+
+    # the live view's copy button: what the machine's browser copied, read on the machine
+    await page.evaluate("() => { const r = document.createRange(); r.selectNodeContents(document.querySelector('h1'));"
+                        " const s = getSelection(); s.removeAllRanges(); s.addRange(r); }")
+    await page.keyboard.press("Control+c")
+    await asyncio.sleep(0.5)
+    copied = await lanes.displays.read_clipboard(lane, info.viewer)
+    assert copied in (marker, "")  # "" where the driver's key press does not reach the system clipboard
+    print(f"copied from the machine's browser: {copied!r}")
+
+    ps = await envs.exec(env.terminal_lane, "ps -eo comm | sort -u", timeout_s=30)
+    assert "Xvfb" in ps.stdout and "x11vnc" in ps.stdout and "camoufox-bin" in ps.stdout
+    listening = await envs.exec(env.terminal_lane, "ss -ltnH", timeout_s=30)
+    browser_port = [ln for ln in listening.stdout.splitlines() if ":47613 " in ln]
+    assert browser_port and all("127.0.0.1:47613" in ln for ln in browser_port)  # loopback only
+    mem = await envs.exec(env.terminal_lane, "echo $(( $(cat /sys/fs/cgroup/memory.current) / 1048576 )) MB in all; "
+                          "ps -eo rss,comm --sort=-rss | head -8", timeout_s=30)
+    print(f"the machine with its browser and one page open: {mem.stdout.strip()}")  # docs/ENVIRONMENTS.md
+
+    closed = await mgr.close(env.id, discard=True, reason="test")
+    assert closed.state == "closed" and closed.vm_state in ("deleted", "deleting")
+    assert lane not in [i.spec.id for i in lanes.list()]
+    assert await asyncio.to_thread(containers, node["node_name"]) == []
+
+
+def test_unix_socket_paths_fit(tmp_path):
+    """macOS allows 104 bytes for a socket path: the tunnel's live view socket is in a short temp folder."""
+    import tempfile
+
+    folder = tempfile.mkdtemp(prefix="agentos-env-")
+    try:
+        path = os.path.join(folder, "vnc")
+        assert len(os.fsencode(path)) < 104
+        with socket.socket(socket.AF_UNIX) as s:
+            s.bind(path)
+    finally:
+        shutil.rmtree(folder, ignore_errors=True)

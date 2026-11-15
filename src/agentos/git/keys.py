@@ -66,6 +66,7 @@ class Credential:
     username: str | None = None
     last_used_at: str | None = None
     use_count: int = 0
+    any_repo: bool = False   # the GitHub login (agentos.git.login): names no repository, serves any for env
 
     @property
     def name(self) -> str:
@@ -85,7 +86,7 @@ class Credential:
         """For `agentos git key list` and the gateway's messages."""
         return {"name": self.name, "type": self.type, "host": self.host, "repos": list(self.repos),
                 "public_key": self.public_key, "fingerprint": self.fingerprint, "label": self.label,
-                "last_used_at": self.last_used_at, "use_count": self.use_count}
+                "last_used_at": self.last_used_at, "use_count": self.use_count, "any_repo": self.any_repo}
 
 
 def check_name(name: str) -> str:
@@ -180,7 +181,7 @@ def from_meta(meta: dict[str, Any]) -> Credential | None:
     return Credential(ref=ref, kind=kind, host=host, repos=repos, label=str(meta.get("label", "")),
                       public_key=scope.get("public_key"), fingerprint=scope.get("fingerprint"),
                       username=scope.get("username"), last_used_at=meta.get("last_used_at"),
-                      use_count=int(meta.get("use_count") or 0))
+                      use_count=int(meta.get("use_count") or 0), any_repo=scope.get("any_repo") is True)
 
 
 def pick(credentials: list[Credential], remote: Remote) -> Credential | None:

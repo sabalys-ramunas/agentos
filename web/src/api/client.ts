@@ -5,7 +5,7 @@
 import { ApiError, download, http, served } from './http';
 import { TURNING_OFF } from '@/lib/ask-first';
 import { LOWERING_A_YES } from '@/lib/confirm';
-import { CLEARING_TAINT, LIFTING_A_FREEZE, TURNING_ON_ACCOUNT_WORKER, TURNING_ON_WORKER } from '@/lib/vocabulary';
+import { CLEARING_TAINT, GIVING_A_TOKEN, LIFTING_A_FREEZE, TURNING_ON_ACCOUNT_WORKER, TURNING_ON_WORKER } from '@/lib/vocabulary';
 import type {
   AccountFile,
   BrandComponents,
@@ -39,6 +39,9 @@ import type {
   ServiceView,
   SettingRow,
   CodeRequest,
+  RepoConnected,
+  RepoDeployKey,
+  RepoTokenForm,
   FreezeReport,
   FreezeScope,
   FreezeStatus,
@@ -166,7 +169,7 @@ import type {
   TraceEvent,
   VaultEntry,
   VaultStatus,
-  FormKind,
+  StartFormKind,
   FormTrip,
   LaneLogin,
   Proxy,
@@ -596,7 +599,7 @@ export const fleet = {
   lockVault: (org: string) => http<VaultStatus>(path`/api/orgs/${org}/vault/seal`, { method: 'POST' }),
   removeVaultEntry: (org: string, id: string) => http<{ ok: boolean }>(path`/api/orgs/${org}/vault/${id}`, { method: 'DELETE' }),
   // A form the computer serves for a secret: the app starts the trip and opens its form_url, and never sees the value.
-  startForm: (org: string, body: { kind: Exclude<FormKind, 'login'>; fields?: Record<string, string> }) =>
+  startForm: (org: string, body: { kind: StartFormKind; fields?: Record<string, string> }) =>
     http<FormTrip>(path`/api/orgs/${org}/forms`, { method: 'POST', body }),
   formTrip: (org: string, id: string) => served(http<FormTrip>(path`/api/orgs/${org}/forms/trips/${id}`)),
   browserDevices: (org: string) => served(http<BrowserDevice[]>(path`/api/orgs/${org}/browser-devices`)),
@@ -690,6 +693,18 @@ export const fleet = {
     http<CodeRequest>(path`/api/orgs/${org}/codes/${id}`, { method: 'POST', body: { code } }),
   declineCode: (org: string, id: string) =>
     http<CodeRequest>(path`/api/orgs/${org}/codes/${id}/decline`, { method: 'POST' }),
+
+  /**
+   * A repository card: the link to the computer's own page for the token. The owner in person, with the usual step-up.
+   * The token is typed on that page, never here, and the app waits on the trip (`formTrip`).
+   */
+  repoTokenForm: (org: string, id: string) =>
+    http<RepoTokenForm>(path`/api/orgs/${org}/repo-connect/${id}/form`, { method: 'POST', stepUpReason: GIVING_A_TOKEN }),
+  /** The node's deploy key for the card's repository (made the first time), for an admin of it to add. */
+  repoDeployKey: (org: string, id: string) => http<RepoDeployKey>(path`/api/orgs/${org}/repo-connect/${id}/deploy-key`, { method: 'POST' }),
+  /** "I added it, check": can the node read the repository now? */
+  checkRepo: (org: string, id: string) => http<RepoConnected>(path`/api/orgs/${org}/repo-connect/${id}/check`, { method: 'POST' }),
+  declineRepo: (org: string, id: string) => http<{ repo: string; declined: true }>(path`/api/orgs/${org}/repo-connect/${id}/decline`, { method: 'POST' }),
 
   eventsUrl: (org: string) => path`/api/orgs/${org}/events`,
 };

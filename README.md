@@ -21,7 +21,7 @@ You open a chat and hand your coding agent a task to do in agentos. It asks for 
 **environment**: a fresh VM with your repository, a terminal and a browser. There it changes the
 code, runs the tests, opens the page and keeps a screenshot of it as proof. Then it pushes a branch,
 gives you the pull request link, and the VM is deleted. You watch its browser live, and take over
-whenever you like. Your own computer only runs the chat.
+whenever you like. Your own computer runs the chat and a small agentos service.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/readme/environment-dark.png">
@@ -29,8 +29,8 @@ whenever you like. Your own computer only runs the chat.
 </picture>
 
 agentos is not another agent, chat or IDE. It is an [MCP server](https://modelcontextprotocol.io)
-(Model Context Protocol) that runs on a machine you own and rents short-lived machines for the
-agent you already use.
+(Model Context Protocol) that runs on your laptop (or a server you own) and rents short-lived
+machines for the agent you already use.
 
 ## How it works
 
@@ -38,24 +38,23 @@ agent you already use.
 flowchart TB
     agent["Your agent<br/>Claude Code, Codex, T3 Code"]
     you["You<br/>live view, web app, CLI"]
-    mcp["agentos node<br/>MCP server, grants, limits, audit log"]
-    browser["Browser on the node<br/>no account, no login"]
-    vm["Environment: a disposable VM<br/>terminal, /work/your-repo, dev server"]
-    gateway["Git gateway on the node<br/>the key stays in the vault"]
+    mcp["agentos on your laptop or a server<br/>MCP server, grants, limits, audit log"]
+    vm["Environment: a disposable VM<br/>terminal, browser, /work/your-repo, dev server"]
+    gateway["Git gateway in agentos<br/>the token stays in the vault"]
     github[("GitHub")]
 
     agent -- "MCP" --> mcp
-    mcp -- "terminal over SSH" --> vm
-    mcp --> browser
-    you -. "watch, take over" .-> browser
-    browser -- "SOCKS tunnel through the VM" --> vm
+    mcp -- "one SSH connection: terminal, browser, live view" --> vm
+    you -. "watch, take over" .-> mcp
     vm -- "git push" --> gateway
     gateway --> github
 ```
 
-1. The agent calls `environment_open(title="Fix checkout", repo="github.com/you/shop")`. The node
+1. The agent calls `environment_open(title="Fix checkout", repo="github.com/you/shop")`. agentos
    rents a VM (Hetzner Cloud, or a Docker container on your own computer), clones the repository
-   into `/work/shop` and opens a browser whose traffic leaves from that VM.
+   into `/work/shop` and starts a browser on that VM. Code that is only on your laptop (a branch
+   with uncommitted changes) goes up with `environment_upload`: a one-use link the agent sends a
+   tarball to from its own shell.
 2. Calls without a target go to that environment: `lane_file_read` and `lane_file_edit` for the
    code, `lane_exec(cmd="npm test", cwd="/work/shop")`,
    `lane_job_start(cmd="npm run dev", cwd="/work/shop")`,
@@ -63,18 +62,26 @@ flowchart TB
 3. `browser_screenshot(proof="checkout after the fix")` keeps a screenshot as proof, at desktop
    width or `width=390` for a phone. The agent gives you its link, and the environment's page in
    the web app shows it.
-4. `git push` on the VM goes through the node's git gateway. The VM never holds your key, only a
+4. `git push` on the VM goes through agentos's git gateway. The VM never holds your key, only a
    token for that one repository, which dies with the environment. `environment()` then gives the
    GitHub link that opens a pull request for the branch.
 5. `environment_close()` refuses while work is not pushed, then deletes the VM and the browser and
-   says `machine: "deleted"`. If the agent forgets, the node closes it when it sits idle or reaches
+   says `machine: "deleted"`. If the agent forgets, agentos closes it when it sits idle or reaches
    its time limit.
 
-**A real run**, from Claude Code in T3 Code, on this repository: the agent opened a Hetzner `cx23`,
-changed the web app with the file tools (a pull request link for each pushed branch, with its
-tests), ran the unit tests on the VM, started the dev server and kept proof screenshots at desktop
-and phone width. It pushed its branch through the gateway. A delete and a force push of a branch
-it had not created were refused. `environment_close` deleted the VM. 6 minutes, 0.01 EUR.
+**Private repositories.** With your GitHub login saved in `agentos setup`, an environment can clone
+any repository that login reaches, a collaborator's one too. Without it, `environment_open` on a
+private repository returns a link to a card where you paste a token. agentos checks it with GitHub
+and keeps it; the agent never sees it, and it never goes through the chat.
+
+**A real run on a laptop**, with agentos running locally on a Mac: the agent opened a Hetzner `cx23`
+for a private repository (cloned through the owner's GitHub login), ran the web app on the VM, and
+the browser on the VM kept proof screenshots at desktop and phone width. A local checkout went up
+with `environment_upload`, and `environment_close` deleted the VM. 6 minutes, 0.01 EUR.
+
+An earlier run changed this repository's web app with the file tools, ran its tests on the VM and
+pushed a branch through the gateway; a delete and a force push of a branch it had not created were
+refused.
 
 In an earlier run, `ui_check` found text at 4.47:1 contrast (WCAG AA asks for 4.5:1). The agent
 fixed it on the VM, `ui_check` confirmed the fix, and the branch went up: 13 minutes, 0.01 EUR.
@@ -83,7 +90,7 @@ fixed it on the VM, `ui_check` confirmed the fix, and the branch went up: 13 min
 
 - **Your laptop stays yours.** Hand the task off: builds, test suites, dev servers and browsers
   run on the VM. Close the lid and the work carries on.
-- **Proof, not a promise.** The agent shows you what it built: screenshots it kept on the node, at
+- **Proof, not a promise.** The agent shows you what it built: screenshots agentos keeps for you, at
   desktop and phone width, and the pull request link for its branch.
 - **Nothing the agent runs can reach your keys or accounts.** The VM holds no login, no key and no
   password, so it can run anything without asking you each time.
@@ -91,52 +98,63 @@ fixed it on the VM, `ui_check` confirmed the fix, and the branch went up: 13 min
 - **Every chat starts clean.** One environment per chat, deleted when it is done: no leftovers
   from the last task, no "works on my machine".
 
-## Quickstart: Docker on your laptop (5 minutes)
+## Quickstart: on your laptop (5 minutes)
 
-You need git, [uv](https://docs.astral.sh/uv/), Docker running, and
-[Claude Code](https://claude.com/claude-code) or Codex. Each environment is an Ubuntu container
-with SSH instead of a cloud VM.
-
-```sh
-git clone https://github.com/sabalys-ramunas/agentos && cd agentos
-uv sync --extra studio
-mkdir -p ~/agentos-try && echo 'provider = "docker"' > ~/agentos-try/vms.toml
-uv run agentos dev up --home ~/agentos-try
-```
-
-`dev up` starts a node on `127.0.0.1:7450` and registers it with Claude Code and Codex (when they
-are installed) as `agentos-dev`, with the `agentos-environment` skill. Leave it running. In a
-second terminal, build the environment image once (a few minutes):
+You need macOS or Linux, git, and [Claude Code](https://claude.com/claude-code) or Codex. For the
+VMs, a [Hetzner Cloud](https://www.hetzner.com/cloud) account (a `cx23` is about 0.011 EUR an hour
+while it is open), or Docker running on your laptop (free, less isolated).
 
 ```sh
-export AGENTOS_HOME=~/agentos-try
-uv run agentos environments setup --build
+curl -fsSL https://raw.githubusercontent.com/sabalys-ramunas/agentos/main/scripts/install.sh | sh
 ```
 
-Connect the repository the agent should work on. One command makes a deploy key on the node and
-prints its public half to paste into the repository's deploy keys (with write access), or stores a
-fine-grained token with `--token`. A public repository clones without this, read only; a private
-one that is not connected is refused before anything is rented, with this command in the error.
+The install ends in `agentos setup`: a few questions in the terminal. Quick start takes good
+defaults; step by step lets you choose each one. Every step can be skipped.
 
-```sh
-uv run agentos environments repo add github.com/you/app
-```
+1. **Where VMs come from.** Paste a Hetzner Cloud API token (it is checked at once), or use Docker,
+   which builds its machine image once. Make the token in a Hetzner project that holds only these
+   VMs: a project token can delete every server in its project. With Hetzner, setup offers to build
+   the `dev` snapshot (a few minutes, a cent or two), so each VM boots with its browser ready.
+2. **GitHub.** Use your `gh` login, sign in with `gh` now, paste a token, or skip (public
+   repositories only). Then one question: may environments clone and push any repository this
+   login can reach? The push rules still hold either way.
+3. **Limits.** 10 EUR a month, 4 hours per VM and 2 VMs at once, unless you choose others.
+4. **Your agents.** A small agentos service starts on your laptop, and Claude Code and Codex are
+   connected to it, with the skills.
+5. **A health check** of each piece, and a test VM if you say yes (about 0.01 EUR).
 
-Now start a new Claude Code session and ask:
+Then start a new Claude Code session and ask:
 
-> Work on this in agentos: clone github.com/you/app, start the dev server, check the home page
-> with ui_check, fix what it finds, push a branch and close the environment.
+> Work in agentos on github.com/you/app: start the dev server, check the home page in the browser,
+> fix what you find, push a branch and close the environment.
 
-The agent gives you a live view link (`http://localhost:7450/view/...`) to watch its browser.
-`uv run agentos environments list` shows what is open, and `uv run agentos environments close ID`
-closes one. On the dev node the account lanes are simulated; the environment's container, terminal,
-browser, git and studio's checks are real.
+The agent gives you a live view link to watch its browser. `agentos environments list` shows what
+is open, and `agentos environments close ID` closes one. To change one thing later, run its step
+again: `agentos setup github` (or `vms`, `limits`, `agents`, `check`, `test-vm`).
 
-## Real cloud: Hetzner
+### What local mode means
 
-A node is a Linux machine that runs agentos: Ubuntu 22.04 or later, or Debian 12, x86_64 or
-arm64 (a small VPS is enough). Make a Hetzner Cloud project that holds nothing but these VMs, and a
-read-write API token in it. On the node:
+- **Nothing bills while no VM is open.** The service on your laptop serves MCP to your agents, and
+  rents a VM only when an agent calls `environment_open`.
+- **The browser runs on the VM.** Your laptop downloads no browser. agentos drives the VM's browser
+  and shows you its live view. Without the `dev` snapshot, each VM installs the browser when it
+  opens, which adds 2 to 4 minutes.
+- **Your laptop must be awake while a VM works.** The commands, the browser and git reach the VM
+  through the service on your laptop.
+- **Sleep does not stop the bill.** A VM left open while the laptop sleeps keeps billing until it
+  wakes. Then the time limit (4 hours by default) or the idle limit closes it.
+- **Your tokens stay on your laptop.** The Hetzner token and your GitHub token are kept in
+  `~/.agentos` (the GitHub one sealed in the agentos vault) and never reach the VM. A push from the
+  VM goes through agentos on your laptop, with a token for that one repository.
+
+More on local mode: [docs/LOCAL.md](docs/LOCAL.md).
+
+## Run it on a server (always on, account browsers)
+
+A server keeps working while your laptop sleeps, and it can also run logged-in browser lanes for
+your own accounts. A node is a Linux machine that runs agentos: Ubuntu 22.04 or later, or Debian 12,
+x86_64 or arm64 (a small VPS is enough). Make a Hetzner Cloud project that holds nothing but these
+VMs, and a read-write API token in it. On the node:
 
 ```sh
 git clone https://github.com/sabalys-ramunas/agentos && cd agentos
@@ -163,8 +181,8 @@ a size. Install, hardening, backups and upgrades: [deploy/README.md](deploy/READ
 
 | Client | How it connects |
 |---|---|
-| **Claude Code** | `agentos connect` registers it (`claude mcp add-json`) and installs the `agentos-environment`, `agentos-studio`, `agentos-lanes` and `agentos-offload` skills |
-| **Codex** | `agentos connect` adds it to `~/.codex/config.toml`, through the stdio bridge `agentos mcp-bridge` |
+| **Claude Code** | `agentos setup` (or `agentos connect` for a server) registers it (`claude mcp add-json`) and installs the `agentos-environment`, `agentos-studio`, `agentos-lanes` and `agentos-offload` skills |
+| **Codex** | `agentos setup` adds it to `~/.codex/config.toml` (for a server, `agentos connect`, through the stdio bridge `agentos mcp-bridge`) |
 | **T3 Code** | nothing more: its Claude threads read Claude Code's settings and its Codex threads read Codex's; open the live view in its preview pane |
 | **Any other MCP client** (Cursor, for example) | by hand: the node's MCP URL over Streamable HTTP with a grant token; `agentos connect --by-hand` on the node prints the steps |
 
@@ -172,7 +190,8 @@ a size. Install, hardening, backups and upgrades: [deploy/README.md](deploy/READ
 
 | Tool | What it does |
 |---|---|
-| `environment_open(title, repo, ref, size, hours)` | rents the VM (`size`: small, medium, large, xlarge), clones the repo into `/work/<name>`, opens the browser; returns the live view link for you |
+| `environment_open(title, repo, ref, size, hours)` | rents the VM (`size`: small, medium, large, xlarge), clones the repo into `/work/<name>`, opens the browser; returns the live view link for you. A private repo it cannot read returns a card link for you instead (`approval_pending`), and nothing is rented |
+| `environment_upload(dest)` | a one-use link, valid 15 minutes, for a tarball of a local checkout: the agent packs and sends it from its own shell (reached with `tools_call`) |
 | `environment()` | state, time left, cost so far, listening ports, git (branch, ahead, dirty, pushed, and `compare`: the link that opens a pull request), proofs, the last calls |
 | `environment_close(discard=False)` | refuses with `unsaved_work` while anything is not pushed; then deletes the VM and the browser, and says `machine: "deleted"` with the branches it pushed and its proofs |
 | `lane_file_read`, `lane_file_write`, `lane_file_edit` | read a file with line numbers, write a whole one, or replace exact text in one |
@@ -180,27 +199,29 @@ a size. Install, hardening, backups and upgrades: [deploy/README.md](deploy/READ
 | `lane_job_start`, `lane_job_read`, `lane_job_cancel` | long jobs and dev servers on the VM; `lane_job_read(until_exit=true)` waits for one to finish |
 | `browser_navigate`, `browser_snapshot`, `browser_act` | the environment's browser: read the page as an outline, act by reference |
 | `browser_screenshot(proof=..., width=..., full_page=...)` | a screenshot; with `proof`, kept on the node with a link for you (desktop width by default, `width=390` for a phone) |
-| `ui_check(url)` | studio's page check at each width and theme: layout, contrast, tap targets, names, page health |
+| `ui_check(url)` | studio's page check at each width and theme: layout, contrast, tap targets, names, page health (on a server; not in local mode yet) |
 
 About 150 more tools, grouped in toolsets the agent loads when it needs them, are listed in
 [docs/TOOLS.md](docs/TOOLS.md).
 
 ## Safety, in plain words
 
-- **No key on the VM.** Git goes through the node's gateway, which keeps the credential in its
-  vault. The VM holds one gateway token: good for the repository it was opened with, only through
-  its own tunnel, and only while it is open. It may push new branches, and rewrite or delete the
-  ones it created while nobody else has pushed to them. The default branch, protected branches,
-  other people's branches and tags are never deleted or rewritten from an environment.
-- **Commands only in environments.** By default, the grant `agentos connect` gives your agents
-  runs commands in their environments only, never on the node itself.
+- **No key on the VM.** Git goes through agentos's gateway (on your laptop, or on the node), which
+  keeps the credential in its vault. The VM holds one gateway token: good for the repository it was
+  opened with, only through its own tunnel, and only while it is open. It may push new branches, and
+  rewrite or delete the ones it created while nobody else has pushed to them. The default branch,
+  protected branches, other people's branches and tags are never deleted or rewritten from an
+  environment.
+- **Commands only in environments.** By default, the grant your agents get runs commands in their
+  environments only, never on the computer agentos runs on.
 - **Nothing inside asks you.** Because the VM holds nothing worth stealing, commands, the browser
   and pushes there never wait for a person, even after the agent read a web page.
-- **Limits instead of questions.** By default at most 3 environments open at once, 8 hours each,
-  and 50 EUR a month. Past a limit the open is refused, whatever the agent read. Set your own with
+- **Limits instead of questions.** On a laptop, `agentos setup` sets at most 2 environments open at
+  once, 4 hours each, and 10 EUR a month; a server's defaults are 3, 8 hours and 50 EUR. Past a
+  limit the open is refused, whatever the agent read. Set your own with
   `agentos environments allow --max-live 2 --max-hours 4 --monthly-eur 20`
   ([the limits](docs/ENVIRONMENTS.md#4-the-limits)).
-- **Deleted when done.** The node closes a forgotten environment after an idle hour or at its time
+- **Deleted when done.** agentos closes a forgotten environment after an idle hour or at its time
   limit. One with unsaved work is never deleted for being idle: it waits to its time limit, and you
   are told first.
 - **One agent's machine.** Only the agent that opened an environment can see it or act on it. You
@@ -214,11 +235,11 @@ What this defends against, and what it does not: [docs/THREAT-MODEL.md](docs/THR
 
 ## Watch it work
 
-The web app (`web/`, served by the node at `/`) lists every environment with its state, repository,
-agent, cost and time left. Each one has a page with its live browser, the proof screenshots,
-terminal commands, git (each pushed branch links its pull request) and ports. Build it once with
-Node.js 22 and pnpm: `cd web && pnpm install --frozen-lockfile && pnpm build`
-([web/README.md](web/README.md)).
+The web app (`web/`, served by agentos at `/`: `http://127.0.0.1:7410/` on a laptop) lists every
+environment with its state, repository, agent, cost and time left. Each one has a page with its live
+browser, the proof screenshots, terminal commands, git (each pushed branch links its pull request)
+and ports. Build it once with Node.js 22 and pnpm:
+`cd web && pnpm install --frozen-lockfile && pnpm build` ([web/README.md](web/README.md)).
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/readme/environments-dark.png">
@@ -257,7 +278,7 @@ E2B and Daytona are sandbox platforms that your own code drives through their SD
 fit well when you build a product that runs code for your users. Codespaces is a hosted dev
 environment for a person in an editor. agentos is for the agent in your chat: it is an MCP server
 the agent calls itself, with a real browser you can watch and take over, git through a gateway so
-the key stays off the machine, and limits and an audit log on a node you run.
+the key stays off the machine, and limits and an audit log on a computer you own.
 
 ### What does it cost?
 agentos is free (Apache-2.0). You pay your provider: Docker costs nothing, and a Hetzner `cx23`
@@ -265,11 +286,13 @@ agentos is free (Apache-2.0). You pay your provider: Docker costs nothing, and a
 from open to close, cost 0.01 EUR. `environment()` and the web app show the cost so far.
 
 ### Is my code or my key on the VM?
-Your code is: the repository is cloned there, so the agent can work on it. Your key is not, and
-neither is any token, password or account. Pushes go through the node, which holds the key.
+Your code is: the repository is cloned there (or the agent uploads its local checkout), so the
+agent can work on it. Your key is not, and
+neither is any token, password or account. Pushes go through agentos (on your laptop or server),
+which holds the key.
 
 ### Can I self-host it?
-It is self-hosted. The node runs on your own Linux server or laptop, and the VMs are rented with
+It is self-hosted. agentos runs on your laptop or your own Linux server, and the VMs are rented with
 your own provider account. There is no agentos account and no hosted service in the loop.
 
 ### Which providers are supported?
@@ -277,13 +300,15 @@ Docker (any computer with Docker) and Hetzner Cloud. The provider layer (`agento
 and more are welcome.
 
 ### Which agents work with it?
-Claude Code and Codex are set up by `agentos connect`; T3 Code uses both. Any client that speaks MCP
+Claude Code and Codex are set up by `agentos setup` (or `agentos connect` for a server); T3 Code
+uses both. Any client that speaks MCP
 over HTTP can connect by hand (see [Works with](#works-with)).
 
 ## Status
 
-**Alpha.** Environments are new in 0.1.0; expect the most change there. Not yet: providers other
-than Docker and Hetzner, a way to download a file from the VM (work comes out through git, and
+**Alpha.** Environments are new in 0.1.0; expect the most change there. Local mode is newer still:
+it has no `ui_check` and no account browser lanes yet (both need a server today). Not yet: providers
+other than Docker and Hetzner, a way to download a file from the VM (work comes out through git, and
 screenshots as proofs), and a link to a VM's port on your own computer (you see it through the
 environment's browser). The full list: [docs/ENVIRONMENTS.md](docs/ENVIRONMENTS.md#limits) and
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#not-built-yet).
@@ -292,6 +317,7 @@ environment's browser). The full list: [docs/ENVIRONMENTS.md](docs/ENVIRONMENTS.
 
 | | |
 |---|---|
+| [docs/LOCAL.md](docs/LOCAL.md) | local mode: the service on your laptop, sleep, costs, where tokens live |
 | [docs/ENVIRONMENTS.md](docs/ENVIRONMENTS.md) | environments: setup, use, costs, limits, troubleshooting |
 | [docs/design/environments.md](docs/design/environments.md) | the design and the exact tool shapes |
 | [docs/GIT.md](docs/GIT.md) | git through the node: keys in the vault, declared repositories |
@@ -301,7 +327,7 @@ environment's browser). The full list: [docs/ENVIRONMENTS.md](docs/ENVIRONMENTS.
 | [docs/STUDIO.md](docs/STUDIO.md) | studio's page checks |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/VISION.md](docs/VISION.md) | how it is built, and where it is going |
 | [docs/THREAT-MODEL.md](docs/THREAT-MODEL.md), [docs/PRINCIPLES.md](docs/PRINCIPLES.md) | what it defends against, and the lines it will not cross |
-| [docs/DEVELOPING.md](docs/DEVELOPING.md) | the dev loop, the tests, the fake node |
+| [docs/DEVELOPING.md](docs/DEVELOPING.md) | the dev loop, the tests, the fake node, environments on Docker with `agentos dev up` |
 | [docs/design/README.md](docs/design/README.md) | the design docs, with what is built and what is not |
 
 ## Contributing

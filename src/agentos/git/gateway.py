@@ -58,6 +58,7 @@ from urllib.parse import parse_qs, urlsplit
 from agentos.core.errors import AgentosError, ApprovalPending, InvalidRequest
 from agentos.core.models import Effect
 from agentos.git import keys as keymod
+from agentos.git import login
 from agentos.git.remotes import RemoteRule, Remotes, scope_workspace
 from agentos.git.upstream import Mirror, Target, UpstreamError, credential_env, target_for
 from agentos.git.wire import (
@@ -338,7 +339,7 @@ class GitGateway:
             log.warning("git gateway: could not record a refusal of %s for %s", remote.slug, caller.label)
 
     async def _target(self, rule: RemoteRule, remote: Remote, *, push: bool) -> Target:
-        cred = keymod.pick(await self.credentials(), remote)
+        cred = login.pick(await self.credentials(), remote, rule.scope)  # keys.pick, then env's GitHub login
         if cred is None and push:
             raise Refused(f"the vault holds no credential for {remote.slug}, so the node cannot push there; the "
                           f"owner runs `agentos git key add --host {remote.host} --repo {remote.repo}` on the node",

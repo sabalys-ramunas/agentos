@@ -1,6 +1,6 @@
 /** The rows of the Needs you queue, how they group by what is at stake, and the words for a batch. */
 import { Link } from '@tanstack/react-router';
-import { Fingerprint, MessageCircleQuestion } from 'lucide-react';
+import { Fingerprint, GitBranch, MessageCircleQuestion } from 'lucide-react';
 import type { Approval, Lane, Question } from '@/api/types';
 import { AgentMark, BusinessMark } from '@/components/brand/identity';
 import { SiteMark } from '@/components/brand/site-mark';
@@ -139,12 +139,12 @@ export function QuestionRow({ question, business, askedBy, focused, onFocus }: {
   return (
     <button type="button" onClick={onFocus} aria-current={focused || undefined} className={queueRow(focused)}>
       <span className="flex size-6 shrink-0 items-center justify-center rounded-sm border border-line bg-card text-muted shadow-lift">
-        <MessageCircleQuestion aria-hidden="true" className="size-3.5" />
+        {question.repo_connect ? <GitBranch aria-hidden="true" className="size-3.5" /> : <MessageCircleQuestion aria-hidden="true" className="size-3.5" />}
       </span>
       <span className="grid min-w-0 flex-1 gap-1">
         <span className="flex min-w-0 items-center gap-2">
           <span title={question.question} className="truncate text-label">
-            {question.question}
+            {question.repo_connect ? `Connect ${question.repo_connect.repo}` : question.question}
           </span>
           <span className="ml-auto shrink-0 font-mono text-code-caption text-faint tabular">{waitedShort(question.created_at)}</span>
         </span>

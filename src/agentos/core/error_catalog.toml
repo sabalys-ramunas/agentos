@@ -727,6 +727,11 @@ meaning = "environment_open named a repository the node cannot clone: not connec
 agent = "Do not retry or look for another way in. Give the human the commands in the message word for word: they run them on the node, never you. Then open again, or open without the repository."
 fix = "On the node: `agentos environments repo add github.com/OWNER/NAME` (it prints a deploy key to paste; --token for a token). A refused key or token: add the key at the host, or make a new one with --replace."
 
+[repo_connect_failed]
+meaning = "A token or deploy key given on a repository card did not work, so nothing was kept: the host refused it, it cannot see or read the repository, it waits for SSO or an approval, or the key is not added."
+agent = "Do not retry with anything of your own. The person sees the reason on the card and fixes it there."
+fix = "Read the reason on the card: make a new token, give it this repository with Contents read (classic tokens: the repo scope), authorize it for the organization's SSO, or ask an organization admin to approve it. Then paste it again."
+
 [resources_low]
 meaning = "The node is short of memory or disk, so the lane was not started."
 agent = "Close lanes you no longer need with lane_close, wait, then try again."

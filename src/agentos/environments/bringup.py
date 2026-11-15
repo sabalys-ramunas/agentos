@@ -173,7 +173,8 @@ class BringUp:
                 gateway = await git.vm_listener(env.terminal_lane)
             except Exception as e:  # noqa: BLE001 - the environment works without git through the node
                 log.warning("environment %s: no git gateway listener: %s", env.id, e)
-        tunnel = Tunnel(vms.remote(rec), gateway_port=gateway, socks_port=old.socks_port if old else None)
+        on_vm = {"vm_browser": True, "browser_port": old.browser_port if old else None} if env.browser == "vm" else {}
+        tunnel = Tunnel(vms.remote(rec), gateway_port=gateway, socks_port=old.socks_port if old else None, **on_vm)
         await tunnel.start()
         self._tunnels[env.id] = tunnel
         self._wrap_proxies_loader()
@@ -203,10 +204,15 @@ class BringUp:
 
     async def _make_browser(self, env: Environment) -> None:
         """A scratch browser lane made by the node: no account, no vault entry, no keepalive; its
-        proxy is the environment's tunnel, so every request leaves from the VM."""
+        proxy is the environment's tunnel, so every request leaves from the VM. With browser = "vm" the
+        lane's browser runs on the machine instead (agentos.environments.vmbrowser)."""
         lanes = self._get("lanes")
         if lanes is None:
             return
+        if env.browser == "vm":
+            env = await self._browser_on_vm(env, lanes)
+        if env.browser != "vm" and getattr(lanes, "makes_browsers", True) is False:
+            return  # a node with no browser of its own (agentos local) and no browser on the machine: a terminal only
         with contextlib.suppress(Exception):
             lanes.get(env.browser_lane)
             return
@@ -215,6 +221,34 @@ class BringUp:
             await lanes.create(spec)
         except LaneExists:
             return
+
+    def vm_browsers(self) -> Any:
+        """The machine side of "vm" browsers (agentos.environments.vmbrowser.VmBrowsers), made once. The
+        local node installs its routers when it is built; any other node on its first "vm" browser."""
+        if self._vm_browsers is None:
+            from agentos.environments import vmbrowser
+
+            self._vm_browsers = vmbrowser.VmBrowsers(self)
+        return self._vm_browsers
+
+    async def _browser_on_vm(self, env: Environment, lanes: Any) -> Environment:
+        """Route the lane to the machine and make sure the machine has the browser. A lane manager that
+        cannot be routed (the dev node's simulated lanes) keeps the browser on the node, and says so."""
+        from agentos.environments import vmbrowser
+
+        if not vmbrowser.install(lanes, self.vm_browsers()):
+            log.warning("environment %s: this node's lanes cannot run a browser on the machine; it runs on the "
+                        "node instead", env.id)
+
+            def on_node(e: Environment) -> None:
+                e.browser = "node"
+
+            return self.store.update(env.id, on_node)
+        try:
+            await self._vm_browsers.ensure_installed(env)
+        except AgentosError as e:
+            raise EnvironmentFailed(e.message) from None
+        return env
 
     async def _clone(self, env: Environment) -> None:
         from agentos.git.wire import parse_remote

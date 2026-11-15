@@ -6,6 +6,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import secrets
+from typing import BinaryIO
 
 from agentos.core.errors import (
     InvalidRequest,
@@ -13,6 +14,7 @@ from agentos.core.errors import (
 from agentos.env import execs
 from agentos.env import sync as syncs
 from agentos.env.lanes import LaneRuntime, SandboxError
+from agentos.env.models import ExecResult
 
 log = logging.getLogger("agentos.env")
 ARGV_BATCH = 500  # paths per rm or rmdir workload, well under the kernel's argument limit
@@ -109,6 +111,19 @@ class Sync:
         await asyncio.to_thread(self._sync_gc, lane_id)
         return {"dest": dest, "files": len(m.files), "bytes": m.total_bytes(), "changed": len(changed),
                 "deleted": len(deleted), "clean": clean, "duration_s": round(loop.time() - started, 3)}
+
+    async def put_archive(self, lane_id: str, dest: str, archive: BinaryIO, *, gzip: bool,
+                          timeout_s: float) -> ExecResult:
+        """Extract a tar archive the caller checked (agentos.environments.uploads) into `dest` in the lane:
+        what it holds replaces the same paths, and nothing else is deleted. Streams `archive` as the
+        workload's stdin, so a VM lane gets it over its SSH without the node holding it in memory."""
+        script = 'mkdir -p -- "$1" && cd -- "$1" && exec tar -x --no-same-owner -f -' + (" -z" if gzip else "")
+        rt = await self.warm(lane_id)
+        async with rt.exec_sem:
+            res = await execs.run(rt, ["/bin/sh", "-c", script, "sh", dest], timeout_s=timeout_s, max_bytes=8192,
+                                  stdin_file=archive, kind="sync")
+        await self.store.run(self.store.touch, lane_id)
+        return res
 
     async def _sync_step(self, rt: LaneRuntime, argv: list[str], what: str, *, stdin_file=None) -> None:
         async with rt.exec_sem:

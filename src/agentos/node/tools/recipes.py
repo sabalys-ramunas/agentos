@@ -16,8 +16,8 @@ INSTRUCTIONS = """\
 agentos can give you your own computer in the cloud for this chat: an environment, a fresh VM with a \
 terminal, a real browser and your repo. Take one when the human asks you to work in agentos or on a \
 VM, or the work needs a machine (builds, tests, a dev server, a browser). \
-environment_open(title, repo) opens it (a private repo must be connected by the human: \
-repo_not_connected says how). Give the human links.browser, its live view (in T3 Code: \
+environment_open(title, repo) opens it (a private repo: give the human review_url; never ask for a \
+token). Give the human links.browser, its live view (in T3 Code: \
 preview_open). Calls without `on` use it: lane_file_read/lane_file_edit for code, lane_exec for a \
 command, lane_job_start for a dev server, browser_navigate, ui_check (studio toolset); localhost \
 there is the VM; browser_screenshot(proof=...) keeps proof. Nothing in it waits for a person, a \

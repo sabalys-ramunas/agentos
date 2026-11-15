@@ -276,6 +276,11 @@ def repo_add(remote: Annotated[str, typer.Argument(help="The repository, like gi
     typer.echo(f"Declared {r.slug} for environments ({'clone only' if not rule.push else 'clone and push'}).")
     typer.echo(("Once the key is added there, agents" if key else "Agents") + " can open it: "
                f"environment_open(title=..., repo=\"{r.slug}\").")
+    from agentos.environments.store import EnvironmentStore
+
+    if any(row["repo"] == r.slug for row in EnvironmentStore(_home() / "environments.db").requests()):
+        typer.echo("An agent's card for it in Needs you closes on its own within a few minutes, once the node "
+                   "can read it.")
 
 
 @repo_app.command("list")
@@ -348,7 +353,8 @@ def repo_remove(remote: Annotated[str, typer.Argument(help="The repository, like
                    f"({'the deploy key' if cred.type == 'ssh' else 'revoke the token'}).")
 
 
-def _write_settings(updates: dict[str, Any]) -> Path:
+def _write_settings(updates: dict[str, Any], home: Path | None = None) -> Path:
+    """Merge `updates` into environments.toml in `home` (default: this command's --home or AGENTOS_HOME)."""
     import tomllib
 
     import tomli_w
@@ -356,7 +362,7 @@ def _write_settings(updates: dict[str, Any]) -> Path:
     from agentos.core.config import write_private
     from agentos.environments.models import SETTINGS_FILE, EnvSettings
 
-    path = _home() / SETTINGS_FILE
+    path = (home or _home()) / SETTINGS_FILE
     data = tomllib.loads(path.read_text()) if path.exists() else {}
     data.update({k: v for k, v in updates.items() if v is not None})
     EnvSettings(**data)  # refuse what agentosd would not start with
@@ -439,7 +445,13 @@ def setup(build: Annotated[bool, typer.Option("--build", help="Build the docker 
     from agentos.git.remotes import Remotes
 
     declared = [r for r in Remotes(home / "git" / "remotes.json").list() if r.scope.split("/")[0] == "env"]
-    if declared:
+    from agentos.git import login
+
+    gh = login.load(home)
+    if gh is not None and gh.any_repo:
+        lines.append(("ok", "git", f"any repository the GitHub login {gh.login or ''} reaches, clone and push "
+                                   "(`agentos setup github` changes it)".replace("  ", " ")))
+    elif declared:
         lines.append(("ok", "git", "connected for env: " + ", ".join(r.slug for r in declared)
                       + " (`agentos environments repo list` shows their keys)"))
     else:
@@ -454,11 +466,57 @@ def setup(build: Annotated[bool, typer.Option("--build", help="Build the docker 
                                      "you, opening and pushing included; the limits bound it")))
     from agentos.environments.models import load_settings
 
-    lines.append(("note", "limits", _limit_words(load_settings(home)) + " (`agentos environments allow` changes them)"))
+    env_settings = load_settings(home)
+    refused, where = _local_browser(home, env_settings.browser)
+    lines.append(refused or _browser_line(where, s.provider, s.docker_image, s.docker_bin))
+    lines.append(("note", "limits", _limit_words(env_settings) + " (`agentos environments allow` changes them)"))
     for status, what, words in lines:
         typer.echo(f"{status:<8} {what:<18} {words}")
     if any(st == "missing" for st, _w, _x in lines if _w.startswith("provider")):
         raise typer.Exit(1)
+
+
+def _local_browser(home: Path, said: str) -> tuple[tuple[str, str, str] | None, str]:
+    """(a refusal line, where the browser runs). On a laptop's home (agentos local) it runs on the VM,
+    also when environments.toml does not say so, and "node" is refused (agentos.local.node.
+    environments_browser). Any other home: as its environments.toml says."""
+    try:
+        from agentos.local import home as local_home
+        from agentos.local.paths import NAME
+
+        cfg = local_home.read(home)
+    except Exception:  # noqa: BLE001 - not a local home, or one this check cannot read: the node's way
+        return None, said
+    if cfg is None or cfg.name != NAME:
+        return None, said
+    from agentos.client.errors import ClientError
+    from agentos.local.node import environments_browser
+
+    try:
+        return None, environments_browser(home)
+    except ClientError as e:
+        return ("missing", "browser", f"{e.message} {e.hint or ''}".strip()), "vm"
+
+
+def _browser_line(where: str, provider: str, image: str, docker: str) -> tuple[str, str, str]:
+    """Where the environments' browser runs (environments.toml browser), and for "vm" on docker whether
+    the image has it (its label org.agentos.browser)."""
+    if where != "vm":
+        return ("ok", "browser", "on this node, with its traffic through the machine (browser = \"node\")")
+    words = "on each machine (browser = \"vm\"), driven over its SSH connection"
+    if provider != "docker":
+        return ("ok", "browser", words + "; the dev snapshot has it, any other image installs it on the first open")
+    import subprocess
+
+    try:
+        out = subprocess.run([docker, "image", "inspect", "-f", '{{index .Config.Labels "org.agentos.browser"}}',
+                              image], capture_output=True, text=True, timeout=20, check=False).stdout.strip()
+    except (OSError, subprocess.TimeoutExpired):
+        out = ""
+    if out == "1":
+        return ("ok", "browser", words + f"; {image} has it")
+    return ("missing", "browser", words + f", but {image} has no browser, so each machine installs it when it "
+                                          "opens (minutes): `agentos environments setup --build`")
 
 
 def docker_isolation_words(platform: str | None = None) -> str:
@@ -494,7 +552,8 @@ def _build_image(image: str, docker: str) -> None:
         for f in deploy.iterdir():
             if f.is_file():
                 shutil.copy(f, tmp)
-        shutil.copy(here.parent / "setup.sh", tmp)
+        for name in ("setup.sh", "browser.sh", "browser-requirements.txt"):
+            shutil.copy(here.parent / name, tmp)
         typer.echo(f"Building {image} (a few minutes the first time)...")
         done = subprocess.run([docker, "build", "-q", "-t", image, tmp], check=False)
         if done.returncode != 0:

@@ -8,7 +8,8 @@
 
 [[layer]]
 name = "entry points"
-members = ["cli", "commands", "cli_groups", "lanebench_cli", "qr", "tui", "client", "dev", "controller",
+members = ["cli", "commands", "cli_groups", "lanebench_cli", "qr", "tui", "client", "dev", "local", "controller",
+  "setup",
   "*.cli", "*_cli", "*.__main__", "node.daemon", "runner.flowcli", "runner.flowsync"]
 
 # node.channel is the controller's API into the node: the surface a controller (agentos.controller, or the

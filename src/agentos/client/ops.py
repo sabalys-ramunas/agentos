@@ -280,14 +280,19 @@ class Client(Credentials):
         """`agentos dev up`: the fake node's agent grant, stored like any connection's, and the clients
         here registered at its loopback URL. Each start issues a new grant; the entries stay the same,
         since they read the token from the store."""
-        name = valid_name(name)
-        kind = self.store_kind("auto")
-        tokens = self.tokens(kind)
-        previous = self.records.get(name)
-        conn = Connection(name=name, ssh_host="localhost", remote_home=DEV_HOME, remote_port=port,
-                          local_port=port, node_name="dev", token_store=kind, service="none",
+        conn = Connection(name=valid_name(name), ssh_host="localhost", remote_home=DEV_HOME, remote_port=port,
+                          local_port=port, node_name="dev", token_store=self.store_kind("auto"), service="none",
                           credential="agent_grant", agent_subject=subject, agent_ceiling="commit",
                           agent_specials=["memory_read"])
+        return self.connect_here(conn, token, clients)
+
+    def connect_here(self, conn: Connection, token: str, clients: ClientChoice | None = None) -> ConnectResult:
+        """A node on this computer that issued the agent grant itself (`agentos dev up`, `agentos local`):
+        the grant's token stored like any connection's, the headers helper, and the clients here
+        registered at the node's loopback URL (`conn`, with service "none")."""
+        name = valid_name(conn.name)
+        tokens = self.tokens(conn.token_store)
+        previous = self.records.get(name)
         self.records.save(conn)
         changed = tokens.put(name, token)
         install_helper(self.paths, self.tools.security if self.platform == "macos" else None)
@@ -771,10 +776,20 @@ def is_dev(conn: Connection) -> bool:
     return conn.remote_home == DEV_HOME
 
 
+LOCAL_NODE = "local"  # the node_name `agentos local` records (agentos.local.paths.NAME)
+
+
+def is_local(conn: Connection) -> bool:
+    """The local node of `agentos local`, on this computer."""
+    return conn.service == "none" and conn.node_name == LOCAL_NODE and not is_dev(conn)
+
+
 def connect_again(conn: Connection) -> str:
     """How to make this connection again: `agentos dev up` for the dev node, connect for the others."""
     if is_dev(conn):
         return "start the dev node with `agentos dev up`: it stores its grant again"
+    if is_local(conn):
+        return "run `agentos local start`: it stores its grant again"
     return f"run `agentos connect {conn.ssh_host} --name {conn.name}` again"
 
 
@@ -795,6 +810,8 @@ def explain(exc: McpError, conn: Connection) -> str:
 def reconnect_hint(exc: McpError, conn: Connection) -> str:
     if is_dev(conn) and exc.failure in (Failure.UNREACHABLE, Failure.UNAUTHORIZED):
         return "start it with `agentos dev up` (add --seed for sample lanes); it registers its grant again"
+    if is_local(conn) and exc.failure in (Failure.UNREACHABLE, Failure.UNAUTHORIZED):
+        return "start it with `agentos local start`; it registers its grant again"
     if conn.service == "none" and exc.failure is Failure.UNREACHABLE:
         return "start it with `agentos up --here`, then run `agentos status` again"
     again = f"`agentos connect {conn.ssh_host} --name {conn.name}`"

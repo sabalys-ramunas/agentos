@@ -28,7 +28,7 @@ def connect_fix(slug: str, *, replace: bool = False) -> str:
     `agentos vault git` commands it runs)."""
     again = " --replace" if replace else ""
     return (f"Tell the human, word for word: \"Run on the node: `agentos environments repo add {slug}{again}` "
-            "(it prints a deploy key to add to the repository; --token stores a token instead).\" Only the "
+            "(a deploy key for a repo admin to add; --token: a token, no admin rights needed).\" Only the "
             "human runs it, never you.")
 
 
@@ -42,16 +42,23 @@ def refused_words(access: Any) -> str:
     return why[:60] or f"its credential {name} did not work"
 
 
-def not_connected(access: Any) -> RepoNotConnected:
-    """repo_not_connected for what GitService.access found (nothing rented yet)."""
+def reason_words(access: Any) -> str:
+    """Why the node cannot clone it, in a few words (the start of repo_not_connected)."""
     slug = access.slug
     if not access.declared:
-        why = f"{slug} is not connected: not declared for environments, and not public"
-    elif access.credential is None:
-        why = f"{slug} is declared for env, but has no key or token in the vault and is not public"
-    else:
-        why = f"{slug}: {refused_words(access)}"
-    return RepoNotConnected(f"{why}. Nothing was rented. {connect_fix(slug, replace=access.credential is not None)}")
+        return f"{slug} is not connected: not declared for environments, and not public"
+    if access.credential is None:
+        return f"{slug} is declared for env, but has no key or token in the vault and is not public"
+    return f"{slug}: {refused_words(access)}"
+
+
+def not_connected(access: Any) -> RepoNotConnected:
+    """repo_not_connected for what GitService.access found (nothing rented yet). `access` rides on the
+    error, so environment_open can offer a card instead (agentos.environments.connect)."""
+    e = RepoNotConnected(f"{reason_words(access)}. Nothing was rented. "
+                         f"{connect_fix(access.slug, replace=access.credential is not None)}")
+    e.access = access
+    return e
 
 
 def unreachable(access: Any) -> EnvironmentFailed:

@@ -202,8 +202,20 @@ class NodeConfig(BaseModel):
         return bool(self.controller_url and self.node_id and self.controller_pubkey)
 
 
+def local_home() -> Path:
+    """Where `agentos local` keeps a laptop's node (agentos.local.paths.default_home)."""
+    return Path.home() / ".agentos"
+
+
 def home_from_env() -> Path:
-    return Path(os.environ.get("AGENTOS_HOME", DEFAULT_HOME))
+    """$AGENTOS_HOME; else the server node's /var/lib/agentos, or on a laptop that runs `agentos local`
+    and has no server node, its ~/.agentos, so `agentos environments list` and the rest find it."""
+    given = os.environ.get("AGENTOS_HOME")
+    if given:
+        return Path(given)
+    if not (DEFAULT_HOME / "node.toml").exists() and (local_home() / "node.toml").exists():
+        return local_home()
+    return DEFAULT_HOME
 
 
 def config_path(home: Path | None = None) -> Path:

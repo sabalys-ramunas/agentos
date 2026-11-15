@@ -29,6 +29,10 @@ BRANCHES_KEPT = 200   # branches an environment created, as the git gateway read
 # provider a container with these limits, at most the computer's (agentos.vms.docker.SIZE_TYPES).
 SIZES: dict[str, tuple[int, int]] = {"small": (2, 4), "medium": (4, 8), "large": (8, 16), "xlarge": (16, 32)}
 SizeName = Literal["small", "medium", "large", "xlarge"]
+# Where an environment's browser runs: "node", on the node with its traffic through the machine (a SOCKS
+# tunnel); "vm", on the machine itself, driven and watched over the node's SSH connection
+# (agentos.environments.vmbrowser), for a node with no browser of its own (a Mac).
+BrowserWhere = Literal["node", "vm"]
 
 
 class EnvSettings(BaseModel):
@@ -48,6 +52,7 @@ class EnvSettings(BaseModel):
     setup_timeout_s: int = Field(default=900, ge=60)      # the machine's setup (cloud-init) must end in this
     unsaved_notice_minutes: int = Field(default=30, ge=1)  # before the time limit, tell the owner of unsaved work
     reap_interval_s: int = Field(default=60, ge=5)
+    browser: BrowserWhere = "node"                        # where each new environment's browser runs
 
 
 def load_settings(home: Path) -> EnvSettings:
@@ -127,6 +132,7 @@ class Environment(BaseModel):
     # The commit each of those branches had when it last pushed it there: a branch is its own only while
     # the remote still has that commit (someone else may delete and recreate the name, or add to it).
     own_heads: dict[str, str] = Field(default_factory=dict)
+    browser: BrowserWhere = "node"            # where its browser runs, as the setting was when it opened
     vm_state: str | None = None               # its machine at close: deleted (the provider says it is gone),
                                               # deleting (the node still retries), none (none was rented)
 

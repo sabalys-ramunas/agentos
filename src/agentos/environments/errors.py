@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from agentos.core.errors import AgentosError
 
 
@@ -56,3 +58,15 @@ class RepoNotConnected(AgentosError):
     the node's credential for it was refused (a deploy key not added, a token revoked). Nothing was
     rented, or the machine was deleted. The human connects it on the node; the agent never does."""
     code = "repo_not_connected"
+    access: Any = None  # what GitService.access found, when the node checked before renting
+
+
+class RepoConnectFailed(AgentosError):
+    """A token or deploy key a person gave on a repository card did not work, and nothing was kept.
+    `reason` says which check failed (bad_token, cannot_see, sso, org_approval, org_policy,
+    no_contents, rate_limited, unreachable, not_yet)."""
+    code = "repo_connect_failed"
+
+    def __init__(self, message: str, *, reason: str):
+        super().__init__(message)
+        self.reason = reason

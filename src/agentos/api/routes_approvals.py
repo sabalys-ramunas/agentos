@@ -441,7 +441,13 @@ class ApprovalHandlers:
             raise InvalidRequest(f"state must be one of {', '.join(QUESTION_STATES)}.")
         items = await scoped_list(self.api.svc("approvals").list, access_of(request), state=QUESTION_STATES[state],
                                   kind="question", limit=query_int(request, "limit", 50))
-        return [question_json(i) for i in jsonable(items)]
+        out = [question_json(i) for i in jsonable(items)]
+        envs = self.api.optional("environments")
+        if envs is not None:  # a card that asks a person to connect a repository says so (environments.connect)
+            from agentos.environments.connect import annotate
+
+            annotate(envs.store, out)
+        return out
 
     async def question_answer(self, request: Request) -> dict:
         body = await read_body(request, QuestionAnswer)

@@ -1,10 +1,26 @@
 
- Usage: agentos setup [OPTIONS]
+ Usage: agentos setup [OPTIONS] [STEP]
 
- Get started: choose where your agents' browsers run, and connect Claude Code
- and Codex to it.
+ Set up agentos on this computer: VMs, GitHub, limits, and your agents.
 
+ Quick start takes good defaults; step by step asks each setting. To change one
+ thing, run its step again, like `agentos setup github`.
+
+╭─ Arguments ──────────────────────────────────────────────────────────────────╮
+│   [STEP]      <str>  Run one step again: vms, github, limits, agents, check  │
+│                      or test-vm.                                             │
+╰──────────────────────────────────────────────────────────────────────────────╯
 ╭─ Options ────────────────────────────────────────────────────────────────────╮
-│ --help          Show this message and exit.                                  │
+│ --yes                 -y              Take every default and ask nothing     │
+│                                       (for scripts).                         │
+│ --hetzner-token-file          <path>  Read the Hetzner Cloud API token from  │
+│                                       this file (- for stdin).               │
+│ --docker                              Use Docker on this computer for VMs    │
+│                                       (free).                                │
+│ --github-token-file           <path>  Read a GitHub token from this file (-  │
+│                                       for stdin).                            │
+│ --home                        <path>  Where agentos keeps its files          │
+│                                       (default: ~/.agentos).                 │
+│ --help                                Show this message and exit.            │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 

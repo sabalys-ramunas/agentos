@@ -105,6 +105,20 @@ brand, logged-in browser lanes for your own accounts and routines.
   included, leaves from the VM: `localhost` is the VM, and sites see the VM's IP. The browser tools,
   the live view and human takeover work as on any lane. Studio's review browser takes the same
   proxy, so `ui_check` on `http://localhost:3000` checks the dev server on the VM.
+- **Browser on the VM** (2026-11-15, for local mode: a node on a Mac has no Linux browser stack).
+  `environments.toml` `browser = "vm"` (default `"node"`, kept per environment as `Environment.browser`).
+  The lane stays the node's `env/<id>-browser`; `agentos.environments.vmbrowser.install` puts a router
+  in front of the lane manager's engine and displays, so only that lane launches elsewhere. On the VM
+  (`vmbrowser_ctl.py`, sent with each call over the terminal lane's SSH): Xvfb :99 with its own cookie,
+  x11vnc on `/run/agentos-browser/vnc.sock` (no TCP), and Camoufox's browser server
+  (`camoufox.server.launch_server`) on `127.0.0.1:47613` at a random path. The tunnel's ssh adds
+  `-L <dir>/vnc:<that socket>` and `-L <dir>/browser:127.0.0.1:47613`; Playwright on the node connects
+  through a guard on a loopback port (as the SOCKS one) and the viewer relay opens the vnc socket as a
+  local display's, so the live view, take over and the copy button (xclip on the VM) are unchanged.
+  A browser server serves no persistent profile, so each open is a fresh context, which an environment
+  never needs. The stack (`browser.sh`, `browser-requirements.txt` with hashes, at uv.lock's camoufox
+  and playwright) is in the docker image and the `dev` snapshot, else installed during bring-up. Close
+  removes the browser lane before the tunnel goes.
 - **Ports**: `environment()` lists listening TCP ports on the VM (`ss -ltnp`). For each the node can
   forward, it gives a link the human can open (the node forwards it over SSH, behind the app's sign-in).
 - **Binding**: the environment is bound to the MCP session id (header `mcp-session-id`); without
@@ -163,6 +177,26 @@ names one another chat used in the last 10 minutes, or one with another reposito
 `environment_already_open` (this chat has a live one with another repository), `environment_not_ready` (a studio check in a
 chat whose environment is starting or whose tunnel is down; it never checks the node instead).
 
+A repository the node cannot read is checked before anything is rented (`GitService.access`: declared
+for `env` with the vault's key or token, or public). Since 2026-11-15 the open does not end there:
+it returns `status: "approval_pending"` with `kind: "repo_connect"`, the card's `approval_id`, a
+`review_url` and a `fallback` line (`ssh <node> agentos environments repo add <repo> --token`), and
+`can_answer_in_chat: false` (agentos.environments.connect). The card is a question in Needs you, one
+per repository (a second open reuses it). From the card the owner, in person and with the panel's
+step-up, opens the node's own token page (`POST /api/repo-connect/{id}/form`, a `repo_token` form in
+agentos.node.forms, docs/API.md), so the web app never holds the token (docs/WEB-NODE.md), and
+pastes it there; the node checks it with GitHub's API and with
+`git ls-remote` as the gateway fetches, keeps it as `repo add --token` does, and approves the card, so
+`approval_wait` returns and the same open goes through. A token needs no admin rights on the
+repository, so a collaborator connects one without a deploy key. The card closes however the
+repository gets connected: on the card, at the node (the reaper's sweep checks a declared repository
+with a credential once a minute), or by the agent's next open. A stored key or token that was refused
+gets the same card, to replace it. No tool takes a token: anything in a tool argument is in the chat's
+transcript, and a client's secret references (T3 Code's `request_secret`) are resolved only by that
+client's own tools, never by the node, so `review_url` in the client's preview pane is the in-chat way.
+`repo_not_connected` is left for a node without approvals and for a clone that still fails on the
+machine (its machine is deleted then).
+
 ### Web routes (the app polls; no live events needed)
 
 ```
@@ -193,6 +227,32 @@ on the node's own address (`/view/env/<id>-browser/proof/<proof>.png?t=...`, 15 
 (`https://github.com/<owner>/<repo>/compare/<branch>?expand=1`), and `git.compare` is the newest. The
 file tools `lane_file_read`, `lane_file_write` and `lane_file_edit` are in the everyday list with
 lane_exec and route without `on` to the terminal lane.
+
+Uploads (added 2026-11-15, agentos.environments.uploads): `environment_upload(dest: str | None = None)`
+(the terminals toolset, routed without `on` to the terminal lane; authorized as `exec` on it, so it
+never waits for a person) returns `{"url", "expires_at", "dest", "max_bytes", "pack", "send", "next"}`.
+`url` is a signed link on the node's own address, `/view/env/<id>/upload?t=...`, signed with the viewer
+key as a proof's link is, valid 15 minutes, spent on first use, held in the node's memory (a restart
+ends it) and dead once the environment closes. The agent runs `pack` (`git ls-files -co
+--exclude-standard -z | COPYFILE_DISABLE=1 tar --null -T - -czf work.tgz`: tracked and new files,
+not what git ignores; `COPYFILE_DISABLE` keeps macOS tar from adding `._` files) and `send` (`curl
+--fail-with-body -T work.tgz "<url>"`) in its own shell, so the bytes never go through tool arguments.
+
+```
+PUT|POST /view/env/{id}/upload?t=...   a .tar.gz or .tar body -> {dest, files, bytes, unpacked_bytes,
+                                       paths (the first 10), more?, sha256, next}
+```
+
+The node streams the body to `$AGENTOS_HOME/environments/<id>/uploads/` (512 MB at most, two at once
+on a node, one at a time in an environment), checks every member before the VM sees any (no absolute
+path, no `..`, a regular file, folder or link only, tarfile's data filter on an empty folder so no
+link leaves `dest`; 200,000 members and 4 GB unpacked at most), then streams it over the
+environment's SSH into `tar -x --no-same-owner` in `dest` (EnvManager.put_archive): an overlay,
+nothing deleted. The temp file goes in every case. Refusals: 403 `denied` (changed, expired, used, or
+the environment closed), 403 `frozen`, 409 `busy` or `environment_not_ready` (the link still works),
+413 `too_large`, 400 `invalid` (not a tarball, empty, or a member it names), 502 `error` (tar on the
+VM failed, with its words). Each upload is an audit row (tool `environment.upload`, the link's grant,
+the archive's sha256) and a call `upload` in `environment()`'s last calls.
 
 Reading needs `see` in workspace `env`, close and extend `operate`; every route checks the caller's
 grant as the jobs routes do. The owner sees every environment, a member only those their own agents

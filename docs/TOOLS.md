@@ -45,7 +45,7 @@ tools_more lists only tools the caller's grant can see. Connector operations (`<
 | `workspaces` | workspaces: list, plan and apply changes, lane readiness | `lane_set_readiness`, `workspace_apply`, `workspace_list`, `workspace_plan`, `workspace_queue` |
 | `worker` | the node's workers: hand a browser job to the cheap worker on the node (lane_do), and which workers are on | `lane_do`, `plugins_list` |
 | `admin` | your grant, an approval's status without waiting (or all yours still waiting), and the call trail | `approval_status`, `grant_info`, `traces_query` |
-| `terminals` | terminal and service lanes: shells, commands, background jobs, synced files, installs, images, disposable cloud VMs | `env_create`, `env_lanes_list`, `env_remove`, `image_build`, `images_list`, `lane_install`, `lane_jobs_list`, `lane_upload`, `lane_upload_check`, `service_logs`, `service_start`, `service_status`, `service_stop`, `shell_close`, `shell_open`, `shell_read`, `shell_write`, `vm_clone`, `vm_create`, `vm_destroy`, `vm_extend`, `vms_list` |
+| `terminals` | terminal and service lanes: shells, commands, background jobs, synced files, installs, images, disposable cloud VMs | `env_create`, `env_lanes_list`, `env_remove`, `environment_upload`, `image_build`, `images_list`, `lane_install`, `lane_jobs_list`, `lane_upload`, `lane_upload_check`, `service_logs`, `service_start`, `service_status`, `service_stop`, `shell_close`, `shell_open`, `shell_read`, `shell_write`, `vm_clone`, `vm_create`, `vm_destroy`, `vm_extend`, `vms_list` |
 | `brains` | agent tasks on the node's brains: run, follow, resume, cancel; the git remotes they reach | `brain_cancel`, `brain_resume`, `brain_run`, `brain_status`, `brain_tail`, `brain_tasks`, `brain_use`, `brains_list`, `git_remotes` |
 | `automation` | events, triggers and the agenda (planned one-off actions, their approval, runs and proof) | `agenda_cancel`, `agenda_draft`, `agenda_get`, `agenda_list`, `agenda_propose`, `agenda_update`, `events_list`, `trigger_propose`, `triggers_list` |
 
@@ -113,6 +113,7 @@ Call any agentos tool by name with its arguments, including tools not in your li
 | [`environment`](#environment) | core | read | Your environment now: state (starting, ready, working, idle, closed, failed), minutes_left, cost_eur, ports listening on the VM (your dev server shows here), git (branch, ahead, dirty, pushed; compare: the pull request link of your pushed branch), proofs (with fresh links), unsaved work and the last 10 calls |
 | [`environment_close`](#environment_close) | core | read | Delete your environment when the work is done: its VM and everything on it, and its browser |
 | [`environment_open`](#environment_open) | core | vm | Your own cloud computer for this chat: a fresh VM with a terminal, a browser and the repo, to build and test on instead of the user's laptop |
+| [`environment_upload`](#environment_upload) | terminals | exec | A one-use link (15 minutes) that puts a .tar.gz of your local checkout, uncommitted changes included, on your environment's machine: no repository needed, and the bytes never go through tool calls |
 | [`events_list`](#events_list) | automation | read | List recent events on this node (newest first) with their deliveries: what happened (source, kind, lane, node facts), which triggers took it, and what each delivery did and why (waiting for quiet hours, dropped by a rate limit, delivered, dead) |
 | [`files_delete`](#files_delete) | files | draft | Delete a file from the lane's inbox or outbox |
 | [`files_get`](#files_get) | files | read | One file from the lane's inbox or outbox |
@@ -690,7 +691,7 @@ Toolset: `core`. Effect: `vm`. Needs the `environments` service.
 
 Your own cloud computer for this chat: a fresh VM with a terminal, a browser and the repo, to build and test on instead of the user's laptop. Call it once, before work that runs code or serves a page. Then terminal and browser calls without `on` go to it: lane_exec(cmd, cwd), lane_job_start for a dev server, browser_navigate("http://localhost:3000"), ui_check (the studio toolset); localhost there is the VM. Nothing in it waits for a person, opening and pushes included. Commit and `git push origin <branch>` on the VM; then environment_close.
 
-Returns id, state (ready, or starting: call environment() again), workdir (/work/<name>), branch, machine (cpu, memory_gb, size; `bigger`: what each bigger size costs an hour), expires_at, lanes, and links.browser (its live view) for the human. The same chat gets the same one back; an open one's title gets it back in a new chat (environment_in_use if another chat used it in the last 10 minutes). Errors: repo_not_connected (a private repo the human has not connected: pass its message on), environment_limit (a node limit: close one, fewer hours, a smaller size, or tell the user), environment_already_open (this chat has one with another repo), environment_failed (it did not come up).
+Returns id, state (ready, or starting: call environment() again), workdir (/work/<name>), branch, machine (cpu, memory_gb, size; `bigger`: what each bigger size costs an hour), expires_at, lanes, and links.browser (its live view) for the human. The same chat gets the same one back; an open one's title gets it back in a new chat (environment_in_use if another chat used it in the last 10 minutes). A private repo the node cannot read returns status approval_pending with review_url: give it to the human, approval_wait, then call again. Errors: environment_limit (a node limit: close one, fewer hours, a smaller size, or tell the user), environment_already_open (this chat has one with another repo), environment_failed (it did not come up).
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
@@ -700,6 +701,17 @@ Returns id, state (ready, or starting: call environment() again), workdir (/work
 | `size` | `str \| None` | no (default None) | small (2 CPU, 4 GB), medium (4, 8), large (8, 16), xlarge (16, 32), or a server type like cpx42. Leave it out unless the work needs more (a big type check, a large build). |
 | `hours` | `float \| None` | no (default None) | How long it may live (default 2); it closes sooner when idle. |
 | `wait_s` | `float` | no (default 240) | Seconds to wait for ready, 0 to 280. |
+
+## environment_upload
+
+Toolset: `terminals`. Effect: `exec`. Needs the `environments` service.
+
+A one-use link (15 minutes) that puts a .tar.gz of your local checkout, uncommitted changes included, on your environment's machine: no repository needed, and the bytes never go through tool calls. Returns pack and send, two commands to run in your own shell (not lane_exec) in the checkout; the reply lists the files. Files in it replace the same paths; nothing else is deleted. At most 512 MB. Effect: exec.
+
+| Argument | Type | Required | Description |
+|---|---|---|---|
+| `on` | `str \| None` | no (default None) | Lane id "workspace/name"; leave it out for this chat's environment. |
+| `dest` | `str \| None` | no (default None) | A folder under /work (default: the workdir, /work/<repo> or /work); a relative one starts at the workdir. |
 
 ## events_list
 

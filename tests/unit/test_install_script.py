@@ -55,7 +55,7 @@ def test_installs_uv_then_agentos_from_git_and_prints_the_next_step(tmp_path):
     assert proc.returncode == 0, proc.stderr + proc.stdout
     calls = log.read_text()
     assert "curl -LsSf https://astral.sh/uv/install.sh" in calls
-    assert "uv tool install --force --python 3.12 agentos @ git+https://git.example.test/agentos.git@main" in calls
+    assert "uv tool install --force --python 3.12 agentos[local] @ git+https://git.example.test/agentos.git@main" in calls
     assert "sudo" not in calls  # never on the person's computer
     assert "Next step: agentos setup" in proc.stdout
     assert "agentos setup" not in calls  # no terminal attached: it prints the step instead of running it
@@ -63,7 +63,7 @@ def test_installs_uv_then_agentos_from_git_and_prints_the_next_step(tmp_path):
     again = run(tmp_path, bin_dir, log, AGENTOS_GIT_URL="https://git.example.test/agentos.git", AGENTOS_GIT_REF="v1")
     assert again.returncode == 0, again.stderr
     assert log.read_text().count("curl ") == 1  # uv is there now
-    assert "agentos @ git+https://git.example.test/agentos.git@v1" in log.read_text()
+    assert "agentos[local] @ git+https://git.example.test/agentos.git@v1" in log.read_text()
     assert "—" not in SCRIPT.read_text()
 
 
@@ -71,4 +71,4 @@ def test_installs_from_the_public_repository_by_default(tmp_path):
     bin_dir, log = fake_bin(tmp_path, with_uv=True)
     proc = run(tmp_path, bin_dir, log)
     assert proc.returncode == 0, proc.stderr
-    assert "agentos @ git+https://github.com/sabalys-ramunas/agentos.git@main" in log.read_text()
+    assert "agentos[local] @ git+https://github.com/sabalys-ramunas/agentos.git@main" in log.read_text()

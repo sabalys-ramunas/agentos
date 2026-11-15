@@ -45,6 +45,9 @@ OWNER_ONLY = [
     ("POST", "/api/approvals/batch"), ("GET", "/api/approvals/standing"), ("POST", "/api/approvals/standing"),
     ("DELETE", "/api/approvals/standing/x1"), ("POST", "/api/approvals/x1/approve"),
     ("GET", "/api/codes"), ("POST", "/api/codes/x1"), ("POST", "/api/codes/x1/decline"),
+    # a repository card (agentos.environments.api): the token page's link or a key, from the owner in person
+    ("POST", "/api/repo-connect/x1/form"), ("POST", "/api/repo-connect/x1/deploy-key"),
+    ("POST", "/api/repo-connect/x1/check"), ("POST", "/api/repo-connect/x1/decline"),
     ("POST", "/api/approvals/x1/deny"), ("POST", "/api/questions/x1/answer"), ("POST", "/api/schedules"),
     ("DELETE", "/api/schedules/x1"), ("GET", "/api/nodes"), ("POST", "/api/brains/order"),
     ("GET", "/api/brains/tasks"), ("GET", "/api/brains/tasks/x1"), ("GET", "/api/vault"), ("POST", "/api/vault"),
@@ -75,7 +78,9 @@ OWNER_ONLY = [
 # the owner-only routes that also need a person in the panel: a bearer token is no person, the node token
 # included, so the owner's token gets presence_required there (docs/THREAT-MODEL.md)
 NEEDS_A_PERSON = {("POST", "/api/approvals/standing"), ("POST", "/api/approvals/x1/approve"),
-                  ("POST", "/api/questions/x1/answer")}
+                  ("POST", "/api/questions/x1/answer"), ("POST", "/api/repo-connect/x1/form"),
+                  ("POST", "/api/repo-connect/x1/deploy-key"), ("POST", "/api/repo-connect/x1/check"),
+                  ("POST", "/api/repo-connect/x1/decline")}
 LOGIN_ROUTES = [rt for rt in OWNER_ONLY if "/login" in rt[1]]
 WS = "ws://localhost:7400"  # websocket_connect ignores base_url; the node refuses any other Host
 # the login exchange and the passkey ceremonies (agentos.api.routes_members); the static panel is the catch-all

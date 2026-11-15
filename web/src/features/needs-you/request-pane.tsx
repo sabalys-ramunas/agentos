@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { QuestionDetail } from './approval-detail';
 import { CodeDetail } from './code-card';
+import { RepoConnectDetail } from './repo-card';
 import { AllClear } from './all-clear';
 import { BrandDetail } from './brand-proposal';
 import { Focused } from './focused';
@@ -32,6 +33,7 @@ interface OpenRequestProps {
   onNo: (approval: Approval) => void;
   brandPending: boolean;
   onBrand: (proposal: BrandProposal, approve: boolean) => void;
+  /** A code card, or a repository card, is done: the list moves on from it. */
   onLeaveCode: (id: string) => void;
   onAnswer: (question: Question, text: string) => void;
 }
@@ -77,6 +79,14 @@ export function OpenRequest(props: OpenRequestProps) {
     return (
       <div className="p-5 lg:p-6">
         <CodeDetail key={code.id} org={org} card={code} business={queue.businessOf(code.lane)} onLeave={() => props.onLeaveCode(code.id)} />
+      </div>
+    );
+  }
+  if (question?.repo_connect) {
+    const repo = { ...question, repo_connect: question.repo_connect };
+    return (
+      <div className="p-5 lg:p-6">
+        <RepoConnectDetail key={question.id} org={org} question={repo} owner={props.owner} onLeave={() => props.onLeaveCode(question.id)} />
       </div>
     );
   }

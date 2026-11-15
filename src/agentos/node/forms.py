@@ -8,8 +8,8 @@ or from this computer (the SSH tunnel), the same rule as the mailbox and AI key 
 (agentos.runner.mail.form). Nothing here logs, traces or stores a value.
 
 Kinds: `vault_unlock`, `vault_entry`, `proxy`, `workspace_export`, `workspace_import` (here and in
-agentos.workspaces.form) and `login` (agentos.node.login_form, which keeps its trip open for the whole
-sign-in). Each kind takes only the plain fields the app may send; the rest is typed on the page. The
+agentos.workspaces.form), `login` (agentos.node.login_form, which keeps its trip open for the whole
+sign-in) and `repo_token` (agentos.environments.form, opened by its own route with the panel's step-up). Each kind takes only the plain fields the app may send; the rest is typed on the page. The
 API's form route lists every kind (agentos.api.routes_forms.kinds), so this module imports none of them.
 """
 
@@ -44,6 +44,7 @@ class Trip:
     token: str = field(default_factory=lambda: secrets.token_urlsafe(24), repr=False)
     stage: str = "waiting"  # waiting: open, done: finished, ended: ran out or was closed
     expires_at: float = field(default_factory=lambda: time.time() + TTL_S)
+    outcome: dict[str, Any] | None = None  # what a finished trip may tell the app: never a value typed on it
 
     def public(self) -> dict[str, Any]:
         return {
@@ -53,6 +54,7 @@ class Trip:
             "subject": self.subject,
             "form_url": f"/api/forms/{self.token}" if self.stage == "waiting" else None,
             "expires_at": datetime.fromtimestamp(self.expires_at, UTC).isoformat(),
+            **({"outcome": dict(self.outcome)} if self.outcome is not None else {}),
         }
 
 

@@ -8,6 +8,7 @@ import type {
   ControlAction,
   Effect,
   FleetNode,
+  FormTrip,
   FreezeRecord,
   FreezeReport,
   FreezeScope,
@@ -429,6 +430,14 @@ function coverOf(data: OrgData, scope: FreezeScope, target: string) {
   const record = coveringFreeze({ available: true, frozen: data.freeze.filter((item) => item.scope === 'node' || item.scope === 'mesh'), lanes: [], node_frozen: false }, probe);
   return record ? { scope: record.scope, target: record.target, reason: record.reason } : null;
 }
+
+/** An open repository card: a question with `repo_connect`. */
+function repoCard(data: OrgData, id: string) {
+  const card = data.questions.find((item) => item.id === id);
+  return card?.repo_connect ? { ...card, repo_connect: card.repo_connect } : null;
+}
+
+const repoChecks = new Map<string, number>();
 
 /** A code card answered or declined: it leaves the list, and the live stream says so. */
 function closeCode(data: OrgData, card: CodeRequest, state: 'used' | 'declined') {
@@ -1197,6 +1206,67 @@ export const handlers = [
       const card = openCodes(data).find((item) => item.id === params.id);
       if (!card) return failure(404, 'vault_code_request_closed', 'This code request is closed. The login stopped waiting, or the code was already entered.');
       return closeCode(data, card, 'declined');
+    }),
+  ),
+
+  // Repository cards: an agent asks the owner to connect a private repository (agentos.environments.connect). The
+  // token is typed on the computer's own page, so the mock only opens a trip for it: the trip settles as the node's
+  // would (mocks/access.ts), closing the card. No token is ever sent here.
+  http.post(
+    '/api/orgs/:org/repo-connect/:id/form',
+    org((data, { params }) => {
+      if (data.role !== 'owner') return failure(403, 'denied', 'Only the owner of this computer can do this.');
+      if (!stepUpValid()) return stepUpNeeded();
+      const card = repoCard(data, String(params.id));
+      if (!card) return failure(404, 'not_found', 'That card is closed, or its repository is connected.');
+      const { repo } = card.repo_connect;
+      const id = `ft_${Math.random().toString(36).slice(2, 10)}`;
+      const token = Math.random().toString(36).slice(2, 12) + Math.random().toString(36).slice(2, 12);
+      const shown: FormTrip = { id, kind: 'repo_token', stage: 'waiting', subject: repo, form_url: `/api/forms/${token}`, expires_at: iso(15 * 60_000) };
+      data.trips[id] = { ...shown, fields: { card: card.id, repo }, opened: Date.now() };
+      return HttpResponse.json({ ...shown, repo });
+    }),
+  ),
+  http.post(
+    '/api/orgs/:org/repo-connect/:id/deploy-key',
+    org((data, { params }) => {
+      if (data.role !== 'owner') return failure(403, 'denied', 'Only the owner of this computer can do this.');
+      const card = repoCard(data, String(params.id));
+      if (!card) return failure(404, 'not_found', 'That card is closed, or its repository is connected.');
+      const { repo } = card.repo_connect;
+      return HttpResponse.json({
+        repo,
+        name: 'github-key-ssh',
+        public_key: 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMockMockMockMockMockMockMockMockMockMockMock agentos-github-key-ssh',
+        fingerprint: 'SHA256:mockmockmockmockmockmockmockmockmockmockmo',
+        settings_url: `https://github.com/${repo.split('/').slice(1).join('/')}/settings/keys/new`,
+      });
+    }),
+  ),
+  http.post(
+    '/api/orgs/:org/repo-connect/:id/check',
+    org((data, { params }) => {
+      if (data.role !== 'owner') return failure(403, 'denied', 'Only the owner of this computer can do this.');
+      const card = repoCard(data, String(params.id));
+      if (!card) return failure(404, 'not_found', 'That card is closed, or its repository is connected.');
+      // The first check comes before the admin added the key; the next one finds it.
+      const tries = (repoChecks.get(card.id) ?? 0) + 1;
+      repoChecks.set(card.id, tries);
+      if (tries === 1) {
+        return failure(400, 'repo_connect_failed', `Not yet: ${card.repo_connect.repo}: its deploy key github-key-ssh was refused. Add the deploy key to the repository (with write access to push), then check again.`);
+      }
+      data.questions = data.questions.filter((item) => item.id !== card.id);
+      return HttpResponse.json({ repo: card.repo_connect.repo, connected: true, closed: [card.id] });
+    }),
+  ),
+  http.post(
+    '/api/orgs/:org/repo-connect/:id/decline',
+    org((data, { params }) => {
+      if (data.role !== 'owner') return failure(403, 'denied', 'Only the owner of this computer can do this.');
+      const card = repoCard(data, String(params.id));
+      if (!card) return failure(404, 'not_found', 'That card is closed, or its repository is connected.');
+      data.questions = data.questions.filter((item) => item.id !== card.id);
+      return HttpResponse.json({ repo: card.repo_connect.repo, declined: true });
     }),
   ),
 

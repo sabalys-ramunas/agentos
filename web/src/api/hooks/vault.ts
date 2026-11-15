@@ -4,7 +4,7 @@ import { fleet } from '../client';
 import { served } from '../http';
 import { keys } from '../keys';
 import type {
-  FormKind,
+  StartFormKind,
 } from '../types';
 
 // Brains, vault, grants
@@ -43,7 +43,7 @@ export function useRemoveVaultEntry(org: string) {
 
 /** Opens one form on the computer. The app gets the trip back and opens its `form_url` itself. */
 export const useStartForm = (org: string) =>
-  useMutation({ meta: { inline: true }, mutationFn: (body: { kind: Exclude<FormKind, 'login'>; fields?: Record<string, string> }) => fleet.startForm(org, body) });
+  useMutation({ meta: { inline: true }, mutationFn: (body: { kind: StartFormKind; fields?: Record<string, string> }) => fleet.startForm(org, body) });
 
 /** How far a form got. Asks once a second while it is open; when it is done, the data it changed is read again. */
 export function useFormTrip(org: string, id: string | undefined) {

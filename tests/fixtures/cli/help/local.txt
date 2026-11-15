@@ -1,0 +1,21 @@
+
+ Usage: agentos local [OPTIONS] COMMAND [ARGS]...
+
+ agentos on this computer: it serves your agents (Claude Code, Codex) and rents
+ a cloud VM only while an agent has an environment open.
+
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --help          Show this message and exit.                                  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Commands ───────────────────────────────────────────────────────────────────╮
+│ serve   Run the local node in the foreground (the service runs this). Ctrl-C │
+│         stops it.                                                            │
+│ start   Start the local node as a service (launchd on macOS, systemd on      │
+│         Linux), now and at every login.                                      │
+│ stop    Stop the local node. It stays stopped, also after a restart, until   │
+│         `agentos local start`.                                               │
+│ status  Is it running, on which port, which environments are open, and what  │
+│         it closed after a sleep.                                             │
+│ logs    The end of the local node's log.                                     │
+╰──────────────────────────────────────────────────────────────────────────────╯
+

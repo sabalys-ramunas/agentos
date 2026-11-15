@@ -145,6 +145,7 @@ carries one of these codes:
 | [`readback_failed`](#readback_failed) | The target's own state does not show the effect (the post, the like, the edit), right after the action or at a later re-check. | no |
 | [`ref_not_found`](#ref_not_found) | A snapshot ref no longer matches anything, because the page changed. | yes, once the cause is fixed |
 | [`refused`](#refused) | The backup or restore cannot go ahead as asked. Nothing was changed. | no |
+| [`repo_connect_failed`](#repo_connect_failed) | A token or deploy key given on a repository card did not work, so nothing was kept: the host refused it, it cannot see or read the repository, it waits for SSO or an approval, or the key is not added. | no |
 | [`repo_not_connected`](#repo_not_connected) | environment_open named a repository the node cannot clone: not connected (declared for env, with a key or token in the vault) and not public, or its key or token was refused. Nothing was rented. | no |
 | [`resources_low`](#resources_low) | The node is short of memory or disk, so the lane was not started. | yes, after 60 s |
 | [`sandbox_error`](#sandbox_error) | A terminal or service lane's sandbox could not be set up or failed. | no |
@@ -1442,6 +1443,15 @@ The backup or restore cannot go ahead as asked. Nothing was changed.
 - **You:** Read the message: usually stop agentosd first, or restore into an empty home.
 - **Retry:** no
 - **Raised by:** `agentos.ops.backup.BackupRefused`
+
+## repo_connect_failed
+
+A token or deploy key given on a repository card did not work, so nothing was kept: the host refused it, it cannot see or read the repository, it waits for SSO or an approval, or the key is not added.
+
+- **Agent:** Do not retry with anything of your own. The person sees the reason on the card and fixes it there.
+- **You:** Read the reason on the card: make a new token, give it this repository with Contents read (classic tokens: the repo scope), authorize it for the organization's SSO, or ask an organization admin to approve it. Then paste it again.
+- **Retry:** no
+- **Raised by:** `agentos.environments.errors.RepoConnectFailed`
 
 ## repo_not_connected
 

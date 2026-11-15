@@ -167,12 +167,18 @@ def status() -> None:
 def image_build(name: Annotated[str, typer.Argument(help="Image name, e.g. dev.")] = "dev",
                 profile: Annotated[str | None, typer.Option(help="Profile whose server type builds it.")] = None,
                 script: Annotated[Path | None, typer.Option(help="A bash script to run instead of the default "
-                                                                  "(git, build tools, Python with uv, Node 22, Docker).",
+                                                                  "(git, build tools, Python with uv, Node 22, Docker; "
+                                                                  "for dev also the environments' browser).",
                                                             exists=True, dir_okay=False)] = None) -> None:
     """Build a snapshot: a VM from Ubuntu, the setup script, a snapshot, the VM deleted. Then set
     `image = "snapshot:<name>"` on a profile in vms.toml, and VMs boot ready in under a minute."""
     mgr = _manager()
     text = script.read_text() if script else None
+    if text is None and name == "dev":  # environments boot from it: their browser on the machine comes with it
+        from agentos.environments.vmbrowser import install_script
+        from agentos.vms.manager import image_script
+
+        text = image_script(install_script())
     out = _run(mgr.build_image(name, profile=profile, script=text, on_step=lambda m: typer.echo(f"- {m}")))
     typer.echo(json.dumps(out, indent=2))
 

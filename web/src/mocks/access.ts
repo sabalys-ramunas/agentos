@@ -37,8 +37,8 @@ export function seedAccess(empty: boolean): AccessData {
 }
 
 function publicTrip(trip: FormTrip & { fields?: unknown }): FormTrip {
-  const { id, kind, stage, subject, form_url, expires_at } = trip;
-  return { id, kind, stage, subject, form_url, expires_at };
+  const { id, kind, stage, subject, form_url, expires_at, outcome } = trip;
+  return { id, kind, stage, subject, form_url, expires_at, ...(outcome ? { outcome } : {}) };
 }
 
 /** A trip is done after the person has had time to type: the mock applies what the node would change. */
@@ -57,6 +57,11 @@ function settle(data: OrgData, trip: AccessData['trips'][string]) {
   }
   if (trip.kind === 'proxy') {
     data.proxies = [...data.proxies, { label: trip.fields.label ?? 'proxy', host: trip.fields.host ?? '', port: Number(trip.fields.port) || 8080 }];
+  }
+  if (trip.kind === 'repo_token') {
+    // The token was pasted on the computer's page and GitHub took it: the card closes, as the node approves it.
+    data.questions = data.questions.filter((item) => item.id !== trip.fields.card);
+    trip.outcome = { repo: trip.fields.repo, token_expires_at: new Date(Date.now() + 30 * 86_400_000).toISOString() };
   }
   if (trip.kind === 'login') {
     const lane = trip.subject ?? '';
