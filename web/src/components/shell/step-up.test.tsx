@@ -48,6 +48,14 @@ describe('step-up', () => {
     expect(org().nodes.some((node) => node.id === 'home-mini')).toBe(true);
   });
 
+  it('asks again after the screen that asked went away with the dialog open', async () => {
+    const first = await askToRemoveNode();
+    await screen.findByText('Confirm it is you');
+    first.unmount();
+    await askToRemoveNode();
+    expect(await screen.findByText('Confirm it is you')).toBeInTheDocument();
+  });
+
   it('offers no email link on a computer, only a passkey', async () => {
     server.use(http.get('/api/auth/providers', () => HttpResponse.json({ magic_link: false, google: false, passkey: true, code: true })));
     const { user } = await askOnAComputer();

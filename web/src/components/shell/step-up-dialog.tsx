@@ -42,7 +42,12 @@ export function StepUpDialog() {
           setOpen(true);
         }),
     );
-    return () => onStepUpRequired(null);
+    // Gone with a step-up still open: cancel it, or every later one would wait on it with no dialog.
+    return () => {
+      onStepUpRequired(null);
+      pending.current?.reject(new ApiError(403, STEP_UP_CANCELLED, 'Cancelled.'));
+      pending.current = null;
+    };
   }, []);
 
   useEffect(() => {
