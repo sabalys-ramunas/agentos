@@ -34,8 +34,8 @@ classifiers = [
 dependencies = [
   # mcp 2.x: mcp/registry.py imports mcp.server.mcpserver and InputRequiredResult
   "mcp>=2.3,<3",
-  "pydantic>=2.7",
-  "typer>=0.12",
+  "pydantic>=2.14.3",
+  "typer>=0.29.1",
   "uvicorn>=0.30",
   "tomli-w>=1.0",
   "cryptography>=50.0.2",
@@ -86,8 +86,8 @@ dev = [
   "agentos[studio]",
   "openapi-spec-validator>=0.7",
   "pytest>=8",
-  "pytest-asyncio>=0.23",
-  "ruff>=0.5",
+  "pytest-asyncio>=1.5.0",
+  "ruff>=0.17.5",
 ]
 
 [project.scripts]
