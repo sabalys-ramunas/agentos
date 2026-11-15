@@ -289,11 +289,35 @@ class BrainTask(_M):
         return [str(line) for line in self.tail]
 
 
+class Environment(_M):
+    """An agent's environment (a cloud computer for one chat), from GET /api/orgs/local/environments; the
+    git and proof fields come from its detail, read for the open ones."""
+
+    id: str
+    title: str = ""
+    state: str = "idle"
+    repo: str | None = None
+    branch: str | None = None
+    created_at: Dt = None
+    closed_at: Dt = None
+    expires_at: Dt = None
+    minutes_left: int | None = None
+    cost_eur: float | None = None
+    lanes: dict = Field(default_factory=dict)
+    ahead: int | None = None
+    pushed: int | None = None
+    proofs: int | None = None
+
+    @property
+    def open(self) -> bool:
+        return self.state not in ("closed", "failed")
+
+
 def parse_list(model: type[_M], items: Any) -> list:
     """Parse a list of API objects, skipping the malformed ones."""
     if isinstance(items, dict):
         # tolerate `{ "items": [...] }` style envelopes
-        for key in ("items", "data", "results"):
+        for key in ("items", "data", "results", "environments"):
             if isinstance(items.get(key), list):
                 items = items[key]
                 break

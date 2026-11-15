@@ -97,8 +97,8 @@ async def test_client_sends_bearer_and_reads_resources(node, client):
     status = await client.status()
     assert status["node"] == "node-1" and status["timezone"] == "Europe/Vilnius"
     workspaces = await client.workspaces()
-    assert sum(len(ws["lanes"]) for ws in workspaces) == 29
-    assert {ws["id"] for ws in workspaces} == {"biz-a", "biz-b", "biz-c", "biz-d", "personal"}
+    assert sum(len(ws["lanes"]) for ws in workspaces) == 31  # 29 accounts and an environment's terminal and browser
+    assert {ws["id"] for ws in workspaces} == {"biz-a", "biz-b", "biz-c", "biz-d", "personal", "env"}
 
 
 async def test_client_maps_errors(node, client):
@@ -180,7 +180,7 @@ async def test_event_stream_404_is_unavailable(node, client):
 async def test_workspace_health_lines(node):
     state = await loaded(node)
     ws = {w.id: w for w in state.workspaces}
-    assert len(list(state.lanes())) == 29
+    assert len(list(state.lanes())) == 31
     line = {k: state.workspace_line(w, now=NOW) for k, w in ws.items()}
     health = {k: state.workspace_health(w) for k, w in ws.items()}
     assert line["biz-a"] == "6 lanes, all ok, 2 posts scheduled today" and health["biz-a"] == "ok"
@@ -270,7 +270,7 @@ async def test_unconfigured_resources_do_not_block_the_rest(node):
     state = await loaded(node)
     assert {n for n in RESOURCES if state.res[n].status == "unavailable"} == {"approvals", "brains", "tasks",
                                                                                "schedules"}
-    assert state.res["workspaces"].ok and len(list(state.lanes())) == 29
+    assert state.res["workspaces"].ok and len(list(state.lanes())) == 31
     # the queue cannot be read, so the node's own count is shown
     assert state.needs_you_count() == 9
 
@@ -295,7 +295,7 @@ async def test_offline_keeps_data_then_recovers_and_reconnects(node):
         node.go_down()
         await wait_for(lambda: state.conn.online is False)
         assert state.conn.reason == "connection refused"
-        assert len(list(state.lanes())) == 29  # last known data stays
+        assert len(list(state.lanes())) == 31  # last known data stays
         node.come_back()
         await wait_for(lambda: state.conn.online and state.conn.live == "live" and node.subscribers == 1)
         node.emit("lane", {**node.lane("biz-a/medium"), "state": "warm"})
@@ -344,3 +344,26 @@ def test_a_lane_at_a_checkpoint_needs_you():
     lane = Lane(id="biz/facebook", state="warm", signal="checkpoint")
     assert state.lane_need(lane) == "the site asks you to confirm it is you"
     assert state.lane_need(Lane(id="biz/reddit", state="warm", signal="ok")) is None
+
+
+# ---------------------------------------------------------------- environments (2026-11-15 test, F11)
+async def test_an_environment_is_named_by_its_title_and_kept_out_of_the_accounts(node):
+    state = await loaded(node)
+    assert state.res["environments"].ok
+    assert [e.title for e in state.environments] == ["qa-env-2026-11-15", "pricing page copy"]
+    open_one = state.environments[0]
+    assert (open_one.ahead, open_one.pushed, open_one.proofs) == (2, 1, 3)
+    assert state.place("env/esrkyfqerme") == "qa-env-2026-11-15"
+    assert state.place("env/esrkyfqerme-browser") == "qa-env-2026-11-15 (browser)"
+    assert state.place("biz-a/instagram") == "biz-a/instagram"
+    assert "env" not in {ws.id for ws in state.account_workspaces()}
+
+
+def test_a_rich_text_post_reads_as_its_text():
+    from agentos.tui.fmt import readable
+
+    doc = '{"document":[{"e":"par","c":[{"e":"text","t":"QA check of the approval gate."}]},{"e":"par","c":[{"e":"text","t":"Line two"}]}]}'
+    assert readable(doc) == "QA check of the approval gate.\nLine two"
+    assert readable(f'text: "{doc}"') == "text:\nQA check of the approval gate.\nLine two"
+    assert readable("Autumn menu is here.") == "Autumn menu is here."
+    assert readable("{not json") == "{not json"

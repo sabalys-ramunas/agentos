@@ -28,7 +28,8 @@ SERVICE = "environments"
 PICKS_LANE = frozenset({"environment_open", "lane_job_cancel", "shell_write", "shell_close"})
 
 TERMINAL = frozenset({
-    "lane_exec", "lane_install", "lane_job_start", "lane_upload", "lane_upload_check", "shell_open",
+    "lane_exec", "lane_file_edit", "lane_file_read", "lane_file_write", "lane_install", "lane_job_start",
+    "lane_upload", "lane_upload_check", "shell_open",
 })  # not lane_jobs_list: without `on` it already lists every run the caller may see (`agentos run --list`)
 BROWSER = frozenset({
     "browser_act", "browser_console", "browser_dialog", "browser_dialog_answer", "browser_navigate",
@@ -94,16 +95,20 @@ def _summary(tool: str, kwargs: dict[str, Any]) -> str:
 
 
 def after(runtime: Any, tool: str, lane_id: str | None, kwargs: dict[str, Any], *, ok: bool,
-          scrub: list[str] | tuple[str, ...] = ()) -> None:
+          scrub: list[str] | tuple[str, ...] = (), result: Any = None, error: str | None = None) -> None:
     """Count a call on an environment's lane (any tool, with or without `on`). Its summary is kept
-    scrubbed as the audit log's are (`scrub`: exact values to take out too, like the call's token)."""
+    scrubbed as the audit log's are (`scrub`: exact values to take out too, like the call's token).
+    A command's exit code (`result`'s, lane_exec) and a failed call's error code are kept with it."""
     if not isinstance(lane_id, str) or not lane_id.startswith("env/"):
         return
     svc = _service(runtime)
     if svc is None:
         return
+    code = result.get("exit_code") if isinstance(result, dict) else None
     try:
-        svc.record_call(lane_id, tool, ok=ok, summary=_summary(tool, kwargs), scrub=scrub)
+        svc.record_call(lane_id, tool, ok=ok, summary=_summary(tool, kwargs), scrub=scrub,
+                        exit_code=code if isinstance(code, int) else None,
+                        error=error.split(":", 1)[0].strip() if error else None)
     except Exception:
         log.exception("could not record %s on %s", tool, lane_id)
 

@@ -29,7 +29,7 @@ class TimelineMixin:
 
     def timeline(self, *, start: datetime, end: datetime, workspace: str | None = None, lane: str | None = None,
                  kind: str | None = None, states: list[str] | None = None, visible: Any = None,
-                 limit: int = 500, managed: bool = True) -> dict[str, Any]:
+                 limit: int = 500, managed: bool = True, drafter: str | None = None) -> dict[str, Any]:
         """One timeline for [start, end): one-off entries, the projected fires of recurring cron
         schedules (computed, never stored), the runs that already happened, with their proof, and
         (unless `managed` is False) what other services plan on their own (see _managed).
@@ -42,7 +42,7 @@ class TimelineMixin:
             raise InvalidRequest("a timeline covers at most 93 days at a time")
         items: list[dict[str, Any]] = []
         for e in self.store.list(workspace=workspace, start=start, end=end, limit=limit):
-            items.append(self.describe(e))
+            items.append(self.describe(e, drafter=drafter))
         items += self._projected(start, end, workspace)
         items += self._past_runs(start, end, workspace, limit)
         about: dict[str, Any] = {}

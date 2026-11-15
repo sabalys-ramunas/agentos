@@ -49,6 +49,7 @@ from agentos.mcp.registry import (
     advertise_tools_changed,
     lean_schema,
     tools_changed,
+    unknown_tool,
     with_catalog_lines,
 )
 
@@ -253,9 +254,8 @@ class ControllerMcp(MCPServer):
             return error_result(f"frozen: every node is frozen ({mesh['reason']}). Every agent is stopped and its "
                                 "grants were revoked. Do not retry; tell your user. Only the owner can unfreeze.")
         tools = self._tools(grant)
-        if name not in tools:
-            shown = name if len(name) <= 64 else name[:61] + "..."
-            return error_result(f"not_found: no tool named {shown!r}; call tools/list to see your tools")
+        if name not in tools:  # its own fix line: tools_more lists them all, tools/list only the loaded ones
+            return CallToolResult(content=[TextContent(type="text", text=unknown_tool(name, tools))], is_error=True)
         hub = self.controller.hub
         try:
             node, args = routing.route(name, arguments or {}, hub.views(grant.org_id),

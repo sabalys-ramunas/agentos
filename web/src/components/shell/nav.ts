@@ -61,8 +61,8 @@ export const NAV: NavItem[] = [
 export const GROUP_ORDER: NavGroup[] = ['work', 'where', 'who', 'automations', 'you'];
 
 /** The phone's tab bar: what a person reaches for with a thumb, and More for the rest. */
-// Environments sits under More: its word does not fit a fifth of a phone, and Home lists the open ones first.
-const TAB_TOS: NavTo[] = ['/$org', '/$org/runs', '/$org/checks', '/$org/nodes', '/$org/needs-you'];
+// Environments is the main thing, so it is at the thumb (2026-11-15 test, F12); Machines goes under More.
+const TAB_TOS: NavTo[] = ['/$org', '/$org/environments', '/$org/runs', '/$org/checks', '/$org/needs-you'];
 
 /**
  * An approver says yes or no, and sees what came of it: Needs you, History and Settings, and

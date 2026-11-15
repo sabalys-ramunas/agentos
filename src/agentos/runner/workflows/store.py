@@ -94,6 +94,10 @@ class WorkflowStore:
         rows = self._rows("SELECT * FROM workflow_versions WHERE id = ? AND version = ?", (flow_id, version))
         return self._version(rows[0]) if rows else None
 
+    def versions(self, flow_id: str) -> list[WorkflowVersion]:
+        return [self._version(r) for r in self._rows("SELECT * FROM workflow_versions WHERE id = ? ORDER BY revision",
+                                                     (flow_id,))]
+
     def put_state(self, state: WorkflowState) -> None:
         self._exec("INSERT OR REPLACE INTO workflows (id, doc) VALUES (?, ?)", (state.id, state.model_dump_json()))
 

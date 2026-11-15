@@ -92,9 +92,10 @@ class Jobs:
         return self.jobs.get(job_id)
 
     async def job_read(self, job_id: str, *, stdout_offset: int = 0, stderr_offset: int = 0, wait_s: float = 0,
-                       max_bytes: int = 65536) -> tuple[JobInfo, bytes, bytes]:
+                       max_bytes: int = 65536, until_exit: bool = False) -> tuple[JobInfo, bytes, bytes]:
         job = self.jobs.get(job_id)
-        out, err = await self.jobs.read(job, stdout_offset, stderr_offset, wait_s=wait_s, max_bytes=max_bytes)
+        out, err = await self.jobs.read(job, stdout_offset, stderr_offset, wait_s=wait_s, max_bytes=max_bytes,
+                                        until_exit=until_exit)
         info = job.info.model_copy()
         if job.running:  # what the command wrote so far (the meta has it once it ended)
             info.stdout_bytes = job.out.total if job.out else info.stdout_bytes

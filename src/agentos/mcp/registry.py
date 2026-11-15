@@ -417,16 +417,36 @@ def unknown_arguments(spec: ToolSpec, known: frozenset[str] | None, arguments: A
         parts.append(f"{shown!r} (did you mean {close[0]!r}?)" if close else repr(shown))
     more = f" and {len(extra) - MAX_UNKNOWN_SHOWN} more" if len(extra) > MAX_UNKNOWN_SHOWN else ""
     word = "argument" if len(extra) == 1 else "arguments"
-    return _cut(f"invalid: {spec.name} has no {word} {', '.join(parts)}{more}; tools/list shows what it takes")
+    return _cut(f"invalid: {spec.name} has no {word} {', '.join(parts)}{more}; {shows_arguments(spec.name)}")
 
 
-def invalid_arguments(exc: ValidationError) -> str:
-    """Field names and pydantic's messages only: the rejected values are the caller's data."""
+def shows_arguments(tool: str) -> str:
+    """Where an agent reads a tool's arguments: tools_more with the tool's name works for every tool,
+    listed or reached through tools_call (tools/list shows only the tools in its list)."""
+    return f'tools_more(toolset="{tool}") shows what it takes'
+
+
+def unknown_tool(name: str, known: Iterable[str]) -> str:
+    """not_found for a tool this caller has no tool by, naming a close one it does have, and a fix line
+    that works: tools_more lists every tool of every toolset, tools/list only the loaded ones."""
+    shown = name if len(name) <= 64 else name[:61] + "..."
+    close = difflib.get_close_matches(name, sorted(known), n=1, cutoff=0.6) if len(name) <= 64 else []
+    mean = f" (did you mean {close[0]!r}?)" if close else ""
+    return (f"not_found: no tool named {shown!r}{mean}\n"
+            "fix: Call tools_more() for every tool you have, then call one with tools_call(name, arguments).")
+
+
+def invalid_arguments(exc: ValidationError, tool: str | None = None) -> str:
+    """Field names and pydantic's messages only: the rejected values are the caller's data. With
+    `tool`, where its arguments are shown, then the catalog's fix line."""
     parts = []
     for err in exc.errors(include_url=False, include_input=False, include_context=False):
         where = ".".join(str(part) for part in err["loc"]) or "arguments"
         parts.append(f"{where}: {err['msg']}")
-    return _cut("invalid: " + "; ".join(parts))
+    message = _cut("invalid: " + "; ".join(parts))
+    if tool is None:
+        return message
+    return with_catalog_lines(_cut(f"{message}; {shows_arguments(tool)}"))
 
 
 def _image(image: ToolImage) -> ImageContent:
@@ -697,8 +717,10 @@ class ToolServer(MCPServer):
             if name in self.specs:  # served here, but not to this grant: say what it needs
                 spec = self.specs[name]
                 return error_result(f"not_found: no tool named {shown!r} for your grant. "
-                                    f"{grant_hint(spec, self._has_same_special(spec, names))}")
-            return error_result(f"not_found: no tool named {shown!r}; call tools/list to see your tools")
+                                    f"{grant_hint(spec, self._has_same_special(spec, names))}\n"
+                                    "fix: Do not look for another way to do it. Tell the human what the "
+                                    "message says, and carry on without it.")
+            return error_result(unknown_tool(name, self.specs if names is None else names))
         unknown = unknown_arguments(self.specs[name], self.arg_names.get(name), arguments)
         if unknown is not None:
             return error_result(with_catalog_lines(unknown))
@@ -714,7 +736,7 @@ class ToolServer(MCPServer):
             return error_result("engine_error: the MCP client that made this call went away, so it was stopped")
         except ToolError as exc:
             if isinstance(exc.__cause__, ValidationError):
-                return error_result(invalid_arguments(exc.__cause__))
+                return error_result(invalid_arguments(exc.__cause__, name))
             raise
         finally:
             if watch is not None:

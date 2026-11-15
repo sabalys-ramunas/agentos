@@ -153,11 +153,15 @@ function EnvTable({ org, rows, now, closed = false, label }: { org: string; rows
             <Th>Environment</Th>
             <Th>{closed ? 'Result' : 'State'}</Th>
             <Th className="md:max-lg:hidden">Repository</Th>
-            <Th className="md:max-lg:hidden">Agent</Th>
-            <Th align="end">{closed ? 'Ran' : 'Age'}</Th>
+            <Th className="md:max-lg:hidden" phone="hide">
+              Agent
+            </Th>
+            <Th align="end" phone="hide">
+              {closed ? 'Ran' : 'Age'}
+            </Th>
             <Th align="end">Cost</Th>
             <Th align="end">{closed ? 'Closed' : 'Time left'}</Th>
-            <Th className="w-1">
+            <Th className="w-1" phone="hide">
               <span className="sr-only">Actions</span>
             </Th>
           </tr>

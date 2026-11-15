@@ -58,7 +58,7 @@ describe('where you can say yes', () => {
 
   it('answers for another job', async () => {
     const { user } = renderApp('/northwind-group/settings/say-yes');
-    await user.click(await screen.findByRole('radio', { name: /Post on Aster/ }));
+    await user.click(await screen.findByRole('radio', { name: /For example, a post/ }));
     expect(await screen.findByText(/A post takes just a tap\. You have 4 places/)).toBeInTheDocument();
   });
 });

@@ -16,6 +16,8 @@ import { Status, StatusDot } from '@/components/ui/status';
 import { Table, TableScroll, Td, Th, Tr } from '@/components/ui/table';
 import { cn } from '@/lib/cn';
 import { dateTime, plural, safeUrl, timeAgo } from '@/lib/format';
+import { toolPlainTitle } from '@/lib/plain-node';
+import { useTechnical } from '@/lib/technical';
 import { ControlFrame } from '@/features/lane/control';
 import { LiveView } from '@/features/lane/live-view';
 import { UnsavedList, unsavedWords } from './close-flow';
@@ -25,6 +27,7 @@ import {
   isJob,
   isOpen,
   providerName,
+  pullRequestLink,
   shortCommit,
 } from './words';
 import { CALLS_SHOWN } from './environment-page';
@@ -173,6 +176,24 @@ export function CommandsCard({ org, env, now }: { org: string; env: EnvDetail; n
   );
 }
 
+/** A pushed branch's way to review: GitHub's page that opens a pull request for it. */
+function PullRequestLink({ repo, branch }: { repo: string | null | undefined; branch: string }) {
+  const link = pullRequestLink(repo, branch);
+  if (!link) return null;
+  return (
+    <a
+      href={link}
+      target="_blank"
+      rel="noreferrer"
+      aria-label={`Open a pull request for ${branch}`}
+      className="inline-flex shrink-0 items-center gap-1 text-caption font-medium text-blue hover:underline"
+    >
+      Open a pull request
+      <ArrowUpRight className="size-3.5" aria-hidden />
+    </a>
+  );
+}
+
 export function GitCard({ env, now }: { env: EnvDetail; now: number }) {
   const git = env.git;
   const unsaved = env.unsaved && (env.unsaved.dirty_files.length || env.unsaved.unpushed.length) ? env.unsaved : null;
@@ -217,6 +238,7 @@ export function GitCard({ env, now }: { env: EnvDetail; now: number }) {
                     <time dateTime={push.at} title={dateTime(push.at)} className="ml-auto shrink-0 text-caption text-faint">
                       {timeAgo(push.at, now)}
                     </time>
+                    <PullRequestLink repo={env.repo} branch={push.branch} />
                   </li>
                 ))}
               </ul>
@@ -278,6 +300,8 @@ export function PortsCard({ env }: { env: EnvDetail }) {
 
 export function CallsCard({ env, now }: { env: EnvDetail; now: number }) {
   const [all, setAll] = useState(false);
+  // What each call did, in words; the tool's own name under Technical details.
+  const [technical] = useTechnical();
   const shown = all ? env.calls : env.calls.slice(0, CALLS_SHOWN);
   return (
     <Card className="overflow-hidden">
@@ -289,7 +313,13 @@ export function CallsCard({ env, now }: { env: EnvDetail; now: number }) {
               <li key={`${call.at}:${index}`} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-x-3 px-5 py-2">
                 <StatusDot tone={call.ok ? 'ok' : 'bad'} className="mt-2" />
                 <span className="grid min-w-0">
-                  <span className="truncate font-mono text-code text-fg">{call.tool}</span>
+                  {technical ? (
+                    <span className="truncate font-mono text-code text-fg">{call.tool}</span>
+                  ) : (
+                    <span className="truncate text-14 text-fg" title={call.tool}>
+                      {toolPlainTitle(call.tool)}
+                    </span>
+                  )}
                   <span className="truncate text-secondary text-muted" title={call.summary}>
                     {call.ok ? '' : <span className="sr-only">Failed: </span>}
                     {call.summary}

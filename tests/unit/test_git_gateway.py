@@ -350,10 +350,30 @@ ENV_LANE = "env/eabcdefghjk"
 
 class Environments:
     """The node's environment records, as the gateway and the policy read them: ENV_LANE is the
-    terminal of an open environment of the grant family that holds the VM's token."""
+    terminal of an open environment of the grant family that holds the VM's token. `own`: the
+    branches it created, as EnvironmentManager keeps them on the record."""
+
+    def __init__(self) -> None:
+        self.own: dict[str, list[str]] = {}
+        self.heads: dict[str, dict[str, str]] = {}
 
     def holds_terminal(self, lane_id: str) -> bool:
         return lane_id == ENV_LANE
+
+    def branches_created(self, lane_id: str) -> list[str]:
+        return list(self.own.get(lane_id, []))
+
+    def note_branches(self, lane_id: str, *, created: list[str], deleted: list[str]) -> None:
+        have = [b for b in self.own.get(lane_id, []) if b not in deleted]
+        self.own[lane_id] = have + [b for b in created if b not in have]
+        self.heads[lane_id] = {b: sha for b, sha in self.heads.get(lane_id, {}).items() if b in self.own[lane_id]}
+
+    def branch_heads(self, lane_id: str) -> dict[str, str]:
+        return dict(self.heads.get(lane_id, {}))
+
+    def note_heads(self, lane_id: str, heads: dict[str, str]) -> None:
+        own = self.own.get(lane_id, [])
+        self.heads.setdefault(lane_id, {}).update({b: sha for b, sha in heads.items() if b in own})
 
     def own_lane(self, lane_id: str, grant) -> bool:
         return lane_id == ENV_LANE
@@ -364,7 +384,7 @@ class Environments:
 
 async def vm(node: Node):
     """An environment's VM: its own gateway listener and its one token, for the repository only."""
-    node.rt.register("environments", Environments())
+    node.rt.register("environments", Environments())  # node.rt.get("environments").own: its branches
     node.git.remotes.allow("env", f"{HOST}/{REPO}", url=str(node.upstream))
     g, _ = node.policy.issue(subject={"id": "agent-1"}, workspaces=["env"], ceiling=Effect.COMMIT)
     port = await node.git.vm_listener(ENV_LANE)
@@ -434,3 +454,79 @@ async def test_a_force_push_or_a_delete_of_the_default_branch_from_an_environmen
     assert node.policy.approvals.list(state="pending") == []  # refused, never asked
     refused = [e for e in node.traces("git_push") if e.args.get("result") == "refused"]
     assert len(refused) == 2 and all(e.args.get("reason") == "push_refused" for e in refused)
+
+
+# ------------------------------------------------------------------ an environment and branches it did not create
+
+
+def mirror_ref(node: Node, ref: str) -> str:
+    mirror = node.git.gateway.mirror(Remote(HOST, REPO))
+    return git("rev-parse", "--verify", "-q", ref, cwd=mirror.path, check=False).stdout.strip()
+
+
+async def test_an_environment_may_not_delete_a_branch_it_did_not_create(node):
+    """P1-1 of the 2026-11-15 test: `feature` was on the remote before the environment (a colleague's
+    work). Deleting it is refused, asking nobody, and the mirror keeps it."""
+    _g, run, work, _env = await vm(node)
+    before = node.upstream_ref("feature")
+    r = await run("push", "origin", "--delete", "feature", cwd=work)
+    assert r.returncode != 0
+    assert "push_refused" in r.stderr and "deletes feature, a branch this environment did not create" in r.stderr
+    assert "new branch" in r.stderr and "waits for a person" not in r.stderr
+    assert node.upstream_ref("feature") == before and mirror_ref(node, "refs/heads/feature") == before
+    assert node.policy.approvals.list(state="pending") == []
+    [ev] = [e for e in node.traces("git_push") if e.args.get("result") == "refused"]
+    assert ev.args["reason"] == "push_refused" and ev.args["refs"][0]["kind"] == "delete"
+
+
+async def test_an_environment_may_not_force_push_a_branch_it_did_not_create(node):
+    _g, run, work, env = await vm(node)
+    git("checkout", "-q", "feature", cwd=work)
+    before = node.upstream_ref("feature")
+    git("commit", "-q", "--amend", "-m", "rewritten", cwd=work, env=env)
+    r = await run("push", "-f", "origin", "feature", cwd=work)
+    assert r.returncode != 0
+    assert "push_refused" in r.stderr and "force-pushes feature, a branch this environment did not create" in r.stderr
+    assert node.upstream_ref("feature") == before and mirror_ref(node, "refs/heads/feature") == before  # put back
+    assert node.policy.approvals.list(state="pending") == []
+
+
+async def test_an_environment_fast_forwards_a_branch_it_did_not_create(node):
+    _g, run, work, env = await vm(node)
+    git("checkout", "-q", "feature", cwd=work)
+    new = vm_commit(work, env, "on-feature")
+    r = await run("push", "origin", "feature", cwd=work)
+    assert r.returncode == 0, r.stderr
+    assert node.upstream_ref("feature") == new
+    assert node.rt.get("environments").own.get(ENV_LANE, []) == []  # an update makes it no one's own
+
+
+async def test_an_environment_rewrites_and_deletes_the_branches_it_created(node):
+    _g, run, work, env = await vm(node)
+    envs = node.rt.get("environments")
+    git("checkout", "-q", "-b", "agent/y", cwd=work)
+    vm_commit(work, env, "y")
+    assert (await run("push", "origin", "agent/y", cwd=work)).returncode == 0
+    assert envs.own[ENV_LANE] == ["agent/y"]
+    git("commit", "-q", "--amend", "-m", "y again", cwd=work, env=env)
+    r = await run("push", "-f", "origin", "agent/y", cwd=work)
+    assert r.returncode == 0, r.stderr
+    assert node.upstream_ref("agent/y") == git("rev-parse", "HEAD", cwd=work).stdout.strip()
+    r = await run("push", "origin", "--delete", "agent/y", cwd=work)
+    assert r.returncode == 0, r.stderr
+    assert git("rev-parse", "--verify", "-q", "refs/heads/agent/y", cwd=node.upstream, check=False).returncode != 0
+    assert envs.own[ENV_LANE] == []  # deleted: the name is no longer its own
+
+
+async def test_a_mixed_push_with_one_foreign_rewrite_sends_nothing(node):
+    """A push that creates a branch and deletes someone else's: all of it is refused, and the branch it
+    would have created is not recorded as its own."""
+    _g, run, work, env = await vm(node)
+    git("checkout", "-q", "-b", "agent/z", cwd=work)
+    vm_commit(work, env, "z")
+    r = await run("push", "origin", "agent/z", ":feature", cwd=work)
+    assert r.returncode != 0 and "push_refused" in r.stderr
+    assert node.upstream_ref("feature")
+    assert git("rev-parse", "--verify", "-q", "refs/heads/agent/z", cwd=node.upstream, check=False).returncode != 0
+    assert mirror_ref(node, "refs/heads/agent/z") == ""
+    assert node.rt.get("environments").own.get(ENV_LANE, []) == []

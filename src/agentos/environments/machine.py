@@ -1,7 +1,7 @@
 """What an environment's machine is made of: the image it boots, and the setup that runs on it.
 
-The setup is one script, `setup.sh` next to this file: git, curl, build tools, Node 22, Python with
-uv, and /work. It is the only list of what an environment has:
+The setup is one script, `setup.sh` next to this file: git, curl, build tools, Node 22 with npm and
+pnpm (corepack), Python with uv, and /work. It is the only list of what an environment has:
 
 - on a cloud VM booted from Ubuntu, cloud-init runs it on the first boot (`cloud_config()`), and the
   environment is `starting` until it has written its marker;
@@ -25,6 +25,16 @@ SETUP_STATE = (f"if [ -f {READY_MARKER} ]; then echo ready; "
                "elif command -v cloud-init >/dev/null 2>&1; then s=$(cloud-init status 2>/dev/null || true); "
                "echo \"$s\"; case \"$s\" in *error*) tail -n 20 /var/log/cloud-init-output.log 2>/dev/null;; esac; "
                "else echo 'no cloud-init and no setup marker'; fi")
+
+
+# Run on every machine once its setup is done: a `dev` snapshot made before setup.sh enabled pnpm
+# has the ready marker, so the setup never runs there again. It does nothing where pnpm is there
+# already, and a machine without network still comes up (it is best effort).
+TOOLS_TOP_UP = ("command -v pnpm >/dev/null 2>&1 || { (grep -q '^COREPACK_ENABLE_DOWNLOAD_PROMPT=' "
+                "/etc/environment || echo 'COREPACK_ENABLE_DOWNLOAD_PROMPT=0' >> /etc/environment) && "
+                "corepack enable && COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack install -g pnpm@latest; } "
+                ">/dev/null 2>&1; true")
+TOOLS_TOP_UP_S = 60.0
 
 
 def boot_done_without_setup(state: str) -> bool:

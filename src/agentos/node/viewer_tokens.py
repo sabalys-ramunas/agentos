@@ -28,6 +28,7 @@ log = logging.getLogger("agentos.viewer")
 
 KEY_BYTES = 32
 TOKEN_CONTEXT = b"agentos-view-v2\n"  # v2 signs the hard end: a v1 link no longer verifies
+BLOB_CONTEXT = b"agentos-blob-v1\n"  # a signed link to one thing that is not a lane (an environment's proof)
 MIN_TTL = 30
 MAX_TTL = 24 * 3600
 # The hard end of a link, from when it was first made: renewing moves its expiry, never this. A link
@@ -203,6 +204,37 @@ class ViewTokens:
         payload = f"{lane_id}|{mode.value}|{expires}|{nonce}|{hard}{'|' + OWNER_FLAG if owner else ''}".encode()
         token = f"{_b64(payload)}.{_b64(self._mac(payload))}"
         return ViewLink(lane_id, mode, float(expires), nonce, token, owner, float(hard))
+
+    def sign_blob(self, purpose: str, value: str, ttl: float) -> tuple[str, float]:
+        """(token, expiry) for one thing that is not a lane, like an environment's proof image: HMAC over
+        purpose, value and expiry with the same key, so replacing the key revokes these too. `value`
+        holds no "|"."""
+        if "|" in purpose or "|" in value:
+            raise ValueError("a signed value holds no |")
+        expires = int(self.clock() + max(MIN_TTL, min(MAX_TTL, ttl)))
+        payload = f"{purpose}|{value}|{expires}".encode()
+        mac = hmac.new(self.key, BLOB_CONTEXT + payload, hashlib.sha256).digest()
+        return f"{_b64(payload)}.{_b64(mac)}", float(expires)
+
+    def open_blob(self, purpose: str, token: str | None) -> str | None:
+        """The value a sign_blob token for `purpose` carries, or None: forged, expired, or for another
+        purpose."""
+        if not token or len(token) > MAX_TOKEN_CHARS or token.count(".") != 1:
+            return None
+        body, sig = token.split(".")
+        try:
+            payload, mac = _unb64(body), _unb64(sig)
+        except ValueError:
+            return None
+        if not hmac.compare_digest(mac, hmac.new(self.key, BLOB_CONTEXT + payload, hashlib.sha256).digest()):
+            return None
+        try:
+            kind, value, expires = payload.decode().split("|")
+            if kind != purpose or int(expires) <= self.clock():
+                return None
+        except ValueError:
+            return None
+        return value
 
     def verify(self, token: str | None, lane_id: str) -> ViewLink:
         """Raise TokenError unless `token` is a valid, unexpired link for `lane_id`. The

@@ -105,7 +105,7 @@ describe('the sentence on top', () => {
   it('names how many answer, the busiest, what is not answering and a VM with its time left', () => {
     const rows = machineRows([node('hel-1', { cpu: 88 }), node('office', { cpu: 30 }), node('shop', { state: 'down', last_seen: ago(40) })], [vm], []);
     expect(words(machinesSentence(rows, NOW))).toBe(
-      '2 online, 1 not answering. hel-1 is the busiest at 88%. shop has not answered since 40 min ago. harbor/ci-box is a disposable VM with 40 min left.',
+      '2 online, 1 not answering. hel-1 is the busiest at 88%. shop has not answered since 40 min ago. harbor/ci-box is an environment with 40 min left.',
     );
   });
 

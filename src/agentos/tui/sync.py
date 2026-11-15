@@ -38,7 +38,26 @@ LOADERS: dict[str, Callable[[ApiClient], Awaitable[Any]]] = {
     "flows": lambda c: c.flows(),
     "brains": lambda c: c.brains(),
     "tasks": lambda c: c.brain_tasks(),
+    "environments": lambda c: load_environments(c),
 }
+
+DETAILS_MAX = 6  # open environments whose git and proofs are read on each full load
+
+
+async def load_environments(client: ApiClient) -> list[dict]:
+    """Every environment, and for the open ones (a few at most) their git and kept proofs from the detail.
+    A detail that does not answer leaves those fields empty, never the list."""
+    items = await client.environments()
+    for item in [i for i in items if isinstance(i, dict) and i.get("state") not in ("closed", "failed")][:DETAILS_MAX]:
+        try:
+            detail = await client.environment(str(item.get("id")))
+        except (ApiError, NodeUnreachable):
+            continue
+        git = detail.get("git") or {}
+        item["ahead"] = git.get("ahead")
+        item["pushed"] = len(git.get("pushed") or [])
+        item["proofs"] = len(detail.get("proofs") or []) if "proofs" in detail else None
+    return items
 
 
 class Syncer:

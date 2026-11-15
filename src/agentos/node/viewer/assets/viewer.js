@@ -61,7 +61,9 @@ const SIGNAL_LABELS = {
 
 const canControl = () => state.mode === 'control';
 const controlState = () => state.control?.state || 'agent';
-const interactive = () => canControl() && controlState() === 'human';
+// the server passes input only from a person (an owner link, the owner signed in here, or the holder of an
+// agent environment's own browser link: boot.person), so the page sends none otherwise and says so
+const interactive = () => canControl() && state.person && controlState() === 'human';
 const running = () => state.lane.state === 'warm' || state.lane.state === 'active';
 
 function clock(iso, seconds = false) {
@@ -161,6 +163,7 @@ function render() {
   let pill;
   if (interactive()) pill = 'You have control. Your input goes to the lane.';
   else if (!canControl()) pill = 'View only';
+  else if (c === 'human' && !state.person) pill = 'View only. Sign in to the panel here to use the lane.';
   else if (c === 'paused') pill = 'View only. The agent is stopped.';
   else if (c === 'human') pill = 'View only. Someone else has control.';
   else pill = 'View only. The agent has control.';
@@ -187,6 +190,8 @@ function render() {
   if (!canControl()) hint = 'This link can watch but not control.';
   else if (!state.person && (c === 'paused' || state.control?.reason)) {
     hint = 'Sign in to the panel in this browser (the same address, at /login), then take over and hand it back. An agent may hold this link, so it cannot do that alone.';
+  } else if (!state.person && c === 'human') {
+    hint = 'Agents are kept off the lane. To click or type in it, sign in to the panel in this browser (the same address, at /login); an agent may hold this link, so its input does not reach the lane.';
   } else if (c === 'human') {
     hint = state.lane.state === 'active'
       ? 'The agent is finishing its current step. Then the lane is all yours.'

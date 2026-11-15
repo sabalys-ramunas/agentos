@@ -19,10 +19,13 @@ describe('Machines', () => {
     renderApp(`/${ORG}/nodes`);
     const grid = await table();
     await waitFor(() => expect(within(grid).getAllByRole('row')).toHaveLength(5));
+    // An environment's VM is named by the environment's title, which is its own read.
+    await waitFor(() =>
+      expect(within(grid).getAllByRole('row').slice(1).map((row) => row.getAttribute('aria-label'))).toEqual(['home-mini, Online', 'hetzner-1, Online', 'Black Friday offer page, Ready', 'Fix the flaky checkout test, Starting']),
+    );
     const rows = within(grid).getAllByRole('row').slice(1);
-    expect(rows.map((row) => row.getAttribute('aria-label'))).toEqual(['home-mini, Online', 'hetzner-1, Online', 'vm_7f3a9c21, Ready', 'vm_2c8e4b10, Starting']);
     expect(screen.getByRole('heading', { level: 1, name: 'Machines' })).toBeInTheDocument();
-    expect(screen.getByText(whole('P', /^2 online\. hetzner-1 is the busiest at \d+%\. harbor\/ci-box is a disposable VM with \d+ min left, one of 2 rented\.$/))).toBeInTheDocument();
+    expect(screen.getByText(whole('P', /^2 online\. hetzner-1 is the busiest at \d+%\. Black Friday offer page is an environment with \d+ min left, one of 2 open\.$/))).toBeInTheDocument();
     // The VM's time left and what it is for are the node's own words.
     expect(within(rows[2]!).getByText('Run the shop end-to-end tests on a clean machine')).toBeInTheDocument();
     // The running run shows on the machine it runs on. The runs are their own read, which can land after
@@ -59,7 +62,7 @@ describe('Machines', () => {
 
   it('shows a VM with its price, its time left and the real command to delete it', async () => {
     renderApp(`/${ORG}/nodes/vm_7f3a9c21`);
-    const panel = await screen.findByRole('dialog', { name: 'harbor/ci-box' }, { timeout: 10_000 });
+    const panel = await screen.findByRole('dialog', { name: 'Black Friday offer page' }, { timeout: 10_000 });
     expect(within(panel).getByText('€0.0119 an hour')).toBeInTheDocument();
     expect(within(panel).getByText(whole('CODE', 'agentos vm destroy vm_7f3a9c21'))).toBeInTheDocument();
   });

@@ -54,7 +54,7 @@ NEXT = {
                "profile_propose it: the owner approves."),
     "build": ("Run and test against an environment's url. Keys are vault entries, named here: tools that need one "
               "take the entry's name and agentos fills the value. Never ask for or print a key's value."),
-    "write": ("Write every post, comment or reply in context.voice_prompt, on the accounts listed. Posting waits for "
+    "write": ("Write in context.voice_prompt for this person or business, on the accounts listed. Posting waits for "
               "the owner where the lane asks first."),
     "review": ("Judge the work against the rubric (or the guidelines), one point per item, and say why. Your judgement "
                "is data for the owner; it changes no profile."),

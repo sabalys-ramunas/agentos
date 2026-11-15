@@ -100,7 +100,7 @@ def test_rows_chain_in_order_from_the_genesis(store):
     assert genesis["kind"] == "genesis" and rows[0]["prev"] == genesis["hash"]
     assert [r["seq"] for r in rows] == [1, 2, 3, 4, 5]
     assert all(b["prev"] == a["hash"] for a, b in itertools.pairwise(rows))
-    assert store.verify().status == "unverifiable"  # nothing signed covers them yet
+    assert store.verify().status == "pending"  # nothing signed covers them yet
     store.checkpoint()
     assert store.verify().status == "ok"
 
@@ -208,8 +208,9 @@ def test_an_old_log_migrates_with_a_genesis_and_its_rows_stay_unchained(tmp_path
     assert [r["hash"] is None for r in rows] == [True, True, False]
     s.checkpoint()
     report = s.verify()
-    assert report.status == "unverifiable" and report.unchained == 2
-    assert any("written before the chain began" in f.text and f.first == 1 and f.last == 2 for f in report.findings)
+    assert report.status == "ok" and report.unchained == 2 and report.exit_code == 0  # QA 2026-11-15 F14
+    assert any("written before the chain began" in f.text and f.level == "note" and f.first == 1 and f.last == 2
+               for f in report.findings)
     assert s.verify(scope=auditlog.Scope(since=clock.t - 10)).status == "ok"  # today's rows are proven
     s.close()
 

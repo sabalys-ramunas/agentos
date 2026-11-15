@@ -14,7 +14,6 @@ from typer.testing import CliRunner
 from agentos.policy.auditlog import (
     EXIT_OK,
     EXIT_TAMPERED,
-    EXIT_UNVERIFIABLE,
     SIG_CTX,
     canonical,
     mark_hash,
@@ -93,14 +92,14 @@ def test_truncated_tail_after_the_last_checkpoint_is_unprovable_not_fine(log):
     raw.execute("DELETE FROM traces WHERE seq > 6")
     report = s.verify()
     texts = [f.text for f in report.findings]
-    assert any(t.startswith("row seq 6 is unprovable since checkpoint 2 (seq 5,") for t in texts), texts
+    assert "1 newer row (row seq 6) waits for the next checkpoint after checkpoint 2" in texts, texts
     # SQLite's own counter still remembers seq 8
     assert "the log has used seq up to 8, but it now ends at seq 6: rows seq 7-8 were deleted from the end" in texts
     # a careful attacker resets the counter too: what is left is still not called fine
     raw.execute("UPDATE sqlite_sequence SET seq = 6 WHERE name = 'traces'")
     report = s.verify()
-    assert report.status == "unverifiable" and report.exit_code == EXIT_UNVERIFIABLE
-    assert [f.level for f in report.findings] == ["unprovable"]
+    assert report.status == "pending" and report.exit_code == EXIT_OK
+    assert [f.level for f in report.findings] == ["pending"]
 
 
 def test_rows_deleted_from_the_end_below_a_checkpoint(log):
@@ -200,7 +199,7 @@ def test_since_and_lane_scope(tmp_path):
     # the uncovered row is on another lane, or before the window: the scope is proven
     assert s.verify(scope=Scope(lane="biz-a/x")).status == "ok"
     report = s.verify(scope=Scope(since=clock.t - 30))
-    assert report.status == "unverifiable" and report.findings[0].first == 2
+    assert report.status == "pending" and report.findings[0].first == 2
     s.close()
 
 
@@ -222,8 +221,11 @@ def test_cli_exit_codes(tmp_path, monkeypatch):
     s.write(ev(9))
     s.db.close()  # no shutdown checkpoint: the last row stays uncovered
     unv = runner.invoke(app, ["verify", "--json"])
-    assert unv.exit_code == EXIT_UNVERIFIABLE
+    assert unv.exit_code == EXIT_OK and json.loads(unv.output)["status"] == "pending"
     assert json.loads(unv.output)["findings"][0]["seq"] == [4, 4]
+    shown = runner.invoke(app, ["verify"])
+    assert shown.exit_code == EXIT_OK and "status: pending" in shown.output
+    assert "verified through checkpoint" in shown.output and "1 newer row (row seq 4) waits for the next" in shown.output
     raw = sqlite3.connect(tmp_path / "traces.db", isolation_level=None)
     raw.execute("DROP TRIGGER traces_append_only")
     raw.execute("UPDATE traces SET status = 'denied' WHERE seq = 2")

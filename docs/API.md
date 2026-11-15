@@ -496,6 +496,13 @@ A save answers `{ "profile", "version", "state", "created", "changes": { surface
   owner's panel session), so read-only is enforced server-side, not in the page. The VNC
   clipboard carries nothing (x11vnc and the lane's browser exchange no selections): pasting types
   the text as keys, and copying out uses `/clipboard` above. Every accepted input event counts as human activity for the idle hand-back.
+- On an open agent environment's own browser (`env/<id>-browser`) a control link counts as the person for
+  `/control`, `/clipboard` and the relay: it takes over (a held lane too), types, copies and hands back with no
+  panel session, recorded `by: "link holder"` (docs/THREAT-MODEL.md, "Viewer links"). Every account lane keeps
+  the rules above.
+- `GET /view/env/{id}-browser/proof/{proof}.png?t=<token>` -> the PNG of a proof an agent kept in that
+  environment (`browser_screenshot(proof=...)`), `Cache-Control: private, no-store`. The token is the proof's
+  own signed link (15 minutes, from `environment()`), not a viewer token; any other answers 403 `denied`.
 
 ### Exposes and forwards (`agentos expose`, `agentos lane forward`)
 - `GET /api/exposes` -> `{ links: [{ id, kind, lane, port, state, by, created_at, expires_at, socket, name?,
@@ -864,7 +871,7 @@ These routes read it; the panel's timeline scrubber is built on `replay`.
 - `GET /api/audit/captures/{id}` -> the screenshot a `screenshot_kept` row (`id`) recorded, under the same
   scope as the replay (404 for another grant family's call, or once retention removed the file).
 - `GET /api/audit/verify?day=&lane=&tz=` (owner) -> the verify report:
-  `{ "status": "ok|tampered|unverifiable", "checked", "rows": { "first", "last", "in_scope" },
+  `{ "status": "ok|pending|tampered|unverifiable", "checked", "rows": { "first", "last", "in_scope" },
   "proven_through", "chain", "keys": [ { "kid", "pub", "from_mark" } ], "unchained", "findings" }`.
 - `POST /api/audit/shares` (the owner in person) `{ "trace": "tr_..." }` or `{ "lane", "day" }`, with optional
   `"ttl": "24h"` (default 24 h, at most 7 d) and `"screenshots": false` -> `{ "id", "token", "url", "api_url",

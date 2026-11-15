@@ -58,7 +58,7 @@ class LaneTree(Tree[tuple[str, str]]):
         """(workspace, mode, visible lane ids, folded count) for every workspace."""
         state = self.state
         out = []
-        for ws in state.workspaces:
+        for ws in state.account_workspaces():  # an environment's lanes are under Environments
             expanded = self.overrides.get(ws.id, state.should_expand(ws))
             if not expanded:
                 out.append((ws.id, "collapsed", tuple(lane.id for lane in ws.lanes), 0))

@@ -30,7 +30,10 @@ export function routineParts(flow: Flow, catalog?: RoutineCatalog): SentencePart
 export function routineSentence(flow: Flow, catalog?: RoutineCatalog): string {
   const parts = routineParts(flow, catalog);
   if (parts) return sentenceText(parts);
-  return `A recording on ${siteName(flow.lane.split('/')[1] ?? flow.lane)}. It repeats what it was shown.`;
+  const site = flow.lane.split('/')[1] ?? flow.lane;
+  // A recording made for every account (`*`) names no site.
+  if (site === '*' || flow.lane.startsWith('*')) return 'A recording for any account. It repeats what it was shown.';
+  return `A recording on ${siteName(site)}. It repeats what it was shown.`;
 }
 
 /** How a run went, in the words a person uses. "Verified" is what the proof says, so it stays. */

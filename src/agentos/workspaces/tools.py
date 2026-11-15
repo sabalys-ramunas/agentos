@@ -24,8 +24,19 @@ def _svc(ctx: ToolContext) -> WorkspaceService:
     return ctx.runtime.require(SERVICE_NAME)
 
 
-def _not_there(workspace: str) -> NotFound:
-    """What a workspace outside the grant answers: the words a workspace that is not there gets."""
+def _not_there(workspace: str, ctx: ToolContext | None = None) -> NotFound:
+    """What a workspace outside the grant answers: the words a workspace that is not there gets. With
+    `ctx`, a close id among the workspaces this grant reaches is named first (never one outside it)."""
+    if ctx is not None and isinstance(workspace, str):
+        from agentos.core.text import close_match
+
+        try:
+            reached = [ws.id for ws in _svc(ctx).list_workspaces(allowed=ctx.can_access_lane)]
+        except Exception:  # noqa: BLE001  (no workspace service: the plain answer)
+            reached = []
+        found = close_match(workspace, reached)
+        if found:
+            return NotFound(f"no workspace {workspace!r}. Did you mean {found!r}? (workspace_list shows yours)")
     return NotFound(f"no workspace {workspace!r}; create it with: agentos workspace create {workspace}")
 
 
@@ -69,7 +80,7 @@ async def workspace_list(ctx: ToolContext, *, workspace: str | None = None) -> d
     svc = _svc(ctx)
     if workspace is not None:
         if not _seen(ctx, workspace):
-            raise _not_there(workspace)
+            raise _not_there(workspace, ctx)
         return svc.get_workspace(workspace, allowed=ctx.can_access_lane).model_dump(mode="json")
     return {"workspaces": [ws.model_dump(mode="json")
                            for ws in svc.list_workspaces(allowed=ctx.can_access_lane)]}

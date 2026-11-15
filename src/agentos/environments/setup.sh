@@ -1,6 +1,6 @@
 #!/bin/sh
-# What an environment's machine has before an agent works on it: git, curl, build tools, Node 22,
-# Python with uv, and the /work folder. The one copy of this list: cloud-init runs it on a fresh
+# What an environment's machine has before an agent works on it: git, curl, build tools, Node 22
+# with npm and pnpm (through corepack), Python with uv, and the /work folder. The one copy of this list: cloud-init runs it on a fresh
 # Ubuntu VM (agentos.environments.machine), and the docker provider's image runs it at build time
 # (deploy/environments/Dockerfile). A machine that has run it has /var/lib/agentos-env/ready, so a
 # second run (a `dev` snapshot made from such a machine) does nothing.
@@ -16,6 +16,14 @@ apt-get install -y -q --no-install-recommends ca-certificates curl git build-ess
 if ! command -v node >/dev/null 2>&1 || ! node --version | grep -q '^v22\.'; then
   curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
   apt-get install -y -q nodejs
+fi
+# pnpm through corepack (it comes with Node): enabled, with a pnpm already downloaded, so `pnpm install`
+# works at once. A project's packageManager field still picks its own version; never a prompt for it.
+grep -q '^COREPACK_ENABLE_DOWNLOAD_PROMPT=' /etc/environment 2>/dev/null || \
+  echo 'COREPACK_ENABLE_DOWNLOAD_PROMPT=0' >> /etc/environment
+if ! command -v pnpm >/dev/null 2>&1; then
+  corepack enable
+  COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack install -g pnpm@latest || true
 fi
 if ! command -v uv >/dev/null 2>&1; then
   curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin UV_NO_MODIFY_PATH=1 sh

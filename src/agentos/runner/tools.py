@@ -213,13 +213,16 @@ async def _start_flow(ctx: ToolContext, runner: Any, flows: Any, fv: FlowVersion
     return out
 
 
-async def flows_list(ctx: ToolContext, *, prefix: str | None = None) -> dict:
+async def flows_list(ctx: ToolContext, *, prefix: str | None = None, lane: str | None = None) -> dict:
     """List saved flows by namespace, lazily: with no prefix you get the top namespaces
     (for example 'biz-a'), then call again with a prefix ('biz-a.instagram') to see the
-    flows inside. Each flow shows its lane, effect (the effective one: input steps count as
-    commit), params, readbacks and its typed tool. Only flows bound to lanes your grant reaches."""
-    return _flows(ctx).catalog(prefix, seen=lambda lane: flow_seen(ctx, lane),
-                               lane_seen=lambda lane: flow_seen(ctx, lane))
+    flows inside. `lane` ('biz-a/instagram') lists every flow that runs on that lane, bound to it or
+    to a pattern that covers it, whatever its namespace: use it to ask "is there a flow for this lane".
+    Each flow shows its lane, effect (the effective one: input steps count as commit), params,
+    readbacks and its typed tool. Only flows bound to lanes your grant reaches. Installed connector
+    operations are listed by connectors_list."""
+    return _flows(ctx).catalog(prefix, seen=lambda lane_: flow_seen(ctx, lane_),
+                               lane_seen=lambda lane_: flow_seen(ctx, lane_), lane=lane)
 
 
 async def flow_get(ctx: ToolContext, *, name: str, version: str | None = None) -> dict:

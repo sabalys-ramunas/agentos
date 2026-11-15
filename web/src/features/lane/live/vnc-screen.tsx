@@ -174,10 +174,19 @@ export default function VncScreen({ org, lane, interactive, holder, canTake, exp
       session.viewOnly = !interactiveNow.current;
       session.focusOnClick = interactiveNow.current;
       let timer: ReturnType<typeof setTimeout> | undefined;
+      // The far screen can change size (a browser window made desktop-sized, a phone-sized one): the canvas
+      // follows it, and so does the frame, so the picture always fits the box instead of a stale size.
+      let resized: MutationObserver | undefined;
       const onConnect = () => {
         timer = setTimeout(() => {
           const drawn = target.querySelector('canvas');
           if (drawn?.width && drawn.height) setFrame({ width: drawn.width, height: drawn.height });
+          if (drawn && typeof MutationObserver !== 'undefined') {
+            resized = new MutationObserver(() => {
+              if (drawn.width && drawn.height) setFrame((now) => (now.width === drawn.width && now.height === drawn.height ? now : { width: drawn.width, height: drawn.height }));
+            });
+            resized.observe(drawn, { attributes: true, attributeFilter: ['width', 'height'] });
+          }
           target.classList.remove('invisible');
           rfb.current = session;
           canvas.current = drawn;
@@ -191,6 +200,7 @@ export default function VncScreen({ org, lane, interactive, holder, canTake, exp
       session.addEventListener('clipboard', ignore);
       return () => {
         clearTimeout(timer);
+        resized?.disconnect();
         session.removeEventListener('connect', onConnect);
         session.removeEventListener('clipboard', ignore);
         if (rfb.current === session) {
@@ -301,7 +311,12 @@ export default function VncScreen({ org, lane, interactive, holder, canTake, exp
 
   return (
     <div ref={root} role="group" aria-label={`Live view of ${name}`} className={cn('flex min-h-0 flex-col', expanded && 'flex-1')}>
-      <div className={cn('relative min-h-0 bg-subtle', expanded ? 'flex-1' : 'aspect-[16/10]')}>
+      {/* Not expanded, the box takes the far screen's own shape (16:10 until it is known), no taller than
+          most of the window, so a wide desktop and a tall phone screen both fill it rather than float in black. */}
+      <div
+        className={cn('relative min-h-0 bg-subtle', expanded ? 'flex-1' : 'max-h-[75dvh]')}
+        style={expanded ? undefined : { aspectRatio: `${frame.width} / ${frame.height}` }}
+      >
         <div
           ref={viewport}
           {...{ [LANE_INPUT]: '' }}

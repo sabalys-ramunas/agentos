@@ -90,6 +90,7 @@ class ReadsMixin:
             "flagged": json.loads(row["flagged"]) if row.get("flagged") else [],
             "writer": row["writer"], "lane": row["lane"], "subject": row["subject"],
             "created_at": iso(row["created_at"]), "updated_at": iso(row["updated_at"]),
+            "written_at": view["at"],  # this version's write; updated_at moves on a forget or a review
             "expires_at": iso(row["expires_at"]), "reviewed_at": iso(row["reviewed_at"]),
             "links": links, "linked_from": linked_from, **{k: view[k] for k in (
                 "version", "title", "body", "attrs", "valid_from", "valid_to", "prov", "version_hash", "prev_hash")},

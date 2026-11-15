@@ -311,6 +311,11 @@ meaning = "An environment's machine did not come up: it did not answer SSH, or i
 agent = "Tell the user it did not start and what the message says. Open a new one once with environment_open; if it fails again, stop and tell the user."
 fix = "Run `agentos environments setup` on the node: it checks the provider, the image and the git declarations, and says what is missing."
 
+[environment_already_open]
+meaning = "This chat already has a live environment, with another repository than the one asked for. A chat has one environment at a time, so nothing was opened."
+agent = "Do not call it again the same way. Keep working in the one you have (environment() shows it), or close it with environment_close() (discard=true only if its work is not needed) and then call environment_open again."
+fix = "Nothing to fix: one chat works in one environment at a time. `agentos environments list` shows which chat has which."
+
 [environment_in_use]
 meaning = "Another chat of the same agent still works in the environment with this title: it made a call in the last 10 minutes, so it is not taken from that chat."
 agent = "Do not retry in a loop. Open your own with another title (environment_open(title=...)), or tell the user which chat holds it. Once that chat has been quiet for 10 minutes, the same title takes it over."
@@ -546,9 +551,6 @@ fix = "Pass the missing param; the message names it."
 meaning = "The thing asked for does not exist, or the caller may not see it."
 agent = "Check the id (list first), then call again with one that exists."
 fix = "Check the id or name; it may have been removed."
-
-[not_found.reasons]
-no_mailbox = "No mailbox has this id, and there is no tool that lists mailboxes. If the user named this mailbox, tell them it is not connected. mail_connect with its address asks the owner to connect it."
 
 [out_of_scope]
 meaning = "Your grant has no memory access for this workspace, or not for this kind of entry."
@@ -812,8 +814,8 @@ retryable = true
 retry_after = 30
 
 [studio_blank_page]
-meaning = "The review browser loaded the page, but it shows nothing: no visible text, image or control."
-agent = "Do not report the page as clean. The app most likely failed to render: the message quotes the page's own console errors when it logged any; with those and the dev server's output, fix the error, then call again."
+meaning = "The review browser loaded the page, but nothing rendered in time: no visible text, image or control."
+agent = "Do not report the page as clean. A slow app (a dev server): call again with wait_for, a selector it shows when ready, like \"main h1\". Still blank: fix the error the message quotes from the console, or read the dev server's output."
 fix = "Open the address in a browser and look at the console and the dev server's output for the error that stops the page rendering."
 
 [studio_dev_error]
@@ -1039,7 +1041,7 @@ fix = "Unseal again with the right passphrase."
 
 [vm_error]
 meaning = "The cloud provider refused or failed a VM call: a bad token, a server type or location it does not offer, the project's server limit, or its API being down."
-agent = "Tell the user what the provider said. Do not retry in a loop; a VM that failed to start is deleted by the node."
+agent = "Tell the user what the provider said. Do not retry in a loop. The message says when nothing was rented; a VM that was rented and failed to start is deleted by the node."
 fix = "Check `agentos vm status` and `agentos vm types`; run `agentos vm setup` again for a token problem."
 
 [vm_limit]

@@ -93,12 +93,27 @@ class Approvals:
         return type("Ap", (), {"reason": "Ask me first is on for biz-a/dev"})()
 
 
+class FakeEnvironments:
+    """The branches an environment created (EnvironmentManager.branches_created), and what a push noted."""
+
+    def __init__(self, own: tuple[str, ...]):
+        self.own = list(own)
+        self.noted: list[Any] = []
+
+    def branches_created(self, lane_id: str) -> list[str]:
+        return list(self.own)
+
+    def note_branches(self, lane_id: str, *, created: list[str], deleted: list[str]) -> None:
+        self.noted.append([lane_id, created, deleted])
+
+
 class FakeRuntime:
-    def __init__(self, approvals: bool = False):
+    def __init__(self, approvals: bool = False, own: tuple[str, ...] | None = None):
         self.approvals = Approvals() if approvals else None
+        self.environments = FakeEnvironments(own) if own is not None else None
 
     def get(self, name: str) -> Any:
-        return self.approvals if name == "approvals" else None
+        return {"approvals": self.approvals, "environments": self.environments}.get(name)
 
 
 @contextlib.asynccontextmanager
@@ -128,6 +143,7 @@ class Case:
     credential: Credential | None = CRED
     sideband: bool = False
     approvals: bool = False
+    own: tuple[str, ...] | None = None    # an environments service whose environment created these branches
 
 
 def ok_report(*refs: str) -> bytes:
@@ -197,6 +213,17 @@ CASES: dict[str, Case] = {
     "env: delete a tag": Case([DELETE_TAG], mirror_for("refs/tags/v1"), caller=caller(bound=True)),
     "env: move a tag": Case([MOVE_TAG], mirror_for("refs/tags/v1"), caller=caller(bound=True)),
     "env: new tag": Case([NEW_TAG], mirror_for("refs/tags/v2"), caller=caller(bound=True)),
+    "env: force push of a branch it created": Case([FEATURE_FORCE], mirror_for("refs/heads/feature",
+                                                                                ancestors={(A, D): False}),
+                                                    caller=caller(bound=True), own=("feature",)),
+    "env: delete a branch it created": Case([DELETE_FEATURE], mirror_for("refs/heads/feature"),
+                                            caller=caller(bound=True), own=("feature",)),
+    "env: delete another's branch, its own known": Case([DELETE_FEATURE], mirror_for("refs/heads/feature"),
+                                                        caller=caller(bound=True), own=("agent/x",)),
+    "env: new branch, noted as its own": Case([FEATURE, NEW_TAG], mirror_for("refs/heads/feature", "refs/tags/v2"),
+                                              caller=caller(bound=True), own=()),
+    "env: fast-forward of another's branch": Case([MAIN_FF], mirror_for("refs/heads/main"),
+                                                  caller=caller(bound=True), own=()),
     "env: several rewrites": Case([MAIN_FORCE, MOVE_TAG], mirror_for("refs/heads/main", "refs/tags/v1",
                                                                      ancestors={(A, D): False}),
                                   caller=caller(bound=True)),
@@ -214,14 +241,18 @@ CASES: dict[str, Case] = {
 
 
 def run(case: Case, tmp: Path) -> dict[str, Any]:
-    gateway = GitGateway(home=tmp, remotes=None, runtime=FakeRuntime(case.approvals))  # type: ignore[arg-type]
+    runtime = FakeRuntime(case.approvals, case.own)
+    gateway = GitGateway(home=tmp, remotes=None, runtime=runtime)  # type: ignore[arg-type]
     target = Target(remote=REMOTE, url="https://github.com/biz-a/site.git", credential=case.credential)
     push = Push(list(case.commands), {"report-status", "side-band-64k"} if case.sideband else {"report-status"})
     body = pkt("whatever the client sent\n")
     resp = asyncio.run(gateway._push(case.ctx, case.caller, case.rule, REMOTE, target, case.mirror,  # type: ignore[arg-type]
                                      push, body, refuse))
-    return {"response": [resp.status, resp.content_type, (resp.body or b"").decode("latin-1")],
-            "mirror": plain(case.mirror.calls), "ctx": plain(case.ctx.calls)}
+    out = {"response": [resp.status, resp.content_type, (resp.body or b"").decode("latin-1")],
+           "mirror": plain(case.mirror.calls), "ctx": plain(case.ctx.calls)}
+    if runtime.environments is not None:
+        out["noted"] = plain(runtime.environments.noted)
+    return out
 
 
 def test_push_is_pinned(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

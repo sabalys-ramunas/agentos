@@ -161,10 +161,14 @@ def runs_decide(run_id: str, decision: str = typer.Argument(..., help="retry, sk
 
 
 @flows_app.command("list")
-def flows_list(prefix: str = typer.Option(None), as_json: bool = typer.Option(False, "--json")) -> None:
+def flows_list(prefix: str = typer.Option(None),
+               lane: str = typer.Option(None, help="Only flows that run on this lane (bound to it or to a pattern "
+                                                   "that covers it)."),
+               as_json: bool = typer.Option(False, "--json")) -> None:
     """List saved flows (the current version of each)."""
     svc = _service()
-    rows = [svc.flows.summary(fv) for fv in svc.flows.list(prefix)]
+    rows = svc.flows.catalog(prefix, limit=10_000, lane=lane)["flows"] if lane else \
+        [svc.flows.summary(fv) for fv in svc.flows.list(prefix)]
     if as_json:
         return _out(rows, True)
     if not rows:
@@ -292,11 +296,24 @@ def flows_ask_first(
 
 @flows_app.command("remove")
 def flows_remove(flow_id: str) -> None:
-    """Delete a flow and all its versions (runs keep their records)."""
+    """Delete a flow and all its versions (runs keep their records). A workflow (routine) id works too:
+    the two share ids (docs/WORKFLOWS.md), so it removes that workflow."""
     svc = _service()
-    if not svc.flows.delete(flow_id):
-        _fail(InvalidRequest(f"flow {flow_id!r} not found"))
-    typer.echo(f"removed {flow_id}")
+    if svc.flows.delete(flow_id):
+        typer.echo(f"removed {flow_id}")
+        return
+    if svc.workflows.store.state(flow_id) is None:
+        _fail(InvalidRequest(f"no flow or workflow {flow_id!r} on this node (see `agentos routines flows list` and "
+                             "`agentos routines workflows list`)"))
+    from agentos.events.service import build as build_events
+    from agentos.runner.workflows.service import Actor
+
+    build_events(svc.workflows.runtime)  # a workflow's route lives in the events store
+    try:
+        svc.workflows.delete(flow_id, Actor.owner("cli"))
+    except AgentosError as exc:
+        _fail(exc)
+    typer.echo(f"removed workflow {flow_id}")
 
 
 # ---------------------------------------------------------------- schedules

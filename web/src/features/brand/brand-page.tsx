@@ -16,6 +16,7 @@ import { Status } from '@/components/ui/status';
 import { plural, timeAgo } from '@/lib/format';
 import { principalName } from '@/lib/principal';
 import { PLACES } from '@/lib/vocabulary';
+import { useTechnical } from '@/lib/technical';
 import { BrandNotYours, isRefused } from './not-yours';
 import type { BrandSearch } from './search';
 
@@ -90,6 +91,7 @@ export function BrandPage() {
   const search = useSearch({ from: '/$org/brand' });
   const navigate = useNavigate({ from: '/$org/brand' });
   const profiles = useBrandProfiles(org);
+  const [technical] = useTechnical();
   const proposals = useBrandProposals(org, !isRefused(profiles.error));
   const set = (next: Partial<BrandSearch>) => void navigate({ search: (prev) => ({ ...prev, ...next }), replace: true });
 
@@ -130,7 +132,11 @@ export function BrandPage() {
             description="An agent can draft a product's brand from its running site: it opens a few pages in light and dark and reads the colours, type and spacing. You approve the draft here."
             action={
               <div className="w-[min(28rem,80vw)] text-left">
-                <CodeBlock code="profile_learn_brand profile=acme/shop url=https://shop.example" label="Copy for your agent" />
+                {/* What to ask the agent, in words; the tool call itself only under Technical details. */}
+                <CodeBlock
+                  code={technical ? 'profile_learn_brand profile=acme/shop url=https://shop.example' : 'Learn the brand of my shop from https://shop.example'}
+                  label="Copy for your agent"
+                />
               </div>
             }
           />

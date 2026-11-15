@@ -43,7 +43,7 @@ TOKEN = "toolsets-node-token-0123456789"
 
 # The default surface's budget. Raise it only on purpose: every tool and every word in it is
 # read by every connected agent on every turn.
-CORE_MAX_TOOLS = 34  # 27, the three environment tools, then the four terminal tools an environment needs
+CORE_MAX_TOOLS = 37  # 27, the three environment tools, the four terminal tools and the three file tools an environment needs
 # approximate: characters of the tools/list JSON / 4. 6,600 since the agent text review (act one at
 # a time, required arguments, call whoami and lanes_list once): on lanebench it cut calls per task
 # by a fifth, which saves far more than these 100 tokens. 7,600 with the three environment tools and the
@@ -53,7 +53,14 @@ CORE_MAX_TOOLS = 34  # 27, the three environment tools, then the four terminal t
 # cheaper as soon as one chat in four opens an environment, and the agent finds its terminal without guessing
 # 8,500 with environment_open's sizes, `bigger` and repo_not_connected (about 70 tokens after a trim): a real
 # chat got a 2 CPU, 4 GB machine for a type check that needs 12 GB and did not know it could ask for more
-CORE_MAX_TOKENS = 8500
+# 9,150 with lane_file_read, lane_file_write and lane_file_edit (about 510 tokens) and browser_screenshot's
+# proof and width (about 100): coding is what an environment is for, and without file tools an agent writes
+# code through shell quoting (heredocs, sed), which breaks on the first quote and costs a retry each time;
+# loading them from a toolset would cost a tools_more in nearly every environment chat
+# 9,250 after the 2026-11-15 node test fixes (about 70 tokens): environment_close says when the VM is really
+# deleted and lists deleted branches, and environment_open's next line says which pushes are refused, so an
+# agent tells the human the truth about the VM and does not try to rewrite a colleague's branch
+CORE_MAX_TOKENS = 9250
 
 CORE_TOOLS = {
     "whoami", "howto", "lanes_list", "lane_open", "lane_close", "lane_claim", "lane_release", "lane_view",
@@ -61,7 +68,8 @@ CORE_TOOLS = {
     "browser_screenshot", "browser_tabs", "browser_dialog", "browser_dialog_answer", "browser_upload",
     "files_put", "login", "approval_wait", "approval_confirm", "human_ask", "memory_context", "run_status",
     "environment_open", "environment", "environment_close",
-    "lane_exec", "lane_job_start", "lane_job_read", "lane_job_cancel",
+    "lane_exec", "lane_job_start", "lane_job_read", "lane_job_cancel", "lane_file_read", "lane_file_write",
+    "lane_file_edit",
 }
 META = {"tools_more", "tools_call"}
 

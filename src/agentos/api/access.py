@@ -12,7 +12,8 @@ the caller's grant:
 - every action above read goes through the policy and is traced (kind "panel", tool
   "panel.<action>"). A signed-in human is the co-signer, so a session gets the policy's scope,
   ceiling and special checks without the approval routing; a bearer token (an agent, an app)
-  gets the full routing, approvals included, exactly as an MCP call would.
+  gets the full routing, approvals included, exactly as an MCP call would. The reads an open page polls
+  (ROUTINE_READS) are logged once per thing, then again only after ROUTINE_READ_S: polling is not news.
 
 A member's session (agentos.api.members) gets a `MemberAccess`: what their roles allow per
 workspace (`can(capability, workspace)`, `require(...)`), on lanes their member grants cover,
@@ -24,6 +25,8 @@ otherwise it is routed exactly like an agent's.
 from __future__ import annotations
 
 import logging
+import time
+from collections import OrderedDict
 from typing import Any
 
 from agentos.api.errors import ApiError
@@ -41,6 +44,17 @@ OWNER_ONLY = ("This needs the owner: sign in to the panel with `agentos panel lo
 OWNER_ONLY_MEMBER = "Only the owner of this computer can do this."
 NOT_YOUR_ROLE = "Your role does not allow this here. Ask the owner or an admin of this workspace."
 __all__ = ["NEEDS_A_PERSON", "Access", "MemberAccess", "PolicyAccess", "Presence"]
+
+# A person's open page polls what it shows (an environment, a job's output) every few seconds. Their reads
+# are logged once per page and thing, then again only after this long, so the action log keeps real actions
+# instead of 190 rows of "the owner looked" in nine minutes (2026-11-15 test, P2-11). Denials, errors and
+# everything above read are always logged.
+ROUTINE_READ_S = 600.0
+# The reads an open page polls. Only these are folded: a lane open is authorized as a read too, and is a real
+# action every time.
+ROUTINE_READS = frozenset({"environment.read", "job.read"})
+_READS_SEEN: OrderedDict[tuple[Any, ...], float] = OrderedDict()
+_READS_KEPT = 4096
 
 
 def _effect(effect: Effect | str | None) -> str | None:
@@ -138,10 +152,27 @@ class Access:
     # never defers, so its trace is written at once as before.
     defer_done: bool = False
 
+    def _read_again(self, action: str, fields: dict[str, Any]) -> bool:
+        """A person's read of the same thing within ROUTINE_READ_S of the last one logged: a poll, not news."""
+        if not self.human or action not in ROUTINE_READS or _effect(fields.get("effect")) != "read":
+            return False
+        member = getattr(self.member, "id", None)
+        key = (self.grant_id, member, self.viewer, action, fields.get("lane"))
+        now = time.monotonic()
+        last = _READS_SEEN.get(key)
+        if last is not None and now - last < ROUTINE_READ_S:
+            return True
+        _READS_SEEN[key] = now
+        _READS_SEEN.move_to_end(key)
+        while len(_READS_SEEN) > _READS_KEPT:
+            _READS_SEEN.popitem(last=False)
+        return False
+
     def done(self, action: str, **fields: Any) -> None:
         """Trace an allowed action: now, or when the route ends (`settle`) while deferring."""
         if not self.defer_done:
-            self.trace(action, **fields)
+            if not self._read_again(action, fields):
+                self.trace(action, **fields)
             return
         if not hasattr(self, "_pending_done"):
             self._pending_done: list[tuple[str, dict[str, Any]]] = []
@@ -153,6 +184,8 @@ class Access:
         self.defer_done = False
         for action, fields in pending:
             if error is None or isinstance(error, ApprovalPending):  # it waits for a person: traced there
+                if error is None and self._read_again(action, fields):
+                    continue
                 self.trace(action, **fields)
             else:
                 words = getattr(error, "message", None) or str(error) or type(error).__name__

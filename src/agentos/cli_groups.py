@@ -412,3 +412,48 @@ def regroup(app: typer.Typer) -> None:
     app.registered_groups = new_groups
     app.info = copy.copy(app.info)
     app.info.help = ROOT_HELP
+
+
+# Words a person tries for "tell me about this one", and the commands that answer it, best first.
+DETAIL_WORDS = frozenset({"show", "info", "status", "details", "detail", "describe", "get", "inspect"})
+DETAIL_COMMANDS = ("show", "status", "check", "get", "list")
+
+
+def suggested_command(group: Any, ctx: Any, name: str) -> str | None:
+    """The visible command of `group` a mistyped `name` most likely meant: a close spelling, else for a
+    detail word (show, info, status) the group's command that shows one thing."""
+    from agentos.core.text import close_match
+
+    visible = [n for n in group.list_commands(ctx)
+               if (cmd := group.get_command(ctx, n)) is not None and not getattr(cmd, "hidden", False)]
+    found = close_match(name, visible, cutoff=0.7)
+    if found is None and name.lower() in DETAIL_WORDS:
+        found = next((c for c in DETAIL_COMMANDS if c in visible and c != name), None)
+    return found
+
+
+def suggest_unknown_commands() -> None:
+    """Make every Typer group answer an unknown detail word with the command that shows one thing:
+    `agentos lane show` says "No such command 'show'. Did you mean 'agentos lane check'?". Typer
+    itself already names close spellings (`lane lsit`: 'list'); this adds what spelling cannot find."""
+    from typer.core import TyperGroup
+
+    if getattr(TyperGroup, "_agentos_suggests", False):
+        return
+    original = TyperGroup.resolve_command
+
+    def resolve_command(self, ctx, args):  # type: ignore[no-untyped-def]
+        try:
+            return original(self, ctx, args)
+        except Exception as exc:  # Typer's own (vendored) click UsageError: add to its message, raise it on
+            message = getattr(exc, "message", None)
+            name = str(args[0]) if args else ""
+            if (isinstance(message, str) and message.startswith("No such command") and "Did you mean" not in message
+                    and name and not name.startswith("-")):
+                found = suggested_command(self, ctx, name)
+                if found is not None:
+                    exc.message = f"{message.rstrip('.')}. Did you mean '{ctx.command_path} {found}'?"  # type: ignore[attr-defined]
+            raise
+
+    TyperGroup.resolve_command = resolve_command  # type: ignore[method-assign]
+    TyperGroup._agentos_suggests = True  # type: ignore[attr-defined]

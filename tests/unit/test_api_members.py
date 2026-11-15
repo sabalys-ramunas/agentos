@@ -405,6 +405,7 @@ MEMBER_ROUTES.update({
 # where the role reaches workspace env (filtered; one outside is not found); closing or extending one is operating.
 MEMBER_ROUTES.update({
     ("GET", "/api/orgs/{org}/environments"): SEES, ("GET", "/api/orgs/{org}/environments/{id}"): SEES,
+    ("GET", "/api/orgs/{org}/environments/{id}/proofs/{proof}.png"): SEES,
     ("POST", "/api/orgs/{org}/environments/{id}/close"): frozenset({"operator", "admin"}),
     ("POST", "/api/orgs/{org}/environments/{id}/extend"): frozenset({"operator", "admin"}),
 })
@@ -440,7 +441,7 @@ def twin(route: tuple[str, str]) -> tuple[str, str]:
     return (method, "/api" + path[len(ORG):]) if path.startswith(ORG + "/") else route
 
 
-PATH_PARAMS = {"device": "x1", "param": "image", "batch": "lb_1", "list": "list.biz-a.x"}
+PATH_PARAMS = {"device": "x1", "param": "image", "batch": "lb_1", "list": "list.biz-a.x", "proof": "pabcdefghjk"}
 
 
 def _url(path: str) -> str:

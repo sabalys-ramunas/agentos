@@ -39,6 +39,9 @@ TOOLSETS: tuple[Toolset, ...] = (
         # an environment's terminal: what nearly every chat with one runs, so it needs no tools_more
         # (about 830 tokens here, against 3,450 for the whole terminals toolset in such a chat)
         "lane_exec", "lane_job_start", "lane_job_read", "lane_job_cancel",
+        # its files: coding is what an environment is for, and without these an agent writes files
+        # through shell quoting (heredocs, sed), which breaks on the first quote in the code
+        "lane_file_read", "lane_file_write", "lane_file_edit",
     )),
     Toolset("files", "more for a browser lane: its files (inbox and downloads), switching tabs, scrolling a feed", (
         "files_get", "files_list", "files_delete", "browser_tab", "browser_scroll",
@@ -70,10 +73,11 @@ TOOLSETS: tuple[Toolset, ...] = (
             "person to turn it on, list them", (
         "site_api_discover", "site_api_try", "site_api_propose", "site_apis_list",
     ), ("site_apis",), "a page's data as an API"),
-    Toolset("mail", "mailboxes: list, read, mark, send, and asking a person to connect one", (
-        "mail_list", "mail_read", "mail_mark", "mail_send", "mail_connect",
+    Toolset("mail", "mailboxes: find yours, list, read, mark, send, and asking a person to connect one", (
+        "mail_mailboxes", "mail_list", "mail_read", "mail_mark", "mail_send", "mail_connect",
     ), ("mail",)),
-    Toolset("memory", "workspace memory: search, read, write, forget", (
+    Toolset("memory", "workspace memory: search, read, write and correct (forget erases, and needs an "
+            "irreversible grant and the owner)", (
         "memory_search", "memory_get", "memory_write", "memory_forget",
     ), ("memory",)),
     Toolset("profiles", "who the work is for: a person's or business's bios and voice, a product's brand and "

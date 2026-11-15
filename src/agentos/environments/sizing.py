@@ -44,8 +44,27 @@ class Sizing:
         top = self.settings.max_size
         if names.index(size) > names.index(top):
             raise EnvironmentLimit(f"the biggest environment on this node is {top} ({self._size_words(top)}), so "
-                                   f"{size} is past the limit. Ask for {top} or less; the owner raises it with "
-                                   "`agentos environments allow --max-size xlarge`")
+                                   f"{size} is past the limit. Ask for {top} or less, or tell the user: the owner "
+                                   f"raises it with `agentos environments allow --max-size {size}`")
+
+    def _size_names(self) -> str:
+        """small, medium, large or xlarge: the sizes an agent may ask for here (up to max_size)."""
+        names = list(SIZES)[:list(SIZES).index(self.settings.max_size) + 1]
+        return names[0] if len(names) == 1 else f"{', '.join(names[:-1])} or {names[-1]}"
+
+    async def _check_server_type(self, name: str) -> None:
+        """A size that is no size and no profile must be a server type the provider rents, checked
+        before anything is planned: an unknown one (a typo like "xxlarge") is invalid, not a VM error.
+        When the provider's list cannot be read, the plan itself says what is wrong."""
+        try:
+            types = [str(t.get("name")) for t in await self.vms().provider().server_types()]
+        except AgentosError:
+            return
+        if types and name not in types:
+            example = next((t for t in types if not t.startswith("docker")), types[0])
+            raise InvalidRequest(f"size {name!r} is not one this node knows. size is one of {self._size_names()}, "
+                                 f"or a server type the provider rents, like {example}; leave it out for the "
+                                 "default. Nothing was rented")
 
     @staticmethod
     def _size_words(size: str) -> str:
@@ -58,10 +77,13 @@ class Sizing:
         top = self.settings.max_size
         cpu, memory = SIZES[top]
         if (specs.get("cores") or 0) > cpu or (specs.get("memory_gb") or 0) > memory:
+            need = next((n for n, (c, m) in SIZES.items()
+                         if c >= (specs.get("cores") or 0) and m >= (specs.get("memory_gb") or 0) - 0.5), None)
+            more = (f"or tell the user: the owner raises the limit with `agentos environments allow --max-size {need}`"
+                    if need else f"no environment may be bigger than {list(SIZES)[-1]}")
             raise EnvironmentLimit(f"{plan['server_type']} has {specs.get('cores')} CPU and {specs.get('memory_gb'):g} "
                                    f"GB, more than this node's biggest environment, {top} ({self._size_words(top)}). "
-                                   "Ask for a smaller size; the owner raises it with "
-                                   "`agentos environments allow --max-size xlarge`")
+                                   f"Ask for {top} or a smaller server type; {more}. Nothing was rented")
 
     @staticmethod
     def size_of(cpu: float | None, memory_gb: float | None) -> str | None:
@@ -167,7 +189,14 @@ class Sizing:
         the image the environment boots)."""
         profile, custom = self._size(size)
         minutes = self._hours(hours)
-        plan = await self.vms().plan(f"{WORKSPACE}/{env_id}", profile=profile, ttl_minutes=minutes, size=custom)
+        if custom and "server_type" in custom and size and str(size).strip().lower() not in SIZES:
+            await self._check_server_type(custom["server_type"])
+        try:
+            plan = await self.vms().plan(f"{WORKSPACE}/{env_id}", profile=profile, ttl_minutes=minutes, size=custom)
+        except AgentosError as e:
+            if e.code != "vm_error":
+                raise
+            raise type(e)(f"{e.message.rstrip('.')}. Nothing was rented") from None  # only planned, never made
         if size and str(size).strip().lower() not in SIZES:
             self._check_planned(plan)  # a server type or a profile, by what it has (a named size: by its name)
         plan["image"] = await self._image()

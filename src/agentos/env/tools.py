@@ -153,14 +153,21 @@ async def env_remove(ctx: ToolContext, *, on: str) -> dict:
 
 
 # ------------------------------------------------------------------ exec
+EXEC_BYTES = 16000  # what lane_exec returns of stdout and stderr together by default: an MCP client takes it inline
+
+
 async def lane_exec(ctx: ToolContext, *, on: str, cmd: str, timeout_s: float = 60,
-                    stdin: str | None = None, cwd: str | None = None) -> dict:
-    """Run one shell command inside a lane and wait for it. Returns exit_code, stdout, stderr
-    (each capped; the middle of long output is dropped with a marker; binary output comes back
-    base64 with *_encoding="base64"), duration_s and timed_out. Background processes the
-    command starts end with it; use lane_job_start for long-running work such as a dev server
-    (or shell_open and service lanes, in the terminals toolset). `cwd`: the folder to run in (on an environment's
-    machine an absolute path like /work/shop; elsewhere one under the lane's home)."""
+                    stdin: str | None = None, cwd: str | None = None, max_bytes: int = EXEC_BYTES) -> dict:
+    """Run one shell command inside a lane and wait for it. Returns exit_code, stdout, stderr,
+    duration_s and timed_out. Past max_bytes the middle of the output is dropped with a marker;
+    stdout_bytes and stderr_bytes are the full sizes. Binary output comes back base64. Processes
+    it starts end with it: use lane_job_start for a dev server. Effect: exec.
+
+    Args:
+        cwd: The folder to run in (on an environment's machine an absolute path like /work/shop;
+            elsewhere one under the lane's home).
+        max_bytes: stdout and stderr together (default 16000, at most 131072).
+    """
     mgr = _mgr(ctx)
     lane = mgr.get(on)
     mgr.check_runnable(lane)  # a sandbox this node can never run is refused before anyone is asked
@@ -168,14 +175,24 @@ async def lane_exec(ctx: ToolContext, *, on: str, cmd: str, timeout_s: float = 6
         from agentos.env.sync import check_cwd
 
         cwd = check_cwd(cwd, remote=lane.remote is not None)
+    budget = _exec_budget(mgr, max_bytes)
     run = f"cd '{cwd}' && {cmd}" if cwd else cmd  # plain names (check_cwd): safe as one shell word
     await ctx.authorize(Effect.EXEC, lane_id=on, summary=_clip(f"Run {_where(lane)}: {cmd}"
                                                                + (f" (in {cwd})" if cwd else "")),
                         content={"cmd": cmd, "stdin": _sha(stdin), "timeout_s": timeout_s,
                                  **({"cwd": cwd} if cwd else {})}, facts=_facts(lane))
-    res = await mgr.exec(on, run, timeout_s=timeout_s, stdin=stdin, grant_id=_grant_id(ctx))
+    res = await mgr.exec(on, run, timeout_s=timeout_s, stdin=stdin, grant_id=_grant_id(ctx), max_bytes=budget)
     ctx.trace("lane_exec", lane=on, exit_code=res.exit_code, duration_s=res.duration_s, timed_out=res.timed_out)
     return res.model_dump()
+
+
+def _exec_budget(mgr: Any, max_bytes: Any) -> int:
+    try:
+        wanted = int(max_bytes)
+    except (TypeError, ValueError):
+        raise InvalidRequest("max_bytes is a number of bytes, like 16000") from None
+    cap = 2 * int(getattr(getattr(mgr, "settings", None), "max_output_bytes", 65536))
+    return max(1000, min(wanted, cap))
 
 
 async def lane_install(ctx: ToolContext, *, on: str, packages: list[str], source: str = "apt") -> dict:
@@ -294,18 +311,26 @@ async def lane_job_start(ctx: ToolContext, *, on: str, cmd: str, cwd: str | None
     return _job_view(info)
 
 
+JOB_READ_BYTES = 16000
+JOB_WAIT_MS = 30000
+JOB_WAIT_EXIT_MS = 120000
+
+
 async def lane_job_read(ctx: ToolContext, *, job: str, stdout_offset: int = 0, stderr_offset: int = 0,
-                        wait_ms: int = 1000, max_bytes: int = 65536, base64_output: bool = False) -> dict:
-    """Read a job's output after the byte offsets you already have, waiting up to wait_ms (at
-    most 30000) for more while it runs. Pass back next_stdout_offset and next_stderr_offset to
-    continue. `state` is running until it exited, was cancelled, timed out or was lost (the node
-    stopped); then exit_code (or signal) says how it ended."""
+                        wait_ms: int = 1000, max_bytes: int = JOB_READ_BYTES, base64_output: bool = False,
+                        until_exit: bool = False) -> dict:
+    """Read a job's output after the byte offsets you have, waiting up to wait_ms (30000) for more
+    while it runs; with until_exit=true it waits for the job to end (wait_ms up to 120000). Pass
+    back next_stdout_offset and next_stderr_offset; stdout_bytes is the size so far (to read only
+    the end, stdout_offset=stdout_bytes-8000). `state` is running until it exited, was cancelled,
+    timed out or was lost; then exit_code (or signal). Effect: read."""
     mgr = _mgr(ctx)
     j = mgr.job(job)
     await ctx.authorize(Effect.READ, lane_id=j.info.lane)
+    most = JOB_WAIT_EXIT_MS if until_exit else JOB_WAIT_MS
     info, out, err = await mgr.job_read(job, stdout_offset=stdout_offset, stderr_offset=stderr_offset,
-                                        wait_s=max(0, min(int(wait_ms), 30000)) / 1000,
-                                        max_bytes=max(1, min(int(max_bytes), 1 << 20)))
+                                        wait_s=max(0, min(int(wait_ms), most)) / 1000,
+                                        max_bytes=max(1, min(int(max_bytes), 1 << 20)), until_exit=bool(until_exit))
     if base64_output:
         so, se, enc = base64.b64encode(out).decode(), base64.b64encode(err).decode(), "base64"
     else:

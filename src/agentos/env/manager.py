@@ -573,7 +573,10 @@ class EnvManager(Jobs, Sync):
             return {}
 
     async def exec(self, lane_id: str, cmd: str | list[str], *, timeout_s: float | None = None,
-                   stdin: str | bytes | None = None, grant_id: str | None = None) -> ExecResult:
+                   stdin: str | bytes | None = None, grant_id: str | None = None,
+                   max_bytes: int | None = None) -> ExecResult:
+        """`max_bytes`: stdout and stderr together, at most (execs.fit); without it each stream is kept
+        to the node's max_output_bytes."""
         lane = self.store.get_lane(lane_id)
         if not lane.policy.exec:
             raise PolicyDenied(f"commands are off in {lane.preset.value} lanes")
@@ -583,8 +586,9 @@ class EnvManager(Jobs, Sync):
         rt = await self.warm(lane_id)
         env = await self.git_env(rt, grant_id)
         async with rt.exec_sem:
-            res = await execs.run(rt, argv, timeout_s=timeout, stdin=data, max_bytes=self.settings.max_output_bytes,
-                                  env=env or None)
+            res = await execs.run(rt, argv, timeout_s=timeout, stdin=data,
+                                  max_bytes=max(self.settings.max_output_bytes, max_bytes or 0),
+                                  env=env or None, budget=max_bytes)
         await self.store.run(self.store.touch, lane_id)
         return res
 

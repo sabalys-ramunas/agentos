@@ -1,13 +1,13 @@
 /**
  * Machines (Mono): a sentence naming what matters, then one table of every machine (the nodes, and
- * the disposable VMs the owner rents) with its status, what it is doing now, its load and its lanes.
+ * the environments' VMs the owner rents) with its status, what it is doing now, its load and its lanes.
  * A row opens the machine beside the table, at `/machines/<id>`. Under it, the last hour of runs, but
  * only when there are real runs to draw. One machine is most people's first view, so it gets its own
  * overview and the real ways to add another.
  */
 import { Plus, Server } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { useAccess, useJobs, useNode, useNodeMetrics, useNodes, useVms } from '@/api/hooks';
+import { useAccess, useJobs, useNode, useNodeMetrics, useNodes, useEnvironments, useVms } from '@/api/hooks';
 import { isNotServed } from '@/api/http';
 import { Sparkline } from '@/components/charts/small';
 import { Badge } from '@/components/ui/badge';
@@ -42,12 +42,24 @@ export interface MachinesProps {
   onSort: (table: TableSearch) => void;
 }
 
-/** The time the page reads "now" by, moved on each minute so "the last hour" slides. */
+/**
+ * The time the page reads "now" by, moved on each minute so "the last hour" slides. A hidden tab (or a
+ * preview pane) throttles the timer, so it also catches up when the page shows again: a stale "now" drew
+ * runs read a moment ago in the future (2026-11-15 test, P2-13).
+ */
 function useMinute() {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 60_000);
-    return () => clearInterval(timer);
+    const tick = () => setNow(Date.now());
+    const timer = setInterval(tick, 60_000);
+    const shown = () => {
+      if (document.visibilityState === 'visible') tick();
+    };
+    document.addEventListener('visibilitychange', shown);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', shown);
+    };
   }, []);
   return now;
 }
@@ -197,13 +209,13 @@ function MachinesTable({ rows, org, selected, table, onSelect, onSort }: { rows:
           {rows.map((row) => {
             const phone = phoneLine(row);
             return (
-              <Tr key={row.id} selected={row.id === selected} onActivate={() => onSelect(row.id)} aria-label={`${row.id}, ${row.status.label}`}>
+              <Tr key={row.id} selected={row.id === selected} onActivate={() => onSelect(row.id)} aria-label={`${row.vm ? row.name : row.id}, ${row.status.label}`}>
                 {/* The name keeps its own width; "Doing now" takes the rest while it shows. */}
                 <Td main className="@5xl:w-auto">
                   <div className="flex min-w-0 items-center gap-3">
                     <MachineIcon row={row} />
                     <div className="grid min-w-0">
-                      <CellTitle title={row.vm ? row.vm.lane : row.id} second={row.vm ? `Disposable VM${row.where ? ` · ${row.where}` : ''}` : row.where || undefined} />
+                      <CellTitle title={row.vm ? row.name : row.id} second={row.vm ? `Environment${row.where ? ` · ${row.where}` : ''}` : row.where || undefined} />
                       {phone ? <span className="truncate text-secondary text-muted md:hidden">{phone}</span> : null}
                     </div>
                   </div>
@@ -285,9 +297,13 @@ export function Machines({ org, selected, table, addOpen, onAdd, onSelect, onSor
 
   const jobList = jobs.data?.jobs;
   const vmList = useMemo(() => (vms.data?.available ? vms.data.vms : []), [vms.data]);
-  const rows = useMemo(() => machineRows(nodes.data ?? [], vmList, jobList ?? []), [nodes.data, vmList, jobList]);
+  const envs = useEnvironments(org, 'all', owner).data?.environments;
+  const titles = useMemo(() => new Map((envs ?? []).map((env) => [env.lanes.terminal, env.title])), [envs]);
+  const rows = useMemo(() => machineRows(nodes.data ?? [], vmList, jobList ?? [], titles), [nodes.data, vmList, jobList, titles]);
   const sorted = useMemo(() => sortRows(rows, table.sort, table.dir), [rows, table.sort, table.dir]);
-  const lanes = useMemo(() => lastHour(rows, jobList ?? [], now), [rows, jobList, now]);
+  // Never behind the runs just read: a fresh read of them moves "now" on too.
+  const hourNow = useMemo(() => (jobList ? Math.max(now, Date.now()) : now), [now, jobList]);
+  const lanes = useMemo(() => lastHour(rows, jobList ?? [], hourNow), [rows, jobList, hourNow]);
   const open = selected ? rows.find((row) => row.id === selected) : undefined;
   usePageCrumb(selected);
 
@@ -297,7 +313,7 @@ export function Machines({ org, selected, table, addOpen, onAdd, onSelect, onSor
     </Button>
   ) : null;
   const dialog = canAdd ? <AddNodeDialog org={org} open={addOpen} onOpenChange={onAdd} /> : null;
-  const lede = 'The machines your agents work on: their browsers, terminals, dev servers and disposable VMs.';
+  const lede = 'The machines your agents work on: their browsers, terminals, dev servers and environments.';
 
   if (nodes.isPending) {
     return (
@@ -368,15 +384,15 @@ export function Machines({ org, selected, table, addOpen, onAdd, onSelect, onSor
             </Card>
           ) : null}
           {single ? <OneMachine org={org} id={single.id} runs={runs} showNow={!open} /> : null}
-          {timeline ? <LastHour org={org} lanes={lanes} now={now} /> : noTimeline ? <p className="text-secondary text-faint">{noTimeline}</p> : null}
+          {timeline ? <LastHour org={org} lanes={lanes} now={hourNow} /> : noTimeline ? <p className="text-secondary text-faint">{noTimeline}</p> : null}
         </div>
         <SidePanel
           open={Boolean(open)}
           onOpenChange={(next) => {
             if (!next) onSelect(undefined);
           }}
-          title={open?.vm ? open.vm.lane : (open?.id ?? '')}
-          description={open?.vm ? `Disposable VM · ${open.vm.id}` : open?.where || undefined}
+          title={open?.vm ? open.name : (open?.id ?? '')}
+          description={open?.vm ? `Environment${open.where ? ` · ${open.where}` : ''}` : open?.where || undefined}
           className="lg:max-h-[calc(100dvh-var(--topbar-height)-32px)]"
         >
           {open?.vm ? <VmPanel org={org} vm={open.vm} runs={runs} /> : open ? <NodePanel org={org} id={open.id} runs={runs} /> : null}

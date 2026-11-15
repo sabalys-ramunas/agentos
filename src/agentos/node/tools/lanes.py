@@ -185,6 +185,11 @@ def _caller_route(ctx: ToolContext) -> dict[str, Any] | None:
         return None
 
 
+ENV_TAKE_OVER = ("This is your environment's browser, with no account behind it: the human can take control, "
+                 "use it and hand it back from this link alone, no sign-in. While they have control, wait with "
+                 "lane_wait_control.")
+
+
 async def lane_view(ctx: ToolContext, *, on: str) -> dict[str, Any]:
     """A live-view link for a warm lane, so a human can watch and take over: log in, pass a CAPTCHA
     or a security check. Returns the URL, the SSH tunnel command and what to tell the human. Never
@@ -212,6 +217,11 @@ async def lane_view(ctx: ToolContext, *, on: str) -> dict[str, Any]:
         route = _caller_route(ctx)  # the caller's own computer: its SSH host and the port its tunnel uses
         out["viewer"] = take_over_link(ctx.runtime, on, control=control, **(
             {"ssh_host": route["ssh_host"], "local_port": route["local_port"]} if route else {}))
+        if control:
+            from agentos.node.tools.shots import environment_of
+
+            if environment_of(ctx, on) is not None:  # no account behind it: the link alone may hand back
+                out["viewer"]["take_over"] = ENV_TAKE_OVER
     else:
         host = ssh_host(ctx.runtime.config)
         out["viewer"] = viewer_dict(viewer, host)

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import dataclasses
 import time
 
 import pytest
@@ -49,6 +50,8 @@ PAGES: dict[str, tuple[int, str]] = {
         <style>body{background:#fff} .night body{background:#000}</style><h1>Storage</h1>"""),
     "/menu": (200, STYLE + """<button id="open" onclick="document.getElementById('m').hidden=false">Menu</button>
         <div id="m" role="dialog" hidden><a href="#">Settings</a></div>"""),
+    "/late": (200, STYLE + "<div id=r></div><script>setTimeout(() => { document.getElementById('r').textContent = "
+              "'Rendered late'; }, 700)</script>"),
     "/blank": (200, "<html><body><div></div><script>/* the app did not render */</script></body></html>"),
     "/hidden": (200, "<div style='visibility:hidden'>Loading</div><p style='opacity:0'>x</p>"),
     "/error": (500, "<h1>Internal Server Error</h1><pre>TypeError: x is undefined</pre>"),
@@ -102,7 +105,8 @@ async def _routes(context) -> None:
     await context.route("**/*", _serve)
 
 
-FAST = Limits(network_quiet_s=0.05, network_cap_s=1.0, fonts_cap_s=2.0, step_timeout_s=1.5, load_cap_s=2.0, close_cap_s=0.3)
+FAST = Limits(network_quiet_s=0.05, network_cap_s=1.0, fonts_cap_s=2.0, step_timeout_s=1.5, load_cap_s=2.0, close_cap_s=0.3,
+              first_paint_s=0.3, dev_first_paint_s=0.3)
 
 
 async def _pool_or_skip(**kw) -> ReviewPool:
@@ -253,7 +257,20 @@ async def test_a_page_with_nothing_visible_is_blank(pool, path):
     with pytest.raises(BlankPage) as err:
         async with pool.page(target(path), Screen(width=360)):
             pass
-    assert err.value.code == "studio_blank_page" and "shows nothing" in err.value.message
+    assert err.value.code == "studio_blank_page" and "nothing rendered within 0.3 s" in err.value.message
+    assert "pass wait_for" not in err.value.message and "wait_for set to a selector" in err.value.message
+
+
+async def test_a_page_that_renders_late_is_waited_for_and_checked():
+    """A slow app renders after it settled (a Vite dev app on a small VM, QA 2026-11-15 P1-2): the first
+    paint is waited for, not reported as a blank page."""
+    pool = await _pool_or_skip(limits=dataclasses.replace(FAST, first_paint_s=5.0))
+    try:
+        async with pool.page(target("/late"), Screen(width=360)) as page:
+            assert "Rendered late" in await page.inner_text("body")
+            assert any("checked once it rendered" in n for n in pool.report(page)["notes"])
+    finally:
+        await pool.close()
 
 
 async def test_a_page_that_never_answers_runs_out_of_the_call_time():

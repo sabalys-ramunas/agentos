@@ -1855,7 +1855,7 @@
   "response": [
    200,
    "application/x-git-receive-pack-result",
-   "000eunpack ok\n001aok refs/heads/feature\n0000"
+   "REFUSED push_refused: it force-pushes feature, a branch this environment did not create, which an environment may not do; nothing was pushed. Fix: push your work to a new branch of your own (git push origin HEAD:<new-branch>) and open a pull request"
   ],
   "mirror": [
    [
@@ -1882,11 +1882,16 @@
     ]
    ],
    [
-    "push",
-    "https://github.com/biz-a/site.git",
-    "auth for git push github.com/biz-a/site for lane biz-a/dev",
+    "restore",
     [
-     "refs/heads/feature"
+     [
+      "refs/heads/main",
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     ],
+     [
+      "refs/tags/v1",
+      "cccccccccccccccccccccccccccccccccccccccc"
+     ]
     ],
     [
      "refs/heads/feature"
@@ -1895,35 +1900,12 @@
   ],
   "ctx": [
    [
-    "authorize",
-    "commit",
-    {
-     "lane_id": "biz-a/dev",
-     "summary": "Push feature to github.com/biz-a/site (lane biz-a/dev)",
-     "content": {
-      "git_push": "github.com/biz-a/site",
-      "refs": [
-       {
-        "ref": "refs/heads/feature",
-        "kind": "update",
-        "old": "sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        "new": "sha1:dddddddddddddddddddddddddddddddddddddddd",
-        "force": true,
-        "commits": 2,
-        "log": [
-         "ddddddd a change",
-         "ddddddd another"
-        ]
-       }
-      ]
-     }
-    }
-   ],
-   [
     "trace",
     "git_push",
     {
-     "result": "pushed",
+     "result": "refused",
+     "status": "denied",
+     "reason": "push_refused",
      "lane": "biz-a/dev",
      "remote": "github.com/biz-a/site",
      "via": "lane biz-a/dev",
@@ -1936,9 +1918,7 @@
        "force": true,
        "commits": 2
       }
-     ],
-     "effect": "commit",
-     "vault_ref": "git/github"
+     ]
     }
    ]
   ]
@@ -1947,7 +1927,7 @@
   "response": [
    200,
    "application/x-git-receive-pack-result",
-   "REFUSED push_refused: it force-pushes main, a protected branch of github.com/biz-a/site, which an environment may not do; nothing was pushed. Fix: push your work to a new branch (git push origin HEAD:<branch>) and open a pull request"
+   "REFUSED push_refused: it force-pushes main, a protected branch of github.com/biz-a/site, which an environment may not do; nothing was pushed. Fix: push your work to a new branch of your own (git push origin HEAD:<new-branch>) and open a pull request"
   ],
   "mirror": [
    [
@@ -2020,7 +2000,7 @@
   "response": [
    200,
    "application/x-git-receive-pack-result",
-   "REFUSED push_refused: it deletes main, a protected branch of github.com/biz-a/site, which an environment may not do; nothing was pushed. Fix: push your work to a new branch (git push origin HEAD:<branch>) and open a pull request"
+   "REFUSED push_refused: it deletes main, a protected branch of github.com/biz-a/site, which an environment may not do; nothing was pushed. Fix: push your work to a new branch of your own (git push origin HEAD:<new-branch>) and open a pull request"
   ],
   "mirror": [
    [
@@ -2078,7 +2058,7 @@
   "response": [
    200,
    "application/x-git-receive-pack-result",
-   "000eunpack ok\n001aok refs/heads/feature\n0000"
+   "REFUSED push_refused: it deletes feature, a branch this environment did not create, which an environment may not do; nothing was pushed. Fix: push your work to a new branch of your own (git push origin HEAD:<new-branch>) and open a pull request"
   ],
   "mirror": [
    [
@@ -2092,40 +2072,30 @@
     29
    ],
    [
-    "push",
-    "https://github.com/biz-a/site.git",
-    "auth for git push github.com/biz-a/site for lane biz-a/dev",
+    "restore",
+    [
+     [
+      "refs/heads/main",
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     ],
+     [
+      "refs/tags/v1",
+      "cccccccccccccccccccccccccccccccccccccccc"
+     ]
+    ],
     [
      "refs/heads/feature"
-    ],
-    []
+    ]
    ]
   ],
   "ctx": [
    [
-    "authorize",
-    "commit",
-    {
-     "lane_id": "biz-a/dev",
-     "summary": "Push feature to github.com/biz-a/site (lane biz-a/dev)",
-     "content": {
-      "git_push": "github.com/biz-a/site",
-      "refs": [
-       {
-        "ref": "refs/heads/feature",
-        "kind": "delete",
-        "old": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        "new": "sha1:0000000000000000000000000000000000000000"
-       }
-      ]
-     }
-    }
-   ],
-   [
     "trace",
     "git_push",
     {
-     "result": "pushed",
+     "result": "refused",
+     "status": "denied",
+     "reason": "push_refused",
      "lane": "biz-a/dev",
      "remote": "github.com/biz-a/site",
      "via": "lane biz-a/dev",
@@ -2136,9 +2106,7 @@
        "old": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
        "new": "sha1:0000000000000000000000000000000000000000"
       }
-     ],
-     "effect": "commit",
-     "vault_ref": "git/github"
+     ]
     }
    ]
   ]
@@ -2147,7 +2115,7 @@
   "response": [
    200,
    "application/x-git-receive-pack-result",
-   "REFUSED push_refused: it deletes v1 (a tag), which an environment may not do; nothing was pushed. Fix: push your work to a new branch (git push origin HEAD:<branch>) and open a pull request"
+   "REFUSED push_refused: it deletes v1 (a tag), which an environment may not do; nothing was pushed. Fix: push your work to a new branch of your own (git push origin HEAD:<new-branch>) and open a pull request"
   ],
   "mirror": [
    [
@@ -2204,7 +2172,7 @@
   "response": [
    200,
    "application/x-git-receive-pack-result",
-   "REFUSED push_refused: it moves the tag v1, which an environment may not do; nothing was pushed. Fix: push your work to a new branch (git push origin HEAD:<branch>) and open a pull request"
+   "REFUSED push_refused: it moves the tag v1, which an environment may not do; nothing was pushed. Fix: push your work to a new branch of your own (git push origin HEAD:<new-branch>) and open a pull request"
   ],
   "mirror": [
    [
@@ -2354,11 +2322,450 @@
    ]
   ]
  },
+ "env: force push of a branch it created": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "000eunpack ok\n001aok refs/heads/feature\n0000"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "is_ancestor",
+    "a",
+    "d"
+   ],
+   [
+    "commits",
+    "d",
+    [
+     "a",
+     "c"
+    ]
+   ],
+   [
+    "push",
+    "https://github.com/biz-a/site.git",
+    "auth for git push github.com/biz-a/site for lane biz-a/dev",
+    [
+     "refs/heads/feature"
+    ],
+    [
+     "refs/heads/feature"
+    ]
+   ]
+  ],
+  "ctx": [
+   [
+    "authorize",
+    "commit",
+    {
+     "lane_id": "biz-a/dev",
+     "summary": "Push feature to github.com/biz-a/site (lane biz-a/dev)",
+     "content": {
+      "git_push": "github.com/biz-a/site",
+      "refs": [
+       {
+        "ref": "refs/heads/feature",
+        "kind": "update",
+        "old": "sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "new": "sha1:dddddddddddddddddddddddddddddddddddddddd",
+        "force": true,
+        "commits": 2,
+        "log": [
+         "ddddddd a change",
+         "ddddddd another"
+        ]
+       }
+      ]
+     }
+    }
+   ],
+   [
+    "trace",
+    "git_push",
+    {
+     "result": "pushed",
+     "lane": "biz-a/dev",
+     "remote": "github.com/biz-a/site",
+     "via": "lane biz-a/dev",
+     "refs": [
+      {
+       "ref": "refs/heads/feature",
+       "kind": "update",
+       "old": "sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "new": "sha1:dddddddddddddddddddddddddddddddddddddddd",
+       "force": true,
+       "commits": 2
+      }
+     ],
+     "effect": "commit",
+     "vault_ref": "git/github"
+    }
+   ]
+  ],
+  "noted": []
+ },
+ "env: delete a branch it created": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "000eunpack ok\n001aok refs/heads/feature\n0000"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "push",
+    "https://github.com/biz-a/site.git",
+    "auth for git push github.com/biz-a/site for lane biz-a/dev",
+    [
+     "refs/heads/feature"
+    ],
+    []
+   ]
+  ],
+  "ctx": [
+   [
+    "authorize",
+    "commit",
+    {
+     "lane_id": "biz-a/dev",
+     "summary": "Push feature to github.com/biz-a/site (lane biz-a/dev)",
+     "content": {
+      "git_push": "github.com/biz-a/site",
+      "refs": [
+       {
+        "ref": "refs/heads/feature",
+        "kind": "delete",
+        "old": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "new": "sha1:0000000000000000000000000000000000000000"
+       }
+      ]
+     }
+    }
+   ],
+   [
+    "trace",
+    "git_push",
+    {
+     "result": "pushed",
+     "lane": "biz-a/dev",
+     "remote": "github.com/biz-a/site",
+     "via": "lane biz-a/dev",
+     "refs": [
+      {
+       "ref": "refs/heads/feature",
+       "kind": "delete",
+       "old": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+       "new": "sha1:0000000000000000000000000000000000000000"
+      }
+     ],
+     "effect": "commit",
+     "vault_ref": "git/github"
+    }
+   ]
+  ],
+  "noted": [
+   [
+    "biz-a/dev",
+    [],
+    [
+     "feature"
+    ]
+   ]
+  ]
+ },
+ "env: delete another's branch, its own known": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "REFUSED push_refused: it deletes feature, a branch this environment did not create, which an environment may not do; nothing was pushed. Fix: push your work to a new branch of your own (git push origin HEAD:<new-branch>) and open a pull request"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "restore",
+    [
+     [
+      "refs/heads/main",
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     ],
+     [
+      "refs/tags/v1",
+      "cccccccccccccccccccccccccccccccccccccccc"
+     ]
+    ],
+    [
+     "refs/heads/feature"
+    ]
+   ]
+  ],
+  "ctx": [
+   [
+    "trace",
+    "git_push",
+    {
+     "result": "refused",
+     "status": "denied",
+     "reason": "push_refused",
+     "lane": "biz-a/dev",
+     "remote": "github.com/biz-a/site",
+     "via": "lane biz-a/dev",
+     "refs": [
+      {
+       "ref": "refs/heads/feature",
+       "kind": "delete",
+       "old": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+       "new": "sha1:0000000000000000000000000000000000000000"
+      }
+     ]
+    }
+   ]
+  ],
+  "noted": []
+ },
+ "env: new branch, noted as its own": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "000eunpack ok\n001aok refs/heads/feature\n0014ok refs/tags/v2\n0000"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "commits",
+    "b",
+    [
+     "a",
+     "c"
+    ]
+   ],
+   [
+    "commits",
+    "d",
+    [
+     "a",
+     "c"
+    ]
+   ],
+   [
+    "push",
+    "https://github.com/biz-a/site.git",
+    "auth for git push github.com/biz-a/site for lane biz-a/dev",
+    [
+     "refs/heads/feature",
+     "refs/tags/v2"
+    ],
+    []
+   ]
+  ],
+  "ctx": [
+   [
+    "authorize",
+    "commit",
+    {
+     "lane_id": "biz-a/dev",
+     "summary": "Push feature, refs/tags/v2 to github.com/biz-a/site (lane biz-a/dev)",
+     "content": {
+      "git_push": "github.com/biz-a/site",
+      "refs": [
+       {
+        "ref": "refs/heads/feature",
+        "kind": "create",
+        "old": "sha1:0000000000000000000000000000000000000000",
+        "new": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "commits": 2,
+        "log": [
+         "bbbbbbb a change",
+         "bbbbbbb another"
+        ]
+       },
+       {
+        "ref": "refs/tags/v2",
+        "kind": "create",
+        "old": "sha1:0000000000000000000000000000000000000000",
+        "new": "sha1:dddddddddddddddddddddddddddddddddddddddd",
+        "commits": 2,
+        "log": [
+         "ddddddd a change",
+         "ddddddd another"
+        ]
+       }
+      ]
+     }
+    }
+   ],
+   [
+    "trace",
+    "git_push",
+    {
+     "result": "pushed",
+     "lane": "biz-a/dev",
+     "remote": "github.com/biz-a/site",
+     "via": "lane biz-a/dev",
+     "refs": [
+      {
+       "ref": "refs/heads/feature",
+       "kind": "create",
+       "old": "sha1:0000000000000000000000000000000000000000",
+       "new": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+       "commits": 2
+      },
+      {
+       "ref": "refs/tags/v2",
+       "kind": "create",
+       "old": "sha1:0000000000000000000000000000000000000000",
+       "new": "sha1:dddddddddddddddddddddddddddddddddddddddd",
+       "commits": 2
+      }
+     ],
+     "effect": "commit",
+     "vault_ref": "git/github"
+    }
+   ]
+  ],
+  "noted": [
+   [
+    "biz-a/dev",
+    [
+     "feature"
+    ],
+    []
+   ]
+  ]
+ },
+ "env: fast-forward of another's branch": {
+  "response": [
+   200,
+   "application/x-git-receive-pack-result",
+   "000eunpack ok\n0017ok refs/heads/main\n0000"
+  ],
+  "mirror": [
+   [
+    "refs"
+   ],
+   [
+    "git",
+    "receive-pack",
+    "--stateless-rpc",
+    ".",
+    29
+   ],
+   [
+    "is_ancestor",
+    "a",
+    "b"
+   ],
+   [
+    "commits",
+    "b",
+    [
+     "a",
+     "c"
+    ]
+   ],
+   [
+    "push",
+    "https://github.com/biz-a/site.git",
+    "auth for git push github.com/biz-a/site for lane biz-a/dev",
+    [
+     "refs/heads/main"
+    ],
+    []
+   ]
+  ],
+  "ctx": [
+   [
+    "authorize",
+    "commit",
+    {
+     "lane_id": "biz-a/dev",
+     "summary": "Push main to github.com/biz-a/site (lane biz-a/dev)",
+     "content": {
+      "git_push": "github.com/biz-a/site",
+      "refs": [
+       {
+        "ref": "refs/heads/main",
+        "kind": "update",
+        "old": "sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "new": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "protected": true,
+        "commits": 2,
+        "log": [
+         "bbbbbbb a change",
+         "bbbbbbb another"
+        ]
+       }
+      ]
+     }
+    }
+   ],
+   [
+    "trace",
+    "git_push",
+    {
+     "result": "pushed",
+     "lane": "biz-a/dev",
+     "remote": "github.com/biz-a/site",
+     "via": "lane biz-a/dev",
+     "refs": [
+      {
+       "ref": "refs/heads/main",
+       "kind": "update",
+       "old": "sha1:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+       "new": "sha1:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+       "protected": true,
+       "commits": 2
+      }
+     ],
+     "effect": "commit",
+     "vault_ref": "git/github"
+    }
+   ]
+  ],
+  "noted": []
+ },
  "env: several rewrites": {
   "response": [
    200,
    "application/x-git-receive-pack-result",
-   "REFUSED push_refused: it force-pushes main, a protected branch of github.com/biz-a/site; it moves the tag v1, which an environment may not do; nothing was pushed. Fix: push your work to a new branch (git push origin HEAD:<branch>) and open a pull request"
+   "REFUSED push_refused: it force-pushes main, a protected branch of github.com/biz-a/site; it moves the tag v1, which an environment may not do; nothing was pushed. Fix: push your work to a new branch of your own (git push origin HEAD:<new-branch>) and open a pull request"
   ],
   "mirror": [
    [

@@ -5,7 +5,8 @@ import type { WorkerThing } from './workers';
 // History as stories (api-for-rebuild.md, section 9): `GET /api/orgs/{org}/history`.
 
 export type HistoryAction = 'post' | 'publish' | 'reply' | 'draft' | 'read' | 'pay' | 'change' | 'task';
-export type HistoryVerdict = 'checked' | 'not_checked' | 'partial' | 'failed' | 'not_run' | 'running';
+/** `done`: work in an agent's own environment, where there is no account to check it on. */
+export type HistoryVerdict = 'checked' | 'done' | 'not_checked' | 'partial' | 'failed' | 'not_run' | 'running';
 export type HistoryShow = 'everything' | 'posts' | 'problems' | 'spending';
 
 export interface HistoryWho {
@@ -63,6 +64,8 @@ export interface HistoryStory {
   lane: string;
   workspace: string | null;
   workspace_name: string | null;
+  /** Set when the work was in an agent's environment: it is named by its title, and links to its page. */
+  environment?: { id: string; title: string } | null;
   /** "Aster Coffee's Instagram". */
   place: string;
   site: { key: string; label: string };

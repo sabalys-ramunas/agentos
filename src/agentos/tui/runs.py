@@ -72,6 +72,9 @@ class RunsView(View):
             Text.assemble(("Schedules", f"bold {fmt.MUTED}"), (f"  times in {state.tz_name}", fmt.DIM)))
         for key, table_id in (("runs", "#runs-note"), ("schedules", "#sched-note")):
             note = resource_note(state, key)
+            if note is None and key == "runs" and not state.runs:
+                note = Text("No routine has run yet. Commands an agent runs in its environment are under "
+                            "Environments (6).", style=fmt.MUTED)
             w = self.query_one(table_id, Static)
             w.update(note or "")
             w.display = note is not None

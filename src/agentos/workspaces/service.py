@@ -208,11 +208,20 @@ class WorkspaceService:
         record = self.store.get_workspace(workspace_id)
         infos = [info for info in self._lane_infos().values() if info.spec.workspace == workspace_id]
         if record is None and not infos:
-            raise NotFound(f"no workspace {workspace_id!r}; create it with: agentos workspace create {workspace_id}")
+            raise self._missing(workspace_id, allowed)
         rows = self.store.lane_rows()
         lanes = [self._lane_view(info, rows.get(info.spec.id)) for info in infos
                  if allowed is None or allowed(info.spec.id)]
         return self._workspace_view(workspace_id, record, lanes)
+
+    def _missing(self, workspace_id: str, allowed: Callable[[str], bool] | None) -> NotFound:
+        """not_found for a workspace that is not there, naming a close one the caller may see first."""
+        from agentos.core.text import close_match
+
+        found = close_match(workspace_id, [ws.id for ws in self.list_workspaces(allowed=allowed)])
+        if found:
+            return NotFound(f"no workspace {workspace_id!r}. Did you mean {found!r}? (see the workspace list)")
+        return NotFound(f"no workspace {workspace_id!r}; create it with: agentos workspace create {workspace_id}")
 
     def _check_field(self, key: str, value: object) -> Any:
         if key == "name":
@@ -337,6 +346,27 @@ class WorkspaceService:
                                  readiness=readiness.value, note=text or None, by=by, now=self._now())
         return self._lane_view(info, self.store.lane_row(lane_id))
 
+    def _environment_lane(self, lane_id: str) -> bool:
+        """An environment's own lanes (env/<id>, env/<id>-browser) are the agent's computer, not an account to
+        sign in: they stay out of the login queue and its counts (2026-11-15 test, F5)."""
+        workspace, _, name = lane_id.partition("/")
+        envs = self.runtime.get("environments") if workspace == "env" and self.runtime is not None else None
+        try:
+            return bool(envs is not None and envs.store.has(name.removesuffix("-browser")))
+        except (AttributeError, ValueError):
+            return False
+
+    def _signed_in(self, view: LaneView) -> LaneView:
+        """A lane nobody marked whose last session check passed reads as ready, as Accounts reads it."""
+        if view.readiness != Readiness.NEEDS_LOGIN or view.updated_by:
+            return view
+        checker = self.runtime.get("lane_check") if self.runtime is not None else None
+        report = (getattr(checker, "last", None) or {}).get(view.id) if checker is not None else None
+        session = next((c for c in getattr(report, "checks", None) or [] if getattr(c, "id", None) == "session"), None)
+        if str(getattr(session, "level", "")) != "ok":
+            return view
+        return view.model_copy(update={"readiness": Readiness.READY})
+
     def queue(self, workspace: str | None = None, *, allowed: Callable[[str], bool] | None = None) -> QueueView:
         """Lanes that are not ready yet, needs_attention first, each with its login URL. The counts
         cover every lane in scope, ready ones included, so the panel can say "18 of 29 ready"."""
@@ -351,7 +381,9 @@ class WorkspaceService:
                 continue
             if allowed is not None and not allowed(info.spec.id):
                 continue
-            views.append(self._lane_view(info, rows.get(info.spec.id)))
+            if self._environment_lane(info.spec.id):
+                continue
+            views.append(self._signed_in(self._lane_view(info, rows.get(info.spec.id))))
         per_workspace = []
         for ws in sorted({view.workspace for view in views}):
             mine = [view for view in views if view.workspace == ws]

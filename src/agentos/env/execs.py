@@ -39,6 +39,30 @@ class Capture:
     def dropped(self) -> int:
         return self.total - len(self.head) - len(self.tail)
 
+    def shrunk(self, cap: int) -> Capture:
+        """The same output kept in `cap` bytes: the first quarter and the last three quarters of it."""
+        if len(self.head) + len(self.tail) <= cap:
+            return self
+        out = Capture(cap)
+        if not self.dropped:  # head and tail are one piece: keep its ends
+            out.feed(bytes(self.head + self.tail))
+            return out
+        out.head = self.head[:out.head_cap]
+        out.tail = self.tail[len(self.tail) - out.tail_cap:]
+        out.total = self.total
+        return out
+
+
+def fit(out: Capture, err: Capture, budget: int) -> tuple[Capture, Capture]:
+    """stdout and stderr within `budget` bytes in all, for a result an agent's client takes inline.
+    stderr (where errors are) keeps what it has up to a quarter of the budget, or more when stdout
+    leaves room; stdout gets the rest."""
+    kept_out, kept_err = len(out.head) + len(out.tail), len(err.head) + len(err.tail)
+    if kept_out + kept_err <= budget:
+        return out, err
+    err_room = min(kept_err, max(budget // 4, budget - kept_out))
+    return out.shrunk(max(budget - err_room, 1)), err.shrunk(max(err_room, 1))
+
 
 def _trim_utf8_end(b: bytes) -> tuple[bytes, bytes]:
     """Split off an incomplete multi-byte sequence at the end."""
@@ -71,7 +95,8 @@ def encode_output(cap: Capture) -> tuple[str, str]:
             text = (head + tail).decode("utf-8")
         else:
             lost = dropped + len(h_rest) + (len(tail) - len(t))
-            text = (h.decode("utf-8") + f"\n[agentos: {lost} bytes truncated]\n" + t.decode("utf-8"))
+            text = (h.decode("utf-8") + f"\n[agentos: {lost} bytes truncated here, of {cap.total} in all; the "
+                    "start and the end are kept]\n" + t.decode("utf-8"))
         return text, "utf-8"
     except UnicodeDecodeError:
         return base64.b64encode(head + tail).decode(), "base64"
@@ -105,9 +130,11 @@ def exit_status(rt: LaneRuntime, rc: int | None) -> tuple[int | None, str | None
 
 async def run(rt: LaneRuntime, argv: list[str], *, timeout_s: float, stdin: bytes | None = None,
               max_bytes: int = 65536, env: dict[str, str] | None = None, install: bool = False,
-              cwd: str | None = None, kind: str = "exec", stdin_file: BinaryIO | None = None) -> ExecResult:
+              cwd: str | None = None, kind: str = "exec", stdin_file: BinaryIO | None = None,
+              budget: int | None = None) -> ExecResult:
     """`stdin_file` (an open file) is the workload's stdin as it is, for input too large to hold in
-    memory (a sync's tar archive); `stdin` is fed from memory."""
+    memory (a sync's tar archive); `stdin` is fed from memory. `max_bytes` is kept of each stream;
+    `budget`, when given, bounds both together (fit)."""
     loop = asyncio.get_running_loop()
     oom_before = rt.stat().get("oom_kills", 0)
     wl = Workload(new_wid("i" if install else "x"), argv, rt.base_env(env), cwd=cwd, install=install)
@@ -155,6 +182,8 @@ async def run(rt: LaneRuntime, argv: list[str], *, timeout_s: float, stdin: byte
     duration = loop.time() - start
     exit_code, sig_name = exit_status(rt, proc.returncode)
     oom_after = rt.stat().get("oom_kills", 0)
+    if budget is not None:
+        out, err = fit(out, err, budget)
     so, so_enc = encode_output(out)
     se, se_enc = encode_output(err)
     return ExecResult(

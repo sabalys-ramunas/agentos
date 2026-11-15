@@ -252,13 +252,14 @@ class PlaywrightInteraction(NavigateMixin, ActMixin, UploadMixin, WaitMixin):
             update["notices"] = header
         return snap.model_copy(update=update)
 
-    async def screenshot(self, page: Page) -> bytes:
+    async def screenshot(self, page: Page, *, full_page: bool = False) -> bytes:
+        """A PNG of the viewport, or with `full_page` of the whole page (it scrolls nothing)."""
         guard = dialog_guard(page)
         if guard is not None and (open_dialog := guard.pending_on(page)) is not None:
             raise _pending_error(open_dialog, "take a screenshot")
         try:
             # caret="initial": the default hides the caret by injecting a style into the page.
-            return await self._race(page, page.screenshot(type="png", full_page=False, caret="initial",
+            return await self._race(page, page.screenshot(type="png", full_page=full_page, caret="initial",
                                                           timeout=SCREENSHOT_TIMEOUT_MS), guard)
         except _DialogOpened as opened:
             raise _pending_error(opened.dialog, "take a screenshot") from None

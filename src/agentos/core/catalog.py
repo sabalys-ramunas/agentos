@@ -106,7 +106,11 @@ def person_fix(code: str | None, surface: str | None = None) -> str | None:
 # ---- the three surfaces ----
 
 def cli_error(code: str, message: str) -> str:
-    """`error: <code>: <message>`, and on the next line the person's fix when there is one."""
+    """`error: <code>: <message>`, and on the next line the person's fix when there is one. A misspelt
+    lane or workspace id names the close one first (agentos.core.suggest)."""
+    from agentos.core.suggest import owner_message
+
+    message = owner_message(code, message) if message else message
     line = f"error: {code}: {message}" if message else f"error: {code}"
     fix = person_fix(code)
     return f"{line}\n  fix: {fix}" if fix else line

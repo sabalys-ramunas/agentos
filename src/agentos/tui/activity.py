@@ -35,7 +35,7 @@ def activity_cells(state: DashState, e: TraceEvent, cols: list[tuple[str, str, i
         if key == "at":
             out.append(Text(fmt.clock(e.at, state.tz, seconds=False) if e.at else "", style=fmt.MUTED))
         elif key == "lane":
-            out.append(Text(fmt.clip(e.lane or (e.kind or ""), width), style=fmt.TEXT))
+            out.append(Text(fmt.clip(state.place(e.lane) or (e.kind or ""), width), style=fmt.TEXT))
         elif key == "who":
             out.append(Text(fmt.clip(e.principal or "", width), style=fmt.MUTED))
         elif key == "tool":

@@ -114,6 +114,26 @@ async def test_a_drafted_post_waits_for_a_person_then_runs_once_at_its_time_with
     assert len(env.posts()) == 1 and len(env.h.runner.list()) == 1
 
 
+async def test_the_drafting_agent_reads_back_its_inputs_and_others_see_only_what_the_flow_shows(env):
+    """QA 2026-11-15 P2-8: an agent's own entry showed its inputs as (hidden)."""
+    import copy
+
+    from agentos.agenda.service import _secret_name
+
+    quiet = copy.deepcopy(post_flow(id="biz-a.social.quiet"))
+    quiet["params"]["properties"]["caption"]["show"] = False
+    env.h.save(quiet)
+    ctx = env.agent()
+    out = await agenda_tools.agenda_draft(ctx, title="Post", action={"flow": "biz-a.social.quiet", "params": PARAMS},
+                                          when={"at": ny(5, 11).isoformat()})
+    assert out["action"]["inputs"] == PARAMS
+    assert (await agenda_tools.agenda_get(ctx, id=out["id"]))["action"]["inputs"] == PARAMS
+    other = await agenda_tools.agenda_get(env.agent(tool="agenda_get"), id=out["id"])
+    assert other["action"]["inputs"] == {"caption": "(hidden)", "image": "x.png"}
+    assert all(_secret_name(k) for k in ("password", "api_token", "otp", "login_code"))
+    assert not any(_secret_name(k) for k in ("caption", "image", "title", "post_body_text", "pinned"))
+
+
 async def test_an_edit_after_approval_asks_again_and_the_old_approval_releases_nothing(env):
     out = await _proposed(env)
     _approve(env, out)

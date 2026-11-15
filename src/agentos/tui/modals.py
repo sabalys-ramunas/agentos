@@ -397,6 +397,7 @@ class RunModal(Dialog):
 HELP = [
     ("Everywhere", [
         ("1 to 5", "Overview, Needs you, Activity, Runs, Brains"),
+        ("6", "Environments: each agent's cloud computer, its cost, time left and git"),
         ("/  or  ctrl+k", "search lanes, workspaces, approvals, runs"),
         ("r", "refresh now (and retry when the node is unreachable)"),
         ("?", "this help"), ("q", "quit"), ("esc", "back"),

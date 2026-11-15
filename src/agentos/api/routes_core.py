@@ -184,9 +184,27 @@ def needs_hand(lane: dict) -> bool:
             or account.get("status") == "wrong_account")
 
 
+def _closed_environment_lane(api: Api, lane_id: str) -> bool:
+    """A lane of an agent environment that is closed: its machine and browser are gone, and what is left
+    of a lane (a delete a browser still exiting refused) is the environments reaper's to remove."""
+    get = getattr(api.runtime, "get", None)
+    envs = get("environments") if callable(get) else None
+    of_lane = getattr(envs, "env_of_lane", None)
+    if not callable(of_lane):
+        return False
+    try:
+        found = of_lane(lane_id)
+    except Exception:  # noqa: BLE001 - an unreadable record hides nothing
+        return False
+    return found is not None and not found[0].open
+
+
 async def all_lanes(api: Api, access: Access | None = None) -> list[dict]:
-    """Browser lanes and env lanes, limited to `access` when given."""
-    allowed = access.lane_allowed if access is not None else (lambda _lane: True)
+    """Browser lanes and env lanes, limited to `access` when given. A closed environment's lanes are
+    left out."""
+    def allowed(lane_id: str) -> bool:
+        return (access is None or access.lane_allowed(lane_id)) and not _closed_environment_lane(api, lane_id)
+
     lanes = api.svc("lanes")
     proxies = await proxies_by_label(api)
     asked = login_requests(api)

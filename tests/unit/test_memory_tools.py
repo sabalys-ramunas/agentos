@@ -254,6 +254,21 @@ async def test_get_without_a_workspace_finds_only_what_the_grant_covers(node):
     assert (await node.call(tok_a, "memory_get", id=a["id"]))["title"] == "a fact"
 
 
+async def test_context_for_a_workspace_that_is_not_there_is_not_found(node, tmp_path):
+    """QA 2026-11-15 P2-9: memory_context answered ok with an empty pack for a typo."""
+    from agentos.workspaces.service import build as build_workspaces
+
+    node.runtime.register("lanes", type("NoLanes", (), {"list": lambda self: []})())
+    build_workspaces(node.runtime, home=tmp_path, labels=lambda: set())
+    node.runtime.require("workspaces").create_workspace("biz-a")
+    _, tok = node.grant(workspaces=("*",), memory=WRITE)
+    with pytest.raises(ToolCallError, match="not_found: no workspace 'biz-x'"):
+        await node.call(tok, "memory_context", workspace="biz-x")
+    with pytest.raises(ToolCallError, match="not_found"):
+        await node.call(tok, "memory_search", workspace="nosuchws")
+    assert (await node.call(tok, "memory_context", workspace="biz-a"))["notes"] == []  # there, with no memory yet
+
+
 def test_tool_descriptions_have_no_em_dash():
     for spec in tool_specs(None):
         assert "\u2014" not in (spec.description or ""), spec.name

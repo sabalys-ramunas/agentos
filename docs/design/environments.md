@@ -34,7 +34,7 @@ brand, logged-in browser lanes for your own accounts and routines.
 4. The agent commits and runs `git push origin <branch>` on the VM. The push goes through the
    node's git gateway (the key never reaches the VM; its one gateway token reaches only this
    repository). It never asks a person, the default branch included; a force push or a delete of
-   the default branch is refused (`push_refused`).
+   the default branch, or of a branch the environment did not create, is refused (`push_refused`).
 5. `environment_close()` checks for unsaved work (uncommitted changes or commits not pushed),
    refuses with `unsaved_work` unless `discard=true`, then deletes the VM and the browser.
    If the agent forgets, the node closes it: idle for `idle_minutes` (default 60) or past its time
@@ -44,12 +44,14 @@ brand, logged-in browser lanes for your own accounts and routines.
 ## Decisions (owner, 2026-11-13)
 
 - An environment is a **cloud VM**, rented by the node (Hetzner first, through `agentos.vms`).
-- **One per chat** (MCP session). A new chat starts clean. `environment_open` with the title and the repo of an
+- **One per chat** (MCP session). A new chat starts clean. `environment_open` with the title of an
   environment that is still starting or ready, from the same grant family, reattaches to it (a
-  resumed chat; the same title with another repo is `environment_in_use`, changed 2026-11-13 after a
-  real chat got a starting environment back for an open without its repo), but only when the chat
-  that has it made no call for 10 minutes; else `environment_in_use`, naming
-  that chat's last call. The chat that lost it gets `no_environment` saying so. A chat with none
+  resumed chat; the repo may be left out since 2026-11-15, when exactly one live environment has
+  the title; the same title with another repo named is `environment_in_use`), but only when the
+  chat that has it made no call for 10 minutes; else `environment_in_use`, naming that chat's last
+  call. The takeover counts as a call, so the chat that lost it cannot take it straight back. The
+  same chat asking with another repo than its live one gets `environment_already_open` (changed
+  2026-11-13 after a real chat got a starting environment back for an open without its repo). The chat that lost it gets `no_environment` saying so. A chat with none
   hears its family's open ones (id, title, last call). Concurrent opens in one chat get one.
 - **Whose it is** (2026-11-13). An environment belongs to the grant family that opened it (its
   root grant, and every grant narrowed from it) and records its opener: grant root, subject, and
@@ -75,8 +77,10 @@ brand, logged-in browser lanes for your own accounts and routines.
     allow` changes the limits; it grants nothing. The grant still needs the `vm` special for the
     lane. Untrusted text never changes this.
   - A push never asks, on any branch, the default branch included. A force push or a delete of
-    the default branch (or a `protect` glob), or moving or deleting a tag, is refused
-    (`push_refused`: push a branch and open a pull request).
+    the default branch (or a `protect` glob), a force push or a delete of a branch the
+    environment did not create (it was on the remote before), or moving or deleting a tag, is
+    refused (`push_refused`: push a new branch and open a pull request). The branches it created
+    are on its record (`own_branches`, with the commit it last pushed to each in `own_heads`: a branch someone else recreated or added to is no longer its own), so a restart keeps them.
   - Reading a page in the environment's browser still labels the grant family untrusted, so a
     call on an account lane afterwards (a post on `personal/x`) asks as before. Pay and
     irreversible effects still ask anywhere. `environment_close` with unsaved work stays the
@@ -147,12 +151,16 @@ environment bound and no id: `{"environment": null, "open": [...open ones of thi
 (listing dirty files, unpushed commits and stashes, fix: commit and push, or discard=true) unless
 clean or discard; then deletes the VM and the browser lane. Unsaved is any repository under
 `/work`: changed or untracked files, commits on any local branch no remote has, stashes. Returns
-`{"id", "state": "closed", "cost_eur", "minutes", "pushed": [...]}`.
+`{"id", "state": "closed", "machine", "cost_eur", "minutes", "pushed": [...], "deleted": [...]}`:
+`machine` is `deleted` only once the provider has no such server, `deleting` while it still has it
+(the node retries), `none` when none was rented, `unknown` when the provider could not be asked;
+`pushed` is each branch at its commit on the remote now, `deleted` the branches it deleted.
 
 Errors (in docs/ERRORS.md, generated): `no_environment`, `unsaved_work`, `environment_limit` (the
 node's `max_live`, the longest life, or the budget, which counts open environments to their time
 limits), `environment_failed` (boot failed; the VM is deleted), `environment_in_use` (the title
-names one another chat used in the last 10 minutes), `environment_not_ready` (a studio check in a
+names one another chat used in the last 10 minutes, or one with another repository),
+`environment_already_open` (this chat has a live one with another repository), `environment_not_ready` (a studio check in a
 chat whose environment is starting or whose tunnel is down; it never checks the node instead).
 
 ### Web routes (the app polls; no live events needed)
@@ -160,6 +168,7 @@ chat whose environment is starting or whose tunnel is down; it never checks the 
 ```
 GET  /api/orgs/{org}/environments?state=open|all       {"environments": [EnvSummary]}
 GET  /api/orgs/{org}/environments/{id}                 EnvDetail
+GET  /api/orgs/{org}/environments/{id}/proofs/{proof}.png   a proof's PNG (cap see; added 2026-11-15)
 POST /api/orgs/{org}/environments/{id}/close {"discard": false}   EnvSummary  (409 unsaved_work)
 POST /api/orgs/{org}/environments/{id}/extend {"minutes": 60}     EnvSummary
 ```
@@ -174,7 +183,16 @@ pushed [{branch, commit, at}]}`, `calls [{at, tool, summary, ok}]` (newest first
 `commands [{id, cmd, state, started_at, exit_code?}]` (the terminal lane's jobs and execs),
 `viewer {path} | null` (the browser lane's live view, as accounts' `lane_viewer_path`),
 `closed_reason?`, `unsaved {dirty_files: [..], unpushed: [..], stashes: [..], unreadable?: [..]} | null`
-(`stashes` and `unreadable` added by F2).
+(`stashes` and `unreadable` added by F2), `proofs [{id, title, taken_at, page_url, width, height, src}]`
+(added 2026-11-15: the screenshots the agent kept with `browser_screenshot(proof=...)`, oldest first;
+`src` is the PNG route above).
+
+For the agent (2026-11-15): `environment()` and `environment_close` list `proofs` with a signed `url`
+on the node's own address (`/view/env/<id>-browser/proof/<proof>.png?t=...`, 15 minutes) and its
+`expires_at`; each `git.pushed` entry of a branch on GitHub other than the default carries `compare`
+(`https://github.com/<owner>/<repo>/compare/<branch>?expand=1`), and `git.compare` is the newest. The
+file tools `lane_file_read`, `lane_file_write` and `lane_file_edit` are in the everyday list with
+lane_exec and route without `on` to the terminal lane.
 
 Reading needs `see` in workspace `env`, close and extend `operate`; every route checks the caller's
 grant as the jobs routes do. The owner sees every environment, a member only those their own agents

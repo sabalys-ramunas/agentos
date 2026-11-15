@@ -85,13 +85,23 @@ export function plainDetail(text: string, names?: PlaceNames): string {
 }
 
 /** Each account's id in the node's sentences reads as its name: "biz-a/social" is "Biz A's Social". */
-export function placeNames(workspaces: { name: string; lanes: { id: string; name: string }[] }[] | undefined): PlaceNames {
-  return new Map((workspaces ?? []).flatMap((workspace) => workspace.lanes.map((lane) => [lane.id, `${workspace.name}'s ${laneName(lane.name)}`] as const)));
+export function placeNames(
+  workspaces: { name: string; lanes: { id: string; name: string }[] }[] | undefined,
+  environments?: { title: string; lanes: { terminal: string; browser: string } }[],
+): PlaceNames {
+  const accounts = (workspaces ?? []).flatMap((workspace) => workspace.lanes.map((lane) => [lane.id, `${workspace.name}'s ${laneName(lane.name)}`] as const));
+  // An environment's lanes read as the environment's title, the one name a person knows it by.
+  const envs = (environments ?? []).flatMap((env) => [[env.lanes.terminal, env.title] as const, [env.lanes.browser, `the browser of ${env.title}`] as const]);
+  return new Map([...accounts, ...envs]);
 }
 
 /** An account's name from its id: the workspace's name for it when known, else the account's own. */
 export function placeName(id: string, names?: PlaceNames): string {
-  return names?.get(id) ?? laneName(id.split('/')[1] ?? id);
+  const known = names?.get(id);
+  if (known) return known;
+  // An environment's lanes carry its machine id, which is no name: say what it is instead.
+  if (id.startsWith('env/')) return id.endsWith('-browser') ? "an environment's browser" : 'an environment';
+  return laneName(id.split('/')[1] ?? id);
 }
 
 /**
@@ -174,17 +184,31 @@ const AUDIT_ACTIONS: Record<string, string> = {
   'panel.lane.check': 'Checked the account',
   'panel.lane.keepalive': 'Planned the keep-alive visits for',
   'panel.lane.sites': 'Read the site list of',
+  'panel.environment.read': 'Opened the page of',
+  'panel.environment.close': 'Closed',
+  'panel.environment.extend': 'Kept open longer:',
+  'panel.job.read': 'Read the output of a command in',
+  'panel.job.cancel': 'Stopped a command in',
 };
+
+/** The workspace a grant or a routine covers, in words: `*` is every one. */
+export function workspaceWords(id: string, name?: string | null): string {
+  if (id === '*' || name === '*') return 'every workspace';
+  return name || id;
+}
 
 /** An audit line in a sentence: "Checked the account Biz B's Forum", whatever action id the node wrote. */
 export function auditWords(action: string, target: string | null, names?: PlaceNames): string {
   // The node writes `<kind> <tool>`, such as `panel panel.lane.check`: the tool says what happened.
   const tool = action.split(' ').pop() ?? action;
-  const fallback = tool.replace(/^panel\./, '').replaceAll('.', ' ');
-  const sentence = AUDIT_ACTIONS[tool] ?? fallback.charAt(0).toUpperCase() + fallback.slice(1);
+  const known = AUDIT_ACTIONS[tool];
+  // An agent's tool (`lane_close`, `browser_act`) reads as what it does: "Close an account: Test's LinkedIn".
+  const agentTool = !known && !tool.startsWith('panel.') && /^[a-z][a-z0-9_]*$/.test(tool);
+  const fallback = tool.replace(/^panel\./, '').replaceAll('.', ' ').replaceAll('_', ' ');
+  const sentence = known ?? (agentTool ? toolPlainTitle(tool) : fallback.charAt(0).toUpperCase() + fallback.slice(1));
   if (!target) return sentence;
   const named = /^[a-z0-9][a-z0-9-]*\/[a-z0-9][a-z0-9-]*$/.test(target) ? placeName(target, names) : target;
-  return `${sentence} ${named}`;
+  return agentTool ? `${sentence}: ${named}` : `${sentence} ${named}`;
 }
 
 /** A step's summary on the proof page, which the node writes with the account's id: "Check lane biz-a/social". */
@@ -313,7 +337,19 @@ export const TOOL_TITLES: Record<string, string> = {
   env_lanes_list: 'List the environments',
   env_create: 'Make an environment',
   env_remove: 'Remove an environment',
-  lane_exec: 'Run a command in an account',
+  lane_exec: 'Run a command',
+  lane_job_start: 'Start a program',
+  lane_job_read: "Read a program's output",
+  lane_job_cancel: 'Stop a program',
+  lane_jobs_list: 'List the programs',
+  environment_open: 'Open its environment',
+  environment_close: 'Close its environment',
+  environment: 'Read its environment',
+  ui_check: "Check a page's design",
+  ui_diff: 'Compare a page with before',
+  system_check: 'Check the design system',
+  profile_use: 'Work to a brand',
+  profile_learn_brand: 'Learn a brand from its site',
   lane_install: 'Install a program in an account',
   lane_check: 'Check an account',
   shell_open: 'Open a terminal',

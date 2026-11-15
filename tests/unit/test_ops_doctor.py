@@ -424,6 +424,32 @@ def test_backups_none_old_and_fresh(tmp_path):
     assert doctor.check_backups(ctx)[0].status == PASS
 
 
+def test_backups_made_with_to_elsewhere_are_found(tmp_path):
+    """QA 2026-11-15 F13: backups made with --to /root/agentos-backups were not seen."""
+    from datetime import UTC, datetime
+
+    from agentos.ops.backup import record_made
+
+    ctx = ctx_for(tmp_path)
+    elsewhere = tmp_path / "agentos-backups"
+    elsewhere.mkdir()
+    old, new = (elsewhere / f"agentos-test-node-2026111{d}T000000Z.tar.gz.age" for d in (0, 4))
+    for path in (old, new):
+        path.write_bytes(b"x")
+        record_made(ctx.home, str(path), datetime(2026, 11, 14, tzinfo=UTC), 1)
+    record_made(ctx.home, "s3://bucket/agentos/agentos-test-node-20261101T000000Z.tar.gz.age",
+                datetime(2026, 11, 1, tzinfo=UTC), 1)
+    ctx.host.now_value = datetime(2026, 11, 15, tzinfo=UTC).timestamp()
+    r = doctor.check_backups(ctx)[0]
+    assert r.status == PASS, r.detail
+    assert str(elsewhere) in r.detail and "s3://bucket/agentos" in r.detail
+    assert "3 in" in r.detail and new.name in r.detail and "(1.0 days old)" in r.detail
+    assert "off this disk" not in r.detail
+    new.unlink()  # a noted archive that is gone does not count
+    r = doctor.check_backups(ctx)[0]
+    assert old.name in r.detail and "(5.0 days old)" in r.detail and r.status == PASS
+
+
 def test_run_isolates_a_crashing_check(tmp_path, monkeypatch):
     ctx = ctx_for(tmp_path)
 

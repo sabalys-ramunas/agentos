@@ -18,16 +18,18 @@ from rich.text import Text
 from textual.app import App
 from textual.binding import Binding, BindingType
 from textual.command import DiscoveryHit, Hit, Hits, Provider
+from textual.containers import Horizontal
 from textual.css.query import NoMatches
 from textual.screen import ModalScreen
 from textual.theme import Theme
-from textual.widgets import Footer, TabbedContent, TabPane
+from textual.widgets import Footer, Static, TabbedContent, TabPane
 
 from agentos.tui import fmt
 from agentos.tui.activity import ActivityView
 from agentos.tui.brains import BrainsView
 from agentos.tui.client import ApiClient, ApiError, NodeUnreachable
 from agentos.tui.connect import Connection
+from agentos.tui.envs import EnvironmentsView
 from agentos.tui.lane import LaneScreen
 from agentos.tui.modals import (
     AddScheduleModal,
@@ -63,8 +65,11 @@ THEME = Theme(
     background="#111318", surface="#171a20", panel="#1d2129", dark=True,
 )
 
-TABS = ("overview", "needs", "activity", "runs", "brains")
-TAB_FOCUS = {"overview": "#lane-tree", "needs": "#needs-list", "activity": "#act-table",
+FOOTER_KEYS = Text.assemble(("?", f"bold {fmt.ACCENT}"), (" Help  ", fmt.TEXT), ("q", f"bold {fmt.ACCENT}"),
+                            (" Quit", fmt.TEXT))
+
+TABS = ("overview", "environments", "needs", "activity", "runs", "brains")
+TAB_FOCUS = {"overview": "#lane-tree", "environments": "#envs-table", "needs": "#needs-list", "activity": "#act-table",
              "runs": "#runs-table", "brains": "#tasks-table"}
 
 CONTROL_DONE = {
@@ -111,12 +116,17 @@ class DashCommands(Provider):
             ("Go to Activity", "3", partial(app.show_tab, "activity")),
             ("Go to Runs and schedules", "4", partial(app.show_tab, "runs")),
             ("Go to Brains", "5", partial(app.show_tab, "brains")),
+            ("Go to Environments", "6", partial(app.show_tab, "environments")),
         ]
+        for env in state.environments:  # found by its title, the one name a person knows it by
+            out.append((env.title or env.id, f"environment, {env.state}", partial(app.show_tab, "environments")))
         for item in state.needs_you():
             out.append((item.title, "Needs you", partial(app.show_need, item.key)))
         for ws in state.workspaces:
             out.append((f"workspace {ws.id}", state.workspace_line(ws), partial(app.focus_workspace, ws.id)))
         for lane in state.lanes():
+            if state.environment_of(lane.id) is not None:
+                continue  # listed above by its environment's title
             out.append((lane.id, f"{lane.kind} lane, {lane.state}, control {lane.control.state}",
                         partial(app.open_lane, lane.id)))
         for run in state.sorted_runs()[:60]:
@@ -158,12 +168,15 @@ class DashApp(App):
         Binding("3", "show('activity')", "Activity", show=False),
         Binding("4", "show('runs')", "Runs", show=False),
         Binding("5", "show('brains')", "Brains", show=False),
+        Binding("6", "show('environments')", "Environments", show=False),
         Binding("slash", "command_palette", "Search"),
         # our own palette bindings replace Textual's default one, so ctrl+k is listed here too
         Binding("ctrl+k", "command_palette", "Search", show=False),
         Binding("r", "refresh", "Refresh", show=False),
-        Binding("question_mark", "help", "Help"),
-        Binding("q", "quit", "Quit"),
+        # shown in their own cell at the footer's end (FOOTER_KEYS), so a long list of a view's keys never
+        # pushes them off an 80-column terminal (2026-11-15 test, F11)
+        Binding("question_mark", "help", "Help", show=False),
+        Binding("q", "quit", "Quit", show=False),
     ]
 
     def __init__(self, connection: Connection, *, transport: httpx.AsyncBaseTransport | None = None,
@@ -188,6 +201,8 @@ class DashApp(App):
         with TabbedContent(initial="overview", id="tabs"):
             with TabPane("Overview", id="overview"):
                 yield OverviewView(id="overview-view")
+            with TabPane("Environments", id="environments"):
+                yield EnvironmentsView(id="environments-view")
             with TabPane("Needs you", id="needs"):
                 yield NeedsView(id="needs-view")
             with TabPane("Activity", id="activity"):
@@ -196,7 +211,9 @@ class DashApp(App):
                 yield RunsView(id="runs-view")
             with TabPane("Brains", id="brains"):
                 yield BrainsView(id="brains-view")
-        yield Footer()
+        with Horizontal(id="footer-row"):
+            yield Footer()
+            yield Static(FOOTER_KEYS, id="footer-keys")
 
     def on_mount(self) -> None:
         self.register_theme(THEME)

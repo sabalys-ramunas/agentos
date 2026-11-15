@@ -72,10 +72,11 @@ function HomeRow({ org, env, now }: { org: string; env: EnvSummary; now: number 
           </span>
           {env.repo ? (
             <span className="flex min-w-0 items-center gap-2">
-              <span className="truncate font-mono text-code-caption text-faint" title={env.repo}>
+              <span className="min-w-0 shrink truncate font-mono text-code-caption text-faint" title={env.repo}>
                 {repoName(env.repo)}
               </span>
-              {env.branch ? <BranchPill name={env.branch} main={env.branch === 'main' || env.branch === 'master'} className="max-w-48 shrink" /> : null}
+              {/* The repo gives way first, so a short branch ("main") is never cut to "m…". */}
+              {env.branch ? <BranchPill name={env.branch} main={env.branch === 'main' || env.branch === 'master'} className="max-w-[60%] shrink-0 sm:max-w-48" /> : null}
             </span>
           ) : null}
         </span>

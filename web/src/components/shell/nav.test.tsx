@@ -26,8 +26,8 @@ describe('the menu', () => {
 
   it('puts five places at the thumb and the rest under More', () => {
     const menu = menuFor('owner');
-    expect(menu.tabs.map((item) => item.label)).toEqual(['Home', 'Runs', 'Checks', 'Machines', 'Needs you']);
-    expect(menu.more.map((item) => item.label)).toEqual(['Environments', 'Brand', 'Accounts', 'Routines', 'Email', 'Site APIs', 'History', 'Settings']);
+    expect(menu.tabs.map((item) => item.label)).toEqual(['Home', 'Environments', 'Runs', 'Checks', 'Needs you']);
+    expect(menu.more.map((item) => item.label)).toEqual(['Machines', 'Brand', 'Accounts', 'Routines', 'Email', 'Site APIs', 'History', 'Settings']);
   });
 
   it('knows which place a page belongs to', () => {
@@ -109,9 +109,9 @@ describe('the rail and the tab bar', () => {
     const { user } = renderApp('/northwind-group');
     const bars = await screen.findAllByRole('navigation', { name: 'Main' });
     const tabs = within(bars[1]!);
-    expect(tabs.getAllByRole('link').map((item) => item.textContent?.replace(/, \d+ waiting$/, ''))).toEqual(['Home', 'Runs', 'Checks', 'Machines', 'Needs you']);
+    expect(tabs.getAllByRole('link').map((item) => item.textContent?.replace(/, \d+ waiting$/, ''))).toEqual(['Home', 'Environments', 'Runs', 'Checks', 'Needs you']);
     await user.click(tabs.getByRole('button', { name: /^More/ }));
-    expect((await screen.findAllByRole('menuitem')).map((item) => item.textContent)).toEqual(['Environments', 'Brand', 'Accounts', 'Routines', 'Email', 'Site APIs', 'History', 'Settings']);
+    expect((await screen.findAllByRole('menuitem')).map((item) => item.textContent)).toEqual(['Machines', 'Brand', 'Accounts', 'Routines', 'Email', 'Site APIs', 'History', 'Settings']);
   });
 
   it('lists every place in the command bar with its keys', async () => {

@@ -21,6 +21,7 @@ RESOURCE_WORDS = {
     "workspaces": "Workspaces and lanes", "nodes": "Nodes", "approvals": "Approvals",
     "questions": "Questions", "activity": "Activity", "runs": "Runs", "schedules": "Schedules",
     "flows": "Flows", "brains": "Brains", "tasks": "Brain tasks", "status": "Status",
+    "environments": "Environments",
 }
 
 

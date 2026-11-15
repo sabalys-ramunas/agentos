@@ -46,7 +46,7 @@ def test_the_owner_replays_a_day_and_the_index_names_the_accounts_that_acted(cli
 def test_the_log_check_says_what_the_node_checked_and_only_the_owner_asks(client, node) -> None:
     _act(node)
     report = client.get(f"{ORG}/audit/verify").json()
-    assert report["status"] in {"ok", "tampered", "unverifiable"}
+    assert report["status"] in {"ok", "pending", "tampered", "unverifiable"}
     assert report["checked"] >= 1 and set(report) >= {"rows", "chain", "keys", "findings"}
 
 

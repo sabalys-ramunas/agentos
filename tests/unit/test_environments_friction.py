@@ -10,6 +10,7 @@ from datetime import timedelta
 import pytest
 from test_environments import TITLE, node, opened  # noqa: F401  (node is a fixture)
 
+from agentos.core import catalog
 from agentos.core.models import utcnow
 from agentos.policy.wrap import ToolCallError
 
@@ -27,10 +28,13 @@ async def test_a_starting_environment_with_a_repo_is_not_handed_back_for_none(no
     node["machine"].setup = "status: running"  # it stays starting
     first = await opened(node, repo=REPO, wait_s=0)
     assert first["state"] == "starting"
-    with pytest.raises(ToolCallError, match="environment_in_use") as err:
+    with pytest.raises(ToolCallError, match="environment_already_open") as err:
         await node["call"]("environment_open", title=TITLE, wait_s=0)
     words = str(err.value)
     assert first["id"] in words and REPO in words and "no repository" in words and "environment_close()" in words
+    # the fix line an agent reads says the same, and no wait (P2-10 of the 2026-11-15 test)
+    lines = catalog.mcp_lines("environment_already_open", words)
+    assert len(lines) == 1 and "environment_close()" in lines[0] and "another title" not in lines[0]
     # the same repository still gets the same one back
     again = await opened(node, repo=REPO, wait_s=0)
     assert again["id"] == first["id"]
@@ -64,13 +68,30 @@ async def test_a_title_with_a_live_environment_of_another_repo_is_in_use(node): 
     that machine nor a second one with the same title (the next reattach by title would be a guess)."""
     a = await opened(node, repo=REPO)
     mgr = node["mgr"]
-    mgr._clock = lambda: utcnow() + timedelta(minutes=11)  # chat-1 is quiet: the title alone would move it
+    mgr._clock = lambda: utcnow() + timedelta(minutes=11)  # chat-1 is quiet
     with pytest.raises(ToolCallError, match="environment_in_use") as err:
-        await node["call"]("environment_open", title=TITLE, session="chat-2")
-    assert f'repo="{REPO}"' in str(err.value) and "another title" in str(err.value)
+        await node["call"]("environment_open", title=TITLE, repo="example.test/me/other", session="chat-2")
+    words = str(err.value)
+    assert f'repo="{REPO}"' in words and "another title" in words and "not no repository" not in words
     assert mgr.get(a["id"]).binding == "session:chat-1" and len(mgr.store.open()) == 1
     other = await node["call"]("environment_open", title=TITLE, repo=REPO, session="chat-2")
     assert other["id"] == a["id"]
+
+
+async def test_the_title_alone_takes_back_the_one_environment_with_it(node):  # noqa: F811
+    """P2-9 of the 2026-11-15 test: a resumed chat that names only the title gets its environment,
+    whatever repository it cloned, and the chat that lost it cannot take it straight back."""
+    a = await opened(node, repo=REPO)
+    mgr = node["mgr"]
+    later = utcnow() + timedelta(minutes=11)
+    mgr._clock = lambda: later  # chat-1 is quiet
+    other = await node["call"]("environment_open", title=TITLE, session="chat-2")
+    assert other["id"] == a["id"] and other["repo"] == REPO
+    env = mgr.get(a["id"])
+    assert env.binding == "session:chat-2" and env.last_call_at == later  # the takeover counts as a call
+    with pytest.raises(ToolCallError, match="environment_in_use"):  # no ping-pong
+        await node["call"]("environment_open", title=TITLE, session="chat-1")
+    assert mgr.get(a["id"]).binding == "session:chat-2"
 
 
 async def test_a_reconnected_chat_hears_the_repo_it_takes_back_with(node):  # noqa: F811

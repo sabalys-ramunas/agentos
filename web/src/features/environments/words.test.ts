@@ -2,7 +2,7 @@ import { ApiError } from '@/api/http';
 import type { EnvSummary } from '@/api/types';
 import { seedEnvironments } from '@/mocks/environments';
 import { unsavedFrom, unsavedWords } from './close-flow';
-import { agentWords, closedReason, commandStatus, euro, hourly, isJob, leftOf, machineWhere, openSummary, repoName, span, splitEnvironments } from './words';
+import { agentWords, closedReason, commandStatus, euro, hourly, isJob, leftOf, machineWhere, openSummary, pullRequestLink, repoName, span, splitEnvironments } from './words';
 
 const NOW = Date.parse('2026-11-13T12:00:00Z');
 const summaries = (): EnvSummary[] => seedEnvironments(NOW).map((item) => item.detail);
@@ -74,5 +74,18 @@ describe('the words of Environments', () => {
     expect(unsavedWords(unsavedFrom(stashed, fallback))).toBe('1 stash');
     expect(unsavedFrom(new ApiError(409, 'unsaved_work', 'Unsaved.'), fallback)).toEqual(fallback);
     expect(unsavedWords({ dirty_files: ['x', 'y', 'z'], unpushed: ['a', 'b'] })).toBe('3 changed files and 2 commits not pushed');
+  });
+});
+
+describe('the pull request link of a pushed branch', () => {
+  it('opens GitHub\'s compare page for a branch, with each part of its name kept as it is', () => {
+    expect(pullRequestLink('github.com/harbor-supply/shop', 'feat/black-friday-offer')).toBe('https://github.com/harbor-supply/shop/compare/feat/black-friday-offer?expand=1');
+    expect(pullRequestLink('https://github.com/me/shop.git', 'fix/a b#1')).toBe('https://github.com/me/shop/compare/fix/a%20b%231?expand=1');
+  });
+  it('has none for the default branch, another host or no repository', () => {
+    expect(pullRequestLink('github.com/me/shop', 'main')).toBeNull();
+    expect(pullRequestLink('github.com/me/shop', 'trunk', 'trunk')).toBeNull();
+    expect(pullRequestLink('gitlab.com/me/shop', 'feat/x')).toBeNull();
+    expect(pullRequestLink(null, 'feat/x')).toBeNull();
   });
 });

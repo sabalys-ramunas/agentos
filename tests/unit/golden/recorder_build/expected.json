@@ -1,7 +1,7 @@
 {
  "dropped_kinds/0": [
   {
-   "description": "Recorded draft. Review the locators and add a readback for the final action.",
+   "description": "Replays steps recorded in the browser.",
    "effect": "draft",
    "id": "w.l.draft-202611140930",
    "lane": "w/l",
@@ -41,7 +41,7 @@
  ],
  "dropped_kinds/1": [
   {
-   "description": "Recorded draft. Review the locators and add a readback for the final action.",
+   "description": "Replays steps recorded in the browser.",
    "effect": "commit",
    "id": "w.l.mine",
    "lane": "w/l",
@@ -80,7 +80,7 @@
  ],
  "every_action_dropped/0": [
   {
-   "description": "Recorded draft. Review the locators and add a readback for the final action.",
+   "description": "Replays steps recorded in the browser.",
    "effect": "read",
    "id": "w.l.draft-202611140930",
    "lane": "w/l",
@@ -106,7 +106,7 @@
  ],
  "every_action_dropped/1": [
   {
-   "description": "Recorded draft. Review the locators and add a readback for the final action.",
+   "description": "Replays steps recorded in the browser.",
    "effect": "commit",
    "id": "w.l.mine",
    "lane": "w/l",
@@ -132,7 +132,7 @@
  ],
  "every_kind_of_step/0": [
   {
-   "description": "Recorded draft. Review the locators and add a readback for the final action.",
+   "description": "Replays steps recorded in the browser.",
    "effect": "draft",
    "id": "w.l.draft-202611140930",
    "lane": "w/l",
@@ -322,7 +322,7 @@
  ],
  "every_kind_of_step/1": [
   {
-   "description": "Recorded draft. Review the locators and add a readback for the final action.",
+   "description": "Replays steps recorded in the browser.",
    "effect": "commit",
    "id": "w.l.mine",
    "lane": "w/l",
@@ -510,7 +510,7 @@
  ],
  "input_lost_before_send/0": [
   {
-   "description": "Recorded draft. Review the locators and add a readback for the final action.",
+   "description": "Replays steps recorded in the browser.",
    "effect": "draft",
    "id": "w.l.draft-202611140930",
    "lane": "w/l",
@@ -555,7 +555,7 @@
  ],
  "input_lost_before_send/1": [
   {
-   "description": "Recorded draft. Review the locators and add a readback for the final action.",
+   "description": "Replays steps recorded in the browser.",
    "effect": "commit",
    "id": "w.l.mine",
    "lane": "w/l",
@@ -609,7 +609,7 @@
  ],
  "one_input_lost_before_send/0": [
   {
-   "description": "Recorded draft. Review the locators and add a readback for the final action.",
+   "description": "Replays steps recorded in the browser.",
    "effect": "draft",
    "id": "w.l.draft-202611140930",
    "lane": "w/l",
@@ -639,7 +639,7 @@
  ],
  "one_input_lost_before_send/1": [
   {
-   "description": "Recorded draft. Review the locators and add a readback for the final action.",
+   "description": "Replays steps recorded in the browser.",
    "effect": "commit",
    "id": "w.l.mine",
    "lane": "w/l",
@@ -668,7 +668,7 @@
  ],
  "reads_only/0": [
   {
-   "description": "Recorded draft. Review the locators and add a readback for the final action.",
+   "description": "Replays steps recorded in the browser.",
    "effect": "read",
    "id": "w.l.draft-202611140930",
    "lane": "w/l",
@@ -691,7 +691,7 @@
  ],
  "reads_only/1": [
   {
-   "description": "Recorded draft. Review the locators and add a readback for the final action.",
+   "description": "Replays steps recorded in the browser.",
    "effect": "commit",
    "id": "w.l.mine",
    "lane": "w/l",
@@ -714,7 +714,7 @@
  ],
  "same_text_twice/0": [
   {
-   "description": "Recorded draft. Review the locators and add a readback for the final action.",
+   "description": "Replays steps recorded in the browser.",
    "effect": "draft",
    "id": "w.l.draft-202611140930",
    "lane": "w/l",
@@ -844,7 +844,7 @@
  ],
  "same_text_twice/1": [
   {
-   "description": "Recorded draft. Review the locators and add a readback for the final action.",
+   "description": "Replays steps recorded in the browser.",
    "effect": "commit",
    "id": "w.l.mine",
    "lane": "w/l",

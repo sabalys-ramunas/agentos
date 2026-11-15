@@ -66,6 +66,25 @@ def test_forget_then_verify(home):
     assert ok.exit_code == 0 and "biz-a: ok" in ok.output
 
 
+def test_an_owners_forget_is_on_the_action_log_and_show_keeps_the_write_time(home):
+    """QA 2026-11-15 P2-12 and P2-14."""
+    import sqlite3
+
+    from agentos.policy.service import PolicyService
+
+    PolicyService(home).close()  # the node's action log, as agentosd leaves it
+    entry = json.loads(run("write", "biz-a", "--type", "fact", "--title", "Marker", "--json").output)
+    written = json.loads(run("show", entry["id"], "--json").output)["written_at"]
+    out = run("forget", entry["id"], "--reason", "a test note", "--yes")
+    assert out.exit_code == 0 and "no action log" not in out.output
+    with sqlite3.connect(home / "traces.db") as db:
+        rows = db.execute("SELECT principal, summary FROM traces WHERE kind = 'memory_forget'").fetchall()
+    assert rows == [("owner:cli", f"forgot {entry['id']}")]
+    shown = json.loads(run("show", entry["id"], "--json").output)
+    assert shown["written_at"] == written and shown["state"] == "forgotten"
+    assert f"at {written}" in run("show", entry["id"]).output  # the write time, not the forget time
+
+
 def test_verify_fails_on_a_rewritten_file(home):
     import sqlite3
 

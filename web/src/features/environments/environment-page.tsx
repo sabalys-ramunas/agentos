@@ -1,7 +1,7 @@
 /**
  * One environment (/environments/:id): the browser's live view large, with take over as on an account; the
  * commands its terminal ran, each job linked to its run page; the ports with a link where the node forwards
- * one; git (branch, ahead, changed files, what was pushed); the agent's last calls; the machine and its cost;
+ * one; git (branch, ahead, changed files, what was pushed); the proofs it kept; the agent's last calls; the machine and its cost;
  * and Extend and Close. A closed one is a read-only summary that says why it closed. Read every few seconds
  * while it has a machine, since no event carries it.
  */
@@ -20,6 +20,7 @@ import {
 } from './words';
 import { BrowserCard, CallsCard, CommandsCard, GitCard, MachineCard, PortsCard } from './env-cards';
 import { ClosedNotice, EnvHeader, Facts } from './env-header';
+import { ProofsCard } from './proofs';
 
 export const EXTEND = [
   { minutes: 30, label: '30 minutes' },
@@ -110,6 +111,7 @@ function EnvLoaded({ org, env }: { org: string; env: EnvDetail }) {
       <div className="grid items-start gap-6 lg:grid-cols-12">
         <div className="grid min-w-0 gap-6 lg:col-span-8">
           {open ? <BrowserCard org={org} env={env} /> : null}
+          <ProofsCard env={env} now={now} />
           <CommandsCard org={org} env={env} now={now} />
           <CallsCard env={env} now={now} />
         </div>

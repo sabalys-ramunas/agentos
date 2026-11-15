@@ -26,6 +26,7 @@ import { parseAnsi } from '@/components/ui/terminal';
 import { cn } from '@/lib/cn';
 import { plural } from '@/lib/format';
 import { routineName } from '@/lib/principal';
+import { useTechnical } from '@/lib/technical';
 import type { RunningItem } from './running';
 import { pageName } from './running';
 import { accountName } from './words';
@@ -315,8 +316,18 @@ interface RunningNowProps {
   first?: string;
 }
 
+/** "ended at 10:51 and passed": what a person reads; the command itself only under Technical details. */
+const JOB_ENDED: Partial<Record<Job['state'], string>> = { passed: 'passed', failed: 'did not pass', cancelled: 'was stopped', timed_out: 'ran out of time' };
+
+export function lastRunWords(last: Job, technical: boolean): string {
+  const at = new Date(last.finished_at ?? last.started_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  const how = JOB_ENDED[last.state] ?? last.state.replaceAll('_', ' ');
+  return technical ? `The last run ended at ${at}: ${last.command}, ${how}.` : `The last run ended at ${at} and ${how}.`;
+}
+
 export function RunningNow({ org, items, jobs, studio, canWatch, first }: RunningNowProps) {
   const [filter, setFilter] = useState<Filter>('all');
+  const [technical] = useTechnical();
   const ordered = useMemo(() => {
     if (!items || !first) return items;
     const pick = items.find((item) => item.id === first);
@@ -392,12 +403,12 @@ export function RunningNow({ org, items, jobs, studio, canWatch, first }: Runnin
               {jobs && !jobs.available
                 ? (jobs.reason ?? 'This computer runs no terminal lanes, so it has no runs.')
                 : last
-                  ? `The last run ended ${new Date(last.finished_at ?? last.started_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}: ${last.command}, ${last.state === 'passed' ? 'passed' : last.state.replace('_', ' ')}.`
+                  ? lastRunWords(last, technical)
                   : 'When an agent runs tests, a build or a dev server, it shows here with the last lines it printed.'}
               {studioHere ? ' A design check shows here for half an hour after it ends.' : ''}
             </p>
           </div>
-          <CodeBlock code="agentos run -- pnpm test" className="md:w-72" />
+          {technical ? <CodeBlock code="agentos run -- pnpm test" className="md:w-72" /> : null}
         </Card>
       </section>
     );

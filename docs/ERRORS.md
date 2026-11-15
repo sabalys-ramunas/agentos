@@ -52,6 +52,7 @@ carries one of these codes:
 | [`egress_refused`](#egress_refused) | The lane's site list, or your grant's egress list, does not allow this page or request, so it was not sent (or was stopped and the page put back). | no |
 | [`element_not_found`](#element_not_found) | A flow step's locator found nothing on the page. | no |
 | [`engine_error`](#engine_error) | The browser or another part of the node failed unexpectedly. | yes, after 5 s |
+| [`environment_already_open`](#environment_already_open) | This chat already has a live environment, with another repository than the one asked for. A chat has one environment at a time, so nothing was opened. | no |
 | [`environment_failed`](#environment_failed) | An environment's machine did not come up: it did not answer SSH, or its setup failed. Its VM was deleted, so nothing bills for it. | no |
 | [`environment_in_use`](#environment_in_use) | Another chat of the same agent still works in the environment with this title: it made a call in the last 10 minutes, so it is not taken from that chat. | yes, after 600 s |
 | [`environment_limit`](#environment_limit) | Opening or extending it would pass a node limit (it never asks a person): open at once (3 by default), the longest life (8 hours), or the month's budget (EUR 50). The message says which. | no |
@@ -159,7 +160,7 @@ carries one of these codes:
 | [`step_up_required`](#step_up_required) | This decision needs a fresh passkey check. | yes, once the cause is fixed |
 | [`stopped_by_answer`](#stopped_by_answer) | A person answered no to a workflow's question, so it stopped there. What ran before stands. | no |
 | [`storage_error`](#storage_error) | The backup storage (S3 or compatible) refused or failed the request. | yes, after 30 s |
-| [`studio_blank_page`](#studio_blank_page) | The review browser loaded the page, but it shows nothing: no visible text, image or control. | no |
+| [`studio_blank_page`](#studio_blank_page) | The review browser loaded the page, but nothing rendered in time: no visible text, image or control. | no |
 | [`studio_dev_error`](#studio_dev_error) | The page answered, but the dev server shows its error overlay (Vite, Next.js or webpack) over the app: the build or the code has an error. | no |
 | [`studio_http_error`](#studio_http_error) | The address answered with an HTTP error (4xx or 5xx), so there is no page to check. | no |
 | [`studio_page_not_loaded`](#studio_page_not_loaded) | The review browser could not load the address: the connection was refused, the host was not found, or it did not answer in time. | no |
@@ -600,6 +601,15 @@ The browser or another part of the node failed unexpectedly.
 - **You:** Check `agentos logs --level warn --since 10m` and `agentos doctor`; close the lane in the panel and open it again if it is stuck.
 - **Retry:** yes, after 5 s
 - **Raised by:** `agentos.core.errors.EngineError`
+
+## environment_already_open
+
+This chat already has a live environment, with another repository than the one asked for. A chat has one environment at a time, so nothing was opened.
+
+- **Agent:** Do not call it again the same way. Keep working in the one you have (environment() shows it), or close it with environment_close() (discard=true only if its work is not needed) and then call environment_open again.
+- **You:** Nothing to fix: one chat works in one environment at a time. `agentos environments list` shows which chat has which.
+- **Retry:** no
+- **Raised by:** `agentos.environments.errors.EnvironmentAlreadyOpen`
 
 ## environment_failed
 
@@ -1124,7 +1134,6 @@ The thing asked for does not exist, or the caller may not see it.
 - **Agent:** Check the id (list first), then call again with one that exists.
 - **You:** Check the id or name; it may have been removed.
 - **Retry:** no
-- **Agent, when the reason is `no_mailbox`:** No mailbox has this id, and there is no tool that lists mailboxes. If the user named this mailbox, tell them it is not connected. mail_connect with its address asks the owner to connect it.
 - **Raised by:** `agentos.core.errors.NotFound`
 
 ## out_of_scope
@@ -1571,9 +1580,9 @@ The backup storage (S3 or compatible) refused or failed the request.
 
 ## studio_blank_page
 
-The review browser loaded the page, but it shows nothing: no visible text, image or control.
+The review browser loaded the page, but nothing rendered in time: no visible text, image or control.
 
-- **Agent:** Do not report the page as clean. The app most likely failed to render: the message quotes the page's own console errors when it logged any; with those and the dev server's output, fix the error, then call again.
+- **Agent:** Do not report the page as clean. A slow app (a dev server): call again with wait_for, a selector it shows when ready, like "main h1". Still blank: fix the error the message quotes from the console, or read the dev server's output.
 - **You:** Open the address in a browser and look at the console and the dev server's output for the error that stops the page rendering.
 - **Retry:** no
 - **Raised by:** `agentos.studio.browser.errors.BlankPage`
@@ -1966,7 +1975,7 @@ The vault passphrase is wrong.
 
 The cloud provider refused or failed a VM call: a bad token, a server type or location it does not offer, the project's server limit, or its API being down.
 
-- **Agent:** Tell the user what the provider said. Do not retry in a loop; a VM that failed to start is deleted by the node.
+- **Agent:** Tell the user what the provider said. Do not retry in a loop. The message says when nothing was rented; a VM that was rented and failed to start is deleted by the node.
 - **You:** Check `agentos vm status` and `agentos vm types`; run `agentos vm setup` again for a token problem.
 - **Retry:** no
 - **Raised by:** `agentos.vms.models.VmError`

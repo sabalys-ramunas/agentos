@@ -82,6 +82,19 @@ describe('Table', () => {
     expect(onActivate).toHaveBeenCalledTimes(2);
   });
 
+  it('folds a head away on a phone with the cells of its column', () => {
+    render(
+      <Table stack>
+        <thead>
+          <tr>
+            <Th phone="hide">Age</Th>
+          </tr>
+        </thead>
+      </Table>,
+    );
+    expect(screen.getByRole('columnheader', { name: 'Age' })).toHaveAttribute('data-phone', 'hide');
+  });
+
   it('has a loading form shaped like the table and an empty row that spans it', () => {
     const { container } = render(<TableSkeleton columns={['Run', 'Result']} rows={3} />);
     expect(container.querySelectorAll('tbody tr')).toHaveLength(3);

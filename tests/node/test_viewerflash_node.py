@@ -173,7 +173,7 @@ async def click_screen(page, x: float, y: float) -> None:
 
 async def test_nothing_a_watcher_sees_flashes_the_live_view(flash_node):
     mgr, tokens, host = flash_node
-    url = f"http://{host}/view/{LANE}?t={tokens.issue(LANE, 'control').token}"
+    url = f"http://{host}/view/{LANE}?t={tokens.issue(LANE, 'control', owner=True).token}"
     errors: list[str] = []
     probed: list[str | None] = []
     async with viewer_page() as page:

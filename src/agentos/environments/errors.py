@@ -44,6 +44,12 @@ class EnvironmentInUse(AgentosError):
     code = "environment_in_use"
 
 
+class EnvironmentAlreadyOpen(AgentosError):
+    """environment_open in a chat that already has a live environment, with another repository than
+    the one asked for. A chat has one environment at a time; nothing was opened."""
+    code = "environment_already_open"
+
+
 class RepoNotConnected(AgentosError):
     """environment_open named a repository the node cannot clone: it is not declared for workspace
     env with a credential in the vault, and it cannot be read without one (a private repository), or

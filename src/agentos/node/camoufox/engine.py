@@ -154,6 +154,14 @@ def _host_cores() -> int | None:
 
 # ---- engine -----------------------------------------------------------------------
 
+# Lanes whose browser is a desktop window filling the screen when its identity is drawn (the first
+# launch): an agent environment's own browser (agentos.environments, workspace "env"). Its pages are
+# the agent's work, checked at a desktop width, so a drawn half-screen window (676 px wide, which
+# shows every page's phone layout) would make each check and screenshot wrong. An account lane keeps
+# the window its identity draws, as a real person's browser has.
+DESKTOP_WORKSPACES = frozenset({"env"})
+
+
 class CamoufoxEngine:
     name = "camoufox"
 
@@ -244,6 +252,10 @@ class CamoufoxEngine:
                 # an environment's tunnel (agentos.environments): names are looked up on its VM too, so
                 # localhost and the VM's own names are the VM's
                 opts["firefox_user_prefs"]["network.proxy.socks_remote_dns"] = True
+        if pin is None and spec.workspace in DESKTOP_WORKSPACES:
+            width, height = self.screen
+            opts["screen"] = Screen(min_width=width, max_width=width, min_height=height, max_height=height)
+            opts["window"] = (width, height)  # Camoufox fits it to the screen's available area
         if pin is None and self.identity_os:
             opts["os"] = list(self.identity_os)
             if self.identity_os == ["linux"] and self.software_rendering:

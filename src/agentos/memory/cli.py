@@ -68,6 +68,25 @@ def _privacy_for(home: Path):
     return privacy_for
 
 
+_RUNTIME: dict[int, Runtime] = {}  # the runtime each open service was built with (its action log, for forget)
+
+
+def _log_forget(svc: MemoryService, entry_id: str, workspace: str | None, reason: str) -> bool:
+    """The owner's forget on the node's action log, as an agent's memory_forget is (QA 2026-11-15
+    P2-12). Never the content: the entry id, its workspace and that a reason was given. False when this
+    node has no action log yet (no policy.db): memory's own chain still records the tombstone."""
+    runtime = _RUNTIME.get(id(svc))
+    traces = runtime.get("traces") if runtime is not None else None
+    if traces is None:
+        return False
+    from agentos.policy.traces import TraceEvent
+
+    traces.write(TraceEvent(kind="memory_forget", tool="memory_forget", status="ok", principal="owner:cli",
+                            principal_kind="human", summary=f"forgot {entry_id}",
+                            args={"entry": entry_id, "workspace": workspace, "reason_given": bool(reason)}))
+    return True  # a row the log could not take yet is written when the policy service closes
+
+
 @contextmanager
 def _service() -> Iterator[MemoryService]:
     """The memory service over this node's files, with the policy (evidence pins and checks) and
@@ -97,10 +116,12 @@ def _service() -> Iterator[MemoryService]:
                         privacy_for=_privacy_for(home), node_id=getattr(cfg, "name", None))
     with _errors():
         svc = MemoryService(home, ports)
+    _RUNTIME[id(svc)] = runtime
     try:
         with _errors():
             yield svc
     finally:
+        _RUNTIME.pop(id(svc), None)
         svc.close()
         for c in closers:
             with contextlib.suppress(Exception):
@@ -158,7 +179,7 @@ def show(entry_id: str, version: Annotated[int | None, typer.Option()] = None,
     typer.echo(f"labels:  {', '.join(data['labels']) or 'none'}")
     prov = data.get("prov") or {}
     who = (prov.get("principal") or {}).get("id")
-    typer.echo(f"writer:  {who or data.get('writer')} at {data['updated_at']}"
+    typer.echo(f"writer:  {who or data.get('writer')} at {data.get('written_at') or data['updated_at']}"
                + (f", confirmed by {prov['confirmed_by']}" if prov.get("confirmed_by") else ""))
     for ev in prov.get("evidence") or []:
         typer.echo(f"evidence: {ev.get('trace')} {ev.get('tool') or ''} {ev.get('at') or ''} {ev.get('summary') or ''}")
@@ -264,6 +285,9 @@ def forget(entry_id: str, reason: Annotated[str, typer.Option(help="why (kept; t
         if not yes:
             typer.confirm(f"Forget {entry_id} ({row['type']}: {row['title']})? This cannot be undone", abort=True)
         out = svc.forget(OWNER, entry_id, reason)
+        if not out.get("already") and not _log_forget(svc, entry_id, row.get("workspace"), reason):
+            typer.secho("note: this node has no action log yet, so only memory's own history records this",
+                        err=True)
     if out.get("already"):
         typer.echo(f"{entry_id} was already forgotten")
         return

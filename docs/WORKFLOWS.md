@@ -621,10 +621,15 @@ A token reads a run as its mirror ("What leaves the node"). `POST /api/workflows
 `{ suppressed: true }`, with `new` only for a person.
 
 Tools: `workflow_save`, `workflow_list`, `workflow_get`, `workflow_run`, `workflow_runs`,
-`workflow_retry`, `workflow_propose`, `workflow_catalog`, `send_suppress`, `leads_propose`.
+`workflow_retry`, `workflow_propose`, `workflow_discard`, `workflow_catalog`, `send_suppress`, `leads_propose`.
 
-CLI: `agentos workflows apply <file>`, `export`, `list`, `run`, `runs`, `retry`, `enable`, `disable`,
-`watch`, `templates`, and `leads list`, `show`, `take`, `drop`, `export`, `erase`, `seen`. `apply` is idempotent, so a developer keeps the file in a repository. `agentos mail connect`
+`workflow_discard` lets an agent take back a draft it saved, as if it never had: only one that was
+never on, never proposed and never ran, every version saved by its own grant family. Nothing ran and no
+person saw it, so nothing is lost and nobody has to clean up after an agent's mistake. Anything else a
+person already saw or something already did, so only a person deletes it.
+
+CLI: `agentos routines workflows apply <file>`, `export`, `list`, `run`, `runs`, `retry`, `enable`, `disable`,
+`remove` (a person deletes any workflow; past runs keep their records), `watch`, `templates`, and `leads list`, `show`, `take`, `drop`, `export`, `erase`, `seen`. `apply` is idempotent, so a developer keeps the file in a repository. `agentos mail connect`
 sets up a mailbox on the node, asking for its password hidden (docs/EMAIL.md).
 
 **Mailboxes** are set up on the node only. A mailbox id looks like a lane (`harbor/mail`), so grants

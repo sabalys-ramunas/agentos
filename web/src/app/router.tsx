@@ -3,6 +3,7 @@ import type { RouterHistory } from '@tanstack/react-router';
 import {
   createRouter,
 } from '@tanstack/react-router';
+import { Spinner } from '@/components/ui/spinner';
 import { canonicalUrl, toInternalPath, toPublicPath } from './paths';
 import {
   computerFormRoute,
@@ -131,6 +132,20 @@ const routeTree = rootRoute.addChildren([
   ]),
 ]);
 
+/**
+ * What a page shows while its code or its first read loads. Without it a fresh load of a lazy page suspended up
+ * to the root, so the whole app was blank white for seconds, rail included (2026-11-15 test, F6). Each route
+ * gets it, so the shell around a page stays and only the page's own area waits.
+ */
+function PagePending() {
+  return (
+    <div role="status" aria-label="Loading" className="flex min-h-48 items-center justify-center gap-2 text-14 text-muted">
+      <Spinner />
+      Loading
+    </div>
+  );
+}
+
 export function makeRouter(queryClient: QueryClient, history?: RouterHistory) {
   // An old address (an email, a push, a bookmark) opens with the everyday names in the bar.
   if (!history && typeof window !== 'undefined') {
@@ -152,6 +167,9 @@ export function makeRouter(queryClient: QueryClient, history?: RouterHistory) {
       },
     },
     context: { queryClient },
+    defaultPendingComponent: PagePending,
+    defaultPendingMs: 150,
+    defaultPendingMinMs: 300,
     defaultPreload: 'intent',
     defaultPreloadStaleTime: 0,
     scrollRestoration: true,

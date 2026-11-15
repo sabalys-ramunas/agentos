@@ -160,13 +160,13 @@ export function proposalOf({ profile }: MockBrand): BrandProposal | null {
 export function seedVms(now = Date.now()): Vm[] {
   return [
     {
-      id: 'vm_7f3a9c21', lane: 'harbor/ci-box', state: 'ready', profile: 'small', server_type: 'cpx21', location: 'hel1',
+      id: 'vm_7f3a9c21', lane: 'env/e7k2', state: 'ready', profile: 'small', server_type: 'cpx21', location: 'hel1',
       created_at: new Date(now - 20 * MINUTE).toISOString(), ready_at: new Date(now - 19 * MINUTE).toISOString(),
       expires_at: new Date(now + 40 * MINUTE).toISOString(), minutes_left: 40, price_hourly_eur: 0.0119, cost_eur_so_far: 0.01,
       purpose: 'Run the shop end-to-end tests on a clean machine', started_by: 'An agent',
     },
     {
-      id: 'vm_2c8e4b10', lane: 'meridian/build', state: 'booting', profile: 'large', server_type: 'cpx41', location: 'fsn1',
+      id: 'vm_2c8e4b10', lane: 'env/q3mn', state: 'booting', profile: 'large', server_type: 'cpx41', location: 'fsn1',
       created_at: new Date(now - 1 * MINUTE).toISOString(), ready_at: null,
       expires_at: new Date(now + 119 * MINUTE).toISOString(), minutes_left: 119, price_hourly_eur: 0.0389, cost_eur_so_far: 0.04,
       purpose: 'Build the site images', started_by: 'The owner',

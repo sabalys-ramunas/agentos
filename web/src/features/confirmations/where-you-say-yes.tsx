@@ -189,13 +189,14 @@ export function WhereYouSayYes() {
   const rungs = setting ? rungsOf(setting.setting) : null;
   const level = (rung: Rung | undefined, fallback: ConfirmLevel): ConfirmLevel => (!rung || rung === 'auto' ? fallback : rung);
   const jobs: Job[] = [
-    { id: 'post', label: "Post on Aster Coffee's Instagram", site: 'instagram', noun: 'A post', level: level(rungs?.marked, 'chat') },
-    { id: 'reply', label: "Reply to Jonas's review", site: 'tripadvisor', noun: 'A reply after outside words', level: level(rungs?.after_untrusted, 'signed_in') },
-    { id: 'pay', label: 'Pay Nordic Ropeworks €412.50', site: 'quickbooks', noun: 'A payment', level: level(rungs?.pay, 'present') },
+    // Kinds of job, never made-up ones that read like real work waiting on this computer (2026-11-15 test, F9).
+    { id: 'post', label: 'For example, a post', site: 'instagram', noun: 'A post', level: level(rungs?.marked, 'chat') },
+    { id: 'reply', label: 'For example, a reply after reading a page', site: 'tripadvisor', noun: 'A reply after outside words', level: level(rungs?.after_untrusted, 'signed_in') },
+    { id: 'pay', label: 'For example, a payment', site: 'quickbooks', noun: 'A payment', level: level(rungs?.pay, 'present') },
   ];
   return (
     <>
-      <SettingsHeader title="Where you can say yes" description="The stronger the yes, the fewer places can give it. Pick a job to see which of yours would do." />
+      <SettingsHeader title="Where you can say yes" description="The stronger the yes, the fewer places can give it. Pick a kind of job to see which of yours would do. These are examples, not requests waiting for you." />
       <QueryView query={methods} card skeleton={<Skeleton className="h-96 rounded-xl" />}>
         {(data) => <Page org={org} methods={data} jobs={jobs} />}
       </QueryView>

@@ -22,6 +22,7 @@ from agentos.node import control_tools, devtools_tools, interaction, io_tools
 from agentos.node import tools as node_tools
 from agentos.node.interaction import WaitResult
 from agentos.node.tools import INSTRUCTIONS, RECIPES, UNTRUSTED, render_snapshot, tool_specs
+from agentos.node.tools import outline as outline_mod
 
 EM_DASH = "—"
 LANE = "personal/reddit"
@@ -211,16 +212,35 @@ class LoadingInteraction(ScriptedInteraction):
         self.waited.append(max_s)
 
 
-@pytest.mark.parametrize("loading, reads", [(True, 2), (False, 1)])
-async def test_an_empty_outline_while_the_page_still_loads_is_read_again_once(manager, loading, reads):
-    inter = LoadingInteraction(snap('- main ""'), snap(FEED), loading=loading)
+@pytest.mark.parametrize("loading", [True, False])
+async def test_an_empty_outline_after_a_navigation_is_read_again_until_the_page_renders(manager, loading,
+                                                                                         monkeypatch):
+    """Loading or not: a single-page app on a small VM renders after its scripts ran, with the document
+    complete and the network quiet (QA 2026-11-15, P2-7: refs 0 on a Vite app)."""
+    monkeypatch.setattr(outline_mod, "RENDER_POLL_S", 0.01)
+    inter = LoadingInteraction(snap('- main ""'), snap('- main ""'), snap(FEED), loading=loading)
     async with client(manager, inter) as c:
         _, outline = split(await c.call_tool(
             "browser_navigate", {"on": LANE, "url": "https://site.example/feed", "snapshot": "full"}))
-    assert inter.reads == reads and len(inter.waited) == reads - 1
-    assert ("[ref=e12]" in outline) is loading  # the second read has the refs
-    if loading:
-        assert inter.waited == [node_tools.EMPTY_OUTLINE_WAIT_S]
+    assert "[ref=e12]" in outline and inter.reads == 3
+    assert inter.waited == ([node_tools.EMPTY_OUTLINE_WAIT_S] if loading else [])
+
+
+async def test_a_page_with_text_and_nothing_to_click_is_read_as_it_is_once_it_stays_the_same(manager, monkeypatch):
+    monkeypatch.setattr(outline_mod, "RENDER_POLL_S", 0.01)
+    monkeypatch.setattr(outline_mod, "RENDER_STABLE_S", 0.05)
+    inter = LoadingInteraction(snap("- main:\n  - paragraph: Terms of service"), loading=False)
+    async with client(manager, inter) as c:
+        _, outline = split(await c.call_tool(
+            "browser_navigate", {"on": LANE, "url": "https://site.example/terms", "snapshot": "full"}))
+    assert "Terms of service" in outline and 2 <= inter.reads <= 12  # stopped once stable, long before the cap
+
+
+async def test_a_page_with_refs_is_read_once(manager):
+    inter = LoadingInteraction(snap(FEED), loading=True)
+    async with client(manager, inter) as c:
+        await c.call_tool("browser_navigate", {"on": LANE, "url": "https://site.example/feed", "snapshot": "full"})
+    assert inter.reads == 1 and inter.waited == []
 
 
 async def test_outline_memory_is_per_agent(manager):

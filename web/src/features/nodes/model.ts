@@ -1,5 +1,5 @@
 /**
- * Machines as the table reads them: every node and every disposable VM as one row, with what it is
+ * Machines as the table reads them: every node and every environment's VM as one row, with what it is
  * doing now, its load and its lanes, from what the node really serves. Nothing here is invented: a
  * value the node does not send stays null, and the screen draws an en dash for it.
  */
@@ -99,8 +99,12 @@ function runningOn(jobs: Job[], test: (job: Job) => boolean): Job[] {
   return jobs.filter((job) => job.state === 'running' && test(job)).sort((a, b) => b.started_at.localeCompare(a.started_at));
 }
 
-/** Every machine as one row: the nodes as they are served, then the VMs that are up or on their way. */
-export function machineRows(nodes: FleetNode[], vms: Vm[], jobs: Job[]): MachineRow[] {
+/**
+ * Every machine as one row: the nodes as they are served, then the VMs that are up or on their way. A VM an
+ * environment rents is named by the environment's title (`titles`, by its terminal lane), the one name a
+ * person knows it by.
+ */
+export function machineRows(nodes: FleetNode[], vms: Vm[], jobs: Job[], titles: ReadonlyMap<string, string> = new Map()): MachineRow[] {
   const vmLanes = new Set(vms.map((vm) => vm.lane));
   const rows: MachineRow[] = nodes.map((node) => {
     const { status, rank } = nodeStatus(node);
@@ -130,7 +134,7 @@ export function machineRows(nodes: FleetNode[], vms: Vm[], jobs: Job[]): Machine
     const { status, rank } = vmStatus(vm);
     rows.push({
       id: vm.id,
-      name: vm.lane,
+      name: titles.get(vm.lane) ?? vm.lane,
       type: 'vm',
       where: [vm.location, vm.server_type].filter(Boolean).join(' · '),
       status,
@@ -215,8 +219,8 @@ export function machinesSentence(rows: MachineRow[], now = Date.now()): Part[] {
   const vm = vms.find((row) => row.vm?.state === 'ready') ?? vms[0];
   if (vm?.vm) {
     const left = timeLeft(vm.vm, now);
-    const more = vms.length > 1 ? `, one of ${vms.length} rented` : '';
-    parts.push(' ', { name: vm.vm.lane }, left ? ` is a disposable VM with ${left}${more}.` : ` is a disposable VM${more}.`);
+    const more = vms.length > 1 ? `, one of ${vms.length} open` : '';
+    parts.push(' ', { name: vm.name }, left ? ` is an environment with ${left}${more}.` : ` is an environment${more}.`);
   }
   return parts;
 }

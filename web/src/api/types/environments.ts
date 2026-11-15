@@ -79,6 +79,23 @@ export interface EnvUnsaved {
   stashes?: string[];
 }
 
+/**
+ * A screenshot the agent kept as proof of its work. `src` is
+ * `/api/orgs/{org}/environments/{id}/proofs/{proof_id}.png`, behind the app's sign-in, and stays readable
+ * after the environment closed.
+ */
+export interface EnvProof {
+  id: string;
+  /** What it shows, in the agent's words: data. */
+  title: string;
+  taken_at: string;
+  /** The page it is of, as the browser had it. */
+  page_url: string | null;
+  width: number;
+  height: number;
+  src: string;
+}
+
 export interface EnvDetail extends EnvSummary {
   ports: EnvPort[];
   /** Null when the environment has no repository. */
@@ -90,4 +107,6 @@ export interface EnvDetail extends EnvSummary {
   viewer: { path: string } | null;
   closed_reason?: string | null;
   unsaved: EnvUnsaved | null;
+  /** Kept screenshots, newest first. Missing from a node that does not keep them yet. */
+  proofs?: EnvProof[];
 }

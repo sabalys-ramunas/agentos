@@ -32,6 +32,7 @@ FEATURE_TOOLS: tuple[str, ...] = (
     "agentos.brains.tools",
     "agentos.git.tools",  # git_remotes: what the node can clone and push for a workspace (no secrets)
     "agentos.env.tools",
+    "agentos.env.files",  # lane_file_read, lane_file_write, lane_file_edit: code on a lane's machine
     "agentos.vms.tools",  # vm_create, vm_destroy, vm_extend, vms_list (disposable cloud VMs as lanes)
     "agentos.environments.tools",  # environment_open, environment, environment_close (a cloud computer per chat)
     "agentos.events.tools",

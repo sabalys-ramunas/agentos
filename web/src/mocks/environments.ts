@@ -10,7 +10,7 @@
  * real run page; any other run falls through to the Runs mock.
  */
 import { http, HttpResponse } from 'msw';
-import type { EnvCall, EnvCommand, EnvDetail, EnvMachine, EnvState, EnvSummary, Job, JobDetail, Lane } from '@/api/types';
+import type { EnvCall, EnvCommand, EnvDetail, EnvMachine, EnvProof, EnvState, EnvSummary, Job, JobDetail, Lane } from '@/api/types';
 import { idleControl } from '@/lib/lanes';
 import { scenario } from './scenario';
 import type { Helpers } from './s3';
@@ -41,6 +41,32 @@ const PRICE: Record<string, number> = { cpx22: 0.0121, cpx32: 0.0213 };
 
 const at = (now: number, ms: number) => new Date(now + ms).toISOString();
 const costOf = (machine: EnvMachine, minutes: number) => Math.round(((PRICE[machine.server_type] ?? 0.0121) * minutes) / 60 * 10_000) / 10_000;
+
+/** A kept screenshot: its picture is drawn by the proofs route below, from its id. */
+function proof(env: string, id: string, title: string, takenAt: string, pageUrl: string, width = 1280, height = 800): EnvProof {
+  return { id, title, taken_at: takenAt, page_url: pageUrl, width, height, src: `/api/orgs/northwind-group/environments/${env}/proofs/${id}.png` };
+}
+
+const PROOF_PAGES: Record<string, { heading: string; tint: string; phone?: boolean }> = {
+  pf_offer_desktop: { heading: 'Black Friday: 30% off everything', tint: '#1f2937' },
+  pf_offer_phone: { heading: '30% off', tint: '#7c2d12', phone: true },
+  pf_pricing: { heading: 'Simple pricing', tint: '#1e3a8a' },
+};
+
+/** A believable page for a proof: a bar, a heading and a few blocks. Fictional, drawn as SVG. */
+function proofPicture(id: string, width: number, height: number): string {
+  const page = PROOF_PAGES[id] ?? { heading: 'A page', tint: '#334155' };
+  const pad = Math.round(width * 0.06);
+  const font = Math.round(width * (page.phone ? 0.08 : 0.04));
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<rect width="100%" height="${Math.round(height * 0.08)}" fill="#f1f5f9"/>
+<rect x="${pad}" y="${Math.round(height * 0.14)}" width="${width - pad * 2}" height="${Math.round(height * 0.34)}" rx="16" fill="${page.tint}"/>
+<text x="${pad * 1.5}" y="${Math.round(height * 0.33)}" font-family="system-ui, sans-serif" font-size="${font}" font-weight="700" fill="#ffffff">${page.heading}</text>
+<rect x="${pad}" y="${Math.round(height * 0.56)}" width="${Math.round((width - pad * 3) / 2)}" height="${Math.round(height * 0.3)}" rx="12" fill="#e2e8f0"/>
+<rect x="${Math.round(width / 2 + pad / 2)}" y="${Math.round(height * 0.56)}" width="${Math.round((width - pad * 3) / 2)}" height="${Math.round(height * 0.3)}" rx="12" fill="#e2e8f0"/>
+</svg>`;
+}
 
 function call(now: number, secondsAgo: number, tool: string, summary: string, ok = true): EnvCall {
   return { at: at(now, -secondsAgo * SECOND), tool, summary, ok };
@@ -200,6 +226,10 @@ export function seedEnvironments(now = Date.now()): MockEnv[] {
             { branch: 'feat/black-friday-offer', commit: '6e0d3b8a2c71f4e9d5b0a3c8e1f62d7b4a9c0e35', at: at(now, -7 * MINUTE) },
           ],
         },
+        proofs: [
+          proof('e7k2', 'pf_offer_phone', 'The offer page on a phone', at(now, -3 * MINUTE), 'http://localhost:3000/offer', 390, 844),
+          proof('e7k2', 'pf_offer_desktop', 'The offer banner on the home page', at(now, -9 * MINUTE), 'http://localhost:3000/'),
+        ],
         calls: [
           call(now, 25, 'ui_check', 'http://localhost:3000/offer at 360, 768 and 1280: 1 minor'),
           call(now, 70, 'lane_exec', 'git push origin feat/black-friday-offer'),
@@ -302,6 +332,8 @@ export function seedEnvironments(now = Date.now()): MockEnv[] {
         viewer: null,
         closed_reason: reason,
         unsaved: null,
+        // Kept on the node, so a closed one still has its proofs.
+        proofs: seed.id === 'p2lc' ? [proof('p2lc', 'pf_pricing', 'The new pricing page copy', new Date(end - 3 * MINUTE).toISOString(), 'http://localhost:3000/pricing')] : [],
       },
     };
   });
@@ -352,7 +384,7 @@ export function withEnvironments(db: MockDb, now = Date.now()) {
 }
 
 function strip(detail: EnvDetail): EnvSummary {
-  const { ports: _ports, git: _git, calls: _calls, commands: _commands, viewer: _viewer, closed_reason: _reason, unsaved: _unsaved, ...summary } = detail;
+  const { ports: _ports, git: _git, calls: _calls, commands: _commands, viewer: _viewer, closed_reason: _reason, unsaved: _unsaved, proofs: _proofs, ...summary } = detail;
   return summary;
 }
 
@@ -412,6 +444,16 @@ export function environmentHandlers({ org, failure, data }: Pick<Helpers, 'org' 
           .filter((env) => state !== 'open' || (env.state !== 'closed' && env.state !== 'failed'))
           .sort((a, b) => b.created_at.localeCompare(a.created_at));
         return HttpResponse.json({ environments });
+      }),
+    ),
+    http.get(
+      '/api/orgs/:org/environments/:id/proofs/:file',
+      org((record, { params }) => {
+        const item = find(record, params.id);
+        const id = String(params.file).replace(/\.png$/, '');
+        const kept = item?.detail.proofs?.find((entry) => entry.id === id);
+        if (!kept) return missing();
+        return new HttpResponse(proofPicture(kept.id, kept.width, kept.height), { headers: { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'private, max-age=86400, immutable' } });
       }),
     ),
     http.get(

@@ -167,10 +167,35 @@ async def test_anyone_can_stop_a_message_and_only_a_person_can_lift_that(node):
         await wf_tools.send_suppress(ToolCtx(node, workspaces=("other",)), workspace="biz-a", email="x@example.com")
 
 
+async def test_an_agent_takes_back_only_its_own_draft_that_never_ran_or_was_proposed(node):
+    """QA 2026-11-15 P1-1: an agent's saved routine could not be removed by anyone."""
+    ctx = ToolCtx(node)
+    draft = await wf_tools.workflow_save(ctx, definition=workflow(action("look", READ), name="Draft"))
+    out = await wf_tools.workflow_discard(ctx, id=draft["id"])
+    assert out["discarded"] is True
+    assert draft["id"] not in {w["id"] for w in (await wf_tools.workflow_list(ctx))["workflows"]}
+    with pytest.raises(NotFound):
+        await wf_tools.workflow_get(ctx, id=draft["id"])
+    # a person's workflow, a proposed one and one that ran are a person's to delete
+    persons = node.wf.save(workflow(action("look", READ), name="Persons"), OWNER)["id"]
+    with pytest.raises(PolicyDenied, match="only a person deletes it now: agentos routines workflows remove"):
+        await wf_tools.workflow_discard(ctx, id=persons)
+    _, asked, _ = proposed(node, SCHEDULE)
+    with pytest.raises(PolicyDenied, match="proposed"):
+        await wf_tools.workflow_discard(ctx, id=asked)
+    ran = await wf_tools.workflow_save(ctx, definition=workflow(action("look", READ), name="Ran"))
+    await wf_tools.workflow_run(ctx, id=ran["id"])
+    await node.settle(1)
+    with pytest.raises(PolicyDenied, match="has runs"):
+        await wf_tools.workflow_discard(ctx, id=ran["id"])
+    with pytest.raises(NotFound):  # another workspace's: not there, as for workflow_get
+        await wf_tools.workflow_discard(ToolCtx(node, workspaces=("other",)), id=ran["id"])
+
+
 def test_the_tools_are_listed_for_agents(node):
     assert {s.name for s in wf_tools.tool_specs(node.h.runtime)} == {
         "workflow_save", "workflow_list", "workflow_get", "workflow_catalog", "workflow_run", "workflow_runs",
-        "workflow_retry", "workflow_propose", "send_suppress", "leads_propose"}
+        "workflow_retry", "workflow_propose", "workflow_discard", "send_suppress", "leads_propose"}
     assert all("—" not in s.description for s in wf_tools.tool_specs(node.h.runtime))
 
 
@@ -539,6 +564,29 @@ def test_a_workflow_file_applies_and_comes_back_the_same(tmp_path, monkeypatch):
     assert exported["steps"] == definition["steps"] and exported["trigger"] == definition["trigger"]
     on = runner.invoke(cli.app, ["enable", "biz-a.routine.from-a-file"])
     assert on.exit_code == 0 and "webhook secret, shown once:" in on.output
+
+
+def test_a_person_removes_a_workflow_with_either_remove(tmp_path, monkeypatch):
+    """QA 2026-11-15 P1-1: `routines workflows remove`, and `flows remove` with a workflow id."""
+    from agentos.runner import cli as runner_cli
+    from agentos.runner.workflows import cli
+
+    monkeypatch.setenv("AGENTOS_HOME", str(tmp_path / "home"))
+    (tmp_path / "home").mkdir()
+    runner = CliRunner()
+    for name in ("One", "Two"):
+        path = tmp_path / f"{name}.yaml"
+        path.write_text(yaml.safe_dump({"name": name, "workspace": "biz-a", "trigger": {"kind": "webhook"},
+                                        "steps": [{"id": "n", "kind": "notify", "label": "tell", "message": "x"}]}))
+        assert runner.invoke(cli.app, ["apply", str(path)]).exit_code == 0
+    out = runner.invoke(cli.app, ["remove", "biz-a.routine.one"])
+    assert out.exit_code == 0 and "removed biz-a.routine.one" in out.output
+    out = runner.invoke(runner_cli.flows_app, ["remove", "biz-a.routine.two"])
+    assert out.exit_code == 0 and "removed workflow biz-a.routine.two" in out.output
+    listed = runner.invoke(cli.app, ["list", "--json"])
+    assert json.loads(listed.output) == []
+    gone = runner.invoke(runner_cli.flows_app, ["remove", "biz-a.routine.two"])
+    assert gone.exit_code == 1 and "no flow or workflow" in gone.output
 
 
 def test_an_error_in_a_file_says_which_step(tmp_path, monkeypatch):

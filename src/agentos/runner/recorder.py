@@ -203,7 +203,8 @@ class Recorder:
                            "marks the steps that publish nothing with \"publishes\": false")
         draft = {
             "id": flow_id, "title": title or f"Recorded on {lane}", "lane": lane, "effect": str(eff),
-            "description": "Recorded draft. Review the locators and add a readback for the final action.",
+            # what an agent reads in the typed tool; review advice for the author goes in the lint warnings
+            "description": "Replays steps recorded in the browser.",
             "params": {"type": "object", "properties": d.props, "required": d.required, "additionalProperties": False},
             "steps": d.steps,
         }

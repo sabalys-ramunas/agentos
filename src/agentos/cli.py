@@ -201,8 +201,10 @@ else:
 
 # The task-first top level (about 14 groups); every old name stays a hidden alias (agentos.cli_groups).
 from agentos.cli_groups import regroup as _regroup
+from agentos.cli_groups import suggest_unknown_commands as _suggest_unknown_commands
 
 _regroup(app)
+_suggest_unknown_commands()
 
 if __name__ == "__main__":
     app()

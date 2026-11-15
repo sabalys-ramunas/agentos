@@ -290,6 +290,10 @@ def test_duplicate_names_are_refused(hidden):
 async def test_unknown_tool_is_not_found():
     result = await call(build_mcp(runtime_with(), [provider(ToolSpec(name="plain_tool", handler=plain))]), "nope")
     assert result.is_error and text_of(result).startswith("not_found: no tool named 'nope'")
+    close = await call(build_mcp(runtime_with(), [provider(ToolSpec(name="plain_tool", handler=plain))]), "plain_tol")
+    lines = text_of(close).splitlines()  # QA 2026-11-15 P2-4, P2-5: a close name, and a fix that works
+    assert lines[0] == "not_found: no tool named 'plain_tol' (did you mean 'plain_tool'?)"
+    assert lines[1].startswith("fix: Call tools_more()") and "tools/list" not in text_of(close)
 
 
 # ---- unknown argument keys are refused, not dropped ----
@@ -596,6 +600,7 @@ async def test_visible_filter_narrows_listing_and_calls():
         assert {t.name for t in await server.list_tools()} == {"reader"}
         refused = await server.call_tool("writer", {})
         assert refused.is_error and refused.content[0].text.startswith("not_found: no tool named 'writer'")
+        assert refused.content[0].text.splitlines()[-1].startswith("fix: Do not look for another way")
         assert not (await server.call_tool("reader", {})).is_error
     assert {t.name for t in await server.list_tools()} == {"reader"}  # no token: what the filter allows
     assert seen[:2] == ["full", "narrow"] and seen[-1] is None

@@ -214,6 +214,14 @@ class ApiClient:
         response = await self.request("POST", path, body={} if body is None else body)
         return _json_or_none(response)
 
+    # ---- environments (the web API's routes, which a node serves as org `local`) ----
+    async def environments(self) -> list:
+        reply = await self.get("/api/orgs/local/environments", {"state": "all"})
+        return reply.get("environments", []) if isinstance(reply, dict) else []
+
+    async def environment(self, env_id: str) -> dict:
+        return await self.get(f"/api/orgs/local/environments/{_seg(env_id)}", collection=False)
+
     # ---- status, workspaces, lanes ----
     async def status(self) -> dict:
         return await self.get("/api/status")

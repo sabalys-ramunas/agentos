@@ -73,7 +73,8 @@ export interface ProofDayIndex {
 }
 
 export interface ProofVerify {
-  status: 'ok' | 'tampered' | 'unverifiable';
+  /** pending: every signed row checks out, and the newest wait for the next checkpoint. */
+  status: 'ok' | 'pending' | 'tampered' | 'unverifiable';
   checked: number;
   rows: { first: number | null; last: number | null; in_scope: number };
   proven_through: { mark: number; seq: number; at: string } | null;

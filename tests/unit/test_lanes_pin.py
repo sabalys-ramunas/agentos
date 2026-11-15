@@ -442,6 +442,24 @@ def test_a_new_lane_draws_the_identity_os_it_is_given_and_a_pinned_one_keeps_its
     assert pinned["os"] == "windows"  # the pin's own OS: a lane never changes device
 
 
+def test_an_environment_browser_draws_a_desktop_window_and_an_account_lane_its_own(tmp_path):
+    """The env browser was 676 px wide on a 1920x1080 screen (QA 2026-11-15, P2-2): every page showed its
+    phone layout. A new environment browser draws a window filling the screen; an account lane does not."""
+    engine = CamoufoxEngine(screen=(1920, 1080))
+    fp = tmp_path / "fingerprint.json"
+    env = engine.options(LaneSpec(id="env/eabcdefghjk-browser"), profile_dir=tmp_path / "p", fingerprint_path=fp,
+                         display=":150", proxy=None)
+    assert env["window"] == (1920, 1080)
+    assert (env["screen"].min_width, env["screen"].max_width, env["screen"].min_height) == (1920, 1920, 1080)
+    account = engine.options(LaneSpec(id="personal/reddit"), profile_dir=tmp_path / "p", fingerprint_path=fp,
+                             display=":150", proxy=None)
+    assert "window" not in account and account["screen"].min_width is None
+    fp.write_text(json.dumps(v1_pin()))  # a pin is replayed as it is, the environment's too
+    pinned = engine.options(LaneSpec(id="env/eabcdefghjk-browser"), profile_dir=tmp_path / "p", fingerprint_path=fp,
+                            display=":150", proxy=None)
+    assert "window" not in pinned
+
+
 def test_the_display_is_the_pinned_screen_and_the_window_sits_at_its_pinned_place():
     pin = {"screen.width": 1536, "screen.height": 864, "window.outerWidth": 1536, "window.outerHeight": 816,
            "window.screenX": 0, "window.screenY": 0}

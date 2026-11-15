@@ -284,7 +284,7 @@ def test_02b_rows_after_the_last_checkpoint_are_only_caught_by_verify(store, clo
     report("02b", alone, findings)
     assert not any(f.level == "tampered" for f in findings)
     assert summary["matched"] == 2
-    assert alone == "unverifiable"
+    assert alone == "pending"  # not "ok": the rewritten rows are not sealed by any checkpoint
 
 
 def test_03a_delete_the_unanchored_tail_with_its_marks_and_fix_the_counter(store, clock):

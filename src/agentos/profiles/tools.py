@@ -91,7 +91,7 @@ async def profile_get(ctx: ToolContext, *, profile: str | None = None, surface: 
                       version: int | None = None) -> dict:
     """Read one profile: name, headline, bios, links, photos, work history, its accounts with their
     overrides, and its voice (personality, tone, do and don't, examples) with `voice_prompt`, the
-    voice as plain instructions. Write every post, comment or reply on its accounts in that voice.
+    voice as plain instructions. Use that voice for anything you write as this person or business.
     Every field is included, phone, email, birth date and location too. Pass the profile, or one of
     its accounts to find it.
 

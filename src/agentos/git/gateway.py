@@ -23,8 +23,11 @@ For each request, in order:
    downgrade (after untrusted content a push waits for a person) and freezes all apply.
    An agent environment's VM (a `bound` token) is the exception: its push never waits for a
    person, on any branch, the default branch included, before or after untrusted content. A push
-   from it that would force-push or delete a protected branch, or move or delete a tag, is
-   refused instead (`push_refused`, with the fix: push a branch and open a pull request).
+   from it that would force-push or delete a protected branch, move or delete a tag, or force-push
+   or delete any branch the environment did not create itself (one it pushed first, which was not
+   on the remote before) is refused instead (`push_refused`, with the fix: push a new branch and
+   open a pull request). The environments service keeps the branches each one created, on its
+   record, so a restart of the node keeps them.
 4. **The remote.** Fetch: the mirror is brought up to date with the credential, then served with
    `git upload-pack`. Push: the pack goes into the mirror with `git receive-pack`, the refs are
    classified and authorized, and only then the node pushes to the real remote, each ref with a
@@ -436,7 +439,9 @@ class GitGateway:
         if caller.bound:
             # An agent's own environment (its VM's token): a push never asks a person, on any branch, the
             # default branch included (the owner's decision of 2026-11-13, docs/design/environments.md). What
-            # stays is a refusal: history on a protected branch, and tags, are not rewritten from one.
+            # stays is a refusal: history on a protected branch, tags, and any branch the environment did
+            # not create itself (a colleague's work) are not rewritten or deleted from one.
+            plan.rewrites += _foreign_rewrites(plan, self._own_branches(caller), self._own_heads(caller))
             if plan.rewrites:
                 return await _refuse_rewrites(run, plan)
             plan.why = []  # what it does is on the record; none of it waits for a person
@@ -484,7 +489,59 @@ class GitGateway:
             run.ctx.trace("git_push", result="failed", status="error", reason=e.message[:300], **trace)
             return run.refuse(f"the push did not reach {run.remote.slug}: {e.message}")
         run.ctx.trace("git_push", result="pushed", **trace)
+        if run.caller.bound:
+            self._note_branches(run)
         return Response(200, RECEIVE_RESULT, out)
+
+    def _environments(self) -> Any:
+        return self.runtime.get("environments") if self.runtime is not None else None
+
+    def _own_branches(self, caller: Caller) -> set[str]:
+        """The branches an environment's VM created on the remote (it pushed them first). None known,
+        or no environments service: an empty set, so every existing branch counts as someone else's."""
+        fn = getattr(self._environments(), "branches_created", None)
+        if not callable(fn) or caller.lane is None:
+            return set()
+        try:
+            return set(fn(caller.lane))
+        except Exception:  # noqa: BLE001 - an unreadable record owns nothing
+            log.warning("git gateway: could not read the branches %s created", caller.lane)
+            return set()
+
+    def _own_heads(self, caller: Caller) -> dict[str, str] | None:
+        """{branch: the commit the environment last pushed there} for its own branches, or None when the
+        environments service keeps no heads (then the names alone decide). Unreadable: none known, so
+        every existing branch counts as someone else's."""
+        fn = getattr(self._environments(), "branch_heads", None)
+        if not callable(fn) or caller.lane is None:
+            return None
+        try:
+            return dict(fn(caller.lane))
+        except Exception:  # noqa: BLE001 - an unreadable record owns nothing
+            log.warning("git gateway: could not read the branch heads of %s", caller.lane)
+            return {}
+
+    def _note_branches(self, run: _PushRun) -> None:
+        """After an environment's push reached the remote: the branches it created are its own from now
+        on, at the commit it pushed, and the ones it deleted no longer are. An update keeps a branch its
+        own only when it was its own at that commit (a colleague's push in between makes it theirs too)."""
+        envs = self._environments()
+        fn = getattr(envs, "note_branches", None)
+        if not callable(fn) or run.caller.lane is None:
+            return
+        own, heads_before = self._own_branches(run.caller), self._own_heads(run.caller)
+        created = [c.branch for c in run.push.commands if c.branch and c.kind == "create"]
+        deleted = [c.branch for c in run.push.commands if c.branch and c.kind == "delete"]
+        heads = {c.branch: c.new for c in run.push.commands if c.branch and (
+            c.kind == "create" or (c.kind == "update" and _is_own(c.branch, c.old, own, heads_before)))}
+        try:
+            if created or deleted:
+                fn(run.caller.lane, created=created, deleted=deleted)
+            note = getattr(envs, "note_heads", None)
+            if callable(note) and heads:
+                note(run.caller.lane, heads)
+        except Exception:  # the push went; only the record of whose branch it is is missing
+            log.exception("git gateway: could not record the branches %s pushed", run.caller.lane)
 
     def _pending_reason(self, e: ApprovalPending, why: list[str]) -> str:
         """Why a push waits, in the words the card has: untrusted text it follows, what makes it
@@ -623,15 +680,40 @@ async def _plan_ref(plan: _PushPlan, c: Command, mirror: Mirror, rule: RemoteRul
     return entry
 
 
+def _is_own(branch: str, old: str, own: set[str], heads: dict[str, str] | None) -> bool:
+    """Is `branch` the environment's own as the remote has it now (at `old`)? It created the name, and
+    the remote still has the commit it last pushed there: a name deleted and recreated by someone else,
+    or a branch a colleague added to, is theirs too, so it is not rewritten or deleted from here."""
+    if branch not in own:
+        return False
+    return heads is None or heads.get(branch) == old.split(":", 1)[-1]
+
+
+def _foreign_rewrites(plan: _PushPlan, own: set[str], heads: dict[str, str] | None = None) -> list[str]:
+    """What an environment's push would delete or force-push of branches it did not create itself (or
+    that changed on the remote since it last pushed them). A protected branch's rewrite is already in
+    the plan; a fast-forward of any branch stays allowed."""
+    out = []
+    for r in plan.refs:
+        branch = r["ref"].removeprefix("refs/heads/") if r["ref"].startswith("refs/heads/") else None
+        if branch is None or r.get("protected") or _is_own(branch, str(r.get("old") or ""), own, heads):
+            continue
+        if r["kind"] == "delete":
+            out.append(f"it deletes {branch}, a branch this environment did not create")
+        elif r.get("force"):
+            out.append(f"it force-pushes {branch}, a branch this environment did not create")
+    return out
+
+
 async def _refuse_rewrites(run: _PushRun, plan: _PushPlan) -> Response:
-    """An environment's push that rewrites a protected branch or a tag: nothing goes, the mirror goes
-    back, and the agent is told to push a new branch instead."""
+    """An environment's push that rewrites a protected branch, a tag or a branch it did not create:
+    nothing goes, the mirror goes back, and the agent is told to push a new branch instead."""
     await run.mirror.restore(run.before, run.push.commands)
     run.ctx.trace("git_push", result="refused", status="denied", reason="push_refused", lane=run.account,
                   remote=run.remote.slug, via=run.caller.label, refs=_without_log(plan.refs))
     return run.refuse(f"push_refused: {'; '.join(plan.rewrites)}, which an environment may not do; nothing was "
-                      "pushed. Fix: push your work to a new branch (git push origin HEAD:<branch>) and open a "
-                      "pull request")
+                      "pushed. Fix: push your work to a new branch of your own (git push origin HEAD:<new-branch>) "
+                      "and open a pull request")
 
 
 class Listener:

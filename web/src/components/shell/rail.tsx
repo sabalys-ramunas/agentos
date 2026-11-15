@@ -207,7 +207,7 @@ export function Rail({ org }: { org: string }) {
 const tabClass =
   'relative flex min-w-0 flex-col items-center justify-center gap-1 text-micro text-muted data-[status=active]:text-fg data-[status=active]:[&_svg]:text-fg';
 
-/** Home, Runs, Checks, Machines and Needs you at the thumb; the rest under More. */
+/** Home, Environments, Runs, Checks and Needs you at the thumb; the rest under More. */
 export function TabBar({ org }: { org: string }) {
   const counts = useRailCounts(org);
   const matchRoute = useMatchRoute();

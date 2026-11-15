@@ -658,3 +658,44 @@ def test_cli_needs_a_token(tmp_path, monkeypatch):
     assert "no credential" in result.output and "agentos connect" in result.output and EM_DASH not in result.output
     help_text = CliRunner().invoke(cli_app, ["--help"]).output
     assert "--url" in help_text and "--demo" in help_text and EM_DASH not in help_text
+
+
+# ---------------------------------------------------------------- environments (2026-11-15 test, F11)
+async def test_environments_are_listed_by_title_with_cost_time_left_and_git(node, tmp_path):
+    app = make_app(node, tmp_path)
+    async with app.run_test(size=(120, 40)) as pilot:
+        await ready(pilot)
+        await wait_until(pilot, lambda: app.state.res["environments"].ok)
+        await pilot.press("6")
+        await settle(pilot)
+        assert app.active_tab() == "environments"
+        text = screen_text(app)
+        for words in ("qa-env-2026-11-15", "working", "€0.011", "1 h 20 min", "2 not pushed", "pricing page copy"):
+            assert words in text, words
+        # one name everywhere: the overview has no workspace env, the palette finds it by its title
+        await pilot.press("1")
+        await settle(pilot)
+        assert "esrkyfqerme" not in screen_text(app)
+
+
+async def test_the_footer_keeps_help_and_quit_at_80_columns(node, tmp_path):
+    app = make_app(node, tmp_path)
+    async with app.run_test(size=(80, 24)) as pilot:
+        await ready(pilot)
+        tree = app.query_one(LaneTree)
+        tree.focus_key(("lane", "biz-b/instagram"))
+        tree.focus()
+        await settle(pilot)
+        footer = [line for line in screen_text(app).splitlines() if line.strip()][-1]
+        assert "? Help" in footer and "q Quit" in footer, footer
+
+
+def test_the_needs_line_says_which_key_opens_it(node):
+    from agentos.tui.state import DashState
+    from agentos.tui.views import needs_line
+
+    state = DashState()
+    state.set("approvals", [{"id": "ap1", "state": "pending", "effect": "commit", "summary": "Post on Reddit"}])
+    line = needs_line(state).plain
+    assert "Needs you 1" in line and "1 post approval" in line and "press 2 to see it" in line
+    assert "2 to review" not in line

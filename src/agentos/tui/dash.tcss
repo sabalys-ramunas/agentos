@@ -219,6 +219,20 @@ Screen.-narrow #lane-panels .panel {
 Footer {
     background: $panel;
 }
+#footer-row {
+    dock: bottom;
+    height: 1;
+    background: $panel;
+}
+#footer-row Footer {
+    dock: none;
+    width: 1fr;
+}
+#footer-keys {
+    width: auto;
+    padding: 0 1;
+    background: $panel;
+}
 
 /* short terminals (24 rows): drop the breathing room, keep the content */
 Screen.-short .section-title {

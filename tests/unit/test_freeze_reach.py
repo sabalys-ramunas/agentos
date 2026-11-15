@@ -156,7 +156,7 @@ FREEZE_REACH = {
     "flow_get": "id", "flow_run": "id", "flow_save": "check", "flows_list": "filter",
     "grant_info": "filter", "howto": "none", "human_ask": "none", "image_build": "none", "images_list": "none",
     "lane_check": "filter", "lane_job_cancel": "id", "lane_job_read": "id", "lane_jobs_list": "filter",
-    "lanes_list": "filter", "leads_propose": "check",
+    "lanes_list": "filter", "leads_propose": "check", "mail_mailboxes": "filter",
     "memory_forget": "check", "memory_get": "check",  # agentos.memory: a frozen workspace reads as not found
     "plugins_list": "filter",
     # agentos.profiles: _check_reach / _sees go through covers_workspace and can_access_lane
@@ -171,7 +171,7 @@ FREEZE_REACH = {
     "finding_get": "none", "studio_status": "none", "system_check": "check", "ui_baseline": "check",
     "ui_check": "check", "ui_diff": "check", "ui_image": "none", "site_api_try": "id", "site_apis_list": "filter",
     "traces_query": "filter", "vault_list": "filter", "vms_list": "filter", "whoami": "none",
-    "workflow_catalog": "filter", "workflow_get": "id", "workflow_list": "filter", "workflow_propose": "id",
+    "workflow_catalog": "filter", "workflow_discard": "id", "workflow_get": "id", "workflow_list": "filter", "workflow_propose": "id",
     "workflow_retry": "id", "workflow_run": "id", "workflow_runs": "id", "workflow_save": "check",
     "workspace_apply": "check", "workspace_list": "filter", "workspace_plan": "check", "workspace_queue": "filter",
 }

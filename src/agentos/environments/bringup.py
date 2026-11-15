@@ -80,6 +80,8 @@ class BringUp:
                 env = self.store.update(env_id, rented)
             await self._wait_vm(env)
             await self._wait_setup(env)
+            with contextlib.suppress(AgentosError):  # pnpm on an older snapshot (machine.TOOLS_TOP_UP)
+                await self.envs().exec(env.terminal_lane, machine.TOOLS_TOP_UP, timeout_s=machine.TOOLS_TOP_UP_S)
             await self._start_tunnel(env)
             await self._make_browser(env)
             if env.repo:

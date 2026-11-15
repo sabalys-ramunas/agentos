@@ -111,9 +111,9 @@ describe('Home', () => {
     const { user } = renderApp('/northwind-group');
     const bars = await screen.findAllByRole('navigation', { name: 'Main' });
     const tabs = within(bars[1]!);
-    expect(tabs.getAllByRole('link').map((item) => item.textContent?.replace(/, \d+ waiting$/, ''))).toEqual(['Home', 'Runs', 'Checks', 'Machines', 'Needs you']);
+    expect(tabs.getAllByRole('link').map((item) => item.textContent?.replace(/, \d+ waiting$/, ''))).toEqual(['Home', 'Environments', 'Runs', 'Checks', 'Needs you']);
     await user.click(tabs.getByRole('button', { name: /^More/ }));
-    expect((await screen.findAllByRole('menuitem')).map((item) => item.textContent)).toEqual(['Environments', 'Brand', 'Accounts', 'Routines', 'Email', 'Site APIs', 'History', 'Settings']);
+    expect((await screen.findAllByRole('menuitem')).map((item) => item.textContent)).toEqual(['Machines', 'Brand', 'Accounts', 'Routines', 'Email', 'Site APIs', 'History', 'Settings']);
   });
 
   it('does not offer setup to an approver: their Home is Needs you', async () => {

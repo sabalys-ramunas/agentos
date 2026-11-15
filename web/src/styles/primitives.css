@@ -167,7 +167,8 @@
     .ui-table[data-stack] > tbody > tr[aria-selected='true'] > td:first-child::before {
       content: none;
     }
-    .ui-table[data-stack] > tbody > tr > td[data-phone='hide'] {
+    .ui-table[data-stack] > tbody > tr > td[data-phone='hide'],
+    .ui-table[data-stack] > thead > tr > th[data-phone='hide'] {
       display: none;
     }
     .ui-table[data-stack] > tbody > tr > td[data-label]::before {

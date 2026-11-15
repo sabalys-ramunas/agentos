@@ -137,11 +137,21 @@ fingerprint, never the secret) and, for one remote, what the owner still has to 
 | push to anything but `refs/heads/*` and `refs/tags/*`, a signed push | refused | |
 
 **From an agent environment's VM** (docs/ENVIRONMENTS.md) nothing asks a person, after untrusted
-content or with "Ask me first" on: a push to any branch, the default branch and a force push of
-the agent's own branch included, is a `commit` on the environment's lane that runs on its own. A
-force push or a delete of a protected branch (the default branch unless `--allow-default-branch`,
-and `--protect` globs), and moving or deleting a tag, is refused instead (`push_refused`: push a
-branch and open a pull request). The VM's token reaches its own repository only.
+content or with "Ask me first" on: a new branch, a fast-forward of any branch (the default branch
+included), and a force push or a delete of a branch the environment created itself, is a `commit`
+on the environment's lane that runs on its own. Refused instead, asking nobody (`push_refused`:
+push a new branch and open a pull request; nothing is pushed and the mirror is put back):
+
+- a force push or a delete of a protected branch (the default branch unless
+  `--allow-default-branch`, and `--protect` globs);
+- a force push or a delete of any other branch the environment did not create: one that was on the
+  remote before its first push, such as a colleague's feature branch;
+- moving or deleting a tag.
+
+A branch the environment created is one it pushed first (a push that creates the ref). The
+environments service keeps that list on the environment's record, so a restart of the node keeps
+it; a branch it deletes is no longer its own. The VM's token reaches its own repository only.
+Pushes from anywhere else (account lanes, brains, the owner) keep the rules in the table above.
 
 The lane a push is a commit on: the lane the command runs in. A brain task has no lane of its own,
 so its push is a commit on the declaration's lane when the task was given that lane

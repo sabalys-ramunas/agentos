@@ -155,6 +155,16 @@ def test_view_prints_a_signed_link_and_the_tunnel(daemon, runner, home):
     assert lane(runner, "view", LANE, "--ttl", "5").exit_code == 2  # below the minimum
 
 
+def test_open_on_the_node_itself_prints_the_nodes_own_control_link(daemon, runner, tmp_path, monkeypatch):
+    monkeypatch.setenv("HOME", str(tmp_path / "user"))  # no connections from this box
+    monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
+    result = runner.invoke(app, ["open", LANE, "--print"])
+    assert result.exit_code == 0, result.output
+    assert "no connections" not in result.output and "control link" in result.output
+    assert f"http://localhost:{daemon.port}/view/personal/reddit?t=" in result.output
+    assert f"ssh -N -L {daemon.port}:localhost:{daemon.port} mynode" in result.output
+
+
 def test_unknown_lane_and_bad_ids(daemon, runner):
     result = lane(runner, "take", "personal/nope")
     assert result.exit_code == 1 and "lane_not_found" in result.output

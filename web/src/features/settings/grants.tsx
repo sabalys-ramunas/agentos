@@ -18,6 +18,7 @@ import { date, slugify } from '@/lib/format';
 import { effectLabel } from '@/lib/labels';
 import { useRunsAlone } from '@/features/nodes/add-node';
 import { SettingsHeader } from './page';
+import { workspaceWords } from '@/lib/plain-node';
 
 const CEILINGS: Effect[] = ['read', 'draft', 'commit', 'pay', 'irreversible'];
 const TTLS = [
@@ -122,6 +123,7 @@ export function GrantsSettings() {
   const access = useAccess(org);
   const alone = useRunsAlone(org);
   const grants = useGrants(org);
+  const workspaces = useWorkspaces(org).data ?? [];
   const revoke = useRevokeGrant(org);
   const [creating, setCreating] = useState(false);
   const [revoking, setRevoking] = useState<Grant | null>(null);
@@ -172,7 +174,7 @@ export function GrantsSettings() {
                         <p className="mono truncate text-13">{grant.subject}</p>
                         <p className="text-13 whitespace-normal text-faint">
                           <span className="md:hidden">{effectLabel[grant.ceiling]} · </span>
-                          {grant.workspaces.join(', ')}
+                          {grant.workspaces.map((id) => workspaceWords(id, workspaces.find((item) => item.id === id)?.name)).join(', ')}
                           {grant.budget ? ` · ${grant.budget}` : ''}
                         </p>
                       </Td>

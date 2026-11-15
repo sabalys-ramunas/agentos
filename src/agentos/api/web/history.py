@@ -19,6 +19,7 @@ from starlette.requests import Request
 from starlette.routing import BaseRoute
 
 from agentos.api.app import Api
+from agentos.api.web import environments as envs_web
 from agentos.api.web import telling
 from agentos.api.web.base import call, org_route, read, write
 from agentos.core.errors import InvalidRequest
@@ -53,6 +54,8 @@ CHECKED, NOT_CHECKED, PARTIAL, FAILED, NOT_RUN, RUNNING = "checked", "not_checke
 VERDICT_OF = {"succeeded_verified": CHECKED, "succeeded_unverified": NOT_CHECKED, "partial": PARTIAL, "failed": FAILED,
               "cancelled": NOT_RUN, "running": RUNNING, "queued": RUNNING, "waiting_approval": RUNNING}
 PROBLEMS = {FAILED, PARTIAL}
+# Work in an agent's own environment: there is no account to check it on, so it is done, not "not checked".
+DONE_HERE = "done"
 PHRASES = {  # {place} is filled in: "post on {place}", and "posting on {place}" while it runs
     POST: ("post on {place}", "posting on {place}"), PUBLISH: ("publish on {place}", "publishing on {place}"),
     REPLY: ("reply on {place}", "replying on {place}"), DRAFT: ("write drafts on {place}", "writing drafts on {place}"),
@@ -296,6 +299,7 @@ class _Ctx:
         self.approvals = approvals
         self.people = people
         self.routines = routines or {}  # a routine's id to its name, for a story to name it
+        self.environments: dict[str, str] = {}  # an environment's id to its title
 
     def day(self, moment: datetime) -> date:
         return moment.astimezone(self.zone).date()
@@ -527,6 +531,79 @@ def _call_story(row: dict[str, Any], ctx: _Ctx, about: list[dict[str, Any]] | No
     }
 
 
+# What a call in an environment did, in a person's words: the tool's family, then the step's own label.
+ENV_KINDS = (("command", ("lane_exec", "lane_job_start", "terminal")), ("browser", ("browser_", "ui_", "lane_view")),
+             ("files", ("files_",)), ("git", ("git_", "environment_push")))
+ENV_STEP = {"command": "Ran a command in the terminal", "browser": "Used the browser",
+            "files": "Moved files", "git": "Worked with git", "other": "Took a step"}
+ENV_COUNTS = {"command": ("ran {n} command", "ran {n} commands"), "browser": ("used the browser once", "used the browser {n} times"),
+              "files": ("moved files once", "moved files {n} times"), "git": ("worked with git once", "worked with git {n} times"),
+              "other": ("took {n} other step", "took {n} other steps")}
+SESSION_GAP = timedelta(minutes=30)  # calls further apart than this are another session in the same environment
+
+
+def _env_kind(tool: str) -> str:
+    for kind, prefixes in ENV_KINDS:
+        if tool.startswith(prefixes):
+            return kind
+    return "other"
+
+
+def _joined(parts: list[str]) -> str:
+    return parts[0] if len(parts) == 1 else ", ".join(parts[:-1]) + " and " + parts[-1]
+
+
+def environment_stories(rows: list[dict[str, Any]], ctx: _Ctx) -> list[dict[str, Any]]:
+    """An agent's calls in its own environment, one story per session (same environment, same agent, no
+    gap over SESSION_GAP): "Worked in qa-env: ran 9 commands and used the browser twice". There is no
+    account to check, so a session is done, never "not checked"; the raw commands are technical details."""
+    sessions: list[list[dict[str, Any]]] = []
+    last: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    for row in sorted(rows, key=lambda r: r["at"]):
+        key = (str(envs_web.environment_id(row["lane"])), str(row.get("principal") or ""))
+        open_one = last.get(key)
+        if open_one is None or _when(row["at"]) - _when(open_one[-1]["at"]) > SESSION_GAP:
+            open_one = last[key] = []
+            sessions.append(open_one)
+        open_one.append(row)
+    return [_environment_story(session, ctx) for session in sessions]
+
+
+def _environment_story(rows: list[dict[str, Any]], ctx: _Ctx) -> dict[str, Any]:
+    env_id = str(envs_web.environment_id(rows[0]["lane"]))
+    title = ctx.environments.get(env_id, "an environment")
+    newest = rows[-1]
+    counts: dict[str, int] = defaultdict(int)
+    for row in rows:
+        counts[_env_kind(str(row.get("tool") or ""))] += 1
+    order = ["command", "browser", "files", "git", "other"]
+    parts = [ENV_COUNTS[k][0 if counts[k] == 1 else 1].format(n=counts[k]) for k in order if counts[k]]
+    errors = sum(TRACE_STATUS.get(row["status"]) == "failed" for row in rows)
+    refused = sum(row["status"] == "denied" for row in rows)
+    text = "It ran on the agent's own computer, so there is no account to check."
+    if errors:
+        text += f" {errors} of the {len(rows)} steps ended with an error, which is normal while coding."
+    if refused:
+        text += f" agentos refused {refused} {'step' if refused == 1 else 'steps'}."
+    principal = principal_out({"kind": newest.get("principal_kind"), "id": newest.get("principal")})
+    commands = [str(row.get("summary") or row.get("tool") or "") for row in rows]
+    cost = {"tokens": sum(int((row.get("cost") or {}).get("tokens") or 0) for row in rows),
+            "usd": round(sum(float((row.get("cost") or {}).get("usd") or 0) for row in rows), 6)}
+    lane = f"{envs_web.WORKSPACE}/{env_id}"
+    return {
+        "id": newest["id"], "source": "call", "at": newest["at"], "started_at": rows[0]["at"], "lane": lane,
+        "workspace": envs_web.WORKSPACE, "workspace_name": None, "environment": {"id": env_id, "title": title},
+        "place": title, "site": {"key": "environment", "label": title}, "action": TASK,
+        "sentence": f"Worked in {title}: {_joined(parts)}", "verdict": DONE_HERE, "verdict_text": text,
+        "reason": None, "detail": "\n".join(commands)[:4000], "status": "succeeded_unverified", "kind": KIND_OF.get(TASK),
+        "proof": None, "who": _who(principal, ctx, title, None), "why": _why(None, None, ctx, principal),
+        "steps": [{"id": row["id"], "at": row["at"], "label": ENV_STEP[_env_kind(str(row.get("tool") or ""))],
+                   "status": TRACE_STATUS.get(row["status"], "failed")} for row in rows],
+        "technical": {"run_id": None, "flow": None, "tool": ", ".join(sorted({str(r.get("tool")) for r in rows})),
+                      "effect": newest.get("effect") or None, "cost": cost},
+    }
+
+
 def _is_quiet_read(story: dict[str, Any]) -> bool:
     return story["action"] == READ and story["verdict"] in (CHECKED, NOT_CHECKED)
 
@@ -535,7 +612,7 @@ def counts_as_done(story: dict[str, Any]) -> bool:
     """What "done" means, the one rule Home's "Done today" and History's day lines both use: agents' and
     routines' work that went through. A person's own action is theirs, not done for them; a failure, or a
     part that went out, is a problem; and a look at a site is a check (its own count), not a thing done."""
-    if story["verdict"] not in (CHECKED, NOT_CHECKED) or story["action"] == READ:
+    if story["verdict"] not in (CHECKED, NOT_CHECKED, DONE_HERE) or story["action"] == READ:
         return False
     return (story.get("who") or {}).get("kind") != "human"
 
@@ -602,6 +679,7 @@ async def stories_between(request: Request, api: Api, start: datetime, end: date
     decided = [item for state in ("approved", "denied") for item in await read(request, "/api/approvals", query={"state": state, "limit": 200})]
     approvals = {item["id"]: item for item in decided if item.get("kind") != "question"}
     ctx = _Ctx(zone, names, flows, approvals, await _names(request), routines)
+    ctx.environments = envs_web.titles(api)
 
     runs = await read(request, "/api/runs", query={"limit": 500})
     stories: list[dict[str, Any]] = []
@@ -622,13 +700,18 @@ async def stories_between(request: Request, api: Api, start: datetime, end: date
     for row in calls:
         if row.get("parent_id") and row["kind"] != STORY_KIND:
             about[row["parent_id"]].append(row)
+    in_environments: list[dict[str, Any]] = []
     for row in calls:
         if row["kind"] != STORY_KIND or row["status"] in ("started", "pending") or row.get("run_id") \
                 or not row.get("lane") or not row.get("tool"):
             continue
         if not (start <= _when(row["at"]) < end):
             continue
+        if envs_web.environment_id(row["lane"]) in ctx.environments:
+            in_environments.append(row)
+            continue
         stories.append(_call_story(row, ctx, about.get(row.get("parent_id") or "", [])))
+    stories += environment_stories(in_environments, ctx)
 
     stories.sort(key=lambda story: story["at"], reverse=True)
     return stories, working, ctx

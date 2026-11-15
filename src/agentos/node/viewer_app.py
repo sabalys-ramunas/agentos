@@ -15,6 +15,7 @@ Two pieces for the daemon's HTTP server (docs/API.md, "Lane control"):
       GET  /view/{ws}/{name}/login?t=...     the lane's assisted login (agentos.node.login_assist)
       POST /view/{ws}/{name}/login?t=...     {"action": start|step|refresh|take|resume|cancel|save, ...}
       GET  /view/{ws}/{name}/login.png?t=... the login step's redacted screenshot
+      GET  /view/env/{id}-browser/proof/{proof}.png?t=...  an environment's proof image (its own signed link)
       GET  /viewer-assets/...                the page's JS, CSS and vendored noVNC
 - `control_api_routes(lanes, links)`: the owner's API, mounted under /api BEHIND the
   bearer (or panel session) check:
@@ -41,7 +42,10 @@ lane_view gives its link to an agent, which can open it itself, so a link that i
 never a person: a hand-back, a take over of a held, stopped or quarantined lane (`person_needed`), the
 assisted login and adding a site also need the owner's panel session in the same browser
 (`ViewerApp._person_here`; the viewer is served at the panel's address, so its SameSite cookie comes
-along), and the page then swaps to an owner link of its own. Without one, the relay passes no input from
+along), and the page then swaps to an owner link of its own. The one exception is an open environment's
+own browser (`env/<id>-browser`, `ViewerApp._holder`): it holds no account, no login and no vault entry, so
+the holder of its control link may take over, type, copy and hand back without a sign-in, recorded as
+LINK_HOLDER_BY; a freeze still ends that link, and account lanes keep every rule here. Without one, the relay passes no input from
 the link, and the lane's clipboard (which can hold what never was on the screen) is not read for it. Every link has a hard end signed into it that a renew never moves: AGENT_LINK_MAX for a
 link anyone but a person made, OWNER_LINK_MAX for an owner link (docs/THREAT-MODEL.md, "Viewer links").
 """
@@ -90,6 +94,7 @@ ASSETS_DIR = VIEWER_DIR / "assets"
 PAGE_TEMPLATE = VIEWER_DIR / "page.html"
 ASSETS_PATH = "/viewer-assets"
 VIEWER_BY = "owner"                # `by` for actions taken from a viewer link or the owner API
+LINK_HOLDER_BY = "link holder"     # `by` for what the holder of an environment browser's control link does
 MAX_RELAYS_PER_LANE = 8
 EVENT_POLL_SECONDS = 2.0
 HEARTBEAT_SECONDS = 15.0
@@ -157,10 +162,13 @@ def _agentos_error(exc: AgentosError) -> JSONResponse:
 class ViewerApp:
     def __init__(self, lanes: Any, config: NodeConfig, *, traces: Any = None, tokens: ViewTokens | None = None,
                  login: Callable[[], Any] | None = None, live: LiveSockets | None = None,
-                 freeze: Callable[[], Any] | None = None):
+                 freeze: Callable[[], Any] | None = None, environments: Callable[[], Any] | None = None):
         """`live`: the node's live sockets (agentos.core.live), so a freeze, the link's expiry or a revoke
-        closes an open viewer and its event stream. `freeze` returns the node's freeze service."""
+        closes an open viewer and its event stream. `freeze` returns the node's freeze service, and
+        `environments` the environments service (which lanes are an environment's own browser, and
+        its proof images)."""
         self.lanes = lanes
+        self.environments = environments
         self.live = live
         self.freeze = freeze
         self._renewed: dict[str, float] = {}  # nonce -> the latest expiry a renew gave that link
@@ -212,6 +220,22 @@ class ViewerApp:
             log.warning("could not read the panel's sessions", exc_info=True)
             return False
         return session is not None and not session.is_member and session.via != "device"
+
+    def _holder(self, lane_id: str, link: ViewLink) -> bool:
+        """Does the holder of this link use the browser as a person would, with no panel sign-in? Only a
+        control link on an open environment's own browser (env/<id>-browser): it holds no account, no
+        login and no vault entry, so there is nothing a person must guard there (docs/THREAT-MODEL.md,
+        "Viewer links"). It may take over, type and hand back. A freeze still ends the link, and what it
+        does is recorded as LINK_HOLDER_BY, not as the owner. Every other lane keeps the rules above."""
+        if not link.can_control or link.owner:
+            return False
+        svc = self.environments() if self.environments is not None else None
+        check = getattr(svc, "is_browser_lane", None)
+        try:
+            return bool(callable(check) and check(lane_id))
+        except Exception:
+            log.warning("could not tell whether %s is an environment's browser", lane_id, exc_info=True)
+            return False
 
     def _owner_link(self, lane_id: str) -> ViewLink:
         """A person's own link, for a page whose owner proved themselves with their panel session."""
@@ -331,16 +355,18 @@ class ViewerApp:
             # the owner, signed in to the panel in this browser, opened a link an agent was given: the
             # page works on a person's own link from here, so the owner can clear what the agent may not
             link, person = self._owner_link(lane_id), True
+        holder = not person and self._holder(lane_id, link)
         boot = {
             "lane": lane_dict(info),
             "mode": link.mode.value,
             "owner": link.owner,
-            "person": person,
+            "person": person or holder,  # may hand back and type: a person, or an environment browser's holder
+            "holder": holder,
             "token": link.token,
             "expires_at": link.expires_iso,
             "control_idle_seconds": self.config.control_idle_seconds,
             "node": self.config.name,
-            "me": VIEWER_BY,
+            "me": LINK_HOLDER_BY if holder else VIEWER_BY,
             "traces": self.traces is not None,
             "paths": {
                 "ws": f"{base}/viewer-ws/{workspace}/{name}",
@@ -366,7 +392,8 @@ class ViewerApp:
         """One control action. What only a person may do (`person_needed`: a hand-back, a take over of a
         held or stopped lane) needs an owner link or the owner's panel session in this browser on top of
         the link, because lane_view gives the link to an agent, which can open it itself. When the
-        session is what proved it, the answer carries a person's own link for the page (`owner_link`)."""
+        session is what proved it, the answer carries a person's own link for the page (`owner_link`). On an
+        environment's own browser the control link alone may (`_holder`), recorded as the link holder."""
         try:
             lane_id, link, person = self._acting_link(request)
         except TokenError as e:
@@ -382,10 +409,12 @@ class ViewerApp:
         action = body.get("action") if isinstance(body, dict) else None
         note = body.get("note") if isinstance(body, dict) else None
         done = body.get("done") if isinstance(body, dict) else None
+        holder = not person and self._holder(lane_id, link)
         try:
-            if action in ACTIONS and not person and person_needed(self.lanes.get(lane_id), action):
+            if action in ACTIONS and not (person or holder) and person_needed(self.lanes.get(lane_id), action):
                 return _error(403, "presence_required", NEEDS_PERSON_HERE)
-            info, changed = await apply_action(self.lanes, lane_id, action, by=VIEWER_BY, note=note, done=done)
+            info, changed = await apply_action(self.lanes, lane_id, action, by=LINK_HOLDER_BY if holder else VIEWER_BY,
+                                               note=note, done=done)
         except AgentosError as e:
             return _agentos_error(e)
         out: dict[str, Any] = {"lane": lane_dict(info), "changed": changed}
@@ -468,7 +497,8 @@ class ViewerApp:
         if not link.can_control:
             return _error(403, "denied", "This link can only watch, so it cannot copy from the lane. Open a control "
                                          "link from the panel.")
-        if not person:
+        holder = not person and self._holder(lane_id, link)
+        if not (person or holder):
             return _error(403, "presence_required", "Only a person can copy from the lane, and an agent may hold "
                                                     "this link. Sign in to the panel on this node in this browser "
                                                     "(the same address, at /login), then copy again.")
@@ -488,10 +518,10 @@ class ViewerApp:
             text = await lane_clipboard.read_clipboard(viewer.display, viewer.xauthority)
         except AgentosError as e:
             return _error(_login_status(e), e.code, e.message)
-        self._record_clipboard(lane_id, len(text))
+        self._record_clipboard(lane_id, len(text), by=LINK_HOLDER_BY if holder else VIEWER_BY)
         return JSONResponse({"lane": lane_id, "text": text, "chars": len(text)}, headers={"Cache-Control": "no-store"})
 
-    def _record_clipboard(self, lane_id: str, chars: int) -> None:
+    def _record_clipboard(self, lane_id: str, chars: int, *, by: str = VIEWER_BY) -> None:
         """The action log's row for a clipboard read: who, which lane, how many characters. Never the text."""
         write = getattr(self.traces, "write", None)
         if write is None:
@@ -501,8 +531,10 @@ class ViewerApp:
         summary = (f"copied {chars} characters from the lane to the live view's computer" if chars
                    else "read the lane's clipboard for the live view: nothing was copied")
         try:
-            write(TraceEvent(kind="lane_clipboard", tool="lane.clipboard", status="ok", principal=VIEWER_BY,
-                             principal_kind="human", lane=lane_id, summary=summary, args={"chars": chars}))
+            # the holder of an environment browser's control link may be the agent itself: not a person
+            kind = "link" if by == LINK_HOLDER_BY else "human"
+            write(TraceEvent(kind="lane_clipboard", tool="lane.clipboard", status="ok", principal=by,
+                             principal_kind=kind, lane=lane_id, summary=summary, args={"chars": chars}))
         except Exception:
             log.warning("%s: could not record a clipboard read", lane_id, exc_info=True)  # the row has no text
 
@@ -627,12 +659,14 @@ class ViewerApp:
             await websocket.close(code=refused[0], reason=refused[1])
             return
         hub = self.hub
+        holder = not person and self._holder(lane_id, link)
 
         def allow_input() -> bool:
             # only a person types: input here counts as a human's, which the commit gate and the
             # approvals never stop, and a captcha is a person's to answer. A link an agent may hold
-            # can take an unheld lane (that only stops agents) but never drive it.
-            return person and link.can_control and hub.state(lane_id) == ControlState.HUMAN
+            # can take an unheld lane (that only stops agents) but never drive it. An environment's
+            # own browser is the exception (`_holder`): no account is behind it to guard.
+            return (person or holder) and link.can_control and hub.state(lane_id) == ControlState.HUMAN
 
         relay = VncRelay(websocket, **upstream(viewer), allow_input=allow_input,
                          on_input=lambda: self.lanes.note_human_input(lane_id))
@@ -742,8 +776,28 @@ class ViewerApp:
             body.clear()
         return JSONResponse({**out, "owner_link": True}, headers={"Cache-Control": "no-store"})  # only a person
 
+    async def proof(self, request: Request) -> Response:
+        """An environment's proof image (agentos.environments.proofs), for its own signed link: the
+        environments service checks the link, and it opens that one image and nothing of the lane."""
+        svc = self.environments() if self.environments is not None else None
+        read = getattr(svc, "signed_proof", None)
+        params = request.path_params
+        data = None
+        if callable(read):
+            try:
+                data = read(params["workspace"], params["name"], params["proof"], request.query_params.get("t"))
+            except Exception:
+                log.warning("could not read a proof", exc_info=True)
+        if not data:
+            return _error(403, "denied", "This proof link is not valid or has expired. Ask the agent for a fresh one "
+                                         "(environment() lists them).")
+        return Response(data, media_type="image/png", headers={
+            "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff",
+            "Content-Security-Policy": "default-src 'none'", "Referrer-Policy": "no-referrer"})
+
     def routes(self) -> list:
         return [
+            Route("/view/{workspace}/{name}/proof/{proof}.png", self.proof, methods=["GET"]),
             Route("/view/{workspace}/{name}/login", self.login_get, methods=["GET"]),
             Route("/view/{workspace}/{name}/login", self.login_post, methods=["POST"]),
             Route("/view/{workspace}/{name}/login.png", self.login_shot, methods=["GET"]),
@@ -781,11 +835,13 @@ def _owner_in_person(request: Request, lanes: Any = None) -> bool:
 
 def build_viewer_app(lanes: Any, config: NodeConfig, *, traces: Any = None,
                      tokens: ViewTokens | None = None, login: Callable[[], Any] | None = None,
-                     live: LiveSockets | None = None, freeze: Callable[[], Any] | None = None) -> Starlette:
+                     live: LiveSockets | None = None, freeze: Callable[[], Any] | None = None,
+                     environments: Callable[[], Any] | None = None) -> Starlette:
     """The public viewer routes (token auth). `app.state.viewer` is the ViewerApp, whose
     `make_view_link(lane_id, mode, ttl)` the MCP lane_view tool uses. `login` returns the node's
     assisted login service (agentos.node.login_assist.service_for), for the live view's login form."""
-    viewer = ViewerApp(lanes, config, traces=traces, tokens=tokens, login=login, live=live, freeze=freeze)
+    viewer = ViewerApp(lanes, config, traces=traces, tokens=tokens, login=login, live=live, freeze=freeze,
+                       environments=environments)
     app = Starlette(routes=viewer.routes())
     app.state.viewer = viewer
     return app
@@ -797,4 +853,5 @@ def viewer_app_from_runtime(runtime: Any) -> Starlette:
 
     return build_viewer_app(runtime.require("lanes"), runtime.require("config"), traces=runtime.get("traces"),
                             tokens=runtime.get("viewer_links"), login=lambda: service_for(runtime),
-                            live=live_sockets.of(runtime), freeze=lambda: runtime.get("freeze"))
+                            live=live_sockets.of(runtime), freeze=lambda: runtime.get("freeze"),
+                            environments=lambda: runtime.get("environments"))

@@ -168,6 +168,12 @@ export const OWN_WORDS: Record<string, string> = { blog: 'blog', mail: 'inbox', 
 /** Where: "Harbor Supply's Instagram", "your personal LinkedIn", "Aster Coffee's blog". */
 export function placeOf(lane: string, businessName: (workspace: string) => string | undefined) {
   const [workspace = '', name = ''] = lane.split('/');
+  // An agent's environment (env/<id>, env/<id>-browser) is its own computer, not someone's account.
+  if (workspace === 'env') {
+    const title = businessName(lane);
+    const place = title ?? 'its environment';
+    return { workspace, business: '', site: place, named: place, siteKey: 'environment', place };
+  }
   const known = siteOf(lane);
   const site = known ? (OWN_WORDS[known.key] ?? known.name) : name ? name.replaceAll('-', ' ') : 'the site';
   const business = businessName(workspace) ?? (workspace ? workspace.charAt(0).toUpperCase() + workspace.slice(1) : '');
@@ -240,7 +246,9 @@ export function storyOf(source: Source, businessName: (workspace: string) => str
   const verb = parsed?.verb ?? fallback?.verb;
   const object = parsed ? parsed.object : (fallback?.object ?? '');
   const tail = parsed?.tail ?? source.summary;
-  const result = RESULT_OF[source.status];
+  // In an agent's environment there is no account to check, so what ran is done, not "not checked".
+  const inEnvironment = where.siteKey === 'environment' && source.status === 'succeeded_unverified';
+  const result = inEnvironment ? 'checked' : RESULT_OF[source.status];
   const reason = reasonOf(tail, where.named);
   const notTried = /^not run\b/i.test(source.summary) || (source.status === 'cancelled' && /no decision|expired/i.test(source.summary));
   const routineRead = source.effect === 'read' && (result === 'checked' || result === 'unchecked');
@@ -279,6 +287,12 @@ export function storyOf(source: Source, businessName: (workspace: string) => str
         : `agentos looked at ${site} afterwards and saw it was done.`;
       break;
     case 'succeeded_unverified':
+      if (inEnvironment) {
+        label = 'Done';
+        verdict = 'Done.';
+        because = "It ran on the agent's own computer, so there is no account to check.";
+        break;
+      }
       label = 'Not checked';
       note = `It ran, but we could not see it on ${site} afterwards.`;
       verdict = 'Done, but not checked.';

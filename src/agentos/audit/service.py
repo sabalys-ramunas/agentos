@@ -728,7 +728,7 @@ def verify_bundle(path: Path, *, trusted: set[str] | None = None) -> Report:
     report.findings.extend(extra)
     if any(f.level == "tampered" for f in report.findings):
         report.status = "tampered"
-    elif report.status == "ok" and any(f.level == "unprovable" for f in report.findings):
+    elif report.status in ("ok", "pending") and any(f.level == "unprovable" for f in report.findings):
         report.status = "unverifiable"
     return report
 

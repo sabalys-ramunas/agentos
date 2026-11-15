@@ -388,13 +388,19 @@ class FlowService:
         return out
 
     def catalog(self, prefix: str | None = None, limit: int = 50, *, seen: Callable[[str], bool] | None = None,
-                lane_seen: Callable[[str], bool] | None = None) -> dict[str, Any]:
+                lane_seen: Callable[[str], bool] | None = None, lane: str | None = None) -> dict[str, Any]:
         """Flows by namespace. `seen(lane or pattern)`: only flows bound where the caller reaches count,
-        in the totals and namespaces too; `lane_seen` filters each flow's last run (summary)."""
+        in the totals and namespaces too; `lane_seen` filters each flow's last run (summary). `lane`: only
+        flows that run on that lane, bound to it or to a pattern that covers it, whatever their namespace."""
+        from agentos.runner.names import lane_matches
+
         p = (prefix or "").strip(".")
         matching = self.list(p or None)
         if seen is not None:
             matching = [fv for fv in matching if seen(fv.definition.lane)]
+        if lane:
+            matching = [fv for fv in matching if fv.definition.lane == lane
+                        or (fv.definition.lane_is_pattern and lane_matches(fv.definition.lane, lane))]
         depth = p.count(".") + 1 if p else 0
         children: Counter[str] = Counter()
         for fv in matching:
@@ -403,6 +409,7 @@ class FlowService:
                 children[".".join(segs[: depth + 1])] += 1
         out: dict[str, Any] = {
             "prefix": p or None,
+            **({"lane": lane} if lane else {}),
             "total": len(matching),
             "namespaces": [{"prefix": ns, "flows": n} for ns, n in sorted(children.items())],
         }

@@ -6,6 +6,7 @@ never a bare "done". Separators are commas and middle dots, never em dashes.
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime, tzinfo
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -261,3 +262,61 @@ def clip(text: str, width: int) -> str:
 
 def one_line(text: str | None) -> str:
     return " ".join((text or "").split())
+
+
+# Block elements of a site's rich-text document (Reddit's richtext JSON: par, h, blockquote, list items):
+# each starts a new line when it is read as plain text.
+_BLOCKS = {"par", "h", "blockquote", "li", "list", "code", "table", "hr", "img", "gif", "video"}
+
+
+def readable(text: str | None) -> str:
+    """Text as a person reads it. A post a site keeps as a rich-text JSON document
+    (`{"document": [{"e": "par", "c": [{"e": "text", "t": "..."}]}]}`) becomes its paragraphs; any other
+    text is returned as it is. Never fails: what is not such a document stays as written."""
+    raw = text or ""
+    stripped = raw.strip()
+    if not stripped.startswith(("{", "[")):
+        # a document inside a longer line ('text: "{"document": ...}"'): that part is read, the rest kept
+        at = raw.find('{"document"')
+        if at < 0:
+            return raw
+        try:
+            doc, end = json.JSONDecoder().raw_decode(raw, at)
+        except ValueError:
+            return raw
+        inner = readable(json.dumps(doc))
+        head = raw[:at].rstrip().removesuffix('"')
+        tail = raw[end:].lstrip().removeprefix('"')
+        return "\n".join(part for part in (head.rstrip(), inner, tail.strip()) if part)
+    try:
+        doc = json.loads(stripped)
+    except ValueError:
+        return raw
+    lines: list[str] = []
+
+    def walk(node: object, line: list[str]) -> None:
+        if isinstance(node, str):
+            return
+        if isinstance(node, list):
+            for child in node:
+                walk(child, line)
+            return
+        if not isinstance(node, dict):
+            return
+        block = node.get("e") in _BLOCKS
+        target = [] if block else line
+        for key in ("t", "text", "title", "body"):
+            if isinstance(node.get(key), str):
+                target.append(node[key])
+        for key in ("c", "document", "children", "content"):
+            if key in node:
+                walk(node[key], target)
+        if block and target:
+            lines.append("".join(target))
+
+    top: list[str] = []
+    walk(doc, top)
+    if top:
+        lines.insert(0, "".join(top))
+    out = "\n".join(line for line in lines if line.strip())
+    return out or raw

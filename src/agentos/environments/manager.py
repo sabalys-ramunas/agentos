@@ -36,6 +36,7 @@ from agentos.core.errors import AgentosError, InvalidRequest, LaneExists, NotFou
 from agentos.core.models import LaneState, ProxyConfig, utcnow
 from agentos.environments.bringup import BringUp
 from agentos.environments.errors import (
+    EnvironmentAlreadyOpen,
     EnvironmentFailed,
     EnvironmentInUse,
     EnvironmentLimit,
@@ -43,6 +44,7 @@ from agentos.environments.errors import (
     UnsavedWork,
 )
 from agentos.environments.models import (
+    BRANCHES_KEPT,
     CALLS_KEPT,
     HANDOFFS_KEPT,
     LIVE_STATES,
@@ -56,6 +58,7 @@ from agentos.environments.models import (
     Push,
     load_settings,
 )
+from agentos.environments.proofs import Proofs
 from agentos.environments.sizing import Sizing
 from agentos.environments.store import EnvironmentStore
 from agentos.environments.tunnels import Tunnel
@@ -72,6 +75,9 @@ _ID_CHARS = "".join(c for c in string.ascii_lowercase + string.digits if c not i
 ID_LENGTH = 10
 OPENS_LISTED = 10
 OPENING_KEPT = 256
+GONE_CHECKS, GONE_WAIT_S = 5, 2.0              # asking the provider whether a deleted machine is gone
+LANE_DELETE_TRIES, LANE_DELETE_WAIT_S = 3, 1.0  # a browser still exiting holds its lane a moment
+SWEEP_RECENT, SWEEP_WINDOW = 100, timedelta(days=1)
 
 
 def _when(dt: datetime) -> str:
@@ -100,7 +106,7 @@ def check_ref(ref: str | None) -> str | None:
     return ref
 
 
-class EnvironmentManager(Sizing, BringUp, Views):
+class EnvironmentManager(Sizing, BringUp, Views, Proofs):
     """The environments service. Its sizing and cost (Sizing), its bring-up (BringUp) and its read side
     (Views) are mixins in their own modules; lookups, opening, closing and the reaper are here."""
 
@@ -268,6 +274,51 @@ class EnvironmentManager(Sizing, BringUp, Views):
         found = self.lane_env(lane_id)
         return found is not None and found[1] == "terminal"
 
+    def branches_created(self, lane_id: str) -> list[str]:
+        """The branches the open environment of terminal lane `lane_id` created on its remote (it
+        pushed them first): the only existing branches the git gateway lets it delete or force-push."""
+        found = self.lane_env(lane_id)
+        return list(found[0].own_branches) if found is not None and found[1] == "terminal" else []
+
+    def note_branches(self, lane_id: str, *, created: list[str], deleted: list[str]) -> None:
+        """The git gateway pushed from this environment: `created` are its own branches from now on,
+        `deleted` no longer are (another may create the name again)."""
+        found = self.lane_env(lane_id)
+        if found is None or found[1] != "terminal":
+            return
+
+        def change(env: Environment) -> bool:
+            have = [b for b in env.own_branches if b not in deleted]
+            have += [b for b in dict.fromkeys(created) if b not in have]
+            if have == env.own_branches:
+                return False
+            env.own_branches = have[-BRANCHES_KEPT:]
+            env.own_heads = {b: sha for b, sha in env.own_heads.items() if b in env.own_branches}
+            return True
+
+        self.store.update(found[0].id, change)
+
+    def branch_heads(self, lane_id: str) -> dict[str, str]:
+        """{branch: the commit this environment last pushed there} for the branches it created. The git
+        gateway lets it rewrite or delete one only while the remote still has that commit there."""
+        found = self.lane_env(lane_id)
+        return dict(found[0].own_heads) if found is not None and found[1] == "terminal" else {}
+
+    def note_heads(self, lane_id: str, heads: dict[str, str]) -> None:
+        """The git gateway pushed these commits to branches this environment owns."""
+        found = self.lane_env(lane_id)
+        if found is None or found[1] != "terminal" or not heads:
+            return
+
+        def change(env: Environment) -> bool:
+            new = {**env.own_heads, **{b: sha for b, sha in heads.items() if b in env.own_branches}}
+            if new == env.own_heads:
+                return False
+            env.own_heads = new
+            return True
+
+        self.store.update(found[0].id, change)
+
     def own_lane(self, lane_id: str, grant: Any) -> bool:
         """Is this a lane of an open environment (its terminal or its browser) that `grant` reaches:
         its grant family's, or the owner's and the member's outside MCP (over MCP the policy has
@@ -302,8 +353,8 @@ class EnvironmentManager(Sizing, BringUp, Views):
             listed = "; ".join(f"{e.id} \"{e.title}\" ({e.repo + ', ' if e.repo else ''}{self._last_call_words(e)})"
                                for e in mine[:OPENS_LISTED])
             return NoEnvironment(f"this chat has no environment. Open ones of this agent: {listed}. "
-                                 "environment_open(title=...) with one of these titles (and its repo) takes yours "
-                                 "back (after a reconnect), a new title opens a new one; or name a lane with `on`."
+                                 "environment_open(title=...) with one of these titles takes yours back (after a "
+                                 "reconnect), a new title opens a new one; or name a lane with `on`."
                                  + lanes)
         if kind == "browser":
             return NoEnvironment("this chat has no environment, and a browser call without `on` goes to one. To "
@@ -336,12 +387,15 @@ class EnvironmentManager(Sizing, BringUp, Views):
         return redact_text(" ".join(text.split()), extra=extra, max_len=max_len)
 
     def record_call(self, lane_id: str, tool: str, *, ok: bool, summary: str = "",
-                    scrub: list[str] | tuple[str, ...] = ()) -> None:
+                    scrub: list[str] | tuple[str, ...] = (), exit_code: int | None = None,
+                    error: str | None = None) -> None:
+        """One call on an environment's lane, for environment()'s last calls: `ok` is the tool's own
+        answer, `exit_code` a command's (lane_exec), `error` the code of a refusal or a failure."""
         found = self.lane_env(lane_id)
         if found is None:
             return
         now = self._clock()
-        call = Call(at=now, tool=tool, summary=self._scrub(summary, scrub), ok=ok)
+        call = Call(at=now, tool=tool, summary=self._scrub(summary, scrub), ok=ok, exit_code=exit_code, error=error)
 
         def change(env: Environment) -> bool:
             if not env.open:
@@ -403,13 +457,13 @@ class EnvironmentManager(Sizing, BringUp, Views):
 
     def same_chat(self, env: Environment, repo: str | None) -> Environment:
         """This chat's live environment, for an environment_open that asks for `repo`: itself when
-        the repository is the same. Another repository is refused (environment_in_use): one chat has
+        the repository is the same. Another repository is refused (environment_already_open): one chat has
         one environment, and handing back a machine with another repository on it (a real chat got the
         starting one with a private repository back when it asked for none, 2026-11-13) misleads."""
         if (env.repo or None) == (repo or None):
             return env
         state = "still starting" if env.state == "starting" else "open"
-        raise EnvironmentInUse(
+        raise EnvironmentAlreadyOpen(
             f"this chat already has environment {env.id} (\"{env.title}\", {state}) with "
             f"{self._repo_words(env.repo)}, and you asked for {self._repo_words(repo)}. A chat has one environment "
             "at a time: close it with environment_close() (add discard=true if it has work you do not need), "
@@ -419,46 +473,65 @@ class EnvironmentManager(Sizing, BringUp, Views):
                        ) -> Environment | None:
         """An open environment of this grant family with this title, bound to `binding` now: a
         resumed or reconnected chat gets its environment back. Only a live one (starting or ready),
-        never one closing, failed or closed, and only with the same repository: a title held by a live
+        never one closing, failed or closed. With no `repo`, the one live environment with this title
+        (whatever it cloned); with a `repo`, only one with that repository: a title held by a live
         environment with another repository is environment_in_use (a second environment with the same
         title would make the next reattach by title a guess). Taken from another chat only when that
         chat has made no call for QUIET (10 minutes); else environment_in_use, with its last call."""
-        now = self._clock()
-        quiet = int(QUIET.total_seconds() // 60)
-        for env in self.open_for_family(family):
-            if env.title.lower() != title.lower() or env.state not in LIVE_STATES:
-                continue
-            if (env.repo or None) != (repo or None):
-                raise EnvironmentInUse(
-                    f"the title \"{env.title}\" names environment {env.id}, which is open with "
-                    f"{self._repo_words(env.repo)}, not {self._repo_words(repo)}. To get it back, call "
-                    f"environment_open(title=\"{env.title}\"" + (f", repo=\"{env.repo}\"" if env.repo else "")
-                    + "); for a new one, use another title")
-            if env.binding == binding:
-                return env
-            last = env.last_activity()
-            if now - last < QUIET:
-                raise EnvironmentInUse(
-                    f"environment {env.id} (\"{env.title}\") is in use by another chat of this agent (its last "
-                    f"call {_when(last)}); it moves to this chat only after {quiet} minutes with no call there. "
-                    "Open your own with another title: environment_open(title=...)")
-            moved_from = env.binding
-
-            def take(e: Environment, old: str = moved_from) -> bool:
-                if e.binding != old or not e.open:
-                    return False  # it moved, or closed, meanwhile
-                e.binding = binding
-                e.handoffs.append(Handoff(binding=old, at=now))
-                del e.handoffs[:-HANDOFFS_KEPT]
-                return True
-
-            env = self.store.update(env.id, take)
-            if env.binding != binding:
-                raise EnvironmentInUse(f"environment {env.id} (\"{env.title}\") just moved to another chat; "
-                                       "open your own with another title: environment_open(title=...)")
-            log.info("environment %s taken over by %s from %s", env.id, binding, moved_from)
+        env = self._titled(title, family, repo)
+        if env is None or env.binding == binding:
             return env
-        return None
+        now = self._clock()
+        last = env.last_activity()
+        if now - last < QUIET:
+            raise EnvironmentInUse(
+                f"environment {env.id} (\"{env.title}\") is in use by another chat of this agent (its last "
+                f"call {_when(last)}); it moves to this chat only after {int(QUIET.total_seconds() // 60)} "
+                "minutes with no call there. Open your own with another title: environment_open(title=...)")
+        return self._take_over(env, binding, now)
+
+    def _titled(self, title: str, family: str | None, repo: str | None) -> Environment | None:
+        """The live environment of this family with this title (and `repo`, when one is named)."""
+        found = [e for e in self.open_for_family(family)
+                 if e.title.lower() == title.lower() and e.state in LIVE_STATES]
+        if not found:
+            return None
+        if repo is None:
+            if len(found) == 1:
+                return found[0]
+            listed = ", ".join(f"{e.id} ({self._repo_words(e.repo)})" for e in found[:OPENS_LISTED])
+            raise InvalidRequest(f"the title \"{title}\" names {len(found)} open environments: {listed}. Name the "
+                                 "one you want with its repo: environment_open(title=..., repo=...)")
+        same = [e for e in found if (e.repo or None) == repo]
+        if same:
+            return same[0]
+        env = found[0]
+        raise EnvironmentInUse(
+            f"the title \"{env.title}\" names environment {env.id}, which is open with "
+            f"{self._repo_words(env.repo)}; you asked for {repo}. To get it back, call "
+            f"environment_open(title=\"{env.title}\"" + (f", repo=\"{env.repo}\"" if env.repo else "")
+            + "); for a new one, use another title")
+
+    def _take_over(self, env: Environment, binding: str, now: datetime) -> Environment:
+        """Move `env` to this chat. The move counts as a call, so the chat it came from cannot take it
+        straight back (it is quiet for QUIET only after this chat is)."""
+        moved_from = env.binding
+
+        def take(e: Environment) -> bool:
+            if e.binding != moved_from or not e.open:
+                return False  # it moved, or closed, meanwhile
+            e.binding = binding
+            e.last_call_at = now
+            e.handoffs.append(Handoff(binding=moved_from, at=now))
+            del e.handoffs[:-HANDOFFS_KEPT]
+            return True
+
+        env = self.store.update(env.id, take)
+        if env.binding != binding:
+            raise EnvironmentInUse(f"environment {env.id} (\"{env.title}\") just moved to another chat; "
+                                   "open your own with another title: environment_open(title=...)")
+        log.info("environment %s taken over by %s from %s", env.id, binding, moved_from)
+        return env
 
     async def create(self, env_id: str, plan: dict, *, binding: str, title: str, grant_id: str,
                      grant_root: str | None, agent: str, client: str | None, repo: str | None,
@@ -524,8 +597,8 @@ class EnvironmentManager(Sizing, BringUp, Views):
             return await self._teardown(self.store.get(env_id), reason=reason)
 
     async def _teardown(self, env: Environment, *, reason: str, final: str = "closed") -> Environment:
-        pushed = [Push(branch=p["branch"], commit=p["commit"], at=datetime.fromisoformat(p["at"]))
-                  for p in self.pushes(env)][:50]
+        pushed = [Push(branch=p["branch"], commit=p["commit"] or "", at=datetime.fromisoformat(p["at"]),
+                       deleted=bool(p.get("deleted"))) for p in self.pushes(env)][:50]
         why = env.closed_reason
 
         def closing(e: Environment) -> None:
@@ -545,30 +618,120 @@ class EnvironmentManager(Sizing, BringUp, Views):
         from agentos.node.interaction import VM_PROXIED_LANES
 
         VM_PROXIED_LANES.discard(env.browser_lane)
-        lanes = self._get("lanes")
-        if lanes is not None:
-            with contextlib.suppress(Exception):
-                lanes.get(env.browser_lane)
-                with contextlib.suppress(Exception):
-                    await lanes.close(env.browser_lane)
-                await lanes.delete(env.browser_lane, by="node")
-        cost = None
-        if env.vm_id:
-            vms = self.vms()
-            with contextlib.suppress(NotFound):
-                rec = vms.store.get(env.vm_id)
-                if rec.live:
-                    rec = await vms.destroy(rec.id, reason=f"environment {env.id}: {reason}")
-                cost = rec.cost_eur(self._clock())
+        await self._remove_browser(env)
+        cost, vm_state = await self._delete_machine(env, reason)
+        await self._remove_terminal(env)
+
         def closed(e: Environment) -> None:
             e.state = final  # type: ignore[assignment]
             e.closed_at = self._clock()
             e.closed_reason = e.closed_reason or reason
             e.cost_eur = cost if cost is not None else (0.0 if e.price_hourly_eur == 0 else e.cost_eur)
+            e.vm_state = vm_state
 
         env = self.store.update(env.id, closed)
-        log.info("environment %s %s (%s)", env.id, final, reason)
+        log.info("environment %s %s (%s), its machine %s", env.id, final, reason, vm_state)
         return env
+
+    async def _delete_machine(self, env: Environment, reason: str) -> tuple[float | None, str]:
+        """Delete the environment's VM: (its cost, what became of it). "deleted" only when the provider
+        says the server is gone; "deleting" while the provider still has it (the node retries the
+        delete); "unknown" when the provider could not be asked; "none" when no machine was rented."""
+        if not env.vm_id:
+            return None, "none"
+        vms = self.vms()
+        try:
+            rec = vms.store.get(env.vm_id)
+        except NotFound:
+            return None, "unknown"
+        if rec.live:
+            rec = await vms.destroy(rec.id, reason=f"environment {env.id}: {reason}")
+        cost = rec.cost_eur(self._clock())
+        if rec.state not in ("deleted", "failed"):
+            return cost, "deleting"
+        if not rec.provider_id:
+            return cost, "none"
+        for attempt in range(GONE_CHECKS):
+            try:
+                if await vms.provider().get_server(rec.provider_id) is None:
+                    return cost, "deleted"
+            except Exception as e:  # noqa: BLE001 - not confirmed is not deleted
+                log.warning("environment %s: could not ask the provider about its machine: %s", env.id, e)
+                return cost, "unknown"
+            if attempt < GONE_CHECKS - 1:
+                await asyncio.sleep(GONE_WAIT_S)
+        return cost, "deleting"
+
+    async def _remove_browser(self, env: Environment) -> bool:
+        """Delete the environment's browser lane (close it first). A browser that is still exiting
+        holds it a moment, so the delete is tried a few times. True when it is gone."""
+        lanes = self._get("lanes")
+        if lanes is None:
+            return True
+        try:
+            lanes.get(env.browser_lane)
+        except Exception:  # noqa: BLE001 - no such lane: nothing to remove
+            return True
+        with contextlib.suppress(Exception):
+            await lanes.close(env.browser_lane)
+        for attempt in range(LANE_DELETE_TRIES):
+            try:
+                await lanes.delete(env.browser_lane, by="node")
+                return True
+            except Exception as e:  # noqa: BLE001
+                if getattr(e, "code", None) == "lane_not_found":
+                    return True
+                if attempt == LANE_DELETE_TRIES - 1:
+                    log.warning("environment %s: its browser lane stays for now: %s", env.id, getattr(e, "message", e))
+                    return False
+                await asyncio.sleep(LANE_DELETE_WAIT_S)
+        return False
+
+    async def _remove_terminal(self, env: Environment) -> bool:
+        """Delete the environment's terminal lane once its machine is handled (agentos.vms removes it
+        with the VM; this covers one it left). True when it is gone."""
+        envs = self._get("envs")
+        if envs is None:
+            return True
+        try:
+            if envs.has(env.terminal_lane):
+                await envs.remove(env.terminal_lane, vm_ok=True)
+            return True
+        except Exception as e:  # noqa: BLE001
+            log.warning("environment %s: its terminal lane stays for now: %s", env.id, getattr(e, "message", e))
+            return False
+
+    async def sweep_lanes(self, now: datetime | None = None) -> list[str]:
+        """The lanes of environments closed in the last day that are still there (a delete that a
+        browser still exiting refused): removed now. Returns the environments it cleaned."""
+        now = now or self._clock()
+        out = []
+        for env in self.store.recent(SWEEP_RECENT):
+            if env.open or env.closed_at is None or now - env.closed_at > SWEEP_WINDOW:
+                continue
+            if not (self._lane_left(env.browser_lane) or self._terminal_left(env)):
+                continue
+            await self._remove_browser(env)
+            await self._remove_terminal(env)
+            out.append(env.id)
+        return out
+
+    def _lane_left(self, lane_id: str) -> bool:
+        lanes = self._get("lanes")
+        if lanes is None:
+            return False
+        try:
+            lanes.get(lane_id)
+            return True
+        except Exception:  # noqa: BLE001
+            return False
+
+    def _terminal_left(self, env: Environment) -> bool:
+        envs = self._get("envs")
+        try:
+            return envs is not None and bool(envs.has(env.terminal_lane))
+        except Exception:  # noqa: BLE001
+            return False
 
     async def extend(self, env_id: str, minutes: int) -> Environment:
         env = self.store.get(env_id)
@@ -652,6 +815,8 @@ class EnvironmentManager(Sizing, BringUp, Views):
         now = now or self._clock()
         out: dict[str, Any] = {"at": clock.iso_or_none(now, z=True), "closed": [], "kept_unsaved": [], "tunnels": [], "gone": []}
         vms = self._get("vms")
+        with contextlib.suppress(Exception):  # proofs past their retention (agentos.environments.proofs)
+            self.prune_proofs(now)
         for env in self.store.open():
             if env.id in self._tasks:
                 continue  # still coming up, or closing
@@ -704,6 +869,7 @@ class EnvironmentManager(Sizing, BringUp, Views):
                                    f"pushed. It stays open for {left} more minutes, to its time limit, then it is "
                                    "deleted with everything on it. Open it to look, or extend it.")
                 out["kept_unsaved"].append(env.id)
+        out["swept"] = await self.sweep_lanes(now)  # lanes a closed environment left behind
         return out
 
     # ================================================================ report

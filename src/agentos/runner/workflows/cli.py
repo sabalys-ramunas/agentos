@@ -128,6 +128,13 @@ def disable(flow_id: str) -> None:
     typer.echo(f"{flow_id} is off")
 
 
+@app.command("remove")
+def remove(flow_id: str) -> None:
+    """Delete a workflow: its trigger stops and it leaves the list. Its past runs keep their records."""
+    _guard(lambda: _svc().delete(flow_id, PERSON))
+    typer.echo(f"removed {flow_id}")
+
+
 @app.command("watch")
 def watch(flow_id: str, as_json: bool = typer.Option(False, "--json")) -> None:
     """How a site_change trigger stands: what it last read, and why it stopped if it did."""

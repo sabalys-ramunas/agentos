@@ -155,7 +155,7 @@ def needs_line(state: DashState, width: int = 200) -> Text:
     t = Text()
     badge = f" Needs you {n} "
     t.append(badge, style=f"bold #15171c on {fmt.WARN}")
-    tail = "  2 to review"
+    tail = f"  press 2 to see {'it' if n == 1 else 'them'}"
     room = width - len(badge) - len(tail) - 4
     t.append("  " + fmt.clip(state.needs_you_summary(), max(10, room)), style=fmt.TEXT)
     t.append(tail, style=fmt.DIM)

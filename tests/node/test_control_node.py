@@ -319,7 +319,7 @@ async def test_viewer_page_takes_over_and_hands_back(browser_node):
     from camoufox.async_api import AsyncCamoufox
 
     mgr, tokens, host = browser_node
-    url = f"http://{host}/view/{LANE}?t={tokens.issue(LANE, 'control').token}"
+    url = f"http://{host}/view/{LANE}?t={tokens.issue(LANE, 'control', owner=True).token}"
     errors: list[str] = []
     async with AsyncCamoufox(headless=True, humanize=False, locale="en-US") as browser:
         page = await browser.new_page()

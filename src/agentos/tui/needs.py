@@ -34,7 +34,8 @@ def group_title(group: str, count: int, first: bool = True) -> Text:
     return t
 
 
-def need_prompt(item: NeedItem, marked: bool) -> Text:
+def need_prompt(item: NeedItem, marked: bool, state: DashState | None = None) -> Text:
+    place = state.place if state is not None else (lambda lane: lane or "")
     t = Text()
     if item.kind == "approval":
         t.append("● " if marked else "○ ", style=fmt.ACCENT if marked else fmt.DIM)
@@ -48,7 +49,7 @@ def need_prompt(item: NeedItem, marked: bool) -> Text:
     if item.kind == "approval":
         a: Approval = item.ref
         if a.lane:
-            meta.append(a.lane)
+            meta.append(place(a.lane))
         if a.requested_by and a.requested_by.id:
             meta.append(a.requested_by.id)
         meta.append(fmt.ago(a.created_at, never="new"))
@@ -56,7 +57,7 @@ def need_prompt(item: NeedItem, marked: bool) -> Text:
             meta.append(f"expires {fmt.until(a.expires_at)}")
     elif item.kind == "question":
         q: Question = item.ref
-        meta += [x for x in (q.lane, q.asked_by.id if q.asked_by else None) if x]
+        meta += [x for x in (place(q.lane) if q.lane else None, q.asked_by.id if q.asked_by else None) if x]
         meta.append(fmt.ago(q.created_at, never="new"))
     elif item.kind == "control":
         meta.append(f"asks: {fmt.one_line(item.detail)}")
@@ -85,7 +86,7 @@ def need_detail(state: DashState, item: NeedItem | None) -> Text:
         if fmt.EFFECT_HINT.get(effect):
             t.append(f"{fmt.SEP}{fmt.EFFECT_HINT[effect]}", style=fmt.MUTED)
         t.append("\n\n")
-        row("Lane", a.lane or "none")
+        row("Lane", state.place(a.lane) if a.lane else "none")
         if a.requested_by:
             who = " ".join(x for x in (a.requested_by.kind, a.requested_by.id) if x)
             if a.requested_by.thread:
@@ -101,7 +102,8 @@ def need_detail(state: DashState, item: NeedItem | None) -> Text:
         if a.preview and (a.preview.text or a.preview.image):
             t.append("\nPreview\n", style=f"bold {fmt.MUTED}")
             if a.preview.text:
-                for line in a.preview.text.splitlines() or [""]:
+                # a site's rich-text document (Reddit's {"document": [...]}) reads as its text, not as JSON
+                for line in fmt.readable(a.preview.text).splitlines() or [""]:
                     t.append(f"  {line}\n", style=fmt.TEXT)
             if a.preview.image:
                 t.append("  Image attached: i saves it to a file.\n", style=fmt.MUTED)
@@ -110,7 +112,7 @@ def need_detail(state: DashState, item: NeedItem | None) -> Text:
         q: Question = item.ref
         t.append(q.question, style=f"bold {fmt.TEXT}")
         t.append("\n\n")
-        row("Lane", q.lane or "none")
+        row("Lane", state.place(q.lane) if q.lane else "none")
         if q.asked_by:
             row("Asked by", " ".join(x for x in (q.asked_by.kind, q.asked_by.id) if x))
         row("Asked", fmt.ago(q.created_at, never="unknown"))
@@ -198,7 +200,7 @@ class NeedsView(View):
             options.append(Option(group_title(group, len(members), first=n == 0), id=f"hdr:{group}",
                                   disabled=True))
             for item in members:
-                options.append(Option(need_prompt(item, item.key in self.marked), id=item.key))
+                options.append(Option(need_prompt(item, item.key in self.marked, self.state), id=item.key))
         if not items:
             options.append(Option(Text("Nothing needs you. Agents are on their own.", style=fmt.OK),
                                   id="hdr:empty", disabled=True))
@@ -267,7 +269,7 @@ class NeedsView(View):
         if item is None or item.kind != "approval":
             return
         self.marked ^= {item.key}
-        self.options.replace_option_prompt(item.key, need_prompt(item, item.key in self.marked))
+        self.options.replace_option_prompt(item.key, need_prompt(item, item.key in self.marked, self.state))
         # move on, so marking a run of posts is space, space, space
         self.options.action_cursor_down()
 

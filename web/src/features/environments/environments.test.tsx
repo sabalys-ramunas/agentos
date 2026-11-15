@@ -1,5 +1,6 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
+import { setPaletteOpen } from '@/components/shell/palette-store';
 import { db } from '@/mocks/handlers';
 import { server } from '@/test/setup';
 import { renderApp } from '@/test/render';
@@ -92,6 +93,11 @@ describe('One environment', () => {
     expect(screen.getByRole('link', { name: 'Open port 3000, next-server' })).toHaveAttribute('target', '_blank');
     expect(screen.getByText('On the machine only')).toBeInTheDocument();
     expect(screen.getByText('a41c9e2')).toBeInTheDocument();
+    // Each pushed branch opens its pull request on GitHub, in a new tab.
+    const review = screen.getAllByRole('link', { name: 'Open a pull request for feat/black-friday-offer' });
+    expect(review).toHaveLength(2);
+    expect(review[0]).toHaveAttribute('href', 'https://github.com/harbor-supply/shop/compare/feat/black-friday-offer?expand=1');
+    expect(review[0]).toHaveAttribute('target', '_blank');
     expect(screen.getByRole('list', { name: 'Calls, newest first' }).children).toHaveLength(10);
   });
 
@@ -156,5 +162,47 @@ describe('One environment', () => {
   it('says plainly when the id is not there', async () => {
     renderApp(`/${ORG}/environments/zzzz`);
     expect(await screen.findByText('This environment is not here', undefined, T)).toBeInTheDocument();
+  });
+});
+
+describe('an environment in the command bar', () => {
+  it('is found by its title, under Environments, and opens its page', async () => {
+    const { user, router } = renderApp(`/${ORG}`);
+    act(() => setPaletteOpen(true));
+    await user.type(await screen.findByRole('combobox'), 'black friday');
+    const option = await screen.findByRole('option', { name: /Black Friday offer page/ }, T);
+    expect(screen.queryByText('Disposable VMs')).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: /env\/e7k2/ })).not.toBeInTheDocument();
+    await user.click(option);
+    await waitFor(() => expect(router.state.location.pathname).toBe(`/${ORG}/environments/e7k2`));
+  });
+});
+
+describe('the proofs of an environment', () => {
+  it('shows each kept screenshot with what it shows, when and which page, and opens it large', async () => {
+    const { user } = renderApp(`/${ORG}/environments/e7k2`);
+    const gallery = await screen.findByRole('list', { name: 'Proofs, newest first' }, T);
+    const items = within(gallery).getAllByRole('listitem');
+    expect(items).toHaveLength(2);
+    expect(within(items[0]!).getByText('The offer page on a phone')).toBeInTheDocument();
+    expect(within(items[0]!).getByText(/localhost:3000\/offer/)).toBeInTheDocument();
+    expect(within(items[0]!).getByText(/^\d+m ago$/)).toBeInTheDocument();
+    await user.click(within(items[1]!).getByRole('button', { name: 'Open the proof: The offer banner on the home page' }));
+    const dialog = await screen.findByRole('dialog', { name: 'The offer banner on the home page' });
+    expect(within(dialog).getByRole('img', { name: 'The offer banner on the home page' })).toHaveAttribute(
+      'src',
+      `/api/orgs/${ORG}/environments/e7k2/proofs/pf_offer_desktop.png`,
+    );
+  });
+
+  it('keeps them after the environment closed', async () => {
+    renderApp(`/${ORG}/environments/p2lc`);
+    const gallery = await screen.findByRole('list', { name: 'Proofs, newest first' }, T);
+    expect(within(gallery).getByText('The new pricing page copy')).toBeInTheDocument();
+  });
+
+  it('says in plain words when there are none yet', async () => {
+    renderApp(`/${ORG}/environments/q3mn`);
+    expect(await screen.findByText(/No proofs yet\. When the agent keeps a screenshot/, undefined, T)).toBeInTheDocument();
   });
 });

@@ -252,6 +252,8 @@ export function fromHistory(story: HistoryStory): StoryView {
   switch (story.verdict) {
     case 'checked':
       return { ...base, result: 'checked', ...checkedWords(story, named), note: null, accountProblem: false };
+    case 'done':
+      return { ...base, result: 'checked', label: 'Done', note: null, verdict: 'Done.', because: story.verdict_text, accountProblem: false };
     case 'not_checked':
       return {
         ...base,

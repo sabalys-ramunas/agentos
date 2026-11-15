@@ -11,6 +11,7 @@ from agentos.core.app_paths import lane_viewer_path
 from agentos.core.errors import AgentosError
 from agentos.environments.models import (
     WORKSPACE,
+    Call,
     Environment,
 )
 from agentos.environments.probes import CHECK_TIMEOUT_S, GIT_STATE, main_repo, parse_git_state, parse_ports
@@ -42,27 +43,43 @@ class Views:
         return parse_git_state(res.stdout)
 
     def pushes(self, env: Environment) -> list[dict]:
-        """What the git gateway pushed from this environment (its push traces), newest first."""
-        policy = self._get("policy")
-        traces = getattr(policy, "traces", None)
-        out: list[dict] = []
-        if traces is not None:
-            with contextlib.suppress(Exception):
-                events, _ = traces.query(kind="git_push", lane=env.terminal_lane, limit=50)
-                for ev in events:
-                    args = ev.args if isinstance(ev.args, dict) else {}
-                    if args.get("result") != "pushed":
-                        continue
-                    at = datetime.fromtimestamp(ev.at or 0, UTC)
-                    for ref in args.get("refs") or []:
-                        name = str(ref.get("ref") or "")
-                        commit = str(ref.get("new") or "").split(":", 1)[-1]
-                        out.append({"branch": name.removeprefix("refs/heads/"), "commit": commit[:12], "at": clock.iso_or_none(at, z=True)})
-        known = {(p["branch"], p["commit"]) for p in out}
+        """Each branch this environment pushed, as its last push left it on the remote, newest first:
+        {branch, commit, at}, and for a branch it deleted {branch, commit: None, at, deleted: True}.
+        From the git gateway's push traces and the record kept at close."""
+        last: dict[str, dict] = {}
+
+        def note(branch: str, commit: str, at: str | None, deleted: bool) -> None:
+            had = last.get(branch)
+            if had is None or (at or "") >= (had["at"] or ""):  # oldest first: a later push wins
+                last[branch] = ({"branch": branch, "commit": None, "at": at, "deleted": True} if deleted else
+                                {"branch": branch, "commit": commit[:12], "at": at})
+
         for p in env.pushed:
-            if (p.branch, p.commit[:12]) not in known:
-                out.append({"branch": p.branch, "commit": p.commit[:12], "at": clock.iso_or_none(p.at, z=True)})
-        return out
+            note(p.branch, p.commit, clock.iso_or_none(p.at, z=True), p.deleted)
+        for ev in reversed(self._push_traces(env)):
+            args = ev.args if isinstance(ev.args, dict) else {}
+            at = clock.iso_or_none(datetime.fromtimestamp(ev.at or 0, UTC), z=True)
+            for ref in args.get("refs") or []:
+                name = str(ref.get("ref") or "").removeprefix("refs/heads/")
+                commit = str(ref.get("new") or "").split(":", 1)[-1]
+                note(name, commit, at, ref.get("kind") == "delete" or not commit.strip("0"))
+        return sorted(last.values(), key=lambda p: p["at"] or "", reverse=True)
+
+    def _push_traces(self, env: Environment) -> list:
+        """The git gateway's pushes from this environment that reached the remote, newest first."""
+        traces = getattr(self._get("policy"), "traces", None)
+        if traces is None:
+            return []
+        with contextlib.suppress(Exception):
+            events, _ = traces.query(kind="git_push", lane=env.terminal_lane, limit=50)
+            return [ev for ev in events if isinstance(ev.args, dict) and ev.args.get("result") == "pushed"]
+        return []
+
+    def push_lists(self, env: Environment) -> dict:
+        """{pushed: what is on the remote now, deleted: the branches it deleted}, each newest first."""
+        every = self.pushes(env)
+        return {"pushed": [p for p in every if not p.get("deleted")],
+                "deleted": [{"branch": p["branch"], "at": p["at"]} for p in every if p.get("deleted")]}
 
     @staticmethod
     def unsaved_of(repos: list[dict] | None) -> dict | None:
@@ -125,7 +142,7 @@ class Views:
             summary = self._scrub(c.summary)
             if c.tool == "lane_exec":
                 out.append({"id": f"exec-{i}", "cmd": summary, "state": "exited" if c.ok else "failed",
-                            "started_at": clock.iso_or_none(c.at, z=True), "exit_code": None})
+                            "started_at": clock.iso_or_none(c.at, z=True), "exit_code": c.exit_code})
             elif c.tool == "lane_job_start" and c.ok and summary not in jobs:
                 # a job whose record went with its lane (the machine was deleted, or the node restarted)
                 out.append({"id": f"start-{i}", "cmd": summary, "state": "ended", "started_at": clock.iso_or_none(c.at, z=True),
@@ -151,13 +168,22 @@ class Views:
         main = main_repo(repos, env.workdir)
         out["ports"] = await self.ports(env) if env.state in ("ready",) else []
         out["git"] = {"branch": (main or {}).get("branch") or env.branch, "ahead": (main or {}).get("ahead", 0),
-                      "dirty": (main or {}).get("dirty", 0), "pushed": self.pushes(env)}
+                      "dirty": (main or {}).get("dirty", 0), **self.push_lists(env)}
         out["branch"] = out["git"]["branch"]  # the branch checked out now, not the one it was cloned on
-        out["calls"] = [{"at": clock.iso_or_none(c.at, z=True), "tool": c.tool, "summary": self._scrub(c.summary), "ok": c.ok}
-                        for c in reversed(env.calls[-calls:])]
+        out["calls"] = [self.call_view(c) for c in reversed(env.calls[-calls:])]
         out["commands"] = self._commands(env)
         out["viewer"] = self._viewer(env)
         out["unsaved"] = self.unsaved_of(repos)
+        return out
+
+    def call_view(self, c: Call) -> dict:
+        """One of the last calls: `ok` is the tool's answer; a command's `exit_code` (lane_exec) and the
+        `error` code of a refused or failed call are there when they are known."""
+        out = {"at": clock.iso_or_none(c.at, z=True), "tool": c.tool, "summary": self._scrub(c.summary), "ok": c.ok}
+        if c.exit_code is not None:
+            out["exit_code"] = c.exit_code
+        if c.error:
+            out["error"] = c.error
         return out
 
     def links(self, env: Environment) -> dict:

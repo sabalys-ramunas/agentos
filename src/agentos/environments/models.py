@@ -23,6 +23,7 @@ IDLE = timedelta(minutes=10)       # no call for this long: "idle"
 QUIET = timedelta(minutes=10)      # no call for this long: another chat of the same agent may take it over
 CALLS_KEPT = 50
 HANDOFFS_KEPT = 5
+BRANCHES_KEPT = 200   # branches an environment created, as the git gateway reads them
 # The sizes an agent asks for by name: at least this many CPUs and GB of memory. On Hetzner the
 # cheapest server type in the node's location that has them (agentos.vms plans it); on the docker
 # provider a container with these limits, at most the computer's (agentos.vms.docker.SIZE_TYPES).
@@ -60,12 +61,15 @@ class Call(BaseModel):
     tool: str
     summary: str = ""
     ok: bool = True
+    exit_code: int | None = None              # a command's exit code (lane_exec): ok is the tool's own answer
+    error: str | None = None                  # the error's code when the call was refused or failed
 
 
 class Push(BaseModel):
     branch: str
-    commit: str
+    commit: str                               # "" for a delete
     at: datetime
+    deleted: bool = False                     # the push deleted the branch on the remote
 
 
 class Handoff(BaseModel):
@@ -117,6 +121,14 @@ class Environment(BaseModel):
     pushed: list[Push] = Field(default_factory=list)
     unsaved_noticed: bool = False             # the owner was told it has unsaved work and will not close idle
     handoffs: list[Handoff] = Field(default_factory=list)  # chats it was taken from, newest last
+    # The branches it created on the remote (pushed first, not there before): the only existing branches
+    # it may delete or force-push (agentos.git.gateway). Kept with the record, so a restart keeps them.
+    own_branches: list[str] = Field(default_factory=list)
+    # The commit each of those branches had when it last pushed it there: a branch is its own only while
+    # the remote still has that commit (someone else may delete and recreate the name, or add to it).
+    own_heads: dict[str, str] = Field(default_factory=dict)
+    vm_state: str | None = None               # its machine at close: deleted (the provider says it is gone),
+                                              # deleting (the node still retries), none (none was rented)
 
     @field_validator("id")
     @classmethod

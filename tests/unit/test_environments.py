@@ -65,7 +65,7 @@ class Machine:
                      'LISTEN 0 128 0.0.0.0:22 0.0.0.0:* users:(("sshd",pid=1,fd=3))\n'
         self.ran: list[tuple[str, str | None]] = []
 
-    async def exec(self, lane_id, cmd, *, timeout_s=None, stdin=None, grant_id=None):
+    async def exec(self, lane_id, cmd, *, timeout_s=None, stdin=None, grant_id=None, max_bytes=None):
         self.ran.append((cmd, grant_id))
         out = ""
         if cmd == machine.SETUP_STATE:
@@ -195,7 +195,8 @@ async def test_open_never_asks_then_rents_clones_and_is_ready(node):
     # the node's own live view, never a page of the web app (the public repository has none)
     assert set(out["links"]) == {"browser"} and "/environments/" not in str(out["links"]["browser"])
     # the agent finds its terminal without guessing: the tools it needs are named, and where the rest are
-    for words in ("calls without `on` use this environment", 'lane_exec(cmd="ls", cwd="/work/shop")',
+    for words in ("calls without `on` use this environment", 'lane_exec(cmd="npm test", cwd="/work/shop")',
+                  "lane_file_read", "lane_file_edit", "proof=", "git.compare",
                   "lane_job_start(", "lane_job_read", "in your list", 'tools_more("terminals")',
                   'tools_more("studio")', "links.browser"):
         assert words in out["next"], words
@@ -408,8 +409,9 @@ async def test_environment_reads_ports_git_and_calls(node):
     st = await node["call"]("environment")
     assert st["id"] == out["id"] and st["state"] == "working"
     assert st["ports"] == [{"port": 3000, "process": "node", "link": None}]
-    assert st["git"] == {"branch": "main", "ahead": 0, "dirty": 0, "pushed": []}
+    assert st["git"] == {"branch": "main", "ahead": 0, "dirty": 0, "pushed": [], "deleted": []}
     assert st["calls"][0]["tool"] == "lane_exec" and st["unsaved"] is None
+    assert st["calls"][0]["ok"] is True and st["calls"][0]["exit_code"] == 0
 
 
 async def test_close_refuses_unsaved_work_then_discard_deletes_everything(node):

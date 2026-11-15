@@ -58,7 +58,8 @@ BUNDLE_CTX = b"agentos.audit.bundle.v1\x00"
 SHARE_CTX = b"agentos.audit.share.v1\x00"
 MARK_KINDS = ("genesis", "checkpoint", "pruned", "key")
 
-# exit codes of `agentos audit verify` (1 is "could not run", 2 is a usage error)
+# exit codes of `agentos audit verify` (1 is "could not run", 2 is a usage error). Status "pending" (all
+# signed rows check out, the newest wait for the next checkpoint) exits 0, as "ok" does.
 EXIT_OK, EXIT_TAMPERED, EXIT_UNVERIFIABLE = 0, 3, 4
 
 
@@ -347,7 +348,7 @@ class Scope:
 
 @dataclass
 class Finding:
-    level: str              # "tampered" | "unprovable" | "note"
+    level: str              # "tampered" | "unprovable" | "pending" | "note" (only the first two set the status)
     text: str
     first: int | None = None
     last: int | None = None
@@ -395,7 +396,7 @@ class Report:
 
     @property
     def exit_code(self) -> int:
-        return {"ok": EXIT_OK, "tampered": EXIT_TAMPERED}.get(self.status, EXIT_UNVERIFIABLE)
+        return {"ok": EXIT_OK, "pending": EXIT_OK, "tampered": EXIT_TAMPERED}.get(self.status, EXIT_UNVERIFIABLE)
 
     def row_status(self, row: Mapping[str, Any]) -> str:
         """One row's chain status: ok, tampered, unchained or unprovable."""
@@ -789,6 +790,8 @@ class Verifier:
             status = "tampered"
         elif any(f.level == "unprovable" for f in self.findings):
             status = "unverifiable"
+        elif any(f.level == "pending" for f in self.findings):
+            status = "pending"  # everything signed checks out; the newest rows wait for the next checkpoint
         else:
             status = "ok"
         return Report(status=status, checked=self.count, first=self.first, last=self.last, proven_through=proven,
@@ -853,18 +856,24 @@ class Verifier:
                          first=end + 1, last=self.max_seq_used)
 
     def _note_unproven(self, proven: dict | None) -> None:
-        """Rows from before the chain, and the scope's rows no checkpoint covers yet."""
+        """Rows from before the chain, and the scope's rows no checkpoint covers yet. Neither is wrong, so
+        neither sets the status: rows from before the chain are counted by the genesis (more of them is
+        tampering, _check_counts), and the newest rows wait for the next checkpoint, which comes every
+        few minutes while the node runs. A real break in either still shows as tampered."""
         if len(self._unchained):
             first, last = self._unchained[0], self._unchained[-1]
-            self.findings.append(Finding("unprovable", f"{_span(first, last, 'was', 'were')} written before the chain "
-                                                       "began (genesis, mark 1) and cannot be proven", first, last, 1))
+            self.findings.append(Finding("note", f"{_span(first, last, 'was', 'were')} written before the chain "
+                                                 "began (genesis, mark 1): kept and counted, but no hash covers them",
+                                         first, last, 1))
         p_seq = proven["seq"] if proven else None
         tail = [s for s in self._scoped if (p_seq is None or s > p_seq) and s not in self.bad
                 and not (self.genesis is not None and s <= self.after_seq)]
         if tail:
-            since = f"since checkpoint {proven['mark']} (seq {p_seq}, {proven['at']})" if proven \
-                else "because no checkpoint covers them yet"
-            self.findings.append(Finding("unprovable", f"{_span(tail[0], tail[-1], 'is', 'are')} unprovable {since}",
+            n = len(tail)
+            rows = f"{n} newer row{'s' if n != 1 else ''} ({_span(tail[0], tail[-1])})"
+            after = f" after checkpoint {proven['mark']}" if proven else ""
+            verb = "waits" if n == 1 else "wait"
+            self.findings.append(Finding("pending", f"{rows} {verb} for the next checkpoint{after}",
                                          tail[0], tail[-1], proven["mark"] if proven else None))
 
 

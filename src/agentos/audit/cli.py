@@ -210,7 +210,10 @@ def _print_report(report: Report, as_json: bool) -> None:
     line = f"checked {report.checked} rows{span}"
     p = report.proven_through
     if p:
-        line += f", proven through checkpoint {p['mark']} (seq {p['seq']}, {p['at']})"
+        line += f", verified through checkpoint {p['mark']} (seq {p['seq']}, {p['at']})"
+    waiting = [f for f in report.findings if f.level == "pending"]
+    if waiting:
+        line += f"; {waiting[0].text}"
     typer.echo(line)
     for k in report.keys:
         typer.echo(f"key {k['kid']} from mark {k['from_mark']}")
@@ -222,7 +225,8 @@ def _print_report(report: Report, as_json: bool) -> None:
             line += f", anchored through checkpoint {through['mark']} (seq {through['seq']})"
         typer.echo(line)
     for f in report.findings:
-        typer.echo(f"- {f.level}: {f.text}")
+        if f.level != "pending":  # said on the line above
+            typer.echo(f"- {f.level}: {f.text}")
 
 
 @app.command("verify")
@@ -357,7 +361,7 @@ def replay_cmd(
         head += f" (proven through checkpoint {proven['mark']}, seq {proven['seq']})"
     typer.echo(head)
     for f in chain.get("findings", []):
-        if f["level"] == "unprovable" and _tail_finding(f, through):
+        if _tail_finding(f, through):
             continue  # said below in plain words
         typer.echo(f"  {f['level']}: {f['text']}")
     if pending:
@@ -425,8 +429,7 @@ def _unsealed(step: dict[str, Any], through: int | None) -> bool:
 
 def _tail_finding(f: dict[str, Any], through: int | None) -> bool:
     seq = f.get("seq") or [None]
-    return seq[0] is not None and (through is None or seq[0] > through) and (
-        "since checkpoint" in f["text"] or "no checkpoint covers them yet" in f["text"])
+    return seq[0] is not None and (through is None or seq[0] > through) and f.get("level") == "pending"
 
 
 def _next_checkpoint(proven: dict[str, Any] | None) -> str:

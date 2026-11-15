@@ -29,7 +29,7 @@ def test_capture_keeps_head_and_tail():
         c.feed(b"0123456789")
     assert c.total == 500 and len(c.head) == 25 and len(c.tail) == 75 and c.dropped == 400
     text, enc = encode_output(c)
-    assert enc == "utf-8" and "[agentos: 400 bytes truncated]" in text
+    assert enc == "utf-8" and "[agentos: 400 bytes truncated here, of 500 in all; the start and the end are kept]" in text
 
 
 def test_encode_output_handles_multibyte_cuts_and_binary():
@@ -53,7 +53,7 @@ async def test_exec_basic_exit_codes_and_stdin(mgr):
 
 async def test_exec_output_is_capped_with_a_marker(mgr):
     r = await mgr.exec("ws/bench", f"{shlex.quote(sys.executable)} -c \"print('x' * 200000)\"")
-    assert r.truncated and r.stdout_bytes == 200001 and "bytes truncated]" in r.stdout
+    assert r.truncated and r.stdout_bytes == 200001 and "bytes truncated here" in r.stdout
     assert len(r.stdout) < 5000
 
 

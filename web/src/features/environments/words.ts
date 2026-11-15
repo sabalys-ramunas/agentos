@@ -177,3 +177,14 @@ export function openSummary(open: EnvSummary[]): string {
 
 /** The short form of a commit: seven characters. */
 export const shortCommit = (commit: string) => commit.slice(0, 7);
+
+/**
+ * GitHub's page that opens a pull request for a pushed branch, or null when there is none to open: the
+ * repository is not on GitHub, or the branch is the default one (nothing to compare it with).
+ */
+export function pullRequestLink(repo: string | null | undefined, branch: string, defaultBranch = 'main'): string | null {
+  const match = repo?.replace(/^https?:\/\//, '').replace(/\.git$/, '').match(/^github\.com\/([\w.-]+)\/([\w.-]+)$/);
+  if (!match || !branch || branch === defaultBranch || branch === 'master') return null;
+  const path = branch.split('/').map(encodeURIComponent).join('/');
+  return `https://github.com/${match[1]}/${match[2]}/compare/${path}?expand=1`;
+}

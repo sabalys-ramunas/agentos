@@ -37,9 +37,12 @@ export interface ThProps extends Omit<ThHTMLAttributes<HTMLTableCellElement>, 'a
   align?: 'start' | 'end';
   /** A unit, shown after the label in the tertiary ink: "Memory" + "MB". */
   unit?: string;
+  /** In the phone list form: `hide` folds the head away with its column's cells, so a screen reader never
+   * hears a column ("Age") that has no value under it. */
+  phone?: 'hide';
 }
 
-export function Th({ className, sort, onSort, align = 'start', unit, children, ...props }: ThProps) {
+export function Th({ className, sort, onSort, align = 'start', unit, phone, children, ...props }: ThProps) {
   const ariaSort = sort === 'asc' ? 'ascending' : sort === 'desc' ? 'descending' : undefined;
   const label = (
     <>
@@ -50,6 +53,7 @@ export function Th({ className, sort, onSort, align = 'start', unit, children, .
   return (
     <th
       scope="col"
+      data-phone={phone}
       aria-sort={ariaSort}
       className={cn(align === 'end' && 'text-right', className)}
       {...props}

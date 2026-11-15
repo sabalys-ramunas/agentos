@@ -141,7 +141,7 @@
  },
  "no checkpoint": {
   "ok": {
-   "status": "unverifiable",
+   "status": "pending",
    "checked": 6,
    "rows": {
     "1": "unprovable",
@@ -168,8 +168,8 @@
      "mark": 1
     },
     {
-     "level": "unprovable",
-     "text": "rows seq 1-6 are unprovable because no checkpoint covers them yet",
+     "level": "pending",
+     "text": "6 newer rows (rows seq 1-6) wait for the next checkpoint",
      "seq": [
       1,
       6
@@ -178,12 +178,12 @@
    ],
    "bad": [],
    "unproven": [],
-   "exit": 4
+   "exit": 0
   }
  },
  "rows after the checkpoint": {
   "ok": {
-   "status": "unverifiable",
+   "status": "pending",
    "checked": 7,
    "rows": {
     "1": "ok",
@@ -215,8 +215,8 @@
      "mark": 1
     },
     {
-     "level": "unprovable",
-     "text": "row seq 7 is unprovable since checkpoint 2 (seq 6, 2026-11-14T00:00:00Z)",
+     "level": "pending",
+     "text": "1 newer row (row seq 7) waits for the next checkpoint after checkpoint 2",
      "seq": [
       7,
       7
@@ -226,7 +226,7 @@
    ],
    "bad": [],
    "unproven": [],
-   "exit": 4
+   "exit": 0
   }
  },
  "edited row": {
@@ -315,8 +315,8 @@
      "mark": 2
     },
     {
-     "level": "unprovable",
-     "text": "rows seq 1-5 are unprovable because no checkpoint covers them yet",
+     "level": "pending",
+     "text": "5 newer rows (rows seq 1-5) wait for the next checkpoint",
      "seq": [
       1,
       5
@@ -469,8 +469,8 @@
      "mark": 2
     },
     {
-     "level": "unprovable",
-     "text": "rows seq 1-4 are unprovable because no checkpoint covers them yet",
+     "level": "pending",
+     "text": "4 newer rows (rows seq 1-4) wait for the next checkpoint",
      "seq": [
       1,
       4
@@ -530,8 +530,8 @@
      ]
     },
     {
-     "level": "unprovable",
-     "text": "rows seq 1-5 are unprovable because no checkpoint covers them yet",
+     "level": "pending",
+     "text": "5 newer rows (rows seq 1-5) wait for the next checkpoint",
      "seq": [
       1,
       5
@@ -853,8 +853,8 @@
      "mark": 3
     },
     {
-     "level": "unprovable",
-     "text": "rows seq 5-6 are unprovable since checkpoint 2 (seq 4, 2026-11-14T00:00:00Z)",
+     "level": "pending",
+     "text": "2 newer rows (rows seq 5-6) wait for the next checkpoint after checkpoint 2",
      "seq": [
       5,
       6
@@ -946,8 +946,8 @@
      "mark": 2
     },
     {
-     "level": "unprovable",
-     "text": "rows seq 1-5 are unprovable because no checkpoint covers them yet",
+     "level": "pending",
+     "text": "5 newer rows (rows seq 1-5) wait for the next checkpoint",
      "seq": [
       1,
       5
@@ -995,8 +995,8 @@
      "mark": 2
     },
     {
-     "level": "unprovable",
-     "text": "rows seq 1-6 are unprovable because no checkpoint covers them yet",
+     "level": "pending",
+     "text": "6 newer rows (rows seq 1-6) wait for the next checkpoint",
      "seq": [
       1,
       6
@@ -1042,8 +1042,8 @@
      "mark": 2
     },
     {
-     "level": "unprovable",
-     "text": "rows seq 1-6 are unprovable because no checkpoint covers them yet",
+     "level": "pending",
+     "text": "6 newer rows (rows seq 1-6) wait for the next checkpoint",
      "seq": [
       1,
       6
@@ -1089,8 +1089,8 @@
      "mark": 2
     },
     {
-     "level": "unprovable",
-     "text": "rows seq 1-6 are unprovable because no checkpoint covers them yet",
+     "level": "pending",
+     "text": "6 newer rows (rows seq 1-6) wait for the next checkpoint",
      "seq": [
       1,
       6
@@ -1141,8 +1141,8 @@
      "mark": 2
     },
     {
-     "level": "unprovable",
-     "text": "rows seq 1-6 are unprovable because no checkpoint covers them yet",
+     "level": "pending",
+     "text": "6 newer rows (rows seq 1-6) wait for the next checkpoint",
      "seq": [
       1,
       6
@@ -1188,8 +1188,8 @@
      "mark": 2
     },
     {
-     "level": "unprovable",
-     "text": "rows seq 1-6 are unprovable because no checkpoint covers them yet",
+     "level": "pending",
+     "text": "6 newer rows (rows seq 1-6) wait for the next checkpoint",
      "seq": [
       1,
       6
@@ -1235,8 +1235,8 @@
      "mark": 2
     },
     {
-     "level": "unprovable",
-     "text": "rows seq 1-6 are unprovable because no checkpoint covers them yet",
+     "level": "pending",
+     "text": "6 newer rows (rows seq 1-6) wait for the next checkpoint",
      "seq": [
       1,
       6
@@ -1282,8 +1282,8 @@
      "mark": 2
     },
     {
-     "level": "unprovable",
-     "text": "rows seq 1-6 are unprovable because no checkpoint covers them yet",
+     "level": "pending",
+     "text": "6 newer rows (rows seq 1-6) wait for the next checkpoint",
      "seq": [
       1,
       6
@@ -1417,8 +1417,8 @@
      "text": "the log has no genesis mark, so nothing in it can be proven"
     },
     {
-     "level": "unprovable",
-     "text": "rows seq 1-6 are unprovable because no checkpoint covers them yet",
+     "level": "pending",
+     "text": "6 newer rows (rows seq 1-6) wait for the next checkpoint",
      "seq": [
       1,
       6
@@ -1453,8 +1453,8 @@
      "mark": 2
     },
     {
-     "level": "unprovable",
-     "text": "rows seq 1-6 are unprovable because no checkpoint covers them yet",
+     "level": "pending",
+     "text": "6 newer rows (rows seq 1-6) wait for the next checkpoint",
      "seq": [
       1,
       6
@@ -1561,8 +1561,8 @@
      ]
     },
     {
-     "level": "unprovable",
-     "text": "rows seq 2-6 are unprovable because no checkpoint covers them yet",
+     "level": "pending",
+     "text": "5 newer rows (rows seq 2-6) wait for the next checkpoint",
      "seq": [
       2,
       6
@@ -1634,8 +1634,8 @@
      ]
     },
     {
-     "level": "unprovable",
-     "text": "rows seq 2-6 are unprovable because no checkpoint covers them yet",
+     "level": "pending",
+     "text": "5 newer rows (rows seq 2-6) wait for the next checkpoint",
      "seq": [
       2,
       6
@@ -2657,7 +2657,7 @@
  },
  "unchained rows before the chain": {
   "ok": {
-   "status": "unverifiable",
+   "status": "ok",
    "checked": 8,
    "rows": {
     "1": "unchained",
@@ -2690,8 +2690,8 @@
      "mark": 1
     },
     {
-     "level": "unprovable",
-     "text": "rows seq 1-2 were written before the chain began (genesis, mark 1) and cannot be proven",
+     "level": "note",
+     "text": "rows seq 1-2 were written before the chain began (genesis, mark 1): kept and counted, but no hash covers them",
      "seq": [
       1,
       2
@@ -2701,12 +2701,12 @@
    ],
    "bad": [],
    "unproven": [],
-   "exit": 4
+   "exit": 0
   }
  },
  "unchained rows, scoped": {
   "ok": {
-   "status": "unverifiable",
+   "status": "ok",
    "checked": 8,
    "rows": {
     "1": "unchained",
@@ -2739,8 +2739,8 @@
      "mark": 1
     },
     {
-     "level": "unprovable",
-     "text": "rows seq 1-2 were written before the chain began (genesis, mark 1) and cannot be proven",
+     "level": "note",
+     "text": "rows seq 1-2 were written before the chain began (genesis, mark 1): kept and counted, but no hash covers them",
      "seq": [
       1,
       2
@@ -2750,7 +2750,7 @@
    ],
    "bad": [],
    "unproven": [],
-   "exit": 4
+   "exit": 0
   }
  },
  "more unchained rows than counted": {
@@ -2793,8 +2793,8 @@
      "mark": 1
     },
     {
-     "level": "unprovable",
-     "text": "rows seq 1-2 were written before the chain began (genesis, mark 1) and cannot be proven",
+     "level": "note",
+     "text": "rows seq 1-2 were written before the chain began (genesis, mark 1): kept and counted, but no hash covers them",
      "seq": [
       1,
       2
@@ -2809,7 +2809,7 @@
  },
  "checkpoint at the genesis": {
   "ok": {
-   "status": "unverifiable",
+   "status": "ok",
    "checked": 8,
    "rows": {
     "1": "unchained",
@@ -2842,8 +2842,8 @@
      "mark": 1
     },
     {
-     "level": "unprovable",
-     "text": "rows seq 1-2 were written before the chain began (genesis, mark 1) and cannot be proven",
+     "level": "note",
+     "text": "rows seq 1-2 were written before the chain began (genesis, mark 1): kept and counted, but no hash covers them",
      "seq": [
       1,
       2
@@ -2853,12 +2853,12 @@
    ],
    "bad": [],
    "unproven": [],
-   "exit": 4
+   "exit": 0
   }
  },
  "retention keeps an unchained row": {
   "ok": {
-   "status": "unverifiable",
+   "status": "ok",
    "checked": 5,
    "rows": {
     "1": "unchained",
@@ -2888,8 +2888,8 @@
      "mark": 1
     },
     {
-     "level": "unprovable",
-     "text": "row seq 1 was written before the chain began (genesis, mark 1) and cannot be proven",
+     "level": "note",
+     "text": "row seq 1 was written before the chain began (genesis, mark 1): kept and counted, but no hash covers them",
      "seq": [
       1,
       1
@@ -2899,12 +2899,12 @@
    ],
    "bad": [],
    "unproven": [],
-   "exit": 4
+   "exit": 0
   }
  },
  "retention keeps an unchained row, edited": {
   "ok": {
-   "status": "unverifiable",
+   "status": "ok",
    "checked": 5,
    "rows": {
     "1": "unchained",
@@ -2934,8 +2934,8 @@
      "mark": 1
     },
     {
-     "level": "unprovable",
-     "text": "row seq 1 was written before the chain began (genesis, mark 1) and cannot be proven",
+     "level": "note",
+     "text": "row seq 1 was written before the chain began (genesis, mark 1): kept and counted, but no hash covers them",
      "seq": [
       1,
       1
@@ -2945,7 +2945,7 @@
    ],
    "bad": [],
    "unproven": [],
-   "exit": 4
+   "exit": 0
   }
  },
  "scope by lane": {
@@ -2990,7 +2990,7 @@
  },
  "scope by time": {
   "ok": {
-   "status": "unverifiable",
+   "status": "pending",
    "checked": 8,
    "rows": {
     "1": "unprovable",
@@ -3019,8 +3019,8 @@
      "mark": 1
     },
     {
-     "level": "unprovable",
-     "text": "rows seq 3-5 are unprovable because no checkpoint covers them yet",
+     "level": "pending",
+     "text": "3 newer rows (rows seq 3-5) wait for the next checkpoint",
      "seq": [
       3,
       5
@@ -3029,7 +3029,7 @@
    ],
    "bad": [],
    "unproven": [],
-   "exit": 4
+   "exit": 0
   }
  },
  "export, honest": {
@@ -3393,7 +3393,7 @@
  },
  "to_seq": {
   "ok": {
-   "status": "unverifiable",
+   "status": "pending",
    "checked": 7,
    "rows": {
     "1": "ok",
@@ -3425,8 +3425,8 @@
      "mark": 1
     },
     {
-     "level": "unprovable",
-     "text": "rows seq 6-7 are unprovable since checkpoint 2 (seq 5, 2026-11-14T00:00:00Z)",
+     "level": "pending",
+     "text": "2 newer rows (rows seq 6-7) wait for the next checkpoint after checkpoint 2",
      "seq": [
       6,
       7
@@ -3436,7 +3436,7 @@
    ],
    "bad": [],
    "unproven": [],
-   "exit": 4
+   "exit": 0
   }
  },
  "no rows at all": {

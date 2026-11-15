@@ -88,7 +88,7 @@ async def agenda_list(ctx: ToolContext, *, workspace: str | None = None, start: 
     await ctx.authorize(Effect.READ, lane_id=lane)
     out = _svc(ctx).timeline(start=s, end=e, workspace=workspace, lane=lane, kind=kind,
                              states=[state] if state else None, visible=_visible(ctx), limit=MAX_ITEMS,
-                             managed=managed)
+                             managed=managed, drafter=_grant(ctx))
     for item in out["items"]:
         item.pop("history", None)
     return out
@@ -104,7 +104,7 @@ async def agenda_get(ctx: ToolContext, *, id: str) -> dict:
     e = await _entry(ctx, id)
     await ctx.authorize(Effect.READ, lane_id=e.action.acts_on)
     _svc(ctx).sync()
-    return _svc(ctx).describe(_svc(ctx).get(id))
+    return _svc(ctx).describe(_svc(ctx).get(id), drafter=_grant(ctx))
 
 
 async def agenda_draft(ctx: ToolContext, *, title: str, action: dict, when: dict | None = None,
@@ -117,7 +117,9 @@ async def agenda_draft(ctx: ToolContext, *, title: str, action: dict, when: dict
     "not_after": time} (a window), or {} (as soon as approved, optionally not_after). Times are
     ISO 8601 with a timezone. Your grant must cover the lane and the action's effect. Nothing runs
     until it is proposed and approved: pass propose=true, or call agenda_propose. Recurring work
-    belongs in a schedule, not here.
+    belongs in a schedule, not here. Effect: draft (an entry on the agenda, nothing runs); with
+    propose=true also a card in Needs you. You read back the inputs you gave; others see only what
+    the flow shows.
 
     Args:
         title: What it is, in the user's words, like "Send the November invoice reminders".
@@ -133,7 +135,7 @@ async def agenda_draft(ctx: ToolContext, *, title: str, action: dict, when: dict
     ctx.trace("agenda_draft", entry=e.id, lane=e.action.acts_on, target=e.action.target)
     if propose:
         e = await svc.propose(e.id, ctx=ctx, by=ctx.principal.id)
-    return svc.describe(e)
+    return svc.describe(e, drafter=_grant(ctx))
 
 
 async def agenda_update(ctx: ToolContext, *, id: str, title: str | None = None, notes: str | None = None,
@@ -155,7 +157,7 @@ async def agenda_update(ctx: ToolContext, *, id: str, title: str | None = None, 
     out = await _svc(ctx).update(id, title=title, notes=notes, action=action, when=when, by=ctx.principal.id,
                                  ctx=ctx)
     ctx.trace("agenda_update", entry=id, state=out.state.value)
-    return _svc(ctx).describe(out)
+    return _svc(ctx).describe(out, drafter=_grant(ctx))
 
 
 async def agenda_propose(ctx: ToolContext, *, id: str) -> dict:
@@ -170,7 +172,7 @@ async def agenda_propose(ctx: ToolContext, *, id: str) -> dict:
     e = await _entry(ctx, id)
     out = await _svc(ctx).propose(e.id, ctx=ctx, by=ctx.principal.id)
     ctx.trace("agenda_propose", entry=id, state=out.state.value)
-    return _svc(ctx).describe(out)
+    return _svc(ctx).describe(out, drafter=_grant(ctx))
 
 
 async def agenda_cancel(ctx: ToolContext, *, id: str, reason: str | None = None) -> dict:
@@ -185,7 +187,7 @@ async def agenda_cancel(ctx: ToolContext, *, id: str, reason: str | None = None)
     await ctx.authorize(Effect.DRAFT, lane_id=e.action.acts_on, summary=f"Cancel agenda entry {id}")
     out = await _svc(ctx).cancel(id, by=ctx.principal.id, reason=reason)
     ctx.trace("agenda_cancel", entry=id)
-    return _svc(ctx).describe(out)
+    return _svc(ctx).describe(out, drafter=_grant(ctx))
 
 
 STATIC = [

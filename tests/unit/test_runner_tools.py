@@ -139,6 +139,14 @@ async def test_status_cancel_save_and_list_tools(tmp_path):
 
     listing = await spec(specs, "flows_list").handler(ctx)
     assert listing["flows"][0]["id"] == "biz-a.social.post"
+    # QA 2026-11-15 P1-3: a flow under another namespace, or bound to a pattern, is found by its lane
+    await spec(specs, "flow_save").handler(ctx, definition={**post_flow(), "id": "canary.social.post"})
+    await spec(specs, "flow_save").handler(ctx, definition={**post_flow(), "id": "any.social.post", "lane": "*/social"})
+    by_lane = await spec(specs, "flows_list").handler(ctx, lane="biz-a/social")
+    assert {f["id"] for f in by_lane["flows"]} == {"biz-a.social.post", "canary.social.post", "any.social.post"}
+    assert by_lane["lane"] == "biz-a/social" and by_lane["total"] == 3
+    assert (await spec(specs, "flows_list").handler(ctx, prefix="biz-a"))["total"] == 1
+    assert (await spec(specs, "flows_list").handler(ctx, lane="biz-b/blog"))["total"] == 0
 
     run = h.submit("biz-a.social.post", PARAMS)
     status = await spec(specs, "run_status").handler(ctx, id=run.id)

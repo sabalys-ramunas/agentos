@@ -124,6 +124,17 @@ from agentos.runner.util import Clock, clip, clip_text, new_id
 log = logging.getLogger("agentos.agenda")
 
 
+
+SECRET_WORDS = ("password", "passphrase", "secret", "token", "api_key", "private_key", "cookie", "otp", "totp",
+                "pin", "code")
+
+
+def _secret_name(name: str) -> bool:
+    """An input named like a secret stays hidden even from the agent that gave it (it never needs one
+    back, and a read back would put it in that agent's context again)."""
+    k = str(name).lower()
+    return any(k == w or k.endswith(f"_{w}") or k.startswith(f"{w}_") for w in SECRET_WORDS)
+
 class AgendaService(FiringMixin, TimelineMixin):
     """The agenda. Here: wiring, reading, resolving an action, writing and approvals decided.
     Firing and following are in firing.py, the timeline in timeline.py."""
@@ -188,13 +199,16 @@ class AgendaService(FiringMixin, TimelineMixin):
              start: datetime | None = None, end: datetime | None = None, limit: int = 1000) -> list[Entry]:
         return self.store.list(workspace=workspace, states=states, start=start, end=end, limit=limit)
 
-    def describe(self, e: Entry) -> dict[str, Any]:
+    def describe(self, e: Entry, *, drafter: str | None = None) -> dict[str, Any]:
+        """The entry as shown. `drafter`: the caller's grant id; the grant that drafted it reads back
+        the inputs it gave (QA 2026-11-15 P2-8), every other reader sees only those the flow shows."""
         a = e.action
         d: dict[str, Any] = {
             "id": e.id, "type": "entry", "workspace": e.workspace, "title": e.title, "notes": e.notes,
             "state": e.state.value, "reason": e.reason,
             "action": {"kind": a.kind.value, "target": a.target, "version": a.version,
-                       "inputs": clip(self._shown_inputs(a), max_str=300), "on": a.on, "lane": a.lane,
+                       "inputs": clip(self._shown_inputs(a, own=bool(drafter) and drafter == e.grant_id),
+                                      max_str=300), "on": a.on, "lane": a.lane,
                        **({"surface": a.surface} if a.surface else {}), "effect": a.effect},
             "lane": a.lane, "kind": a.kind.value, "effect": a.effect,
             "when": {"kind": e.when.kind, "not_before": iso(e.when.not_before),
@@ -211,10 +225,13 @@ class AgendaService(FiringMixin, TimelineMixin):
         }
         return d
 
-    def _shown_inputs(self, a: Action) -> dict[str, Any]:
-        """Inputs as shown: values a flow does not mark `show` read "(hidden)", like a run's params."""
+    def _shown_inputs(self, a: Action, *, own: bool = False) -> dict[str, Any]:
+        """Inputs as shown: values a flow does not mark `show` read "(hidden)", like a run's params.
+        `own`: the drafting grant reads back what it gave, except anything named like a secret."""
         if a.kind == ActionKind.ROUTE:
             return dict(a.inputs)
+        if own:
+            return {k: "(hidden)" if _secret_name(k) else v for k, v in a.inputs.items()}
         try:
             shown = self.flows.shown_params_of(a.target, a.version)
         except AgentosError:

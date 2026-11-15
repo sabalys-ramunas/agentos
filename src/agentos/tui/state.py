@@ -19,6 +19,7 @@ from agentos.tui.models import (
     Brain,
     BrainTask,
     Control,
+    Environment,
     Flow,
     Lane,
     Node,
@@ -33,7 +34,7 @@ from agentos.tui.models import (
 )
 
 RESOURCES = ("status", "workspaces", "nodes", "approvals", "questions", "activity", "runs",
-             "schedules", "flows", "brains", "tasks")
+             "schedules", "flows", "brains", "tasks", "environments")
 
 ACTIVITY_CAP = 1000
 RUNS_CAP = 300
@@ -102,6 +103,7 @@ class DashState:
         self.flows: dict[str, Flow] = {}
         self.brains: list[Brain] = []
         self.tasks: dict[str, BrainTask] = {}
+        self.environments: list[Environment] = []
         self.res: dict[str, Resource] = {name: Resource() for name in RESOURCES}
         self.conn = ConnState()
         self.last_event_id: str | None = None
@@ -165,6 +167,41 @@ class DashState:
             if old is not None and task.tail is None and old.tail is not None:
                 task.tail = old.tail
         self.tasks = tasks
+
+    def _set_environments(self, data: Any) -> None:
+        envs = parse_list(Environment, data)
+        envs.sort(key=lambda e: (not e.open, -(e.created_at.timestamp() if e.created_at else 0.0)))
+        self.environments = envs
+
+    # ---- environments: one name each, its title ----
+    def environment_of(self, lane_id: str | None) -> Environment | None:
+        """The environment a lane belongs to (env/<id>, its terminal, or env/<id>-browser), if known."""
+        if not lane_id:
+            return None
+        for env in self.environments:
+            if lane_id in env.lanes.values() or lane_id in (f"env/{env.id}", f"env/{env.id}-browser"):
+                return env
+        return None
+
+    def place(self, lane_id: str | None) -> str:
+        """How a lane is named on screen: an environment's lanes by its title, every other by its id."""
+        env = self.environment_of(lane_id)
+        if env is None:
+            return lane_id or ""
+        return f"{env.title} (browser)" if str(lane_id).endswith("-browser") else env.title
+
+    def account_workspaces(self) -> list[Workspace]:
+        """Workspaces as accounts: an environment's lanes are its own computer, shown under Environments, so
+        they are left out, and the env workspace with them when nothing else is in it."""
+        out = []
+        for ws in self.workspaces:
+            kept = [lane for lane in ws.lanes if self.environment_of(lane.id) is None]
+            if ws.lanes and not kept:
+                continue
+            if len(kept) != len(ws.lanes):
+                ws = ws.model_copy(update={"lanes": kept})
+            out.append(ws)
+        return out
 
     # ---- lookups ----
     def lanes(self) -> Iterable[Lane]:

@@ -40,7 +40,8 @@ describe('everyday names in the address bar', () => {
     'opens %s, an old link or the new one, on the same page',
     async (path) => {
       const { router } = renderApp(path);
-      expect(await screen.findByRole('heading', { level: 1 })).toBeInTheDocument();
+      // The machine opens in a dialog over Machines, so the page's heading may already sit behind it.
+      expect(await screen.findByRole('heading', { level: 1, hidden: true })).toBeInTheDocument();
       expect(router.state.location.pathname).toBe('/northwind-group/nodes/home-mini');
     },
   );

@@ -73,13 +73,14 @@ def test_round_trip_restores_every_kept_file(tmp_path):
     assert result.path.stat().st_mode & 0o777 == 0o600
     assert [lane["copied"] for lane in result.lanes] == ["cold", "cold"]
     assert not list((tmp_path / "out").glob(".partial-*")) and not list((tmp_path / "out").glob(".staging-*"))
+    assert [r["location"] for r in backup.read_made(home)] == [str(result.path)]  # where status --check looks
 
     restored = tmp_path / "restored"
     r = backup.restore_backup(result.path, PASSPHRASE, restored, host=FakeHost())
     assert r.lanes == ["personal/reddit", "work/site"] and r.permission_problems == []
     got = tree(restored)
     want = {k: v for k, v in tree(home).items()
-            if not k.startswith(("logs/", ".cache/")) and "/cache2/" not in k and "/shots/" not in k}
+            if not k.startswith(("logs/", ".cache/", "backups/")) and "/cache2/" not in k and "/shots/" not in k}
     assert set(got) == set(want)
     for k, v in want.items():
         if not k.endswith(".db"):

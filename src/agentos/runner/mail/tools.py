@@ -37,8 +37,8 @@ def _svc(ctx: ToolContext) -> Any:
 
 
 def _box(wf: Any, mailbox: str) -> Any:
-    """The mailbox, or a not_found that says none exists until the owner connects one. No tool lists
-    mailboxes, so "list first" was no step (QA 2026-11-10, tester B 7): the reason picks the fix line."""
+    """The mailbox, or a not_found that says none exists until the owner connects one, and where the
+    ids are (mail_mailboxes; QA 2026-11-15 P2-13)."""
     box = wf.mail.get(mailbox)
     if box is None:
         raise _no_mailbox(mailbox)
@@ -46,8 +46,8 @@ def _box(wf: Any, mailbox: str) -> Any:
 
 
 def _no_mailbox(mailbox: str) -> NotFound:
-    return NotFound(f"no_mailbox: there is no mailbox {mailbox} on this node. A mailbox exists only once the owner "
-                    "connects one")
+    return NotFound(f"there is no mailbox {mailbox} on this node. mail_mailboxes lists the ones you may use; a "
+                    "mailbox exists only once the owner connects one (mail_connect asks)")
 
 
 def _lane(mailbox: Any) -> str:
@@ -130,6 +130,14 @@ async def mail_connect(ctx: ToolContext, *, address: str, mailbox: str) -> dict:
             "next": "A person must connect this mailbox. It waits for them in Needs you. Tell them, and do not look for another way."}
 
 
+async def mail_mailboxes(ctx: ToolContext) -> dict:
+    """The mailboxes you may use: each one's id (pass it as `mailbox` to the other mail tools) and its
+    address. Empty when the owner has connected none your grant reaches: mail_connect asks for one."""
+    boxes = [box.public() for box in _svc(ctx).mail.list() if ctx.can_access_lane(box.id)]
+    return {"mailboxes": sorted(boxes, key=lambda b: b["id"]),
+            **({} if boxes else {"next": "No mailbox yet. mail_connect(address, mailbox) asks a person to connect one."})}
+
+
 async def mail_list(ctx: ToolContext, *, mailbox: str, unread: bool = False, since: str | None = None,
                     limit: int = 20) -> dict:
     """List a mailbox's mail, newest first: headers and a short clip. Reading does not mark anything
@@ -181,7 +189,8 @@ async def mail_send(ctx: ToolContext, *, mailbox: str, to: str, subject: str, bo
     takes, and `reply` in the answer says it was one. Errors: use_a_list (the same address twice in a
     day, or more than 10 addresses in a day, outside a reply: put them on a list a person supplied, and
     use a send step), mail_suppressed, mail_daily_limit, mail_not_sent (safe to try again), mail_in_doubt
-    (never try again), mail_message_gone."""
+    (never try again), mail_message_gone. Effect: commit (a real email leaves the mailbox and cannot be
+    taken back)."""
     mailbox = _lane(mailbox)
     if not isinstance(subject, str) or not isinstance(body, str):
         raise InvalidRequest("subject and body are text.")
@@ -205,5 +214,7 @@ async def mail_send(ctx: ToolContext, *, mailbox: str, to: str, subject: str, bo
 def tool_specs(runtime: Any) -> list[ToolSpec]:
     table = [(mail_connect, Effect.DRAFT), (mail_list, Effect.READ), (mail_read, Effect.READ), (mail_mark, Effect.DRAFT),
              (mail_send, Effect.COMMIT)]
-    return [ToolSpec(name=fn.__name__, handler=fn, effect=effect, lane_arg="mailbox", tags=("mail",),
-                     hidden_without=SERVICE_NAME) for fn, effect in table]
+    return [*(ToolSpec(name=fn.__name__, handler=fn, effect=effect, lane_arg="mailbox", tags=("mail",),
+                       hidden_without=SERVICE_NAME) for fn, effect in table),
+            ToolSpec(name="mail_mailboxes", handler=mail_mailboxes, effect=Effect.READ, lane_arg=None, tags=("mail",),
+                     hidden_without=SERVICE_NAME)]

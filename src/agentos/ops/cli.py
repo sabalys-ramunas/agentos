@@ -25,6 +25,7 @@ import sys
 import tempfile
 from collections.abc import Iterator
 from contextlib import contextmanager
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -134,12 +135,14 @@ def backup_create(
             remote = _s3(str(to), home)
             outgoing = default_backup_dir(home) / "outgoing"
             result = backup.create_backup(home, outgoing, passphrase, node=node, keep=None, coordinator=coordinator,
-                                          allow_live=allow_live, include_caches=include_caches)
+                                          allow_live=allow_live, include_caches=include_caches, record=False)
             try:
                 remote.put(result.path.name, result.path)
                 if remote.head(result.path.name) != result.size:
                     raise backup.BackupError("the uploaded size does not match; the upload is incomplete")
                 result.location = remote.location(result.path.name)
+                parsed = backup.parse_name(result.path.name)
+                backup.record_made(home, result.location, parsed[1] if parsed else datetime.now(UTC), result.size)
                 if keep:
                     result.removed = _prune_s3(remote, node, keep)
             finally:

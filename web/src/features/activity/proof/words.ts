@@ -62,7 +62,7 @@ export function verdictOf(report: ProofVerify): Verdict {
       sentence: 'This computer cannot check the signatures, so it does not say the log is intact.',
     };
   }
-  if (report.chain === 'unprovable') {
+  if (report.status === 'pending') {
     return {
       tone: 'ok',
       label: 'The log is intact',

@@ -393,5 +393,14 @@ async def test_no_mailbox_says_none_exists_and_how_to_ask_for_one(node):
         with pytest.raises(NotFound) as e:
             await call
         assert "there is no mailbox biz-a/nomail" in e.value.message and "connects one" in e.value.message
-        step = "\n".join(catalog.mcp_lines(e.value.code, e.value.message))
-        assert "mail_connect" in step and "list first" not in step
+        assert "mail_mailboxes" in e.value.message and "mail_connect" in e.value.message
+        assert not e.value.message.startswith("no_mailbox")  # one code, not two (QA 2026-11-15 P2-13)
+        assert catalog.mcp_lines(e.value.code, e.value.message)  # and a fix line
+
+
+async def test_mail_mailboxes_lists_only_the_mailboxes_the_grant_reaches(node):
+    listed = await mail_tools.mail_mailboxes(Ctx(node))
+    assert [b["id"] for b in listed["mailboxes"]] == [MAIL] and "next" not in listed
+    assert set(listed["mailboxes"][0]) == {"id", "address"}  # never a host, username or secret
+    other = await mail_tools.mail_mailboxes(Ctx(node, reach=("biz-b",)))
+    assert other["mailboxes"] == [] and "mail_connect" in other["next"]

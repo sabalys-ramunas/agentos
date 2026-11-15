@@ -118,6 +118,17 @@ def test_unknown_workspace_is_not_found(h):
         h.service.delete_workspace("ghost")
 
 
+def test_a_misspelt_workspace_names_the_close_one_the_caller_may_see(h):
+    h.lanes.add("test/reddit")
+    h.lanes.add("secret/reddit")
+    with pytest.raises(NotFound, match="Did you mean 'test'") as exc:
+        h.service.get_workspace("tset")
+    assert "create it" not in str(exc.value)
+    with pytest.raises(NotFound, match="create it with") as exc:  # the close one is outside what the caller sees
+        h.service.get_workspace("secrte", allowed=lambda lane: lane.startswith("test/"))
+    assert "secret" not in str(exc.value).replace("secrte", "")
+
+
 def test_delete_is_refused_while_the_workspace_has_lanes(h):
     h.service.create_workspace("acme")
     h.lanes.add("acme/instagram")
@@ -551,3 +562,30 @@ def test_delete_with_memory_through_the_memory_service(h):
     h.service.delete_workspace("acme", with_memory=True)
     assert not m.service.has_memory("acme")
     m.service.close()
+
+
+def test_an_environments_lanes_are_not_accounts_in_the_queue(h):
+    """2026-11-15 test, F5: the queue listed an environment's browser as an account to sign in."""
+    from types import SimpleNamespace
+
+    h.lanes.add("acme/instagram")
+    h.lanes.add("env/esrkyfqerme")
+    h.lanes.add("env/esrkyfqerme-browser")
+    h.lanes.add("env/not-an-environment")
+    h.runtime.register("environments", SimpleNamespace(store=SimpleNamespace(has=lambda env_id: env_id == "esrkyfqerme")))
+    queue = h.service.queue()
+    assert [lane.id for lane in queue.lanes] == ["acme/instagram", "env/not-an-environment"]
+    assert queue.total == 2
+
+
+def test_a_lane_whose_session_check_passed_counts_as_ready(h):
+    """The queue and Accounts agree: a sign-in the lane check saw counts, as Accounts counts it."""
+    from types import SimpleNamespace
+
+    h.lanes.add("acme/instagram")
+    h.lanes.add("acme/reddit")
+    report = SimpleNamespace(checks=[SimpleNamespace(id="session", level="ok")])
+    h.runtime.register("lane_check", SimpleNamespace(last={"acme/instagram": report}))
+    queue = h.service.queue()
+    assert [lane.id for lane in queue.lanes] == ["acme/reddit"]
+    assert (queue.ready, queue.total, queue.needs_login) == (1, 2, 1)

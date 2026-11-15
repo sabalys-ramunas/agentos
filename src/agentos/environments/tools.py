@@ -8,7 +8,7 @@ from __future__ import annotations
 import contextlib
 from typing import Any
 
-from agentos.core.errors import NotFound, PolicyDenied
+from agentos.core.errors import AgentosError, NotFound, PolicyDenied
 from agentos.core.models import Effect
 from agentos.core.tools import ToolContext, ToolSpec, current_elicitor, frozen_off, refuse_frozen
 from agentos.environments.errors import NoEnvironment
@@ -135,6 +135,34 @@ def _links(ctx: ToolContext, env: Environment) -> dict:
     return links
 
 
+def compare_link(env: Environment, branch: str) -> str | None:
+    """The GitHub page that opens a pull request for a branch this environment pushed, or None (not on
+    GitHub, or the default branch it was opened on)."""
+    host, _, repo = (env.repo or "").partition("/")
+    if host != "github.com" or repo.count("/") != 1 or not branch or (env.ref is None and branch == env.branch):
+        return None
+    from urllib.parse import quote
+
+    return f"https://github.com/{repo}/compare/{quote(branch, safe='/._-')}?expand=1"
+
+
+def _with_compare(env: Environment, pushed: list[dict]) -> tuple[list[dict], str | None]:
+    """`pushed` with each branch's compare link, and the newest one's (pushes are newest first)."""
+    out, newest = [], None
+    for p in pushed:
+        link = compare_link(env, str(p.get("branch") or "")) if set(str(p.get("commit") or "")) != {"0"} else None
+        out.append({**p, "compare": link} if link else p)
+        newest = newest or link
+    return out, newest
+
+
+def _proofs(mgr: EnvironmentManager, env: Environment) -> list[dict]:
+    try:
+        return mgr.proofs(env)
+    except Exception:  # noqa: BLE001 - the environment's state without its proofs rather than none
+        return []
+
+
 def _open_result(ctx: ToolContext, mgr: EnvironmentManager, env: Environment, bigger: list[dict] | None = None
                  ) -> dict:
     s = mgr.summary(env)
@@ -148,12 +176,17 @@ def _open_result(ctx: ToolContext, mgr: EnvironmentManager, env: Environment, bi
     if env.state == "ready":
         out["next"] = ("Give the human links.browser, the live view of this environment's browser; if your client "
                        "can open a page beside the chat (T3 Code: preview_open), open it there. "
-                       f'Then lane_exec(cmd="ls", cwd="{env.workdir}") runs a command '
+                       "lane_file_read, lane_file_edit and lane_file_write work on files (a relative path starts in "
+                       f'{env.workdir}); lane_exec(cmd="npm test", cwd="{env.workdir}") runs a command '
                        f'and lane_job_start(cmd="npm run dev", cwd="{env.workdir}") a dev server (lane_job_read reads '
-                       "its output); both are in your list, and calls without `on` use this environment. "
+                       "its output). They are in your list, and calls without `on` use this environment; the other "
+                       "terminal tools: tools_more(\"terminals\"). "
                        "http://localhost:<port> in browser_navigate and in ui_check (tools_more(\"studio\")) is the "
-                       "machine's own port. shell_open and the other terminal tools: tools_more(\"terminals\"). "
-                       "Nothing here waits for a person, a push to any branch included")
+                       "machine's own port; browser_screenshot(proof=\"...\") keeps a shot with a link for the human. "
+                       "Push a branch, give the human environment()'s git.compare link, then environment_close(). "
+                       "Nothing here waits for a person, a push to any branch included; a delete or a force "
+                       "push of a branch this environment did not create is refused, so push your work to a new "
+                       "branch")
     elif env.state == "starting":
         out["next"] = ("still starting (the machine boots and installs its tools): call environment() in a minute; "
                        "it gives links.browser for the human once the browser is up")
@@ -180,10 +213,11 @@ async def environment_open(ctx: ToolContext, *, title: str, repo: str | None = N
     Returns id, state (ready, or starting: call environment() again), workdir (/work/<name>), branch,
     machine (cpu, memory_gb, size; `bigger`: what each bigger size costs an hour), expires_at, lanes,
     and links.browser (its live view) for the human. The same chat gets the same one back; an open
-    one's title and repo get it back in a new chat (environment_in_use if another chat used it in the
-    last 10 minutes). Errors: repo_not_connected (a private repo the human has not connected: pass its
+    one's title gets it back in a new chat (environment_in_use if another chat used it in the last 10
+    minutes). Errors: repo_not_connected (a private repo the human has not connected: pass its
     message on), environment_limit (a node limit: close one, fewer hours, a smaller size, or tell the
-    user), environment_failed (it did not come up).
+    user), environment_already_open (this chat has one with another repo), environment_failed (it
+    did not come up).
 
     Args:
         title: A few words people see, like "Black Friday page".
@@ -260,9 +294,10 @@ async def _open_locked(ctx: ToolContext, mgr: EnvironmentManager, binding: str, 
 async def environment(ctx: ToolContext, *, id: str | None = None) -> dict:
     """Your environment now: state (starting, ready, working, idle, closed, failed), minutes_left,
     cost_eur, ports listening on the VM (your dev server shows here), git (branch, ahead, dirty,
-    pushed), unsaved work and the last 10 calls. Cheap: call it to see if it is ready, if your
-    server listens, or what is left to push. With none in this chat, it lists your grant's open
-    ones by title and last call (environment_open with that title gets one back). Effect: read.
+    pushed; compare: the pull request link of your pushed branch), proofs (with fresh links),
+    unsaved work and the last 10 calls. Cheap: call it to see if it is ready, if your server
+    listens, or what is left to push. With none in this chat, it lists your grant's open ones by
+    title and last call (environment_open with that title gets one back). Effect: read.
 
     Args:
         id: An environment id of your grant; leave it out for this chat's.
@@ -276,16 +311,23 @@ async def environment(ctx: ToolContext, *, id: str | None = None) -> dict:
         return {"environment": None,
                 "open": [{"id": e.id, "title": e.title, "repo": e.repo, "state": e.shown_state(mgr._clock()),
                           "last_call_at": mgr.summary(e)["last_call_at"]} for e in mine],
-                "next": "environment_open(title=...)" + (" with one of these titles and its repo to get it back"
-                                                         if mine else "")}
+                "next": "environment_open(title=...)" + (" with one of these titles gets it back" if mine else "")}
     out = await mgr.detail(env, calls=CALLS_SHOWN)
     out.pop("viewer", None)
     out.pop("commands", None)
     out["links"] = _links(ctx, env)
+    git = out.get("git") or {}
+    git["pushed"], compare = _with_compare(env, git.get("pushed") or [])
+    if compare:
+        git["compare"] = compare
+    out["proofs"] = _proofs(mgr, env)
     if env.state == "starting":
         out["next"] = "still starting: call environment() again in a minute"
     elif out.get("unsaved"):
         out["next"] = "commit and push before environment_close (git push origin <branch>)"
+    elif git.get("compare"):
+        out["next"] = ("give the human git.compare (it opens a pull request for your branch) and the proofs' links, "
+                       "then environment_close()")
     return out
 
 
@@ -293,7 +335,9 @@ async def environment_close(ctx: ToolContext, *, id: str | None = None, discard:
     """Delete your environment when the work is done: its VM and everything on it, and its browser.
     Refused with unsaved_work (which lists them) while changes are not committed or commits not
     pushed: push first, or discard=true if the user agreed to lose them. Returns id, state closed,
-    cost_eur, minutes and what was pushed. If you forget, the node closes it after an idle hour
+    machine ("deleted" once the provider says it is gone; "deleting" while the node still deletes
+    it), cost_eur, minutes, pushed (each branch as it is on the remote now, with its compare link),
+    deleted (branches it deleted) and your proofs. If you forget, the node closes it after an idle hour
     (never with unsaved work) or at its time limit. Effect: read. Errors: no_environment, unsaved_work.
 
     Args:
@@ -309,12 +353,20 @@ async def environment_close(ctx: ToolContext, *, id: str | None = None, discard:
                                                                               if discard else ""))
     if not _mine(ctx, env):
         raise PolicyDenied(f"environment {env.id} is not yours")
-    env = await mgr.close(env.id, discard=discard, reason="closed by the agent" + (" (discarded)" if discard else ""))
+    try:
+        env = await mgr.close(env.id, discard=discard,
+                              reason="closed by the agent" + (" (discarded)" if discard else ""))
+    except AgentosError as e:  # a refusal is one of its last calls too (environment() lists it)
+        mgr.record_call(env.terminal_lane, "environment_close", ok=False, error=e.code,
+                        summary="discard" if discard else "")
+        raise
     ctx.trace("environment_close", lane=env.terminal_lane, environment=env.id, discard=discard)
     end = env.closed_at or mgr._clock()
-    return {"id": env.id, "state": env.state, "cost_eur": env.cost_eur,
+    lists = mgr.push_lists(env)
+    pushed, _ = _with_compare(env, lists["pushed"])
+    return {"id": env.id, "state": env.state, "machine": env.vm_state or "unknown", "cost_eur": env.cost_eur,
             "minutes": int((end - env.created_at).total_seconds() // 60),
-            "pushed": [{"branch": p.branch, "commit": p.commit, "at": p.at.isoformat()} for p in env.pushed]}
+            "pushed": pushed, "deleted": lists["deleted"], "proofs": _proofs(mgr, env)}
 
 
 def tool_specs(runtime: Any) -> list[ToolSpec]:

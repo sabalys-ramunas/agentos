@@ -294,13 +294,16 @@ class JobTable:
 
     # ------------------------------------------------------------------ read
     async def read(self, job: Job, stdout_offset: int, stderr_offset: int, *, wait_s: float,
-                   max_bytes: int) -> tuple[bytes, bytes]:
-        """Output after the given offsets, waiting up to `wait_s` for some while the job runs."""
+                   max_bytes: int, until_exit: bool = False) -> tuple[bytes, bytes]:
+        """Output after the given offsets, waiting up to `wait_s` for some while the job runs (with
+        `until_exit`, for the job to end)."""
         max_bytes = max(1, min(int(max_bytes), READ_MAX_BYTES))
         stdout_offset, stderr_offset = max(0, int(stdout_offset)), max(0, int(stderr_offset))
 
         def ready() -> bool:
-            return (not job.running or job.kept("stdout") > stdout_offset or job.kept("stderr") > stderr_offset)
+            if not job.running:
+                return True
+            return not until_exit and (job.kept("stdout") > stdout_offset or job.kept("stderr") > stderr_offset)
 
         if wait_s > 0 and not ready():
             async with job.changed:

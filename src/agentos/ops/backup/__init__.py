@@ -483,12 +483,51 @@ def _estimate(home: Path) -> int:
     return total
 
 
+MADE_LOG = "made.json"  # in AGENTOS_HOME/backups: where and when each backup this node made went
+MADE_KEEP = 50
+
+
+def made_log_path(home: Path) -> Path:
+    return default_backup_dir(Path(home)) / MADE_LOG
+
+
+def record_made(home: Path, location: str, created: datetime, size: int, *, host: Host | None = None) -> None:
+    """Note one finished backup (its directory path or s3:// URL, time and size), so `agentos status
+    --check` finds backups wherever `--to` sent them. Best effort: a backup that was written stays good
+    even when this note cannot be kept."""
+    path = made_log_path(home)
+    rows = read_made(home)
+    rows.append({"location": location, "created_at": created.astimezone(UTC).isoformat(timespec="seconds"),
+                 "size": size})
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        tmp = path.with_name(f".{MADE_LOG}.tmp")
+        tmp.write_text(json.dumps(rows[-MADE_KEEP:], indent=1) + "\n")
+        tmp.chmod(0o600)
+        os.replace(tmp, path)
+        _chown_like(path, Path(home), host or Host())
+    except OSError:
+        pass
+
+
+def read_made(home: Path) -> list[dict[str, Any]]:
+    """The backups this node noted making, oldest first; [] when none (or the note cannot be read)."""
+    try:
+        rows = json.loads(made_log_path(home).read_text())
+    except (OSError, ValueError):
+        return []
+    return [r for r in rows if isinstance(r, dict) and isinstance(r.get("location"), str)
+            and isinstance(r.get("created_at"), str)] if isinstance(rows, list) else []
+
+
 def create_backup(home: Path, dest: Path, passphrase: str, *, node: str, keep: int | None = 7,
                   host: Host | None = None, coordinator: LaneCoordinator | None = None,
                   allow_live: bool = False, include_caches: bool = False, log_n: int = age.DEFAULT_LOG_N,
-                  now: datetime | None = None, fail_after: Callable[[str], None] | None = None) -> BackupResult:
+                  now: datetime | None = None, fail_after: Callable[[str], None] | None = None,
+                  record: bool = True) -> BackupResult:
     """Write one encrypted backup of `home` into directory `dest`. `fail_after` is a test hook
-    called after each member is written (raise from it to simulate an interruption)."""
+    called after each member is written (raise from it to simulate an interruption). `record`: note
+    it in the made log (record_made); off when the caller uploads it elsewhere and notes that."""
     home, dest = Path(home), Path(dest)
     host = host or Host()
     coordinator = coordinator or NoDaemon()
@@ -585,6 +624,8 @@ def create_backup(home: Path, dest: Path, passphrase: str, *, node: str, keep: i
                           skipped=skipped, warnings=warnings)
     if keep:
         result.removed = prune(dest, keep, node)
+    if record:
+        record_made(home, str(final), now, result.size, host=host)
     return result
 
 

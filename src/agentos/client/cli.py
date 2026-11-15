@@ -339,6 +339,13 @@ def show_node(prefix: str, where: str, info: dict[str, Any]) -> None:
         typer.echo(f"  exposed in {lane_id}: {e.get('url', '?')} (until {until} UTC)")
 
 
+def _on_a_node() -> bool:
+    """This box is a node (a node.toml in AGENTOS_HOME)."""
+    from agentos.core.config import config_path, home_from_env
+
+    return config_path(home_from_env()).exists()
+
+
 def node_status() -> dict[str, Any] | None:
     """This box's own node, when the CLI runs on one (a node.toml in AGENTOS_HOME): `{ node, home,
     whoami?, lanes?, error? }`, asked over its loopback MCP port with its own token. None off a node."""
@@ -438,10 +445,18 @@ def open_lane(
 ) -> None:
     """Open a lane's live view in your browser, through the node's tunnel.
 
-    In the viewer you can take control (the agent waits) and hand it back. The link expires."""
+    In the viewer you can take control (the agent waits) and hand it back. The link expires. On the node
+    itself (no connections) it prints the node's own control link and the SSH tunnel, as `agentos lane view
+    --control` does."""
     import webbrowser
 
     c = client()
+    if node is None and not c.connections() and _on_a_node():
+        # on the node itself there is nothing to connect to: the node's own link, as `agentos lane view`
+        from agentos.commands.lane_control import lane_view_link
+
+        lane_view_link(lane, control=True, ttl=None)
+        return
     try:
         conn = c.get(node) if node else c.find_lane(lane)
         link = c.view_link(conn, lane, wake=wake)

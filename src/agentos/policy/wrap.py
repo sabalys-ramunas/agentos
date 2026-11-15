@@ -187,9 +187,10 @@ def wrap_tool(spec: ToolSpec, runtime: Any, *,
 
         env_lane: list[str | None] = [lane_id]  # the environment lane this call counts on (a studio check sets it)
 
-        def end(status: str, summary: str | None = None, error: str | None = None) -> None:
+        def end(status: str, summary: str | None = None, error: str | None = None, result: Any = None) -> None:
             if status in ("ok", "error", "denied"):
-                routing.after(runtime, spec.name, env_lane[0], kwargs, ok=status == "ok", scrub=scrub)
+                routing.after(runtime, spec.name, env_lane[0], kwargs, ok=status == "ok", scrub=scrub,
+                              result=result, error="denied" if status == "denied" else error)
             eff = ctx.effect.value if ctx.effect is not None else spec.effect.value
             policy.traces.write(TraceEvent(
                 kind="tool_end", tool=spec.name, lane=lane_id, effect=eff, status=status, summary=summary,
@@ -234,7 +235,7 @@ def wrap_tool(spec: ToolSpec, runtime: Any, *,
                 ctx.taint(*tag_labels, source=spec.name)
             except AgentosError:
                 log.warning("bad taint_tags config for %s", spec.name)
-        end("ok")
+        end("ok", result=result)
         return _scrub_result(result, token)
 
     call.__signature__ = public_sig  # type: ignore[attr-defined]

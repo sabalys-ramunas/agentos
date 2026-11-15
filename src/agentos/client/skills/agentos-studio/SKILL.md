@@ -13,8 +13,7 @@ laptop studio answer `unavailable`: ignore them.
 
 ## Your tools
 
-In the `studio` toolset. `agentos studio up` lists them from the start, so call them
-directly. Only when `ui_check` is not in your list (a node connection) does
+In the `studio` toolset; `agentos studio up` lists them from the start. Only when `ui_check` is not in your list (a node connection) does
 `tools_more(toolset="studio")` add them.
 
 - `ui_check(url)`: is this page all right? The one call after every UI change.
@@ -30,8 +29,8 @@ directly. Only when `ui_check` is not in your list (a node connection) does
 
 In the `profiles` toolset: `profile_use`, `profile_learn_brand`, `profile_propose`. If they
 are not in your list, run one with `tools_call(name="profile_use", arguments={...})`;
-`tools_more(toolset="profiles")` lists all fourteen profile tools and costs about 3,000 tokens,
-so only call it when you need the others. `howto(topic="studio_check")`, `studio_diff` and
+`tools_more(toolset="profiles")` lists all fourteen (about 3,000 tokens),
+so only when you need the others. `howto(topic="studio_check")`, `studio_diff` and
 `studio_brand` repeat the loops below as short recipes.
 
 ## The self-check loop
@@ -65,8 +64,9 @@ given: when it does not load, say so and stop, rather than trying other ports, p
 
 - `studio_page_not_loaded`: nothing answered. Start the dev server or fix the port.
 - `studio_http_error`: the page answered 404 or 500. Fix the address or the server error.
-- `studio_blank_page`: it loaded but rendered nothing. The message quotes the page's own
-  console error when there was one: fix that.
+- `studio_blank_page`: nothing rendered within the wait it names. A slow app: call again
+  with `wait_for` (a selector shown when ready, like `"main h1"`). Still blank: fix the
+  console error the message quotes, if any.
 - `studio_dev_error`: the dev server's error overlay (Vite, Next.js) covers the app.
 - `invalid`: fix the arguments (widths are 240 to 3840 px or a device name).
 

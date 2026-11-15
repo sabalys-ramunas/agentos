@@ -118,6 +118,21 @@ nothing more; its input never reaches the lane, since a human's input is never s
 anyone but a person made, 8 hours for an owner link. The owner's control API follows the same rule: a
 hand-back, and a take over of a held lane, need `person`.
 
+**An agent environment's own browser** (`env/<id>-browser`, decided 2026-11-15) is the one exception. It holds
+no account, no saved login and no vault entry, and its traffic leaves from the environment's own VM, so there
+is nothing behind it that a person must guard. There, a control link alone may take over (also a held lane),
+type, copy and hand back; the page says so and the relay passes its input while control is `human`. What it
+does is recorded as `link holder`, never as the owner. The node decides which lane that is (the environments
+service: an open environment whose browser lane is exactly this one), never the link or the page: a lane of an
+environment that closed, every account lane, and a lane the service cannot answer about keep every rule above.
+A view link still only watches, a freeze still ends the link, the hard end still holds, and adding a site and
+the assisted login stay a person's (an environment's browser has no login).
+
+A **proof link** (`/view/env/<id>-browser/proof/<proof>.png?t=...`) opens one screenshot an agent kept as
+proof of its work in an environment, and nothing else: no live view, no control. It is signed with the viewer
+key for that one image (purpose `proof`, 15 minutes), so replacing the key revokes it, and a live-view token
+does not open it. The image is the agent's own work, which the agent may already pass on.
+
 Copying out of a lane (`POST /view/{ws}/{name}/clipboard`) reads the lane's clipboard for the person's own
 computer. A clipboard can hold what was never on the screen (a password a page's Copy button put there, a
 token), so the read is at least as strict as the relay's input gate: a control link, control `human`, and a

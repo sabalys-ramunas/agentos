@@ -717,19 +717,42 @@ def _check_lane_formats(ctx: DoctorContext) -> list[CheckResult]:
 
 
 def check_backups(ctx: DoctorContext) -> list[CheckResult]:
-    from agentos.ops.backup import list_archives
+    """The newest backup wherever it went: the default folder, and every place `agentos backup create
+    --to` sent one (the node notes each backup it makes, agentos.ops.backup.record_made). A noted
+    folder is listed again, so a deleted archive does not count; an s3:// one is taken as noted."""
+    from agentos.ops.backup import list_archives, parse_name, read_made
 
     root = default_backup_dir(ctx.home)
-    archives = list_archives(root)
-    if not archives:
-        return [CheckResult("backups", "Backups", WARN, f"no backup in {root}; a dead disk would lose every login",
+    found: dict[str, tuple[float, str]] = {}  # name or URL -> (created, where)
+    folders = {root}
+    remote: list[tuple[float, str]] = []
+    for row in read_made(ctx.home):
+        location = row["location"]
+        if location.startswith("s3://"):
+            parsed = parse_name(location.rsplit("/", 1)[-1])
+            if parsed:
+                remote.append((parsed[1].timestamp(), location))
+        else:
+            folders.add(Path(location).parent)
+    for folder in sorted(folders):
+        for archive in list_archives(folder):
+            found[str(archive.path)] = (archive.created.timestamp(), str(folder))
+    for created, location in remote:
+        found[location] = (created, location.rsplit("/", 1)[0])
+    if not found:
+        return [CheckResult("backups", "Backups", WARN, f"no backup in {root} or anywhere this node sent one; "
+                            "a dead disk would lose every login",
                             "agentos backup create --to /mnt/backup (or --to s3://bucket/agentos)")]
-    newest = archives[-1]
-    age_days = (ctx.host.now() - newest.created.timestamp()) / 86400
-    detail = f"{len(archives)} in {root}, newest {newest.path.name} ({age_days:.1f} days old)"
+    newest_at, newest = max((created, name) for name, (created, _) in found.items())
+    places = sorted({where for _, where in found.values()})
+    age_days = (ctx.host.now() - newest_at) / 86400
+    detail = (f"{len(found)} in {', '.join(places)}, newest {newest.rsplit('/', 1)[-1]} "
+              f"({age_days:.1f} days old)")
     if age_days > BACKUP_MAX_AGE_DAYS:
         return [CheckResult("backups", "Backups", WARN, detail, "agentos backup create")]
-    return [CheckResult("backups", "Backups", PASS, detail + "; keep a copy off this disk too")]
+    off_disk = any(not Path(p).resolve().is_relative_to(ctx.home.resolve()) for p in places if "://" not in p)
+    off_disk = off_disk or any("://" in p for p in places)
+    return [CheckResult("backups", "Backups", PASS, detail + ("" if off_disk else "; keep a copy off this disk too"))]
 
 
 def check_workspace_memory(ctx: DoctorContext) -> list[CheckResult]:

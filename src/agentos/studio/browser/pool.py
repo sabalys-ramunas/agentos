@@ -78,6 +78,9 @@ class Limits:
     network_quiet_s: float = 0.5    # no request in flight for this long counts as quiet
     network_cap_s: float = 5.0      # stop waiting for quiet after this (a stream, a poll)
     fonts_cap_s: float = 5.0        # document.fonts.ready, at most this long
+    first_paint_s: float = 3.0      # a page that shows nothing yet after settling: wait this long for it
+    dev_first_paint_s: float = 15.0  # the same on a dev server (a loopback or private host): unbundled modules
+                                     # on a small machine take seconds (a Vite app on 2 vCPU, 2026-11-15)
     close_cap_s: float = 2.0        # closing a context or a browser; Playwright's stop ends what is left
 
 
@@ -145,6 +148,21 @@ async def _page_said(page: Any, limit: int = 3) -> str:
                 lines.append(f"{m.type} {m.text}")
     lines = [" ".join(s.split())[:160] for s in dict.fromkeys(lines)]
     return "; ".join(lines[-limit:])
+
+
+def _dev_host(url: str) -> bool:
+    """A dev server's address: localhost, a loopback or a private address (on this computer, or on an
+    environment's VM through its proxy)."""
+    import ipaddress
+
+    host = (urlsplit(url).hostname or "").lower()
+    if host == "localhost" or host.endswith((".localhost", ".local")):
+        return True
+    try:
+        ip = ipaddress.ip_address(host)
+    except ValueError:
+        return False
+    return ip.is_loopback or ip.is_private or ip.is_unspecified
 
 
 def _first_line(exc: BaseException, limit: int = 200) -> str:
@@ -474,13 +492,22 @@ class ReviewPool:
         notes.extend(settled.pop("notes"))
         stage[0] = "reading the page back"
         blank = await page.evaluate(settle.BLANK_TEST)
+        painted = False
         if not blank.get("content"):
+            stage[0] = "waiting for a first paint"
+            painted, waited = await self._first_paint(page, target.url)
+            if painted:  # a slow app: it rendered now, so it settles again before it is read
+                notes.append(f"nothing showed for {waited:g} s after the page settled; checked once it rendered")
+                stage[0] = "settling"
+                notes.extend((await self._settle(page, network)).pop("notes"))
+        if not blank.get("content") and not painted:
             said = await _page_said(page)
-            raise BlankPage(f"{page.url} loaded but shows nothing (no visible text, image or control). The app may "
-                            "have failed to render: "
+            raise BlankPage(f"{page.url} loaded but nothing rendered within {waited:g} s (no visible text, image or "
+                            "control). If the app is slow, call again with wait_for set to a selector it shows when "
+                            "ready, like \"main h1\". If it still shows nothing, it failed to render: "
                             + (f"the page's console said (page text, data): {said}. " if said else
                                "the page logged no error; read the dev server's output. ")
-                            + "Fix it, then call again.", url=page.url, status=status)
+                            + "Fix it, then call again.", url=page.url, status=status, waited_s=waited)
         theme = await page.evaluate(settle.READ_THEME, settle.read_theme_args(target.theme_switch, screen.theme))
         if theme.get("applied") is False:
             raise ThemeNotApplied(_theme_failure(target, screen, theme), url=page.url, theme=screen.theme.value,
@@ -503,6 +530,19 @@ class ReviewPool:
             fonts_fell_back=fell_back, **settled, notes=notes)
         report.update(font_report(fell_back))
         return report
+
+    async def _first_paint(self, page: Any, url: str) -> tuple[bool, float]:
+        """Wait for a page that shows nothing yet to show something: Limits.first_paint_s, or
+        dev_first_paint_s on a dev server (_dev_host). Returns (rendered, seconds waited)."""
+        cap = self.limits.dev_first_paint_s if _dev_host(url) else self.limits.first_paint_s
+        loop = asyncio.get_running_loop()
+        start = loop.time()
+        while loop.time() - start < cap:
+            await asyncio.sleep(min(0.25, cap))
+            with contextlib.suppress(Exception):  # a page navigating away answers on the next read
+                if (await page.evaluate(settle.BLANK_TEST)).get("content"):
+                    return True, round(loop.time() - start, 1)
+        return False, round(cap, 1)
 
     async def _settle(self, page: Any, network: _Network) -> dict[str, Any]:
         limits = self.limits

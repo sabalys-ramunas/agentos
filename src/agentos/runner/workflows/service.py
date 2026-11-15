@@ -359,6 +359,23 @@ class WorkflowService(ViewsMixin):
         self.store.delete(flow_id)
         return True
 
+    def discard(self, flow_id: str, actor: Actor, *, own: Callable[[dict[str, Any]], bool]) -> dict[str, Any]:
+        """An agent takes back a draft it saved, as if it had never saved it: only one that was never on,
+        never proposed and never ran, every version of it saved by the caller's own grant family (`own`).
+        Anything else a person already saw or something already did, so only a person deletes it."""
+        state = self._state(flow_id)
+        person = f"only a person deletes it now: agentos routines workflows remove {flow_id}"
+        if state.enabled or state.live or state.proposal or state.route_id or state.schedule_id:
+            raise PolicyDenied(f"{flow_id} was turned on or proposed to a person, so {person}")
+        if self.runner.store.list_runs(flow_id=flow_id, limit=1):
+            raise PolicyDenied(f"{flow_id} has runs, so {person}")
+        versions = self.store.versions(flow_id)
+        if not versions or any(v.by_person or not own(v.saved_by) for v in versions):
+            raise PolicyDenied(f"{flow_id} was not saved by you alone, so {person}")
+        self._unwire(state)
+        self.store.delete(flow_id)
+        return {"id": flow_id, "discarded": True, "by": actor.by}
+
     # ---- turning it on ----
     def enable(self, flow_id: str, actor: Actor, *, version: str | None = None) -> dict[str, Any]:
         if not actor.person:

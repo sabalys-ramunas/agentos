@@ -38,6 +38,8 @@ SELF_AUTHORIZED_LANE_PARAM = {
     # `on` is an optional filter; the handler calls ctx.authorize(READ, lane_id=on) and filters the
     # list with ctx.can_access_lane.
     "lane_jobs_list": "on",
+    # `lane` only narrows a list already filtered by flow_seen (ctx.can_access_lane); it acts on nothing.
+    "flows_list": "lane",
 }
 
 # Tools with lane_arg=None whose lane comes from another argument: the handler resolves it and
@@ -58,6 +60,8 @@ SELF_AUTHORIZED_INDIRECT = {
     "workflow_run": "each step authorizes its own account (runner/workflows/engine.py)",
     "workflow_retry": "re-runs steps that authorize their own account",
     "workflow_propose": "a draft for a person to save; no lane is touched",
+    "workflow_discard": "removes the caller's own never-run draft; no lane is touched",
+    "mail_mailboxes": "mailbox ids filtered with ctx.can_access_lane",
     "connectors_list": "results filtered with ctx.can_access_lane",
     "events_list": "events filtered per lane with ctx.can_access_lane",
     "agenda_get": "entry id -> its lane (or workspace); _entry checks it, ctx.authorize(READ, lane_id=acts_on)",
@@ -83,7 +87,7 @@ SELF_AUTHORIZED_INDIRECT = {
 NO_LANE = frozenset({
     "approval_confirm", "approval_status", "approval_wait",
     "brain_cancel", "brain_resume", "brain_status", "brain_tail", "brain_tasks", "brain_use", "brains_list",
-    "env_lanes_list", "flows_list", "grant_info", "howto", "human_ask", "image_build", "images_list",
+    "env_lanes_list", "grant_info", "howto", "human_ask", "image_build", "images_list",
     "lanes_list", "leads_propose", "memory_context", "memory_forget", "memory_get", "memory_search",
     "memory_write", "plugins_list", "run_cancel", "run_status", "send_suppress", "site_api_propose",
     "site_apis_list", "triggers_list", "whoami", "workflow_catalog", "workflow_get", "workflow_list",

@@ -289,16 +289,41 @@ def _no_open_dialog(page: Any, doing: str) -> None:
         raise DialogPending(f"cannot {doing}: {dialog_notice(pending)}")
 
 
-async def browser_screenshot(ctx: ToolContext, *, on: str) -> ToolImage:
+async def browser_screenshot(ctx: ToolContext, *, on: str, full_page: bool = False, width: int | None = None,
+                             proof: str | None = None) -> ToolImage | list[Any]:
     """A PNG of what the lane's active tab shows right now. Use it only when the snapshot outline is
     not enough (layout, images, a canvas, a puzzle you must describe to the human): it costs far
-    more context than a snapshot, often more than a thousand tokens, and has no refs to act on.
-    A read: it runs alongside other reads and while another caller claims the lane. Effect: read.
-    Errors: dialog_pending (answer it with browser_dialog_answer), engine_error (retry once)."""
+    more context than a snapshot and has no refs. Effect: read. Errors: dialog_pending
+    (browser_dialog_answer), engine_error (retry once), invalid.
+
+    Args:
+        full_page: The whole page, not only the window.
+        width: Lay the page out this wide for the shot (390: a phone). An environment's browser only.
+        proof: Keep it as proof of your work, with this title for the human ("cart after the fix"):
+            kept on the node after the environment closes, with a link to give the human
+            (curl -o proof.png <url> saves it). An environment's browser only.
+    """
+    from agentos.node.tools import shots
+
     on = lane_id(on)
-    await ctx.authorize(Effect.READ, lane_id=on, summary=f"screenshot {on}")
+    shot_width, title = shots.check_width(width), shots.check_title(proof)
+    env = shots.environment_of(ctx, on) if shot_width is not None or title is not None else None
+    if (shot_width is not None or title is not None) and env is None:
+        raise InvalidRequest("width and proof are for an environment's browser: call browser_screenshot without "
+                             "`on` in a chat with an environment")
+    await ctx.authorize(Effect.READ, lane_id=on, summary=f"screenshot {on}" + (f" as proof: {title}" if title else ""))
     interaction = ctx.runtime.interaction
-    async with driven_session(ctx, on, mode=READ) as page:
-        png = await interaction.screenshot(page)
-    label_page_text(ctx, "browser_screenshot", getattr(page, "url", None))
-    return ToolImage(data=png, mime_type="image/png")
+    # another width lays the page out again, which a caller acting there would see: it takes its turn
+    async with driven_session(ctx, on, **({} if shot_width is not None else {"mode": READ})) as page:
+        if shot_width is not None:
+            png = await shots.shot_at_width(interaction, page, shot_width, full_page=full_page)
+        else:
+            png = await (interaction.screenshot(page, full_page=True) if full_page else interaction.screenshot(page))
+    url = getattr(page, "url", None)
+    label_page_text(ctx, "browser_screenshot", url)
+    image = ToolImage(data=png, mime_type="image/png")
+    if title is None:
+        return image
+    kept = shots.keep(ctx, env, png, title=title, page_url=url, on=on)
+    return [image, {"proof": kept, "next": "Give the human proof.url (it works for a few minutes; environment() "
+                                           "gives a fresh one), or save it with curl -o and show the file."}]

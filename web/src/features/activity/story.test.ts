@@ -139,3 +139,20 @@ describe('a proof sent the way approvals carry it', () => {
     expect(artifact?.type === 'form' && artifact.fields.map((field) => field.changed)).toEqual([true, false]);
   });
 });
+
+describe('work in an environment', () => {
+  it('is done, never "not checked", and never called an account', () => {
+    const told = storyOf({ lane: 'env/esrkyfqerme', effect: 'exec' as never, status: 'succeeded_unverified', summary: 'pnpm test' });
+    expect(told.label).toBe('Done');
+    expect(told.result).toBe('checked');
+    expect(told.note).toBeNull();
+    expect(told.sentence).not.toMatch(/Esrkyfqerme|Env's/);
+  });
+
+  it('reads a History session as done, with no warning', () => {
+    const view = fromHistory(story({ verdict: 'done', verdict_text: "It ran on the agent's own computer, so there is no account to check.", sentence: 'Worked in qa-env: ran 4 commands' }));
+    expect(view.label).toBe('Done');
+    expect(view.result).toBe('checked');
+    expect(view.note).toBeNull();
+  });
+});

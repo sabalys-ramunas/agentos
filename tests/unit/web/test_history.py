@@ -383,3 +383,26 @@ def test_the_histogram_reads_the_four_approval_states_at_once_and_counts_them(mo
     assert sorted(waiting) == ["approved", "denied", "expired", "pending"]
     assert chart["totals"]["approvals"] == 2
     assert sum(b["approvals"]["approved"] for b in chart["buckets"]) == 1
+
+
+def test_an_environment_session_is_one_done_story_named_by_its_title(client, node, monkeypatch) -> None:
+    """2026-11-15 test, F4: eleven commands in an environment were eleven "Not checked" warnings on
+    "Env's Esrkyfqerme". They are one story, by the environment's title, done, with the commands behind
+    Technical details."""
+    from agentos.api.web import history
+
+    monkeypatch.setattr(history.envs_web, "titles", lambda api: {"esrkyfqerme": "qa-env-2026-11-15"})
+    for index in range(3):
+        _call(node, "lane_exec", "ok", lane="env/esrkyfqerme", effect="exec", summary=f"pnpm test {index}")
+    _call(node, "lane_exec", "error", lane="env/esrkyfqerme", effect="exec", summary="pnpm lint")
+    _call(node, "browser_navigate", "ok", lane="env/esrkyfqerme-browser", summary="http://localhost:5173")
+    stories = [s for day in client.get(f"{ORG}/history").json()["days"] for s in day["stories"]]
+    mine = [s for s in stories if s["lane"].startswith("env/")]
+    assert len(mine) == 1, [s["sentence"] for s in mine]
+    story = mine[0]
+    assert story["sentence"] == "Worked in qa-env-2026-11-15: ran 4 commands and used the browser once"
+    assert story["verdict"] == "done" and "no account to check" in story["verdict_text"]
+    assert "1 of the 5 steps ended with an error" in story["verdict_text"]
+    assert "Esrkyfqerme" not in story["sentence"] + story["verdict_text"] + story["place"]
+    assert "Env's" not in story["sentence"] and "pnpm lint" in story["detail"]
+    assert story["steps"][0]["label"] == "Ran a command in the terminal"

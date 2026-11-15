@@ -89,11 +89,26 @@ def _unsaved_words(unsaved: dict) -> str:
     return " and ".join(parts) or "nothing unsaved"
 
 
-def _row(s: dict) -> str:
+TITLE_SHOWN = 40
+HEADER = ("ID", "STATE", "TITLE", "REPOSITORY", "MACHINE", "COST", "TIME LEFT")
+
+
+def _cells(s: dict) -> tuple[str, ...]:
+    """One environment as the list's cells. The repository is shown whole; a long title is cut at a
+    word, with an ellipsis."""
     cost = f"EUR {s['cost_eur']:.3f}" if s.get("cost_eur") is not None else "EUR ?"
-    left = f"{s['minutes_left']} min left" if s.get("minutes_left") is not None else (s.get("closed_reason") or "")
-    return (f"{s['id']:<6} {s['state']:<8} {s['title'][:28]:<28} {(s.get('repo') or '-')[:30]:<30} "
-            f"{s['machine']['server_type'] or '-':<8} {cost:<11} {left}")
+    left = f"{s['minutes_left']} min" if s.get("minutes_left") is not None else (s.get("closed_reason") or "-")
+    title = s["title"]
+    if len(title) > TITLE_SHOWN:
+        title = title[:TITLE_SHOWN].rsplit(" ", 1)[0].rstrip(" ,.;:") + "..."
+    return (s["id"], s["state"], title, s.get("repo") or "-", s["machine"]["server_type"] or "-", cost, left)
+
+
+def _table(rows: list[dict]) -> list[str]:
+    """The environments as lines of a table, with its header row first."""
+    cells = [HEADER, *(_cells(s) for s in rows)]
+    widths = [max(len(row[i]) for row in cells) for i in range(len(HEADER))]
+    return ["  ".join(c.ljust(w) for c, w in zip(row, widths, strict=True)).rstrip() for row in cells]
 
 
 @app.command("list")
@@ -107,10 +122,11 @@ def list_cmd(all_: Annotated[bool, typer.Option("--all", help="Closed and failed
         typer.echo(json.dumps({"environments": rows}, indent=2, default=str))
         return
     if not rows:
-        typer.echo("No open environments." if not all_ else "No environments yet.")
+        typer.echo("No open environments. `agentos environments list --all` shows closed and failed ones too."
+                   if not all_ else "No environments yet.")
         return
-    for s in rows:
-        typer.echo(_row(s))
+    for line in _table(rows):
+        typer.echo(line)
     typer.echo(f"\nThis month about EUR {mgr.month_spend():.2f} on environments.")
 
 
@@ -127,21 +143,34 @@ def show(env_id: Annotated[str, typer.Argument(metavar="ID", help="An environmen
     repos = _git_state(vms, env) if env.open else None
     out["unsaved"] = mgr.unsaved_of(repos)
     out["git"] = repos
-    out["pushed"] = mgr.pushes(env)
-    out["calls"] = [{"at": c.at.isoformat(), "tool": c.tool, "summary": c.summary, "ok": c.ok}
-                    for c in reversed(env.calls[-20:])]
+    out.update(mgr.push_lists(env))
+    out["machine_state"] = env.vm_state
+    out["calls"] = [{"at": c.at.isoformat(), "tool": c.tool, "summary": c.summary, "ok": c.ok,
+                     "exit_code": c.exit_code, "error": c.error} for c in reversed(env.calls[-20:])]
     if json_out:
         typer.echo(json.dumps(out, indent=2, default=str))
         return
-    typer.echo(_row(out))
+    for line in _table([out]):
+        typer.echo(line)
     typer.echo(f"  agent {out['agent']['name']}, lanes {out['lanes']['terminal']} and {out['lanes']['browser']}, "
                f"workdir {out['workdir']}")
     if out["unsaved"]:
         typer.echo(f"  not saved: {_unsaved_words(out['unsaved'])}")
+    if out["machine_state"]:
+        typer.echo(f"  machine {out['machine_state']}")
     for p in out["pushed"]:
         typer.echo(f"  pushed {p['branch']} {p['commit']} at {p['at']}")
+    for p in out["deleted"]:
+        typer.echo(f"  deleted {p['branch']} at {p['at']}")
     for c in out["calls"][:10]:
-        typer.echo(f"  {c['at'][:19]} {c['tool']:<18} {'ok' if c['ok'] else 'failed':<6} {c['summary'][:80]}")
+        typer.echo(f"  {c['at'][:19]} {c['tool']:<18} {_outcome(c):<10} {c['summary'][:80]}")
+
+
+def _outcome(c: dict) -> str:
+    """ok, failed, or a refusal's code; a command's exit code when it is not 0."""
+    if not c["ok"]:
+        return c.get("error") or "failed"
+    return f"exit {c['exit_code']}" if c.get("exit_code") not in (None, 0) else "ok"
 
 
 @app.command()

@@ -110,7 +110,7 @@ def test_the_list_shows_open_ones_and_all_on_request(client: TestClient, envs: A
 def test_one_environment_in_detail(client: TestClient, envs: Any) -> None:
     body = client.get(f"{ENVS}/e7k2").json()
     assert body["ports"] == [{"port": 3000, "process": "node", "link": None}]
-    assert body["git"] == {"branch": "main", "ahead": 0, "dirty": 0, "pushed": []}
+    assert body["git"] == {"branch": "main", "ahead": 0, "dirty": 0, "pushed": [], "deleted": []}
     assert body["calls"][0] == {"at": body["calls"][0]["at"], "tool": "lane_exec", "summary": "npm test", "ok": True}
     assert body["commands"][0]["cmd"] == "npm test" and body["unsaved"] is None
     assert body["viewer"] is None  # the browser lane is not warm

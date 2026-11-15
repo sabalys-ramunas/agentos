@@ -411,7 +411,7 @@ def _control_apps(config: NodeConfig, runtime: Runtime) -> tuple[Any, Any]:
 
     viewer = build_viewer_app(lanes, config, traces=runtime.get("traces"), tokens=tokens,
                               login=lambda: service_for(runtime), live=live_sockets.of(runtime),
-                              freeze=lambda: runtime.get("freeze"))
+                              freeze=lambda: runtime.get("freeze"), environments=lambda: runtime.get("environments"))
     api = BearerAuth(Starlette(routes=[Mount("/api", routes=control_api_routes(lanes, tokens,
                                                                               traces=runtime.get("traces")))]),
                      config.mcp_token)

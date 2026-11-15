@@ -1,7 +1,9 @@
 """Environments: each agent's cloud computer, as the app's Environments pages read them.
 
     GET  /api/orgs/{org}/environments?state=open|all      {"environments": [EnvSummary]}
-    GET  /api/orgs/{org}/environments/{id}                EnvDetail
+    GET  /api/orgs/{org}/environments/{id}                EnvDetail, with proofs [{id, title, taken_at,
+                                                          page_url, width, height, src}]
+    GET  /api/orgs/{org}/environments/{id}/proofs/{proof}.png   a proof's PNG (src above)
     POST /api/orgs/{org}/environments/{id}/close          {"discard": false} -> EnvSummary (409 unsaved_work)
     POST /api/orgs/{org}/environments/{id}/extend         {"minutes": 60} -> EnvSummary
 
@@ -18,7 +20,7 @@ from __future__ import annotations
 from typing import Any
 
 from starlette.requests import Request
-from starlette.responses import JSONResponse
+from starlette.responses import JSONResponse, Response
 from starlette.routing import BaseRoute
 
 from agentos.api.app import Api, access_of
@@ -50,6 +52,23 @@ def environment_lane(api: Api, lane_id: str) -> bool:
         return False
 
 
+def environment_id(lane_id: str | None) -> str | None:
+    """The environment a lane belongs to by its id alone (env/<id> or env/<id>-browser), else None."""
+    workspace, _, name = str(lane_id or "").partition("/")
+    return name.removesuffix("-browser") or None if workspace == WORKSPACE else None
+
+
+def titles(api: Api, limit: int = 500) -> dict[str, str]:
+    """Every recent environment's id to its title: the one name a person knows it by."""
+    mgr = manager(api)
+    if mgr is None:
+        return {}
+    try:
+        return {env.id: env.title for env in mgr.store.recent(limit) if getattr(env, "title", None)}
+    except (AttributeError, ValueError):
+        return {}
+
+
 def without_environments(api: Api, workspaces: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Workspaces as Accounts and Home see them: an environment's lanes are left out, and workspace env
     with them when nothing else is in it."""
@@ -75,6 +94,19 @@ def _visible(access: Any, env: Any) -> bool:
         return env.member is not None and env.member == member.id
     grant = getattr(getattr(access, "ctx", None), "grant", None)
     return grant is not None and env.family == getattr(grant, "root_id", None)
+
+
+def proofs_of(mgr: Any, env: Any, org: str) -> list[dict[str, Any]]:
+    """The screenshots the agent kept as proof (agentos.environments.proofs), each with `src`: the
+    app's own route for its PNG, behind the same sign-in as this page."""
+    listed = getattr(mgr, "proofs", None)
+    if not callable(listed):
+        return []
+    try:
+        records = listed(env, links=False)
+    except Exception:  # noqa: BLE001 - the page without its proofs rather than none at all
+        return []
+    return [{**r, "src": f"/api/orgs/{org}/environments/{env.id}/proofs/{r['id']}.png"} for r in records]
 
 
 async def _body(request: Request) -> dict[str, Any]:
@@ -119,7 +151,20 @@ def routes(api: Api) -> list[BaseRoute]:
     async def one(request: Request) -> dict[str, Any]:
         mgr, env = find(request, "environment.read")
         await access_of(request).authorize(Effect.READ, action="environment.read", lane_id=env.terminal_lane)
-        return await mgr.detail(env)
+        out = await mgr.detail(env)
+        out["proofs"] = proofs_of(mgr, env, request.path_params["org"])
+        return out
+
+    async def proof_png(request: Request) -> Response:
+        mgr, env = find(request, "environment.proof")
+        await access_of(request).authorize(Effect.READ, action="environment.proof", lane_id=env.terminal_lane)
+        proof_id = request.path_params["proof"]
+        read = getattr(mgr, "proof_png", None)
+        data = read(env.id, proof_id) if callable(read) else None
+        if not data:
+            raise NotFound(f"Environment {env.id} has no proof {proof_id}.")
+        return Response(data, media_type="image/png", headers={"Cache-Control": "private, max-age=3600",
+                                                               "X-Content-Type-Options": "nosniff"})
 
     async def close(request: Request) -> Any:
         mgr, env = find(request, "environment.close")
@@ -159,6 +204,7 @@ def routes(api: Api) -> list[BaseRoute]:
     return [
         org_route(api, "/environments", listing, ["GET"], cap="see"),
         org_route(api, "/environments/{id}", one, ["GET"], cap="see"),
+        org_route(api, "/environments/{id}/proofs/{proof}.png", proof_png, ["GET"], cap="see"),
         org_route(api, "/environments/{id}/close", close, ["POST"], cap="operate"),
         org_route(api, "/environments/{id}/extend", extend, ["POST"], cap="operate"),
     ]

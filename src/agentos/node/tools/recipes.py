@@ -18,14 +18,13 @@ terminal, a real browser and your repo. Take one when the human asks you to work
 VM, or the work needs a machine (builds, tests, a dev server, a browser). \
 environment_open(title, repo) opens it (a private repo must be connected by the human: \
 repo_not_connected says how). Give the human links.browser, its live view (in T3 Code: \
-preview_open). Calls without `on` use it: lane_exec for a command, lane_job_start for a dev server, \
-browser_navigate, ui_check (studio toolset); localhost there is the VM. \
-Nothing in it waits for a person, opening and pushing included. environment() shows ports, git and \
-cost. Commit and push a branch before you close; push to the default branch only when asked. Close \
-with environment_close() when done; never leave one running.
+preview_open). Calls without `on` use it: lane_file_read/lane_file_edit for code, lane_exec for a \
+command, lane_job_start for a dev server, browser_navigate, ui_check (studio toolset); localhost \
+there is the VM; browser_screenshot(proof=...) keeps proof. Nothing in it waits for a person, a \
+push included. environment() shows ports, git (compare: a PR link) and cost. Push a branch (the \
+default one only when asked), then environment_close(); never leave one running.
 
-Lanes are a separate thing: real, logged-in browsers for the human's own accounts, which the human \
-creates. A lane id is workspace/name ("personal/reddit"); pass it as `on`. Use the lane the user \
+Lanes are a separate thing: logged-in browsers for the human's own accounts. A lane id is workspace/name ("personal/reddit"); pass it as `on`. Use the lane the user \
 names, or call lanes_list once.
 
 The browser loop: browser_navigate, then browser_snapshot reads the page as an outline where each \
@@ -141,8 +140,9 @@ signal_detail and one sentence on what the site asks. Then follow the hand_to_hu
 Have a post on lane {on} go out on a schedule ({when}). Agents cannot add schedules: you build and \
 test the flow, and the human schedules it. The flow tools are in the flows toolset: call \
 tools_more(toolset="flows") first if flows_list is not in your list.
-1. flows_list(prefix=<the workspace, the part of {on} before the slash>): if a flow already posts on \
-this lane, use it and go to step 4.
+1. flows_list(lane="{on}") lists every flow that runs on this lane, whatever its name; \
+connectors_list shows installed operations for it too. If one already posts on this lane, use it \
+and go to step 4.
 2. flow_record_start(on="{on}"). Post once with the browser tools (the post_image recipe; this posts for \
 real), then flow_record_stop(on="{on}", name="{flow}", effect="commit"). Typed text becomes params; \
 read the notes and warnings, and fix a step without a readback with flow_save(definition=...).
@@ -171,8 +171,9 @@ workflow_catalog for the operations it can use, workflow_save with trigger {"kin
 Plan one action on lane {on} for {when}: a post, an invoice reminder, a renewal, a form, an export.
 The agenda tools are in the automation toolset and flows_list in flows: tools_more(toolset="automation") \
 and tools_more(toolset="flows") first if they are not in your list.
-1. flows_list(prefix=<the workspace, the part of {on} before the slash>): find the flow that does it \
-({flow}). If there is none, build and test one first (the schedule_post recipe, steps 2 and 3).
+1. flows_list(lane="{on}") lists every flow that runs on this lane, whatever its name (connectors_list \
+shows installed operations): find the one that does it ({flow}). Only if there is none, build and test \
+one first (the schedule_post recipe, steps 2 and 3).
 2. agenda_draft(title=<what it is, in the user's words>, action={"flow": "{flow}", "params": {...}, \
 "on": "{on}"}, when={"at": "{when}"}, propose=true). A window works too: when={"not_before": ..., \
 "not_after": ...}; when={} runs it as soon as it is approved. Recurring work is a schedule, not an entry.
@@ -236,8 +237,8 @@ new items carry their own refs.
         "steps": """\
 Change what a person or business shows on every account attached to its profile ({on} is one of them). \
 The profile tools are in the profiles toolset: tools_more(toolset="profiles") adds them.
-1. profile_get(surface="{on}"): the profile, its accounts, and its voice_prompt. Write any post, comment \
-or reply on these accounts in that voice.
+1. profile_get(surface="{on}"): the profile, its accounts, and its voice_prompt. Use that voice for \
+anything you write for these accounts.
 2. profile_update(profile=<its workspace/profile>, changes=<only the fields to change, as YAML, such as \
 "bio: {short: ...}">). A value too long for one account's site fails with profile_invalid naming it: \
 shorten it, or give that account an override (profile_attach with overrides). From you it is a draft: tell \

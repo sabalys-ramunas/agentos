@@ -58,7 +58,9 @@ async def workflow_save(ctx: ToolContext, *, definition: dict, ask_first: bool |
     step, and never decide one. A site_change trigger reads a Site API endpoint on a schedule and
     gives {{trigger.added}}, {{trigger.removed}} and {{trigger.changed}}: a loop may go through them,
     everything in a row is text from outside, and a post or send inside that loop asks first. Pass ask_first=true to make its commits wait for a person; you can
-    never turn that off. Errors: invalid, with `problems` saying which step and why."""
+    never turn that off. Errors: invalid, with `problems` saying which step and why. Effect: draft (a
+    saved workflow, off; nothing runs until a person turns it on or you call workflow_run). Take back
+    one you no longer need with workflow_discard."""
     if ask_first is not None and not isinstance(ask_first, bool):
         raise InvalidRequest("ask_first is true or false")
     workspace = definition.get("workspace") if isinstance(definition, dict) else None
@@ -73,12 +75,26 @@ def _may_replace(ctx: Any, workspace: str | None, saved_by: dict[str, Any]) -> b
     of; one in no workspace only when its own grant family saved it."""
     if workspace is not None:
         return _can_see(ctx, workspace)
+    return _own_family(ctx, saved_by)
+
+
+def _own_family(ctx: Any, saved_by: dict[str, Any]) -> bool:
+    """Was this version saved by a grant of the caller's own family (its grant or one it was given from)?"""
     grant = getattr(ctx, "grant", None)
     family = getattr(grant, "root_id", None)
     paths = getattr(_svc(ctx).runner, "_grant_path", None)
     gid = saved_by.get("grant_id")
     path = paths(gid) if callable(paths) and gid else None
     return bool(family and path and str(path).startswith(f"/{family}/"))
+
+
+async def workflow_discard(ctx: ToolContext, *, id: str) -> dict:
+    """Take back a workflow you saved by mistake or no longer need, as if you had never saved it. Only a
+    draft: never turned on, never proposed to a person, never run, and every version saved by your own
+    grant. Anything else only a person deletes (denied says how). Effect: the workflow is gone from
+    workflow_list; nothing ran, so nothing else changes."""
+    _visible(ctx, id)
+    return _svc(ctx).discard(id, _actor(ctx), own=lambda saved: _own_family(ctx, saved))
 
 
 async def workflow_list(ctx: ToolContext) -> dict:
@@ -143,8 +159,9 @@ async def workflow_propose(ctx: ToolContext, *, id: str) -> dict:
 
 
 async def send_suppress(ctx: ToolContext, *, workspace: str, email: str, why: str | None = None) -> dict:
-    """Stop all messages to an address in a workspace (someone asked not to be contacted). Only a
-    person can lift it. The answer is the same whether or not the address was known."""
+    """Stop every message a workflow of this workspace sends to an address (someone asked not to be
+    contacted). Only a person can lift it. The answer is the same whether or not the address was known.
+    Effect: draft (a suppression on the node; nothing is sent)."""
     if not _can_see(ctx, workspace):
         raise NotFound(f"there is no workspace {workspace} here")
     await ctx.authorize(Effect.DRAFT, summary=f"Stop all messages to an address in {workspace}",
@@ -154,13 +171,15 @@ async def send_suppress(ctx: ToolContext, *, workspace: str, email: str, why: st
 
 
 async def leads_propose(ctx: ToolContext, *, list: str, leads: list[dict]) -> dict:
-    """Propose people to write to, for a person to review: each lead is {email, name?, company?, source,
+    """Propose addresses for a list a mail workflow sends to (docs/WORKFLOWS.md, Leads), for a person to
+    review: each lead is {email, name?, company?, source,
     why?}, one record for one address you actually found, and source says where (the page's address, or
     a name). A person takes the batch, picks from it, or drops it, and only then is anyone on the list.
     Never guess an address from a name or a pattern, probe a mail server, or pass a bought list here.
     The answer is `batch`, `received` and any `refused` records, and it is the same whoever is on the
     list: you are not told who was taken. Errors: denied with too_many_leads (a batch holds 50, and there
-    are limits per day and per list: try tomorrow), not_found (no such list), invalid."""
+    are limits per day and per list: try tomorrow), not_found (no such list), invalid. Effect: draft (a
+    batch waiting for a person; nobody is written to)."""
     info = _svc(ctx).store.list_info(list) if isinstance(list, str) else None
     if info is None or not _can_see(ctx, info["workspace"]):
         raise NotFound(f"there is no list {list} on this node")
@@ -172,7 +191,8 @@ async def leads_propose(ctx: ToolContext, *, list: str, leads: list[dict]) -> di
 def tool_specs(runtime: Any) -> list[ToolSpec]:
     table = [(workflow_save, Effect.DRAFT), (workflow_list, Effect.READ), (workflow_get, Effect.READ),
              (workflow_catalog, Effect.READ), (workflow_run, Effect.DRAFT), (workflow_runs, Effect.READ),
-             (workflow_retry, Effect.DRAFT), (workflow_propose, Effect.DRAFT), (send_suppress, Effect.DRAFT),
+             (workflow_retry, Effect.DRAFT), (workflow_propose, Effect.DRAFT), (workflow_discard, Effect.DRAFT),
+             (send_suppress, Effect.DRAFT),
              (leads_propose, Effect.DRAFT)]
     return [ToolSpec(name=fn.__name__, handler=fn, effect=effect, lane_arg=None, tags=("workflows",),
                      hidden_without=SERVICE_NAME) for fn, effect in table]

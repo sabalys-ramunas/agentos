@@ -1,6 +1,6 @@
 import { useParams } from '@tanstack/react-router';
 import { useMemo } from 'react';
-import { useAccess, useAudit, useWorkspaces } from '@/api/hooks';
+import { useAccess, useAudit, useEnvironments, useWorkspaces } from '@/api/hooks';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { EmptyState, ErrorState, NoAccess, Skeleton } from '@/components/ui/states';
@@ -16,7 +16,8 @@ export function AuditSettings() {
   const access = useAccess(org);
   const audit = useAudit(org);
   const workspaces = useWorkspaces(org);
-  const names = useMemo(() => placeNames(workspaces.data), [workspaces.data]);
+  const environments = useEnvironments(org, 'all').data?.environments;
+  const names = useMemo(() => placeNames(workspaces.data, environments), [workspaces.data, environments]);
   const [technical] = useTechnical();
   const alone = useRunsAlone(org);
   const rows = audit.data?.pages.flatMap((page) => page.items) ?? [];

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { accessDetail, auditWords, checkName, fixWords, localWhen, placeName, plainDetail, plainReason, toolPlainTitle } from './plain-node';
+import { accessDetail, auditWords, checkName, fixWords, localWhen, placeName, placeNames, plainDetail, plainReason, toolPlainTitle, workspaceWords } from './plain-node';
 
 /** The walk's own sentences, as the node writes them, so a regression shows on the words a person reads. */
 const HELD = 'Lane biz-b/social is not safe to use. The profile folder is missing, so the lane has no logins. Held for a human since 2026-11-07 15:21 UTC: needs_human:captcha.';
@@ -149,10 +149,37 @@ describe('words a computer says about its workers, environments and tools', () =
   it('titles each AI tool in everyday words, and keeps the node name for the rest', () => {
     expect(toolPlainTitle('login')).toBe('Log in with a saved login');
     expect(toolPlainTitle('env_create')).toBe('Make an environment');
-    expect(toolPlainTitle('lane_exec')).toBe('Run a command in an account');
+    expect(toolPlainTitle('lane_exec')).toBe('Run a command');
     expect(toolPlainTitle('lane_install')).toBe('Install a program in an account');
     // A tool this build does not list still reads plainly, with a lane as an account.
     expect(toolPlainTitle('lane_new_thing')).toBe('Account new thing');
   });
 });
 
+describe('raw tool names and ids a person reads (2026-11-15 test, F7)', () => {
+  const envNames = placeNames([{ name: 'Test', lanes: [{ id: 'test/linkedin', name: 'linkedin' }] }], [
+    { title: 'qa-env-2026-11-15', lanes: { terminal: 'env/esrkyfqerme', browser: 'env/esrkyfqerme-browser' } },
+  ]);
+
+  it("reads an agent's tool in the audit log as what it does", () => {
+    expect(auditWords('tool_end lane_close', 'test/linkedin', envNames)).toBe("Close an account: Test's LinkedIn");
+    expect(auditWords('tool_end browser_act', 'test/linkedin', envNames)).toBe("Click or type on a page: Test's LinkedIn");
+  });
+
+  it('names an environment by its title, or says what it is', () => {
+    expect(auditWords('panel panel.job.read', 'env/esrkyfqerme', envNames)).toBe('Read the output of a command in qa-env-2026-11-15');
+    expect(auditWords('panel panel.job.read', 'env/esrkyfqerme')).toBe('Read the output of a command in an environment');
+    expect(placeName('env/esrkyfqerme-browser', envNames)).toBe('the browser of qa-env-2026-11-15');
+  });
+
+  it('says every workspace for the star', () => {
+    expect(workspaceWords('*')).toBe('every workspace');
+    expect(workspaceWords('biz-a', 'Biz A')).toBe('Biz A');
+  });
+
+  it('reads the tools of an environment plainly', () => {
+    expect(toolPlainTitle('lane_exec')).toBe('Run a command');
+    expect(toolPlainTitle('ui_check')).toBe("Check a page's design");
+    expect(toolPlainTitle('lane_request_control')).toBe('Ask for control back');
+  });
+});

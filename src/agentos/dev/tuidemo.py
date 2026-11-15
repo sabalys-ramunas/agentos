@@ -146,6 +146,25 @@ class FakeNode:
         self._add_lane("personal", "notes-sync", kind="service", engine=None, preset="service",
                        node="node-2", proxy=False, last_used=self._ago(hours=9))
 
+        # an agent's environment: its terminal and browser lanes in workspace env, named by the title elsewhere
+        self.workspaces.append({"id": "env", "name": "env", "color": "#5a616e"})
+        self._add_lane("env", "esrkyfqerme", kind="terminal", engine=None, preset="workbench", proxy=False,
+                       last_used=self._ago(minutes=3))
+        self._add_lane("env", "esrkyfqerme-browser", proxy=False, last_used=self._ago(minutes=3))
+        self.environments = [
+            {"id": "esrkyfqerme", "title": "qa-env-2026-11-15", "state": "working",
+             "repo": "github.com/sabalys-ramunas/agentos", "branch": "fix/history-words",
+             "created_at": self._ago(minutes=40), "closed_at": None, "expires_at": self._in(minutes=80),
+             "minutes_left": 80, "cost_eur": 0.011,
+             "lanes": {"terminal": "env/esrkyfqerme", "browser": "env/esrkyfqerme-browser"}},
+            {"id": "p2lcxk", "title": "pricing page copy", "state": "closed",
+             "repo": "github.com/sabalys-ramunas/site", "branch": "copy/pricing", "created_at": self._ago(hours=5),
+             "closed_at": self._ago(hours=4), "expires_at": self._ago(hours=1), "minutes_left": None,
+             "cost_eur": 0.008, "lanes": {"terminal": "env/p2lcxk", "browser": "env/p2lcxk-browser"}},
+        ]
+        self.environment_details = {"esrkyfqerme": {"git": {"ahead": 2, "pushed": [{"branch": "fix/history-words"}]},
+                                                    "proofs": [{"id": "pf1"}, {"id": "pf2"}, {"id": "pf3"}]}}
+
         L = self.lanes
         # biz-a: all ok, two warm, posts scheduled later today
         L["biz-a/instagram"].update(state="warm", last_used=self._ago(minutes=2))
@@ -374,12 +393,13 @@ class FakeNode:
                   preset: str = "account", node: str = "node-1", proxy: bool = True,
                   last_used: str | None = None) -> None:
         lane_id = f"{ws}/{name}"
-        p = PROXIES[ws]
+        p = PROXIES.get(ws)
+        proxy = proxy and p is not None
         self.lanes[lane_id] = {
             "id": lane_id, "workspace": ws, "name": name, "kind": kind, "engine": engine, "preset": preset,
             "state": "cold", "signal": "ok" if kind == "browser" else "unknown",
-            "proxy": {"label": p[0], "host": p[1], "port": p[2]} if proxy else None,
-            "exit_ip": p[1] if proxy else None, "last_used": last_used, "node": node,
+            "proxy": {"label": p[0], "host": p[1], "port": p[2]} if proxy and p else None,
+            "exit_ip": p[1] if proxy and p else None, "last_used": last_used, "node": node,
             "quarantine_reason": None, "logged_in_hint": "ok" if kind == "browser" else "unknown",
             "control": self._control("agent"),
         }
@@ -450,6 +470,8 @@ class FakeNode:
             r("/api/brains/tasks", self.h_tasks),
             r("/api/brains/tasks/{id}", self.h_task),
             r("/api/events", self.h_events),
+            r("/api/orgs/local/environments", self.h_environments),
+            r("/api/orgs/local/environments/{id}", self.h_environment),
         ])
 
     def _gate(self, request: Request, resource: str) -> Response | None:
@@ -641,6 +663,21 @@ class FakeNode:
             events = [e for e in events if e["kind"] == qp["kind"]]
         limit = int(qp.get("limit", 100))
         return JSONResponse(list(reversed(events[-limit:])))
+
+    async def h_environments(self, request: Request) -> Response:
+        if g := self._gate(request, "environments"):
+            return g
+        state = request.query_params.get("state") or "open"
+        envs = [e for e in self.environments if state == "all" or e["state"] not in ("closed", "failed")]
+        return JSONResponse({"environments": envs, "available": True})
+
+    async def h_environment(self, request: Request) -> Response:
+        if g := self._gate(request, "environments"):
+            return g
+        env = next((e for e in self.environments if e["id"] == request.path_params["id"]), None)
+        if env is None:
+            return _err(404, "not_found", "no such environment")
+        return JSONResponse({**env, **self.environment_details.get(env["id"], {"git": None, "proofs": []})})
 
     async def h_runs(self, request: Request) -> Response:
         if g := self._gate(request, "runs"):
