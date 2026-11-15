@@ -17,10 +17,11 @@
   <a href="https://modelcontextprotocol.io"><img src="https://img.shields.io/badge/MCP-server-black" alt="An MCP server"></a>
 </p>
 
-You open a chat and ask your coding agent to work in agentos. It asks for an **environment**: a
-fresh VM with your repository, a terminal and a browser. It builds, runs the tests and checks the
-page there, pushes a branch, and the VM is deleted. You watch its browser live, and take over
-whenever you like.
+You open a chat and hand your coding agent a task to do in agentos. It asks for an
+**environment**: a fresh VM with your repository, a terminal and a browser. There it changes the
+code, runs the tests, opens the page and keeps a screenshot of it as proof. Then it pushes a branch,
+gives you the pull request link, and the VM is deleted. You watch its browser live, and take over
+whenever you like. Your own computer only runs the chat.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/readme/environment-dark.png">
@@ -55,25 +56,35 @@ flowchart TB
 1. The agent calls `environment_open(title="Fix checkout", repo="github.com/you/shop")`. The node
    rents a VM (Hetzner Cloud, or a Docker container on your own computer), clones the repository
    into `/work/shop` and opens a browser whose traffic leaves from that VM.
-2. Calls without a target go to that environment: `lane_exec(cmd="npm test", cwd="/work/shop")`,
+2. Calls without a target go to that environment: `lane_file_read` and `lane_file_edit` for the
+   code, `lane_exec(cmd="npm test", cwd="/work/shop")`,
    `lane_job_start(cmd="npm run dev", cwd="/work/shop")`,
    `browser_navigate(url="http://localhost:3000")`. In the browser, `localhost` is the VM.
-3. `git push` on the VM goes through the node's git gateway. The VM never holds your key, only a
-   token for that one repository, which dies with the environment.
-4. `environment_close()` refuses while work is not pushed, then deletes the VM and the browser.
-   If the agent forgets, the node closes it when it sits idle or reaches its time limit.
+3. `browser_screenshot(proof="checkout after the fix")` keeps a screenshot as proof, at desktop
+   width or `width=390` for a phone. The agent gives you its link, and the environment's page in
+   the web app shows it.
+4. `git push` on the VM goes through the node's git gateway. The VM never holds your key, only a
+   token for that one repository, which dies with the environment. `environment()` then gives the
+   GitHub link that opens a pull request for the branch.
+5. `environment_close()` refuses while work is not pushed, then deletes the VM and the browser and
+   says `machine: "deleted"`. If the agent forgets, the node closes it when it sits idle or reaches
+   its time limit.
 
-**A real run**, from Claude Code in T3 Code: a Hetzner `cx23` in Nuremberg was ready about 1.5
-minutes after `environment_open`, with no approval. The agent cloned this repository through the
-gateway, ran `pnpm dev` on the VM, and its browser opened in T3 Code's preview pane. `ui_check`
-found text at 4.47:1 contrast (WCAG AA asks for 4.5:1); the agent fixed it on the VM, `ui_check`
-confirmed the fix, the commit went up as a branch, and the environment closed. 13 minutes,
-0.01 EUR.
+**A real run**, from Claude Code in T3 Code, on this repository: the agent opened a Hetzner `cx23`,
+changed the web app with the file tools (a pull request link for each pushed branch, with its
+tests), ran the unit tests on the VM, started the dev server and kept proof screenshots at desktop
+and phone width. It pushed its branch through the gateway. A delete and a force push of a branch
+it had not created were refused. `environment_close` deleted the VM. 6 minutes, 0.01 EUR.
+
+In an earlier run, `ui_check` found text at 4.47:1 contrast (WCAG AA asks for 4.5:1). The agent
+fixed it on the VM, `ui_check` confirmed the fix, and the branch went up: 13 minutes, 0.01 EUR.
 
 ## Why not just run the agent on your laptop?
 
-- **Your laptop stays yours.** Builds, test suites, dev servers and browsers run on the VM. Close
-  the lid and the work carries on.
+- **Your laptop stays yours.** Hand the task off: builds, test suites, dev servers and browsers
+  run on the VM. Close the lid and the work carries on.
+- **Proof, not a promise.** The agent shows you what it built: screenshots it kept on the node, at
+  desktop and phone width, and the pull request link for its branch.
 - **Nothing the agent runs can reach your keys or accounts.** The VM holds no login, no key and no
   password, so it can run anything without asking you each time.
 - **A real browser.** The agent sees its own dev server the way a user would, and so do you.
@@ -162,11 +173,13 @@ a size. Install, hardening, backups and upgrades: [deploy/README.md](deploy/READ
 | Tool | What it does |
 |---|---|
 | `environment_open(title, repo, ref, size, hours)` | rents the VM (`size`: small, medium, large, xlarge), clones the repo into `/work/<name>`, opens the browser; returns the live view link for you |
-| `environment()` | state, time left, cost so far, listening ports, git (branch, ahead, dirty, pushed), the last calls |
-| `environment_close(discard=False)` | refuses with `unsaved_work` while anything is not pushed; then deletes the VM and the browser |
-| `lane_exec(cmd, cwd)` | a command on the VM, with its output |
-| `lane_job_start`, `lane_job_read`, `lane_job_cancel` | long jobs and dev servers on the VM |
-| `browser_navigate`, `browser_snapshot`, `browser_act`, `browser_screenshot` | the environment's browser: read the page as an outline, act by reference |
+| `environment()` | state, time left, cost so far, listening ports, git (branch, ahead, dirty, pushed, and `compare`: the link that opens a pull request), proofs, the last calls |
+| `environment_close(discard=False)` | refuses with `unsaved_work` while anything is not pushed; then deletes the VM and the browser, and says `machine: "deleted"` with the branches it pushed and its proofs |
+| `lane_file_read`, `lane_file_write`, `lane_file_edit` | read a file with line numbers, write a whole one, or replace exact text in one |
+| `lane_exec(cmd, cwd)` | a command on the VM, with its output (16 KB by default, `max_bytes` for more) |
+| `lane_job_start`, `lane_job_read`, `lane_job_cancel` | long jobs and dev servers on the VM; `lane_job_read(until_exit=true)` waits for one to finish |
+| `browser_navigate`, `browser_snapshot`, `browser_act` | the environment's browser: read the page as an outline, act by reference |
+| `browser_screenshot(proof=..., width=..., full_page=...)` | a screenshot; with `proof`, kept on the node with a link for you (desktop width by default, `width=390` for a phone) |
 | `ui_check(url)` | studio's page check at each width and theme: layout, contrast, tap targets, names, page health |
 
 About 150 more tools, grouped in toolsets the agent loads when it needs them, are listed in
@@ -176,8 +189,11 @@ About 150 more tools, grouped in toolsets the agent loads when it needs them, ar
 
 - **No key on the VM.** Git goes through the node's gateway, which keeps the credential in its
   vault. The VM holds one gateway token: good for the repository it was opened with, only through
-  its own tunnel, and only while it is open. A force push or a delete of the default branch is
-  refused.
+  its own tunnel, and only while it is open. It may push new branches, and rewrite or delete the
+  ones it created while nobody else has pushed to them. The default branch, protected branches,
+  other people's branches and tags are never deleted or rewritten from an environment.
+- **Commands only in environments.** By default, the grant `agentos connect` gives your agents
+  runs commands in their environments only, never on the node itself.
 - **Nothing inside asks you.** Because the VM holds nothing worth stealing, commands, the browser
   and pushes there never wait for a person, even after the agent read a web page.
 - **Limits instead of questions.** By default at most 3 environments open at once, 8 hours each,
@@ -199,9 +215,10 @@ What this defends against, and what it does not: [docs/THREAT-MODEL.md](docs/THR
 ## Watch it work
 
 The web app (`web/`, served by the node at `/`) lists every environment with its state, repository,
-agent, cost and time left, and gives each one a page with its live browser, terminal commands, git
-and ports. Build it once with Node.js 22 and pnpm: `cd web && pnpm install --frozen-lockfile &&
-pnpm build` ([web/README.md](web/README.md)).
+agent, cost and time left. Each one has a page with its live browser, the proof screenshots,
+terminal commands, git (each pushed branch links its pull request) and ports. Build it once with
+Node.js 22 and pnpm: `cd web && pnpm install --frozen-lockfile && pnpm build`
+([web/README.md](web/README.md)).
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/readme/environments-dark.png">
@@ -266,9 +283,9 @@ over HTTP can connect by hand (see [Works with](#works-with)).
 ## Status
 
 **Alpha.** Environments are new in 0.1.0; expect the most change there. Not yet: providers other
-than Docker and Hetzner, a file copy tool for the VM (files move through commands and git), and a
-link to a VM's port on your own computer (you see it through the environment's browser). The full
-list: [docs/ENVIRONMENTS.md](docs/ENVIRONMENTS.md#limits) and
+than Docker and Hetzner, a way to download a file from the VM (work comes out through git, and
+screenshots as proofs), and a link to a VM's port on your own computer (you see it through the
+environment's browser). The full list: [docs/ENVIRONMENTS.md](docs/ENVIRONMENTS.md#limits) and
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#not-built-yet).
 
 ## Docs
