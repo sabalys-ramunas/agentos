@@ -106,9 +106,30 @@ async def opened(browser):
     await o.close()
 
 
+# The one page whose planted fault is a long task: it blocks for 500 ms of wall-clock time, however
+# fast the machine is.
+LONG_TASK_PAGES = ("faults/long_task",)
+
+
+def measures_the_machine(f, url: str) -> bool:
+    """A long task on a page that plants none. Every page here does little or no work of its own, so
+    its long tasks are the browser's work as a new tab loads (first style, layout and paint, and the
+    layout an inline script forces, as showModal does): about 90 ms on a fast laptop, two tasks with the
+    longest 363 ms on a slow macOS runner. They measure the machine, not the page."""
+    return f.check == "health.long_tasks" and not any(url.endswith(f"/{p}.html") for p in LONG_TASK_PAGES)
+
+
+async def measure(page, ctx, **kw):
+    """run_checks, without the findings that measure the machine. Every other check has to come out
+    exactly as each test says, and health.long_tasks still runs on every page (its coverage says so)."""
+    out = await run_checks(page, ctx, **kw)
+    url = getattr(page, "url", "")
+    return out.model_copy(update={"findings": [f for f in out.findings if not measures_the_machine(f, url)]})
+
+
 async def check(opened, name, width=360, theme=Theme.LIGHT, **kw):
     page, screen = await opened(name, width, theme)
-    return await run_checks(page, CheckContext(screen=screen, **kw))
+    return await measure(page, CheckContext(screen=screen, **kw))
 
 
 def by_check(out):
@@ -299,7 +320,7 @@ async def test_a_lazy_hero_from_a_slow_server_is_still_found(browser, delay_s, c
         page = await ctx.new_page()
         await page.route("**/*", slow)
         await page.goto(f"{HOST}/faults/health_lazy.html", wait_until="load")
-        out = await run_checks(page, CheckContext(screen=Screen(width=360, height=800, theme=Theme.LIGHT)))
+        out = await measure(page, CheckContext(screen=Screen(width=360, height=800, theme=Theme.LIGHT)))
     finally:
         await ctx.close()
     [lazy] = by_check(out)["health.images"]
@@ -313,6 +334,7 @@ async def test_layout_shift_and_long_tasks_are_measured_on_chromium(opened):
     assert "cause" not in ls.measured and ls.confidence == Confidence.MEASURED   # no web font: the page's own
     [lt] = by_check(await check(opened, "faults/long_task"))["health.long_tasks"]
     assert lt.measured["blocking_ms"] > 300
+    assert lt.measured["scripts"][0]["source"] == f"{HOST}/faults/long_task.html"  # the page's own work
 
 
 async def test_other_engines_say_layout_shift_and_long_tasks_were_skipped(opened):
@@ -350,7 +372,7 @@ async def test_the_contrast_pixel_route_ran_on_the_clean_photo_page(opened):
         return await orig(**kw)
 
     page.screenshot = spy
-    out = await run_checks(page, CheckContext(screen=screen, only=["contrast"]))
+    out = await measure(page, CheckContext(screen=screen, only=["contrast"]))
     assert out.findings == [] and len(shots) >= 4
 
 
@@ -380,7 +402,7 @@ async def test_when_the_pixel_route_cannot_run_coverage_says_so_and_nothing_is_g
         raise RuntimeError("screenshots are off")
 
     page.screenshot = broken
-    out = await run_checks(page, CheckContext(screen=screen, only=["contrast.text"]))
+    out = await measure(page, CheckContext(screen=screen, only=["contrast.text"]))
     assert out.findings == []
     [cov] = [c for c in out.coverage if c.check == "contrast.text"]
     assert cov.status == "ran" and "not judged" in cov.reason and "screenshots are off" in cov.reason
@@ -389,7 +411,7 @@ async def test_when_the_pixel_route_cannot_run_coverage_says_so_and_nothing_is_g
 async def test_the_page_is_scrolled_back_after_hit_testing(opened):
     page, screen = await opened("clean/sticky_header")
     await page.evaluate("window.scrollTo(0, 300)")
-    await run_checks(page, CheckContext(screen=screen))
+    await measure(page, CheckContext(screen=screen))
     assert await page.evaluate("scrollY") == 300
 
 
@@ -399,7 +421,7 @@ async def test_the_page_is_scrolled_back_after_hit_testing(opened):
 async def test_theme_leak_finds_a_hard_coded_copy_of_a_theme_colour(opened):
     dark, screen = await opened("faults/theme_leak", theme=Theme.DARK)
     light, _ = await opened("faults/theme_leak", theme=Theme.LIGHT)
-    out = await run_checks(dark, CheckContext(screen=screen, only=["theme"]), other_theme=light)
+    out = await measure(dark, CheckContext(screen=screen, only=["theme"]), other_theme=light)
     [f] = by_check(out)["theme.leak"]
     assert f.component.name == "Promo" and f.measured["property"] == "background-color"
     assert f.measured["copies"] == ["--surface"] and f.measured["value"] == "#f4f4f5"
@@ -409,7 +431,7 @@ async def test_theme_leak_finds_a_hard_coded_copy_of_a_theme_colour(opened):
 async def test_theme_leak_is_clean_when_colours_follow_the_theme(opened):
     dark, screen = await opened("clean/theme_ok", theme=Theme.DARK)
     light, _ = await opened("clean/theme_ok", theme=Theme.LIGHT)
-    out = await run_checks(dark, CheckContext(screen=screen), other_theme=light)
+    out = await measure(dark, CheckContext(screen=screen), other_theme=light)
     assert out.findings == []
     assert {c.check: c.status for c in out.coverage}["theme.leak"] == "ran"
 
@@ -417,13 +439,13 @@ async def test_theme_leak_is_clean_when_colours_follow_the_theme(opened):
 async def test_theme_leak_reads_colours_written_with_light_dark(opened):
     dark, screen = await opened("faults/theme_leak_light_dark", theme=Theme.DARK)
     light, _ = await opened("faults/theme_leak_light_dark", theme=Theme.LIGHT)
-    out = await run_checks(dark, CheckContext(screen=screen, only=["theme"]), other_theme=light)
+    out = await measure(dark, CheckContext(screen=screen, only=["theme"]), other_theme=light)
     [f] = by_check(out)["theme.leak"]
     assert f.component.name == "Promo" and f.measured["copies"] == ["--surface"]
     assert f.measured["var_in_dark"] == "#222222"
     dark, screen = await opened("clean/theme_ok_light_dark", theme=Theme.DARK)
     light, _ = await opened("clean/theme_ok_light_dark", theme=Theme.LIGHT)
-    out = await run_checks(dark, CheckContext(screen=screen, only=["theme"]), other_theme=light)
+    out = await measure(dark, CheckContext(screen=screen, only=["theme"]), other_theme=light)
     assert out.findings == [] and {c.check: c.status for c in out.coverage}["theme.leak"] == "ran"
 
 
@@ -450,9 +472,9 @@ async def test_merge_keeps_one_finding_per_cause_across_screens_with_stable_ids(
 async def test_delta_reads_a_fix(opened):
     page, screen = await opened("faults/contrast")
     ctx = CheckContext(screen=screen)
-    before = merge([await run_checks(page, ctx)])
+    before = merge([await measure(page, ctx)])
     await page.add_style_tag(content=".hint { color: #555 !important; }")
-    after = merge([await run_checks(page, ctx)])
+    after = merge([await measure(page, ctx)])
     d = delta(before, after)
     assert d.fixed == [before.findings[0].id] and d.new == [] and d.still == []
 
@@ -531,7 +553,7 @@ async def test_ignore_selectors_from_the_caller_leave_a_region_out_and_say_so(op
 async def test_marks_and_drawn_pages_keep_their_colours_without_a_theme_leak(opened):
     dark, screen = await opened("clean/theme_marks", theme=Theme.DARK)
     light, _ = await opened("clean/theme_marks", theme=Theme.LIGHT)
-    out = await run_checks(dark, CheckContext(screen=screen), other_theme=light)
+    out = await measure(dark, CheckContext(screen=screen), other_theme=light)
     assert out.findings == [], [(f.check, f.where.selector, f.measured) for f in out.findings]
     why = reasons(out)["theme.leak"]
     assert "kept on purpose" in why and "regions left out" in why
@@ -552,12 +574,12 @@ async def test_without_component_markers_findings_group_by_section_or_part_and_s
 async def test_ids_hold_when_rows_are_reordered_and_differ_between_hash_routes(opened):
     page, screen = await opened("faults/rows")
     ctx = CheckContext(screen=screen, only=["contrast"])
-    [first] = (await run_checks(page, ctx)).findings
+    [first] = (await measure(page, ctx)).findings
     await page.evaluate("render([3, 2, 1, 0])")
-    [moved] = (await run_checks(page, ctx)).findings
+    [moved] = (await measure(page, ctx)).findings
     assert moved.id == first.id and moved.where.selector != first.where.selector
     await page.evaluate("location.hash = '#/jobs/2'")
-    [routed] = (await run_checks(page, ctx)).findings
+    [routed] = (await measure(page, ctx)).findings
     assert routed.id != first.id
 
 
@@ -594,7 +616,7 @@ async def test_a_shift_from_a_web_font_swapping_in_is_named_and_marked_as_varyin
         await page.goto(f"{HOST}/faults/font_swap.html", wait_until="load")
         await page.evaluate("document.fonts.ready.then(() => true)")
         await page.wait_for_timeout(300)
-        out = await run_checks(page, CheckContext(screen=Screen(width=360), only=["health.layout_shift"]))
+        out = await measure(page, CheckContext(screen=Screen(width=360), only=["health.layout_shift"]))
         perf = await page.evaluate(script("perf"), {"wait_ms": 60})
         assert "health.layout_shift" in by_check(out), perf
         [f] = by_check(out)["health.layout_shift"]
@@ -611,5 +633,5 @@ async def test_studios_own_full_page_screenshot_is_not_a_layout_shift_of_the_pag
     await mark_capture(page)                      # what review does before its screenshot
     await page.screenshot(full_page=True)         # grows the viewport to the page's height
     await page.wait_for_timeout(100)
-    out = await run_checks(page, CheckContext(screen=screen, only=["health"]))
+    out = await measure(page, CheckContext(screen=screen, only=["health"]))
     assert "health.layout_shift" not in by_check(out), [f.measured for f in out.findings]
