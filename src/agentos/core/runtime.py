@@ -24,6 +24,8 @@ Well-known service names (keep this list in sync with the packages that provide 
   brains        agentos.brains  (brain runner, router, subscription seats)
   plugins       agentos.plugins (which workers this node has, what is on, and the brain on each job)
   envs          agentos.env     (terminal and service lanes, isolation, programs)
+  environments  agentos.environments.manager.EnvironmentManager (a cloud computer per chat; node code asks it by
+                method, e.g. bound_to_call(ctx) for whoami, browser_environment(lane_id), workdir_of(lane_id))
   android       agentos.android
   notifier      agentos.policy  (phone push, webhooks)
   typist        agentos.node.typist (factory page -> Typist the vault types secrets through)

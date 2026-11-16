@@ -42,10 +42,7 @@ class Bound:
     def __init__(self, env):
         self.env = env
 
-    async def bound(self, binding, family=None):
-        return self.env
-
-    async def pick_or_none(self, binding, family=None):
+    def bound_to_call(self, ctx):
         return self.env
 
 

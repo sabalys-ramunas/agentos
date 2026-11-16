@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import inspect
 import math
 import os
 import socket
@@ -73,16 +72,15 @@ NO_ENVIRONMENT_NEXT = ("No environment for calls without `on`. environment_open(
 
 
 async def _bound_environment(ctx: ToolContext) -> dict[str, Any] | None:
-    """The environment bound to this chat, when the node runs environments (agentos.environments
-    registers the "environments" service). None: no service, or none bound."""
+    """The environment bound to this chat, when the node runs environments. The node layer cannot
+    import agentos.environments, so the "environments" service is found on the runtime by name and
+    asked by its method `bound_to_call(ctx)` (the environment calls without `on` go to, or None).
+    None: no service, or none bound."""
     service = ctx.runtime.get("environments") if callable(getattr(ctx.runtime, "get", None)) else None
-    if service is None:
+    find = getattr(service, "bound_to_call", None)
+    if not callable(find):
         return None
-    from agentos.environments.tools import bound_environment
-
-    env = bound_environment(ctx)
-    if inspect.isawaitable(env):
-        env = await env
+    env = find(ctx)
     if env is None:
         return None
     row = env if isinstance(env, dict) else (env.model_dump() if hasattr(env, "model_dump") else vars(env))
