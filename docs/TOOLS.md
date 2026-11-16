@@ -1138,7 +1138,7 @@ Stop a running job: SIGTERM to every process it started, SIGKILL a few seconds l
 
 Toolset: `core`. Effect: `read`. Needs the `envs` service.
 
-Read a job's output after your byte offsets, waiting up to wait_ms (30000) for more while it runs. until_exit=true waits for the job to end; until_port=3000 for that port to listen or the job to end (then the end of its output); both wait_ms up to 120000. Pass back next_stdout_offset and next_stderr_offset; stdout_bytes is the size so far (to read only the end, stdout_offset=stdout_bytes-8000). `state`: running, exited, cancelled, timed_out or lost; then exit_code (or signal). `oom`: what the kernel killed for memory. Effect: read.
+Read a job's output after your byte offsets, waiting up to wait_ms (30000) for more while it runs. until_exit=true waits for the job to end (then its start and its end, a marker naming any bytes skipped); until_port=3000 for that port to listen or the job to end (then the end of its output); both wait_ms up to 120000. Pass back next_stdout_offset and next_stderr_offset; stdout_bytes is the size so far. `state`: running, exited, cancelled, timed_out or lost; then exit_code (or signal). `oom`: what the kernel killed for memory. Effect: read.
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
