@@ -11,7 +11,7 @@
     "content": [
      {
       "type": "text",
-      "text": "{\n  \"lanes\": [\n    {\n      \"id\": \"biz-a/social\",\n      \"kind\": \"browser\",\n      \"engine\": \"camoufox\",\n      \"state\": \"cold\",\n      \"proxy\": null,\n      \"device\": null,\n      \"last_used\": null\n    }\n  ]\n}"
+      "text": "{\"lanes\":[{\"id\":\"biz-a/social\",\"kind\":\"browser\",\"engine\":\"camoufox\",\"state\":\"cold\",\"proxy\":null,\"device\":null,\"last_used\":null}]}"
      }
     ],
     "structured": {
@@ -40,7 +40,7 @@
     "content": [
      {
       "type": "text",
-      "text": "{\n  \"on\": \"biz-a/social\",\n  \"url\": \"https://social.example/\",\n  \"title\": \"Home\",\n  \"status\": 200,\n  \"signal\": \"ok\"\n}"
+      "text": "{\"on\":\"biz-a/social\",\"url\":\"https://social.example/\",\"title\":\"Home\",\"status\":200,\"signal\":\"ok\"}"
      }
     ],
     "structured": {
@@ -153,7 +153,7 @@
     "content": [
      {
       "type": "text",
-      "text": "{\n  \"on\": \"biz-a/social\",\n  \"url\": \"https://social.example/compose\",\n  \"title\": \"Create post\",\n  \"status\": 200,\n  \"signal\": \"ok\"\n}"
+      "text": "{\"on\":\"biz-a/social\",\"url\":\"https://social.example/compose\",\"title\":\"Create post\",\"status\":200,\"signal\":\"ok\"}"
      }
     ],
     "structured": {
@@ -230,7 +230,7 @@
     "content": [
      {
       "type": "text",
-      "text": "{\n  \"on\": \"biz-a/social\",\n  \"url\": \"https://social.example/challenge\",\n  \"title\": \"Confirm you are human\",\n  \"status\": 200,\n  \"signal\": \"captcha\"\n}"
+      "text": "{\"on\":\"biz-a/social\",\"url\":\"https://social.example/challenge\",\"title\":\"Confirm you are human\",\"status\":200,\"signal\":\"captcha\"}"
      }
     ],
     "structured": {

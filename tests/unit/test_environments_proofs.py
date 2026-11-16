@@ -198,7 +198,7 @@ async def test_a_proof_is_kept_and_returned_with_its_link(shots):
         result = await client.call_tool("browser_screenshot", {"on": ENV_BROWSER, "proof": "  cart  after the fix "})
     kinds = [b.type for b in result.content]
     assert not result.is_error and kinds == ["image", "text"]
-    assert '"url": "http://localhost:7400/view/x?t=y"' in result.content[1].text
+    assert '"url":"http://localhost:7400/view/x?t=y"' in result.content[1].text
     assert envs.kept[0][2]["title"] == "cart after the fix" and envs.kept[0][2]["width"] == 1
 
 

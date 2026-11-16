@@ -413,7 +413,9 @@ def _image(image: ToolImage) -> ImageContent:
 
 
 def _json(value: Any) -> str:
-    return pydantic_core.to_json(value, fallback=str, indent=2).decode()
+    # compact, one line: an agent reads it as well as an indented one, and the indent cost about a
+    # fifth of every result's tokens (agentos.mcp.callprogress writes a notice the same way)
+    return pydantic_core.to_json(value, fallback=str).decode()
 
 
 def _jsonable(value: Any, redactor: Redactor) -> Any:
