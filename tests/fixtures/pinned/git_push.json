@@ -28,7 +28,9 @@
       "cccccccccccccccccccccccccccccccccccccccc"
      ]
     ],
-    []
+    [
+     "refs/heads/feature"
+    ]
    ]
   ],
   "ctx": []
@@ -62,7 +64,9 @@
       "cccccccccccccccccccccccccccccccccccccccc"
      ]
     ],
-    []
+    [
+     "refs/heads/feature"
+    ]
    ]
   ],
   "ctx": []
@@ -96,7 +100,9 @@
       "cccccccccccccccccccccccccccccccccccccccc"
      ]
     ],
-    []
+    [
+     "refs/heads/feature"
+    ]
    ]
   ],
   "ctx": []
@@ -167,7 +173,8 @@
      ]
     ],
     [
-     "refs/heads/feature"
+     "refs/heads/feature",
+     "refs/heads/main"
     ]
    ]
   ],
@@ -202,7 +209,10 @@
       "cccccccccccccccccccccccccccccccccccccccc"
      ]
     ],
-    []
+    [
+     "refs/heads/feature",
+     "refs/heads/main"
+    ]
    ]
   ],
   "ctx": []
@@ -237,7 +247,8 @@
      ]
     ],
     [
-     "refs/heads/feature"
+     "refs/heads/feature",
+     "refs/heads/main"
     ]
    ]
   ],
@@ -274,8 +285,7 @@
     "auth for git push github.com/biz-a/site for lane biz-a/dev",
     [
      "refs/heads/feature"
-    ],
-    []
+    ]
    ]
   ],
   "ctx": [
@@ -357,8 +367,7 @@
     "auth for git push github.com/biz-a/site for lane biz-a/dev",
     [
      "refs/heads/feature"
-    ],
-    []
+    ]
    ]
   ],
   "ctx": [
@@ -445,8 +454,7 @@
     "auth for git push github.com/biz-a/site for lane biz-a/dev",
     [
      "refs/heads/main"
-    ],
-    []
+    ]
    ]
   ],
   "ctx": [
@@ -542,8 +550,7 @@
     "auth for git push github.com/biz-a/site for lane biz-a/dev",
     [
      "refs/heads/main"
-    ],
-    []
+    ]
    ]
   ],
   "ctx": [
@@ -639,8 +646,7 @@
     "auth for git push github.com/biz-a/site for lane biz-a/dev",
     [
      "refs/heads/main"
-    ],
-    []
+    ]
    ]
   ],
   "ctx": [
@@ -734,8 +740,7 @@
     "auth for git push github.com/biz-a/site for lane biz-a/dev",
     [
      "refs/heads/main"
-    ],
-    []
+    ]
    ]
   ],
   "ctx": [
@@ -822,8 +827,7 @@
     "auth for git push github.com/biz-a/site for lane biz-a/dev",
     [
      "refs/heads/main"
-    ],
-    []
+    ]
    ]
   ],
   "ctx": [
@@ -908,9 +912,6 @@
     "push",
     "https://github.com/biz-a/site.git",
     "auth for git push github.com/biz-a/site for lane biz-a/dev",
-    [
-     "refs/heads/main"
-    ],
     [
      "refs/heads/main"
     ]
@@ -1004,9 +1005,6 @@
     "auth for git push github.com/biz-a/site for lane biz-a/dev",
     [
      "refs/heads/feature"
-    ],
-    [
-     "refs/heads/feature"
     ]
    ]
   ],
@@ -1096,9 +1094,6 @@
     "auth for git push github.com/biz-a/site for lane biz-a/dev",
     [
      "refs/heads/feature"
-    ],
-    [
-     "refs/heads/feature"
     ]
    ]
   ],
@@ -1177,8 +1172,7 @@
     "auth for git push github.com/biz-a/site for lane biz-a/dev",
     [
      "refs/heads/feature"
-    ],
-    []
+    ]
    ]
   ],
   "ctx": [
@@ -1246,8 +1240,7 @@
     "auth for git push github.com/biz-a/site for lane biz-a/dev",
     [
      "refs/heads/main"
-    ],
-    []
+    ]
    ]
   ],
   "ctx": [
@@ -1317,8 +1310,7 @@
     "auth for git push github.com/biz-a/site for lane biz-a/dev",
     [
      "refs/tags/v1"
-    ],
-    []
+    ]
    ]
   ],
   "ctx": [
@@ -1399,8 +1391,7 @@
     "auth for git push github.com/biz-a/site for lane biz-a/dev",
     [
      "refs/tags/v1"
-    ],
-    []
+    ]
    ]
   ],
   "ctx": [
@@ -1482,8 +1473,7 @@
     "auth for git push github.com/biz-a/site for lane biz-a/dev",
     [
      "refs/tags/v2"
-    ],
-    []
+    ]
    ]
   ],
   "ctx": [
@@ -1588,8 +1578,7 @@
      "refs/heads/feature",
      "refs/heads/main",
      "refs/tags/v2"
-    ],
-    []
+    ]
    ]
   ],
   "ctx": [
@@ -1709,8 +1698,7 @@
     "auth for git push github.com/biz-a/site for lane biz-a/dev",
     [
      "refs/heads/feature"
-    ],
-    []
+    ]
    ]
   ],
   "ctx": [
@@ -1797,8 +1785,7 @@
     "auth for git push github.com/biz-a/site for lane biz-a/dev",
     [
      "refs/heads/main"
-    ],
-    []
+    ]
    ]
   ],
   "ctx": [
@@ -2270,8 +2257,7 @@
     "auth for git push github.com/biz-a/site for lane biz-a/dev",
     [
      "refs/tags/v2"
-    ],
-    []
+    ]
    ]
   ],
   "ctx": [
@@ -2358,9 +2344,6 @@
     "auth for git push github.com/biz-a/site for lane biz-a/dev",
     [
      "refs/heads/feature"
-    ],
-    [
-     "refs/heads/feature"
     ]
    ]
   ],
@@ -2438,8 +2421,7 @@
     "auth for git push github.com/biz-a/site for lane biz-a/dev",
     [
      "refs/heads/feature"
-    ],
-    []
+    ]
    ]
   ],
   "ctx": [
@@ -2591,8 +2573,7 @@
     [
      "refs/heads/feature",
      "refs/tags/v2"
-    ],
-    []
+    ]
    ]
   ],
   "ctx": [
@@ -2706,8 +2687,7 @@
     "auth for git push github.com/biz-a/site for lane biz-a/dev",
     [
      "refs/heads/main"
-    ],
-    []
+    ]
    ]
   ],
   "ctx": [
@@ -2886,8 +2866,7 @@
     "auth for git push github.com/biz-a/site for lane biz-a/dev",
     [
      "refs/heads/feature"
-    ],
-    []
+    ]
    ]
   ],
   "ctx": [
@@ -3439,8 +3418,7 @@
     "auth for git push github.com/biz-a/site for lane biz-a/dev",
     [
      "refs/heads/feature"
-    ],
-    []
+    ]
    ],
    [
     "restore",

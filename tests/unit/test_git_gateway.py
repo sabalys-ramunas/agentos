@@ -25,7 +25,7 @@ from agentos.core.models import Effect
 from agentos.git.gateway import Caller
 from agentos.git.service import GitService, rewrite_pairs
 from agentos.git.upstream import config_env
-from agentos.git.wire import Remote
+from agentos.git.wire import Remote, pkt
 
 HOST = "example.test"
 REPO = "owner/app"
@@ -623,3 +623,117 @@ def test_a_public_repository_vm_config_sends_only_pushes_to_the_gateway(tmp_path
     (home / ".gitconfig").write_text(gateway)
     assert git("remote", "get-url", "o" + str(len(f"https://{HOST}/{REPO}.git")), cwd=repo,
                env=env).stdout.strip() == f"http://127.0.0.1:3129/{HOST}/{REPO}.git"
+
+
+# What a VM can send by hand: the gateway's receive-pack POST without git, or without the GET before it.
+
+def vm_token(env: dict) -> str:
+    """The gateway token a VM's git config carries (its X-Agentos-Git header)."""
+    for k, v in env.items():
+        if k.startswith("GIT_CONFIG_VALUE_") and v.startswith("x-agentos-git: "):
+            return v.split(": ", 1)[1]
+    raise AssertionError("no gateway token in the VM's git config")
+
+
+def pack_of(work: Path, new: str, have: str) -> bytes:
+    """The pack a push of `new` sends to a remote that has `have`."""
+    return subprocess.run(["git", "pack-objects", "--revs", "--stdout", "-q"], cwd=work, check=True,
+                          input=f"{new}\n^{have}\n".encode(), capture_output=True, timeout=60).stdout
+
+
+async def receive_pack(node: Node, env: dict, body: bytes):
+    from agentos.git.gateway import Request
+
+    return await node.git.gateway.handle(
+        Request("POST", f"/{HOST}/{REPO}.git/git-receive-pack", {"x-agentos-git": vm_token(env)}, body),
+        listener_lane=ENV_LANE)
+
+
+def colleague_adds(node: Node, branch: str) -> str:
+    """Someone else pushes a commit onto `branch` of the remote, as on GitHub. Returns their commit."""
+    seed, env = node.tmp / f"colleague-{branch.replace('/', '-')}", plain_env(node.client_home)
+    git("clone", "-q", "-b", branch, str(node.upstream), str(seed), env=env)
+    (seed / "review.txt").write_text("a reviewer's fix\n")
+    git("add", ".", cwd=seed, env=env)
+    git("commit", "-qm", "a reviewer's fix", cwd=seed, env=env)
+    git("push", "-q", "origin", branch, cwd=seed, env=env)
+    return node.upstream_ref(branch)
+
+
+async def test_a_force_push_of_its_own_branch_never_overwrites_a_commit_pushed_meanwhile(node, monkeypatch):
+    """The lease holds for a force push too: a colleague who pushes between the gateway's refresh and its
+    push upstream keeps their commit (the refspec has no `+`, which would make git skip the lease)."""
+    from agentos.git import gateway as gw
+
+    _g, run, work, env = await vm(node)
+    git("checkout", "-q", "-b", "agent/own", cwd=work)
+    vm_commit(work, env, "first")
+    assert (await run("push", "origin", "agent/own", cwd=work)).returncode == 0
+    theirs: list[str] = []
+    real = gw.GitGateway._receive
+
+    async def colleague_meanwhile(self, req, remote, listener_lane):
+        theirs.append(colleague_adds(node, "agent/own"))  # after the GET refreshed the mirror
+        return await real(self, req, remote, listener_lane)
+
+    monkeypatch.setattr(gw.GitGateway, "_receive", colleague_meanwhile)
+    git("commit", "-q", "--amend", "-m", "first, again", cwd=work, env=env)
+    r = await run("push", "-f", "origin", "agent/own", cwd=work)
+    assert r.returncode != 0 and "did not reach" in r.stderr
+    assert node.upstream_ref("agent/own") == theirs[0]
+
+
+async def test_a_vm_that_skips_the_refresh_cannot_force_push_over_a_colleague(node):
+    """A hand-made POST with no GET first: the mirror still has the VM's last head, so the branch reads
+    as its own, and the push goes upstream. The lease on that stale head refuses it there."""
+    _g, run, work, env = await vm(node)
+    git("checkout", "-q", "-b", "agent/pr", cwd=work)
+    head = vm_commit(work, env, "mine")
+    assert (await run("push", "origin", "agent/pr", cwd=work)).returncode == 0
+    theirs = colleague_adds(node, "agent/pr")
+    git("commit", "-q", "--amend", "-m", "mine, rewritten", cwd=work, env=env)
+    new = git("rev-parse", "HEAD", cwd=work).stdout.strip()
+    body = (pkt(f"{head} {new} refs/heads/agent/pr\0report-status ofs-delta agent=git/2\n") + b"0000"
+            + pack_of(work, new, head))
+    resp = await receive_pack(node, env, body)
+    assert b"ng refs/heads/agent/pr" in resp.body
+    assert node.upstream_ref("agent/pr") == theirs
+    assert mirror_ref(node, "refs/heads/agent/pr") == head  # put back
+
+
+async def test_a_push_that_asks_for_no_report_is_refused_before_the_mirror_takes_it(node):
+    """Without report-status the gateway could not tell which refs the mirror took. Refused first, so
+    the mirror never serves the next clone a commit or a delete the policy never saw."""
+    _g, _run, work, env = await vm(node)
+    main, feature = node.upstream_ref("main"), node.upstream_ref("feature")
+    git("checkout", "-q", "--orphan", "other", cwd=work)
+    orphan = vm_commit(work, env, "orphan")
+    planted = pkt(f"{main} {orphan} refs/heads/main\0ofs-delta agent=git/2\n") + b"0000" + pack_of(work, orphan, main)
+    deleted = pkt(f"{feature} {'0' * 40} refs/heads/feature\0agent=git/2\n") + b"0000"
+    for body in (planted, deleted):
+        resp = await receive_pack(node, env, body)
+        assert resp.status == 400 and b"report-status" in resp.body
+    assert mirror_ref(node, "refs/heads/main") == main and mirror_ref(node, "refs/heads/feature") == feature
+    assert node.upstream_ref("main") == main and node.upstream_ref("feature") == feature
+    g2, _ = node.grant()
+    dest = node.tmp / "next-clone"
+    r = await node.run("clone", "-q", f"https://{HOST}/{REPO}.git", str(dest), token=node.token(g2.id))
+    assert r.returncode == 0, r.stderr
+    assert git("rev-parse", "HEAD", cwd=dest).stdout.strip() == main
+
+
+async def test_an_unexpected_error_after_the_mirror_took_the_pack_puts_every_ref_back(node, monkeypatch):
+    from agentos.git import gateway as gw
+
+    _g, run, work, env = await vm(node)
+    git("checkout", "-q", "-b", "agent/err", cwd=work)
+    vm_commit(work, env, "err")
+
+    async def broken(*_a, **_k):
+        raise RuntimeError("a bug in reading the refs")
+
+    monkeypatch.setattr(gw, "_plan", broken)
+    r = await run("push", "origin", "agent/err", cwd=work)
+    assert r.returncode != 0
+    upstream = git("rev-parse", "--verify", "-q", "refs/heads/agent/err", cwd=node.upstream, check=False)
+    assert mirror_ref(node, "refs/heads/agent/err") == "" and upstream.stdout.strip() == ""
