@@ -154,20 +154,27 @@ async def env_remove(ctx: ToolContext, *, on: str) -> dict:
 
 
 # ------------------------------------------------------------------ exec
-EXEC_BYTES = 16000  # what lane_exec returns of stdout and stderr together by default: an MCP client takes it inline
+# what lane_exec returns of stdout and stderr together by default, in characters of the JSON text the agent
+# reads (a newline is two): its start and its end, where a build's or a test run's error and summary are. 16,000
+# bytes came back as about 19,000 characters, and an agent that needs the middle asks for it (EXEC_CUT_WORDS)
+EXEC_BYTES = 6000
+EXEC_CUT_RE = re.compile(r"\[agentos: (\d+) bytes truncated here, of \d+ in all")
+# a lane_exec result's fields that are left out while they hold their default (an absent key is the default)
+EXEC_DEFAULTS = {"signal": None, "stdout_encoding": "utf-8", "stderr_encoding": "utf-8", "truncated": False,
+                 "timed_out": False, "oom_killed": False}
 
 
 async def lane_exec(ctx: ToolContext, *, on: str, cmd: str, timeout_s: float = 60,
                     stdin: str | None = None, cwd: str | None = None, max_bytes: int = EXEC_BYTES) -> dict:
-    """Run one shell command inside a lane and wait for it. Returns exit_code, stdout, stderr,
-    duration_s and timed_out. Past max_bytes the middle of the output is dropped with a marker;
-    stdout_bytes and stderr_bytes are the full sizes. Binary output comes back base64. Processes
-    it starts end with it: use lane_job_start for a dev server. Effect: exec.
+    """Run one shell command inside a lane and wait for it. Returns exit_code, stdout, stderr, their
+    full sizes and duration_s; signal, timed_out, truncated, oom_killed and a base64 encoding only
+    when they apply. Past max_bytes the middle is cut, and `note` says how to read it. Processes it
+    starts end with it: use lane_job_start for a dev server. Effect: exec.
 
     Args:
         cwd: The folder to run in (on an environment's machine an absolute path like /work/shop;
             elsewhere one under the lane's home).
-        max_bytes: stdout and stderr together (default 16000, at most 131072).
+        max_bytes: stdout and stderr together (default 6000, at most 131072).
         timeout_s: At most 200.
     """
     mgr = _mgr(ctx)
@@ -189,10 +196,10 @@ async def lane_exec(ctx: ToolContext, *, on: str, cmd: str, timeout_s: float = 6
     res = await mgr.exec(on, run, timeout_s=capped, stdin=stdin, grant_id=_grant_id(ctx), max_bytes=budget,
                          oom_check=True)
     ctx.trace("lane_exec", lane=on, exit_code=res.exit_code, duration_s=res.duration_s, timed_out=res.timed_out)
-    out = res.model_dump()
-    if out.get("oom") is None:
-        out.pop("oom", None)
-    notes = [exec_note(cmd, res.timed_out, wanted, capped),
+    out = {k: v for k, v in res.model_dump().items()
+           if not (k == "oom" and v is None) and not (k in EXEC_DEFAULTS and v == EXEC_DEFAULTS[k])}
+    notes = [cut_note(res, _exec_most(mgr)),
+             exec_note(cmd, res.timed_out, wanted, capped),
              None if res.timed_out else self_kill_note(cmd, res.exit_code, res.signal),
              oom.note(res.oom, running=False, what="command")]
     note = " ".join(n for n in notes if n)
@@ -243,13 +250,27 @@ def exec_note(cmd: str, timed_out: bool, wanted: float, capped: float) -> str | 
     return " ".join(parts) or None
 
 
+def cut_note(res: Any, most: int) -> str | None:
+    """How to read what lane_exec left out of the middle of its output (`most`: the largest max_bytes)."""
+    cut = sum(int(m.group(1)) for text in (res.stdout, res.stderr) for m in EXEC_CUT_RE.finditer(text or ""))
+    if not cut:
+        return None
+    return (f"{cut} bytes of the output's middle were left out (the marker shows where). To read them, run it "
+            f"again with a bigger max_bytes (at most {most}), or send the output to a file (> /tmp/out.log 2>&1) "
+            "and read it with lane_file_read, whose offset is a line number.")
+
+
 def _exec_budget(mgr: Any, max_bytes: Any) -> int:
     try:
         wanted = int(max_bytes)
     except (TypeError, ValueError):
-        raise InvalidRequest("max_bytes is a number of bytes, like 16000") from None
-    cap = 2 * int(getattr(getattr(mgr, "settings", None), "max_output_bytes", 65536))
-    return max(1000, min(wanted, cap))
+        raise InvalidRequest("max_bytes is a number of characters, like 6000") from None
+    return max(1000, min(wanted, _exec_most(mgr)))
+
+
+def _exec_most(mgr: Any) -> int:
+    """The largest max_bytes lane_exec takes: twice the node's max_output_bytes (131072 by default)."""
+    return 2 * int(getattr(getattr(mgr, "settings", None), "max_output_bytes", 65536))
 
 
 async def lane_install(ctx: ToolContext, *, on: str, packages: list[str], source: str = "apt") -> dict:

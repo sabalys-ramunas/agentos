@@ -54,15 +54,42 @@ class Capture:
         return out
 
 
+# what a byte costs in the JSON text an agent reads (pydantic_core.to_json): \b \t \n \f \r, a quote and
+# a backslash two characters, another control character six (\u001b), anything else one
+_TWO = tuple(bytes([c]) for c in (0x08, 0x09, 0x0A, 0x0C, 0x0D, 0x22, 0x5C))
+_SIX = tuple(bytes([c]) for c in range(0x20) if bytes([c]) not in _TWO)
+
+
+def escaped_len(data: bytes | bytearray) -> int:
+    """How many characters `data` takes as a JSON string (agentos.mcp.registry writes results as JSON)."""
+    return len(data) + sum(data.count(c) for c in _TWO) + 5 * sum(data.count(c) for c in _SIX)
+
+
+def _cost(cap: Capture) -> int:
+    return escaped_len(cap.head) + escaped_len(cap.tail)
+
+
+def _shrunk_to(cap: Capture, room: int) -> Capture:
+    """`cap` kept within `room` characters of JSON text: its start and its end, as Capture.shrunk."""
+    cost, kept = _cost(cap), len(cap.head) + len(cap.tail)
+    out, tries = cap, 0
+    while cost > room and tries < 4:  # escaping is uneven: shrink by the ratio, then check again
+        kept = max(1, kept * room // cost)
+        out, tries = cap.shrunk(kept), tries + 1
+        cost = _cost(out)
+    return out
+
+
 def fit(out: Capture, err: Capture, budget: int) -> tuple[Capture, Capture]:
-    """stdout and stderr within `budget` bytes in all, for a result an agent's client takes inline.
-    stderr (where errors are) keeps what it has up to a quarter of the budget, or more when stdout
-    leaves room; stdout gets the rest."""
-    kept_out, kept_err = len(out.head) + len(out.tail), len(err.head) + len(err.tail)
-    if kept_out + kept_err <= budget:
+    """stdout and stderr within `budget` characters in all, counted as the agent reads them (a JSON
+    string: a newline is two), for a result an agent's client takes inline. stderr (where errors
+    are) keeps what it has up to a quarter of the budget, or more when stdout leaves room; stdout
+    gets the rest."""
+    cost_out, cost_err = _cost(out), _cost(err)
+    if cost_out + cost_err <= budget:
         return out, err
-    err_room = min(kept_err, max(budget // 4, budget - kept_out))
-    return out.shrunk(max(budget - err_room, 1)), err.shrunk(max(err_room, 1))
+    err_room = min(cost_err, max(budget // 4, budget - cost_out))
+    return _shrunk_to(out, max(budget - err_room, 1)), _shrunk_to(err, max(err_room, 1))
 
 
 def _trim_utf8_end(b: bytes) -> tuple[bytes, bytes]:

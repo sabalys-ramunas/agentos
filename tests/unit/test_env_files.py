@@ -3,6 +3,7 @@ and lane_exec's and lane_job_read's sizes (QA 2026-11-15, P2-1 and P2-8)."""
 
 import asyncio
 import inspect
+import json
 import shlex
 import sys
 import time
@@ -206,7 +207,9 @@ def test_fit_keeps_both_streams_within_the_budget_and_stderr_its_share():
     assert fit(small_out, small_err, 16_000) == (small_out, small_err)
 
 
-async def test_lane_exec_returns_16_kb_by_default_and_max_bytes_more(tmp_path):
+async def test_lane_exec_returns_6000_characters_by_default_and_max_bytes_more(tmp_path):
+    """6,000 characters of the result as the agent reads it (a newline is two), its start and its end,
+    with a note on reading the middle; fields that hold their default are left out."""
     mgr = EnvManager(tmp_path / "home", host=FakeHost(), launcher=DirectLauncher(),
                      settings=EnvSettings(proxy_port=0))
     mgr.create("ws/bench", preset="workbench", node_secrets_ok=True)
@@ -215,9 +218,15 @@ async def test_lane_exec_returns_16_kb_by_default_and_max_bytes_more(tmp_path):
         exec_ = {s.name: s for s in term_specs(ctx.runtime)}["lane_exec"].handler
         cmd = f"{shlex.quote(sys.executable)} -c \"print('x' * 200000)\""
         out = await exec_(ctx, on="ws/bench", cmd=cmd)
-        assert out["truncated"] and out["stdout_bytes"] == 200001 and len(out["stdout"]) < 16_500
+        assert out["truncated"] and out["stdout_bytes"] == 200001 and 5_900 < len(out["stdout"]) < 6_200
+        assert "max_bytes" in out["note"] and "lane_file_read" in out["note"] and "of the output's middle" in out["note"]
+        assert not {"signal", "timed_out", "oom_killed", "stdout_encoding", "stderr_encoding"} & set(out)
         more = await exec_(ctx, on="ws/bench", cmd=cmd, max_bytes=60_000)
         assert 59_000 < len(more["stdout"]) < 60_500
+        lines = await exec_(ctx, on="ws/bench", cmd="seq 1 300000")
+        assert len(json.dumps(lines["stdout"])) < 6_200 and lines["stdout"].rstrip().endswith("300000")
+        quiet = await exec_(ctx, on="ws/bench", cmd="echo hi")
+        assert quiet["stdout"] == "hi\n" and not {"truncated", "note", "signal"} & set(quiet)
         with pytest.raises(InvalidRequest):
             await exec_(ctx, on="ws/bench", cmd="true", max_bytes="lots")
     finally:

@@ -1049,7 +1049,7 @@ Effect: draft, under a child grant of yours limited to this lane, the browser to
 
 Toolset: `core`. Effect: `exec`. Needs the `envs` service.
 
-Run one shell command inside a lane and wait for it. Returns exit_code, stdout, stderr, duration_s and timed_out. Past max_bytes the middle of the output is dropped with a marker; stdout_bytes and stderr_bytes are the full sizes. Binary output comes back base64. Processes it starts end with it: use lane_job_start for a dev server. Effect: exec.
+Run one shell command inside a lane and wait for it. Returns exit_code, stdout, stderr, their full sizes and duration_s; signal, timed_out, truncated, oom_killed and a base64 encoding only when they apply. Past max_bytes the middle is cut, and `note` says how to read it. Processes it starts end with it: use lane_job_start for a dev server. Effect: exec.
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
@@ -1058,7 +1058,7 @@ Run one shell command inside a lane and wait for it. Returns exit_code, stdout, 
 | `timeout_s` | `float` | no (default 60) | At most 200. |
 | `stdin` | `str \| None` | no (default None) |  |
 | `cwd` | `str \| None` | no (default None) | The folder to run in (on an environment's machine an absolute path like /work/shop; elsewhere one under the lane's home). |
-| `max_bytes` | `int` | no (default 16000) | stdout and stderr together (default 16000, at most 131072). |
+| `max_bytes` | `int` | no (default 6000) | stdout and stderr together (default 6000, at most 131072). |
 
 ## lane_file_edit
 
