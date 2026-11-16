@@ -416,6 +416,36 @@ def test_start_moves_a_node_running_as_a_background_job_to_an_interactive_one(tm
     assert "\u2014" not in service.THROTTLED_WORDS
 
 
+def test_a_restart_waits_for_the_old_node_to_let_go_of_its_port(tmp_path, user_home):
+    """Seen on the owner's Mac (2026-11-16): the reload from a Background plist booted the old node
+    out, then found port 7410 still taken by it while it shut down, said "already in use" and left
+    no node running. The restart waits for the port first."""
+    home = tmp_path / "agentos"
+    deps, fake = launchd_deps(user_home)
+    service.start(home, deps=deps)
+    plist_path = user_home / "Library" / "LaunchAgents" / "dev.agentos.local.plist"
+    plist_path.write_bytes(plistlib.dumps({**plistlib.loads(plist_path.read_bytes()), "ProcessType": "Background"}))
+    holding = {"left": 0}
+    real_bootout = fake.__call__
+
+    def launchctl(cmd):
+        if cmd[1] == "bootout":
+            holding["left"] = 3  # the old node answers three more port probes before it exits
+        return real_bootout(cmd)
+
+    def busy(port):
+        if port == 7410 and holding["left"] > 0:
+            holding["left"] -= 1
+            return True
+        return False
+
+    deps.manager.run = launchctl
+    deps.busy = busy
+    again = service.start(home, deps=deps)
+    assert again.running and again.port == 7410, again.note
+    assert plistlib.loads(plist_path.read_bytes())["ProcessType"] == "Interactive"
+
+
 def test_start_on_a_taken_port_picks_the_next_and_status_says_what_the_catch_up_did(tmp_path, user_home):
     home = tmp_path / "agentos"
     deps, _ = launchd_deps(user_home, taken=(7410,))

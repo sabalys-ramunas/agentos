@@ -34,6 +34,7 @@ LABEL = "dev.agentos.local"
 UNIT = "agentos-local.service"
 CMD_TIMEOUT = 30
 START_WAIT_S = 30.0  # how long start waits for the node to answer on its port
+STOP_WAIT_S = 20.0  # how long a restart waits for the old node to let go of its port
 THROTTLE_S = 10  # launchd waits at least this long before it starts the node again
 # launchd finishes a bootout in the background, so a bootstrap right after `agentos local stop` (or a restart
 # by `agentos setup`) can fail with "5: Input/output error" for a few seconds: try again, waiting longer each time
@@ -345,6 +346,12 @@ def start(home: Path, port: int | None = None, *, deps: Deps | None = None) -> S
         port = port or now.port
     if now.running:
         deps.svc().stop()  # moving to another port: the old one goes first, so the port probe is true
+        # launchd returns before the old node has let go of its port: wait for it, or the port probe
+        # below says "already in use" and the node is left stopped (seen on a reload from Background)
+        waited = 0.0
+        while now.port and deps.busy(now.port) and waited < STOP_WAIT_S:
+            deps.sleep(0.25)
+            waited += 0.25
     chosen = local_home.choose_port(home, port, busy=deps.busy)
     local_home.ensure(home, chosen)
     log_path(home).parent.mkdir(parents=True, exist_ok=True, mode=0o700)
