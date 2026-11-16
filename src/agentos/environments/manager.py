@@ -743,9 +743,15 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
             from agentos.environments import connect
 
             await connect.sweep(self)
-        for env in self.store.open():
-            if env.id in self._tasks or self._lock(f"close:{env.id}").locked():
-                continue  # still coming up, or an agent's close runs (its teardown marks it closing)
+        for listed in self.store.open():
+            # the list was read before this pass awaited anything: an agent's close may have finished since
+            # (field report 2026-11-16: a stale "closing" here undid a close that had saved and deleted the
+            # machine, and kept the title held by that chat). Read each one fresh.
+            env = self.store.get(listed.id)
+            if not env.open:
+                continue
+            if env.id in self._tasks or self._lock(f"close:{env.id}").locked() or self.in_background(env.id):
+                continue  # still coming up, or an agent's close or save runs (its teardown marks it closing)
             if env.state == "closing":
                 await self._closing(env, now, out)
                 continue
@@ -838,11 +844,15 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
         fails it goes back to ready, and the owner is told."""
         reason = env.closed_reason or "closed"
         if env.keep == "save" and "(discarded)" not in reason and env.vm_id:
-            def ready(e: Environment) -> None:
+            def ready(e: Environment) -> bool:
+                if e.state != "closing":
+                    return False  # closed (or opened again) since it was read: never undo that
                 e.state, e.closed_reason = "ready", None
+                return True
 
-            self.store.update(env.id, ready)
-            await self.save_and_close(self.store.get(env.id), now, out, reason=reason)
+            env = self.store.update(env.id, ready)
+            if env.state == "ready":
+                await self.save_and_close(env, now, out, reason=reason)
             return
         await self._teardown(env, reason=reason)
         out["closed"].append(env.id)

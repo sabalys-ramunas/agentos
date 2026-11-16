@@ -401,6 +401,31 @@ async def test_a_save_resumes_into_a_new_machine_leased_to_the_resumer(node):
     await node["call"]("environment_close", on=again["on"], discard=True, session=None)
 
 
+async def test_the_reaper_never_undoes_an_agents_close_it_read_as_closing(node):
+    """Field report 2026-11-16: the reaper read its list while an agent's close (save, then delete) ran,
+    so it held a stale "closing" record. When it got to it the close had finished: it turned the record
+    back to ready, tried a second save on the deleted machine, failed, and kept the title held by that
+    chat, so resuming it at once was environment_in_use. It reads each record fresh now."""
+    out = await opened(node, keep="save", session=None)
+    work_on_it(disk(node, out["id"]) / "work" / "shop")
+    mgr = node["mgr"]
+    stale = mgr.store.update(out["id"], lambda e: setattr(e, "state", "closing"))  # as the reaper listed it
+    mgr.store.update(out["id"], lambda e: setattr(e, "state", "ready"))
+    closed = await node["call"]("environment_close", on=out["on"], session=None)
+    assert closed["saved"]["verified"] is True
+    real_open = mgr.store.open
+    mgr.store.open = lambda *a, **k: [stale, *real_open(*a, **k)]
+    try:
+        await mgr.reap_once(utcnow())
+    finally:
+        mgr.store.open = real_open
+    env = mgr.get(out["id"])
+    assert env.state == "closed" and env.save_error is None, (env.state, env.save_error)
+    again = await node["call"]("environment_open", title=TITLE, session=None)  # resumes at once
+    assert again["opened"] == "resumed"
+    await node["call"]("environment_close", on=again["on"], discard=True, session=None)
+
+
 async def test_idle_with_keep_save_saves_then_deletes(node):
     """Acceptance 3."""
     out = await opened(node, keep="save")
