@@ -151,24 +151,30 @@ _ALIVE = ('a=0; [ ! -e "$w.rc" ] && p=$(cat "$w.pgid" 2>/dev/null) && [ -n "$p" 
           'kill -s 0 -- "-$p" 2>/dev/null && a=1')
 
 
+FOLLOW_FAST = 10          # a follower's first rounds wait 0.05 s, not 0.2 s: a short job's end is seen at once
+
+
 def follow_script(wid: str, out_offset: int, err_offset: int) -> str:
     """Print the job's stdout (to stdout) and stderr (to stderr) from the given offsets as they grow, and
     end once the job has ended and all of it is sent, or when the ssh that runs it is gone. The job runs
-    while its rc file is not written and a process of its group lives."""
+    while its rc file is not written and a process of its group lives. Whether it runs is asked before
+    the sizes are read, so a round that found it ended has sent all it wrote and ends the follower (what
+    a leftover writes later, the node reads with the next follower: agentos.env.jobs drains it)."""
     d, w = shlex.quote(PGID_DIR), shlex.quote(wid)
     o, e = max(0, int(out_offset)), max(0, int(err_offset))
     return f"""cd {d} 2>/dev/null || exit 0
-w={w}; o={o}; e={e}; i=0; pp=$PPID; k=0
-while [ ! -e "$w.pgid" ] && [ ! -e "$w.rc" ] && [ -e "$w.out" ] && [ $i -lt {FOLLOW_WAIT_S * 10} ]; do sleep 0.1; i=$((i+1)); done
+w={w}; o={o}; e={e}; i=0; pp=$PPID; k=0; r=0
+while [ ! -e "$w.pgid" ] && [ ! -e "$w.rc" ] && [ -e "$w.out" ] && [ $i -lt {FOLLOW_WAIT_S * 50} ]; do sleep 0.02; i=$((i+1)); done
 while :; do
   {_ALIVE}
   n=$(wc -c < "$w.out" 2>/dev/null); n=$((n+0)); m=$(wc -c < "$w.err" 2>/dev/null); m=$((m+0)); new=0
   if [ $n -gt $o ]; then tail -c +$((o+1)) "$w.out" | head -c $((n-o)) || exit 0; o=$n; new=1; fi
   if [ $m -gt $e ]; then tail -c +$((e+1)) "$w.err" | head -c $((m-e)) >&2 || exit 0; e=$m; new=1; fi
-  [ $a = 1 ] || [ $new = 1 ] || exit 0
+  [ $a = 1 ] || exit 0
   kill -s 0 $pp 2>/dev/null || exit 0
   if [ $new = 1 ]; then k=0; else k=$((k+1)); fi
-  if [ $k -lt 5 ]; then sleep 0.2; elif [ $k -lt 20 ]; then sleep 0.5; else sleep 1; fi
+  r=$((r+1))
+  if [ $r -le {FOLLOW_FAST} ]; then sleep 0.05; elif [ $k -lt 5 ]; then sleep 0.2; elif [ $k -lt 20 ]; then sleep 0.5; else sleep 1; fi
 done
 """
 

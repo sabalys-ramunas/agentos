@@ -304,3 +304,19 @@ async def test_a_read_waiting_for_the_end_says_exited_not_running_with_an_exit_c
     done, _, _ = await mgr.job_read(info.id, wait_s=10, until_exit=True)
     assert done.state == "exited" and done.exit_code == 0, done
     await mgr.shutdown()
+
+
+def test_a_follower_ends_as_soon_as_it_sent_the_end_of_a_job_that_ended(tmp_path, monkeypatch):
+    """It waited 0.2 s and looked once more before it ended; whether the job runs is asked before the
+    sizes are read, so the round that found it ended sent all it wrote."""
+    import subprocess
+    import time
+
+    monkeypatch.setattr(ssh, "PGID_DIR", str(tmp_path))
+    (tmp_path / "j-1.out").write_bytes(b"hello\n")
+    (tmp_path / "j-1.err").write_bytes(b"oops\n")
+    (tmp_path / "j-1.rc").write_text("0 1794860000\n")
+    began = time.monotonic()
+    r = subprocess.run(["sh", "-c", ssh.follow_script("j-1", 2, 0)], capture_output=True, timeout=10, check=False)
+    assert (r.returncode, r.stdout, r.stderr) == (0, b"llo\n", b"oops\n")
+    assert time.monotonic() - began < 0.15
