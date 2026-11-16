@@ -13,6 +13,7 @@ from typing import Any
 
 from agentos.core.errors import AgentPaused, HumanInControl
 from agentos.core.models import ActionKind, ControlState, Effect, LaneInfo
+from agentos.core.pauses import paused_words
 from agentos.core.runtime import Runtime
 from agentos.core.tools import ToolContext, gate_kind
 from agentos.node import deadlines, egress
@@ -188,7 +189,7 @@ def check_control(info: LaneInfo, principal_kind: str) -> None:
     if info.control.state is ControlState.HUMAN:
         raise HumanInControl(f"a human has taken control of {info.spec.id}; wait until they hand it back")
     if info.control.state is ControlState.PAUSED:
-        raise AgentPaused(f"a human stopped the agent on {info.spec.id}; nothing runs until they resume it")
+        raise AgentPaused(paused_words(info.spec.id, info.control))
 
 
 def who(ctx: ToolContext) -> str:

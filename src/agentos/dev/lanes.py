@@ -47,6 +47,7 @@ from agentos.core.models import (
     ViewerInfo,
     utcnow,
 )
+from agentos.core.pauses import paused_words
 from agentos.core.signals import QUIET
 from agentos.dev.display import VncServer
 from agentos.dev.image import Raster
@@ -250,8 +251,7 @@ class FakeLaneManager:
         if info.control.state is ControlState.HUMAN:
             raise HumanInControl(f"a human has taken control of {lane_id}")
         if info.control.state is ControlState.PAUSED:
-            why = f" ({info.control.reason})" if info.control.reason else ""
-            raise AgentPaused(f"a human stopped the agent on {lane_id}{why}")
+            raise AgentPaused(paused_words(lane_id, info.control))
 
     def _gate(self, info: LaneInfo, principal_kind: str) -> None:
         if info.state is LaneState.QUARANTINED:

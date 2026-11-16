@@ -4,8 +4,8 @@
 # Keep text free of em dashes; tests/unit/test_error_catalog.py checks every class has an entry.
 
 [agent_paused]
-meaning = "A person stopped agents on this lane. Nothing runs on it until they resume it."
-agent = "Stop working on this lane and tell the user it is paused. Do not retry; ask them to resume it, or use lane_wait_control."
+meaning = "Agents are held off this lane: a person stopped them, or agentos paused it itself (a CAPTCHA, a sign-in, a rate limit). The message says which, and what clears it."
+agent = "Stop working on this lane and tell the user what the message says: who paused it and why. Do not retry; wait with lane_wait_control."
 fix = "Resume agents on the lane from the panel or with `agentos lane handback <lane>` when you are ready."
 retryable = true
 

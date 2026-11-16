@@ -471,7 +471,7 @@ class ControlState(StrEnum):
     flow step or brain task can touch a lane a human has taken."""
     AGENT = "agent"    # agents, flows and brains may act; the human view is read-only
     HUMAN = "human"    # a human took control; agent calls wait or get human_in_control
-    PAUSED = "paused"  # a human stopped the agent; nobody acts until resumed or handed back
+    PAUSED = "paused"  # a person stopped agents, or agentos holds the lane (control.reason); until handed back
 
 
 class LaneControl(BaseModel):
