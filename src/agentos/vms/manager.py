@@ -560,6 +560,16 @@ class VmManager:
         a connection of its own to it (the tunnels of an agent environment)."""
         return self._remote(rec)
 
+    async def wait_booted(self, vm_id: str, timeout_s: float) -> bool:
+        """Wait up to timeout_s for the boot of `vm_id` (its SSH probe) to end, so a caller that waits
+        for the VM wakes the moment it is ready instead of at its next poll. False when no boot of it
+        runs (nothing was waited for)."""
+        task = self._boots.get(vm_id)
+        if task is None or task.done():
+            return False
+        await asyncio.wait({task}, timeout=timeout_s)
+        return True
+
     async def _boot(self, vm_id: str) -> None:
         loop = asyncio.get_running_loop()
         deadline = loop.time() + self.settings.boot_timeout_s

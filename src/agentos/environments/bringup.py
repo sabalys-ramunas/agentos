@@ -313,7 +313,9 @@ class BringUp:
                 raise EnvironmentFailed(f"the machine did not come up: {rec.error or rec.state}", reason="setup")
             if loop.time() > deadline:
                 raise EnvironmentFailed(f"the machine did not answer SSH within {vms.settings.boot_timeout_s} s", reason="setup")
-            await asyncio.sleep(VM_POLL_S)
+            booted = getattr(vms, "wait_booted", None)  # wakes when the boot ends, not at the next poll
+            if not (callable(booted) and await booted(env.vm_id, VM_POLL_S)):
+                await asyncio.sleep(VM_POLL_S)
 
     async def _wait_setup(self, env: Environment) -> bool:
         """Until the machine's setup is done. True when pnpm is missing there (the tools top-up runs)."""

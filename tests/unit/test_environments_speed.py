@@ -13,6 +13,7 @@ import json
 import time
 
 import pytest
+from test_environments import node, opened  # noqa: F401  (node is a fixture)
 
 from agentos.vms import docker
 from agentos.vms.docker import DockerProvider, sshd_greets
@@ -114,3 +115,47 @@ async def test_a_docker_machine_whose_entrypoint_refuses_is_removed_with_its_wor
         await prov.create_server(_spec())
     names = [c[0] for c in prov.calls]
     assert "rm" in names and ("network", "rm", "agentos-vm-1") in [c[:3] for c in prov.calls]
+
+
+# ------------------------------------------------------------------ the VM answers: the bring-up goes on at once
+
+
+async def test_wait_booted_wakes_when_the_boot_ends(tmp_path):
+    from agentos.core.runtime import Runtime
+    from agentos.env.host import FakeHost
+    from agentos.env.manager import EnvManager
+    from agentos.env.paths import EnvSettings as TermSettings
+    from agentos.env.sandbox import DirectLauncher
+    from agentos.vms.manager import VmManager
+    from agentos.vms.models import VmSettings
+    from agentos.vms.provider import FakeProvider
+
+    async def slow_probe(remote, *, timeout_s=15):
+        await asyncio.sleep(0.3)
+        return True, ""
+
+    envs = EnvManager(tmp_path, host=FakeHost(), launcher=DirectLauncher(), settings=TermSettings(proxy_port=0))
+    rt = Runtime(envs=envs)
+    vms = VmManager(tmp_path, runtime=rt, provider=FakeProvider(), settings=VmSettings(ssh_from=["198.51.100.7/32"]),
+                    node_name="n1", probe=slow_probe)
+    rt.register("vms", vms)
+    try:
+        rec = await vms.create("env/eabcdefghjk", ttl_minutes=60, wait_s=0)
+        assert rec.state == "booting"
+        t = time.monotonic()
+        assert await vms.wait_booted(rec.id, 5.0) is True
+        assert time.monotonic() - t < 0.6 and vms.store.get(rec.id).state == "ready"
+        assert await vms.wait_booted(rec.id, 5.0) is False  # no boot runs: nothing to wait for
+    finally:
+        await vms.shutdown()
+        await envs.shutdown()
+
+
+async def test_the_bring_up_goes_on_the_moment_the_vm_answers(node, monkeypatch):  # noqa: F811
+    """The wait for the VM wakes on its boot's end: with a 10 s poll the open still takes no time."""
+    from agentos.environments import bringup
+
+    monkeypatch.setattr(bringup, "VM_POLL_S", 10.0)
+    t = time.monotonic()
+    out = await opened(node, repo="github.com/me/shop", wait_s=30)
+    assert out["state"] == "ready" and time.monotonic() - t < 3.0
