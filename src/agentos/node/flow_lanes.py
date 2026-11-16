@@ -10,6 +10,7 @@ from typing import Any
 
 from agentos.core.errors import AgentPaused, HumanInControl, LaneBusy
 from agentos.core.models import ControlState
+from agentos.core.pauses import pause_why
 
 # ---------------------------------------------------------------- errors
 
@@ -20,7 +21,7 @@ class LaneTakenOver(HumanInControl, LaneBusy):
 
 
 class LaneAgentPaused(AgentPaused, LaneBusy):
-    """A human stopped agents on the lane. Raised before any input of the step."""
+    """Agents are held off the lane (a person stopped them, or agentos paused it). Raised before any input of the step."""
 
 
 TAKE_OVER_CODES = frozenset({HumanInControl.code, AgentPaused.code})
@@ -35,23 +36,22 @@ Gate = Callable[[], None]
 def control_gate(lanes: Any, lane_id: str) -> Gate:
     """A check that raises LaneTakenOver / LaneAgentPaused when a human holds the lane."""
 
-    def state() -> ControlState | None:
+    def state() -> tuple[ControlState | None, Any]:
         try:
             fn = getattr(lanes, "control", None)
             control = fn(lane_id) if callable(fn) else getattr(lanes.get(lane_id), "control", None)
         except Exception:  # noqa: BLE001 - no control record: nothing to enforce here
-            return None
+            return None, None
         st = getattr(control, "state", None)
-        return ControlState(st) if st is not None else None
+        return (ControlState(st) if st is not None else None), control
 
     def check() -> None:
-        st = state()
+        st, control = state()
         if st == ControlState.HUMAN:
             raise LaneTakenOver(f"a human has control of {lane_id}; the flow waits and continues after "
                                 "they hand it back")
         if st == ControlState.PAUSED:
-            raise LaneAgentPaused(f"the human stopped agents on {lane_id}; the flow continues only after "
-                                  "they hand it back")
+            raise LaneAgentPaused(f"{pause_why(lane_id, control)} The flow continues after that.")
 
     return check
 

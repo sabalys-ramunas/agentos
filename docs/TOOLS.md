@@ -140,7 +140,7 @@ Call any agentos tool by name with its arguments, including tools not in your li
 | [`lane_check`](#lane_check) | control | read | Is this lane safe to use right now? A checklist: proxy alive, exit IP and its location against the lane's pinned timezone and locale, WebRTC and DNS leaks, profile and fingerprint pin, still signed in (from the session cookies already in the profile), the expected account, and any hold or quarantine with who can clear it |
 | [`lane_claim`](#lane_claim) | core | read | Claim a lane for a job of several acting calls (a post, a login, a form), so no other agent, flow or brain acts on it in between |
 | [`lane_close`](#lane_close) | core | read | Send a lane to cold: close its browser gracefully (cookies and logins stay on disk), to free a warm slot when you are done with it for a while |
-| [`lane_control`](#lane_control) | control | read | Who may act in a lane right now: "agent" (you may act), "human" (a person took over; wait) or "paused" (the person stopped agents, or agentos holds the lane after a challenge signal; wait) |
+| [`lane_control`](#lane_control) | control | read | Who may act in a lane right now: "agent" (you may act), "human" (a person took over; wait) or "paused" (a person stopped agents, or agentos holds the lane after a challenge: `next` says which; wait) |
 | [`lane_do`](#lane_do) | worker | draft | Hand browser work to a cheap worker on the node: it drives the lane toward `goal` and you get back one honest result, instead of paying for every step |
 | [`lane_exec`](#lane_exec) | core | exec | Run one shell command inside a lane and wait for it |
 | [`lane_file_edit`](#lane_file_edit) | core | exec | Replace exact text in a file (a relative path starts at the repository) |
@@ -832,7 +832,7 @@ The lane's files: the inbox (what you stored with files_put, the only files brow
 
 Toolset: `core`. Effect: `draft`. Needs the `lanes` service.
 
-Store a file in the lane's inbox, ready for browser_upload or a connector tool (`on` may be a connector surface: the file goes to the lane it acts through). Give either `content_base64` (the bytes, base64; a data: URL works too) or `url` (https on a public host; fetched through the lane's own proxy). `name` is the file name the site will see; the extension is set to match the real type. Only images, videos, PDF, CSV and plain text are accepted, judged by the bytes. Returns the file id, name, type and size. Does not start the browser. Effect: draft. Errors: invalid (both or neither of content_base64 and url, a type the inbox does not take, too large, bad base64), agent_paused (a human stopped agents on the lane: wait with lane_wait_control), engine_error (the URL could not be fetched: check it, or send the bytes).
+Store a file in the lane's inbox, ready for browser_upload or a connector tool (`on` may be a connector surface: the file goes to the lane it acts through). Give either `content_base64` (the bytes, base64; a data: URL works too) or `url` (https on a public host; fetched through the lane's own proxy). `name` is the file name the site will see; the extension is set to match the real type. Only images, videos, PDF, CSV and plain text are accepted, judged by the bytes. Returns the file id, name, type and size. Does not start the browser. Effect: draft. Errors: invalid (both or neither of content_base64 and url, a type the inbox does not take, too large, bad base64), agent_paused (agents are held off the lane: wait with lane_wait_control), engine_error (the URL could not be fetched: check it, or send the bytes).
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
@@ -1016,7 +1016,7 @@ Send a lane to cold: close its browser gracefully (cookies and logins stay on di
 
 Toolset: `control`. Effect: `read`.
 
-Who may act in a lane right now: "agent" (you may act), "human" (a person took over; wait) or "paused" (the person stopped agents, or agentos holds the lane after a challenge signal; wait). Browser tools on a lane you do not control fail with human_in_control or agent_paused; call this to see who has it, since when, and whether your request for control back is still pending. Cheap: it does not use the browser. Effect: read. Errors: lane_not_found (see lanes_list).
+Who may act in a lane right now: "agent" (you may act), "human" (a person took over; wait) or "paused" (a person stopped agents, or agentos holds the lane after a challenge: `next` says which; wait). Browser tools on a lane you do not control fail with human_in_control or agent_paused; call this to see who has it, since when, and whether your request for control back is still pending. Cheap: it does not use the browser. Effect: read. Errors: lane_not_found (see lanes_list).
 
 | Argument | Type | Required | Description |
 |---|---|---|---|

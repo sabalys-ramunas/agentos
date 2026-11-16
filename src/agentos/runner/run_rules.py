@@ -14,7 +14,7 @@ from agentos.runner.records import Run
 
 HOLD_MESSAGES = {
     "human": "a human has control of {lane}; the run continues after they hand it back",
-    "paused": "the human stopped agents on {lane}; the run continues only after they hand it back",
+    "paused": "agents are held off {lane}; the run continues after that",  # dispatch words it (core.pauses)
 }
 
 APPROVED = {"approved", "granted", "allowed"}

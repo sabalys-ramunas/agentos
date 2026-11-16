@@ -18,6 +18,7 @@ from agentos.core.errors import (
     LaneNotFound,
 )
 from agentos.core.models import LaneState, RunKind, RunStatus, Signal
+from agentos.core.pauses import pause_why
 from agentos.runner.execution import Journal, Outcome, RunControl
 from agentos.runner.owner import TRY_SOURCE
 from agentos.runner.records import TERMINAL, Run
@@ -59,23 +60,26 @@ class DispatchMixin:
             reason = getattr(info, "quarantine_reason", None) or "failed its self-check"
             self._defer(run, f"lane {run.lane} is quarantined: {reason}", expect=RunStatus.QUEUED)
             return False
-        held = self._held(lanes, run.lane, info)
+        held, control = self._held(lanes, run.lane, info)
         if held:
-            self._defer(run, HOLD_MESSAGES[held].format(lane=run.lane), expect=RunStatus.QUEUED, hold=held)
+            words = (f"{pause_why(run.lane, control)} The run continues after that." if held == "paused"
+                     else HOLD_MESSAGES[held].format(lane=run.lane))
+            self._defer(run, words, expect=RunStatus.QUEUED, hold=held)
             return False
         return True
 
     @staticmethod
-    def _held(lanes: Any, lane: str, info: Any = None) -> str | None:
-        """The lane's control state when a human holds it ("human" or "paused"), else None."""
+    def _held(lanes: Any, lane: str, info: Any = None) -> tuple[str | None, Any]:
+        """The lane's control state when agents are held off it ("human" or "paused"), else None, and
+        its control (who paused it and why, agentos.core.pauses)."""
         try:
             fn = getattr(lanes, "control", None)
             control = fn(lane) if callable(fn) else getattr(info, "control", None)
         except Exception:  # noqa: BLE001 - no control record: nothing to enforce here
-            return None
+            return None, None
         st = getattr(control, "state", None)
         st = str(getattr(st, "value", st)) if st is not None else None
-        return st if st in HOLD_MESSAGES else None
+        return (st if st in HOLD_MESSAGES else None), control
 
     def _defer(self, run: Run, reason: str, *, expect: RunStatus, hold: str | None = None,
                until: datetime | None = None, paced: dict[str, Any] | None = None) -> None:

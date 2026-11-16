@@ -93,7 +93,8 @@ async def test_a_hold_stops_agents_and_flows_at_the_gate_and_says_why(tmp_path):
     assert seen == [("a/one", ControlState.PAUSED, "needs_human:captcha on www.reddit.com")]
     for kind in ("agent", "flow", "brain"):
         message = await agent_blocked(t.mgr, "a/one", kind)
-        assert "until a human hands it back" in message and "needs_human:captcha" in message
+        assert "agentos paused a/one itself (no person stopped you)" in message and "needs_human:captcha" in message
+        assert "until the human solves it in the live view and hands the lane back" in message
         assert "\u2014" not in message
     with pytest.raises(LaneAgentPaused):
         control_gate(t.mgr, "a/one")()  # a flow run checks the same control before every step

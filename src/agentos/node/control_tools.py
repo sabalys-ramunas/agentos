@@ -21,6 +21,7 @@ from pydantic import Field
 
 from agentos.core.errors import InvalidRequest
 from agentos.core.models import ControlState, Effect, LaneControl, parse_lane_id
+from agentos.core.pauses import paused_words
 from agentos.core.tools import ToolContext, ToolSpec
 from agentos.node.handback import claim_note
 from agentos.node.viewer_state import control_dict
@@ -44,9 +45,7 @@ NEXT = {
     ControlState.AGENT: "Agents have control. You may act on this lane.",
     ControlState.HUMAN: ("A human has control. Do not act on this lane and do not retry in a loop. Wait with "
                          "lane_wait_control, or ask for it back once with lane_request_control."),
-    ControlState.PAUSED: ("The human stopped agents on this lane. Do not act on it and do not ask again in a loop. "
-                          "Wait with lane_wait_control or tell your user."),
-}
+}  # PAUSED: agentos.core.pauses words who paused it and why
 NEXT_AFTER_HANDBACK = ("Agents have control again. A human had the lane: read `handback` for what changed, then "
                        "take a new browser_snapshot before you act (your old refs are stale).")
 NEXT_REQUESTED = ("You asked for control back; the human has not answered yet. Wait with lane_wait_control "
@@ -67,7 +66,7 @@ def control_result(lane_id: str, control: LaneControl, freeze: Any = None) -> di
     out: dict[str, Any] = {"on": lane_id, **control_dict(control)}
     out["agent_may_act"] = control.state == ControlState.AGENT
     out["next"] = NEXT_REQUESTED if control.takeback_requested and control.state != ControlState.AGENT \
-        else NEXT[control.state]
+        else paused_words(lane_id, control) if control.state == ControlState.PAUSED else NEXT[control.state]
     rec = freeze.frozen_for(lane_id) if freeze is not None else None
     if rec is not None:
         out["agent_may_act"] = False
@@ -95,7 +94,7 @@ def tool_specs(runtime: Any) -> list[ToolSpec]:
 
     async def lane_control(ctx: ToolContext, *, on: OnArg) -> dict[str, Any]:
         """Who may act in a lane right now: "agent" (you may act), "human" (a person took over; wait) or
-        "paused" (the person stopped agents, or agentos holds the lane after a challenge signal; wait).
+        "paused" (a person stopped agents, or agentos holds the lane after a challenge: `next` says which; wait).
         Browser tools on a lane you do not control fail with human_in_control or agent_paused; call this
         to see who has it, since when, and whether your request for control back is still pending.
         Cheap: it does not use the browser. Effect: read. Errors: lane_not_found (see lanes_list)."""

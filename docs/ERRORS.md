@@ -12,7 +12,7 @@ carries one of these codes:
 | Code | Meaning | Retry |
 |---|---|---|
 | [`agenda_state`](#agenda_state) | The agenda entry is in a state that does not allow this (it is running, done or cancelled, or it is not waiting for approval). | no |
-| [`agent_paused`](#agent_paused) | A person stopped agents on this lane. Nothing runs on it until they resume it. | yes, once the cause is fixed |
+| [`agent_paused`](#agent_paused) | Agents are held off this lane: a person stopped them, or agentos paused it itself (a CAPTCHA, a sign-in, a rate limit). The message says which, and what clears it. | yes, once the cause is fixed |
 | [`already_current`](#already_current) | The page already shows the value this edit sets, so nothing was saved and nothing needs to be. | no |
 | [`ambiguous_locator`](#ambiguous_locator) | A flow step's locator matched more than one element, so the step did not act. | no |
 | [`approval_expired`](#approval_expired) | Nobody approved or denied the run in time, so it did not run. | no |
@@ -232,9 +232,9 @@ The agenda entry is in a state that does not allow this (it is running, done or 
 
 ## agent_paused
 
-A person stopped agents on this lane. Nothing runs on it until they resume it.
+Agents are held off this lane: a person stopped them, or agentos paused it itself (a CAPTCHA, a sign-in, a rate limit). The message says which, and what clears it.
 
-- **Agent:** Stop working on this lane and tell the user it is paused. Do not retry; ask them to resume it, or use lane_wait_control.
+- **Agent:** Stop working on this lane and tell the user what the message says: who paused it and why. Do not retry; wait with lane_wait_control.
 - **You:** Resume agents on the lane from the panel or with `agentos lane handback <lane>` when you are ready.
 - **Retry:** yes, once the cause is fixed
 - **Raised by:** `agentos.core.errors.AgentPaused`
