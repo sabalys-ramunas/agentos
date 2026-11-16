@@ -736,7 +736,7 @@ fix = "On the node: `agentos environments repo add github.com/OWNER/NAME` (it pr
 [repo_not_found]
 meaning = "environment_open named a repository that the host answered not found for, with a login or token that should see it: it does not exist, or that login cannot see it. Nothing was rented."
 agent = "Do not ask for a token. Check the repository name with the user (a typo, or another owner), then open again with the right repo."
-fix = "Check the name at the host. A repository of another account needs its own token: `agentos environments repo add github.com/OWNER/NAME --token`."
+fix = "Check the repository name with the user, then open again with the right one. A repository the login cannot see needs a token that can: `agentos environments repo add github.com/OWNER/NAME --token`."
 
 [restore_failed]
 meaning = "The environment could not be resumed from its save. The save is untouched, and its new machine was deleted."

@@ -743,6 +743,7 @@ Open a dev server of your environment on the human's own computer, as a preview 
 | Argument | Type | Required | Description |
 |---|---|---|---|
 | `port` | `int` | yes | The port your server listens on in the VM, like 3000 or 5173 (environment() lists them). |
+| `on` | `str \| None` | no (default None) | Which environment: its title, its id or env/<id>. Leave it out when you have one open. |
 
 ## environment_pull_request
 
@@ -757,6 +758,7 @@ Open a pull request on GitHub for the branch your environment pushed, with the n
 | `base` | `str \| None` | no (default None) | The branch to merge into; the repository's default branch if left out. |
 | `draft` | `bool` | no (default False) | Open it as a draft. |
 | `branch` | `str \| None` | no (default None) | Which pushed branch; the newest one this environment pushed if left out. |
+| `on` | `str \| None` | no (default None) | Which environment: its title, its id or env/<id>. Leave it out when you have one open. |
 
 ## environment_save
 

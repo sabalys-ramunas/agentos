@@ -1507,7 +1507,7 @@ environment_open named a repository the node cannot clone: not connected (declar
 environment_open named a repository that the host answered not found for, with a login or token that should see it: it does not exist, or that login cannot see it. Nothing was rented.
 
 - **Agent:** Do not ask for a token. Check the repository name with the user (a typo, or another owner), then open again with the right repo.
-- **You:** Check the name at the host. A repository of another account needs its own token: `agentos environments repo add github.com/OWNER/NAME --token`.
+- **You:** Check the repository name with the user, then open again with the right one. A repository the login cannot see needs a token that can: `agentos environments repo add github.com/OWNER/NAME --token`.
 - **Retry:** no
 - **Raised by:** `agentos.environments.errors.RepoNotFound`
 

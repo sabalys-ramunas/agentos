@@ -277,7 +277,7 @@ def test_remote_command_quotes_everything():
     wl = Workload(wid="w", argv=["/bin/sh", "-c", "echo 'a b'; rm -rf $HOME"], env={"X": "1 2", "BAD-NAME": "z"},
                   cwd="/srv/my app")
     cmd = ssh.remote_command(wl)
-    group = "sh -c 'echo $$ > /tmp/agentos-wl/w.pgid; \"$@\"; rc=$?; trap \"\" TERM; kill -TERM -- -$$ 2>/dev/null; rm -f /tmp/agentos-wl/w.pgid; exit $rc' sh"
+    group = "sh -c 'echo $$ > /tmp/agentos-wl/w.pgid; \"$@\"; rc=$?; trap \"\" TERM; kill -s TERM -- -$$ 2>/dev/null; rm -f /tmp/agentos-wl/w.pgid; exit $rc' sh"
     assert cmd == ("mkdir -p /tmp/agentos-wl && cd '/srv/my app' && exec setsid -w " + group +
                    " env X='1 2' /bin/sh -c 'echo '\"'\"'a b'\"'\"'; rm -rf $HOME'")
     assert ssh.remote_command(Workload(wid="w", argv=["true"], env={})) == f"mkdir -p /tmp/agentos-wl && cd && exec setsid -w {group} true"

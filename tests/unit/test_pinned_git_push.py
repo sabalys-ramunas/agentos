@@ -240,6 +240,15 @@ CASES: dict[str, Case] = {
 }
 
 
+def _no_timings(value: Any) -> Any:
+    """The pin without the wall-clock step timings the gateway traces (`seconds`): they vary by machine."""
+    if isinstance(value, dict):
+        return {k: _no_timings(v) for k, v in value.items() if k != "seconds"}
+    if isinstance(value, list):
+        return [_no_timings(v) for v in value]
+    return value
+
+
 def run(case: Case, tmp: Path) -> dict[str, Any]:
     runtime = FakeRuntime(case.approvals, case.own)
     gateway = GitGateway(home=tmp, remotes=None, runtime=runtime)  # type: ignore[arg-type]
@@ -249,7 +258,7 @@ def run(case: Case, tmp: Path) -> dict[str, Any]:
     resp = asyncio.run(gateway._push(case.ctx, case.caller, case.rule, REMOTE, target, case.mirror,  # type: ignore[arg-type]
                                      push, body, refuse))
     out = {"response": [resp.status, resp.content_type, (resp.body or b"").decode("latin-1")],
-           "mirror": plain(case.mirror.calls), "ctx": plain(case.ctx.calls)}
+           "mirror": plain(case.mirror.calls), "ctx": _no_timings(plain(case.ctx.calls))}
     if runtime.environments is not None:
         out["noted"] = plain(runtime.environments.noted)
     return out

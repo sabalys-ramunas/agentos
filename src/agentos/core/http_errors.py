@@ -87,14 +87,14 @@ STATUS_BY_CODE: dict[str, int] = {
     "vault_code_declined": 409, "vault_entry_exists": 409, "vault_exists": 409, "vault_typing_aborted": 409,
     "vm_limit": 409, "wrong_account": 409, "wrong_element": 409, "wrong_surface": 409,
     "environment_limit": 409, "unsaved_work": 409, "save_limit": 409, "keep_live_not_allowed": 409, "environment_in_use": 409, "environment_already_open": 409,
-    "repo_not_connected": 409,
+    "repo_not_connected": 409, "which_environment": 409, "environment_choice": 409, "repo_not_found": 404,
     # 429: too many tries, or the pace is used up; it opens again by itself
     "pace_limited": 429, "vault_locked_out": 429, "pilot_day_limit": 429,
     # 502: something past the node (the browser driver, a site, a mail or storage server) failed
     "connection": 502, "driver_error": 502, "json_empty": 502, "json_invalid": 502, "json_status": 502,
     "json_too_large": 502, "json_unreadable": 502, "mail_not_sent": 502, "output_contract_violation": 502,
     "readback_error": 502, "storage_error": 502, "studio_http_error": 502, "studio_page_not_loaded": 502,
-    "vm_error": 502, "environment_failed": 502, "save_failed": 502, "restore_failed": 502,
+    "vm_error": 502, "environment_failed": 502, "save_failed": 502, "restore_failed": 502, "pull_request_failed": 502,
     # 503: not set up, not ready, or short of something on this node; a person sets it right
     "audit_unwritable": 503, "brain_unconfined": 503, "xclip_missing": 503, "decision_unavailable": 503, "identity_error": 503,
     "lane_format": 503, "lane_unavailable": 503, "mail_unavailable": 503, "no_sandbox": 503, "plugin_change_not_recorded": 503,

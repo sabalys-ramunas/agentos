@@ -534,7 +534,8 @@ async def test_save_limit_and_keep_last(node):
     kept = [m.id for m in mgr.saves().of_title(mgr.get(out["id"]).family, TITLE)]
     assert kept == [ids[2], ids[1]]
     assert len(node["cloud"].snapshots) == 2  # the oldest's snapshot went with it
-    mgr.settings = mgr.settings.model_copy(update={"max_saves_gb": 0.000001})
+    # no room at all, whatever the archives weigh here (macOS tar adds ._ files; a CI runner's are smaller)
+    mgr.settings = mgr.settings.model_copy(update={"max_saves_gb": 1e-12})
     with pytest.raises(ToolCallError) as e:
         await node["call"]("environment_save")
     assert e.value.code == "save_limit"

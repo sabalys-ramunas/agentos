@@ -42,7 +42,8 @@ SELF_AUTHORIZED_LANE_PARAM = {
     "flows_list": "lane",
     # `on` names one of the caller's environments (title, id or env/<id>), found only in its grant family
     # (EnvironmentManager.named, reaches); refuse_frozen on its lanes (agentos.environments.tools._find)
-    "environment": "on", "environment_close": "on", "environment_save": "on",
+    "environment": "on", "environment_close": "on", "environment_save": "on", "environment_port": "on",
+    "environment_pull_request": "on",
 }
 
 # Tools with lane_arg=None whose lane comes from another argument: the handler resolves it and
@@ -84,6 +85,8 @@ SELF_AUTHORIZED_INDIRECT = {
     "environment": "the picked environment, or `on` in the grant family; refuse_frozen on its lanes",
     "environment_close": "the picked environment, or `on` in the grant family; refuse_frozen on its lanes",
     "environment_save": "the picked environment, or `on` in the grant family; refuse_frozen on its lanes",
+    "environment_port": "the picked environment, or `on` in the grant family; refuse_frozen on its lanes",
+    "environment_pull_request": "the picked environment, or `on` in the grant family; refuse_frozen on its lanes",
     # saves of the caller's grant family by title (Saving.forget), no lane: the machine is gone
     "environment_forget": "saves of the grant family only (mgr.forget(family, title)); refuse_frozen on their lanes",
 }

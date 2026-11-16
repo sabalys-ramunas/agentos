@@ -1,23 +1,34 @@
 
  Usage: agentos environments [OPTIONS] COMMAND [ARGS]...
 
- Your agents' cloud computers: list, show, close, allow, set up, connect
- repositories.
+ Your agents' cloud computers: list, show, download, close, allow, set up,
+ connect repositories.
 
 ╭─ Options ────────────────────────────────────────────────────────────────────╮
 │ --home        <path>  AGENTOS_HOME (default: $AGENTOS_HOME)                  │
 │ --help                Show this message and exit.                            │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ╭─ Commands ───────────────────────────────────────────────────────────────────╮
-│ list   Environments of this node: state, title, repository, machine, cost so │
-│        far, time left.                                                       │
-│ show   One environment: its machine, lanes, the calls its agent made, and    │
-│        its unsaved work.                                                     │
-│ close  Close an environment; refused while its work is not pushed, unless    │
-│        --discard.                                                            │
-│ allow  Set the limits that bound the environments agents open.               │
-│ setup  Check what environments need on this node, and say what is missing.   │
-│ repo   Connect private repositories: a key or token in the vault, and the    │
-│        declaration for env.                                                  │
+│ list         Environments of this node: state, title, repository, machine,   │
+│              cost so far, time left.                                         │
+│ show         One environment: its machine, lanes, the calls its agent made,  │
+│              and its unsaved work.                                           │
+│ close        Close an environment; refused while its work is not pushed,     │
+│              unless --discard.                                               │
+│ download     Copy a file or a folder off an environment's machine into DIR,  │
+│              without the agent.                                              │
+│ saves        The saved environments: what each save holds and what its       │
+│              snapshot costs a month.                                         │
+│ forget       Forget the saves of a title (or one save), and delete their     │
+│              disk snapshots at the provider.                                 │
+│ save-export  Write one save to a file, to move it to another node            │
+│              (`save-import` there).                                          │
+│ save-import  Add a save from another node's `save-export`; an agent resumes  │
+│              it with its title.                                              │
+│ allow        Set the limits that bound the environments agents open.         │
+│ setup        Check what environments need on this node, and say what is      │
+│              missing.                                                        │
+│ repo         Connect private repositories: a key or token in the vault, and  │
+│              the declaration for env.                                        │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 

@@ -690,7 +690,7 @@ async def environment_forget(ctx: ToolContext, *, title: str, save_id: str | Non
     return out
 
 
-async def environment_port(ctx: ToolContext, *, port: int) -> dict:
+async def environment_port(ctx: ToolContext, *, port: int, on: str | None = None) -> dict:
     """Open a dev server of your environment on the human's own computer, as a preview link. The
     VM's port is forwarded over the environment's own SSH connection to a free 127.0.0.1 port; it
     closes with the environment. Returns port, local_port and url (on agentos local the human opens it
@@ -699,11 +699,12 @@ async def environment_port(ctx: ToolContext, *, port: int) -> dict:
 
     Args:
         port: The port your server listens on in the VM, like 3000 or 5173 (environment() lists them).
+        on: Which environment: its title, its id or env/<id>. Leave it out when you have one open.
     """
     from agentos.environments import ports as env_ports
 
     mgr = _mgr(ctx)
-    env = _find(ctx, None)
+    env = _find(ctx, on)
     if env is None:
         raise NoEnvironment("this chat has no environment; environment_open first, then start your server")
     await ctx.authorize(Effect.READ, lane_id=None, summary=f"forward port {port} of environment {env.id} ({env.title})")
@@ -721,7 +722,7 @@ async def environment_port(ctx: ToolContext, *, port: int) -> dict:
 
 async def environment_pull_request(ctx: ToolContext, *, title: str, body: str | None = None,
                                    base: str | None = None, draft: bool = False,
-                                   branch: str | None = None) -> dict:
+                                   branch: str | None = None, on: str | None = None) -> dict:
     """Open a pull request on GitHub for the branch your environment pushed, with the node's stored
     GitHub token (the VM has no gh and no credential). Only a branch this environment created; it
     never merges. If one is open for that branch already, it returns that one. Returns url (give it
@@ -734,11 +735,12 @@ async def environment_pull_request(ctx: ToolContext, *, title: str, body: str | 
         base: The branch to merge into; the repository's default branch if left out.
         draft: Open it as a draft.
         branch: Which pushed branch; the newest one this environment pushed if left out.
+        on: Which environment: its title, its id or env/<id>. Leave it out when you have one open.
     """
     from agentos.environments import pulls
 
     mgr = _mgr(ctx)
-    env = _find(ctx, None)
+    env = _find(ctx, on)
     if env is None:
         raise NoEnvironment("this chat has no environment; environment_open first, push a branch, then call this")
     await ctx.authorize(Effect.READ, lane_id=None,

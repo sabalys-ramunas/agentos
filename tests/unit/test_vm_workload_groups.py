@@ -103,5 +103,5 @@ def test_a_terminal_workload_and_an_odd_id_keep_the_plain_command():
     lane = type("L", (), {"remote": RemoteHost(vm_id="vm_1", host="h", user="root", key_path="/k", known_hosts="/kh",
                                                host_alias="a")})()
     argv = ssh.SshLauncher().stop_argv(lane, "j-1", "TERM")
-    assert argv[0] == "ssh" and "kill -TERM" in argv[-1]
+    assert argv[0] == "ssh" and "kill -s TERM" in argv[-1]
     assert ssh.SshLauncher().stop_argv(lane, "bad id", "TERM") is None

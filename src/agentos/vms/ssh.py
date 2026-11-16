@@ -53,6 +53,8 @@ def ssh_base(remote: RemoteHost, *, tty: bool = False) -> list[str]:
 
 # Where a workload on the VM writes its process group id, so the node can end every process it started
 # (lane_job_cancel left a dev server's vite running: killing the local ssh never reached the VM's processes).
+# `kill -s SIG -- -PGID`, not `kill -SIG -- -PGID`: Ubuntu's /bin/sh is dash, whose kill refuses the latter
+# ("Illegal number: -") and signals nothing, so the group lived on (checked in ubuntu:24.04, 2026-11-16).
 PGID_DIR = "/tmp/agentos-wl"
 _WID_OK = frozenset("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_")
 
@@ -77,7 +79,7 @@ def remote_command(wl: Workload) -> str:
         return f"{cd} && exec {run}"
     f = pgid_file(wl.wid)
     # after the command, what it left in the background ends too (the shell ignores the TERM it sends)
-    group = shlex.quote(f'echo $$ > {f}; "$@"; rc=$?; trap "" TERM; kill -TERM -- -$$ 2>/dev/null; '
+    group = shlex.quote(f'echo $$ > {f}; "$@"; rc=$?; trap "" TERM; kill -s TERM -- -$$ 2>/dev/null; '
                         f'rm -f {f}; exit $rc')
     return f"mkdir -p {PGID_DIR} && {cd} && exec setsid -w sh -c {group} sh {run}"
 
@@ -86,7 +88,7 @@ def stop_script(wid: str, sig: str) -> str:
     """Signal every process of the workload's group on the VM; the file goes once it is killed."""
     f = shlex.quote(pgid_file(wid))
     tail = f"; rm -f {f}" if sig == "KILL" else ""
-    return f'p=$(cat {f} 2>/dev/null) && [ -n "$p" ] && kill -{sig} -- "-$p" 2>/dev/null{tail}; true'
+    return f'p=$(cat {f} 2>/dev/null) && [ -n "$p" ] && kill -s {sig} -- "-$p" 2>/dev/null{tail}; true'
 
 
 def _env_name_ok(name: str) -> bool:
