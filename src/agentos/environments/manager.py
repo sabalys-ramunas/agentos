@@ -38,6 +38,7 @@ from agentos.core.errors import AgentosError, InvalidRequest, LaneExists, NotFou
 from agentos.core.models import ProxyConfig, utcnow
 from agentos.environments.activity import Activity
 from agentos.environments.bringup import BringUp
+from agentos.environments.caller import binding_of
 from agentos.environments.downloads import Downloads
 from agentos.environments.errors import (
     EnvironmentFailed,
@@ -886,13 +887,6 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
 
     def binding_of(self, session: str | None, grant_id: str | None) -> str:
         return binding_of(session, grant_id)
-
-
-def binding_of(session: str | None, grant_id: str | None) -> str:
-    """What an environment is bound to: the MCP session (one chat), else the grant (stdio)."""
-    if session:
-        return f"session:{session}"
-    return f"grant:{grant_id or 'owner'}"
 
 
 __all__ = ["OPEN_NEXT", "EnvironmentManager", "binding_of", "check_ref", "check_title", "current_client", "is_session",
