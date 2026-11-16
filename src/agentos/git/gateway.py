@@ -358,8 +358,13 @@ class GitGateway:
             raise Refused(f"fetching {remote.slug} was refused: {e.message}") from None
         return ctx
 
-    async def _refresh(self, caller: Caller, mirror: Mirror, target: Target, op: str) -> None:
+    async def _refresh(self, caller: Caller, mirror: Mirror, target: Target, op: str,
+                       asked: float | None = None) -> bool:
+        """Bring the mirror up to date from the remote (under its lock). False when a fetch that began
+        just before or after `asked` (when this request came) already did it: one fetch serves them all."""
         await mirror.ensure()
+        if asked is not None and mirror.fresh_since(asked):
+            return False
         purpose = f"git {op} {target.remote.slug} for {caller.label}"
         try:
             async with credential_env(target, home=self.home, agent_dir=self.agent_dir,
@@ -367,6 +372,34 @@ class GitGateway:
                 await mirror.fetch(target, auth)
         except UpstreamError as e:
             raise Refused(e.message, code="upstream") from None
+        return True
+
+    async def warm(self, caller: Caller, remote: Remote) -> bool:
+        """Bring the mirror of `remote` up to date for `caller` ahead of its first fetch (an environment's
+        clone, while its VM boots): the checks a fetch has (declared, the grant, the policy's read), then
+        the fetch from the remote. A cold mirror of a big repository takes minutes; done here, it overlaps
+        the VM's boot. True when it fetched; False when it was refused or the remote failed (logged: the
+        clone itself says why)."""
+        try:
+            rule = self.remotes.find(remote, caller.scopes())
+            if rule is None or (caller.repos and remote.slug not in caller.repos):
+                return False
+            ctx = await self._authorize_read(caller, rule, remote)
+            target = await self._target(rule, remote, push=False)
+            mirror = self.mirror(remote)
+            steps = Steps(f"warm-up of {remote.slug} for {caller.label}")
+            asked = time.monotonic()
+            async with mirror.lock:
+                steps.done("waiting for the mirror")
+                fetched = await self._refresh(caller, mirror, target, "fetch", asked)
+                steps.done("fetching from the remote")
+            ctx.trace("git_fetch", lane=self._account(caller, rule), remote=remote.slug, via=caller.label,
+                      vault_ref=target.credential.ref if target.credential else None, purpose="warm",
+                      result="ok", seconds=steps.report())
+            return fetched
+        except Refused as e:
+            log.info("git gateway: no warm-up of %s for %s: %s", remote.slug, caller.label, self._scrub(e.message))
+            return False
 
     async def _advertise(self, req: Request, remote: Remote, svc: str, listener_lane: str | None) -> Response:
         push = svc == "git-receive-pack"
@@ -381,10 +414,11 @@ class GitGateway:
         target = await self._target(rule, remote, push=push)
         mirror = self.mirror(remote)
         steps.done("checks")
+        asked = time.monotonic()
         async with mirror.lock:
             steps.done("waiting for the mirror")
-            await self._refresh(caller, mirror, target, "push" if push else "fetch")
-            steps.done("fetching from the remote")
+            fetched = await self._refresh(caller, mirror, target, "push" if push else "fetch", asked)
+            steps.done("fetching from the remote" if fetched else "served by the fetch it waited for")
             rc, out, _err = await mirror.git(svc[len("git-"):], "--stateless-rpc", "--advertise-refs", ".")
             steps.done("advertising")
         if rc != 0:

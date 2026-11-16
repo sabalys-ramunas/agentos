@@ -133,6 +133,9 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
         self._tunnels: dict[str, Tunnel] = {}
         self._vm_browsers: Any = None  # agentos.environments.vmbrowser.VmBrowsers, once a "vm" browser is made
         self._tasks: dict[str, asyncio.Task] = {}
+        self._warming: set[asyncio.Task] = set()  # mirror warm-ups while VMs boot (BringUp._warm_mirror)
+        self._fetch_direct: set[str] = set()  # environments whose public repository the VM fetches itself
+        self.view_links: dict[str, Any] = {}  # browser lane -> the live-view link handed out (tools._view_link)
         self._planned: dict[tuple[str, str], str] = {}
         self._locks: dict[str, asyncio.Lock] = {}
         self._opening: dict[str, asyncio.Lock] = {}
@@ -212,7 +215,7 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
     async def shutdown(self) -> None:
         """Stop the reaper, the bring-ups and the tunnels. The VMs stay: a restart of the node must
         not end an agent's work. The next start brings the tunnels back."""
-        tasks = [t for t in (self._reaper, *self._tasks.values()) if t is not None]
+        tasks = [t for t in (self._reaper, *self._tasks.values(), *self._warming) if t is not None]
         for t in tasks:
             t.cancel()
         for t in tasks:
@@ -220,6 +223,7 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
                 await t
         self._reaper = None
         self._tasks.clear()
+        self._warming.clear()
         for tunnel in list(self._tunnels.values()):
             await tunnel.stop()
         self._tunnels.clear()

@@ -24,7 +24,7 @@ from agentos.core.models import ControlState, Effect, LaneControl, parse_lane_id
 from agentos.core.tools import ToolContext, ToolSpec
 from agentos.node.handback import claim_note
 from agentos.node.viewer_state import control_dict
-from agentos.node.viewer_tokens import ViewMode, ViewTokens
+from agentos.node.viewer_tokens import ViewLink, ViewMode, ViewTokens
 
 MAX_WAIT_SECONDS = 300.0
 DEFAULT_WAIT_SECONDS = 60.0
@@ -172,7 +172,7 @@ def tool_specs(runtime: Any) -> list[ToolSpec]:
 
 def take_over_link(runtime: Any, on: str, *, ttl_s: float | None = None, ssh_host: str | None = None,
                    port: int | None = None, base: str = "", control: bool = True,
-                   local_port: int | None = None) -> dict[str, Any]:
+                   local_port: int | None = None, link: ViewLink | None = None) -> dict[str, Any]:
     """A control-mode viewer link for lane_view: the human opens it (through the SSH tunnel in M1) to watch,
     take control, and hand back. Uses the runtime's `viewer_links` (a ViewTokens) when registered.
     `control=False` issues a link to watch only (a controller's caller whose ceiling has no control).
@@ -180,8 +180,9 @@ def take_over_link(runtime: Any, on: str, *, ttl_s: float | None = None, ssh_hos
     the link and the tunnel are right there; without them, this node's port and hostname."""
     lane_id = _lane(on)
     config = runtime.require("config")
-    tokens = runtime.get("viewer_links") or ViewTokens.for_config(config)
-    link = tokens.issue(lane_id, ViewMode.CONTROL if control else ViewMode.VIEW, ttl_s)
+    if link is None or link.lane_id != lane_id:  # `link`: one issued before, handed out again (an environment's)
+        tokens = runtime.get("viewer_links") or ViewTokens.for_config(config)
+        link = tokens.issue(lane_id, ViewMode.CONTROL if control else ViewMode.VIEW, ttl_s)
     if ssh_host is None:
         from agentos.node.tools.lanes import ssh_host as default_ssh_host
         ssh_host = default_ssh_host(config)

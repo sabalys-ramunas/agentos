@@ -224,6 +224,49 @@ async def test_a_declared_repo_with_a_working_credential_opens(node, declared): 
     assert out["state"] == "ready", out
 
 
+async def test_a_declared_private_repo_clones_blobless_through_the_gateway(node, declared):  # noqa: F811
+    """Through the gateway the pack crosses the upload of the computer agentos runs on (a 241 MiB clone
+    took 110 s), so the clone is blobless: every commit and tree, and only the files the checkout needs.
+    The VM's git sends fetches and pushes of the repository to the gateway."""
+    from agentos.environments.bringup import GIT_SETUP
+
+    node["rt"].register("vault", TokenVault())
+    out = await opened(node, repo=REPO)
+    assert out["state"] == "ready", out
+    [clone] = [c for c, _ in node["machine"].ran if "git clone" in c]
+    assert "git clone -q --filter=blob:none https://example.test/me/shop.git /work/shop" in clone
+    [(_c, _g, stdin)] = [r for r in node["machine"].ran_in if r[0] == GIT_SETUP]
+    assert "insteadOf = https://example.test/me/shop" in stdin and "pushInsteadOf" not in stdin
+
+
+async def test_a_declared_public_repo_is_fetched_from_its_host_and_pushed_through_the_gateway(
+        node, declared, monkeypatch):  # noqa: F811
+    """A repository the VM reads with no credential: it clones and fetches straight from the host, at the
+    cloud's own speed, and only its pushes go through the gateway (pushInsteadOf), under its rules. The VM
+    still holds no credential for the host."""
+    from agentos.env.models import ExecResult
+    from agentos.environments.bringup import GIT_SETUP
+
+    plain = node["envs"].exec
+
+    async def exec_(lane_id, cmd, **kw):
+        if "ls-remote" in cmd and "GIT_CONFIG_GLOBAL=/dev/null" in cmd:
+            assert "https://example.test/me/shop.git" in cmd
+            return ExecResult(exit_code=0, stdout="public\n", stderr="", duration_s=0.1)
+        return await plain(lane_id, cmd, **kw)
+
+    monkeypatch.setattr(node["envs"], "exec", exec_)
+    node["rt"].register("vault", TokenVault())
+    out = await opened(node, repo=REPO)
+    assert out["state"] == "ready", out
+    [clone] = [c for c, _ in node["machine"].ran if "git clone" in c]
+    assert "--filter" not in clone and "https://example.test/me/shop.git" in clone
+    [(_c, _g, stdin)] = [r for r in node["machine"].ran_in if r[0] == GIT_SETUP]
+    assert "pushInsteadOf = https://example.test/me/shop" in stdin
+    assert "\tinsteadOf = https://example.test/me/shop\n" not in stdin  # fetches are not sent to the gateway
+    assert "agtg_" in stdin  # the gateway token, for pushes; no credential of the host
+
+
 async def test_a_clone_the_gateway_refuses_names_the_key_and_the_fix(node, declared, monkeypatch):  # noqa: F811
     """The check passed, but the clone on the machine still failed (the deploy key was removed at the
     host meanwhile): the error quotes the gateway's own words from git's output, with the same fix."""

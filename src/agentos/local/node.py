@@ -169,6 +169,11 @@ async def run(config: NodeConfig, *, stop: asyncio.Event | None = None,
     """Serve the local node until SIGTERM or Ctrl-C (or `stop`). AGENTOS_HOME is set to its home first,
     so every part of agentos reads this home's files."""
     os.environ["AGENTOS_HOME"] = str(config.home)
+    from agentos.local.service import throttled_note
+
+    note = throttled_note()
+    if note:
+        log.warning("%s", note)
     runtime = runtime or build_runtime(config)
     await serve(config, runtime, stop=stop, on_started=on_started, providers=providers(), panel=True,
                 instructions=INSTRUCTIONS)

@@ -124,10 +124,24 @@ class Launchd:
             "RunAtLoad": True,
             "KeepAlive": True,
             "ThrottleInterval": THROTTLE_S,
-            "ProcessType": "Background",
+            # Interactive, never Background: launchd runs a Background job in the Darwin background state
+            # (efficiency cores, throttled disk and network) and so does every git and ssh it starts. On
+            # 2026-11-16 that made a 13 MB clone take 212 s instead of 2 s, a mirror fetch 254 s and a
+            # first MCP handshake miss a client's 30 s connect window. The service is idle while nothing
+            # calls it, so Interactive costs nothing then.
+            "ProcessType": "Interactive",
             "StandardOutPath": log,
             "StandardErrorPath": log,
         })
+
+    def throttled(self) -> bool:
+        """Is the installed plist one that runs the node as a Background job (ProcessType Background, as
+        `agentos local start` wrote it before 2026-11-16)? launchd applies a plist when it loads it, so
+        only a new install moves a running node out of the throttling (see render)."""
+        try:
+            return plistlib.loads(self.unit_path().read_bytes()).get("ProcessType") == "Background"
+        except (OSError, plistlib.InvalidFileException, ValueError, AttributeError):
+            return False
 
     def install(self, home: Path) -> None:
         path = self.unit_path()
@@ -322,9 +336,13 @@ def start(home: Path, port: int | None = None, *, deps: Deps | None = None) -> S
     deps = deps or Deps()
     home = Path(home).expanduser()
     now = status(home, deps=deps)
-    if now.running and (port is None or port == now.port):
+    svc = deps.svc()
+    stale = bool(getattr(svc, "throttled", lambda: False)())  # an old launchd plist: start it again from a new one
+    if now.running and (port is None or port == now.port) and not stale:
         now.note = _note(f"Already running on port {now.port}.", home)
         return now
+    if now.running and stale:
+        port = port or now.port
     if now.running:
         deps.svc().stop()  # moving to another port: the old one goes first, so the port probe is true
     chosen = local_home.choose_port(home, port, busy=deps.busy)
@@ -343,6 +361,20 @@ def start(home: Path, port: int | None = None, *, deps: Deps | None = None) -> S
         state.note = (f"Started, but it did not answer on port {chosen} within {deps.wait_s:g} s. "
                       "See `agentos local logs`.")
     return state
+
+
+THROTTLED_WORDS = ("macOS runs this node as a Background job (an older `agentos local start` wrote its launchd "
+                   "plist so), which slows every clone, fetch and first MCP connect many times over; run "
+                   "`agentos local start` once to start it again without that")
+
+
+def throttled_note(*, deps: Deps | None = None) -> str | None:
+    """THROTTLED_WORDS when the installed service is a throttled launchd job, else None (and on Linux)."""
+    try:
+        svc = (deps or Deps()).svc()
+        return THROTTLED_WORDS if getattr(svc, "throttled", lambda: False)() else None
+    except Exception:  # noqa: BLE001 - a note, never a reason the node does not start
+        return None
 
 
 def stop(home: Path, *, deps: Deps | None = None) -> ServiceState:

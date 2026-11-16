@@ -138,11 +138,46 @@ def bound_environment(ctx: ToolContext) -> Environment | None:
         return None
 
 
+LINK_REUSE_S = 120.0  # an environment's live-view link is handed out again while it has this long left
+
+
+def _view_link(ctx: ToolContext, env: Environment) -> Any:
+    """The environment's live-view link (a ViewLink): the one handed out before while it is still valid
+    for at least LINK_REUSE_S, else a new one, kept for the next call. So environment() gives the same
+    link call after call, and the tab the human opened is the one the agent keeps naming."""
+    from agentos.node.viewer_tokens import TokenError, ViewMode, ViewTokens
+
+    config = ctx.runtime.require("config")
+    tokens = ctx.runtime.get("viewer_links") or ViewTokens.for_config(config)
+    held = _mgr(ctx).view_links.get(env.browser_lane)
+    if held is not None:
+        try:
+            tokens.verify(held.token, env.browser_lane)  # signed with today's key, and not expired
+            if min(held.expires_at, held.hard_until) - tokens.clock() >= LINK_REUSE_S:
+                return held
+        except TokenError:
+            pass
+    link = tokens.issue(env.browser_lane, ViewMode.CONTROL)
+    _mgr(ctx).view_links[env.browser_lane] = link
+    return link
+
+
+def link_note(link: Any) -> str:
+    """How long links.browser works, in the words the agent passes on (docs/ENVIRONMENTS.md)."""
+    from agentos.node.viewer_tokens import iso
+
+    return (f"links.browser stays the same on every call until shortly before it expires ({link.expires_iso}); a "
+            "link given earlier keeps working until its own expiry. A page the human has open renews itself "
+            f"until {iso(link.hard_until)}, 30 minutes after its link was made; after that give them the new "
+            "links.browser")
+
+
 def _links(ctx: ToolContext, env: Environment) -> dict:
     """`browser`: a signed live-view link the human can open (in a browser or T3 Code's preview
     pane). The node's own viewer, so it works without the web app; before the browser's first page
     it says the browser is not running yet and shows it once it is. None until the browser lane
-    exists (environment() gives it then)."""
+    exists (environment() gives it then). The same link comes back while it is valid (_view_link),
+    with `browser_expires_at` and `browser_note`: how long it and the ones before it work."""
     links = _mgr(ctx).links(env)
     lanes = getattr(ctx.runtime, "lanes", None)
     if lanes is None or not callable(getattr(lanes, "take_control", None)):
@@ -151,11 +186,14 @@ def _links(ctx: ToolContext, env: Environment) -> dict:
         lanes.get(env.browser_lane)  # LaneNotFound: no browser lane yet
         from agentos.node.control_tools import take_over_link
 
-        link = take_over_link(ctx.runtime, env.browser_lane, control=True)
+        view = _view_link(ctx, env)
+        link = take_over_link(ctx.runtime, env.browser_lane, control=True, link=view)
     except Exception:  # noqa: BLE001 - a link is a convenience; the environment works without one
         return links
     if link.get("url"):
         links["browser"] = link["url"]
+        links["browser_expires_at"] = view.expires_iso
+        links["browser_note"] = link_note(view)
     return links
 
 

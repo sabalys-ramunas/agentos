@@ -16,6 +16,8 @@ from agentos.environments.models import (
     Environment,
 )
 
+ROOM_SHOWN = 2  # sizes a capacity error offers (the error must fit in an MCP error with them)
+
 
 class Sizing:
     """Sizes, hours and money, for EnvironmentManager (it reads self.settings, self.store and self.vms())."""
@@ -116,6 +118,33 @@ class Sizing:
             specs = plan.get("specs") or {}
             out.append({"size": name, "server_type": plan["server_type"], "cpu": specs.get("cores"),
                         "memory_gb": specs.get("memory_gb"), "price_hourly_eur": plan.get("price_hourly_eur")})
+        return out
+
+    async def sizes_with_room(self, env: Environment, error: BaseException) -> list[dict]:
+        """The sizes next to the one `env` asked for (up to max_size, nearest first, at most ROOM_SHOWN)
+        whose server types the provider lists as orderable now in its zone, without the (type, location)
+        that just had no room (NoRoom.tried): what a capacity error offers instead. Never taken for the
+        agent: it asks for one itself. [] when the provider does not say."""
+        names = list(SIZES)[:list(SIZES).index(self.settings.max_size) + 1]
+        asked = env.machine.size if env.machine.size in SIZES else None
+        at = list(SIZES).index(asked) if asked else 0
+        failed = set(getattr(error, "tried", None) or [])
+        out: list[dict] = []
+        for name in sorted((n for n in names if n != asked), key=lambda n: abs(list(SIZES).index(n) - at)):
+            try:
+                profile, custom = self._size(name)
+                plan = await self.vms().plan(f"{WORKSPACE}/{env.id}", profile=profile, ttl_minutes=60, size=custom,
+                                             image=env.image or None)
+                types = [plan["server_type"], *[t for t, _p in plan.get("fallbacks") or []]]
+                if not await self.vms().listed_now(types, plan["location"], skip=failed):
+                    continue
+            except AgentosError:
+                continue
+            cpu, memory = SIZES[name]
+            out.append({"size": name, "cpu": cpu, "memory_gb": memory,
+                        "smaller": asked is not None and list(SIZES).index(name) < at})
+            if len(out) >= ROOM_SHOWN:
+                break
         return out
 
     def _hours(self, hours: float | None) -> int:

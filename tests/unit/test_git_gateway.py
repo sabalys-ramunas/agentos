@@ -530,3 +530,96 @@ async def test_a_mixed_push_with_one_foreign_rewrite_sends_nothing(node):
     assert git("rev-parse", "--verify", "-q", "refs/heads/agent/z", cwd=node.upstream, check=False).returncode != 0
     assert mirror_ref(node, "refs/heads/agent/z") == ""
     assert node.rt.get("environments").own.get(ENV_LANE, []) == []
+
+
+# ------------------------------------------------------------------ speed: one fetch, a warm mirror, a blobless clone
+
+
+async def test_requests_that_wait_for_the_mirror_share_the_fetch_that_ran_meanwhile(node, monkeypatch):
+    """A clone, the agent's own fetch and the node's warm-up of one repository at once: each waited for
+    the mirror's lock and then fetched from the remote again (the 2026-11-16 run: 163 s and 124 s for
+    fetches the one before had just done). One fetch serves the requests that came while it ran."""
+    from agentos.git.upstream import Mirror
+
+    real, fetches = Mirror.fetch, []
+
+    async def slow_fetch(self, target, auth):
+        fetches.append(target.remote.slug)
+        await asyncio.sleep(0.3)
+        return await real(self, target, auth)
+
+    monkeypatch.setattr(Mirror, "fetch", slow_fetch)
+    g, _ = node.grant()
+    tok = node.token(g.id)
+    a, b = await asyncio.gather(node.run("ls-remote", f"https://{HOST}/{REPO}.git", token=tok),
+                                node.run("ls-remote", f"https://{HOST}/{REPO}.git", token=tok))
+    assert a.returncode == b.returncode == 0 and "refs/heads/main" in a.stdout and a.stdout == b.stdout
+    assert len(fetches) == 1
+    node.git.gateway.mirror(Remote(HOST, REPO)).fetched_at -= 60  # a minute later: the remote is asked again
+    c = await node.run("ls-remote", f"https://{HOST}/{REPO}.git", token=tok)
+    assert c.returncode == 0 and len(fetches) == 2
+
+
+async def test_the_warm_up_fetches_the_mirror_before_the_vm_asks_under_the_same_checks(node):
+    """While an environment's VM boots, the node brings the mirror up to date (a cold one of a big
+    repository took 254 s, after the VM was up): declared, under the grant, and on the record."""
+    node.rt.register("environments", Environments())
+    node.git.remotes.allow("env", f"{HOST}/{REPO}", url=str(node.upstream))
+    g, _ = node.policy.issue(subject={"id": "agent-1"}, workspaces=["env"], ceiling=Effect.COMMIT)
+    mirror = node.git.gateway.mirror(Remote(HOST, REPO))
+    assert not (mirror.path / "HEAD").exists()
+    assert await node.git.warm(ENV_LANE, grant_id=g.id, repo=f"{HOST}/{REPO}") is True
+    assert git("rev-parse", "refs/heads/main", cwd=mirror.path).stdout.strip() == node.upstream_ref("main")
+    assert await node.git.warm(ENV_LANE, grant_id=g.id, repo=f"{HOST}/{REPO}") is False  # just fetched
+    assert await node.git.warm(ENV_LANE, grant_id=g.id, repo=f"{HOST}/owner/other") is False  # not declared
+    [t, *_] = [t for t in node.traces("git_fetch") if (t.args or {}).get("purpose") == "warm"]
+    assert t.grant_id == g.id and t.args["remote"] == f"{HOST}/{REPO}"
+
+
+async def test_an_environment_clones_blobless_and_git_fetches_a_file_when_a_command_needs_it(node):
+    """The VM's clone through the gateway is blobless, so the pack that crosses the node's upload holds
+    the commits, the trees and the checkout's files only. A file of another branch comes when a command
+    needs it, by its id, through the gateway too; the mirror serves only objects a branch or tag reaches."""
+    seed, env0 = node.tmp / "seed", plain_env(node.client_home)
+    git("checkout", "-q", "-b", "other", cwd=seed, env=env0)
+    (seed / "big.txt").write_text("x" * 200_000 + "\n")
+    git("add", ".", cwd=seed, env=env0)
+    git("commit", "-qm", "big", cwd=seed, env=env0)
+    git("push", "-q", str(node.upstream), "other", cwd=seed, env=env0)
+    _g, run, _work, _env = await vm(node)
+    dest = node.tmp / "thin"
+    r = await run("clone", "-q", "--filter=blob:none", f"https://{HOST}/{REPO}.git", str(dest))
+    assert r.returncode == 0, r.stderr
+    missing = git("rev-list", "--objects", "--missing=print", "--all", cwd=dest).stdout.split()
+    assert any(x.startswith("?") for x in missing)  # big.txt is not in the clone
+    r = await run("checkout", "-q", "other", cwd=dest)
+    assert r.returncode == 0, r.stderr
+    assert (dest / "big.txt").read_text() == "x" * 200_000 + "\n"
+    reach = git("config", "uploadpack.allowReachableSHA1InWant", cwd=node.git.gateway.mirror(Remote(HOST, REPO)).path)
+    assert reach.stdout.strip() == "true" and git("config", "uploadpack.allowAnySHA1InWant",
+                                                    cwd=node.git.gateway.mirror(Remote(HOST, REPO)).path,
+                                                    check=False).stdout.strip() == ""
+
+
+def test_a_public_repository_vm_config_sends_only_pushes_to_the_gateway(tmp_path):
+    """fetch_direct: git on the VM fetches the repository from its host, in any form it is written (ssh
+    forms become https, which needs no key), and pushes it to the gateway with the token."""
+    from agentos.git.service import vm_gitconfig
+
+    home = tmp_path / "vm"
+    home.mkdir()
+    (home / ".gitconfig").write_text(vm_gitconfig(f"{HOST}/{REPO}", "agtg_x", fetch_direct=True))
+    env = {**plain_env(home), "GIT_CONFIG_GLOBAL": str(home / ".gitconfig")}
+    repo = tmp_path / "r"
+    git("init", "-q", str(repo), env=env)
+    for url in (f"https://{HOST}/{REPO}.git", f"git@{HOST}:{REPO}.git"):
+        git("remote", "add", "o" + str(len(url)), url, cwd=repo, env=env)
+        name = "o" + str(len(url))
+        fetch = git("remote", "get-url", name, cwd=repo, env=env).stdout.strip()
+        push = git("remote", "get-url", "--push", name, cwd=repo, env=env).stdout.strip()
+        assert fetch == f"https://{HOST}/{REPO}.git", url
+        assert push == f"http://127.0.0.1:3129/{HOST}/{REPO}.git", url
+    gateway = vm_gitconfig(f"{HOST}/{REPO}", "agtg_x")
+    (home / ".gitconfig").write_text(gateway)
+    assert git("remote", "get-url", "o" + str(len(f"https://{HOST}/{REPO}.git")), cwd=repo,
+               env=env).stdout.strip() == f"http://127.0.0.1:3129/{HOST}/{REPO}.git"

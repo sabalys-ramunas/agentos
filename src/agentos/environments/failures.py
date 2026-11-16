@@ -34,8 +34,25 @@ def bigger_size(env: Environment, top: str) -> str | None:
     return names[i] if i < len(names) and i <= names.index(top) else None
 
 
-def classify(e: BaseException, env: Environment, top: str) -> tuple[str | None, str]:
-    """(reason, words) for what failed a bring-up. reason None: no known cause."""
+CAPACITY_CODES = ("resource_unavailable", "placement_error", "unavailable")
+
+
+def is_capacity(e: BaseException) -> bool:
+    """Did the provider have no room (a capacity failure)?"""
+    return getattr(e, "provider_code", None) in CAPACITY_CODES
+
+
+def room_words(room: list[dict]) -> str:
+    """'Available now: medium (4 CPU, 8 GB, less than you asked for): environment_open(size="medium")'."""
+    parts = [f"{r['size']} ({r['cpu']} CPU, {r['memory_gb']} GB{', less than you asked for' if r.get('smaller') else ''})"
+             f": environment_open(size=\"{r['size']}\")" for r in room]
+    return "Available now: " + "; or ".join(parts)
+
+
+def classify(e: BaseException, env: Environment, top: str,
+             room: list[dict] | None = None) -> tuple[str | None, str]:
+    """(reason, words) for what failed a bring-up. reason None: no known cause. `room`: the sizes the
+    provider lists as available now (Sizing.sizes_with_room), which a capacity failure offers."""
     msg = str(getattr(e, "message", e)) or type(e).__name__
     reason = getattr(e, "reason", None)
     if isinstance(e, EnvironmentFailed) and reason:
@@ -45,7 +62,9 @@ def classify(e: BaseException, env: Environment, top: str) -> tuple[str | None, 
     if code == "image_too_big":
         tip = f' Ask for size="{bigger}".' if bigger else ""
         return "image", f"{msg}.{tip}"
-    if code in ("resource_unavailable", "placement_error", "unavailable"):
+    if code in CAPACITY_CODES:
+        if room:
+            return "capacity", f"{msg}. {room_words(room)}. Nothing bills: no machine was made"
         tip = f', or ask for size="{bigger}" (another server type)' if bigger else ""
         return "capacity", f"{msg}{tip}. Nothing bills: no machine was made"
     if getattr(e, "code", None) == "vm_error" and any(w in msg.lower() for w in NETWORK_WORDS):

@@ -54,6 +54,19 @@ def offered(types: list[dict] | None, server_type: str, location: str) -> tuple[
     return False, None
 
 
+def listed(types: list[dict], zones: dict[str, str], server_types: list[str], location: str,
+           skip: set[tuple[str, str]] | frozenset = frozenset()) -> list[tuple[str, str]]:
+    """(server type, location) of `server_types` in the network zone of `location` that the provider's
+    list (`types`, its `available` locations) says can be ordered right now, minus `skip` (the ones that
+    just had no room). A type whose `available` is None (the provider does not say) is never listed."""
+    out = []
+    for name in server_types:
+        where = next((t.get("available") for t in types if t.get("name") == name), None)
+        if where is not None:
+            out += [(name, loc) for loc in zone_locations(location, zones) if loc in where and (name, loc) not in skip]
+    return out
+
+
 def plan_tries(first: tuple[str, float | None], fallbacks: list[tuple[str, float | None]], location: str,
                zones: dict[str, str], types: list[dict] | None) -> list[tuple[str, str, float | None]]:
     """(server type, location, EUR an hour) in the order they are tried: each type in the planned

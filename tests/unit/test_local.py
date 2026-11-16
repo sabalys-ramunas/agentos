@@ -377,6 +377,7 @@ def test_start_installs_and_loads_a_launch_agent_that_runs_serve(tmp_path, user_
     assert plist["ProgramArguments"][0] == sys.executable
     assert plist["EnvironmentVariables"]["AGENTOS_HOME"] == str(home)
     assert plist["StandardOutPath"] == plist["StandardErrorPath"] == str(log_path(home))
+    assert plist["ProcessType"] == "Interactive"  # Background throttles every git and ssh it starts
     assert ["launchctl", "bootstrap", "gui/501", str(plist_path)] in fake.calls
     assert local_home.read(home).mcp_port == 7410
 
@@ -393,6 +394,26 @@ def test_start_when_running_leaves_it_and_stop_keeps_it_stopped_past_a_login(tmp
     assert not stopped.running and stopped.note.startswith("Stopped. It stays stopped")
     assert not (user_home / "Library" / "LaunchAgents" / "dev.agentos.local.plist").exists()
     assert service.status(home, deps=deps).note.startswith("Not running.")
+
+
+def test_start_moves_a_node_running_as_a_background_job_to_an_interactive_one(tmp_path, user_home):
+    """A plist from before 2026-11-16 ran the node as a Background job, and launchd throttled it and
+    every git and ssh it started (a 13 MB clone: 212 s instead of 2 s). The next start loads it again
+    from a new plist on the same port; serve says so in the log until then."""
+    home = tmp_path / "agentos"
+    deps, fake = launchd_deps(user_home)
+    service.start(home, deps=deps)
+    plist_path = user_home / "Library" / "LaunchAgents" / "dev.agentos.local.plist"
+    old = plistlib.loads(plist_path.read_bytes())
+    plist_path.write_bytes(plistlib.dumps({**old, "ProcessType": "Background"}))
+    assert service.throttled_note(deps=deps) == service.THROTTLED_WORDS
+    calls = len(fake.calls)
+    again = service.start(home, deps=deps)
+    assert again.running and again.port == 7410
+    assert ["launchctl", "bootstrap", "gui/501", str(plist_path)] in fake.calls[calls:]
+    assert plistlib.loads(plist_path.read_bytes())["ProcessType"] == "Interactive"
+    assert service.throttled_note(deps=deps) is None
+    assert "\u2014" not in service.THROTTLED_WORDS
 
 
 def test_start_on_a_taken_port_picks_the_next_and_status_says_what_the_catch_up_did(tmp_path, user_home):

@@ -64,9 +64,11 @@ class Machine:
         self.ports = 'LISTEN 0 511 127.0.0.1:3000 0.0.0.0:* users:(("node",pid=7,fd=20))\n' \
                      'LISTEN 0 128 0.0.0.0:22 0.0.0.0:* users:(("sshd",pid=1,fd=3))\n'
         self.ran: list[tuple[str, str | None]] = []
+        self.ran_in: list[tuple[str, str | None, str | None]] = []  # with what went to the command's stdin
 
     async def exec(self, lane_id, cmd, *, timeout_s=None, stdin=None, grant_id=None, max_bytes=None, oom_check=False):
         self.ran.append((cmd, grant_id))
+        self.ran_in.append((cmd, grant_id, stdin))
         out = ""
         if cmd == machine.SETUP_STATE:
             out = self.setup + "\n"
@@ -214,6 +216,30 @@ async def test_open_never_asks_then_rents_clones_and_is_ready(node):
     assert "https://example.test/me/shop.git" in clone and "/work/shop" in clone and grant is None
 
 
+async def test_the_live_view_link_stays_the_same_and_says_how_long_it_and_older_ones_work(node):
+    """environment() signed a new live-view link on every call, and the agent could not tell whether the
+    one the human had open still worked (2026-11-16). The same link comes back while it is valid; a new
+    one only when it is close to its end, and the one before still opens until its own expiry."""
+    from agentos.node.viewer_tokens import ViewMode, ViewTokens
+
+    node["lanes"].take_control = lambda *a, **kw: None  # a lane manager the viewer can hand over
+    out = await opened(node)
+    first = out["links"]["browser"]
+    assert first and first.startswith("http://localhost:")
+    again = await node["call"]("environment")
+    assert again["links"]["browser"] == first
+    note = again["links"]["browser_note"]
+    assert "stays the same on every call" in note and "keeps working until its own expiry" in note
+    assert "30 minutes after its link was made" in note and "\u2014" not in note
+    lane = f"env/{out['id']}-browser"
+    tokens = node["rt"].get("viewer_links") or ViewTokens.for_config(node["rt"].require("config"))
+    held = node["mgr"].view_links[lane]
+    node["mgr"].view_links[lane] = tokens.issue(lane, ViewMode.CONTROL, 60)  # a minute left: too close to its end
+    newer = await node["call"]("environment")
+    assert newer["links"]["browser"] != first
+    assert tokens.verify(held.token, lane).nonce == held.nonce  # the link given before still opens
+
+
 async def test_cloud_init_sets_up_a_plain_ubuntu_machine(node):
     out = await opened(node)
     rec = node["vms"].store.get(node["mgr"].get(out["id"]).vm_id)
@@ -343,8 +369,27 @@ async def test_an_open_the_cloud_has_no_room_for_says_what_was_tried_and_what_ne
         await opened(node)
     words = str(err.value)
     assert 'try again in 5 minutes, or ask for size="medium"' in words and "\u2014" not in words
+    assert "Available now" not in words  # the provider does not say what has room: nothing is claimed
     env = node["mgr"].store.recent(1)[0]
     assert (env.state, env.error_reason, env.vm_state) == ("failed", "capacity", "none")
+
+
+async def test_a_size_the_cloud_has_no_room_for_offers_the_sizes_it_lists_now_and_rents_none(node):
+    """size=large had no room in any location (2026-11-16) and the error said to try xlarge or wait,
+    while medium opened at once. The error names the sizes the provider lists as orderable now, nearest
+    first, and says which are smaller than asked; it never rents one of them by itself."""
+    prov = node["prov"]
+    prov.unavailable = {"cpx42"}  # large's server type: no room anywhere, though the provider lists it
+    prov.listed = {"cpx42": ["nbg1", "fsn1", "hel1"], "ccx23": ["nbg1", "fsn1"], "cx23": ["nbg1"], "cax11": [], "cpx22": []}
+    with pytest.raises(ToolCallError, match="environment_failed: capacity") as err:
+        await opened(node, size="large")
+    words = str(err.value)
+    assert ('Available now: medium (4 CPU, 8 GB, less than you asked for): environment_open(size="medium"); '
+            'or small (2 CPU, 4 GB, less than you asked for): environment_open(size="small")') in words, words
+    assert "xlarge" not in words and "Nothing bills: no machine was made" in words and "\u2014" not in words
+    assert prov.made_in == [] and len(words) < 500
+    env = node["mgr"].store.recent(1)[0]
+    assert (env.state, env.error_reason) == ("failed", "capacity")
 
 
 # ------------------------------------------------------------------ routing

@@ -37,6 +37,8 @@ from agentos.git.wire import Command, Remote
 
 GIT_TIMEOUT = 900.0
 HEAD_CHECK_S = 600.0  # how long a mirror trusts the default branch it read from the remote
+FRESH_S = 5.0  # a fetch from the remote that began this long before a request still serves it (Mirror.fresh_since)
+SERVE_CONFIG = (("uploadpack.allowFilter", "true"), ("uploadpack.allowReachableSHA1InWant", "true"))
 log = logging.getLogger("agentos.git")
 
 
@@ -172,6 +174,12 @@ async def run_git(args: list[str], *, cwd: Path | None, env: dict[str, str], std
             proc.kill()
         await proc.wait()
         return 124, b"", b"timed out"
+    except asyncio.CancelledError:  # the caller went away (a node stopping, a bring-up that failed): git too
+        with contextlib.suppress(ProcessLookupError):
+            proc.kill()
+        with contextlib.suppress(Exception):
+            await asyncio.shield(proc.wait())
+        raise
     return proc.returncode or 0, out, err
 
 
@@ -243,6 +251,8 @@ class Mirror:
         self.lock = asyncio.Lock()
         self.default_branch: str | None = None
         self._head_checked = 0.0  # time.monotonic() of the last ls-remote for the default branch
+        self.fetched_at: float | None = None  # time.monotonic() when the last fetch that succeeded began
+        self._served_config = False
 
     def env(self) -> dict[str, str]:
         return base_env(self.path)
@@ -253,6 +263,8 @@ class Mirror:
 
     async def ensure(self) -> None:
         if (self.path / "HEAD").is_file():
+            if not self._served_config:
+                await self._serve_config(self.path)  # a mirror made before these keys: set them once
             return
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.hooks_dir.mkdir(parents=True, exist_ok=True)
@@ -263,18 +275,35 @@ class Mirror:
             raise UpstreamError(f"could not make the node's mirror: {err.decode(errors='replace')[:200]}")
         for k, v in (("gc.auto", "0"), ("receive.denyNonFastForwards", "false"), ("receive.denyDeletes", "false"),
                      ("receive.fsckObjects", "true"), ("core.hooksPath", str(self.hooks_dir)),
-                     ("receive.advertisePushOptions", "false"), ("uploadpack.allowFilter", "true"),
-                     ("core.logAllRefUpdates", "false")):
+                     ("receive.advertisePushOptions", "false"), ("core.logAllRefUpdates", "false")):
             await run_git(["config", k, v], cwd=tmp, env=base_env(tmp))
+        await self._serve_config(tmp)
         os.replace(tmp, self.path)
+
+    async def _serve_config(self, path: Path) -> None:
+        """What a partial clone needs of the mirror: `--filter` (an environment clones blobless), and a
+        later fetch of one blob by its id (git checkout, git log -p) for any object a branch or tag
+        reaches. Never one no ref reaches, like the objects of a push the gateway refused and put back."""
+        for k, v in SERVE_CONFIG:
+            await run_git(["config", k, v], cwd=path, env=base_env(path))
+        self._served_config = True
+
+    def fresh_since(self, asked: float) -> bool:
+        """Did a fetch from the remote start at most FRESH_S before `asked` (time.monotonic()) and
+        succeed? Then a request that waited for the mirror's lock while it ran serves what it brought,
+        instead of fetching the same refs again (a clone, the agent's own fetch and the node's warm-up of
+        one repository at once)."""
+        return self.fetched_at is not None and self.fetched_at >= asked - FRESH_S
 
     async def fetch(self, target: Target, auth: Auth) -> str | None:
         """Bring the mirror to the remote's branches and tags; returns the remote's default branch."""
         proto = protocol_args(self.allow_file)
+        began = time.monotonic()
         rc, _, err = await self.git(*proto, "fetch", "--quiet", "--prune", "--no-tags", "--", target.url,
                                     "+refs/heads/*:refs/heads/*", "+refs/tags/*:refs/tags/*", env=auth.env)
         if rc != 0:
             raise UpstreamError(explain(err, target, scrub=auth.scrub))
+        self.fetched_at = began
         now = time.monotonic()
         if self.default_branch and now - self._head_checked < HEAD_CHECK_S:
             return self.default_branch  # a remote's default branch seldom moves: one round trip less per call

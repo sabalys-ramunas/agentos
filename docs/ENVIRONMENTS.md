@@ -197,6 +197,14 @@ lane or a brain, still asks you for the default branch (`--allow-default-branch`
 turns that off for a repository). A public repository that is not declared is cloned directly on
 the VM, read only.
 
+How the clone travels. A private repository comes through the node's mirror, so its pack crosses the
+upload of the computer agentos runs on: the VM clones it blobless (every commit and tree, and only the
+files the checkout needs; git fetches any other file through the gateway when a command needs it). A
+241 MiB repository is about 57 MiB that way. A declared repository the VM can read with no credential
+(a public one) is cloned and fetched straight from GitHub, at the cloud's own speed, and only its
+pushes go through the gateway, with the rules above. Either way the node starts fetching the mirror
+when the open starts, so a cold mirror fills while the VM boots.
+
 ### 4. The limits
 
 Nothing in an environment asks you (the owner's decision of 2026-11-13): not opening one, not its
@@ -381,6 +389,12 @@ it back, your input counts as use, so the reaper does not close it under you, an
 what you did as `link holder`. The link is on the node's own address as the agent reaches it (for an
 agent on your Mac, `http://localhost:7400` through its tunnel to the node), so it opens on that computer. In T3 Code the agent opens it in the preview pane
 beside the chat (`preview_open`), so you watch the browser while you talk to the agent.
+
+How long a link works: it opens until its expiry (`links.browser_expires_at`, 15 minutes after it was
+made by default, `view_token_seconds` in node.toml), and a page that is open renews itself until 30
+minutes after its link was made. `environment()` hands out the same link on every call until shortly
+before it expires, then a new one; a link given earlier keeps working until its own expiry
+(`links.browser_note` says this to the agent). Replacing the viewer key ends them all.
 
 ### Proof of the work
 

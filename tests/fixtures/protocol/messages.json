@@ -205,7 +205,7 @@
       "tools": [
        {
         "name": "whoami",
-        "description": "Which agentos node this is and which environment (your cloud computer for this chat) is bound, or how to open one: name, version, lane counts by state, and limi...",
+        "description": "Which agentos node this is and which environment (your cloud computer) calls without `on` go to, or how to open one: name, version, lane counts by state, and li...",
         "input_schema": {
          "properties": {},
          "title": "whoamiArguments",
@@ -880,7 +880,7 @@
      "kind": "node",
      "payload": {
       "guide": {
-       "instructions": "agentos can give you your own computer in the cloud for this chat: an environment, a fresh VM with a terminal, a real browser and your repo. Take one when the h...",
+       "instructions": "agentos can give you your own cloud computer: a VM with a terminal, a real browser and your repo. Take one when asked to work in agentos or on a VM, or for buil...",
        "prompts": [
         {
          "name": "post_image",

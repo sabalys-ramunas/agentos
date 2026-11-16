@@ -43,6 +43,13 @@ GIT_SETUP = ("umask 077 && mkdir -p ~/.config/agentos && cat > ~/.config/agentos
              "git config --global --add include.path '~/.config/agentos/gitconfig')")
 
 
+# Is the repository public? `git ls-remote` on the VM with no git config of its own (so not the
+# gateway's rewrite) and no credential or prompt: "public" when the host answers.
+PUBLIC_CHECK = ("if GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 GIT_TERMINAL_PROMPT=0 GIT_ASKPASS=/bin/false "
+                "timeout 20 git -c credential.helper= ls-remote {url} HEAD >/dev/null 2>&1; then echo public; "
+                "else echo private; fi")
+
+
 # What each bring-up is doing right now (environment id -> step -> when it began), so a call that
 # comes while a machine starts can say what it waits for. Steps.run keeps it.
 NOW: dict[str, dict[str, float]] = {}
@@ -128,6 +135,7 @@ class BringUp:
     async def _bring_up(self, env_id: str, plan: dict | None) -> None:
         env = self.store.get(env_id)
         steps = Steps(env_id)
+        warm = self._warm_mirror(env)
         try:
             if env.vm_id is None:
                 if plan is None:
@@ -149,15 +157,21 @@ class BringUp:
         except asyncio.CancelledError:
             raise
         except Exception as e:  # noqa: BLE001
-            from agentos.environments.failures import classify
+            from agentos.environments.failures import classify, is_capacity
 
-            reason, msg = classify(e, env, self.settings.max_size)
+            room = None
+            if is_capacity(e):
+                with contextlib.suppress(Exception):  # only an offer: the failure stands without it
+                    room = await self.sizes_with_room(env, e)
+            reason, msg = classify(e, env, self.settings.max_size, room)
             log.warning("environment %s failed to come up%s: %s", env_id, f" ({reason})" if reason else "", msg)
             code = e.code if isinstance(e, AgentosError) else None
             if code == "vm_error":
                 code = None  # the provider's refusal is the environment's failure, with its reason
             if env.restore_from and code in (None, "environment_failed"):
                 code = "restore_failed"  # its save is untouched: the next open with the title tries again
+            if warm is not None and not warm.done():
+                warm.cancel()  # no clone waits for it any more
             await self._fail(env_id, msg, code=code, reason=reason)
 
     async def _rent(self, env: Environment, plan: dict) -> Environment:
@@ -179,6 +193,28 @@ class BringUp:
             e.machine.server_type, e.machine.location = rec.server_type, rec.location
 
         return self.store.update(env.id, rented)
+
+    def _warm_mirror(self, env: Environment) -> asyncio.Task | None:
+        """Bring the node's mirror of env.repo up to date now, while the VM is rented and boots (a minute
+        or two), so the clone after it is served from a warm mirror. A cold mirror of a big repository
+        is minutes of fetching from the remote (a 241 MiB one took 254 s), which the clone otherwise waits
+        for. It runs on its own: a failure is the clone's to report, and a bring-up that fails stops it.
+        The task, or None when there is nothing to warm."""
+        git = self._get("git")
+        warm = getattr(git, "warm", None)
+        if not env.repo or not callable(warm):
+            return None
+
+        async def run() -> None:
+            try:
+                await warm(env.terminal_lane, grant_id=env.grant_id, repo=env.repo)
+            except Exception:
+                log.warning("environment %s: the warm-up of the mirror of %s failed", env.id, env.repo, exc_info=True)
+
+        task = asyncio.create_task(run(), name=f"environment-{env.id}-warm")
+        self._warming.add(task)  # held until done: a task nobody holds may be collected mid-fetch
+        task.add_done_callback(self._warming.discard)
+        return task
 
     async def _top_up(self, env: Environment) -> None:
         with contextlib.suppress(AgentosError):  # pnpm on an older snapshot (machine.TOOLS_TOP_UP)
@@ -326,10 +362,28 @@ class BringUp:
         token = git.vm_token(env.terminal_lane, grant_id=env.grant_id, repo=env.repo)
         if token is None:
             return  # not declared for env: a public repository, cloned straight from the VM
-        res = await self.envs().exec(env.terminal_lane, GIT_SETUP, stdin=vm_gitconfig(env.repo, token),
+        public = await self._public_from_vm(env)
+        res = await self.envs().exec(env.terminal_lane, GIT_SETUP,
+                                     stdin=vm_gitconfig(env.repo, token, fetch_direct=public),
                                      timeout_s=CHECK_TIMEOUT_S)
         if res.exit_code != 0:
             raise EnvironmentFailed(f"setting up git on the machine failed: {(res.stderr or res.stdout).strip()[-300:]}")
+        (self._fetch_direct.add if public else self._fetch_direct.discard)(env.id)
+
+    async def _public_from_vm(self, env: Environment) -> bool:
+        """Can the VM read env.repo straight from its host with no credential (a public repository)? Then
+        it clones and fetches from there (the cloud's own bandwidth: seconds, where the pack through this
+        computer's upload took 110 s), and only its pushes go through the gateway, with its rules. Asked
+        on the VM, without its git config, so nothing it holds is used. No answer: through the gateway."""
+        from agentos.git.wire import parse_remote
+
+        remote = parse_remote(env.repo or "")
+        url = shlex.quote(f"https://{remote.host}/{remote.repo}.git")
+        try:
+            res = await self.envs().exec(env.terminal_lane, PUBLIC_CHECK.format(url=url), timeout_s=CHECK_TIMEOUT_S)
+        except AgentosError:
+            return False
+        return res.exit_code == 0 and (res.stdout or "").strip().endswith("public")
 
     async def _make_browser(self, env: Environment) -> None:
         """A scratch browser lane made by the node: no account, no vault entry, no keepalive; its
@@ -393,8 +447,14 @@ class BringUp:
         url = f"https://{remote.host}/{remote.repo}.git"
         q = shlex.quote
         checkout = f" && git -C {q(dest)} checkout -q {q(env.ref)}" if env.ref else ""
+        # Through the gateway the pack crosses this computer's upload, so the clone is blobless: every
+        # commit and tree, and only the files a checkout needs; git fetches any other file when a command
+        # needs it, through the gateway too (a 241 MiB repository: about 57 MiB). Straight from the host
+        # (public): all of it, at the cloud's speed.
+        blobless = declared and env.id not in self._fetch_direct
+        how = "--filter=blob:none " if blobless else ""
         cmd = (f"mkdir -p {machine.WORK} && if [ ! -d {q(dest)}/.git ]; then "
-               f"git clone -q {q(url)} {q(dest)}{checkout}; fi && cd {q(dest)} && "
+               f"git clone -q {how}{q(url)} {q(dest)}{checkout}; fi && cd {q(dest)} && "
                "(git config --global user.name >/dev/null || git config --global user.name "
                f"{q(env.agent[:60] or 'agentos agent')}) && (git config --global user.email >/dev/null || "
                "git config --global user.email agent@agentos.invalid) && git rev-parse --abbrev-ref HEAD")

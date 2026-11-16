@@ -117,7 +117,10 @@ uname -a".
    never takes 7400, which `agentos connect` tunnels use, or 7450, which `agentos dev up` uses);
 3. installs and loads the service: a launchd agent (`~/Library/LaunchAgents/dev.agentos.local.plist`)
    on macOS, a systemd user unit (`~/.config/systemd/user/agentos-local.service`) on Linux. It
-   runs `agentos local serve`, starts at login, and starts again if it stops;
+   runs `agentos local serve`, starts at login, and starts again if it stops. On macOS it is an
+   Interactive job: launchd throttles a Background one (efficiency cores, slow disk and network),
+   and every git and ssh it starts with it (a 13 MB clone took 212 s instead of 2 s). A node still
+   running from an older plist logs a warning, and the next `agentos local start` loads it again;
 4. issues the agent grant `agentos connect` gives by default (environments and memory_read: the
    agent may open its own environment and run commands there, and nowhere else), stores its
    token in the macOS Keychain (Linux: a chmod 600 file in `~/.config/agentos/tokens/`), and

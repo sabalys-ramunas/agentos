@@ -112,6 +112,10 @@ fingerprint, never the secret) and, for one remote, what the owner still has to 
   declaration that allows pushes. A refusal of a known caller is traced (`git_refused`).
 - **The mirror.** The gateway keeps a bare mirror per repository. A clone or fetch first brings the
   mirror up to date from the remote (with the credential), then git's own `upload-pack` serves it.
+  Requests that wait for the mirror while a fetch runs are served by that fetch (one that began at
+  most 5 s before them), not a second one. The mirror serves partial clones (`--filter`) and a later
+  fetch of one object by its id, for objects a branch or tag reaches only: an environment's VM clones
+  blobless, and the environments service warms the mirror while the VM boots (`GitService.warm`).
   A push goes into the mirror with `receive-pack` (objects checked with fsck), then the node
   classifies and authorizes each ref, and only then pushes to the real remote, each ref with
   `--force-with-lease` on the value the lane saw (several refs atomically). A refused, waiting or

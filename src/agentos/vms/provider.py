@@ -81,6 +81,7 @@ class FakeProvider:
     prices: dict[str, float] = field(default_factory=lambda: dict(FAKE_PRICES))
     specs: dict[str, tuple[int, float, int, str, str]] = field(default_factory=lambda: dict(FAKE_SPECS))
     unavailable: set[str] = field(default_factory=set)   # types ("cx23") or "cx23@nbg1" the "cloud" is out of now
+    listed: dict[str, list[str]] | None = None           # {type: locations} it lists as orderable (None: it does not say)
     zones: dict[str, str] = field(default_factory=lambda: {"nbg1": "eu-central", "fsn1": "eu-central",
                                                            "hel1": "eu-central", "ash": "us-east"})
     image_disk_gb: int = 10                              # a snapshot's disk (a server needs at least that much)
@@ -108,7 +109,8 @@ class FakeProvider:
         for n, p in self.prices.items():
             cores, mem, disk, arch, cpu = self.specs.get(n, (2, 4.0, 40, "x86", "shared"))
             out.append({"name": n, "cores": cores, "memory_gb": mem, "disk_gb": disk, "architecture": arch,
-                         "cpu_type": cpu, "price_hourly_eur": {"nbg1": p, "fsn1": p, "hel1": p}, "available": None})
+                         "cpu_type": cpu, "price_hourly_eur": {"nbg1": p, "fsn1": p, "hel1": p},
+                         "available": None if self.listed is None else list(self.listed.get(n, []))})
         return out
 
     async def locations(self) -> dict[str, str]:

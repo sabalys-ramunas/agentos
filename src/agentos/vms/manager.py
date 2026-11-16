@@ -55,6 +55,7 @@ MAX_DELETE_BACKOFF_S = 600
 BOOT_POLL_S = 3.0                         # between SSH probes while a VM boots
 IMAGE_BUILD_MAX = timedelta(hours=2)      # a build VM older than this is deleted by any reaper
 OFFERS_TTL = timedelta(minutes=30)        # server types and prices are read again after this
+LISTED_FRESH = timedelta(minutes=1)       # what has room now (listed_now) is read again after this
 PREFLIGHT_WAITS_S = (2.0, 4.0, 8.0)        # between tries of a short network check before a VM is made
 FALLBACKS = 2                             # other types tried when the provider is out of the cheapest
 FALLBACK_PRICE_FACTOR = 2.0               # never a fallback more than twice the picked price
@@ -351,6 +352,15 @@ class VmManager:
         except AgentosError:
             return None
         return self._offers[1] if self._offers else None
+
+    async def listed_now(self, server_types: list[str], location: str, *,
+                         skip: set[tuple[str, str]] | frozenset = frozenset()) -> list[tuple[str, str]]:
+        """capacity.listed with the provider's list, read again when older than LISTED_FRESH: which of
+        `server_types` it lists as orderable now near `location`, minus `skip`. [] when it does not say."""
+        if self._offers is not None and self._clock() - self._offers[0] > LISTED_FRESH:
+            self._offers = None
+        types = await self._types_or_none()
+        return capacity.listed(types or [], await self._zones(), server_types, location, skip) if types else []
 
     async def _zones(self) -> dict[str, str]:
         """{location: network zone}: the provider's, else Hetzner's known ones."""

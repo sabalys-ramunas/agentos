@@ -220,16 +220,33 @@ class GitService:
         """The one gateway token an environment's VM holds: `repo` only (fetch, and push under the
         gateway's policy), on the VM's own listener only. None when `repo` is not declared for the
         lane or workspace env, or the VM has no listener: then the VM holds no token at all."""
-        from agentos.git.wire import parse_remote
-
         if lane_id not in self._vm_listeners:
             return None
+        caller = self.vm_caller(lane_id, grant_id=grant_id, repo=repo)
+        return None if caller is None else self.gateway.token_for(caller)
+
+    def vm_caller(self, lane_id: str, *, grant_id: str, repo: str) -> Caller | None:
+        """Who an environment's VM is to the gateway: `repo` only, bound to its own listener. None when
+        `repo` is not declared for the lane or its workspace."""
+        from agentos.git.wire import parse_remote
+
         remote = parse_remote(repo)
         workspace = lane_id.split("/", 1)[0]
         if self.remotes.find(remote, [lane_id, workspace]) is None:
             return None
-        return self.gateway.token_for(Caller(grant_id=grant_id, workspace=workspace, lane=lane_id, lanes=(),
-                                             label=f"environment {lane_id}", repos=(remote.slug,), bound=True))
+        return Caller(grant_id=grant_id, workspace=workspace, lane=lane_id, lanes=(),
+                      label=f"environment {lane_id}", repos=(remote.slug,), bound=True)
+
+    async def warm(self, lane_id: str, *, grant_id: str, repo: str) -> bool:
+        """Bring the mirror of an environment's repository up to date while its VM boots, under the same
+        checks as the VM's own fetch (GitGateway.warm). False when it is not declared or was refused."""
+        from agentos.git.wire import parse_remote
+
+        caller = self.vm_caller(lane_id, grant_id=grant_id, repo=repo)
+        if caller is None:
+            return False
+        self.gateway.agent_dir = await asyncio.to_thread(agent_dir, self.home)
+        return await self.gateway.warm(caller, parse_remote(repo))
 
     async def vm_down(self, lane_id: str) -> None:
         """The environment closed: its token ends, and its listener closes."""
@@ -300,19 +317,28 @@ class GitService:
         return {"port": self.host_port, "remotes": len(self.remotes.list())}
 
 
-def vm_gitconfig(repo: str, token: str) -> str:
+def vm_gitconfig(repo: str, token: str, *, fetch_direct: bool = False) -> str:
     """The git config an environment's VM gets (agentos.environments, through stdin): `repo`, in each
     way it can be written, goes to the gateway at the VM's 127.0.0.1:LANE_PORT, with the token on
-    requests there and nowhere else. Every other repository is fetched straight from the VM."""
+    requests there and nowhere else. Every other repository is fetched straight from the VM.
+
+    `fetch_direct` (a public repository): only pushes go to the gateway (pushInsteadOf), with all its
+    rules; fetches go straight to the host over https, which needs no credential (the ssh forms are
+    rewritten to it). The VM still holds no credential for the host, so a push can only go through the
+    gateway."""
     from agentos.git.wire import parse_remote
 
     remote = parse_remote(repo)
     base = f"http://127.0.0.1:{LANE_PORT}"
     to = f"{base}/{remote.host}/{remote.repo}"
-    key = f"url.{to}.insteadOf"
-    pairs = [(key, f"https://{remote.host}/{remote.repo}"), (key, f"http://{remote.host}/{remote.repo}"),
-             (key, f"git@{remote.host}:{remote.repo}"), (key, f"ssh://git@{remote.host}/{remote.repo}"),
-             (f"http.{base}/.extraHeader", f"{TOKEN_HEADER}: {token}"), (f"credential.{base}.helper", "")]
+    forms = [f"https://{remote.host}/{remote.repo}", f"http://{remote.host}/{remote.repo}",
+             f"git@{remote.host}:{remote.repo}", f"ssh://git@{remote.host}/{remote.repo}"]
+    if fetch_direct:
+        pairs = [(f"url.{to}.pushInsteadOf", f) for f in forms]
+        pairs += [(f"url.https://{remote.host}/{remote.repo}.insteadOf", f) for f in forms[1:]]
+    else:
+        pairs = [(f"url.{to}.insteadOf", f) for f in forms]
+    pairs += [(f"http.{base}/.extraHeader", f"{TOKEN_HEADER}: {token}"), (f"credential.{base}.helper", "")]
     return gitconfig_text(pairs)
 
 
