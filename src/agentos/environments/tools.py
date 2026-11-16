@@ -31,6 +31,9 @@ CALLS_SHOWN = 10
 # keys of an open environment's summary that are None until it closes, fails or a save fails: left out of
 # what environment() returns while they are None, since they say nothing then
 NONE_UNTIL_THEN = ("closed_at", "closed_reason", "error", "error_code", "save_error")
+# what environment_open gave and never changes while the machine is open: environment() of an open one
+# leaves it out (of a closed one it keeps it, with closed_at: how long it ran)
+GIVEN_AT_OPEN = ("lanes", "created_at", "ready_at")
 
 
 def _machine_view(machine: dict) -> dict:
@@ -573,6 +576,9 @@ async def environment(ctx: ToolContext, *, on: str | None = None) -> dict:
     out.pop("commands", None)
     for key in NONE_UNTIL_THEN:
         if out.get(key) is None:
+            out.pop(key, None)
+    if env.open:
+        for key in GIVEN_AT_OPEN:
             out.pop(key, None)
     out["machine"] = _machine_view(out["machine"])
     out["links"] = _links(ctx, env)
