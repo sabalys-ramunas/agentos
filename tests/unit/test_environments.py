@@ -524,6 +524,26 @@ async def test_environment_reads_ports_git_and_calls(node):
     assert st["calls"][0]["ok"] is True and st["calls"][0]["exit_code"] == 0
 
 
+async def test_environment_asks_the_machine_for_git_and_ports_at_once(node, monkeypatch):
+    """Two commands on the machine, one after the other, were two round trips to it: now one."""
+    await opened(node, repo="example.test/me/shop")
+    fake, inflight, most = node["machine"], [0], [0]
+    plain = fake.exec
+
+    async def slow(lane_id, cmd, **kw):
+        inflight[0] += 1
+        most[0] = max(most[0], inflight[0])
+        try:
+            await asyncio.sleep(0.05)
+            return await plain(lane_id, cmd, **kw)
+        finally:
+            inflight[0] -= 1
+
+    monkeypatch.setattr(node["envs"], "exec", slow)
+    st = await node["call"]("environment")
+    assert most[0] == 2 and st["ports"][0]["port"] == 3000 and st["git"]["branch"] == "main"
+
+
 async def test_every_machine_gets_swap_and_says_so_in_its_notes(node):
     """Field report 2026-11-16: an 8 GB machine with no swap OOM-killed a 4.1 GB compile."""
     await opened(node, repo="example.test/me/shop")

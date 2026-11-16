@@ -3,6 +3,7 @@ saved yet, the summary, the detail and the links. A mixin of EnvironmentManager.
 
 from __future__ import annotations
 
+import asyncio
 import contextlib
 from datetime import UTC, datetime
 
@@ -17,6 +18,10 @@ from agentos.environments.models import (
 from agentos.environments.probes import CHECK_TIMEOUT_S, GIT_STATE, main_repo, parse_git_state, parse_ports
 
 UNSAVED_LIST_MAX = 50
+
+
+async def _none(value: list | None = None) -> list | None:
+    return value
 
 
 class Views:
@@ -188,9 +193,10 @@ class Views:
     async def detail(self, env: Environment, *, calls: int = 50) -> dict:
         """EnvDetail of the contract, and what environment() returns to an agent."""
         out = self.summary(env)
-        repos = await self.git_repos(env) if env.open and env.state != "starting" and env.vm_id else None
+        repos, out["ports"] = await asyncio.gather(  # two commands on the machine, at once
+            self.git_repos(env) if env.open and env.state != "starting" and env.vm_id else _none(),
+            self.ports(env) if env.state in ("ready",) else _none([]))
         main = main_repo(repos, env.workdir)
-        out["ports"] = await self.ports(env) if env.state in ("ready",) else []
         out["git"] = {"branch": (main or {}).get("branch") or env.branch, "ahead": (main or {}).get("ahead", 0),
                       "dirty": (main or {}).get("dirty", 0), **self.push_lists(env)}
         out["branch"] = out["git"]["branch"]  # the branch checked out now, not the one it was cloned on
