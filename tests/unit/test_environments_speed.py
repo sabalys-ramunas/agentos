@@ -20,6 +20,7 @@ from agentos.vms.docker import DockerProvider, sshd_greets
 from agentos.vms.models import VmError
 from agentos.vms.provider import ServerSpec
 
+TITLE_FAIL = "Broken machine"
 USER_DATA = ("#cloud-config\nssh_keys:\n  ed25519_private: |\n    -----BEGIN-----\n    abc\n    -----END-----\n"
              "  ed25519_public: ssh-ed25519 AAAA host\n")
 
@@ -244,3 +245,80 @@ async def test_the_reaper_keeps_the_server_types_fresh_so_no_open_waits_for_them
     clock.advance(seconds=OFFERS_TTL.total_seconds() - 1)
     await vms.plan("env/eabcdefghjk", ttl_minutes=60)
     assert Counting.reads == 2 and vms._offers is not None and clock() - vms._offers[0] < OFFERS_TTL
+
+
+# ------------------------------------------------------------------ the tunnels beside the setup check and the clone
+
+
+def _timeline(n, monkeypatch, *, tunnel_s: float = 0.0, setup_s: float = 0.0, gateway: int | None = None):
+    """Record when the tunnel, the setup check, the git config and the clone start and end."""
+    from agentos.environments import machine as mach
+
+    mgr, fake = n["mgr"], n["machine"]
+    seen: list[tuple[str, float]] = []
+    exec_ = fake.exec
+
+    async def exec_timed(lane_id, cmd, **kw):
+        if cmd == mach.SETUP_STATE:
+            seen.append(("setup start", time.monotonic()))
+            await asyncio.sleep(setup_s)
+            seen.append(("setup end", time.monotonic()))
+        if "git clone" in cmd:
+            seen.append(("clone start", time.monotonic()))
+        return await exec_(lane_id, cmd, **kw)
+
+    async def open_tunnel(env):
+        seen.append(("tunnel start", time.monotonic()))
+        await asyncio.sleep(tunnel_s)
+        seen.append(("tunnel end", time.monotonic()))
+        return gateway
+
+    async def git_setup(env):
+        seen.append(("git", time.monotonic()))
+
+    monkeypatch.setattr(n["envs"], "exec", exec_timed)
+    monkeypatch.setattr(mgr, "_open_tunnel", open_tunnel)
+    monkeypatch.setattr(mgr, "_git_setup", git_setup)
+    return seen
+
+
+def _at(seen, what):
+    return next(t for name, t in seen if name == what)
+
+
+async def test_the_tunnels_connect_while_the_setup_check_runs_and_git_waits_for_it(node, monkeypatch):  # noqa: F811
+    seen = _timeline(node, monkeypatch, tunnel_s=0.05, setup_s=0.3, gateway=43129)
+    out = await opened(node, repo="github.com/me/shop", wait_s=30)
+    assert out["state"] == "ready"
+    assert _at(seen, "tunnel start") < _at(seen, "setup end")       # connected beside the check
+    assert _at(seen, "tunnel end") < _at(seen, "setup end")
+    assert _at(seen, "git") >= _at(seen, "setup end")               # git is there once the setup is done
+
+
+async def test_a_public_clone_does_not_wait_for_the_tunnels(node, monkeypatch):  # noqa: F811
+    seen = _timeline(node, monkeypatch, tunnel_s=0.4)
+    t = time.monotonic()
+    out = await opened(node, repo="github.com/me/shop", wait_s=30)
+    assert out["state"] == "ready" and out["workdir"] == "/work/shop"
+    assert _at(seen, "clone start") < _at(seen, "tunnel end")       # straight from its host
+    assert time.monotonic() - t >= 0.4                              # ready still means the tunnels are up
+
+
+async def test_a_clone_through_the_gateway_waits_for_the_tunnels(node, monkeypatch):  # noqa: F811
+    seen = _timeline(node, monkeypatch, tunnel_s=0.2, gateway=43129)
+    monkeypatch.setattr(node["mgr"], "_through_gateway", lambda env: True)
+    out = await opened(node, repo="github.com/me/shop", wait_s=30)
+    assert out["state"] == "ready"
+    assert _at(seen, "clone start") >= _at(seen, "git") >= _at(seen, "tunnel end")
+
+
+async def test_a_setup_that_fails_stops_the_tunnels_beside_it(node, monkeypatch):  # noqa: F811
+    from agentos.policy.wrap import ToolCallError
+
+    seen = _timeline(node, monkeypatch, tunnel_s=5.0)
+    node["machine"].setup = "status: error"
+    t = time.monotonic()
+    with pytest.raises(ToolCallError, match="setup failed"):
+        await node["call"]("environment_open", title=TITLE_FAIL, repo="github.com/me/shop", wait_s=30)
+    assert time.monotonic() - t < 2.0                               # the tunnels were not waited for
+    assert "tunnel start" in [n for n, _ in seen] and "tunnel end" not in [n for n, _ in seen]

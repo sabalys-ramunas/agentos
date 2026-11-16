@@ -157,8 +157,16 @@ class BringUp:
                     raise EnvironmentFailed("the node restarted before the machine was rented")
                 env = await steps.run("VM create", self._rent(env, plan))
             await steps.run("VM ready", self._wait_vm(env))
-            tools = await steps.run("setup check", self._wait_setup(env))
-            await self._set_up_work(env, steps, tools=tools)
+            # the tunnel needs only SSH: it connects while the setup check runs (its git config waits for it)
+            setup = asyncio.ensure_future(steps.run("setup check", self._wait_setup(env)))
+            tunnel = asyncio.ensure_future(steps.run("tunnels and git", self._start_tunnel(env, after=setup)))
+            try:
+                tools = await setup
+                await self._set_up_work(env, steps, tunnel, tools=tools)
+            finally:
+                if not tunnel.done():
+                    tunnel.cancel()
+                await asyncio.gather(tunnel, return_exceptions=True)
 
             def ready(e: Environment) -> bool:
                 if e.state != "starting":
@@ -258,33 +266,43 @@ class BringUp:
 
             self.store.update(env.id, noted)
 
-    async def _set_up_work(self, env: Environment, steps: Steps, *, tools: bool = True) -> None:
-        """The tunnels first (the browser's traffic and the clone through the git gateway go over them),
-        then the browser, the clone and the rest at once: each is a few seconds to a minute of its own.
-        What needs no tunnel starts with them: the apt wrappers, swap, the pnpm top-up (only where the setup
-        check found no pnpm) and, in local mode, the agent's own ssh (agentos.environments.sshaccess).
-        A resume waits for the browser and the tools first: its services start in it."""
+    async def _set_up_work(self, env: Environment, steps: Steps, tunnel: Any, *, tools: bool = True) -> None:
+        """Once the setup check is done: the browser, the clone and the rest at once, each a few seconds to
+        a minute of its own. The browser waits for `tunnel` (the tunnels and git, started beside the setup
+        check: its traffic goes over them), and so does the clone of a repository the git gateway serves; a
+        public one is cloned straight from its host, so it starts at once. What needs no tunnel starts with
+        them: the apt wrappers, swap, the pnpm top-up (only where the setup check found no pnpm) and, in local
+        mode, the agent's own ssh (agentos.environments.sshaccess). A resume waits for the browser and the
+        tools first: its services start in it."""
         early = [asyncio.ensure_future(steps.run("apt ready", self._apt_ready(env))),
                  asyncio.ensure_future(steps.run("swap", self._swap(env)))]
         if tools:
             early.append(asyncio.ensure_future(steps.run("tools top-up", self._top_up(env))))
         if self.ssh_wanted():
             early.append(asyncio.ensure_future(steps.run("ssh", self.ssh_up(env))))
+
+        async def then(make: Any) -> Any:  # after the tunnels and git
+            await tunnel
+            return await make()
+
+        def browser() -> Any:
+            return then(lambda: steps.run("browser", self._make_browser(env)))
+
         try:
-            await steps.run("tunnels and git", self._start_tunnel(env))
             if env.restore_from:
-                await together(steps.run("browser", self._make_browser(env)), *early)
+                await together(browser(), *early)
                 await steps.run("restore", self._restore(env))
             elif env.repo:
-                await together(steps.run("browser", self._make_browser(env)), steps.run("clone", self._clone(env)),
-                               *early)
+                gateway = self._through_gateway(env)
+                await together(tunnel, browser(), then(lambda: steps.run("clone", self._clone(env))) if gateway
+                               else steps.run("clone", self._clone(env)), *early)
             else:
                 from agentos.environments.identity import committer, git_identity_cmd
 
                 who = git_identity_cmd(await committer(self), env.agent)  # a repository made here commits as them too
-                mkdir = self.envs().exec(env.terminal_lane, f"mkdir -p {machine.WORK} && {{ {who}; }} || true",
-                                         timeout_s=CHECK_TIMEOUT_S)
-                await together(steps.run("browser", self._make_browser(env)), mkdir, *early)
+                await together(tunnel, browser(), self.envs().exec(
+                    env.terminal_lane, f"mkdir -p {machine.WORK} && {{ {who}; }} || true", timeout_s=CHECK_TIMEOUT_S),
+                    *early)
         finally:
             for t in early:
                 if not t.done():
@@ -352,12 +370,24 @@ class BringUp:
         raise EnvironmentFailed(f"the machine's setup did not finish within {self.settings.setup_timeout_s} s "
                                 f"({said[-200:] or 'no answer'})", reason="setup")
 
-    async def _start_tunnel(self, env: Environment) -> None:
+    async def _start_tunnel(self, env: Environment, *, after: Any = None) -> None:
+        """The environment's tunnels, then the VM's git config for the gateway. `after`: the setup check,
+        which the git config waits for (git is on the machine once it is done); the tunnels need only SSH."""
+        gateway = await self._open_tunnel(env)
+        if gateway is None:
+            return
+        if after is not None:
+            await after
+        await self._git_setup(env)
+
+    async def _open_tunnel(self, env: Environment) -> int | None:
+        """Start the tunnels (agentos.environments.tunnels) unless they run. Returns the gateway's
+        listener for this VM, or None (no gateway, or the tunnels ran already)."""
         vms = self.vms()
         rec = vms.store.get(env.vm_id)
         old = self._tunnels.get(env.id)
         if old is not None and old.alive:
-            return
+            return None
         git = self._get("git")
         gateway = None
         if git is not None and callable(getattr(git, "vm_listener", None)):
@@ -367,14 +397,28 @@ class BringUp:
                 log.warning("environment %s: no git gateway listener: %s", env.id, e)
         on_vm = {"vm_browser": True, "browser_port": old.browser_port if old else None} if env.browser == "vm" else {}
         tunnel = Tunnel(vms.remote(rec), gateway_port=gateway, socks_port=old.socks_port if old else None, **on_vm)
-        await tunnel.start()
+        try:
+            await tunnel.start()
+        except BaseException:  # cancelled while it connects (the bring-up failed beside it): no ssh is left
+            with contextlib.suppress(Exception):
+                await tunnel.stop()
+            raise
         self._tunnels[env.id] = tunnel
         self._wrap_proxies_loader()
         from agentos.node.interaction import VM_PROXIED_LANES
 
         VM_PROXIED_LANES.add(env.browser_lane)  # its localhost is the VM's: a page there may open it
-        if gateway is not None:
-            await self._git_setup(env)
+        return gateway
+
+    def _through_gateway(self, env: Environment) -> bool:
+        """Is env.repo declared for env, so that git on the machine reaches it through the node's git
+        gateway (over the tunnels) rather than straight from its host?"""
+        from agentos.git.wire import parse_remote
+
+        git = self._get("git")
+        if git is None or not env.repo:
+            return False
+        return git.remotes.find(parse_remote(env.repo), [env.terminal_lane, WORKSPACE]) is not None
 
     async def _git_setup(self, env: Environment) -> None:
         """Give the VM the one token it holds: a gateway token that fetches and pushes env.repo and
@@ -469,8 +513,7 @@ class BringUp:
         remote = parse_remote(env.repo or "")
         name = remote.repo.rsplit("/", 1)[-1]
         dest = f"{machine.WORK}/{name}"
-        git = self._get("git")
-        declared = git is not None and git.remotes.find(remote, [env.terminal_lane, WORKSPACE]) is not None
+        declared = self._through_gateway(env)
         url = f"https://{remote.host}/{remote.repo}.git"
         q = shlex.quote
         checkout = f" && git -C {q(dest)} checkout -q {q(env.ref)}" if env.ref else ""
