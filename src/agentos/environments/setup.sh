@@ -10,9 +10,12 @@ if [ -f "$READY" ]; then
   exit 0
 fi
 export DEBIAN_FRONTEND=noninteractive
-# A fresh VM's unattended-upgrades holds the dpkg lock for its first minutes: wait for it (up to 10
-# minutes) instead of failing on "Could not get lock". It stays on, so long-lived machines get updates.
+# A fresh VM's unattended-upgrades may hold the dpkg lock for its first minutes (where agentos did not turn
+# it off before it started): wait for it (up to 10 minutes) instead of failing on "Could not get lock".
 # A config file, not a flag, so every apt-get here waits, also the one playwright install-deps runs.
+# Updates never run on their own in a session (agentos.environments.machine.UPDATES_OFF, written by
+# cloud-init's bootcmd and at every bring-up): the security updates are applied below, once, before an
+# agent works on the machine, and a `dev` snapshot gets them when it is built.
 mkdir -p /etc/apt/apt.conf.d
 echo 'DPkg::Lock::Timeout "600";' > /etc/apt/apt.conf.d/90agentos-lock-timeout
 PKGS="ca-certificates curl git build-essential pkg-config python3 python3-venv iproute2 procps jq unzip rsync less"
@@ -42,6 +45,20 @@ if ! command -v pnpm >/dev/null 2>&1; then
 fi
 if ! command -v uv >/dev/null 2>&1; then
   curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin UV_NO_MODIFY_PATH=1 sh
+fi
+# The security updates, once, while nobody works on the machine yet (a fresh VM, or the build of the `dev`
+# snapshot). needrestart only lists what it would restart. A failure (another apt run held the lock past
+# its wait, no network) does not stop the setup: the machine works, unpatched as its image was.
+# Three tries: Ubuntu's own run may still hold the lock on a VM that booted before the policy was written.
+if command -v unattended-upgrade >/dev/null 2>&1; then
+  for try in 1 2 3; do
+    if NEEDRESTART_MODE=l unattended-upgrade; then
+      mkdir -p /var/lib/agentos-env
+      date -u +%Y-%m-%dT%H:%M:%SZ > /var/lib/agentos-env/upgraded
+      break
+    fi
+    [ "$try" = 3 ] || sleep 20
+  done
 fi
 # The package lists stay, so the agent's first `apt-get install` works (the .deb cache goes). A machine
 # from a snapshot fetches them again in the background (agentos.environments.machine.apt_ready).

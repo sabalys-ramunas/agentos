@@ -201,6 +201,7 @@ class JobInfo(BaseModel):
     source: dict | None = None       # the git branch and commit of the synced tree, as the client said
     by: str | None = None            # the principal that started it
     note: str | None = None
+    vm_wid: str | None = None        # on a VM: the id of its files there (it runs detached), for a reattach
 
 
 class ServiceStatus(BaseModel):

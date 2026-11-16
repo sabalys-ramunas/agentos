@@ -21,11 +21,13 @@ from agentos.env.sandbox import Command, LanePlan, Workload
 
 SSH = "ssh"
 CONNECT_TIMEOUT_S = 10
+JOB_STATUS_TIMEOUT_S = 20.0
 
 
-def ssh_base(remote: RemoteHost, *, tty: bool = False) -> list[str]:
+def ssh_base(remote: RemoteHost, *, tty: bool = False, quiet: bool = False) -> list[str]:
     """The ssh argv up to (not including) the remote command. No config file, no agent, no
-    password, no forwarding of anything."""
+    password, no forwarding of anything. `quiet`: ssh says nothing of its own on stderr (a job's
+    follower, whose stderr is the job's: a word of ssh's there would shift the offsets)."""
     return [
         SSH, "-F", "/dev/null",
         "-i", remote.key_path,
@@ -46,7 +48,7 @@ def ssh_base(remote: RemoteHost, *, tty: bool = False) -> list[str]:
         "-o", "ForwardAgent=no",
         "-o", "ForwardX11=no",
         "-o", "ClearAllForwardings=yes",
-        "-o", "LogLevel=ERROR",
+        "-o", f"LogLevel={'QUIET' if quiet else 'ERROR'}",
         "-tt" if tty else "-T",
         f"{remote.user}@{remote.host}",
     ]
@@ -89,6 +91,136 @@ def remote_command(wl: Workload) -> str:
     return f"mkdir -p {PGID_DIR} && {cd} && exec setsid -w sh -c {group} sh {run}"
 
 
+# A job (lane_job_start) on a VM does not live in the node's ssh connection (field report 2026-11-16: the
+# service restarted for an upgrade, its ssh sessions logged out, and every dev server on the VM died with
+# them). It runs detached: a session of its own (setsid), its stdout and stderr in files beside its pgid
+# file, so a restart, an upgrade or a dropped connection of the node leaves it running. The node follows
+# those files from the offsets it already has (`follow_script`, one ssh it may drop and open again) and asks
+# how the job stands after each follower ends (`status_script`); once it has read the end, `forget_script`
+# removes the files. setsid and not a transient systemd unit (systemd-run): the docker provider's machines
+# have no systemd, and a job keeps the environment of the ssh login it was started from (PATH, HOME) and
+# its session scope, which the kernel names when it kills for memory (agentos.env.oom reads that cgroup).
+# The node ends a job (cancel, timeout, close) as before, by its pgid file (stop_script).
+JOB_SUFFIXES = (".out", ".err", ".rc", ".timeout", ".pgid", ".start")
+JOB_WATCHDOG_S = 60       # past its timeout, the job's own shell ends it when no node did (the node was gone)
+JOB_STALE_MINUTES = 2880  # a job's files nobody forgot (the node never came back): removed after two days
+FOLLOW_WAIT_S = 10        # a follower waits this long for a job just started to write its pgid file
+
+
+def job_file(wid: str, suffix: str) -> str:
+    return f"{PGID_DIR}/{wid}{suffix}"
+
+
+def detach_ok(wl: Workload) -> bool:
+    return bool(wl.wid) and not wl.pty and not set(wl.wid) - _WID_OK
+
+
+def start_script(wl: Workload, timeout_s: float | None) -> str:
+    """Start the job detached (unless its files are there already): a new session whose shell writes its
+    pgid (and the start record, agentos.env.oom), runs the command with its output in the job's files,
+    writes `<exit status> <epoch>` to the rc file, and ends what the command left behind. A watchdog in the
+    same group ends the job JOB_WATCHDOG_S past its timeout, when no node did."""
+    cwd = wl.cwd or "~"
+    cd = "cd" if cwd == "~" else f"cd {shlex.quote(cwd)}"
+    env = " ".join(f"{k}={shlex.quote(v)}" for k, v in sorted(wl.env.items()) if _env_name_ok(k))
+    run = shlex.join(wl.argv)
+    if env:
+        run = f"env {env} {run}"
+    p, rc, to = job_file(wl.wid, ".pgid"), job_file(wl.wid, ".rc"), job_file(wl.wid, ".timeout")
+    out, err = shlex.quote(job_file(wl.wid, ".out")), shlex.quote(job_file(wl.wid, ".err"))
+    record = keep = ""
+    if wl.oom_record:
+        s = oom.start_file(PGID_DIR, wl.wid)
+        record, keep = f"{oom.record(s)}; ", oom.keep(s)
+    watchdog = ""
+    if timeout_s:
+        secs = int(timeout_s) + JOB_WATCHDOG_S
+        watchdog = (f'( sleep {secs}; trap "" TERM; : > {to}; kill -s TERM -- -$$ 2>/dev/null; sleep 5; '
+                    f'kill -s KILL -- -$$ 2>/dev/null ) & ')
+    group = shlex.quote(f'echo $$ > {p}; {record}{watchdog}"$@"; rc=$?; echo "$rc $(date +%s)" > {rc}.n; '
+                        f'mv -f {rc}.n {rc}; trap "" TERM; kill -s TERM -- -$$ 2>/dev/null; rm -f {p}; '
+                        f'{keep}exit $rc')
+    return (f"mkdir -p {PGID_DIR} && {cd} && {{ [ -e {out} ] || {{ : > {err}; : > {out}; "
+            f"setsid sh -c {group} sh {run} < /dev/null >> {out} 2>> {err} & }}; }}")
+
+
+_ALIVE = ('a=0; [ ! -e "$w.rc" ] && p=$(cat "$w.pgid" 2>/dev/null) && [ -n "$p" ] && '
+          'kill -s 0 -- "-$p" 2>/dev/null && a=1')
+
+
+def follow_script(wid: str, out_offset: int, err_offset: int) -> str:
+    """Print the job's stdout (to stdout) and stderr (to stderr) from the given offsets as they grow, and
+    end once the job has ended and all of it is sent, or when the ssh that runs it is gone. The job runs
+    while its rc file is not written and a process of its group lives."""
+    d, w = shlex.quote(PGID_DIR), shlex.quote(wid)
+    o, e = max(0, int(out_offset)), max(0, int(err_offset))
+    return f"""cd {d} 2>/dev/null || exit 0
+w={w}; o={o}; e={e}; i=0; pp=$PPID; k=0
+while [ ! -e "$w.pgid" ] && [ ! -e "$w.rc" ] && [ -e "$w.out" ] && [ $i -lt {FOLLOW_WAIT_S * 10} ]; do sleep 0.1; i=$((i+1)); done
+while :; do
+  {_ALIVE}
+  n=$(wc -c < "$w.out" 2>/dev/null); n=$((n+0)); m=$(wc -c < "$w.err" 2>/dev/null); m=$((m+0)); new=0
+  if [ $n -gt $o ]; then tail -c +$((o+1)) "$w.out" | head -c $((n-o)) || exit 0; o=$n; new=1; fi
+  if [ $m -gt $e ]; then tail -c +$((e+1)) "$w.err" | head -c $((m-e)) >&2 || exit 0; e=$m; new=1; fi
+  [ $a = 1 ] || [ $new = 1 ] || exit 0
+  kill -s 0 $pp 2>/dev/null || exit 0
+  if [ $new = 1 ]; then k=0; else k=$((k+1)); fi
+  if [ $k -lt 5 ]; then sleep 0.2; elif [ $k -lt 20 ]; then sleep 0.5; else sleep 1; fi
+done
+"""
+
+
+def status_script(wid: str) -> str:
+    """How the job stands: `G` when its files are gone (it never started, or the machine restarted),
+    else `A 1` while it runs (`A 0` once not), `R <exit status> <epoch>` once it exited, `T` when its
+    own watchdog ended it, and `S <stdout bytes> <stderr bytes>`."""
+    d, w = shlex.quote(PGID_DIR), shlex.quote(wid)
+    return f"""cd {d} 2>/dev/null || {{ echo G; exit 0; }}
+w={w}
+[ -e "$w.out" ] || {{ echo G; exit 0; }}
+{_ALIVE}
+echo "A $a"
+[ -e "$w.rc" ] && echo "R $(cat "$w.rc")"
+[ -e "$w.timeout" ] && echo T
+echo "S $(wc -c < "$w.out") $(wc -c < "$w.err" 2>/dev/null || echo 0)"
+true
+"""
+
+
+def forget_script(wid: str) -> str:
+    """Remove a job's files once the node has read its end, and any job's files left past
+    JOB_STALE_MINUTES (a node that never came back)."""
+    d = shlex.quote(PGID_DIR)
+    files = " ".join(shlex.quote(wid + s) for s in JOB_SUFFIXES)
+    return (f"cd {d} 2>/dev/null || exit 0; rm -f {files} {shlex.quote(wid + '.rc.n')}; "
+            f"find . -maxdepth 1 -type f -name 'j-*' -mmin +{JOB_STALE_MINUTES} -delete 2>/dev/null; true\n")
+
+
+def parse_status(text: str) -> dict | None:
+    """status_script's lines as {gone, alive, rc, ended_at (epoch), timed_out, out, err}; None when
+    the output is not one (the machine did not answer)."""
+    st: dict = {"gone": False, "alive": False, "rc": None, "ended_at": None, "timed_out": False, "out": 0, "err": 0}
+    seen = False
+    for line in text.splitlines():
+        parts = line.split()
+        if not parts:
+            continue
+        if parts[0] == "G":
+            return {**st, "gone": True}
+        if parts[0] == "A" and len(parts) > 1:
+            st["alive"], seen = parts[1] == "1", True
+        elif parts[0] == "R" and len(parts) > 1:
+            with contextlib.suppress(ValueError):
+                st["rc"] = int(parts[1])
+                st["ended_at"] = float(parts[2]) if len(parts) > 2 else None
+        elif parts[0] == "T":
+            st["timed_out"] = True
+        elif parts[0] == "S" and len(parts) > 2:
+            with contextlib.suppress(ValueError):
+                st["out"], st["err"] = int(parts[1]), int(parts[2])
+    return st if seen else None
+
+
 def stop_script(wid: str, sig: str) -> str:
     """Signal every process of the workload's group on the VM; the file goes once it is killed."""
     f = shlex.quote(pgid_file(wid))
@@ -103,12 +235,29 @@ def _env_name_ok(name: str) -> bool:
 class SshLauncher:
     """The launcher of a VM lane (the env manager picks it for lanes with `remote`)."""
 
+    detaches_jobs = True  # a job runs detached on the VM and outlives the node's ssh (agentos.env.jobs)
+
+    def transport(self, lane: EnvLane, script: str, *, tty: bool = False, quiet: bool = False) -> list[str]:
+        """The argv that runs `script` on the lane's VM (one ssh)."""
+        assert lane.remote is not None, "SshLauncher serves VM lanes only"
+        return ssh_base(lane.remote, tty=tty, quiet=quiet) + [script]
+
+    async def run_script(self, lane: EnvLane, script: str, *, timeout_s: float) -> tuple[int, str]:
+        assert lane.remote is not None, "SshLauncher serves VM lanes only"
+        return await run(lane.remote, script, timeout_s=timeout_s)
+
     def command(self, plan: LanePlan | None, lane: EnvLane, wl: Workload, *, cgroup: str | None,
                 workdir: Path) -> Command:
-        remote = lane.remote
-        assert remote is not None, "SshLauncher serves VM lanes only"
         from agentos.env.sandbox import cgroup_wrap
-        argv = (cgroup_wrap(cgroup) if cgroup else []) + ssh_base(remote, tty=wl.pty) + [remote_command(wl)]
+        quiet = wl.detach is not None and detach_ok(wl)
+        if quiet:  # a job: start it detached (once), then follow its files
+            out_off, err_off = wl.detach or (0, 0)
+            script = follow_script(wl.wid, out_off, err_off)
+            if wl.detach_start:
+                script = f"{start_script(wl, wl.detach_timeout_s)} && {{\n{script}}}"
+        else:
+            script = remote_command(wl)
+        argv = (cgroup_wrap(cgroup) if cgroup else []) + self.transport(lane, script, tty=wl.pty, quiet=quiet)
         # the local ssh client gets a plain environment: nothing of agentosd's leaks to it
         env = {"PATH": "/usr/sbin:/usr/bin:/sbin:/bin", "HOME": str(workdir), "LANG": "C.UTF-8"}
         workdir.mkdir(parents=True, exist_ok=True)
@@ -119,14 +268,27 @@ class SshLauncher:
         (agentos.env.lanes calls it before it kills the local ssh). None for an id it never wrote."""
         if lane.remote is None or not wid or set(wid) - _WID_OK:
             return None
-        return ssh_base(lane.remote) + [stop_script(wid, sig)]
+        return self.transport(lane, stop_script(wid, sig))
+
+    async def job_status(self, lane: EnvLane, wid: str) -> dict | None:
+        """How a detached job stands on the VM (status_script); None when the VM did not answer."""
+        if lane.remote is None or not wid or set(wid) - _WID_OK:
+            return None
+        code, out = await self.run_script(lane, status_script(wid), timeout_s=JOB_STATUS_TIMEOUT_S)
+        return parse_status(out) if code == 0 else None
+
+    async def job_forget(self, lane: EnvLane, wid: str) -> None:
+        if lane.remote is None or not wid or set(wid) - _WID_OK:
+            return
+        await self.run_script(lane, forget_script(wid), timeout_s=JOB_STATUS_TIMEOUT_S)
 
     async def oom_kills(self, lane: EnvLane, wid: str, *, elapsed_s: float, final: bool = False) -> list[dict] | None:
         """The processes the VM's kernel killed for memory since the workload started (agentos.env.oom);
         None when the VM could not be asked. `final` removes the workload's start record."""
         if lane.remote is None or not wid or set(wid) - _WID_OK:
             return None
-        code, out = await run(lane.remote, oom.probe_script(PGID_DIR, wid, final=final), timeout_s=oom.PROBE_TIMEOUT_S)
+        code, out = await self.run_script(lane, oom.probe_script(PGID_DIR, wid, final=final),
+                                          timeout_s=oom.PROBE_TIMEOUT_S)
         if code != 0:
             return None
         return oom.parse(out, elapsed_s=elapsed_s)

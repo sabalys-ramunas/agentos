@@ -66,6 +66,7 @@ from agentos.environments.sizing import Sizing
 from agentos.environments.sshaccess import SshAccess
 from agentos.environments.store import EnvironmentStore
 from agentos.environments.tunnels import Tunnel
+from agentos.environments.updates import Updates
 from agentos.environments.uploads import Uploads
 from agentos.environments.views import Views
 
@@ -132,7 +133,8 @@ def check_ref(ref: str | None) -> str | None:
     return ref
 
 
-class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downloads, Saving, Activity, SshAccess):
+class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downloads, Saving, Activity, SshAccess,
+                         Updates):
     """The environments service. Which environment a call means and attaching by title (Picking), its
     sizing and cost (Sizing), its bring-up (BringUp), its read side (Views), its saves (Saving) and what
     counts as busy (Activity), and in local mode the agent's own ssh (SshAccess) are mixins in their own
@@ -798,6 +800,7 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
                     log.warning("environment %s: tunnel did not start: %s", env.id, e)
             if rec.state == "ready":
                 await self.ssh_keep(env, now)  # local mode: the agent's own ssh, and its use counted as use
+                await self.quiet_upgrade(env, now)  # a keep "live" machine's security updates (agentos.environments.updates)
             idle = (now - self._last_used(env) >= timedelta(minutes=self.settings.idle_minutes)
                     and not await self._busy_for_idle(env))
             if env.keep == "live" or env.state != "ready":

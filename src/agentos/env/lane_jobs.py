@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import logging
 import re
 
 from agentos.core.errors import (
@@ -19,6 +20,8 @@ from agentos.env.models import (
     JobInfo,
 )
 
+log = logging.getLogger("agentos.env")
+REATTACH_LAUNCHER_TRIES = 20  # half seconds a restarted node waits for its ssh launcher before it reattaches
 _ENV_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,63}$")  # a job's environment variable names
 
 # lane_job_read(until_port=): one command in the job's lane that returns once something listens on the
@@ -101,6 +104,29 @@ class Jobs:
         await self.store.run(self.store.touch, lane_id)
         await asyncio.to_thread(self.jobs.prune, lane_id)
         return job.info.model_copy()
+
+    async def _reattach_jobs(self) -> None:
+        """After a restart: follow again the jobs that ran on on their VMs (agentos.env.jobs). The VM
+        manager hands this manager its ssh launcher just after the start, so that is waited for a moment."""
+        for _ in range(REATTACH_LAUNCHER_TRIES):
+            if self.remote_launcher is not None:
+                break
+            await asyncio.sleep(0.5)
+        for job in list(self.jobs.pending):
+            if not job.running or not job.pending:
+                continue
+            lane_id = job.info.lane
+            try:
+                rt = await self.warm(lane_id)
+            except Exception as e:  # noqa: BLE001 (the lane is gone, or this process has no VMs)
+                self.jobs.give_up(job, f"the node restarted while it ran and could not reach {lane_id} again: "
+                                       f"{getattr(e, 'message', e)}")
+                continue
+            if not rt.detaches_jobs:
+                self.jobs.give_up(job, "the node restarted while it ran, and this process cannot follow jobs on VMs")
+                continue
+            self.jobs.attach(rt, job, on_end=self._job_ended)
+            log.info("job %s on %s: following it again after the restart", job.info.id, lane_id)
 
     async def _job_ended(self, job: Job) -> None:
         if self.store.has_lane(job.info.lane):

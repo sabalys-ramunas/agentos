@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import base64
 import shlex
+from datetime import UTC, datetime
 from importlib import resources
 
 READY_MARKER = "/var/lib/agentos-env/ready"
@@ -81,6 +82,8 @@ exec {real} "$@"
 def apt_ready(root: str = "") -> str:
     """The command the node runs after setup (see APT_READY_S): returns at once, never fails the boot."""
     lines = ["set -u", f"mkdir -p {root}/usr/local/sbin {root}/run"]
+    if not root:
+        lines.append(UPDATES_OFF.rstrip().removesuffix("true").rstrip())  # no updates mid-session (UPDATES_OFF)
     for name in ("apt-get", "apt"):
         b64 = base64.b64encode(apt_wrapper(name, root).encode()).decode()
         dest = f"{root}/usr/local/sbin/{name}"
@@ -171,6 +174,121 @@ def swap_words(stdout: str) -> str | None:
     return None
 
 
+# Updates on an environment's machine: never in the middle of a session (field report 2026-11-16: at
+# 07:35 UTC the VM's apt-daily-upgrade ran unattended-upgrades, which did `systemctl daemon-reload` three
+# times, upgraded systemd, re-executed it and restarted networkd, resolved, timesyncd, journald and udevd
+# while an agent worked; the reloads made systemd print an old OOM kill again, which the agent read as a
+# new one). Security against stability, and the choice:
+#
+# - Off during a session: the apt-daily and apt-daily-upgrade timers are disabled and APT::Periodic is
+#   0 (UPDATES_CONF), so neither unattended-upgrades nor a list refresh starts on its own; needrestart,
+#   which a package install of the agent's own runs, only lists what it would restart (NEEDRESTART_CONF).
+# - Applied where nobody works yet: when a fresh Ubuntu VM is set up (setup.sh runs unattended-upgrade,
+#   the security pocket, before the machine is handed over; on a fresh VM Ubuntu's own run held the dpkg
+#   lock at that moment anyway, so the boot takes about as long as before), and when the `dev` snapshot is
+#   built (`agentos vm image build dev` runs the setup on a fresh VM, so each new snapshot is patched up to
+#   its day, and has this policy baked in). Rebuild the snapshot now and then (docs/ENVIRONMENTS.md).
+# - A keep "live" machine lives for weeks: it gets the security updates at a quiet moment (UPGRADE_QUIET:
+#   no call and no job for EnvSettings.upgrade_quiet_minutes, at most once a day), never restarting a
+#   service for them; when it was never quiet for UPGRADE_LATE_DAYS, or a new kernel waits for a restart,
+#   its machine notes say so (Machine.updates), so the owner sees it.
+# - Machines that live a session (keep "none") or that come back from a save run what they were built
+#   with; a save's machine got its patches when its base or snapshot was made.
+# Written on every first boot of a fresh VM (cloud_config's bootcmd, before apt-daily can start) and on
+# every bring-up (apt_ready), so a `dev` snapshot made before this policy gets it too. It reloads systemd
+# only when a timer is still on.
+UPDATES_CONF = "/etc/apt/apt.conf.d/99agentos-updates"
+NEEDRESTART_CONF = "/etc/needrestart/conf.d/90-agentos.conf"
+UPDATES_OFF = f"""mkdir -p /etc/apt/apt.conf.d /etc/needrestart/conf.d
+cat > {UPDATES_CONF} <<'AGENTOS_APT'
+// agentos: no updates in the middle of a session (agentos.environments.machine)
+APT::Periodic::Update-Package-Lists "0";
+APT::Periodic::Download-Upgradeable-Packages "0";
+APT::Periodic::Unattended-Upgrade "0";
+APT::Periodic::AutocleanInterval "0";
+AGENTOS_APT
+cat > {NEEDRESTART_CONF} <<'AGENTOS_NR'
+# agentos: list what would restart, restart nothing (agentos.environments.machine)
+$nrconf{{restart}} = 'l';
+$nrconf{{kernelhints}} = 0;
+AGENTOS_NR
+if [ -d /run/systemd/system ] && command -v systemctl >/dev/null 2>&1; then
+  for t in apt-daily.timer apt-daily-upgrade.timer; do
+    systemctl is-enabled --quiet "$t" 2>/dev/null && systemctl disable --now "$t" >/dev/null 2>&1
+  done
+fi
+true
+"""
+UPGRADE_STAMP = "/var/lib/agentos-env/upgraded"   # when the last security upgrade ended (UTC)
+UPGRADE_PID = "/run/agentos-upgrade.pid"
+UPGRADE_LOG = "/var/log/agentos-upgrade.log"
+UPGRADE_EVERY_H = 24
+UPGRADE_LATE_DAYS = 7
+UPGRADE_S = 30.0                                    # the ssh that starts (or asks after) an upgrade
+_UPGRADE_RUN = (f"echo $$ > {UPGRADE_PID}; NEEDRESTART_MODE=l DEBIAN_FRONTEND=noninteractive unattended-upgrade "
+                f"> {UPGRADE_LOG} 2>&1; mkdir -p {UPGRADE_STAMP.rsplit('/', 1)[0]}; "
+                f"date -u +%Y-%m-%dT%H:%M:%SZ > {UPGRADE_STAMP}; rm -f {UPGRADE_PID}")
+
+
+def upgrade_script(*, start: bool) -> str:
+    """How the machine's security updates stand, one line `upgrade: <none|running|done <when>|due <when>|started>`
+    (and `reboot: required` when a new kernel waits for a restart); with `start`, an upgrade that is due
+    (none for UPGRADE_EVERY_H) starts in a session of its own and the command returns at once."""
+    due = (f"mkdir -p {UPGRADE_STAMP.rsplit('/', 1)[0]}; setsid -f sh -c {shlex.quote(_UPGRADE_RUN)} "
+           ">/dev/null 2>&1 </dev/null; echo \"upgrade: started\"" if start else
+           f"echo \"upgrade: due $(cat {UPGRADE_STAMP} 2>/dev/null)\"")
+    return f"""set -u
+command -v unattended-upgrade >/dev/null 2>&1 || {{ echo "upgrade: none"; exit 0; }}
+p=$(cat {UPGRADE_PID} 2>/dev/null || true)
+if [ -n "$p" ] && kill -0 "$p" 2>/dev/null; then echo "upgrade: running"; exit 0; fi
+[ -f /var/run/reboot-required ] && echo "reboot: required"
+if [ -n "$(find {UPGRADE_STAMP} -mmin -{UPGRADE_EVERY_H * 60} 2>/dev/null)" ]; then
+  echo "upgrade: done $(cat {UPGRADE_STAMP})"; exit 0
+fi
+{due}
+"""
+
+
+# Before a disk snapshot (scripts.SCRUB): a security upgrade that runs ends first, so no snapshot holds a
+# half-done dpkg. At most UPGRADE_WAIT_S (a save's step has 120 s).
+UPGRADE_WAIT_S = 90
+UPGRADE_WAIT = (f'p=$(cat {UPGRADE_PID} 2>/dev/null || true); i=0; while [ -n "$p" ] && kill -0 "$p" 2>/dev/null '
+                f'&& [ $i -lt {UPGRADE_WAIT_S} ]; do sleep 1; i=$((i+1)); done')
+
+
+def updates_words(stdout: str, now: datetime) -> str | None:
+    """upgrade_script's lines, for the machine's notes: when the security updates were last applied, that
+    they run now, that they wait (no quiet moment for UPGRADE_LATE_DAYS), and a restart a kernel waits for."""
+    lines = (stdout or "").splitlines()
+    state = next((ln[9:].strip() for ln in lines if ln.startswith("upgrade: ")), None)
+    reboot = any(ln.strip() == "reboot: required" for ln in lines)
+    if state is None or state == "none":
+        return None
+    if state == "running" or state == "started":
+        text = "security updates are being applied now (a quiet moment)"
+    else:
+        kind, _, when = state.partition(" ")
+        at = _when(when)
+        if kind == "done":
+            text = f"security updates applied {at:%Y-%m-%d %H:%M} UTC" if at else "security updates applied"
+        elif at is None or (now - at).days >= UPGRADE_LATE_DAYS:
+            since = f" since {at:%Y-%m-%d}" if at else ""
+            text = (f"security updates waiting{since}: they run only when the machine is quiet (no call and no "
+                    "job for a while); stop its jobs for a moment, or rebuild it")
+        else:
+            text = f"security updates applied {at:%Y-%m-%d %H:%M} UTC; the next at a quiet moment"
+    if reboot:
+        text += "; a new kernel waits for a restart of the machine"
+    return text
+
+
+def _when(text: str) -> datetime | None:
+    try:
+        return datetime.strptime(text.strip(), "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=UTC)
+    except ValueError:
+        return None
+
+
 def boot_done_without_setup(state: str) -> bool:
     """SETUP_STATE's first line says the boot is over and the setup never ran: the node runs it."""
     return state.startswith(("status: done", "status: disabled")) or state == "no cloud-init and no setup marker"
@@ -196,14 +314,17 @@ def dev_image_script() -> str:
     from agentos.environments.vmbrowser import install_script
     from agentos.vms.manager import image_script
 
-    return image_script(setup_install() + install_script())
+    return image_script(UPDATES_OFF + setup_install() + install_script())
 
 
 def cloud_config() -> str:
     """The cloud-config keys added after the node's own (agentos.vms.keys.cloud_init): the setup
     script as a file, and running it once on the first boot."""
     b64 = base64.b64encode(setup_script().encode()).decode()
-    return ("write_files:\n"
+    off = base64.b64encode(UPDATES_OFF.encode()).decode()
+    return ("bootcmd:\n"  # before apt-daily can start on the first boot (UPDATES_OFF)
+            f"  - [sh, -c, 'echo {off} | base64 -d | sh']\n"
+            "write_files:\n"
             f"  - path: {SETUP_PATH}\n"
             "    permissions: '0755'\n"
             "    encoding: b64\n"

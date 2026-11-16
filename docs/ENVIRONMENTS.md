@@ -142,7 +142,9 @@ Python with uv on first boot, which takes a few minutes. A snapshot boots ready 
 agentos vm image build dev    # Hetzner: a snapshot with git, build tools, Python with uv, Node 22, Docker
 ```
 
-The node uses the `dev` snapshot when it has one. The build runs the environment's own setup script
+The node uses the `dev` snapshot when it has one. The build applies the security updates of that day
+(machines never update themselves mid-session, see [What is on the VM](#what-is-on-the-vm-and-what-is-not)),
+so rebuild it now and then. The build runs the environment's own setup script
 too, so a VM from the snapshot has the ready marker and pnpm, and its setup check is one SSH call. A
 snapshot built before that (no marker) still works: each open waits for cloud-init in one call and
 runs the setup, which skips apt when every package is there and installs pnpm.
@@ -382,6 +384,15 @@ your account lanes (a post on `personal/x`, say) asks you as before.
   parent that printed its child's 137 and exited 0. For an ended job this happens before the read
   that reports the end returns. A clean end costs no call. Every machine has swap (see [What is on
   the VM](#what-is-on-the-vm-and-what-is-not)), so a heavy build slows down before it runs out.
+- **Jobs outlive a restart of agentos.** A `lane_job_start` job runs on the VM on its own (its own
+  session, `setsid`), with its stdout and stderr in files there (`/tmp/agentos-wl/<id>.out` and
+  `.err`), and the node follows those files over SSH. A restart or an upgrade of the agentos service,
+  a laptop that sleeps, or a dropped connection no longer ends a dev server: when the service starts
+  again it finds each job still running on its machine and follows it again, and `lane_job_read` goes
+  on with the same job id and offsets. `lane_job_cancel`, the job's timeout (also one that passed
+  while the service was down) and closing the environment still end its whole process tree. If the
+  machine restarted meanwhile, the job is `lost` and its `note` says so. A job whose node never comes
+  back ends a minute past its timeout by itself.
 - **`pkill -f` killed its own shell.** `pkill -f vite` matches the shell that runs it, whose
   command line holds the pattern too, so the shell dies before the rest of the command runs (exit
   255 over SSH, or 143, 137, a signal), even after it printed something. When a `lane_exec` or an
@@ -571,6 +582,22 @@ On it:
   Ubuntu's does. A kernel without it gets a swapfile, `/agentos.swap`, of at most a quarter of the
   free disk (none when that is under 1 GB) with swappiness 10, so it is used under pressure only.
   Nothing goes in `/etc/fstab` or the image. A container (the docker provider) gets none.
+- No updates in the middle of a session. Ubuntu's unattended-upgrades and its apt timers are off
+  (`/etc/apt/apt.conf.d/99agentos-updates`), and needrestart only lists what it would restart
+  (`/etc/needrestart/conf.d/90-agentos.conf`). Why: on 2026-11-16 a VM's unattended-upgrades ran while
+  an agent worked, reloaded and re-executed systemd, and restarted networking, DNS, the clock and the
+  journal under it (and the reloads made systemd print an old OOM kill again, which read as a new one).
+  The security updates are applied instead where nobody works yet: when a fresh Ubuntu VM is set up
+  (before the machine is handed over; on a fresh VM Ubuntu's own run held the package lock at that
+  moment anyway) and when the `dev` snapshot is built, so a machine from the snapshot is as patched as
+  the day it was built: rebuild it now and then (`agentos vm image build dev`, monthly is a good
+  rhythm). A `keep: "live"` machine, which lives for weeks, gets them at a quiet moment: no call and no
+  job for 30 minutes (`upgrade_quiet_minutes` in `environments.toml`), at most once a day, restarting
+  no service. `machine.updates` in `environment()` and the panel says when they were applied, that they
+  wait (a machine that was never quiet for a week, say because a dev server always runs), and when a
+  new kernel waits for a restart. A save waits for an upgrade that runs before it snapshots the disk.
+  Machines of a single session (`keep: "none"`) and machines back from a save run what they were built
+  with.
 - A git config that sends declared hosts to the gateway (`127.0.0.1:3129` on the VM is the node's
   gateway, through the VM's SSH connection).
 - Whatever the agent installs. It is the agent's machine, by its title.

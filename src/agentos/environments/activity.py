@@ -4,6 +4,7 @@ used, and how loaded its machine is when a browser call there was slow or stuck.
 
 from __future__ import annotations
 
+import asyncio
 import contextlib
 import re
 from datetime import UTC, datetime
@@ -73,12 +74,20 @@ class Activity:
         if found is None or not found[0].open or found[0].state != "ready":
             return None
         env = found[0]
-        res = await self.envs().exec(env.terminal_lane, LOAD, timeout_s=6)
+        vm_browsers = getattr(self, "_vm_browsers", None)  # a browser that was opening on the machine: how far
+        launch = vm_browsers.launch_hint(lane_id) if vm_browsers is not None else None
+        try:
+            res = await asyncio.wait_for(self.envs().exec(env.terminal_lane, LOAD, timeout_s=6), 6.5)
+        except Exception:
+            if launch:  # the machine did not answer: the launch's steps still say where it hung
+                return launch
+            raise
         names = list(SIZES)
         size = env.machine.size if env.machine.size in SIZES else None
         at = names.index(size) if size else 0
         bigger = names[at + 1] if at + 1 < len(names) else None
-        return load_words(res.stdout, size, bigger)
+        load = load_words(res.stdout, size, bigger)
+        return " ".join(w for w in (launch, load) if w) or None
 
 
 SERVER_RE = re.compile(

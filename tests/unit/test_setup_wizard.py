@@ -463,8 +463,10 @@ def test_the_snapshot_build_is_vm_image_build_dev_with_the_browser(tmp_path, mon
     monkeypatch.setattr(VmManager, "build_image", build_image)
     said: list = []
     assert steps.build_dev_snapshot(tmp_path, said.append) == 0.02
-    # the environment's setup too: a VM from the snapshot has its marker and pnpm, so its setup check is one call
-    script = image_script(machine.setup_install() + install_script())
+    # the environment's setup too: a VM from the snapshot has its marker and pnpm, so its setup check is one
+    # call; and no updates on their own mid-session (they are applied while the image is built)
+    script = image_script(machine.UPDATES_OFF + machine.setup_install() + install_script())
+    assert script == machine.dev_image_script()
     assert seen == {"name": "dev", "script": script, "follow_ip": True}
     assert script.index("AGENTOS_SETUP_SCRIPT") < script.index("cloud-init clean")
     assert said == ["taking the snapshot"]

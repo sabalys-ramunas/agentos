@@ -9,6 +9,7 @@ behind), and stale-overlay cleanup. Browser lanes stay with the M1 lane manager.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import fcntl
 import json
 import logging
@@ -141,6 +142,7 @@ class EnvManager(Jobs, Sync):
         self._use_lock = use_lock
         self._home_error: str | None = None
         self.jobs = JobTable(self.paths, self.settings)
+        self._reattach: asyncio.Task | None = None
         self._sync_locks: dict[str, asyncio.Lock] = {}
         self._stores: dict[str, syncs.ChunkStore] = {}
 
@@ -169,10 +171,14 @@ class EnvManager(Jobs, Sync):
                 state, _ = self.store.get_state(lane.id)
                 if state != LaneState.QUARANTINED:
                     await self.store.run(self.store.set_state, lane.id, LaneState.COLD)
-            lost = await asyncio.to_thread(self.jobs.load, [lane.id for lane in self.store.list_lanes()])
+            lanes = self.store.list_lanes()
+            lost = await asyncio.to_thread(self.jobs.load, [lane.id for lane in lanes],
+                                           {lane.id for lane in lanes if lane.remote is not None})
             if lost:
                 log.warning("%d background job(s) were running when the node stopped; marked lost", lost)
             self._started = True
+            if self.jobs.pending:  # jobs that ran on on their VMs while the node was down
+                self._reattach = asyncio.create_task(self._reattach_jobs(), name="env-jobs-reattach")
             for lane in self.store.list_lanes():
                 desired, exp = self.store.service_desired(lane.id)
                 if lane.service and desired == "running":
@@ -190,6 +196,15 @@ class EnvManager(Jobs, Sync):
         if self._reaper:
             self._reaper.cancel()
             self._reaper = None
+        if self._reattach is not None:
+            self._reattach.cancel()
+            with contextlib.suppress(BaseException):
+                await self._reattach
+            self._reattach = None
+        # jobs on VMs run on there: only the node's followers go, and the next start reattaches
+        detached = await self.jobs.detach_all()
+        if detached:
+            log.info("%d background job(s) run on on their VMs; the next start follows them again", detached)
         for sup in list(self.services.values()):
             await sup.stop("node shutting down")
         for sid in list(self.shells):

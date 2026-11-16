@@ -255,10 +255,13 @@ class LaneRuntime:
         return sp
 
     async def _remote_signal(self, sp: Spawned, sig: str) -> None:
+        await self.signal_remote(sp.wid, sig)
+
+    async def signal_remote(self, wid: str, sig: str) -> None:
         """On a VM lane, the workload's processes there (its own process group, agentos.vms.ssh): killing
         the local ssh client does not end them. Best effort, bounded: the VM may be gone."""
         stop = getattr(self.launcher, "stop_argv", None)
-        argv = stop(self.lane, sp.wid, sig) if callable(stop) and self.lane.remote is not None else None
+        argv = stop(self.lane, wid, sig) if callable(stop) and self.lane.remote is not None else None
         if not argv:
             return
         try:
@@ -319,6 +322,35 @@ class LaneRuntime:
 
     def busy(self) -> bool:
         return bool(self.workloads)
+
+    # ------------------------------------------------------------------ detached jobs (a VM lane)
+    @property
+    def detaches_jobs(self) -> bool:
+        """A job here runs detached on the VM and outlives the node's ssh (agentos.vms.ssh.start_script)."""
+        return self.lane.remote is not None and bool(getattr(self.launcher, "detaches_jobs", False))
+
+    async def job_status(self, wid: str) -> dict | None:
+        """How a detached job stands on the VM (agentos.vms.ssh.status_script); None when it did not answer."""
+        ask = getattr(self.launcher, "job_status", None)
+        if not callable(ask):
+            return None
+        try:
+            return await ask(self.lane, wid)
+        except Exception:
+            log.debug("could not ask %s how job %s stands", self.lane.id, wid, exc_info=True)
+            return None
+
+    async def job_forget(self, wid: str) -> None:
+        forget = getattr(self.launcher, "job_forget", None)
+        if callable(forget):
+            with contextlib.suppress(Exception):
+                await forget(self.lane, wid)
+
+    async def stop_detached(self, wid: str, grace: float) -> None:
+        """End a detached job that no follower of this node holds: TERM to its group, KILL after `grace`."""
+        await self.signal_remote(wid, "TERM")
+        await asyncio.sleep(grace)
+        await self.signal_remote(wid, "KILL")
 
     async def oom_kills(self, wid: str, *, elapsed_s: float, final: bool = False) -> list[dict] | None:
         """On a VM lane, what its kernel killed for memory since workload `wid` started

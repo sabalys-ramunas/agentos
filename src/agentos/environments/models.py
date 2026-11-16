@@ -49,6 +49,7 @@ class EnvSettings(BaseModel):
     monthly_budget_eur) hold as well; these are the environments' own, and the tighter one wins."""
     model_config = ConfigDict(extra="forbid")
     idle_minutes: int = Field(default=60, ge=5)           # no call, command or shell this long: closed (when saved)
+    upgrade_quiet_minutes: int = Field(default=30, ge=5)  # a keep "live" machine this quiet: its security updates run
     default_hours: float = Field(default=2.0, gt=0, le=72)
     # The limits that bound environment_open, which never asks a person (docs/design/environments.md).
     # They hold without `agentos environments allow`, which only changes them.
@@ -134,6 +135,7 @@ class Machine(BaseModel):
     location: str = ""
     size: str | None = None                   # small, medium, large, xlarge: the biggest of SIZES it has
     swap: str | None = None                   # what swap it has, in words (machine.SWAP_ON): "8 GB, compressed in memory (zram)"
+    updates: str | None = None                # a keep "live" machine's security updates, in words (agentos.environments.updates)
 
 
 class Environment(BaseModel):

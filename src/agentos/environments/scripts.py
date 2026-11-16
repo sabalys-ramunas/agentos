@@ -12,7 +12,7 @@ non-zero exit say what failed (exit 7: the file part is past the size cap).
 
 from __future__ import annotations
 
-from agentos.environments.machine import SWAP_OFF
+from agentos.environments.machine import SWAP_OFF, UPGRADE_WAIT
 
 # What listens on the machine (round 3, T2: the node had lost track of a dev server's job when it
 # restarted, so the save recorded no services and the resume started none): each TCP port that
@@ -159,9 +159,9 @@ echo "ok=1"
 
 # Before a disk snapshot: what must never persist leaves the machine (the gateway token's git config,
 # a git credential store, a swapfile with process memory in it: machine.SWAP_OFF), and the disk is
-# synced. The SSH keys stay: the node forgets this machine's key pair once it is deleted, and a machine
+# synced, after a security upgrade that runs ended (machine.UPGRADE_WAIT). The SSH keys stay: the node forgets this machine's key pair once it is deleted, and a machine
 # booted from the snapshot gets new ones at its first boot.
-SCRUB = f"rm -f ~/.config/agentos/gitconfig ~/.git-credentials; {SWAP_OFF}; sync; echo ok=1"
+SCRUB = f"{UPGRADE_WAIT}; rm -f ~/.config/agentos/gitconfig ~/.git-credentials; {SWAP_OFF}; sync; echo ok=1"
 
 
 def parse(text: str) -> dict:

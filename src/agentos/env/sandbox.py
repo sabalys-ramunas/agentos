@@ -125,6 +125,11 @@ class Workload:
     install: bool = False
     binds: list[tuple[str, str, bool]] = field(default_factory=list)  # (host, lane path, read-only)
     oom_record: bool = False  # on a VM: write the start record the node reads oom kills by (agentos.env.oom)
+    # a job on a VM (agentos.env.jobs): run it detached from the ssh and follow its output files from these
+    # (stdout, stderr) offsets; detach_start starts it first, with a watchdog past detach_timeout_s
+    detach: tuple[int, int] | None = None
+    detach_start: bool = False
+    detach_timeout_s: float | None = None
 
 
 @dataclass

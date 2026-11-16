@@ -20,4 +20,10 @@ def test_every_apt_get_waits_for_the_dpkg_lock(name):
     setting_at = next(i for i, line in enumerate(lines) if SETTING in line)
     first_apt = next(i for i, line in enumerate(lines) if "apt-get" in line and not line.lstrip().startswith("#"))
     assert setting_at < first_apt, f"{name}: the lock timeout is set after the first apt-get"
-    assert "unattended-upgrades" not in text.replace("unattended-upgrades holds", ""), "leave unattended-upgrades on"
+    # Updates never run by themselves during a session (agentos.environments.machine, 2026-11-16: a
+    # mid-session upgrade reloaded systemd and restarted the network while a browser started), but the
+    # package stays: setup and the dev image build apply them before anyone works, and a quiet keep="live"
+    # machine gets them later. Never removed or purged.
+    for line in lines:
+        if not line.lstrip().startswith("#"):
+            assert not ("unattended-upgrades" in line and ("remove" in line or "purge" in line)), line

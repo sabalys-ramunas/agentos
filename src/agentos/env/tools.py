@@ -272,7 +272,7 @@ async def lane_install(ctx: ToolContext, *, on: str, packages: list[str], source
 
 # ------------------------------------------------------------------ jobs and synced trees
 def _job_view(info) -> dict:
-    return info.model_dump(mode="json")
+    return info.model_dump(mode="json", exclude={"vm_wid"})
 
 
 BRANCH_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/+-]{0,199}$")

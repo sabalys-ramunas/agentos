@@ -56,6 +56,20 @@ BOOT = ('import json,sys; d=json.load(sys.stdin); '
 CTL_TIMEOUT_S = 150.0
 INSTALL_TIMEOUT_S = 1500.0
 CONNECT_TIMEOUT_MS = 30_000
+# A launch is four steps, each with its own limit, so a step that hangs fails with its name and the time
+# each step took, well inside the lane's wall (agentos.node.deadlines.WALL_S, 210 s). Field report
+# 2026-11-16: browser_navigate failed twice with only "could not get the browser ... within 210 s" while
+# the machine's log showed its browser server up in 1.4 s; the hang was between the node and the machine.
+LAUNCH_STEPS = ("start", "connect", "context", "page")
+STEP_LIMIT_S = {"start": 90.0, "connect": CONNECT_TIMEOUT_MS / 1000 + 5, "context": 30.0, "page": 30.0}
+STEP_DOING = {"start": "starting the browser server on the machine", "connect": "connecting to it through the tunnel",
+              "context": "opening its browser context", "page": "opening its first page"}
+STEP_DONE = {"start": "browser server started", "connect": "connected through the tunnel",
+             "context": "context opened", "page": "first page opened"}
+LAUNCH_HINT_KEEP_S = 60.0  # a stopped launch's steps, kept for the stopped call's error
+# the processes of the machine's browser (Camoufox is Firefox; its server is Python), for a kill during a launch
+BROWSER_PROCS = ("camoufox", "firefox", "web content", "isolated web co", "webextensions", "rdd process",
+                 "socket process", "utility process", "privileged cont", "python", "xvfb", "x11vnc")
 DESKTOP = (1920, 1080)   # an environment's browser shows pages at a desktop width, as on the node
 # Playwright drives the machine's browser from here: the `local` extra of agentos (scripts/install.sh) has it.
 NO_PLAYWRIGHT = ("this agentos has no Playwright, which drives the environment's browser on its machine. Install "
@@ -101,6 +115,73 @@ def browser_options(spec: LaneSpec, *, identity_os: list[str] | None = None,
     if identity_os:
         opts["os"] = list(identity_os)
     return opts
+
+
+class LaunchSteps:
+    """How far a browser launch on the machine got, and how long each step took: for its error, its log
+    line, and a stuck call's hint (VmBrowsers.launch_hint)."""
+
+    def __init__(self, lane_id: str, env_id: str, clock: Any = None):
+        self.lane_id, self.env_id = lane_id, env_id
+        self._clock = clock or asyncio.get_running_loop().time
+        self.began = self._clock()
+        self.done: list[tuple[str, float]] = []
+        self.current: str | None = None
+        self._step_began = self.began
+        self.stopped: float | None = None  # when the call that opened it was stopped (the lane's wall)
+
+    async def run(self, name: str, coro: Any) -> Any:
+        """Run one step within its limit (STEP_LIMIT_S). A step that fails or does not answer raises
+        LaunchFailed with its name and how long it ran."""
+        self.current, self._step_began = name, self._clock()
+        limit = STEP_LIMIT_S[name]
+        try:
+            out = await asyncio.wait_for(coro, limit)
+        except TimeoutError:
+            raise LaunchFailed(self, name, self._clock() - self._step_began, f"no answer within {limit:g} s") from None
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:  # every failure of a step is named
+            raise LaunchFailed(self, name, self._clock() - self._step_began,
+                               str(getattr(e, "message", None) or e).strip() or type(e).__name__) from e
+        self.done.append((name, self._clock() - self._step_began))
+        self.current = None
+        return out
+
+    @property
+    def elapsed(self) -> float:
+        return self._clock() - self.began
+
+    def done_words(self) -> str:
+        return ", ".join(f"{STEP_DONE[n]} in {t:.1f} s" for n, t in self.done)
+
+    def now_words(self) -> str:
+        """While it runs (or when it was stopped): the steps done and the one it is at, for a stuck call."""
+        end = self.stopped if self.stopped is not None else self._clock()
+        at = (f"{STEP_DOING[self.current]} for {end - self._step_began:.0f} s" if self.current
+              else "between its steps")
+        done = self.done_words()
+        what = "was still opening when the call was stopped" if self.stopped is not None else "was opening"
+        return f"The browser on the machine {what}: {done + '; then ' if done else ''}{at}."
+
+
+class LaunchFailed(Exception):
+    def __init__(self, steps: LaunchSteps, step: str, took: float, why: str):
+        super().__init__(why)
+        self.steps, self.step, self.took, self.why = steps, step, took, why
+
+    def words(self, kills: list[dict] | None = None) -> str:
+        """The error: which step failed and why, how long each took; a kernel's oom kill during the launch first."""
+        from agentos.env import oom
+
+        doing = f"{STEP_DOING[self.step]} failed after {self.took:.1f} s ({self.why[:400]})"
+        done = self.steps.done_words()
+        tail = f" Before it: {done}." if done else ""
+        head = f"{self.steps.lane_id}: the browser on environment {self.steps.env_id}'s machine did not open"
+        note = oom.note(kills, running=False, what="browser launch") if kills else None
+        if note:
+            return f"{head}: {note} ({doing[0].upper() + doing[1:]}.{tail})"
+        return f"{head}: {doing}.{tail}"
 
 
 class RemoteSession(CamoufoxSession):
@@ -150,6 +231,7 @@ class VmBrowsers:
         self.svc = svc
         self.engine: Any = None
         self._viewers: dict[str, ViewerInfo] = {}
+        self.launching: dict[str, LaunchSteps] = {}  # lane -> its launch in progress (launch_hint)
 
     # ---- which lanes
     def env_for(self, lane_id: str) -> Any:
@@ -257,24 +339,87 @@ class VmBrowsers:
 
     # ---- the browser
     async def launch(self, spec: LaneSpec, *, profile_dir: Path) -> RemoteSession:
+        """Open the lane's browser on its machine, in four timed steps (LAUNCH_STEPS). A step that fails
+        or hangs fails the launch with its name, how long each step took, and what the kernel killed for
+        memory meanwhile when it did; the log has the same line, and a launch that works logs its times."""
         try:
-            from playwright.async_api import async_playwright
+            import playwright.async_api  # noqa: F401
         except ModuleNotFoundError as e:
             if e.name is None or not e.name.startswith("playwright"):
                 raise
             raise EngineError(NO_PLAYWRIGHT) from None
 
+        env, tunnel = self._require(spec.id)
+        steps = LaunchSteps(spec.id, env.id)
+        self.launching[spec.id] = steps
+        try:
+            session = await self._launch(spec, env, tunnel, steps, profile_dir=profile_dir)
+        except LaunchFailed as e:
+            self.launching.pop(spec.id, None)
+            kills = await self._launch_kills(env, steps)
+            text = e.words(kills)
+            log.warning("%s (after %.1f s in all)", text, steps.elapsed)
+            raise EngineError(text) from e.__cause__
+        except asyncio.CancelledError:  # the lane's wall: its error asks launch_hint how far this got
+            steps.stopped = steps._clock()
+            log.warning("%s: the launch on environment %s's machine was stopped. %s", spec.id, env.id,
+                        steps.now_words())
+            raise
+        except BaseException:
+            self.launching.pop(spec.id, None)
+            raise
+        self.launching.pop(spec.id, None)
+        log.info("%s: the browser runs on environment %s's machine (%s; %.1f s in all)", spec.id, env.id,
+                 steps.done_words(), steps.elapsed)
+        return session
+
+    def launch_hint(self, lane_id: str) -> str | None:
+        """For a call that was stuck on a lane whose browser is opening on its machine, or was stopped
+        while it opened in the last LAUNCH_HINT_KEEP_S (agentos.node.lanes slow_hints): the steps done,
+        with their times, and the one it was at."""
+        steps = self.launching.get(lane_id)
+        if steps is None:
+            return None
+        if steps.stopped is not None and steps._clock() - steps.stopped > LAUNCH_HINT_KEEP_S:
+            self.launching.pop(lane_id, None)
+            return None
+        return steps.now_words()
+
+    async def _launch_kills(self, env: Any, steps: LaunchSteps) -> list[dict] | None:
+        """What the machine's kernel killed for memory during the launch (agentos.env.oom), the browser's
+        processes first; None when it killed nothing then, or could not be asked."""
+        from agentos.env import oom
+        from agentos.vms.ssh import PGID_DIR
+
+        try:
+            res = await asyncio.wait_for(self.svc.envs().exec(env.terminal_lane, oom.probe_script(
+                PGID_DIR, "launch-none", final=False), timeout_s=oom.PROBE_TIMEOUT_S), oom.PROBE_TIMEOUT_S + 2)
+            kills = oom.parse(res.stdout or "", elapsed_s=steps.elapsed)
+        except Exception:  # noqa: BLE001 - the machine may be the thing that does not answer
+            return None
+        if not kills:
+            return None
+
+        def browsers(k: dict) -> bool:
+            return any(p in str(k.get("name", "")).lower() for p in BROWSER_PROCS)
+
+        return sorted(kills, key=browsers)  # oom.note names the newest three: the browser's go last
+
+    async def _launch(self, spec: LaneSpec, env: Any, tunnel: Any, steps: LaunchSteps, *,
+                      profile_dir: Path) -> RemoteSession:
+        from playwright.async_api import async_playwright
+
         from agentos.node.egress import TRACE_NAME, EgressTrace, LaneGuard
         from agentos.node.files import FilesConfig, LaneFiles
         from agentos.node.interaction.dialogs import DIALOG_TIMEOUT
 
-        env, tunnel = self._require(spec.id)
         engine = self.engine
         viewer = self._viewers.get(spec.id)
         size = (viewer.width or DESKTOP[0], viewer.height or DESKTOP[1]) if viewer else DESKTOP
         ws_path = "/" + secrets.token_urlsafe(24)
         options = browser_options(spec, identity_os=getattr(engine, "identity_os", None), size=size)
-        await self.ctl(env, "browser", options=options, port=_vm_port(), ws_path=ws_path)
+        await steps.run("start", self.ctl(env, "browser", options=options, port=_vm_port(), ws_path=ws_path,
+                                          timeout_s=STEP_LIMIT_S["start"] - 5))
         profile_dir.mkdir(parents=True, exist_ok=True)
 
         async def stop_remote() -> None:
@@ -284,12 +429,13 @@ class VmBrowsers:
         pw = await async_playwright().start()
         browser = None
         try:
-            browser = await pw.firefox.connect(f"ws://127.0.0.1:{tunnel.browser_port}{ws_path}",
-                                               timeout=CONNECT_TIMEOUT_MS)
+            browser = await steps.run("connect", pw.firefox.connect(f"ws://127.0.0.1:{tunnel.browser_port}{ws_path}",
+                                                                    timeout=CONNECT_TIMEOUT_MS))
             from agentos.environments import signins
 
             state = signins.for_launch(self.svc, env)  # the sign-ins a save or the lane's last close left
-            context = await browser.new_context(no_viewport=True, **({"storage_state": state} if state else {}))
+            context = await steps.run("context", browser.new_context(
+                no_viewport=True, **({"storage_state": state} if state else {})))
 
             async def keep_signins(ctx: Any) -> None:
                 if signins.enabled(self.svc, self.svc.store.get(env.id)):
@@ -304,18 +450,18 @@ class VmBrowsers:
             with contextlib.suppress(Exception):
                 await asyncio.wait_for(pw.stop(), 10)
             await run_to_end(_quietly(stop_remote()))
-            if isinstance(e, asyncio.CancelledError):
+            if isinstance(e, (asyncio.CancelledError, LaunchFailed)):
                 raise
-            raise EngineError(f"{spec.id}: could not connect to the browser on the machine: {e}") from e
+            raise LaunchFailed(steps, steps.current or "connect", 0.0, str(e)) from e
         try:
             session.guard = LaneGuard(spec.id, sites=spec.sites, strict=spec.egress_strict,
                                       trace=EgressTrace(profile_dir.parent / TRACE_NAME)
                                       ).attach(session.context, session.routes)
-            await session.page()  # a window on the screen at once, as a browser on the node shows one
+            # a window on the screen at once, as a browser on the node shows one
+            await steps.run("page", session.page())
         except BaseException:
             await run_to_end(session.close())
             raise
-        log.info("%s: the browser runs on environment %s's machine", spec.id, env.id)
         return session
 
 
