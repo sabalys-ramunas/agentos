@@ -62,17 +62,26 @@ def new_wid(prefix: str) -> str:
     return f"{prefix}-{secrets.token_hex(4)}"
 
 
+# wait_exit looks at the process every EXIT_POLL_S[0] seconds, half again as long each time, up to
+# EXIT_POLL_S[1] in its first EXIT_POLL_FAST_S and EXIT_POLL_S[2] after: a command over a VM's shared ssh
+# connection ends in about 20 ms, and doubling from 5 ms to 50 ms saw that end 13 ms late, a quarter of
+# a lane_exec (2026-11-16); a dev server's follower that runs for hours is still looked at 20 times a second.
+EXIT_POLL_S = (0.002, 0.01, 0.05)
+EXIT_POLL_FAST_S = 1.0
+
+
 async def wait_exit(proc: asyncio.subprocess.Process, timeout: float | None = None) -> int:
     """Wait for the process itself to exit. (asyncio's proc.wait() also waits for its pipes,
     which a background child can hold open for as long as it likes.)"""
     loop = asyncio.get_running_loop()
-    deadline = None if timeout is None else loop.time() + timeout
-    delay = 0.005
+    start = loop.time()
+    deadline = None if timeout is None else start + timeout
+    delay, fast_cap, slow_cap = EXIT_POLL_S
     while proc.returncode is None:
         if deadline is not None and loop.time() >= deadline:
             raise TimeoutError
         await asyncio.sleep(delay)
-        delay = min(delay * 2, 0.05)
+        delay = min(delay * 1.5, fast_cap if loop.time() - start < EXIT_POLL_FAST_S else slow_cap)
     return proc.returncode
 
 
