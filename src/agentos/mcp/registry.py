@@ -619,6 +619,17 @@ class ToolServer(MCPServer):
         return any("memory" in getattr(other, "tags", ()) and (other.effect != Effect.READ) == writes
                    for n in names if n != spec.name and (other := self.specs.get(n)) is not None)
 
+    def _may_call(self, name: str) -> bool:
+        """May the current request's token call this tool? The visible filter on its spec alone: it
+        judges each spec on its own, and running it on every tool the node serves cost 4 ms a call."""
+        if self.visible is None:
+            return True
+        try:
+            return any(s.name == name for s in self.visible(current_request_token(), [self.specs[name]]))
+        except Exception:
+            log.exception("tool visibility filter failed; showing no tools")
+            return False
+
     def visible_names(self) -> set[str] | None:
         """Names the current request's token may use; None when no filter is configured."""
         specs = self.visible_specs()
@@ -667,8 +678,8 @@ class ToolServer(MCPServer):
             return await self.tools_more(arguments or {}, context)
         if name == ts.TOOLS_CALL:
             return await self.tools_call(arguments or {}, context)
-        names = self.visible_names()
-        if name not in self.specs or (names is not None and name not in names):
+        if name not in self.specs or not self._may_call(name):
+            names = self.visible_names()
             hint = self.missing_hint(name) if self.missing_hint is not None and name not in self.specs else None
             if hint:  # a worker's tool while the worker is off: say what it needs, not just not_found
                 return error_result(f"unavailable: {hint}")
