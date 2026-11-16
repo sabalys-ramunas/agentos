@@ -31,6 +31,7 @@ through DOCKER_HOST like any other docker command.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import io
 import json
 import os
@@ -48,7 +49,11 @@ SIZE_TYPES = {"docker-small": (2, 4), "docker-medium": (4, 8), "docker-large": (
 TYPE_LABEL = "agentos-server-type"
 SEED_DIR = "etc/agentos-env"   # where the entrypoint reads the keys from (deploy/environments/entrypoint.sh)
 CALL_TIMEOUT_S = 120.0
-START_CHECKS, START_CHECK_S = 3, 0.3
+# After `docker start`: until sshd greets on the machine's port (the entrypoint walled it off and ran
+# sshd), or the container stopped (an entrypoint that refused: its logs say why). It used to be three
+# checks 0.3 s apart whatever happened, 0.9 s of every open; sshd greets within about 0.1 s.
+START_WAIT_S, START_POLL_S = 5.0, 0.05
+BANNER_TIMEOUT_S = 0.5
 IMAGE_LABEL = "org.agentos.environment"
 IMAGE_VERSION = 2              # the image's entrypoint walls the machine off (deploy/environments/Dockerfile)
 # What a dev box and sshd need, and nothing more: files and owners (apt, dpkg), switching users
@@ -101,6 +106,24 @@ def seed_tar(host_private: str, host_public: str, authorized: str) -> bytes:
             info.size, info.mode = len(data), mode
             tar.addfile(info, io.BytesIO(data))
     return buf.getvalue()
+
+
+async def sshd_greets(host: str, port: int, *, timeout_s: float = BANNER_TIMEOUT_S) -> bool:
+    """Does an SSH server answer on host:port with its banner ("SSH-")? Docker's port forward accepts
+    a connection before anything listens in the container, so a connect alone says nothing."""
+    try:
+        reader, writer = await asyncio.wait_for(asyncio.open_connection(host, port), timeout=timeout_s)
+    except (OSError, TimeoutError):
+        return False
+    try:
+        line = await asyncio.wait_for(reader.read(4), timeout=timeout_s)
+    except (OSError, TimeoutError):
+        line = b""
+    finally:
+        writer.close()
+        with contextlib.suppress(Exception):
+            await writer.wait_closed()
+    return line == b"SSH-"
 
 
 class DockerProvider:
@@ -254,12 +277,7 @@ class DockerProvider:
             cid = (await self._run(*self.run_args(spec))).strip()
             await self._run("cp", "-", f"{cid}:/", stdin=seed_tar(host_private, host_public, key[0] + "\n"))
             await self._run("start", cid)
-            server = None
-            for _ in range(START_CHECKS):  # an entrypoint that refuses (no wall) exits within a moment
-                await asyncio.sleep(START_CHECK_S)
-                server = await self.get_server(cid)
-                if server is None or server.status != "running":
-                    break
+            server = await self._started(cid)
             if server is None or not server.ssh_port or server.status != "running":
                 said = await self._run("logs", "--tail", "5", cid, ok_codes=(0, 1)) if cid else ""
                 raise VmError("docker: the container did not start" + (f": {said.strip()[-300:]}" if said.strip()
@@ -270,6 +288,21 @@ class DockerProvider:
             await self._run("network", "rm", spec.name, ok_codes=(0, 1))
             raise
         return server
+
+    async def _started(self, cid: str) -> Server | None:
+        """The container once sshd greets on its port, or as it is when it stopped (an entrypoint that
+        refuses exits within a moment) or START_WAIT_S passed (the node's boot probe waits on)."""
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + START_WAIT_S
+        while True:
+            server = await self.get_server(cid)
+            if server is None or server.status != "running":
+                return server
+            if server.ssh_port and await sshd_greets(server.ipv4 or "127.0.0.1", server.ssh_port):
+                return server
+            if loop.time() >= deadline:
+                return server
+            await asyncio.sleep(START_POLL_S)
 
     def _server(self, d: dict) -> Server:
         cfg = d.get("Config") or {}
