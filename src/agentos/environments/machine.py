@@ -312,7 +312,7 @@ def dev_image_script() -> str:
     default image script with the environment's setup and its browser, so an environment booted from
     the snapshot has both and its setup check is one call."""
     from agentos.environments.vmbrowser import install_script
-    from agentos.vms.manager import image_script
+    from agentos.vms.images import image_script
 
     return image_script(UPDATES_OFF + setup_install() + install_script())
 

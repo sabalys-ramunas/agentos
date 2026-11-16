@@ -451,7 +451,8 @@ def test_the_snapshot_check_reads_hetzner_and_tells_missing_from_unknown(tmp_pat
 def test_the_snapshot_build_is_vm_image_build_dev_with_the_browser(tmp_path, monkeypatch):
     from agentos.environments import machine
     from agentos.environments.vmbrowser import install_script
-    from agentos.vms.manager import VmManager, image_script
+    from agentos.vms.images import image_script
+    from agentos.vms.manager import VmManager
 
     seen = {}
 

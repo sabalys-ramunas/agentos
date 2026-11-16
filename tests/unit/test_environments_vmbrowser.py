@@ -60,7 +60,7 @@ def test_the_install_script_writes_the_requirements_and_the_script_then_runs_it(
 
 
 def test_the_dev_snapshot_gets_the_browser_before_its_cleanup():
-    from agentos.vms.manager import DEFAULT_IMAGE_SCRIPT, IMAGE_CLEANUP, image_script
+    from agentos.vms.images import DEFAULT_IMAGE_SCRIPT, IMAGE_CLEANUP, image_script
 
     full = image_script(vmbrowser.install_script())
     assert full.startswith(DEFAULT_IMAGE_SCRIPT) and full.endswith(IMAGE_CLEANUP)
