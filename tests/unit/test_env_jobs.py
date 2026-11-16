@@ -6,6 +6,7 @@ import base64
 import hashlib
 import json
 import os
+import re
 
 import pytest
 
@@ -132,6 +133,33 @@ async def test_reads_resume_from_an_offset_and_text_never_splits_a_character(env
     assert out.decode() == "héllo wörld"
     part = await t["lane_job_read"](ctx, job=job["id"], stdout_offset=3, max_bytes=4)
     assert part["stdout"] == "llo " and part["next_stdout_offset"] == 7  # é is two bytes: offset 3 is after it
+
+
+async def test_waiting_for_the_end_of_a_long_job_gives_its_start_and_its_end(env):
+    """until_exit is how an agent waits for a job to end, and what it needs then is the end: the error,
+    the summary. A job that printed far more than max_bytes gives the start and the end with a marker
+    that names the bytes it skipped, which a plain read at that offset still pages through."""
+    t, ctx = tools(env), Ctx(env)
+    job = await t["lane_job_start"](ctx, on="dev/run",
+                                    cmd="echo START; seq 1 100000; echo boom >&2; echo DONE; exit 2")
+    r = await t["lane_job_read"](ctx, job=job["id"], until_exit=True, wait_ms=30000)
+    out = r["stdout"]
+    assert r["state"] == "exited" and r["exit_code"] == 2 and "boom" in r["stderr"]
+    assert out.startswith("START\n1\n") and out.endswith("100000\nDONE\n") and len(out) < 16_400
+    assert r["next_stdout_offset"] == r["stdout_bytes"] > 500_000
+    skipped = re.search(r"\[agentos: (\d+) bytes skipped here, of (\d+) in all; read them with stdout_offset="
+                        r"(\d+)\]\n", out)
+    assert skipped and int(skipped[2]) == r["stdout_bytes"], out[3900:4300]
+    head, tail = out[:skipped.start()], out[skipped.end():]
+    assert head.endswith("\n") and tail.startswith(tuple("0123456789"))  # whole lines on both sides
+    assert len(head) + int(skipped[1]) + len(tail) == r["stdout_bytes"] and "skipped" in r["note"]
+    middle = await t["lane_job_read"](ctx, job=job["id"], stdout_offset=int(skipped[3]), max_bytes=1 << 20)
+    assert (head + middle["stdout"][:int(skipped[1])] + tail).splitlines() == \
+        ["START", *map(str, range(1, 100001)), "DONE"]
+
+    small = await t["lane_job_start"](ctx, on="dev/run", cmd="seq 1 50; exit 1")
+    r = await t["lane_job_read"](ctx, job=small["id"], until_exit=True, wait_ms=30000)
+    assert r["stdout"] == "".join(f"{i}\n" for i in range(1, 51)) and "note" not in r or not r["note"]
 
 
 async def test_cancel_stops_the_job_and_says_so(env):

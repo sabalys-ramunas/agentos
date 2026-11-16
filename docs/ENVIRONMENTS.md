@@ -365,6 +365,13 @@ your account lanes (a post on `personal/x`, say) asks you as before.
   longer). The waiting is one command on the VM that reads its listening sockets
   (`/proc/net/tcp`), not a loop of calls, and the call sends progress while it waits. No `sleep`
   loops in `lane_exec`.
+- **Waiting for a job to end.** `lane_job_read(job, until_exit=true, wait_ms=120000)` returns when
+  the job ends. When more is left after your offset than `max_bytes` (16 KB by default), stdout and
+  stderr are each its start and its end, cut at line ends, as `lane_exec` keeps them, with a marker
+  between them (`[agentos: 6452946 bytes skipped here, of 6468895 in all; read them with
+  stdout_offset=3992]`) and the same words in `note`. `next_stdout_offset` is then the end; a read
+  at the offset the marker names pages through what was skipped. A read without `until_exit`, and
+  one with `base64_output`, always gives the bytes right after your offset.
 - **Out of memory.** When the VM's kernel kills a process for memory, `lane_job_read` and
   `lane_exec` say so: `oom` lists each kill since the job or command started (`pid`, `name`,
   `rss_mb`, `at`, `machine_mb`: the machine's memory, and `in_job`: whether it was one of this job's
