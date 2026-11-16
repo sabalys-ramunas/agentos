@@ -73,7 +73,8 @@ async def test_a_call_without_on_is_refused_even_with_one_machine_open(node):  #
             await node["call"](tool, session=NONE, **kw)
         words = str(err.value)
         assert "sends no session id" in words and 'on="<that on>"' in words and "—" not in words
-        assert a["id"] not in words and "Black Friday" not in words  # it names no machine to reach
+        assert a["id"] not in words and a["on"] not in words  # no way into a machine: its title only (round 3)
+        assert 'Your agent has 1 machine open: "Black Friday page"' in words
     assert node["mgr"].get(a["id"]).open
     lines = catalog.mcp_lines("which_environment", "")
     assert lines and "on" in lines[0] and "environment_open" in lines[0] and "close" not in lines[0]
@@ -111,6 +112,26 @@ async def test_jobs_of_a_machine_list_only_with_its_handle(node):  # noqa: F811
     assert [j["lane"] for j in mine] == [f"env/{a['id']}"]
     with pytest.raises(ToolCallError, match="^which_environment"):
         await node["call"]("lane_jobs_list", on=f"env/{a['id']}", session=NONE)
+
+
+async def test_the_job_tools_take_on_and_check_it_is_the_jobs_machine(node):  # noqa: F811
+    """Round 3 (T2): told to pass `on` on every call, lane_job_read refused it ("has no argument 'on'")."""
+    a = await opened(node, title="Shop page", session=NONE)
+    b = await opened(node, title="Docs fix", session=NONE)
+    job = await node["envs"].job_start(f"env/{a['id']}", "sleep 30", cwd="/work")
+    read = await node["call"]("lane_job_read", job=job.id, on=a["on"], session=NONE)
+    assert read["state"] == "running" and read["environment"]["id"] == a["id"]
+    assert (await node["call"]("lane_job_read", job=job.id, session=NONE))["state"] == "running"  # without: as before
+    with pytest.raises(ToolCallError, match="^invalid: job .* is not on the machine that on names") as err:
+        await node["call"]("lane_job_read", job=job.id, on=b["on"], session=NONE)
+    assert a["on"] not in str(err.value) and b["on"] not in str(err.value)
+    with pytest.raises(ToolCallError, match="^which_environment"):  # a title never reaches a machine
+        await node["call"]("lane_job_cancel", job=job.id, on="Shop page", session=NONE)
+    with pytest.raises(ToolCallError, match="^invalid: job"):
+        await node["call"]("lane_job_cancel", job=job.id, on=b["on"], session=NONE)
+    assert node["envs"].job(job.id).running                          # nothing was cancelled by a wrong on
+    done = await node["call"]("lane_job_cancel", job=job.id, on=a["on"], session=NONE)
+    assert done["state"] == "cancelled"
 
 
 # ------------------------------------------------------------------ a held title, take_over
@@ -191,7 +212,7 @@ async def test_listings_show_no_handle_of_a_machine_the_caller_does_not_hold(nod
     assert plain["environment"] is None and "cannot tell which machine is yours" in plain["note"]
     for row in plain["open"]:
         assert set(row) == {"title", "repo", "state", "last_call_at", "use"}
-        assert "in use by another chat" in row["use"]
+        assert row["use"].startswith("held by the chat that opened it")  # with no session id it may be this one
     full = await node["call"]("environment", on=a["on"], session=NONE)
     assert full["id"] == a["id"] and full["on"] == a["on"]
     rows = {r["title"]: r for r in full["open"]}

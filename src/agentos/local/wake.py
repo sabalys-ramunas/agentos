@@ -77,6 +77,9 @@ class CatchUp:
         record: dict[str, Any] = {"at": datetime.now(UTC).isoformat(timespec="seconds"), "reason": reason,
                                   "slept_s": round(slept_s) if slept_s is not None else None,
                                   "closed": [], "saved": [], "kept": [], "vms_deleted": [], "errors": []}
+        # written at once, then again when the reapers are done: they can take minutes (the firewall, a save),
+        # and until now `agentos local status` read the record of the start before and named its time
+        self._write({**record, "running": True})
         vms = self.runtime.get("vms")
         if vms is not None and vms.store.live():
             try:
@@ -106,11 +109,14 @@ class CatchUp:
         self.last = record
         if record["closed"] or record["vms_deleted"] or record["errors"] or reason == "woke":
             log.info("catch-up after %s: %s", "a wake" if reason == "woke" else "the start", note(record))
+        self._write(record)
+        return record
+
+    def _write(self, record: dict) -> None:
         try:
             fs.write_private(catch_up_path(self.home), json.dumps(record, indent=2) + "\n")
         except OSError as e:
             log.warning("could not write %s: %s", catch_up_path(self.home), e)
-        return record
 
 
 def read_last(home: Path) -> dict | None:
@@ -145,6 +151,8 @@ def note(record: dict | None) -> str:
         head = f"The computer woke at {when}" + (f" after {_span(slept)} asleep" if slept else "")
     else:
         head = f"The service started at {when}"
+    if record.get("running"):
+        return f"{head}, and it is checking the environments now (their time limits and the VMs)."
     closed = record.get("closed") or []
     if closed:
         names = ", ".join(f"{c['id']} ({c.get('title') or 'no title'}: {c.get('reason') or 'closed'})" for c in closed)

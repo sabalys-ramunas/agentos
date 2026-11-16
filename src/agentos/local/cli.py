@@ -71,6 +71,7 @@ def serve(home: HomeOption = None, port: PortOption = None,
         raise _fail(exc) from None
     logs.setup(root, verbose=verbose, journal=False)
     install_log_scrubbers(cfg)
+    _refresh_skills()
     try:
         asyncio.run(run(cfg))
     except KeyboardInterrupt:
@@ -82,6 +83,22 @@ def serve(home: HomeOption = None, port: PortOption = None,
         # through the log (scrubbed), never a raw traceback: it can quote anything
         logging.getLogger("agentos.local").exception("the local node stopped on an unexpected error")
         raise typer.Exit(1) from None
+
+
+def _refresh_skills() -> None:
+    """The Claude Code skills agentos installed, brought up to this agentos (an update restarts the service:
+    copied only by `agentos setup agents` and `agentos connect`, they were a day old on 2026-11-16). Only
+    agentos's own skill folders; never a reason the node does not start."""
+    from agentos.client import skills
+
+    log = logging.getLogger("agentos.local")
+    try:
+        done = skills.refresh(Path.home())
+    except OSError as exc:
+        log.warning("could not refresh the Claude Code skills in %s: %s", skills.skills_dir(Path.home()), exc.strerror)
+        return
+    if done:
+        log.info("Claude Code skills in %s: %s", skills.skills_dir(Path.home()), done)
 
 
 @app.command("start")

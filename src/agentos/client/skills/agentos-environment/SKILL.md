@@ -37,7 +37,7 @@ the machine.
 1. `environment_open(title="Black Friday page", repo="github.com/me/shop", keep="save")`: a title
    the human would recognise; `size` only when needed.
    - `differs` lists what is not as you asked.
-   - `state: "starting"`: call `environment(on=...)` until it says `ready`.
+   - `state: "starting"`: `environment(on=...)` waits for `ready`.
    - A private repo the node cannot read returns `approval_pending`: give the human `review_url`
      (never ask for a token), `approval_wait`, then open again.
    - Code only on your computer: `environment_upload()`, then run its `pack` and `send` in your
@@ -55,9 +55,9 @@ the machine.
    - Also listed: `environment_save`, `environment_forget`, `environment_download(path)` (a
      one-use file link for the human). More, with `tools_more("terminals")`:
      `environment_port`, `environment_pull_request`.
-   - A result with `ssh` (local mode): your own shell reaches the VM too: `ssh agentos-<id> 'cd
-     /work/shop && pnpm test'`, scp, rsync and git (`ssh.examples`). No port forwarding; not in
-     agentos's call log.
+   - A result with `ssh` (local mode): your own shell reaches the VM: `ssh agentos-<id> 'cd
+     /work/shop && pnpm test'`, scp, rsync and git (`ssh.examples`). No `ssh -L` (environment_port
+     instead); not in agentos's call log.
 4. Check the page: `tools_more("studio")`, then `ui_check(url="http://localhost:3000", on=...)`, fix what
    it measured.
 5. Show the human the dev server: `environment_port(port=3000)` gives `url`. On a server node they
@@ -96,8 +96,8 @@ The machine has Ubuntu 24.04, git, Node 22 with pnpm, Python 3 with uv and Docke
 - `environment_already_open`: that title is open with another repo. Pick another title.
 - `environment_in_use`: another chat holds that title. Pick another. `take_over=true` only when the
   message says it is quiet and that chat is done with it.
-- `environment_limit`: close one, ask for fewer `hours`, or tell the human.
-- `environment_not_ready`: call `environment()` until `ready`. Do not open another one.
+- `environment_full`: open waits for a free one. `environment_limit`: fewer `hours`, or tell the human.
+- `environment_not_ready`: `environment(on=...)` waits for `ready`; do not open another.
 - `environment_failed`: it did not start; its `fix:` line says what next.
 - `save_failed`: the VM is still there. Try once, then tell the human.
 - `restore_failed`: tell the human; keep the save. `save_limit`: forget old saves.

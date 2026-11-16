@@ -62,6 +62,18 @@ def install(home: Path) -> str:
     return "updated" if before == "outdated" else "installed"
 
 
+def refresh(home: Path) -> str | None:
+    """After an update: the installed agentos skills brought up to this agentos's copies (install, which
+    keeps a file someone else wrote under our name). Only where agentos installed them before (one of
+    ours is there): a person who never installed them, or removed them, gets none. None: nothing to do.
+    The local service runs it when it starts (agentos.local.cli serve)."""
+    dest = skills_dir(home)
+    present = [n for n in NAMES if (dest / n / "SKILL.md").is_file() and ours((dest / n / "SKILL.md").read_text(), n)]
+    if not present or state(home) == "installed":
+        return None
+    return install(home)
+
+
 def remove(home: Path) -> list[str]:
     removed = []
     for name in NAMES:

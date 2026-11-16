@@ -84,12 +84,26 @@ LANE_DELETE_TRIES, LANE_DELETE_WAIT_S = 3, 1.0  # a browser still exiting holds 
 SWEEP_RECENT, SWEEP_WINDOW = 100, timedelta(days=1)
 REPO_CHECK_WAITS_S = (2.0, 4.0, 8.0)  # between tries of a repository check the host did not answer: ~15 s
 REPO_RETRY_TIMEOUT_S = 10.0           # each try after the first
+SLOT_POLL_S = 5.0                     # a full node: environment_open looks again this often, up to its wait_s
+READY_WAIT_S = 60.0                   # environment(on) of a machine still starting waits for ready this long
 
 
-def unsaved_fix(unsaved: dict) -> str:
-    """What to do about unsaved work, for the files git has and for the ones it has not."""
+BUNDLE = "/work/unpushed.bundle"
+
+
+def unsaved_fix(unsaved: dict, workdir: str | None = None) -> str:
+    """What to do about unsaved work, for the files git has and for the ones it has not. Commits that
+    are only local can also go home without a push (the human said not to push): a git bundle of them,
+    through environment_download."""
     git = unsaved.get("dirty_files") or unsaved.get("unpushed") or unsaved.get("stashes") or unsaved.get("unreadable")
     steps = ["commit it and push every branch (git push origin <branch>; a stash goes onto a branch first)"] if git else []
+    if unsaved.get("unpushed"):
+        steps.append("to keep the commits without a push, run git bundle create "
+                     f"{BUNDLE} --branches --not --remotes" + (f" in {workdir}" if workdir else "")
+                     + f", take it home with environment_download(path=\"{BUNDLE}\"), then close with discard=true")
+    elif unsaved.get("dirty_files"):
+        steps.append("to keep the changes without a push, take them home with environment_download(path=\"<file or "
+                     "folder>\"), then close with discard=true")
     if unsaved.get("loose_files"):
         steps.append("take the files in no repository home with environment_download(path=\"<file or folder>\"), "
                      "or push them in a repository")
@@ -145,6 +159,9 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
         self._reap_lock = asyncio.Lock()  # the reaper's loop and a catch-up after a wake never overlap
         self.repo_probe: Any = None  # how check_repo reads a repository (None: `git ls-remote`; tests set one)
         self.repo_check_waits: tuple[float, ...] = REPO_CHECK_WAITS_S
+        self.slot_poll_s = SLOT_POLL_S  # environment_open looks for a free machine this often while the node is full
+        self.slot_wait_s = 200.0  # and waits at most this long (its wait_s, up to tools.WAIT_MAX_S; tests set less)
+        self.ready_wait_s = READY_WAIT_S  # environment(on) of a starting machine waits this long for ready
         self.on_laptop = False  # agentos local sets it: the agent is on this computer (ports, sshaccess)
         self._ssh_failed: set[str] = set()
 
@@ -478,7 +495,7 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
         async with self._lock("create"):
             live = [e for e in self.open_for_family(env.family) if same_title(e.title, title) and e.state in LIVE_STATES]
             if live:  # opened meanwhile with this title (another process): never a second machine
-                raise self.in_use(live[0], now)
+                raise self.in_use(live[0], now, session=is_session(binding))
             if self.store.has(env_id):
                 raise LaneExists(f"environment {env_id} exists already")
             if keep == "live":
@@ -525,7 +542,7 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
                 unsaved = self.unsaved_of(repos)
                 if unsaved is not None:
                     raise UnsavedWork(f"environment {env.id} has work that is not saved: "
-                                      f"{self.unsaved_words(unsaved)}. {unsaved_fix(unsaved)}", unsaved)
+                                      f"{self.unsaved_words(unsaved, most=3)}. {unsaved_fix(unsaved, env.workdir)}", unsaved)
             task = self._tasks.get(env_id)
             if task is not None and task is not asyncio.current_task():
                 task.cancel()

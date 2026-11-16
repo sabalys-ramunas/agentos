@@ -55,8 +55,9 @@ carries one of these codes:
 | [`environment_already_open`](#environment_already_open) | The title names an open environment of this agent that has another repository than the one asked for. A title names one computer, so nothing was opened. | no |
 | [`environment_choice`](#environment_choice) | environment_open was given a repository and no title, and this agent has several open or saved environments for that repository. | no |
 | [`environment_failed`](#environment_failed) | An environment's machine did not come up: it did not answer SSH, or its setup failed. Its VM was deleted, so nothing bills for it. | no |
-| [`environment_in_use`](#environment_in_use) | Another chat of the same agent holds the live machine with this title. Only one chat reaches a machine at a time, so nothing was opened. take_over=true moves it only once that chat has made no call for take_over_minutes (10 by default). | no |
-| [`environment_limit`](#environment_limit) | Opening or extending it would pass a node limit (it never asks a person): open at once (3 by default), the longest life (8 hours), or the month's budget (EUR 50). The message says which. | no |
+| [`environment_full`](#environment_full) | The node already runs as many machines as it allows at once (environments.toml max_live, 3 by default; one still being deleted counts). vms.toml max_live is never below it: one count. Nothing was opened. | yes, after 60 s |
+| [`environment_in_use`](#environment_in_use) | The chat that opened the live machine with this title holds it (with no session id, it may be this chat). Nothing was opened. take_over=true moves it once that chat made no call for take_over_minutes (10). | no |
+| [`environment_limit`](#environment_limit) | Opening or extending it would pass a node limit (it never asks a person): the longest life (8 hours), the biggest size, or the month's budget (EUR 50). The message says which. Machines at once is environment_full. | no |
 | [`environment_not_ready`](#environment_not_ready) | This chat has an environment, but the call cannot reach it right now: its machine is still starting, it is closing, or its tunnel is down because the node restarted or the connection dropped. Nothing ran on the node in its place. | yes, after 30 s |
 | [`error`](#error) | Something failed that has no more specific code. | no |
 | [`export_failed`](#export_failed) | A workspace export could not be written. | yes, once the cause is fixed |
@@ -643,21 +644,30 @@ An environment's machine did not come up: it did not answer SSH, or its setup fa
 - **Agent, when the reason is `setup`:** The machine did not finish its setup and was deleted. Open once more with environment_open; if it fails again, stop and tell the user what the message says.
 - **Raised by:** `agentos.environments.errors.EnvironmentFailed`
 
+## environment_full
+
+The node already runs as many machines as it allows at once (environments.toml max_live, 3 by default; one still being deleted counts). vms.toml max_live is never below it: one count. Nothing was opened.
+
+- **Agent:** Wait and call environment_open again (it waits up to wait_s for a free machine; the message says when one may free), or close one of yours you no longer need with environment_close(on=...). Never another chat's.
+- **You:** Close environments with `agentos environments close ID`, or raise the count with `agentos environments allow --max-live N` (the VM limit in vms.toml follows it).
+- **Retry:** yes, after 60 s
+- **Raised by:** `agentos.environments.errors.EnvironmentFull`
+
 ## environment_in_use
 
-Another chat of the same agent holds the live machine with this title. Only one chat reaches a machine at a time, so nothing was opened. take_over=true moves it only once that chat has made no call for take_over_minutes (10 by default).
+The chat that opened the live machine with this title holds it (with no session id, it may be this chat). Nothing was opened. take_over=true moves it once that chat made no call for take_over_minutes (10).
 
-- **Agent:** Do not retry the same call. Open your own with another title, like the one the message names. Use take_over=true only when the message says the machine is quiet and that chat is done with it: its work stays on it.
+- **Agent:** Do not retry the same call. If you opened it, use its on: environment(on=...) waits for ready. Else open your own with another title. take_over=true only when the message says it is quiet and that chat is done.
 - **You:** Nothing to fix: `agentos environments list` shows who has which. take_over_minutes in environments.toml sets the quiet time.
 - **Retry:** no
 - **Raised by:** `agentos.environments.errors.EnvironmentInUse`
 
 ## environment_limit
 
-Opening or extending it would pass a node limit (it never asks a person): open at once (3 by default), the longest life (8 hours), or the month's budget (EUR 50). The message says which.
+Opening or extending it would pass a node limit (it never asks a person): the longest life (8 hours), the biggest size, or the month's budget (EUR 50). The message says which. Machines at once is environment_full.
 
-- **Agent:** Ask for fewer hours or a smaller size, or tell the user which limit it was. Close only an environment you opened yourself and no longer need; another chat of yours may work in the others.
-- **You:** Close environments with `agentos environments close ID`, or raise the limit the message names with `agentos environments allow --max-live N`, `--max-hours H` or `--monthly-eur E` (vms.toml holds the VM limits too).
+- **Agent:** Ask for fewer hours or a smaller size, as the message says, or tell the user which limit it was. For the monthly budget, closing one you opened yourself and no longer need helps too; never one another chat works in.
+- **You:** Raise the limit the message names with `agentos environments allow --max-hours H`, `--max-size S` or `--monthly-eur E` (vms.toml holds the VM limits too), or close environments with `agentos environments close ID`.
 - **Retry:** no
 - **Raised by:** `agentos.environments.errors.EnvironmentLimit`
 
@@ -665,7 +675,7 @@ Opening or extending it would pass a node limit (it never asks a person): open a
 
 This chat has an environment, but the call cannot reach it right now: its machine is still starting, it is closing, or its tunnel is down because the node restarted or the connection dropped. Nothing ran on the node in its place.
 
-- **Agent:** Call environment() until it says ready (the node starts the tunnel again within a minute), then call again. Do not open another environment for this.
+- **Agent:** Call environment(on="<your on>") with the on your environment_open gave: it waits up to a minute for ready (the node starts a tunnel again within a minute), then call again. Do not open another environment for this.
 - **You:** If it does not come back, `agentos environments show ID` shows its state, and `agentos logs --level warn --since 10m` why the tunnel does not start.
 - **Retry:** yes, after 30 s
 - **Raised by:** `agentos.environments.errors.EnvironmentNotReady`
@@ -1831,7 +1841,7 @@ A service this request needs is not set up or not running on this node.
 
 The environment has changes that are not committed, or commits that are not pushed, so it was not closed. The message lists them.
 
-- **Agent:** Commit and push the work (git push origin <branch>), then close again. Pass discard=true only when the user agreed to lose it.
+- **Agent:** Commit and push it (git push origin <branch>), then close again. Not to push: keep it with environment_download as the message says, then discard=true. Else discard=true only when the user agreed to lose it.
 - **You:** Look at it with `agentos environments show ID`; close it anyway with `agentos environments close ID --discard`.
 - **Retry:** no
 - **Raised by:** `agentos.environments.errors.UnsavedWork`

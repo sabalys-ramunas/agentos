@@ -46,9 +46,11 @@ BROWSER = frozenset({
 })
 STUDIO = frozenset({"ui_check", "ui_diff", "ui_baseline", "system_check"})
 
-# tools that are not routed without `on` (lane_jobs_list lists every run the caller may see), whose `on`
-# may still name an environment: its handle becomes its terminal lane, and the lease is checked
-ON_ONLY = frozenset({"lane_jobs_list"})
+# tools that are not routed without `on` (lane_jobs_list lists every run the caller may see; a job id
+# finds its own lane), whose `on` may still name an environment: its handle becomes its terminal lane,
+# and the lease is checked. The job tools take `on` because agents are told to pass it on every call
+# (round 3, T2: "lane_job_read has no argument 'on'"); the handler checks it is the job's lane.
+ON_ONLY = frozenset({"lane_jobs_list", "lane_job_read", "lane_job_cancel"})
 
 LANE_ARG_TEXT = "The on your environment_open gave, or an account lane \"workspace/name\"."
 
@@ -150,23 +152,24 @@ def route(runtime: Any, tool: str, kwargs: dict[str, Any], *, session: str | Non
     else:
         env = svc.pick(binding(session, grant_id), family, kind)
     if env.state == "starting":
-        not_yet(env)
+        clock = getattr(svc, "_clock", None)
+        not_yet(env, clock() if callable(clock) else None)
     kwargs["on"] = env.browser_lane if kind == "browser" else env.terminal_lane
     return env
 
 
-def not_yet(env: Any) -> None:
+def not_yet(env: Any, now: Any = None) -> None:
     """A call to a machine that is still starting runs nothing: it could race the bring-up (a git
     command while the repository is still being cloned breaks the clone) or find half a machine.
     environment_not_ready says what the bring-up does now and how long it has taken."""
-    from agentos.environments.bringup import doing
+    from agentos.core.models import utcnow
+    from agentos.environments.bringup import starting_words
     from agentos.environments.errors import EnvironmentNotReady
 
-    now = doing(env.id)
-    raise EnvironmentNotReady(f"environment {env.id} is still starting" + (f": {now}" if now else "") + ". Nothing ran: a "
-                              "call now could race its setup (a git command while the repository is cloned breaks "
-                              "the clone). Wait with environment(on=...), which says ready when it is; do not open "
-                              "another one")
+    raise EnvironmentNotReady(f"environment {env.id} is {starting_words(env, now or utcnow())}. Nothing ran: a call "
+                              "now could race its setup (a git command while the repository is cloned breaks the "
+                              "clone). Wait with environment(on=\"<your on>\"): it waits up to a minute and says "
+                              "ready when it is; do not open another one")
 
 
 def _summary(tool: str, kwargs: dict[str, Any]) -> str:

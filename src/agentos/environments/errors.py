@@ -30,9 +30,20 @@ class UnsavedWork(AgentosError):
 
 
 class EnvironmentLimit(AgentosError):
-    """Opening one more environment would pass a limit of this node: how many at once, how long one
-    lives, or the money it may spend in a month."""
+    """Opening one more environment would pass a limit of this node: how long one lives, how big it
+    is, or the money it may spend in a month."""
     code = "environment_limit"
+
+
+class EnvironmentFull(EnvironmentLimit):
+    """The node already runs as many machines as its count limit allows (environments.toml max_live;
+    vms.toml max_live is never below it, so it is the one count). Waiting helps: `retry_after` is the
+    seconds until the soonest one may free, for the MCP error's retry_after line."""
+    code = "environment_full"
+
+    def __init__(self, message: str, *, retry_after: int | None = None):
+        super().__init__(message)
+        self.retry_after = retry_after
 
 
 class EnvironmentNotReady(AgentosError):

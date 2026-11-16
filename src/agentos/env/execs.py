@@ -7,6 +7,7 @@ import base64
 import signal as _signal
 from typing import Any, BinaryIO
 
+from agentos.env import oom
 from agentos.env.lanes import LaneRuntime, new_wid, wait_exit
 from agentos.env.models import ExecResult
 from agentos.env.sandbox import Workload
@@ -102,7 +103,7 @@ def encode_output(cap: Capture) -> tuple[str, str]:
         return base64.b64encode(head + tail).decode(), "base64"
 
 
-async def _pump(stream: asyncio.StreamReader | None, cap: Capture) -> None:
+async def _pump(stream: asyncio.StreamReader | None, cap: Capture, signs: oom.Signs | None = None) -> None:
     if stream is None:
         return
     while True:
@@ -110,6 +111,8 @@ async def _pump(stream: asyncio.StreamReader | None, cap: Capture) -> None:
         if not data:
             return
         cap.feed(data)
+        if signs is not None:
+            signs.feed(data)
 
 
 def exit_status(rt: LaneRuntime, rc: int | None) -> tuple[int | None, str | None]:
@@ -154,8 +157,9 @@ async def run(rt: LaneRuntime, argv: list[str], *, timeout_s: float, stdin: byte
     `budget`, when given, bounds both together (fit). `stdout_file` (an open file) takes all of
     stdout instead, for output too large to hold (an archive out of the lane): past `stdout_limit`
     bytes the workload is ended, nothing more is written, and the result has stdout_bytes over the
-    limit and truncated set. `oom_check`: on a VM, a command that failed says what the kernel killed
-    for memory while it ran (`oom`, agentos.env.oom)."""
+    limit and truncated set. `oom_check`: on a VM, a command that failed, or printed a sign of a kill
+    (a "Killed" line, an exit code 137: agentos.env.oom.Signs), says what the kernel killed for memory
+    while it ran (`oom`), at the cost of one more ssh call in those cases only."""
     loop = asyncio.get_running_loop()
     oom_before = rt.stat().get("oom_kills", 0)
     wl = Workload(new_wid("i" if install else "x"), argv, rt.base_env(env), cwd=cwd, install=install,
@@ -197,8 +201,9 @@ async def run(rt: LaneRuntime, argv: list[str], *, timeout_s: float, stdin: byte
                 return
             stdout_file.write(data)
 
-    readers = asyncio.gather(to_file() if stdout_file is not None else _pump(proc.stdout, out),
-                             _pump(proc.stderr, err), feed())
+    signs = oom.Signs() if oom_check else None  # a "Killed" line or an exit code 137 in the output
+    readers = asyncio.gather(to_file() if stdout_file is not None else _pump(proc.stdout, out, signs),
+                             _pump(proc.stderr, err, signs), feed())
     timed_out = False
     try:
         try:
@@ -224,7 +229,7 @@ async def run(rt: LaneRuntime, argv: list[str], *, timeout_s: float, stdin: byte
     exit_code, sig_name = exit_status(rt, proc.returncode)
     oom_after = rt.stat().get("oom_kills", 0)
     kills = None
-    if oom_check and (exit_code != 0 or sig_name):
+    if oom_check and (exit_code != 0 or sig_name or (signs is not None and signs.seen)):
         kills = await rt.oom_kills(wl.wid, elapsed_s=duration, final=True)
     if budget is not None:
         out, err = fit(out, err, budget)

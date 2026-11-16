@@ -286,6 +286,33 @@ async def test_the_catch_up_at_start_says_nothing_was_past_its_limit(local):
     assert wake.note(record).startswith("The service started at ")
 
 
+async def test_status_right_after_a_start_names_this_start_not_the_one_before(local):
+    """`agentos local status` right after a restart said "The service started at" the start before (seen twice
+    on 2026-11-16): the record was written only when the reapers were done, and they can take minutes."""
+    import asyncio
+    import json
+
+    old = {"at": "2026-11-15T10:00:00+00:00", "reason": "started", "slept_s": None, "closed": [], "saved": [],
+           "kept": [], "vms_deleted": [], "errors": []}
+    wake.catch_up_path(local["home"]).write_text(json.dumps(old))
+    await opened(local)
+    vms = local["rt"].get("vms")
+    held = asyncio.Event()
+
+    async def slow_firewall():
+        await held.wait()
+
+    vms.refresh_firewall = slow_firewall  # the reapers' first step takes a while
+    run = asyncio.create_task(wake.CatchUp(local["rt"], local["home"]).run("started"))
+    await asyncio.sleep(0.05)
+    during = wake.read_last(local["home"])
+    assert during["at"] != old["at"] and during["running"] is True
+    assert wake.note(during).endswith("and it is checking the environments now (their time limits and the VMs).")
+    held.set()
+    done = await run
+    assert "running" not in wake.read_last(local["home"]) and wake.read_last(local["home"]) == done
+
+
 async def test_a_wake_moves_the_firewall_before_the_tunnels_come_back(local):
     await opened(local)
     local["where"].ips = [CAFE_V4]

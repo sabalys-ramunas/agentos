@@ -115,13 +115,19 @@ class Views:
         return out
 
     @staticmethod
-    def unsaved_words(unsaved: dict) -> str:
-        """What unsaved_of found, for an error or a notification."""
+    def unsaved_words(unsaved: dict, most: int = 10) -> str:
+        """What unsaved_of found, for an error or a notification (`most` files and commits of each)."""
         parts = []
+
+        def more(items: list) -> str:
+            return f" and {len(items) - most} more" if len(items) > most else ""
+
         if unsaved.get("dirty_files"):
-            parts.append("changed or new files: " + ", ".join(unsaved["dirty_files"][:10]))
+            files = unsaved["dirty_files"]
+            parts.append("changed or new files: " + ", ".join(files[:most]) + more(files))
         if unsaved.get("unpushed"):
-            parts.append("commits not on a remote: " + "; ".join(unsaved["unpushed"][:10]))
+            commits = unsaved["unpushed"]
+            parts.append("commits not on a remote: " + "; ".join(c[:80] for c in commits[:most]) + more(commits))
         if unsaved.get("stashes"):
             parts.append("stashes: " + "; ".join(unsaved["stashes"][:5]))
         if unsaved.get("unreadable"):

@@ -84,10 +84,14 @@ def serve_command(home: Path) -> list[str]:
 
 
 def service_env(home: Path) -> dict[str, str]:
-    """The service's environment: this home, and the PATH of the shell that ran `start` (launchd and
-    systemd give a bare one, and the node runs ssh, git and docker)."""
-    return {"AGENTOS_HOME": str(home), "PATH": os.environ.get("PATH", "/usr/bin:/bin:/usr/sbin:/sbin"),
-            "PYTHONUNBUFFERED": "1"}
+    """The service's environment: this home, the PATH of the shell that ran `start` (launchd and
+    systemd give a bare one, and the node runs ssh, git and docker), and Claude Code's folder when it is
+    not the default."""
+    env = {"AGENTOS_HOME": str(home), "PATH": os.environ.get("PATH", "/usr/bin:/bin:/usr/sbin:/sbin"),
+           "PYTHONUNBUFFERED": "1"}
+    if os.environ.get("CLAUDE_CONFIG_DIR"):  # where Claude Code keeps its skills, which the service refreshes
+        env["CLAUDE_CONFIG_DIR"] = os.environ["CLAUDE_CONFIG_DIR"]
+    return env
 
 
 class Manager(Protocol):

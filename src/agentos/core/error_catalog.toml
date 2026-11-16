@@ -318,18 +318,25 @@ agent = "Do not call it again the same way. For this repository, use another tit
 fix = "Nothing to fix: a title names one computer. `agentos environments list` shows the open ones."
 
 [environment_in_use]
-meaning = "Another chat of the same agent holds the live machine with this title. Only one chat reaches a machine at a time, so nothing was opened. take_over=true moves it only once that chat has made no call for take_over_minutes (10 by default)."
-agent = "Do not retry the same call. Open your own with another title, like the one the message names. Use take_over=true only when the message says the machine is quiet and that chat is done with it: its work stays on it."
+meaning = "The chat that opened the live machine with this title holds it (with no session id, it may be this chat). Nothing was opened. take_over=true moves it once that chat made no call for take_over_minutes (10)."
+agent = "Do not retry the same call. If you opened it, use its on: environment(on=...) waits for ready. Else open your own with another title. take_over=true only when the message says it is quiet and that chat is done."
 fix = "Nothing to fix: `agentos environments list` shows who has which. take_over_minutes in environments.toml sets the quiet time."
 
+[environment_full]
+meaning = "The node already runs as many machines as it allows at once (environments.toml max_live, 3 by default; one still being deleted counts). vms.toml max_live is never below it: one count. Nothing was opened."
+agent = "Wait and call environment_open again (it waits up to wait_s for a free machine; the message says when one may free), or close one of yours you no longer need with environment_close(on=...). Never another chat's."
+fix = "Close environments with `agentos environments close ID`, or raise the count with `agentos environments allow --max-live N` (the VM limit in vms.toml follows it)."
+retryable = true
+retry_after = 60
+
 [environment_limit]
-meaning = "Opening or extending it would pass a node limit (it never asks a person): open at once (3 by default), the longest life (8 hours), or the month's budget (EUR 50). The message says which."
-agent = "Ask for fewer hours or a smaller size, or tell the user which limit it was. Close only an environment you opened yourself and no longer need; another chat of yours may work in the others."
-fix = "Close environments with `agentos environments close ID`, or raise the limit the message names with `agentos environments allow --max-live N`, `--max-hours H` or `--monthly-eur E` (vms.toml holds the VM limits too)."
+meaning = "Opening or extending it would pass a node limit (it never asks a person): the longest life (8 hours), the biggest size, or the month's budget (EUR 50). The message says which. Machines at once is environment_full."
+agent = "Ask for fewer hours or a smaller size, as the message says, or tell the user which limit it was. For the monthly budget, closing one you opened yourself and no longer need helps too; never one another chat works in."
+fix = "Raise the limit the message names with `agentos environments allow --max-hours H`, `--max-size S` or `--monthly-eur E` (vms.toml holds the VM limits too), or close environments with `agentos environments close ID`."
 
 [environment_not_ready]
 meaning = "This chat has an environment, but the call cannot reach it right now: its machine is still starting, it is closing, or its tunnel is down because the node restarted or the connection dropped. Nothing ran on the node in its place."
-agent = "Call environment() until it says ready (the node starts the tunnel again within a minute), then call again. Do not open another environment for this."
+agent = "Call environment(on=\"<your on>\") with the on your environment_open gave: it waits up to a minute for ready (the node starts a tunnel again within a minute), then call again. Do not open another environment for this."
 fix = "If it does not come back, `agentos environments show ID` shows its state, and `agentos logs --level warn --since 10m` why the tunnel does not start."
 retryable = true
 retry_after = 30
@@ -947,7 +954,7 @@ engine_missing = "The browser engine this call needs is not installed. Tell the 
 
 [unsaved_work]
 meaning = "The environment has changes that are not committed, or commits that are not pushed, so it was not closed. The message lists them."
-agent = "Commit and push the work (git push origin <branch>), then close again. Pass discard=true only when the user agreed to lose it."
+agent = "Commit and push it (git push origin <branch>), then close again. Not to push: keep it with environment_download as the message says, then discard=true. Else discard=true only when the user agreed to lose it."
 fix = "Look at it with `agentos environments show ID`; close it anyway with `agentos environments close ID --discard`."
 
 [which_environment]

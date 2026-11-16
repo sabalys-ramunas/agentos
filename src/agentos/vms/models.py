@@ -34,6 +34,11 @@ class VmLimit(AgentosError):
     code = "vm_limit"
 
 
+class VmFull(VmLimit):
+    """The node already has as many VMs as max_live allows (an environment's open says it as
+    environment_full)."""
+
+
 Arch = Literal["x86", "arm", "any"]
 CpuType = Literal["shared", "dedicated", "any"]
 

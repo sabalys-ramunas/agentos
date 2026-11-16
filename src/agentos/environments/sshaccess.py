@@ -8,7 +8,8 @@ reaches the VM over SSH. When an environment is ready the node gives the agent t
   in the machine's authorized_keys with `restrict,pty` and a forced command (AGENT_SSH below). So the
   agent's sessions get a terminal and run what was asked, but forward nothing: no ssh agent (the
   person's own keys never reach the VM), no X11, no port in either direction (a `-R` would let code on
-  the VM reach this computer's loopback, where the node listens). The forced command notes each
+  the VM reach this computer's loopback, where the node listens; `ssh.port_forwards` and a comment in
+  the entry point at environment_port instead, FORWARDS_COMMENT). The forced command notes each
   session in /run/agentos-ssh, which is how the idle rule tells the agent's sessions from the node's
   own (ACTIVITY), since both come from this computer's address;
 - a host entry in AGENTOS_HOME/ssh/config: `Host agentos-<env id>`, the VM's address, user root, that
@@ -49,6 +50,21 @@ WRAPPER = "/usr/local/lib/agentos-env/agent-ssh"
 SESSIONS = "/run/agentos-ssh"
 BEGIN, END = "# >>> agentos environment ", "# <<< agentos environment "
 _ID_OK = re.compile(r"^[a-z0-9]{4,40}$")
+
+# Port forwards stay off on both ends: the machine's key is `restrict` (a -R would let code on the VM
+# reach this computer's loopback, where the node listens), and the entry has ClearAllForwardings, so
+# a forward in the person's own `Host *` is not even tried. ssh then ignores -L silently (exit 0, a
+# local port that refuses: round 3, T3), so the entry and the `ssh` block say it, and what to use.
+# Why not a refusal from ssh itself: ClearAllForwardings clears the command line's forwards and the
+# config's alike, and no option clears only the config's; without it a `Host *` LocalForward or
+# DynamicForward of the person's would bind ports on every session (and ExitOnForwardFailure end it),
+# and the server's refusal ("administratively prohibited") shows only once a connection is made.
+# A LocalCommand that prints a warning would run for every scp and rsync too.
+FORWARDS_COMMENT = ("# Port forwards (ssh -L, -R, -D) are off for this host and are ignored. For a dev server, "
+                    "environment_port(port) gives a local link.")
+FORWARDS_WORDS = ("off: ssh -L, -R and -D do nothing on this host. For a dev server on the machine, "
+                  'tools_call(name="environment_port", arguments={"on": "<your on>", "port": 3000}) gives you a '
+                  "local http://127.0.0.1:<port>/ link")
 
 # The forced command of the agent's key: note the session (its own pid, which the asked command keeps
 # through exec), then run what was asked as sshd would: a login shell, the sftp server (scp uses SFTP
@@ -158,6 +174,7 @@ def entry(env_id: str, remote: Any, key: Path, known_hosts: Path) -> str:
              "  IdentityAgent none",
              "  ForwardAgent no",
              "  ForwardX11 no",
+             f"  {FORWARDS_COMMENT}",
              "  ClearAllForwardings yes",
              f"  HostKeyAlias {name}",
              f"  UserKnownHostsFile {_q(str(known_hosts))}",
@@ -321,7 +338,8 @@ def ssh_field(home: Path, env: Environment) -> dict:
     return {"host": host, "command": f"{ssh} {host}",
             "examples": [f"{ssh} {host} 'cd {w} && pnpm test'",
                          f"{rsync} --exclude node_modules --exclude .git ./ {host}:{w}/",
-                         f"{scp} {host}:{w}/dist.tgz ."]}
+                         f"{scp} {host}:{w}/dist.tgz ."],
+            "port_forwards": FORWARDS_WORDS}
 
 
 # ------------------------------------------------------------------ the manager's side

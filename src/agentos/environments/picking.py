@@ -201,19 +201,27 @@ class Picking:
         """pick, with None for no environment (which_environment still raises)."""
         if is_session(binding):
             return self.bound(binding, family)
-        if [e for e in self.open_for_family(family) if not is_let_go(e)]:
-            raise self.needs_on(kind)
+        held = [e for e in self.open_for_family(family) if not is_let_go(e)]
+        if held:
+            raise self.needs_on(kind, [e.title for e in held])
         return None
 
     @staticmethod
-    def needs_on(kind: str | None = None) -> WhichEnvironment:
+    def needs_on(kind: str | None = None, titles: list[str] | None = None) -> WhichEnvironment:
+        """which_environment for a call without `on` from a client with no session id. `titles`: the
+        agent's open machines (titles only, never a handle: agentos cannot tell which is this chat's)."""
         lanes = (" A logged-in account lane the human made always needs `on` too (on=\"personal/reddit\"; "
                  "lanes_list lists them).") if kind == "browser" else ""
+        shown = titles[:OPENS_LISTED] if titles else []
+        names = ", ".join(f"\"{t}\"" for t in shown) + (" and more" if titles and len(titles) > len(shown) else "")
+        mine = (f" Your agent has {len(titles)} machine{'s' if len(titles) != 1 else ''} open: {names}; if one is "
+                "this chat's, call again with its on. If none is, environment_open(title=...) with a new title opens "
+                "your own." if titles else " No machine in this chat yet? environment_open(title=...) with a new "
+                "title opens your own.")
         return WhichEnvironment(
             "this client sends no session id, so agentos cannot tell your chats apart, and a call without `on` "
             "never goes to a machine. Keep the on your environment_open gave and pass it on every call: "
-            "on=\"<that on>\". No machine in this chat yet, or lost it? environment_open(title=...) with a new "
-            "title opens your own." + lanes)
+            "on=\"<that on>\"." + mine + lanes)
 
     def no_environment(self, binding: str, family: str | None, kind: str | None = None) -> NoEnvironment:
         """What a call without `on` hears in a chat with no environment: that another chat took it
@@ -273,31 +281,49 @@ class Picking:
     def _repo_words(repo: str | None) -> str:
         return repo if repo else "no repository"
 
-    def use_words(self, env: Environment, now: datetime) -> str:
-        """Who has a machine, for a list shown to a chat that does not hold it (never its handle)."""
+    def use_words(self, env: Environment, now: datetime, *, session: bool = False) -> str:
+        """Who has a machine, for a list shown to a chat that does not hold it (never its handle).
+        `session`: the caller sends a session id, so a machine it does not hold is another chat's;
+        without one agentos cannot tell, and the caller's own machines are in the list too."""
         if is_let_go(env):
             return f"let go: environment_open(title=\"{env.title}\") takes it"
         quiet = now - env.last_activity()
         if quiet >= self.take_over_after():
             return (f"quiet for {_minutes(quiet)} min: environment_open(title=\"{env.title}\", take_over=true) "
                     "takes it over")
-        return f"in use by another chat (last call {_minutes(quiet)} min ago)"
+        if session:
+            return f"in use by another chat (last call {_minutes(quiet)} min ago)"
+        return (f"held by the chat that opened it (if that is you, pass the on your environment_open gave), last "
+                f"call {_minutes(quiet)} min ago")
 
-    def in_use(self, env: Environment, now: datetime) -> EnvironmentInUse:
+    def in_use(self, env: Environment, now: datetime, *, session: bool = False,
+               take_over: bool = False) -> EnvironmentInUse:
         """environment_open of a title another chat holds: refused, with how to open one's own, and
-        when take_over=true would work."""
+        when take_over=true would work (`take_over`: the call asked for it, too early). `session`: the
+        caller sends a session id, so the holder is surely another chat; without one it may be this one."""
         last = env.last_activity()
         quiet, limit = now - last, self.take_over_after()
-        words = (f"\"{env.title}\" is in use by another chat of your agent (environment {env.id}, its last call "
-                 f"{_when(last)}, {_minutes(quiet)} min ago). Only the chat that holds a machine reaches it, so "
-                 f"nothing was opened. Open your own with another title: environment_open(title=\"{env.title} 2\").")
+        when = f"environment {env.id}, its last call {_when(last)}, {_minutes(quiet)} min ago"
+        if session:
+            words = (f"\"{env.title}\" is in use by another chat of your agent ({when}). Only the chat that holds a "
+                     "machine reaches it, so nothing was opened. ")
+        else:
+            words = (f"\"{env.title}\" is held by the chat that opened it ({when}), and nothing was opened. If that "
+                     "is you, use the on your environment_open gave: environment(on=\"<your on>\") shows it and "
+                     "waits for ready. If not, ")
+        words += f"open your own with another title: environment_open(title=\"{env.title} 2\")."
         if quiet >= limit:
             words += (f" It has been quiet for {_minutes(quiet)} min: if that chat is done with it, "
                       f"environment_open(title=\"{env.title}\", take_over=true) takes it over with its work on it.")
         else:
             left = max(1, math.ceil((limit - quiet).total_seconds() / 60))
-            words += (f" If that chat is gone, environment_open(title=\"{env.title}\", take_over=true) takes it over "
-                      f"once it has made no call for {_minutes(limit)} min ({left} min from now).")
+            at = _when(last + limit).split(" ", 1)[1]
+            if take_over:
+                words += (f" take_over=true was seen, and it works only once that chat has made no call for "
+                          f"{_minutes(limit)} min: from {at} ({left} min from now).")
+            else:
+                words += (f" If that chat is gone, environment_open(title=\"{env.title}\", take_over=true) takes it "
+                          f"over once it has made no call for {_minutes(limit)} min ({left} min from now).")
         return EnvironmentInUse(words)
 
     def reattach(self, binding: str, title: str, family: str | None, repo: str | None = None, *,
@@ -314,7 +340,7 @@ class Picking:
             return env, "attached"
         now = self._clock()
         if not take_over or now - env.last_activity() < self.take_over_after():
-            raise self.in_use(env, now)
+            raise self.in_use(env, now, session=is_session(binding), take_over=take_over)
         return env, "taken_over"
 
     def _titled(self, title: str, family: str | None, repo: str | None) -> Environment | None:

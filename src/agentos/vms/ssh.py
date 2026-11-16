@@ -81,9 +81,9 @@ def remote_command(wl: Workload) -> str:
     f = pgid_file(wl.wid)
     # after the command, what it left in the background ends too (the shell ignores the TERM it sends)
     record = keep = ""
-    if wl.oom_record:  # the start record (agentos.env.oom) stays after a failure, for the node to read and remove
+    if wl.oom_record:  # the start record (agentos.env.oom) stays after a failure or an oom kill, for the node
         s = oom.start_file(PGID_DIR, wl.wid)
-        record, keep = f"{oom.record(s)}; ", f"[ $rc -ne 0 ] || rm -f {s}; "
+        record, keep = f"{oom.record(s)}; ", oom.keep(s)
     group = shlex.quote(f'echo $$ > {f}; {record}"$@"; rc=$?; trap "" TERM; kill -s TERM -- -$$ 2>/dev/null; '
                         f'rm -f {f}; {keep}exit $rc')
     return f"mkdir -p {PGID_DIR} && {cd} && exec setsid -w sh -c {group} sh {run}"

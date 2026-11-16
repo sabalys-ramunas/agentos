@@ -10,6 +10,7 @@ on a Unix socket here."""
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 import os
 import struct
@@ -22,7 +23,7 @@ import pytest
 from test_environments_saves import REPO, TITLE, disk, node, opened, work_on_it  # noqa: F401 - the fixture
 
 from agentos.core.errors import InvalidRequest, PolicyDenied
-from agentos.environments import comeback, ports, pulls, signins
+from agentos.environments import comeback, ports, pulls, saving, signins
 from agentos.environments.saves import open_payload
 from agentos.git import keys as keymod
 from agentos.git import login
@@ -84,6 +85,70 @@ async def test_nothing_restarts_lists_the_lost_jobs(node, monkeypatch):
     again = await node["call"]("environment_open", title=TITLE, session="chat-2")
     assert again["resumed"]["running_jobs_lost"] == ["pnpm dev --port 5321 (port 5321)"]
     assert again["resumed"]["services"][0]["restart"].startswith('lane_job_start(cmd="pnpm dev --port 5321"')
+
+
+# scripts.LISTENING's lines from ubuntu:24.04 in docker (2026-11-16): a job started the way agentos
+# starts one (port 3000, under the node's workload shell), a server left running with nohup (port 4000),
+# and one outside /work (port 5000, not listed)
+PROCS = [
+    "3000 0 L3dvcmsvYXBw cHl0aG9uMwAtbQBodHRwLnNlcnZlcgAzMDAwAA==",
+    "3000 1 L3dvcmsvYXBw L2Jpbi9zaAAtYwBjZCAnL3dvcmsvYXBwJyAmJiBweXRob24zIC1tIGh0dHAuc2VydmVyIDMwMDAA",
+    "3000 2 L3Jvb3Q= c2gALWMAZWNobyAkJCA+IC90bXAvYWdlbnRvcy13bC9qLWRldjEucGdpZDsgIiRAIjsgcmM9JD87IHRyYXAgIiIgVEVSTTsga2lsbCAtcyBURVJNIC0tIC0kJCAyPi9kZXYvbnVsbDsgcm0gLWYgL3RtcC9hZ2VudG9zLXdsL2otZGV2MS5wZ2lkOyBleGl0ICRyYwBzaAAvYmluL3NoAC1jAGNkICcvd29yay9hcHAnICYmIHB5dGhvbjMgLW0gaHR0cC5zZXJ2ZXIgMzAwMAA=",
+    "4000 0 L3dvcmsvb3RoZXI= cHl0aG9uMwAtbQBodHRwLnNlcnZlcgA0MDAwAA==",
+]
+
+
+def test_what_listens_in_work_gives_the_command_that_was_started():
+    assert comeback.listening(PROCS) == [
+        {"cmd": "python3 -m http.server 3000", "cwd": "/work/app", "port": 3000},   # the job, as it was started
+        {"cmd": "python3 -m http.server 4000", "cwd": "/work/other", "port": 4000},
+    ]
+    assert comeback.listening(["junk", "3000 0 !!! ???", ""]) == []
+    # a login shell and sshd above it are not the command; a process title ("npm run dev") is kept whole
+    def line(port, depth, cwd, *argv):
+        return f"{port} {depth} {base64.b64encode(cwd.encode()).decode()} " + base64.b64encode(
+            b"\0".join(a.encode() for a in argv) + b"\0").decode()
+    chain = [line(5173, 0, "/work/shop", "node", "/work/shop/node_modules/.bin/vite"),
+             line(5173, 1, "/work/shop", "npm run dev"), line(5173, 2, "/work/shop", "-bash"),
+             line(5173, 3, "/", "sshd-session: root@pts/0")]
+    assert comeback.listening(chain) == [{"cmd": "npm run dev", "cwd": "/work/shop", "port": 5173}]
+
+
+def test_a_listener_a_job_has_is_that_jobs():
+    from agentos.environments.saves import Service
+
+    jobs = [Service(cmd="python3 -m http.server 3000", cwd="/work/app", port=None),
+            Service(cmd="pnpm dev --port 5173", cwd="/work/shop", port=5173)]
+    found = comeback.listening(PROCS) + [{"cmd": "node vite", "cwd": "/work/shop", "port": 5173}]
+    got = comeback.with_listening(jobs, found, Service)
+    assert [(s.cmd, s.port) for s in got] == [("python3 -m http.server 3000", 3000), ("pnpm dev --port 5173", 5173),
+                                              ("python3 -m http.server 4000", 4000)]
+    assert jobs[0].port is None                                       # the node's own list is left as it was
+
+
+async def test_a_dev_server_the_node_lost_track_of_comes_back_on_resume(node, monkeypatch):
+    """Round 3 (T2): the node restarted while the dev server's job ran, so it had no job to save and the
+    resume started nothing (resumed.services: []). The save now records what listened on the machine."""
+    out = await opened(node, keep="save")
+    real = node["envs"].exec
+
+    async def exec_(lane_id, cmd, **kw):
+        res = await real(lane_id, cmd, **kw)
+        if cmd.startswith("bash -s") and kw.get("stdin") == saving.scripts.SAVE:
+            res = res.model_copy(update={"stdout": res.stdout.replace("ok=1", "\n".join(
+                "proc=" + p for p in PROCS) + "\nok=1")})
+        return res
+
+    monkeypatch.setattr(node["envs"], "exec", exec_)
+    assert node["envs"].job_list(f"env/{out['id']}") == []            # no job the node knows
+    await node["call"]("environment_close")
+    monkeypatch.setattr(node["envs"], "exec", real)
+    again = await node["call"]("environment_open", title=TITLE, session="chat-2")
+    rows = {s["cmd"]: s for s in again["resumed"]["services"]}
+    assert rows["python3 -m http.server 3000"]["cwd"] == "/work/app" and rows["python3 -m http.server 3000"]["running"]
+    assert rows["python3 -m http.server 3000"]["listening"] is True    # the fake machine's ss says 3000 listens
+    assert set(rows) == {"python3 -m http.server 3000", "python3 -m http.server 4000"}
+    assert "running_jobs_lost" not in again["resumed"]
 
 
 def test_restart_call_quotes_the_command():

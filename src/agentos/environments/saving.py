@@ -15,7 +15,8 @@ An environment's `keep` says what happens when the work stops:
 A save is a provider disk snapshot (keep "save", unless `snapshots = false`) plus a file-level part
 that is always made (agentos.environments.saves holds it): the commits and stashes no remote has (git
 bundles), the changed and new files git does not ignore, the deleted paths, the keep_paths folders,
-the services that ran (lane_job_start: command, folder, port) and a resume note. Never saved: process
+the services that ran (lane_job_start: command, folder, port, and what listened in /work, which a
+restarted node no longer knows as a job: comeback.listening) and a resume note. Never saved: process
 memory, the gateway token (a restore mints a new one), the SSH keys, and in the file part anything
 gitignored, .env files, node_modules and anything outside /work and keep_paths.
 
@@ -383,7 +384,11 @@ class Saving:
         with contextlib.suppress(Exception):
             jobs = [j for j in envs.job_list(env.terminal_lane) if j.state == "running"]
         found["jobs"] = jobs
-        found["services"] = services_of(jobs, await self.ports(env) if jobs else [])
+        found["services"] = services_of(jobs, await self.ports(env) if jobs else [])  # stopped and started again
+        from agentos.environments import comeback  # what really listens too: a restarted node lost its jobs
+
+        found["kept_services"] = comeback.with_listening(found["services"], comeback.listening(found["procs"]),
+                                                         Service)
         return found
 
     async def _snapshot(self, env: Environment, sid: str, found: dict, *, resume_after: bool) -> Snapshot:
@@ -443,7 +448,8 @@ class Saving:
 
     async def _commit_save(self, env: Environment, sid: str, tmp: Path, found: dict, kind: str, reason: str,
                            snap: Snapshot | None) -> SaveManifest:
-        restore = {"services": [s.model_dump() for s in found["services"]], "containers": found["containers"],
+        kept = found.get("kept_services", found["services"])
+        restore = {"services": [s.model_dump() for s in kept], "containers": found["containers"],
                    "deleted": found["deleted_paths"]}
         (tmp / "restore.json").write_text(json.dumps(restore))
         from agentos.environments import signins
@@ -471,7 +477,7 @@ class Saving:
             location=rec.location if rec else env.machine.location, browser=env.browser,
             files=found["files"], deleted=sum(len(v) for v in found["deleted_paths"].values()),
             commits=sum(r.commits for r in repos), bytes=size, repos=repos, keep_paths=list(self.settings.keep_paths),
-            services=[Service(cmd=self._scrub(s.cmd, max_len=300), cwd=s.cwd, port=s.port) for s in found["services"]],
+            services=[Service(cmd=self._scrub(s.cmd, max_len=300), cwd=s.cwd, port=s.port) for s in kept],
             containers=found["containers"], own_branches=list(env.own_branches), own_heads=dict(env.own_heads),
             pushed=self._pushed_with_links(env), proofs=self._proof_titles(env), agent_note=env.note,
             encrypted=key is not None, checksums=sums, signins=cookies, keep_signins=env.keep_signins)

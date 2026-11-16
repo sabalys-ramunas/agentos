@@ -1,13 +1,16 @@
-"""An environment's size, life and cost: the VM a plan rents, the node's limits (open at once, the
+"""An environment's size, life and cost: the VM a plan rents, the node's limits (machines at once, the
 longest life, the month's budget) and what the month has cost so far. A mixin of EnvironmentManager."""
 
 from __future__ import annotations
 
-from datetime import datetime
+import contextlib
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from agentos.core.errors import AgentosError, InvalidRequest, NotFound
 from agentos.environments import machine
 from agentos.environments.errors import (
+    EnvironmentFull,
     EnvironmentLimit,
 )
 from agentos.environments.models import (
@@ -240,16 +243,84 @@ class Sizing:
         plan["keep"] = keep
         return plan
 
+    def count_cap(self) -> int:
+        """How many machines may run at once: environments.toml max_live, else vms.toml's. agentos.vms
+        holds its own max_live at least this high (VmManager.max_live), so this is the one count."""
+        return self.settings.max_live if self.settings.max_live is not None else self.vms().settings.max_live
+
+    def machines(self, *, besides: str | None = None) -> tuple[list[Environment], list[Any]]:
+        """What counts against count_cap: the open environments (starting, ready, closing), and the
+        node's other VMs that still run (one a closed environment's close still deletes, an image
+        build, the owner's own). `besides`: an environment not to count (the one being brought up)."""
+        open_ = [e for e in self.store.open() if e.id != besides]
+        have = {e.vm_id for e in open_ if e.vm_id}
+        others = []
+        with contextlib.suppress(AgentosError):
+            others = [r for r in self.vms().store.live()
+                      if r.id not in have and not (besides and r.environment == besides)]
+        return open_, others
+
+    def check_count(self, *, waited_s: float | None = None, besides: str | None = None) -> None:
+        """environment_full when the node already runs count_cap machines. Its words say how many,
+        when the soonest may free (its idle close or its time limit; only its title), and what helps."""
+        open_, others = self.machines(besides=besides)
+        cap, n = self.count_cap(), len(open_) + len(others)
+        if n < cap:
+            return
+        raise self.full_error(open_, others, cap, waited_s=waited_s)
+
+    def full_error(self, open_: list[Environment], others: list[Any], cap: int, *,
+                   waited_s: float | None = None) -> EnvironmentFull:
+        """environment_full's words (they must fit an MCP error, 600 characters, with a title of 80)."""
+        now = self._clock()
+        n = len(open_) + len(others)
+        words = f"this node already runs {n} machine{'s' if n != 1 else ''}, its limit at once"
+        going = [e for e in open_ if e.state == "closing"] + [r for r in others if r.state == "deleting"]
+        if going:
+            words += f" ({len(going)} closing now)"
+        if waited_s and waited_s >= 1:
+            words += f"; none freed in the {waited_s:.0f} s this call waited"
+        soon = self._soonest_free(open_, others, now)
+        retry = 60
+        if soon is not None:
+            at, title, why = soon
+            secs = max(0, int((at - now).total_seconds()))
+            retry = min(600, max(30, secs))
+            words += (f". The soonest may free at {at.astimezone(UTC).strftime('%H:%M UTC')} "
+                      f"({'in a minute' if secs < 90 else f'in {secs // 60} min'}): "
+                      + (f"\"{title}\" {why}" if title else why))
+        words += (". Nothing was opened. Wait and call again (environment_open waits up to its wait_s for one), or "
+                  "close one of yours you no longer need; never one another chat works in. The owner raises the "
+                  "limit with `agentos environments allow --max-live N`")
+        return EnvironmentFull(words, retry_after=retry)
+
+    def _soonest_free(self, open_: list[Environment], others: list[Any], now: datetime
+                      ) -> tuple[datetime, str | None, str] | None:
+        """(when, title, why) of the machine that may free first: one closing or being deleted now,
+        else the soonest idle close (keep none or save; one with unsaved work is kept) or time limit."""
+        if [e for e in open_ if e.state == "closing"] or [r for r in others if r.state == "deleting"]:
+            return now + timedelta(minutes=1), None, "one closing now is deleted"
+        best: tuple[datetime, str | None, str] | None = None
+        idle = timedelta(minutes=self.settings.idle_minutes)
+        for e in open_:
+            if e.keep == "live":
+                continue  # kept running: it frees only when someone closes it
+            picks = [(e.expires_at, "at its time limit")]
+            with contextlib.suppress(Exception):
+                idle_at = self._last_used(e) + idle
+                if idle_at > now:  # past it and still open: kept (unsaved work, or busy), so its time limit counts
+                    picks.append((idle_at, f"if it gets no call for {self.settings.idle_minutes} min"))
+            at, why = min(picks, key=lambda p: p[0])
+            at = max(at, now)
+            if best is None or at < best[0]:
+                best = (at, e.title, why)
+        for r in others:
+            if r.expires_at is not None and (best is None or r.expires_at < best[0]):
+                best = (max(r.expires_at, now), None, "another VM of the node, at its time limit")
+        return best
+
     def check_limits(self, plan: dict) -> None:
-        vms = self.vms()
-        live = len(self.store.open())
-        cap = self.settings.max_live if self.settings.max_live is not None else vms.settings.max_live
-        if live >= cap:
-            raise EnvironmentLimit(f"this node already has {live} open environment{'s' if live != 1 else ''}, and "
-                                   f"its limit is {cap} at once. Close one you opened yourself and no longer need "
-                                   "(environment_close(on=\"<its title>\")), never one another chat works in, "
-                                   "or tell the user: the owner raises the limit with "
-                                   "`agentos environments allow --max-live N`")
+        self.check_count()
         budget = self.settings.monthly_eur
         price = plan.get("price_hourly_eur")
         if budget and price is not None:

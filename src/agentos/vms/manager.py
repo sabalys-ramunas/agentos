@@ -38,7 +38,7 @@ from agentos.core.models import LaneState, parse_lane_id, utcnow
 from agentos.env.models import RemoteHost
 from agentos.vms import capacity, repos, ssh
 from agentos.vms import keys as vmkeys
-from agentos.vms.models import TOKEN_FILE, Size, VmError, VmLimit, VmRecord, VmSettings, load_settings
+from agentos.vms.models import TOKEN_FILE, Size, VmError, VmFull, VmLimit, VmRecord, VmSettings, load_settings
 from agentos.vms.provider import Provider, ServerSpec, boot_error_words, server_state
 from agentos.vms.store import VmStore
 
@@ -183,6 +183,14 @@ class VmManager:
             from agentos.vms.hetzner import HetznerProvider
             self._provider = HetznerProvider(self.token_path.read_text(), api_url=self.settings.api_url)
         return self._provider
+
+    @property
+    def max_live(self) -> int:
+        """VMs alive at once: vms.toml max_live, never below the environments' own count (environments.toml
+        max_live, `agentos environments allow --max-live N`), so the owner and the agent see one limit."""
+        envs = self.runtime.get("environments") if self.runtime is not None else None
+        cap = getattr(getattr(envs, "settings", None), "max_live", None)
+        return max(self.settings.max_live, cap if isinstance(cap, int) else 0)
 
     def _envs(self):
         envs = self.runtime.get("envs") if self.runtime is not None else None
@@ -469,9 +477,9 @@ class VmManager:
             if envs.has(lane_id) or self.store.live_for_lane(lane_id) is not None:
                 raise LaneExists(f"lane {lane_id} already exists; pick another name or destroy it first")
             live = self.store.live()
-            if len(live) >= self.settings.max_live:
-                raise VmLimit(f"this node already has {len(live)} VMs (vms.toml max_live = "
-                              f"{self.settings.max_live}); destroy one first")
+            if len(live) >= self.max_live:
+                raise VmFull(f"this node already has {len(live)} VMs running, and its limit is {self.max_live} at "
+                             "once (vms.toml max_live); wait for one to be deleted")
             price = plan["price_hourly_eur"]
             budget = self.settings.monthly_budget_eur
             if budget and price is not None:
@@ -696,8 +704,9 @@ class VmManager:
         prov = self.provider()
         async with self._lock:
             live = self.store.live()
-            if len(live) >= self.settings.max_live:
-                raise VmLimit(f"this node already has {len(live)} VMs (max_live {self.settings.max_live})")
+            if len(live) >= self.max_live:
+                raise VmFull(f"this node already has {len(live)} VMs running, and its limit is {self.max_live} at "
+                             "once (vms.toml max_live); wait for one to be deleted")
             now = self._clock()
             rec = VmRecord(id=f"vm_{secrets.token_hex(5)}", lane_id=f"image/{name}", kind="image", node=self.node,
                            provider=getattr(prov, "name", "hetzner"), profile=plan["profile"],
@@ -976,7 +985,7 @@ class VmManager:
 
     def report(self) -> dict:
         return {"configured": self.configured, "provider": self.settings.provider, "live": len(self.store.live()),
-                "max_live": self.settings.max_live, "month_spend_eur": self.month_spend(),
+                "max_live": self.max_live, "month_spend_eur": self.month_spend(),
                 "monthly_budget_eur": self.settings.monthly_budget_eur, "last_reap": self.last_reap,
                 "profiles": {n: p.model_dump() for n, p in self.settings.profiles.items()}}
 

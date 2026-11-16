@@ -70,6 +70,16 @@ def doing(env_id: str) -> str | None:
     return ", ".join(f"{STEP_WORDS.get(name, name)} ({_so_far(now - began)} so far)" for name, began in steps.items())
 
 
+def starting_words(env: Any, now: Any) -> str:
+    """A machine that is starting, in words: how long since the open, and the step now with its own
+    time ("starting for 62 s: the VM boots (19 s so far)"). The steps before the one now (renting the
+    VM) took the rest."""
+    since = max(0.0, (now - env.created_at).total_seconds()) if env.created_at is not None else None
+    head = f"starting for {_so_far(since)}" if since is not None else "starting"
+    step = doing(env.id)
+    return f"{head}: {step}" if step else head
+
+
 def _so_far(seconds: float) -> str:
     s = int(seconds)
     return f"{s} s" if s < 60 else f"{s // 60} min {s % 60} s"
@@ -124,6 +134,11 @@ class BringUp:
         task = asyncio.create_task(coro, name=f"environment-{env_id}")
         self._tasks[env_id] = task
         task.add_done_callback(lambda _t, i=env_id: self._tasks.pop(i, None) if self._tasks.get(i) is _t else None)
+
+    def coming_up(self, env_id: str) -> bool:
+        """Is this node's bring-up of it running (a task that wait_ready can wait on)?"""
+        task = self._tasks.get(env_id)
+        return task is not None and not task.done()
 
     async def wait_ready(self, env_id: str, wait_s: float) -> Environment:
         task = self._tasks.get(env_id)
@@ -182,6 +197,12 @@ class BringUp:
                                           created_by=env.grant_id, wait_s=0, cloud_config=cloud, environment=env.id,
                                           kept=env.keep == "live")
         except AgentosError as e:
+            from agentos.vms.models import VmFull
+
+            if isinstance(e, VmFull):  # the node's count, in the words every open hears (Sizing.check_count)
+                self.check_count(besides=env.id)
+                open_, others = self.machines(besides=env.id)
+                raise self.full_error(open_, others, max(1, len(open_) + len(others))) from None
             if e.code == "vm_limit":
                 raise EnvironmentLimit(e.message) from None
             raise

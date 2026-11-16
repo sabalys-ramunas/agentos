@@ -90,6 +90,7 @@ class Job:
     changed: asyncio.Condition = field(default_factory=asyncio.Condition)
     oom_asked: float | None = None          # loop time of the last oom probe (a job on a VM)
     oom_task: asyncio.Task | None = None    # the probe in flight
+    signs: oom.Signs = field(default_factory=oom.Signs)  # its output showed a kill ("Killed", exit code 137)
 
     @property
     def running(self) -> bool:
@@ -234,6 +235,7 @@ class JobTable:
             if not data:
                 return
             sink.feed(data)
+            job.signs.feed(data)
             await job.notify()
 
     async def _run(self, job: Job, on_end) -> None:
@@ -272,8 +274,10 @@ class JobTable:
             with contextlib.suppress(Exception):
                 info.oom_killed = rt.stat().get("oom_kills", 0) > oom_before
             info.duration_s = round(loop.time() - start, 3)
-            if not gone and not job.stop_note and job.on_vm and (info.exit_code != 0 or info.signal):
-                with contextlib.suppress(Exception):  # what the kernel killed, and the VM's start record goes
+            # what the kernel killed, before the read that reports the end returns (the state is set below),
+            # when the end or the output shows a kill; and the VM's start record goes
+            if not gone and not job.stop_note and job.on_vm and (info.exit_code != 0 or info.signal or job.signs.seen):
+                with contextlib.suppress(Exception):
                     job.add_oom(await asyncio.wait_for(
                         rt.oom_kills(sp.wid, elapsed_s=info.duration_s, final=True), oom.PROBE_TIMEOUT_S + 2))
             info.finished_at = utcnow()
@@ -368,7 +372,7 @@ class JobTable:
                     self.probe_oom(job)
         out = await asyncio.to_thread(_read_at, job.log_path("stdout"), stdout_offset, max_bytes)
         err = await asyncio.to_thread(_read_at, job.log_path("stderr"), stderr_offset, max_bytes)
-        if b"Killed" in err and len(job.info.oom or []) == kills:
+        if oom.signs(err) and len(job.info.oom or []) == kills:
             await self._ask_oom_now(job)  # the shell says a process was killed: say why in this read
         return out, err
 

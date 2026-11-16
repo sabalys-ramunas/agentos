@@ -38,6 +38,9 @@ SELF_AUTHORIZED_LANE_PARAM = {
     # `on` is an optional filter; the handler calls ctx.authorize(READ, lane_id=on) and filters the
     # list with ctx.can_access_lane.
     "lane_jobs_list": "on",
+    # `on` beside a job id (agents pass it on every call): routing makes an environment's handle its terminal
+    # lane (the lease is checked there); the handler authorizes the job's lane and refuses another `on`
+    "lane_job_read": "on", "lane_job_cancel": "on",
     # `lane` only narrows a list already filtered by flow_seen (ctx.can_access_lane); it acts on nothing.
     "flows_list": "lane",
     # `on` names one of the caller's environments by its handle (or a session's own id or env/<id>), found
@@ -56,8 +59,6 @@ SELF_AUTHORIZED_INDIRECT = {
     "shell_write": "session -> lane; ctx.authorize(EXEC, lane_id=s.lane_id)",
     "shell_read": "session -> lane; ctx.authorize(READ, lane_id=s.lane_id)",
     "shell_close": "session -> lane; ctx.authorize(EXEC, lane_id=s.lane_id)",
-    "lane_job_read": "job -> lane; ctx.authorize(READ, lane_id=job.lane)",
-    "lane_job_cancel": "job -> lane; ctx.authorize(EXEC, lane_id=job.lane)",
     "workspace_plan": "every planned lane checked with ctx.can_access_lane (_check_grant)",
     "git_remotes": "workspace -> pattern_reaches(ws/*), then lane-scoped remotes filtered by ctx.can_access_lane",
     "workspace_apply": "every planned lane checked with ctx.can_access_lane, then COMMIT is approved",

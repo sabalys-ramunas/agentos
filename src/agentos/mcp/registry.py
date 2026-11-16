@@ -395,11 +395,11 @@ def error_message(exc: BaseException, redactor: Redactor) -> str:
     return _cut(redactor.text(message))
 
 
-def with_catalog_lines(message: str) -> str:
+def with_catalog_lines(message: str, retry_after: int | None = None) -> str:
     """The error text an agent gets: `<code>: <message>`, then the error catalog's next step
-    (`fix: ...`) and, when waiting helps, `retry_after: <seconds>`."""
+    (`fix: ...`) and, when waiting helps, `retry_after: <seconds>` (the error's own when it has one)."""
     code, _, text = message.partition(": ")
-    return "\n".join([message, *catalog.mcp_lines(code, text)])
+    return "\n".join([message, *catalog.mcp_lines(code, text, retry_after)])
 
 
 def error_result(message: str) -> CallToolResult:
@@ -467,7 +467,7 @@ def failure_result(spec: ToolSpec, exc: BaseException, redactor: Redactor) -> Ca
             # The raw traceback may quote a secret (a proxy URL), so it is redacted like the result.
             tb = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
             log.debug("tool %s traceback:\n%s", spec.name, redactor.text(tb))
-    return error_result(with_catalog_lines(message))
+    return error_result(with_catalog_lines(message, getattr(exc, "retry_after", None)))
 
 
 # ---- a prompt only the client can answer ----

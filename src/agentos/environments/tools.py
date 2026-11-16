@@ -10,14 +10,16 @@ machine leased to the caller."""
 
 from __future__ import annotations
 
+import asyncio
 import contextlib
 from typing import Any
 
+from agentos.core import progress
 from agentos.core.errors import AgentosError, NotFound, PolicyDenied
 from agentos.core.models import Effect
 from agentos.core.progress import StillWorking
 from agentos.core.tools import ToolContext, ToolSpec, current_elicitor, frozen_off, refuse_frozen
-from agentos.environments.errors import NoEnvironment, RepoNotConnected
+from agentos.environments.errors import EnvironmentFull, NoEnvironment, RepoNotConnected
 from agentos.environments.manager import EnvironmentManager, binding_of, check_ref, check_title, is_session
 from agentos.environments.models import ID_RE, SIZES, WORKSPACE, Environment
 from agentos.environments.picking import handle_env, lease_of, new_handle
@@ -342,13 +344,12 @@ def _open_result(ctx: ToolContext, mgr: EnvironmentManager, env: Environment, ha
         out["next"] = "Resumed as it was saved. Not as you asked: " + "; ".join(differs) + ". " + out.get("next", "")
     if env.state == "starting" and env.restore_from:
         out["next"] = out.get("next", "") + (f"resuming from save {env.restore_from} (a new machine, then the saved "
-                                             f"work): call environment(on=\"{handle}\") in a minute; it shows resumed.note once it "
-                                             "is ready")
+                                             f"work): environment(on=\"{handle}\") waits up to a minute for ready and "
+                                             "then shows resumed.note")
     elif env.state == "starting":
-        out["next"] = out.get("next", "") + ("still starting (the machine boots and installs its tools): call "
-                                             f"environment(on=\"{handle}\") in a minute; it gives links.browser for "
-                                             "the human once the browser is up. Keep this on and pass it on every "
-                                             "call")
+        out["next"] = out.get("next", "") + ("still starting (the machine boots and installs its tools): "
+                                             f"environment(on=\"{handle}\") waits up to a minute for ready, then gives "
+                                             "links.browser for the human. Keep this on and pass it on every call")
     return out
 
 
@@ -396,9 +397,25 @@ async def environment_open(ctx: ToolContext, *, title: str | None = None, repo: 
         repo = parse_remote(repo).slug
     # the call's own argument errors first: a size past the limit is never hidden by an attach
     await mgr.check_open_args(size=size, hours=hours, keep=keep)
-    async with mgr.opening(family, title):  # one open at a time per title: a second one is environment_in_use
-        got = await _open_locked(ctx, mgr, binding, family, title=title, repo=repo, ref=ref, size=size, hours=hours,
-                                 keep=keep, signins=signins, take_over=take_over)
+    loop = asyncio.get_running_loop()
+    began, last = loop.time(), False
+    while True:
+        try:
+            async with mgr.opening(family, title):  # one open at a time per title: a second one is environment_in_use
+                got = await _open_locked(ctx, mgr, binding, family, title=title, repo=repo, ref=ref, size=size,
+                                         hours=hours, keep=keep, signins=signins, take_over=take_over)
+            break
+        except EnvironmentFull:  # the node runs all the machines it may: wait for one to free, up to wait_s
+            waited, slot_wait = loop.time() - began, min(wait, mgr.slot_wait_s)
+            if waited >= slot_wait:
+                if slot_wait > 0:
+                    mgr.check_count(waited_s=waited)  # still full: the words say how long it waited
+                    if not last:  # one freed just now: one more try
+                        last = True
+                        continue
+                raise
+            progress.step(f"waiting for a free machine: the node runs as many as it may ({waited:.0f} s so far)")
+            await asyncio.sleep(min(mgr.slot_poll_s, slot_wait - waited))
     if isinstance(got, dict):  # a card for the human to connect the repository: nothing was rented
         return got
     env, opened, handle = got
@@ -406,7 +423,7 @@ async def environment_open(ctx: ToolContext, *, title: str | None = None, repo: 
     applied, differs = ({}, []) if opened == "new" else _differs(
         mgr, env, ref=ref, size=size, hours=hours if was_open else None, keep=keep if was_open else None)
     if env.state == "starting":
-        env = await mgr.wait_ready(env.id, wait)
+        env = await mgr.wait_ready(env.id, max(0.0, wait - (loop.time() - began)))
     if env.state == "failed":  # an error, never a result that looks like an open (environment() lists it)
         from agentos.environments.failures import error_for
 
@@ -525,7 +542,7 @@ def _family_lists(ctx: ToolContext, mgr: EnvironmentManager, here: Environment |
         if (here is not None and e.id == here.id) or (is_session(binding) and e.binding == binding):
             row = {"id": e.id, **row, "this_chat": True}
         else:
-            row["use"] = mgr.use_words(e, now)
+            row["use"] = mgr.use_words(e, now, session=is_session(binding))
         open_.append(row)
     from agentos.environments.failures import failed_rows
 
@@ -534,6 +551,21 @@ def _family_lists(ctx: ToolContext, mgr: EnvironmentManager, here: Environment |
     if failed:
         out["failed"] = failed  # opens that did not start in the last hour, with why (environment_open raised it)
     return out
+
+
+async def _wait_ready(mgr: EnvironmentManager, env: Environment) -> Environment:
+    """environment(on) of a machine that is starting: wait for ready up to mgr.ready_wait_s, saying
+    what the bring-up does in the call's progress notifications."""
+    from agentos.environments.bringup import starting_words
+
+    loop = asyncio.get_running_loop()
+    end = loop.time() + mgr.ready_wait_s
+    while env.state == "starting" and (left := end - loop.time()) > 0:
+        progress.step(f"waiting for ready: {starting_words(env, mgr._clock())}")
+        env = await mgr.wait_ready(env.id, min(left, 5.0))
+        if env.state == "starting" and not mgr.coming_up(env.id):
+            break  # nothing here brings it up (another process, or the reaper starts it again): answer now
+    return env
 
 
 async def environment(ctx: ToolContext, *, on: str | None = None) -> dict:
@@ -559,6 +591,8 @@ async def environment(ctx: ToolContext, *, on: str | None = None) -> dict:
                        "environment_open(title=...)" + (" with one of these titles resumes it; a new title opens "
                                                         "your own" if lists["saved"] else ""))
         return out
+    if env.state == "starting":  # a machine coming up: wait here for ready (about a minute), never a poll loop
+        env = await _wait_ready(mgr, env)
     out = await mgr.detail(env, calls=CALLS_SHOWN)
     out.pop("viewer", None)
     out.pop("commands", None)
@@ -579,14 +613,15 @@ async def environment(ctx: ToolContext, *, on: str | None = None) -> dict:
     if handle_env(on) == env.id:  # it came with its handle: the caller holds it, so it may see it again
         out["on"] = " ".join(str(on).split())
     if env.state == "starting":
-        from agentos.environments.bringup import doing
+        from agentos.environments.bringup import starting_words
 
-        if now := doing(env.id):
-            out["doing"] = now
-        out["next"] = ("still starting" + (f" ({now})" if now else "") + ": call environment() again in a minute, "
-                       "with the same on. Terminal and browser calls wait for ready (environment_not_ready)")
+        now = starting_words(env, mgr._clock())
+        out["doing"] = now
+        out["next"] = (f"{now}. Call environment(on=\"<your on>\") again: it waits up to a minute for ready. "
+                       "Terminal and browser calls run only once it is ready (environment_not_ready)")
     elif out.get("unsaved") and env.keep == "none":
-        out["next"] = "commit and push before environment_close (git push origin <branch>)"
+        out["next"] = ("save the work before environment_close: push it (git push origin <branch>), or "
+                       "environment_download to keep it without a push (unsaved_work's fix says how)")
     elif git.get("compare") and not env.pull_requests:
         out["next"] = ("environment_pull_request(title) opens the pull request for your pushed branch and returns "
                        "its url (git.compare is only GitHub's form); give the human that url and the proofs' links, "
@@ -635,6 +670,8 @@ async def environment_close(ctx: ToolContext, *, on: str | None = None, discard:
                         summary="forget" if forget else "discard" if discard else "")
         raise
     ctx.trace("environment_close", lane=env.terminal_lane, environment=env.id, discard=discard, forget=forget)
+    if env.state == "failed" and env.dismissed_at is None:  # the agent is done with a failed open: off its list
+        env = mgr.store.update(env.id, lambda e: setattr(e, "dismissed_at", mgr._clock()))
     if env.open and env.keep == "live":
         price = env.price_hourly_eur
         return {"id": env.id, "title": env.title, "state": env.state, "keep": "live", "machine": "kept",

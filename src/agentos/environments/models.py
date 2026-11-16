@@ -170,6 +170,8 @@ class Environment(BaseModel):
     error: str | None = None
     error_code: str | None = None             # the error's code when it failed (repo_not_connected, environment_failed)
     error_reason: str | None = None           # environment_failed's cause (errors.FAILURE_REASONS): capacity, network...
+    dismissed_at: datetime | None = None      # a failed open the agent closed: out of environment()'s `failed` list
+                                              # (kept in the history and the owner's views)
     calls: list[Call] = Field(default_factory=list)   # newest last, at most CALLS_KEPT
     pushed: list[Push] = Field(default_factory=list)
     unsaved_noticed: bool = False             # the owner was told it has unsaved work and will not close idle

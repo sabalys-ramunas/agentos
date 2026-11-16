@@ -192,7 +192,8 @@ async def lane_exec(ctx: ToolContext, *, on: str, cmd: str, timeout_s: float = 6
     out = res.model_dump()
     if out.get("oom") is None:
         out.pop("oom", None)
-    notes = [exec_note(cmd, res.timed_out, wanted, capped), self_kill_note(cmd, res),
+    notes = [exec_note(cmd, res.timed_out, wanted, capped),
+             None if res.timed_out else self_kill_note(cmd, res.exit_code, res.signal),
              oom.note(res.oom, running=False, what="command")]
     note = " ".join(n for n in notes if n)
     if note:
@@ -201,20 +202,22 @@ async def lane_exec(ctx: ToolContext, *, on: str, cmd: str, timeout_s: float = 6
 
 
 # `pkill -f vite` matches the command line of the shell that runs it, which holds the pattern too
-SELF_MATCH_RE = re.compile(r"\b(pkill|pgrep)\b[^;&|\n]*?\s(-[A-Za-z]*f[A-Za-z]*|--full)\b")
-KILLED_CODES = frozenset({137, 143, 255})
+SELF_MATCH_RE = re.compile(r"\b(pkill|pgrep|killall)\b[^;&|\n]*?\s(-[A-Za-z]*f[A-Za-z]*|--full)\b")
+KILLED_CODES = frozenset({137, 143, 255})  # SIGKILL, SIGTERM, and ssh's own code when the remote shell died
 
 
-def self_kill_note(cmd: str, res: Any) -> str | None:
-    """A command that killed its own shell: no output, a killed exit, and pkill -f (or pgrep -f) in it."""
-    if res.stdout_bytes or res.stderr_bytes or res.timed_out:
-        return None
-    if res.exit_code not in KILLED_CODES and not res.signal:
+def self_kill_note(cmd: str, exit_code: int | None, signal: str | None, *, what: str = "command") -> str | None:
+    """A command that killed its own shell: an exit that means killed (255 over ssh, 143, 137, a signal)
+    and pkill, pgrep or killall with -f (--full) in it, whatever it printed first (round 3: `sleep 300 &
+    pkill -f "sleep 300"` printed "started", then exit 255 and nothing else)."""
+    if exit_code not in KILLED_CODES and not signal:
         return None
     if not SELF_MATCH_RE.search(cmd or ""):
         return None
-    return ("The command matched its own shell (its line holds the pattern too), so it killed itself. Use "
-            "pkill -f '[v]ite' (the brackets keep the pattern from matching itself), or lane_job_cancel for a job.")
+    how = signal or f"exit {exit_code}"
+    return (f"The shell running this {what} was killed ({how}): pkill -f matched the shell's own command line, "
+            "which holds the pattern too, so it killed itself before the rest ran. Use pkill -f '[v]ite' (the "
+            "brackets keep the pattern from matching itself), kill a pid, or lane_job_cancel for a job.")
 
 
 GIT_PUSH_RE = re.compile(r"\bgit\b[^;&|]*\bpush\b")
@@ -370,19 +373,27 @@ JOB_WAIT_MS = 30000
 JOB_WAIT_EXIT_MS = 120000
 
 
-async def lane_job_read(ctx: ToolContext, *, job: str, stdout_offset: int = 0, stderr_offset: int = 0,
-                        wait_ms: int = 1000, max_bytes: int = JOB_READ_BYTES, base64_output: bool = False,
-                        until_exit: bool = False, until_port: int = 0) -> dict:
-    """Read a job's output after the byte offsets you have, waiting up to wait_ms (30000) for more
-    while it runs. until_exit=true waits for the job to end; until_port=3000 for that port to
-    listen on the machine or the job to end (then the end of its output); both wait_ms up to
-    120000. Pass back next_stdout_offset and next_stderr_offset; stdout_bytes is the size so far
-    (to read only the end, stdout_offset=stdout_bytes-8000). `state` is running until it exited,
-    was cancelled, timed out or was lost; then exit_code (or signal). `oom`: what the kernel killed
-    for memory. Effect: read."""
+def _job_on(on: str | None, j: Any) -> None:
+    """`on` beside a job id (agents are told to pass it on every call): routing made an environment's
+    handle its terminal lane; it must be the lane the job runs in."""
+    if on is not None and on != j.info.lane:
+        raise InvalidRequest(f"job {j.info.id} is not on the machine that on names. Pass the on of the "
+                             "environment that started it, or leave on out: the job id is enough")
+
+
+async def lane_job_read(ctx: ToolContext, *, job: str, on: str | None = None, stdout_offset: int = 0,
+                        stderr_offset: int = 0, wait_ms: int = 1000, max_bytes: int = JOB_READ_BYTES,
+                        base64_output: bool = False, until_exit: bool = False, until_port: int = 0) -> dict:
+    """Read a job's output after your byte offsets, waiting up to wait_ms (30000) for more while it
+    runs. until_exit=true waits for the job to end; until_port=3000 for that port to listen or the
+    job to end (then the end of its output); both wait_ms up to 120000. Pass back
+    next_stdout_offset and next_stderr_offset; stdout_bytes is the size so far (to read only the
+    end, stdout_offset=stdout_bytes-8000). `state`: running, exited, cancelled, timed_out or lost;
+    then exit_code (or signal). `oom`: what the kernel killed for memory. Effect: read."""
     mgr = _mgr(ctx)
     j = mgr.job(job)
     await ctx.authorize(Effect.READ, lane_id=j.info.lane)
+    _job_on(on, j)
     port = _port(until_port)
     most = JOB_WAIT_EXIT_MS if until_exit or port else JOB_WAIT_MS
     wait_s = max(0, min(_int(wait_ms, "wait_ms"), most)) / 1000
@@ -408,7 +419,8 @@ async def lane_job_read(ctx: ToolContext, *, job: str, stdout_offset: int = 0, s
            "next_stdout_offset": stdout_offset + len(out), "next_stderr_offset": stderr_offset + len(err)}
     if listening is not None:
         res["listening"] = listening
-    words = [info.note, oom.note(info.oom, running=info.state == "running")]
+    words = [info.note, oom.note(info.oom, running=info.state == "running"),
+             self_kill_note(info.cmd, info.exit_code, info.signal, what="job") if info.state == "exited" else None]
     if port and not listening:
         words.append(f"Port {port} does not listen yet; call again to wait longer." if info.state == "running" else
                      f"The job ended before port {port} listened: stdout and stderr are the end of its output.")
@@ -431,10 +443,13 @@ def _port(value: Any) -> int:
     return port
 
 
-async def lane_job_cancel(ctx: ToolContext, *, job: str) -> dict:
+async def lane_job_cancel(ctx: ToolContext, *, job: str, on: str | None = None) -> dict:
     """Stop a running job: SIGTERM to every process it started, SIGKILL a few seconds later."""
     mgr = _mgr(ctx)
     j = mgr.job(job)
+    if on is not None:
+        await ctx.authorize(Effect.READ, lane_id=j.info.lane)
+        _job_on(on, j)
     await ctx.authorize(Effect.EXEC, lane_id=j.info.lane, summary=f"Cancel job {job} in lane {j.info.lane}: "
                         + _clip(j.info.cmd), content={"cancel": job}, facts=_facts(mgr.get(j.info.lane)))
     return _job_view(await mgr.job_cancel(job))

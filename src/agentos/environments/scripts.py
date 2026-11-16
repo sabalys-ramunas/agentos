@@ -14,6 +14,27 @@ from __future__ import annotations
 
 from agentos.environments.machine import SWAP_OFF
 
+# What listens on the machine (round 3, T2: the node had lost track of a dev server's job when it
+# restarted, so the save recorded no services and the resume started none): each TCP port that
+# listens, from a process whose folder is under /work, with that process and its parents up to 10
+# deep, one `proc=<port> <depth> <cwd, base64> <argv, NUL-separated, base64>` line each (depth 0 is
+# the listener). agentos.environments.comeback.listening reads the command that was started from it.
+# Part of SAVE, so it costs no call of its own.
+LISTENING = r"""
+if command -v ss >/dev/null 2>&1; then
+  ss -ltnpH 2>/dev/null | awk '{n=split($4,a,":"); if (match($0,/pid=[0-9]+/)) print a[n], substr($0,RSTART+4,RLENGTH-4)}' \
+    | sort -un | head -n 20 | while read -r port pid; do
+    c=$(readlink "/proc/$pid/cwd" 2>/dev/null) || continue
+    case "$c" in "/${W#/}"|"/${W#/}"/*) ;; *) continue ;; esac
+    p=$pid; d=0
+    while [ -n "$p" ] && [ "$p" -gt 1 ] && [ "$d" -lt 10 ] && [ -r "/proc/$p/cmdline" ]; do
+      echo "proc=$port $d $(readlink "/proc/$p/cwd" 2>/dev/null | tr -d '\n' | base64 -w0) $(head -c 4096 "/proc/$p/cmdline" | base64 -w0)"
+      p=$(sed -n 's/^PPid:[[:space:]]*//p' "/proc/$p/status" 2>/dev/null); d=$((d + 1))
+    done
+  done
+fi
+"""
+
 SAVE = r"""
 set -u
 ROOT=$1; S=$2; W=$3; CAP=$4; KEEP_CAP_KB=$5; shift 5
@@ -84,6 +105,7 @@ size=$(wc -c < "$S/files.tgz" | tr -d ' ')
 echo "bytes=$size"
 if [ "$size" -gt "$CAP" ]; then echo "error=the files come to $size bytes, past the cap of $CAP"; exit 7; fi
 if command -v docker >/dev/null 2>&1; then docker ps -q 2>/dev/null | sed 's/^/container=/'; fi
+""" + LISTENING.strip("\n") + r"""
 cd "$S" || exit 3
 for f in *; do
   [ -f "$f" ] || continue
@@ -144,9 +166,10 @@ SCRUB = f"rm -f ~/.config/agentos/gitconfig ~/.git-credentials; {SWAP_OFF}; sync
 
 def parse(text: str) -> dict:
     """SAVE's or RESTORE_REPO's lines: {repos: {r1: {...}}, files, bytes, keep, sums, containers,
-    missing, error, ok}."""
+    procs (LISTENING's), missing, error, ok}."""
     out: dict = {"repos": {}, "sums": {}, "containers": [], "keep": [], "keep_skipped": [], "missing": [],
-                 "error": None, "ok": False, "files": 0, "bytes": 0, "deleted": 0, "stashes": 0, "head": False}
+                 "error": None, "ok": False, "files": 0, "bytes": 0, "deleted": 0, "stashes": 0, "head": False,
+                 "procs": []}
     for line in text.splitlines():
         key, _, value = line.partition("=")
         if key in ("repo", "branch", "head", "stash", "commits") and " " in value:
@@ -175,6 +198,8 @@ def parse(text: str) -> dict:
             out["sums"][name] = h
         elif key == "container" and value:
             out["containers"].append(value)
+        elif key == "proc" and value:
+            out["procs"].append(value)
         elif key in ("keep", "keep_skipped", "missing"):
             out[key].append(value)
         elif key == "error":

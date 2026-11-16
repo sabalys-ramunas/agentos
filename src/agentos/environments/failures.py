@@ -14,6 +14,7 @@ from typing import Any
 from agentos.core.errors import AgentosError
 from agentos.environments.errors import (
     EnvironmentFailed,
+    EnvironmentFull,
     EnvironmentLimit,
     RepoNotConnected,
     RestoreFailed,
@@ -22,8 +23,8 @@ from agentos.environments.models import SIZES, Environment
 
 NETWORK_WORDS = ("unreachable", "public ipv4", "could not reach")
 FAILED_SHOWN = 3
-CLASSES: dict[str, type[AgentosError]] = {"environment_limit": EnvironmentLimit, "repo_not_connected": RepoNotConnected,
-                                          "restore_failed": RestoreFailed}
+CLASSES: dict[str, type[AgentosError]] = {"environment_limit": EnvironmentLimit, "environment_full": EnvironmentFull,
+                                          "repo_not_connected": RepoNotConnected, "restore_failed": RestoreFailed}
 
 
 def bigger_size(env: Environment, top: str) -> str | None:
@@ -84,11 +85,15 @@ def error_for(env: Environment) -> AgentosError:
 
 
 def failed_rows(mgr: Any, family: str | None, reaches: Any, *, since_s: float = 3600) -> list[dict]:
-    """The family's opens that failed in the last hour, newest first, for environment()'s `failed`."""
+    """The family's opens that failed in the last hour, newest first, for environment()'s `failed`: not
+    one the agent closed (environment_close of it dismisses it), nor one whose title is open again."""
     now = mgr._clock()
     out = []
+    live = {" ".join(e.title.split()).lower() for e in mgr.store.open() if family is None or e.family == family}
     for e in mgr.store.recent(50):
         if e.state != "failed" or (family is not None and e.family != family) or not reaches(e):
+            continue
+        if e.dismissed_at is not None or " ".join(e.title.split()).lower() in live:
             continue
         if (now - e.created_at).total_seconds() > since_s:
             continue

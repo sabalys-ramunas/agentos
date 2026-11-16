@@ -180,6 +180,39 @@ def test_serve_says_why_it_did_not_start(tmp_path, user_home):
     assert out.exit_code == 1 and "cannot run an environment's browser itself" in out.output
 
 
+def test_serve_refreshes_only_the_agentos_skills_it_installed(tmp_path, user_home):
+    """An update restarts the service, and the skills were copied only by `agentos setup agents` and
+    `agentos connect` (a day old on 2026-11-16): serve brings agentos's own up to date, keeps one someone
+    else wrote under its name, never touches another skill, and installs none where there were none."""
+    from agentos.cli import app
+    from agentos.client import skills
+
+    root = tmp_path / "agentos"
+    local_home.ensure(root, free_port())
+    (root / "environments.toml").write_text('browser = "node"\n')  # it stops right after the refresh
+    dest = skills.skills_dir(user_home)
+    old = skills.source("agentos-environment").replace("environment_open", "environment_start")
+    (dest / "agentos-environment").mkdir(parents=True)
+    (dest / "agentos-environment" / "SKILL.md").write_text(old)
+    (dest / "agentos-studio").mkdir()
+    (dest / "agentos-studio" / "SKILL.md").write_text("my own studio notes\nmine\n")  # the owner's, not ours
+    (dest / "other").mkdir()
+    (dest / "other" / "SKILL.md").write_text("---\nname: other\n---\nnot ours\n")
+    CliRunner().invoke(app, ["local", "serve", "--home", str(root)])
+    assert (dest / "agentos-environment" / "SKILL.md").read_text() == skills.source("agentos-environment")
+    assert (dest / "agentos-lanes" / "SKILL.md").read_text() == skills.source("agentos-lanes")  # one it lacked
+    assert (dest / "agentos-studio" / "SKILL.md").read_text().endswith("mine\n")
+    assert (dest / "other" / "SKILL.md").read_text().endswith("not ours\n")
+
+
+def test_no_skills_are_installed_where_none_were(tmp_path):
+    from agentos.client import skills
+
+    assert skills.refresh(tmp_path) is None and not skills.skills_dir(tmp_path).exists()
+    skills.install(tmp_path)
+    assert skills.refresh(tmp_path) is None  # all current: nothing written
+
+
 # The base install (scripts/install.sh, the `local` extra) on a Mac: no Camoufox, no browser binary, no Xvfb.
 # Both packages are made unimportable, PATH has no Xvfb, and the platform is darwin. On darwin, urllib's
 # proxy lookup imports _scproxy, which only a real macOS Python has: off a Mac (CI's Linux) a stub answers

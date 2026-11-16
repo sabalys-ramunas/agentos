@@ -5,6 +5,11 @@ environment found by its repository alone, and what a pause costs in words.
   command that ran, with the port it served) is started again, and the node waits up to
   SERVICE_WAIT_S in all for those ports to listen. `resumed.services` says for each one whether it
   runs and listens, and gives a ready `restart` call for one that did not come back.
+- `listening`: a save also records what really listens on the machine (scripts.LISTENING), not only
+  the jobs the node knows: a node that restarted while a dev server ran has lost its job (round 3,
+  T2: `resumed.services: []`). Each port's process chain gives the command that was started: the
+  child of agentos's own workload shell (a lane_job_start), else the topmost process in /work.
+  Only what listened at save time is recorded, so a resume starts nothing that was not serving.
 - `by_repo`: environment_open(repo=X) with no title. The newest open or saved environment of the
   family for that repository, when there is exactly one; several are a choice the agent makes (each
   title is listed with the call that takes it); none: a new one titled after the repository.
@@ -14,9 +19,14 @@ environment found by its repository alone, and what a pause costs in words.
 from __future__ import annotations
 
 import asyncio
+import base64
+import binascii
 import contextlib
 import json
 import logging
+import posixpath
+import re
+import shlex
 from typing import Any
 
 from agentos.core.errors import AgentosError, InvalidRequest
@@ -88,6 +98,90 @@ def _still_running(envs: Any, lane: str, rows: list[dict]) -> None:
             j = jobs.get(r.get("job_id") or "")
             if r["running"] and j is not None and j.state != "running":
                 r["running"], r["why"] = False, f"it {j.state} while starting; lane_job_read(\"{j.id}\") shows why"
+
+
+WRAPPER_MARK = "/tmp/agentos-wl/"   # agentos.vms.ssh's workload shell names its pgid file under it
+SHELLS = frozenset({"sh", "bash", "dash", "zsh", "ash", "fish"})
+STOPS = frozenset({"sshd", "sshd-session", "systemd", "init", "tmux", "screen", "setsid", "su", "sudo", "login"})
+CD_RE = re.compile(r"^cd '([^']+)' && (.+)$", re.DOTALL)   # how lane_job_start runs a job with a cwd
+MAX_LISTENING = 8
+
+
+def listening(lines: list[str], work: str = "/work") -> list[dict]:
+    """scripts.LISTENING's `proc=` values -> [{cmd, cwd, port}], one per command (its lowest port),
+    for a listener whose folder is under `work`."""
+    chains: dict[int, list[tuple[int, str, list[str]]]] = {}
+    for line in lines:
+        parts = line.split(" ")
+        if len(parts) < 4 or not parts[0].isdigit() or not parts[1].isdigit():
+            continue
+        try:
+            cwd = base64.b64decode(parts[2]).decode(errors="replace").strip()
+            argv = [a.decode(errors="replace") for a in base64.b64decode(parts[3]).split(b"\0") if a]
+        except (binascii.Error, ValueError):
+            continue
+        if argv:
+            chains.setdefault(int(parts[0]), []).append((int(parts[1]), cwd, argv))
+    out: list[dict] = []
+    for port in sorted(chains):
+        got = _started(sorted(chains[port]), work)
+        if got is not None and not any(r["cmd"] == got[0] and r["cwd"] == got[1] for r in out):
+            out.append({"cmd": got[0], "cwd": got[1], "port": port})
+    return out[:MAX_LISTENING]
+
+
+def _under(path: str, work: str) -> bool:
+    return path == work or path.startswith(work.rstrip("/") + "/")
+
+
+def _started(chain: list[tuple[int, str, list[str]]], work: str) -> tuple[str, str | None] | None:
+    """The command that was started, from a listener's chain (listener first): the child of agentos's
+    workload shell, else the topmost process still in `work` below a login shell, sshd or init."""
+    if not chain or chain[0][0] != 0 or not _under(chain[0][1], work):
+        return None
+    wrapper = next((i for i, (_, _, argv) in enumerate(chain) if any(WRAPPER_MARK in a for a in argv)), None)
+    if wrapper == 0:
+        return None
+    top = wrapper - 1 if wrapper is not None else 0
+    if wrapper is None:
+        for i in range(1, len(chain)):
+            if not _under(chain[i][1], work) or _stops(chain[i][2]):
+                break
+            top = i
+    _, cwd, argv = chain[top]
+    name = posixpath.basename(argv[0]).lstrip("-")
+    if name in SHELLS and len(argv) >= 3 and argv[1] in ("-c", "-lc"):
+        m = CD_RE.match(argv[2])
+        if m:
+            return m.group(2), m.group(1)
+        cmd = argv[2]
+    elif len(argv) == 1 and " " in argv[0]:   # a process that set its own title ("npm run dev")
+        cmd = argv[0]
+    else:
+        cmd = shlex.join(argv)
+    return cmd, cwd if _under(cwd, work) else None
+
+
+def _stops(argv: list[str]) -> bool:
+    name = posixpath.basename(argv[0]).lstrip("-").split(":")[0]
+    if name in SHELLS:
+        return not any(a in ("-c", "-lc") for a in argv[1:3])   # an interactive or login shell
+    return name in STOPS
+
+
+def with_listening(services: list[Any], found: list[dict], make: Any) -> list[Any]:
+    """The node's job services and what listened on the machine, each command once: a listener whose
+    port or command a job has is that job's (a job without a port gets the listener's); `make(**kw)`
+    builds a new entry (saves.Service)."""
+    out = [s.model_copy() for s in services]
+    for f in found:
+        same = next((s for s in out if s.port == f["port"] or (s.cmd == f["cmd"] and (s.cwd or None) == f["cwd"])),
+                    None)
+        if same is None:
+            out.append(make(cmd=f["cmd"], cwd=f["cwd"], port=f["port"]))
+        elif same.port is None:
+            same.port = f["port"]
+    return out
 
 
 def lost_jobs(services: list[dict]) -> list[str]:

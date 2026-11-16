@@ -66,7 +66,11 @@ git over ssh, the way it works on the laptop. `environment_open` and `environmen
   `ssh -F ~/.agentos/ssh/config agentos-<id>`, and the results say so.
 - The key is the environment's own, not the node's. On the VM it may open a terminal and run
   commands, and nothing else: no port forwarding either way, no ssh agent (your own keys never
-  reach the VM), no X11. Use `environment_port` to show a dev server.
+  reach the VM), no X11. Use `environment_port` to show a dev server. `ssh -L` is ignored without a
+  word (the entry has `ClearAllForwardings yes`, so a forward in your own `Host *` is not tried
+  either), so the entry carries a comment, and the `ssh` block of `environment_open` and
+  `environment()` has `port_forwards`, which says forwards are off and gives the environment_port
+  call that makes a local link.
 - The VM firewall lets in your laptop's address (below), which is where both agentos and your
   shell connect from, so nothing more is opened. With Docker, SSH is on 127.0.0.1.
 - A machine is idle when nothing used it for `idle_minutes`. An ssh session running a command, an

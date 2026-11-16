@@ -92,7 +92,14 @@ async def test_ready_writes_the_entry_and_the_result_says_how_to_use_it(local, u
                           "examples": [f"ssh -F {cfg} agentos-{eid} 'cd /work/shop && pnpm test'",
                                        (f"rsync -az -e 'ssh -F {cfg}' --exclude node_modules --exclude .git ./ "
                                        f"agentos-{eid}:/work/shop/"),
-                                       f"scp -F {cfg} agentos-{eid}:/work/shop/dist.tgz ."]}
+                                       f"scp -F {cfg} agentos-{eid}:/work/shop/dist.tgz ."],
+                          "port_forwards": sshaccess.FORWARDS_WORDS}
+    # round 3 (T3): ssh -L did nothing and nothing said so; the block and the entry name environment_port
+    assert "ssh -L" in out["ssh"]["port_forwards"] and "environment_port" in out["ssh"]["port_forwards"]
+    entry = config(local)
+    assert sshaccess.FORWARDS_COMMENT in entry and entry.index(sshaccess.FORWARDS_COMMENT) < entry.index(
+        "ClearAllForwardings yes")
+    assert "\u2014" not in out["ssh"]["port_forwards"] + sshaccess.FORWARDS_COMMENT
     assert "You may also use your own shell: ssh -F" in out["next"] and "not in agentos's call log" in out["next"]
     assert "—" not in out["next"]
     # with the Include: plain ssh, and environment() says the same

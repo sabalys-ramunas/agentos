@@ -19,7 +19,6 @@ from agentos.env.host import FakeHost
 from agentos.env.jobs import Job
 from agentos.env.lanes import LaneRuntime
 from agentos.env.manager import EnvManager
-from agentos.env.models import ExecResult
 from agentos.env.paths import EnvSettings
 from agentos.env.sandbox import DirectLauncher, Workload
 from agentos.env.tools import self_kill_note
@@ -70,6 +69,36 @@ def test_the_note_names_the_victim_and_what_to_do():
         assert "—" not in text
 
 
+def test_a_kill_near_the_machines_memory_names_its_memory_and_the_next_size():
+    """Round 3 (T3): python3 took 3.6 GB of a 3.7 GB cx23 and the note said only "a bigger size"."""
+    kills = oom.parse(KERNEL.replace("N 211700.00", "M 3910656\nN 211700.00"), elapsed_s=999)
+    assert kills[0]["machine_mb"] == 3819
+    done = oom.note(kills[:1], running=False, what="command")
+    assert "This machine has 3.7 GB of memory, and node used 4.0 GB" in done
+    assert 'size="medium") (8 GB' in done and "keeps its size" in done
+    running = oom.note(kills, running=True)
+    assert "lane_job_cancel it. This machine has 3.7 GB" in running
+    small = [{**kills[1], "in_job": True}]                     # 300 MB of 3.7 GB: not the machine's size
+    assert "size=" not in oom.note(small, running=False) and "bigger size" in oom.note(small, running=False)
+    top = [{**kills[0], "machine_mb": 32000, "rss_mb": 30000}]
+    assert "biggest size" in oom.note(top, running=False)
+    for text in (done, running):
+        assert "\u2014" not in text
+
+
+def test_the_signs_of_a_kill_in_output():
+    for text in (b"Killed\n", b"bash: line 1:  2729 Killed   python3 x.py\n", b"child exit=137\n",
+                 b"exit status 137", b"Command failed with exit code 137.", b"died with <Signals.SIGKILL: 9>"):
+        assert oom.signs(text), text
+    for text in (b"137 passed in 2.1s", b"KilledBy: none", b"", None, b"port 1370"):
+        assert not oom.signs(text), text
+    s = oom.Signs()
+    s.feed(b"x" * 70000 + b"child exit")
+    assert not s.seen
+    s.feed(b"=137\n")                                          # split across two reads
+    assert s.seen
+
+
 def test_merge_keeps_each_kill_once():
     kills = oom.parse(KERNEL, elapsed_s=999)
     assert oom.merge(kills[:1], kills) == kills
@@ -81,26 +110,37 @@ def test_the_workload_shell_writes_its_start_record_only_when_asked():
     assert ".start" not in plain
     cmd = ssh.remote_command(Workload(wid="j-a1", argv=["true"], env={}, oom_record=True))
     assert "/tmp/agentos-wl/j-a1.start" in cmd and "/proc/self/cgroup" in cmd
-    assert "[ $rc -ne 0 ] || rm -f /tmp/agentos-wl/j-a1.start" in cmd   # kept after a failure, for the node
+    # kept after a failure, or when the kernel's oom count moved meanwhile (checked in ubuntu:24.04, 2026-11-16)
+    assert "[ $rc -ne 0 ] || [ \"$(sed -n \"s/^oom_kill //p\" /proc/vmstat" in cmd
+    assert "!= \"$k0\" ] || rm -f /tmp/agentos-wl/j-a1.start" in cmd and "k0=$(" in cmd
     probe = oom.probe_script("/tmp/agentos-wl", "j-a1", final=True)
-    assert "dmesg" in probe and "rm -f /tmp/agentos-wl/j-a1.start" in probe
+    assert "dmesg" in probe and "rm -f /tmp/agentos-wl/j-a1.start" in probe and "MemTotal" in probe
     assert "rm -f /tmp/agentos-wl/j-a1.start" not in oom.probe_script("/tmp/agentos-wl", "j-a1", final=False)
 
 
-def _res(**kw) -> ExecResult:
-    base = {"exit_code": 255, "stdout": "", "stderr": "", "duration_s": 0.1}
-    return ExecResult(**{**base, **kw})
-
-
 def test_pkill_f_that_killed_its_own_shell_says_so():
-    note = self_kill_note("pkill -f vite; pnpm dev", _res())
-    assert "matched its own shell" in note and "pkill -f '[v]ite'" in note and "lane_job_cancel" in note
-    assert self_kill_note("pkill --full 'next dev'", _res(exit_code=None, signal="SIGTERM"))
-    assert self_kill_note("kill $(pgrep -f vite)", _res(exit_code=143))
-    assert self_kill_note("pkill -f vite", _res(exit_code=1)) is None           # nothing matched: no news
-    assert self_kill_note("pkill -f vite", _res(stdout="x", stdout_bytes=1)) is None
-    assert self_kill_note("pkill node", _res()) is None                         # by name: the shell is safe
-    assert "—" not in note
+    note = self_kill_note("pkill -f vite; pnpm dev", 255, None)
+    assert "The shell running this command was killed (exit 255)" in note
+    assert "pkill -f '[v]ite'" in note and "lane_job_cancel" in note
+    assert self_kill_note("pkill --full 'next dev'", None, "SIGTERM")
+    assert self_kill_note("kill $(pgrep -f vite)", 143, None)
+    assert self_kill_note("killall -f node", 137, None)
+    # round 3 (T3): it printed "started" first, then the shell died; the output no longer hides the note
+    assert self_kill_note('sleep 300 & echo started; pkill -f "sleep 300"', 255, None)
+    assert "this job was killed" in self_kill_note('pkill -f "echo hi"', 255, None, what="job")
+    assert self_kill_note("pkill -f vite", 1, None) is None            # nothing matched: no news
+    assert self_kill_note("pkill -f vite", 0, None) is None
+    assert self_kill_note("pkill node", 255, None) is None             # by name: the shell is safe
+    assert "\u2014" not in note
+
+
+async def test_a_job_whose_pkill_f_killed_its_shell_says_so(env):
+    t, ctx = tools(env), Ctx(env)
+    # the shell's death is played by `exit 143` (a real pkill -f here would run on this computer)
+    job = await t["lane_job_start"](ctx, on="dev/run", cmd="echo started; true || pkill -f nothing-here; exit 143")
+    r = await t["lane_job_read"](ctx, job=job["id"], until_exit=True, wait_ms=10000)
+    assert r["state"] == "exited" and r["exit_code"] == 143 and r["stdout"] == "started\n"
+    assert "The shell running this job was killed (" in r["note"]
 
 
 def test_swap_words_for_the_machine_notes_and_the_snapshot_scrub():
@@ -191,3 +231,43 @@ async def test_the_read_that_shows_a_killed_line_also_says_what_killed_it(env, m
     assert "Killed" in r["stderr"] and r["oom_killed"] is True and r["oom"][0]["pid"] == 4242
     assert "of this job" in r["note"]
     await t["lane_job_cancel"](ctx, job=job["id"])
+
+
+async def test_a_job_that_printed_a_kill_and_exited_0_says_what_killed_it(env, monkeypatch):
+    """Round 3 (T3): a job whose child python was OOM-killed exited 0 and read oom null. Now its end asks
+    the kernel before the read that reports the end returns."""
+    kills = oom.parse(KERNEL, elapsed_s=999)[:1]
+    asked = []
+
+    async def fake(self, wid, *, elapsed_s, final=False):
+        asked.append(final)
+        return kills if final else []
+
+    monkeypatch.setattr(Job, "on_vm", property(lambda self: self.rt is not None))
+    monkeypatch.setattr(LaneRuntime, "oom_kills", fake)
+    t, ctx = tools(env), Ctx(env)
+    job = await t["lane_job_start"](ctx, on="dev/run", cmd="sleep 0.2; echo child exit=137")
+    r = await t["lane_job_read"](ctx, job=job["id"], until_exit=True, wait_ms=10000)
+    assert r["state"] == "exited" and r["exit_code"] == 0
+    assert r["oom_killed"] is True and r["oom"][0]["pid"] == 4242 and "of this job" in r["note"]
+    assert asked[-1] is True
+    asked.clear()
+    quiet = await t["lane_job_start"](ctx, on="dev/run", cmd="echo all fine")
+    r = await t["lane_job_read"](ctx, job=quiet["id"], until_exit=True, wait_ms=10000)
+    assert r["oom_killed"] is False and True not in asked     # a clean end costs no ssh call
+
+
+async def test_a_command_that_printed_killed_and_exited_0_says_what_killed_it(env, monkeypatch):
+    kills = oom.parse(KERNEL, elapsed_s=999)[:1]
+    asked = []
+
+    async def fake(self, wid, *, elapsed_s, final=False):
+        asked.append(final)
+        return kills
+
+    monkeypatch.setattr(LaneRuntime, "oom_kills", fake)
+    t, ctx = tools(env), Ctx(env)
+    r = await t["lane_exec"](ctx, on="dev/run", cmd="echo Killed >&2; echo done")
+    assert r["exit_code"] == 0 and r["oom_killed"] is True and "of this command" in r["note"]
+    r = await t["lane_exec"](ctx, on="dev/run", cmd="echo fine")
+    assert asked == [True] and "oom" not in r

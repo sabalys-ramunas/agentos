@@ -116,15 +116,17 @@ def cli_error(code: str, message: str) -> str:
     return f"{line}\n  fix: {fix}" if fix else line
 
 
-def mcp_lines(code: str, message: str) -> list[str]:
+def mcp_lines(code: str, message: str, retry_after: int | None = None) -> list[str]:
     """Lines an MCP error result adds under `<code>: <message>`: the agent's next step and,
-    when a wait helps, how long to wait."""
+    when a wait helps, how long to wait (`retry_after`: the error's own, when it knows better than
+    the catalog, like the seconds until a machine frees)."""
     found = entry(code)
     if found is None:
         return []
     lines = [f"fix: {found.agent_step(message)}"]
-    if found.retryable and found.retry_after:
-        lines.append(f"retry_after: {found.retry_after}")
+    wait = retry_after if isinstance(retry_after, int) and retry_after > 0 else found.retry_after
+    if found.retryable and wait:
+        lines.append(f"retry_after: {wait}")
     return lines
 
 

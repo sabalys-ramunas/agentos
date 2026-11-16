@@ -107,6 +107,7 @@ async def node(tmp_path, monkeypatch):
     monkeypatch.setattr(bringup, "Tunnel", FakeTunnel)
     mgr = EnvironmentManager(home, runtime=rt, settings=EnvSettings())
     mgr.repo_probe = readable_repo
+    mgr.slot_poll_s, mgr.slot_wait_s, mgr.ready_wait_s = 0.01, 0.05, 0.05  # a full node, a starting machine: short waits
     rt.register("environments", mgr)
     grant, token = policy.issue(subject={"id": "agent-1"}, workspaces=["*"], ceiling=Effect.COMMIT,
                                 specials={"vm": {}, "exec": {}})
@@ -286,7 +287,7 @@ async def test_another_grant_does_not_reattach_or_see_it(node):
 async def test_open_past_the_nodes_limit_is_refused(node):
     node["mgr"].settings.max_live = 1
     await opened(node)
-    with pytest.raises(ToolCallError, match="environment_limit"):
+    with pytest.raises(ToolCallError, match="environment_full"):
         await node["call"]("environment_open", title="Second", session="chat-2")
     with pytest.raises(ToolCallError, match="environment_limit"):
         await node["call"]("environment_open", title="Too long", session="chat-3", hours=500)
@@ -305,10 +306,11 @@ async def test_a_fourth_open_is_refused_with_the_limit_and_the_command_that_rais
     for n in range(3):
         out = await opened(node, title=f"Work {n}", session=f"chat-{n}")
         assert out["state"] == "ready", out
-    with pytest.raises(ToolCallError, match="environment_limit") as err:
+    with pytest.raises(ToolCallError, match="environment_full") as err:
         await node["call"]("environment_open", title="Fourth", session="chat-4")
     words = str(err.value)
-    assert "limit is 3 at once" in words and "agentos environments allow --max-live" in words
+    assert "already runs 3 machines, its limit at once" in words and "agentos environments allow --max-live" in words
+    assert "destroy" not in words and "fewer hours" not in words
     assert len(node["mgr"].store.open()) == 3
     # too long a life: the same, naming --max-hours (8 hours by default)
     with pytest.raises(ToolCallError, match="environment_limit") as err:
