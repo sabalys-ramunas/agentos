@@ -43,7 +43,6 @@ log = logging.getLogger(__name__)
 
 IDLE_S = 300           # the master ends this long after its last command (ControlPersist)
 MAX_SESSIONS = 8       # commands at once over one master (sshd allows 10 sessions a connection by default)
-CHECK_S = 2.0          # how long a master that answered is taken to be up without asking again
 RETRY_S = 30.0         # after a master failed to start, the commands connect on their own this long
 START_TIMEOUT_S = 30.0
 # sockaddr_un holds 104 bytes on macOS (108 on Linux), and ssh first binds `<path>.<16 random characters>`
@@ -72,7 +71,6 @@ class Mux:
         self.base = base
         self.enabled = enabled
         self.sessions: dict[str, int] = {}
-        self.up_until: dict[str, float] = {}      # path -> monotonic time its master last answered + CHECK_S
         self.not_before: dict[str, float] = {}    # path -> no new master before this (one failed)
         self.starting: dict[str, asyncio.Task] = {}
 
@@ -108,23 +106,14 @@ class Mux:
         path = self.path(remote)
         if path is None:
             return None
-        if not self._up(path):
+        if not _answers(path):  # asked each time (tens of microseconds): a client sent to a dead master
+            # would fall back to its own connection, but ssh says so on the command's stderr
             self._start_soon(remote, path)
             return None
         if self.sessions.get(path, 0) >= MAX_SESSIONS:
             return None
         self.sessions[path] = self.sessions.get(path, 0) + 1
         return Lease(self, path)
-
-    def _up(self, path: str) -> bool:
-        now = time.monotonic()
-        if self.up_until.get(path, 0.0) > now:
-            return True
-        if _answers(path):
-            self.up_until[path] = now + CHECK_S
-            return True
-        self.up_until.pop(path, None)
-        return False
 
     def _start_soon(self, remote: RemoteHost, path: str) -> None:
         task = self.starting.get(path)
@@ -161,9 +150,7 @@ class Mux:
             ok = proc.returncode == 0 and _answers(path)
         except OSError as e:
             log.debug("no ssh master for %s: %s", remote.vm_id, e)
-        if ok:
-            self.up_until[path] = time.monotonic() + CHECK_S
-        else:
+        if not ok:
             self.not_before[path] = time.monotonic() + RETRY_S
         return ok
 

@@ -5,10 +5,12 @@ lane_exec before, about 50 ms after."""
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import os
 import shutil
 import socket
 import tempfile
+import threading
 from pathlib import Path
 
 import pytest
@@ -34,11 +36,27 @@ def mux(base):
     return sshmux.Mux(base)
 
 
-def listen(path: str) -> socket.socket:
-    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    s.bind(path)
-    s.listen(8)
-    return s
+class listen:
+    """A stand-in master: listens on the socket and takes each connection, as ssh's does."""
+
+    def __init__(self, path: str):
+        self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.sock.bind(path)
+        self.sock.listen(8)
+        threading.Thread(target=self._take, daemon=True).start()
+
+    def _take(self) -> None:
+        while True:
+            try:
+                conn, _ = self.sock.accept()
+            except OSError:
+                return
+            conn.close()
+
+    def close(self) -> None:
+        with contextlib.suppress(OSError):
+            self.sock.shutdown(socket.SHUT_RDWR)
+        self.sock.close()
 
 
 def test_the_socket_lives_in_a_private_directory_and_differs_per_machine(mux, base):
@@ -96,17 +114,15 @@ def test_a_master_that_answers_carries_up_to_max_sessions(mux):
         s.close()
 
 
-def test_a_dead_master_is_noticed_after_check_s(mux, monkeypatch):
+def test_a_dead_master_is_noticed_by_the_next_command(mux):
     path = mux.path(R)
     assert path is not None
     s = listen(path)
     lease = mux.lease(R)
     assert lease is not None
     lease.release()
-    s.close()
-    os.unlink(path)
-    mux.up_until[path] = 0.0  # CHECK_S went by
-    assert mux.lease(R) is None
+    s.close()  # killed: its socket file stays, and nobody answers on it
+    assert os.path.exists(path) and mux.lease(R) is None
 
 
 async def test_a_failed_start_waits_retry_s_before_the_next(mux, base, monkeypatch):
@@ -129,10 +145,10 @@ async def test_a_master_starts_with_the_pinned_options_in_the_background(mux, ba
     fake.write_text(f"""#!/bin/sh
 printf '%s\\n' "$@" > {log}
 for a; do case "$a" in ControlPath=*) p="${{a#ControlPath=}}";; esac; done
-{shutil.which("python3")} -c "import socket,sys,os,time
-s=socket.socket(socket.AF_UNIX); s.bind(sys.argv[1]); s.listen(1)
+{shutil.which("python3")} -c "import socket,sys,os
+s=socket.socket(socket.AF_UNIX); s.bind(sys.argv[1]); s.listen(8); s.settimeout(5)
 if os.fork(): os._exit(0)
-time.sleep(5)" "$p"
+while True: s.accept()[0].close()" "$p" < /dev/null > /dev/null 2>&1
 """)
     fake.chmod(0o755)
     monkeypatch.setattr(ssh, "SSH", str(fake))
