@@ -649,6 +649,11 @@ class JobTable:
                     with contextlib.suppress(TimeoutError):
                         await asyncio.wait_for(job.changed.wait_for(ready), min(left, OOM_EVERY_S))
                     self.probe_oom(job)
+        if job.running and (job.info.exit_code is not None or job.info.signal) and job.task is not None:
+            # it is ending (an oom kill found at its end can wake this read first): let the end finish,
+            # so the read says exited, not running with an exit code (seen live on Hetzner, 2026-11-16)
+            with contextlib.suppress(asyncio.TimeoutError, asyncio.CancelledError, Exception):
+                await asyncio.wait_for(asyncio.shield(job.task), 30)
         out = await asyncio.to_thread(_read_at, job.log_path("stdout"), stdout_offset, max_bytes)
         err = await asyncio.to_thread(_read_at, job.log_path("stderr"), stderr_offset, max_bytes)
         if oom.signs(err) and len(job.info.oom or []) == kills:

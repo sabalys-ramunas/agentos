@@ -274,3 +274,33 @@ def test_the_follower_is_quiet_and_only_a_job_detaches(vm):
     assert "setsid" not in follow.argv[-1] and "o=5; e=7" in follow.argv[-1]
     plain = real.command(None, lane, Workload("x-ab12", ["true"], {}), cgroup=None, workdir=Path(vm[2] / "w"))
     assert "LogLevel=ERROR" in plain.argv and "setsid -w" in plain.argv[-1]
+
+
+async def test_a_read_waiting_for_the_end_says_exited_not_running_with_an_exit_code(vm, monkeypatch):
+    """Live on Hetzner (2026-11-16): an exit-0 job whose child was killed for memory. The background
+    probe found the kill while the job's end was under way (its exit code set, the machine's files
+    still going), which woke lane_job_read(until_exit=true): the read said state running with
+    exit_code 0 and "the job runs on". The read now lets an ending job finish first."""
+    from agentos.env import jobs as jobs_mod
+    from agentos.env.lanes import LaneRuntime
+
+    kill = {"pid": 4025, "name": "python3", "rss_mb": 3529, "at": "2026-11-16T09:49:30Z", "in_job": True}
+    ending = asyncio.Event()
+
+    async def kills(self, wid, *, elapsed_s, final=False):
+        return [kill] if ending.is_set() and not final else []  # the background probe finds it mid-end
+
+    async def slow_forget(self, wid):
+        ending.set()
+        await asyncio.sleep(1.0)  # the machine's files go: the window in which the probe woke the read
+
+    monkeypatch.setattr(jobs_mod, "OOM_EVERY_S", 0.05)
+    monkeypatch.setattr(LaneRuntime, "oom_kills", kills)
+    monkeypatch.setattr(LaneRuntime, "job_forget", slow_forget)
+    manager, _, _ = vm
+    mgr = manager()
+    await mgr.start()
+    info = await mgr.job_start(LANE, "echo 'child exit=137'; exit 0")
+    done, _, _ = await mgr.job_read(info.id, wait_s=10, until_exit=True)
+    assert done.state == "exited" and done.exit_code == 0, done
+    await mgr.shutdown()
