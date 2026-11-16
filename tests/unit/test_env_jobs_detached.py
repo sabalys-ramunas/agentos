@@ -146,7 +146,33 @@ async def test_a_job_on_a_vm_runs_detached_and_ends_with_its_exit_code(vm):
     assert done.state == "exited" and done.exit_code == 3
     _, out, err = await mgr.job_read(info.id)
     assert out == b"out\n" and err == b"err\n"
+    await ended(mgr, info.id)
     assert not list(wl.glob(f"{info.vm_wid}.*"))  # its files on the machine went once read
+    await mgr.shutdown()
+
+
+async def ended(mgr, job_id) -> None:
+    """The job's end is done: its files on the machine go just after a read had its answer."""
+    task = mgr.jobs.get(job_id).task
+    if task is not None:
+        await asyncio.wait_for(asyncio.shield(task), 10)
+
+
+async def test_a_read_waiting_for_the_end_does_not_wait_for_the_files_to_go(vm, monkeypatch):
+    """The read that waits for the end answers once the node knows it; removing the job's files on
+    the machine (one more ssh) comes after."""
+    manager, wl, _ = vm
+    forget = ssh.forget_script
+    monkeypatch.setattr(ssh, "forget_script", lambda wid: "sleep 2; " + forget(wid))
+    mgr = manager()
+    await mgr.start()
+    info = await mgr.job_start(LANE, "echo hi")
+    loop = asyncio.get_running_loop()
+    began = loop.time()
+    done = await wait_state(mgr, info.id)
+    assert done.state == "exited" and done.exit_code == 0 and loop.time() - began < 1.8
+    await ended(mgr, info.id)
+    assert not list(wl.glob(f"{info.vm_wid}.*"))
     await mgr.shutdown()
 
 

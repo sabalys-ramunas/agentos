@@ -472,9 +472,6 @@ class JobTable:
             with contextlib.suppress(Exception):
                 job.add_oom(await asyncio.wait_for(
                     rt.oom_kills(info.vm_wid or "", elapsed_s=info.duration_s, final=True), oom.PROBE_TIMEOUT_S + 2))
-        if not lost:
-            with contextlib.suppress(Exception):
-                await asyncio.wait_for(rt.job_forget(info.vm_wid or ""), 25)
         info.finished_at = utcnow()
         info.stdout_bytes, info.stderr_bytes = job.out.total, job.err.total
         info.stdout_dropped, info.stderr_dropped = job.out.dropped, job.err.dropped
@@ -495,6 +492,9 @@ class JobTable:
         with contextlib.suppress(Exception):
             job.save()
         await job.notify()
+        if not lost:  # its files on the machine go after a read waiting for the end has its answer
+            with contextlib.suppress(Exception):
+                await asyncio.wait_for(rt.job_forget(info.vm_wid or ""), 25)
         with contextlib.suppress(Exception):
             await on_end(job)
 
