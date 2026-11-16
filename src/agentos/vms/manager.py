@@ -511,9 +511,10 @@ class VmManager:
         return rec
 
     async def _before_create(self, rec: VmRecord, client_pub: str, labels: dict[str, str]) -> tuple:
-        """What a server is made with, asked of the provider at once (each is an API call on Hetzner, and
-        they do not depend on each other): its firewall, the image, the SSH key, the locations and the
-        types. The first failure in that order is raised, and a key made beside it is deleted."""
+        """What a server is made with. The firewall, the image, the locations and the types are asked of
+        the provider at once (each is an API call on Hetzner, and none depends on another); the first
+        failure in that order is raised. The throwaway SSH key, the one call that leaves something behind,
+        is made only once they all answered, so a failure or a cancel among them leaves no key."""
         prov = self.provider()
 
         async def firewall() -> str | None:
@@ -522,16 +523,14 @@ class VmManager:
             return await prov.ensure_firewall(f"agentos-{self.node}-{self.home_id}", self._labels(),
                                               await self._ssh_from())
 
-        got = await asyncio.gather(firewall(), prov.resolve_image(rec.image),
-                                   prov.create_ssh_key(f"agentos-{rec.id}", client_pub, labels),
-                                   self._zones(), self._types_or_none(), return_exceptions=True)
+        got = await asyncio.gather(firewall(), prov.resolve_image(rec.image), self._zones(), self._types_or_none(),
+                                   return_exceptions=True)
         failed = next((g for g in got if isinstance(g, BaseException)), None)
         if failed is not None:
-            if not isinstance(got[2], BaseException):
-                with contextlib.suppress(Exception):  # the reaper removes it later if this fails
-                    await prov.delete_ssh_key(got[2])
             raise failed
-        return tuple(got)
+        fw, image, zones, types = got
+        key_id = await prov.create_ssh_key(f"agentos-{rec.id}", client_pub, labels)
+        return fw, image, key_id, zones, types
 
     def _remote(self, rec: VmRecord) -> RemoteHost:
         d = self.dir / rec.id

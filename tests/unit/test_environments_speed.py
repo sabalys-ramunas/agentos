@@ -414,7 +414,7 @@ async def test_the_calls_before_a_server_is_made_go_at_once(tmp_path):
         rec = await vms.create("dev/a", ttl_minutes=60, wait_s=0)
         took = time.monotonic() - t
         assert rec.provider_id in prov.servers and prov.keys == {}  # the key went once the server existed
-        assert took < 0.6, took  # four round trips of 0.2 s at once, not one after another
+        assert took < 0.6, took  # four round trips of 0.2 s at once, then the key's: not five in a row
     finally:
         await vms.shutdown()
         await envs.shutdown()
@@ -425,6 +425,44 @@ async def test_a_failure_before_the_server_says_its_own_words_and_leaves_no_key(
     try:
         with pytest.raises(VmError, match="no snapshot named dev"):
             await vms.create("dev/a", ttl_minutes=60, wait_s=0)
+        assert prov.keys == {} and prov.servers == {}
+    finally:
+        await vms.shutdown()
+        await envs.shutdown()
+
+
+async def test_an_open_cancelled_before_the_server_leaves_no_ssh_key(tmp_path):
+    """environment_close while "VM create" still waits for the firewall: the key comes only after the
+    calls beside it, so a cancel among them leaves none at the provider (the reviewer's repro)."""
+    from agentos.core.runtime import Runtime
+    from agentos.env.host import FakeHost
+    from agentos.env.manager import EnvManager
+    from agentos.env.paths import EnvSettings as TermSettings
+    from agentos.env.sandbox import DirectLauncher
+    from agentos.vms.manager import VmManager
+    from agentos.vms.models import VmSettings
+    from agentos.vms.provider import FakeProvider
+
+    class SlowFirewall(FakeProvider):  # the key itself is made at once
+        async def ensure_firewall(self, name, labels, ssh_from):
+            await asyncio.sleep(1.0)
+            return await super().ensure_firewall(name, labels, ssh_from)
+
+    async def ok(remote, *, timeout_s=15):
+        return True, ""
+
+    envs = EnvManager(tmp_path, host=FakeHost(), launcher=DirectLauncher(), settings=TermSettings(proxy_port=0))
+    rt = Runtime(envs=envs)
+    prov = SlowFirewall()
+    vms = VmManager(tmp_path, runtime=rt, provider=prov, settings=VmSettings(ssh_from=["198.51.100.7/32"]),
+                    node_name="n1", probe=ok)
+    rt.register("vms", vms)
+    try:
+        await vms.plan("dev/a", ttl_minutes=60)
+        task = asyncio.create_task(vms.create("dev/a", ttl_minutes=60, wait_s=0))
+        await asyncio.sleep(0.3)
+        task.cancel()
+        await asyncio.gather(task, return_exceptions=True)
         assert prov.keys == {} and prov.servers == {}
     finally:
         await vms.shutdown()
