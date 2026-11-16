@@ -12,10 +12,13 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import secrets
 import shlex
+import subprocess
 from pathlib import Path
 
 from agentos.env import oom
+from agentos.env.lanes import wait_exit
 from agentos.env.models import EnvLane, RemoteHost
 from agentos.env.sandbox import Command, LanePlan, Workload
 from agentos.vms.sshmux import MUX
@@ -202,7 +205,8 @@ def forget_script(wid: str) -> str:
     d = shlex.quote(PGID_DIR)
     files = " ".join(shlex.quote(wid + s) for s in JOB_SUFFIXES)
     return (f"cd {d} 2>/dev/null || exit 0; rm -f {files} {shlex.quote(wid + '.rc.n')}; "
-            f"find . -maxdepth 1 -type f -name 'j-*' -mmin +{JOB_STALE_MINUTES} -delete 2>/dev/null; true\n")
+            f"find . -maxdepth 1 -type f \\( -name 'j-*' -o -name 'r-*' \\) -mmin +{JOB_STALE_MINUTES} -delete "
+            "2>/dev/null; true\n")
 
 
 def parse_status(text: str) -> dict | None:
@@ -327,33 +331,98 @@ async def probe(remote: RemoteHost, *, timeout_s: float = 20.0) -> tuple[bool, s
     return False, (err or b"").decode(errors="replace").strip()[-300:] or f"ssh exited {proc.returncode}"
 
 
+RUN_STOP_S = 15.0  # how long the ssh that ends a timed-out script's processes on the VM may take
+_ENDING: set[asyncio.Task] = set()
+
+
+def grouped(wid: str, script: str) -> str:
+    """The script, first writing its process group's id (sshd gives each session one) to pgid_file(wid),
+    so stop_script can end all it started; the file goes when it exits."""
+    f = shlex.quote(pgid_file(wid))
+    return (f'{{ {{ read -r _ _ _ _ g _ < /proc/$$/stat || g=$(ps -o pgid= -p $$ | tr -d " "); }} && [ -n "$g" ] && '
+            f'mkdir -p {PGID_DIR} && echo "$g" > {f}; }} 2>/dev/null; trap \'rm -f {f}\' EXIT\n{script}')
+
+
+async def _talk(proc: asyncio.subprocess.Process, data: bytes) -> bytes:
+    assert proc.stdin is not None and proc.stdout is not None
+    with contextlib.suppress(BrokenPipeError, ConnectionResetError):
+        proc.stdin.write(data)
+        await proc.stdin.drain()
+        proc.stdin.close()
+    return await proc.stdout.read()
+
+
 async def run(remote: RemoteHost, script: str, *, timeout_s: float = 900.0) -> tuple[int, str]:
     """Run a shell script on the VM (image builds, a job's status, the kernel's oom kills), over the
     VM's shared connection when one is up (agentos.vms.sshmux). Returns (exit code, the last 4000
-    characters of its output)."""
+    characters of its output). The timeout holds over a shared connection too: the master keeps a
+    killed client's pipes until the script ends, so this waits for the ssh process, not its pipes,
+    and ends what the script started on the VM (stop_script) before its session goes back."""
     lease = MUX.lease(remote)
+    wid = f"r-{secrets.token_hex(4)}"
     try:
         argv = ssh_base(remote, mux=lease.args if lease else None) + ["bash -s"]
         proc = await asyncio.create_subprocess_exec(*argv, stdin=asyncio.subprocess.PIPE,
                                                     stdout=asyncio.subprocess.PIPE,
                                                     stderr=asyncio.subprocess.STDOUT)
-        try:
-            out, _ = await asyncio.wait_for(proc.communicate(script.encode()), timeout=timeout_s)
-        except TimeoutError:
+    except BaseException:
+        if lease is not None:
+            lease.release()
+        raise
+    loop = asyncio.get_running_loop()
+    end = loop.time() + timeout_s
+    talk = asyncio.ensure_future(_talk(proc, grouped(wid, script).encode()))
+    try:
+        await wait_exit(proc, timeout_s)
+        out = await asyncio.wait_for(asyncio.shield(talk), max(0.0, end - loop.time()))
+    except BaseException as e:  # timed out, or the caller gave up (a probe beside a read)
+        talk.cancel()
+        with contextlib.suppress(ProcessLookupError):
             proc.kill()
-            await proc.wait()
+        task = loop.create_task(_end_remote(remote, wid, lease), name=f"ssh-stop-{wid}")
+        _ENDING.add(task)
+        task.add_done_callback(_ENDING.discard)
+        if isinstance(e, TimeoutError):
             return 124, "timed out"
-        except BaseException:  # the caller gave up (a probe beside a read): no ssh is left behind
-            with contextlib.suppress(ProcessLookupError):
-                proc.kill()
-            raise
-        if lease is not None:  # ssh's own lines about the shared connection are never the script's
-            out = lease.clean(out or b"")
-            lease.release(proc.returncode)
+        raise
+    if lease is not None:
+        out = lease.clean(out)
+        lease.release(proc.returncode)
+    return proc.returncode or 0, out.decode(errors="replace")[-4000:]
+
+
+def _start_stop(remote: RemoteHost, wid: str) -> subprocess.Popen | None:
+    """The ssh that kills a script's process group on the VM (stop_script), as a plain Popen: a task
+    cancelled while asyncio starts a subprocess can hang the closing of its loop (seen in a script that
+    ended right after a timeout)."""
+    try:
+        return subprocess.Popen([*ssh_base(remote), stop_script(wid, "KILL")], stdin=subprocess.DEVNULL,
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+    except OSError:
+        return None
+
+
+def _reap(proc: subprocess.Popen) -> None:
+    proc.kill()
+    with contextlib.suppress(subprocess.TimeoutExpired):
+        proc.wait(1)
+
+
+async def _end_remote(remote: RemoteHost, wid: str, lease) -> None:
+    """End what a script that timed out (or whose caller gave up) started on the VM, over a connection of
+    its own (the shared one may be what hangs); then its session goes back."""
+    proc = _start_stop(remote, wid)
+    loop = asyncio.get_running_loop()
+    end = loop.time() + RUN_STOP_S
+    try:
+        while proc is not None and proc.poll() is None:
+            if loop.time() > end:
+                _reap(proc)
+                break
+            await asyncio.sleep(0.02)
     finally:
         if lease is not None:
             lease.release()
-    return proc.returncode or 0, (out or b"").decode(errors="replace")[-4000:]
 
 
 async def push_tree(remote: RemoteHost, src: Path, dest: str, *, timeout_s: float = 600.0) -> None:

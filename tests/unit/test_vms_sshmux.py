@@ -8,6 +8,7 @@ import asyncio
 import contextlib
 import os
 import shutil
+import signal
 import socket
 import tempfile
 import threading
@@ -277,6 +278,40 @@ async def test_run_goes_over_the_master_and_gives_its_session_back_without_ssh_s
     assert (code, out) == (3, "hi\n")
     assert f"ControlPath={path}" in argvs(base)[0] and mux.sessions[path] == 0
     assert mux.not_before[path] > time.monotonic()  # the master refused it: commands go on their own a while
+
+
+async def test_run_s_timeout_holds_over_a_shared_connection(mux, base, monkeypatch):
+    """A master keeps a killed client's pipes until the remote script ends: ssh.run(timeout_s=1) of a
+    `sleep 15` came back after 15 s. Here a child of the fake ssh holds its stdout as the master does. The
+    script's process group on the VM is ended (stop_script KILL), then the session goes back."""
+    monkeypatch.setattr(ssh, "MUX", mux)
+    holder = Path(base) / "holder.pid"
+    monkeypatch.setattr(ssh, "SSH", str(fake_ssh(
+        base, f'case "$*" in *"kill -s KILL"*) exit 0;; esac\nsleep 30 & echo $! > {holder}\nexec sleep 30')))
+    path = mux.path(R)
+    assert path is not None
+    up(mux, path)
+    began = time.monotonic()
+    try:
+        assert await ssh.run(R, "sleep 15", timeout_s=1) == (124, "timed out")
+        assert time.monotonic() - began < 3
+        await asyncio.wait_for(asyncio.gather(*ssh._ENDING), 5)
+        first, stop = argvs(base)
+        assert f"ControlPath={path}" in first and first[-2] == "bash -s"
+        assert "ControlPath" not in " ".join(stop) and "kill -s KILL" in stop[-2] and "r-" in stop[-2]
+        assert mux.sessions[path] == 0
+    finally:
+        with contextlib.suppress(OSError, ValueError):
+            os.kill(int(holder.read_text()), signal.SIGKILL)
+
+
+def test_a_script_writes_its_process_group_for_the_stop_and_keeps_its_exit_status(base, monkeypatch):
+    import subprocess
+
+    monkeypatch.setattr(ssh, "PGID_DIR", base)
+    script = ssh.grouped("r-ab12", f"cat {base}/r-ab12.pgid; exit 3")
+    r = subprocess.run(["bash", "-s"], input=script.encode(), capture_output=True, check=False, start_new_session=True)
+    assert r.returncode == 3 and r.stdout.strip().isdigit() and not (Path(base) / "r-ab12.pgid").exists()
 
 
 async def test_release_gives_the_session_back_once_with_the_exit_status():
