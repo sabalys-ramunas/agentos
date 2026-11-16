@@ -86,7 +86,7 @@ STATUS_BY_CODE: dict[str, int] = {
     "target_covered": 409, "target_not_visible": 409, "target_unreachable": 409, "vault_busy": 409,
     "vault_code_declined": 409, "vault_entry_exists": 409, "vault_exists": 409, "vault_typing_aborted": 409,
     "vm_limit": 409, "wrong_account": 409, "wrong_element": 409, "wrong_surface": 409,
-    "environment_limit": 409, "unsaved_work": 409, "save_limit": 409, "keep_live_not_allowed": 409, "environment_in_use": 409, "environment_already_open": 409,
+    "environment_limit": 409, "environment_full": 409, "unsaved_work": 409, "save_limit": 409, "keep_live_not_allowed": 409, "environment_in_use": 409, "environment_already_open": 409,
     "repo_not_connected": 409, "which_environment": 409, "environment_choice": 409, "repo_not_found": 404,
     # 429: too many tries, or the pace is used up; it opens again by itself
     "pace_limited": 429, "vault_locked_out": 429, "pilot_day_limit": 429,

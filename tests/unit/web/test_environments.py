@@ -97,7 +97,8 @@ def test_the_list_shows_open_ones_and_all_on_request(client: TestClient, envs: A
     [e] = body["environments"]
     assert e["state"] == "working" and e["title"] == "Black Friday page" and e["repo"] == "github.com/me/shop"
     assert e["machine"] == {"provider": "hetzner", "server_type": "cpx22", "cpu": 2, "memory_gb": 4.0,
-                            "location": "nbg1", "size": None}  # a record from before sizes had names
+                            "location": "nbg1", "size": None,  # a record from before sizes had names
+                            "swap": None, "updates": None}  # and before swap and the update notes
     assert e["price_hourly_eur"] == 0.0095 and e["cost_eur"] == 0.0048
     assert e["agent"] == {"name": "claude-code", "client": "claude-code 2.1"}
     assert e["lanes"] == {"terminal": "env/e7k2", "browser": "env/e7k2-browser"}

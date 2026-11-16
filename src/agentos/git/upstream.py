@@ -288,12 +288,12 @@ class Mirror:
             await run_git(["config", k, v], cwd=path, env=base_env(path))
         self._served_config = True
 
-    def fresh_since(self, asked: float) -> bool:
+    def fresh_since(self, asked: float, window: float = FRESH_S) -> bool:
         """Did a fetch from the remote start at most FRESH_S before `asked` (time.monotonic()) and
         succeed? Then a request that waited for the mirror's lock while it ran serves what it brought,
         instead of fetching the same refs again (a clone, the agent's own fetch and the node's warm-up of
         one repository at once)."""
-        return self.fetched_at is not None and self.fetched_at >= asked - FRESH_S
+        return self.fetched_at is not None and self.fetched_at >= asked - window
 
     async def fetch(self, target: Target, auth: Auth) -> str | None:
         """Bring the mirror to the remote's branches and tags; returns the remote's default branch."""

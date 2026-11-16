@@ -60,7 +60,7 @@ from agentos.core.models import Effect
 from agentos.git import keys as keymod
 from agentos.git import login
 from agentos.git.remotes import RemoteRule, Remotes, scope_workspace
-from agentos.git.upstream import Mirror, Target, UpstreamError, credential_env, target_for
+from agentos.git.upstream import FRESH_S, Mirror, Target, UpstreamError, credential_env, target_for
 from agentos.git.wire import (
     Command,
     Push,
@@ -363,7 +363,10 @@ class GitGateway:
         """Bring the mirror up to date from the remote (under its lock). False when a fetch that began
         just before or after `asked` (when this request came) already did it: one fetch serves them all."""
         await mirror.ensure()
-        if asked is not None and mirror.fresh_since(asked):
+        # A push's rules (whose branch it is, who else pushed to it) must see the remote as it is now: only
+        # a fetch that began after the push asked serves it. A fetch may take one up to FRESH_S older.
+        # (Round 3: a 5 s old view let a force push over a colleague's commit through.)
+        if asked is not None and mirror.fresh_since(asked, window=0.0 if op == "push" else FRESH_S):
             return False
         purpose = f"git {op} {target.remote.slug} for {caller.label}"
         try:
