@@ -352,6 +352,20 @@ async def test_round_trip_from_a_snapshot(node):
     assert saved["snapshot"]["id"] not in node["cloud"].snapshots and not snap_disk.exists()
 
 
+async def test_the_staging_folders_are_gone_from_the_snapshot_and_the_resumed_machine(node):
+    """The save's staging folder is removed while the node unpacks it, and the restore's while the files go
+    back (each beside the next step, not one after another), but before the snapshot and the end."""
+    out = await opened(node, keep="save")
+    work_on_it(disk(node, out["id"]) / "work" / "shop")
+    saved = (await node["call"]("environment_close"))["saved"]
+    snap_disk = node["cloud"].root / "snapshots" / saved["snapshot"]["id"]
+    assert not list((snap_disk / "var" / "tmp").glob("agentos-save-*"))
+    again = await node["call"]("environment_open", title=TITLE, session="chat-2")
+    assert again["resumed"]["commits_restored"] == 2
+    assert not list((disk(node, again["id"]) / "var" / "tmp").glob("agentos-restore-*"))
+    await node["call"]("environment_close", discard=True, session="chat-2")
+
+
 async def test_round_trip_from_the_files_when_the_snapshot_is_gone(node):
     """The snapshot was deleted at the provider: the resume rents a fresh machine, clones, and puts the
     commits (from the bundle), the branch, the edits and the deletions back. `from` says files."""
