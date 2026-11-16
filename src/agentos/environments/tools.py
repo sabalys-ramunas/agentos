@@ -541,7 +541,12 @@ async def environment(ctx: ToolContext, *, on: str | None = None) -> dict:
     if handle_env(on) == env.id:  # it came with its handle: the caller holds it, so it may see it again
         out["on"] = " ".join(str(on).split())
     if env.state == "starting":
-        out["next"] = "still starting: call environment() again in a minute, with the same on"
+        from agentos.environments.bringup import doing
+
+        if now := doing(env.id):
+            out["doing"] = now
+        out["next"] = ("still starting" + (f" ({now})" if now else "") + ": call environment() again in a minute, "
+                       "with the same on. Terminal and browser calls wait for ready (environment_not_ready)")
     elif out.get("unsaved") and env.keep == "none":
         out["next"] = "commit and push before environment_close (git push origin <branch>)"
     elif git.get("compare") and not env.pull_requests:

@@ -427,3 +427,36 @@ async def test_the_docker_provider_maps_sizes_to_its_limits(tmp_path):
     finally:
         mgr.store.close()
         await vms.shutdown()
+
+
+async def test_nothing_runs_on_a_machine_that_is_still_starting(node):  # noqa: F811
+    """Field report 2026-11-16: the agent ran git fetch in /work/<repo> while the node's own clone was
+    still running there; the two broke the clone ("initial ref transaction called with existing
+    refs") and the VM was torn down 15 minutes later. While it starts, a terminal or browser call runs
+    nothing and says what the bring-up does now; environment() says it too."""
+    from agentos.environments import bringup
+
+    node["machine"].setup = "status: running"  # it stays starting
+    first = await opened(node, repo=REPO, wait_s=0, session=None)
+    assert first["state"] == "starting"
+    bringup.NOW[first["id"]] = {"clone": bringup.time.monotonic() - 190}  # as the clone step would say
+    try:
+        with pytest.raises(ToolCallError, match=r"^environment_not_ready: .*cloning the repository \(3 min 1\d s so far\)"):
+            await node["call"]("lane_exec", on=first["on"], cmd="git fetch", session=None)
+        with pytest.raises(ToolCallError, match="^environment_not_ready"):
+            await node["call"]("lane_job_start", on=first["on"], cmd="pnpm dev", session=None)
+        now = await node["call"]("environment", on=first["on"], session=None)
+        assert "cloning the repository" in now["doing"] and "environment_not_ready" in now["next"]
+    finally:
+        bringup.NOW.pop(first["id"], None)
+    assert not [c for c, _ in node["machine"].ran if "git fetch" in c]  # nothing reached the machine
+
+
+async def test_a_call_to_a_machine_that_failed_says_why(node):  # noqa: F811
+    """The same report: the failed machine's next call said only that the lane was stopped."""
+    node["machine"].setup = "status: running"
+    first = await opened(node, repo=REPO, wait_s=0, session=None)
+    await node["mgr"]._fail(first["id"], "cloning github.com/me/shop failed: BUG: refs/files-backend.c", code=None,
+                            reason="clone")
+    with pytest.raises(ToolCallError, match=r"^environment_failed: .*did not start.*cloning github.com/me/shop failed"):
+        await node["call"]("lane_exec", on=first["on"], cmd="pnpm install", session=None)

@@ -138,13 +138,35 @@ def route(runtime: Any, tool: str, kwargs: dict[str, Any], *, session: str | Non
             raise NoEnvironment(f"no open environment of yours is named \"{on[:80]}\". on takes the on your "
                                 "environment_open gave, or an account lane \"workspace/name\"; environment() lists "
                                 "your agent's machines")
+        if env.state == "failed":
+            from agentos.environments.errors import EnvironmentFailed
+
+            raise EnvironmentFailed(f"environment {env.id} (\"{env.title}\") did not start and its VM is deleted: "
+                                    f"{env.error or 'no reason was kept'}. Nothing ran. environment_open(title=...) "
+                                    "opens a new one")
         if not env.open:
             raise NoEnvironment(f"environment {env.id} (\"{env.title}\") is closed; environment_open(title=...) opens "
                                 "a new one")
     else:
         env = svc.pick(binding(session, grant_id), family, kind)
+    if env.state == "starting":
+        not_yet(env)
     kwargs["on"] = env.browser_lane if kind == "browser" else env.terminal_lane
     return env
+
+
+def not_yet(env: Any) -> None:
+    """A call to a machine that is still starting runs nothing: it could race the bring-up (a git
+    command while the repository is still being cloned breaks the clone) or find half a machine.
+    environment_not_ready says what the bring-up does now and how long it has taken."""
+    from agentos.environments.bringup import doing
+    from agentos.environments.errors import EnvironmentNotReady
+
+    now = doing(env.id)
+    raise EnvironmentNotReady(f"environment {env.id} is still starting" + (f": {now}" if now else "") + ". Nothing ran: a "
+                              "call now could race its setup (a git command while the repository is cloned breaks "
+                              "the clone). Wait with environment(on=...), which says ready when it is; do not open "
+                              "another one")
 
 
 def _summary(tool: str, kwargs: dict[str, Any]) -> str:

@@ -43,9 +43,34 @@ GIT_SETUP = ("umask 077 && mkdir -p ~/.config/agentos && cat > ~/.config/agentos
              "git config --global --add include.path '~/.config/agentos/gitconfig')")
 
 
+# What each bring-up is doing right now (environment id -> step -> when it began), so a call that
+# comes while a machine starts can say what it waits for. Steps.run keeps it.
+NOW: dict[str, dict[str, float]] = {}
+STEP_WORDS = {"VM create": "renting the VM", "VM ready": "the VM boots", "setup check": "the VM sets up its tools",
+              "apt ready": "the VM's package manager finishes", "tools top-up": "installing tools",
+              "tunnels and git": "connecting to the VM", "browser": "starting the browser",
+              "clone": "cloning the repository", "restore": "restoring the saved work",
+              "ssh": "setting up ssh"}
+
+
+def doing(env_id: str) -> str | None:
+    """What the bring-up of `env_id` is doing now, in words with how long so far ("cloning the
+    repository (3 min 10 s so far)"), or None when no step runs (it is not starting here)."""
+    steps = NOW.get(env_id)
+    if not steps:
+        return None
+    now = time.monotonic()
+    return ", ".join(f"{STEP_WORDS.get(name, name)} ({_so_far(now - began)} so far)" for name, began in steps.items())
+
+
+def _so_far(seconds: float) -> str:
+    s = int(seconds)
+    return f"{s} s" if s < 60 else f"{s // 60} min {s % 60} s"
+
+
 class Steps:
     """How long each step of a bring-up took, logged at INFO as it ends (a failed one too), so a slow
-    open says where its time went."""
+    open says where its time went. The steps running now are in NOW."""
 
     def __init__(self, env_id: str):
         self.env_id = env_id
@@ -54,9 +79,14 @@ class Steps:
 
     async def run(self, name: str, coro: Any) -> Any:
         t = time.monotonic()
+        NOW.setdefault(self.env_id, {})[name] = t
         try:
             return await coro
         finally:
+            running = NOW.get(self.env_id, {})
+            running.pop(name, None)
+            if not running:
+                NOW.pop(self.env_id, None)
             took = time.monotonic() - t
             self.took.append((name, took))
             log.info("environment %s: %s took %.1f s", self.env_id, name, took)
