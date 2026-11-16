@@ -237,7 +237,7 @@ while True:
                 "StrictHostKeyChecking=yes", "HostKeyAlias=agentos-vm_1", "ClearAllForwardings=yes"):
         assert opt in argv
     assert "-N" in argv and argv[-2] == "root@203.0.113.9"
-    assert mux.lease(R) is not None
+    assert mux.lease(R) is not None and mux.started == {path}
 
 
 def up(mux: sshmux.Mux, path: str) -> None:
@@ -312,6 +312,27 @@ def test_a_script_writes_its_process_group_for_the_stop_and_keeps_its_exit_statu
     script = ssh.grouped("r-ab12", f"cat {base}/r-ab12.pgid; exit 3")
     r = subprocess.run(["bash", "-s"], input=script.encode(), capture_output=True, check=False, start_new_session=True)
     assert r.returncode == 3 and r.stdout.strip().isdigit() and not (Path(base) / "r-ab12.pgid").exists()
+
+
+async def test_stop_ends_a_vm_s_master_and_stop_all_the_ones_this_process_started(mux, base, monkeypatch):
+    monkeypatch.setattr(ssh, "SSH", str(fake_ssh(base, "exit 0")))
+    path = mux.path(R)
+    assert path is not None
+    other = R.model_copy(update={"key_path": "/k/vm_2/id", "host_alias": "agentos-vm_2"})
+    path2 = mux.path(other)
+    assert path2 is not None
+    s, s2 = listen(path), listen(path2)
+    try:
+        up(mux, path)
+        await mux.stop(R)
+        assert argvs(base)[0][-3:-1] == ["exit", "agentos-vm"] and f"ControlPath={path}" in argvs(base)[0]
+        assert path not in mux.healthy_until and not os.path.exists(path)
+        mux.started = {path2}
+        await mux.stop_all()
+        assert f"ControlPath={path2}" in argvs(base)[1] and mux.started == set() and len(argvs(base)) == 2
+    finally:
+        s.close()
+        s2.close()
 
 
 async def test_release_gives_the_session_back_once_with_the_exit_status():

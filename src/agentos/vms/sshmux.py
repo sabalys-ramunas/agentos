@@ -23,8 +23,8 @@ What it keeps as it was:
   of this user's only (0700, checked), named by a hash of the VM's address, key and host key alias.
 - A command whose caller gave up or timed out has its process group on the VM ended before its
   session is given back (agentos.env.execs, ssh.run), so the count here stays sshd's.
-- The master ends after IDLE_S without a command, and with its VM: a deleted machine's connection
-  drops (at once for a container, within ServerAliveInterval x ServerAliveCountMax for a cloud VM).
+- The master ends after IDLE_S without a command, when its VM's lane is removed (the VM is deleted:
+  Mux.stop), and when the node stops (the masters it started: Mux.stop_all).
 - AGENTOS_SSH_MUX=0 in the node's environment turns it off: every command connects on its own.
 """
 
@@ -53,6 +53,7 @@ START_TIMEOUT_S = 30.0
 HEALTHY_S = 60.0       # a master that said hello is used this long without another answer
 RECHECK_S = 5.0        # a command more than this after the last hello asks again, in the background
 HELLO_TIMEOUT_S = 0.5  # a master sends its hello at once on connect; one that does not is stuck
+STOP_TIMEOUT_S = 5.0
 # what an ssh client says of a master it could not use (it then connects on its own): never a result's
 MUX_LINE = re.compile(rb"^(?:muxclient|mux_[a-z_]+|Control socket connect\(|ControlSocket )[^\n]*(?:\n|$)",
                       re.MULTILINE)
@@ -100,6 +101,7 @@ class Mux:
         self.checked: dict[str, float] = {}        # path -> when it last said hello
         self.not_before: dict[str, float] = {}     # path -> not used, nor started, before this (one failed)
         self.tasks: dict[str, asyncio.Task] = {}   # path -> its check or start under way
+        self.started: set[str] = set()             # the masters this process started (stop_all)
 
     # ------------------------------------------------------------------ where
     def directory(self) -> Path | None:
@@ -201,10 +203,48 @@ class Mux:
         except OSError as e:
             log.debug("no ssh master for %s: %s", remote.vm_id, e)
         if ok:
+            self.started.add(path)
             self._healthy(path)
         else:
             self.not_before[path] = time.monotonic() + RETRY_S
         return ok
+
+    # ------------------------------------------------------------------ end
+    async def stop(self, remote: RemoteHost) -> None:
+        """End the VM's master now: its machine is going away."""
+        path = self.path(remote) if self.enabled else None
+        if path is not None:
+            await self._exit(path)
+
+    async def stop_all(self) -> None:
+        """End the masters this process started (the node stops)."""
+        await asyncio.gather(*(self._exit(p) for p in list(self.started)))
+
+    async def _exit(self, path: str) -> None:
+        from agentos.vms.ssh import SSH
+
+        task = self.tasks.pop(path, None)
+        if task is not None and not task.done():
+            task.cancel()
+        self.healthy_until.pop(path, None)
+        self.started.discard(path)
+        if not os.path.exists(path):
+            return
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                SSH, "-F", "/dev/null", "-o", f"ControlPath={path.replace('%', '%%')}", "-O", "exit", "agentos-vm",
+                stdin=asyncio.subprocess.DEVNULL, stdout=asyncio.subprocess.DEVNULL,
+                stderr=asyncio.subprocess.DEVNULL, start_new_session=True)
+        except OSError:
+            return
+        try:
+            await asyncio.wait_for(proc.wait(), STOP_TIMEOUT_S)
+        except TimeoutError:  # a stuck master: nothing reaches it once its socket is gone
+            proc.kill()
+            await proc.wait()
+        with contextlib.suppress(FileNotFoundError):
+            os.unlink(path)
+
 
 async def hello(path: str, timeout_s: float = HELLO_TIMEOUT_S) -> bool:
     """Does a master answer on this socket? It sends its hello as soon as it takes a connection; one

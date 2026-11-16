@@ -395,3 +395,21 @@ async def test_ssh_s_words_about_a_shared_connection_never_reach_an_exec_s_stder
     assert mux.sessions["/m"] == 0 and mux.not_before["/m"] > 0  # the master rests a while
     await mgr.shutdown()
 
+
+async def test_a_vm_lane_s_removal_and_the_node_s_stop_end_the_shared_connections(vm, monkeypatch):
+    manager, _, _ = vm
+    mgr = manager()
+    await mgr.start()
+    calls: list[tuple] = []
+
+    async def removed(lane):
+        calls.append(("removed", lane.remote.vm_id))
+
+    async def stopped():
+        calls.append(("shutdown",))
+
+    monkeypatch.setattr(mgr.remote_launcher, "lane_removed", removed)
+    monkeypatch.setattr(mgr.remote_launcher, "shutdown", stopped)
+    await mgr.remove(LANE, vm_ok=True)
+    await mgr.shutdown()
+    assert calls == [("removed", "vm_1"), ("shutdown",)]

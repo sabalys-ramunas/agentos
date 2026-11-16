@@ -260,6 +260,15 @@ class SshLauncher:
         assert lane.remote is not None, "SshLauncher serves VM lanes only"
         return await run(lane.remote, script, timeout_s=timeout_s)
 
+    async def lane_removed(self, lane: EnvLane) -> None:
+        """A VM lane goes (its machine is deleted): the node's shared connection to it ends now."""
+        if lane.remote is not None:
+            await MUX.stop(lane.remote)
+
+    async def shutdown(self) -> None:
+        """The node stops: the shared connections it started end with it."""
+        await MUX.stop_all()
+
     def command(self, plan: LanePlan | None, lane: EnvLane, wl: Workload, *, cgroup: str | None,
                 workdir: Path) -> Command:
         from agentos.env.sandbox import cgroup_wrap
