@@ -65,6 +65,41 @@ def escaped_len(data: bytes | bytearray) -> int:
     return len(data) + sum(data.count(c) for c in _TWO) + 5 * sum(data.count(c) for c in _SIX)
 
 
+_COST = bytes(2 if bytes([c]) in _TWO else 6 if c < 0x20 else 1 for c in range(256))
+
+
+def prefix_within(data: bytes, room: int) -> int:
+    """How many bytes from the start of `data` fit in `room` characters of JSON text."""
+    if escaped_len(data) <= room:
+        return len(data)
+    total = 0
+    for i, cost in enumerate(data.translate(_COST)):
+        total += cost
+        if total > room:
+            return i
+    return len(data)
+
+
+def suffix_within(data: bytes, room: int) -> int:
+    """Where the end of `data` that fits in `room` characters of JSON text starts."""
+    if escaped_len(data) <= room:
+        return 0
+    costs, total = data.translate(_COST), 0
+    for i in range(len(costs) - 1, -1, -1):
+        total += costs[i]
+        if total > room:
+            return i + 1
+    return 0
+
+
+def rooms(cost_out: int, cost_err: int, budget: int) -> tuple[int, int]:
+    """stdout's and stderr's share of `budget` characters, as fit shares it."""
+    if cost_out + cost_err <= budget:
+        return budget - cost_err, cost_err
+    err_room = min(cost_err, max(budget // 4, budget - cost_out))
+    return max(budget - err_room, 1), max(err_room, 1)
+
+
 def _cost(cap: Capture) -> int:
     return escaped_len(cap.head) + escaped_len(cap.tail)
 
@@ -88,8 +123,8 @@ def fit(out: Capture, err: Capture, budget: int) -> tuple[Capture, Capture]:
     cost_out, cost_err = _cost(out), _cost(err)
     if cost_out + cost_err <= budget:
         return out, err
-    err_room = min(cost_err, max(budget // 4, budget - cost_out))
-    return _shrunk_to(out, max(budget - err_room, 1)), _shrunk_to(err, max(err_room, 1))
+    out_room, err_room = rooms(cost_out, cost_err, budget)
+    return _shrunk_to(out, out_room), _shrunk_to(err, err_room)
 
 
 def _trim_utf8_end(b: bytes) -> tuple[bytes, bytes]:

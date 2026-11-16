@@ -150,7 +150,9 @@ async def test_waiting_for_the_end_of_a_long_job_gives_its_start_and_its_end(env
                 "signal", "oom_killed", "stdout_dropped"} & set(r)
     [row] = [j for j in await t["lane_jobs_list"](ctx, on="dev/run") if j["id"] == job["id"]]
     assert row["cmd"].startswith("echo START") and row["lane"] == "dev/run" and row["started_at"]
-    assert out.startswith("START\n1\n") and out.endswith("100000\nDONE\n") and len(out) < 16_400
+    assert out.startswith("START\n1\n") and out.endswith("100000\nDONE\n")
+    # 6,000 characters by default, counted as the agent reads them (a newline is two), stderr included
+    assert len(json.dumps(out)) + len(json.dumps(r["stderr"])) < 6_100 and "bigger max_bytes" in r["note"]
     assert r["next_stdout_offset"] == r["stdout_bytes"] > 500_000
     skipped = re.search(r"\[agentos: (\d+) bytes skipped here, of (\d+) in all; read them with stdout_offset="
                         r"(\d+)\]\n", out)
@@ -161,6 +163,11 @@ async def test_waiting_for_the_end_of_a_long_job_gives_its_start_and_its_end(env
     middle = await t["lane_job_read"](ctx, job=job["id"], stdout_offset=int(skipped[3]), max_bytes=1 << 20)
     assert (head + middle["stdout"][:int(skipped[1])] + tail).splitlines() == \
         ["START", *map(str, range(1, 100001)), "DONE"]
+
+    plain = await t["lane_job_read"](ctx, job=job["id"])  # one read of an ended job says what is left
+    assert plain["stdout"].startswith("START\n1\n") and len(json.dumps(plain["stdout"])) <= 6_000
+    left = plain["stdout_bytes"] - plain["next_stdout_offset"]
+    assert f"stdout has {left} bytes more after next_stdout_offset" in plain["note"]
 
     small = await t["lane_job_start"](ctx, on="dev/run", cmd="seq 1 50; exit 1")
     r = await t["lane_job_read"](ctx, job=small["id"], until_exit=True, wait_ms=30000)

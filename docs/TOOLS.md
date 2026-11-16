@@ -149,7 +149,7 @@ Call any agentos tool by name with its arguments, including tools not in your li
 | [`lane_freeze`](#lane_freeze) | control | read | Freeze a lane (or its whole workspace, or this node) at once: every agent there is stopped, in-flight calls are cancelled, no agent grant (yours too) takes a call there until the owner unfreezes, grants that reach only that are revoked (a node freeze revokes every agent grant), runs are cancelled and schedules and triggers paused |
 | [`lane_install`](#lane_install) | terminals | install_overlay | Install programs into a lane from a pinned source: apt (the node's signed apt sources, as the lane's root inside its overlay), pip (pypi.org) or npm (registry.npmjs.org) |
 | [`lane_job_cancel`](#lane_job_cancel) | core | exec | Stop a running job: SIGTERM to every process it started, SIGKILL a few seconds later |
-| [`lane_job_read`](#lane_job_read) | core | read | Read a job's output after your byte offsets, waiting up to wait_ms (30000) for more while it runs |
+| [`lane_job_read`](#lane_job_read) | core | read | Read a job's output after your byte offsets, max_bytes (6000) characters, waiting up to wait_ms (30000) for more while it runs |
 | [`lane_job_start`](#lane_job_start) | core | exec | Start a shell command in a lane in the background and return its job id at once; read its output with lane_job_read as it runs, stop it with lane_job_cancel |
 | [`lane_jobs_list`](#lane_jobs_list) | terminals | read | Background jobs on this node (of one lane with `on`), newest first, running and finished |
 | [`lane_login_request`](#lane_login_request) | vault | read | Ask the owner to log a lane in, when it is signed out (signal logged_out) or was never signed in and the vault holds no login for it (with one, use login: it asks nobody) |
@@ -1049,7 +1049,7 @@ Effect: draft, under a child grant of yours limited to this lane, the browser to
 
 Toolset: `core`. Effect: `exec`. Needs the `envs` service.
 
-Run one shell command inside a lane and wait for it. Returns exit_code, stdout, stderr, their full sizes and duration_s; signal, timed_out, truncated, oom_killed and a base64 encoding only when they apply. Past max_bytes the middle is cut, and `note` says how to read it. Processes it starts end with it: use lane_job_start for a dev server. Effect: exec.
+Run one shell command inside a lane and wait for it. Returns exit_code, stdout, stderr, their full sizes and duration_s; other fields only when they apply. Past max_bytes (6000 characters) the middle is cut, and `note` says how to read it. Processes it starts end with it: use lane_job_start for a dev server. Effect: exec.
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
@@ -1138,7 +1138,7 @@ Stop a running job: SIGTERM to every process it started, SIGKILL a few seconds l
 
 Toolset: `core`. Effect: `read`. Needs the `envs` service.
 
-Read a job's output after your byte offsets, waiting up to wait_ms (30000) for more while it runs. until_exit=true waits for the job to end (then its start and its end, a marker naming any bytes skipped); until_port=3000 for that port to listen or the job to end (then the end of its output); both wait_ms up to 120000. Pass back next_stdout_offset and next_stderr_offset; stdout_bytes is the size so far. `state`: running, exited, cancelled, timed_out or lost; then exit_code (or signal). `oom`: what the kernel killed for memory. Effect: read.
+Read a job's output after your byte offsets, max_bytes (6000) characters, waiting up to wait_ms (30000) for more while it runs. until_exit=true waits for the job to end (then its start and its end); until_port=3000 for that port to listen or the job to end (then its end); both wait_ms up to 120000. Pass back next_stdout_offset and next_stderr_offset; stdout_bytes is the size so far. `state`: running, exited, cancelled, timed_out or lost; then exit_code (or signal). Effect: read.
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
@@ -1147,7 +1147,7 @@ Read a job's output after your byte offsets, waiting up to wait_ms (30000) for m
 | `stdout_offset` | `int` | no (default 0) |  |
 | `stderr_offset` | `int` | no (default 0) |  |
 | `wait_ms` | `int` | no (default 1000) |  |
-| `max_bytes` | `int` | no (default 16000) |  |
+| `max_bytes` | `int` | no (default 6000) | stdout and stderr together (default 6000, at most 1048576). |
 | `base64_output` | `bool` | no (default False) |  |
 | `until_exit` | `bool` | no (default False) |  |
 | `until_port` | `int` | no (default 0) |  |

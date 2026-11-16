@@ -167,9 +167,9 @@ EXEC_DEFAULTS = {"signal": None, "stdout_encoding": "utf-8", "stderr_encoding": 
 async def lane_exec(ctx: ToolContext, *, on: str, cmd: str, timeout_s: float = 60,
                     stdin: str | None = None, cwd: str | None = None, max_bytes: int = EXEC_BYTES) -> dict:
     """Run one shell command inside a lane and wait for it. Returns exit_code, stdout, stderr, their
-    full sizes and duration_s; signal, timed_out, truncated, oom_killed and a base64 encoding only
-    when they apply. Past max_bytes the middle is cut, and `note` says how to read it. Processes it
-    starts end with it: use lane_job_start for a dev server. Effect: exec.
+    full sizes and duration_s; other fields only when they apply. Past max_bytes (6000 characters)
+    the middle is cut, and `note` says how to read it. Processes it starts end with it: use
+    lane_job_start for a dev server. Effect: exec.
 
     Args:
         cwd: The folder to run in (on an environment's machine an absolute path like /work/shop;
@@ -401,7 +401,8 @@ async def lane_job_start(ctx: ToolContext, *, on: str, cmd: str, cwd: str | None
     return _job_view(info)
 
 
-JOB_READ_BYTES = 16000
+JOB_READ_BYTES = 6000  # stdout and stderr together, in characters of the result as for lane_exec (EXEC_BYTES)
+JOB_READ_MOST = 1 << 20
 JOB_WAIT_MS = 30000
 JOB_WAIT_EXIT_MS = 120000
 
@@ -417,12 +418,15 @@ def _job_on(on: str | None, j: Any) -> None:
 async def lane_job_read(ctx: ToolContext, *, job: str, on: str | None = None, stdout_offset: int = 0,
                         stderr_offset: int = 0, wait_ms: int = 1000, max_bytes: int = JOB_READ_BYTES,
                         base64_output: bool = False, until_exit: bool = False, until_port: int = 0) -> dict:
-    """Read a job's output after your byte offsets, waiting up to wait_ms (30000) for more while it
-    runs. until_exit=true waits for the job to end (then its start and its end, a marker naming any
-    bytes skipped); until_port=3000 for that port to listen or the job to end (then the end of its
-    output); both wait_ms up to 120000. Pass back next_stdout_offset and next_stderr_offset;
-    stdout_bytes is the size so far. `state`: running, exited, cancelled, timed_out or lost; then
-    exit_code (or signal). `oom`: what the kernel killed for memory. Effect: read."""
+    """Read a job's output after your byte offsets, max_bytes (6000) characters, waiting up to wait_ms
+    (30000) for more while it runs. until_exit=true waits for the job to end (then its start and its
+    end); until_port=3000 for that port to listen or the job to end (then its end); both wait_ms up
+    to 120000. Pass back next_stdout_offset and next_stderr_offset; stdout_bytes is the size so far.
+    `state`: running, exited, cancelled, timed_out or lost; then exit_code (or signal). Effect: read.
+
+    Args:
+        max_bytes: stdout and stderr together (default 6000, at most 1048576).
+    """
     mgr = _mgr(ctx)
     j = mgr.job(job)
     await ctx.authorize(Effect.READ, lane_id=j.info.lane)
@@ -430,7 +434,7 @@ async def lane_job_read(ctx: ToolContext, *, job: str, on: str | None = None, st
     port = _port(until_port)
     most = JOB_WAIT_EXIT_MS if until_exit or port else JOB_WAIT_MS
     wait_s = max(0, min(_int(wait_ms, "wait_ms"), most)) / 1000
-    max_bytes = max(1, min(_int(max_bytes, "max_bytes"), 1 << 20))
+    max_bytes = max(1, min(_int(max_bytes, "max_bytes"), JOB_READ_MOST))
     stdout_offset, stderr_offset = max(0, _int(stdout_offset, "stdout_offset")), max(0, _int(stderr_offset, "stderr_offset"))
     listening = None
     if port:
@@ -442,10 +446,20 @@ async def lane_job_read(ctx: ToolContext, *, job: str, on: str | None = None, st
             stderr_offset = max(stderr_offset, j.kept("stderr") - max_bytes)
     info, out, err = await mgr.job_read(job, stdout_offset=stdout_offset, stderr_offset=stderr_offset,
                                         wait_s=wait_s, max_bytes=max_bytes, until_exit=bool(until_exit))
-    ends = {}
-    if until_exit and not port and not base64_output and info.state != "running":
-        ends = {s: e for s, at, data in (("stdout", stdout_offset, out), ("stderr", stderr_offset, err))
-                if (e := await _start_and_end(mgr, j, s, at, data, max_bytes)) is not None}
+    ends, cut = {}, []
+    if not base64_output:  # max_bytes counts the characters the agent reads (a newline is two), as lane_exec's
+        from_end = bool(port and not listening and info.state != "running")
+        room = dict(zip(("stdout", "stderr"), execs.rooms(execs.escaped_len(out), execs.escaped_len(err), max_bytes),
+                        strict=True))
+        if until_exit and not port and info.state != "running":
+            ends = {s: e for s, at, data in (("stdout", stdout_offset, out), ("stderr", stderr_offset, err))
+                    if (e := await _start_and_end(mgr, j, s, at, data, room[s])) is not None}
+        out, stdout_offset = _within(out, stdout_offset, room["stdout"], from_end)
+        err, stderr_offset = _within(err, stderr_offset, room["stderr"], from_end)
+        if info.state != "running" and not from_end:  # what one read left of an ended job, and how to get it
+            cut = [f"{s} has {left} bytes more after next_{s}_offset"
+                   for s, at, data in (("stdout", stdout_offset, out), ("stderr", stderr_offset, err))
+                   if s not in ends and (left := j.kept(s) - at - len(data)) > 0]
     if base64_output:
         so, se, enc = base64.b64encode(out).decode(), base64.b64encode(err).decode(), "base64"
     else:
@@ -466,9 +480,25 @@ async def lane_job_read(ctx: ToolContext, *, job: str, on: str | None = None, st
     if port and not listening:
         words.append(f"Port {port} does not listen yet; call again to wait longer." if info.state == "running" else
                      f"The job ended before port {port} listened: stdout and stderr are the end of its output.")
+    if cut:
+        words.append(" and ".join(cut) + f": read on with the offsets, or pass a bigger max_bytes (at most "
+                     f"{JOB_READ_MOST}).")
     if any(words[1:]):
         res["note"] = " ".join(w for w in words if w)
     return res
+
+
+def _within(data: bytes, offset: int, room: int, from_end: bool) -> tuple[bytes, int]:
+    """`data` (read at `offset`) cut to `room` characters of the result: its start, or with `from_end`
+    its end (then the offset moves to where that starts), never in the middle of a character."""
+    if from_end:
+        start = execs.suffix_within(data, room)
+        if start:
+            kept = execs._trim_utf8_start(data[start:])
+            return kept, offset + len(data) - len(kept)
+        return data, offset
+    n = execs.prefix_within(data, room)
+    return (execs._trim_utf8_end(data[:n])[0], offset) if n < len(data) else (data, offset)
 
 
 async def _start_and_end(mgr: Any, j: Any, stream: str, offset: int, data: bytes,
@@ -477,17 +507,18 @@ async def _start_and_end(mgr: Any, j: Any, stream: str, offset: int, data: bytes
     read: what an agent waits for is the end (the error, the summary). The start and the end as
     lane_exec keeps them (a quarter and three quarters of max_bytes), cut at line ends, with a
     marker that names the bytes skipped and the offset that reads them. (text, next offset, note),
-    or None when `data` is all there is."""
+    or None when `data` is all there is and fits. max_bytes counts characters of the result."""
     kept = j.kept(stream)
-    if offset + len(data) >= kept:
+    if offset + len(data) >= kept and execs.escaped_len(data) <= max_bytes:
         return None
-    head = data[:max(1, max_bytes // 4)]
+    head = data[:max(1, execs.prefix_within(data, max_bytes // 4))]
     cut = head.rfind(b"\n")
     head = head[:cut + 1] if cut >= 0 else execs._trim_utf8_end(head)[0]
-    room = max(1, max_bytes - len(head))
-    raw = await mgr.job_log(j.info.id, stream, kept - room - 1, room + 1)  # one byte more: is it a line start?
-    tail = raw[1:]
-    if raw[:1] != b"\n":
+    room = max(1, max_bytes - execs.escaped_len(head) - 100)  # 100: the marker
+    raw = await mgr.job_log(j.info.id, stream, max(offset + len(head), kept - room - 1), room + 1)
+    start = execs.suffix_within(raw[1:], room) + 1  # the byte before it: is the tail a line start?
+    tail = raw[start:]
+    if raw[start - 1:start] != b"\n":
         line = tail.find(b"\n")
         tail = tail[line + 1:] if 0 <= line < len(tail) - 1 else execs._trim_utf8_start(tail)
     skip_from, skipped = offset + len(head), kept - len(tail) - offset - len(head)
@@ -495,7 +526,8 @@ async def _start_and_end(mgr: Any, j: Any, stream: str, offset: int, data: bytes
         f"[agentos: {skipped} bytes skipped here, of {kept} in all; read them with {stream}_offset={skip_from}]\n"
     ) + tail.decode("utf-8", "replace")
     return text, kept, (f"The job ended with more {stream} than max_bytes: {stream} is its start and its end, "
-                        f"{skipped} bytes skipped between them (read them with {stream}_offset={skip_from}).")
+                        f"{skipped} bytes skipped between them (read them with {stream}_offset={skip_from}, or "
+                        "pass a bigger max_bytes).")
 
 
 def _int(value: Any, name: str) -> int:
