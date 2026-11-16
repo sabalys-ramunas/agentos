@@ -537,10 +537,13 @@ def test_the_loader_gives_the_program_exactly_the_env_and_closes_the_fd():
 
 
 def test_the_loader_closes_the_env_fd_before_the_program_runs():
+    # [ -e /dev/fd/N ] opens nothing itself; `: <&N` did, when N was 10: bash first saves stdin to the
+    # lowest free fd from 10 up, so the check found its own copy open (CI 2026-11-16, Ubuntu, a shard
+    # whose earlier tests left fds 3 to 9 in use)
     fd = runas.env_fd({"PATH": "/usr/bin:/bin"})
     try:
         out = subprocess.run(["/usr/bin/env", "-i", "/bin/bash", "-c", runas.env_load(fd), "agentos-env",
-                              "/bin/bash", "-c", f'if : <&{fd}; then echo open; else echo closed; fi 2>/dev/null'],
+                              "/bin/bash", "-c", f'if [ -e /dev/fd/{fd} ]; then echo open; else echo closed; fi'],
                              pass_fds=(fd,), capture_output=True, check=True, timeout=10, text=True)
     finally:
         os.close(fd)
