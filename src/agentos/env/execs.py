@@ -67,6 +67,11 @@ def _cleaned(cap: Capture, session: SharedSession) -> Capture:
     return out
 
 
+def _collected(fut: asyncio.Future) -> None:
+    if not fut.cancelled():
+        fut.exception()
+
+
 def fit(out: Capture, err: Capture, budget: int) -> tuple[Capture, Capture]:
     """stdout and stderr within `budget` bytes in all, for a result an agent's client takes inline.
     stderr (where errors are) keeps what it has up to a quarter of the budget, or more when stdout
@@ -217,6 +222,7 @@ async def run(rt: LaneRuntime, argv: list[str], *, timeout_s: float, stdin: byte
     signs = oom.Signs() if oom_check else None  # a "Killed" line or an exit code 137 in the output
     readers = asyncio.gather(to_file() if stdout_file is not None else _pump(proc.stdout, out, signs),
                              _pump(proc.stderr, err, signs), feed())
+    readers.add_done_callback(_collected)  # a cancelled call leaves them unawaited: their end is no error
     timed_out = abandoned = False
     try:
         try:

@@ -357,7 +357,7 @@ class OneMux(sshmux.Mux):
         return sshmux.Lease(self, "/m")
 
 
-async def test_a_cancelled_exec_ends_its_processes_on_the_vm_before_its_session_goes_back(vm, monkeypatch):
+async def test_a_cancelled_exec_ends_its_processes_on_the_vm_before_its_session_goes_back(vm, monkeypatch, caplog):
     """A cancelled lane_exec gave its session back while sshd kept it (its command ran on): the node's count
     drifted below sshd's, until every call was refused. Now its process group there is killed first."""
     manager, _, tmp = vm
@@ -382,6 +382,11 @@ async def test_a_cancelled_exec_ends_its_processes_on_the_vm_before_its_session_
         await asyncio.sleep(0.05)
     assert await gone(pid, timeout=1), "the session went back while its command ran on"
     await mgr.shutdown()
+    import gc
+
+    gc.collect()
+    await asyncio.sleep(0)
+    assert "never retrieved" not in caplog.text  # its output readers' end is collected, not logged as an error
 
 
 async def test_ssh_s_words_about_a_shared_connection_never_reach_an_exec_s_stderr(vm, monkeypatch):
