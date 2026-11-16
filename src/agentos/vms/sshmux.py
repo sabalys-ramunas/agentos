@@ -21,6 +21,8 @@ What it keeps as it was:
   session is refused, not queued); the others connect on their own.
 - The master's socket gives a shell on the VM to whoever can connect to it: it lives in a directory
   of this user's only (0700, checked), named by a hash of the VM's address, key and host key alias.
+- A command whose caller gave up or timed out has its process group on the VM ended before its
+  session is given back (agentos.env.execs, ssh.run), so the count here stays sshd's.
 - The master ends after IDLE_S without a command, and with its VM: a deleted machine's connection
   drops (at once for a container, within ServerAliveInterval x ServerAliveCountMax for a cloud VM).
 - AGENTOS_SSH_MUX=0 in the node's environment turns it off: every command connects on its own.

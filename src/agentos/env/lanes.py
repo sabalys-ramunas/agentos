@@ -98,6 +98,7 @@ class LaneRuntime:
         self.cgroup: str | None = None
         self.forwarder: Forwarder | None = None
         self.workloads: dict[str, Spawned] = {}
+        self._abandoned: set[asyncio.Task] = set()  # abandon()'s ends under way
         self.exec_sem = asyncio.Semaphore(settings.max_concurrent_exec)
         self.up_done = False
         self.proxy_port: int | None = None
@@ -321,6 +322,21 @@ class LaneRuntime:
                 os.killpg(sp.proc.pid, sig)
             except (ProcessLookupError, PermissionError):
                 pass
+
+    def abandon(self, sp: Spawned) -> None:
+        """A workload whose caller went away (its call was cancelled): kill it, on a VM its process group
+        there too, then release it, in the background (a cancelled call does not wait). On a VM's shared
+        connection its session stays open in sshd while the command runs: it goes back once that ended."""
+
+        async def end() -> None:
+            try:
+                await self.kill(sp)
+            finally:
+                await self.release(sp)
+
+        task = asyncio.get_running_loop().create_task(end(), name=f"env-abandon-{sp.wid}")
+        self._abandoned.add(task)
+        task.add_done_callback(self._abandoned.discard)
 
     async def release(self, sp: Spawned) -> None:
         """After a workload ends: kill leftovers (background children) and drop its cgroup. On a VM the

@@ -215,7 +215,7 @@ async def run(rt: LaneRuntime, argv: list[str], *, timeout_s: float, stdin: byte
     signs = oom.Signs() if oom_check else None  # a "Killed" line or an exit code 137 in the output
     readers = asyncio.gather(to_file() if stdout_file is not None else _pump(proc.stdout, out, signs),
                              _pump(proc.stderr, err, signs), feed())
-    timed_out = False
+    timed_out = abandoned = False
     try:
         try:
             if stdout_file is None:
@@ -234,10 +234,17 @@ async def run(rt: LaneRuntime, argv: list[str], *, timeout_s: float, stdin: byte
                 await asyncio.wait_for(readers, 2)
             except TimeoutError:
                 readers.cancel()
+    except asyncio.CancelledError:
+        if proc.returncode is None:  # the caller went away: what it runs ends, on a VM too, before it is released
+            abandoned = True
+            readers.cancel()
+            rt.abandon(sp)
+        raise
     finally:
-        if sp.session is not None:  # ssh's own lines about a shared connection are never the command's
-            err = _cleaned(err, sp.session)
-        await rt.release(sp)
+        if not abandoned:
+            if sp.session is not None:  # ssh's own lines about a shared connection are never the command's
+                err = _cleaned(err, sp.session)
+            await rt.release(sp)
     duration = loop.time() - start
     exit_code, sig_name = exit_status(rt, proc.returncode)
     oom_after = rt.stat().get("oom_kills", 0)

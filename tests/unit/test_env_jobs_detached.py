@@ -8,6 +8,7 @@ scripts the ssh would (agentos.vms.ssh), with a stand-in for util-linux setsid w
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import os
 import shutil
 import sys
@@ -354,6 +355,33 @@ class OneMux(sshmux.Mux):
     def lease(self, remote):
         self.sessions["/m"] = self.sessions.get("/m", 0) + 1
         return sshmux.Lease(self, "/m")
+
+
+async def test_a_cancelled_exec_ends_its_processes_on_the_vm_before_its_session_goes_back(vm, monkeypatch):
+    """A cancelled lane_exec gave its session back while sshd kept it (its command ran on): the node's count
+    drifted below sshd's, until every call was refused. Now its process group there is killed first."""
+    manager, _, tmp = vm
+    mux = OneMux()
+    monkeypatch.setattr(ssh, "MUX", mux)
+    mgr = manager()
+    await mgr.start()
+    child = tmp / "child.pid"
+    task = asyncio.ensure_future(mgr.exec(LANE, f"sleep 300 & echo $! > {child}; sleep 300"))
+    loop = asyncio.get_running_loop()
+    end = loop.time() + 10
+    while not (child.exists() and child.read_text().strip()):
+        assert loop.time() < end, "the command never started"
+        await asyncio.sleep(0.05)
+    pid = int(child.read_text())
+    assert mux.sessions["/m"] == 1
+    task.cancel()
+    with contextlib.suppress(asyncio.CancelledError):
+        await task
+    while mux.sessions["/m"]:
+        assert loop.time() < end + 10, "the session never went back"
+        await asyncio.sleep(0.05)
+    assert await gone(pid, timeout=1), "the session went back while its command ran on"
+    await mgr.shutdown()
 
 
 async def test_ssh_s_words_about_a_shared_connection_never_reach_an_exec_s_stderr(vm, monkeypatch):
