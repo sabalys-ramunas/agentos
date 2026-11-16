@@ -231,3 +231,12 @@ def _no_preflight_waits(monkeypatch):
 
     monkeypatch.setattr(env_manager, "REPO_CHECK_WAITS_S", (0.0, 0.0, 0.0))
     monkeypatch.setattr(vm_manager, "PREFLIGHT_WAITS_S", (0.0, 0.0, 0.0))
+
+
+@pytest.fixture(autouse=True)
+def _no_ssh_masters(monkeypatch):
+    """No test starts a shared ssh connection to a VM in the background (agentos.vms.sshmux); its own
+    tests make a Mux of their own."""
+    from agentos.vms import sshmux
+
+    monkeypatch.setattr(sshmux.MUX, "enabled", False)

@@ -18,16 +18,18 @@ from pathlib import Path
 from agentos.env import oom
 from agentos.env.models import EnvLane, RemoteHost
 from agentos.env.sandbox import Command, LanePlan, Workload
+from agentos.vms.sshmux import MUX
 
 SSH = "ssh"
 CONNECT_TIMEOUT_S = 10
 JOB_STATUS_TIMEOUT_S = 20.0
 
 
-def ssh_base(remote: RemoteHost, *, tty: bool = False, quiet: bool = False) -> list[str]:
+def ssh_base(remote: RemoteHost, *, tty: bool = False, quiet: bool = False, mux: list[str] | None = None) -> list[str]:
     """The ssh argv up to (not including) the remote command. No config file, no agent, no
     password, no forwarding of anything. `quiet`: ssh says nothing of its own on stderr (a job's
-    follower, whose stderr is the job's: a word of ssh's there would shift the offsets)."""
+    follower, whose stderr is the job's: a word of ssh's there would shift the offsets). `mux`: the
+    options of a session on the VM's shared connection (agentos.vms.sshmux.Lease.args)."""
     return [
         SSH, "-F", "/dev/null",
         "-i", remote.key_path,
@@ -49,6 +51,7 @@ def ssh_base(remote: RemoteHost, *, tty: bool = False, quiet: bool = False) -> l
         "-o", "ForwardX11=no",
         "-o", "ClearAllForwardings=yes",
         "-o", f"LogLevel={'QUIET' if quiet else 'ERROR'}",
+        *(mux or ()),
         "-tt" if tty else "-T",
         f"{remote.user}@{remote.host}",
     ]
@@ -237,10 +240,11 @@ class SshLauncher:
 
     detaches_jobs = True  # a job runs detached on the VM and outlives the node's ssh (agentos.env.jobs)
 
-    def transport(self, lane: EnvLane, script: str, *, tty: bool = False, quiet: bool = False) -> list[str]:
-        """The argv that runs `script` on the lane's VM (one ssh)."""
+    def transport(self, lane: EnvLane, script: str, *, tty: bool = False, quiet: bool = False,
+                  mux: list[str] | None = None) -> list[str]:
+        """The argv that runs `script` on the lane's VM (one ssh; `mux`: over its shared connection)."""
         assert lane.remote is not None, "SshLauncher serves VM lanes only"
-        return ssh_base(lane.remote, tty=tty, quiet=quiet) + [script]
+        return ssh_base(lane.remote, tty=tty, quiet=quiet, mux=mux) + [script]
 
     async def run_script(self, lane: EnvLane, script: str, *, timeout_s: float) -> tuple[int, str]:
         assert lane.remote is not None, "SshLauncher serves VM lanes only"
@@ -257,11 +261,14 @@ class SshLauncher:
                 script = f"{start_script(wl, wl.detach_timeout_s)} && {{\n{script}}}"
         else:
             script = remote_command(wl)
-        argv = (cgroup_wrap(cgroup) if cgroup else []) + self.transport(lane, script, tty=wl.pty, quiet=quiet)
+        # a one-shot command goes over the VM's shared connection when one is up (agentos.vms.sshmux)
+        lease = MUX.lease(lane.remote) if wl.mux and not wl.pty and not quiet and lane.remote else None
+        argv = (cgroup_wrap(cgroup) if cgroup else []) + self.transport(
+            lane, script, tty=wl.pty, quiet=quiet, mux=lease.args if lease else None)
         # the local ssh client gets a plain environment: nothing of agentosd's leaks to it
         env = {"PATH": "/usr/sbin:/usr/bin:/sbin:/bin", "HOME": str(workdir), "LANG": "C.UTF-8"}
         workdir.mkdir(parents=True, exist_ok=True)
-        return Command(argv, env, str(workdir))
+        return Command(argv, env, str(workdir), on_end=lease.release if lease else None)
 
     def stop_argv(self, lane: EnvLane, wid: str, sig: str) -> list[str] | None:
         """The ssh command that sends `sig` (TERM or KILL) to a workload's process group on the VM
@@ -315,22 +322,28 @@ async def probe(remote: RemoteHost, *, timeout_s: float = 20.0) -> tuple[bool, s
 
 
 async def run(remote: RemoteHost, script: str, *, timeout_s: float = 900.0) -> tuple[int, str]:
-    """Run a shell script on the VM (image builds). Returns (exit code, the last 4000 characters
-    of its output)."""
-    argv = ssh_base(remote) + ["bash -s"]
-    proc = await asyncio.create_subprocess_exec(*argv, stdin=asyncio.subprocess.PIPE,
-                                                stdout=asyncio.subprocess.PIPE,
-                                                stderr=asyncio.subprocess.STDOUT)
+    """Run a shell script on the VM (image builds, a job's status, the kernel's oom kills), over the
+    VM's shared connection when one is up (agentos.vms.sshmux). Returns (exit code, the last 4000
+    characters of its output)."""
+    lease = MUX.lease(remote)
     try:
-        out, _ = await asyncio.wait_for(proc.communicate(script.encode()), timeout=timeout_s)
-    except TimeoutError:
-        proc.kill()
-        await proc.wait()
-        return 124, "timed out"
-    except BaseException:  # the caller gave up (a probe beside a read): no ssh is left behind
-        with contextlib.suppress(ProcessLookupError):
+        argv = ssh_base(remote, mux=lease.args if lease else None) + ["bash -s"]
+        proc = await asyncio.create_subprocess_exec(*argv, stdin=asyncio.subprocess.PIPE,
+                                                    stdout=asyncio.subprocess.PIPE,
+                                                    stderr=asyncio.subprocess.STDOUT)
+        try:
+            out, _ = await asyncio.wait_for(proc.communicate(script.encode()), timeout=timeout_s)
+        except TimeoutError:
             proc.kill()
-        raise
+            await proc.wait()
+            return 124, "timed out"
+        except BaseException:  # the caller gave up (a probe beside a read): no ssh is left behind
+            with contextlib.suppress(ProcessLookupError):
+                proc.kill()
+            raise
+    finally:
+        if lease is not None:
+            lease.release()
     return proc.returncode or 0, (out or b"").decode(errors="replace")[-4000:]
 
 

@@ -41,7 +41,7 @@ class ShLauncher(ssh.SshLauncher):
     def __init__(self, path: str):
         self.path = path
 
-    def transport(self, lane, script, *, tty=False, quiet=False):
+    def transport(self, lane, script, *, tty=False, quiet=False, mux=None):
         return ["/usr/bin/env", f"PATH={self.path}", "sh", "-c", script]
 
     async def run_script(self, lane, script, *, timeout_s):

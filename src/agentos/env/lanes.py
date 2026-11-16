@@ -12,6 +12,7 @@ import shutil
 import signal
 import socket
 import termios
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -54,6 +55,7 @@ class Spawned:
     kind: str
     cgroup: str | None
     started: float = field(default_factory=lambda: asyncio.get_running_loop().time())
+    on_end: Callable[[], None] | None = None  # Command.on_end, called once by LaneRuntime.release
 
 
 def new_wid(prefix: str) -> str:
@@ -247,10 +249,14 @@ class LaneRuntime:
                 *cmd.argv, env=cmd.env, cwd=cmd.cwd, stdin=stdin, stdout=stdout, stderr=stderr,
                 pass_fds=cmd.pass_fds, start_new_session=True,
                 preexec_fn=_take_controlling_tty if take_tty else None)
+        except BaseException:
+            if cmd.on_end is not None:
+                cmd.on_end()
+            raise
         finally:
             for fd in cmd.close_after_spawn:
                 os.close(fd)
-        sp = Spawned(proc, wl.wid, kind, cg)
+        sp = Spawned(proc, wl.wid, kind, cg, on_end=cmd.on_end)
         self.workloads[wl.wid] = sp
         return sp
 
@@ -311,6 +317,9 @@ class LaneRuntime:
     async def release(self, sp: Spawned) -> None:
         """After a workload ends: kill leftovers (background children) and drop its cgroup. On a VM the
         workload's own shell ends its leftovers (agentos.vms.ssh.remote_command)."""
+        if sp.on_end is not None:
+            end, sp.on_end = sp.on_end, None
+            end()
         if sp.cgroup:
             await asyncio.to_thread(self.host.cgroup_remove, sp.cgroup)
         else:

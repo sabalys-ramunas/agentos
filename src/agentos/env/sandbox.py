@@ -25,6 +25,7 @@ final argv (cgroup entry, network namespace, bubblewrap) or, on a Mac, run it di
 from __future__ import annotations
 
 import os
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -130,6 +131,8 @@ class Workload:
     detach: tuple[int, int] | None = None
     detach_start: bool = False
     detach_timeout_s: float | None = None
+    # a one-shot command (agentos.env.execs): on a VM it may share the node's connection to it (agentos.vms.sshmux)
+    mux: bool = False
 
 
 @dataclass
@@ -140,6 +143,7 @@ class Command:
     pass_fds: tuple[int, ...] = ()
     close_after_spawn: tuple[int, ...] = ()
     takes_tty: bool = False  # the payload makes the PTY its controlling terminal itself (setsid -c)
+    on_end: Callable[[], None] | None = None  # once the workload is released (a VM's shared connection's session)
 
 
 def check_home(paths: EnvPaths, settings: EnvSettings) -> None:

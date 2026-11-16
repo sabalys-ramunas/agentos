@@ -163,7 +163,7 @@ async def run(rt: LaneRuntime, argv: list[str], *, timeout_s: float, stdin: byte
     loop = asyncio.get_running_loop()
     oom_before = rt.stat().get("oom_kills", 0)
     wl = Workload(new_wid("i" if install else "x"), argv, rt.base_env(env), cwd=cwd, install=install,
-                  oom_record=oom_check)
+                  oom_record=oom_check, mux=True)
     start = loop.time()
     stdin_arg: Any = stdin_file if stdin_file is not None else (
         asyncio.subprocess.PIPE if stdin is not None else asyncio.subprocess.DEVNULL)
