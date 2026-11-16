@@ -110,7 +110,7 @@ async def test_close_removes_the_entry_and_its_key_and_keeps_the_others(local):
     two = await opened(local, title="Two", session="chat-2")
     home = local["mgr"].home
     assert f"Host agentos-{one['id']}" in config(local) and f"Host agentos-{two['id']}" in config(local)
-    await local["call"]("environment_close", on="One")
+    await local["call"]("environment_close", on=one["on"])  # the lease: its handle, never the title
     text = config(local)
     assert f"agentos-{one['id']}" not in text and f"Host agentos-{two['id']}" in text
     assert not (home / "ssh" / one["id"]).exists() and (home / "ssh" / two["id"] / "id_ed25519").exists()

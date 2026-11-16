@@ -132,6 +132,19 @@ def _json_for_script(data: Any) -> str:
             .replace("\u2028", "\\u2028").replace("\u2029", "\\u2029"))
 
 
+DOWNLOAD_FIX = ("Ask the agent for a new link: environment_download gives one. Each link works once, "
+                "for 15 minutes.")
+
+
+def _download_error(status: int, code: str, message: str) -> JSONResponse:
+    """A download link's refusal: a spent, expired or tampered link has its own fix (the catalog's for
+    `denied` on the viewer is about live-view links)."""
+    if code != "denied":
+        return _error(status, code, message)
+    return JSONResponse({"error": {"code": code, "message": message, "fix": DOWNLOAD_FIX}}, status_code=status,
+                        headers={"Cache-Control": "no-store"})
+
+
 def _sse(event: str, data: Any) -> str:
     return f"event: {event}\ndata: {json.dumps(data, separators=(',', ':'))}\n\n"
 
@@ -821,9 +834,9 @@ class ViewerApp:
         svc = self.environments() if self.environments is not None else None
         take = getattr(svc, "take_download", None)
         if not callable(take):
-            return _error(403, "denied", "This node gives no downloads.")
+            return _download_error(403, "denied", "This node gives no downloads.")
         if request.method != "GET":
-            return _error(405, "invalid", "Fetch the link with GET: curl --fail-with-body -o out.tgz \"<url>\"")
+            return _download_error(405, "invalid", "Fetch the link with GET: curl --fail-with-body -o out.tgz \"<url>\"")
         params = request.path_params
         try:
             dl = take(params["workspace"], params["name"], request.query_params.get("t"))
@@ -831,14 +844,14 @@ class ViewerApp:
             status = getattr(e, "status", None)
             if not isinstance(status, int):
                 log.warning("could not take a download", exc_info=True)
-                return _error(403, "denied", "This download link did not open. Ask for a new one with "
+                return _download_error(403, "denied", "This download link did not open. Ask for a new one with "
                                              "environment_download.")
-            return _error(status, getattr(e, "code", "denied"), getattr(e, "message", str(e)))
+            return _download_error(status, getattr(e, "code", "denied"), getattr(e, "message", str(e)))
         started = time.monotonic()
         try:  # opened before any await: a sweep cannot delete it in between, and an open file outlives its unlink
             f = dl.file.open("rb")
         except OSError:
-            return _error(403, "denied", "This download is gone. Ask for a new one with environment_download.")
+            return _download_error(403, "denied", "This download is gone. Ask for a new one with environment_download.")
         size = os.fstat(f.fileno()).st_size
 
         async def body() -> AsyncIterator[bytes]:

@@ -1,20 +1,19 @@
-"""Default routing: terminal and browser calls without `on` go to the caller's environment.
+"""Default routing: terminal and browser calls go to the caller's environment, only when it holds it.
 
 The one wrapper every MCP call goes through (agentos.policy.wrap, and agentos.mcp.registry's
-allow-all wrapper) asks `route()` before the call. A tool in TERMINAL or BROWSER called without `on`
-gets the picked environment's lane (`env/<id>` or `env/<id>-browser`), or fails with no_environment
-or which_environment. `on` may name an environment instead of a lane: its title, its id or env/<id>
-(a browser tool gets its browser lane). Any other `on` (an account lane, "workspace/name") is left
-exactly as it was. `route()` returns the environment it chose, and the wrapper adds
-`environment: {id, title}` to the call's result, so the agent sees which computer it acted on.
-Studio's page checks (STUDIO) get the environment's browser proxy, so
-`ui_check(url="http://localhost:3000")` checks the VM's port 3000. After the call, `after()` counts
-it on the environment (last call, the recent calls list, the MCP client that made it).
-
-Which environment (EnvironmentManager.pick), always of the caller's grant family only: on a client
-that sends an MCP session id (`mcp-session-id`), the one that session opened or attached last; on
-one that sends none (the 2026-07-28 protocol, stdio), the family's only open one, and with several,
-which_environment: the agent names one with `on`. A session id another agent sends finds nothing.
+allow-all wrapper) asks `route()` before the call. `on` may name an environment instead of a lane:
+its handle (the `on` environment_open gave), or, for a client whose MCP session holds it, its id or
+env/<id>. route() then puts the lane for this tool's kind in `on` (`env/<id>` or `env/<id>-browser`).
+A title, or the id of a machine another chat holds, never reaches a live one (which_environment);
+a handle that is not the machine's any more is no_environment. A tool in TERMINAL or BROWSER called
+without `on` goes to the session's own machine (a client that sends `mcp-session-id`); a client that
+sends none (MCP 2026-07-28, stdio) is refused with which_environment while its agent has a machine
+open, since another chat's could be the one picked. Any other `on` (an account lane,
+"workspace/name") is left exactly as it was. `route()` returns the environment it chose, and the
+wrapper adds `environment: {id, title}` to the call's result. Studio's page checks (STUDIO) get the
+environment's browser proxy, so `ui_check(url="http://localhost:3000", on=...)` checks the VM's
+port 3000. After the call, `after()` counts it on the environment (last call, the recent calls
+list, the MCP client that made it).
 """
 
 from __future__ import annotations
@@ -47,7 +46,11 @@ BROWSER = frozenset({
 })
 STUDIO = frozenset({"ui_check", "ui_diff", "ui_baseline", "system_check"})
 
-LANE_ARG_TEXT = "Lane \"workspace/name\", or your environment's title or env/<id>; leave out for your open one."
+# tools that are not routed without `on` (lane_jobs_list lists every run the caller may see), whose `on`
+# may still name an environment: its handle becomes its terminal lane, and the lease is checked
+ON_ONLY = frozenset({"lane_jobs_list"})
+
+LANE_ARG_TEXT = "The on your environment_open gave, or an account lane \"workspace/name\"."
 
 
 def kind_of(tool: str) -> str | None:
@@ -60,7 +63,7 @@ def kind_of(tool: str) -> str | None:
 
 
 def routes(tool: str) -> bool:
-    return tool in TERMINAL or tool in BROWSER
+    return tool in TERMINAL or tool in BROWSER or tool in ON_ONLY
 
 
 def _service(runtime: Any) -> Any:
@@ -68,10 +71,21 @@ def _service(runtime: Any) -> Any:
     return get(SERVICE) if callable(get) else None
 
 
-def wants_route(on: Any) -> bool:
-    """Does route() decide this `on`? None (the picked environment), a title or an id (no "/": never
-    a lane), or an environment's lane env/<id>; an account lane ("workspace/name") is left as it is."""
-    return not on or (isinstance(on, str) and ("/" not in on or on.startswith("env/")))
+def wants_route(on: Any, tool: str | None = None) -> bool:
+    """Does route() decide this `on`? None (the session's environment; not for an ON_ONLY tool), a
+    handle, a title or an id (no "/": never a lane), or an environment's lane env/<id>; an account
+    lane ("workspace/name") is left as it is."""
+    if not on:
+        return tool not in ON_ONLY
+    return isinstance(on, str) and ("/" not in on or on.startswith("env/"))
+
+
+def is_handle(on: Any) -> bool:
+    """Is `on` shaped as an environment's handle (agentos.environments.picking), a secret the caller
+    holds? Traces and logs scrub it."""
+    from agentos.environments.picking import handle_env
+
+    return isinstance(on, str) and handle_env(on) is not None
 
 
 def env_ref(env: Any) -> dict[str, str]:
@@ -95,16 +109,18 @@ def binding(session: str | None, grant_id: str | None) -> str:
 def route(runtime: Any, tool: str, kwargs: dict[str, Any], *, session: str | None, grant_id: str | None,
           family: str | None = None) -> Any:
     """Fill `on` for a routed tool (in place) and return the environment it goes to, else None. No
-    `on`: the picked one (no_environment with none, which_environment with several and no session).
-    `on` naming an environment (title, id, env/<id>): its lane for this tool's kind. An account lane,
-    or env/<x> naming none of the family's (the policy refuses it as not found): left alone.
-    `family`: the caller's grant root (None: the owner with no policy)."""
+    `on`: the session's own (no_environment with none; which_environment for a client with no
+    session while its agent has a machine open). `on` naming an environment the caller holds (its
+    handle; its id or env/<id> for the session that holds it): its lane for this tool's kind. A
+    title or the id of a live machine: which_environment. An account lane, or env/<x> naming none
+    of the family's (the policy refuses it as not found): left alone. `family`: the caller's grant
+    root (None: the owner with no policy)."""
     from agentos.environments.errors import NoEnvironment
 
-    kind = kind_of(tool)
     on = kwargs.get("on")
-    if kind is None or not wants_route(on):
+    if not routes(tool) or not wants_route(on, tool):
         return None
+    kind = kind_of(tool) or "terminal"
     svc = _service(runtime)
     if svc is None:
         if on:
@@ -115,14 +131,16 @@ def route(runtime: Any, tool: str, kwargs: dict[str, Any], *, session: str | Non
             kwargs["on"] = svc.resolve(binding(session, grant_id), kind, family)
         return None
     if on:
-        env = svc.named(on, family)
+        env = svc.reach(on, binding(session, grant_id), family)
         if env is None:
             if "/" in on:
                 return None
-            mine = [e for e in svc.open_for_family(family) if e.state in ("starting", "ready")]
-            listed = ", ".join(svc.on_words(e) for e in mine[:10]) or "none"
-            raise NoEnvironment(f"no open environment of yours is named \"{on[:80]}\" (open: {listed}). on takes "
-                                "an environment's title, env/<id>, or an account lane \"workspace/name\"")
+            raise NoEnvironment(f"no open environment of yours is named \"{on[:80]}\". on takes the on your "
+                                "environment_open gave, or an account lane \"workspace/name\"; environment() lists "
+                                "your agent's machines")
+        if not env.open:
+            raise NoEnvironment(f"environment {env.id} (\"{env.title}\") is closed; environment_open(title=...) opens "
+                                "a new one")
     else:
         env = svc.pick(binding(session, grant_id), family, kind)
     kwargs["on"] = env.browser_lane if kind == "browser" else env.terminal_lane
@@ -159,27 +177,51 @@ def after(runtime: Any, tool: str, lane_id: str | None, kwargs: dict[str, Any], 
         log.exception("could not record %s on %s", tool, lane_id)
 
 
+def _local_url(url: Any) -> bool:
+    """Is it a page on the machine itself (localhost, 127.0.0.1, [::1])?"""
+    from urllib.parse import urlsplit
+
+    try:
+        host = (urlsplit(str(url or "")).hostname or "").lower()
+    except ValueError:
+        return False
+    return host in ("localhost", "127.0.0.1", "::1", "0.0.0.0") or host.endswith(".localhost")
+
+
 @contextlib.contextmanager
 def studio_proxy(runtime: Any, tool: str, kwargs: dict[str, Any], *, session: str | None,
                  grant_id: str | None, family: str | None = None) -> Iterator[str | None]:
-    """For a studio check called without `on` in a chat with an environment: its review browser goes
-    through the environment's tunnel for this call. Yields the environment's terminal lane (so the
-    call is counted on it), or None when the chat has no environment (the check sees what the node
-    sees, as before environments). With an environment whose tunnel is not up (starting, closing,
-    the node restarted, the connection dropped) it raises environment_not_ready: checking the node's
-    own localhost instead would answer about the wrong computer."""
-    if tool not in STUDIO or kwargs.get("on"):
+    """For a studio check of an environment's page: its review browser goes through the
+    environment's tunnel for this call. `on` names the environment (its handle); without it, a
+    session's own. A client with no session and no `on` checks what the node sees, and a localhost
+    url then is which_environment (it would be the node's, not the machine's). Yields the
+    environment's terminal lane (so the call is counted on it), or None when no environment is meant.
+    With an environment whose tunnel is not up (starting, closing, the node restarted, the connection
+    dropped) it raises environment_not_ready: checking the node's own localhost instead would answer
+    about the wrong computer."""
+    if tool not in STUDIO:
         yield None
         return
     svc = _service(runtime)
-    from agentos.environments.errors import WhichEnvironment
+    from agentos.environments.errors import NoEnvironment, WhichEnvironment
 
-    try:
-        env = svc.resolve_or_none(binding(session, grant_id), family) if svc is not None else None
-    except WhichEnvironment as e:  # a studio check takes no `on`: say what works instead
-        raise WhichEnvironment(e.message.split(". Call again")[0] + f". {tool} checks an environment's localhost "
-                               "only while one of yours is open; give a public URL, or run the check while "
-                               "only your own is open") from None
+    b = binding(session, grant_id)
+    on = kwargs.get("on")
+    env = None
+    if svc is not None and on:
+        env = svc.reach(on, b, family)
+        if env is None or not env.open:
+            raise NoEnvironment(f"on=\"{str(on)[:80]}\" names no open environment of yours; {tool} takes the on "
+                                "your environment_open gave")
+    elif svc is not None:
+        try:
+            env = svc.resolve_or_none(b, family)
+        except WhichEnvironment:
+            if _local_url(kwargs.get("url")):
+                raise WhichEnvironment(f"{tool} of a localhost page checks your environment's machine only with "
+                                       "its on: pass the on your environment_open gave. This client sends no "
+                                       "session id, so agentos cannot tell which machine is yours") from None
+            env = None
     if env is None:
         yield None
         return
@@ -194,7 +236,7 @@ def studio_proxy(runtime: Any, tool: str, kwargs: dict[str, Any], *, session: st
         else:
             why = "cannot be reached right now: its tunnel is down (the node restarted, or the connection dropped)"
         raise EnvironmentNotReady(f"environment {env.id} {why}, so {tool} would check this node instead of it. "
-                                  "Call environment() until it says ready (the node starts the tunnel again within "
+                                  "Call environment(on=...) until it says ready (the node starts the tunnel again within "
                                   "a minute), then check again; do not open another environment")
     from agentos.studio.browser.pool import review_proxy
 

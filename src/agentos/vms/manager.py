@@ -39,7 +39,7 @@ from agentos.env.models import RemoteHost
 from agentos.vms import capacity, repos, ssh
 from agentos.vms import keys as vmkeys
 from agentos.vms.models import TOKEN_FILE, Size, VmError, VmLimit, VmRecord, VmSettings, load_settings
-from agentos.vms.provider import Provider, ServerSpec
+from agentos.vms.provider import Provider, ServerSpec, boot_error_words, server_state
 from agentos.vms.store import VmStore
 
 log = logging.getLogger("agentos.vms")
@@ -579,7 +579,7 @@ class VmManager:
             raise
         except Exception as e:  # noqa: BLE001
             rec = self.store.get(vm_id)
-            rec.error = str(getattr(e, "message", e))
+            rec.error = f"{boot_error_words(e)}; {await server_state(prov, rec.provider_id)}"
             self.store.put(rec)
             log.warning("VM %s failed to boot: %s", vm_id, rec.error)
             await self._delete(rec, "failed to boot", final_state="failed")

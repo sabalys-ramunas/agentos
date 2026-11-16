@@ -236,6 +236,23 @@ async def test_a_vm_whose_ssh_never_answers_is_deleted(env, monkeypatch):
     assert rec.provider_id in prov.deleted and not envs.has("dev/a")
 
 
+async def test_a_boot_failure_with_an_empty_message_still_says_why(env, monkeypatch, caplog):
+    import agentos.vms.manager as m
+    vms, _envs, _prov, _clock = env
+
+    async def silent_probe(remote, *, timeout_s=15):
+        raise TimeoutError()  # str() is "": the log line once ended in "failed to boot: "
+
+    vms._probe = silent_probe
+    monkeypatch.setattr(m, "BOOT_POLL_S", 0.01)
+    with caplog.at_level("WARNING", logger="agentos.vms"):
+        rec = await vms.create("dev/b", ttl_minutes=30, wait_s=5)
+    fresh = vms.store.get(rec.id)
+    assert fresh.state == "failed" and fresh.error.startswith("TimeoutError; the provider says the server is ")
+    line = next(r.getMessage() for r in caplog.records if "failed to boot" in r.getMessage())
+    assert line.endswith(fresh.error) and not line.rstrip().endswith(":")
+
+
 async def test_extend_stops_at_the_node_maximum(env):
     vms, _, _, clock = env
     rec = await vms.create("dev/a", ttl_minutes=60)

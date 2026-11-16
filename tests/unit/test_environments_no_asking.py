@@ -99,7 +99,7 @@ async def test_browser_act_through_the_mcp_wrapper_on_the_environment_does_not_a
     await node.act(BROWSER, "Write a caption...", ActionKind.TYPE, "Through the wrapper.")
     spec = next(s for s in node_tools.tool_specs(node.runtime) if s.name == "browser_act")
     call = wrap_tool(spec, node.runtime)
-    with bind_request_token(node.token):
+    with bind_request_token(node.token, session="chat-1"):  # the session that holds it (its lease)
         out = await call(on=BROWSER, ref=node.refs["Share"], action=ActionKind.CLICK)
     assert out.get("status") != "approval_pending" and out["ok"] is True, out
 

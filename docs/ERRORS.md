@@ -55,7 +55,7 @@ carries one of these codes:
 | [`environment_already_open`](#environment_already_open) | The title names an open environment of this agent that has another repository than the one asked for. A title names one computer, so nothing was opened. | no |
 | [`environment_choice`](#environment_choice) | environment_open was given a repository and no title, and this agent has several open or saved environments for that repository. | no |
 | [`environment_failed`](#environment_failed) | An environment's machine did not come up: it did not answer SSH, or its setup failed. Its VM was deleted, so nothing bills for it. | no |
-| [`environment_in_use`](#environment_in_use) | Another chat of the same agent, on a client that sends an MCP session id, still works in the environment with this title: it made a call in the last 10 minutes, so it is not taken from that chat. | yes, after 600 s |
+| [`environment_in_use`](#environment_in_use) | Another chat of the same agent holds the live machine with this title. Only one chat reaches a machine at a time, so nothing was opened. take_over=true moves it only once that chat has made no call for take_over_minutes (10 by default). | no |
 | [`environment_limit`](#environment_limit) | Opening or extending it would pass a node limit (it never asks a person): open at once (3 by default), the longest life (8 hours), or the month's budget (EUR 50). The message says which. | no |
 | [`environment_not_ready`](#environment_not_ready) | This chat has an environment, but the call cannot reach it right now: its machine is still starting, it is closing, or its tunnel is down because the node restarted or the connection dropped. Nothing ran on the node in its place. | yes, after 30 s |
 | [`error`](#error) | Something failed that has no more specific code. | no |
@@ -109,7 +109,7 @@ carries one of these codes:
 | [`method_unavailable`](#method_unavailable) | That way to confirm cannot be used: it is planned, unknown on this node, or turned off in the confirmation setting. | no |
 | [`misdirected`](#misdirected) | The request named a host this node does not answer on, so it was refused before anything ran. | no |
 | [`missing_param`](#missing_param) | A flow step needs a param that was not given. | no |
-| [`no_environment`](#no_environment) | A terminal or browser call without `on` was made in a chat that has no environment open. | no |
+| [`no_environment`](#no_environment) | A terminal or browser call found no machine this chat holds: none is open, the `on` it passed is not the machine's handle any more (it closed, was let go, or another chat took it over), or this chat holds none. | no |
 | [`no_sandbox`](#no_sandbox) | This node cannot run a sandboxed terminal or service lane: agentosd is not root (a hardened node), it is not Linux, or bubblewrap is missing. Nothing was created or run. | no |
 | [`not_a_read`](#not_a_read) | A site_change check stopped because the endpoint it watches does more than read now. A check never acts on a site. | no |
 | [`not_found`](#not_found) | The thing asked for does not exist, or the caller may not see it. | no |
@@ -213,7 +213,7 @@ carries one of these codes:
 | [`vault_wrong_passphrase`](#vault_wrong_passphrase) | The vault passphrase is wrong. | no |
 | [`vm_error`](#vm_error) | The cloud provider refused or failed a VM call: a bad token, a server type or location it does not offer, the project's server limit, or its API being down. | no |
 | [`vm_limit`](#vm_limit) | A VM limit set on this node was reached: how many VMs at once, how long one lives, or the monthly budget. | no |
-| [`which_environment`](#which_environment) | A call without `on` while more than one environment of this agent is open, from a client that sends no MCP session id, so agentos cannot tell which computer the call is for. Nothing ran. | no |
+| [`which_environment`](#which_environment) | The call needs the handle of the machine it is for, and did not carry it: a call without `on` from a client that sends no MCP session id, or an `on` that is a title or an id. Only the chat that holds a machine reaches it. Nothing ran. | no |
 | [`workflow_missing`](#workflow_missing) | The version of the workflow this run was started on is no longer on this computer. | no |
 | [`wrong_account`](#wrong_account) | The lane is logged in as another account than the one the run is bound to, so it did nothing and the lane is held. | no |
 | [`wrong_element`](#wrong_element) | A flow step's locator found an element that cannot take this action (not a text field, not a select, no such option). | no |
@@ -615,7 +615,7 @@ The browser or another part of the node failed unexpectedly.
 
 The title names an open environment of this agent that has another repository than the one asked for. A title names one computer, so nothing was opened.
 
-- **Agent:** Do not call it again the same way. For this repository, use another title. To work in the open one, call environment_open with its title and no repo. Never close it: another chat of yours may work in it.
+- **Agent:** Do not call it again the same way. For this repository, use another title, like the one the message names. Never close it: another chat of yours may work in it.
 - **You:** Nothing to fix: a title names one computer. `agentos environments list` shows the open ones.
 - **Retry:** no
 - **Raised by:** `agentos.environments.errors.EnvironmentAlreadyOpen`
@@ -645,11 +645,11 @@ An environment's machine did not come up: it did not answer SSH, or its setup fa
 
 ## environment_in_use
 
-Another chat of the same agent, on a client that sends an MCP session id, still works in the environment with this title: it made a call in the last 10 minutes, so it is not taken from that chat.
+Another chat of the same agent holds the live machine with this title. Only one chat reaches a machine at a time, so nothing was opened. take_over=true moves it only once that chat has made no call for take_over_minutes (10 by default).
 
-- **Agent:** Do not retry in a loop. Open your own with another title (environment_open(title=...)), or tell the user which chat holds it. Once that chat has been quiet for 10 minutes, the same title takes it over.
-- **You:** Nothing to fix: `agentos environments list` shows who has which.
-- **Retry:** yes, after 600 s
+- **Agent:** Do not retry the same call. Open your own with another title, like the one the message names. Use take_over=true only when the message says the machine is quiet and that chat is done with it: its work stays on it.
+- **You:** Nothing to fix: `agentos environments list` shows who has which. take_over_minutes in environments.toml sets the quiet time.
+- **Retry:** no
 - **Raised by:** `agentos.environments.errors.EnvironmentInUse`
 
 ## environment_limit
@@ -1134,9 +1134,9 @@ A flow step needs a param that was not given.
 
 ## no_environment
 
-A terminal or browser call without `on` was made in a chat that has no environment open.
+A terminal or browser call found no machine this chat holds: none is open, the `on` it passed is not the machine's handle any more (it closed, was let go, or another chat took it over), or this chat holds none.
 
-- **Agent:** Open one with environment_open(title=...) and call again, or name the lane you mean with `on`: a logged-in account lane the human made always needs `on` (lanes_list lists them).
+- **Agent:** Open your own with environment_open(title=...) and pass the on it returns on every call, or name the lane you mean with `on`: a logged-in account lane the human made always needs `on` (lanes_list lists them).
 - **You:** Nothing to fix on the node: the agent opens an environment first. `agentos environments list` shows the open ones.
 - **Retry:** no
 - **Raised by:** `agentos.environments.errors.NoEnvironment`
@@ -2081,10 +2081,10 @@ A VM limit set on this node was reached: how many VMs at once, how long one live
 
 ## which_environment
 
-A call without `on` while more than one environment of this agent is open, from a client that sends no MCP session id, so agentos cannot tell which computer the call is for. Nothing ran.
+The call needs the handle of the machine it is for, and did not carry it: a call without `on` from a client that sends no MCP session id, or an `on` that is a title or an id. Only the chat that holds a machine reaches it. Nothing ran.
 
-- **Agent:** Call again with `on` set to the computer you mean: its title or env/<id>, as the message lists them. Use the one you opened or attached. If none of them is yours, open your own with environment_open(title=...).
-- **You:** Nothing to fix on the node: the agent names the environment with `on`.
+- **Agent:** Call again with on set to the on your environment_open gave, and pass it on every call. If you have none, open your own with environment_open(title=...) and a new title. Never use another chat's machine.
+- **You:** Nothing to fix on the node: the agent passes its environment's on.
 - **Retry:** no
 - **Raised by:** `agentos.environments.errors.WhichEnvironment`
 

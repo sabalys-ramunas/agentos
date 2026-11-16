@@ -65,28 +65,31 @@ async def test_a_title_with_a_live_environment_of_another_repo_is_already_open(n
     with pytest.raises(ToolCallError, match="environment_already_open") as err:
         await node["call"]("environment_open", title=TITLE, repo="example.test/me/other", session="chat-2")
     words = str(err.value)
-    assert "another title" in words and f'environment_open(title="{TITLE}") without repo' in words
+    assert "another title" in words and f'environment_open(title="{TITLE} 2", repo="example.test/me/other")' in words
     assert "close" not in words and "discard" not in words
     lines = catalog.mcp_lines("environment_already_open", words)
     assert "another title" in lines[0] and "Never close it" in lines[0] and "discard" not in lines[0]
     assert mgr.get(a["id"]).binding == "session:chat-1" and len(mgr.store.open()) == 1
-    other = await node["call"]("environment_open", title=TITLE, repo=REPO, session="chat-2")
-    assert other["id"] == a["id"]
+    with pytest.raises(ToolCallError, match="environment_in_use"):  # its own repo: still chat-1's machine
+        await node["call"]("environment_open", title=TITLE, repo=REPO, session="chat-2")
+    other = await node["call"]("environment_open", title=TITLE, repo=REPO, session="chat-2", take_over=True)
+    assert other["id"] == a["id"] and other["opened"] == "taken_over"
 
 
 async def test_the_title_alone_takes_back_the_one_environment_with_it(node):  # noqa: F811
-    """P2-9 of the 2026-11-15 test: a resumed chat that names only the title gets its environment,
-    whatever repository it cloned, and the chat that lost it cannot take it straight back."""
+    """P2-9 of the 2026-11-15 test: a resumed chat that names only the title and take_over gets its
+    environment, whatever repository it cloned, and the chat that lost it cannot take it straight back."""
     a = await opened(node, repo=REPO)
     mgr = node["mgr"]
     later = utcnow() + timedelta(minutes=11)
     mgr._clock = lambda: later  # chat-1 is quiet
-    other = await node["call"]("environment_open", title=TITLE, session="chat-2")
+    other = await node["call"]("environment_open", title=TITLE, session="chat-2", take_over=True)
     assert other["id"] == a["id"] and other["repo"] == REPO
     env = mgr.get(a["id"])
     assert env.binding == "session:chat-2" and env.last_call_at == later  # the takeover counts as a call
-    with pytest.raises(ToolCallError, match="environment_in_use"):  # no ping-pong
-        await node["call"]("environment_open", title=TITLE, session="chat-1")
+    for take in (False, True):  # no ping-pong
+        with pytest.raises(ToolCallError, match="environment_in_use"):
+            await node["call"]("environment_open", title=TITLE, session="chat-1", take_over=take)
     assert mgr.get(a["id"]).binding == "session:chat-2"
 
 
@@ -94,7 +97,7 @@ async def test_a_reconnected_chat_hears_the_repo_it_takes_back_with(node):  # no
     a = await opened(node, repo=REPO)
     with pytest.raises(ToolCallError, match="no_environment") as err:
         await node["call"]("lane_exec", cmd="ls", session="chat-1-reconnected")
-    assert a["id"] in str(err.value) and REPO in str(err.value)
+    assert f'"{TITLE}" ({REPO})' in str(err.value) and a["id"] not in str(err.value)
     seen = await node["call"]("environment", session="chat-1-reconnected")
     assert seen["open"][0]["repo"] == REPO
 

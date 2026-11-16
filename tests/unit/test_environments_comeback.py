@@ -155,17 +155,19 @@ async def test_environment_lists_the_family_also_with_one_attached(node):
 
 async def test_a_client_without_a_session_id_never_hears_this_chat(node):
     """MCP 2026-07-28 and stdio send no session id: every chat of the agent looks the same, so nothing
-    claims a computer is this chat's, and the open says to name it on every call."""
+    claims a computer is this chat's without its handle, and the open says to pass it on every call."""
     out = await opened(node, session=None)
-    assert out["on"] == TITLE and f'pass on="{TITLE}" on every call' in out["next"]
+    assert out["on"].startswith(out["id"] + ".") and f'keep on="{out["on"]}" and pass it on every call' in out["next"]
     here = await node["call"]("environment", session=None)
-    assert "this_chat" not in here["open"][0] and here["on"] == TITLE and "another chat" in here["picked"]
-    named = await node["call"]("environment", on=TITLE, session=None)
-    assert "picked" not in named
+    assert here["environment"] is None and "this_chat" not in here["open"][0] and "on" not in here["open"][0]
+    assert "cannot tell which machine is yours" in here["note"]
+    named = await node["call"]("environment", on=out["on"], session=None)
+    assert named["id"] == out["id"] and named["on"] == out["on"] and named["open"][0]["this_chat"] is True
     mine = await opened(node, title="Docs fix", session="chat-9")
-    assert "on" not in mine and "calls without `on` go here" in mine["next"]
+    assert mine["on"].startswith(mine["id"] + ".") and "calls without `on` go here" in mine["next"]
     listed = await node["call"]("environment", session="chat-9")
     assert [(o["title"], o.get("this_chat")) for o in listed["open"]] == [(TITLE, None), ("Docs fix", True)]
+    assert "in use by another chat" in listed["open"][0]["use"] and "id" not in listed["open"][0]
 
 
 async def test_open_by_repo_alone_resumes_the_one_save(node):

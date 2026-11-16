@@ -26,12 +26,14 @@ def test_the_intro_starts_with_the_environment_and_puts_lanes_after():
     first = INSTRUCTIONS.split("\n\n")[0]
     assert first.startswith("agentos can give you your own cloud computer")
     for phrase in (*ENV_TOOLS, "without `on`", "localhost", "push", "links", "work in agentos",
-                   "builds, tests, dev servers", "never leave one running", "The title names it",
-                   "your other chats reach it by title", 'with several, on="<title>"'):
+                   "builds, tests, dev servers", "never leave one running", "Keep the `on` it returns",
+                   "pass it on every call", "only your chat reaches the machine", "environment_in_use"):
         assert phrase in first, phrase
     assert "lanes_list" not in first  # account lanes are a separate thing, after
     assert INSTRUCTIONS.index("environment_open") < INSTRUCTIONS.index("A lane id is workspace/name")
     assert EM_DASH not in INSTRUCTIONS and len(INSTRUCTIONS) < 4_000
+    for gone in ("The title names it", "your other chats reach it by title", 'on="<title>"'):  # the lease of 2026-11-16
+        assert gone not in INSTRUCTIONS, gone
 
 
 class Bound:

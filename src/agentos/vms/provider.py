@@ -4,9 +4,10 @@ and `agentos dev up`."""
 
 from __future__ import annotations
 
+import asyncio
 import itertools
 from dataclasses import dataclass, field
-from typing import Protocol
+from typing import Any, Protocol
 
 
 @dataclass
@@ -211,3 +212,23 @@ class FakeProvider:
     async def delete_image(self, image_id: str) -> None:
         self.snapshots.pop(image_id, None)
         self.images.pop(image_id, None)
+
+
+def boot_error_words(e: BaseException) -> str:
+    """An exception in words for a log line or a record: its type, and its message when it has one
+    (a timeout or a bare error has none, and a boot failure must always say why)."""
+    msg = str(getattr(e, "message", "") or e).strip()
+    return f"{type(e).__name__}: {msg}" if msg else type(e).__name__
+
+
+async def server_state(prov: Any, provider_id: str | None) -> str:
+    """What the provider says of a machine that did not boot, for its error (never an empty reason)."""
+    if not provider_id:
+        return "the provider made no server"
+    try:
+        s = await asyncio.wait_for(prov.get_server(provider_id), timeout=10)
+    except Exception as e:  # noqa: BLE001 - the reason is the boot's; this only adds to it
+        return f"the provider's state could not be read ({boot_error_words(e)})"
+    if s is None:
+        return "the provider has no such server any more"
+    return f"the provider says the server is {s.status or 'in no state'}" + ("" if s.ipv4 else ", with no address yet")

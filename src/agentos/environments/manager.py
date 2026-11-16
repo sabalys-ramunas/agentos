@@ -3,11 +3,11 @@
 An environment is a VM from agentos.vms (its terminal lane is `env/<id>`), a scratch browser lane on
 the node (`env/<id>-browser`) whose traffic leaves from the VM through an SSH SOCKS tunnel, the
 node's git gateway reached from the VM through a reverse tunnel, and optionally a repository
-cloned into /work/<name>. Its title names it within the agent's grant family: environment_open with
-the title of an open one attaches to it, with a new title it opens another. Terminal and browser calls
-without `on` go to the one the MCP session opened or attached last (a client that sends a session id),
-else to the family's only open one; with several open and no session they are refused
-(which_environment) and the agent names one with `on` (agentos.environments.routing).
+cloned into /work/<name>. One chat holds a live machine: environment_open gives it the machine's
+handle (`on`), and only calls that carry it reach the machine; a client with an MCP session id holds
+its own by the session too, so its calls without `on` go there (agentos.environments.picking and
+routing). The title of a live machine another chat holds is environment_in_use (take_over=true moves
+it once that chat has been quiet), and the title of a saved one resumes it.
 
 Opening: plan (the VM the node would rent, the cheapest that fits), the node's limits (check_limits:
 open at once, the longest life, the month's budget; opening never asks a person) and the caller's
@@ -41,7 +41,6 @@ from agentos.environments.bringup import BringUp
 from agentos.environments.downloads import Downloads
 from agentos.environments.errors import (
     EnvironmentFailed,
-    EnvironmentInUse,
     EnvironmentLimit,
     SaveFailed,
     SaveLimit,
@@ -442,7 +441,7 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
 
     def opening(self, family: str | None, title: str) -> asyncio.Lock:
         """One open at a time per title of a family: a second environment_open of the same title waits
-        for the first, then attaches to it (never a second machine; create() checks it too). Opens of
+        for the first, then is environment_in_use (never a second machine; create() checks it too). Opens of
         other titles go on meanwhile."""
         if len(self._opening) > OPENING_KEPT:  # chats come and go: keep only the locks in use
             self._opening = {k: v for k, v in self._opening.items() if v.locked()}
@@ -451,11 +450,11 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
     async def create(self, env_id: str, plan: dict, *, binding: str, title: str, grant_id: str,
                      grant_root: str | None, agent: str, client: str | None, repo: str | None,
                      ref: str | None, subject: str | None = None, member: str | None = None,
-                     keep: str = "none", resumed: dict | None = None) -> Environment:
+                     keep: str = "none", resumed: dict | None = None, lease: str | None = None) -> Environment:
         """Record the environment and start bringing it up (after the limits and the grant's check). An open
-        one of the family with this title (made meanwhile, by another process) comes back instead: never
-        a second machine for one title. It is another session's only when that session still works in it
-        (environment_in_use). `resumed` (Saving.resuming): it resumes that save."""
+        one of the family with this title (made meanwhile, by another process) is environment_in_use: never
+        a second machine for one title, and never another chat's. `resumed` (Saving.resuming): it resumes
+        that save. `lease`: the hash of the handle the opening chat gets (agentos.environments.picking)."""
         if repo:
             from agentos.git.wire import parse_remote
 
@@ -464,7 +463,8 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
         specs = plan.get("specs") or {}
         env = Environment(
             id=env_id, title=title, grant_id=grant_id, grant_root=grant_root, binding=binding, agent=agent,
-            subject=subject, member=member, client=client, bound_at=now, repo=repo, ref=ref, image=plan["image"], created_at=now,
+            subject=subject, member=member, client=client, bound_at=now, lease=lease, repo=repo, ref=ref,
+            image=plan["image"], created_at=now,
             browser=self.settings.browser,
             expires_at=now + timedelta(minutes=plan["ttl_minutes"]), price_hourly_eur=plan.get("price_hourly_eur"),
             keep=keep, restore_from=(resumed or {}).get("save_id"), resumed=resumed,
@@ -473,13 +473,8 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
                             size=self.size_of(specs.get("cores"), specs.get("memory_gb"))))
         async with self._lock("create"):
             live = [e for e in self.open_for_family(env.family) if same_title(e.title, title) and e.state in LIVE_STATES]
-            if live:  # opened meanwhile with this title: that one, never a second machine
-                if not is_session(binding) or live[0].binding == binding or not is_session(live[0].binding):
-                    return live[0]
-                raise EnvironmentInUse(
-                    f"another chat of this agent opened \"{title}\" just now (environment {live[0].id}); it moves "
-                    "to this chat only after 10 minutes with no call there. Open your own with another title: "
-                    "environment_open(title=...)")
+            if live:  # opened meanwhile with this title (another process): never a second machine
+                raise self.in_use(live[0], now)
             if self.store.has(env_id):
                 raise LaneExists(f"environment {env_id} exists already")
             if keep == "live":

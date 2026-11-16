@@ -208,7 +208,7 @@ class Saving:
         def free(e: Environment) -> bool:
             if not e.open:
                 return False
-            e.binding = f"kept:{e.id}"
+            e.binding, e.lease = f"kept:{e.id}", None  # every handle stops working: its title gets it back
             return True
 
         return self.store.update(env.id, free)

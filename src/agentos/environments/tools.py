@@ -1,24 +1,26 @@
 """MCP tools for agent environments: environment_open, environment, environment_close, environment_save,
 environment_forget.
 
-They are in the everyday list (the core toolset). A title names one computer of the agent's grant
-family: environment_open with a new title opens one, with an open one's title attaches to it (and says
-what differs from what was asked), with a saved one's title resumes it. Terminal and browser tools
-called without `on`, and these tools, go to the picked environment (agentos.environments.routing,
-EnvironmentManager.pick); `on` names one by its title, its id or env/<id>."""
+They are in the everyday list (the core toolset). One chat holds a live machine: environment_open with
+a new title opens one and gives this chat its handle, `on`; only calls that carry it reach the machine
+(agentos.environments.picking). A client that sends an MCP session id holds it by the session too, so
+its calls without `on` go there. The title of a live machine another chat holds is environment_in_use
+(take_over=true moves it once that chat has been quiet), and a saved one's title resumes it into a new
+machine leased to the caller."""
 
 from __future__ import annotations
 
 import contextlib
 from typing import Any
 
-from agentos.core.errors import AgentosError, InvalidRequest, NotFound, PolicyDenied
+from agentos.core.errors import AgentosError, NotFound, PolicyDenied
 from agentos.core.models import Effect
 from agentos.core.progress import StillWorking
 from agentos.core.tools import ToolContext, ToolSpec, current_elicitor, frozen_off, refuse_frozen
 from agentos.environments.errors import NoEnvironment, RepoNotConnected
 from agentos.environments.manager import EnvironmentManager, binding_of, check_ref, check_title, is_session
 from agentos.environments.models import ID_RE, SIZES, WORKSPACE, Environment
+from agentos.environments.picking import handle_env, lease_of, new_handle
 from agentos.environments.routing import env_ref
 
 WAIT_MAX_S = 200.0  # a call never runs past about 240 s: a client gives up at 300 (agentos.core.progress)
@@ -88,27 +90,28 @@ def _mine(ctx: ToolContext, env: Environment) -> bool:
     return EnvironmentManager.reaches(env, _grant(ctx), mcp=True)
 
 
-def _find(ctx: ToolContext, on: str | None) -> Environment | None:
-    """The environment `on` names (its id, env/<id> or its title), else the picked one: the session's,
-    or the family's only open one (which_environment with several). None: none is open."""
+def _find(ctx: ToolContext, on: str | None, *, need: bool = True) -> Environment | None:
+    """The environment `on` names when this caller holds it (its handle; a session's own by id or
+    env/<id>; a closed one of the family by its id, for what it cost), else the session's own. A
+    client with no session and no `on`: which_environment while the agent has a machine open (`need`),
+    or None (environment() then only lists). None: none."""
     mgr = _mgr(ctx)
     if on:
         ref = " ".join(str(on).split())
+        env = mgr.reach(ref, _binding(ctx), _family(ctx))
         eid = ref.split("/", 1)[1].removesuffix("-browser") if ref.startswith(WORKSPACE + "/") else ref
-        env = None
-        if ID_RE.match(eid):  # an id names a closed one too (what it cost, what it pushed)
+        if env is None and ID_RE.match(eid):  # a closed one by its id: what it cost, what it pushed
             with contextlib.suppress(NotFound, ValueError):
                 env = mgr.get(eid)
-            if env is not None and not _mine(ctx, env):
+            if env is not None and (env.open or not _mine(ctx, env)):
                 env = None
-        if env is None and "/" not in ref:  # a title (one like "eshop" looks like an id too)
-            env = mgr.named(ref, _family(ctx))
         if env is None:
-            open_ = [mgr.on_words(e) for e in mgr.open_for_family(_family(ctx)) if _mine(ctx, e)]
-            raise NotFound(f"no environment of yours is named \"{ref[:80]}\" (open: {', '.join(open_[:10]) or 'none'}); "
-                           "environment() lists the open and saved ones")
-    else:
+            raise NotFound(f"no environment of yours is named \"{ref[:80]}\". on takes the on your environment_open "
+                           "gave; environment() lists your agent's machines")
+    elif need:
         env = mgr.pick_or_none(_binding(ctx), _family(ctx))
+    else:
+        env = mgr.live_bound(_binding(ctx), _family(ctx)) if is_session(_binding(ctx)) else None
     if env is not None:
         refuse_frozen(ctx, lanes=env.lanes.values())  # a freeze of its lanes or of `env` holds it as is
     return env
@@ -126,7 +129,7 @@ def _price(plan: dict) -> str:
 
 
 def bound_environment(ctx: ToolContext) -> Environment | None:
-    """The environment calls without `on` go to (whoami reads it), or None (none, or several open)."""
+    """The environment calls without `on` go to (whoami reads it): a session's own, else None."""
     from agentos.environments.errors import WhichEnvironment
 
     try:
@@ -227,14 +230,13 @@ def _differs(mgr: EnvironmentManager, env: Environment, *, ref: str | None, size
     return applied, words
 
 
-def _on_words(ctx: ToolContext, env: Environment) -> str:
-    """How the agent's calls reach this computer. A client with no session id (MCP 2026-07-28, stdio):
-    every chat of the agent looks the same, so each call names it."""
+def _on_words(ctx: ToolContext, handle: str) -> str:
+    """How the agent's calls reach this computer: with its handle. A client with no session id (MCP
+    2026-07-28, stdio) looks like every other chat of the agent, so only the handle reaches it."""
     if is_session(_binding(ctx)):
-        return ("calls without `on` go here while it is your only open environment, else pass "
-                f"on=\"{env.title}\" (or {env.terminal_lane}).")
-    return (f"pass on=\"{env.title}\" on every call: this client sends no session id, and other chats of your "
-            "agent may have computers too, so a call without `on` is a guess.")
+        return (f"calls without `on` go here (this chat's session holds it); on=\"{handle}\" works too.")
+    return (f"keep on=\"{handle}\" and pass it on every call: only calls that carry it reach this machine, and "
+            "a call without `on` is refused.")
 
 
 def _with_ssh(mgr: EnvironmentManager, env: Environment, out: dict) -> None:
@@ -249,15 +251,16 @@ def _with_ssh(mgr: EnvironmentManager, env: Environment, out: dict) -> None:
                         "(ssh.examples); what you run there is not in agentos's call log")
 
 
-def _open_result(ctx: ToolContext, mgr: EnvironmentManager, env: Environment, bigger: list[dict] | None = None,
-                 *, opened: str = "new", applied: dict | None = None, differs: list[str] | None = None) -> dict:
+def _open_result(ctx: ToolContext, mgr: EnvironmentManager, env: Environment, handle: str,
+                 bigger: list[dict] | None = None, *, opened: str = "new", applied: dict | None = None,
+                 differs: list[str] | None = None) -> dict:
     s = mgr.summary(env)
     machine = {**env.machine.model_dump(), "price_hourly_eur": env.price_hourly_eur, "bigger": bigger or []}
     if bigger:
         machine["next"] = (f"environment_open(title=<a new title>, size=\"{bigger[0]['size']}\") opens a bigger "
                            "machine")
     out = {"id": env.id, "title": env.title, "opened": opened, "state": "ready" if env.state == "ready" else env.state,
-           **({} if is_session(_binding(ctx)) else {"on": env.title}),
+           "on": handle,
            "workdir": env.workdir, "repo": env.repo, "branch": env.branch, "machine": machine,
            "expires_at": s["expires_at"], "lanes": env.lanes, "links": _links(ctx, env), "keep": env.keep}
     if differs:
@@ -270,7 +273,7 @@ def _open_result(ctx: ToolContext, mgr: EnvironmentManager, env: Environment, bi
                        "lane_file_read, lane_file_edit and lane_file_write work on files (a relative path starts in "
                        f'{env.workdir}); lane_exec(cmd="npm test", cwd="{env.workdir}") runs a command '
                        f'and lane_job_start(cmd="npm run dev", cwd="{env.workdir}") a dev server (lane_job_read reads '
-                       "its output). They are in your list; " + _on_words(ctx, env) + " The other "
+                       "its output). They are in your list; " + _on_words(ctx, handle) + " The other "
                        "terminal tools: tools_more(\"terminals\"). "
                        "http://localhost:<port> in browser_navigate and in ui_check (tools_more(\"studio\")) is the "
                        "machine's own port; browser_screenshot(proof=\"...\") keeps a shot with a link for the human. "
@@ -286,9 +289,13 @@ def _open_result(ctx: ToolContext, mgr: EnvironmentManager, env: Environment, bi
             out["next"] = ("Resumed: read resumed.note (git, files, services) and resumed.missing first. " + out["next"])
         out["next"] += _keep_next(env)
         _with_ssh(mgr, env, out)
-    if opened == "attached":
-        words = ("Attached: an environment with this title was already open, so you got it as it is; other "
-                 "chats of your agent reach it by this title too. ")
+    if opened in ("attached", "taken_over"):
+        if opened == "taken_over":
+            words = (f"Taken over: another chat of your agent held it and made no call for at least "
+                     f"{mgr.settings.take_over_minutes} min. Its work is on it as that chat left it: read environment"
+                     f"(on=\"{handle}\") and git status before you change anything. That chat's on no longer works. ")
+        else:
+            words = "Attached: this machine was already open with this title, and it is this chat's now, as it was. "
         if differs:
             words += ("Not as you asked: " + "; ".join(differs) + ". For a computer with what you asked, call "
                       "environment_open with another title. ")
@@ -297,29 +304,32 @@ def _open_result(ctx: ToolContext, mgr: EnvironmentManager, env: Environment, bi
         out["next"] = "Resumed as it was saved. Not as you asked: " + "; ".join(differs) + ". " + out.get("next", "")
     if env.state == "starting" and env.restore_from:
         out["next"] = out.get("next", "") + (f"resuming from save {env.restore_from} (a new machine, then the saved "
-                                             "work): call environment() in a minute; it shows resumed.note once it "
+                                             f"work): call environment(on=\"{handle}\") in a minute; it shows resumed.note once it "
                                              "is ready")
     elif env.state == "starting":
         out["next"] = out.get("next", "") + ("still starting (the machine boots and installs its tools): call "
-                                             "environment() in a minute; it gives links.browser for the human once "
-                                             "the browser is up")
+                                             f"environment(on=\"{handle}\") in a minute; it gives links.browser for "
+                                             "the human once the browser is up. Keep this on and pass it on every "
+                                             "call")
     return out
 
 
 async def environment_open(ctx: ToolContext, *, title: str | None = None, repo: str | None = None,
                            ref: str | None = None, size: str | None = None, hours: float | None = None,
-                           wait_s: float = 240, keep: str | None = None, signins: bool | None = None) -> dict:
+                           wait_s: float = 240, keep: str | None = None, signins: bool | None = None,
+                           take_over: bool = False) -> dict:
     """Your own cloud computer: a VM with a terminal, a browser and the repo, to build and test on
-    instead of the user's laptop. The title names it: a new title opens one, an open one's title
-    attaches to it (your other chats reach it by title too), a saved one's resumes it (`resumed`).
-    Without a title, repo finds that repo's environment. Calls without `on` go to it while it is your
-    only open one; else pass on="<title>". localhost there is the VM. Nothing in it waits for a person.
+    instead of the user's laptop. It returns `on`, this machine's handle: keep it and pass on="<it>"
+    on every call, since only calls that carry it reach the machine. A new title opens one; a saved
+    one's title resumes it (`resumed`). Another chat's live machine is environment_in_use (pick
+    another title). Without a title, repo finds that repo's environment. localhost there is the VM.
+    Nothing in it waits for a person.
 
-    Returns id, title, opened (new, attached, resumed), state (starting: call environment()),
-    workdir, branch, machine (`bigger`: sizes and prices), expires_at, keep, links.browser (its live
-    view, for the human); applied and differs when an attach or resume is not what you asked. A
-    private repo the node cannot read: approval_pending with review_url for the human. Errors:
-    environment_limit, environment_already_open (open with another repo: pick another title).
+    Returns on, id, title, opened (new, resumed, attached, taken_over), state (starting: call
+    environment(on=...)), workdir, branch, machine (`bigger`: sizes and prices), expires_at, keep,
+    links.browser (its live view, for the human); applied and differs when it is not what you asked.
+    A private repo the node cannot read: approval_pending with review_url for the human. Errors:
+    environment_in_use, environment_limit, environment_already_open.
 
     Args:
         title: A few words people see, like "Black Friday page". It names the computer. Without it,
@@ -333,6 +343,8 @@ async def environment_open(ctx: ToolContext, *, title: str | None = None, repo: 
         keep: none (deleted when done), save (saved when idle or closed; its title resumes it) or live
             (kept running; the owner allows it).
         signins: false: saves keep no browser sign-ins.
+        take_over: Take a machine another chat of yours holds but has not used for 10 minutes (its
+            work stays on it). Only when that chat is done with it.
     """
     mgr = _mgr(ctx)
     title = check_title(title if title else title_for_repo(ctx, mgr, repo))
@@ -346,15 +358,15 @@ async def environment_open(ctx: ToolContext, *, title: str | None = None, repo: 
         repo = parse_remote(repo).slug
     # the call's own argument errors first: a size past the limit is never hidden by an attach
     await mgr.check_open_args(size=size, hours=hours, keep=keep)
-    async with mgr.opening(family, title):  # one open at a time per title: a second one attaches to the first
+    async with mgr.opening(family, title):  # one open at a time per title: a second one is environment_in_use
         got = await _open_locked(ctx, mgr, binding, family, title=title, repo=repo, ref=ref, size=size, hours=hours,
-                                 keep=keep, signins=signins)
+                                 keep=keep, signins=signins, take_over=take_over)
     if isinstance(got, dict):  # a card for the human to connect the repository: nothing was rented
         return got
-    env, opened = got
+    env, opened, handle = got
+    was_open = opened in ("attached", "taken_over")
     applied, differs = ({}, []) if opened == "new" else _differs(
-        mgr, env, ref=ref, size=size, hours=hours if opened == "attached" else None,
-        keep=keep if opened == "attached" else None)
+        mgr, env, ref=ref, size=size, hours=hours if was_open else None, keep=keep if was_open else None)
     if env.state == "starting":
         env = await mgr.wait_ready(env.id, wait)
     if env.state == "failed":  # an error, never a result that looks like an open (environment() lists it)
@@ -364,18 +376,24 @@ async def environment_open(ctx: ToolContext, *, title: str | None = None, repo: 
     bigger: list[dict] = []
     with contextlib.suppress(Exception):  # a convenience: the environment works without it
         bigger = await mgr.bigger_sizes(env)
-    return _open_result(ctx, mgr, env, bigger, opened=opened, applied=applied, differs=differs)
+    return _open_result(ctx, mgr, env, handle, bigger, opened=opened, applied=applied, differs=differs)
 
 
 async def _open_locked(ctx: ToolContext, mgr: EnvironmentManager, binding: str, family: str | None, *, title: str,
                        repo: str | None, ref: str | None, size: str | None, hours: float | None,
-                       keep: str | None = None, signins: bool | None = None) -> tuple[Environment, str] | dict:
-    # the open one with this title (live: starting or ready), and only with the repository asked for
-    found = await mgr.reattach(binding, title, family, repo)
+                       keep: str | None = None, signins: bool | None = None, take_over: bool = False
+                       ) -> tuple[Environment, str, str] | dict:
+    # the live one with this title (starting or ready, only with the repository asked for): this chat's
+    # own, one let go, or another chat's with take_over once it is quiet; else environment_in_use
+    found = mgr.reattach(binding, title, family, repo, take_over=take_over)
     if found is not None:
-        refuse_frozen(ctx, lanes=found.lanes.values())
-        await ctx.authorize(Effect.READ, summary=f"use environment {found.id} ({found.title})")
-        return found, "attached"
+        env, how = found
+        refuse_frozen(ctx, lanes=env.lanes.values())
+        await ctx.authorize(Effect.READ, summary=("take over" if how == "taken_over" else "use")
+                            + f" environment {env.id} ({env.title})")
+        env, handle = mgr.give(env, binding, take=how == "taken_over")
+        ctx.trace("environment_open", lane=env.terminal_lane, environment=env.id, opened=how)
+        return env, how, handle
     env_id = mgr.planned_id(binding, title)
     saved = mgr.save_to_resume(family or _grant_id(ctx), title, repo)
     if saved is not None:  # this family saved this title: resume it (its repository, branch and machine)
@@ -422,17 +440,16 @@ async def _open_locked(ctx: ToolContext, mgr: EnvironmentManager, binding: str, 
     if callable(acted):
         acted(Effect.VM)  # the call's record says what it did: it rented a machine
     g = _grant(ctx)
+    handle = new_handle(env_id)  # this chat's lease: only calls that carry it reach the machine
     env = await mgr.create(env_id, plan, binding=binding, title=title, grant_id=_grant_id(ctx),
-                           grant_root=getattr(g, "root_id", None), agent=_agent(ctx), client=_client(),
+                           lease=lease_of(handle), grant_root=getattr(g, "root_id", None), agent=_agent(ctx), client=_client(),
                            repo=repo, ref=ref, subject=getattr(_subject(ctx), "id", None), member=_member(ctx),
                            keep=keep, resumed=mgr.resuming(saved, plan) if saved is not None else None)
     keep_signins = signins if signins is not None else (saved.keep_signins if saved is not None else True)
     if not keep_signins:  # before its bring-up runs: a resume then puts no sign-ins back either
         env = mgr.store.update(env.id, lambda e: setattr(e, "keep_signins", False))
     ctx.trace("environment_open", lane=env.terminal_lane, environment=env.id, server_type=plan["server_type"])
-    if env.id != env_id:  # another process opened this title meanwhile: that one
-        return env, "attached"
-    return env, "resumed" if saved is not None else "new"
+    return env, "resumed" if saved is not None else "new", handle
 
 
 def title_for_repo(ctx: ToolContext, mgr: EnvironmentManager, repo: str | None) -> str:
@@ -457,17 +474,20 @@ def title_for_repo(ctx: ToolContext, mgr: EnvironmentManager, repo: str | None) 
 
 
 def _family_lists(ctx: ToolContext, mgr: EnvironmentManager, here: Environment | None = None) -> dict:
-    """The caller's family's open environments (`this_chat` on the one bound here) and newest saves."""
+    """The caller's family's open environments and newest saves. A live machine the caller does not
+    hold shows no handle and no id: its title, state and who has it (`use`). The one it holds (`here`,
+    reached with its handle or its session) is `this_chat`."""
     mine = [e for e in mgr.open_for_family(_family(ctx))
             if _mine(ctx, e) and not frozen_off(ctx, lanes=e.lanes.values())]
     saved = [{k: r[k] for k in ("title", "repo", "branch", "saved_at", "snapshot_gb", "cost_eur_month", "note")}
              for r in mgr.saved_for(_family(ctx) or _grant_id(ctx)) if r["latest"]]
-    open_ = []
+    open_, now, binding = [], mgr._clock(), _binding(ctx)
     for e in mine:
-        row = {"id": e.id, "title": e.title, "on": e.terminal_lane, "repo": e.repo, "state": e.shown_state(mgr._clock()),
-               "last_call_at": mgr.summary(e)["last_call_at"]}
-        if here is not None and e.id == here.id and is_session(_binding(ctx)) and e.binding == _binding(ctx):
-            row["this_chat"] = True  # only with a real session: without one, every chat of the agent looks alike
+        row = {"title": e.title, "repo": e.repo, "state": e.shown_state(now), "last_call_at": mgr.summary(e)["last_call_at"]}
+        if (here is not None and e.id == here.id) or (is_session(binding) and e.binding == binding):
+            row = {"id": e.id, **row, "this_chat": True}
+        else:
+            row["use"] = mgr.use_words(e, now)
         open_.append(row)
     from agentos.environments.failures import failed_rows
 
@@ -482,20 +502,25 @@ async def environment(ctx: ToolContext, *, on: str | None = None) -> dict:
     """Your environment now: state, minutes_left, cost_eur, ports listening on the VM, git (branch,
     ahead, dirty, pushed, pull_requests), proofs (fresh links), unsaved work, your note and the last
     10 calls (with the client that made each). Cheap: call it to see if it is ready or what is left to
-    push. It always lists your agent's open and saved ones (`open`, `saved`; environment_open with a
-    title gets one back). Effect: read.
+    push. It always lists your agent's open and saved ones (`open`, `saved`), never another chat's
+    handle. Effect: read.
 
     Args:
-        on: Which one: its title, its id or env/<id>. Leave it out when you have one open.
+        on: The on your environment_open gave. Without it, only a client with a session id sees its own.
     """
     await ctx.authorize(Effect.READ, summary="read the state of an environment")
     mgr = _mgr(ctx)
-    env = _find(ctx, on)
+    env = _find(ctx, on, need=False)
     if env is None:
         lists = _family_lists(ctx, mgr)
-        return {"environment": None, **lists,
-                "next": "environment_open(title=...)" + (" with one of these titles gets it back; a new title opens "
-                                                         "your own" if lists["open"] or lists["saved"] else "")}
+        out = {"environment": None, **lists}
+        if lists["open"] and not is_session(_binding(ctx)):
+            out["note"] = ("this client sends no session id, so this list cannot tell which machine is yours: yours is "
+                           "the one whose on you hold. environment(on=\"<that on>\") shows it in full")
+        out["next"] = ("environment_open(title=...) with a new title opens your own" if lists["open"] else
+                       "environment_open(title=...)" + (" with one of these titles resumes it; a new title opens "
+                                                        "your own" if lists["saved"] else ""))
+        return out
     out = await mgr.detail(env, calls=CALLS_SHOWN)
     out.pop("viewer", None)
     out.pop("commands", None)
@@ -513,13 +538,10 @@ async def environment(ctx: ToolContext, *, on: str | None = None) -> dict:
     out.update(_family_lists(ctx, mgr, env))
     if (ssh := mgr.ssh_of(env)) is not None:
         out["ssh"] = ssh
-    if not on and not is_session(_binding(ctx)):  # picked as the agent's only open one: maybe another chat's
-        out["on"] = env.title
-        out["picked"] = (f"this client sends no session id, so this is your agent's only open computer, which "
-                         f"another chat of yours may have opened. If you opened it, pass on=\"{env.title}\" on "
-                         "every call; else open your own with environment_open(title=...)")
+    if handle_env(on) == env.id:  # it came with its handle: the caller holds it, so it may see it again
+        out["on"] = " ".join(str(on).split())
     if env.state == "starting":
-        out["next"] = "still starting: call environment() again in a minute"
+        out["next"] = "still starting: call environment() again in a minute, with the same on"
     elif out.get("unsaved") and env.keep == "none":
         out["next"] = "commit and push before environment_close (git push origin <branch>)"
     elif git.get("compare") and not env.pull_requests:
@@ -539,19 +561,14 @@ async def environment_close(ctx: ToolContext, *, on: str | None = None, discard:
     Effect: read. Errors: no_environment, unsaved_work, save_failed.
 
     Args:
-        on: Which one: its title, its id or env/<id>. Leave it out when you have one open.
+        on: The on your environment_open gave (a client with a session id may leave it out).
         discard: Delete it even with work that is not pushed (no save).
         final: keep live: delete it too.
         note: keep save: what you did and what is next, for the next chat (resumed.note).
         forget: Done for good: the VM and every save of its title go.
     """
     mgr = _mgr(ctx)
-    if (discard or final) and not on and not is_session(_binding(ctx)):
-        # every chat of a client with no session id looks the same: deleting work needs the computer named
-        raise InvalidRequest("discard and final delete work for good, so name the environment: "
-                             "environment_close(on=\"<its title>\", discard=true). Only for one you opened and "
-                             "the human agreed to lose; environment() shows what it has")
-    env = _find(ctx, on)
+    env = _find(ctx, on)  # a client with no session id names it with its handle (which_environment without)
     if env is None:
         raise NoEnvironment("no environment is open to close; environment() lists the open and saved ones")
     what = ", forgetting its saves" if forget else (", discarding unsaved work" if discard else "")
@@ -580,8 +597,9 @@ async def environment_close(ctx: ToolContext, *, on: str | None = None, discard:
         return {"id": env.id, "title": env.title, "state": env.state, "keep": "live", "machine": "kept",
                 "cost_eur": mgr.cost_now(env),
                 "pause": "kept running: it bills" + (f" EUR {price:.4f} an hour" if price else "") + " until a final close",
-                "next": (f"this chat let it go and its machine stays (it bills). environment_open(title=\"{env.title}\") "
-                         "gets it back in any chat; environment_close(final=true) deletes it")}
+                "next": (f"this chat let it go and its machine stays (it bills); its on no longer works. "
+                         f"environment_open(title=\"{env.title}\") gets it back in any chat, with a new on; "
+                         "environment_close(on=..., final=true) with that on deletes it")}
     end = env.closed_at or mgr._clock()
     lists = mgr.push_lists(env)
     pushed, _ = _with_compare(env, lists["pushed"])
@@ -660,7 +678,7 @@ async def environment_save(ctx: ToolContext, *, note: str | None = None, on: str
 
     Args:
         note: Your own words for the next chat that resumes it: what you were doing and what is next.
-        on: Which one: its title, its id or env/<id>. Leave it out when you have one open.
+        on: The on your environment_open gave (a client with a session id may leave it out).
     """
     mgr = _mgr(ctx)
     env = _find(ctx, on)
@@ -714,7 +732,7 @@ async def environment_port(ctx: ToolContext, *, port: int, on: str | None = None
 
     Args:
         port: The port your server listens on in the VM, like 3000 or 5173 (environment() lists them).
-        on: Which environment: its title, its id or env/<id>. Leave it out when you have one open.
+        on: The on your environment_open gave (a client with a session id may leave it out).
     """
     from agentos.environments import ports as env_ports
 
@@ -750,7 +768,7 @@ async def environment_pull_request(ctx: ToolContext, *, title: str, body: str | 
         base: The branch to merge into; the repository's default branch if left out.
         draft: Open it as a draft.
         branch: Which pushed branch; the newest one this environment pushed if left out.
-        on: Which environment: its title, its id or env/<id>. Leave it out when you have one open.
+        on: The on your environment_open gave (a client with a session id may leave it out).
     """
     from agentos.environments import pulls
 

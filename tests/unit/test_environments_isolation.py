@@ -61,10 +61,13 @@ async def test_the_family_reaches_it_and_the_owner_only_outside_mcp(node):  # no
     a = await opened(node)
     terminal = a["lanes"]["terminal"]
     policy = node["policy"]
-    # a grant narrowed from the opener's (a brain or a routine of the same agent) is the same family
+    # a grant narrowed from the opener's (a brain or a routine of the same agent) is the same family: with
+    # the handle the opener hands it, it works there; by the lane's id alone it does not (one holder)
     _child, child_tok = policy.attenuate(node["token"], ttl_s=600)
-    out = await node["call"]("lane_exec", on=terminal, cmd="echo child", session="chat-c", tok=child_tok)
+    out = await node["call"]("lane_exec", on=a["on"], cmd="echo child", session="chat-c", tok=child_tok)
     assert out["exit_code"] == 0
+    with pytest.raises(ToolCallError, match="^which_environment"):
+        await node["call"]("lane_exec", on=terminal, cmd="echo child", session="chat-c", tok=child_tok)
     # the node's token over MCP is an agent's call like any other
     from test_policy_support import OWNER
 
@@ -216,11 +219,14 @@ async def test_a_quiet_environment_moves_and_the_chat_that_lost_it_is_told(node)
     a = await opened(node)
     mgr = node["mgr"]
     mgr._clock = lambda: utcnow() + timedelta(minutes=11)
-    other = await node["call"]("environment_open", title=TITLE, session="chat-2")
+    other = await node["call"]("environment_open", title=TITLE, session="chat-2", take_over=True)
     assert other["id"] == a["id"] and mgr.get(a["id"]).binding == "session:chat-2"
     with pytest.raises(ToolCallError, match="no_environment") as err:
         await node["call"]("lane_exec", cmd="echo hi")  # chat-1
     assert "another chat of this agent took environment" in str(err.value) and a["id"] in str(err.value)
+    with pytest.raises(ToolCallError, match="no_environment.*took environment"):  # and its handle with it
+        await node["call"]("lane_exec", on=a["on"], cmd="echo hi")
+    assert (await node["call"]("lane_exec", on=other["on"], cmd="echo hi", session="chat-2"))["exit_code"] == 0
 
 
 async def test_a_reconnected_chat_hears_its_open_environments(node):  # noqa: F811
@@ -228,9 +234,10 @@ async def test_a_reconnected_chat_hears_its_open_environments(node):  # noqa: F8
     with pytest.raises(ToolCallError, match="no_environment") as err:
         await node["call"]("lane_exec", cmd="echo hi", session="chat-1-reconnected")
     msg = str(err.value)
-    assert a["id"] in msg and TITLE in msg and "takes yours back" in msg
+    assert TITLE in msg and "environment_open(title=...)" in msg and a["on"] not in msg
     seen = await node["call"]("environment", session="chat-1-reconnected")
-    assert [o["id"] for o in seen["open"]] == [a["id"]] and "last_call_at" in seen["open"][0]
+    assert [o["title"] for o in seen["open"]] == [TITLE] and "last_call_at" in seen["open"][0]
+    assert "id" not in seen["open"][0] and "on" not in seen["open"][0] and "in use" in seen["open"][0]["use"]
 
 
 async def test_concurrent_opens_of_one_title_rent_one_machine(node):  # noqa: F811

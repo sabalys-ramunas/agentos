@@ -383,13 +383,18 @@ async def lane_job_cancel(ctx: ToolContext, *, job: str) -> dict:
 
 
 async def lane_jobs_list(ctx: ToolContext, *, on: str | None = None) -> list[dict]:
-    """Background jobs on this node (of one lane with `on`), newest first, running and finished."""
+    """Background jobs on this node (of one lane with `on`), newest first, running and finished. An
+    environment's jobs show only with its on (the on your environment_open gave)."""
     if on is not None:
         await ctx.authorize(Effect.READ, lane_id=on)
     else:
         await ctx.authorize(Effect.READ)
     allowed = getattr(ctx, "can_access_lane", None)
-    return [_job_view(i) for i in _mgr(ctx).job_list(on) if allowed is None or allowed(i.lane)]
+    # one chat holds an environment (agentos.environments.picking): an agent's list without `on` names no
+    # machine's jobs, since it cannot tell whose chat each is (the owner's own context is not an MCP call)
+    hide_env = on is None and getattr(ctx, "mcp", True)
+    return [_job_view(i) for i in _mgr(ctx).job_list(on) if (allowed is None or allowed(i.lane))
+            and not (hide_env and i.lane.startswith("env/"))]
 
 
 # ------------------------------------------------------------------ shells

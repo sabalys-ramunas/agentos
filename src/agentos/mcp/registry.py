@@ -143,7 +143,7 @@ def safe_fields(fields: dict[str, Any]) -> dict[str, Any]:
     """Trace fields fit for a log: values under secret-looking keys masked, long strings cut."""
     out: dict[str, Any] = {}
     for key, value in fields.items():
-        if SECRETISH_RE.search(key):
+        if SECRETISH_RE.search(key) or env_routing.is_handle(value):  # an environment's handle is a secret
             out[key] = "***"
         elif isinstance(value, str) and len(value) > TRACE_VALUE_CHARS:
             out[key] = value[:TRACE_VALUE_CHARS] + "..."

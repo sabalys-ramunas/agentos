@@ -232,12 +232,16 @@ async def test_a_new_title_opens_another_and_a_new_chat_reattaches_by_title(node
     await call("environment_open", title=TITLE)  # attaching again makes it this session's
     ran = await call("lane_exec", cmd="pwd")
     assert ran["environment"]["id"] == a["id"]
-    await call("environment_close", on="Something else")
-    # a resumed chat of the same grant takes it over once the first chat has been quiet for 10 minutes
+    await call("environment_close", on=other_title["on"])
+    # another chat of the same grant takes it over only with take_over=true, once the first was quiet 10 minutes
     mgr = node["mgr"]
+    with pytest.raises(ToolCallError, match="^environment_in_use"):
+        await call("environment_open", title=TITLE, session="chat-2")
     mgr._clock = lambda: utcnow() + timedelta(minutes=11)
-    other = await call("environment_open", title=TITLE, session="chat-2")
-    assert other["id"] == a["id"]
+    with pytest.raises(ToolCallError, match="^environment_in_use"):
+        await call("environment_open", title=TITLE, session="chat-2")
+    other = await call("environment_open", title=TITLE, session="chat-2", take_over=True)
+    assert other["id"] == a["id"] and other["opened"] == "taken_over"
     assert mgr.get(a["id"]).binding == "session:chat-2"
 
 
@@ -426,7 +430,7 @@ async def test_a_studio_check_never_checks_the_node_while_the_environment_cannot
     await mgr.shutdown()  # agentosd restarted: the machine is there, its tunnel is not yet
     with pytest.raises(ToolCallError, match="environment_not_ready") as err:
         await check()
-    assert out["id"] in str(err.value) and "environment()" in str(err.value) and len(seen) == 1
+    assert out["id"] in str(err.value) and "environment(on=...)" in str(err.value) and len(seen) == 1
     env = mgr.get(out["id"])
     env.state = "starting"
     mgr.store.put(env)
@@ -501,7 +505,7 @@ async def test_close_refuses_files_in_no_git_repo_and_says_how_to_keep_them(node
     assert "commit it and push" not in words.lower() and "\u2014" not in words
     state = await node["call"]("environment")
     assert state["unsaved"]["loose_files"] == ["notes/important.txt", "out/report.txt"]
-    closed = await node["call"]("environment_close", on=out["title"], discard=True)
+    closed = await node["call"]("environment_close", on=out["on"], discard=True)
     assert closed["state"] == "closed"
 
 
@@ -539,8 +543,8 @@ async def test_a_freeze_stops_every_environment_tool_and_closes_nothing(node, tm
                      ("environment_open", {"title": TITLE})):
         with pytest.raises(ToolCallError, match="^frozen"):
             await node["call"](tool, **kw)
-    with pytest.raises(ToolCallError, match="^frozen"):  # by id from another chat
-        await node["call"]("environment", on=out["id"], session="chat-2")
+    with pytest.raises(ToolCallError, match="^frozen"):  # by its handle from another chat
+        await node["call"]("environment", on=out["on"], session="chat-2")
     if scope != "lane":  # a new one would have its lane in the frozen workspace (a lane freeze is that lane)
         with pytest.raises(ToolCallError, match="^frozen"):
             await node["call"]("environment_open", title="Another page", session="chat-2")

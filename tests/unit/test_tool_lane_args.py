@@ -40,10 +40,14 @@ SELF_AUTHORIZED_LANE_PARAM = {
     "lane_jobs_list": "on",
     # `lane` only narrows a list already filtered by flow_seen (ctx.can_access_lane); it acts on nothing.
     "flows_list": "lane",
-    # `on` names one of the caller's environments (title, id or env/<id>), found only in its grant family
-    # (EnvironmentManager.named, reaches); refuse_frozen on its lanes (agentos.environments.tools._find)
+    # `on` names one of the caller's environments by its handle (or a session's own id or env/<id>), found
+    # only in its grant family and only when the caller holds it (EnvironmentManager.reach); refuse_frozen
+    # on its lanes (agentos.environments.tools._find)
     "environment": "on", "environment_close": "on", "environment_save": "on", "environment_port": "on",
     "environment_pull_request": "on",
+    # `on` is an environment's handle: agentos.environments.routing.studio_proxy reaches it (the lease) and
+    # points the review browser at its tunnel; the check acts on no lane (a review browser is no lane)
+    "ui_check": "on", "ui_diff": "on", "system_check": "on", "ui_baseline": "on",
 }
 
 # Tools with lane_arg=None whose lane comes from another argument: the handler resolves it and
@@ -103,7 +107,7 @@ NO_LANE = frozenset({
     "workflow_runs", "workspace_list", "workspace_queue",
     # studio: a URL in the review browser, never a lane (agentos.studio.tools); a profile is read only
     # when the grant reaches its workspace
-    "finding_get", "studio_status", "system_check", "ui_baseline", "ui_check", "ui_diff", "ui_image",
+    "finding_get", "studio_status", "ui_image",
 })
 
 

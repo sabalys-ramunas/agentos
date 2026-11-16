@@ -151,6 +151,8 @@ def wrap_tool(spec: ToolSpec, runtime: Any, *,
         token = request_token.get()
         meta = request_meta.get() or CallMeta()
         scrub = [token] if token else []
+        if routing.is_handle(kwargs.get("on")):  # an environment's handle never reaches a trace or the audit log
+            scrub.append(" ".join(kwargs["on"].split()))
         started = time.monotonic()
         lane_id = kwargs.get(spec.lane_arg) if spec.lane_arg else None
         lane_id = lane_id if isinstance(lane_id, str) else None
@@ -163,7 +165,7 @@ def wrap_tool(spec: ToolSpec, runtime: Any, *,
             raise fail(e.code, e.message, token) from None
         logs.update(grant=grant.id, run=meta.run_id)  # the rest of this call's log lines carry them
         picked = None  # the environment route() chose: the result names it (agentos.environments.routing)
-        if routing.routes(spec.name) and routing.wants_route(kwargs.get(spec.lane_arg)):
+        if routing.routes(spec.name) and routing.wants_route(kwargs.get("on"), spec.name):
             try:
                 picked = routing.route(runtime, spec.name, kwargs, session=meta.session, grant_id=grant.id,
                                        family=grant.root_id)

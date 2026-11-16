@@ -20,7 +20,7 @@ OPEN_STATES = ("starting", "ready", "closing")
 LIVE_STATES = ("starting", "ready")   # what environment_open hands back (shown as starting, ready, working, idle)
 WORKING = timedelta(minutes=2)     # a call this recent: the environment is "working"
 IDLE = timedelta(minutes=10)       # no call for this long: "idle"
-QUIET = timedelta(minutes=10)      # no call for this long: another chat of the same agent may take it over
+QUIET = timedelta(minutes=10)      # the default take_over_minutes: no call this long, another chat may take it over
 CALLS_KEPT = 50
 HANDOFFS_KEPT = 5
 BRANCHES_KEPT = 200   # branches an environment created, as the git gateway reads them
@@ -61,6 +61,9 @@ class EnvSettings(BaseModel):
     setup_timeout_s: int = Field(default=900, ge=60)      # the machine's setup (cloud-init) must end in this
     unsaved_notice_minutes: int = Field(default=30, ge=1)  # before the time limit, tell the owner of unsaved work
     reap_interval_s: int = Field(default=60, ge=5)
+    # One chat holds a live machine (its lease, agentos.environments.picking). Another chat of the agent
+    # takes it over only with take_over=true, and only after the holder made no call for this long.
+    take_over_minutes: int = Field(default=10, ge=1, le=1440)
     browser: BrowserWhere = "node"                        # where each new environment's browser runs
     # Keeping an environment (agentos.environments.saving, docs/design/environments.md "Keeping").
     default_keep: Keep = "none"                           # environment_open's keep when the agent names none
@@ -116,10 +119,11 @@ class Push(BaseModel):
 
 
 class Handoff(BaseModel):
-    """Another chat took the environment over (environment_open with its title): the chat that had
-    it is told so on its next call."""
+    """Another chat took the environment over (environment_open with its title and take_over=true):
+    the chat that had it is told so on its next call."""
     binding: str                              # the chat that lost it
     at: datetime
+    lease: str | None = None                  # the hash of the handle it held (agentos.environments.picking)
 
 
 class Machine(BaseModel):
@@ -138,6 +142,8 @@ class Environment(BaseModel):
     grant_id: str                             # the grant that opened it (owner: "owner")
     grant_root: str | None = None             # its family (the grant's root): only that family reaches it
     binding: str                              # "session:<mcp-session-id>", else "grant:<grant id>"
+    lease: str | None = None                  # sha256 of the handle its holding chat passes as `on`; the
+                                              # handle itself is never stored (agentos.environments.picking)
     bound_at: datetime | None = None          # when its session last opened or attached it: a session's
                                               # calls without `on` go to the one it took last
     agent: str = "an agent"                   # who opened it, in words (the grant's subject)

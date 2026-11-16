@@ -235,6 +235,9 @@ async def test_a_link_works_once_and_a_tampered_expired_or_swapped_one_is_refuse
     assert (await dl["fetch"](first["url"])).status_code == 200
     again = await dl["fetch"](first["url"])
     assert again.status_code == 403 and "used already" in again.json()["error"]["message"]
+    # its fix is about download links, never the live view's "A watch link only watches"
+    fix = again.json()["error"]["fix"]
+    assert "environment_download" in fix and "watch" not in fix and "—" not in fix
 
     other = await dl["call"](path="a.txt")
     wrong_env = other["url"].replace(f"/env/{out['id']}/", "/env/eother1234/")

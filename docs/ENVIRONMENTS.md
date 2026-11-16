@@ -253,7 +253,7 @@ What the agent does:
 |---|---|
 | `environment_open(title, repo, ref, size, hours, keep, signins)` | rents the VM, clones `repo` into `/work/<name>`, opens the browser; returns the workdir and the browser's live view link for you. With `repo` and no `title` it finds that repository's one open or saved environment (several: `environment_choice`, with each title to pick from; none: a new one named after the repository) |
 | `lane_file_read(path, offset, limit)`, `lane_file_edit(path, old, new)`, `lane_file_write(path, content)` | the repository's files on the VM, with line numbers; an edit replaces exact text that occurs once (a relative path starts in the repository) |
-| `lane_exec(cmd, cwd, max_bytes)`, `lane_job_start`, `lane_job_read(until_exit)`, `lane_job_cancel` | commands and dev servers on the VM (no `on`: your open environment; `on="<title>"` names one); in every agent's tool list. A command's output comes back within 16 KB by default (the middle is cut, with the full sizes). `shell_open` and the rest are `tools_more("terminals")` |
+| `lane_exec(cmd, cwd, max_bytes)`, `lane_job_start`, `lane_job_read(until_exit)`, `lane_job_cancel` | commands and dev servers on the VM (`on`: the handle your environment_open gave); in every agent's tool list. A command's output comes back within 16 KB by default (the middle is cut, with the full sizes). `shell_open` and the rest are `tools_more("terminals")` |
 | `browser_navigate(url)`, `browser_snapshot`, `browser_act` | the environment's browser, a desktop window; `localhost` is the VM |
 | `browser_screenshot(proof="checkout after the fix", full_page, width)` | keeps the shot as proof (see below); `width=390` shows the phone layout |
 | `ui_check(url="http://localhost:3000")` | studio's page checks (`tools_more("studio")`), on the VM's dev server; while the environment cannot be reached they fail with `environment_not_ready` and never check the node instead |
@@ -293,32 +293,46 @@ file refuses the whole archive before the VM sees any of it. The link ends when 
 closes or the node restarts, and a used, expired or changed one gets a 403. For a few small files
 without a shell of its own, the agent still has `lane_upload` and a job's sync.
 
-The title names the computer. `environment_open` with a new title opens a new environment, even
-while others of the same agent are open (the node's limits still hold). With the title of an open
-one it attaches to it (`opened: "attached"`): only one that is starting or ready, never one that
-failed or closed. The repository may be left out; the same title with another repository is
-`environment_already_open`, whose fix is another title. What the attach could not give as asked
-(keep, hours, size, ref) is in `differs`, with the values it has in `applied`. With the title of a
-saved one it resumes it (`opened: "resumed"`).
+One chat holds a live machine (the owner's rule of 2026-11-16: "only one agent chat should have
+access to the same machine at the same time, even if it is the same project"). `environment_open`
+with a new title opens a new environment, even while others of the same agent are open (the node's
+limits still hold), and gives the calling chat the machine's handle, `on` (its id, a dot and 16
+random letters and digits). The node keeps only the handle's sha256, so no record, listing or log
+shows it. Only calls that carry it reach the machine: the agent keeps the `on` from its
+`environment_open` and passes it on every call.
 
-Which environment a call without `on` goes to depends on the agent's client:
+- A client that sends no MCP session id (MCP 2026-07-28, as Claude Code and T3 Code use it, and
+  stdio) looks like every other chat of the agent. A terminal, browser or environment call without
+  `on` is refused with `which_environment`, even with one machine open, and so is a title or an id
+  in `on`: another chat's machine must never be reached by default.
+- A client that sends a session id (`mcp-session-id`, the older protocols) holds its machines by the
+  session too: its calls without `on` go to the one it opened last, and its own id or `env/<id>`
+  works as `on`.
 
-- A client that sends an MCP session id (`mcp-session-id`, the older protocols): the one this chat
-  opened or attached last. A chat that names the title of one another such chat used in the last 10
-  minutes gets `environment_in_use`; after that it takes it over, and the takeover counts as a call
-  so the chat that lost it cannot take it straight back.
-- A client that sends none (MCP 2026-07-28, as Claude Code and T3 Code use it, and stdio): every chat
-  of the agent looks the same, so the call goes to the agent's only open environment. With several
-  open it is refused with `which_environment`, which lists each by title with its `on`.
+The title of a live machine another chat holds is `environment_in_use`, with the fix: open your own
+with another title, like "<title> 2". Once the holder has made no call for `take_over_minutes` (10,
+in `environments.toml`), `environment_open(title, take_over=true)` gives the machine to the new chat
+with a fresh handle (`opened: "taken_over"`), and says the earlier chat's work is on it. The old
+handle stops working (`no_environment`, saying it was taken over), and the move counts as a call, so
+the earlier chat cannot take it straight back. Without `take_over` it is refused, so taking a machine
+is always deliberate. A machine kept live and let go (`environment_close` with keep "live") is
+nobody's: its title gets it back at once, with a new handle. The repository may be left out; the
+same title with another repository is `environment_already_open`, whose fix is another title. What
+an attach could not give as asked (keep, hours, size, ref) is in `differs`, with the values it has in
+`applied`. With the title of a saved one it resumes it into a new machine leased to the resumer
+(`opened: "resumed"`); of two chats resuming at once, one wins and the other gets
+`environment_in_use`.
 
-`on` takes an environment's title (any case), its id or `env/<id>`, so an agent can always name the
-one it means; a browser tool gets that environment's browser. Every result of a call that went to
-an environment this way carries `environment: {id, title}`. Calls with `on="workspace/name"` go to
-that account lane, as before: account lanes and environments live side by side. Without a session
-id, `environment_close(discard=true)` (or `final=true`) needs `on`, because it deletes work.
+`environment()` and every listing show a live machine the caller does not hold without its handle
+or id: its title, state and `use` ("in use by another chat", "quiet for N min" with the take-over
+call, or "let go"). `environment(on=<handle>)` shows that machine in full. `lane_jobs_list` without
+`on` lists no environment's jobs over MCP. Studio's checks take `on` for a page on the machine
+(`ui_check(url="http://localhost:3000", on=...)`). Every result of a call that went to an
+environment carries `environment: {id, title}`. Calls with `on="workspace/name"` go to that account
+lane, as before: account lanes and environments live side by side.
 
 An environment belongs to the agent that opened it: its grant, and the grants narrowed from it.
-Your other chats with the same agentos grant reach it by its title. Other people's agents cannot
+Other people's agents cannot
 run commands there, drive its browser, read it or close it, whatever their grant says; to them the
 environment does not exist. You see and close every one from the web app and
 the CLI; a member sees and closes the ones their own agents opened.
@@ -533,8 +547,9 @@ Not on it:
 | `environment_failed` | the VM did not boot or answer SSH in time; it was deleted | `agentos environments setup`; on Hetzner, `agentos vm types` (sold out in the location?) |
 | `state: "starting"` for minutes | first boot without the `dev` image installs the tools | wait, or build the image (step 2) |
 | `no_environment` | a call without `on` in a chat with no environment | the agent calls `environment_open(title=...)` first, or names an account lane with `on` |
-| `which_environment` | a call without `on` while several environments of the agent are open, from a client with no session id | the agent passes `on` with the title of its own (the message lists them) |
+| `which_environment` | a call without the machine's handle: no `on` from a client with no session id, or a title or an id in `on` | the agent passes the `on` its environment_open gave, or opens its own |
 | `environment_already_open` | the title names an open environment with another repository | the agent picks another title |
+| `environment_in_use` | another chat of the agent holds the live machine with this title | the agent opens its own with another title; `take_over=true` once the holder has been quiet for `take_over_minutes` |
 | `environment_not_ready` | the environment is starting, or its tunnel is down after a restart | wait a minute; `agentos environments show ID` |
 | `unsaved_work` on close | uncommitted changes or commits not pushed | commit and push, or close with `discard=true` if the work may go |
 | `approval_pending` with `kind: "repo_connect"` | the repository is private and not connected, or its key or token was refused; nothing was rented | open the card's `review_url` and paste a token (see "Connect a repository"), or at the node `agentos environments repo add github.com/me/shop --token` |

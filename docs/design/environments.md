@@ -44,18 +44,23 @@ brand, logged-in browser lanes for your own accounts and routines.
 ## Decisions (owner, 2026-11-13)
 
 - An environment is a **cloud VM**, rented by the node (Hetzner first, through `agentos.vms`).
-- **The title names the computer** (2026-11-16, replacing one per chat). MCP 2026-07-28 has no
-  session id, so every chat of an agent on Claude Code or T3 Code bound to its grant and shared one
-  environment (three testers, 2026-11-15). Now, within a grant family: a new title opens one, even
-  while others are open; the title of a live one (starting or ready) attaches to it
-  (`opened: "attached"`, and `applied` and `differs` for what it could not give as asked); a saved
-  one's resumes it. The repo may be left out; the same title with another repo is
-  `environment_already_open`, fixed by another title. Concurrent opens of one title get one machine.
-  A client that sends a session id keeps its chat binding (`bound_at`: its calls go to the one it
-  opened or attached last); taking one from another such chat waits until that chat has made no call
-  for 10 minutes (`environment_in_use`), and the takeover counts as a call. The chat that lost it
-  gets `no_environment` saying so. No error tells an agent to close or discard an environment it
-  did not open.
+- **One chat holds a live machine** (2026-11-16, the owner: "Only one agent chat should have access
+  to the same machine at the same time, even if it is the same project. Another chat should only be
+  able to request a new VM."). It replaces "the title names the computer" of the same day, under
+  which a second chat of a 2026-07-28 client (no session id) attached to the first chat's machine by
+  its title, or reached it with a call without `on`. Now `environment_open` gives the calling chat
+  a handle (`on`: the id, a dot and 16 random letters and digits; the node keeps its sha256 in
+  `Environment.lease`, never the handle). Only calls carrying it reach the machine
+  (`EnvironmentManager.reach`); without a session id a call without `on` is `which_environment`
+  even with one open, and a title or an id never reaches a live machine. A session client holds its
+  machines by its session too, so its implicit calls work as before. The title of a live machine
+  another chat holds is `environment_in_use` (fix: another title, like "<title> 2"); with
+  `take_over=true`, once its holder made no call for `take_over_minutes` (10), it moves with a fresh
+  handle, the old one stops, the chat that lost it is told (`handoffs`, with the old lease), and the
+  move counts as a call. A machine kept live and let go has no holder. A saved one's title resumes
+  it into a new machine leased to the resumer. Listings show no handle or id of a machine the
+  caller does not hold. Concurrent opens of one title get one machine and one holder. No error
+  tells an agent to close or discard an environment it did not open.
 - **Whose it is** (2026-11-13). An environment belongs to the grant family that opened it (its
   root grant, and every grant narrowed from it) and records its opener: grant root, subject, and
   the member whose agent it is, if any. No other grant acts on its lanes, reads it or closes it,
@@ -270,9 +275,10 @@ that made the save (any other: not found), or the owner.
 Errors (in docs/ERRORS.md, generated): `save_failed` (the machine is kept), `restore_failed` (the save is
 untouched), `save_limit`, `keep_live_not_allowed`, `no_environment`, `unsaved_work`, `environment_limit` (the
 node's `max_live`, the longest life, or the budget, which counts open environments to their time
-limits), `environment_failed` (boot failed; the VM is deleted), `environment_in_use` (the title
-names one another session used in the last 10 minutes), `environment_already_open` (the title names
-an open one with another repository), `which_environment` (several open, no session id, no `on`), `environment_not_ready` (a studio check in a
+limits), `environment_failed` (boot failed; the VM is deleted), `environment_in_use` (another chat holds
+the live machine with this title; `take_over=true` once it is quiet), `environment_already_open` (the
+title names an open one with another repository), `which_environment` (no handle: a call without `on`
+from a client with no session id, or a title or an id in `on`), `environment_not_ready` (a studio check in a
 chat whose environment is starting or whose tunnel is down; it never checks the node instead).
 
 A repository the node cannot read is checked before anything is rented (`GitService.access`: declared

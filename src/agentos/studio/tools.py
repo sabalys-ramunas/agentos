@@ -249,7 +249,7 @@ async def ui_check(ctx: ToolContext, *, url: str, profile: str | None = None, wi
                    themes: list[Theme] | None = None, states: dict[str, list[Step]] | None = None,
                    only: list[str] | None = None, since: str | None = None, detail: Detail = "summary",
                    theme_switch: ThemeSwitch | None = None, wait_for: str | None = None,
-                   ignore: list[str] | None = None) -> dict[str, Any]:
+                   ignore: list[str] | None = None, on: str | None = None) -> dict[str, Any]:
     """Is this page all right? Call it after you change UI. Opens the url in a review browser (not a
     lane) at each width and theme, runs the measured checks (layout, text, contrast, tap targets,
     names, page health, theme leaks) and, when a profile has a brand, the design system check.
@@ -271,7 +271,9 @@ async def ui_check(ctx: ToolContext, *, url: str, profile: str | None = None, wi
         theme_switch: How the site turns dark when prefers-color-scheme is not enough, for example {"how": "attr", "name": "data-theme", "dark": "dark"}.
         wait_for: A selector that must be visible before the page is checked.
         ignore: CSS selectors of regions to leave out: another product drawn or embedded in the page, or an exhibit shown on purpose. Coverage names what was left out. A page can mark one itself with data-studio="ignore".
+        on: The on your environment_open gave: check the page on that machine (localhost there).
     """
+    del on  # agentos.environments.routing.studio_proxy reads it (the environment's tunnel)
     svc = _studio(ctx)
     url = url.strip()
     states = parse_states(states)
@@ -365,7 +367,7 @@ async def system_check(ctx: ToolContext, *, url: str, profile: str | None = None
                        tokens: str | dict[str, Any] | None = None,
                        widths: list[int | str] | None = None, themes: list[Theme] | None = None,
                        since: str | None = None, detail: Detail = "summary",
-                       theme_switch: ThemeSwitch | None = None, ignore: list[str] | None = None) -> dict[str, Any]:
+                       theme_switch: ThemeSwitch | None = None, ignore: list[str] | None = None, on: str | None = None) -> dict[str, Any]:
     """Is this page on the design system? The design system part of ui_check alone, with adherence:
     the share of colours, spacing, radius and type on a token, controls outside the known
     components, and (through the provenance probe) values that only look like a token. Tokens come
@@ -383,7 +385,9 @@ async def system_check(ctx: ToolContext, *, url: str, profile: str | None = None
         detail: summary (default) or full.
         theme_switch: How the site turns dark, as in ui_check.
         ignore: CSS selectors of regions on another design system (a drawn or embedded page), as in ui_check.
+        on: The on your environment_open gave: check the page on that machine (localhost there).
     """
+    del on  # agentos.environments.routing.studio_proxy reads it (the environment's tunnel)
     svc = _studio(ctx)
     url = url.strip()
     await _authorize(ctx, url, "check the design system of")
@@ -430,7 +434,7 @@ async def system_check(ctx: ToolContext, *, url: str, profile: str | None = None
 
 async def ui_diff(ctx: ToolContext, *, url: str, before: str | None = None, profile: str | None = None,
                   widths: list[int | str] | None = None, themes: list[Theme] | None = None,
-                  detail: Detail = "summary") -> dict[str, Any]:
+                  detail: Detail = "summary", on: str | None = None) -> dict[str, Any]:
     """What did my change do? Captures the url now and compares it, screen by screen, with
     `before` (a capture or run id), else the baseline (ui_baseline), else the last ui_check of
     the url. Returns, per screen, one plain line per cause (moved, resized, restyled, text,
@@ -445,7 +449,9 @@ async def ui_diff(ctx: ToolContext, *, url: str, before: str | None = None, prof
         widths: Widths in px or devices; default the widths of `before`.
         themes: light, dark or both; default the themes of `before`.
         detail: summary (default) or full (every change with its before and after).
+        on: The on your environment_open gave: check the page on that machine (localhost there).
     """
+    del on  # agentos.environments.routing.studio_proxy reads it (the environment's tunnel)
     svc = _studio(ctx)
     url = url.strip()
     try:
@@ -583,7 +589,7 @@ def _capture_problems(after: Review) -> list[str]:
 
 
 async def ui_baseline(ctx: ToolContext, *, url: str, run: str | None = None,
-                      profile: str | None = None, noise: bool = True) -> dict[str, Any]:
+                      profile: str | None = None, noise: bool = True, on: str | None = None) -> dict[str, Any]:
     """Keep a run's capture as the baseline ui_diff compares with for this url (and profile). It
     replaces the baseline: to compare with the one kept, call ui_diff instead. Without `run`, the
     last ui_check of the url. It also loads the page twice more to learn what
@@ -596,7 +602,9 @@ async def ui_baseline(ctx: ToolContext, *, url: str, run: str | None = None,
         run: A run id (run_...) or capture id (cap_...); default the last ui_check of the url.
         profile: A product profile, "workspace/profile": a baseline per profile.
         noise: Learn what changes on its own (two more loads, a few seconds). Default true.
+        on: The on your environment_open gave: check the page on that machine (localhost there).
     """
+    del on  # agentos.environments.routing.studio_proxy reads it (the environment's tunnel)
     svc = _studio(ctx)
     url = url.strip()
     check_url(url)

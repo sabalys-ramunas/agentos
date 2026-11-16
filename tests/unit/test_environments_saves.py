@@ -376,6 +376,31 @@ async def test_round_trip_from_the_files_when_the_snapshot_is_gone(node):
 # ------------------------------------------------------------------ 3, 8, 11: the reaper
 
 
+async def test_a_save_resumes_into_a_new_machine_leased_to_the_resumer(node):
+    """One chat holds a live machine (the lease): a save has no machine, so any chat of the agent resumes
+    it, into a new one with a handle of its own; the handle of the closed one reaches nothing live. Two
+    chats resuming at once: one wins, the other is environment_in_use."""
+    from agentos.environments.picking import lease_of
+
+    out = await opened(node, keep="save", session=None)
+    work_on_it(disk(node, out["id"]) / "work" / "shop")
+    closed = await node["call"]("environment_close", on=out["on"], session=None)
+    assert closed["saved"]["verified"] is True
+    first, second = await asyncio.gather(
+        node["call"]("environment_open", title=TITLE, session=None),
+        node["call"]("environment_open", title=TITLE, session=None), return_exceptions=True)
+    won = [r for r in (first, second) if isinstance(r, dict)]
+    lost = [r for r in (first, second) if isinstance(r, ToolCallError)]
+    assert len(won) == 1 and len(lost) == 1 and str(lost[0]).startswith("environment_in_use"), (first, second)
+    again = won[0]
+    assert again["opened"] == "resumed" and again["id"] != out["id"] and again["on"] != out["on"]
+    assert node["mgr"].get(again["id"]).lease == lease_of(again["on"])
+    assert (await node["call"]("environment", on=again["on"], session=None))["id"] == again["id"]
+    old = await node["call"]("environment", on=out["on"], session=None)  # the closed one: only what it cost
+    assert old["id"] == out["id"] and old["state"] == "closed"
+    await node["call"]("environment_close", on=again["on"], discard=True, session=None)
+
+
 async def test_idle_with_keep_save_saves_then_deletes(node):
     """Acceptance 3."""
     out = await opened(node, keep="save")
