@@ -10,7 +10,7 @@ from typing import Any, BinaryIO
 from agentos.env import oom
 from agentos.env.lanes import LaneRuntime, new_wid, wait_exit
 from agentos.env.models import ExecResult
-from agentos.env.sandbox import Workload
+from agentos.env.sandbox import SharedSession, Workload
 
 LEFTOVER_GRACE_S = 0.5
 
@@ -52,6 +52,17 @@ class Capture:
         out.tail = self.tail[len(self.tail) - out.tail_cap:]
         out.total = self.total
         return out
+
+
+def _cleaned(cap: Capture, session: SharedSession) -> Capture:
+    """The captured stream through session.clean (agentos.vms.sshmux.Lease.clean), its sizes kept true."""
+    out = Capture(cap.head_cap + cap.tail_cap)
+    if not cap.dropped:
+        out.feed(session.clean(bytes(cap.head + cap.tail)))
+        return out
+    out.head, out.tail = bytearray(session.clean(bytes(cap.head))), bytearray(session.clean(bytes(cap.tail)))
+    out.total = cap.total - (len(cap.head) - len(out.head)) - (len(cap.tail) - len(out.tail))
+    return out
 
 
 def fit(out: Capture, err: Capture, budget: int) -> tuple[Capture, Capture]:
@@ -224,6 +235,8 @@ async def run(rt: LaneRuntime, argv: list[str], *, timeout_s: float, stdin: byte
             except TimeoutError:
                 readers.cancel()
     finally:
+        if sp.session is not None:  # ssh's own lines about a shared connection are never the command's
+            err = _cleaned(err, sp.session)
         await rt.release(sp)
     duration = loop.time() - start
     exit_code, sig_name = exit_status(rt, proc.returncode)

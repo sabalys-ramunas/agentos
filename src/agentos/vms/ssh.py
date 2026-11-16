@@ -274,7 +274,7 @@ class SshLauncher:
         # the local ssh client gets a plain environment: nothing of agentosd's leaks to it
         env = {"PATH": "/usr/sbin:/usr/bin:/sbin:/bin", "HOME": str(workdir), "LANG": "C.UTF-8"}
         workdir.mkdir(parents=True, exist_ok=True)
-        return Command(argv, env, str(workdir), on_end=lease.release if lease else None)
+        return Command(argv, env, str(workdir), session=lease)
 
     def stop_argv(self, lane: EnvLane, wid: str, sig: str) -> list[str] | None:
         """The ssh command that sends `sig` (TERM or KILL) to a workload's process group on the VM
@@ -347,6 +347,9 @@ async def run(remote: RemoteHost, script: str, *, timeout_s: float = 900.0) -> t
             with contextlib.suppress(ProcessLookupError):
                 proc.kill()
             raise
+        if lease is not None:  # ssh's own lines about the shared connection are never the script's
+            out = lease.clean(out or b"")
+            lease.release(proc.returncode)
     finally:
         if lease is not None:
             lease.release()

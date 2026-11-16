@@ -12,7 +12,6 @@ import shutil
 import signal
 import socket
 import termios
-from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -22,7 +21,7 @@ from agentos.env.host import Host
 from agentos.env.models import EnvLane
 from agentos.env.netproxy import EgressPolicy, Forwarder, Upstream
 from agentos.env.paths import EnvPaths, EnvSettings
-from agentos.env.sandbox import DEFAULT_PATH, LanePlan, Workload
+from agentos.env.sandbox import DEFAULT_PATH, LanePlan, SharedSession, Workload
 
 log = logging.getLogger("agentos.env")
 REMOTE_STOP_S = 15.0  # how long the ssh that ends a workload's processes on a VM may take
@@ -55,7 +54,7 @@ class Spawned:
     kind: str
     cgroup: str | None
     started: float = field(default_factory=lambda: asyncio.get_running_loop().time())
-    on_end: Callable[[], None] | None = None  # Command.on_end, called once by LaneRuntime.release
+    session: SharedSession | None = None  # Command.session, given back once by LaneRuntime.release
 
 
 def new_wid(prefix: str) -> str:
@@ -259,13 +258,13 @@ class LaneRuntime:
                 pass_fds=cmd.pass_fds, start_new_session=True,
                 preexec_fn=_take_controlling_tty if take_tty else None)
         except BaseException:
-            if cmd.on_end is not None:
-                cmd.on_end()
+            if cmd.session is not None:
+                cmd.session.release()
             raise
         finally:
             for fd in cmd.close_after_spawn:
                 os.close(fd)
-        sp = Spawned(proc, wl.wid, kind, cg, on_end=cmd.on_end)
+        sp = Spawned(proc, wl.wid, kind, cg, session=cmd.session)
         self.workloads[wl.wid] = sp
         return sp
 
@@ -326,9 +325,9 @@ class LaneRuntime:
     async def release(self, sp: Spawned) -> None:
         """After a workload ends: kill leftovers (background children) and drop its cgroup. On a VM the
         workload's own shell ends its leftovers (agentos.vms.ssh.remote_command)."""
-        if sp.on_end is not None:
-            end, sp.on_end = sp.on_end, None
-            end()
+        if sp.session is not None:
+            session, sp.session = sp.session, None
+            session.release(sp.proc.returncode)
         if sp.cgroup:
             await asyncio.to_thread(self.host.cgroup_remove, sp.cgroup)
         else:

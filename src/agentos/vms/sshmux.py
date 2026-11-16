@@ -8,10 +8,12 @@ the first time a VM is used) carries those commands as sessions instead: about 1
 
 What it keeps as it was:
 
-- A command never waits for the master and never depends on it. While none answers (the first call,
-  the master just died, the VM restarted), the command connects on its own, as before, and the node
-  starts a master for the next one. A client whose master went away between the check and its own
-  connect falls back to a direct connection too (ssh's ControlMaster=no).
+- A command never waits for the master and never depends on it. While none is known to answer (the
+  first call, the master died or hangs, the VM restarted), the command connects on its own, as before,
+  and the node checks the master (its hello on connect) or starts one in the background for the next.
+  A client whose master went away or refused it falls back to a direct connection too (ssh's
+  ControlMaster=no); ssh's word about that never reaches a result (Lease.clean), and the master is
+  not used again for RETRY_S.
 - Only one-shot commands share it (`Workload.mux`, set by agentos.env.execs, and `ssh.run`). A job's
   follower does not: it watches its own sshd ($PPID) to notice that the node let go, and on a shared
   connection that sshd lives on. Terminals, services, tunnels and probes keep their own connection.
@@ -31,6 +33,7 @@ import contextlib
 import hashlib
 import logging
 import os
+import re
 import socket
 import stat
 import tempfile
@@ -43,8 +46,14 @@ log = logging.getLogger(__name__)
 
 IDLE_S = 300           # the master ends this long after its last command (ControlPersist)
 MAX_SESSIONS = 8       # commands at once over one master (sshd allows 10 sessions a connection by default)
-RETRY_S = 30.0         # after a master failed to start, the commands connect on their own this long
+RETRY_S = 30.0         # after a master failed (to start, or a command), commands connect on their own this long
 START_TIMEOUT_S = 30.0
+HEALTHY_S = 60.0       # a master that said hello is used this long without another answer
+RECHECK_S = 5.0        # a command more than this after the last hello asks again, in the background
+HELLO_TIMEOUT_S = 0.5  # a master sends its hello at once on connect; one that does not is stuck
+# what an ssh client says of a master it could not use (it then connects on its own): never a result's
+MUX_LINE = re.compile(rb"^(?:muxclient|mux_[a-z_]+|Control socket connect\(|ControlSocket )[^\n]*(?:\n|$)",
+                      re.MULTILINE)
 # sockaddr_un holds 104 bytes on macOS (108 on Linux), and ssh first binds `<path>.<16 random characters>`
 MAX_PATH = 104 - 18
 
@@ -56,12 +65,26 @@ class Lease:
         self.mux = mux
         self.path = path
         self.args = ["-o", "ControlMaster=no", "-o", f"ControlPath={path.replace('%', '%%')}"]
+        self.troubled = False
         self._done = False
 
-    def release(self) -> None:
-        if not self._done:
-            self._done = True
-            self.mux.sessions[self.path] = max(0, self.mux.sessions.get(self.path, 0) - 1)
+    def clean(self, data: bytes) -> bytes:
+        """The client's output without ssh's lines about a master it could not use (it fell back to a
+        connection of its own); seeing one marks the master troubled."""
+        out, n = MUX_LINE.subn(b"", data)
+        if n:
+            self.troubled = True
+        return out
+
+    def release(self, rc: int | None = None) -> None:
+        """Give the session back once the command's processes on the VM have ended. An exit status of
+        255 (ssh's own failure) or a line clean() took out keeps the master unused for RETRY_S."""
+        if self._done:
+            return
+        self._done = True
+        self.mux.sessions[self.path] = max(0, self.mux.sessions.get(self.path, 0) - 1)
+        if self.troubled or rc == 255:
+            self.mux.trouble(self.path)
 
 
 class Mux:
@@ -71,8 +94,10 @@ class Mux:
         self.base = base
         self.enabled = enabled
         self.sessions: dict[str, int] = {}
-        self.not_before: dict[str, float] = {}    # path -> no new master before this (one failed)
-        self.starting: dict[str, asyncio.Task] = {}
+        self.healthy_until: dict[str, float] = {}  # path -> monotonic time its last hello is good until
+        self.checked: dict[str, float] = {}        # path -> when it last said hello
+        self.not_before: dict[str, float] = {}     # path -> not used, nor started, before this (one failed)
+        self.tasks: dict[str, asyncio.Task] = {}   # path -> its check or start under way
 
     # ------------------------------------------------------------------ where
     def directory(self) -> Path | None:
@@ -99,40 +124,63 @@ class Mux:
 
     # ------------------------------------------------------------------ use
     def lease(self, remote: RemoteHost) -> Lease | None:
-        """A session on the VM's master when one answers and has room; else None (connect on your own),
-        and a master is started for the next command when none runs."""
+        """A session on the VM's master when it said hello lately and has room; else None (connect on
+        your own), and the master is checked, or one started, in the background for the next command."""
         if not self.enabled:
             return None
         path = self.path(remote)
         if path is None:
             return None
-        if not _answers(path):  # asked each time (tens of microseconds): a client sent to a dead master
-            # would fall back to its own connection, but ssh says so on the command's stderr
-            self._start_soon(remote, path)
+        now = time.monotonic()
+        if self.not_before.get(path, 0.0) > now:
             return None
+        if self.healthy_until.get(path, 0.0) <= now:
+            self._soon(remote, path)
+            return None
+        if now - self.checked.get(path, 0.0) > RECHECK_S:
+            self._soon(remote, path)  # this command goes over it; a stuck one is caught for the next
         if self.sessions.get(path, 0) >= MAX_SESSIONS:
             return None
         self.sessions[path] = self.sessions.get(path, 0) + 1
         return Lease(self, path)
 
-    def _start_soon(self, remote: RemoteHost, path: str) -> None:
-        task = self.starting.get(path)
+    def trouble(self, path: str) -> None:
+        """A command could not use the master (it hangs, is gone or refused a session): commands connect
+        on their own for RETRY_S, then it is asked again."""
+        self.healthy_until.pop(path, None)
+        self.not_before[path] = time.monotonic() + RETRY_S
+
+    def _soon(self, remote: RemoteHost, path: str) -> None:
+        task = self.tasks.get(path)
         if task is not None and not task.done():
-            return
-        if self.not_before.get(path, 0.0) > time.monotonic():
             return
         try:
             loop = asyncio.get_running_loop()
         except RuntimeError:  # no event loop (a synchronous caller): this command connects on its own
             return
-        self.starting[path] = loop.create_task(self.start(remote, path), name=f"ssh-mux-{remote.vm_id}")
+        self.tasks[path] = loop.create_task(self.refresh(remote, path), name=f"ssh-mux-{remote.vm_id}")
+
+    async def refresh(self, remote: RemoteHost, path: str) -> bool:
+        """Ask the master for its hello; without one, start another in its place. True when one answers."""
+        if await hello(path):
+            self._healthy(path)
+            return True
+        self.healthy_until.pop(path, None)
+        if self.not_before.get(path, 0.0) > time.monotonic():
+            return False
+        return await self.start(remote, path)
+
+    def _healthy(self, path: str) -> None:
+        now = time.monotonic()
+        self.checked[path] = now
+        self.healthy_until[path] = now + HEALTHY_S
 
     async def start(self, remote: RemoteHost, path: str) -> bool:
         """Start the VM's master in the background (ssh daemonizes it once logged in). True when it answers."""
         from agentos.vms.ssh import ssh_base
 
         with contextlib.suppress(FileNotFoundError):
-            os.unlink(path)  # a master that died left its socket (the check above found nobody answering)
+            os.unlink(path)  # a master that died or hangs left its socket: nothing reaches it any more
         base = ssh_base(remote)
         argv = [*base[:-2], "-o", "ControlMaster=yes", "-o", f"ControlPath={path.replace('%', '%%')}",
                 "-o", f"ControlPersist={IDLE_S}", "-N", *base[-2:]]
@@ -147,22 +195,28 @@ class Mux:
                 with contextlib.suppress(ProcessLookupError):
                     proc.kill()
                 await proc.wait()
-            ok = proc.returncode == 0 and _answers(path)
+            ok = proc.returncode == 0 and await hello(path)
         except OSError as e:
             log.debug("no ssh master for %s: %s", remote.vm_id, e)
-        if not ok:
+        if ok:
+            self._healthy(path)
+        else:
             self.not_before[path] = time.monotonic() + RETRY_S
         return ok
 
-
-def _answers(path: str) -> bool:
-    """Does a master listen on this socket? (A connect to a unix socket answers at once.)"""
+async def hello(path: str, timeout_s: float = HELLO_TIMEOUT_S) -> bool:
+    """Does a master answer on this socket? It sends its hello as soon as it takes a connection; one
+    that is stuck takes it (the kernel does) but says nothing. Never blocks the event loop."""
+    if not os.path.exists(path):
+        return False
+    loop = asyncio.get_running_loop()
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    s.setblocking(False)
     try:
-        s.settimeout(0.5)
-        s.connect(path)
-        return True
-    except OSError:
+        async with asyncio.timeout(timeout_s):
+            await loop.sock_connect(s, path)
+            return len(await loop.sock_recv(s, 4)) == 4
+    except (OSError, TimeoutError):
         return False
     finally:
         s.close()

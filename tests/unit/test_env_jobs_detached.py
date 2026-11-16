@@ -20,7 +20,7 @@ from agentos.env.manager import EnvManager
 from agentos.env.models import RemoteHost
 from agentos.env.paths import EnvSettings
 from agentos.env.sandbox import DirectLauncher
-from agentos.vms import ssh
+from agentos.vms import ssh, sshmux
 
 SETSID = '''#!{py}
 import os, sys
@@ -346,3 +346,24 @@ def test_a_follower_ends_as_soon_as_it_sent_the_end_of_a_job_that_ended(tmp_path
     r = subprocess.run(["sh", "-c", ssh.follow_script("j-1", 2, 0)], capture_output=True, timeout=10, check=False)
     assert (r.returncode, r.stdout, r.stderr) == (0, b"llo\n", b"oops\n")
     assert time.monotonic() - began < 0.15
+
+
+class OneMux(sshmux.Mux):
+    """Every one-shot command gets a session on one stand-in master ("/m"): the transport is a local shell."""
+
+    def lease(self, remote):
+        self.sessions["/m"] = self.sessions.get("/m", 0) + 1
+        return sshmux.Lease(self, "/m")
+
+
+async def test_ssh_s_words_about_a_shared_connection_never_reach_an_exec_s_stderr(vm, monkeypatch):
+    manager, _, _ = vm
+    mux = OneMux()
+    monkeypatch.setattr(ssh, "MUX", mux)
+    mgr = manager()
+    await mgr.start()
+    res = await mgr.exec(LANE, "echo 'muxclient: master hello exchange failed' >&2; echo real >&2; echo out")
+    assert (res.stdout, res.stderr, res.stderr_bytes, res.exit_code) == ("out\n", "real\n", 5, 0)
+    assert mux.sessions["/m"] == 0 and mux.not_before["/m"] > 0  # the master rests a while
+    await mgr.shutdown()
+

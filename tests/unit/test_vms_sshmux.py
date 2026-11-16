@@ -1,6 +1,6 @@
 """One shared ssh connection per VM for one-shot commands (agentos.vms.sshmux). A unix socket that
-listens stands in for a master here; the real thing was measured on the docker provider: 146 ms a
-lane_exec before, about 50 ms after."""
+listens stands in for a master here (it says hello on connect, as ssh's does); the real thing was
+measured on the docker provider: 146 ms a lane_exec before, about 40 ms after."""
 
 from __future__ import annotations
 
@@ -11,6 +11,7 @@ import shutil
 import socket
 import tempfile
 import threading
+import time
 from pathlib import Path
 
 import pytest
@@ -22,6 +23,10 @@ from agentos.vms import ssh, sshmux
 
 R = RemoteHost(vm_id="vm_1", host="203.0.113.9", key_path="/k/vm_1/id", known_hosts="/k/vm_1/kh",
                host_alias="agentos-vm_1")
+HELLO = b"\x00\x00\x00\x05\x00\x00\x00\x01\x00"
+MUX_LINES = (b"mux_client_request_session: session request failed: Session open refused by peer\n",
+             b"muxclient: master hello exchange failed\n",
+             b"Control socket connect(/tmp/x/m): Connection refused\n")
 
 
 @pytest.fixture
@@ -37,13 +42,15 @@ def mux(base):
 
 
 class listen:
-    """A stand-in master: listens on the socket and takes each connection, as ssh's does."""
+    """A stand-in master: takes each connection and says hello, as ssh's does; a stuck one (`stuck`)
+    is accepted by the kernel and says nothing."""
 
-    def __init__(self, path: str):
+    def __init__(self, path: str, *, stuck: bool = False):
         self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self.sock.bind(path)
         self.sock.listen(8)
-        threading.Thread(target=self._take, daemon=True).start()
+        if not stuck:
+            threading.Thread(target=self._take, daemon=True).start()
 
     def _take(self) -> None:
         while True:
@@ -51,12 +58,28 @@ class listen:
                 conn, _ = self.sock.accept()
             except OSError:
                 return
+            with contextlib.suppress(OSError):
+                conn.sendall(HELLO)
             conn.close()
 
     def close(self) -> None:
         with contextlib.suppress(OSError):
             self.sock.shutdown(socket.SHUT_RDWR)
         self.sock.close()
+
+
+def fake_ssh(base: str, body: str) -> Path:
+    """An `ssh` that logs each argv (one file per call) and then runs `body` (sh)."""
+    fake = Path(base) / "ssh"
+    fake.write_text(f'#!/bin/sh\nn=$(ls {base}/argv.* 2>/dev/null | wc -l | tr -d " ")\n'
+                    f'printf "%s\\n" "$@" > {base}/argv.$n\n{body}\n')
+    fake.chmod(0o755)
+    return fake
+
+
+def argvs(base: str) -> list[list[str]]:
+    files = sorted(Path(base).glob("argv.*"), key=lambda p: int(p.suffix[1:]))
+    return [p.read_text().split("\n") for p in files]
 
 
 def test_the_socket_lives_in_a_private_directory_and_differs_per_machine(mux, base):
@@ -78,12 +101,12 @@ def test_a_directory_others_can_open_or_a_long_path_turns_it_off(mux, base):
 def test_no_master_means_the_command_connects_on_its_own_and_one_master_starts(mux, monkeypatch):
     started: list[str] = []
 
-    async def start(remote, path):
+    async def refresh(remote, path):
         started.append(path)
         await asyncio.sleep(0.05)
         return False
 
-    monkeypatch.setattr(mux, "start", start)
+    monkeypatch.setattr(mux, "refresh", refresh)
 
     async def go():
         assert mux.lease(R) is None and mux.lease(R) is None  # the second does not start another
@@ -95,68 +118,120 @@ def test_no_master_means_the_command_connects_on_its_own_and_one_master_starts(m
 
 
 def test_without_an_event_loop_nothing_starts(mux):
-    assert mux.lease(R) is None and mux.starting == {}
+    assert mux.lease(R) is None and mux.tasks == {}
 
 
-def test_a_master_that_answers_carries_up_to_max_sessions(mux):
+async def test_a_master_that_says_hello_carries_up_to_max_sessions(mux):
     path = mux.path(R)
     assert path is not None
     s = listen(path)
     try:
+        assert await mux.refresh(R, path) is True
         leases = [mux.lease(R) for _ in range(sshmux.MAX_SESSIONS)]
         assert all(leases) and mux.lease(R) is None  # full: this one connects on its own
         lease = leases[0]
         assert lease is not None and lease.args == ["-o", "ControlMaster=no", "-o", f"ControlPath={path}"]
-        lease.release()
-        lease.release()  # twice is once
+        lease.release(0)
+        lease.release(0)  # twice is once
         assert mux.sessions[path] == sshmux.MAX_SESSIONS - 1 and mux.lease(R) is not None
     finally:
         s.close()
 
 
-def test_a_dead_master_is_noticed_by_the_next_command(mux):
+async def test_a_stuck_master_is_no_master_and_the_check_never_blocks_the_loop(mux):
+    """A stuck master still takes connections (the kernel does), so a connect said yes and each command
+    then waited ConnectTimeout over it. Its missing hello says no, without blocking the event loop."""
+    path = mux.path(R)
+    assert path is not None
+    s = listen(path, stuck=True)
+    ticks = 0
+
+    async def tick():
+        nonlocal ticks
+        while True:
+            await asyncio.sleep(0.01)
+            ticks += 1
+
+    ticker = asyncio.ensure_future(tick())
+    try:
+        began = time.monotonic()
+        assert await sshmux.hello(path, timeout_s=0.3) is False
+        assert time.monotonic() - began < 1 and ticks >= 10
+        assert await sshmux.hello(path + "-none") is False
+    finally:
+        ticker.cancel()
+        s.close()
+
+
+async def test_the_recheck_catches_a_master_that_got_stuck_and_starts_another(mux, monkeypatch):
     path = mux.path(R)
     assert path is not None
     s = listen(path)
-    lease = mux.lease(R)
-    assert lease is not None
-    lease.release()
-    s.close()  # killed: its socket file stays, and nobody answers on it
-    assert os.path.exists(path) and mux.lease(R) is None
+    assert await mux.refresh(R, path)
+    s.close()
+    os.unlink(path)
+    stuck = listen(path, stuck=True)
+    started: list[str] = []
+
+    async def start(remote, p):
+        started.append(p)
+        return False
+
+    monkeypatch.setattr(mux, "start", start)
+    try:
+        mux.checked[path] = 0.0  # RECHECK_S went by: this command still goes over it, and a check starts
+        lease = mux.lease(R)
+        assert lease is not None
+        lease.release(0)
+        await asyncio.wait_for(mux.tasks[path], 5)
+        assert started == [path] and mux.lease(R) is None
+    finally:
+        stuck.close()
+
+
+@pytest.mark.parametrize("line", MUX_LINES)
+def test_ssh_s_words_about_the_master_are_taken_out_and_the_master_rests(mux, line):
+    path = "/tmp/mx-none/m"
+    mux.healthy_until[path] = time.monotonic() + 60
+    lease = sshmux.Lease(mux, path)
+    mux.sessions[path] = 1
+    assert lease.clean(line + b"the command's own error\n") == b"the command's own error\n"
+    lease.release(0)
+    assert mux.not_before[path] > time.monotonic() and path not in mux.healthy_until
+
+
+def test_an_ssh_failure_makes_the_master_rest_and_a_clean_end_does_not(mux):
+    path = "/tmp/mx-none/m"
+    sshmux.Lease(mux, path).release(0)
+    assert path not in mux.not_before
+    sshmux.Lease(mux, path).release(255)
+    assert mux.not_before[path] > time.monotonic()
 
 
 async def test_a_failed_start_waits_retry_s_before_the_next(mux, base, monkeypatch):
-    fake = Path(base) / "ssh"
-    fake.write_text("#!/bin/sh\nexit 255\n")
-    fake.chmod(0o755)
-    monkeypatch.setattr(ssh, "SSH", str(fake))
+    monkeypatch.setattr(ssh, "SSH", str(fake_ssh(base, "exit 255")))
     path = mux.path(R)
     assert path is not None
     assert await mux.start(R, path) is False
     assert mux.not_before[path] > 0
-    assert mux.lease(R) is None and path not in mux.starting  # not tried again before RETRY_S
+    assert mux.lease(R) is None and path not in mux.tasks  # not tried again before RETRY_S
 
 
 async def test_a_master_starts_with_the_pinned_options_in_the_background(mux, base, monkeypatch):
-    """The fake ssh records its argv and listens on the ControlPath, as a master does once it is
-    logged in and has gone to the background."""
-    log = Path(base) / "argv"
-    fake = Path(base) / "ssh"
-    fake.write_text(f"""#!/bin/sh
-printf '%s\\n' "$@" > {log}
+    """The fake ssh listens on the ControlPath and says hello, as a master does once it is logged in
+    and has gone to the background."""
+    monkeypatch.setattr(ssh, "SSH", str(fake_ssh(base, f"""
 for a; do case "$a" in ControlPath=*) p="${{a#ControlPath=}}";; esac; done
 {shutil.which("python3")} -c "import socket,sys,os
 s=socket.socket(socket.AF_UNIX); s.bind(sys.argv[1]); s.listen(8); s.settimeout(5)
 if os.fork(): os._exit(0)
-while True: s.accept()[0].close()" "$p" < /dev/null > /dev/null 2>&1
-""")
-    fake.chmod(0o755)
-    monkeypatch.setattr(ssh, "SSH", str(fake))
+while True:
+    c=s.accept()[0]; c.sendall(b'hello-'); c.close()" "$p" < /dev/null > /dev/null 2>&1""")))
     path = mux.path(R)
     assert path is not None
     assert mux.lease(R) is None
-    await asyncio.wait_for(mux.starting[path], 10)
-    argv = log.read_text().split("\n")
+    await asyncio.wait_for(mux.tasks[path], 10)
+    [argv] = argvs(base)
     for opt in ("ControlMaster=yes", f"ControlPath={path}", f"ControlPersist={sshmux.IDLE_S}",
                 "StrictHostKeyChecking=yes", "HostKeyAlias=agentos-vm_1", "ClearAllForwardings=yes"):
         assert opt in argv
@@ -164,56 +239,61 @@ while True: s.accept()[0].close()" "$p" < /dev/null > /dev/null 2>&1
     assert mux.lease(R) is not None
 
 
+def up(mux: sshmux.Mux, path: str) -> None:
+    mux.healthy_until[path] = time.monotonic() + 60
+    mux.checked[path] = time.monotonic()
+
+
 def test_only_a_one_shot_command_shares_the_connection(mux, base, monkeypatch):
-    monkeypatch.setattr(sshmux, "MUX", mux)
     monkeypatch.setattr(ssh, "MUX", mux)
     path = mux.path(R)
     assert path is not None
-    s = listen(path)
+    up(mux, path)
     lane = type("L", (), {"remote": R})()
     launcher = ssh.SshLauncher()
     w = Path(base) / "w"
-    try:
-        one = launcher.command(None, lane, Workload("x-ab12", ["true"], {}, mux=True), cgroup=None, workdir=w)
-        assert f"ControlPath={path}" in one.argv and "setsid -w" in one.argv[-1]
-        assert one.argv.index("ControlMaster=no") < one.argv.index("root@203.0.113.9")
-        assert mux.sessions[path] == 1 and one.on_end is not None
-        one.on_end()
-        assert mux.sessions[path] == 0
-        for wl in (Workload("x-ab12", ["true"], {}),                                   # not marked
-                   Workload("s-ab12", ["bash"], {}, pty=True, mux=True),               # a terminal
-                   Workload("j-ab12", ["true"], {}, detach=(0, 0), mux=True)):         # a job's follower
-            cmd = launcher.command(None, lane, wl, cgroup=None, workdir=w)
-            assert not any("ControlPath" in a for a in cmd.argv) and cmd.on_end is None
-    finally:
-        s.close()
+    one = launcher.command(None, lane, Workload("x-ab12", ["true"], {}, mux=True), cgroup=None, workdir=w)
+    assert f"ControlPath={path}" in one.argv and "setsid -w" in one.argv[-1]
+    assert one.argv.index("ControlMaster=no") < one.argv.index("root@203.0.113.9")
+    assert mux.sessions[path] == 1 and one.session is not None
+    one.session.release(0)
+    assert mux.sessions[path] == 0
+    for wl in (Workload("x-ab12", ["true"], {}),                                   # not marked
+               Workload("s-ab12", ["bash"], {}, pty=True, mux=True),               # a terminal
+               Workload("j-ab12", ["true"], {}, detach=(0, 0), mux=True)):         # a job's follower
+        cmd = launcher.command(None, lane, wl, cgroup=None, workdir=w)
+        assert not any("ControlPath" in a for a in cmd.argv) and cmd.session is None
 
 
-async def test_run_goes_over_the_master_and_gives_its_session_back(mux, base, monkeypatch):
+async def test_run_goes_over_the_master_and_gives_its_session_back_without_ssh_s_words(mux, base, monkeypatch):
     monkeypatch.setattr(ssh, "MUX", mux)
-    log = Path(base) / "argv"
-    fake = Path(base) / "ssh"
-    fake.write_text(f'#!/bin/sh\nprintf "%s\\n" "$@" > {log}\nfor a; do last="$a"; done\nexec sh -c "$last"\n')
-    fake.chmod(0o755)
-    monkeypatch.setattr(ssh, "SSH", str(fake))
+    monkeypatch.setattr(ssh, "SSH", str(fake_ssh(
+        base, 'echo "mux_client_request_session: session request failed" >&2\nfor a; do last="$a"; done\n'
+              'exec sh -c "$last"')))
     path = mux.path(R)
     assert path is not None
-    s = listen(path)
-    try:
-        code, out = await ssh.run(R, "echo hi; exit 3", timeout_s=10)
-        assert (code, out) == (3, "hi\n")
-        assert f"ControlPath={path}" in log.read_text().split("\n") and mux.sessions[path] == 0
-    finally:
-        s.close()
+    up(mux, path)
+    code, out = await ssh.run(R, "echo hi; exit 3", timeout_s=10)
+    assert (code, out) == (3, "hi\n")
+    assert f"ControlPath={path}" in argvs(base)[0] and mux.sessions[path] == 0
+    assert mux.not_before[path] > time.monotonic()  # the master refused it: commands go on their own a while
 
 
-async def test_release_ends_the_session_once():
-    ended: list[int] = []
+async def test_release_gives_the_session_back_once_with_the_exit_status():
+    got: list[int | None] = []
+
+    class Session:
+        def clean(self, data):
+            return data
+
+        def release(self, rc=None):
+            got.append(rc)
+
     rt = LaneRuntime.__new__(LaneRuntime)
     rt.cgroup, rt.workloads = None, {}
-    proc = await asyncio.create_subprocess_exec("true")
+    proc = await asyncio.create_subprocess_exec("sh", "-c", "exit 4")
     await proc.wait()
-    sp = Spawned(proc, "x-1", "exec", None, on_end=lambda: ended.append(1))
+    sp = Spawned(proc, "x-1", "exec", None, session=Session())
     await rt.release(sp)
     await rt.release(sp)
-    assert ended == [1]
+    assert got == [4]

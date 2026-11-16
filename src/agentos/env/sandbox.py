@@ -25,9 +25,9 @@ final argv (cgroup entry, network namespace, bubblewrap) or, on a Mac, run it di
 from __future__ import annotations
 
 import os
-from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Protocol
 
 from agentos.core.errors import InvalidRequest
 from agentos.env.models import EnvLane
@@ -135,6 +135,18 @@ class Workload:
     mux: bool = False
 
 
+class SharedSession(Protocol):
+    """A command's session on a VM's shared ssh connection (agentos.vms.sshmux.Lease)."""
+
+    def clean(self, data: bytes) -> bytes:
+        """The command's stderr without ssh's own lines about the shared connection."""
+        ...
+
+    def release(self, rc: int | None = None) -> None:
+        """Give it back, once the command's processes on the VM ended; `rc` is the local ssh's exit status."""
+        ...
+
+
 @dataclass
 class Command:
     argv: list[str]
@@ -143,7 +155,7 @@ class Command:
     pass_fds: tuple[int, ...] = ()
     close_after_spawn: tuple[int, ...] = ()
     takes_tty: bool = False  # the payload makes the PTY its controlling terminal itself (setsid -c)
-    on_end: Callable[[], None] | None = None  # once the workload is released (a VM's shared connection's session)
+    session: SharedSession | None = None  # a session on a VM's shared connection (agentos.vms.sshmux.Lease)
 
 
 def check_home(paths: EnvPaths, settings: EnvSettings) -> None:
