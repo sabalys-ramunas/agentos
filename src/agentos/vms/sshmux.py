@@ -12,8 +12,8 @@ What it keeps as it was:
   first call, the master died or hangs, the VM restarted), the command connects on its own, as before,
   and the node checks the master (its hello on connect) or starts one in the background for the next.
   A client whose master went away or refused it falls back to a direct connection too (ssh's
-  ControlMaster=no); ssh's word about that never reaches a result (Lease.clean), and the master is
-  not used again for RETRY_S.
+  ControlMaster=no); ssh's exact words about that, which it says first, never reach a result
+  (Lease.clean), and the master is not used again for RETRY_S.
 - Only one-shot commands share it (`Workload.mux`, set by agentos.env.execs, and `ssh.run`). A job's
   follower does not: it watches its own sshd ($PPID) to notice that the node let go, and on a shared
   connection that sshd lives on. Terminals, services, tunnels and probes keep their own connection.
@@ -54,9 +54,12 @@ HEALTHY_S = 60.0       # a master that said hello is used this long without anot
 RECHECK_S = 5.0        # a command more than this after the last hello asks again, in the background
 HELLO_TIMEOUT_S = 0.5  # a master sends its hello at once on connect; one that does not is stuck
 STOP_TIMEOUT_S = 5.0
-# what an ssh client says of a master it could not use (it then connects on its own): never a result's
-MUX_LINE = re.compile(rb"^(?:muxclient|mux_[a-z_]+|Control socket connect\(|ControlSocket )[^\n]*(?:\n|$)",
-                      re.MULTILINE)
+# what an ssh client says, first thing, of a master it could not use (it then connects on its own). Only
+# these exact lines, and only as the leading run of its output: a command's own line that starts the same
+# way (gcc on mux_util.c) is the command's. Control socket connect(<path>) is matched with the lease's path.
+SSH_MUX_LINES = (re.compile(rb"muxclient: master hello exchange failed"),
+                 re.compile(rb"mux_client_request_session: (?:session request failed|read from master failed): .*"),
+                 re.compile(rb"mux_client_hello_exchange: (?:read packet failed|write packet): .*"))
 # sockaddr_un holds 104 bytes on macOS (108 on Linux), and ssh first binds `<path>.<16 random characters>`
 MAX_PATH = 104 - 18
 
@@ -72,21 +75,26 @@ class Lease:
         self._done = False
 
     def clean(self, data: bytes) -> bytes:
-        """The client's output without ssh's lines about a master it could not use (it fell back to a
-        connection of its own); seeing one marks the master troubled."""
-        out, n = MUX_LINE.subn(b"", data)
-        if n:
+        """The client's output without the leading run of ssh's own lines about a master it could not use
+        (SSH_MUX_LINES; it fell back to a connection of its own). Finding one marks the master troubled;
+        nothing after the first other line is touched."""
+        refused = rb"Control socket connect\(" + re.escape(self.path.encode()) + rb"\): .*"
+        while data:
+            line, nl, rest = data.partition(b"\n")
+            if not any(p.fullmatch(line) for p in SSH_MUX_LINES) and not re.fullmatch(refused, line):
+                break
             self.troubled = True
-        return out
+            data = rest if nl else b""
+        return data
 
-    def release(self, rc: int | None = None) -> None:
-        """Give the session back once the command's processes on the VM have ended. An exit status of
-        255 (ssh's own failure) or a line clean() took out keeps the master unused for RETRY_S."""
+    def release(self) -> None:
+        """Give the session back once the command's processes on the VM have ended. A line clean() took
+        out keeps the master unused for RETRY_S (an exit status is the command's: 255 may be its own)."""
         if self._done:
             return
         self._done = True
         self.mux.sessions[self.path] = max(0, self.mux.sessions.get(self.path, 0) - 1)
-        if self.troubled or rc == 255:
+        if self.troubled:
             self.mux.trouble(self.path)
 
 

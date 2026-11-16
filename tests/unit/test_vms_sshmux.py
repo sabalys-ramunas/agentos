@@ -27,7 +27,7 @@ R = RemoteHost(vm_id="vm_1", host="203.0.113.9", key_path="/k/vm_1/id", known_ho
 HELLO = b"\x00\x00\x00\x05\x00\x00\x00\x01\x00"
 MUX_LINES = (b"mux_client_request_session: session request failed: Session open refused by peer\n",
              b"muxclient: master hello exchange failed\n",
-             b"Control socket connect(/tmp/x/m): Connection refused\n")
+             b"Control socket connect(/tmp/mx-none/m): Connection refused\n")
 
 
 @pytest.fixture
@@ -132,8 +132,8 @@ async def test_a_master_that_says_hello_carries_up_to_max_sessions(mux):
         assert all(leases) and mux.lease(R) is None  # full: this one connects on its own
         lease = leases[0]
         assert lease is not None and lease.args == ["-o", "ControlMaster=no", "-o", f"ControlPath={path}"]
-        lease.release(0)
-        lease.release(0)  # twice is once
+        lease.release()
+        lease.release()  # twice is once
         assert mux.sessions[path] == sshmux.MAX_SESSIONS - 1 and mux.lease(R) is not None
     finally:
         s.close()
@@ -183,7 +183,7 @@ async def test_the_recheck_catches_a_master_that_got_stuck_and_starts_another(mu
         mux.checked[path] = 0.0  # RECHECK_S went by: this command still goes over it, and a check starts
         lease = mux.lease(R)
         assert lease is not None
-        lease.release(0)
+        lease.release()
         await asyncio.wait_for(mux.tasks[path], 5)
         assert started == [path] and mux.lease(R) is None
     finally:
@@ -197,16 +197,35 @@ def test_ssh_s_words_about_the_master_are_taken_out_and_the_master_rests(mux, li
     lease = sshmux.Lease(mux, path)
     mux.sessions[path] = 1
     assert lease.clean(line + b"the command's own error\n") == b"the command's own error\n"
-    lease.release(0)
+    lease.release()
     assert mux.not_before[path] > time.monotonic() and path not in mux.healthy_until
 
 
-def test_an_ssh_failure_makes_the_master_rest_and_a_clean_end_does_not(mux):
+GCC = b"mux_util.c:12:5: error: expected ;\n"
+
+
+@pytest.mark.parametrize("data", [GCC + b"more\n", b"cc -c mux_util.c\n" + GCC,
+                                  MUX_LINES[1] + b"x\n" + MUX_LINES[0],  # past the leading run: the command's
+                                  b"Control socket connect(/elsewhere/m): Connection refused\n",  # not this lease's
+                                  b"muxclient: master hello exchange failed, said a test\n"])
+def test_a_command_s_own_lines_stay_whole_and_never_rest_the_master(mux, data):
+    """Every line starting mux_ or Control socket connect( went, anywhere in the stream (gcc on mux_util.c
+    returned an empty stderr and rested the master). Only ssh's exact lines, leading, go."""
     path = "/tmp/mx-none/m"
-    sshmux.Lease(mux, path).release(0)
+    lease = sshmux.Lease(mux, path)
+    kept = lease.clean(data)
+    assert kept == (data if not data.startswith(MUX_LINES[1]) else data[len(MUX_LINES[1]):])
+    lease.release()
+    assert (path in mux.not_before) == data.startswith(MUX_LINES[1])
+
+
+def test_an_exit_status_of_255_alone_never_rests_the_master(mux):
+    """255 is also what a command gives (an ssh run inside the VM): only ssh's own lines say the master failed."""
+    path = "/tmp/mx-none/m"
+    lease = sshmux.Lease(mux, path)
+    lease.clean(b"")
+    lease.release()
     assert path not in mux.not_before
-    sshmux.Lease(mux, path).release(255)
-    assert mux.not_before[path] > time.monotonic()
 
 
 async def test_a_failed_start_waits_retry_s_before_the_next(mux, base, monkeypatch):
@@ -257,7 +276,7 @@ def test_only_a_one_shot_command_shares_the_connection(mux, base, monkeypatch):
     assert f"ControlPath={path}" in one.argv and "setsid -w" in one.argv[-1]
     assert one.argv.index("ControlMaster=no") < one.argv.index("root@203.0.113.9")
     assert mux.sessions[path] == 1 and one.session is not None
-    one.session.release(0)
+    one.session.release()
     assert mux.sessions[path] == 0
     for wl in (Workload("x-ab12", ["true"], {}),                                   # not marked
                Workload("s-ab12", ["bash"], {}, pty=True, mux=True),               # a terminal
@@ -269,7 +288,7 @@ def test_only_a_one_shot_command_shares_the_connection(mux, base, monkeypatch):
 async def test_run_goes_over_the_master_and_gives_its_session_back_without_ssh_s_words(mux, base, monkeypatch):
     monkeypatch.setattr(ssh, "MUX", mux)
     monkeypatch.setattr(ssh, "SSH", str(fake_ssh(
-        base, 'echo "mux_client_request_session: session request failed" >&2\nfor a; do last="$a"; done\n'
+        base, 'echo "mux_client_request_session: session request failed: Session open refused by peer" >&2\nfor a; do last="$a"; done\n'
               'exec sh -c "$last"')))
     path = mux.path(R)
     assert path is not None
@@ -335,15 +354,15 @@ async def test_stop_ends_a_vm_s_master_and_stop_all_the_ones_this_process_starte
         s2.close()
 
 
-async def test_release_gives_the_session_back_once_with_the_exit_status():
-    got: list[int | None] = []
+async def test_release_gives_the_session_back_once():
+    got: list[int] = []
 
     class Session:
         def clean(self, data):
             return data
 
-        def release(self, rc=None):
-            got.append(rc)
+        def release(self):
+            got.append(1)
 
     rt = LaneRuntime.__new__(LaneRuntime)
     rt.cgroup, rt.workloads = None, {}
@@ -352,4 +371,4 @@ async def test_release_gives_the_session_back_once_with_the_exit_status():
     sp = Spawned(proc, "x-1", "exec", None, session=Session())
     await rt.release(sp)
     await rt.release(sp)
-    assert got == [4]
+    assert got == [1]

@@ -396,7 +396,7 @@ async def run(remote: RemoteHost, script: str, *, timeout_s: float = 900.0) -> t
         raise
     if lease is not None:
         out = lease.clean(out)
-        lease.release(proc.returncode)
+        lease.release()
     return proc.returncode or 0, out.decode(errors="replace")[-4000:]
 
 

@@ -396,6 +396,22 @@ async def test_ssh_s_words_about_a_shared_connection_never_reach_an_exec_s_stder
     await mgr.shutdown()
 
 
+@pytest.mark.parametrize("cmd", ["echo 'mux_util.c:12:5: error: expected ;' >&2; exit 255",
+                                 "echo 'cc mux_util.c' >&2; echo 'mux_util.c:12:5: error: expected ;' >&2; exit 255"])
+async def test_a_command_s_own_mux_lines_reach_its_stderr_whole(vm, monkeypatch, cmd):
+    """gcc on mux_util.c returned stderr='' and stderr_bytes=0, and rested the master 30 s."""
+    manager, _, _ = vm
+    mux = OneMux()
+    monkeypatch.setattr(ssh, "MUX", mux)
+    mgr = manager()
+    await mgr.start()
+    res = await mgr.exec(LANE, cmd)
+    want = ("cc mux_util.c\n" if "cc mux" in cmd else "") + "mux_util.c:12:5: error: expected ;\n"
+    assert (res.stderr, res.stderr_bytes, res.exit_code) == (want, len(want), 255)
+    assert "/m" not in mux.not_before
+    await mgr.shutdown()
+
+
 async def test_a_vm_lane_s_removal_and_the_node_s_stop_end_the_shared_connections(vm, monkeypatch):
     manager, _, _ = vm
     mgr = manager()

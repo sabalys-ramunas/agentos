@@ -55,13 +55,15 @@ class Capture:
 
 
 def _cleaned(cap: Capture, session: SharedSession) -> Capture:
-    """The captured stream through session.clean (agentos.vms.sshmux.Lease.clean), its sizes kept true."""
-    out = Capture(cap.head_cap + cap.tail_cap)
+    """The captured stream through session.clean (agentos.vms.sshmux.Lease.clean), which takes out only
+    ssh's leading lines: the start of the stream, so the head; its sizes kept true."""
     if not cap.dropped:
+        out = Capture(cap.head_cap + cap.tail_cap)
         out.feed(session.clean(bytes(cap.head + cap.tail)))
         return out
-    out.head, out.tail = bytearray(session.clean(bytes(cap.head))), bytearray(session.clean(bytes(cap.tail)))
-    out.total = cap.total - (len(cap.head) - len(out.head)) - (len(cap.tail) - len(out.tail))
+    head = session.clean(bytes(cap.head))
+    out = Capture(cap.head_cap + cap.tail_cap)
+    out.head, out.tail, out.total = bytearray(head), bytearray(cap.tail), cap.total - (len(cap.head) - len(head))
     return out
 
 

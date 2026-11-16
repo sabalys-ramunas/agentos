@@ -343,7 +343,7 @@ class LaneRuntime:
         workload's own shell ends its leftovers (agentos.vms.ssh.remote_command)."""
         if sp.session is not None:
             session, sp.session = sp.session, None
-            session.release(sp.proc.returncode)
+            session.release()
         if sp.cgroup:
             await asyncio.to_thread(self.host.cgroup_remove, sp.cgroup)
         else:

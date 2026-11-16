@@ -139,11 +139,11 @@ class SharedSession(Protocol):
     """A command's session on a VM's shared ssh connection (agentos.vms.sshmux.Lease)."""
 
     def clean(self, data: bytes) -> bytes:
-        """The command's stderr without ssh's own lines about the shared connection."""
+        """The command's stderr without the leading lines ssh says of the shared connection."""
         ...
 
-    def release(self, rc: int | None = None) -> None:
-        """Give it back, once the command's processes on the VM ended; `rc` is the local ssh's exit status."""
+    def release(self) -> None:
+        """Give it back, once the command's processes on the VM ended."""
         ...
 
 
