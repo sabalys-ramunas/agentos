@@ -52,7 +52,7 @@ SNAPSHOT_WAIT_S = 1200.0  # how long a snapshot the provider still makes is wait
 SNAPSHOT_POLL_S = 5.0
 ORPHAN_GRACE = timedelta(minutes=10)      # an unknown server younger than this may still be ours, being made
 MAX_DELETE_BACKOFF_S = 600
-BOOT_POLL_S = 3.0                         # between SSH probes while a VM boots
+BOOT_POLL_S = 1.0                         # between SSH probes while a VM boots (a refused one fails at once)
 IMAGE_BUILD_MAX = timedelta(hours=2)      # a build VM older than this is deleted by any reaper
 OFFERS_TTL = timedelta(minutes=30)        # server types and prices are read again after this
 LISTED_FRESH = timedelta(minutes=1)       # what has room now (listed_now) is read again after this

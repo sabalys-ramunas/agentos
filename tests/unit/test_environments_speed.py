@@ -358,3 +358,121 @@ async def test_hetzner_keeps_one_client_for_its_calls_and_closes_it(monkeypatch)
     await p.check()
     assert len(made) == 2  # a call after the close opens a new one
     await p.aclose()
+
+
+# ------------------------------------------------------------------ Hetzner: the calls before a server is made
+
+
+def _slow_cloud(tmp_path, *, image_fails: bool = False, probe=None):
+    from agentos.core.runtime import Runtime
+    from agentos.env.host import FakeHost
+    from agentos.env.manager import EnvManager
+    from agentos.env.paths import EnvSettings as TermSettings
+    from agentos.env.sandbox import DirectLauncher
+    from agentos.vms.manager import VmManager
+    from agentos.vms.models import VmSettings
+    from agentos.vms.provider import FakeProvider
+
+    class SlowCloud(FakeProvider):
+        """Each call before the server is one API round trip (0.2 s here)."""
+
+        async def ensure_firewall(self, name, labels, ssh_from):
+            await asyncio.sleep(0.2)
+            return await super().ensure_firewall(name, labels, ssh_from)
+
+        async def resolve_image(self, image):
+            await asyncio.sleep(0.2)
+            if image_fails:
+                raise VmError("no snapshot named dev; build it with `agentos vm image build dev`")
+            return await super().resolve_image(image)
+
+        async def create_ssh_key(self, name, public_key, labels):
+            await asyncio.sleep(0.2)
+            return await super().create_ssh_key(name, public_key, labels)
+
+        async def locations(self):
+            await asyncio.sleep(0.2)
+            return await super().locations()
+
+    async def ok(remote, *, timeout_s=15):
+        return True, ""
+
+    envs = EnvManager(tmp_path, host=FakeHost(), launcher=DirectLauncher(), settings=TermSettings(proxy_port=0))
+    rt = Runtime(envs=envs)
+    prov = SlowCloud()
+    vms = VmManager(tmp_path, runtime=rt, provider=prov, settings=VmSettings(ssh_from=["198.51.100.7/32"]),
+                    node_name="n1", probe=probe or ok)
+    rt.register("vms", vms)
+    return vms, envs, prov
+
+
+async def test_the_calls_before_a_server_is_made_go_at_once(tmp_path):
+    vms, envs, prov = _slow_cloud(tmp_path)
+    try:
+        await vms.plan("dev/a", ttl_minutes=60)  # the types, read once (the reaper keeps them fresh)
+        t = time.monotonic()
+        rec = await vms.create("dev/a", ttl_minutes=60, wait_s=0)
+        took = time.monotonic() - t
+        assert rec.provider_id in prov.servers and prov.keys == {}  # the key went once the server existed
+        assert took < 0.6, took  # four round trips of 0.2 s at once, not one after another
+    finally:
+        await vms.shutdown()
+        await envs.shutdown()
+
+
+async def test_a_failure_before_the_server_says_its_own_words_and_leaves_no_key(tmp_path):
+    vms, envs, prov = _slow_cloud(tmp_path, image_fails=True)
+    try:
+        with pytest.raises(VmError, match="no snapshot named dev"):
+            await vms.create("dev/a", ttl_minutes=60, wait_s=0)
+        assert prov.keys == {} and prov.servers == {}
+    finally:
+        await vms.shutdown()
+        await envs.shutdown()
+
+
+async def test_a_booting_vm_is_probed_every_second(tmp_path):
+    """SSH refuses at once while the VM boots; a probe each second notices it up to 2 s sooner than every 3 s."""
+    from agentos.vms import manager as m
+
+    tries: list[float] = []
+
+    async def late(remote, *, timeout_s=15):
+        tries.append(time.monotonic())
+        return len(tries) >= 3, "Connection refused"
+
+    assert m.BOOT_POLL_S <= 1.0
+    vms, envs, _ = _slow_cloud(tmp_path, probe=late)
+    try:
+        rec = await vms.create("dev/a", ttl_minutes=60, wait_s=10)
+        assert rec.state == "ready" and len(tries) == 3 and tries[-1] - tries[0] < 2.5
+    finally:
+        await vms.shutdown()
+        await envs.shutdown()
+
+
+async def test_hetzner_asks_after_an_action_every_second_at_first(monkeypatch):
+    import httpx
+
+    from agentos.vms import hetzner
+
+    slept: list[float] = []
+    real_sleep = asyncio.sleep
+
+    async def sleep(s):
+        slept.append(s)
+        await real_sleep(0)
+
+    asked = 0
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        nonlocal asked
+        asked += 1
+        status = "success" if asked > 12 else "running"
+        return httpx.Response(200, json={"action": {"id": 5, "status": status}})
+
+    monkeypatch.setattr(hetzner.asyncio, "sleep", sleep)
+    p = hetzner.HetznerProvider("tok", transport=httpx.MockTransport(handler))
+    await p._wait_action({"id": 5, "status": "running"})
+    await p.aclose()
+    assert slept[:hetzner.ACTION_FAST_POLLS] == [1.0] * hetzner.ACTION_FAST_POLLS and slept[-1] == 3.0

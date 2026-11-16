@@ -29,6 +29,11 @@ BUSY_CODES = frozenset({"locked", "rate_limit_exceeded", "conflict"})
 NOT_SENT = (httpx.ConnectError, httpx.ConnectTimeout, httpx.PoolTimeout)
 SAFE_METHODS = frozenset({"GET", "DELETE"})
 UNREACHABLE = "unreachable"  # VmError.provider_code when the API did not answer
+# An action (firewall rules, a snapshot) is asked after every second for its first ACTION_FAST_POLLS
+# polls (most end within seconds), then every 3 s (a snapshot takes minutes; the API allows 3600 calls
+# an hour).
+ACTION_POLL_S = (1.0, 3.0)
+ACTION_FAST_POLLS = 10
 
 
 def _selector(labels: dict[str, str]) -> str:
@@ -156,6 +161,7 @@ class HetznerProvider:
         aid = action["id"]
         loop = asyncio.get_running_loop()
         deadline = loop.time() + timeout_s
+        polls = 0
         while loop.time() < deadline:
             data = await self._call("GET", f"/actions/{aid}") or {}
             a = data.get("action") or {}
@@ -165,7 +171,8 @@ class HetznerProvider:
                 e = a.get("error") or {}
                 raise VmError(f"Hetzner: {e.get('code', 'action_failed')}: {e.get('message', 'the action failed')}",
                               provider_code=e.get("code"))
-            await asyncio.sleep(3)
+            polls += 1
+            await asyncio.sleep(ACTION_POLL_S[0] if polls <= ACTION_FAST_POLLS else ACTION_POLL_S[1])
         raise VmError(f"Hetzner: action {aid} did not finish in {int(timeout_s)} s")
 
     # ------------------------------------------------------------------ provider
