@@ -159,3 +159,54 @@ async def test_the_bring_up_goes_on_the_moment_the_vm_answers(node, monkeypatch)
     t = time.monotonic()
     out = await opened(node, repo="github.com/me/shop", wait_s=30)
     assert out["state"] == "ready" and time.monotonic() - t < 3.0
+
+
+# ------------------------------------------------------------------ the repository's check beside the plan
+
+
+async def test_the_repository_check_runs_while_the_open_is_planned(node, monkeypatch):  # noqa: F811
+    """`git ls-remote` to the host (half a second) and the plan (the provider's types and images) at once."""
+    mgr = node["mgr"]
+    plan = mgr.plan
+
+    async def slow_plan(*a, **kw):
+        await asyncio.sleep(0.4)
+        return await plan(*a, **kw)
+
+    async def slow_repo(url, env, *, timeout_s=20, allow_file=False):
+        await asyncio.sleep(0.4)
+        return True, b""
+
+    monkeypatch.setattr(mgr, "plan", slow_plan)
+    mgr.repo_probe = slow_repo
+    t = time.monotonic()
+    out = await opened(node, repo="github.com/me/shop", wait_s=0)
+    assert out["state"] in ("starting", "ready") and time.monotonic() - t < 0.75
+
+
+async def test_a_plan_that_fails_still_says_so_first_and_stops_the_check(node, monkeypatch):  # noqa: F811
+    from agentos.environments.errors import EnvironmentLimit
+
+    mgr = node["mgr"]
+    probed: list[str] = []
+    stopped = asyncio.Event()
+
+    async def refused(*a, **kw):
+        await asyncio.sleep(0.05)
+        raise EnvironmentLimit("at most 1 open at once")
+
+    async def unreadable(url, env, *, timeout_s=20, allow_file=False):
+        probed.append(url)
+        try:
+            await asyncio.sleep(5)
+        except asyncio.CancelledError:
+            stopped.set()
+            raise
+        return False, b"fatal: repository not found"
+
+    monkeypatch.setattr(mgr, "plan", refused)
+    mgr.repo_probe = unreadable
+    with pytest.raises(Exception, match="at most 1 open at once"):
+        await node["call"]("environment_open", title="Other", repo="github.com/me/gone", wait_s=0)
+    await asyncio.wait_for(stopped.wait(), 1.0)
+    assert probed and not mgr.store.open()

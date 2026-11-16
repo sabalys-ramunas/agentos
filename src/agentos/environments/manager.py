@@ -435,14 +435,21 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
             access = await self.repo_access(repo, timeout_s=REPO_RETRY_TIMEOUT_S)
         return access
 
-    async def check_repo(self, repo: str) -> Any:
+    def reach_soon(self, repo: str) -> asyncio.Task:
+        """Start reading `repo` now (_reach_repo, which changes nothing), so environment_open's check of
+        it runs while the open is planned instead of after (half a second of every open: `git ls-remote`
+        to the host). check_repo(repo, reached=<it>) takes its answer; a caller that stops first cancels it."""
+        return asyncio.create_task(self._reach_repo(repo), name=f"environments-reach-{repo[:60]}")
+
+    async def check_repo(self, repo: str, *, reached: asyncio.Task | None = None) -> Any:
         """Can a machine clone `repo`? Asked before anything is rented: declared for env with the
         vault's credential (checked as the git gateway fetches it), or public. Else
         repo_not_connected, with the fix the human runs on the node (agentos.environments.repos).
-        A repository that can be cloned closes the cards that asked a person to connect it."""
+        A repository that can be cloned closes the cards that asked a person to connect it.
+        `reached`: reach_soon's task for it, already running."""
         from agentos.environments import connect, repos
 
-        access = await self._reach_repo(repo)
+        access = await (reached if reached is not None else self._reach_repo(repo))
         if access.ok:
             with contextlib.suppress(Exception):  # a card left open is closed by the reaper's sweep
                 connect.close(self.store, self._get("approvals"), access.slug)
