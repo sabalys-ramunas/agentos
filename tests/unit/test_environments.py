@@ -203,7 +203,7 @@ async def test_open_never_asks_then_rents_clones_and_is_ready(node):
     for words in ("calls without `on` go here", 'lane_exec(cmd="npm test", cwd="/work/shop")',
                   "lane_file_read", "lane_file_edit", "proof=", "environment_pull_request(title)",
                   "lane_job_start(", "lane_job_read", "in your list", 'tools_more("terminals")',
-                  'tools_more("studio")', "links.browser"):
+                  'tools_more("ui_check")', "links.browser"):
         assert words in out["next"], words
     # the VM is the environment's, its browser lane was made by the node, with the tunnel as its proxy
     rec = node["vms"].store.get(node["mgr"].get(out["id"]).vm_id)

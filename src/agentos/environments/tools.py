@@ -279,7 +279,7 @@ def _open_result(ctx: ToolContext, mgr: EnvironmentManager, env: Environment, ha
                        f'and lane_job_start(cmd="npm run dev", cwd="{env.workdir}") a dev server (lane_job_read reads '
                        "its output). They are in your list; " + _on_words(ctx, handle) + " The other "
                        "terminal tools: tools_more(\"terminals\"). "
-                       "http://localhost:<port> in browser_navigate and in ui_check (tools_more(\"studio\")) is the "
+                       "http://localhost:<port> in browser_navigate and in ui_check (tools_more(\"ui_check\")) is the "
                        "machine's own port; browser_screenshot(proof=\"...\") keeps a shot with a link for the human. "
                        "Push a branch, environment_pull_request(title) opens its pull request (give the human the url), then "
                        "environment_close(). environment_port(3000) gives the human a link to a dev server. "
