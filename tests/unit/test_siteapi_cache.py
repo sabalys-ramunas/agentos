@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import copy
 from types import SimpleNamespace
 
@@ -308,34 +309,62 @@ async def test_concurrent_misses_share_one_run(tmp_path):
         assert n.site.state["reads"] == 1 and len(n.runner.list(limit=20)) == 1
 
 
-def queue_behind_a_slow_read() -> dict:
-    slow = search_endpoint()
-    slow["steps"].insert(1, {"type": "pause", "min_ms": 400, "max_ms": 400})
-    return definition(slow_read=slow)
+class HeldFirstRun:
+    """The fake driver, but the first run that opens it holds its lane until the test releases it,
+    so a run queued behind it stays queued for as long as the test needs (a pause of a fixed time
+    ended before the test revoked the key on a loaded runner, and the queued run then ran)."""
+
+    def __init__(self):
+        self.node: Node | None = None
+        self.holding = asyncio.Event()
+        self.release = asyncio.Event()
+
+    @contextlib.asynccontextmanager
+    async def __call__(self, lane_id: str):
+        if not self.holding.is_set():
+            self.holding.set()
+            await self.release.wait()
+        self.node.driver.lane = lane_id
+        yield self.node.driver
+
+
+@contextlib.asynccontextmanager
+async def queue_behind_a_held_read(tmp_path):
+    held = HeldFirstRun()
+    async with Node(tmp_path, doc=definition(slow_read=search_endpoint()), flow_driver=held) as n:
+        held.node = n
+        yield n, held
+
+
+async def hold_the_lane(b, held: HeldFirstRun) -> None:
+    assert (await b.get(f"/v1/sites/{API}/slow_read", params={"wait": 0})).status_code == 202
+    await asyncio.wait_for(held.holding.wait(), 30)
 
 
 async def test_a_joiner_whose_leaders_grant_ended_starts_its_own_run(tmp_path):
-    async with Node(tmp_path, doc=queue_behind_a_slow_read()) as n:
+    async with queue_behind_a_held_read(tmp_path) as (n, held):
         leader, key = n.key_row(surfaces=[SURFACE])
         other = n.key(surfaces=[SURFACE])
         async with n.client(key) as a, n.client(other) as b:
-            assert (await b.get(f"/v1/sites/{API}/slow_read", params={"wait": 0})).status_code == 202
+            await hold_the_lane(b, held)
             first = (await a.get(READ_PATH, params={"wait": 0})).json()["run"]
             n.keys.revoke(leader.id, by=OWNER)
+            held.release.set()
             r = await b.get(READ_PATH, params={"wait": 10})
         assert r.status_code == 200, r.text
         assert r.json()["source"]["run"] != first and n.runner.get(first).error["code"] == "grant_revoked"
 
 
 async def test_a_live_key_polling_a_run_whose_grant_ended_is_not_told_its_key_is_bad(tmp_path):
-    async with Node(tmp_path, doc=queue_behind_a_slow_read()) as n:
+    async with queue_behind_a_held_read(tmp_path) as (n, held):
         leader, key = n.key_row(surfaces=[SURFACE])
         other = n.key(surfaces=[SURFACE])
         async with n.client(key) as a, n.client(other) as b:
-            assert (await b.get(f"/v1/sites/{API}/slow_read", params={"wait": 0})).status_code == 202
+            await hold_the_lane(b, held)
             first = (await a.get(READ_PATH, params={"wait": 0})).json()["run"]
             n.keys.revoke(leader.id, by=OWNER)
-            await n.runner.wait(first, 5)
+            held.release.set()
+            await n.runner.wait(first, 30)
             r = await poll(b, f"/v1/sites/{API}/runs/{first}")
         assert r.status_code == 500 and r.json()["code"] == "run_failed"
 
