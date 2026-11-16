@@ -322,3 +322,39 @@ async def test_a_setup_that_fails_stops_the_tunnels_beside_it(node, monkeypatch)
         await node["call"]("environment_open", title=TITLE_FAIL, repo="github.com/me/shop", wait_s=30)
     assert time.monotonic() - t < 2.0                               # the tunnels were not waited for
     assert "tunnel start" in [n for n, _ in seen] and "tunnel end" not in [n for n, _ in seen]
+
+
+# ------------------------------------------------------------------ Hetzner: one connection to its API
+
+
+async def test_hetzner_keeps_one_client_for_its_calls_and_closes_it(monkeypatch):
+    import httpx
+
+    from agentos.vms import hetzner
+
+    made: list[httpx.AsyncClient] = []
+
+    class Counted(httpx.AsyncClient):
+        def __init__(self, *a, **kw):
+            super().__init__(*a, **kw)
+            made.append(self)
+
+    monkeypatch.setattr(hetzner.httpx, "AsyncClient", Counted)
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        assert req.headers["Authorization"] == "Bearer tok-SECRET"
+        if req.url.path.endswith("/ssh_keys") and req.method == "POST":
+            return httpx.Response(201, json={"ssh_key": {"id": 7}})
+        if req.url.path.endswith("/locations"):
+            return httpx.Response(200, json={"locations": [{"name": "nbg1", "network_zone": "eu-central"}]})
+        return httpx.Response(200, json={"servers": []})
+
+    p = hetzner.HetznerProvider("tok-SECRET", transport=httpx.MockTransport(handler))
+    await p.check()
+    await asyncio.gather(p.create_ssh_key("k", "ssh-ed25519 AAAA", {}), p.locations())
+    assert len(made) == 1 and not made[0].is_closed  # three calls, two at once, one client
+    await p.aclose()
+    assert made[0].is_closed
+    await p.check()
+    assert len(made) == 2  # a call after the close opens a new one
+    await p.aclose()

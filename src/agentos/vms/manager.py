@@ -228,6 +228,10 @@ class VmManager:
                 await t
         self._reaper = None
         self._boots.clear()
+        close = getattr(self._provider, "aclose", None)  # Hetzner's kept connection to its API
+        if callable(close):
+            with contextlib.suppress(Exception):
+                await close()
 
     async def _reap_loop(self) -> None:
         await asyncio.sleep(1)
