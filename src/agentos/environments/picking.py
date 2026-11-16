@@ -24,8 +24,10 @@ import re
 import secrets
 import string
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from agentos.core.errors import InvalidRequest, NotFound
+from agentos.environments import caller
 from agentos.environments.errors import (
     EnvironmentAlreadyOpen,
     EnvironmentInUse,
@@ -205,6 +207,16 @@ class Picking:
         if held:
             raise self.needs_on(kind, [e.title for e in held])
         return None
+
+    def bound_to_call(self, ctx: Any) -> Environment | None:
+        """The environment a call without `on` goes to, for the call itself (its ToolContext: the
+        session and grant family in it): the session's own, else None. whoami reads it through the
+        runtime, so agentos.node never imports this package. A client with no session id gets None,
+        never which_environment: it names no machine without its handle."""
+        try:
+            return self.pick_or_none(caller.binding(ctx), caller.family(ctx))
+        except WhichEnvironment:
+            return None
 
     @staticmethod
     def needs_on(kind: str | None = None, titles: list[str] | None = None) -> WhichEnvironment:

@@ -19,8 +19,9 @@ from agentos.core.errors import AgentosError, NotFound, PolicyDenied
 from agentos.core.models import Effect
 from agentos.core.progress import StillWorking
 from agentos.core.tools import ToolContext, ToolSpec, current_elicitor, frozen_off, refuse_frozen
+from agentos.environments import caller
 from agentos.environments.errors import EnvironmentFull, NoEnvironment, RepoNotConnected
-from agentos.environments.manager import EnvironmentManager, binding_of, check_ref, check_title, is_session
+from agentos.environments.manager import EnvironmentManager, check_ref, check_title, is_session
 from agentos.environments.models import ID_RE, SIZES, WORKSPACE, Environment
 from agentos.environments.picking import handle_env, lease_of, new_handle
 from agentos.environments.routing import env_ref
@@ -33,35 +34,8 @@ def _mgr(ctx: ToolContext) -> EnvironmentManager:
     return ctx.runtime.require("environments")
 
 
-def _grant(ctx: ToolContext) -> Any:
-    return getattr(ctx, "grant", None)
-
-
-def _grant_id(ctx: ToolContext) -> str:
-    g = _grant(ctx)
-    gid = getattr(g, "id", None)
-    if gid:
-        return str(gid)
-    pid = getattr(getattr(ctx, "principal", None), "id", None)
-    return f"agent:{pid}" if pid else "owner"
-
-
-def _family(ctx: ToolContext) -> str | None:
-    """The caller's grant family (its root grant), whose environments it reaches. None: the owner
-    with no policy on the node, who reaches every one."""
-    g = _grant(ctx)
-    if g is None:
-        return None
-    return str(getattr(g, "root_id", None) or _grant_id(ctx))
-
-
-def _binding(ctx: ToolContext) -> str:
-    meta = getattr(ctx, "meta", None)
-    return binding_of(getattr(meta, "session", None), _grant_id(ctx))
-
-
 def _subject(ctx: ToolContext) -> Any:
-    g = _grant(ctx)
+    g = caller.grant_of(ctx)
     try:
         return g.subject if g is not None else None
     except Exception:  # noqa: BLE001 - a grant without a subject block reads as "an agent"
@@ -89,7 +63,7 @@ def _client() -> str | None:
 
 def _mine(ctx: ToolContext, env: Environment) -> bool:
     """Is it this caller's grant family's? Over MCP nobody else's is, the node's token included."""
-    return EnvironmentManager.reaches(env, _grant(ctx), mcp=True)
+    return EnvironmentManager.reaches(env, caller.grant_of(ctx), mcp=True)
 
 
 def _find(ctx: ToolContext, on: str | None, *, need: bool = True) -> Environment | None:
@@ -100,7 +74,7 @@ def _find(ctx: ToolContext, on: str | None, *, need: bool = True) -> Environment
     mgr = _mgr(ctx)
     if on:
         ref = " ".join(str(on).split())
-        env = mgr.reach(ref, _binding(ctx), _family(ctx))
+        env = mgr.reach(ref, caller.binding(ctx), caller.family(ctx))
         eid = ref.split("/", 1)[1].removesuffix("-browser") if ref.startswith(WORKSPACE + "/") else ref
         if env is None and ID_RE.match(eid):  # a closed one by its id: what it cost, what it pushed
             with contextlib.suppress(NotFound, ValueError):
@@ -111,9 +85,9 @@ def _find(ctx: ToolContext, on: str | None, *, need: bool = True) -> Environment
             raise NotFound(f"no environment of yours is named \"{ref[:80]}\". on takes the on your environment_open "
                            "gave; environment() lists your agent's machines")
     elif need:
-        env = mgr.pick_or_none(_binding(ctx), _family(ctx))
+        env = mgr.pick_or_none(caller.binding(ctx), caller.family(ctx))
     else:
-        env = mgr.live_bound(_binding(ctx), _family(ctx)) if is_session(_binding(ctx)) else None
+        env = mgr.live_bound(caller.binding(ctx), caller.family(ctx)) if is_session(caller.binding(ctx)) else None
     if env is not None:
         refuse_frozen(ctx, lanes=env.lanes.values())  # a freeze of its lanes or of `env` holds it as is
     return env
@@ -128,16 +102,6 @@ def _price(plan: dict) -> str:
     hours = -(-plan["ttl_minutes"] // 60)
     worst = max([price, *[q or 0 for _n, q in plan.get("fallbacks") or []]])
     return f", EUR {price:.4f} an hour (at most EUR {worst * hours:.2f} for {plan['ttl_minutes']} min)"
-
-
-def bound_environment(ctx: ToolContext) -> Environment | None:
-    """The environment calls without `on` go to (whoami reads it): a session's own, else None."""
-    from agentos.environments.errors import WhichEnvironment
-
-    try:
-        return _mgr(ctx).pick_or_none(_binding(ctx), _family(ctx))
-    except WhichEnvironment:
-        return None
 
 
 LINK_REUSE_S = 120.0  # an environment's live-view link is handed out again while it has this long left
@@ -273,7 +237,7 @@ def _differs(mgr: EnvironmentManager, env: Environment, *, ref: str | None, size
 def _on_words(ctx: ToolContext, handle: str) -> str:
     """How the agent's calls reach this computer: with its handle. A client with no session id (MCP
     2026-07-28, stdio) looks like every other chat of the agent, so only the handle reaches it."""
-    if is_session(_binding(ctx)):
+    if is_session(caller.binding(ctx)):
         return (f"calls without `on` go here (this chat's session holds it); on=\"{handle}\" works too.")
     return (f"keep on=\"{handle}\" and pass it on every call: only calls that carry it reach this machine, and "
             "a call without `on` is refused.")
@@ -388,8 +352,8 @@ async def environment_open(ctx: ToolContext, *, title: str | None = None, repo: 
     mgr = _mgr(ctx)
     title = check_title(title if title else title_for_repo(ctx, mgr, repo))
     ref = check_ref(ref)
-    binding = _binding(ctx)
-    family = _family(ctx)
+    binding = caller.binding(ctx)
+    family = caller.family(ctx)
     wait = max(0.0, min(float(wait_s), WAIT_MAX_S))
     if repo:
         from agentos.git.wire import parse_remote
@@ -450,7 +414,7 @@ async def _open_locked(ctx: ToolContext, mgr: EnvironmentManager, binding: str, 
         ctx.trace("environment_open", lane=env.terminal_lane, environment=env.id, opened=how)
         return env, how, handle
     env_id = mgr.planned_id(binding, title)
-    saved = mgr.save_to_resume(family or _grant_id(ctx), title, repo)
+    saved = mgr.save_to_resume(family or caller.grant_id(ctx), title, repo)
     if saved is not None:  # this family saved this title: resume it (its repository, branch and machine)
         keep = mgr.check_keep(keep if keep is not None else saved.keep)
         repo, ref = saved.repo, saved.ref
@@ -477,7 +441,7 @@ async def _open_locked(ctx: ToolContext, mgr: EnvironmentManager, binding: str, 
         from agentos.environments import connect
 
         with contextlib.suppress(Exception):  # a card this agent raised for another repo: a name it got wrong
-            connect.withdraw(mgr.store, ctx.runtime.get("approvals"), _grant_id(ctx), instead=repo)
+            connect.withdraw(mgr.store, ctx.runtime.get("approvals"), caller.grant_id(ctx), instead=repo)
         try:
             await mgr.check_repo(repo)
         except RepoNotConnected as e:  # a card the human answers in the panel (agentos.environments.connect)
@@ -494,9 +458,9 @@ async def _open_locked(ctx: ToolContext, mgr: EnvironmentManager, binding: str, 
     acted = getattr(ctx, "acted", None)
     if callable(acted):
         acted(Effect.VM)  # the call's record says what it did: it rented a machine
-    g = _grant(ctx)
+    g = caller.grant_of(ctx)
     handle = new_handle(env_id)  # this chat's lease: only calls that carry it reach the machine
-    env = await mgr.create(env_id, plan, binding=binding, title=title, grant_id=_grant_id(ctx),
+    env = await mgr.create(env_id, plan, binding=binding, title=title, grant_id=caller.grant_id(ctx),
                            lease=lease_of(handle), grant_root=getattr(g, "root_id", None), agent=_agent(ctx), client=_client(),
                            repo=repo, ref=ref, subject=getattr(_subject(ctx), "id", None), member=_member(ctx),
                            keep=keep, resumed=mgr.resuming(saved, plan) if saved is not None else None)
@@ -514,7 +478,7 @@ def title_for_repo(ctx: ToolContext, mgr: EnvironmentManager, repo: str | None) 
     from agentos.environments import comeback
 
     # a client with a session id: its own computer; without one, every chat looks the same, so only the repo
-    mine = mgr.live_bound(_binding(ctx), _family(ctx)) if is_session(_binding(ctx)) else None
+    mine = mgr.live_bound(caller.binding(ctx), caller.family(ctx)) if is_session(caller.binding(ctx)) else None
     if mine is not None:
         return mine.title
     if not repo:
@@ -524,7 +488,7 @@ def title_for_repo(ctx: ToolContext, mgr: EnvironmentManager, repo: str | None) 
                              "environment by: environment() lists the open and saved ones")
     from agentos.git.wire import parse_remote
 
-    return comeback.by_repo(mgr, _family(ctx), parse_remote(repo).slug, saves_of=_family(ctx) or _grant_id(ctx),
+    return comeback.by_repo(mgr, caller.family(ctx), parse_remote(repo).slug, saves_of=caller.family(ctx) or caller.grant_id(ctx),
                             reaches=lambda e: _mine(ctx, e) and not frozen_off(ctx, lanes=e.lanes.values()))
 
 
@@ -532,11 +496,11 @@ def _family_lists(ctx: ToolContext, mgr: EnvironmentManager, here: Environment |
     """The caller's family's open environments and newest saves. A live machine the caller does not
     hold shows no handle and no id: its title, state and who has it (`use`). The one it holds (`here`,
     reached with its handle or its session) is `this_chat`."""
-    mine = [e for e in mgr.open_for_family(_family(ctx))
+    mine = [e for e in mgr.open_for_family(caller.family(ctx))
             if _mine(ctx, e) and not frozen_off(ctx, lanes=e.lanes.values())]
     saved = [{k: r[k] for k in ("title", "repo", "branch", "saved_at", "snapshot_gb", "cost_eur_month", "note")}
-             for r in mgr.saved_for(_family(ctx) or _grant_id(ctx)) if r["latest"]]
-    open_, now, binding = [], mgr._clock(), _binding(ctx)
+             for r in mgr.saved_for(caller.family(ctx) or caller.grant_id(ctx)) if r["latest"]]
+    open_, now, binding = [], mgr._clock(), caller.binding(ctx)
     for e in mine:
         row = {"title": e.title, "repo": e.repo, "state": e.shown_state(now), "last_call_at": mgr.summary(e)["last_call_at"]}
         if (here is not None and e.id == here.id) or (is_session(binding) and e.binding == binding):
@@ -547,7 +511,7 @@ def _family_lists(ctx: ToolContext, mgr: EnvironmentManager, here: Environment |
     from agentos.environments.failures import failed_rows
 
     out: dict = {"open": open_, "saved": saved}
-    failed = failed_rows(mgr, _family(ctx), lambda e: _mine(ctx, e))
+    failed = failed_rows(mgr, caller.family(ctx), lambda e: _mine(ctx, e))
     if failed:
         out["failed"] = failed  # opens that did not start in the last hour, with why (environment_open raised it)
     return out
@@ -584,7 +548,7 @@ async def environment(ctx: ToolContext, *, on: str | None = None) -> dict:
     if env is None:
         lists = _family_lists(ctx, mgr)
         out = {"environment": None, **lists}
-        if lists["open"] and not is_session(_binding(ctx)):
+        if lists["open"] and not is_session(caller.binding(ctx)):
             out["note"] = ("this client sends no session id, so this list cannot tell which machine is yours: yours is "
                            "the one whose on you hold. environment(on=\"<that on>\") shows it in full")
         out["next"] = ("environment_open(title=...) with a new title opens your own" if lists["open"] else
@@ -792,7 +756,7 @@ async def environment_forget(ctx: ToolContext, *, title: str, save_id: str | Non
     """
     mgr = _mgr(ctx)
     title = check_title(title)
-    family = _family(ctx) or _grant_id(ctx)
+    family = caller.family(ctx) or caller.grant_id(ctx)
     # a freeze of an environment's lanes (or of `env`) holds its saves as they are
     refuse_frozen(ctx, lanes=[f"{WORKSPACE}/{m.env_id}" for m in mgr.saves().of_title(family, title)])
     await ctx.authorize(Effect.READ, lane_id=None, summary=f"forget the saves of \"{title}\""

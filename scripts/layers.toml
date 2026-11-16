@@ -42,6 +42,5 @@ members = ["core", "agentos"]
 # delete its line. Never add one. A line nothing matches any more fails the check.
 [exceptions]
 "agentos.node.devices -> agentos.stealth.stealth" = "a device move warns with stealth's location check (location_check, _exit_geo, which use stealth.lanerules); move that check into node or below it"
-"agentos.node.tools.lanes -> agentos.environments.tools" = "whoami reads the chat's environment with environments.tools.bound_environment (the call's binding and grant family); give the environments service a method that takes the call"
 "agentos.node.viewer_app -> agentos.api.auth" = "the viewer checks the panel session (SESSION_COOKIE, PanelStore, presence_of); move the panel's session store (api/auth.py, 118 importers) below the API"
 "agentos.policy.wrap -> agentos.environments.routing" = "the policy wrapper routes calls to the chat's environment; move the rules into policy and have the environments service route, which also moves NoEnvironment below environments"

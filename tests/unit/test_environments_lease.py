@@ -26,7 +26,7 @@ from agentos.environments import routing
 from agentos.environments.picking import HANDLE_RE, lease_of
 from agentos.mcp import toolsets as ts
 from agentos.mcp.registry import unknown_arguments
-from agentos.policy.wrap import ToolCallError
+from agentos.policy.wrap import ToolCallError, bind_request_token, wrap_tool
 
 NONE = None  # a client that sends no MCP session id (the 2026-07-28 protocol, stdio)
 
@@ -85,12 +85,10 @@ async def test_a_call_without_on_is_refused_even_with_one_machine_open(node):  #
 
 
 async def test_whoami_and_studio_name_no_machine_without_its_handle(node):  # noqa: F811
-    from agentos.environments.tools import bound_environment
-
     a = await opened(node, session=NONE)
     rt = node["rt"]
     ctx = SimpleNamespace(runtime=rt, grant=node["grant"], meta=SimpleNamespace(session=None))
-    assert bound_environment(ctx) is None
+    assert node["mgr"].bound_to_call(ctx) is None
     # a localhost page without `on` would be the node's: refused; a public url checks what the node sees
     with pytest.raises(Exception, match="only with its on"), routing.studio_proxy(
             rt, "ui_check", {"url": "http://localhost:3000"}, session=None, grant_id=node["grant"].id,
@@ -102,6 +100,28 @@ async def test_whoami_and_studio_name_no_machine_without_its_handle(node):  # no
     with routing.studio_proxy(rt, "ui_check", {"url": "http://localhost:3000", "on": a["on"]}, session=None,
                               grant_id=node["grant"].id, family=node["grant"].root_id) as lane:
         assert lane == f"env/{a['id']}"
+
+
+async def test_whoami_names_the_machine_its_session_holds_through_the_service(node):  # noqa: F811
+    """whoami (agentos.node) asks the "environments" service by its method bound_to_call(ctx), never
+    importing agentos.environments: the real tool against the real manager names the session's own
+    machine, and nothing for another chat's session or a client with no session."""
+    from agentos.node.tools import tool_specs as node_specs
+
+    [spec] = [s for s in node_specs(node["rt"]) if s.name == "whoami"]
+    whoami = wrap_tool(spec, node["rt"])
+
+    async def who(session):
+        with bind_request_token(node["token"], session=session):
+            return await whoami()
+
+    a = await opened(node)  # session chat-1
+    mine = await who("chat-1")
+    assert mine["environment"]["id"] == a["id"] and mine["environment"]["state"] == "ready"
+    assert f"go to environment {a['id']}" in mine["next"]
+    for session in ("chat-2", NONE):
+        other = await who(session)
+        assert other["environment"] is None and "environment_open(title=" in other["next"]
 
 
 async def test_jobs_of_a_machine_list_only_with_its_handle(node):  # noqa: F811
