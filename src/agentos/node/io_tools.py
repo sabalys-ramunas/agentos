@@ -25,6 +25,7 @@ from urllib.parse import urlsplit
 from agentos.core.config import NodeConfig, load_proxies
 from agentos.core.errors import AgentPaused, ApprovalPending, InvalidRequest, LaneNotFound, ServiceUnavailable
 from agentos.core.models import ControlState, Effect, LaneInfo, LaneKind, ProxyConfig, parse_lane_id
+from agentos.core.pauses import paused_words
 from agentos.core.tools import ToolContext, ToolImage, ToolSpec, in_person
 from agentos.node import egress
 from agentos.node.camoufox.engine import tracker_for
@@ -89,7 +90,7 @@ def _put_lane(ctx: ToolContext, on: str) -> tuple[LaneInfo, str | None]:
 def _not_paused(ctx: ToolContext, info: LaneInfo) -> None:
     control = getattr(info, "control", None)
     if not in_person(ctx) and control is not None and control.state is ControlState.PAUSED:
-        raise AgentPaused(f"a human stopped the agent on {info.spec.id}; nothing runs until they resume it")
+        raise AgentPaused(paused_words(info.spec.id, control))
 
 
 def lane_files(runtime: Any, on: str) -> LaneFiles:
@@ -147,7 +148,7 @@ async def files_put(ctx: ToolContext, *, on: str, name: str, content_base64: str
     match the real type. Only images, videos, PDF, CSV and plain text are accepted, judged by the
     bytes. Returns the file id, name, type and size. Does not start the
     browser. Effect: draft. Errors: invalid (both or neither of content_base64 and url, a type the
-    inbox does not take, too large, bad base64), agent_paused (a human stopped agents on the lane:
+    inbox does not take, too large, bad base64), agent_paused (agents are held off the lane:
     wait with lane_wait_control), engine_error (the URL could not be fetched: check it, or send the
     bytes)."""
     info, surface = _put_lane(ctx, on)

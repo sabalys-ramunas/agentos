@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 
 from agentos.core.errors import InvalidRequest, ServiceUnavailable
 from agentos.core.models import ControlState, Effect
+from agentos.core.pauses import paused_words
 from agentos.core.tools import ToolContext, in_person
 from agentos.node.claims import READ
 from agentos.node.tools.guarding import guarded, with_blocks
@@ -44,7 +45,6 @@ WAIT_NEXT = {
     "signal": "The page signal is no longer ok: stop and follow the instructions for it.",
     "tab_closed": "The tab closed: browser_tabs lists what is open; take a snapshot of the tab the lane acts in now.",
     "human_in_control": "A human took the lane: do not act on it; wait with lane_wait_control.",
-    "agent_paused": "A human stopped agents on the lane: do not act on it; wait with lane_wait_control.",
 }
 WAIT_REFS = ("The page was re-read like a snapshot: refs of elements that changed are replaced. Take a "
              "snapshot (or wait with snapshot=\"delta\") before acting on them.")
@@ -94,6 +94,13 @@ def control_stop(ctx: ToolContext, on: str) -> Any:
         return None
 
     return should_stop
+
+
+def _control(ctx: ToolContext, on: str) -> Any:
+    try:
+        return ctx.runtime.lanes.get(on).control
+    except Exception:  # noqa: BLE001 - the lane went away: the words of a person's stop
+        return None
 
 
 async def browser_wait(
@@ -173,6 +180,8 @@ async def browser_wait(
         out["note"] = note
     if result.stopped in WAIT_NEXT:
         out["next"] = WAIT_NEXT[result.stopped]
+    elif result.stopped == "agent_paused":  # who paused it and why (agentos.core.pauses)
+        out["next"] = paused_words(on, _control(ctx, on))
     if result.reread and outline is None:
         out["refs"] = WAIT_REFS
     label_page_text(ctx, "browser_wait", getattr(result, "url", None))  # page text: untrusted (AUD-31)

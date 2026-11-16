@@ -71,8 +71,10 @@ The owner can take any lane over from the viewer, at any time.
   `lane_wait_control(on, timeout_s)`, or ask once with `lane_request_control(on, reason)`
   (in the `control` toolset; one short reason the human will read) and then wait. If they
   refuse, do not ask again.
-- `agent_paused`: the human stopped agents on this lane. Nothing runs there until they
-  hand it back. Tell your user and leave the lane alone.
+- `agent_paused`: agents are held off this lane. The message says who did it: a person
+  who stopped agents, or agentos itself after a CAPTCHA, a sign-in or a rate limit (then the
+  human solves it in the live view, or it ends by itself). Tell your user what it says, not
+  that they stopped you, and leave the lane alone.
 - `lane_control(on)` (in `control`) shows who has the lane right now.
 - After the lane comes back, take a fresh snapshot first: the page has likely changed.
 

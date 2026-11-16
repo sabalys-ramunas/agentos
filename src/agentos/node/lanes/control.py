@@ -22,6 +22,7 @@ from typing import Any
 
 from agentos.core.errors import AgentPaused, HumanInControl, InvalidRequest, LaneNotFound
 from agentos.core.models import ControlState, LaneControl, LaneInfo, LaneState, Signal
+from agentos.core.pauses import paused_words
 from agentos.core.signals import QUIET
 from agentos.node import interrupts
 from agentos.node.lanes.base import (
@@ -163,17 +164,7 @@ class ControlMixin:
                 f"a human has control of {lane_id}{since}. Do not retry: wait with lane_wait_control, "
                 "or ask for it back once with lane_request_control.")
         if control.state == ControlState.PAUSED:
-            if control.reason and control.hold_until is not None:
-                raise AgentPaused(
-                    f"agents are held off {lane_id} until {control.hold_until:%Y-%m-%d %H:%M} UTC "
-                    f"({control.reason}). Do not retry sooner; wait with lane_wait_control or tell your user.")
-            if control.reason:
-                raise AgentPaused(
-                    f"agents are held off {lane_id} until a human hands it back ({control.reason}). Do not "
-                    "retry; tell your user, or wait with lane_wait_control.")
-            raise AgentPaused(
-                f"the human stopped agents on {lane_id}. Nothing runs there until they hand it back; "
-                "wait with lane_wait_control or tell your user.")
+            raise AgentPaused(paused_words(lane_id, control))
 
     def _check_gates(self, lane_id: str, principal_kind: str) -> None:
         if principal_kind == HUMAN:

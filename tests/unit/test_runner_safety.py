@@ -364,6 +364,17 @@ async def test_holds_never_count_toward_giving_up_and_hand_back_makes_the_run_du
     assert h.runner.get(run.id).status == RunStatus.SUCCEEDED_UNVERIFIED
 
 
+async def test_a_run_on_a_lane_agentos_held_says_agentos_held_it_and_why(tmp_path):
+    lanes = FakeLanes(["biz-a/social"])
+    lanes.control = lambda lane_id: LaneControl(state=ControlState.PAUSED, by="node", reason="needs_human:captcha")
+    h = Harness(tmp_path, services={"lanes": lanes})
+    run = h.submit(h.save(LOOK).id)
+    await h.runner.run_until_idle()
+    message = h.runner.get(run.id).error["message"]
+    assert message.startswith("agentos paused biz-a/social itself (no person stopped you): a robot check (CAPTCHA)")
+    assert "live view" in message and message.endswith("The run continues after that.")
+
+
 async def test_a_busy_lane_still_gives_up_after_max_deferrals(tmp_path):
     lanes = FakeLanes(["biz-a/social"])
     lanes.add("biz-a/social", reason="proxy down")

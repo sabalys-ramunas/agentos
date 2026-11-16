@@ -11,12 +11,14 @@ import pytest
 from pydantic import ValidationError, create_model
 from test_lanes import make
 
-from agentos.core.errors import HumanInControl, InvalidRequest, PolicyDenied, ServiceUnavailable
+from agentos.core.errors import AgentPaused, HumanInControl, InvalidRequest, PolicyDenied, ServiceUnavailable
 from agentos.core.models import Effect, Principal
 from agentos.core.runtime import Runtime
 from agentos.node import control_tools
 from agentos.node.control_tools import take_over_link, tool_specs
-from agentos.node.tools import lane_view
+from agentos.node.flow_lanes import control_gate
+from agentos.node.io_tools import _not_paused
+from agentos.node.tools import lane_view, session
 from agentos.node.viewer_tokens import ViewTokens
 from agentos.policy.ceiling import ControllerCeiling
 
@@ -99,6 +101,37 @@ async def test_lane_control_reports_who_may_act(env):
     await mgr.stop_agent(LANE, by="owner")
     out = await call(specs, "lane_control", ctx, on=LANE)
     assert out["state"] == "paused" and "do not ask again" in out["next"]
+
+
+async def test_a_pause_agentos_made_itself_is_never_worded_as_a_persons(env):
+    """agentos held the lane for a CAPTCHA (by node, needs_human:captcha): everything an agent reads
+    says agentos paused it, why, and that the human solves it in the live view. An agent told "a human
+    stopped the agent" tells its human something false. A person's own stop still says a person did it."""
+    mgr, runtime, specs = env
+    ctx = FakeCtx(runtime)
+    await mgr.hold(LANE, reason="needs_human:captcha on social.example")
+    info = mgr.get(LANE)
+    assert info.control.by == "node"
+    said = [(await call(specs, "lane_control", ctx, on=LANE))["next"]]
+    for refuse in (lambda: session.check_control(info, "agent"), lambda: _not_paused(FakeCtx(runtime), info),
+                   control_gate(mgr, LANE)):
+        with pytest.raises(AgentPaused) as e:
+            refuse()
+        said.append(e.value.message)
+    with pytest.raises(AgentPaused) as e:
+        async with mgr.using(LANE, principal_kind="agent"):  # the gate of every browser tool
+            pass
+    said.append(e.value.message)
+    for text in said:
+        assert f"agentos paused {LANE} itself (no person stopped you)" in text, text
+        assert "CAPTCHA" in text and "social.example" in text and "live view" in text, text
+        assert "human stopped" not in text and "stopped the agent" not in text and EM_DASH not in text
+    assert "lane_wait_control" in said[0] and "do not ask again" in said[0]
+
+    await mgr.hand_back(LANE, by="owner")
+    await mgr.stop_agent(LANE, by="owner")
+    out = await call(specs, "lane_control", ctx, on=LANE)
+    assert out["by"] == "owner" and out["next"].startswith(f"A person stopped agents on {LANE}.")
 
 
 async def test_request_control_records_the_agent_and_its_reason(env):

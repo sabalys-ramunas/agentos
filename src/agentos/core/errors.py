@@ -101,7 +101,8 @@ class HumanInControl(AgentosError):
 
 
 class AgentPaused(AgentosError):
-    """A human stopped the agent on this lane. Nothing runs until the human resumes it."""
+    """Agents are held off this lane: a person stopped them, or agentos paused it itself after a
+    challenge or a rate limit. The message says which (agentos.core.pauses)."""
     code = "agent_paused"
 
 
