@@ -420,9 +420,12 @@ class Saving:
                         location=rec.location)
 
     async def _resume_machine(self, env: Environment, found: dict) -> None:
-        """After a snapshot the machine works on: its gateway token again, its containers and services."""
+        """After a snapshot the machine works on: its gateway token again, its swap (a swapfile went
+        before the snapshot), its containers and services."""
         with contextlib.suppress(Exception):
             await self._git_setup(env)
+        with contextlib.suppress(Exception):
+            await self._swap(env)
         await self._start_services(env, [s.model_dump() for s in found["services"]], found["containers"])
 
     async def _start_services(self, env: Environment, services: list[dict], containers: list[str], *,

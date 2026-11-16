@@ -6,7 +6,7 @@ description: How to work in an agentos environment, your own cloud computer (a V
 # Working in an agentos environment
 
 An environment is a cloud VM agentos rents for you: a terminal, a real browser and the repo in
-`/work/<name>`. It holds no account or key of the human's, so nothing in it waits for a person.
+`/work/<name>`. It holds no account or key of the human's: nothing in it waits for a person.
 
 **Keep the `on` from your `environment_open` and pass it on every call.** Only calls with it reach
 the machine.
@@ -42,14 +42,15 @@ the machine.
      (never ask for a token), `approval_wait`, then open again.
    - Code only on your computer: `environment_upload()`, then run its `pack` and `send` in your
      checkout.
-2. Give the human `links.browser`, its live view, right away. In T3 Code open it in
-   the preview pane (`preview_open`). While they have control, wait with `lane_wait_control`.
+2. Give the human `links.browser`, its live view, right away. In T3 Code use the preview pane
+   (`preview_open`). While they have control, wait with `lane_wait_control`.
 3. Work, with `on` on every terminal, browser and studio call. These are in your tool list:
    - Files: `lane_file_read(path="src/cart.ts")`, `lane_file_edit(path, old, new)`,
      `lane_file_write(path, content)`. Not `cat`, heredocs or `sed`.
    - `lane_exec(cmd="pnpm test", cwd="/work/shop")` runs a command and waits.
    - `lane_job_start(cmd="pnpm dev --host 0.0.0.0", cwd="/work/shop")` for a dev server or a long
-     build; `lane_job_read(job=..., until_exit=true)` waits for it.
+     build; `lane_job_read(job=..., until_exit=true)` waits for it; `until_port=3000` for its port, not
+     a sleep loop.
    - `browser_navigate(url="http://localhost:3000")`. `localhost` is the VM.
    - Also listed: `environment_save`, `environment_forget`, `environment_download(path)` (a
      one-use file link for the human). More, with `tools_more("terminals")`:

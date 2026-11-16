@@ -13,7 +13,7 @@ from agentos.core import progress
 from agentos.core.errors import InvalidRequest
 from agentos.core.models import Effect
 from agentos.core.tools import ToolContext, ToolSpec
-from agentos.env import execs, exposure, programs
+from agentos.env import execs, exposure, oom, programs
 from agentos.env.models import EnvLane
 from agentos.env.sync import check_sha as sync_check_sha
 
@@ -186,13 +186,35 @@ async def lane_exec(ctx: ToolContext, *, on: str, cmd: str, timeout_s: float = 6
     wanted = _seconds(timeout_s)
     capped = min(wanted, progress.LONG_CALL_S)  # one call never runs past what an MCP client waits for
     progress.step(f"running: {_clip(cmd)[:80]}")
-    res = await mgr.exec(on, run, timeout_s=capped, stdin=stdin, grant_id=_grant_id(ctx), max_bytes=budget)
+    res = await mgr.exec(on, run, timeout_s=capped, stdin=stdin, grant_id=_grant_id(ctx), max_bytes=budget,
+                         oom_check=True)
     ctx.trace("lane_exec", lane=on, exit_code=res.exit_code, duration_s=res.duration_s, timed_out=res.timed_out)
     out = res.model_dump()
-    note = exec_note(cmd, res.timed_out, wanted, capped)
+    if out.get("oom") is None:
+        out.pop("oom", None)
+    notes = [exec_note(cmd, res.timed_out, wanted, capped), self_kill_note(cmd, res),
+             oom.note(res.oom, running=False, what="command")]
+    note = " ".join(n for n in notes if n)
     if note:
         out["note"] = note
     return out
+
+
+# `pkill -f vite` matches the command line of the shell that runs it, which holds the pattern too
+SELF_MATCH_RE = re.compile(r"\b(pkill|pgrep)\b[^;&|\n]*?\s(-[A-Za-z]*f[A-Za-z]*|--full)\b")
+KILLED_CODES = frozenset({137, 143, 255})
+
+
+def self_kill_note(cmd: str, res: Any) -> str | None:
+    """A command that killed its own shell: no output, a killed exit, and pkill -f (or pgrep -f) in it."""
+    if res.stdout_bytes or res.stderr_bytes or res.timed_out:
+        return None
+    if res.exit_code not in KILLED_CODES and not res.signal:
+        return None
+    if not SELF_MATCH_RE.search(cmd or ""):
+        return None
+    return ("The command matched its own shell (its line holds the pattern too), so it killed itself. Use "
+            "pkill -f '[v]ite' (the brackets keep the pattern from matching itself), or lane_job_cancel for a job.")
 
 
 GIT_PUSH_RE = re.compile(r"\bgit\b[^;&|]*\bpush\b")
@@ -350,27 +372,63 @@ JOB_WAIT_EXIT_MS = 120000
 
 async def lane_job_read(ctx: ToolContext, *, job: str, stdout_offset: int = 0, stderr_offset: int = 0,
                         wait_ms: int = 1000, max_bytes: int = JOB_READ_BYTES, base64_output: bool = False,
-                        until_exit: bool = False) -> dict:
+                        until_exit: bool = False, until_port: int = 0) -> dict:
     """Read a job's output after the byte offsets you have, waiting up to wait_ms (30000) for more
-    while it runs; with until_exit=true it waits for the job to end (wait_ms up to 120000). Pass
-    back next_stdout_offset and next_stderr_offset; stdout_bytes is the size so far (to read only
-    the end, stdout_offset=stdout_bytes-8000). `state` is running until it exited, was cancelled,
-    timed out or was lost; then exit_code (or signal). Effect: read."""
+    while it runs. until_exit=true waits for the job to end; until_port=3000 for that port to
+    listen on the machine or the job to end (then the end of its output); both wait_ms up to
+    120000. Pass back next_stdout_offset and next_stderr_offset; stdout_bytes is the size so far
+    (to read only the end, stdout_offset=stdout_bytes-8000). `state` is running until it exited,
+    was cancelled, timed out or was lost; then exit_code (or signal). `oom`: what the kernel killed
+    for memory. Effect: read."""
     mgr = _mgr(ctx)
     j = mgr.job(job)
     await ctx.authorize(Effect.READ, lane_id=j.info.lane)
-    most = JOB_WAIT_EXIT_MS if until_exit else JOB_WAIT_MS
+    port = _port(until_port)
+    most = JOB_WAIT_EXIT_MS if until_exit or port else JOB_WAIT_MS
+    wait_s = max(0, min(_int(wait_ms, "wait_ms"), most)) / 1000
+    max_bytes = max(1, min(_int(max_bytes, "max_bytes"), 1 << 20))
+    stdout_offset, stderr_offset = max(0, _int(stdout_offset, "stdout_offset")), max(0, _int(stderr_offset, "stderr_offset"))
+    listening = None
+    if port:
+        progress.step(f"waiting for port {port} to listen")
+        listening = await mgr.job_wait_port(job, port, wait_s) if wait_s > 0 else False
+        wait_s = 0
+        if not listening and not j.running:  # it ended first: the end of what it printed, with its exit code
+            stdout_offset = max(stdout_offset, j.kept("stdout") - max_bytes)
+            stderr_offset = max(stderr_offset, j.kept("stderr") - max_bytes)
     info, out, err = await mgr.job_read(job, stdout_offset=stdout_offset, stderr_offset=stderr_offset,
-                                        wait_s=max(0, min(int(wait_ms), most)) / 1000,
-                                        max_bytes=max(1, min(int(max_bytes), 1 << 20)), until_exit=bool(until_exit))
+                                        wait_s=wait_s, max_bytes=max_bytes, until_exit=bool(until_exit))
     if base64_output:
         so, se, enc = base64.b64encode(out).decode(), base64.b64encode(err).decode(), "base64"
     else:
         out, _ = execs._trim_utf8_end(out) if info.state == "running" else (out, b"")
         err, _ = execs._trim_utf8_end(err) if info.state == "running" else (err, b"")
         so, se, enc = out.decode("utf-8", "replace"), err.decode("utf-8", "replace"), "utf-8"
-    return {**_job_view(info), "stdout": so, "stderr": se, "encoding": enc,
-            "next_stdout_offset": max(0, stdout_offset) + len(out), "next_stderr_offset": max(0, stderr_offset) + len(err)}
+    res = {**_job_view(info), "stdout": so, "stderr": se, "encoding": enc,
+           "next_stdout_offset": stdout_offset + len(out), "next_stderr_offset": stderr_offset + len(err)}
+    if listening is not None:
+        res["listening"] = listening
+    words = [info.note, oom.note(info.oom, running=info.state == "running")]
+    if port and not listening:
+        words.append(f"Port {port} does not listen yet; call again to wait longer." if info.state == "running" else
+                     f"The job ended before port {port} listened: stdout and stderr are the end of its output.")
+    if any(words[1:]):
+        res["note"] = " ".join(w for w in words if w)
+    return res
+
+
+def _int(value: Any, name: str) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        raise InvalidRequest(f"{name} is a whole number") from None
+
+
+def _port(value: Any) -> int:
+    port = _int(value or 0, "until_port")
+    if not 0 <= port <= 65535:
+        raise InvalidRequest("until_port is a port number, like 3000 (0: no port)")
+    return port
 
 
 async def lane_job_cancel(ctx: ToolContext, *, job: str) -> dict:

@@ -129,7 +129,7 @@ class LocalMachines:
         return ExecResult(exit_code=p.returncode, stdout=p.stdout.decode(errors="replace"),
                           stderr=p.stderr.decode(errors="replace"), duration_s=0.01)
 
-    async def exec(self, lane_id, cmd, *, timeout_s=None, stdin=None, grant_id=None, max_bytes=None):
+    async def exec(self, lane_id, cmd, *, timeout_s=None, stdin=None, grant_id=None, max_bytes=None, oom_check=False):
         from agentos.core.errors import EngineError
 
         if lane_id in self.down:

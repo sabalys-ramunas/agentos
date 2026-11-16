@@ -12,6 +12,8 @@ non-zero exit say what failed (exit 7: the file part is past the size cap).
 
 from __future__ import annotations
 
+from agentos.environments.machine import SWAP_OFF
+
 SAVE = r"""
 set -u
 ROOT=$1; S=$2; W=$3; CAP=$4; KEEP_CAP_KB=$5; shift 5
@@ -134,9 +136,10 @@ echo "ok=1"
 """
 
 # Before a disk snapshot: what must never persist leaves the machine (the gateway token's git config,
-# a git credential store), and the disk is synced. The SSH keys stay: the node forgets this machine's
-# key pair once it is deleted, and a machine booted from the snapshot gets new ones at its first boot.
-SCRUB = "rm -f ~/.config/agentos/gitconfig ~/.git-credentials; sync; echo ok=1"
+# a git credential store, a swapfile with process memory in it: machine.SWAP_OFF), and the disk is
+# synced. The SSH keys stay: the node forgets this machine's key pair once it is deleted, and a machine
+# booted from the snapshot gets new ones at its first boot.
+SCRUB = f"rm -f ~/.config/agentos/gitconfig ~/.git-credentials; {SWAP_OFF}; sync; echo ok=1"
 
 
 def parse(text: str) -> dict:

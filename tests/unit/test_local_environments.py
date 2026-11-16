@@ -54,7 +54,7 @@ class VmMachine(Machine):
         super().__init__()
         self.asked: list[dict] = []
 
-    async def exec(self, lane_id, cmd, *, timeout_s=None, stdin=None, grant_id=None, max_bytes=None):
+    async def exec(self, lane_id, cmd, *, timeout_s=None, stdin=None, grant_id=None, max_bytes=None, oom_check=False):
         if cmd != vmbrowser.ctl_command():
             return await super().exec(lane_id, cmd, timeout_s=timeout_s, stdin=stdin, grant_id=grant_id)
         req = json.loads(stdin)

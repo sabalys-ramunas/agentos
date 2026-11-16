@@ -253,7 +253,7 @@ What the agent does:
 |---|---|
 | `environment_open(title, repo, ref, size, hours, keep, signins)` | rents the VM, clones `repo` into `/work/<name>`, opens the browser; returns the workdir and the browser's live view link for you. With `repo` and no `title` it finds that repository's one open or saved environment (several: `environment_choice`, with each title to pick from; none: a new one named after the repository) |
 | `lane_file_read(path, offset, limit)`, `lane_file_edit(path, old, new)`, `lane_file_write(path, content)` | the repository's files on the VM, with line numbers; an edit replaces exact text that occurs once (a relative path starts in the repository) |
-| `lane_exec(cmd, cwd, max_bytes)`, `lane_job_start`, `lane_job_read(until_exit)`, `lane_job_cancel` | commands and dev servers on the VM (`on`: the handle your environment_open gave); in every agent's tool list. A command's output comes back within 16 KB by default (the middle is cut, with the full sizes). `shell_open` and the rest are `tools_more("terminals")` |
+| `lane_exec(cmd, cwd, max_bytes)`, `lane_job_start`, `lane_job_read(until_exit, until_port)`, `lane_job_cancel` | commands and dev servers on the VM (`on`: the handle your environment_open gave); in every agent's tool list. A command's output comes back within 16 KB by default (the middle is cut, with the full sizes). `shell_open` and the rest are `tools_more("terminals")`. See [Waiting and memory](#waiting-and-memory) |
 | `browser_navigate(url)`, `browser_snapshot`, `browser_act` | the environment's browser, a desktop window; `localhost` is the VM |
 | `browser_screenshot(proof="checkout after the fix", full_page, width)` | keeps the shot as proof (see below); `width=390` shows the phone layout |
 | `ui_check(url="http://localhost:3000")` | studio's page checks (`tools_more("studio")`), on the VM's dev server; while the environment cannot be reached they fail with `environment_not_ready` and never check the node instead |
@@ -345,6 +345,30 @@ rewrite or delete the default branch or a branch the environment did not create,
 token does not reach. Reading a page in the
 environment's browser still marks the agent as having read untrusted text, so what it does next on
 your account lanes (a post on `personal/x`, say) asks you as before.
+
+### Waiting and memory
+
+- **Waiting for a dev server.** `lane_job_read(job, until_port=3000, wait_ms=120000)` returns as soon
+  as something listens on port 3000 on the VM (`listening: true`; a server on `0.0.0.0`,
+  `127.0.0.1` or `::1` counts), or when the job ends first (`listening: false`, its exit code, and
+  stdout and stderr are the end of its output), or at `wait_ms` (at most 120000; call again to wait
+  longer). The waiting is one command on the VM that reads its listening sockets
+  (`/proc/net/tcp`), not a loop of calls, and the call sends progress while it waits. No `sleep`
+  loops in `lane_exec`.
+- **Out of memory.** When the VM's kernel kills a process for memory, `lane_job_read` and a
+  failed `lane_exec` say so: `oom` lists each kill since the job or command started (`pid`, `name`,
+  `rss_mb`, `at`, and `in_job`: whether it was one of this job's processes, known from the
+  job's own login session on the VM; `null` when the VM cannot tell), `oom_killed` is true for a
+  kill of its own, and `note` says it in words ("The kernel killed pid 4242 (node, 4.1 GB) of this
+  job at 06:52:02 UTC: out of memory. The job runs on without it and may hang: ..."). A job whose
+  child was killed often keeps running and prints nothing; a read that waits (`until_exit`,
+  `until_port`, or for more output) returns at once when such a kill appears. The node reads the
+  VM's kernel log (`dmesg`) over its SSH at most every 10 seconds while a job is read, and once
+  when a job or command fails. Every machine has swap (see [What is on the VM](#what-is-on-the-vm-and-what-is-not)),
+  so a heavy build slows down before it runs out.
+- **`pkill -f` killed its own shell.** `pkill -f vite` in `lane_exec` matches the shell that runs
+  it, whose command line holds the pattern too, and ends the command with no output (exit 255).
+  Its result then says so: use `pkill -f '[v]ite'`, or `lane_job_cancel` for a job.
 
 ## Watch and take over
 
@@ -443,6 +467,12 @@ names) is started again, and the node waits up to 45 seconds in all for those po
 and when none came back `running_jobs_lost` lists them, so the agent never trips over a dev server
 that quietly vanished.
 
+**Swap and process memory.** A save never holds process memory. zram swap is memory, so it is not
+on the disk at all. A swapfile (a kernel without zram) is switched off, deleted and its blocks
+trimmed (`fstrim`) before each snapshot, and made again when the machine works on after it, so a
+save holds neither what was swapped out nor gigabytes of swap. A machine from a save makes its swap
+at boot like a new one.
+
 **Sign-ins.** A save of a kept environment holds its browser's storage state (cookies and each
 site's local storage), read from the environment's own browser lane only, never an account lane
 or the vault. It is `browser.json` in the save's files, sealed with the saves key like the rest;
@@ -505,6 +535,11 @@ On it:
   question), and Python with uv (or the `dev` snapshot, which also has Docker). A snapshot made
   before pnpm was set up gets it when an environment comes up.
 - `/work/<name>`: the repository, on the branch or `ref` asked for.
+- Swap, made on every boot (`machine.swap` in `environment()` says what it got): the machine's
+  memory, at most 8 GB, compressed in memory (zram) where the kernel has the zram module, as
+  Ubuntu's does. A kernel without it gets a swapfile, `/agentos.swap`, of at most a quarter of the
+  free disk (none when that is under 1 GB) with swappiness 10, so it is used under pressure only.
+  Nothing goes in `/etc/fstab` or the image. A container (the docker provider) gets none.
 - A git config that sends declared hosts to the gateway (`127.0.0.1:3129` on the VM is the node's
   gateway, through the VM's SSH connection).
 - Whatever the agent installs. It is the agent's machine, by its title.

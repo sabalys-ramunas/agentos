@@ -15,6 +15,7 @@ import contextlib
 import shlex
 from pathlib import Path
 
+from agentos.env import oom
 from agentos.env.models import EnvLane, RemoteHost
 from agentos.env.sandbox import Command, LanePlan, Workload
 
@@ -79,8 +80,12 @@ def remote_command(wl: Workload) -> str:
         return f"{cd} && exec {run}"
     f = pgid_file(wl.wid)
     # after the command, what it left in the background ends too (the shell ignores the TERM it sends)
-    group = shlex.quote(f'echo $$ > {f}; "$@"; rc=$?; trap "" TERM; kill -s TERM -- -$$ 2>/dev/null; '
-                        f'rm -f {f}; exit $rc')
+    record = keep = ""
+    if wl.oom_record:  # the start record (agentos.env.oom) stays after a failure, for the node to read and remove
+        s = oom.start_file(PGID_DIR, wl.wid)
+        record, keep = f"{oom.record(s)}; ", f"[ $rc -ne 0 ] || rm -f {s}; "
+    group = shlex.quote(f'echo $$ > {f}; {record}"$@"; rc=$?; trap "" TERM; kill -s TERM -- -$$ 2>/dev/null; '
+                        f'rm -f {f}; {keep}exit $rc')
     return f"mkdir -p {PGID_DIR} && {cd} && exec setsid -w sh -c {group} sh {run}"
 
 
@@ -116,6 +121,16 @@ class SshLauncher:
             return None
         return ssh_base(lane.remote) + [stop_script(wid, sig)]
 
+    async def oom_kills(self, lane: EnvLane, wid: str, *, elapsed_s: float, final: bool = False) -> list[dict] | None:
+        """The processes the VM's kernel killed for memory since the workload started (agentos.env.oom);
+        None when the VM could not be asked. `final` removes the workload's start record."""
+        if lane.remote is None or not wid or set(wid) - _WID_OK:
+            return None
+        code, out = await run(lane.remote, oom.probe_script(PGID_DIR, wid, final=final), timeout_s=oom.PROBE_TIMEOUT_S)
+        if code != 0:
+            return None
+        return oom.parse(out, elapsed_s=elapsed_s)
+
 
 async def probe(remote: RemoteHost, *, timeout_s: float = 20.0) -> tuple[bool, str]:
     """Run `true` on the VM. (True, "") when SSH answers with the pinned host key."""
@@ -150,6 +165,10 @@ async def run(remote: RemoteHost, script: str, *, timeout_s: float = 900.0) -> t
         proc.kill()
         await proc.wait()
         return 124, "timed out"
+    except BaseException:  # the caller gave up (a probe beside a read): no ssh is left behind
+        with contextlib.suppress(ProcessLookupError):
+            proc.kill()
+        raise
     return proc.returncode or 0, (out or b"").decode(errors="replace")[-4000:]
 
 

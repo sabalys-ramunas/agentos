@@ -133,6 +133,7 @@ class Machine(BaseModel):
     memory_gb: float | None = None
     location: str = ""
     size: str | None = None                   # small, medium, large, xlarge: the biggest of SIZES it has
+    swap: str | None = None                   # what swap it has, in words (machine.SWAP_ON): "8 GB, compressed in memory (zram)"
 
 
 class Environment(BaseModel):

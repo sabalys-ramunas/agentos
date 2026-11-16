@@ -101,6 +101,76 @@ def apt_ready(root: str = "") -> str:
     return "\n".join(lines) + "\n"
 
 
+# Swap on every machine (field report 2026-11-16: the kernel OOM-killed a 4.1 GB Nest compile on an
+# 8 GB box with no swap). The node runs SWAP_ON on each bring-up and after a snapshot it keeps working
+# on; nothing goes in /etc/fstab or the image, so a machine from a save makes its own again. Its size
+# is the machine's memory, at most SWAP_MAX_MB (as Fedora's zram default).
+#
+# zram first: swap compressed in memory (JS heaps pack about 3 to 1), with no disk at all, so a save's
+# whole-disk snapshot never holds process memory (a save promises it holds none) and does not grow by
+# gigabytes; it needs only the zram module of Ubuntu's kernel, no package. A kernel without zram gets a
+# swapfile, at most a quarter of the free disk and none under 1 GB free for it, with swappiness 10 so it
+# is used under pressure only; SWAP_OFF takes it away (swapoff, delete, fstrim) before every snapshot
+# (scripts.SCRUB). A container (the docker provider) gets none: its kernel is this computer's.
+# Prints one line, `swap: <what>`, for the machine's notes (swap_words).
+SWAP_FILE = "/agentos.swap"
+SWAP_MAX_MB = 8192
+SWAP_ON_S = 30.0
+SWAP_ON = f"""set -u
+if [ -n "$(tail -n +2 /proc/swaps 2>/dev/null)" ]; then
+  echo "swap: $(awk 'NR > 1 {{ s += $3 }} END {{ printf "%d", s / 1024 }}' /proc/swaps) MB"; exit 0
+fi
+if [ -f /.dockerenv ] || grep -qa 'container=' /proc/1/environ 2>/dev/null; then
+  echo "swap: none (a container)"; exit 0
+fi
+mb=$(awk '/^MemTotal:/ {{ printf "%d", $2 / 1024 }}' /proc/meminfo)
+[ "$mb" -gt {SWAP_MAX_MB} ] && mb={SWAP_MAX_MB}
+if [ "$mb" -ge 512 ] && modprobe zram 2>/dev/null; then
+  dev=$(zramctl --find --size "${{mb}}M" --algorithm zstd 2>/dev/null || zramctl --find --size "${{mb}}M" 2>/dev/null || true)
+  if [ -n "$dev" ] && mkswap "$dev" >/dev/null 2>&1 && swapon --priority 100 "$dev" 2>/dev/null; then
+    echo "swap: $mb MB zram"; exit 0
+  fi
+  [ -n "$dev" ] && zramctl --reset "$dev" 2>/dev/null
+fi
+free=$(df -Pm / | awk 'NR == 2 {{ print $4 }}')
+[ "$mb" -gt $((free / 4)) ] && mb=$((free / 4))
+if [ "$mb" -lt 1024 ]; then
+  echo "swap: none (too little free disk)"; exit 0
+fi
+rm -f {SWAP_FILE}
+if fallocate -l "${{mb}}M" {SWAP_FILE} 2>/dev/null && chmod 600 {SWAP_FILE} && mkswap {SWAP_FILE} >/dev/null 2>&1 \\
+    && swapon --discard {SWAP_FILE} 2>/dev/null; then
+  sysctl -q vm.swappiness=10 2>/dev/null || true
+  echo "swap: $mb MB file"; exit 0
+fi
+rm -f {SWAP_FILE}
+echo "swap: none (the kernel refused it)"
+"""
+# Before a snapshot: the swapfile (if this machine has one) goes, and its blocks are trimmed so the
+# image holds neither them nor what was swapped out. zram needs nothing: it is memory.
+SWAP_OFF = (f"if grep -q '^{SWAP_FILE} ' /proc/swaps 2>/dev/null; then swapoff {SWAP_FILE} 2>/dev/null && "
+            f"rm -f {SWAP_FILE}; else rm -f {SWAP_FILE}; fi; "
+            "command -v fstrim >/dev/null 2>&1 && fstrim / >/dev/null 2>&1; true")
+
+
+def swap_words(stdout: str) -> str | None:
+    """SWAP_ON's line, for the machine's notes: "8 GB, compressed in memory (zram)", "4 GB swapfile",
+    "none (a container)"."""
+    for line in (stdout or "").splitlines():
+        if not line.startswith("swap: "):
+            continue
+        what = line[6:].strip()
+        parts = what.split()
+        if len(parts) >= 2 and parts[1] == "MB" and parts[0].isdigit():
+            size = int(parts[0])
+            size_words = (f"{size / 1024:.1f}".removesuffix(".0") + " GB") if size >= 1024 else f"{size} MB"
+            kind = parts[2] if len(parts) > 2 else ""
+            return {"zram": f"{size_words}, compressed in memory (zram)", "file": f"{size_words} swapfile"}.get(
+                kind, size_words)
+        return what[:80]
+    return None
+
+
 def boot_done_without_setup(state: str) -> bool:
     """SETUP_STATE's first line says the boot is over and the setup never ran: the node runs it."""
     return state.startswith(("status: done", "status: disabled")) or state == "no cloud-init and no setup marker"

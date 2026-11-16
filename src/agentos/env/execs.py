@@ -148,16 +148,18 @@ async def run(rt: LaneRuntime, argv: list[str], *, timeout_s: float, stdin: byte
               max_bytes: int = 65536, env: dict[str, str] | None = None, install: bool = False,
               cwd: str | None = None, kind: str = "exec", stdin_file: BinaryIO | None = None,
               budget: int | None = None, stdout_file: BinaryIO | None = None,
-              stdout_limit: int | None = None) -> ExecResult:
+              stdout_limit: int | None = None, oom_check: bool = False) -> ExecResult:
     """`stdin_file` (an open file) is the workload's stdin as it is, for input too large to hold in
     memory (a sync's tar archive); `stdin` is fed from memory. `max_bytes` is kept of each stream;
     `budget`, when given, bounds both together (fit). `stdout_file` (an open file) takes all of
     stdout instead, for output too large to hold (an archive out of the lane): past `stdout_limit`
     bytes the workload is ended, nothing more is written, and the result has stdout_bytes over the
-    limit and truncated set."""
+    limit and truncated set. `oom_check`: on a VM, a command that failed says what the kernel killed
+    for memory while it ran (`oom`, agentos.env.oom)."""
     loop = asyncio.get_running_loop()
     oom_before = rt.stat().get("oom_kills", 0)
-    wl = Workload(new_wid("i" if install else "x"), argv, rt.base_env(env), cwd=cwd, install=install)
+    wl = Workload(new_wid("i" if install else "x"), argv, rt.base_env(env), cwd=cwd, install=install,
+                  oom_record=oom_check)
     start = loop.time()
     stdin_arg: Any = stdin_file if stdin_file is not None else (
         asyncio.subprocess.PIPE if stdin is not None else asyncio.subprocess.DEVNULL)
@@ -221,6 +223,9 @@ async def run(rt: LaneRuntime, argv: list[str], *, timeout_s: float, stdin: byte
     duration = loop.time() - start
     exit_code, sig_name = exit_status(rt, proc.returncode)
     oom_after = rt.stat().get("oom_kills", 0)
+    kills = None
+    if oom_check and (exit_code != 0 or sig_name):
+        kills = await rt.oom_kills(wl.wid, elapsed_s=duration, final=True)
     if budget is not None:
         out, err = fit(out, err, budget)
     so, so_enc = encode_output(out)
@@ -229,4 +234,5 @@ async def run(rt: LaneRuntime, argv: list[str], *, timeout_s: float, stdin: byte
         exit_code=exit_code, signal=sig_name, stdout=so, stderr=se, stdout_encoding=so_enc,
         stderr_encoding=se_enc, stdout_bytes=out.total, stderr_bytes=err.total,
         truncated=bool(out.dropped or err.dropped or over.is_set()), timed_out=timed_out,
-        oom_killed=oom_after > oom_before, duration_s=round(duration, 3))
+        oom_killed=oom_after > oom_before or any(k.get("in_job") for k in kills or []), oom=kills or None,
+        duration_s=round(duration, 3))

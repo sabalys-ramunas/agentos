@@ -156,6 +156,7 @@ class ExecResult(BaseModel):
     truncated: bool = False
     timed_out: bool = False
     oom_killed: bool = False
+    oom: list[dict] | None = None    # on a VM: what its kernel killed for memory meanwhile (agentos.env.oom)
     duration_s: float
 
 
@@ -187,6 +188,7 @@ class JobInfo(BaseModel):
     exit_code: int | None = None     # None while running, and when killed by a signal
     signal: str | None = None
     oom_killed: bool = False
+    oom: list[dict] | None = None    # on a VM: what its kernel killed for memory since it started (agentos.env.oom)
     started_at: datetime = Field(default_factory=utcnow)
     finished_at: datetime | None = None
     duration_s: float | None = None

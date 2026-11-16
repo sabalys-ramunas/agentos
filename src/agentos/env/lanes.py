@@ -320,5 +320,17 @@ class LaneRuntime:
     def busy(self) -> bool:
         return bool(self.workloads)
 
+    async def oom_kills(self, wid: str, *, elapsed_s: float, final: bool = False) -> list[dict] | None:
+        """On a VM lane, what its kernel killed for memory since workload `wid` started
+        (agentos.env.oom); None elsewhere, and when the VM did not answer."""
+        probe = getattr(self.launcher, "oom_kills", None)
+        if self.lane.remote is None or not callable(probe):
+            return None
+        try:
+            return await probe(self.lane, wid, elapsed_s=elapsed_s, final=final)
+        except Exception:
+            log.debug("could not read the kernel's oom kills on %s", self.lane.id, exc_info=True)
+            return None
+
     def stat(self) -> dict:
         return self.host.cgroup_stat(self.lane.key) if self.cgroup else {}

@@ -149,7 +149,7 @@ Call any agentos tool by name with its arguments, including tools not in your li
 | [`lane_freeze`](#lane_freeze) | control | read | Freeze a lane (or its whole workspace, or this node) at once: every agent there is stopped, in-flight calls are cancelled, no agent grant (yours too) takes a call there until the owner unfreezes, grants that reach only that are revoked (a node freeze revokes every agent grant), runs are cancelled and schedules and triggers paused |
 | [`lane_install`](#lane_install) | terminals | install_overlay | Install programs into a lane from a pinned source: apt (the node's signed apt sources, as the lane's root inside its overlay), pip (pypi.org) or npm (registry.npmjs.org) |
 | [`lane_job_cancel`](#lane_job_cancel) | core | exec | Stop a running job: SIGTERM to every process it started, SIGKILL a few seconds later |
-| [`lane_job_read`](#lane_job_read) | core | read | Read a job's output after the byte offsets you have, waiting up to wait_ms (30000) for more while it runs; with until_exit=true it waits for the job to end (wait_ms up to 120000) |
+| [`lane_job_read`](#lane_job_read) | core | read | Read a job's output after the byte offsets you have, waiting up to wait_ms (30000) for more while it runs |
 | [`lane_job_start`](#lane_job_start) | core | exec | Start a shell command in a lane in the background and return its job id at once; read its output with lane_job_read as it runs, stop it with lane_job_cancel |
 | [`lane_jobs_list`](#lane_jobs_list) | terminals | read | Background jobs on this node (of one lane with `on`), newest first, running and finished |
 | [`lane_login_request`](#lane_login_request) | vault | read | Ask the owner to log a lane in, when it is signed out (signal logged_out) or was never signed in and the vault holds no login for it (with one, use login: it asks nobody) |
@@ -1137,7 +1137,8 @@ Stop a running job: SIGTERM to every process it started, SIGKILL a few seconds l
 
 Toolset: `core`. Effect: `read`. Needs the `envs` service.
 
-Read a job's output after the byte offsets you have, waiting up to wait_ms (30000) for more while it runs; with until_exit=true it waits for the job to end (wait_ms up to 120000). Pass back next_stdout_offset and next_stderr_offset; stdout_bytes is the size so far (to read only the end, stdout_offset=stdout_bytes-8000). `state` is running until it exited, was cancelled, timed out or was lost; then exit_code (or signal). Effect: read.
+Read a job's output after the byte offsets you have, waiting up to wait_ms (30000) for more while it runs. until_exit=true waits for the job to end; until_port=3000 for that port to listen on the machine or the job to end (then the end of its output); both wait_ms up to
+120000. Pass back next_stdout_offset and next_stderr_offset; stdout_bytes is the size so far (to read only the end, stdout_offset=stdout_bytes-8000). `state` is running until it exited, was cancelled, timed out or was lost; then exit_code (or signal). `oom`: what the kernel killed for memory. Effect: read.
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
@@ -1148,6 +1149,7 @@ Read a job's output after the byte offsets you have, waiting up to wait_ms (3000
 | `max_bytes` | `int` | no (default 16000) |  |
 | `base64_output` | `bool` | no (default False) |  |
 | `until_exit` | `bool` | no (default False) |  |
+| `until_port` | `int` | no (default 0) |  |
 
 ## lane_job_start
 

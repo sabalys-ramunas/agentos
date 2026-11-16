@@ -23,6 +23,7 @@ from pathlib import Path
 
 from agentos.core.errors import LaneBusy, NotFound
 from agentos.core.models import utcnow
+from agentos.env import oom
 from agentos.env.execs import exit_status
 from agentos.env.lanes import LaneRuntime, Spawned, new_wid, wait_exit
 from agentos.env.models import JobInfo
@@ -35,6 +36,7 @@ JOB_ID_PREFIX = "job-"
 LEFTOVER_GRACE_S = 0.5
 CANCEL_GRACE_S = 5.0
 READ_MAX_BYTES = 1 << 20
+OOM_EVERY_S = 10.0     # a running job on a VM: its kernel's oom kills are asked for at most this often
 
 
 def new_job_id() -> str:
@@ -86,6 +88,8 @@ class Job:
     cancel_requested: bool = False
     stop_note: str | None = None
     changed: asyncio.Condition = field(default_factory=asyncio.Condition)
+    oom_asked: float | None = None          # loop time of the last oom probe (a job on a VM)
+    oom_task: asyncio.Task | None = None    # the probe in flight
 
     @property
     def running(self) -> bool:
@@ -117,6 +121,20 @@ class Job:
     async def notify(self) -> None:
         async with self.changed:
             self.changed.notify_all()
+
+    def add_oom(self, kills: list[dict] | None) -> bool:
+        """Keep the oom kills a probe found (agentos.env.oom). True when one of them is new."""
+        if not kills:
+            return False
+        before = len(self.info.oom or [])
+        self.info.oom = oom.merge(self.info.oom, kills)
+        if any(k.get("in_job") for k in self.info.oom):
+            self.info.oom_killed = True
+        return len(self.info.oom) > before
+
+    @property
+    def on_vm(self) -> bool:
+        return self.rt is not None and self.rt.lane.remote is not None
 
 
 class JobTable:
@@ -194,7 +212,7 @@ class JobTable:
         job = Job(info, d)
         cap = self.settings.job_log_max_bytes
         job.out, job.err = LogSink(job.log_path("stdout"), cap), LogSink(job.log_path("stderr"), cap)
-        wl = Workload(new_wid("j"), argv, rt.base_env(env))
+        wl = Workload(new_wid("j"), argv, rt.base_env(env), oom_record=True)
         try:
             job.sp = await rt.spawn(wl, kind="job", stdin=asyncio.subprocess.DEVNULL,
                                     stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
@@ -223,6 +241,7 @@ class JobTable:
         assert rt is not None and sp is not None and job.out is not None and job.err is not None
         loop = asyncio.get_running_loop()
         start = loop.time()
+        gone = False  # the node is stopping: nothing more is asked of the VM
         oom_before = rt.stat().get("oom_kills", 0)
         proc = sp.proc
         readers = asyncio.gather(self._pump(job, proc.stdout, job.out), self._pump(job, proc.stderr, job.err))
@@ -243,6 +262,7 @@ class JobTable:
                     readers.cancel()
         except asyncio.CancelledError:
             readers.cancel()
+            gone = True
             raise
         finally:
             with contextlib.suppress(Exception):
@@ -252,6 +272,10 @@ class JobTable:
             with contextlib.suppress(Exception):
                 info.oom_killed = rt.stat().get("oom_kills", 0) > oom_before
             info.duration_s = round(loop.time() - start, 3)
+            if not gone and not job.stop_note and job.on_vm and (info.exit_code != 0 or info.signal):
+                with contextlib.suppress(Exception):  # what the kernel killed, and the VM's start record goes
+                    job.add_oom(await asyncio.wait_for(
+                        rt.oom_kills(sp.wid, elapsed_s=info.duration_s, final=True), oom.PROBE_TIMEOUT_S + 2))
             info.finished_at = utcnow()
             info.stdout_bytes, info.stderr_bytes = job.out.total, job.err.total
             info.stdout_dropped, info.stderr_dropped = job.out.dropped, job.err.dropped
@@ -282,6 +306,32 @@ class JobTable:
             with contextlib.suppress(asyncio.TimeoutError, asyncio.CancelledError):
                 await asyncio.wait_for(asyncio.shield(job.task), 10)
 
+    def probe_oom(self, job: Job) -> asyncio.Task | None:
+        """A running job on a VM: ask its kernel for oom kills in the background, at most every
+        OOM_EVERY_S. Returns the probe in flight (its result is True when it found a new kill)."""
+        if not job.running or not job.on_vm:
+            return None
+        if job.oom_task is not None and not job.oom_task.done():
+            return job.oom_task
+        now = asyncio.get_running_loop().time()
+        if job.oom_asked is not None and now - job.oom_asked < OOM_EVERY_S:
+            return None
+        job.oom_asked = now
+        rt, sp = job.rt, job.sp
+        assert rt is not None and sp is not None
+
+        async def ask() -> bool:
+            elapsed = (utcnow() - job.info.started_at).total_seconds()
+            found = job.add_oom(await rt.oom_kills(sp.wid, elapsed_s=elapsed))
+            if found:
+                with contextlib.suppress(Exception):
+                    job.save()
+                await job.notify()
+            return found
+
+        job.oom_task = asyncio.create_task(ask(), name=f"env-job-oom-{job.info.id}")
+        return job.oom_task
+
     def mark_stopping(self, lane_id: str, note: str) -> None:
         for job in self.running_in(lane_id):
             job.stop_note = note
@@ -296,19 +346,26 @@ class JobTable:
     async def read(self, job: Job, stdout_offset: int, stderr_offset: int, *, wait_s: float,
                    max_bytes: int, until_exit: bool = False) -> tuple[bytes, bytes]:
         """Output after the given offsets, waiting up to `wait_s` for some while the job runs (with
-        `until_exit`, for the job to end)."""
+        `until_exit`, for the job to end). On a VM the wait also ends when the kernel killed one of
+        its processes for memory (agentos.env.oom): the job may never print again."""
         max_bytes = max(1, min(int(max_bytes), READ_MAX_BYTES))
         stdout_offset, stderr_offset = max(0, int(stdout_offset)), max(0, int(stderr_offset))
+        kills = len(job.info.oom or [])
 
         def ready() -> bool:
-            if not job.running:
+            if not job.running or len(job.info.oom or []) > kills:
                 return True
             return not until_exit and (job.kept("stdout") > stdout_offset or job.kept("stderr") > stderr_offset)
 
+        self.probe_oom(job)
         if wait_s > 0 and not ready():
+            loop = asyncio.get_running_loop()
+            end = loop.time() + wait_s
             async with job.changed:
-                with contextlib.suppress(TimeoutError):
-                    await asyncio.wait_for(job.changed.wait_for(ready), wait_s)
+                while not ready() and (left := end - loop.time()) > 0:
+                    with contextlib.suppress(TimeoutError):
+                        await asyncio.wait_for(job.changed.wait_for(ready), min(left, OOM_EVERY_S))
+                    self.probe_oom(job)
         return (await asyncio.to_thread(_read_at, job.log_path("stdout"), stdout_offset, max_bytes),
                 await asyncio.to_thread(_read_at, job.log_path("stderr"), stderr_offset, max_bytes))
 

@@ -146,7 +146,7 @@ class FakeMachine:
         self.asked: list[dict] = []
         self.ran: list[str] = []
 
-    async def exec(self, lane_id, cmd, *, timeout_s=None, stdin=None, grant_id=None, max_bytes=None):
+    async def exec(self, lane_id, cmd, *, timeout_s=None, stdin=None, grant_id=None, max_bytes=None, oom_check=False):
         self.ran.append(cmd)
         if cmd == f"test -f {vmbrowser.READY}":
             return ExecResult(exit_code=0 if self.installed else 1, stdout="", stderr="", duration_s=0.01)

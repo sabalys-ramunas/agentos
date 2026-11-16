@@ -4,6 +4,7 @@ of EnvManager."""
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import re
 
 from agentos.core.errors import (
@@ -12,13 +13,30 @@ from agentos.core.errors import (
     PolicyDenied,
 )
 from agentos.env import sync as syncs
-from agentos.env.jobs import Job, new_job_id
+from agentos.env.jobs import OOM_EVERY_S, Job, new_job_id
 from agentos.env.models import (
     EnvLane,
     JobInfo,
 )
 
 _ENV_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,63}$")  # a job's environment variable names
+
+# lane_job_read(until_port=): one command in the job's lane that returns once something listens on the
+# port there (a LISTEN socket, state 0A, in /proc/net/tcp or tcp6: no ss or netstat needed, and a
+# server on 0.0.0.0, 127.0.0.1 or ::1 counts), or at its own deadline, so it never outlives the wait.
+PORT_WAIT = """p=$(printf '%04X' {port}); end=$(($(date +%s) + {secs}))
+while :; do
+  if grep -qE "^ *[0-9]+: [0-9A-F]+:$p [0-9A-F]+:[0-9A-F]+ 0A " /proc/net/tcp /proc/net/tcp6 2>/dev/null; then
+    echo listening; exit 0
+  fi
+  [ "$(date +%s)" -ge "$end" ] && {{ echo waited; exit 0; }}
+  sleep 0.5
+done
+"""
+
+
+def port_wait_script(port: int, secs: int) -> str:
+    return PORT_WAIT.format(port=int(port), secs=max(1, int(secs)))
 
 
 class Jobs:
@@ -101,6 +119,39 @@ class Jobs:
             info.stdout_bytes = job.out.total if job.out else info.stdout_bytes
             info.stderr_bytes = job.err.total if job.err else info.stderr_bytes
         return info, out, err
+
+    async def job_wait_port(self, job_id: str, port: int, wait_s: float) -> bool:
+        """Wait up to `wait_s` for `port` to listen in the job's lane (port_wait_script, one command
+        there), for the job to end, or for the kernel to kill one of its processes for memory.
+        True when the port listens."""
+        job = self.jobs.get(job_id)
+        if not job.running:
+            return False
+        secs = max(1, int(wait_s))
+        kills = len(job.info.oom or [])
+        watcher = asyncio.create_task(self.exec(job.info.lane, port_wait_script(port, secs), timeout_s=secs + 15))
+
+        async def over() -> None:
+            async with job.changed:
+                await job.changed.wait_for(lambda: not job.running or len(job.info.oom or []) > kills)
+
+        ended = asyncio.create_task(over())
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + secs + 5
+        try:
+            while not (watcher.done() or ended.done()) and (left := deadline - loop.time()) > 0:
+                self.jobs.probe_oom(job)
+                await asyncio.wait({watcher, ended}, timeout=min(left, OOM_EVERY_S),
+                                   return_when=asyncio.FIRST_COMPLETED)
+            if watcher.done():
+                return "listening" in (watcher.result().stdout or "")
+            return False
+        finally:
+            for t in (watcher, ended):
+                if not t.done():
+                    t.cancel()
+                    with contextlib.suppress(BaseException):
+                        await t
 
     async def job_cancel(self, job_id: str) -> JobInfo:
         job = self.jobs.get(job_id)

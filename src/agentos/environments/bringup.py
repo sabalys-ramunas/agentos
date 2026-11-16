@@ -188,13 +188,27 @@ class BringUp:
         with contextlib.suppress(AgentosError):  # package lists, fetched in the background (machine.apt_ready)
             await self.envs().exec(env.terminal_lane, machine.apt_ready(), timeout_s=machine.APT_READY_S)
 
+    async def _swap(self, env: Environment) -> None:
+        """Swap on the machine (machine.SWAP_ON: zram, else a swapfile), and what it got in its notes."""
+        try:
+            res = await self.envs().exec(env.terminal_lane, machine.SWAP_ON, timeout_s=machine.SWAP_ON_S)
+        except AgentosError:
+            return
+        words = machine.swap_words(res.stdout or "")
+        if words:
+            def noted(e: Environment) -> None:
+                e.machine.swap = words
+
+            self.store.update(env.id, noted)
+
     async def _set_up_work(self, env: Environment, steps: Steps, *, tools: bool = True) -> None:
         """The tunnels first (the browser's traffic and the clone through the git gateway go over them),
         then the browser, the clone and the rest at once: each is a few seconds to a minute of its own.
-        What needs no tunnel starts with them: the apt wrappers, the pnpm top-up (only where the setup
+        What needs no tunnel starts with them: the apt wrappers, swap, the pnpm top-up (only where the setup
         check found no pnpm) and, in local mode, the agent's own ssh (agentos.environments.sshaccess).
         A resume waits for the browser and the tools first: its services start in it."""
-        early = [asyncio.ensure_future(steps.run("apt ready", self._apt_ready(env)))]
+        early = [asyncio.ensure_future(steps.run("apt ready", self._apt_ready(env))),
+                 asyncio.ensure_future(steps.run("swap", self._swap(env)))]
         if tools:
             early.append(asyncio.ensure_future(steps.run("tools top-up", self._top_up(env))))
         if self.ssh_wanted():

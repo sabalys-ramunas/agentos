@@ -574,9 +574,9 @@ class EnvManager(Jobs, Sync):
 
     async def exec(self, lane_id: str, cmd: str | list[str], *, timeout_s: float | None = None,
                    stdin: str | bytes | None = None, grant_id: str | None = None,
-                   max_bytes: int | None = None) -> ExecResult:
+                   max_bytes: int | None = None, oom_check: bool = False) -> ExecResult:
         """`max_bytes`: stdout and stderr together, at most (execs.fit); without it each stream is kept
-        to the node's max_output_bytes."""
+        to the node's max_output_bytes. `oom_check`: see execs.run."""
         lane = self.store.get_lane(lane_id)
         if not lane.policy.exec:
             raise PolicyDenied(f"commands are off in {lane.preset.value} lanes")
@@ -588,7 +588,7 @@ class EnvManager(Jobs, Sync):
         async with rt.exec_sem:
             res = await execs.run(rt, argv, timeout_s=timeout, stdin=data,
                                   max_bytes=max(self.settings.max_output_bytes, max_bytes or 0),
-                                  env=env or None, budget=max_bytes)
+                                  env=env or None, budget=max_bytes, oom_check=oom_check)
         await self.store.run(self.store.touch, lane_id)
         return res
 

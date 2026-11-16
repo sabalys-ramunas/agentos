@@ -65,7 +65,7 @@ class Machine:
                      'LISTEN 0 128 0.0.0.0:22 0.0.0.0:* users:(("sshd",pid=1,fd=3))\n'
         self.ran: list[tuple[str, str | None]] = []
 
-    async def exec(self, lane_id, cmd, *, timeout_s=None, stdin=None, grant_id=None, max_bytes=None):
+    async def exec(self, lane_id, cmd, *, timeout_s=None, stdin=None, grant_id=None, max_bytes=None, oom_check=False):
         self.ran.append((cmd, grant_id))
         out = ""
         if cmd == machine.SETUP_STATE:
@@ -77,6 +77,8 @@ class Machine:
             out = self.git
         elif cmd.startswith("ss "):
             out = self.ports
+        elif cmd == machine.SWAP_ON:
+            out = "swap: 8192 MB zram\n"
         elif "git clone" in cmd:
             out = "main\n"
         else:
@@ -473,6 +475,14 @@ async def test_environment_reads_ports_git_and_calls(node):
     assert st["git"] == {"branch": "main", "ahead": 0, "dirty": 0, "pushed": [], "deleted": []}
     assert st["calls"][0]["tool"] == "lane_exec" and st["unsaved"] is None
     assert st["calls"][0]["ok"] is True and st["calls"][0]["exit_code"] == 0
+
+
+async def test_every_machine_gets_swap_and_says_so_in_its_notes(node):
+    """Field report 2026-11-16: an 8 GB machine with no swap OOM-killed a 4.1 GB compile."""
+    await opened(node, repo="example.test/me/shop")
+    assert any(cmd == machine.SWAP_ON for cmd, _ in node["machine"].ran)
+    st = await node["call"]("environment")
+    assert st["machine"]["swap"] == "8 GB, compressed in memory (zram)"
 
 
 async def test_close_refuses_unsaved_work_then_discard_deletes_everything(node):

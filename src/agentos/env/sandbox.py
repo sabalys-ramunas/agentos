@@ -124,6 +124,7 @@ class Workload:
     pty: bool = False
     install: bool = False
     binds: list[tuple[str, str, bool]] = field(default_factory=list)  # (host, lane path, read-only)
+    oom_record: bool = False  # on a VM: write the start record the node reads oom kills by (agentos.env.oom)
 
 
 @dataclass
