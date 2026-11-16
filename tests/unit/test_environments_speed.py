@@ -514,3 +514,33 @@ async def test_hetzner_asks_after_an_action_every_second_at_first(monkeypatch):
     await p._wait_action({"id": 5, "status": "running"})
     await p.aclose()
     assert slept[:hetzner.ACTION_FAST_POLLS] == [1.0] * hetzner.ACTION_FAST_POLLS and slept[-1] == 3.0
+
+
+async def test_a_grant_that_may_not_open_one_never_probes_the_repository(node, monkeypatch):  # noqa: F811
+    """The grant's check (local) comes before `git ls-remote` with the node's stored credential: a refused
+    grant makes the node reach no host."""
+    from agentos.core.models import Effect
+    from agentos.policy.wrap import ToolCallError
+
+    probed: list[str] = []
+
+    async def probe(url, env, *, timeout_s=20, allow_file=False):
+        probed.append(url)
+        return True, b""
+
+    mgr = node["mgr"]
+    plan = mgr.plan
+
+    async def slow_plan(*a, **kw):  # a plan that waits on the provider, as a real one does
+        await asyncio.sleep(0.1)
+        return await plan(*a, **kw)
+
+    monkeypatch.setattr(mgr, "plan", slow_plan)
+    mgr.repo_probe = probe
+    _grant, token = node["policy"].issue(subject={"id": "agent-2"}, workspaces=["*"], ceiling=Effect.COMMIT,
+                                         specials={"vm": {"lanes": ["dev/*"]}, "exec": {}})  # VMs, not env/*
+    with pytest.raises(ToolCallError, match="env/"):
+        await node["call"]("environment_open", title="Not mine to open", repo="github.com/me/private", tok=token,
+                           wait_s=0)
+    await asyncio.sleep(0.05)
+    assert probed == [] and not mgr.store.open()

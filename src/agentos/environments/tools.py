@@ -419,21 +419,24 @@ async def _open_locked(ctx: ToolContext, mgr: EnvironmentManager, binding: str, 
         repo, ref = saved.repo, saved.ref
     else:
         keep = mgr.check_keep(keep)
-    reach = mgr.reach_soon(repo) if repo else None  # the repository's check runs while the open is planned
+    env_id = mgr.planned_id(binding, title)
+    check = getattr(ctx, "precheck", None)
+    if callable(check):  # the grant may open a machine on this lane (its profile is checked once planned)
+        check(Effect.VM, lane_id=f"env/{env_id}")
+    reach = mgr.reach_soon(repo) if repo else None  # only then the repository's check, beside the plan
     try:
-        return await _open_new(ctx, mgr, binding, saved, reach, title=title, repo=repo, ref=ref, size=size,
+        return await _open_new(ctx, mgr, binding, env_id, saved, reach, title=title, repo=repo, ref=ref, size=size,
                                hours=hours, keep=keep, signins=signins)
     finally:
         if reach is not None and not reach.done():
             reach.cancel()
 
 
-async def _open_new(ctx: ToolContext, mgr: EnvironmentManager, binding: str, saved: Any, reach: asyncio.Task | None,
-                    *, title: str, repo: str | None, ref: str | None, size: str | None, hours: float | None,
-                    keep: str, signins: bool | None) -> tuple[Environment, str, str] | dict:
+async def _open_new(ctx: ToolContext, mgr: EnvironmentManager, binding: str, env_id: str, saved: Any,
+                    reach: asyncio.Task | None, *, title: str, repo: str | None, ref: str | None, size: str | None,
+                    hours: float | None, keep: str, signins: bool | None) -> tuple[Environment, str, str] | dict:
     """A new machine for this title, or a saved one's resumed: planned, checked against the limits, the
     grant and the repository (`reach`: its check, already running), then created."""
-    env_id = mgr.planned_id(binding, title)
     if saved is not None:
         plan = await mgr.plan_restore(env_id, saved, hours=hours, keep=keep)
     else:
