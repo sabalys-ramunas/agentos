@@ -86,7 +86,8 @@ live view (in T3 Code: preview_open). Calls without `on` go to your only open on
 pass on="<title>"; when the open's result has `on`, pass it on every call: your client sends no session id, \
 so your other chats' computers look alike): lane_file_read/lane_file_edit for code, \
 lane_exec for a command, lane_job_start for a dev server, browser_navigate; localhost there is the VM; \
-browser_screenshot(proof=...) keeps proof. Nothing in it waits for a person, a push included. environment() \
+browser_screenshot(proof=...) keeps proof. In local mode you can also use your own shell: ssh agentos-<id>, \
+scp, rsync (the open's `ssh` has the commands). Nothing in it waits for a person, a push included. environment() \
 shows ports, git and cost. Push a branch (the default one only when asked); \
 tools_call(name="environment_pull_request", arguments={"title": ...}) opens its pull request and gives the \
 link, and environment_port(port) (the same way) gives the human http://127.0.0.1:<p>/ for a dev server. \

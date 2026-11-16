@@ -174,14 +174,18 @@ def _no_secrets(out: str) -> None:
 def test_quick_start_with_hetzner_and_gh(world):
     home = world.home
     # quick start; Hetzner; the token; gh's login; yes to any repository; yes to the test VM
-    r = run(input="1\n1\n" + HZ_TOKEN + "\n1\n\n\ny\n")  # the keep question takes its default
+    r = run(input="1\n1\n" + HZ_TOKEN + "\n1\n\n\n\ny\n")  # the keep and ssh questions take their defaults
     out = r.output
     assert r.exit_code == 0, out
     _no_secrets(out)
     assert "Welcome to agentos" in out and "about EUR 0.011 an hour" in out
     assert "nothing until a VM opens" in out
-    for n, title in enumerate(("VMs", "GitHub", "Limits", "Your agents", "Health check", "A test VM"), 1):
-        assert f"Step {n} of 6: {title}" in out
+    for n, title in enumerate(("VMs", "GitHub", "Limits", "Your agents", "SSH from your shell", "Health check",
+                               "A test VM"), 1):
+        assert f"Step {n} of 7: {title}" in out
+    # ssh agentos-<id> from the person's shell: one Include at the top of ~/.ssh/config
+    ssh_config = Path(os.environ["HOME"]) / ".ssh" / "config"
+    assert ssh_config.read_text().splitlines()[1] == f"Include {home}/ssh/config"
     # VMs: the token where `agentos vm setup` keeps it, 0600; vms.toml says hetzner
     token_file = home / "secrets" / "hetzner.token"
     assert token_file.read_text().strip() == HZ_TOKEN and oct(token_file.stat().st_mode & 0o777) == "0o600"
@@ -234,7 +238,7 @@ def test_step_by_step_asks_each_setting(world):
     # step by step; Hetzner; token; Helsinki; medium; no gh: paste a token, no to any repository;
     # limits 25, 6, 3; saves when idle; Claude Code yes, Codex no, skills yes; no test VM
     world.gh_installed = False
-    r = run(input="2\n1\n" + HZ_TOKEN + "\n3\n2\n1\n" + PASTED + "\nn\n25\n6\n3\n2\ny\nn\ny\nn\n")
+    r = run(input="2\n1\n" + HZ_TOKEN + "\n3\n2\n1\n" + PASTED + "\nn\n25\n6\n3\n2\ny\nn\ny\nn\nn\n")
     out = r.output
     assert r.exit_code == 0, out
     _no_secrets(out)
@@ -445,6 +449,7 @@ def test_the_snapshot_check_reads_hetzner_and_tells_missing_from_unknown(tmp_pat
 
 
 def test_the_snapshot_build_is_vm_image_build_dev_with_the_browser(tmp_path, monkeypatch):
+    from agentos.environments import machine
     from agentos.environments.vmbrowser import install_script
     from agentos.vms.manager import VmManager, image_script
 
@@ -458,7 +463,10 @@ def test_the_snapshot_build_is_vm_image_build_dev_with_the_browser(tmp_path, mon
     monkeypatch.setattr(VmManager, "build_image", build_image)
     said: list = []
     assert steps.build_dev_snapshot(tmp_path, said.append) == 0.02
-    assert seen == {"name": "dev", "script": image_script(install_script()), "follow_ip": True}
+    # the environment's setup too: a VM from the snapshot has its marker and pnpm, so its setup check is one call
+    script = image_script(machine.setup_install() + install_script())
+    assert seen == {"name": "dev", "script": script, "follow_ip": True}
+    assert script.index("AGENTOS_SETUP_SCRIPT") < script.index("cloud-init clean")
     assert said == ["taking the snapshot"]
 
 
@@ -494,3 +502,26 @@ def test_yes_keeps_single_use_and_asks_nothing_about_keeping(world):
     env = tomllib.loads((world.home / "environments.toml").read_text())
     assert env["default_keep"] == "none" and "allow_keep_live" not in env
     assert "Keeping  single use, deleted when the work is done" in r.output
+
+
+def test_ssh_adds_the_include_once_and_keeps_the_rest(world):
+    """`agentos setup ssh`: asked once, default yes, the line at the top, the person's config kept as it was."""
+    ssh_config = Path(os.environ["HOME"]) / ".ssh" / "config"
+    ssh_config.parent.mkdir(mode=0o700)
+    ssh_config.write_text("Host *\n  ForwardAgent yes\n")
+    r = run("ssh", input="\n")
+    assert r.exit_code == 0, r.output
+    _no_secrets(r.output)
+    assert "Include " in r.output and "Added." in r.output
+    text = ssh_config.read_text()
+    assert text.splitlines()[1] == f"Include {world.home}/ssh/config" and text.endswith("Host *\n  ForwardAgent yes\n")
+    again = run("ssh", input="")
+    assert again.exit_code == 0 and "reaches your environments already" in again.output
+    assert ssh_config.read_text() == text
+
+
+def test_no_to_ssh_changes_nothing_and_says_the_other_command(world):
+    r = run("ssh", input="n\n")
+    assert r.exit_code == 0, r.output
+    assert not (Path(os.environ["HOME"]) / ".ssh" / "config").exists()
+    assert f"ssh -F {world.home}/ssh/config agentos-<id>" in r.output

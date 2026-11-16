@@ -27,7 +27,7 @@ from agentos.environments.tunnels import Tunnel
 
 log = logging.getLogger("agentos.environments")
 
-SETUP_POLL_S = 5.0
+SETUP_POLL_S = 1.0  # between setup checks; each check itself waits for cloud-init (machine.SETUP_WAIT_S)
 
 
 VM_POLL_S = 0.25
@@ -104,11 +104,8 @@ class BringUp:
                     raise EnvironmentFailed("the node restarted before the machine was rented")
                 env = await steps.run("VM create", self._rent(env, plan))
             await steps.run("VM ready", self._wait_vm(env))
-            await steps.run("setup check", self._wait_setup(env))
-            with contextlib.suppress(AgentosError):  # package lists, fetched in the background (machine.apt_ready)
-                await steps.run("apt ready", self.envs().exec(env.terminal_lane, machine.apt_ready(),
-                                                              timeout_s=machine.APT_READY_S))
-            await self._set_up_work(env, steps)
+            tools = await steps.run("setup check", self._wait_setup(env))
+            await self._set_up_work(env, steps, tools=tools)
 
             def ready(e: Environment) -> bool:
                 if e.state != "starting":
@@ -157,27 +154,38 @@ class BringUp:
         with contextlib.suppress(AgentosError):  # pnpm on an older snapshot (machine.TOOLS_TOP_UP)
             await self.envs().exec(env.terminal_lane, machine.TOOLS_TOP_UP, timeout_s=machine.TOOLS_TOP_UP_S)
 
-    async def _set_up_work(self, env: Environment, steps: Steps) -> None:
+    async def _apt_ready(self, env: Environment) -> None:
+        with contextlib.suppress(AgentosError):  # package lists, fetched in the background (machine.apt_ready)
+            await self.envs().exec(env.terminal_lane, machine.apt_ready(), timeout_s=machine.APT_READY_S)
+
+    async def _set_up_work(self, env: Environment, steps: Steps, *, tools: bool = True) -> None:
         """The tunnels first (the browser's traffic and the clone through the git gateway go over them),
-        then the browser, the clone and the tools top-up at once: each is a few seconds to a minute of
-        its own. A resume waits for the browser and the tools first: its services start in it."""
-        tools = asyncio.ensure_future(steps.run("tools top-up", self._top_up(env)))
+        then the browser, the clone and the rest at once: each is a few seconds to a minute of its own.
+        What needs no tunnel starts with them: the apt wrappers, the pnpm top-up (only where the setup
+        check found no pnpm) and, in local mode, the agent's own ssh (agentos.environments.sshaccess).
+        A resume waits for the browser and the tools first: its services start in it."""
+        early = [asyncio.ensure_future(steps.run("apt ready", self._apt_ready(env)))]
+        if tools:
+            early.append(asyncio.ensure_future(steps.run("tools top-up", self._top_up(env))))
+        if self.ssh_wanted():
+            early.append(asyncio.ensure_future(steps.run("ssh", self.ssh_up(env))))
         try:
             await steps.run("tunnels and git", self._start_tunnel(env))
             if env.restore_from:
-                await together(steps.run("browser", self._make_browser(env)), tools)
+                await together(steps.run("browser", self._make_browser(env)), *early)
                 await steps.run("restore", self._restore(env))
             elif env.repo:
                 await together(steps.run("browser", self._make_browser(env)), steps.run("clone", self._clone(env)),
-                               tools)
+                               *early)
             else:
                 mkdir = self.envs().exec(env.terminal_lane, f"mkdir -p {machine.WORK}", timeout_s=CHECK_TIMEOUT_S)
-                await together(steps.run("browser", self._make_browser(env)), mkdir, tools)
+                await together(steps.run("browser", self._make_browser(env)), mkdir, *early)
         finally:
-            if not tools.done():
-                tools.cancel()
-                with contextlib.suppress(BaseException):
-                    await tools
+            for t in early:
+                if not t.done():
+                    t.cancel()
+                    with contextlib.suppress(BaseException):
+                        await t
 
     async def _fail(self, env_id: str, why: str, *, code: str | None = None, reason: str | None = None) -> None:
         def failed(e: Environment) -> None:
@@ -202,7 +210,8 @@ class BringUp:
                 raise EnvironmentFailed(f"the machine did not answer SSH within {vms.settings.boot_timeout_s} s", reason="setup")
             await asyncio.sleep(VM_POLL_S)
 
-    async def _wait_setup(self, env: Environment) -> None:
+    async def _wait_setup(self, env: Environment) -> bool:
+        """Until the machine's setup is done. True when pnpm is missing there (the tools top-up runs)."""
         envs = self.envs()
         loop = asyncio.get_running_loop()
         deadline = loop.time() + self.settings.setup_timeout_s
@@ -216,7 +225,7 @@ class BringUp:
                 said = e.message
             first = said.split("\n", 1)[0]
             if first == "ready":
-                return
+                return machine.needs_pnpm(said)
             if "error" in first:
                 raise EnvironmentFailed(f"the machine's setup failed: {said[-600:]}", reason="setup")
             if not ran and machine.boot_done_without_setup(first):

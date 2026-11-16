@@ -21,16 +21,28 @@ SNAPSHOT_IMAGE = "snapshot:dev"
 BASE_IMAGE = "ubuntu-24.04"
 WORK = "/work"
 
-# One command over SSH: "ready", or what cloud-init says (its status, and the end of its log on an error).
+# One command over SSH: "ready" and whether pnpm is there (a second line, `tools: pnpm` or `tools: no
+# pnpm`, so the node tops up pnpm only where it is missing), or what cloud-init says (its status, and the
+# end of its log on an error). While cloud-init still runs it waits for it here, up to SETUP_WAIT_S, so the
+# answer comes the moment the boot is over instead of at the next poll.
+SETUP_WAIT_S = 20
 SETUP_STATE = (f"if [ -f {READY_MARKER} ]; then echo ready; "
-               "elif command -v cloud-init >/dev/null 2>&1; then s=$(cloud-init status 2>/dev/null || true); "
+               "if command -v pnpm >/dev/null 2>&1; then echo 'tools: pnpm'; else echo 'tools: no pnpm'; fi; "
+               "elif command -v cloud-init >/dev/null 2>&1; then "
+               f"if command -v timeout >/dev/null 2>&1; then timeout {SETUP_WAIT_S} cloud-init status --wait "
+               ">/dev/null 2>&1; fi; s=$(cloud-init status 2>/dev/null || true); "
                "echo \"$s\"; case \"$s\" in *error*) tail -n 20 /var/log/cloud-init-output.log 2>/dev/null;; esac; "
                "else echo 'no cloud-init and no setup marker'; fi")
 
 
-# Run on every machine once its setup is done: a `dev` snapshot made before setup.sh enabled pnpm
-# has the ready marker, so the setup never runs there again. It does nothing where pnpm is there
-# already, and a machine without network still comes up (it is best effort).
+def needs_pnpm(state: str) -> bool:
+    """SETUP_STATE said "ready": is pnpm missing (an older snapshot), or did it not say?"""
+    return "tools: pnpm" not in state.splitlines()[1:2]
+
+
+# Run on a machine whose setup is done but has no pnpm (needs_pnpm): a `dev` snapshot made before
+# setup.sh enabled pnpm has the ready marker, so the setup never runs there again. It does nothing where
+# pnpm is there already, and a machine without network still comes up (it is best effort).
 TOOLS_TOP_UP = ("command -v pnpm >/dev/null 2>&1 || { (grep -q '^COREPACK_ENABLE_DOWNLOAD_PROMPT=' "
                 "/etc/environment || echo 'COREPACK_ENABLE_DOWNLOAD_PROMPT=0' >> /etc/environment) && "
                 "corepack enable && COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack install -g pnpm@latest; } "
@@ -96,6 +108,25 @@ def boot_done_without_setup(state: str) -> bool:
 
 def setup_script() -> str:
     return resources.files("agentos.environments").joinpath("setup.sh").read_text()
+
+
+def setup_install() -> str:
+    """setup.sh as a step of an image build (`agentos vm image build dev`): written where cloud-init
+    puts it, then run, so a VM booted from the snapshot has the ready marker and pnpm, and its setup
+    check is one call (without it the node ran the whole setup on every boot: apt, then corepack)."""
+    return (f"mkdir -p {SETUP_PATH.rsplit('/', 1)[0]}\n"
+            f"cat > {SETUP_PATH} <<'AGENTOS_SETUP_SCRIPT'\n{setup_script().rstrip()}\nAGENTOS_SETUP_SCRIPT\n"
+            f"sh {SETUP_PATH}\n")
+
+
+def dev_image_script() -> str:
+    """What `agentos vm image build dev` (and `agentos setup`'s offer of it) runs on the build VM: the
+    default image script with the environment's setup and its browser, so an environment booted from
+    the snapshot has both and its setup check is one call."""
+    from agentos.environments.vmbrowser import install_script
+    from agentos.vms.manager import image_script
+
+    return image_script(setup_install() + install_script())
 
 
 def cloud_config() -> str:

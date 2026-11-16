@@ -295,6 +295,24 @@ owner's shell, and can read AGENTOS_HOME); two grants' commands in one lane with
 what the pushed commits contain; and a lane whose own egress allowlist lists the git host, which
 can reach it directly with a credential the agent brought itself (never the node's).
 
+## The agent's own ssh to its environment (local mode)
+
+In local mode (docs/LOCAL.md) the agent runs on the same laptop as agentos, and each ready environment
+gets a host entry `agentos-<id>` in `~/.agentos/ssh/config` (agentos.environments.sshaccess), so the
+agent's own shell reaches the VM: `ssh`, `scp`, `rsync`, git.
+
+| Question | Answer |
+|---|---|
+| Which key | one made for that environment (`~/.agentos/ssh/<id>/id_ed25519`, 0600), not the node's VM key; deleted when the environment closes, fails or is saved, and a new one on resume |
+| Which host | the VM's host key that agentos made and gave the VM, pinned (`StrictHostKeyChecking yes`, a known_hosts file of one line under the entry's own alias): a reused IP after the VM is deleted is refused, and the entry is removed first anyway |
+| What the key may do on the VM | `restrict,pty` and a forced command (`/usr/local/lib/agentos-env/agent-ssh`) in root's authorized_keys: a terminal and the asked command, sftp for scp; no port forwarding either way (a `-R` would let code on the VM reach the laptop's loopback, where agentos and the git gateway listen), no ssh agent (the person's keys never reach the VM), no X11. The entry also sets `ForwardAgent no` and `IdentityAgent none` |
+| What is logged | only that a session ran (its start, and whether it is running, for the idle rule, read over the node's own connection). The commands are **not** in agentos's call log, and policy (effects, Ask me first, taint) does not see them. The VM's git gateway still applies the push rules to every push, ssh or not |
+| Does it widen what the agent reaches | no. The agent already runs as the person on the laptop, and `lane_exec` already runs any command as root on the VM. The VM holds no key or token of the person: its one credential is the gateway token for the environment's own repository (`agentos.git.service.vm_token`: bound to that VM's lane and its listener, `repos=(that repo,)`, revoked by `vm_down` at close), in `~/.config/agentos/gitconfig` on the VM. The person's GitHub token stays sealed in the vault on the laptop |
+| Server nodes | no entry and no `ssh` field: the agent is on another computer, and works through the tools only |
+
+What this gives up: a person who reads the call log to see what an agent did on its machine sees the ssh
+sessions' times, not their commands. Pushes and pull requests are still recorded by the gateway.
+
 ## What this does not stop
 
 - **An agent with the node's root.** It can read `node.toml` and write `panel.db`, so it is the owner. Keep agents

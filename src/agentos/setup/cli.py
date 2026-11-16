@@ -20,9 +20,9 @@ from typing import Annotated
 import click
 import typer
 
-STEPS = ("vms", "github", "limits", "agents", "check", "test-vm")
+STEPS = ("vms", "github", "limits", "agents", "ssh", "check", "test-vm")
 STEP_TITLES = {"vms": "VMs", "github": "GitHub", "limits": "Limits", "agents": "Your agents",
-               "check": "Health check", "test-vm": "A test VM"}
+               "ssh": "SSH from your shell", "check": "Health check", "test-vm": "A test VM"}
 
 
 @dataclass
@@ -95,6 +95,7 @@ class Ctx:
     limits: str = ""
     keep: str = ""
     service_url: str = ""
+    ssh: str = ""
     agents: list[str] = field(default_factory=list)
     todo: list[str] = field(default_factory=list)
 
@@ -128,7 +129,7 @@ def welcome(ui: Ui) -> None:
 def run_all(ctx: Ctx) -> None:
     from agentos.setup import steps as s
 
-    order = [("vms", s.vms), ("github", s.github), ("limits", s.limits), ("agents", s.agents),
+    order = [("vms", s.vms), ("github", s.github), ("limits", s.limits), ("agents", s.agents), ("ssh", s.ssh),
              ("check", s.check), ("test-vm", s.test_vm)]
     for i, (name, step) in enumerate(order, 1):
         ctx.ui.head(i, len(order), STEP_TITLES[name])
@@ -140,7 +141,7 @@ def run_one(ctx: Ctx, step: str) -> None:
     from agentos.setup import steps as s
 
     ctx.ui.head(None, 0, STEP_TITLES[step])
-    {"vms": s.vms, "github": s.github, "limits": s.limits, "agents": s.agents, "check": s.check,
+    {"vms": s.vms, "github": s.github, "limits": s.limits, "agents": s.agents, "ssh": s.ssh, "check": s.check,
      "test-vm": s.test_vm}[step](ctx)
     if step in ("vms", "limits"):
         s.restart_if_running(ctx)
@@ -148,7 +149,7 @@ def run_one(ctx: Ctx, step: str) -> None:
 
 def setup(
     step: Annotated[str | None, typer.Argument(
-        metavar="[STEP]", help="Run one step again: vms, github, limits, agents, check or test-vm.")] = None,
+        metavar="[STEP]", help="Run one step again: vms, github, limits, agents, ssh, check or test-vm.")] = None,
     yes: Annotated[bool, typer.Option("--yes", "-y", help="Take every default and ask nothing (for scripts).")]
     = False,
     hetzner_token_file: Annotated[Path | None, typer.Option(

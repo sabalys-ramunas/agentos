@@ -215,16 +215,16 @@ def dev_snapshot_state(home: Path) -> bool | None:
 
 
 def build_dev_snapshot(home: Path, say: Any) -> float | None:
-    """`agentos vm image build dev`: a VM from Ubuntu, the tools and the environment's browser, a
+    """`agentos vm image build dev`: a VM from Ubuntu, the tools, the environment's setup and browser, a
     snapshot, the VM deleted. Returns what it cost in EUR; raises AgentosError when it fails."""
     from agentos.core.runtime import Runtime
-    from agentos.environments.vmbrowser import install_script
-    from agentos.vms.manager import VmManager, image_script
+    from agentos.environments.machine import dev_image_script
+    from agentos.vms.manager import VmManager
 
     rt = Runtime()
     rt.register("envs", _NoLanes())
     mgr = VmManager(home, runtime=rt, follow_ip=True)  # a laptop: SSH from where it is now
-    out = asyncio.run(mgr.build_image("dev", script=image_script(install_script()), on_step=say))
+    out = asyncio.run(mgr.build_image("dev", script=dev_image_script(), on_step=say))
     return out.get("cost_eur")
 
 
@@ -712,6 +712,36 @@ def restart_if_running(ctx: Ctx) -> None:
                    f"The agentos service did not start again: {state.note}. Run `agentos setup agents`.")
 
 
+# ------------------------------------------------------------------ step: ssh from the person's shell
+
+
+def ssh(ctx: Ctx) -> None:
+    """One line at the top of ~/.ssh/config, `Include ~/.agentos/ssh/config`, so `ssh agentos-<id>` works
+    from any shell on this computer (agentos.environments.sshaccess writes an entry per environment).
+    Asked once: when the line is there, nothing is asked."""
+    from agentos.environments import sshaccess
+
+    ui = ctx.ui
+    target = sshaccess.include_target(ctx.home)
+    if sshaccess.included(ctx.home):
+        ui.say(f"Your shell reaches your environments already: ssh agentos-<id> (~/.ssh/config includes {target}).")
+        ctx.ssh = "ssh agentos-<id> works from your shell"
+        return
+    ui.say("Your agents can also work on an environment from their own shell: ssh agentos-<id>, scp and rsync.")
+    ui.say(f"For that, ~/.ssh/config needs one line at its top: Include {target}. Everything else in it stays.")
+    if not ui.confirm("Add that line?", default=True):
+        ui.say(f"Not added. Agents then use ssh -F {target} agentos-<id>. `agentos setup ssh` asks again.")
+        return
+    try:
+        sshaccess.add_include(ctx.home)
+    except OSError as e:
+        ui.say(f"Could not change ~/.ssh/config: {e}. Agents use ssh -F {target} agentos-<id> instead.")
+        ctx.todo.append("ssh")
+        return
+    ui.say("Added. Each environment your agents open gets its own entry, removed again when it closes.")
+    ctx.ssh = "ssh agentos-<id> works from your shell"
+
+
 # ------------------------------------------------------------------ step: health check
 
 
@@ -812,11 +842,11 @@ def summary(ctx: Ctx) -> None:
     else:
         ui.say("All set. Nothing bills until an agent opens a VM.", bold=True)
     for what, words in (("VMs", ctx.vms), ("GitHub", ctx.github), ("Limits", ctx.limits),
-                        ("Keeping", ctx.keep), ("Service", ctx.service_url)):
+                        ("Keeping", ctx.keep), ("Service", ctx.service_url), ("SSH", ctx.ssh)):
         if words:
             ui.say(f"  {what:<8} {words}")
     owner = ctx.github_login or "<you>"
     ui.say()
     ui.say("Next: start a new Claude Code session and ask:")
     ui.say(f'  "work in agentos on github.com/{owner}/<repo>: fix the failing test and open a pull request"')
-    ui.say("Change one thing later: agentos setup vms, github, limits, agents, check or test-vm.")
+    ui.say("Change one thing later: agentos setup vms, github, limits, agents, ssh, check or test-vm.")

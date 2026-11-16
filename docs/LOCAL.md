@@ -49,6 +49,38 @@ Where the browser comes from on the VM:
 `environments.toml` has `browser = "vm"` here, also when it does not say so. `browser = "node"` (a
 server's setting) stops the service with a message, because a laptop cannot run that browser.
 
+## Your own shell: ssh agentos-<id>
+
+In local mode an agent can also use its own shell on the VM: `ssh agentos-<id>`, `scp`, `rsync` and
+git over ssh, the way it works on the laptop. `environment_open` and `environment()` give the commands in `ssh` (`host`, `command`, `examples`).
+
+- When an environment is ready, agentos makes a key for it and writes a host entry to
+  `~/.agentos/ssh/config`: `Host agentos-<id>`, the VM's address, user root, that key with
+  `IdentitiesOnly yes`, and the VM's host key pinned (`StrictHostKeyChecking yes` against
+  `~/.agentos/ssh/<id>/known_hosts`; agentos made that host key and gave it to the VM, so the first
+  connection is already checked). The entry and the key go when the environment closes, fails, or
+  is saved and its VM deleted. A resume writes a new one.
+- `agentos setup` asks once to put `Include ~/.agentos/ssh/config` at the top of `~/.ssh/config`
+  (it makes the file, 0600, if there is none, and leaves the rest as it is). Then plain
+  `ssh agentos-<id>` works. `agentos setup ssh` asks again. Without that line the command is
+  `ssh -F ~/.agentos/ssh/config agentos-<id>`, and the results say so.
+- The key is the environment's own, not the node's. On the VM it may open a terminal and run
+  commands, and nothing else: no port forwarding either way, no ssh agent (your own keys never
+  reach the VM), no X11. Use `environment_port` to show a dev server.
+- The VM firewall lets in your laptop's address (below), which is where both agentos and your
+  shell connect from, so nothing more is opened. With Docker, SSH is on 127.0.0.1.
+- A machine is idle when nothing used it for `idle_minutes`. An ssh session running a command, an
+  interactive one typed in lately, or one that ended within that time counts as use, so an agent
+  working only over ssh keeps its machine.
+- **Not in the call log.** agentos logs every call made through its tools. What runs over the
+  agent's own ssh is not in that log: agentos sees that a session ran, not what it ran. This does
+  not widen what the agent can reach. The VM holds no key or token of yours: its one credential is
+  the git gateway token for its own repository, which works only through that VM's own tunnel and
+  ends when the environment closes. The agent could already read it with `lane_exec`.
+
+A server node (`agentos connect`) gives no `ssh`: its agent runs on another computer and works
+through the tools only.
+
 ## Setup, one step at a time
 
 `agentos setup` runs every step. Run one again to change one thing:
@@ -59,6 +91,7 @@ server's setting) stops the service with a message, because a laptop cannot run 
 | `agentos setup github` | your `gh` login, `gh auth login`, a pasted token, or none; and whether environments may use any repository the login reaches |
 | `agentos setup limits` | the monthly cap (10 EUR by default here), hours per VM, VMs at once |
 | `agentos setup agents` | starts the service, connects Claude Code and Codex, adds the skills |
+| `agentos setup ssh` | adds `Include ~/.agentos/ssh/config` at the top of `~/.ssh/config`, so `ssh agentos-<id>` works |
 | `agentos setup check` | each piece, in plain words |
 | `agentos setup test-vm` | opens a VM, runs `uname -a`, closes it (about 0.01 EUR on Hetzner) |
 

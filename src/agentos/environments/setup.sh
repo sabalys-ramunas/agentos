@@ -15,12 +15,22 @@ export DEBIAN_FRONTEND=noninteractive
 # A config file, not a flag, so every apt-get here waits, also the one playwright install-deps runs.
 mkdir -p /etc/apt/apt.conf.d
 echo 'DPkg::Lock::Timeout "600";' > /etc/apt/apt.conf.d/90agentos-lock-timeout
-apt-get update -q
-apt-get install -y -q --no-install-recommends ca-certificates curl git build-essential pkg-config \
-  python3 python3-venv iproute2 procps jq unzip rsync less
+PKGS="ca-certificates curl git build-essential pkg-config python3 python3-venv iproute2 procps jq unzip rsync less"
+# apt only when a package is missing: a snapshot that has them all (the `dev` one) skips the package
+# lists (it has none, and on a fresh VM apt waits for the dpkg lock), which took most of a boot.
+MISSING=""
+for p in $PKGS; do
+  dpkg-query -W -f='${db:Status-Status}' "$p" 2>/dev/null | grep -qx installed || MISSING="$MISSING $p"
+done
+if [ -n "$MISSING" ]; then
+  apt-get update -q
+  # shellcheck disable=SC2086
+  apt-get install -y -q --no-install-recommends $PKGS
+fi
 if ! command -v node >/dev/null 2>&1 || ! node --version | grep -q '^v22\.'; then
   curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
   apt-get install -y -q nodejs
+  MISSING="$MISSING nodejs"
 fi
 # pnpm through corepack (it comes with Node): enabled, with a pnpm already downloaded, so `pnpm install`
 # works at once. A project's packageManager field still picks its own version; never a prompt for it.
@@ -35,7 +45,9 @@ if ! command -v uv >/dev/null 2>&1; then
 fi
 # The package lists stay, so the agent's first `apt-get install` works (the .deb cache goes). A machine
 # from a snapshot fetches them again in the background (agentos.environments.machine.apt_ready).
-apt-get clean
+if [ -n "$MISSING" ]; then
+  apt-get clean
+fi
 mkdir -p /work
 mkdir -p "$(dirname "$READY")"
 date -u +%Y-%m-%dT%H:%M:%SZ > "$READY"

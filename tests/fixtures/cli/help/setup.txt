@@ -7,8 +7,8 @@
  thing, run its step again, like `agentos setup github`.
 
 ╭─ Arguments ──────────────────────────────────────────────────────────────────╮
-│   [STEP]      <str>  Run one step again: vms, github, limits, agents, check  │
-│                      or test-vm.                                             │
+│   [STEP]      <str>  Run one step again: vms, github, limits, agents, ssh,   │
+│                      check or test-vm.                                       │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ╭─ Options ────────────────────────────────────────────────────────────────────╮
 │ --yes                 -y              Take every default and ask nothing     │

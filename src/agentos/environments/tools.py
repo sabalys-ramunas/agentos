@@ -237,6 +237,18 @@ def _on_words(ctx: ToolContext, env: Environment) -> str:
             "agent may have computers too, so a call without `on` is a guess.")
 
 
+def _with_ssh(mgr: EnvironmentManager, env: Environment, out: dict) -> None:
+    """Local mode: the holder's own shell reaches the machine (agentos.environments.sshaccess). Only in
+    results for the environment's holder; a server node gives none."""
+    ssh = mgr.ssh_of(env)
+    if ssh is None:
+        return
+    out["ssh"] = ssh
+    if "next" in out:
+        out["next"] += (f". You may also use your own shell: {ssh['command']}, and scp, rsync and git over it "
+                        "(ssh.examples); what you run there is not in agentos's call log")
+
+
 def _open_result(ctx: ToolContext, mgr: EnvironmentManager, env: Environment, bigger: list[dict] | None = None,
                  *, opened: str = "new", applied: dict | None = None, differs: list[str] | None = None) -> dict:
     s = mgr.summary(env)
@@ -273,6 +285,7 @@ def _open_result(ctx: ToolContext, mgr: EnvironmentManager, env: Environment, bi
         if env.resumed:
             out["next"] = ("Resumed: read resumed.note (git, files, services) and resumed.missing first. " + out["next"])
         out["next"] += _keep_next(env)
+        _with_ssh(mgr, env, out)
     if opened == "attached":
         words = ("Attached: an environment with this title was already open, so you got it as it is; other "
                  "chats of your agent reach it by this title too. ")
@@ -498,6 +511,8 @@ async def environment(ctx: ToolContext, *, on: str | None = None) -> dict:
         out["resumed"] = env.resumed
     out["note"] = env.note
     out.update(_family_lists(ctx, mgr, env))
+    if (ssh := mgr.ssh_of(env)) is not None:
+        out["ssh"] = ssh
     if not on and not is_session(_binding(ctx)):  # picked as the agent's only open one: maybe another chat's
         out["on"] = env.title
         out["picked"] = (f"this client sends no session id, so this is your agent's only open computer, which "

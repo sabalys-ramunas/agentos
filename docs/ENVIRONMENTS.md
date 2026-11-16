@@ -142,7 +142,11 @@ Python with uv on first boot, which takes a few minutes. A snapshot boots ready 
 agentos vm image build dev    # Hetzner: a snapshot with git, build tools, Python with uv, Node 22, Docker
 ```
 
-The node uses the `dev` snapshot when it has one. It also holds the browser for `browser = "vm"`
+The node uses the `dev` snapshot when it has one. The build runs the environment's own setup script
+too, so a VM from the snapshot has the ready marker and pnpm, and its setup check is one SSH call. A
+snapshot built before that (no marker) still works: each open waits for cloud-init in one call and
+runs the setup, which skips apt when every package is there and installs pnpm.
+Rebuild it to drop that. It also holds the browser for `browser = "vm"`
 (below), as does the docker image: Xvfb, x11vnc, fonts and Camoufox at the node's own versions, about
 3.3 GB more (Camoufox's build is 2.4 GB, most of it the fonts of the systems it can look like) and
 about two minutes more to build.
@@ -468,7 +472,8 @@ open a fresh one under another title. `save_limit`: forget saves you no longer n
 - Every environment has a time limit (`hours` on open, at most `--max-hours`, 8 by default). The
   environment page extends it, up to the same limit.
 - **The reaper** closes an environment that the agent forgot: idle (no call, no running command
-  and no input from you in its live view) for `idle_minutes` (default 60), or past its time
+  and no input from you in its live view; in local mode also no use of the agent's own
+  `ssh agentos-<id>`, docs/LOCAL.md) for `idle_minutes` (default 60), or past its time
   limit. One that saves when idle is saved first; one kept running is left alone. A single-use one
   with unsaved work is never deleted for being idle: it waits to its time limit, gets a rescue
   save, and you get a notification. Unsaved work is anything in a repository under `/work` (the cloned
@@ -489,6 +494,9 @@ On it:
 - A git config that sends declared hosts to the gateway (`127.0.0.1:3129` on the VM is the node's
   gateway, through the VM's SSH connection).
 - Whatever the agent installs. It is the agent's machine, by its title.
+- In local mode only: the public half of the environment's own ssh key in root's authorized_keys,
+  restricted to a terminal and commands (no forwarding), so `ssh agentos-<id>` works from the agent's
+  shell (docs/LOCAL.md). A server node gives none: its agent is on another computer.
 
 Not on it:
 
