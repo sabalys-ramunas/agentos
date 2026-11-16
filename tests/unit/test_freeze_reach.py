@@ -151,7 +151,8 @@ FREEZE_REACH = {
     "connectors_list": "filter",
     # agentos.environments.tools: the chat's environment or an id of the grant family -> its lanes
     # (refuse_frozen); a new one authorizes env/<id>; the listing leaves frozen ones out (frozen_off)
-    "environment": "id", "environment_close": "id", "environment_open": "check",
+    "environment": "id", "environment_close": "id", "environment_open": "check", "environment_save": "id",
+    "environment_forget": "check",
     "env_lanes_list": "filter", "events_list": "filter", "triggers_list": "filter", "trigger_propose": "check",
     "flow_get": "id", "flow_run": "id", "flow_save": "check", "flows_list": "filter",
     "grant_info": "filter", "howto": "none", "human_ask": "none", "image_build": "none", "images_list": "none",

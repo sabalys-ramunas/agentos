@@ -343,10 +343,38 @@ class DockerProvider:
         return [(k, v[0]) for k, v in self._keys.items() if all(v[1].get(a) == b for a, b in labels.items())]
 
     async def create_snapshot(self, server_id: str, description: str, labels: dict[str, str]) -> str:
-        name = labels.get("agentos-image") or "snapshot"
-        image = self._image_for(f"snapshot:{name}")
+        """`docker commit`. An image build's is `<repository>:snapshot-<name>`; an environment's save
+        (label agentos-save) is `<repository>:save-<id>`, and that name is its id: a machine boots from it."""
+        save = labels.get("agentos-save")
+        repo = self.image.rsplit(":", 1)[0]
+        image = f"{repo}:save-{save}" if save else self._image_for(f"snapshot:{labels.get('agentos-image') or 'snapshot'}")
         changes = [f"LABEL {k}={v}" for k, v in sorted(labels.items())]
         args = ["commit", "-m", description[:200]]
         for c in changes:
             args += ["--change", c]
-        return (await self._run(*args, server_id, image, timeout_s=900)).strip()[:19] or image
+        out = (await self._run(*args, server_id, image, timeout_s=900)).strip()[:19]
+        return image if save else (out or image)
+
+    async def get_image(self, image_id: str) -> dict | None:
+        raw = await self._run("image", "inspect", "--format", "{{.Size}}", image_id, ok_codes=(0, 1))
+        if not raw.strip().isdigit():
+            return None
+        return {"id": image_id, "status": "available", "gb": round(int(raw.strip()) / 2**30, 3), "labels": {}}
+
+    async def delete_image(self, image_id: str) -> None:
+        await self._run("rmi", "-f", image_id, ok_codes=(0, 1))
+
+    async def list_images(self, labels: dict[str, str]) -> list[dict]:
+        """The images `docker commit` made with every label (a save's is named by its id)."""
+        args = ["images", "--format", "{{.Repository}}:{{.Tag}}\t{{.CreatedAt}}"]
+        for k, v in sorted(labels.items()):
+            args += ["--filter", f"label={k}={v}"]
+        out = []
+        for line in (await self._run(*args, ok_codes=(0, 1))).splitlines():
+            name, _, created = line.partition("\t")
+            if name and not name.endswith(":<none>"):
+                tag = name.rsplit(":", 1)[-1]
+                save = tag.removeprefix("save-") if tag.startswith("save-") else None
+                out.append({"id": name, "status": "available", "created": created, "gb": None,
+                            "labels": {**labels, **({"agentos-save": save} if save else {})}})
+        return out

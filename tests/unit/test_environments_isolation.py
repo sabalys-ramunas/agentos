@@ -233,14 +233,16 @@ async def test_a_reconnected_chat_hears_its_open_environments(node):  # noqa: F8
     assert [o["id"] for o in seen["open"]] == [a["id"]] and "last_call_at" in seen["open"][0]
 
 
-async def test_concurrent_opens_in_one_chat_rent_one_machine(node):  # noqa: F811
+async def test_concurrent_opens_of_one_title_rent_one_machine(node):  # noqa: F811
+    """The title names the computer: two opens of "One" at once get one machine, "Two" its own."""
     call = node["call"]
     res = await asyncio.gather(call("environment_open", title="One", wait_s=5),
                                call("environment_open", title="Two", wait_s=5),
                                call("environment_open", title="One", wait_s=5))
-    assert len({r["id"] for r in res}) == 1, res
-    assert len(node["mgr"].store.open()) == 1
-    assert len(node["vms"].store.recent()) == 1  # one machine rented, ever
+    assert res[0]["id"] == res[2]["id"] != res[1]["id"], res
+    assert sorted(r["opened"] for r in res) == ["attached", "new", "new"]
+    assert len(node["mgr"].store.open()) == 2
+    assert len(node["vms"].store.recent()) == 2  # one machine per title, ever
 
 
 # ------------------------------------------------------------------ 14: the CLI's close

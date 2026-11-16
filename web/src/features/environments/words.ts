@@ -2,7 +2,7 @@
  * The words of Environments: each state as a status, money, time left, the machine and why one closed.
  * Everything here reads what the node serves and nothing else.
  */
-import type { EnvCommand, EnvState, EnvSummary } from '@/api/types';
+import type { EnvCommand, EnvKeep, EnvSave, EnvState, EnvSummary } from '@/api/types';
 import type { StatusLabel } from '@/lib/labels';
 
 /** Running is ink in Mono, so starting, working and closing pulse; idle is the hollow ring. */
@@ -188,3 +188,72 @@ export function pullRequestLink(repo: string | null | undefined, branch: string,
   const path = branch.split('/').map(encodeURIComponent).join('/');
   return `https://github.com/${match[1]}/${match[2]}/compare/${path}?expand=1`;
 }
+
+/** How each one stays, in the words the app uses everywhere, and one line on what that means. */
+export const KEEP: Record<EnvKeep, { label: string; sentence: string }> = {
+  none: { label: 'Single use', sentence: 'The machine is deleted when the work is done. Nothing is kept.' },
+  live: { label: 'Kept running', sentence: 'The machine stays on between sessions, and every hour is billed.' },
+  save: { label: 'Saves when idle', sentence: 'When idle, the whole machine is saved and the VM is deleted. An agent brings it back by opening it again.' },
+};
+
+/** A node that does not say is a node with single use only. */
+export const keepOf = (env: Pick<EnvSummary, 'keep'>): EnvKeep => env.keep ?? 'none';
+
+/** Hours in an average month, as providers bill them. */
+const MONTH_HOURS = 730;
+
+/** "€7.80 a month", "€0.05 a month", "Free". */
+export function monthly(value: number): string {
+  if (value === 0) return 'Free';
+  return `${euro(value)} a month`;
+}
+
+/**
+ * What it costs while nobody uses it: nothing once a single-use one is deleted, every hour for one kept
+ * running, and only its save for one that saves when idle (the save's own price when the node has one).
+ */
+export function idleCost(env: Pick<EnvSummary, 'keep' | 'price_hourly_eur'>, save?: Pick<EnvSave, 'cost_eur_month'> | null): string {
+  switch (keepOf(env)) {
+    case 'live':
+      return env.price_hourly_eur === 0 ? 'Nothing while unused' : `${monthly(env.price_hourly_eur * MONTH_HOURS)} while unused`;
+    case 'save':
+      return save ? `${monthly(save.cost_eur_month)} while saved` : 'Cents a month while saved';
+    default:
+      return 'Nothing after it is deleted';
+  }
+}
+
+/** The short form for a list: null for single use, "€8.83 a month" kept running, "cents a month" saved. */
+export function idleShort(env: Pick<EnvSummary, 'keep' | 'price_hourly_eur'>): string | null {
+  const keep = keepOf(env);
+  if (keep === 'live') return env.price_hourly_eur === 0 ? null : monthly(env.price_hourly_eur * MONTH_HOURS);
+  return keep === 'save' ? 'cents a month' : null;
+}
+
+/** "412 MB", "1.2 GB": what the files of a save take. */
+export function size(bytes: number): string {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  if (bytes < 1024 ** 3) return `${Math.round(bytes / 1024 ** 2)} MB`;
+  return `${(bytes / 1024 ** 3).toFixed(1)} GB`;
+}
+
+/** "12 GB snapshot" or "Files only, 412 MB": what a save holds. */
+export function saveHolds(save: Pick<EnvSave, 'snapshot_gb' | 'files_bytes'>): string {
+  if (save.snapshot_gb) return `${Number.isInteger(save.snapshot_gb) ? save.snapshot_gb : save.snapshot_gb.toFixed(1)} GB snapshot`;
+  return save.files_bytes ? `Files only, ${size(save.files_bytes)}` : 'Files only';
+}
+
+/** A save the node deletes within this long says so. */
+export const PRUNE_SOON_MS = 7 * 24 * 60 * MINUTE;
+
+/** "Deleted in 3 days unless an agent opens it again", or null when the node keeps it for longer or does not say. */
+export function pruneWords(save: Pick<EnvSave, 'prune_at'>, now: number): string | null {
+  if (!save.prune_at) return null;
+  const left = Date.parse(save.prune_at) - now;
+  if (!Number.isFinite(left) || left > PRUNE_SOON_MS) return null;
+  if (left <= 0) return 'Deleted soon unless an agent opens it again';
+  return `Deleted in ${span(left)} unless an agent opens it again`;
+}
+
+/** What a person says to an agent to bring one back. */
+export const continueLine = (title: string) => `continue ${title} in agentos`;

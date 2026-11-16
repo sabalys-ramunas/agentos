@@ -114,3 +114,43 @@ def test_the_socket_folder_is_the_node_users_alone(tmp_path):
         assert len(os.path.join(folder, "socks")) < 100  # a Unix socket path fits (104 bytes on macOS)
     finally:
         os.rmdir(folder)
+
+
+FAKE_SSH = '''#!{py}
+import os, socket, sys, time
+args = sys.argv[1:]
+with open({log!r}, "a") as f:
+    f.write(" ".join(args) + "\\n")
+if "-D" in args:
+    s = socket.socket(socket.AF_UNIX)
+    s.bind(args[args.index("-D") + 1])
+    s.listen()
+time.sleep(60)
+'''
+
+
+async def test_the_git_gateway_gets_an_ssh_connection_of_its_own(tmp_path, monkeypatch):
+    """A push from the VM never waits behind the browser's traffic on a shared connection."""
+    from agentos.environments.tunnels import Tunnel, git_tunnel_argv
+    from agentos.vms import ssh as vssh
+
+    log = tmp_path / "ssh.log"
+    fake = tmp_path / "ssh"
+    fake.write_text(FAKE_SSH.format(py=sys.executable, log=str(log)))
+    fake.chmod(0o755)
+    monkeypatch.setattr(vssh, "SSH", str(fake))
+    t = Tunnel(REMOTE, gateway_port=4000)
+    await t.start()
+    try:
+        assert t.alive and t.git_proc is not None and t.git_proc.pid != t.proc.pid
+        lines = log.read_text().splitlines()
+        socks = next(line for line in lines if "-D" in line)
+        git = next(line for line in lines if "-R" in line)
+        assert "-R" not in socks and "-D" not in git and "127.0.0.1:3129:127.0.0.1:4000" in git
+        t.git_proc.kill()
+        await t.git_proc.wait()
+        assert not t.alive  # the reaper starts both again
+    finally:
+        await t.stop()
+    argv = git_tunnel_argv(REMOTE, gateway_port=4000)
+    assert argv[argv.index("-R") + 1] == "127.0.0.1:3129:127.0.0.1:4000" and "ClearAllForwardings=yes" not in argv

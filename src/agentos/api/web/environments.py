@@ -6,6 +6,12 @@
     GET  /api/orgs/{org}/environments/{id}/proofs/{proof}.png   a proof's PNG (src above)
     POST /api/orgs/{org}/environments/{id}/close          {"discard": false} -> EnvSummary (409 unsaved_work)
     POST /api/orgs/{org}/environments/{id}/extend         {"minutes": 60} -> EnvSummary
+    DELETE /api/orgs/{org}/environments/saves/{save_id}   forget a save and its snapshot -> {forgot,
+                                                          snapshots_deleted}. The owner in person
+
+The listing also gives `saved`: [{id, title, repo, branch, head, saved_at, snapshot_gb, files_bytes,
+cost_eur_month, note, agent}], the saves of environments that are not open (agentos.environments.saving),
+and `snapshots_eur_month`, what the kept snapshots cost. Each summary has `keep` (none, live, save).
 
 The shapes are the contract of docs/design/environments.md. These read the environments service
 (agentos.environments) themselves and decide who may: reading needs `see` and a close or an extend
@@ -23,6 +29,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 from starlette.routing import BaseRoute
 
+from agentos.api.access import Presence
 from agentos.api.app import Api, access_of
 from agentos.api.errors import error_body
 from agentos.api.web.base import org_route
@@ -96,6 +103,22 @@ def _visible(access: Any, env: Any) -> bool:
     return grant is not None and env.family == getattr(grant, "root_id", None)
 
 
+def _save_visible(access: Any, m: Any) -> bool:
+    """Whose saves the caller may see, as for environments: the owner every one, a member their own
+    agents', a grant its own family's."""
+    if access.owner and access.member is None:
+        return True
+    member = access.member
+    if member is not None:
+        return m.member is not None and m.member == member.id
+    grant = getattr(getattr(access, "ctx", None), "grant", None)
+    return grant is not None and m.family == getattr(grant, "root_id", None)
+
+
+SAVED_KEYS = ("id", "title", "repo", "branch", "head", "saved_at", "snapshot_gb", "files_bytes", "cost_eur_month",
+              "note", "agent", "prune_at")
+
+
 def proofs_of(mgr: Any, env: Any, org: str) -> list[dict[str, Any]]:
     """The screenshots the agent kept as proof (agentos.environments.proofs), each with `src`: the
     app's own route for its PNG, behind the same sign-in as this page."""
@@ -146,7 +169,17 @@ def routes(api: Api) -> list[BaseRoute]:
             raise InvalidRequest("state is open or all.")
         access = access_of(request)
         envs = mgr.store.open() if state == "open" else mgr.store.recent(200)
-        return {"environments": [mgr.summary(e) for e in envs if _visible(access, e)], "available": True}
+        out: dict[str, Any] = {"environments": [mgr.summary(e) for e in envs if _visible(access, e)],
+                               "available": True}
+        saved_for = getattr(mgr, "saved_for", None)
+        if callable(saved_for):
+            try:
+                rows = saved_for(None, visible=lambda m: _save_visible(access, m))
+            except Exception:  # noqa: BLE001 - the page without its saves rather than none at all
+                rows = []
+            out["saved"] = [{k: r.get(k) for k in SAVED_KEYS} for r in rows]
+            out["snapshots_eur_month"] = mgr.snapshots_eur_month()
+        return out
 
     async def one(request: Request) -> dict[str, Any]:
         mgr, env = find(request, "environment.read")
@@ -179,8 +212,8 @@ def routes(api: Api) -> list[BaseRoute]:
                                + (", discarding work that is not pushed" if discard else ""))
         from agentos.environments.errors import UnsavedWork
 
-        try:
-            closed = await mgr.close(env.id, discard=discard, reason="closed from the app"
+        try:  # the owner's close deletes a kept ("live") machine too
+            closed = await mgr.close(env.id, discard=discard, final=True, reason="closed from the app"
                                      + (" (discarded)" if discard else ""))
         except UnsavedWork as e:
             return JSONResponse(error_body("unsaved_work", e.message, unsaved=e.details), status_code=409)
@@ -201,7 +234,27 @@ def routes(api: Api) -> list[BaseRoute]:
         access.done("environment.extend", lane=env.terminal_lane, summary=f"extended environment {env.id}")
         return mgr.summary(out)
 
+    async def forget_save(request: Request) -> dict[str, Any]:
+        mgr = manager(api)
+        if mgr is None or not callable(getattr(mgr, "forget", None)):
+            raise NotFound(NO_ENVIRONMENTS)
+        access = access_of(request)
+        save_id = request.path_params["save_id"]
+        from agentos.environments.saves import check_save_id
+
+        try:
+            m, _ = mgr.saves().find(check_save_id(save_id))
+        except (NotFound, InvalidRequest):
+            raise NotFound(f"There is no save {save_id}.") from None
+        await access.authorize(Effect.READ, action="environment.forget",
+                               summary=f"Forget the save {m.id} of environment \"{m.title}\" and its snapshot")
+        out = await mgr.forget(None, None, m.id)
+        access.done("environment.forget", summary=f"forgot save {m.id} ({m.title})")
+        return out
+
     return [
+        org_route(api, "/environments/saves/{save_id}", forget_save, ["DELETE"], owner=True,
+                  presence=Presence.PERSON),
         org_route(api, "/environments", listing, ["GET"], cap="see"),
         org_route(api, "/environments/{id}", one, ["GET"], cap="see"),
         org_route(api, "/environments/{id}/proofs/{proof}.png", proof_png, ["GET"], cap="see"),

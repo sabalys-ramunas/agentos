@@ -94,10 +94,14 @@ def git(*args: str, cwd) -> str:
 
 
 def pack(checkout) -> bytes:
-    """The tool's own pack command, run in a checkout: the bytes of work.tgz."""
-    subprocess.run(["sh", "-c", uploads.PACK], cwd=checkout, env={**GIT_ENV, "HOME": str(checkout)}, check=True,
-                   capture_output=True)
-    return (checkout / "work.tgz").read_bytes()
+    """The tool's own pack command, run in a checkout (or a plain folder): the bytes of the archive, which
+    it writes to the temp folder, never into the folder it packs."""
+    tmp = checkout.parent / f"tmp-{checkout.name}"
+    tmp.mkdir(exist_ok=True)
+    subprocess.run(["sh", "-c", uploads.PACK], cwd=checkout,
+                   env={**GIT_ENV, "HOME": str(checkout), "TMPDIR": str(tmp)}, check=True, capture_output=True)
+    assert not (checkout / "agentos-work.tgz").exists()
+    return (tmp / "agentos-work.tgz").read_bytes()
 
 
 def monorepo(root):
@@ -151,7 +155,7 @@ async def test_local_code_goes_onto_an_environment_opened_without_a_repo_and_the
     assert link.get("status") != "approval_pending", link  # a link in its own environment never waits
     assert link["dest"] == "/work" and link["pack"] == uploads.PACK
     assert link["url"].startswith(f"http://localhost:{node['rt'].get('config').mcp_port}/view/env/{out['id']}/upload?t=")
-    assert link["send"] == f'curl --fail-with-body -T work.tgz "{link["url"]}"'
+    assert link["send"] == f'curl --fail-with-body -T "${{TMPDIR:-/tmp}}/agentos-work.tgz" "{link["url"]}"'
 
     body = pack(monorepo(tmp_path / "mono"))
     res = await up["send"](link["url"], body)
@@ -184,6 +188,34 @@ async def test_local_code_goes_onto_an_environment_opened_without_a_repo_and_the
 
     closed = await node["call"]("environment_close", discard=True)
     assert closed["state"] == "closed"
+
+
+async def test_a_plain_folder_with_no_git_packs_too_and_an_empty_one_is_refused(node, up, tmp_path):  # noqa: F811
+    """T3: in a folder that is no git repository the pack command made an empty archive. It now packs the
+    folder (without node_modules, .env, .venv), and an archive with no files is refused with the reason."""
+    await opened(node)
+    calc = tmp_path / "calc"
+    (calc / "node_modules" / "x").mkdir(parents=True)
+    (calc / "node_modules" / "x" / "i.js").write_text("1\n")
+    (calc / "tests").mkdir()
+    (calc / "calc.py").write_text("def add(a, b):\n    return a + b\n")
+    (calc / "tests" / "test_calc.py").write_text("from calc import add\n")
+    (calc / "pyproject.toml").write_text("[project]\nname = 'calc'\n")
+    (calc / ".env").write_text("SECRET=1\n")
+    link = await up["link"]()
+    res = await up["send"](link["url"], pack(calc))
+    assert res.status_code == 200, res.text
+    got = res.json()
+    assert sorted(got["paths"]) == ["calc.py", "pyproject.toml", "tests/test_calc.py"] and got["files"] == 3
+    assert 'lane_exec(cmd="uv sync", cwd="/work")' in got["next"] and "environment_download" in got["next"]
+    work = up["machine"].root
+    assert (work / "calc.py").is_file() and not (work / ".env").exists() and not (work / "node_modules").exists()
+
+    empty = tmp_path / "empty"
+    (empty / "only-a-folder").mkdir(parents=True)
+    link = await up["link"]()
+    res = await up["send"](link["url"], pack(empty))
+    assert res.status_code == 400 and "holds no files" in res.json()["error"]["message"]
 
 
 async def test_uncommitted_files_overlay_the_clone_and_nothing_else_is_deleted(node, up, tmp_path):  # noqa: F811

@@ -36,6 +36,8 @@ TOOLSETS: tuple[Toolset, ...] = (
         "browser_wait", "browser_screenshot", "browser_tabs", "browser_dialog", "browser_dialog_answer",
         "browser_upload", "files_put", "login", "approval_wait", "approval_confirm", "human_ask",
         "memory_context", "run_status", "environment_open", "environment", "environment_close",
+        # keeping and moving work: testers did not find them behind tools_call (2026-11-15)
+        "environment_save", "environment_upload", "environment_download", "environment_forget",
         # an environment's terminal: what nearly every chat with one runs, so it needs no tools_more
         # (about 830 tokens here, against 3,450 for the whole terminals toolset in such a chat)
         "lane_exec", "lane_job_start", "lane_job_read", "lane_job_cancel",
@@ -106,7 +108,7 @@ TOOLSETS: tuple[Toolset, ...] = (
         "lane_upload", "lane_jobs_list", "shell_open",
         "shell_read", "shell_write", "shell_close", "service_start", "service_stop", "service_status",
         "service_logs", "image_build", "images_list", "vm_create", "vm_destroy", "vm_extend", "vm_clone",
-        "vms_list", "environment_upload",
+        "vms_list", "environment_port", "environment_pull_request",
     ), ("env",), "shells, commands, services"),
     Toolset("brains", "agent tasks on the node's brains: run, follow, resume, cancel; the git remotes they reach", (
         "brains_list", "brain_run", "brain_status", "brain_tail", "brain_tasks", "brain_resume",

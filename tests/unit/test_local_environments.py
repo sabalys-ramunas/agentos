@@ -212,10 +212,13 @@ async def test_each_new_vm_lets_ssh_in_from_where_this_computer_is_now(local):
 
 async def test_an_address_that_cannot_be_found_fails_the_open_and_says_what_to_do(local):
     local["where"].ips = []
-    env = await opened(local)
-    assert env.state == "failed"
-    assert "could not find this computer's public IPv4 address" in env.error
-    assert "ssh_from in vms.toml" in env.error and "—" not in env.error
+    with pytest.raises(Exception, match="environment_failed: network: ") as err:
+        await opened(local)
+    words = str(err.value)
+    assert "could not find this computer's public IPv4 address" in words and words.lower().count("try again") == 1
+    assert "try again in 2 minutes" in words and "4 tries over about 15 s" in words
+    assert "ssh_from in vms.toml" in words and "\u2014" not in words
+    assert local["mgr"].store.recent(1)[0].error_reason == "network"
     assert local["prov"].servers == {}  # nothing was rented
 
 

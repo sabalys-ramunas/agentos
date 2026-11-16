@@ -108,9 +108,11 @@ minutes left, one booting.
 
 ## Environments
 
-The cloud computers agents rent for one chat (docs/design/environments.md, "Web routes"). Routes:
+The cloud computers agents rent (docs/design/environments.md, "Web routes"). Routes:
 `GET /environments?state=open|all`, `GET /environments/{id}`, `POST /environments/{id}/close`
-(`{discard}`), `POST /environments/{id}/extend` (`{minutes}`). No events carry them: the hooks poll.
+(`{discard}`), `POST /environments/{id}/extend` (`{minutes}`), `DELETE /environments/saves/{save_id}`.
+No events carry them: the hooks poll. Each environment says how it stays (`keep`: `none` single use,
+`live` kept running, `save` saves when idle), and the list has `saved`: the saves of kept ones.
 
 | Hook | Returns | Notes |
 |---|---|---|
@@ -118,11 +120,14 @@ The cloud computers agents rent for one chat (docs/design/environments.md, "Web 
 | `useEnvironment(org, id)` | `EnvDetail` | every 3 s while it has a machine, not after it is closed or failed |
 | `useCloseEnvironment(org)` | mutation `({ id, discard? }) => EnvSummary` | needs `operate`; 409 `unsaved_work` with `dirty_files` and `unpushed` unless `discard` |
 | `useExtendEnvironment(org)` | mutation `({ id, minutes }) => EnvSummary` | needs `operate` |
+| `useForgetSave(org)` | mutation `({ id }) => { forgot, snapshots_deleted }` | the owner alone (`environments.forget`); deletes the snapshot and the files |
 
 `isEnvOpen(state)` is true for every state but `closed` and `failed`. A command whose id starts with
 `job-` (the node's job id) links to its run page; any other is an exec, shown without a link.
 
 Mock (`src/mocks/environments.ts`): three open in northwind-group (`e7k2` working on a dev server on
 port 3000, `q3mn` starting and ready after 25 s, `w8tp` idle with unsaved work, so its close answers 409)
-and six closed; `?mock=no-envs` has none. Each open one's browser is a lane `env/<id>-browser` among the
+and six closed; `?mock=no-envs` has none. `e7k2` saves when idle, `w8tp` is kept running. Three saves:
+one pruned in two days, one with files only and a note that reads like an order; `?mock=no-saves` has
+none. Each open one's browser is a lane `env/<id>-browser` among the
 org's lanes, so the live view and take over work; the jobs its terminal ran answer `/jobs/{id}`.

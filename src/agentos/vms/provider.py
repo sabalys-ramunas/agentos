@@ -51,6 +51,9 @@ class Provider(Protocol):
     async def list_ssh_keys(self, labels: dict[str, str]) -> list[tuple[str, str]]: ...
     async def resolve_image(self, image: str) -> str: ...
     async def create_snapshot(self, server_id: str, description: str, labels: dict[str, str]) -> str: ...
+    async def get_image(self, image_id: str) -> dict | None: ...
+    async def delete_image(self, image_id: str) -> None: ...
+    async def list_images(self, labels: dict[str, str]) -> list[dict]: ...
 
 
 FAKE_PRICES = {"cx23": 0.006, "cax11": 0.0055, "cpx22": 0.0095, "cpx42": 0.04, "ccx23": 0.05}
@@ -76,11 +79,21 @@ class FakeProvider:
     snapshots: dict[str, dict[str, str]] = field(default_factory=dict)
     prices: dict[str, float] = field(default_factory=lambda: dict(FAKE_PRICES))
     specs: dict[str, tuple[int, float, int, str, str]] = field(default_factory=lambda: dict(FAKE_SPECS))
-    unavailable: set[str] = field(default_factory=set)   # types the "cloud" is out of right now
+    unavailable: set[str] = field(default_factory=set)   # types ("cx23") or "cx23@nbg1" the "cloud" is out of now
+    zones: dict[str, str] = field(default_factory=lambda: {"nbg1": "eu-central", "fsn1": "eu-central",
+                                                           "hel1": "eu-central", "ash": "us-east"})
+    image_disk_gb: int = 10                              # a snapshot's disk (a server needs at least that much)
+    made_in: list[tuple[str, str]] = field(default_factory=list)  # (type, location) of each server made
     fail_create: int = 0
     fail_delete: int = 0
     user_data: dict[str, str] = field(default_factory=dict)
     deleted: list[str] = field(default_factory=list)
+    fail_snapshot: int = 0                               # the next snapshots fail, for tests
+    # the next snapshots are made, but the call fails anyway (Hetzner's API unreachable while it made one)
+    lost_snapshot: int = 0
+    locked_snapshot: int = 0                             # the next snapshot calls are refused: resource is locked
+    image_created: dict[str, str] = field(default_factory=dict)  # snapshot id: when it was made (ISO)
+    images: dict[str, dict] = field(default_factory=dict)  # snapshot id: {server, gb}
     _ids: itertools.count = field(default_factory=lambda: itertools.count(1000))
 
     async def check(self) -> None:
@@ -94,13 +107,16 @@ class FakeProvider:
         for n, p in self.prices.items():
             cores, mem, disk, arch, cpu = self.specs.get(n, (2, 4.0, 40, "x86", "shared"))
             out.append({"name": n, "cores": cores, "memory_gb": mem, "disk_gb": disk, "architecture": arch,
-                         "cpu_type": cpu, "price_hourly_eur": {"nbg1": p, "fsn1": p}, "available": None})
+                         "cpu_type": cpu, "price_hourly_eur": {"nbg1": p, "fsn1": p, "hel1": p}, "available": None})
         return out
+
+    async def locations(self) -> dict[str, str]:
+        return dict(self.zones)
 
     async def image_info(self, image: str) -> dict | None:
         if image.startswith("snapshot:"):
             await self.resolve_image(image)
-            return {"architecture": "x86", "disk_gb": 10}
+            return {"architecture": "x86", "disk_gb": self.image_disk_gb}
         return None
 
     async def create_server(self, spec: ServerSpec) -> Server:
@@ -110,8 +126,12 @@ class FakeProvider:
             raise VmError("fake: create refused")
         if spec.server_type not in self.prices:
             raise VmError(f"fake: no server type {spec.server_type}", provider_code="invalid_input")
-        if spec.server_type in self.unavailable:
+        if spec.server_type in self.unavailable or f"{spec.server_type}@{spec.location}" in self.unavailable:
             raise VmError(f"fake: {spec.server_type} is sold out", provider_code="resource_unavailable")
+        if spec.image.startswith("snap") and self.specs.get(spec.server_type, (0, 0, 40))[2] < self.image_disk_gb:
+            raise VmError("Hetzner: service_error: image disk is bigger than server type disk",
+                          provider_code="service_error")
+        self.made_in.append((spec.server_type, spec.location))
         sid = str(next(self._ids))
         s = Server(id=sid, name=spec.name, status="running", ipv4=f"203.0.113.{int(sid) % 250 + 1}",
                    labels=dict(spec.labels), server_type=spec.server_type)
@@ -159,6 +179,35 @@ class FakeProvider:
         return image
 
     async def create_snapshot(self, server_id: str, description: str, labels: dict[str, str]) -> str:
+        from agentos.vms.models import VmError
+        if self.fail_snapshot:
+            self.fail_snapshot -= 1
+            raise VmError("fake: the snapshot failed")
+        if self.locked_snapshot:
+            self.locked_snapshot -= 1
+            raise VmError("Hetzner: locked: cannot perform operation because resource is locked",
+                          provider_code="locked")
         sid = f"snap-{next(self._ids)}"
         self.snapshots[sid] = dict(labels)
+        self.images[sid] = {"server": server_id, "gb": 1.5}
+        from datetime import UTC, datetime
+        self.image_created.setdefault(sid, datetime.now(UTC).isoformat())
+        if self.lost_snapshot:
+            self.lost_snapshot -= 1
+            raise VmError("Hetzner API unreachable (ConnectError)", provider_code="unreachable")
         return sid
+
+    async def list_images(self, labels: dict[str, str]) -> list[dict]:
+        return [{"id": i, "status": "available", "created": self.image_created.get(i, ""),
+                 "gb": self.images.get(i, {}).get("gb", 1.5), "labels": dict(lab)}
+                for i, lab in self.snapshots.items() if _match(lab, labels)]
+
+    async def get_image(self, image_id: str) -> dict | None:
+        if image_id not in self.snapshots:
+            return None
+        return {"id": image_id, "status": "available", "gb": self.images.get(image_id, {}).get("gb", 1.5),
+                "labels": dict(self.snapshots[image_id])}
+
+    async def delete_image(self, image_id: str) -> None:
+        self.snapshots.pop(image_id, None)
+        self.images.pop(image_id, None)

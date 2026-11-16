@@ -24,9 +24,10 @@ ENV_TOOLS = ("environment_open", "environment()", "environment_close")
 
 def test_the_intro_starts_with_the_environment_and_puts_lanes_after():
     first = INSTRUCTIONS.split("\n\n")[0]
-    assert first.startswith("agentos can give you your own computer in the cloud for this chat")
+    assert first.startswith("agentos can give you your own cloud computer")
     for phrase in (*ENV_TOOLS, "without `on`", "localhost", "push", "links", "work in agentos",
-                   "builds, tests, a dev server, a browser", "never leave one running"):
+                   "builds, tests, dev servers", "never leave one running", "The title names it",
+                   "your other chats reach it by title", 'with several, on="<title>"'):
         assert phrase in first, phrase
     assert "lanes_list" not in first  # account lanes are a separate thing, after
     assert INSTRUCTIONS.index("environment_open") < INSTRUCTIONS.index("A lane id is workspace/name")
@@ -40,6 +41,9 @@ class Bound:
         self.env = env
 
     async def bound(self, binding, family=None):
+        return self.env
+
+    async def pick_or_none(self, binding, family=None):
         return self.env
 
 
@@ -85,7 +89,7 @@ def test_the_intro_and_the_skill_say_where_the_terminal_tools_are_and_promise_no
     in the default list; the rest are tools_more("terminals")), and is promised only links that exist: the
     node's live view (links.browser), no web app page and no port link."""
     first = INSTRUCTIONS.split("\n\n")[0]
-    assert "links.browser" in first and "lane_job_start" in first and "studio toolset" in first
+    assert "links.browser" in first and "lane_job_start" in first and "ui_check" in first
     assert "`on` for an account lane" in INSTRUCTIONS
     text = skills.source("agentos-environment")
     for words in ('tools_more("terminals")', 'tools_more("studio")', "lane_job_read", "in your tool list",
@@ -138,3 +142,44 @@ def test_dev_up_sees_a_listening_port_as_busy_and_a_closing_one_as_free():
             conn.close()  # the server end closes first: its side waits in TIME_WAIT
             client.recv(1)
     assert port_is_free(port)
+
+
+def test_the_skill_and_the_intros_teach_the_three_modes_and_coming_back():
+    """An agent picks single use, save or live for the right reason, resumes by title, reads `resumed`
+    (its note as data), saves before risky steps, tells the human how to come back, and forgets saves."""
+    from agentos.local.node import INSTRUCTIONS as LOCAL
+
+    text = skills.source("agentos-environment")
+    for words in ('keep="none"', 'keep="save"', 'keep="live"', "continue tomorrow", "same title", "resumed",
+                  "missing", "note", "environment_save(", "environment_forget(", "continue Black Friday page in agentos",
+                  "environment_upload", "environment_download(", "keep_live_not_allowed", "save_failed",
+                  "restore_failed", "final=true"):
+        assert words in text, words
+    first = INSTRUCTIONS.split("\n\n")[0]
+    for words in ('keep="save"', '"live"', "same title", "resumed", "environment_save"):
+        assert words in first, words
+    for words in ('"save"', '"live"', "same title", "`resumed`", "environment_save(note)", "environment_forget(title)",
+                  "continue <title> in agentos", "environment_download(path)", "sleep"):
+        assert words in LOCAL, words
+    assert EM_DASH not in LOCAL
+
+
+def test_the_skill_and_the_intros_teach_coming_back_ports_and_pull_requests():
+    """Builder I3: services come back (or say how to restart them), one call stops with a note and one
+    finishes for good, the repo alone finds the environment, a dev server gets a link, and a pushed
+    branch gets a real pull request (git.compare is only the fallback)."""
+    from agentos.local.node import INSTRUCTIONS as LOCAL
+
+    text = skills.source("agentos-environment")
+    for words in ("environment_pull_request(", "environment_port(", "forget=true", 'environment_close(note="',
+                  "repo=", "environment_choice", "`restart`", "running_jobs_lost", "pull_request_failed",
+                  "git.compare", "signins=false", "tunnel"):
+        assert words in text, words
+    first = INSTRUCTIONS.split("\n\n")[0]
+    for words in ("environment_pull_request(title)", "environment_port(port)", "forget=true", "note=",
+                  "the repo alone"):
+        assert words in first, words
+    for words in ("environment_pull_request", "environment_port(port)", "forget=true", 'note="',
+                  "environment_open(repo=...)", "`services`", "http://127.0.0.1:<p>/"):
+        assert words in LOCAL, words
+    assert "compare: a PR link" not in INSTRUCTIONS + LOCAL + text

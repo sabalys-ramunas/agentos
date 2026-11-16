@@ -16,8 +16,9 @@ machine instead, and drives it from here:
   and take over are the same code as for a display on the node.
 - The browser: Camoufox's browser server on the machine, on 127.0.0.1 only, at a random path; the
   node connects Playwright to it through the tunnel (agentos.environments.tunnels). It is a fresh
-  browser each time the lane opens (a browser server cannot serve a persistent profile), which an
-  environment's browser never needs: it holds no account and no login.
+  browser each time the lane opens (a browser server cannot serve a persistent profile); the sign-ins
+  made in it (cookies, local storage) are read when the lane closes and when it is saved, and its
+  next context opens with them (agentos.environments.signins). It holds no account of the owner's.
 - On the machine, localhost is the machine: no proxy. Closing the lane stops the browser, releasing
   the display stops the screen, and closing the environment does both before its tunnel goes.
 """
@@ -108,10 +109,11 @@ class RemoteSession(CamoufoxSession):
     and closing it also stops the browser on the machine (`on_close`)."""
 
     def __init__(self, playwright: Any, browser: Any, context: Any, profile_dir: Path, close_timeout: float, *,
-                 on_close: Any, **kw: Any):
+                 on_close: Any, before_close: Any = None, **kw: Any):
         super().__init__(playwright, context, profile_dir, None, close_timeout, **kw)
         self._browser = browser
         self._on_close = on_close
+        self._before_close = before_close  # reads the sign-ins while the context is still there
         browser.on("disconnected", lambda *_: setattr(self, "_ctx_closed", True))
 
     @property
@@ -125,6 +127,9 @@ class RemoteSession(CamoufoxSession):
     async def close(self) -> None:
         if self._closed:
             return
+        if self._before_close is not None and self.alive:
+            with contextlib.suppress(Exception):
+                await self._before_close(self._ctx)
         try:
             await super().close()
         finally:
@@ -281,9 +286,17 @@ class VmBrowsers:
         try:
             browser = await pw.firefox.connect(f"ws://127.0.0.1:{tunnel.browser_port}{ws_path}",
                                                timeout=CONNECT_TIMEOUT_MS)
-            context = await browser.new_context(no_viewport=True)
+            from agentos.environments import signins
+
+            state = signins.for_launch(self.svc, env)  # the sign-ins a save or the lane's last close left
+            context = await browser.new_context(no_viewport=True, **({"storage_state": state} if state else {}))
+
+            async def keep_signins(ctx: Any) -> None:
+                if signins.enabled(self.svc, self.svc.store.get(env.id)):
+                    signins.remember(self.svc, env.id, await signins.read_state(ctx))
+
             session = RemoteSession(pw, browser, context, profile_dir, float(getattr(engine, "close_timeout", 15.0)),
-                                    on_close=stop_remote,
+                                    on_close=stop_remote, before_close=keep_signins,
                                     files=LaneFiles(profile_dir.parent / "files", getattr(engine, "files", None)
                                                     or FilesConfig()),
                                     dialog_timeout=float(getattr(engine, "dialog_timeout", DIALOG_TIMEOUT)))

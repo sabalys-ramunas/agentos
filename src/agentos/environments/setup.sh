@@ -33,8 +33,9 @@ fi
 if ! command -v uv >/dev/null 2>&1; then
   curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin UV_NO_MODIFY_PATH=1 sh
 fi
+# The package lists stay, so the agent's first `apt-get install` works (the .deb cache goes). A machine
+# from a snapshot fetches them again in the background (agentos.environments.machine.apt_ready).
 apt-get clean
-rm -rf /var/lib/apt/lists/*
 mkdir -p /work
 mkdir -p "$(dirname "$READY")"
 date -u +%Y-%m-%dT%H:%M:%SZ > "$READY"

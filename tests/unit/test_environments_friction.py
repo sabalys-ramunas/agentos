@@ -20,35 +20,27 @@ REPO = "example.test/me/shop"
 # ------------------------------------------------------------------ 3: only what is alive comes back
 
 
-async def test_a_starting_environment_with_a_repo_is_not_handed_back_for_none(node):  # noqa: F811
-    """The real cause of report 3: the first open returned `starting` (the machine was still
-    installing its tools), the agent asked again without the repository, and got the starting one
-    with the private repository back, which then failed on its clone. Now it hears that this chat
-    has one with another repository, and what to do."""
+async def test_a_starting_environment_with_a_repo_is_named_by_its_title(node):  # noqa: F811
+    """Report 3: the first open returned `starting`, the agent asked again without the repository.
+    The title names that computer, so it attaches, and the result says so (opened, repo); another
+    title opens the empty one it may have meant. Nothing tells it to close anything."""
     node["machine"].setup = "status: running"  # it stays starting
     first = await opened(node, repo=REPO, wait_s=0)
-    assert first["state"] == "starting"
-    with pytest.raises(ToolCallError, match="environment_already_open") as err:
-        await node["call"]("environment_open", title=TITLE, wait_s=0)
-    words = str(err.value)
-    assert first["id"] in words and REPO in words and "no repository" in words and "environment_close()" in words
-    # the fix line an agent reads says the same, and no wait (P2-10 of the 2026-11-15 test)
-    lines = catalog.mcp_lines("environment_already_open", words)
-    assert len(lines) == 1 and "environment_close()" in lines[0] and "another title" not in lines[0]
-    # the same repository still gets the same one back
-    again = await opened(node, repo=REPO, wait_s=0)
-    assert again["id"] == first["id"]
-    # once it is closed, the chat opens the one it asked for
-    await node["call"]("environment_close")
+    assert first["state"] == "starting" and first["opened"] == "new"
+    again = await opened(node, wait_s=0)
+    assert again["id"] == first["id"] and again["opened"] == "attached" and again["repo"] == REPO
+    assert "already open" in again["next"] and "environment_close" not in again["next"].split(".")[0]
     node["machine"].setup = "ready"
-    fresh = await opened(node)
+    fresh = await opened(node, title="Empty one")
     assert fresh["id"] != first["id"] and fresh["repo"] is None and fresh["state"] == "ready"
+    assert fresh["opened"] == "new"
 
 
 async def test_a_failed_environment_is_never_handed_back(node):  # noqa: F811
     node["machine"].setup = "status: error\nE: no space left on device"
-    failed = await opened(node, repo=REPO)
-    assert failed["state"] == "failed"
+    with pytest.raises(ToolCallError, match="environment_failed: setup: "):
+        await opened(node, repo=REPO)
+    failed = {"id": node["mgr"].store.recent(1)[0].id}
     node["machine"].setup = "ready"
     for session in ("chat-1", "chat-2"):  # the chat that opened it, and a resumed one
         out = await opened(node, session=session)
@@ -63,16 +55,20 @@ async def test_a_closing_environment_is_never_handed_back(node):  # noqa: F811
     assert out["id"] != a["id"] and out["state"] == "ready"
 
 
-async def test_a_title_with_a_live_environment_of_another_repo_is_in_use(node):  # noqa: F811
+async def test_a_title_with_a_live_environment_of_another_repo_is_already_open(node):  # noqa: F811
     """Another chat names the title of a live environment with another repository: it neither gets
-    that machine nor a second one with the same title (the next reattach by title would be a guess)."""
+    that machine nor a second one with the same title (the next attach by title would be a guess).
+    The error says to pick another title, and never to close or discard it."""
     a = await opened(node, repo=REPO)
     mgr = node["mgr"]
     mgr._clock = lambda: utcnow() + timedelta(minutes=11)  # chat-1 is quiet
-    with pytest.raises(ToolCallError, match="environment_in_use") as err:
+    with pytest.raises(ToolCallError, match="environment_already_open") as err:
         await node["call"]("environment_open", title=TITLE, repo="example.test/me/other", session="chat-2")
     words = str(err.value)
-    assert f'repo="{REPO}"' in words and "another title" in words and "not no repository" not in words
+    assert "another title" in words and f'environment_open(title="{TITLE}") without repo' in words
+    assert "close" not in words and "discard" not in words
+    lines = catalog.mcp_lines("environment_already_open", words)
+    assert "another title" in lines[0] and "Never close it" in lines[0] and "discard" not in lines[0]
     assert mgr.get(a["id"]).binding == "session:chat-1" and len(mgr.store.open()) == 1
     other = await node["call"]("environment_open", title=TITLE, repo=REPO, session="chat-2")
     assert other["id"] == a["id"]
@@ -155,7 +151,23 @@ async def test_a_host_the_node_cannot_reach_rents_nothing_either(node):  # noqa:
     node["mgr"].repo_probe = _refusing(b"fatal: unable to access: Could not resolve host: example.test\n")
     with pytest.raises(ToolCallError, match="environment_failed") as err:
         await node["call"]("environment_open", title=TITLE, repo=REPO)
-    assert "could not reach example.test" in str(err.value) and node["vms"].store.recent() == []
+    words = str(err.value)
+    assert "could not reach example.test" in words and node["vms"].store.recent() == []
+    assert words.startswith("environment_failed: network: the computer agentos runs on") and "4 tries" in words
+    assert "Try again in 2 minutes" in words
+
+
+async def test_a_repo_check_the_network_drops_is_tried_again_before_it_fails(node):  # noqa: F811
+    """A laptop's network drops for a few seconds: the check goes again (over about 15 s) and the open works."""
+    tries = []
+
+    async def flaky(url, env, *, timeout_s=20.0, allow_file=False):
+        tries.append(timeout_s)
+        return (len(tries) > 2, b"" if len(tries) > 2 else b"fatal: unable to access: Connection timed out\n")
+
+    node["mgr"].repo_probe = flaky
+    out = await opened(node, repo=REPO)
+    assert out["state"] == "ready" and tries == [20.0, 10.0, 10.0]  # the tries after the first are shorter
 
 
 class TokenVault:
@@ -224,12 +236,13 @@ async def test_a_clone_the_gateway_refuses_names_the_key_and_the_fix(node, decla
         return await plain(lane_id, cmd, **kw)
 
     monkeypatch.setattr(node["envs"], "exec", exec_)
-    out = await opened(node, repo=REPO)
-    assert out["state"] == "failed" and out["error_code"] == "repo_not_connected", out
-    assert "refused the deploy key shop-ssh" in out["error"] and "agentos environments repo add" in out["error"]
-    assert "word for word" in out["next"]
-    env = node["mgr"].get(out["id"])
-    assert node["vms"].store.get(env.vm_id).state == "deleted"
+    with pytest.raises(ToolCallError, match="repo_not_connected: cloning example.test/me/shop") as err:
+        await opened(node, repo=REPO)
+    words = str(err.value)
+    assert "refused the deploy key shop-ssh" in words and "agentos environments repo add" in words
+    assert "word for word" in words and "truncated" not in words  # the whole fix fits in an MCP error
+    env = node["mgr"].store.recent(1)[0]
+    assert env.error_code == "repo_not_connected" and node["vms"].store.get(env.vm_id).state == "deleted"
 
 
 def test_the_whole_fix_fits_in_an_mcp_error():

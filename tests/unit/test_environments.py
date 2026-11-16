@@ -195,8 +195,8 @@ async def test_open_never_asks_then_rents_clones_and_is_ready(node):
     # the node's own live view, never a page of the web app (the public repository has none)
     assert set(out["links"]) == {"browser"} and "/environments/" not in str(out["links"]["browser"])
     # the agent finds its terminal without guessing: the tools it needs are named, and where the rest are
-    for words in ("calls without `on` use this environment", 'lane_exec(cmd="npm test", cwd="/work/shop")',
-                  "lane_file_read", "lane_file_edit", "proof=", "git.compare",
+    for words in ("calls without `on` go here", 'lane_exec(cmd="npm test", cwd="/work/shop")',
+                  "lane_file_read", "lane_file_edit", "proof=", "environment_pull_request(title)",
                   "lane_job_start(", "lane_job_read", "in your list", 'tools_more("terminals")',
                   'tools_more("studio")', "links.browser"):
         assert words in out["next"], words
@@ -220,11 +220,19 @@ async def test_cloud_init_sets_up_a_plain_ubuntu_machine(node):
     assert "Node 22" in machine.setup_script() and "uv" in machine.setup_script()
 
 
-async def test_the_same_chat_gets_the_same_environment_and_a_new_chat_reattaches_by_title(node):
+async def test_a_new_title_opens_another_and_a_new_chat_reattaches_by_title(node):
     call = node["call"]
     a = await opened(node)
-    again = await call("environment_open", title="Something else")
-    assert again["id"] == a["id"]  # one per chat
+    again = await call("environment_open", title=TITLE.upper())  # its title, in any case: the same one
+    assert again["id"] == a["id"] and again["opened"] == "attached"
+    other_title = await call("environment_open", title="Something else")  # the title names the computer
+    assert other_title["id"] != a["id"] and other_title["opened"] == "new"
+    ran = await call("lane_exec", cmd="pwd")  # this session took "Something else" last: calls go there
+    assert ran["environment"] == {"id": other_title["id"], "title": "Something else"}
+    await call("environment_open", title=TITLE)  # attaching again makes it this session's
+    ran = await call("lane_exec", cmd="pwd")
+    assert ran["environment"]["id"] == a["id"]
+    await call("environment_close", on="Something else")
     # a resumed chat of the same grant takes it over once the first chat has been quiet for 10 minutes
     mgr = node["mgr"]
     mgr._clock = lambda: utcnow() + timedelta(minutes=11)
@@ -240,7 +248,7 @@ async def test_another_grant_does_not_reattach_or_see_it(node):
     seen = await node["call"]("environment", session="chat-9", tok=tok2)
     assert seen["environment"] is None and seen["open"] == []
     with pytest.raises(ToolCallError, match="no environment"):
-        await node["call"]("environment", id=a["id"], session="chat-9", tok=tok2)
+        await node["call"]("environment", on=a["id"], session="chat-9", tok=tok2)
 
 
 async def test_open_past_the_nodes_limit_is_refused(node):
@@ -278,10 +286,59 @@ async def test_a_fourth_open_is_refused_with_the_limit_and_the_command_that_rais
 
 async def test_a_machine_whose_setup_fails_is_deleted_and_says_why(node):
     node["machine"].setup = "status: error\nE: Unable to locate package nodejs"
-    out = await opened(node)
-    assert out["state"] == "failed" and "setup failed" in out["error"]
-    env = node["mgr"].get(out["id"])
+    with pytest.raises(ToolCallError, match=r"environment_failed: setup: environment e\w+ did not start: the "
+                                            "machine's setup failed") as err:
+        await opened(node)
+    from agentos.core.catalog import mcp_lines
+    message = str(err.value).removeprefix("environment_failed: ")
+    assert mcp_lines("environment_failed", message)[0].startswith("fix: The machine did not finish its setup")
+    env = node["mgr"].store.recent(1)[0]
     assert env.closed_reason.startswith("failed to start") and node["vms"].store.get(env.vm_id).state == "deleted"
+    assert (env.state, env.error_code, env.error_reason) == ("failed", "environment_failed", "setup")
+    # the record stays: environment() lists it under failed, with why
+    listed = await node["call"]("environment")
+    assert listed["failed"][0]["id"] == env.id and listed["failed"][0]["reason"] == "setup"
+
+
+async def test_the_browser_and_the_clone_come_up_at_once_and_each_step_is_logged(node, caplog, monkeypatch):
+    """Opens took 145 to 300 s: every step's time is logged at INFO, and the browser, the clone and the
+    tools top-up run at once once the tunnels are up (the browser waits here until the clone has begun)."""
+    import asyncio
+    import logging
+
+    mgr = node["mgr"]
+    began = asyncio.Event()
+    browser, clone = mgr._make_browser, mgr._clone
+
+    async def slow_browser(env):
+        await asyncio.wait_for(began.wait(), 5)  # only ends once the clone runs beside it
+        await browser(env)
+
+    async def cloning(env):
+        began.set()
+        await clone(env)
+
+    monkeypatch.setattr(mgr, "_make_browser", slow_browser)
+    monkeypatch.setattr(mgr, "_clone", cloning)
+    with caplog.at_level(logging.INFO, logger="agentos.environments"):
+        out = await opened(node, repo="example.test/me/shop")
+    assert out["state"] == "ready"
+    said = [r.getMessage() for r in caplog.records]
+    for step in ("VM create", "VM ready", "setup check", "apt ready", "tunnels and git", "browser", "clone",
+                 "tools top-up"):
+        assert any(f": {step} took " in m for m in said), step
+    assert any(m.startswith(f"environment {out['id']} ready (/work/shop) in ") and "clone " in m for m in said)
+
+
+async def test_an_open_the_cloud_has_no_room_for_says_what_was_tried_and_what_next(node):
+    node["prov"].unavailable = set(node["prov"].prices)  # no room for any type, anywhere
+    with pytest.raises(ToolCallError, match="environment_failed: capacity: environment e\\w+ did not start: Fake "
+                                            "has no room for cx23 in nbg1, fsn1 or hel1 now, nor for ") as err:
+        await opened(node)
+    words = str(err.value)
+    assert 'try again in 5 minutes, or ask for size="medium"' in words and "\u2014" not in words
+    env = node["mgr"].store.recent(1)[0]
+    assert (env.state, env.error_reason, env.vm_state) == ("failed", "capacity", "none")
 
 
 # ------------------------------------------------------------------ routing
@@ -431,12 +488,39 @@ async def test_close_refuses_unsaved_work_then_discard_deletes_everything(node):
         await node["call"]("lane_exec", cmd="echo after")
 
 
+async def test_close_refuses_files_in_no_git_repo_and_says_how_to_keep_them(node):
+    """T3: a computer with no repository closed and deleted a new file in /work without a word. Files in no
+    git repository are unsaved work for keep "none": the refusal lists them and says to download them."""
+    out = await opened(node)
+    node["machine"].git = "loose=notes/important.txt\nloose=out/report.txt\nloose_count=2\n"
+    with pytest.raises(ToolCallError, match="unsaved_work") as err:
+        await node["call"]("environment_close")
+    words = str(err.value)
+    assert "files in /work in no git repository: notes/important.txt, out/report.txt" in words
+    assert 'environment_download(path="<file or folder>")' in words and "discard=true" in words
+    assert "commit it and push" not in words.lower() and "\u2014" not in words
+    state = await node["call"]("environment")
+    assert state["unsaved"]["loose_files"] == ["notes/important.txt", "out/report.txt"]
+    closed = await node["call"]("environment_close", on=out["title"], discard=True)
+    assert closed["state"] == "closed"
+
+
+def test_the_files_in_no_repo_come_after_the_repos_and_are_never_the_main_one():
+    from agentos.environments.probes import main_repo
+    repos = parse_git_state("repo=/work/shop\nbranch=main\nahead=0\ndirty_count=0\nloose=a b.txt\nloose_count=60\n")
+    assert [r["dir"] for r in repos] == ["/work/shop", "/work"] and repos[1]["loose"] and repos[1]["dirty"] == 60
+    assert main_repo(repos, "/work")["dir"] == "/work/shop"
+    unsaved = EnvironmentManager.unsaved_of(repos)
+    assert unsaved["loose_files"] == ["a b.txt"] and unsaved["loose_count"] == 60 and unsaved["dirty_files"] == []
+    assert EnvironmentManager.unsaved_of(parse_git_state("loose_count=0\n")) is None
+
+
 async def test_close_of_another_grants_environment_is_refused(node):
     a = await opened(node)
     _g2, tok2 = node["policy"].issue(subject={"id": "agent-2"}, workspaces=["*"], ceiling=Effect.COMMIT,
                                      specials={"vm": {}, "exec": {}})
     with pytest.raises(ToolCallError, match="no environment"):
-        await node["call"]("environment_close", id=a["id"], session="chat-9", tok=tok2)
+        await node["call"]("environment_close", on=a["id"], session="chat-9", tok=tok2)
     assert node["mgr"].get(a["id"]).open
 
 
@@ -456,7 +540,7 @@ async def test_a_freeze_stops_every_environment_tool_and_closes_nothing(node, tm
         with pytest.raises(ToolCallError, match="^frozen"):
             await node["call"](tool, **kw)
     with pytest.raises(ToolCallError, match="^frozen"):  # by id from another chat
-        await node["call"]("environment", id=out["id"], session="chat-2")
+        await node["call"]("environment", on=out["id"], session="chat-2")
     if scope != "lane":  # a new one would have its lane in the frozen workspace (a lane freeze is that lane)
         with pytest.raises(ToolCallError, match="^frozen"):
             await node["call"]("environment_open", title="Another page", session="chat-2")
@@ -512,9 +596,12 @@ async def test_the_reaper_keeps_unsaved_work_and_tells_the_owner_once(node, monk
     second = await mgr.reap_once(later + timedelta(minutes=1))
     assert first["kept_unsaved"] == [out["id"]] and second["kept_unsaved"] == []
     assert len(told) == 1 and "not pushed" in told[0] and mgr.get(out["id"]).open
-    # at its time limit it goes, unsaved work or not
+    # at its time limit it gets a rescue save first (agentos.environments.saving; test_environments_saves
+    # has the real one). This fake machine cannot make one, so it is kept and the owner hears so: never a
+    # silent discard
     end = await mgr.reap_once(mgr.get(out["id"]).expires_at + timedelta(seconds=1))
-    assert end["closed"] == [out["id"]] and mgr.get(out["id"]).closed_reason == "time limit"
+    assert end["closed"] == [] and end["save_failed"] == [out["id"]] and mgr.get(out["id"]).open
+    assert "could not be saved" in told[-1]
 
 
 async def test_the_reaper_marks_an_environment_whose_vm_is_gone(node):

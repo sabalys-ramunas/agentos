@@ -137,7 +137,26 @@ def world(tmp_path, monkeypatch):
                "register": SimpleNamespace(register_clients=w.register_clients),
                "paths": SimpleNamespace(default_home=lambda: user / ".agentos", DEFAULT_PORT=7410)}
     monkeypatch.setattr(steps, "local", lambda name: modules[name])
+    _keep_fields(monkeypatch)
     return w
+
+
+def _keep_fields(monkeypatch):
+    """environments.toml's keep keys (default_keep, allow_keep_live) come with kept environments
+    (agentos.environments.models). Until that model has them, the tests read and write them on a model
+    that does, so the step is tested as it runs with them."""
+    from typing import Literal
+
+    from agentos.environments import models
+
+    if "default_keep" in models.EnvSettings.model_fields:
+        return
+
+    class WithKeep(models.EnvSettings):
+        default_keep: Literal["none", "save", "live"] = "none"
+        allow_keep_live: bool = False
+
+    monkeypatch.setattr(models, "EnvSettings", WithKeep)
 
 
 def run(*args, input=None):
@@ -153,7 +172,7 @@ def _no_secrets(out: str) -> None:
 def test_quick_start_with_hetzner_and_gh(world):
     home = world.home
     # quick start; Hetzner; the token; gh's login; yes to any repository; yes to the test VM
-    r = run(input="1\n1\n" + HZ_TOKEN + "\n1\n\ny\n")
+    r = run(input="1\n1\n" + HZ_TOKEN + "\n1\n\n\ny\n")  # the keep question takes its default
     out = r.output
     assert r.exit_code == 0, out
     _no_secrets(out)
@@ -175,6 +194,9 @@ def test_quick_start_with_hetzner_and_gh(world):
     # limits: the low local defaults
     env = tomllib.loads((home / "environments.toml").read_text())
     assert env["monthly_eur"] == 10 and env["max_hours"] == 4 and env["max_live"] == 2
+    # single use by default, and never kept running unless the owner says so
+    assert env["default_keep"] == "none" and "allow_keep_live" not in env
+    assert "How should an environment stay after the work?" in out and "Single use" in out
     # the service started, both agents and the skills connected on its port
     assert ("start", None) in world.calls and ("register", 7410, True, True, True) in world.calls
     assert "runs on this computer at http://127.0.0.1:7410/mcp" in out
@@ -206,9 +228,9 @@ def test_step_by_step_asks_each_setting(world):
     home = world.home
     world.docker = (False, False, False)
     # step by step; Hetzner; token; Helsinki; medium; no gh: paste a token, no to any repository;
-    # limits 25, 6, 3; Claude Code yes, Codex no, skills yes; no test VM
+    # limits 25, 6, 3; saves when idle; Claude Code yes, Codex no, skills yes; no test VM
     world.gh_installed = False
-    r = run(input="2\n1\n" + HZ_TOKEN + "\n3\n2\n1\n" + PASTED + "\nn\n25\n6\n3\ny\nn\ny\nn\n")
+    r = run(input="2\n1\n" + HZ_TOKEN + "\n3\n2\n1\n" + PASTED + "\nn\n25\n6\n3\n2\ny\nn\ny\nn\n")
     out = r.output
     assert r.exit_code == 0, out
     _no_secrets(out)
@@ -220,6 +242,8 @@ def test_step_by_step_asks_each_setting(world):
     assert "Connect repositories one by one: agentos environments repo add github.com/<owner>/<name>" in out
     env = tomllib.loads((home / "environments.toml").read_text())
     assert (env["monthly_eur"], env["max_hours"], env["max_live"]) == (25, 6, 3)
+    assert env["default_keep"] == "save" and "allow_keep_live" not in env
+    assert "Environments: saved when idle." in out
     assert ("register", 7410, True, False, True) in world.calls
     assert ("test_vm",) not in world.calls and "No test VM" in out
 
@@ -432,3 +456,37 @@ def test_the_snapshot_build_is_vm_image_build_dev_with_the_browser(tmp_path, mon
     assert steps.build_dev_snapshot(tmp_path, said.append) == 0.02
     assert seen == {"name": "dev", "script": image_script(install_script()), "follow_ip": True}
     assert said == ["taking the snapshot"]
+
+
+def test_keep_running_is_allowed_only_after_the_cost_is_said_and_confirmed(world):
+    # the limits as they are, the third option, then no to the cost: it saves when idle and live stays off
+    keep = "\n\n\n"
+    r = run("limits", input=keep + "3\nn\n")
+    out = r.output
+    assert r.exit_code == 0, out
+    _no_secrets(out)
+    assert "about EUR 7.80 a month" in out and "Not allowed." in out
+    env = tomllib.loads((world.home / "environments.toml").read_text())
+    assert env["default_keep"] == "save" and "allow_keep_live" not in env
+    # again, and yes: allowed, while the default stays save (an agent keeps one running only when asked)
+    r = run("limits", input=keep + "3\ny\n")
+    assert r.exit_code == 0, r.output
+    env = tomllib.loads((world.home / "environments.toml").read_text())
+    assert env["default_keep"] == "save" and env["allow_keep_live"] is True
+    assert "kept running when you ask (it bills every hour)" in r.output
+    # again: the default is what is set now, so Enter keeps it and nothing asks about the cost
+    r = run("limits", input=keep + "\n")
+    assert r.exit_code == 0 and "about EUR 7.80" not in r.output
+    assert tomllib.loads((world.home / "environments.toml").read_text())["allow_keep_live"] is True
+    # single use now: live is turned off with it
+    r = run("limits", input=keep + "1\n")
+    env = tomllib.loads((world.home / "environments.toml").read_text())
+    assert env["default_keep"] == "none" and env["allow_keep_live"] is False
+
+
+def test_yes_keeps_single_use_and_asks_nothing_about_keeping(world):
+    r = run("--yes", "--docker", input="")
+    assert r.exit_code == 0, r.output
+    env = tomllib.loads((world.home / "environments.toml").read_text())
+    assert env["default_keep"] == "none" and "allow_keep_live" not in env
+    assert "Keeping  single use, deleted when the work is done" in r.output

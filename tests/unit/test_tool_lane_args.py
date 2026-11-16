@@ -40,6 +40,9 @@ SELF_AUTHORIZED_LANE_PARAM = {
     "lane_jobs_list": "on",
     # `lane` only narrows a list already filtered by flow_seen (ctx.can_access_lane); it acts on nothing.
     "flows_list": "lane",
+    # `on` names one of the caller's environments (title, id or env/<id>), found only in its grant family
+    # (EnvironmentManager.named, reaches); refuse_frozen on its lanes (agentos.environments.tools._find)
+    "environment": "on", "environment_close": "on", "environment_save": "on",
 }
 
 # Tools with lane_arg=None whose lane comes from another argument: the handler resolves it and
@@ -78,8 +81,11 @@ SELF_AUTHORIZED_INDIRECT = {
     "profile_use": "reads the approved profile; _check_reach: covers_workspace or ctx.can_access_lane on its accounts",
     # agentos.environments.tools: the lane is the one the node picks (env/<id>), or the chat's environment's
     "environment_open": "plans env/<id>; ctx.precheck(VM, lane_id=env/<id>), ctx.authorize(READ, lane_id=env/<id>)",
-    "environment": "this chat's environment (or an id of the grant family); refuse_frozen on its lanes",
-    "environment_close": "this chat's environment (or an id of the grant family); refuse_frozen on its lanes",
+    "environment": "the picked environment, or `on` in the grant family; refuse_frozen on its lanes",
+    "environment_close": "the picked environment, or `on` in the grant family; refuse_frozen on its lanes",
+    "environment_save": "the picked environment, or `on` in the grant family; refuse_frozen on its lanes",
+    # saves of the caller's grant family by title (Saving.forget), no lane: the machine is gone
+    "environment_forget": "saves of the grant family only (mgr.forget(family, title)); refuse_frozen on their lanes",
 }
 
 # Tools with lane_arg=None that touch no lane: approvals, brains, memory, runs, catalogs and

@@ -2,7 +2,8 @@
 
 Agents open environments with environment_open (agentosd keeps them, and closes them when they are
 done, idle or out of time). Opening one never asks a person; the node's limits bound it. These
-commands list them, show one, close one by hand, set those limits, and check what the node needs.
+commands list them, show one, copy a file or a folder off one, close one by hand, set those limits, and
+check what the node needs.
 They work while agentosd runs: a close marks the environment, and agentosd's reaper deletes its
 machine, browser and tunnels within a minute.
 """
@@ -21,15 +22,15 @@ from agentos.core.config import home_from_env
 from agentos.core.errors import AgentosError, InvalidRequest, NotFound
 from agentos.environments.models import SIZES, WORKSPACE
 
-app = typer.Typer(no_args_is_help=True, help="Your agents' cloud computers: list, show, close, allow, set up, "
-                                             "connect repositories.")
+app = typer.Typer(no_args_is_help=True, help="Your agents' cloud computers: list, show, download, close, allow, "
+                                             "set up, connect repositories.")
 
 _state: dict = {"home": None}
 
 
 @app.callback()
 def main(home: Annotated[Path | None, typer.Option(help="AGENTOS_HOME (default: $AGENTOS_HOME)")] = None) -> None:
-    """Your agents' cloud computers: list, show, close, allow, set up, connect repositories."""
+    """Your agents' cloud computers: list, show, download, close, allow, set up, connect repositories."""
     _state["home"] = home
 
 
@@ -86,6 +87,9 @@ def _unsaved_words(unsaved: dict) -> str:
         parts.append(_count(len(unsaved["stashes"]), "stash", "stashes"))
     if unsaved.get("unreadable"):
         parts.append(_count(len(unsaved["unreadable"]), "repository git cannot read", "repositories git cannot read"))
+    if unsaved.get("loose_files"):
+        parts.append(_count(unsaved.get("loose_count") or len(unsaved["loose_files"]), "file in no git repository",
+                            "files in no git repository"))
     return " and ".join(parts) or "nothing unsaved"
 
 
@@ -188,7 +192,9 @@ def close(env_id: Annotated[str, typer.Argument(metavar="ID", help="An environme
     if not env.open:
         typer.echo(f"Environment {env.id} is already {env.state}.")
         return
-    if not discard and env.state == "ready":
+    if env.keep == "save" and not discard:
+        pass  # agentosd saves it (disk snapshot and files) before it deletes the machine
+    elif not discard and env.state == "ready":
         repos = _git_state(vms, env)
         unsaved = mgr.unsaved_of(repos) if repos is not None else {"dirty_files": [], "unpushed": []}
         if repos is None or unsaved:
@@ -210,7 +216,218 @@ def close(env_id: Annotated[str, typer.Argument(metavar="ID", help="An environme
     if env.state != "closing":
         typer.echo(f"Environment {env.id} is already {env.state}.")
         return
+    if env.keep == "save" and not discard:
+        typer.echo(f"Closing {env.id} ({env.title}). agentosd saves it first, then deletes its machine, on its next "
+                   "pass (within a minute). `agentos environments saves` lists the save.")
+        return
     typer.echo(f"Closing {env.id} ({env.title}). agentosd deletes its machine on its next pass (within a minute).")
+
+
+DOWNLOAD_TIMEOUT_S = 900.0
+
+
+def _daemon_base(cfg: Any) -> str:
+    host = cfg.mcp_host if cfg.mcp_host not in ("", "0.0.0.0", "::") else "127.0.0.1"
+    if ":" in host and not host.startswith("["):
+        host = f"[{host}]"
+    return f"http://{host}:{cfg.mcp_port}"
+
+
+def _http_client() -> Any:
+    """The HTTP client the download command talks to agentosd with (tests give one of their own)."""
+    import httpx
+
+    return httpx.Client(timeout=DOWNLOAD_TIMEOUT_S)
+
+
+def _daemon_error(r: Any) -> str:
+    try:
+        err = r.json().get("error") or {}
+        return f"{err.get('code', 'error')}: {err.get('message', '')}".rstrip(": ")
+    except (ValueError, AttributeError):
+        return f"agentosd answered {r.status_code}"
+
+
+def unpack(archive: Path, into: Path) -> tuple[list[str], list[str]]:
+    """Extract a download's .tar.gz into `into` with tarfile's data filter: no absolute path, no "..",
+    no link that leaves the folder, no device. A member the filter refuses is skipped and named.
+    Returns (the regular files extracted, the members skipped)."""
+    import tarfile
+
+    files: list[str] = []
+    skipped: list[str] = []
+    into.mkdir(parents=True, exist_ok=True)
+
+    def keep(m: tarfile.TarInfo, dest: str) -> tarfile.TarInfo | None:
+        try:
+            kept = tarfile.data_filter(m, dest)
+        except tarfile.FilterError:
+            skipped.append(m.name)
+            return None
+        if kept.isreg():
+            files.append(kept.name.removeprefix("./"))
+        return kept
+
+    with tarfile.open(archive, "r:gz") as tf:
+        tf.extractall(into, filter=keep)
+    return files, skipped
+
+
+@app.command()
+def download(env_id: Annotated[str, typer.Argument(metavar="ID", help="An environment id, like e7k2.")],
+             path: Annotated[str, typer.Argument(metavar="PATH", help="A file or a folder under /work, like "
+                                                 "/work/shop/dist (a relative one starts at the workdir).")],
+             to: Annotated[Path, typer.Option("--to", metavar="DIR", help="The folder it goes into (default: "
+                                              "this one).")] = Path("."),
+             json_out: Annotated[bool, typer.Option("--json")] = False) -> None:
+    """Copy a file or a folder off an environment's machine into DIR, without the agent.
+
+    agentosd packs it on the machine (at most 512 MB packed) and gives a one-use link, which this
+    fetches and unpacks. It needs agentosd running."""
+    import os
+    import tempfile
+
+    from agentos.core.config import config_path, load_config
+
+    home = _home()
+    if not config_path(home).exists():
+        raise _fail(InvalidRequest(f"no node.toml in {home}; run `agentos node init` first (or set AGENTOS_HOME)"))
+    cfg = load_config(home)
+    if not cfg.mcp_token:
+        raise _fail(InvalidRequest("this node has no token for its own API, so the CLI cannot reach agentosd"))
+    import httpx
+
+    base = _daemon_base(cfg)
+    into = to.expanduser().resolve()
+    try:
+        with _http_client() as http:
+            r = http.post(f"{base}/api/environments/{env_id}/download", json={"path": path},
+                          headers={"Authorization": f"Bearer {cfg.mcp_token}"})
+            if r.status_code != 200:
+                raise _fail(InvalidRequest(_daemon_error(r)))
+            link = r.json()
+            parts = httpx.URL(link["url"])
+            into.mkdir(parents=True, exist_ok=True)
+            fd, tmp = tempfile.mkstemp(prefix=".agentos-download-", suffix=".tgz", dir=into)
+            archive = Path(tmp)
+            try:
+                with os.fdopen(fd, "wb") as f, http.stream("GET", f"{base}{parts.raw_path.decode()}") as got:
+                    if got.status_code != 200:
+                        got.read()
+                        raise _fail(InvalidRequest(_daemon_error(got)))
+                    for chunk in got.iter_bytes():
+                        f.write(chunk)
+                files, skipped = unpack(archive, into)
+            finally:
+                archive.unlink(missing_ok=True)
+    except httpx.HTTPError as e:
+        raise _fail(InvalidRequest(f"agentosd is not reachable at {base} ({type(e).__name__}); start agentosd "
+                                   "and run this again")) from None
+    out = {"environment": env_id, "path": link["path"], "kind": link["kind"], "into": str(into), "files": len(files),
+           "bytes": link["bytes"], "sha256": link["sha256"], "skipped": skipped}
+    if json_out:
+        typer.echo(json.dumps(out, indent=2))
+        return
+    typer.echo(f"Copied the {link['kind']} {link['path']} into {into}: {_count(len(files), 'file', 'files')}.")
+    if skipped:
+        typer.echo(f"Skipped {_count(len(skipped), 'link', 'links')} that point outside it: {', '.join(skipped[:10])}")
+
+
+def _gb(n: float | None) -> str:
+    return "-" if not n else f"{n:.1f} GB"
+
+
+@app.command()
+def saves(json_out: Annotated[bool, typer.Option("--json")] = False) -> None:
+    """The saved environments: what each save holds and what its snapshot costs a month.
+
+    An agent resumes one with environment_open and the same title. Saves older than saved_days
+    (environments.toml) are removed, and you are told the day before."""
+    from agentos.environments.models import load_settings
+    from agentos.environments.saves import SaveStore, public
+
+    s = load_settings(_home())
+    rows = [public(m, s.snapshot_eur_per_gb_month) | {"family": m.family, "commits": m.commits, "files": m.files}
+            for m in SaveStore(_home()).all()]
+    if json_out:
+        typer.echo(json.dumps({"saved": rows}, indent=2))
+        return
+    if not rows:
+        typer.echo("No saved environments. Agents save one with keep=\"save\" or environment_save.")
+        return
+    for r in rows:
+        snap = f"snapshot {_gb(r['snapshot_gb'])}, EUR {r['cost_eur_month']:.2f} a month" if r["snapshot_gb"] else \
+            "files only"
+        typer.echo(f"{r['id']}  \"{r['title']}\"  {r['repo'] or 'no repository'}  {r['branch'] or '-'}  "
+                   f"{r['saved_at']}  {r['kind']}  {snap}  {r['files']} files, {r['commits']} commits")
+    total = sum(r["cost_eur_month"] for r in rows)
+    typer.echo(f"Snapshots together: EUR {total:.2f} a month (EUR {s.snapshot_eur_per_gb_month:g} per GB, "
+               "snapshot_eur_per_gb_month in environments.toml).")
+
+
+def _forget_now(mgr: Any, title: str | None, save_id: str | None) -> dict:
+    return asyncio.run(mgr.forget(None, title, save_id))
+
+
+@app.command()
+def forget(title: Annotated[str, typer.Argument(metavar="TITLE", help="The environment's title, as `saves` lists it.")],
+           save: Annotated[str | None, typer.Option("--save", help="Only this save id.")] = None) -> None:
+    """Forget the saves of a title (or one save), and delete their disk snapshots at the provider."""
+    mgr, _vms = _managers()
+    try:
+        out = _forget_now(mgr, title, save)
+    except AgentosError as e:
+        raise _fail(e) from None
+    typer.echo(f"Forgot {len(out['forgot'])} save{'s' if len(out['forgot']) != 1 else ''} "
+               f"({', '.join(out['forgot']) or 'none'}); deleted {out['snapshots_deleted']} snapshot"
+               f"{'s' if out['snapshots_deleted'] != 1 else ''}.")
+    for k in out.get("kept") or []:
+        typer.echo(f"Kept {k['id']}: {k['why']}.")
+
+
+def _saves_key(*, create: bool) -> bytes | None:
+    """The saves key from the node's vault (agentos.environments.saving.saves_key)."""
+    from agentos.commands.base import cli_runtime
+    from agentos.environments.models import load_settings
+    from agentos.environments.saving import saves_key
+
+    try:
+        return asyncio.run(saves_key(cli_runtime().get("vault"), encrypt=load_settings(_home()).encrypt_saves,
+                                     create=create))
+    except AgentosError as e:
+        raise _fail(e) from None
+
+
+@app.command("save-export")
+def save_export(save_id: Annotated[str, typer.Argument(metavar="ID", help="A save id, like s7k2m9p3x4q.")],
+                file: Annotated[Path, typer.Argument(metavar="FILE", help="The file to write.")]) -> None:
+    """Write one save to a file, to move it to another node (`save-import` there).
+
+    The file holds the work unsealed (mode 0600): keep it private. The disk snapshot stays at the
+    provider; the other node boots from it only with the same provider account, else from the files."""
+    from agentos.environments.saves import SaveStore, export_save
+
+    try:
+        m = export_save(SaveStore(_home()), save_id, file, _saves_key(create=False))
+    except AgentosError as e:
+        raise _fail(e) from None
+    typer.echo(f"Wrote save {m.id} (\"{m.title}\", {m.files} files, {m.commits} commits) to {file}. It is not "
+               "sealed: keep it private.")
+
+
+@app.command("save-import")
+def save_import(file: Annotated[Path, typer.Argument(metavar="FILE", help="A file from save-export.")],
+                family: Annotated[str | None, typer.Option("--family", help="The grant family (root grant id) "
+                                                          "whose agents may resume it; default: the one it had.")]
+                = None) -> None:
+    """Add a save from another node's `save-export`; an agent resumes it with its title."""
+    from agentos.environments.saves import SaveStore, import_save
+
+    try:
+        m = import_save(SaveStore(_home()), file, _saves_key(create=True), family=family)
+    except AgentosError as e:
+        raise _fail(e) from None
+    typer.echo(f"Imported save {m.id} (\"{m.title}\"). environment_open(title=\"{m.title}\") resumes it.")
 
 
 repo_app = typer.Typer(no_args_is_help=True, help=(
@@ -379,6 +596,11 @@ def allow(max_live: Annotated[int | None, typer.Option("--max-live", help="Open 
                                                             "month, in EUR (default 50; 0: no budget).")] = None,
           max_size: Annotated[str | None, typer.Option("--max-size", help="The biggest machine an agent may ask "
                                                        "for: small, medium, large or xlarge (default).")] = None,
+          keep_live: Annotated[bool | None, typer.Option("--keep-live/--no-keep-live", help="Let agents keep a "
+                                                         "machine running between chats (keep \"live\"; it bills all "
+                                                         "month).")] = None,
+          max_live_kept: Annotated[int | None, typer.Option("--max-live-kept", help="Machines kept live at once, at "
+                                                            "most (default 1).")] = None,
           days: Annotated[int, typer.Option(help="No longer used: opening one never asks, so there is no yes "
                                                  "to last.", hidden=True)] = 30,
           workspace: Annotated[str, typer.Option(help="No longer used.", hidden=True)] = "env") -> None:
@@ -391,8 +613,12 @@ def allow(max_live: Annotated[int | None, typer.Option("--max-live", help="Open 
     if max_size is not None and max_size not in SIZES:
         raise _fail(InvalidRequest(f"--max-size is one of {', '.join(SIZES)}"))
     path = _write_settings({"max_live": max_live, "max_hours": max_hours, "monthly_eur": monthly_eur,
-                            "max_size": max_size})
+                            "max_size": max_size, "allow_keep_live": keep_live, "max_live_kept": max_live_kept})
     typer.echo(f"Environments: {_limit_words(load_settings(_home()))}. Limits in {path}.")
+    s = load_settings(_home())
+    if s.allow_keep_live:
+        typer.echo(f"Agents may keep up to {s.max_live_kept} machine{'s' if s.max_live_kept != 1 else ''} live between "
+                   "chats (keep \"live\"). Each bills its full hourly price until it is closed.")
     typer.echo("Opening one never asks you; the node refuses one past these limits.")
 
 

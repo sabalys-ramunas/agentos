@@ -1,14 +1,20 @@
-"""Default routing: terminal and browser calls without `on` go to the chat's environment.
+"""Default routing: terminal and browser calls without `on` go to the caller's environment.
 
 The one wrapper every MCP call goes through (agentos.policy.wrap, and agentos.mcp.registry's
-allow-all wrapper) asks `route()` before the call: a tool in TERMINAL or BROWSER called without `on`
-gets the bound environment's lane (`env/<id>` or `env/<id>-browser`), or fails with no_environment.
-A call with `on` is left exactly as it was. Studio's page checks (STUDIO) called without `on` get
-the environment's browser proxy, so `ui_check(url="http://localhost:3000")` checks the VM's port
-3000. After the call, `after()` counts it on the environment (last call, the recent calls list).
+allow-all wrapper) asks `route()` before the call. A tool in TERMINAL or BROWSER called without `on`
+gets the picked environment's lane (`env/<id>` or `env/<id>-browser`), or fails with no_environment
+or which_environment. `on` may name an environment instead of a lane: its title, its id or env/<id>
+(a browser tool gets its browser lane). Any other `on` (an account lane, "workspace/name") is left
+exactly as it was. `route()` returns the environment it chose, and the wrapper adds
+`environment: {id, title}` to the call's result, so the agent sees which computer it acted on.
+Studio's page checks (STUDIO) get the environment's browser proxy, so
+`ui_check(url="http://localhost:3000")` checks the VM's port 3000. After the call, `after()` counts
+it on the environment (last call, the recent calls list, the MCP client that made it).
 
-The environment is the one bound to the MCP session (`mcp-session-id`) of the call, else to its grant,
-and of the caller's grant family only: a session id another agent sends finds nothing of it.
+Which environment (EnvironmentManager.pick), always of the caller's grant family only: on a client
+that sends an MCP session id (`mcp-session-id`), the one that session opened or attached last; on
+one that sends none (the 2026-07-28 protocol, stdio), the family's only open one, and with several,
+which_environment: the agent names one with `on`. A session id another agent sends finds nothing.
 """
 
 from __future__ import annotations
@@ -30,6 +36,7 @@ PICKS_LANE = frozenset({"environment_open", "lane_job_cancel", "shell_write", "s
 TERMINAL = frozenset({
     "lane_exec", "lane_file_edit", "lane_file_read", "lane_file_write", "lane_install", "lane_job_start",
     "lane_upload", "lane_upload_check", "shell_open", "environment_upload",
+    "environment_download",
 })  # not lane_jobs_list: without `on` it already lists every run the caller may see (`agentos run --list`)
 BROWSER = frozenset({
     "browser_act", "browser_console", "browser_dialog", "browser_dialog_answer", "browser_navigate",
@@ -40,7 +47,7 @@ BROWSER = frozenset({
 })
 STUDIO = frozenset({"ui_check", "ui_diff", "ui_baseline", "system_check"})
 
-LANE_ARG_TEXT = "Lane id \"workspace/name\"; leave it out for this chat's environment."
+LANE_ARG_TEXT = "Lane \"workspace/name\", or your environment's title or env/<id>; leave out for your open one."
 
 
 def kind_of(tool: str) -> str | None:
@@ -61,6 +68,24 @@ def _service(runtime: Any) -> Any:
     return get(SERVICE) if callable(get) else None
 
 
+def wants_route(on: Any) -> bool:
+    """Does route() decide this `on`? None (the picked environment), a title or an id (no "/": never
+    a lane), or an environment's lane env/<id>; an account lane ("workspace/name") is left as it is."""
+    return not on or (isinstance(on, str) and ("/" not in on or on.startswith("env/")))
+
+
+def env_ref(env: Any) -> dict[str, str]:
+    """What a result carries about the environment the call went to."""
+    return {"id": env.id, "title": env.title}
+
+
+def with_env(result: Any, env: Any) -> Any:
+    """`result` with `environment: {id, title}` when route() chose `env` (a dict result only)."""
+    if env is None or not isinstance(result, dict) or "environment" in result:
+        return result
+    return {**result, "environment": env_ref(env)}
+
+
 def binding(session: str | None, grant_id: str | None) -> str:
     from agentos.environments.manager import binding_of
 
@@ -68,19 +93,40 @@ def binding(session: str | None, grant_id: str | None) -> str:
 
 
 def route(runtime: Any, tool: str, kwargs: dict[str, Any], *, session: str | None, grant_id: str | None,
-          family: str | None = None) -> None:
-    """Fill `on` for a routed tool called without it (in place). Raises no_environment when the chat
-    has none (naming the family's open ones, or the chat that took it over); leaves every other call
-    alone. `family`: the caller's grant root (None: the owner with no policy)."""
+          family: str | None = None) -> Any:
+    """Fill `on` for a routed tool (in place) and return the environment it goes to, else None. No
+    `on`: the picked one (no_environment with none, which_environment with several and no session).
+    `on` naming an environment (title, id, env/<id>): its lane for this tool's kind. An account lane,
+    or env/<x> naming none of the family's (the policy refuses it as not found): left alone.
+    `family`: the caller's grant root (None: the owner with no policy)."""
+    from agentos.environments.errors import NoEnvironment
+
     kind = kind_of(tool)
-    if kind is None or kwargs.get("on"):
-        return
+    on = kwargs.get("on")
+    if kind is None or not wants_route(on):
+        return None
     svc = _service(runtime)
     if svc is None:
-        from agentos.environments.errors import NoEnvironment
-
+        if on:
+            return None
         raise NoEnvironment("this node has no environments, so name the lane with `on`")
-    kwargs["on"] = svc.resolve(binding(session, grant_id), kind, family)
+    if not callable(getattr(svc, "pick", None)):  # a service that only resolves lanes (a test's stand-in)
+        if not on:
+            kwargs["on"] = svc.resolve(binding(session, grant_id), kind, family)
+        return None
+    if on:
+        env = svc.named(on, family)
+        if env is None:
+            if "/" in on:
+                return None
+            mine = [e for e in svc.open_for_family(family) if e.state in ("starting", "ready")]
+            listed = ", ".join(svc.on_words(e) for e in mine[:10]) or "none"
+            raise NoEnvironment(f"no open environment of yours is named \"{on[:80]}\" (open: {listed}). on takes "
+                                "an environment's title, env/<id>, or an account lane \"workspace/name\"")
+    else:
+        env = svc.pick(binding(session, grant_id), family, kind)
+    kwargs["on"] = env.browser_lane if kind == "browser" else env.terminal_lane
+    return env
 
 
 def _summary(tool: str, kwargs: dict[str, Any]) -> str:
@@ -126,7 +172,14 @@ def studio_proxy(runtime: Any, tool: str, kwargs: dict[str, Any], *, session: st
         yield None
         return
     svc = _service(runtime)
-    env = svc.resolve_or_none(binding(session, grant_id), family) if svc is not None else None
+    from agentos.environments.errors import WhichEnvironment
+
+    try:
+        env = svc.resolve_or_none(binding(session, grant_id), family) if svc is not None else None
+    except WhichEnvironment as e:  # a studio check takes no `on`: say what works instead
+        raise WhichEnvironment(e.message.split(". Call again")[0] + f". {tool} checks an environment's localhost "
+                               "only while one of yours is open; give a public URL, or run the check while "
+                               "only your own is open") from None
     if env is None:
         yield None
         return

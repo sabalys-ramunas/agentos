@@ -11,7 +11,10 @@ runs it at once:
 
 Each catch-up first sets the VM firewall to this computer's address now (it may have woken on
 another network), then runs the environments' reaper and the VMs' reaper, and writes what they
-closed to local-catch-up.json in the home, which `agentos local status` reads.
+closed to local-catch-up.json in the home, which `agentos local status` reads. The environments'
+reaper saves before it deletes (agentos.environments.saving): a keep "save" environment is saved, and
+one with unsaved work gets a rescue save. One whose save failed stays (it is in `kept`, with its last
+save), and the owner was told.
 """
 
 from __future__ import annotations
@@ -73,7 +76,7 @@ class CatchUp:
         """One catch-up: the firewall, then both reapers. Never raises: what failed is recorded."""
         record: dict[str, Any] = {"at": datetime.now(UTC).isoformat(timespec="seconds"), "reason": reason,
                                   "slept_s": round(slept_s) if slept_s is not None else None,
-                                  "closed": [], "vms_deleted": [], "errors": []}
+                                  "closed": [], "saved": [], "kept": [], "vms_deleted": [], "errors": []}
         vms = self.runtime.get("vms")
         if vms is not None and vms.store.live():
             try:
@@ -87,6 +90,12 @@ class CatchUp:
                 for env_id in [*out.get("closed", []), *out.get("gone", [])]:
                     env = envs.get(env_id)
                     record["closed"].append({"id": env.id, "title": env.title, "reason": env.closed_reason or ""})
+                record["saved"] = [s["save"] for s in out.get("saved", [])]
+                for env_id in out.get("save_failed", []):
+                    env = envs.get(env_id)
+                    record["kept"].append({"id": env.id, "title": env.title, "why": env.save_error or "",
+                                           "last_save": env.last_save_id,
+                                           "last_save_at": env.last_save_at.isoformat() if env.last_save_at else None})
             except Exception as e:  # noqa: BLE001
                 record["errors"].append(f"environments: {getattr(e, 'message', e)}")
         if vms is not None and vms.configured:
@@ -142,6 +151,13 @@ def note(record: dict | None) -> str:
         body = f"{head}, and it closed {len(closed)} environment{'s' if len(closed) != 1 else ''} at once: {names}."
     else:
         body = f"{head}. No environment was past its time limit."
+    saved = record.get("saved") or []
+    if saved:
+        body += f" Saved first: {', '.join(saved)}."
+    for k in record.get("kept") or []:
+        last = f"; its last save is {k['last_save']}" if k.get("last_save") else "; it has no earlier save"
+        body += (f" {k['id']} ({k.get('title') or 'no title'}) could not be saved, so its machine is kept "
+                 f"({k.get('why') or 'no reason given'}{last}).")
     errors = record.get("errors") or []
     if errors:
         body += f" Some of the check failed: {'; '.join(errors)}."

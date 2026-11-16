@@ -44,15 +44,18 @@ brand, logged-in browser lanes for your own accounts and routines.
 ## Decisions (owner, 2026-11-13)
 
 - An environment is a **cloud VM**, rented by the node (Hetzner first, through `agentos.vms`).
-- **One per chat** (MCP session). A new chat starts clean. `environment_open` with the title of an
-  environment that is still starting or ready, from the same grant family, reattaches to it (a
-  resumed chat; the repo may be left out since 2026-11-15, when exactly one live environment has
-  the title; the same title with another repo named is `environment_in_use`), but only when the
-  chat that has it made no call for 10 minutes; else `environment_in_use`, naming that chat's last
-  call. The takeover counts as a call, so the chat that lost it cannot take it straight back. The
-  same chat asking with another repo than its live one gets `environment_already_open` (changed
-  2026-11-13 after a real chat got a starting environment back for an open without its repo). The chat that lost it gets `no_environment` saying so. A chat with none
-  hears its family's open ones (id, title, last call). Concurrent opens in one chat get one.
+- **The title names the computer** (2026-11-16, replacing one per chat). MCP 2026-07-28 has no
+  session id, so every chat of an agent on Claude Code or T3 Code bound to its grant and shared one
+  environment (three testers, 2026-11-15). Now, within a grant family: a new title opens one, even
+  while others are open; the title of a live one (starting or ready) attaches to it
+  (`opened: "attached"`, and `applied` and `differs` for what it could not give as asked); a saved
+  one's resumes it. The repo may be left out; the same title with another repo is
+  `environment_already_open`, fixed by another title. Concurrent opens of one title get one machine.
+  A client that sends a session id keeps its chat binding (`bound_at`: its calls go to the one it
+  opened or attached last); taking one from another such chat waits until that chat has made no call
+  for 10 minutes (`environment_in_use`), and the takeover counts as a call. The chat that lost it
+  gets `no_environment` saying so. No error tells an agent to close or discard an environment it
+  did not open.
 - **Whose it is** (2026-11-13). An environment belongs to the grant family that opened it (its
   root grant, and every grant narrowed from it) and records its opener: grant root, subject, and
   the member whose agent it is, if any. No other grant acts on its lanes, reads it or closes it,
@@ -121,19 +124,97 @@ brand, logged-in browser lanes for your own accounts and routines.
   removes the browser lane before the tunnel goes.
 - **Ports**: `environment()` lists listening TCP ports on the VM (`ss -ltnp`). For each the node can
   forward, it gives a link the human can open (the node forwards it over SSH, behind the app's sign-in).
-- **Binding**: the environment is bound to the MCP session id (header `mcp-session-id`); without
-  one (stdio), to the grant, and is found only by its own grant family. A call without `on`
-  resolves to the bound environment, by terminal or browser lane depending on the tool. With none
-  bound, the call fails with `no_environment` and the fix `environment_open(title=...)`. A call
-  with `on` works as before (account lanes); on another family's environment lane it is refused
-  as not found.
+- **Routing** (`agentos.environments.picking`, `routing`): an environment is found only by its own
+  grant family. A call without `on` goes, with an MCP session id (header `mcp-session-id`), to that
+  session's bound environment; without one (2026-07-28, stdio), to the family's only open one
+  (a kept one the agent let go does not count), and with several it fails with `which_environment`,
+  listing each as "title" (on="env/<id>"). With none, `no_environment` and the fix
+  `environment_open(title=...)`. `on` may name an environment by its title (any case), id or
+  `env/<id>` (an account lane id always has a "/", so a title never shadows one; a title with a "/"
+  is named by its id); a browser tool gets its browser lane. The result of such a call carries
+  `environment: {id, title}`. An account lane in `on` works as before; another family's environment
+  lane is refused as not found. Each call on an environment records the MCP client (clientInfo).
+
+## Keeping (owner, 2026-11-15)
+
+"Every agent gets its own computer that stays." The agent's inference stays on the person's laptop;
+agentos (on the laptop or a server) rents the machines, and nothing runs an agent while the laptop is
+closed. An environment's `keep` says what happens to its machine when the work stops
+(agentos.environments.saving):
+
+| keep | Close by the agent | Idle (`idle_minutes`) | Time limit, or a laptop that woke past it |
+|---|---|---|---|
+| `none` (default) | refused with `unsaved_work`, else deleted | deleted when clean; unsaved work: kept, the owner told | deleted; unsaved work gets a file-level rescue save first and the owner hears its id |
+| `live` | the chat lets it go; the machine stays (`final=true` deletes it) | never deleted | renewed 24 hours at a time while the month's budget allows; then as `none` |
+| `save` | saved, then deleted (no `unsaved_work`) | saved, then deleted | saved, then deleted |
+
+- `live` bills the machine all month (a cx23 is about EUR 7.80), so the owner opts in
+  (`allow_keep_live`, `agentos environments allow --keep-live`) and `max_live_kept` (1) caps them; else
+  `keep_live_not_allowed`. Its VM is `kept`: max_hours and vms.toml max_ttl_minutes do not bound it, the
+  monthly budget does.
+- The default keep is environments.toml `default_keep` ("none"; "live" there needs the opt-in).
+- While a `save` one works, a file-level autosave runs every `autosave_minutes` (15) after use, without
+  a snapshot; only the newest autosave of a title is kept, and none older than a full save.
+
+**A save** is a provider disk snapshot (keep `save`, unless `snapshots = false`) plus a file-level part
+that is always made:
+
+- the snapshot: Hetzner `create_image` of type snapshot (labels: the node's, `agentos-save`,
+  `agentos-env`, `agentos-family`, `agentos-title`), docker `commit` to `<image>:save-<id>`. Before it the
+  node stops the lane_job_start services and the docker containers, removes the gateway token's git config
+  (`~/.config/agentos/gitconfig`) and `~/.git-credentials`, and syncs the disk. The machine's SSH keys are
+  per machine: the node forgets the old one's key pair when it is deleted, and a machine booted from the
+  snapshot gets new ones at its first boot. After the snapshot the node checks the provider lists it, and
+  keeps its id and size (GB) in the manifest.
+- the file part (scripts.SAVE on the machine): per repository under /work, a git bundle of the commits and
+  stashes no remote has (checked with `git bundle verify` there), branch, HEAD, the stash messages and the
+  deleted paths; a tarball of `git ls-files -m -o --exclude-standard` (changed and new files git does not
+  ignore) and of loose files in /work outside any repository; never a `.env` file or `node_modules`, never
+  anything outside /work and `keep_paths` (extra folders, opt in, at most `keep_paths_max_mb`); the services
+  that ran (command, folder, port) and the containers; a resume note: an automatic summary (git, the last
+  calls, services, proofs, pushed branches with their compare links) plus the agent's own words
+  (`environment_save(note=...)`), framed as untrusted when they come back.
+- Never saved: process memory, the gateway token (a resume mints a new one), the SSH keys.
+
+**Where:** `$AGENTOS_HOME/environments/saves/<family>/<title>/<save id>/` (folders 0700, files 0600):
+`manifest.json` (what the listing shows, readable while the vault is sealed) and the payload sealed with
+ChaCha20-Poly1305 in 1 MB pieces under a 32-byte key the vault holds as the machine secret
+`agentos/environments/saves-key` (encrypt_saves; a node with no vault keeps them unsealed and logs it).
+
+**Verify before delete:** the file part is written to a temp folder on the node, then checked (every file's
+sha256 matches the machine's, the tarball lists and holds only saved folders, each bundle is one), then
+the snapshot is taken and checked listed, then the save is sealed and moved into place, and only then is
+the machine deleted. A save that fails keeps the machine (`save_failed`), tells the owner once, and is
+tried again after 10 minutes. Past the time limit the VMs' reaper gives an environment's VM 15 more
+minutes (agentos.vms.manager.ENV_SAVE_GRACE) before it deletes it whatever happened, and the owner's
+notice says when.
+
+**Resume:** `environment_open` with a title its grant family saved (from any chat) resumes the newest save
+of that title: a new environment (a new id) on the save's server type, booted from the snapshot when the
+provider still lists it (`from: "snapshot"`), else a fresh machine with a clone (`from: "files"`, and
+`missing` says the snapshot is gone). Then each repository's bundle is fetched, its branch checked out at
+HEAD, its stashes stored again, its deleted paths deleted, the files put back, the containers (snapshot
+only) and services started again, and `own_branches` and `own_heads` carried over. A save of another
+repository than the one asked for is `invalid` (use another title, or environment_forget). Two chats
+resuming the same title at once: one wins, the other gets `environment_in_use`. A resume that fails is
+`restore_failed`: its machine is deleted and the save is untouched.
+
+**Retention** (environments.toml): `keep_last` (3) saves of a title, `max_saves_gb` (5) of file parts on
+the node (past it: `save_limit`, nothing deleted), `saved_days` (30): the owner is told a day before a save
+is removed for its age. Forgetting a save deletes its snapshot; a snapshot the provider did not delete
+keeps its save, so nothing billed is lost track of.
+
+**Cost:** Hetzner bills snapshots per GB a month by their compressed size. `snapshot_eur_per_gb_month`
+defaults to EUR 0.0119 (Hetzner's list price, net of VAT, 2026; the code had no price before). Kept
+snapshots show in `environment()`'s `saved`, the web data (`cost_eur_month`, `snapshots_eur_month`) and
+`agentos environments saves`.
 
 ## Contract
 
 ### MCP tools (everyday list, not in a toolset)
 
 `environment_open(title: str, repo: str | None = None, ref: str | None = None, size: str | None = None,
-hours: float | None = None, wait_s: float = 240) -> dict`
+hours: float | None = None, wait_s: float = 240, keep: "none" | "live" | "save" | None = None) -> dict`
 
 Returns:
 
@@ -148,6 +229,11 @@ Returns:
  "next": "Give the human links.browser. Then lane_exec(cmd=\"ls\", cwd=\"/work/shop\") ..."}
 ```
 
+Since 2026-11-15 the result adds `keep`, and when it resumes a save `resumed`: `{save_id, saved_at, from:
+"snapshot" | "files", branch, head, files_restored, commits_restored, services: [{cmd, cwd, port, running}],
+note, missing: [...]}` (while it still comes up, `state: "restoring"` and zero counts; environment() gives
+the whole of it once it is ready).
+
 `state` is `starting` (still booting: call `environment()` again) or `ready`. A second call in the
 same chat returns the same environment. `links.browser` is the node's own live view (a signed
 take-over link), null until the browser lane exists; there is no `links.environment` (changed
@@ -159,9 +245,14 @@ the three environment tools; the rest of the terminal tools are `tools_more("ter
 left, cost so far, `ports` (`[{"port": 3000, "process": "node", "link": "..."}]`), `git` (`{"branch",
 "ahead", "dirty": n, "pushed": [{"branch", "commit", "at"}]}`), the last 10 `calls`. With no
 environment bound and no id: `{"environment": null, "open": [...open ones of this grant, by title...],
-"next": "environment_open(title=...)"}`.
+"saved": [{title, repo, branch, saved_at, snapshot_gb, cost_eur_month, note}], "next":
+"environment_open(title=...)"}` (`saved`: the newest save of each title of the family that is not open).
 
-`environment_close(id: str | None = None, discard: bool = False) -> dict`: `unsaved_work` error
+`environment_close(id: str | None = None, discard: bool = False, final: bool = False) -> dict`: for keep
+`save` (without discard) it saves first and adds `saved` (as environment_save returns it) with `machine:
+"deleted"`, never `unsaved_work`, and `save_failed` keeps the machine; for keep `live` without `final` it
+only unbinds (`machine: "kept"`); `discard` drops changes since the last save and never deletes saves.
+Otherwise, as before: `unsaved_work` error
 (listing dirty files, unpushed commits and stashes, fix: commit and push, or discard=true) unless
 clean or discard; then deletes the VM and the browser lane. Unsaved is any repository under
 `/work`: changed or untracked files, commits on any local branch no remote has, stashes. Returns
@@ -170,11 +261,18 @@ clean or discard; then deletes the VM and the browser lane. Unsaved is any repos
 (the node retries), `none` when none was rented, `unknown` when the provider could not be asked;
 `pushed` is each branch at its commit on the remote now, `deleted` the branches it deleted.
 
-Errors (in docs/ERRORS.md, generated): `no_environment`, `unsaved_work`, `environment_limit` (the
+`environment_save(note: str | None = None) -> dict` (the terminals toolset): `{save_id, saved_at, snapshot:
+{id, gb} | null, files, bytes, commits, verified: true}`; a snapshot only for keep `save` (its services
+stop for it and start again). It never waits for a person. `environment_forget(title: str, save_id: str |
+None = None) -> dict` (the terminals toolset): `{forgot: [ids], snapshots_deleted: n}`, only the family
+that made the save (any other: not found), or the owner.
+
+Errors (in docs/ERRORS.md, generated): `save_failed` (the machine is kept), `restore_failed` (the save is
+untouched), `save_limit`, `keep_live_not_allowed`, `no_environment`, `unsaved_work`, `environment_limit` (the
 node's `max_live`, the longest life, or the budget, which counts open environments to their time
 limits), `environment_failed` (boot failed; the VM is deleted), `environment_in_use` (the title
-names one another chat used in the last 10 minutes, or one with another repository),
-`environment_already_open` (this chat has a live one with another repository), `environment_not_ready` (a studio check in a
+names one another session used in the last 10 minutes), `environment_already_open` (the title names
+an open one with another repository), `which_environment` (several open, no session id, no `on`), `environment_not_ready` (a studio check in a
 chat whose environment is starting or whose tunnel is down; it never checks the node instead).
 
 A repository the node cannot read is checked before anything is rented (`GitService.access`: declared
@@ -205,7 +303,11 @@ GET  /api/orgs/{org}/environments/{id}                 EnvDetail
 GET  /api/orgs/{org}/environments/{id}/proofs/{proof}.png   a proof's PNG (cap see; added 2026-11-15)
 POST /api/orgs/{org}/environments/{id}/close {"discard": false}   EnvSummary  (409 unsaved_work)
 POST /api/orgs/{org}/environments/{id}/extend {"minutes": 60}     EnvSummary
+DELETE /api/orgs/{org}/environments/saves/{save_id}               {forgot, snapshots_deleted} (owner, in person)
 ```
+
+The listing adds `saved` and `snapshots_eur_month`, and each EnvSummary `keep`, `last_save` and
+`save_error` (docs/API.md, "Saved environments").
 
 EnvSummary: `id, title, state ("starting" | "ready" | "working" | "idle" | "closing" | "closed" |
 "failed"), repo?, branch?, created_at, last_call_at?, closed_at?, expires_at, machine {provider,
@@ -254,15 +356,50 @@ the environment closed), 403 `frozen`, 409 `busy` or `environment_not_ready` (th
 VM failed, with its words). Each upload is an audit row (tool `environment.upload`, the link's grant,
 the archive's sha256) and a call `upload` in `environment()`'s last calls.
 
+Downloads (added 2026-11-15, agentos.environments.downloads), the reverse: `environment_download(path:
+str)` (the terminals toolset, routed without `on` to the terminal lane, authorized as `exec` on it, so it
+never waits for a person) packs a file or a folder under `/work` and returns `{"url", "expires_at",
+"path", "kind", "files", "bytes", "sha256", "max_bytes", "fetch", "unpack", "next"}`. The agent runs
+`fetch` (`curl --fail-with-body -o out.tgz "<url>"`) and `unpack` (`tar -xzf out.tgz`) in its own shell.
+
+1. The path is checked as text (under `/work`; a relative one starts at the workdir), then resolved on
+   the machine (`readlink -f`): what it names must be a file or a folder under `/work`, so a symbolic
+   link that leaves `/work` is refused. Packing starts at the resolved path, so no link on the way is
+   followed; links inside a folder are packed as links, never followed.
+2. `EnvManager.get_archive(lane, src, dest_file, paths=, gzip=, timeout_s=, max_bytes=)` runs
+   `tar -czf - ./<name>` in `src` in the lane (over the environment's SSH for a VM lane, as
+   put_archive) and streams stdout into `$AGENTOS_HOME/environments/<id>/downloads/d<hex>.tgz` (made
+   new, mode 600). Past `max_bytes` it ends the workload, deletes the partial file and raises
+   ArchiveTooLarge. It returns `{"bytes", "files"}`; `paths` are relative to `src` (no absolute path,
+   no `..`, each passed as `./<path>` so a name never reads as an option). Kept environments use it
+   for their saves.
+3. The cap is 512 MB packed, the largest upload, so a project that went up comes back down; the
+   archive streams to disk and never sits in memory, two pack at once on a node, one environment
+   holds at most 3 unfetched, and packing needs the cap plus 1 GB free on the node's disk.
+4. The link is `/view/env/<id>/download?t=...`, signed with the viewer key under its own purpose
+   (`download`, never `upload`), 15 minutes, spent on first use, held in memory. It is always the
+   tarball, even for one small file: one shape for every download (the same two commands), the file's
+   name and mode kept, and nothing from the machine ever served as a page on the node's own address.
+
+The temp file goes once it is served, when its link expires (each new link and the reaper's pass sweep
+what no live link names, which also covers a restart), and when the environment closes. Each fetch is
+an audit row (tool `environment.download`, the link's grant, path, files, bytes, sha256, `by`) and a call
+`download` in `environment()`'s last calls, after the tool's own `environment_download`.
+
 Reading needs `see` in workspace `env`, close and extend `operate`; every route checks the caller's
 grant as the jobs routes do. The owner sees every environment, a member only those their own agents
 opened; any other is not found. `calls[].summary` is scrubbed as the audit log's traces are.
 
 ### CLI
 
-`agentos environments` (alias `agentos envs`): `list`, `show ID`, `close ID [--discard]`, `allow`
-(the limits that bound `environment_open`: `--max-live`, `--max-hours`, `--monthly-eur`; since
-2026-11-13 it grants nothing, as opening never asks), and
+`agentos environments` (alias `agentos envs`): `list`, `show ID`, `download ID PATH [--to DIR]` (agentosd
+packs it as for `environment_download`, through `POST /api/environments/{id}/download` with the node
+token; the CLI fetches the link and unpacks it into DIR with tarfile's data filter, skipping and naming
+any link that points outside), `close ID [--discard]` (a keep `save` one is saved first), `allow` (the
+limits that bound `environment_open`: `--max-live`, `--max-hours`, `--monthly-eur`, and since 2026-11-15
+`--keep-live` and `--max-live-kept`; since 2026-11-13 it grants nothing, as opening never asks), `saves`,
+`forget TITLE [--save ID]`, `save-export ID FILE` (the save unsealed, 0600, for another node) and
+`save-import FILE [--family ROOT]`, and
 `setup` (checks the provider token, the image, the git declarations, and says what is missing).
 
 ## Builders and files

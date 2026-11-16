@@ -24,6 +24,7 @@ import logging
 import os
 import shlex
 import shutil
+import time
 from collections.abc import AsyncIterator, Callable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -35,6 +36,7 @@ from agentos.git.remotes import RemoteRule
 from agentos.git.wire import Command, Remote
 
 GIT_TIMEOUT = 900.0
+HEAD_CHECK_S = 600.0  # how long a mirror trusts the default branch it read from the remote
 log = logging.getLogger("agentos.git")
 
 
@@ -240,6 +242,7 @@ class Mirror:
         self.allow_file = allow_file
         self.lock = asyncio.Lock()
         self.default_branch: str | None = None
+        self._head_checked = 0.0  # time.monotonic() of the last ls-remote for the default branch
 
     def env(self) -> dict[str, str]:
         return base_env(self.path)
@@ -272,6 +275,10 @@ class Mirror:
                                     "+refs/heads/*:refs/heads/*", "+refs/tags/*:refs/tags/*", env=auth.env)
         if rc != 0:
             raise UpstreamError(explain(err, target, scrub=auth.scrub))
+        now = time.monotonic()
+        if self.default_branch and now - self._head_checked < HEAD_CHECK_S:
+            return self.default_branch  # a remote's default branch seldom moves: one round trip less per call
+        self._head_checked = now
         rc, out, _ = await self.git(*proto, "ls-remote", "--symref", "--", target.url, "HEAD", env=auth.env)
         default = None
         for line in out.decode(errors="replace").splitlines():

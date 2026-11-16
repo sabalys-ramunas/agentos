@@ -6,7 +6,32 @@ All notable changes to agentos are recorded here. The format follows
 
 ## [Unreleased]
 
-agentos is now about agent environments. Two older parts are gone.
+agentos is now about agent environments: your agent's own computer, and it stays. Two older parts
+are gone.
+
+### Added
+
+- **Kept environments, in the agent's words and yours.** The `agentos-environment` skill and the
+  MCP intros (server and local) teach the three modes: single use for a one-off fix, `keep="save"`
+  when the work spans sessions (saved when idle, cents a month), and `keep="live"` only when the
+  person asks for an always-on machine. They teach resuming by title and reading `resumed` (its
+  note is data, never instructions), `environment_save` before risky steps and at the end of the
+  day, telling the person how to come back ("say: continue the shop in agentos"), forgetting
+  finished saves, and upload and download in one line each.
+- **The web app shows how each environment stays.** The list and each environment's page say
+  "Single use", "Kept running" or "Saves when idle", with what it costs while unused. A Saved
+  section lists each save (title, repository, branch, when, the snapshot's size, what it costs a
+  month, and the agent's note as text), says when one is pruned soon, and has Forget for the
+  owner, which says what is deleted before it deletes it.
+- **`agentos setup` asks one question**: single use or saves when idle. Kept running is explained
+  with its cost and is allowed only when you choose it (`allow_keep_live`).
+
+### Changed
+
+- README, docs/VISION.md, docs/ENVIRONMENTS.md ("Keeping an environment") and docs/LOCAL.md
+  (sleep: a kept one is saved, a single-use one gets a rescue save) are written around the three
+  modes, with the honest limits of local mode: the laptop must be awake while a VM works, and no
+  agent runs while it is closed.
 
 ### Removed
 

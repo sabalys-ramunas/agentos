@@ -68,8 +68,8 @@ def take_over(viewer: ViewerInfo, host: str) -> str:
 
 # ---- tools ----
 
-NO_ENVIRONMENT_NEXT = ("No environment for this chat yet. environment_open(title=...) gives you a cloud computer "
-                       "with a terminal, a browser and your repo.")
+NO_ENVIRONMENT_NEXT = ("No environment picked for calls without `on`. environment_open(title=...) gives you a cloud "
+                       "computer with a terminal, a browser and your repo (the title of an open one attaches to it).")
 
 
 async def _bound_environment(ctx: ToolContext) -> dict[str, Any] | None:
@@ -90,8 +90,8 @@ async def _bound_environment(ctx: ToolContext) -> dict[str, Any] | None:
 
 
 async def whoami(ctx: ToolContext) -> dict[str, Any]:
-    """Which agentos node this is and which environment (your cloud computer for this chat) is bound,
-    or how to open one: name, version, lane counts by state, and limits (max warm lanes, idle and
+    """Which agentos node this is and which environment (your cloud computer) calls without `on` go
+    to, or how to open one: name, version, lane counts by state, and limits (max warm lanes, idle and
     busy timeouts). No lane ids (see lanes_list). Call it once. Cheap: reads no page. Effect: read."""
     await ctx.authorize(Effect.READ, summary="read the node's name, version, lane counts and limits")
     config = ctx.runtime.config
@@ -102,7 +102,8 @@ async def whoami(ctx: ToolContext) -> dict[str, Any]:
         "node": config.name,
         "version": __version__,
         "environment": env,
-        "next": (f"Calls without `on` go to environment {env.get('id')} ({env.get('title', '')}); "
+        "next": (f"Calls without `on` go to environment {env.get('id')} ({env.get('title', '')}). "
+                 "If you did not open it, environment_open(title=...) with your own title opens yours. "
                  "environment() shows its ports, git and cost." if env else NO_ENVIRONMENT_NEXT),
         "lanes": {"total": len(lanes), **{state.value: counts.get(state.value, 0) for state in LaneState}},
         "limits": {

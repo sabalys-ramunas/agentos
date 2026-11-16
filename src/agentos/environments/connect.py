@@ -99,12 +99,33 @@ def ask(store: Any, approvals: Any, slug: str, *, reason: str, requester: Princi
     refused (a key or token the vault has was refused, so a new one replaces it)."""
     for row in waiting(store, approvals):
         if row["repo"] == slug:
+            if row.get("grant_id") not in ("*", grant_id or ""):
+                store.request_shared(row["id"])  # two agents wait on it: neither withdraws it alone
             return approvals.get(row["id"])
     ap = approvals.create_question(question=card_words(slug, refused=reason == "refused"), options=None,
                                    requester=requester, grant_id=grant_id, grant_path=grant_path,
                                    ttl_s=REQUEST_TTL_S, workspace=WORKSPACE)
-    store.request_put(ap.id, slug, reason, datetime.now(UTC).isoformat(timespec="seconds"))
+    store.request_put(ap.id, slug, reason, datetime.now(UTC).isoformat(timespec="seconds"), grant_id or "")
     return ap
+
+
+def withdraw(store: Any, approvals: Any, grant_id: str | None, *, instead: str) -> list[str]:
+    """The agent opened with another repository (`instead`): the cards it alone raised for other ones are
+    withdrawn (a name it got wrong), so no person pastes a token for a repository nobody needs. A card
+    another agent waits on too stays. Returns the withdrawn cards' ids."""
+    if approvals is None or not grant_id:
+        return []
+    gone = []
+    for row in waiting(store, approvals):
+        if row.get("grant_id") != grant_id or row["repo"] == instead:
+            continue
+        try:
+            approvals.decide(row["id"], "deny", by="agent", note=f"Withdrawn: the agent asked for {instead} instead.")
+            gone.append(row["id"])
+        except AgentosError as e:
+            log.info("the card for %s was closed already (%s)", row["repo"], e.code)
+        store.request_drop(row["id"])
+    return gone
 
 
 def request(store: Any, approvals: Any, approval_id: str) -> dict[str, str]:
@@ -178,7 +199,8 @@ async def card_result(ctx: Any, mgr: Any, slug: str, error: RepoNotConnected) ->
             "why": f"{repos.reason_words(access)}. Nothing was rented.", "review_url": review,
             "can_answer_in_chat": False,
             "next": "Give the human review_url (in T3 Code open it beside the chat with preview_open). Wait with "
-                    "approval_wait, then call environment_open again with the same arguments.",
+                    "approval_wait, then call environment_open again with the same arguments. If the repo name "
+                    "was wrong, call environment_open with the right one: that withdraws this card.",
             "fallback": f"At the node: ssh {ssh_host(runtime.get('config'))} agentos environments repo add {slug} "
                         f"--token{' --replace' if reason == 'refused' else ''}. A token needs no admin rights on the "
                         "repository."}

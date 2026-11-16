@@ -309,23 +309,24 @@ retry_after = 5
 [environment_failed]
 meaning = "An environment's machine did not come up: it did not answer SSH, or its setup failed. Its VM was deleted, so nothing bills for it."
 agent = "Tell the user it did not start and what the message says. Open a new one once with environment_open; if it fails again, stop and tell the user."
+reasons = { capacity = "The cloud has no room for this machine now, in any nearby location. Nothing bills. Wait 5 minutes and open again, or open now with the bigger size the message names. After two more fails, tell the user.", network = "The network of the computer agentos runs on dropped. Nothing was rented. Wait 2 minutes, then open again the same way. If it fails again, tell the user to check that computer's internet connection.", image = "The machine image does not fit this size. Open again with the bigger size the message names; if it names none, tell the user (the owner runs `agentos environments setup`).", clone = "The machine started, but the clone failed, and the machine was deleted. Tell the user what git said. Check repo and ref; open once more without ref, or without repo for an empty /work.", setup = "The machine did not finish its setup and was deleted. Open once more with environment_open; if it fails again, stop and tell the user what the message says." }
 fix = "Run `agentos environments setup` on the node: it checks the provider, the image and the git declarations, and says what is missing."
 
 [environment_already_open]
-meaning = "This chat already has a live environment, with another repository than the one asked for. A chat has one environment at a time, so nothing was opened."
-agent = "Do not call it again the same way. Keep working in the one you have (environment() shows it), or close it with environment_close() (discard=true only if its work is not needed) and then call environment_open again."
-fix = "Nothing to fix: one chat works in one environment at a time. `agentos environments list` shows which chat has which."
+meaning = "The title names an open environment of this agent that has another repository than the one asked for. A title names one computer, so nothing was opened."
+agent = "Do not call it again the same way. For this repository, use another title. To work in the open one, call environment_open with its title and no repo. Never close it: another chat of yours may work in it."
+fix = "Nothing to fix: a title names one computer. `agentos environments list` shows the open ones."
 
 [environment_in_use]
-meaning = "Another chat of the same agent still works in the environment with this title: it made a call in the last 10 minutes, so it is not taken from that chat."
+meaning = "Another chat of the same agent, on a client that sends an MCP session id, still works in the environment with this title: it made a call in the last 10 minutes, so it is not taken from that chat."
 agent = "Do not retry in a loop. Open your own with another title (environment_open(title=...)), or tell the user which chat holds it. Once that chat has been quiet for 10 minutes, the same title takes it over."
-fix = "Nothing to fix: one chat works in one environment at a time. `agentos environments list` shows who has which."
+fix = "Nothing to fix: `agentos environments list` shows who has which."
 retryable = true
 retry_after = 600
 
 [environment_limit]
 meaning = "Opening or extending it would pass a node limit (it never asks a person): open at once (3 by default), the longest life (8 hours), or the month's budget (EUR 50). The message says which."
-agent = "Close an environment you no longer need (environment_close), ask for fewer hours, or tell the user which limit it was."
+agent = "Ask for fewer hours or a smaller size, or tell the user which limit it was. Close only an environment you opened yourself and no longer need; another chat of yours may work in the others."
 fix = "Close environments with `agentos environments close ID`, or raise the limit the message names with `agentos environments allow --max-live N`, `--max-hours H` or `--monthly-eur E` (vms.toml holds the VM limits too)."
 
 [environment_not_ready]
@@ -477,6 +478,11 @@ meaning = "The browser held no body for the response a site API's read_json wait
 agent = "Run it again once; the page is loaded fresh. Tell the user if it fails the same way."
 fix = "Run it again. If it keeps failing, the page may leave or reload before its request ends, or it may keep its own copy and answer every read with a 304."
 retryable = true
+
+[keep_live_not_allowed]
+meaning = "keep \"live\" keeps the machine running and billed all month, so the owner opts in first, and at most max_live_kept (1 by default) are kept live at once. Nothing was opened."
+agent = "Open it with keep=\"save\" (saved and deleted when idle, resumed by its title) or keep=\"none\" instead, or tell the user they can allow kept machines."
+fix = "Allow it with `agentos environments allow --keep-live` (and `--max-live-kept N` for more than one), or close the live one you no longer need with `agentos environments close ID`."
 
 [lane_cold]
 meaning = "The lane is not running, so there is nothing live to show or act on."
@@ -727,6 +733,16 @@ meaning = "environment_open named a repository the node cannot clone: not connec
 agent = "Do not retry or look for another way in. Give the human the commands in the message word for word: they run them on the node, never you. Then open again, or open without the repository."
 fix = "On the node: `agentos environments repo add github.com/OWNER/NAME` (it prints a deploy key to paste; --token for a token). A refused key or token: add the key at the host, or make a new one with --replace."
 
+[repo_not_found]
+meaning = "environment_open named a repository that the host answered not found for, with a login or token that should see it: it does not exist, or that login cannot see it. Nothing was rented."
+agent = "Do not ask for a token. Check the repository name with the user (a typo, or another owner), then open again with the right repo."
+fix = "Check the name at the host. A repository of another account needs its own token: `agentos environments repo add github.com/OWNER/NAME --token`."
+
+[restore_failed]
+meaning = "The environment could not be resumed from its save. The save is untouched, and its new machine was deleted."
+agent = "Tell the user what the message says. Call environment_open with the same title once more; if it fails again, stop and tell the user (environment() lists the save)."
+fix = "Look at the save with `agentos environments saves`; `agentos doctor` and `agentos logs --since 10m` say why the machine did not come back."
+
 [repo_connect_failed]
 meaning = "A token or deploy key given on a repository card did not work, so nothing was kept: the host refused it, it cannot see or read the repository, it waits for SSO or an approval, or the key is not added."
 agent = "Do not retry with anything of your own. The person sees the reason on the card and fixes it there."
@@ -744,6 +760,11 @@ meaning = "A terminal or service lane's sandbox could not be set up or failed."
 agent = "Tell the user the lane's sandbox failed."
 fix = "Run `agentos doctor`, and check `agentos logs --lane <lane> --level warn`."
 
+[environment_choice]
+meaning = "environment_open was given a repository and no title, and this agent has several open or saved environments for that repository."
+agent = "Pick one: call environment_open again with one of the titles the message lists (the first is the newest), or a new title for a new environment. Ask the user when you cannot tell which one they mean."
+fix = "Nothing to fix on the node. `agentos environments list` and `agentos environments saves` show them; forget the saves you no longer need."
+
 [no_environment]
 meaning = "A terminal or browser call without `on` was made in a chat that has no environment open."
 agent = "Open one with environment_open(title=...) and call again, or name the lane you mean with `on`: a logged-in account lane the human made always needs `on` (lanes_list lists them)."
@@ -753,6 +774,22 @@ fix = "Nothing to fix on the node: the agent opens an environment first. `agento
 meaning = "This node cannot run a sandboxed terminal or service lane: agentosd is not root (a hardened node), it is not Linux, or bubblewrap is missing. Nothing was created or run."
 agent = "Do not retry or try another preset. Tell the user this node cannot run a sandboxed lane, and the choice the message names (a root node, or an owner-made workbench lane, which can read the vault)."
 fix = "Run agentosd as root (`agentos migrate-service-user --rollback`), or make a workbench lane with `--preset workbench --can-read-node-secrets` if it may read the vault and node token."
+
+[pull_request_failed]
+meaning = "The node did not open the pull request: it holds no GitHub token for the repository (a deploy key only pushes), or GitHub refused or did not answer. Nothing was changed on GitHub."
+agent = "Do not retry in a loop. Tell the user what the message says; give them git.compare from environment(), which opens GitHub's own form for the branch."
+fix = "On agentos local, `agentos setup github` stores a login; on a server node, `agentos git key add --host github.com --repo OWNER/NAME --token TOKEN` stores a token that may open pull requests."
+
+[save_failed]
+meaning = "Saving the environment did not finish: its machine did not answer, its disk was full, or the snapshot failed. Nothing was deleted: the machine is kept and still bills, and the owner was told."
+agent = "Do not close with discard. Tell the user the save failed and what the message says. Fix what it names (free disk space, or push your work), then call environment_save() or environment_close() again."
+reasons = { provider_unreachable = "The cloud's API did not answer. Your work is safe, and agentos tries the save again by itself in 10 minutes. Do not close with discard. Tell the user the save waits on the cloud; call environment_close() again in a few minutes.", provider_busy = "The cloud is still busy with this machine (an earlier snapshot), even after agentos waited a minute. Your work is safe. Do not close with discard. Wait 2 minutes, then call environment_close() again.", machine_unreachable = "The machine did not answer, so nothing was saved. Call environment() to see its state. If it says ready, call environment_close() again; if the machine is gone, tell the user.", snapshot_failed = "The cloud refused the disk snapshot. Your files are safe on the machine. Push your branch (git push origin <branch>), tell the user what the message says, then call environment_close() again." }
+fix = "Look at it with `agentos environments show ID`. Free space on the machine or fix what the message names, then close it again; `agentos environments close ID --discard` deletes it without a save."
+
+[save_limit]
+meaning = "The save would pass this node's limit for saves (max_saves_gb, 5 GB of file parts by default), even after the oldest saves of the title were removed."
+agent = "Leave build output and large files out of the work (or gitignore them), then save again; or tell the user the node's save limit was reached."
+fix = "Forget saves you no longer need with `agentos environments forget TITLE`, or raise max_saves_gb in environments.toml."
 
 [see_whole_card]
 meaning = "This send card's preview shows only part of the messages it sends, and whoever approved it was not shown every one of them, so it was not approved."
@@ -914,6 +951,11 @@ engine_missing = "The browser engine this call needs is not installed. Tell the 
 meaning = "The environment has changes that are not committed, or commits that are not pushed, so it was not closed. The message lists them."
 agent = "Commit and push the work (git push origin <branch>), then close again. Pass discard=true only when the user agreed to lose it."
 fix = "Look at it with `agentos environments show ID`; close it anyway with `agentos environments close ID --discard`."
+
+[which_environment]
+meaning = "A call without `on` while more than one environment of this agent is open, from a client that sends no MCP session id, so agentos cannot tell which computer the call is for. Nothing ran."
+agent = "Call again with `on` set to the computer you mean: its title or env/<id>, as the message lists them. Use the one you opened or attached. If none of them is yours, open your own with environment_open(title=...)."
+fix = "Nothing to fix on the node: the agent names the environment with `on`."
 
 [unsupported]
 meaning = "This node's flow driver cannot do what the step asks (read the account identity, or extract records)."

@@ -51,16 +51,42 @@ def ssh_base(remote: RemoteHost, *, tty: bool = False) -> list[str]:
     ]
 
 
+# Where a workload on the VM writes its process group id, so the node can end every process it started
+# (lane_job_cancel left a dev server's vite running: killing the local ssh never reached the VM's processes).
+PGID_DIR = "/tmp/agentos-wl"
+_WID_OK = frozenset("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_")
+
+
+def pgid_file(wid: str) -> str:
+    return f"{PGID_DIR}/{wid}.pgid"
+
+
 def remote_command(wl: Workload) -> str:
     """One string for the remote shell: the working directory, the workload's environment and
-    its argv, each quoted. sshd runs it with the user's login shell."""
+    its argv, each quoted. sshd runs it with the user's login shell. A workload without a terminal
+    runs in a process group of its own (setsid -w, which still waits for it and passes its exit
+    status), whose id it writes to pgid_file(wid) for stop_argv, and what it leaves in the background
+    ends with it; one with a terminal ends with its terminal."""
     cwd = wl.cwd or "~"
     cd = "cd" if cwd == "~" else f"cd {shlex.quote(cwd)}"
     env = " ".join(f"{k}={shlex.quote(v)}" for k, v in sorted(wl.env.items()) if _env_name_ok(k))
     run = shlex.join(wl.argv)
     if env:
         run = f"env {env} {run}"
-    return f"{cd} && exec {run}"
+    if wl.pty or not wl.wid or set(wl.wid) - _WID_OK:
+        return f"{cd} && exec {run}"
+    f = pgid_file(wl.wid)
+    # after the command, what it left in the background ends too (the shell ignores the TERM it sends)
+    group = shlex.quote(f'echo $$ > {f}; "$@"; rc=$?; trap "" TERM; kill -TERM -- -$$ 2>/dev/null; '
+                        f'rm -f {f}; exit $rc')
+    return f"mkdir -p {PGID_DIR} && {cd} && exec setsid -w sh -c {group} sh {run}"
+
+
+def stop_script(wid: str, sig: str) -> str:
+    """Signal every process of the workload's group on the VM; the file goes once it is killed."""
+    f = shlex.quote(pgid_file(wid))
+    tail = f"; rm -f {f}" if sig == "KILL" else ""
+    return f'p=$(cat {f} 2>/dev/null) && [ -n "$p" ] && kill -{sig} -- "-$p" 2>/dev/null{tail}; true'
 
 
 def _env_name_ok(name: str) -> bool:
@@ -80,6 +106,13 @@ class SshLauncher:
         env = {"PATH": "/usr/sbin:/usr/bin:/sbin:/bin", "HOME": str(workdir), "LANG": "C.UTF-8"}
         workdir.mkdir(parents=True, exist_ok=True)
         return Command(argv, env, str(workdir))
+
+    def stop_argv(self, lane: EnvLane, wid: str, sig: str) -> list[str] | None:
+        """The ssh command that sends `sig` (TERM or KILL) to a workload's process group on the VM
+        (agentos.env.lanes calls it before it kills the local ssh). None for an id it never wrote."""
+        if lane.remote is None or not wid or set(wid) - _WID_OK:
+            return None
+        return ssh_base(lane.remote) + [stop_script(wid, sig)]
 
 
 async def probe(remote: RemoteHost, *, timeout_s: float = 20.0) -> tuple[bool, str]:

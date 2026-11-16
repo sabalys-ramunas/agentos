@@ -1,9 +1,11 @@
 # Environments: a computer in the cloud for each agent
 
-An environment is a fresh VM that the node rents for one chat. It has a terminal, a real browser
-whose traffic leaves from the VM, and your repository in `/work/<name>`. The agent works there,
-commits and pushes a branch, and the VM is deleted when it is done. You can watch its browser and
-its commands live and take over.
+An environment is a VM that the node rents for an agent. It has a terminal, a real browser whose
+traffic leaves from the VM, and your repository in `/work/<name>`. The agent works there, commits
+and pushes a branch. A single-use one is deleted when it is done; a kept one is saved or stays
+running, and comes back when an agent opens it again with the same title
+([Keeping an environment](#keeping-an-environment)). You can watch its browser and its commands
+live and take over.
 
 This page is the user guide. The design, the decisions and the exact tool shapes are in
 [design/environments.md](design/environments.md).
@@ -215,6 +217,11 @@ one to its time limit, not only what it has cost so far. The node's own limits i
 (`max_live`, `max_ttl_minutes`, `monthly_budget_eur`) hold too, and the tighter one wins.
 `allow` grants nothing; it only writes the limits to `environments.toml`.
 
+How environments stay is set in the same file: `default_keep` (`none`, the default, or `save`),
+`allow_keep_live` (off until you turn it on) and `max_live_kept`. `agentos setup` asks the first
+one, and turns the second on only when you choose it. See
+[Keeping an environment](#keeping-an-environment).
+
 ### 5. Check it
 
 ```
@@ -233,21 +240,23 @@ The MCP intro tells every agent it can have an environment, and the `agentos-env
 > Work on this in agentos: fix the failing checkout test, check the page on a phone, push a branch.
 
 The loop: open, read and edit files, run the tests, start the dev server and look at it in the
-browser, keep a screenshot as proof and give you its link, push a branch and give you the pull
-request link, close (the VM is deleted).
+browser, keep a screenshot as proof and give you its link, push a branch and open the pull
+request (you get its link), close (the VM is deleted).
 
 What the agent does:
 
 | Call | What it does |
 |---|---|
-| `environment_open(title, repo, ref, size, hours)` | rents the VM, clones `repo` into `/work/<name>`, opens the browser; returns the workdir and the browser's live view link for you |
+| `environment_open(title, repo, ref, size, hours, keep, signins)` | rents the VM, clones `repo` into `/work/<name>`, opens the browser; returns the workdir and the browser's live view link for you. With `repo` and no `title` it finds that repository's one open or saved environment (several: `environment_choice`, with each title to pick from; none: a new one named after the repository) |
 | `lane_file_read(path, offset, limit)`, `lane_file_edit(path, old, new)`, `lane_file_write(path, content)` | the repository's files on the VM, with line numbers; an edit replaces exact text that occurs once (a relative path starts in the repository) |
-| `lane_exec(cmd, cwd, max_bytes)`, `lane_job_start`, `lane_job_read(until_exit)`, `lane_job_cancel` | commands and dev servers on the VM (no `on`: the environment of this chat); in every agent's tool list. A command's output comes back within 16 KB by default (the middle is cut, with the full sizes). `shell_open` and the rest are `tools_more("terminals")` |
+| `lane_exec(cmd, cwd, max_bytes)`, `lane_job_start`, `lane_job_read(until_exit)`, `lane_job_cancel` | commands and dev servers on the VM (no `on`: your open environment; `on="<title>"` names one); in every agent's tool list. A command's output comes back within 16 KB by default (the middle is cut, with the full sizes). `shell_open` and the rest are `tools_more("terminals")` |
 | `browser_navigate(url)`, `browser_snapshot`, `browser_act` | the environment's browser, a desktop window; `localhost` is the VM |
 | `browser_screenshot(proof="checkout after the fix", full_page, width)` | keeps the shot as proof (see below); `width=390` shows the phone layout |
 | `ui_check(url="http://localhost:3000")` | studio's page checks (`tools_more("studio")`), on the VM's dev server; while the environment cannot be reached they fail with `environment_not_ready` and never check the node instead |
-| `environment()` | state, time left, cost so far, listening ports, git (branch, ahead, dirty, `pushed`: each branch at its commit on the remote now, `deleted`: branches it deleted, and `compare`: the GitHub link that opens a pull request for the pushed branch), proofs, the last calls (a command's `exit_code`, a refusal's `error`) |
-| `environment_close(discard=False)` | refuses with `unsaved_work` while any repository under `/work` has work that is not on a remote (changed or new files, commits on any branch, stashes); then deletes the VM, the browser and both lanes; `machine` says `deleted` only once the provider has no such server (`deleting` while the node still deletes it) |
+| `environment()` | state, time left, cost so far, listening ports (a shared one with its `link`), git (branch, ahead, dirty, `pushed`: each branch at its commit on the remote now, `deleted`: branches it deleted, `compare`: GitHub's form for the pushed branch, `pull_requests`), proofs, the agent's `note`, the last calls (a command's `exit_code`, a refusal's `error`), and always the agent's `open` and `saved` environments by title |
+| `environment_pull_request(title, body, base, draft)` | opens the pull request for a branch this environment pushed, with the node's GitHub token, and returns its `url` (see below) |
+| `environment_port(port)` | a link on your own computer to a server on the VM (see [Ports](#ports)) |
+| `environment_close(discard, final, note, forget)` | refuses with `unsaved_work` while any repository under `/work` has work that is not on a remote (changed or new files, commits on any branch, stashes); then deletes the VM, the browser and both lanes; `machine` says `deleted` only once the provider has no such server (`deleting` while the node still deletes it). `saves` says what became of the saves; `note` and `forget` are in [Keeping an environment](#keeping-an-environment) |
 
 Work that is only on your computer (changes not committed yet, or a project with no repository the
 node can clone) gets there two ways. The agent commits it to a branch, pushes it, and opens with
@@ -256,13 +265,17 @@ node can clone) gets there two ways. The agent commits it to a branch, pushes it
 1. `environment_upload(dest)` (in `tools_more("terminals")`, or `tools_call`) gives a signed link on
    the node's own address (for an agent on your Mac, `http://localhost:7400` through its tunnel),
    good once and for 15 minutes, and two commands.
-2. The agent runs them in its own shell, in the checkout. `pack` takes the tracked and new files
-   and leaves out what git ignores (`node_modules`, `.env`); `send` puts the archive on the node
-   with curl, so the bytes never go through tool calls:
+2. The agent runs them in its own shell, in the folder with its code. In a git checkout `pack`
+   takes the tracked and new files and leaves out what git ignores; in a plain folder it takes all
+   of it but `node_modules`, `.env`, `.git`, `.venv` and `__pycache__`. The archive goes to the temp
+   folder, never into the folder it packs. `send` puts it on the node with curl, so the bytes never
+   go through tool calls. An archive with no files is refused:
 
    ```
-   git ls-files -co --exclude-standard -z | COPYFILE_DISABLE=1 tar --null -T - -czf work.tgz
-   curl --fail-with-body -T work.tgz "<url>"
+   A="${TMPDIR:-/tmp}/agentos-work.tgz"; if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+     git ls-files -co --exclude-standard -z | COPYFILE_DISABLE=1 tar --null -T - -czf "$A"
+   else COPYFILE_DISABLE=1 tar --exclude node_modules --exclude .env ... -czf "$A" .; fi
+   curl --fail-with-body -T "${TMPDIR:-/tmp}/agentos-work.tgz" "<url>"
    ```
 
 3. The node checks every file in the archive, then extracts it into the workdir (`/work/<name>`,
@@ -276,19 +289,34 @@ file refuses the whole archive before the VM sees any of it. The link ends when 
 closes or the node restarts, and a used, expired or changed one gets a 403. For a few small files
 without a shell of its own, the agent still has `lane_upload` and a job's sync.
 
-One environment per chat. A new chat starts clean. A resumed or reconnected chat that opens the
-same title again, with the same grant, gets the one still open (only one that is starting or
-ready, never one that failed or closed; the repository may be left out; a title held by one with
-another repository than the one named is `environment_in_use`), once the chat that had it has made
-no call for 10 minutes (before that it is refused with `environment_in_use`, and the chat that lost
-it is told so on its next call). The takeover counts as a call, so the chat that lost it cannot
-take it straight back. A chat whose call finds no environment hears the agent's open
-ones by title. Calls with `on="workspace/name"` go to that lane, as before: account lanes and
-environments live side by side.
+The title names the computer. `environment_open` with a new title opens a new environment, even
+while others of the same agent are open (the node's limits still hold). With the title of an open
+one it attaches to it (`opened: "attached"`): only one that is starting or ready, never one that
+failed or closed. The repository may be left out; the same title with another repository is
+`environment_already_open`, whose fix is another title. What the attach could not give as asked
+(keep, hours, size, ref) is in `differs`, with the values it has in `applied`. With the title of a
+saved one it resumes it (`opened: "resumed"`).
+
+Which environment a call without `on` goes to depends on the agent's client:
+
+- A client that sends an MCP session id (`mcp-session-id`, the older protocols): the one this chat
+  opened or attached last. A chat that names the title of one another such chat used in the last 10
+  minutes gets `environment_in_use`; after that it takes it over, and the takeover counts as a call
+  so the chat that lost it cannot take it straight back.
+- A client that sends none (MCP 2026-07-28, as Claude Code and T3 Code use it, and stdio): every chat
+  of the agent looks the same, so the call goes to the agent's only open environment. With several
+  open it is refused with `which_environment`, which lists each by title with its `on`.
+
+`on` takes an environment's title (any case), its id or `env/<id>`, so an agent can always name the
+one it means; a browser tool gets that environment's browser. Every result of a call that went to
+an environment this way carries `environment: {id, title}`. Calls with `on="workspace/name"` go to
+that account lane, as before: account lanes and environments live side by side. Without a session
+id, `environment_close(discard=true)` (or `final=true`) needs `on`, because it deletes work.
 
 An environment belongs to the agent that opened it: its grant, and the grants narrowed from it.
-Another agent cannot run commands there, drive its browser, read it or close it, whatever its
-grant says; to it the environment does not exist. You see and close every one from the web app and
+Your other chats with the same agentos grant reach it by its title. Other people's agents cannot
+run commands there, drive its browser, read it or close it, whatever their grant says; to them the
+environment does not exist. You see and close every one from the web app and
 the CLI; a member sees and closes the ones their own agents opened.
 
 Nothing in the environment waits for a person, even after the agent read a web page: not opening
@@ -322,14 +350,33 @@ agent gets a link to it on the node's own address, good for 15 minutes (`environ
 `curl -o proof.png "<url>"`. The web app's environment page shows them too
 (`GET /api/orgs/{org}/environments/{id}` lists `proofs`, and each `src` is its PNG).
 
-After `git push origin <branch>`, `environment()` gives `git.compare`, the GitHub page that opens a
-pull request for that branch, and the agent gives it to you.
+### Pull requests
+
+After `git push origin <branch>`, `environment_pull_request(title, body=None, base=None,
+draft=False)` opens the pull request on GitHub and returns its `url`, which the agent gives you.
+The VM has no `gh` and no credential: the node opens it through GitHub's API with the token the
+git gateway pushes with (a token declared for the repository or its owner first, else the GitHub
+login of agentos local, `agentos setup github`; a deploy key cannot open one). It works only for
+a branch this environment created on the remote, into `base` or the repository's default branch;
+if one is open for that branch already, it returns that one. It never merges, closes or changes
+anything else, and the token never leaves the node. With no token it fails with
+`pull_request_failed`, and the agent gives you `git.compare` instead: GitHub's own form for the
+branch.
 
 ### Ports
 
 `environment()` lists the ports listening on the machine, for example the dev server on port 3000.
-There is no link that opens a port on your own computer (`link` is null): look at the dev server
-through the environment's browser, in the live view.
+`environment_port(3000)` shares one with you, as E2B and Daytona give a preview link: the node
+listens on a free `127.0.0.1` port and sends each connection through the environment's own SSH
+connection (its SOCKS proxy) to that port on the VM, so no new SSH session, key or firewall rule is
+needed, and only the node's own user may use it. It closes with the environment.
+
+- On agentos local the node is your computer: `url` is `http://127.0.0.1:<p>/`, open it as is.
+- On a server node the port is on the server: run the `tunnel` line it gives
+  (`ssh -N -L <p>:127.0.0.1:<p> <your node>`, the same as for the live view), then open `url`.
+
+The web app's Ports card shows the link (and the ssh line on a server node) for each shared port;
+the others say "On the machine only".
 
 From the CLI:
 
@@ -343,6 +390,75 @@ The web app's Environments page shows the same, with each one's live browser, co
 its own page ([web/README.md](../web/README.md) says how to build and open it). Without a build, the
 live view links, the CLI and the terminal dashboard (`agentos open --terminal`) show the same.
 
+## Keeping an environment
+
+An environment has a `keep` mode, chosen by the agent when it opens it (`environment_open(...,
+keep=...)`), else `default_keep` in `environments.toml`:
+
+| Mode | In the web app | What happens | While nobody uses it |
+|---|---|---|---|
+| `none` | Single use | work, push, close; the VM is deleted | nothing |
+| `save` | Saves when idle | on idle, close, its time limit or laptop sleep, the whole machine is saved (a disk snapshot plus the files) and the VM deleted; autosave every 15 minutes | the snapshot, about EUR 0.012 per GB a month (cents) |
+| `live` | Kept running | the VM stays on; deleted only on a final close or by you | every hour, about EUR 7.80 a month for a `cx23` |
+
+The skill and the MCP intro tell the agent to choose single use for a one-off fix, `save` when the
+work will span sessions or you say "keep it" or "continue tomorrow", and `live` only when you ask
+for an always-on machine. `live` is refused (`keep_live_not_allowed`) until you allow it:
+
+```
+agentos environments allow --keep-live
+```
+
+**Coming back.** `environment_open` with the same title, from any chat, recreates the VM from the
+save, and the job continues: the tools, the Docker volumes, `node_modules`, the browser's sign-ins
+and the dev server come back. `environment_open(repo=...)` without a title finds the one
+environment of that repository. Its result has `resumed`: where it came from (`snapshot`, or
+`files` when only the files were saved), the branch and head, the files and commits restored, a
+fresh `expires_at`, `signins`, what is `missing`, and the note the last agent left. The note is the
+agent's own text: the next agent reads it as data, never as instructions. To bring one back, say
+to your agent: "continue the shop in agentos".
+
+**The services.** Each `lane_job_start` command that ran at the save (with the port its command
+names) is started again, and the node waits up to 45 seconds in all for those ports to listen.
+`resumed.services` says for each one `running` and `listening`; one that did not come back has
+`why` and a ready `restart` call (`lane_job_start(cmd="pnpm dev --port 5321", cwd="/work/shop")`),
+and when none came back `running_jobs_lost` lists them, so the agent never trips over a dev server
+that quietly vanished.
+
+**Sign-ins.** A save of a kept environment holds its browser's storage state (cookies and each
+site's local storage), read from the environment's own browser lane only, never an account lane
+or the vault. It is `browser.json` in the save's files, sealed with the saves key like the rest;
+the manifest has only the cookie count. On resume the browser opens with it: on the VM its new
+context starts with that state (and every later start of that browser gets the newest one, so a
+browser closed while idle keeps its sign-ins); on the node the cookies are added and each site's
+local storage is set where it has none. `environment_open(signins=false)` opts one environment
+out (its saves remember it); `save_signins = false` in `environments.toml` turns it off for the
+node.
+
+**Stopping and finishing.** One call each:
+
+- Stopping for the day: `environment_close(note="what is next")` on a kept one saves with that
+  note (it comes back in `resumed.note` and `environment()`), then deletes the VM. Its result has
+  `saved` and `pause`, what the wait costs and how long a resume takes ("saved: about EUR 0.02 a
+  month, resumes in about a minute"). `environment_save(note=...)` saves without closing, before
+  a risky step.
+- On one kept running, `environment_close()` only lets go of it, unless `final=true`.
+- Done for good: `environment_close(forget=true)` deletes the VM and every save of its title (with
+  unpushed work only together with `discard=true`).
+- `environment_close(discard=true)` makes no save, and its `saves` says so: `made` is null and
+  `left` lists the earlier saves that stay.
+
+**Saved, in the web app.** Under Environments, Saved lists each save: the title, repository and
+branch, when it was saved, the snapshot's size and what it costs a month, and the agent's note
+(shown as text). A save the node deletes soon says so. **Forget** (the owner alone) deletes the
+snapshot and the files, after asking; an agent that opens that title again starts on a fresh
+machine. Agents forget finished work themselves with `environment_forget(title)`.
+`environment()` always lists the agent's `open` and `saved` ones.
+
+**When a save fails.** `save_failed`: the VM is not deleted, so nothing is lost; the agent tries
+once more, then tells you. `restore_failed`: the save is kept; tell the agent to try again later or
+open a fresh one under another title. `save_limit`: forget saves you no longer need.
+
 ## Costs and the reaper
 
 - The price is the provider's hourly price for the server type, shown in the audit log's record
@@ -353,8 +469,9 @@ live view links, the CLI and the terminal dashboard (`agentos open --terminal`) 
   environment page extends it, up to the same limit.
 - **The reaper** closes an environment that the agent forgot: idle (no call, no running command
   and no input from you in its live view) for `idle_minutes` (default 60), or past its time
-  limit. One with unsaved work is never deleted for being idle: it waits to its time limit, and
-  you get a notification first. Unsaved work is anything in a repository under `/work` (the cloned
+  limit. One that saves when idle is saved first; one kept running is left alone. A single-use one
+  with unsaved work is never deleted for being idle: it waits to its time limit, gets a rescue
+  save, and you get a notification. Unsaved work is anything in a repository under `/work` (the cloned
   one or any other) that is not on a remote: changed or new files, commits on any local branch
   that no remote has, and stashes. `environment_close` refuses for the same reasons.
 - A daemon restart never deletes environments; the reaper picks up where it was. A server the node
@@ -371,7 +488,7 @@ On it:
 - `/work/<name>`: the repository, on the branch or `ref` asked for.
 - A git config that sends declared hosts to the gateway (`127.0.0.1:3129` on the VM is the node's
   gateway, through the VM's SSH connection).
-- Whatever the agent installs. It is the agent's machine for this chat.
+- Whatever the agent installs. It is the agent's machine, by its title.
 
 Not on it:
 
@@ -385,13 +502,16 @@ Not on it:
 
 ## Limits
 
-- One environment per chat. The node's `max_live` and budget cap how many are open in all.
+- One environment per title for an agent. The node's `max_live` and budget cap how many are open
+  in all, and `max_live_kept` how many are kept running.
 - Nothing reaches the VM from the internet except SSH from the node (Hetzner: a firewall per node).
   Its ports are seen through the environment's browser (the live view).
-- A chat that talks to the node over stdio (no `mcp-session-id`) is bound by its grant, so two
-  such chats with one grant share an environment.
+- A client that sends no `mcp-session-id` (MCP 2026-07-28, stdio) is told apart only by the
+  titles its chats use: two chats that use one title share that computer, and with several open
+  their calls name one with `on`. `environment()`'s calls show which client made each.
 - Files go in through git, `environment_upload` (a tarball of a local checkout, at most 512 MB), or
-  `lane_upload` and a job's `sync` (above); they come out through git.
+  `lane_upload` and a job's `sync` (above); they come out through git, or
+  `environment_download(path)` (a one-use link to a file or folder in `/work`).
 - The node checks where a push goes (declared repository, protected branch), not what the commits
   contain. Review a branch before you merge it.
 - On the dev node (`agentos dev up`), account lanes are simulated. The environment's machine,
@@ -405,6 +525,8 @@ Not on it:
 | `environment_failed` | the VM did not boot or answer SSH in time; it was deleted | `agentos environments setup`; on Hetzner, `agentos vm types` (sold out in the location?) |
 | `state: "starting"` for minutes | first boot without the `dev` image installs the tools | wait, or build the image (step 2) |
 | `no_environment` | a call without `on` in a chat with no environment | the agent calls `environment_open(title=...)` first, or names an account lane with `on` |
+| `which_environment` | a call without `on` while several environments of the agent are open, from a client with no session id | the agent passes `on` with the title of its own (the message lists them) |
+| `environment_already_open` | the title names an open environment with another repository | the agent picks another title |
 | `environment_not_ready` | the environment is starting, or its tunnel is down after a restart | wait a minute; `agentos environments show ID` |
 | `unsaved_work` on close | uncommitted changes or commits not pushed | commit and push, or close with `discard=true` if the work may go |
 | `approval_pending` with `kind: "repo_connect"` | the repository is private and not connected, or its key or token was refused; nothing was rented | open the card's `review_url` and paste a token (see "Connect a repository"), or at the node `agentos environments repo add github.com/me/shop --token` |

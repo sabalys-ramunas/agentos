@@ -495,3 +495,57 @@ def test_the_request_rows_ask_once_per_repository(tmp_path):
     assert connect.close(store, policy.approvals, REPO) == [a.id]
     assert [r["repo"] for r in store.requests()] == ["github.com/acme/other"]
     policy.close()
+
+
+# ---------------------------------------------------------------- a repository that is not there
+
+
+async def test_a_repo_the_github_login_cannot_find_is_repo_not_found_and_no_card(panel):
+    """T3: a made-up repository got a card asking for a token, with a cut-off reason ("was n."). With
+    the node's GitHub login on (any_repo), GitHub's 404 means it does not exist or the login cannot see
+    it: repo_not_found, no card, and nothing rented."""
+    from agentos.git import login
+    from agentos.policy.wrap import ToolCallError
+
+    n = panel
+    await login.store(n["vault"], n["mgr"].home, TOKEN, login="octo-dev", source="gh", any_repo=True)
+
+    async def missing(url, env, *, timeout_s=20, allow_file=False):
+        return False, (b"remote: Repository not found.\nfatal: repository 'https://github.com/octo-dev/"
+                       b"nope-42.git/' not found\n")
+
+    n["mgr"].repo_probe = missing
+    with pytest.raises(ToolCallError, match="repo_not_found") as err:
+        await n["call"]("environment_open", title=TITLE, repo="github.com/octo-dev/nope-42")
+    words = str(err.value)
+    assert ("github.com/octo-dev/nope-42 does not exist, or your GitHub login octo-dev cannot see "
+            "it") in words and "Check the name with the person" in words and "—" not in words
+    assert n["mgr"].store.requests() == [] and n["vms"].store.recent() == []
+
+
+def test_a_long_reason_is_cut_at_a_word_never_mid_word():
+    from agentos.environments import repos
+    from agentos.git.service import RepoAccess
+
+    slug = "github.com/sabalys-ramunas/this-repo-does-not-exist-42"
+    access = RepoAccess(slug, False, None, declared=True, credential="github-login", kind="ssh",
+                        why=f"{slug} was not found on github.com, or the credential cannot see it")
+    assert repos.reason_words(access) == f"{slug} was not found on github.com, or the credential cannot see it"
+    assert repos.fit("one two three four", 12) == "one two..."
+
+
+async def test_an_open_with_another_repo_withdraws_the_card_the_agent_raised(panel):
+    """The agent got the name wrong, got a card, then opened with the right repository: its card goes, so no
+    person pastes a token for a repository nobody needs. A card another agent waits on too stays."""
+    n = panel
+    first = await card(n)
+    approvals = n["rt"].get("approvals")
+    assert approvals.get(first["approval_id"]).state == "pending"
+    assert "that withdraws this card" in first["next"]
+    async def public(url, env, *, timeout_s=20, allow_file=False):
+        return True, b""
+
+    n["mgr"].repo_probe = public
+    out = await n["call"]("environment_open", title="Other work", repo="github.com/acme/the-right-one")
+    assert out.get("status") != "approval_pending" and out["repo"] == "github.com/acme/the-right-one"
+    assert approvals.get(first["approval_id"]).state == "denied" and n["mgr"].store.requests() == []

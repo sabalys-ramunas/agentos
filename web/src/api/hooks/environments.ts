@@ -63,3 +63,13 @@ export function useExtendEnvironment(org: string) {
     onSuccess: settled,
   });
 }
+
+/** Forget a save: the node deletes its snapshot and files, and the list is read again. */
+export function useForgetSave(org: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id }: { id: string }) => environments.forget(org, id),
+    meta: { inline: true },
+    onSuccess: () => void client.invalidateQueries({ queryKey: keys.environmentsAll(org) }),
+  });
+}

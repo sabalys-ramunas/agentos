@@ -41,7 +41,6 @@ from __future__ import annotations
 import asyncio
 import base64
 import copy
-import difflib
 import inspect
 import logging
 import re
@@ -75,7 +74,7 @@ from pydantic import Field, ValidationError
 from pydantic.fields import FieldInfo
 
 from agentos import __version__
-from agentos.core import catalog, logs
+from agentos.core import catalog, logs, progress
 from agentos.core.errors import AgentosError, ApprovalPending, EngineError
 from agentos.core.models import Effect, Principal
 from agentos.core.runtime import Runtime
@@ -90,6 +89,7 @@ from agentos.core.tools import (
 )
 from agentos.environments import routing as env_routing
 from agentos.mcp import toolsets as ts
+from agentos.mcp.callprogress import start_heartbeat, with_notices
 from agentos.node import interrupts
 from agentos.policy.redactor import Redactor
 from agentos.policy.scrub import runtime_scrub
@@ -105,6 +105,16 @@ raise AgentosError (or any exception with string `code` and `message` attributes
 Provider = Callable[[Runtime], "list[ToolSpec | PromptSpec]"]
 VisibleFilter = Callable[[str | None, list[ToolSpec]], list[ToolSpec]]
 """`visible(token, specs)` returns the specs this bearer token may see and call (None: no token)."""
+
+from agentos.mcp.argerrors import (  # noqa: F401 - re-exported: moved, same names
+    ARG_SYNONYMS,
+    MAX_KNOWN_SHOWN,
+    MAX_UNKNOWN_SHOWN,
+    invalid_arguments,
+    shows_arguments,
+    unknown_arguments,
+    unknown_tool,
+)
 
 MAX_ERROR_CHARS = 600
 TRACE_VALUE_CHARS = 200
@@ -193,18 +203,19 @@ def allow_all_wrap(spec: ToolSpec, runtime: Runtime) -> Call:
     async def call(**arguments: Any) -> Any:
         ctx = OwnerContext(runtime=runtime, tool=spec.name)
         ctx.trace("call", **arguments)
-        env_routing.route(runtime, spec.name, arguments, session=None, grant_id=None)  # no `on`: the environment
+        # no `on`, or `on` naming an environment: its lane, and the result names it
+        picked = env_routing.route(runtime, spec.name, arguments, session=None, grant_id=None)
         freeze = runtime.get("freeze")  # agentos.freeze stops every MCP caller, the owner's agent too
         # a studio check goes through the environment's tunnel, or fails while it is down
         with env_routing.studio_proxy(runtime, spec.name, arguments, session=None, grant_id=None):
             if freeze is None:
-                return await spec.handler(ctx, **arguments)
+                return env_routing.with_env(await spec.handler(ctx, **arguments), picked)
             lane_id = arguments.get(spec.lane_arg) if spec.lane_arg else None
             ws = arguments.get("workspace")
             extra = {"workspace": ws} if isinstance(ws, str) and ws else {}
             with freeze.guard(tool=spec.name, lane_id=lane_id if isinstance(lane_id, str) else None, chain=(),
                               **extra):
-                return await spec.handler(ctx, **arguments)
+                return env_routing.with_env(await spec.handler(ctx, **arguments), picked)
 
     return call
 
@@ -334,7 +345,7 @@ def tool_params(spec: ToolSpec) -> list[ToolParam]:
         description = _field_description(annotation) or arg_docs.get(p.name)
         default = p.default
         if p.name == spec.lane_arg and p.name == "on" and env_routing.routes(spec.name):
-            # leave `on` out and the call goes to the chat's environment (agentos.environments.routing)
+            # leave `on` out and the call goes to the caller's environment (agentos.environments.routing)
             annotation, default = annotation | None, None
             description = env_routing.LANE_ARG_TEXT
         if description is None and p.name == spec.lane_arg:
@@ -395,58 +406,6 @@ def error_result(message: str) -> CallToolResult:
     # Returned rather than raised: the SDK prefixes raised ToolErrors with "Error executing tool",
     # and agents should see the code first.
     return CallToolResult(content=[TextContent(type="text", text=message)], is_error=True)
-
-
-MAX_UNKNOWN_SHOWN = 5
-
-
-def unknown_arguments(spec: ToolSpec, known: frozenset[str] | None, arguments: Any) -> str | None:
-    """`invalid: ...` naming every argument the tool does not take, with the closest parameter when one
-    is close (`acton` -> `action`), or None. The SDK would drop them silently, and the tool would run on
-    its default. A typed flow tool on a fixed lane still takes `on` and ignores it, as it always has."""
-    if known is None or not isinstance(arguments, dict):
-        return None
-    allowed = known | ({"on"} if spec.lane_arg is None and "flow" in spec.tags else set())
-    extra = [k for k in arguments if k not in allowed]
-    if not extra:
-        return None
-    parts = []
-    for key in extra[:MAX_UNKNOWN_SHOWN]:
-        shown = str(key) if len(str(key)) <= 40 else str(key)[:37] + "..."
-        close = difflib.get_close_matches(str(key), sorted(known), n=1, cutoff=0.6)
-        parts.append(f"{shown!r} (did you mean {close[0]!r}?)" if close else repr(shown))
-    more = f" and {len(extra) - MAX_UNKNOWN_SHOWN} more" if len(extra) > MAX_UNKNOWN_SHOWN else ""
-    word = "argument" if len(extra) == 1 else "arguments"
-    return _cut(f"invalid: {spec.name} has no {word} {', '.join(parts)}{more}; {shows_arguments(spec.name)}")
-
-
-def shows_arguments(tool: str) -> str:
-    """Where an agent reads a tool's arguments: tools_more with the tool's name works for every tool,
-    listed or reached through tools_call (tools/list shows only the tools in its list)."""
-    return f'tools_more(toolset="{tool}") shows what it takes'
-
-
-def unknown_tool(name: str, known: Iterable[str]) -> str:
-    """not_found for a tool this caller has no tool by, naming a close one it does have, and a fix line
-    that works: tools_more lists every tool of every toolset, tools/list only the loaded ones."""
-    shown = name if len(name) <= 64 else name[:61] + "..."
-    close = difflib.get_close_matches(name, sorted(known), n=1, cutoff=0.6) if len(name) <= 64 else []
-    mean = f" (did you mean {close[0]!r}?)" if close else ""
-    return (f"not_found: no tool named {shown!r}{mean}\n"
-            "fix: Call tools_more() for every tool you have, then call one with tools_call(name, arguments).")
-
-
-def invalid_arguments(exc: ValidationError, tool: str | None = None) -> str:
-    """Field names and pydantic's messages only: the rejected values are the caller's data. With
-    `tool`, where its arguments are shown, then the catalog's fix line."""
-    parts = []
-    for err in exc.errors(include_url=False, include_input=False, include_context=False):
-        where = ".".join(str(part) for part in err["loc"]) or "arguments"
-        parts.append(f"{where}: {err['msg']}")
-    message = _cut("invalid: " + "; ".join(parts))
-    if tool is None:
-        return message
-    return with_catalog_lines(_cut(f"{message}; {shows_arguments(tool)}"))
 
 
 def _image(image: ToolImage) -> ImageContent:
@@ -728,8 +687,10 @@ class ToolServer(MCPServer):
             arguments = {k: v for k, v in arguments.items() if k != "on"}  # a fixed-lane flow: see unknown_arguments
         reset = elicitor_var.set(_elicitor(context))
         watch = watch_client(context, name)
+        state, token = progress.begin(name)
+        beat = start_heartbeat(context, state)
         try:
-            return await super().call_tool(name, arguments, context)
+            return with_notices(await super().call_tool(name, arguments, context), state, self.redactor)
         except asyncio.CancelledError:
             if interrupts.take() != interrupts.CLIENT_GONE:
                 raise
@@ -739,6 +700,9 @@ class ToolServer(MCPServer):
                 return error_result(invalid_arguments(exc.__cause__, name))
             raise
         finally:
+            if beat is not None:
+                beat.cancel()
+            progress.end(token)
             if watch is not None:
                 watch.cancel()
             elicitor_var.reset(reset)

@@ -824,4 +824,6 @@ export const environments = {
     http<EnvSummary>(path`/api/orgs/${org}/environments/${id}/close`, { method: 'POST', body: { discard } }),
   extend: (org: string, id: string, minutes: number) =>
     http<EnvSummary>(path`/api/orgs/${org}/environments/${id}/extend`, { method: 'POST', body: { minutes } }),
+  /** Forget a kept environment's save: its snapshot and files are deleted. The owner in person. */
+  forget: (org: string, saveId: string) => http<{ forgot?: boolean; snapshots_deleted?: number }>(path`/api/orgs/${org}/environments/saves/${saveId}`, { method: 'DELETE' }),
 };

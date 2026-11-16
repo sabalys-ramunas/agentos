@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import fcntl
 import logging
 import os
@@ -23,6 +24,7 @@ from agentos.env.paths import EnvPaths, EnvSettings
 from agentos.env.sandbox import DEFAULT_PATH, LanePlan, Workload
 
 log = logging.getLogger("agentos.env")
+REMOTE_STOP_S = 15.0  # how long the ssh that ends a workload's processes on a VM may take
 
 
 class SandboxError(AgentosError):
@@ -252,8 +254,29 @@ class LaneRuntime:
         self.workloads[wl.wid] = sp
         return sp
 
+    async def _remote_signal(self, sp: Spawned, sig: str) -> None:
+        """On a VM lane, the workload's processes there (its own process group, agentos.vms.ssh): killing
+        the local ssh client does not end them. Best effort, bounded: the VM may be gone."""
+        stop = getattr(self.launcher, "stop_argv", None)
+        argv = stop(self.lane, sp.wid, sig) if callable(stop) and self.lane.remote is not None else None
+        if not argv:
+            return
+        try:
+            proc = await asyncio.create_subprocess_exec(*argv, stdin=asyncio.subprocess.DEVNULL,
+                                                        stdout=asyncio.subprocess.DEVNULL,
+                                                        stderr=asyncio.subprocess.DEVNULL, start_new_session=True)
+        except OSError:
+            return
+        try:
+            await asyncio.wait_for(proc.wait(), REMOTE_STOP_S)
+        except TimeoutError:
+            with contextlib.suppress(ProcessLookupError):
+                proc.kill()
+            await proc.wait()
+
     async def terminate(self, sp: Spawned, grace: float = 2.0) -> None:
-        """SIGTERM every process of the workload, then SIGKILL after `grace`."""
+        """SIGTERM every process of the workload, then SIGKILL after `grace` (on a VM too)."""
+        await self._remote_signal(sp, "TERM")
         if sp.proc.returncode is None:
             self._signal(sp, signal.SIGTERM)
             try:
@@ -263,6 +286,7 @@ class LaneRuntime:
         await self.kill(sp)
 
     async def kill(self, sp: Spawned) -> None:
+        await self._remote_signal(sp, "KILL")
         if sp.cgroup:
             await asyncio.to_thread(self.host.cgroup_kill, sp.cgroup)
         self._signal(sp, signal.SIGKILL)
@@ -282,7 +306,8 @@ class LaneRuntime:
                 pass
 
     async def release(self, sp: Spawned) -> None:
-        """After a workload ends: kill leftovers (background children) and drop its cgroup."""
+        """After a workload ends: kill leftovers (background children) and drop its cgroup. On a VM the
+        workload's own shell ends its leftovers (agentos.vms.ssh.remote_command)."""
         if sp.cgroup:
             await asyncio.to_thread(self.host.cgroup_remove, sp.cgroup)
         else:

@@ -221,3 +221,13 @@ def _a_person_switched_it_on(request, monkeypatch):
         return for_call(self, flow_id, lane_id, through)
 
     monkeypatch.setattr(AskFirst, "for_call", switched_on)
+
+
+@pytest.fixture(autouse=True)
+def _no_preflight_waits(monkeypatch):
+    """A network check before an open is tried again over about 15 s; in tests, at once."""
+    from agentos.environments import manager as env_manager
+    from agentos.vms import manager as vm_manager
+
+    monkeypatch.setattr(env_manager, "REPO_CHECK_WAITS_S", (0.0, 0.0, 0.0))
+    monkeypatch.setattr(vm_manager, "PREFLIGHT_WAITS_S", (0.0, 0.0, 0.0))

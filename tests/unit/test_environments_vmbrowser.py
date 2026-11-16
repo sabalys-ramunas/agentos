@@ -304,6 +304,41 @@ async def test_a_vm_environments_browser_lane_opens_on_its_machine(routed):
         await mgr.shutdown()
 
 
+async def test_a_vm_browser_opens_with_the_saved_sign_ins_and_keeps_them_when_it_closes(routed, monkeypatch):
+    """A fresh context each launch, so the sign-ins (agentos.environments.signins) go in as its
+    storage_state, and the context's own are read back when the lane closes, for its next launch."""
+    from agentos.environments import signins
+
+    state = {"cookies": [{"name": "sid", "value": "v1", "domain": "shop.test", "path": "/"}], "origins": []}
+    later = {"cookies": [{"name": "sid", "value": "v2", "domain": "shop.test", "path": "/"}], "origins": []}
+    opened_with: list[dict] = []
+
+    async def new_context(self, **kw):
+        opened_with.append(kw)
+        self.context.storage_state = lambda: _value(later)
+        return self.context
+
+    monkeypatch.setattr(FakeBrowser, "new_context", new_context)
+    mgr = routed.mgr
+    signins.remember(routed.svc, "e1234567890", state)
+    await mgr.start()
+    try:
+        await _create(mgr, "env/e1234567890-browser")
+        await mgr.open("env/e1234567890-browser")
+        assert opened_with == [{"no_viewport": True, "storage_state": state}]
+        await mgr.close("env/e1234567890-browser")
+        assert signins.pending(routed.svc, "e1234567890") == later  # the lane's next launch opens with these
+        routed.svc.by_id["e1234567890"].keep_signins = False
+        await mgr.open("env/e1234567890-browser")
+        assert opened_with[-1] == {"no_viewport": True}  # opted out: a fresh one
+    finally:
+        await mgr.shutdown()
+
+
+async def _value(v):
+    return v
+
+
 async def test_every_other_lane_stays_on_the_node(routed):
     mgr = routed.mgr
     await mgr.start()
@@ -510,8 +545,10 @@ async def test_a_failed_install_fails_the_environment_with_its_reason(vm_node):
 
     plain = vm_node["machine"].exec
     vm_node["envs"].exec = exec_
-    out = await opened(vm_node)
-    env = vm_node["mgr"].get(out["id"])
+    with pytest.raises(Exception, match="environment_failed: environment e\\w+ did not start: .*Unable to locate "
+                                        "package xvfb"):
+        await opened(vm_node)
+    env = vm_node["mgr"].store.recent(1)[0]
     assert env.state == "failed" and "Unable to locate package xvfb" in (env.error or "")
 
 

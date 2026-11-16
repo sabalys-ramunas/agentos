@@ -29,7 +29,9 @@ class Views:
                                          timeout_s=CHECK_TIMEOUT_S)
         except AgentosError:
             return []
-        return parse_ports(res.stdout)
+        from agentos.environments import ports as env_ports
+
+        return env_ports.with_links(self, env.id, parse_ports(res.stdout))  # a forwarded one has its link
 
     async def git_repos(self, env: Environment) -> list[dict] | None:
         """Every repository under /work, the cloned one and any other the agent made: None when the
@@ -84,10 +86,20 @@ class Views:
     @staticmethod
     def unsaved_of(repos: list[dict] | None) -> dict | None:
         """{dirty_files, unpushed, stashes} of every repository (each named by its folder when
-        there are several), or None when all of it is committed and on a remote. A repository git
-        could not read counts as unsaved (`unreadable`)."""
-        if not repos:
-            return None
+        there are several), and `loose_files`, the files under /work in no repository (probes.GIT_STATE),
+        or None when all of it is committed and on a remote. A repository git could not read counts as
+        unsaved (`unreadable`)."""
+        loose = next((r for r in repos or [] if r.get("loose")), None)
+        repos = [r for r in repos or [] if not r.get("loose")]
+        out = Views._unsaved_repos(repos) if repos else None
+        if loose is not None and loose["dirty"]:
+            out = out or {"dirty_files": [], "unpushed": [], "stashes": []}
+            out["loose_files"] = loose["dirty_files"][:UNSAVED_LIST_MAX]
+            out["loose_count"] = loose["dirty"]
+        return out
+
+    @staticmethod
+    def _unsaved_repos(repos: list[dict]) -> dict | None:
         many = len(repos) > 1
         dirty = [f"{r['dir']}/{f}" if many else f for r in repos for f in r["dirty_files"]]
         unpushed = [f"{r['dir']}: {c}" if many else c for r in repos for c in r["unpushed"]]
@@ -114,6 +126,10 @@ class Views:
             parts.append("stashes: " + "; ".join(unsaved["stashes"][:5]))
         if unsaved.get("unreadable"):
             parts.append("repositories git cannot read: " + ", ".join(unsaved["unreadable"][:5]))
+        if unsaved.get("loose_files"):
+            count = unsaved.get("loose_count") or len(unsaved["loose_files"])
+            more = f" and {count - 10} more" if count > 10 else ""
+            parts.append(f"files in /work in no git repository: {', '.join(unsaved['loose_files'][:10])}{more}")
         return "; ".join(parts) or "changes git counts but did not list"
 
     def summary(self, env: Environment) -> dict:
@@ -127,7 +143,9 @@ class Views:
                 "machine": env.machine.model_dump(), "price_hourly_eur": env.price_hourly_eur,
                 "cost_eur": self.cost_now(env), "agent": {"name": env.agent, "client": env.client},
                 "lanes": env.lanes, "closed_reason": env.closed_reason, "error": env.error,
-                "error_code": env.error_code}
+                "error_code": env.error_code, "keep": env.keep,
+                "last_save": ({"id": env.last_save_id, "at": clock.iso_or_none(env.last_save_at, z=True)}
+                              if env.last_save_id else None), "save_error": env.save_error}
 
     def _commands(self, env: Environment) -> list[dict]:
         out = []
@@ -174,6 +192,9 @@ class Views:
         out["commands"] = self._commands(env)
         out["viewer"] = self._viewer(env)
         out["unsaved"] = self.unsaved_of(repos)
+        busy = self.in_background(env.id)  # type: ignore[attr-defined]  (Saving, on the same manager)
+        if busy:
+            out["background"] = f"{busy}: an agent's environment_{'close' if busy == 'closing' else 'save'} goes on"
         return out
 
     def call_view(self, c: Call) -> dict:
@@ -184,6 +205,8 @@ class Views:
             out["exit_code"] = c.exit_code
         if c.error:
             out["error"] = c.error
+        if c.client:
+            out["client"] = c.client  # which MCP client made it: chats of one agent share a computer by its title
         return out
 
     def links(self, env: Environment) -> dict:

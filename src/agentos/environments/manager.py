@@ -3,9 +3,11 @@
 An environment is a VM from agentos.vms (its terminal lane is `env/<id>`), a scratch browser lane on
 the node (`env/<id>-browser`) whose traffic leaves from the VM through an SSH SOCKS tunnel, the
 node's git gateway reached from the VM through a reverse tunnel, and optionally a repository
-cloned into /work/<name>. One per chat: it is bound to the MCP session that opened it (or, with no
-session, to the grant), and terminal and browser calls without `on` go to it (agentos.environments
-.routing).
+cloned into /work/<name>. Its title names it within the agent's grant family: environment_open with
+the title of an open one attaches to it, with a new title it opens another. Terminal and browser calls
+without `on` go to the one the MCP session opened or attached last (a client that sends a session id),
+else to the family's only open one; with several open and no session they are refused
+(which_environment) and the agent names one with `on` (agentos.environments.routing).
 
 Opening: plan (the VM the node would rent, the cheapest that fits), the node's limits (check_limits:
 open at once, the longest life, the month's budget; opening never asks a person) and the caller's
@@ -27,38 +29,40 @@ import logging
 import re
 import secrets
 import string
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
 from agentos.core import clock
 from agentos.core.errors import AgentosError, InvalidRequest, LaneExists, NotFound
-from agentos.core.models import LaneState, ProxyConfig, utcnow
+from agentos.core.models import ProxyConfig, utcnow
+from agentos.environments.activity import Activity
 from agentos.environments.bringup import BringUp
+from agentos.environments.downloads import Downloads
 from agentos.environments.errors import (
-    EnvironmentAlreadyOpen,
     EnvironmentFailed,
     EnvironmentInUse,
     EnvironmentLimit,
-    NoEnvironment,
+    SaveFailed,
+    SaveLimit,
     UnsavedWork,
 )
 from agentos.environments.models import (
     BRANCHES_KEPT,
     CALLS_KEPT,
-    HANDOFFS_KEPT,
     LIVE_STATES,
-    QUIET,
     WORKSPACE,
     Call,
     Environment,
     EnvSettings,
-    Handoff,
     Machine,
     Push,
     load_settings,
 )
+from agentos.environments.picking import Picking, current_client, is_session, same_title
+from agentos.environments.ports import ended
 from agentos.environments.proofs import Proofs
+from agentos.environments.saving import Saving
 from agentos.environments.sizing import Sizing
 from agentos.environments.store import EnvironmentStore
 from agentos.environments.tunnels import Tunnel
@@ -74,16 +78,23 @@ OPEN_NEXT = "environment_open(title=...)"
 # cannot be guessed, and a lane name (env/<id>-browser) stays short.
 _ID_CHARS = "".join(c for c in string.ascii_lowercase + string.digits if c not in "0o1li")
 ID_LENGTH = 10
-OPENS_LISTED = 10
 OPENING_KEPT = 256
 GONE_CHECKS, GONE_WAIT_S = 5, 2.0              # asking the provider whether a deleted machine is gone
 LANE_DELETE_TRIES, LANE_DELETE_WAIT_S = 3, 1.0  # a browser still exiting holds its lane a moment
 SWEEP_RECENT, SWEEP_WINDOW = 100, timedelta(days=1)
+REPO_CHECK_WAITS_S = (2.0, 4.0, 8.0)  # between tries of a repository check the host did not answer: ~15 s
+REPO_RETRY_TIMEOUT_S = 10.0           # each try after the first
 
 
-def _when(dt: datetime) -> str:
-    """A time in a message for an agent: 2026-11-13 16:47 UTC."""
-    return dt.astimezone(UTC).strftime("%Y-%m-%d %H:%M UTC")
+def unsaved_fix(unsaved: dict) -> str:
+    """What to do about unsaved work, for the files git has and for the ones it has not."""
+    git = unsaved.get("dirty_files") or unsaved.get("unpushed") or unsaved.get("stashes") or unsaved.get("unreadable")
+    steps = ["commit it and push every branch (git push origin <branch>; a stash goes onto a branch first)"] if git else []
+    if unsaved.get("loose_files"):
+        steps.append("take the files in no repository home with environment_download(path=\"<file or folder>\"), "
+                     "or push them in a repository")
+    words = "; ".join(steps) + ", or close with discard=true when the human agreed to lose it"
+    return words[0].upper() + words[1:]
 
 
 def new_id() -> str:
@@ -107,9 +118,11 @@ def check_ref(ref: str | None) -> str | None:
     return ref
 
 
-class EnvironmentManager(Sizing, BringUp, Views, Proofs, Uploads):
-    """The environments service. Its sizing and cost (Sizing), its bring-up (BringUp) and its read side
-    (Views) are mixins in their own modules; lookups, opening, closing and the reaper are here."""
+class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downloads, Saving, Activity):
+    """The environments service. Which environment a call means and attaching by title (Picking), its
+    sizing and cost (Sizing), its bring-up (BringUp), its read side (Views), its saves (Saving) and what
+    counts as busy (Activity) are mixins in their own modules; lane lookups, opening, closing and the
+    reaper are here."""
 
     def __init__(self, home: Path, *, runtime: Any = None, settings: EnvSettings | None = None, clock=utcnow):
         self.home = Path(home)
@@ -128,6 +141,7 @@ class EnvironmentManager(Sizing, BringUp, Views, Proofs, Uploads):
         self.last_reap: dict = {}
         self._reap_lock = asyncio.Lock()  # the reaper's loop and a catch-up after a wake never overlap
         self.repo_probe: Any = None  # how check_repo reads a repository (None: `git ls-remote`; tests set one)
+        self.repo_check_waits: tuple[float, ...] = REPO_CHECK_WAITS_S
 
     # ================================================================ wiring
     def _get(self, name: str) -> Any:
@@ -182,6 +196,14 @@ class EnvironmentManager(Sizing, BringUp, Views, Proofs, Uploads):
     # ================================================================ lifecycle
     async def start(self) -> None:
         self._wrap_proxies_loader()
+        lanes = self._get("lanes")
+        if lanes is not None:  # a slow or stuck browser call says how loaded its machine is
+            hints = getattr(lanes, "slow_hints", None)
+            if hints is None:
+                with contextlib.suppress(AttributeError, TypeError):
+                    lanes.slow_hints = hints = []
+            if isinstance(hints, list) and self.load_hint not in hints:
+                hints.append(self.load_hint)
         if self._reaper is None:
             self._reaper = asyncio.create_task(self._reap_loop(), name="environment-reaper")
 
@@ -216,18 +238,6 @@ class EnvironmentManager(Sizing, BringUp, Views, Proofs, Uploads):
     # ================================================================ lookups
     def get(self, env_id: str) -> Environment:
         return self.store.get(env_id)
-
-    def bound(self, binding: str, family: str | None = None) -> Environment | None:
-        """The open environment bound to this chat; with `family`, only one of that grant family (a
-        session id another agent sends gets nothing of someone else's)."""
-        env = self.store.bound(binding)
-        if env is not None and family is not None and env.family != family:
-            return None
-        return env
-
-    def open_for_family(self, family: str | None) -> list[Environment]:
-        """The open environments of a grant family (None: every one, for the owner with no policy)."""
-        return [e for e in self.store.open() if family is None or e.family == family]
 
     def env_of_lane(self, lane_id: str) -> tuple[Environment, str] | None:
         """(environment, "terminal" | "browser") for any environment's lane, open or not, else None."""
@@ -335,48 +345,6 @@ class EnvironmentManager(Sizing, BringUp, Views, Proofs, Uploads):
         found = self.lane_env(lane_id)
         return found is not None and self.reaches(found[0], grant, mcp=False)
 
-    @staticmethod
-    def _last_call_words(env: Environment) -> str:
-        return f"last call {_when(env.last_call_at)}" if env.last_call_at is not None else "no call yet"
-
-    def no_environment(self, binding: str, family: str | None, kind: str | None = None) -> NoEnvironment:
-        """What a call without `on` hears in a chat with no environment: that another chat took it
-        over, or the agent's open ones (a reconnected chat takes its own back by title). A browser
-        call also hears that an account lane needs `on`."""
-        mine = self.open_for_family(family)
-        quiet = int(QUIET.total_seconds() // 60)
-        lanes = (" A browser call meant for a logged-in account lane the human made needs `on` "
-                 "(on=\"personal/reddit\"; lanes_list lists them).") if kind == "browser" else ""
-        for env in mine:
-            gone = [h for h in env.handoffs if h.binding == binding]
-            if gone and env.binding != binding:
-                return NoEnvironment(
-                    f"another chat of this agent took environment {env.id} (\"{env.title}\") over at "
-                    f"{_when(gone[-1].at)}, after this chat had made no call for {quiet} minutes. "
-                    f"environment_open(title=\"{env.title}\") takes it back once that chat has been quiet as "
-                    "long; or open a new one with environment_open(title=...)." + lanes)
-        if mine:
-            listed = "; ".join(f"{e.id} \"{e.title}\" ({e.repo + ', ' if e.repo else ''}{self._last_call_words(e)})"
-                               for e in mine[:OPENS_LISTED])
-            return NoEnvironment(f"this chat has no environment. Open ones of this agent: {listed}. "
-                                 "environment_open(title=...) with one of these titles takes yours back (after a "
-                                 "reconnect), a new title opens a new one; or name a lane with `on`."
-                                 + lanes)
-        if kind == "browser":
-            return NoEnvironment("this chat has no environment, and a browser call without `on` goes to one. To "
-                                 "build and test, open one first with environment_open(title=...)." + lanes)
-        return NoEnvironment("this chat has no environment. Open one first with environment_open(title=...), "
-                             "or name a lane with `on`")
-
-    def resolve(self, binding: str, kind: str, family: str | None = None) -> str:
-        """The lane a call without `on` goes to: the bound environment's terminal or browser lane."""
-        env = self.bound(binding, family)
-        if env is None:
-            raise self.no_environment(binding, family, kind)
-        if env.state == "closing":
-            raise NoEnvironment(f"environment {env.id} is closing; open a new one with environment_open(title=...)")
-        return env.browser_lane if kind == "browser" else env.terminal_lane
-
     def _scrub(self, text: str, extra: list[str] | tuple[str, ...] = (), *, max_len: int = SUMMARY_MAX) -> str:
         """A call's summary (or a command) as the audit log keeps it: vault values and secret shapes
         redacted, on one line."""
@@ -401,7 +369,8 @@ class EnvironmentManager(Sizing, BringUp, Views, Proofs, Uploads):
         if found is None:
             return
         now = self._clock()
-        call = Call(at=now, tool=tool, summary=self._scrub(summary, scrub), ok=ok, exit_code=exit_code, error=error)
+        call = Call(at=now, tool=tool, summary=self._scrub(summary, scrub), ok=ok, exit_code=exit_code, error=error,
+                    client=current_client())
 
         def change(env: Environment) -> bool:
             if not env.open:
@@ -416,15 +385,29 @@ class EnvironmentManager(Sizing, BringUp, Views, Proofs, Uploads):
         self.store.update(found[0].id, change)
 
     # ================================================================ open
-    async def repo_access(self, repo: str) -> Any:
+    async def repo_access(self, repo: str, *, timeout_s: float | None = None) -> Any:
         """What GitService.access finds for `repo`: declared for env with the vault's credential
         (checked as the git gateway fetches it), or public, or neither."""
         from agentos.git.service import public_access
 
         git = self._get("git")
+        more = {"timeout_s": timeout_s} if timeout_s else {}
         if git is not None and callable(getattr(git, "access", None)):
-            return await git.access(repo, [WORKSPACE], probe=self.repo_probe)
-        return await public_access(repo, self.home, probe=self.repo_probe)  # no git gateway: public only
+            return await git.access(repo, [WORKSPACE], probe=self.repo_probe, **more)
+        return await public_access(repo, self.home, probe=self.repo_probe, **more)  # no git gateway: public only
+
+    async def _reach_repo(self, repo: str) -> Any:
+        """repo_access, tried again over about 15 s (REPO_CHECK_WAITS_S) while the host does not answer:
+        a laptop's network drops for a few seconds, and one lost answer must not fail an open."""
+        access = await self.repo_access(repo)
+        for wait in self.repo_check_waits:
+            if not access.unreachable:
+                break
+            log.info("environments: %s did not answer the check of %s; trying again in %g s",
+                     access.slug.split("/", 1)[0], access.slug, wait)
+            await asyncio.sleep(wait)
+            access = await self.repo_access(repo, timeout_s=REPO_RETRY_TIMEOUT_S)
+        return access
 
     async def check_repo(self, repo: str) -> Any:
         """Can a machine clone `repo`? Asked before anything is rented: declared for env with the
@@ -433,13 +416,15 @@ class EnvironmentManager(Sizing, BringUp, Views, Proofs, Uploads):
         A repository that can be cloned closes the cards that asked a person to connect it."""
         from agentos.environments import connect, repos
 
-        access = await self.repo_access(repo)
+        access = await self._reach_repo(repo)
         if access.ok:
             with contextlib.suppress(Exception):  # a card left open is closed by the reaper's sweep
                 connect.close(self.store, self._get("approvals"), access.slug)
             return access
         if access.unreachable:
-            raise repos.unreachable(access)
+            raise repos.unreachable(access, tries=len(self.repo_check_waits) + 1)
+        if access.declared and access.wide and access.not_found:  # a token that should see it: no card helps
+            raise repos.not_found(access)
         raise repos.not_connected(access)
 
     def planned_id(self, binding: str, title: str) -> str:
@@ -452,106 +437,22 @@ class EnvironmentManager(Sizing, BringUp, Views, Proofs, Uploads):
             self._planned[key] = eid
         return eid
 
-    def opening(self, binding: str) -> asyncio.Lock:
-        """One open at a time per chat: a second environment_open in the same chat waits for the
-        first, then gets the same environment (never a second machine; create() checks it too)."""
+    def opening(self, family: str | None, title: str) -> asyncio.Lock:
+        """One open at a time per title of a family: a second environment_open of the same title waits
+        for the first, then attaches to it (never a second machine; create() checks it too). Opens of
+        other titles go on meanwhile."""
         if len(self._opening) > OPENING_KEPT:  # chats come and go: keep only the locks in use
             self._opening = {k: v for k, v in self._opening.items() if v.locked()}
-        return self._opening.setdefault(binding, asyncio.Lock())
-
-    def live_bound(self, binding: str, family: str | None) -> Environment | None:
-        """The environment this chat has that is alive (starting or ready), else None: never one that
-        is closing, failed or closed. environment_open hands back only this one."""
-        env = self.bound(binding, family)
-        return env if env is not None and env.state in LIVE_STATES else None
-
-    @staticmethod
-    def _repo_words(repo: str | None) -> str:
-        return repo if repo else "no repository"
-
-    def same_chat(self, env: Environment, repo: str | None) -> Environment:
-        """This chat's live environment, for an environment_open that asks for `repo`: itself when
-        the repository is the same. Another repository is refused (environment_already_open): one chat has
-        one environment, and handing back a machine with another repository on it (a real chat got the
-        starting one with a private repository back when it asked for none, 2026-11-13) misleads."""
-        if (env.repo or None) == (repo or None):
-            return env
-        state = "still starting" if env.state == "starting" else "open"
-        raise EnvironmentAlreadyOpen(
-            f"this chat already has environment {env.id} (\"{env.title}\", {state}) with "
-            f"{self._repo_words(env.repo)}, and you asked for {self._repo_words(repo)}. A chat has one environment "
-            "at a time: close it with environment_close() (add discard=true if it has work you do not need), "
-            "then call environment_open again")
-
-    async def reattach(self, binding: str, title: str, family: str | None, repo: str | None = None
-                       ) -> Environment | None:
-        """An open environment of this grant family with this title, bound to `binding` now: a
-        resumed or reconnected chat gets its environment back. Only a live one (starting or ready),
-        never one closing, failed or closed. With no `repo`, the one live environment with this title
-        (whatever it cloned); with a `repo`, only one with that repository: a title held by a live
-        environment with another repository is environment_in_use (a second environment with the same
-        title would make the next reattach by title a guess). Taken from another chat only when that
-        chat has made no call for QUIET (10 minutes); else environment_in_use, with its last call."""
-        env = self._titled(title, family, repo)
-        if env is None or env.binding == binding:
-            return env
-        now = self._clock()
-        last = env.last_activity()
-        if now - last < QUIET:
-            raise EnvironmentInUse(
-                f"environment {env.id} (\"{env.title}\") is in use by another chat of this agent (its last "
-                f"call {_when(last)}); it moves to this chat only after {int(QUIET.total_seconds() // 60)} "
-                "minutes with no call there. Open your own with another title: environment_open(title=...)")
-        return self._take_over(env, binding, now)
-
-    def _titled(self, title: str, family: str | None, repo: str | None) -> Environment | None:
-        """The live environment of this family with this title (and `repo`, when one is named)."""
-        found = [e for e in self.open_for_family(family)
-                 if e.title.lower() == title.lower() and e.state in LIVE_STATES]
-        if not found:
-            return None
-        if repo is None:
-            if len(found) == 1:
-                return found[0]
-            listed = ", ".join(f"{e.id} ({self._repo_words(e.repo)})" for e in found[:OPENS_LISTED])
-            raise InvalidRequest(f"the title \"{title}\" names {len(found)} open environments: {listed}. Name the "
-                                 "one you want with its repo: environment_open(title=..., repo=...)")
-        same = [e for e in found if (e.repo or None) == repo]
-        if same:
-            return same[0]
-        env = found[0]
-        raise EnvironmentInUse(
-            f"the title \"{env.title}\" names environment {env.id}, which is open with "
-            f"{self._repo_words(env.repo)}; you asked for {repo}. To get it back, call "
-            f"environment_open(title=\"{env.title}\"" + (f", repo=\"{env.repo}\"" if env.repo else "")
-            + "); for a new one, use another title")
-
-    def _take_over(self, env: Environment, binding: str, now: datetime) -> Environment:
-        """Move `env` to this chat. The move counts as a call, so the chat it came from cannot take it
-        straight back (it is quiet for QUIET only after this chat is)."""
-        moved_from = env.binding
-
-        def take(e: Environment) -> bool:
-            if e.binding != moved_from or not e.open:
-                return False  # it moved, or closed, meanwhile
-            e.binding = binding
-            e.last_call_at = now
-            e.handoffs.append(Handoff(binding=moved_from, at=now))
-            del e.handoffs[:-HANDOFFS_KEPT]
-            return True
-
-        env = self.store.update(env.id, take)
-        if env.binding != binding:
-            raise EnvironmentInUse(f"environment {env.id} (\"{env.title}\") just moved to another chat; "
-                                   "open your own with another title: environment_open(title=...)")
-        log.info("environment %s taken over by %s from %s", env.id, binding, moved_from)
-        return env
+        return self._opening.setdefault(f"{family}|{' '.join(title.split()).lower()}", asyncio.Lock())
 
     async def create(self, env_id: str, plan: dict, *, binding: str, title: str, grant_id: str,
                      grant_root: str | None, agent: str, client: str | None, repo: str | None,
-                     ref: str | None, subject: str | None = None, member: str | None = None) -> Environment:
-        """Record the environment and start bringing it up (after the limits and the grant's check). A chat
-        that has one open already gets that one back."""
+                     ref: str | None, subject: str | None = None, member: str | None = None,
+                     keep: str = "none", resumed: dict | None = None) -> Environment:
+        """Record the environment and start bringing it up (after the limits and the grant's check). An open
+        one of the family with this title (made meanwhile, by another process) comes back instead: never
+        a second machine for one title. It is another session's only when that session still works in it
+        (environment_in_use). `resumed` (Saving.resuming): it resumes that save."""
         if repo:
             from agentos.git.wire import parse_remote
 
@@ -560,18 +461,26 @@ class EnvironmentManager(Sizing, BringUp, Views, Proofs, Uploads):
         specs = plan.get("specs") or {}
         env = Environment(
             id=env_id, title=title, grant_id=grant_id, grant_root=grant_root, binding=binding, agent=agent,
-            subject=subject, member=member, client=client, repo=repo, ref=ref, image=plan["image"], created_at=now,
+            subject=subject, member=member, client=client, bound_at=now, repo=repo, ref=ref, image=plan["image"], created_at=now,
             browser=self.settings.browser,
             expires_at=now + timedelta(minutes=plan["ttl_minutes"]), price_hourly_eur=plan.get("price_hourly_eur"),
+            keep=keep, restore_from=(resumed or {}).get("save_id"), resumed=resumed,
             machine=Machine(provider=getattr(self.vms().provider(), "name", ""), server_type=plan["server_type"],
                             cpu=specs.get("cores"), memory_gb=specs.get("memory_gb"), location=plan["location"],
                             size=self.size_of(specs.get("cores"), specs.get("memory_gb"))))
         async with self._lock("create"):
-            existing = self.live_bound(binding, env.family)
-            if existing is not None:  # this chat opened one meanwhile: that one, never a second machine
-                return existing
+            live = [e for e in self.open_for_family(env.family) if same_title(e.title, title) and e.state in LIVE_STATES]
+            if live:  # opened meanwhile with this title: that one, never a second machine
+                if not is_session(binding) or live[0].binding == binding or not is_session(live[0].binding):
+                    return live[0]
+                raise EnvironmentInUse(
+                    f"another chat of this agent opened \"{title}\" just now (environment {live[0].id}); it moves "
+                    "to this chat only after 10 minutes with no call there. Open your own with another title: "
+                    "environment_open(title=...)")
             if self.store.has(env_id):
                 raise LaneExists(f"environment {env_id} exists already")
+            if keep == "live":
+                self.check_keep("live")
             self.check_limits(plan)
             self.store.put(env)
         self._planned = {k: v for k, v in self._planned.items() if v != env_id}
@@ -584,15 +493,28 @@ class EnvironmentManager(Sizing, BringUp, Views, Proofs, Uploads):
 
 
     # ================================================================ close
-    async def close(self, env_id: str, *, discard: bool = False, reason: str = "closed") -> Environment:
+    async def close(self, env_id: str, *, discard: bool = False, reason: str = "closed", final: bool = False
+                    ) -> Environment:
+        """Close an environment. keep "live" without `final`: the chat only lets it go (Saving.unbind).
+        keep "save" without `discard`: saved first (SaveFailed keeps the machine), then deleted; the save
+        is env.last_save_id. Else refused with unsaved_work unless `discard`."""
         env = self.store.get(env_id)
         if not env.open:
             return env
+        if env.keep == "live" and not final:
+            return self.unbind(env)
         async with self._lock(f"close:{env_id}"):
             env = self.store.get(env_id)
             if not env.open:
                 return env
-            if not discard and env.state == "ready":
+            if env.keep == "save" and not discard and env.state == "ready":
+                try:
+                    saved = await self.save_env(env, kind="save", reason=reason, then_delete=True)
+                except (SaveFailed, SaveLimit) as e:
+                    await self._tell_failed(env, e.message)
+                    raise
+                reason = f"{reason}, saved as {saved.id}"
+            elif not discard and env.state == "ready":
                 repos = await self.git_repos(env)
                 if repos is None:
                     raise UnsavedWork(f"environment {env.id}'s machine does not answer, so its work cannot be "
@@ -601,9 +523,7 @@ class EnvironmentManager(Sizing, BringUp, Views, Proofs, Uploads):
                 unsaved = self.unsaved_of(repos)
                 if unsaved is not None:
                     raise UnsavedWork(f"environment {env.id} has work that is not saved: "
-                                      f"{self.unsaved_words(unsaved)}. Commit it and push every branch "
-                                      "(git push origin <branch>; a stash goes onto a branch first), or close "
-                                      "with discard=true to delete it", unsaved)
+                                      f"{self.unsaved_words(unsaved)}. {unsaved_fix(unsaved)}", unsaved)
             task = self._tasks.get(env_id)
             if task is not None and task is not asyncio.current_task():
                 task.cancel()
@@ -621,6 +541,7 @@ class EnvironmentManager(Sizing, BringUp, Views, Proofs, Uploads):
             e.closed_reason = e.closed_reason or why
 
         env = self.store.update(env.id, closing)
+        self.drop_downloads(env.id)  # its download links end, and their archives go (agentos.environments.downloads)
         if env.browser == "vm":  # its browser and screen stop on the machine while the tunnel still reaches it
             await self._remove_browser(env)
         tunnel = self._tunnels.pop(env.id, None)
@@ -636,6 +557,7 @@ class EnvironmentManager(Sizing, BringUp, Views, Proofs, Uploads):
 
         VM_PROXIED_LANES.discard(env.browser_lane)
         await self._remove_browser(env)
+        await ended(self, env.id)  # its shared ports close, and the node's copy of its sign-ins goes
         cost, vm_state = await self._delete_machine(env, reason)
         await self._remove_terminal(env)
 
@@ -787,34 +709,6 @@ class EnvironmentManager(Sizing, BringUp, Views, Proofs, Uploads):
         return env
 
     # ================================================================ reaper
-    def _busy(self, env: Environment) -> bool:
-        envs = self._get("envs")
-        if envs is None:
-            return False
-        with contextlib.suppress(Exception):
-            if envs.has(env.terminal_lane) and envs.state(env.terminal_lane) == LaneState.ACTIVE:
-                return True
-            if any(j.state == "running" for j in envs.job_list(env.terminal_lane)):
-                return True
-        return False
-
-    def _last_used(self, env: Environment) -> datetime:
-        """The last sign of use: an agent's call, a command on the terminal lane, or a person's input
-        in the browser's live view (the viewer relay notes each one on the lane's control)."""
-        last = env.last_activity()
-        envs = self._get("envs")
-        with contextlib.suppress(Exception):
-            used = envs.store.last_used(env.terminal_lane) if envs is not None else None
-            if used is not None:
-                used = used if used.tzinfo else used.replace(tzinfo=UTC)
-                last = max(last, used)
-        lanes = self._get("lanes")
-        with contextlib.suppress(Exception):
-            human = lanes.get(env.browser_lane).control.last_human_input if lanes is not None else None
-            if human is not None:
-                last = max(last, human if human.tzinfo else human.replace(tzinfo=UTC))
-        return last
-
     async def _notify(self, title: str, body: str) -> None:
         notifier = self._get("notifier")
         fn = getattr(notifier, "notify", None)
@@ -840,16 +734,17 @@ class EnvironmentManager(Sizing, BringUp, Views, Proofs, Uploads):
         vms = self._get("vms")
         with contextlib.suppress(Exception):  # proofs past their retention (agentos.environments.proofs)
             self.prune_proofs(now)
+        with contextlib.suppress(Exception):  # download archives past their link's life
+            self.sweep_downloads()
         with contextlib.suppress(Exception):  # a repository connected at the node closes its cards
             from agentos.environments import connect
 
             await connect.sweep(self)
         for env in self.store.open():
-            if env.id in self._tasks:
-                continue  # still coming up, or closing
+            if env.id in self._tasks or self._lock(f"close:{env.id}").locked():
+                continue  # still coming up, or an agent's close runs (its teardown marks it closing)
             if env.state == "closing":
-                await self._teardown(env, reason=env.closed_reason or "closed")
-                out["closed"].append(env.id)
+                await self._closing(env, now, out)
                 continue
             if env.state == "starting":
                 self._spawn(env.id, self._bring_up(env.id, None))  # the node restarted while it came up
@@ -863,9 +758,9 @@ class EnvironmentManager(Sizing, BringUp, Views, Proofs, Uploads):
                 await self._teardown(env, reason="its machine was deleted")
                 out["gone"].append(env.id)
                 continue
+            env = await self.renew_live(env, now)
             if now >= env.expires_at:
-                await self._teardown(env, reason="time limit")
-                out["closed"].append(env.id)
+                await self._end_of_life(env, now, out)
                 continue
             tunnel = self._tunnels.get(env.id)
             if rec.state == "ready" and (tunnel is None or not tunnel.alive):
@@ -875,7 +770,16 @@ class EnvironmentManager(Sizing, BringUp, Views, Proofs, Uploads):
                     out["tunnels"].append(env.id)
                 except Exception as e:  # noqa: BLE001
                     log.warning("environment %s: tunnel did not start: %s", env.id, e)
-            idle = not self._busy(env) and now - self._last_used(env) >= timedelta(minutes=self.settings.idle_minutes)
+            idle = (now - self._last_used(env) >= timedelta(minutes=self.settings.idle_minutes)
+                    and not await self._busy_for_idle(env))
+            if env.keep == "live" or env.state != "ready":
+                continue  # a kept machine is never closed for idleness
+            if env.keep == "save":
+                if idle:
+                    await self.save_and_close(env, now, out, reason=f"idle for {self.settings.idle_minutes} minutes")
+                else:
+                    await self.autosave(env, now, out)
+                continue
             near_end = env.expires_at - now <= timedelta(minutes=self.settings.unsaved_notice_minutes)
             if not idle and not near_end:
                 continue
@@ -893,20 +797,57 @@ class EnvironmentManager(Sizing, BringUp, Views, Proofs, Uploads):
                 left = max(0, int((env.expires_at - now).total_seconds() // 60))
                 await self._notify(f"Environment \"{env.title}\" has work that is not pushed",
                                    f"{env.agent} left environment {env.id} with changes that are not committed or "
-                                   f"pushed. It stays open for {left} more minutes, to its time limit, then it is "
-                                   "deleted with everything on it. Open it to look, or extend it.")
+                                   f"pushed. It stays open for {left} more minutes, to its time limit; then agentos "
+                                   "saves that work and deletes the machine. Open it to look, or extend it.")
                 out["kept_unsaved"].append(env.id)
         out["swept"] = await self.sweep_lanes(now)  # lanes a closed environment left behind
+        with contextlib.suppress(Exception):  # saves past saved_days (the owner is told a day before)
+            out["saves"] = await self.prune_saves(now)
+        with contextlib.suppress(Exception):  # snapshots of saves that did not finish
+            swept = await self.sweep_snapshots(now)
+            if swept.get("deleted"):
+                out["snapshots_deleted"] = swept["deleted"]
         return out
+
+    async def _end_of_life(self, env: Environment, now: datetime, out: dict) -> None:
+        """Past its time limit (a laptop that woke late included): keep "save" saves first; any other
+        with unsaved work gets a rescue save first. Never a silent discard: a save that fails keeps the
+        machine and tells the owner (agentos.vms gives it ENV_SAVE_GRACE before its own reaper deletes it)."""
+        if env.state != "ready":
+            await self._teardown(env, reason="time limit")
+            out["closed"].append(env.id)
+            return
+        if env.keep == "save":
+            await self.save_and_close(env, now, out, reason="time limit")
+            return
+        repos = await self.git_repos(env)
+        unsaved = self.unsaved_of(repos) if repos is not None else {"unreachable": True}
+        if unsaved is None:
+            await self._teardown(env, reason="time limit")
+            out["closed"].append(env.id)
+            return
+        await self.rescue_and_close(env, now, out, reason="time limit")
+
+    async def _closing(self, env: Environment, now: datetime, out: dict) -> None:
+        """One the CLI marked closing: a keep "save" one is saved first (unless it was discarded); if that
+        fails it goes back to ready, and the owner is told."""
+        reason = env.closed_reason or "closed"
+        if env.keep == "save" and "(discarded)" not in reason and env.vm_id:
+            def ready(e: Environment) -> None:
+                e.state, e.closed_reason = "ready", None
+
+            self.store.update(env.id, ready)
+            await self.save_and_close(self.store.get(env.id), now, out, reason=reason)
+            return
+        await self._teardown(env, reason=reason)
+        out["closed"].append(env.id)
 
     # ================================================================ report
     def report(self) -> dict:
         return {"open": len(self.store.open()), "tunnels": sum(1 for t in self._tunnels.values() if t.alive),
                 "month_spend_eur": self.month_spend(), "last_reap": self.last_reap,
+                "saves": len(self.saves().all()), "snapshots_eur_month": self.snapshots_eur_month(),
                 "settings": self.settings.model_dump()}
-
-    def resolve_or_none(self, binding: str, family: str | None = None) -> Environment | None:
-        return self.bound(binding, family)
 
     def binding_of(self, session: str | None, grant_id: str | None) -> str:
         return binding_of(session, grant_id)
@@ -919,4 +860,5 @@ def binding_of(session: str | None, grant_id: str | None) -> str:
     return f"grant:{grant_id or 'owner'}"
 
 
-__all__ = ["OPEN_NEXT", "EnvironmentManager", "binding_of", "check_ref", "check_title"]
+__all__ = ["OPEN_NEXT", "EnvironmentManager", "binding_of", "check_ref", "check_title", "current_client", "is_session",
+           "same_title"]

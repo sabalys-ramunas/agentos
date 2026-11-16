@@ -40,6 +40,11 @@ DEFAULT_S = 120.0
 TYPE_S_PER_CHAR = 0.6   # human-paced typing with its pauses, with room (agentos.node.human)
 PROBE_S = 5.0           # a page that does not evaluate `1` in this long has stopped answering
 CLOSE_WAIT_S = 30.0     # at most this long for a stuck call to end after it was interrupted
+# A call whose deadline is at most WALL_FOR_S also ends WALL_S after it began, counting its wait in the
+# queue and the browser's start: an MCP client gives up on a call at 300 s (agentos.core.progress). A
+# browser_navigate on an overloaded 2-CPU machine once waited 300 s before its own deadline even began.
+WALL_S = 210.0
+WALL_FOR_S = 150.0
 
 TOOL_DEADLINES_S: dict[str, float] = {
     "browser_navigate": 120.0,

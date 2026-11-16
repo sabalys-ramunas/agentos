@@ -44,6 +44,12 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 SHUTDOWN_GRACE = 5.0  # seconds uvicorn waits for open MCP streams before closing them
+# How long an idle keep-alive connection stays open. uvicorn's default (5 s) closed pooled connections
+# while agents thought between calls, and a client that reused one at that moment got a bare reset
+# (Bun's fetch in Claude Code: "ECONNRESET: The socket connection was closed unexpectedly", 4 times in
+# the 2026-11-15 test with three chats). The client should close an idle connection first, never the
+# node: a long idle on localhost costs nothing.
+KEEP_ALIVE_S = 620
 LANES_SHUTDOWN_TIMEOUT = 20.0  # systemd TimeoutStopSec is 30; leave room for the force kill
 SHUTDOWN_DEADLINE = 28.0  # seconds from the first signal to a hard exit, logged; systemd kills at 30
 HARD_EXIT_CODE = 3  # a forced stop: not a crash (1), not a usage error (2)
@@ -478,6 +484,7 @@ class _Uvicorn:
             log_level="info",
             lifespan="on",
             timeout_graceful_shutdown=SHUTDOWN_GRACE,
+            timeout_keep_alive=KEEP_ALIVE_S,
             access_log=False,
             log_config=None,  # uvicorn's lines go to the root logger: ids, JSON and scrubbing
         ))

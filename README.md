@@ -5,9 +5,9 @@
 <h1 align="center">agentos</h1>
 
 <p align="center">
-  <strong>Cloud dev environments for AI coding agents.</strong><br>
-  A disposable VM with a terminal and a real browser for Claude Code, Codex and any MCP client.
-  Self-hosted, open source.
+  <strong>Your agent's own computer, and it stays.</strong><br>
+  A cloud VM with a terminal and a real browser for Claude Code, Codex and any MCP client.
+  Single use, or kept for tomorrow. Self-hosted, open source.
 </p>
 
 <p align="center">
@@ -18,10 +18,16 @@
 </p>
 
 You open a chat and hand your coding agent a task to do in agentos. It asks for an
-**environment**: a fresh VM with your repository, a terminal and a browser. There it changes the
-code, runs the tests, opens the page and keeps a screenshot of it as proof. Then it pushes a branch,
-gives you the pull request link, and the VM is deleted. You watch its browser live, and take over
-whenever you like. Your own computer runs the chat and a small agentos service.
+**environment**: its own computer in the cloud, with your repository, a terminal and a browser.
+There it changes the code, runs the tests, opens the page and keeps a screenshot of it as proof.
+Then it pushes a branch and gives you the pull request link. You watch its browser live, and take
+over whenever you like.
+
+A quick fix uses a machine once, and the VM is deleted. Longer work keeps its machine: when it goes
+idle, agentos saves the whole machine and deletes the VM. Tomorrow, in any chat, you say "continue
+the shop in agentos", and it comes back as it was: the tools, the Docker volumes, `node_modules` and
+the dev server. The agent itself (its thinking) stays on your laptop, in Claude Code, Codex or T3
+Code. agentos runs next to it and rents the machines.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/readme/environment-dark.png">
@@ -29,8 +35,20 @@ whenever you like. Your own computer runs the chat and a small agentos service.
 </picture>
 
 agentos is not another agent, chat or IDE. It is an [MCP server](https://modelcontextprotocol.io)
-(Model Context Protocol) that runs on your laptop (or a server you own) and rents short-lived
-machines for the agent you already use.
+(Model Context Protocol) that runs on your laptop (or a server you own) and rents machines for the
+agent you already use.
+
+## Three ways an environment stays
+
+| | When | While nobody uses it |
+|---|---|---|
+| **Single use** (`keep="none"`, the default) | a one-off fix: work, push, close | nothing: the VM is deleted |
+| **Saves when idle** (`keep="save"`) | work that spans sessions, or you say "keep it" | cents a month for the save; the VM is deleted and comes back when an agent opens it again |
+| **Kept running** (`keep="live"`) | you want a machine that is always on | every hour, about 7.80 EUR a month for a `cx23`; you allow it first (`agentos environments allow --keep-live`) |
+
+An agent opens an environment with a title. Opening the same title again, from any chat, brings it
+back. It saves before a risky step and when it stops for the day, and it tells you how to come back.
+Saves you are done with are forgotten with one click in the web app.
 
 ## How it works
 
@@ -54,7 +72,8 @@ flowchart TB
    rents a VM (Hetzner Cloud, or a Docker container on your own computer), clones the repository
    into `/work/shop` and starts a browser on that VM. Code that is only on your laptop (a branch
    with uncommitted changes) goes up with `environment_upload`: a one-use link the agent sends a
-   tarball to from its own shell.
+   tarball to from its own shell. `environment_download(path)` gives you a one-use link to a file
+   or folder the agent made.
 2. Calls without a target go to that environment: `lane_file_read` and `lane_file_edit` for the
    code, `lane_exec(cmd="npm test", cwd="/work/shop")`,
    `lane_job_start(cmd="npm run dev", cwd="/work/shop")`,
@@ -65,9 +84,13 @@ flowchart TB
 4. `git push` on the VM goes through agentos's git gateway. The VM never holds your key, only a
    token for that one repository, which dies with the environment. `environment()` then gives the
    GitHub link that opens a pull request for the branch.
-5. `environment_close()` refuses while work is not pushed, then deletes the VM and the browser and
-   says `machine: "deleted"`. If the agent forgets, agentos closes it when it sits idle or reaches
-   its time limit.
+5. `environment_close()` ends it. A single-use one refuses while work is not pushed, then deletes
+   the VM and says `machine: "deleted"`. A kept one is saved first (`keep="save"`) or stays running
+   (`keep="live"`). If the agent forgets, agentos closes it when it sits idle or reaches its time
+   limit, and saves it first when it is kept.
+6. `environment_open` with the same title, in a new chat, resumes a saved one and says what came
+   back (`resumed`): the branch, the commits, the files, the services that ran, and the note the
+   last agent left.
 
 **Private repositories.** With your GitHub login saved in `agentos setup`, an environment can clone
 any repository that login reaches, a collaborator's one too. Without it, `environment_open` on a
@@ -89,14 +112,16 @@ fixed it on the VM, `ui_check` confirmed the fix, and the branch went up: 13 min
 ## Why not just run the agent on your laptop?
 
 - **Your laptop stays yours.** Hand the task off: builds, test suites, dev servers and browsers
-  run on the VM. Close the lid and the work carries on.
+  run on the VM, not on your laptop.
+- **It stays.** A long job keeps its machine between chats, with everything installed, for cents a
+  month while it waits.
 - **Proof, not a promise.** The agent shows you what it built: screenshots agentos keeps for you, at
   desktop and phone width, and the pull request link for its branch.
 - **Nothing the agent runs can reach your keys or accounts.** The VM holds no login, no key and no
   password, so it can run anything without asking you each time.
 - **A real browser.** The agent sees its own dev server the way a user would, and so do you.
-- **Every chat starts clean.** One environment per chat, deleted when it is done: no leftovers
-  from the last task, no "works on my machine".
+- **Clean when you want it.** A single-use environment starts fresh and is deleted when it is
+  done: no leftovers from the last task, no "works on my machine".
 
 ## Quickstart: on your laptop (5 minutes)
 
@@ -118,7 +143,9 @@ defaults; step by step lets you choose each one. Every step can be skipped.
 2. **GitHub.** Use your `gh` login, sign in with `gh` now, paste a token, or skip (public
    repositories only). Then one question: may environments clone and push any repository this
    login can reach? The push rules still hold either way.
-3. **Limits.** 10 EUR a month, 4 hours per VM and 2 VMs at once, unless you choose others.
+3. **Limits.** 10 EUR a month, 4 hours per VM and 2 VMs at once, unless you choose others. Then
+   one question: single use, or saves when idle? Kept running is explained, and is only allowed
+   when you choose it.
 4. **Your agents.** A small agentos service starts on your laptop, and Claude Code and Codex are
    connected to it, with the skills.
 5. **A health check** of each piece, and a test VM if you say yes (about 0.01 EUR).
@@ -139,10 +166,13 @@ again: `agentos setup github` (or `vms`, `limits`, `agents`, `check`, `test-vm`)
 - **The browser runs on the VM.** Your laptop downloads no browser. agentos drives the VM's browser
   and shows you its live view. Without the `dev` snapshot, each VM installs the browser when it
   opens, which adds 2 to 4 minutes.
-- **Your laptop must be awake while a VM works.** The commands, the browser and git reach the VM
-  through the service on your laptop.
-- **Sleep does not stop the bill.** A VM left open while the laptop sleeps keeps billing until it
-  wakes. Then the time limit (4 hours by default) or the idle limit closes it.
+- **Your laptop must be awake while a VM works.** The agent runs on your laptop, and the commands,
+  the browser and git reach the VM through the service there. No agent works while the lid is
+  closed in this version.
+- **Sleep saves a kept one.** When the laptop goes to sleep, an environment that saves when idle is
+  saved and its VM deleted. A single-use one with unsaved work gets a rescue save, and you are
+  told. A VM kept running keeps billing; one left open with nothing to save bills until the laptop
+  wakes and the time limit or the idle limit closes it.
 - **Your tokens stay on your laptop.** The Hetzner token and your GitHub token are kept in
   `~/.agentos` (the GitHub one sealed in the agentos vault) and never reach the VM. A push from the
   VM goes through agentos on your laptop, with a token for that one repository.
@@ -190,10 +220,13 @@ a size. Install, hardening, backups and upgrades: [deploy/README.md](deploy/READ
 
 | Tool | What it does |
 |---|---|
-| `environment_open(title, repo, ref, size, hours)` | rents the VM (`size`: small, medium, large, xlarge), clones the repo into `/work/<name>`, opens the browser; returns the live view link for you. A private repo it cannot read returns a card link for you instead (`approval_pending`), and nothing is rented |
+| `environment_open(title, repo, ref, size, hours, keep)` | rents the VM (`size`: small, medium, large, xlarge), clones the repo into `/work/<name>`, opens the browser; returns the live view link for you. `keep`: `none`, `save` or `live`. The same title again resumes a saved one (`resumed`). A private repo it cannot read returns a card link for you instead (`approval_pending`), and nothing is rented |
+| `environment_save(note)` | saves the whole machine now (a disk snapshot plus the files), with a note for the next agent |
+| `environment_forget(title)` | deletes the saves and snapshots of an environment that is done with |
+| `environment_download(path)` | a one-use link for you to a file or folder in `/work` |
 | `environment_upload(dest)` | a one-use link, valid 15 minutes, for a tarball of a local checkout: the agent packs and sends it from its own shell (reached with `tools_call`) |
-| `environment()` | state, time left, cost so far, listening ports, git (branch, ahead, dirty, pushed, and `compare`: the link that opens a pull request), proofs, the last calls |
-| `environment_close(discard=False)` | refuses with `unsaved_work` while anything is not pushed; then deletes the VM and the browser, and says `machine: "deleted"` with the branches it pushed and its proofs |
+| `environment()` | state, time left, cost so far, listening ports, git (branch, ahead, dirty, pushed, and `compare`: the link that opens a pull request), proofs, the last calls; with nothing open, the open and saved ones by title |
+| `environment_close(discard=False, final=False)` | single use: refuses with `unsaved_work` while anything is not pushed, then deletes the VM. Saves when idle: saves, then deletes the VM. Kept running: stays on unless `final=True` |
 | `lane_file_read`, `lane_file_write`, `lane_file_edit` | read a file with line numbers, write a whole one, or replace exact text in one |
 | `lane_exec(cmd, cwd)` | a command on the VM, with its output (16 KB by default, `max_bytes` for more) |
 | `lane_job_start`, `lane_job_read`, `lane_job_cancel` | long jobs and dev servers on the VM; `lane_job_read(until_exit=true)` waits for one to finish |
@@ -221,9 +254,11 @@ About 150 more tools, grouped in toolsets the agent loads when it needs them, ar
   limit the open is refused, whatever the agent read. Set your own with
   `agentos environments allow --max-live 2 --max-hours 4 --monthly-eur 20`
   ([the limits](docs/ENVIRONMENTS.md#4-the-limits)).
-- **Deleted when done.** agentos closes a forgotten environment after an idle hour or at its time
-  limit. One with unsaved work is never deleted for being idle: it waits to its time limit, and you
-  are told first.
+- **Deleted or saved when done.** agentos closes a forgotten environment after an idle hour or at
+  its time limit. A kept one is saved first. A single-use one with unsaved work is never deleted
+  for being idle: it waits to its time limit, gets a rescue save, and you are told.
+- **Always-on costs are your choice.** A VM kept running bills every hour, so an agent can keep one
+  only after you allowed it.
 - **One agent's machine.** Only the agent that opened an environment can see it or act on it. You
   see and close every one.
 - **The audit log.** Every call, tied to the grant that allowed it. `agentos access freeze node`
@@ -236,7 +271,9 @@ What this defends against, and what it does not: [docs/THREAT-MODEL.md](docs/THR
 ## Watch it work
 
 The web app (`web/`, served by agentos at `/`: `http://127.0.0.1:7410/` on a laptop) lists every
-environment with its state, repository, agent, cost and time left. Each one has a page with its live
+environment with its state, how it stays (single use, kept running, saves when idle), repository,
+agent, cost and time left. Under Saved are the saves of kept ones: when each was saved, its size,
+what it costs a month and the agent's note, with Forget. Each environment has a page with its live
 browser, the proof screenshots, terminal commands, git (each pushed branch links its pull request)
 and ports. Build it once with Node.js 22 and pnpm:
 `cd web && pnpm install --frozen-lockfile && pnpm build` ([web/README.md](web/README.md)).
@@ -283,13 +320,15 @@ the key stays off the machine, and limits and an audit log on a computer you own
 ### What does it cost?
 agentos is free (Apache-2.0). You pay your provider: Docker costs nothing, and a Hetzner `cx23`
 (2 vCPU, 4 GB) is about 0.011 EUR an hour, billed per started hour. The real run above, 13 minutes
-from open to close, cost 0.01 EUR. `environment()` and the web app show the cost so far.
+from open to close, cost 0.01 EUR. A saved environment costs only its snapshot, about 0.012 EUR per
+GB a month (a few cents). One kept running costs every hour, about 7.80 EUR a month for a `cx23`.
+`environment()` and the web app show the cost so far.
 
 ### Is my code or my key on the VM?
 Your code is: the repository is cloned there (or the agent uploads its local checkout), so the
-agent can work on it. Your key is not, and
-neither is any token, password or account. Pushes go through agentos (on your laptop or server),
-which holds the key.
+agent can work on it. A saved environment keeps that code in a snapshot in your own provider
+account until you forget it. Your key is not on the VM, and neither is any token, password or
+account. Pushes go through agentos (on your laptop or server), which holds the key.
 
 ### Can I self-host it?
 It is self-hosted. agentos runs on your laptop or your own Linux server, and the VMs are rented with
@@ -306,11 +345,12 @@ over HTTP can connect by hand (see [Works with](#works-with)).
 
 ## Status
 
-**Alpha.** Environments are new in 0.1.0; expect the most change there. Local mode is newer still:
-it has no `ui_check` and no account browser lanes yet (both need a server today). Not yet: providers
-other than Docker and Hetzner, a way to download a file from the VM (work comes out through git, and
-screenshots as proofs), and a link to a VM's port on your own computer (you see it through the
-environment's browser). The full list: [docs/ENVIRONMENTS.md](docs/ENVIRONMENTS.md#limits) and
+**Alpha.** Environments are new in 0.1.0, and kept environments are newer; expect the most change
+there. Local mode has no `ui_check` and no account browser lanes yet (both need a server today). In
+local mode the laptop must be awake while a VM works, and no agent runs while it is closed. Not
+yet: providers other than Docker and Hetzner, and a link to a VM's port on your own computer (you
+see it through the environment's browser). The full list:
+[docs/ENVIRONMENTS.md](docs/ENVIRONMENTS.md#limits) and
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#not-built-yet).
 
 ## Docs

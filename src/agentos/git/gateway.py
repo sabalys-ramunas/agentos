@@ -377,16 +377,21 @@ class GitGateway:
                 ctx.precheck(Effect.COMMIT, lane_id=self._account(caller, rule))
             except AgentosError as e:
                 raise Refused(f"this command's grant may not push to {remote.slug}: {e.message}") from None
+        steps = Steps(f"{'push' if push else 'fetch'} refs of {remote.slug} for {caller.label}")
         target = await self._target(rule, remote, push=push)
         mirror = self.mirror(remote)
+        steps.done("checks")
         async with mirror.lock:
+            steps.done("waiting for the mirror")
             await self._refresh(caller, mirror, target, "push" if push else "fetch")
+            steps.done("fetching from the remote")
             rc, out, _err = await mirror.git(svc[len("git-"):], "--stateless-rpc", "--advertise-refs", ".")
+            steps.done("advertising")
         if rc != 0:
             raise Refused(f"the node's mirror of {remote.slug} could not be read; try again")
         ctx.trace("git_fetch", lane=self._account(caller, rule), remote=remote.slug, via=caller.label,
                   vault_ref=target.credential.ref if target.credential else None,
-                  purpose="push" if push else "fetch", result="ok")
+                  purpose="push" if push else "fetch", result="ok", seconds=steps.report())
         body = pkt(f"# service={svc}\n") + b"0000" + out
         return Response(200, f"application/x-{svc}-advertisement", body)
 
@@ -421,22 +426,28 @@ class GitGateway:
         mirror = self.mirror(remote)
         if not (mirror.path / "HEAD").is_file():
             return refuse("fetch the refs first (the node has no mirror of this repository yet)")
+        steps = Steps(f"push to {remote.slug} for {caller.label}")
         async with mirror.lock:
-            return await self._push(ctx, caller, rule, remote, target, mirror, push, req.body, refuse)
+            steps.done("waiting for the mirror")
+            return await self._push(ctx, caller, rule, remote, target, mirror, push, req.body, refuse, steps)
 
     async def _push(self, ctx: Any, caller: Caller, rule: RemoteRule, remote: Remote, target: Target,
-                    mirror: Mirror, push: Push, body: bytes, refuse: Callable[[str], Response]) -> Response:
+                    mirror: Mirror, push: Push, body: bytes, refuse: Callable[[str], Response],
+                    steps: Steps | None = None) -> Response:
         """One push, in its steps: receive the pack into the mirror, read what each ref does, refuse what
         an environment may not do, ask the policy, then send it upstream. Anything that stops it puts the
         mirror back as it was."""
         account = self._account(caller, rule)
+        steps = steps or Steps(f"push to {remote.slug} for {caller.label}")
         before = await mirror.refs()
         rc, out, _ = await mirror.git("receive-pack", "--stateless-rpc", ".", stdin=body)
+        steps.done("receiving the pack")
         failed = await _receive_failed(mirror, push, before, rc, out)
         if failed is not None:
             return failed
         plan = await _plan(mirror, push, rule, remote, before)
-        run = _PushRun(ctx, caller, remote, target, mirror, push, before, account, refuse)
+        steps.done("reading the refs")
+        run = _PushRun(ctx, caller, remote, target, mirror, push, before, account, refuse, steps)
         if caller.bound:
             # An agent's own environment (its VM's token): a push never asks a person, on any branch, the
             # default branch included (the owner's decision of 2026-11-13, docs/design/environments.md). What
@@ -450,6 +461,7 @@ class GitGateway:
         trace = {"lane": account, "remote": remote.slug, "via": caller.label, "refs": _without_log(plan.refs),
                  "effect": effect.value, "vault_ref": target.credential.ref if target.credential else None}
         refused = await self._authorize_push(run, plan, effect, trace)
+        steps.done("the policy")
         if refused is not None:
             return refused
         return await self._send_upstream(run, plan, trace, out)
@@ -487,9 +499,12 @@ class GitGateway:
                 await run.mirror.push(run.target, auth, run.push.commands, plan.force)
         except UpstreamError as e:
             await run.mirror.restore(run.before, run.push.commands)
-            run.ctx.trace("git_push", result="failed", status="error", reason=e.message[:300], **trace)
+            run.steps.done("pushing to the remote")
+            run.ctx.trace("git_push", result="failed", status="error", reason=e.message[:300],
+                          seconds=run.steps.report(), **trace)
             return run.refuse(f"the push did not reach {run.remote.slug}: {e.message}")
-        run.ctx.trace("git_push", result="pushed", **trace)
+        run.steps.done("pushing to the remote")
+        run.ctx.trace("git_push", result="pushed", seconds=run.steps.report(), **trace)
         if run.caller.bound:
             self._note_branches(run)
         return Response(200, RECEIVE_RESULT, out)
@@ -581,6 +596,37 @@ class GitGateway:
             writer.close()
 
 
+# ---------------------------------------------------------------------- how long each step took
+
+SLOW_GIT_S = 10.0  # a fetch or push slower than this logs its steps (a push from a VM once took 123 s)
+
+
+class Steps:
+    """The steps of one gateway request and their seconds, so a slow fetch or push says where its time
+    went: waiting for the mirror's lock (another fetch or push of the same repository), the remote, git
+    on the node, the policy."""
+
+    def __init__(self, what: str):
+        self.what = what
+        self.start = time.monotonic()
+        self.times: list[tuple[str, float]] = []
+        self._last = self.start
+
+    def done(self, step: str) -> None:
+        now = time.monotonic()
+        self.times.append((step, now - self._last))
+        self._last = now
+
+    def words(self) -> str:
+        return ", ".join(f"{name} {sec:.1f} s" for name, sec in self.times)
+
+    def report(self) -> dict[str, float]:
+        total = time.monotonic() - self.start
+        if total >= SLOW_GIT_S:
+            log.warning("git gateway: %s took %.0f s (%s)", self.what, total, self.words())
+        return {name: round(sec, 2) for name, sec in self.times}
+
+
 # ---------------------------------------------------------------------- a push, step by step
 
 RECEIVE_RESULT = "application/x-git-receive-pack-result"
@@ -599,6 +645,7 @@ class _PushRun:
     before: dict[str, str]
     account: str | None
     refuse: Callable[[str], Response]
+    steps: Steps = field(default_factory=lambda: Steps("push"))
 
 
 @dataclass

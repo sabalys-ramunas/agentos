@@ -162,10 +162,11 @@ def wrap_tool(spec: ToolSpec, runtime: Any, *,
                                            duration_ms=int((time.monotonic() - started) * 1000)), extra_scrub=scrub)
             raise fail(e.code, e.message, token) from None
         logs.update(grant=grant.id, run=meta.run_id)  # the rest of this call's log lines carry them
-        if routing.routes(spec.name) and not lane_id:  # no `on`: the chat's environment (agentos.environments)
+        picked = None  # the environment route() chose: the result names it (agentos.environments.routing)
+        if routing.routes(spec.name) and routing.wants_route(kwargs.get(spec.lane_arg)):
             try:
-                routing.route(runtime, spec.name, kwargs, session=meta.session, grant_id=grant.id,
-                              family=grant.root_id)
+                picked = routing.route(runtime, spec.name, kwargs, session=meta.session, grant_id=grant.id,
+                                       family=grant.root_id)
             except AgentosError as e:
                 policy.traces.write(TraceEvent(kind="tool_end", tool=spec.name, effect=spec.effect.value,
                                                status="error", error=f"{e.code}: {e.message}", args=kwargs,
@@ -236,7 +237,7 @@ def wrap_tool(spec: ToolSpec, runtime: Any, *,
             except AgentosError:
                 log.warning("bad taint_tags config for %s", spec.name)
         end("ok", result=result)
-        return _scrub_result(result, token)
+        return _scrub_result(routing.with_env(result, picked), token)
 
     call.__signature__ = public_sig  # type: ignore[attr-defined]
     call.__name__ = spec.name

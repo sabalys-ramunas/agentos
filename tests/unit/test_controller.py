@@ -467,7 +467,7 @@ async def test_the_combined_list_starts_with_core_and_loads_the_rest(tmp_path, c
             assert "files_list" not in listed and "grant_info" not in listed
             assert len(listed) < len(everything)
             # the controller lists lean schemas, as a node does: no pydantic titles
-            assert "title" not in json.dumps(listed["browser_snapshot"].input_schema)
+            assert '"title":' not in json.dumps(listed["browser_snapshot"].input_schema)
             assert listed["browser_snapshot"].input_schema["properties"]["node"]["enum"] == ["mine"]
             overview = (await client.call_tool("tools_more", {})).structured_content
             assert {"files", "admin"} <= {row["toolset"] for row in overview["toolsets"]}

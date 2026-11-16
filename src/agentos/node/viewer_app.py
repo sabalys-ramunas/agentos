@@ -17,6 +17,7 @@ Two pieces for the daemon's HTTP server (docs/API.md, "Lane control"):
       GET  /view/{ws}/{name}/login.png?t=... the login step's redacted screenshot
       GET  /view/env/{id}-browser/proof/{proof}.png?t=...  an environment's proof image (its own signed link)
       PUT  /view/env/{id}/upload?t=...       a .tar.gz into an environment's machine (a one-use signed link; POST too)
+      GET  /view/env/{id}/download?t=...     a .tar.gz off an environment's machine (a one-use signed link)
       GET  /viewer-assets/...                the page's JS, CSS and vendored noVNC
 - `control_api_routes(lanes, links)`: the owner's API, mounted under /api BEHIND the
   bearer (or panel session) check:
@@ -58,7 +59,9 @@ import contextlib
 import html
 import json
 import logging
-from collections.abc import Callable, Iterator
+import os
+import time
+from collections.abc import AsyncIterator, Callable, Iterator
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
@@ -811,9 +814,52 @@ class ViewerApp:
                                      request.stream(), request.headers.get("content-length"))
         return JSONResponse(body, status_code=status, headers={"Cache-Control": "no-store"})
 
+    async def download(self, request: Request) -> Response:
+        """A file or folder off an environment's machine (agentos.environments.downloads), for its own
+        one-use signed link: the environments service checks and spends the link, and this streams the
+        packed .tar.gz as an attachment, never as a page. A HEAD never spends it."""
+        svc = self.environments() if self.environments is not None else None
+        take = getattr(svc, "take_download", None)
+        if not callable(take):
+            return _error(403, "denied", "This node gives no downloads.")
+        if request.method != "GET":
+            return _error(405, "invalid", "Fetch the link with GET: curl --fail-with-body -o out.tgz \"<url>\"")
+        params = request.path_params
+        try:
+            dl = take(params["workspace"], params["name"], request.query_params.get("t"))
+        except Exception as e:  # the service's refusal (environments.uploads.Refused: status, code, message)
+            status = getattr(e, "status", None)
+            if not isinstance(status, int):
+                log.warning("could not take a download", exc_info=True)
+                return _error(403, "denied", "This download link did not open. Ask for a new one with "
+                                             "environment_download.")
+            return _error(status, getattr(e, "code", "denied"), getattr(e, "message", str(e)))
+        started = time.monotonic()
+        try:  # opened before any await: a sweep cannot delete it in between, and an open file outlives its unlink
+            f = dl.file.open("rb")
+        except OSError:
+            return _error(403, "denied", "This download is gone. Ask for a new one with environment_download.")
+        size = os.fstat(f.fileno()).st_size
+
+        async def body() -> AsyncIterator[bytes]:
+            sent = 0
+            try:
+                with f:
+                    while chunk := await asyncio.to_thread(f.read, 1 << 20):
+                        sent += len(chunk)
+                        yield chunk
+            finally:
+                svc.served(dl, ok=sent == size, started=started)
+
+        return StreamingResponse(body(), media_type="application/gzip", headers={
+            "Content-Disposition": f'attachment; filename="{dl.name}"', "Content-Length": str(size),
+            "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff",
+            "Content-Security-Policy": "default-src 'none'", "Referrer-Policy": "no-referrer"})
+
     def routes(self) -> list:
         return [
             Route("/view/{workspace}/{name}/proof/{proof}.png", self.proof, methods=["GET"]),
+            Route("/view/{workspace}/{name}/download", self.download, methods=["GET"]),
             Route("/view/{workspace}/{name}/upload", self.upload, methods=["PUT", "POST"]),
             Route("/view/{workspace}/{name}/login", self.login_get, methods=["GET"]),
             Route("/view/{workspace}/{name}/login", self.login_post, methods=["POST"]),

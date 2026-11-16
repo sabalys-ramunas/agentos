@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from agentos.core.errors import EngineError
+from agentos.core.progress import abandon_after
 from agentos.node.browser_output import browser_error, forget_browser
 from agentos.node.camoufox.pages import PageTracker, forget_context
 from agentos.node.camoufox.procs import browser_pids
@@ -120,7 +121,7 @@ class CamoufoxSession:
         self._closed = True
         cancelled = False
         try:
-            await self.tracker.close()
+            await abandon_after(self.tracker.close(), self._close_timeout)
         except asyncio.CancelledError:
             cancelled = True
         except Exception as e:  # noqa: BLE001 - never block closing the browser
@@ -128,7 +129,8 @@ class CamoufoxSession:
         # 1. graceful: closing the context flushes cookies and session state to the profile
         if not cancelled:
             try:
-                await asyncio.wait_for(self._ctx.close(), self._close_timeout)
+                # never waits on a close stuck on a dead connection (wait_for does, and one took 13 min)
+                await abandon_after(self._ctx.close(), self._close_timeout)
             except asyncio.CancelledError:
                 cancelled = True
                 log.warning("closing %s was cancelled; forcing it", self._profile_dir)

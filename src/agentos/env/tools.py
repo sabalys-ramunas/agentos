@@ -9,6 +9,7 @@ import hashlib
 import re
 from typing import Any
 
+from agentos.core import progress
 from agentos.core.errors import InvalidRequest
 from agentos.core.models import Effect
 from agentos.core.tools import ToolContext, ToolSpec
@@ -167,6 +168,7 @@ async def lane_exec(ctx: ToolContext, *, on: str, cmd: str, timeout_s: float = 6
         cwd: The folder to run in (on an environment's machine an absolute path like /work/shop;
             elsewhere one under the lane's home).
         max_bytes: stdout and stderr together (default 16000, at most 131072).
+        timeout_s: At most 200.
     """
     mgr = _mgr(ctx)
     lane = mgr.get(on)
@@ -181,9 +183,39 @@ async def lane_exec(ctx: ToolContext, *, on: str, cmd: str, timeout_s: float = 6
                                                                + (f" (in {cwd})" if cwd else "")),
                         content={"cmd": cmd, "stdin": _sha(stdin), "timeout_s": timeout_s,
                                  **({"cwd": cwd} if cwd else {})}, facts=_facts(lane))
-    res = await mgr.exec(on, run, timeout_s=timeout_s, stdin=stdin, grant_id=_grant_id(ctx), max_bytes=budget)
+    wanted = _seconds(timeout_s)
+    capped = min(wanted, progress.LONG_CALL_S)  # one call never runs past what an MCP client waits for
+    progress.step(f"running: {_clip(cmd)[:80]}")
+    res = await mgr.exec(on, run, timeout_s=capped, stdin=stdin, grant_id=_grant_id(ctx), max_bytes=budget)
     ctx.trace("lane_exec", lane=on, exit_code=res.exit_code, duration_s=res.duration_s, timed_out=res.timed_out)
-    return res.model_dump()
+    out = res.model_dump()
+    note = exec_note(cmd, res.timed_out, wanted, capped)
+    if note:
+        out["note"] = note
+    return out
+
+
+GIT_PUSH_RE = re.compile(r"\bgit\b[^;&|]*\bpush\b")
+
+
+def _seconds(value: Any) -> float:
+    try:
+        return max(1.0, float(value))
+    except (TypeError, ValueError):
+        raise InvalidRequest("timeout_s is a number of seconds, like 60") from None
+
+
+def exec_note(cmd: str, timed_out: bool, wanted: float, capped: float) -> str | None:
+    """What a lane_exec result adds: a push that timed out may have landed; a timeout that was cut."""
+    parts = []
+    if timed_out and GIT_PUSH_RE.search(cmd or ""):
+        parts.append("The command timed out while git push ran, so the push may have landed anyway. Do not push "
+                     "again blind: check with lane_exec \"git fetch origin && git status -sb\" (or git ls-remote "
+                     "origin <branch>), or call environment(): git.pushed lists the branches the node saw pushed.")
+    if timed_out and wanted > capped:
+        parts.append(f"timeout_s was cut to {capped:g} s: one call may not run longer. For a longer command use "
+                     "lane_job_start, then lane_job_read(until_exit=true).")
+    return " ".join(parts) or None
 
 
 def _exec_budget(mgr: Any, max_bytes: Any) -> int:

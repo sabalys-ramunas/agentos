@@ -56,7 +56,9 @@ export type Action =
   // Clearing what an agent read: the owner's, in person, never a member's.
   | 'taint.clear'
   // What agents remember: the owner in person reads, confirms, reviews and forgets it, and nobody else.
-  | 'memory.read';
+  | 'memory.read'
+  // Forgetting a kept environment's save deletes its snapshot and files: the owner in person.
+  | 'environments.forget';
 
 const RANK: Record<Role, number> = { owner: 4, admin: 3, member: 2, approver: 1, viewer: 0, auditor: 0 };
 
@@ -118,6 +120,7 @@ const OWNER: Action[] = [
   'lanes.control',
   'taint.clear',
   'memory.read',
+  'environments.forget',
 ];
 
 const ROLE_ACTIONS: Record<Role, ReadonlySet<Action>> = {

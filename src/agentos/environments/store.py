@@ -37,6 +37,9 @@ class EnvironmentStore(SqliteStore):
     def __init__(self, path: Path):
         super().__init__(path, timeout=5.0)
         self._conn().executescript(SCHEMA)
+        cols = {r[1] for r in self._q("PRAGMA table_info(repo_requests)")}
+        if "grant_id" not in cols:  # who asked: the agent may withdraw a card it raised (connect.withdraw)
+            self._q("ALTER TABLE repo_requests ADD COLUMN grant_id TEXT NOT NULL DEFAULT ''")
         self.path.chmod(0o600)  # an existing file too, as the store always did
 
     def put(self, env: Environment) -> None:
@@ -75,23 +78,30 @@ class EnvironmentStore(SqliteStore):
         return [Environment.model_validate_json(r[0]) for r in rows]
 
     def bound(self, binding: str) -> Environment | None:
+        """The open environment bound to `binding` that it opened or attached last (a session may hold
+        several: each title names its own)."""
         marks = ",".join("?" for _ in OPEN_STATES)
         rows = self._q(f"SELECT record FROM environments WHERE binding = ? AND state IN ({marks}) "
-                       "ORDER BY created_at DESC LIMIT 1", (binding, *OPEN_STATES))
-        return Environment.model_validate_json(rows[0][0]) if rows else None
+                       "ORDER BY created_at DESC", (binding, *OPEN_STATES))
+        envs = [Environment.model_validate_json(r[0]) for r in rows]
+        return max(envs, key=lambda e: e.bound_at or e.created_at) if envs else None
 
     def recent(self, limit: int = 100) -> list[Environment]:
         rows = self._q("SELECT record FROM environments ORDER BY created_at DESC LIMIT ?", (limit,))
         return [Environment.model_validate_json(r[0]) for r in rows]
 
     # ---- the cards that ask a person to connect a repository (agentos.environments.connect) ----
-    def request_put(self, approval_id: str, repo: str, reason: str, created_at: str) -> None:
-        self._q("INSERT OR REPLACE INTO repo_requests (approval_id, repo, reason, created_at) VALUES (?, ?, ?, ?)",
-                (approval_id, repo, reason, created_at))
+    def request_put(self, approval_id: str, repo: str, reason: str, created_at: str, grant_id: str = "") -> None:
+        self._q("INSERT OR REPLACE INTO repo_requests (approval_id, repo, reason, created_at, grant_id) "
+                "VALUES (?, ?, ?, ?, ?)", (approval_id, repo, reason, created_at, grant_id))
+
+    def request_shared(self, approval_id: str) -> None:
+        """Another agent asked for the same repository: the card is no longer one agent's to withdraw."""
+        self._q("UPDATE repo_requests SET grant_id = '*' WHERE approval_id = ?", (approval_id,))
 
     def requests(self) -> list[dict[str, str]]:
-        rows = self._q("SELECT approval_id, repo, reason, created_at FROM repo_requests ORDER BY created_at")
-        return [{"id": r[0], "repo": r[1], "reason": r[2], "created_at": r[3]} for r in rows]
+        rows = self._q("SELECT approval_id, repo, reason, created_at, grant_id FROM repo_requests ORDER BY created_at")
+        return [{"id": r[0], "repo": r[1], "reason": r[2], "created_at": r[3], "grant_id": r[4]} for r in rows]
 
     def request_drop(self, approval_id: str) -> None:
         self._q("DELETE FROM repo_requests WHERE approval_id = ?", (approval_id,))

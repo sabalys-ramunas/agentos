@@ -52,9 +52,10 @@ carries one of these codes:
 | [`egress_refused`](#egress_refused) | The lane's site list, or your grant's egress list, does not allow this page or request, so it was not sent (or was stopped and the page put back). | no |
 | [`element_not_found`](#element_not_found) | A flow step's locator found nothing on the page. | no |
 | [`engine_error`](#engine_error) | The browser or another part of the node failed unexpectedly. | yes, after 5 s |
-| [`environment_already_open`](#environment_already_open) | This chat already has a live environment, with another repository than the one asked for. A chat has one environment at a time, so nothing was opened. | no |
+| [`environment_already_open`](#environment_already_open) | The title names an open environment of this agent that has another repository than the one asked for. A title names one computer, so nothing was opened. | no |
+| [`environment_choice`](#environment_choice) | environment_open was given a repository and no title, and this agent has several open or saved environments for that repository. | no |
 | [`environment_failed`](#environment_failed) | An environment's machine did not come up: it did not answer SSH, or its setup failed. Its VM was deleted, so nothing bills for it. | no |
-| [`environment_in_use`](#environment_in_use) | Another chat of the same agent still works in the environment with this title: it made a call in the last 10 minutes, so it is not taken from that chat. | yes, after 600 s |
+| [`environment_in_use`](#environment_in_use) | Another chat of the same agent, on a client that sends an MCP session id, still works in the environment with this title: it made a call in the last 10 minutes, so it is not taken from that chat. | yes, after 600 s |
 | [`environment_limit`](#environment_limit) | Opening or extending it would pass a node limit (it never asks a person): open at once (3 by default), the longest life (8 hours), or the month's budget (EUR 50). The message says which. | no |
 | [`environment_not_ready`](#environment_not_ready) | This chat has an environment, but the call cannot reach it right now: its machine is still starting, it is closing, or its tunnel is down because the node restarted or the connection dropped. Nothing ran on the node in its place. | yes, after 30 s |
 | [`error`](#error) | Something failed that has no more specific code. | no |
@@ -83,6 +84,7 @@ carries one of these codes:
 | [`json_status`](#json_status) | The response a site API's read_json waited for was not a 2xx. A 5xx counts as a bad moment until three in a row; any other status as a changed endpoint at once. | no |
 | [`json_too_large`](#json_too_large) | The response a site API's read_json waited for is over the size it may read, so it was not read. | no |
 | [`json_unreadable`](#json_unreadable) | The browser held no body for the response a site API's read_json waited for: it was gone, or the site's 304 left the page its own copy. Says nothing of the endpoint. | yes, once the cause is fixed |
+| [`keep_live_not_allowed`](#keep_live_not_allowed) | keep "live" keeps the machine running and billed all month, so the owner opts in first, and at most max_live_kept (1 by default) are kept live at once. Nothing was opened. | no |
 | [`lane_cold`](#lane_cold) | The lane is not running, so there is nothing live to show or act on. | yes, once the cause is fixed |
 | [`lane_exists`](#lane_exists) | A lane with this id already exists. | no |
 | [`lane_format`](#lane_format) | The lane's directory is in a format this agentos does not run (newer, or older with a migration pending), so it was not opened. | no |
@@ -139,6 +141,7 @@ carries one of these codes:
 | [`proof_too_weak`](#proof_too_weak) | This approve is weaker than the approval requires. The answer says what it requires (`requires`). | yes, once the cause is fixed |
 | [`publish_changed`](#publish_changed) | A person approved a publish, but this time the click made the page send something else (other text, another target, other media or another field), so nothing was sent and the approval was retired. | yes, once the cause is fixed |
 | [`publish_unbound`](#publish_unbound) | A click would publish something the node cannot bind whole: a body too large or in a format it cannot read, or media it never saw uploaded in this lane. Nobody could approve exactly what it sends, so nothing was sent. | no |
+| [`pull_request_failed`](#pull_request_failed) | The node did not open the pull request: it holds no GitHub token for the repository (a deploy key only pushes), or GitHub refused or did not answer. Nothing was changed on GitHub. | no |
 | [`quarantined`](#quarantined) | The lane is quarantined (its proxy's exit address changed, or a check failed), so it does not open. | no |
 | [`rate_limited`](#rate_limited) | Too many requests or writes in a short time. | yes, once the cause is fixed |
 | [`readback_error`](#readback_error) | The action ran, but its readback (the check of the target's own state) could not run, so the result is unknown. | no |
@@ -147,8 +150,12 @@ carries one of these codes:
 | [`refused`](#refused) | The backup or restore cannot go ahead as asked. Nothing was changed. | no |
 | [`repo_connect_failed`](#repo_connect_failed) | A token or deploy key given on a repository card did not work, so nothing was kept: the host refused it, it cannot see or read the repository, it waits for SSO or an approval, or the key is not added. | no |
 | [`repo_not_connected`](#repo_not_connected) | environment_open named a repository the node cannot clone: not connected (declared for env, with a key or token in the vault) and not public, or its key or token was refused. Nothing was rented. | no |
+| [`repo_not_found`](#repo_not_found) | environment_open named a repository that the host answered not found for, with a login or token that should see it: it does not exist, or that login cannot see it. Nothing was rented. | no |
 | [`resources_low`](#resources_low) | The node is short of memory or disk, so the lane was not started. | yes, after 60 s |
+| [`restore_failed`](#restore_failed) | The environment could not be resumed from its save. The save is untouched, and its new machine was deleted. | no |
 | [`sandbox_error`](#sandbox_error) | A terminal or service lane's sandbox could not be set up or failed. | no |
+| [`save_failed`](#save_failed) | Saving the environment did not finish: its machine did not answer, its disk was full, or the snapshot failed. Nothing was deleted: the machine is kept and still bills, and the owner was told. | no |
+| [`save_limit`](#save_limit) | The save would pass this node's limit for saves (max_saves_gb, 5 GB of file parts by default), even after the oldest saves of the title were removed. | no |
 | [`secret_in_memory`](#secret_in_memory) | The memory entry looks like it holds a secret, so it was not stored. | no |
 | [`secret_in_profile`](#secret_in_profile) | A value in the profile looks like a secret (a key, a token, a password), so nothing was saved. Profiles name vault entries; they never hold secrets. | no |
 | [`see_whole_card`](#see_whole_card) | This send card's preview shows only part of the messages it sends, and whoever approved it was not shown every one of them, so it was not approved. | yes, once the cause is fixed |
@@ -206,6 +213,7 @@ carries one of these codes:
 | [`vault_wrong_passphrase`](#vault_wrong_passphrase) | The vault passphrase is wrong. | no |
 | [`vm_error`](#vm_error) | The cloud provider refused or failed a VM call: a bad token, a server type or location it does not offer, the project's server limit, or its API being down. | no |
 | [`vm_limit`](#vm_limit) | A VM limit set on this node was reached: how many VMs at once, how long one lives, or the monthly budget. | no |
+| [`which_environment`](#which_environment) | A call without `on` while more than one environment of this agent is open, from a client that sends no MCP session id, so agentos cannot tell which computer the call is for. Nothing ran. | no |
 | [`workflow_missing`](#workflow_missing) | The version of the workflow this run was started on is no longer on this computer. | no |
 | [`wrong_account`](#wrong_account) | The lane is logged in as another account than the one the run is bound to, so it did nothing and the lane is held. | no |
 | [`wrong_element`](#wrong_element) | A flow step's locator found an element that cannot take this action (not a text field, not a select, no such option). | no |
@@ -605,12 +613,21 @@ The browser or another part of the node failed unexpectedly.
 
 ## environment_already_open
 
-This chat already has a live environment, with another repository than the one asked for. A chat has one environment at a time, so nothing was opened.
+The title names an open environment of this agent that has another repository than the one asked for. A title names one computer, so nothing was opened.
 
-- **Agent:** Do not call it again the same way. Keep working in the one you have (environment() shows it), or close it with environment_close() (discard=true only if its work is not needed) and then call environment_open again.
-- **You:** Nothing to fix: one chat works in one environment at a time. `agentos environments list` shows which chat has which.
+- **Agent:** Do not call it again the same way. For this repository, use another title. To work in the open one, call environment_open with its title and no repo. Never close it: another chat of yours may work in it.
+- **You:** Nothing to fix: a title names one computer. `agentos environments list` shows the open ones.
 - **Retry:** no
 - **Raised by:** `agentos.environments.errors.EnvironmentAlreadyOpen`
+
+## environment_choice
+
+environment_open was given a repository and no title, and this agent has several open or saved environments for that repository.
+
+- **Agent:** Pick one: call environment_open again with one of the titles the message lists (the first is the newest), or a new title for a new environment. Ask the user when you cannot tell which one they mean.
+- **You:** Nothing to fix on the node. `agentos environments list` and `agentos environments saves` show them; forget the saves you no longer need.
+- **Retry:** no
+- **Raised by:** `agentos.environments.comeback.EnvironmentChoice`
 
 ## environment_failed
 
@@ -619,14 +636,19 @@ An environment's machine did not come up: it did not answer SSH, or its setup fa
 - **Agent:** Tell the user it did not start and what the message says. Open a new one once with environment_open; if it fails again, stop and tell the user.
 - **You:** Run `agentos environments setup` on the node: it checks the provider, the image and the git declarations, and says what is missing.
 - **Retry:** no
+- **Agent, when the reason is `capacity`:** The cloud has no room for this machine now, in any nearby location. Nothing bills. Wait 5 minutes and open again, or open now with the bigger size the message names. After two more fails, tell the user.
+- **Agent, when the reason is `clone`:** The machine started, but the clone failed, and the machine was deleted. Tell the user what git said. Check repo and ref; open once more without ref, or without repo for an empty /work.
+- **Agent, when the reason is `image`:** The machine image does not fit this size. Open again with the bigger size the message names; if it names none, tell the user (the owner runs `agentos environments setup`).
+- **Agent, when the reason is `network`:** The network of the computer agentos runs on dropped. Nothing was rented. Wait 2 minutes, then open again the same way. If it fails again, tell the user to check that computer's internet connection.
+- **Agent, when the reason is `setup`:** The machine did not finish its setup and was deleted. Open once more with environment_open; if it fails again, stop and tell the user what the message says.
 - **Raised by:** `agentos.environments.errors.EnvironmentFailed`
 
 ## environment_in_use
 
-Another chat of the same agent still works in the environment with this title: it made a call in the last 10 minutes, so it is not taken from that chat.
+Another chat of the same agent, on a client that sends an MCP session id, still works in the environment with this title: it made a call in the last 10 minutes, so it is not taken from that chat.
 
 - **Agent:** Do not retry in a loop. Open your own with another title (environment_open(title=...)), or tell the user which chat holds it. Once that chat has been quiet for 10 minutes, the same title takes it over.
-- **You:** Nothing to fix: one chat works in one environment at a time. `agentos environments list` shows who has which.
+- **You:** Nothing to fix: `agentos environments list` shows who has which.
 - **Retry:** yes, after 600 s
 - **Raised by:** `agentos.environments.errors.EnvironmentInUse`
 
@@ -634,7 +656,7 @@ Another chat of the same agent still works in the environment with this title: i
 
 Opening or extending it would pass a node limit (it never asks a person): open at once (3 by default), the longest life (8 hours), or the month's budget (EUR 50). The message says which.
 
-- **Agent:** Close an environment you no longer need (environment_close), ask for fewer hours, or tell the user which limit it was.
+- **Agent:** Ask for fewer hours or a smaller size, or tell the user which limit it was. Close only an environment you opened yourself and no longer need; another chat of yours may work in the others.
 - **You:** Close environments with `agentos environments close ID`, or raise the limit the message names with `agentos environments allow --max-live N`, `--max-hours H` or `--monthly-eur E` (vms.toml holds the VM limits too).
 - **Retry:** no
 - **Raised by:** `agentos.environments.errors.EnvironmentLimit`
@@ -883,6 +905,15 @@ The browser held no body for the response a site API's read_json waited for: it 
 - **You:** Run it again. If it keeps failing, the page may leave or reload before its request ends, or it may keep its own copy and answer every read with a 304.
 - **Retry:** yes, once the cause is fixed
 - **Runs fail with it in:** `agentos.runner.readvalues`
+
+## keep_live_not_allowed
+
+keep "live" keeps the machine running and billed all month, so the owner opts in first, and at most max_live_kept (1 by default) are kept live at once. Nothing was opened.
+
+- **Agent:** Open it with keep="save" (saved and deleted when idle, resumed by its title) or keep="none" instead, or tell the user they can allow kept machines.
+- **You:** Allow it with `agentos environments allow --keep-live` (and `--max-live-kept N` for more than one), or close the live one you no longer need with `agentos environments close ID`.
+- **Retry:** no
+- **Raised by:** `agentos.environments.errors.KeepLiveNotAllowed`
 
 ## lane_cold
 
@@ -1389,6 +1420,15 @@ A click would publish something the node cannot bind whole: a body too large or 
 - **Retry:** no
 - **Raised by:** `agentos.core.errors.PublishUnbound`
 
+## pull_request_failed
+
+The node did not open the pull request: it holds no GitHub token for the repository (a deploy key only pushes), or GitHub refused or did not answer. Nothing was changed on GitHub.
+
+- **Agent:** Do not retry in a loop. Tell the user what the message says; give them git.compare from environment(), which opens GitHub's own form for the branch.
+- **You:** On agentos local, `agentos setup github` stores a login; on a server node, `agentos git key add --host github.com --repo OWNER/NAME --token TOKEN` stores a token that may open pull requests.
+- **Retry:** no
+- **Raised by:** `agentos.environments.pulls.PullRequestFailed`
+
 ## quarantined
 
 The lane is quarantined (its proxy's exit address changed, or a check failed), so it does not open.
@@ -1462,6 +1502,15 @@ environment_open named a repository the node cannot clone: not connected (declar
 - **Retry:** no
 - **Raised by:** `agentos.environments.errors.RepoNotConnected`
 
+## repo_not_found
+
+environment_open named a repository that the host answered not found for, with a login or token that should see it: it does not exist, or that login cannot see it. Nothing was rented.
+
+- **Agent:** Do not ask for a token. Check the repository name with the user (a typo, or another owner), then open again with the right repo.
+- **You:** Check the name at the host. A repository of another account needs its own token: `agentos environments repo add github.com/OWNER/NAME --token`.
+- **Retry:** no
+- **Raised by:** `agentos.environments.errors.RepoNotFound`
+
 ## resources_low
 
 The node is short of memory or disk, so the lane was not started.
@@ -1471,6 +1520,15 @@ The node is short of memory or disk, so the lane was not started.
 - **Retry:** yes, after 60 s
 - **Raised by:** `agentos.node.lanes.base.ResourcesLow`
 
+## restore_failed
+
+The environment could not be resumed from its save. The save is untouched, and its new machine was deleted.
+
+- **Agent:** Tell the user what the message says. Call environment_open with the same title once more; if it fails again, stop and tell the user (environment() lists the save).
+- **You:** Look at the save with `agentos environments saves`; `agentos doctor` and `agentos logs --since 10m` say why the machine did not come back.
+- **Retry:** no
+- **Raised by:** `agentos.environments.errors.RestoreFailed`
+
 ## sandbox_error
 
 A terminal or service lane's sandbox could not be set up or failed.
@@ -1479,6 +1537,28 @@ A terminal or service lane's sandbox could not be set up or failed.
 - **You:** Run `agentos doctor`, and check `agentos logs --lane <lane> --level warn`.
 - **Retry:** no
 - **Raised by:** `agentos.env.lanes.SandboxError`
+
+## save_failed
+
+Saving the environment did not finish: its machine did not answer, its disk was full, or the snapshot failed. Nothing was deleted: the machine is kept and still bills, and the owner was told.
+
+- **Agent:** Do not close with discard. Tell the user the save failed and what the message says. Fix what it names (free disk space, or push your work), then call environment_save() or environment_close() again.
+- **You:** Look at it with `agentos environments show ID`. Free space on the machine or fix what the message names, then close it again; `agentos environments close ID --discard` deletes it without a save.
+- **Retry:** no
+- **Agent, when the reason is `machine_unreachable`:** The machine did not answer, so nothing was saved. Call environment() to see its state. If it says ready, call environment_close() again; if the machine is gone, tell the user.
+- **Agent, when the reason is `provider_busy`:** The cloud is still busy with this machine (an earlier snapshot), even after agentos waited a minute. Your work is safe. Do not close with discard. Wait 2 minutes, then call environment_close() again.
+- **Agent, when the reason is `provider_unreachable`:** The cloud's API did not answer. Your work is safe, and agentos tries the save again by itself in 10 minutes. Do not close with discard. Tell the user the save waits on the cloud; call environment_close() again in a few minutes.
+- **Agent, when the reason is `snapshot_failed`:** The cloud refused the disk snapshot. Your files are safe on the machine. Push your branch (git push origin <branch>), tell the user what the message says, then call environment_close() again.
+- **Raised by:** `agentos.environments.errors.SaveFailed`
+
+## save_limit
+
+The save would pass this node's limit for saves (max_saves_gb, 5 GB of file parts by default), even after the oldest saves of the title were removed.
+
+- **Agent:** Leave build output and large files out of the work (or gitignore them), then save again; or tell the user the node's save limit was reached.
+- **You:** Forget saves you no longer need with `agentos environments forget TITLE`, or raise max_saves_gb in environments.toml.
+- **Retry:** no
+- **Raised by:** `agentos.environments.errors.SaveLimit`
 
 ## secret_in_memory
 
@@ -1998,6 +2078,15 @@ A VM limit set on this node was reached: how many VMs at once, how long one live
 - **You:** Raise max_live, max_ttl_minutes or monthly_budget_eur in vms.toml, or delete VMs with `agentos vm destroy`.
 - **Retry:** no
 - **Raised by:** `agentos.vms.models.VmLimit`
+
+## which_environment
+
+A call without `on` while more than one environment of this agent is open, from a client that sends no MCP session id, so agentos cannot tell which computer the call is for. Nothing ran.
+
+- **Agent:** Call again with `on` set to the computer you mean: its title or env/<id>, as the message lists them. Use the one you opened or attached. If none of them is yours, open your own with environment_open(title=...).
+- **You:** Nothing to fix on the node: the agent names the environment with `on`.
+- **Retry:** no
+- **Raised by:** `agentos.environments.errors.WhichEnvironment`
 
 ## workflow_missing
 

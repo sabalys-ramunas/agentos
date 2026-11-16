@@ -167,7 +167,7 @@ async def test_the_close_says_the_machine_is_deleted_once_the_provider_has_none(
         node["lanes"].get(f"env/{out['id']}-browser")
     assert not node["envs"].has(f"env/{out['id']}")
     # closed again: the same answer from the record
-    assert (await node["call"]("environment_close", id=out["id"]))["machine"] == "deleted"
+    assert (await node["call"]("environment_close", on=out["id"]))["machine"] == "deleted"
 
 
 async def test_the_close_does_not_say_deleted_while_the_provider_still_has_it(node, monkeypatch):  # noqa: F811

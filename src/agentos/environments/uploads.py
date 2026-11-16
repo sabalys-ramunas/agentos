@@ -6,8 +6,12 @@ environment_upload gives a signed, one-use link on the node's own address, as a 
 (agentos.environments.proofs): `/view/env/<id>/upload?t=...`, signed with the viewer key, so replacing
 that key revokes it. The agent packs its checkout and sends it from its own shell:
 
-    git ls-files -co --exclude-standard -z | tar --null -T - -czf work.tgz
-    curl --fail-with-body -T work.tgz "<url>"
+    A="${TMPDIR:-/tmp}/agentos-work.tgz"; if git rev-parse --is-inside-work-tree ...; then
+      git ls-files -co --exclude-standard -z | tar --null -T - -czf "$A"     # a git checkout
+    else tar --exclude node_modules --exclude .env ... -czf "$A" .; fi       # a plain folder
+    curl --fail-with-body -T "${TMPDIR:-/tmp}/agentos-work.tgz" "<url>"
+
+(PACK is the one line; the archive goes to the temp folder, never into the checkout it packs.)
 
 The viewer serves the link (PUT or POST, agentos.node.viewer_app) and hands the body to
 `receive_upload`, which:
@@ -65,8 +69,16 @@ DISK_RESERVE = 1 << 30           # free space the node keeps for its own work wh
 EXTRACT_TIMEOUT_S = 900.0
 PATHS_SHOWN = 10
 WORK = "/work"
-PACK = "git ls-files -co --exclude-standard -z | COPYFILE_DISABLE=1 tar --null -T - -czf work.tgz"
-ARCHIVE = "work.tgz"
+ARCHIVE = '"${TMPDIR:-/tmp}/agentos-work.tgz"'  # in the temp folder: never packed into itself, never left behind
+# A git checkout: its tracked and new files, without what git ignores. A plain folder: all of it but the
+# usual dependencies and secrets. Either way an empty result is refused by the node (check_archive).
+PLAIN_EXCLUDES = ("node_modules", ".env", ".git", ".venv", "__pycache__")
+PACK = (f"A={ARCHIVE}; if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then "
+        'git ls-files -co --exclude-standard -z | COPYFILE_DISABLE=1 tar --null -T - -czf "$A"; '
+        "else COPYFILE_DISABLE=1 tar " + " ".join(f"--exclude {x}" for x in PLAIN_EXCLUDES) + ' -czf "$A" .; fi')
+PROJECT_STEPS = (("package.json", "pnpm install"), ("pyproject.toml", "uv sync"),
+                 ("requirements.txt", "uv venv -q && uv pip install -r requirements.txt"), ("go.mod", "go build ./..."),
+                 ("Cargo.toml", "cargo build"))
 
 
 class Refused(Exception):
@@ -158,7 +170,7 @@ def check_archive(path: Path) -> dict:
     with path.open("rb") as f:
         gz = f.read(2) == b"\x1f\x8b"
     root = tempfile.mkdtemp(prefix="agentos-upload-")
-    files, members, unpacked, paths = 0, 0, 0, []
+    files, members, unpacked, paths, kinds = 0, 0, 0, [], set()
     try:
         with _open_tar(path, gz) as tf:
             for m in _members(tf):
@@ -168,6 +180,9 @@ def check_archive(path: Path) -> dict:
                     continue
                 files += 1
                 unpacked += m.size
+                name = m.name.removeprefix("./")
+                if name.count("/") == 0:
+                    kinds.add(name)  # a top-level file names the project's kind (PROJECT_STEPS)
                 if unpacked > UNPACKED_BYTES_MAX:
                     raise BadArchive(f"the archive unpacks to more than {UNPACKED_BYTES_MAX >> 30} GB; leave out "
                                      "build output and dependencies (the pack command does)")
@@ -175,9 +190,10 @@ def check_archive(path: Path) -> dict:
                     paths.append(m.name.removeprefix("./"))
     finally:
         shutil.rmtree(root, ignore_errors=True)
-    if members == 0:
-        raise BadArchive(f"the archive is empty. Run the pack command in your checkout: {PACK}")
-    return {"gzip": gz, "files": files, "members": members, "unpacked": unpacked, "paths": paths}
+    if files == 0:
+        raise BadArchive("the archive holds no files" + (f" ({members} folders only)" if members else "") +
+                         f", so nothing was put on the machine. Run the pack command in the folder with your code: {PACK}")
+    return {"gzip": gz, "files": files, "members": members, "unpacked": unpacked, "paths": paths, "kinds": kinds}
 
 
 # ------------------------------------------------------------------ the mixin
@@ -286,16 +302,22 @@ class Uploads:
             raise Refused(507, "unavailable", "the node has too little free disk to take this upload now; "
                                               "tell the human")
         path = folder / f"up-{secrets.token_hex(6)}.part"
+        t0 = time.monotonic()
         try:
             size, sha = await _write_body(body, path)
+            t1 = time.monotonic()
             try:
                 packed = await asyncio.to_thread(check_archive, path)
             except BadArchive as e:
                 raise Refused(400, "invalid", str(e)) from None
+            t2 = time.monotonic()
             envs = self.envs()
             with path.open("rb") as f:
                 res = await envs.put_archive(env.terminal_lane, link.dest, f, gzip=packed["gzip"],
                                              timeout_s=EXTRACT_TIMEOUT_S)
+            # where an upload's time goes: the body from the agent, the node's check, the machine's extract
+            log.info("environment %s: upload of %d bytes (%d files): body %.1f s, check %.1f s, onto the machine "
+                     "%.1f s", env.id, size, packed["files"], t1 - t0, t2 - t1, time.monotonic() - t2)
         finally:
             with contextlib.suppress(OSError):
                 path.unlink()
@@ -306,8 +328,12 @@ class Uploads:
                "paths": packed["paths"], "sha256": f"sha256:{sha}"}
         if packed["files"] > len(packed["paths"]):
             out["more"] = packed["files"] - len(packed["paths"])
-        out["next"] = (f'Files in the archive replaced the same paths in {link.dest}; nothing else was deleted. '
-                       f'Now lane_exec(cmd="pnpm install", cwd="{link.dest}") or what the project needs')
+        step = next((cmd for marker, cmd in PROJECT_STEPS if marker in packed["kinds"]), None)
+        now = (f'Now lane_exec(cmd="{step}", cwd="{link.dest}") or what else the project needs' if step
+               else "Now run what the project needs with lane_exec")
+        out["next"] = (f"Files in the archive replaced the same paths in {link.dest}; nothing else was deleted. {now}. "
+                       "Files in no git repository count as unsaved work at close: download what you make "
+                       "(environment_download)")
         return out
 
     def _note_upload(self, env: Environment, link: _Link, *, ok: bool, started: float, out: dict | None = None,
@@ -355,11 +381,10 @@ async def _write_body(body: AsyncIterator[bytes], path: Path) -> tuple[int, str]
 
 # ------------------------------------------------------------------ the tool
 async def environment_upload(ctx: ToolContext, *, on: str, dest: str | None = None) -> dict:
-    """A one-use link (15 minutes) that puts a .tar.gz of your local checkout, uncommitted changes
-    included, on your environment's machine: no repository needed, and the bytes never go through
-    tool calls. Returns pack and send, two commands to run in your own shell (not lane_exec) in the
-    checkout; the reply lists the files. Files in it replace the same paths; nothing else is
-    deleted. At most 512 MB. Effect: exec.
+    """A one-use link (15 minutes) that puts a .tar.gz of your local checkout (uncommitted changes
+    too) on the environment's machine; the bytes never go through tool calls. Returns pack and send:
+    run them in your own shell (not lane_exec), in the checkout. Files replace the same paths;
+    nothing else is deleted. At most 512 MB. Effect: exec.
 
     Args:
         dest: A folder under /work (default: the workdir, /work/<repo> or /work); a relative one
@@ -372,8 +397,8 @@ async def environment_upload(ctx: ToolContext, *, on: str, dest: str | None = No
     env = mgr.lane_environment(on)
     if env is None or on != env.terminal_lane or not EnvironmentManager.reaches(env, getattr(ctx, "grant", None),
                                                                                 mcp=True):
-        raise InvalidRequest("environment_upload puts files on your environment's machine; leave `on` out for "
-                             "this chat's environment")
+        raise InvalidRequest("environment_upload puts files on your environment's machine; name it with `on` "
+                             "(its title or env/<id>), or leave `on` out when you have one open")
     refuse_frozen(ctx, lanes=env.lanes.values())
     target = check_dest(dest, env.workdir)
     lane = ctx.runtime.require("envs").get(on)
@@ -381,9 +406,10 @@ async def environment_upload(ctx: ToolContext, *, on: str, dest: str | None = No
                         content={"upload_into": target}, facts=_facts(lane))
     out = mgr.upload_link(env, target, grant_id=_grant_id(ctx))
     ctx.trace("environment_upload", lane=on, environment=env.id, dest=target)
-    out["next"] = (f"In your checkout, in your own shell: {PACK} && curl --fail-with-body -T {ARCHIVE} \"<url>\". "
-                   "It packs tracked and new files and leaves out what git ignores (node_modules, .env); tar warns "
-                   "about a file you deleted and did not commit and packs the rest. The link works once")
+    out["next"] = (f"In the folder with your code, in your own shell: {PACK} && curl --fail-with-body -T {ARCHIVE} "
+                   "\"<url>\". In a git checkout it packs tracked and new files and leaves out what git ignores; in a "
+                   "plain folder all of it but node_modules, .env, .git and .venv. An archive with no files is "
+                   "refused. The link works once")
     return out
 
 

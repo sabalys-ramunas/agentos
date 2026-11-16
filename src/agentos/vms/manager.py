@@ -36,8 +36,8 @@ from agentos.core.aio import maybe_await
 from agentos.core.errors import AgentosError, InvalidRequest, LaneExists, NotFound
 from agentos.core.models import LaneState, parse_lane_id, utcnow
 from agentos.env.models import RemoteHost
+from agentos.vms import capacity, repos, ssh
 from agentos.vms import keys as vmkeys
-from agentos.vms import repos, ssh
 from agentos.vms.models import TOKEN_FILE, Size, VmError, VmLimit, VmRecord, VmSettings, load_settings
 from agentos.vms.provider import Provider, ServerSpec
 from agentos.vms.store import VmStore
@@ -45,6 +45,9 @@ from agentos.vms.store import VmStore
 log = logging.getLogger("agentos.vms")
 
 OVERDUE_ALERT = timedelta(minutes=10)     # a live VM this far past its limit pushes a notification
+ENV_SAVE_GRACE = timedelta(minutes=15)    # an environment's VM past its limit: the environments save it first
+SNAPSHOT_WAIT_S = 1200.0  # how long a snapshot the provider still makes is waited for
+SNAPSHOT_POLL_S = 5.0
 ORPHAN_GRACE = timedelta(minutes=10)      # an unknown server younger than this may still be ours, being made
 EXIT_IP_URLS = ("https://api.ipify.org", "https://ipinfo.io/ip")
 EXIT_IP6_URLS = ("https://api6.ipify.org", "https://v6.ipinfo.io/ip")
@@ -52,10 +55,10 @@ MAX_DELETE_BACKOFF_S = 600
 BOOT_POLL_S = 3.0                         # between SSH probes while a VM boots
 IMAGE_BUILD_MAX = timedelta(hours=2)      # a build VM older than this is deleted by any reaper
 OFFERS_TTL = timedelta(minutes=30)        # server types and prices are read again after this
+PREFLIGHT_WAITS_S = (2.0, 4.0, 8.0)        # between tries of a short network check before a VM is made
 FALLBACKS = 2                             # other types tried when the provider is out of the cheapest
 FALLBACK_PRICE_FACTOR = 2.0               # never a fallback more than twice the picked price
 SPEC_KEYS = ("cores", "memory_gb", "disk_gb", "architecture", "cpu_type")  # a plan's `specs`
-RETRY_CODES = {"resource_unavailable", "placement_error", "unavailable"}
 HOME_ID_FILE = "home-id"                  # in vms/: this AGENTOS_HOME's own id in the provider's labels
 
 # What `agentos vm image build` installs by default: enough to clone, build and test most projects.
@@ -148,6 +151,7 @@ class VmManager:
         self._alerted: set[str] = set()
         self._image_builds: set[str] = set()
         self._offers: tuple[datetime, list[dict]] | None = None
+        self.preflight_waits: tuple[float, ...] = PREFLIGHT_WAITS_S
         self._home_id: str | None = None
         self.last_reap: dict = {}
         self._reap_lock = asyncio.Lock()  # the reaper's loop and a catch-up after a wake never overlap
@@ -258,11 +262,11 @@ class VmManager:
             await asyncio.sleep(self.settings.reap_interval_s)
 
     # ================================================================ create
-    def _ttl(self, minutes: int | None) -> int:
+    def _ttl(self, minutes: int | None, *, kept: bool = False) -> int:
         m = int(minutes or self.settings.default_ttl_minutes)
         if m < 5:
             raise InvalidRequest("a VM lives at least 5 minutes")
-        if m > self.settings.max_ttl_minutes:
+        if m > self.settings.max_ttl_minutes and not kept:
             raise VmLimit(f"at most {self.settings.max_ttl_minutes} minutes on this node (vms.toml max_ttl_minutes)")
         return m
 
@@ -308,14 +312,21 @@ class VmManager:
     async def _current_ips(self) -> list[str]:
         """This computer's public addresses now, as /32 and /128 networks: the IPv4 one (a VM is
         reached at its IPv4 address, so it is needed) and the IPv6 one when there is one."""
-        try:
-            found = [ipaddress.ip_address(a) for a in await self._ip_lookup()]
-        except (ValueError, httpx.HTTPError, OSError):
-            found = []
+        found: list[Any] = []
+        for wait in (*self.preflight_waits, None):  # a laptop's network drops for a few seconds: ~15 s of tries
+            try:
+                found = [ipaddress.ip_address(a) for a in await self._ip_lookup()]
+            except (ValueError, httpx.HTTPError, OSError):
+                found = []
+            if any(ip.version == 4 for ip in found) or wait is None:
+                break
+            log.info("could not find this computer's public IPv4 address; trying again in %g s", wait)
+            await asyncio.sleep(wait)
         if not any(ip.version == 4 for ip in found):
             raise VmError("could not find this computer's public IPv4 address, so the VM firewall cannot let it in "
-                          f"({' and '.join(u.split('//')[1] for u in EXIT_IP_URLS)} did not answer). Check that this "
-                          "computer is online and try again, or set ssh_from in vms.toml to the addresses SSH may "
+                          f"({' and '.join(u.split('//')[1] for u in EXIT_IP_URLS)} did not answer, "
+                          f"{len(self.preflight_waits) + 1} tries over about 15 s). This computer's network is down "
+                          "or slow: try again in 2 minutes, or set ssh_from in vms.toml to the addresses SSH may "
                           "come from.")
         nets = {f"{ip}/{32 if ip.version == 4 else 128}" for ip in found}
         return sorted(nets, key=lambda n: (":" in n, n))
@@ -332,6 +343,24 @@ class VmManager:
         nets = await self._current_ips()
         await prov.ensure_firewall(f"agentos-{self.node}-{self.home_id}", self._labels(), nets)
         return nets
+
+    async def _types_or_none(self) -> list[dict] | None:
+        """Every server type with its prices and locations (the offers' cache), None when unknown."""
+        try:
+            await self.offers(self.settings.location)
+        except AgentosError:
+            return None
+        return self._offers[1] if self._offers else None
+
+    async def _zones(self) -> dict[str, str]:
+        """{location: network zone}: the provider's, else Hetzner's known ones."""
+        read = getattr(self.provider(), "locations", None)
+        if callable(read):
+            with contextlib.suppress(AgentosError):
+                zones = await read()
+                if zones:
+                    return dict(zones)
+        return dict(capacity.ZONES)
 
     async def offers(self, location: str) -> list[dict]:
         """Server types that can be ordered in `location` now, cheapest first, with `price` (EUR
@@ -381,15 +410,18 @@ class VmManager:
                 and (t.get("disk_gb") or 0) >= disk)
 
     async def plan(self, lane_id: str, *, profile: str | None = None, ttl_minutes: int | None = None,
-                   size: dict | None = None) -> dict:
+                   size: dict | None = None, kept: bool = False, image: str | None = None) -> dict:
         """What a create would make, without making it (for the approval's summary). Unless the
         profile or the caller names a server type, that is the cheapest type in the location with
         at least the asked CPU, memory and disk, plus up to FALLBACKS next-cheapest ones to try if
-        the provider is out of it."""
+        the provider is out of it. `image`: the one the VM boots, when not the profile's (an
+        environment's snapshot): every type planned has a disk at least as big as its disk."""
         parse_lane_id(lane_id)
         label, p = self._size(profile, size)
+        if image:
+            p = p.model_copy(update={"image": image})
         location = p.location or self.settings.location
-        ttl = self._ttl(ttl_minutes)
+        ttl = self._ttl(ttl_minutes, kept=kept)
         prov = self.provider()
         out = {"lane": lane_id, "profile": label, "size": p.words(), "image": p.image, "location": location,
                "ttl_minutes": ttl, "fallbacks": []}
@@ -400,7 +432,7 @@ class VmManager:
                 known = next((t for t in await self.offers(location) if t["name"] == p.server_type), None)
             specs = {k: known.get(k) for k in SPEC_KEYS} if known else None
             return {**out, "server_type": p.server_type, "price_hourly_eur": price, "specs": specs}
-        image = await prov.image_info(p.image) if p.image.startswith("snapshot:") else None
+        image = await prov.image_info(p.image) if p.image.startswith("snapshot:") or p.image.isdigit() else None
         # a "pinned" type is rented only by name (the docker provider's sizes, which all cost nothing)
         fit = [t for t in await self.offers(location) if not t.get("pinned") and self._fits(t, p, image)]
         if not fit:
@@ -415,7 +447,7 @@ class VmManager:
     async def create(self, lane_id: str, *, profile: str | None = None, ttl_minutes: int | None = None,
                      size: dict | None = None, plan: dict | None = None, purpose: str = "",
                      created_by: str = "owner", wait_s: float | None = None, cloud_config: str = "",
-                     environment: str | None = None) -> VmRecord:
+                     environment: str | None = None, kept: bool = False) -> VmRecord:
         """Make a VM lane. `plan` is what plan() returned for the approval (so the VM made is the
         one approved); without it the plan is made here. `cloud_config` is more cloud-config (YAML
         keys after the node's own: write_files, runcmd) for the first boot; `environment` marks the
@@ -446,7 +478,7 @@ class VmManager:
                            server_type=plan["server_type"], location=plan["location"], image=plan["image"],
                            created_at=now, expires_at=now + timedelta(minutes=plan["ttl_minutes"]),
                            created_by=created_by, purpose=purpose[:300], price_hourly_eur=price,
-                           fallbacks=list(plan["fallbacks"]), environment=environment)
+                           fallbacks=list(plan["fallbacks"]), environment=environment, kept=kept)
             self.store.put(rec)
         try:
             rec = await self._make_server(rec, cloud_config)
@@ -476,27 +508,23 @@ class VmManager:
                                             await self._ssh_from())
         image = await prov.resolve_image(rec.image)
         key_id = await prov.create_ssh_key(f"agentos-{rec.id}", k.client_pub, labels)
-        tries = [(rec.server_type, rec.price_hourly_eur), *rec.fallbacks]
+        tries = capacity.plan_tries((rec.server_type, rec.price_hourly_eur), list(rec.fallbacks), rec.location,
+                                    await self._zones(), await self._types_or_none())
+
+        async def make(server_type: str, location: str) -> Any:
+            return await prov.create_server(ServerSpec(
+                name=f"agentos-{rec.id.replace('_', '-')}", server_type=server_type, image=image,
+                location=location, user_data=vmkeys.cloud_init(k) + cloud_config, labels=labels,
+                ssh_key_id=key_id, firewall_id=fw))
+
         try:
-            for i, (server_type, price) in enumerate(tries):
-                try:
-                    server = await prov.create_server(ServerSpec(
-                        name=f"agentos-{rec.id.replace('_', '-')}", server_type=server_type, image=image,
-                        location=rec.location, user_data=vmkeys.cloud_init(k) + cloud_config, labels=labels,
-                        ssh_key_id=key_id,
-                        firewall_id=fw))
-                except VmError as e:
-                    if e.provider_code not in RETRY_CODES or i == len(tries) - 1:
-                        raise
-                    log.info("VM %s: %s unavailable in %s (%s), trying %s", rec.id, server_type, rec.location,
-                             e.provider_code, tries[i + 1][0])
-                    continue
-                if server_type != rec.server_type:
-                    rec.server_type, rec.price_hourly_eur = server_type, price
-                break
+            server, server_type, location, price = await capacity.create_first(
+                getattr(prov, "name", ""), tries, make, vm_id=rec.id)
         finally:
             with contextlib.suppress(Exception):  # the reaper removes it later if this fails
                 await prov.delete_ssh_key(key_id)
+        if (server_type, location) != (rec.server_type, rec.location):
+            rec.server_type, rec.location, rec.price_hourly_eur = server_type, location, price
         rec.provider_id, rec.host, rec.state = server.id, server.ipv4, "booting"
         rec.port = server.ssh_port
         self.store.put(rec)
@@ -628,7 +656,7 @@ class VmManager:
         rec = self.find(ref)
         if rec.state not in ("booting", "ready"):
             raise InvalidRequest(f"VM {rec.id} is {rec.state}")
-        if until > rec.created_at + timedelta(minutes=self.settings.max_ttl_minutes):
+        if until > rec.created_at + timedelta(minutes=self.settings.max_ttl_minutes) and not rec.kept:
             raise VmLimit(f"VM {rec.id} lives at most {self.settings.max_ttl_minutes} minutes on this node "
                           "(vms.toml max_ttl_minutes)")
         budget = self.settings.monthly_budget_eur
@@ -764,6 +792,72 @@ class VmManager:
                 last = max(last, used)
         return now - last >= timedelta(minutes=self.settings.idle_minutes)
 
+    def _saving_first(self, rec: VmRecord, now: datetime) -> bool:
+        """An environment's machine past its time limit gets ENV_SAVE_GRACE more: the environments'
+        reaper saves its work (or tells the owner it could not) before it deletes it. Past the grace,
+        this reaper deletes it whatever happened."""
+        envs = self.runtime.get("environments") if self.runtime is not None else None
+        return rec.environment is not None and envs is not None and now < rec.expires_at + ENV_SAVE_GRACE
+
+    # ================================================================ snapshots of environments
+    async def snapshot(self, vm_id: str, *, description: str, labels: dict[str, str]) -> dict:
+        """A disk snapshot of a live VM (an environment's save): {id, gb}, once the provider says it is
+        made and lists it. The VM keeps running; the caller deletes it."""
+        rec = self.store.get(vm_id)
+        if not rec.live or not rec.provider_id:
+            raise VmError(f"VM {vm_id} is {rec.state}; there is no machine to snapshot")
+        prov = self.provider()
+        clean = {k: _label_value(v) for k, v in {**self._labels(), **labels}.items()}
+        try:
+            image_id = await prov.create_snapshot(rec.provider_id, description[:200], clean)
+        except VmError as e:
+            # The call failed, but the provider may have made it anyway (Hetzner made two while its API was
+            # out of reach): look for it by its save label, adopt one that is made, else raise.
+            image_id = await self._adopt_snapshot(clean, e)
+        info = await self._snapshot_made(image_id)
+        if info is None or info.get("status") not in ("available", ""):
+            raise VmError(f"the snapshot {image_id} is not listed as made ({(info or {}).get('status') or 'gone'})")
+        return {"id": str(image_id), "gb": info.get("gb")}
+
+    async def _adopt_snapshot(self, labels: dict[str, str], error: VmError) -> str:
+        save = labels.get("agentos-save")
+        if not save:
+            raise error
+        try:
+            found = await self.list_images({"agentos-save": save})
+        except Exception:  # noqa: BLE001 - not found is the call's own error
+            raise error from None
+        if not found:
+            raise error
+        log.warning("the snapshot call for save %s failed (%s), but the provider made %s: kept as this save's",
+                    save, error.message, found[0]["id"])
+        return str(found[0]["id"])
+
+    async def _snapshot_made(self, image_id: str, *, timeout_s: float = SNAPSHOT_WAIT_S) -> dict | None:
+        """The image once the provider lists it as available (one being made is waited for)."""
+        prov = self.provider()
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + timeout_s
+        while True:
+            info = await prov.get_image(image_id)
+            if info is None or info.get("status") in ("available", "") or loop.time() >= deadline:
+                return info
+            await asyncio.sleep(SNAPSHOT_POLL_S)
+
+    async def list_images(self, labels: dict[str, str]) -> list[dict]:
+        """This home's snapshots that carry `labels` too ([] where the provider cannot list them)."""
+        lister = getattr(self.provider(), "list_images", None)
+        if not callable(lister):
+            return []
+        want = {"agentos-home": self.home_id, **{k: _label_value(v) for k, v in labels.items()}}
+        return list(await lister(want))
+
+    async def image(self, image_id: str) -> dict | None:
+        return await self.provider().get_image(image_id)
+
+    async def delete_image(self, image_id: str) -> None:
+        await self.provider().delete_image(image_id)
+
     def _hour_ending(self, rec: VmRecord, now: datetime) -> bool:
         minute = ((now - rec.created_at).total_seconds() / 60) % 60
         return minute >= 60 - self.settings.hour_margin_minutes
@@ -794,7 +888,9 @@ class VmManager:
                     self._boots[rec.id] = task
                     task.add_done_callback(lambda _t, i=rec.id: self._boots.pop(i, None))
             elif rec.state == "ready":
-                if now >= rec.expires_at:
+                if now >= rec.expires_at and self._saving_first(rec, now):
+                    pass  # agentos.environments saves it first, then deletes it
+                elif now >= rec.expires_at:
                     await self._delete(rec, "time limit")
                     out["deleted"].append(rec.id)
                 elif rec.environment is None and self._idle(rec, now) and self._hour_ending(rec, now):
@@ -802,7 +898,8 @@ class VmManager:
                     await self._delete(rec, f"idle {self.settings.idle_minutes}+ min at the end of a paid hour")
                     out["deleted"].append(rec.id)
             fresh = self.store.get(rec.id)
-            if fresh.live and now - fresh.expires_at > OVERDUE_ALERT:
+            late = OVERDUE_ALERT + (ENV_SAVE_GRACE if fresh.environment is not None else timedelta(0))
+            if fresh.live and now - fresh.expires_at > late:
                 out["overdue"].append(fresh.id)
                 if fresh.id not in self._alerted:
                     self._alerted.add(fresh.id)

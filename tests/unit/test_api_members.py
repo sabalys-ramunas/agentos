@@ -408,6 +408,8 @@ MEMBER_ROUTES.update({
     ("GET", "/api/orgs/{org}/environments/{id}/proofs/{proof}.png"): SEES,
     ("POST", "/api/orgs/{org}/environments/{id}/close"): frozenset({"operator", "admin"}),
     ("POST", "/api/orgs/{org}/environments/{id}/extend"): frozenset({"operator", "admin"}),
+    # forgetting a save deletes its snapshot at the provider: the owner's alone, in person
+    ("DELETE", "/api/orgs/{org}/environments/saves/{save_id}"): frozenset(),
 })
 NOT_IN_MATRIX = {
     ("POST", "/api/orgs/{org}/lanes/{ws}/{name}/control"),  # needs the daemon's lane manager: tests/unit/web

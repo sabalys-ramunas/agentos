@@ -32,6 +32,14 @@ def connect_fix(slug: str, *, replace: bool = False) -> str:
             "human runs it, never you.")
 
 
+def fit(text: str, room: int) -> str:
+    """`text` cut at a word end to at most `room` characters, with "..." when it was cut (never mid-word)."""
+    text = text.strip().rstrip(".")
+    if len(text) <= room:
+        return text
+    return text[:max(0, room - 3)].rsplit(" ", 1)[0].rstrip(",;:") + "..."
+
+
 def refused_words(access: Any) -> str:
     """What went wrong with the node's credential, from git's own message (upstream.explain): which
     one the host refused (a deploy key not added, a token expired or revoked), else git's words."""
@@ -39,7 +47,7 @@ def refused_words(access: Any) -> str:
     name = (access.credential or "")[:36]
     if "refused" in why and access.kind in ("ssh", "token"):
         return f"its {'deploy key' if access.kind == 'ssh' else 'token'} {name} was refused"
-    return why[:60] or f"its credential {name} did not work"
+    return why.strip().rstrip(".") or f"its credential {name} did not work"
 
 
 def reason_words(access: Any) -> str:
@@ -49,22 +57,42 @@ def reason_words(access: Any) -> str:
         return f"{slug} is not connected: not declared for environments, and not public"
     if access.credential is None:
         return f"{slug} is declared for env, but has no key or token in the vault and is not public"
-    return f"{slug}: {refused_words(access)}"
+    why = refused_words(access)
+    return why if why.startswith(slug) else f"{slug}: {why}"  # git's words often name the repository already
 
 
 def not_connected(access: Any) -> RepoNotConnected:
     """repo_not_connected for what GitService.access found (nothing rented yet). `access` rides on the
-    error, so environment_open can offer a card instead (agentos.environments.connect)."""
-    e = RepoNotConnected(f"{reason_words(access)}. Nothing was rented. "
-                         f"{connect_fix(access.slug, replace=access.credential is not None)}")
+    error, so environment_open can offer a card instead (agentos.environments.connect). The reason is
+    cut at a word end so the whole fix still fits in an MCP error (MESSAGE_MAX)."""
+    tail = f". Nothing was rented. {connect_fix(access.slug, replace=access.credential is not None)}"
+    e = RepoNotConnected(fit(reason_words(access), MESSAGE_MAX - len(tail)) + tail)
     e.access = access
     return e
 
 
-def unreachable(access: Any) -> EnvironmentFailed:
+def not_found(access: Any) -> Exception:
+    """repo_not_found: GitHub answered 404 to a login or token that should see the repository (the
+    node's GitHub login with any_repo, or a token for its owner), so it does not exist, or that login
+    cannot see it. No card: a token would not help. Nothing was rented."""
+    from agentos.environments.errors import RepoNotFound
+
+    who = f"your GitHub login {access.login}" if access.login else f"the token {access.credential}"
+    return RepoNotFound(f"{access.slug} does not exist, or {who} cannot see it, so nothing was rented. Check the "
+                        "name with the person (a typo, or another owner); a token would not help")
+
+
+NETWORK_RETRY = "try again in 2 minutes"
+
+
+def unreachable(access: Any, *, tries: int = 1) -> EnvironmentFailed:
+    """The host did not answer the check (after `tries` over about 15 s): the network of the computer
+    agentos runs on, not the repository. Nothing was rented."""
     host = access.slug.split("/", 1)[0]
-    return EnvironmentFailed(f"the node could not reach {host} to check {access.slug}, so nothing was rented; "
-                             "try again in a minute")
+    times = f" ({tries} tries over about 15 s)" if tries > 1 else ""
+    return EnvironmentFailed(f"the computer agentos runs on could not reach {host} to check {access.slug}{times}, "
+                             f"so its network is down or slow; nothing was rented. {NETWORK_RETRY.capitalize()}",
+                             reason="network")
 
 
 # What git on the machine prints when it cannot read a repository with no credential (or the host
@@ -91,4 +119,4 @@ def clone_failure(slug: str, output: str, *, via_gateway: bool) -> Exception:
         where = "through the node's git gateway" if via_gateway else "with no credential"
         return RepoNotConnected(f"cloning {slug} {where} failed (git said: {last[0][:200]}). The machine was "
                                 f"deleted. {connect_fix(slug, replace=via_gateway)}")
-    return EnvironmentFailed(f"cloning {slug} failed: {text[-500:]}")
+    return EnvironmentFailed(f"cloning {slug} failed: {text[-500:]}", reason="clone")

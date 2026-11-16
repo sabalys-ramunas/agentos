@@ -15,13 +15,16 @@ import { CloseEnvironment } from './close-flow';
 import {
   ENV_STATE_SENTENCE,
   ENV_STATUS,
+  KEEP,
   SHORT_MS,
   ageOf,
   agentWords,
   closedReason,
+  continueLine,
   euro,
   hourly,
   isOpen,
+  keepOf,
   leftOf,
   machineWhere,
   repoName,
@@ -53,6 +56,14 @@ export function EnvHeader({ org, env, now }: { org: string; env: EnvDetail; now:
               ·
             </span>
             <span title={dateTime(env.created_at)}>opened {timeAgo(env.created_at, now).toLowerCase()}</span>
+            {env.keep ? (
+              <>
+                <span aria-hidden="true" className="text-faint">
+                  ·
+                </span>
+                <span title={KEEP[keepOf(env)].sentence}>{KEEP[keepOf(env)].label}</span>
+              </>
+            ) : null}
             {env.repo ? (
               <>
                 <span aria-hidden="true" className="text-faint">
@@ -116,7 +127,11 @@ export function ClosedNotice({ env }: { env: EnvDetail }) {
       <StatusDot tone={failed ? 'bad' : 'neutral'} className="mt-2" />
       <p className="min-w-0 text-14">
         <span className="font-medium text-fg">{lead}</span> <span className="text-muted">{closedReason(env.closed_reason, env.state)}</span>
-        <span className="mt-1 block text-13 text-faint">Its machine and browser are deleted. What is below is what the node kept.</span>
+        <span className="mt-1 block text-13 text-faint">
+          {keepOf(env) === 'save' && !failed
+            ? `Its machine and browser are deleted, and its work is under Saved. An agent brings it back when it opens it again: say "${continueLine(env.title)}".`
+            : 'Its machine and browser are deleted. What is below is what the node kept.'}
+        </span>
       </p>
     </div>
   );

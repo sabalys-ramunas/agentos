@@ -109,7 +109,8 @@ class Sizing:
                 continue
             try:
                 profile, custom = self._size(name)
-                plan = await self.vms().plan(f"{WORKSPACE}/{env.id}", profile=profile, ttl_minutes=60, size=custom)
+                plan = await self.vms().plan(f"{WORKSPACE}/{env.id}", profile=profile, ttl_minutes=60, size=custom,
+                                             image=env.image or None)
             except AgentosError:
                 continue
             specs = plan.get("specs") or {}
@@ -184,22 +185,30 @@ class Sizing:
         except (NotFound, AgentosError):
             return env.cost_eur
 
-    async def plan(self, env_id: str, *, size: str | None, hours: float | None) -> dict:
+    async def plan(self, env_id: str, *, size: str | None, hours: float | None, keep: str = "none",
+                   image: str | None = None) -> dict:
         """What open would rent, for the limits and the record of the open (agentos.vms plan, with
-        the image the environment boots)."""
+        the image the environment boots). keep "live": LIVE_HOURS at a time (renewed by the reaper),
+        past max_hours: the owner allowed kept machines."""
+        from agentos.environments.saving import LIVE_HOURS
+
         profile, custom = self._size(size)
-        minutes = self._hours(hours)
+        kept = keep == "live"
+        minutes = LIVE_HOURS * 60 if kept and hours is None else (round(float(hours) * 60) if kept else self._hours(hours))
         if custom and "server_type" in custom and size and str(size).strip().lower() not in SIZES:
             await self._check_server_type(custom["server_type"])
+        image = image or await self._image()  # planned with it: no fallback type has a smaller disk than it
         try:
-            plan = await self.vms().plan(f"{WORKSPACE}/{env_id}", profile=profile, ttl_minutes=minutes, size=custom)
+            plan = await self.vms().plan(f"{WORKSPACE}/{env_id}", profile=profile, ttl_minutes=minutes, size=custom,
+                                         kept=kept, image=image)
         except AgentosError as e:
             if e.code != "vm_error":
                 raise
             raise type(e)(f"{e.message.rstrip('.')}. Nothing was rented") from None  # only planned, never made
         if size and str(size).strip().lower() not in SIZES:
             self._check_planned(plan)  # a server type or a profile, by what it has (a named size: by its name)
-        plan["image"] = await self._image()
+        plan["image"] = image
+        plan["keep"] = keep
         return plan
 
     def check_limits(self, plan: dict) -> None:
@@ -208,7 +217,8 @@ class Sizing:
         cap = self.settings.max_live if self.settings.max_live is not None else vms.settings.max_live
         if live >= cap:
             raise EnvironmentLimit(f"this node already has {live} open environment{'s' if live != 1 else ''}, and "
-                                   f"its limit is {cap} at once. Close one you no longer need with environment_close, "
+                                   f"its limit is {cap} at once. Close one you opened yourself and no longer need "
+                                   "(environment_close(on=\"<its title>\")), never one another chat works in, "
                                    "or tell the user: the owner raises the limit with "
                                    "`agentos environments allow --max-live N`")
         budget = self.settings.monthly_eur
@@ -219,5 +229,6 @@ class Sizing:
             if booked + worst > budget:
                 raise EnvironmentLimit(f"this environment could cost up to EUR {worst:.2f}; with EUR {booked:.2f} "
                                        "spent and booked by open environments this month, that passes the monthly "
-                                       f"budget of EUR {budget:.2f}. Close one, or ask for fewer hours; the owner "
-                                       "raises the budget with `agentos environments allow --monthly-eur E`")
+                                       f"budget of EUR {budget:.2f}. Ask for fewer hours, close one you opened and "
+                                       "no longer need, or tell the user: the owner raises the budget with "
+                                       "`agentos environments allow --monthly-eur E`")

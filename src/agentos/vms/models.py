@@ -159,6 +159,7 @@ class VmRecord(BaseModel):
     delete_attempts: int = 0
     port: int = 22                            # SSH port at `host` (the docker provider maps one per machine)
     environment: str | None = None            # the agent environment this VM is the machine of (agentos.environments)
+    kept: bool = False                        # an environment kept live (keep "live"): max_ttl_minutes does not bound it
 
     @property
     def live(self) -> bool:

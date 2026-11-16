@@ -78,6 +78,17 @@ def tunnel_argv(remote: RemoteHost, *, socks_path: str, gateway_port: int | None
     return out + target
 
 
+def git_tunnel_argv(remote: RemoteHost, *, gateway_port: int) -> list[str]:
+    """The git gateway's `-R` alone, on an ssh connection of its own. On one connection with the browser
+    and its live view, a push from the VM waited behind a stuck browser's traffic (the 2026-11-15
+    test: a push took 123 s and a branch delete 107 s, both while the browser on the machine hung)."""
+    base = ssh_base(remote)
+    i = base.index("ClearAllForwardings=yes")
+    base = base[: i - 1] + base[i + 1:]
+    return base[:-2] + ["-o", "ExitOnForwardFailure=yes", "-N",
+                        "-R", f"127.0.0.1:{GATEWAY_PORT_ON_VM}:127.0.0.1:{gateway_port}"] + base[-2:]
+
+
 # ---------------------------------------------------------------- who opened a connection
 
 def _hex_port(addr: str) -> int:
@@ -184,11 +195,11 @@ async def _answers(path: str) -> bool:
 
 
 class Tunnel:
-    """One ssh process holding both forwards, and the guard in front of its SOCKS socket. `start`
-    returns once the SOCKS port answers."""
+    """One ssh process for SOCKS (and a "vm" browser's two forwards), another for the git gateway's
+    `-R`, and the guard in front of the SOCKS socket. `start` returns once the SOCKS port answers."""
 
     def __init__(self, remote: RemoteHost, *, gateway_port: int | None, socks_port: int | None = None,
-                 vm_browser: bool = False, browser_port: int | None = None):
+                 vm_browser: bool = False, browser_port: int | None = None, split_git: bool = True):
         self.remote = remote
         self.gateway_port = gateway_port
         self.socks_port = socks_port or free_port()
@@ -196,6 +207,8 @@ class Tunnel:
         self.vm_browser = vm_browser
         self.browser_port = (browser_port or free_port()) if vm_browser else None
         self.proc: asyncio.subprocess.Process | None = None
+        self.git_proc: asyncio.subprocess.Process | None = None  # the gateway's -R, on its own connection
+        self.split_git = split_git
         self.guard: Guard | None = None
         self.browser_guard: Guard | None = None
         self.dir: str | None = None
@@ -204,7 +217,16 @@ class Tunnel:
     @property
     def alive(self) -> bool:
         up = self.proc is not None and self.proc.returncode is None and self.guard is not None and self.guard.serving
-        return up and (not self.vm_browser or (self.browser_guard is not None and self.browser_guard.serving))
+        git = not self._git_apart() or (self.git_proc is not None and self.git_proc.returncode is None)
+        return up and git and (not self.vm_browser or (self.browser_guard is not None and self.browser_guard.serving))
+
+    def _git_apart(self) -> bool:
+        return bool(self.gateway_port) and self.split_git
+
+    @property
+    def socks_path(self) -> str | None:
+        """The SOCKS proxy's Unix socket on this computer (agentos.environments.ports forwards through it)."""
+        return os.path.join(self.dir, "socks") if self.dir else None
 
     @property
     def vnc_path(self) -> str | None:
@@ -224,18 +246,21 @@ class Tunnel:
         # a short path (a Unix socket's is at most 104 bytes on macOS), in a folder only we can open
         self.dir = tempfile.mkdtemp(prefix="agentos-env-")
         sock = os.path.join(self.dir, "socks")
-        argv = tunnel_argv(self.remote, socks_path=sock, gateway_port=self.gateway_port, forwards=self._forwards())
-        self.proc = await asyncio.create_subprocess_exec(
-            *argv, stdin=asyncio.subprocess.DEVNULL, stdout=asyncio.subprocess.DEVNULL,
-            stderr=asyncio.subprocess.PIPE, env={"PATH": "/usr/sbin:/usr/bin:/sbin:/bin", "LANG": "C.UTF-8"})
+        argv = tunnel_argv(self.remote, socks_path=sock, gateway_port=None if self._git_apart() else self.gateway_port,
+                           forwards=self._forwards())
+        self.proc = await self._ssh(argv)
+        if self._git_apart():
+            assert self.gateway_port is not None
+            self.git_proc = await self._ssh(git_tunnel_argv(self.remote, gateway_port=self.gateway_port))
         loop = asyncio.get_running_loop()
         deadline = loop.time() + START_WAIT_S
         while loop.time() < deadline:
-            if self.proc.returncode is not None:
-                err = (await self.proc.stderr.read()).decode(errors="replace").strip() if self.proc.stderr else ""
-                self.last_error = err[-300:] or f"ssh exited {self.proc.returncode}"
-                await self.stop()
-                raise OSError(f"the tunnel to the environment's machine did not start: {self.last_error}")
+            for proc in (self.proc, self.git_proc):
+                if proc is not None and proc.returncode is not None:
+                    err = (await proc.stderr.read()).decode(errors="replace").strip() if proc.stderr else ""
+                    self.last_error = err[-300:] or f"ssh exited {proc.returncode}"
+                    await self.stop()
+                    raise OSError(f"the tunnel to the environment's machine did not start: {self.last_error}")
             if await _answers(sock):
                 self.guard = Guard(self.socks_port, sock)
                 if self.vm_browser and self.browser_port:
@@ -254,13 +279,22 @@ class Tunnel:
         raise OSError("the tunnel to the environment's machine did not answer within "
                       f"{START_WAIT_S:g} s")
 
+    @staticmethod
+    async def _ssh(argv: list[str]) -> asyncio.subprocess.Process:
+        return await asyncio.create_subprocess_exec(
+            *argv, stdin=asyncio.subprocess.DEVNULL, stdout=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.PIPE, env={"PATH": "/usr/sbin:/usr/bin:/sbin:/bin", "LANG": "C.UTF-8"})
+
     async def stop(self) -> None:
         for guard in (self.guard, self.browser_guard):
             if guard is not None:
                 await guard.stop()
         self.guard = self.browser_guard = None
-        proc, self.proc = self.proc, None
-        if proc is not None and proc.returncode is None:
+        procs = [p for p in (self.proc, self.git_proc) if p is not None]
+        self.proc = self.git_proc = None
+        for proc in procs:
+            if proc.returncode is not None:
+                continue
             with contextlib.suppress(ProcessLookupError):
                 proc.terminate()
             try:

@@ -8,6 +8,7 @@ message, never the request headers.
 from __future__ import annotations
 
 import asyncio
+import logging
 from typing import Any
 
 import httpx
@@ -15,8 +16,19 @@ import httpx
 from agentos.vms.models import VmError
 from agentos.vms.provider import Server, ServerSpec
 
+log = logging.getLogger("agentos.vms")
+
 TIMEOUT_S = 30.0
 PER_PAGE = 50
+# Waits between tries of a call Hetzner refused for now (locked, rate_limit_exceeded, a 5xx on a read)
+# or that did not reach it (a connect error or timeout): about a minute in all. A request that never
+# connected was never sent, so any method may go again; a read timeout is retried only on a read or a
+# delete, which are safe to repeat.
+RETRY_DELAYS_S = (1.0, 2.0, 4.0, 8.0, 15.0, 30.0)
+BUSY_CODES = frozenset({"locked", "rate_limit_exceeded", "conflict"})
+NOT_SENT = (httpx.ConnectError, httpx.ConnectTimeout, httpx.PoolTimeout)
+SAFE_METHODS = frozenset({"GET", "DELETE"})
+UNREACHABLE = "unreachable"  # VmError.provider_code when the API did not answer
 
 
 def _selector(labels: dict[str, str]) -> str:
@@ -52,12 +64,41 @@ class HetznerProvider:
     # ------------------------------------------------------------------ http
     async def _call(self, method: str, path: str, *, params: dict | None = None, body: Any = None,
                     ok_404: bool = False) -> dict | None:
+        """One API call, tried again with backoff (RETRY_DELAYS_S) while Hetzner is busy or out of reach."""
+        delays = list(self.retry_delays)
+        while True:
+            try:
+                return await self._call_once(method, path, params=params, body=body, ok_404=ok_404)
+            except VmError as e:
+                if not delays or not self._retryable(method, e):
+                    raise
+                wait = delays.pop(0)
+                log.info("Hetzner %s %s: %s; trying again in %g s", method, path.split("?")[0], e.message, wait)
+                await asyncio.sleep(wait)
+
+    retry_delays: tuple[float, ...] = RETRY_DELAYS_S
+
+    @staticmethod
+    def _retryable(method: str, e: VmError) -> bool:
+        why = getattr(e, "retry", None)
+        if why == "not_sent":
+            return True
+        if why == "no_answer":
+            return method in SAFE_METHODS
+        if e.provider_code in BUSY_CODES:
+            return True
+        return method in SAFE_METHODS and why == "server_error"
+
+    async def _call_once(self, method: str, path: str, *, params: dict | None = None, body: Any = None,
+                         ok_404: bool = False) -> dict | None:
         headers = {"Authorization": f"Bearer {self._token}", "User-Agent": "agentos-vms"}
         try:
             async with httpx.AsyncClient(timeout=TIMEOUT_S, transport=self._transport) as c:
                 r = await c.request(method, self._api + path, params=params, json=body, headers=headers)
         except httpx.HTTPError as e:
-            raise VmError(f"Hetzner API unreachable ({type(e).__name__})") from None
+            err = VmError(f"Hetzner API unreachable ({type(e).__name__})", provider_code=UNREACHABLE)
+            err.retry = "not_sent" if isinstance(e, NOT_SENT) else "no_answer"  # type: ignore[attr-defined]
+            raise err from None
         if r.status_code == 404 and ok_404:
             return None
         if r.status_code >= 400:
@@ -71,7 +112,12 @@ class HetznerProvider:
                 msg = "the token was refused (revoked, or not a Hetzner Cloud API token); run `agentos vm setup` again"
             elif code == "forbidden":
                 msg += " (a read-only token cannot create or delete servers)"
-            raise VmError(f"Hetzner: {code}: {msg}", provider_code=code)
+            err = VmError(f"Hetzner: {code}: {msg}", provider_code=code)
+            if r.status_code == 429:
+                err.provider_code = "rate_limit_exceeded"
+            elif r.status_code >= 500:
+                err.retry = "server_error"  # type: ignore[attr-defined]
+            raise err
         if r.status_code == 204 or not r.content:
             return {}
         return r.json()
@@ -122,6 +168,11 @@ class HetznerProvider:
             for tid in ((dc.get("server_types") or {}).get("available") or []):
                 out.setdefault(int(tid), set()).add(loc)
         return out or None
+
+    async def locations(self) -> dict[str, str]:
+        """{location name: its network zone} (nbg1: eu-central), in the order Hetzner lists them."""
+        locs = await self._paged("/locations", "locations", {})
+        return {str(loc.get("name")): str(loc.get("network_zone") or "") for loc in locs if loc.get("name")}
 
     async def server_types(self) -> list[dict]:
         types = await self._paged("/server_types", "server_types", {})
@@ -244,3 +295,27 @@ class HetznerProvider:
                                 body={"type": "snapshot", "description": description, "labels": labels}) or {}
         await self._wait_action(data.get("action"), timeout_s=1200)
         return str(data["image"]["id"])
+
+    async def get_image(self, image_id: str) -> dict | None:
+        """A snapshot by its id: status (creating, available) and gb, the compressed size Hetzner bills
+        by (image_size; the disk size while that is not known yet). None when it is gone."""
+        data = await self._call("GET", f"/images/{image_id}", ok_404=True)
+        if data is None:
+            return None
+        img = data.get("image") or {}
+        size = img.get("image_size") if img.get("image_size") is not None else img.get("disk_size")
+        return {"id": str(img.get("id", image_id)), "status": img.get("status") or "",
+                "gb": float(size) if size is not None else None, "labels": dict(img.get("labels") or {})}
+
+    async def delete_image(self, image_id: str) -> None:
+        await self._call("DELETE", f"/images/{image_id}", ok_404=True)
+
+    async def list_images(self, labels: dict[str, str]) -> list[dict]:
+        """The snapshots that carry every label: {id, status, created, gb, labels}. A save looks for
+        its own by its label after a create call that failed (the image may exist anyway)."""
+        out = []
+        for img in await self._paged("/images", "images", {"type": "snapshot", "label_selector": _selector(labels)}):
+            size = img.get("image_size") if img.get("image_size") is not None else img.get("disk_size")
+            out.append({"id": str(img.get("id")), "status": img.get("status") or "", "created": img.get("created") or "",
+                        "gb": float(size) if size is not None else None, "labels": dict(img.get("labels") or {})})
+        return out

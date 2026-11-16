@@ -29,7 +29,7 @@ Guiding invariants, true everywhere below:
 - **A lane's signed identity stays on its node and off by default** (Web Bot Auth,
   [design/agent-identity.md](design/agent-identity.md)).
 
-## 0. The one model: an environment per chat
+## 0. The one model: an environment per task, named by its title
 
 ```
   your agent (Claude Code, Codex, T3 Code)               you (web app, live view, chat)
@@ -490,16 +490,19 @@ the field. The model sees "code entered", never the code.
 ## 7. The MCP surface
 
 An agent adds one URL and gets a computer. Every tool is snake_case. Terminal and browser tools
-called without `on` go to the chat's environment (section 0); every acting tool also takes an `on`
-selector, the lane identity `workspace/lane` (a browser lane's name encodes its
+called without `on` go to the caller's environment (section 0: a session's own, else the agent's
+only open one); every acting tool also takes an `on` selector, an environment's title or `env/<id>`,
+or the lane identity `workspace/lane` (a browser lane's name encodes its
 account, for example `biz-a/instagram`; a second account is `biz-a/instagram-2`, and the
 handle lives in `LaneSpec.account`).
 
 The node exposes about 150 tools today. [TOOLS.md](TOOLS.md) is the generated reference (run
 `agentos tools` for the list on your build). The main groups:
 
-- **Environments:** `environment_open`, `environment`, `environment_close` (section 0); terminal
-  and browser calls without `on` go to the chat's environment.
+- **Environments:** `environment_open` (the title names the computer), `environment`,
+  `environment_close`, `environment_save`, `environment_upload`, `environment_download`,
+  `environment_forget` (section 0); terminal and browser calls without `on` go to the caller's
+  environment.
 - **Lanes:** `whoami`, `lanes_list`, `lane_open`, `lane_close`, `lane_view` (a signed link
   to watch or take over), `lane_claim` and `lane_release`, `lane_check`, `lane_exec`,
   `lane_install`.

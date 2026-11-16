@@ -26,6 +26,7 @@ from agentos.core.errors import (
     LaneQuarantined,
 )
 from agentos.core.models import LaneState
+from agentos.core.progress import abandon_after, notice
 from agentos.node import human, interrupts
 from agentos.node.claims import (
     ACT,
@@ -42,7 +43,10 @@ from agentos.node.claims import (
     clamp_ttl,
     clean_purpose,
 )
-from agentos.node.deadlines import CLOSE_WAIT_S, PROBE_S
+from agentos.node.deadlines import CLOSE_WAIT_S, PROBE_S, WALL_FOR_S, WALL_S
+
+VERDICT_WAIT_S = PROBE_S + 5.0  # a stopped call waits this long for the probe's verdict, never for the close
+HINT_WAIT_S = 8.0
 from agentos.node.interfaces import Page
 from agentos.node.lanes.base import HUMAN, _Call, _Lane, _new_lease
 
@@ -87,7 +91,12 @@ class AccessMixin:
             self._agent_tasks.setdefault(lane_id, set()).add(task)
         waiter: Waiter | None = None
         call: _Call | None = None
+        wall = None
+        if task is not None and deadline_s is not None and 0 < deadline_s <= WALL_FOR_S:
+            wall = asyncio.get_running_loop().call_later(WALL_S, interrupts.interrupt, task, interrupts.DEADLINE)
         try:
+            if principal_kind != HUMAN:
+                await self._free_own_stuck(lane_id, lane, holder)
             waiter = await self._enter(lane_id, lane, holder, mode, principal_kind, purpose=purpose)
             self._ensure_running()
             self._check_gates(lane_id, principal_kind)  # a freeze while we waited: never warm it
@@ -130,6 +139,8 @@ class AccessMixin:
                 raise await self._stopped_error(lane_id, call, call.stopped_by) from e
             raise
         finally:
+            if wall is not None:
+                wall.cancel()
             if call is not None:
                 self._end_call(lane, call)
             if waiter is not None:
@@ -183,13 +194,14 @@ class AccessMixin:
         """Whether the page still answers; when it does not, close the lane's browser. True when it
         closed it. Then, when the call still has not ended, its place on the lane is taken from it."""
         epoch = lane.epoch
+        # first, so the lane is free CLOSE_WAIT_S after the deadline however long a close takes (on an
+        # overloaded machine closing its browser took minutes, and every caller waited behind it)
+        call.free = asyncio.ensure_future(self._free_stuck(lane_id, lane, [call]))
         closed = False
         if not await self._page_answers(lane, call.page):
             closed = await self._close_unanswering(
                 lane_id, lane, f"{call.tool} hung past its {call.deadline_s:g} s deadline and the page did not "
                 f"answer within {PROBE_S:g} s", epoch=epoch)
-        # not awaited here: the call itself waits for this verdict (_stopped_error)
-        call.free = asyncio.ensure_future(self._free_stuck(lane_id, lane, [call]))
         return closed
 
     async def _page_answers(self, lane: _Lane, page: Page | None) -> bool:
@@ -198,13 +210,15 @@ class AccessMixin:
         session = lane.session
         if session is None or not getattr(session, "alive", True):
             return False
+        async def probe() -> None:
+            target = page if page is not None else await session.page()
+            try:
+                await target.evaluate("1")
+            except Exception:  # noqa: BLE001 - the tab went away: ask the lane's current page
+                await (await session.page()).evaluate("1")
+
         try:
-            async with asyncio.timeout(PROBE_S):
-                target = page if page is not None else await session.page()
-                try:
-                    await target.evaluate("1")
-                except Exception:  # noqa: BLE001 - the tab went away: ask the lane's current page
-                    await (await session.page()).evaluate("1")
+            await abandon_after(probe(), PROBE_S)  # never waits on a probe stuck on a dead connection
             return True
         except TimeoutError:
             return False
@@ -255,23 +269,78 @@ class AccessMixin:
             return EngineError(f"{lane_id} was closed while this call was stuck on it: the page stopped answering, "
                                "so the browser was closed; the next call opens it again (logins are kept, the page "
                                "is gone). Navigate to the page again.")
+        if call is None and reason == interrupts.DEADLINE:  # the wall: it never got the browser
+            hint = await self.why_slow(lane_id)
+            text = (f"this call could not get the browser of {lane_id} within {WALL_S:g} s (it was opening, or "
+                    "another call held it), so it was stopped. Call it again once; if it fails the same way, tell "
+                    "the user.")
+            return EngineError(f"{text} {hint}" if hint else text)
         tool = call.tool if call is not None else "the call"
         ran = self._ran_s(call) if call is not None else 0.0
         limit = f"{call.deadline_s:g} s" if call is not None and call.deadline_s else "its"
-        closed = False
+        closed: bool | None = False
         if call is not None and call.check is not None:
+            done, _ = await asyncio.wait({call.check}, timeout=VERDICT_WAIT_S)  # never the whole close
             try:
-                closed = bool(await asyncio.shield(call.check))
+                closed = bool(call.check.result()) if done else None
             except Exception:
                 log.warning("%s: the check after a deadline failed", lane_id, exc_info=True)
         text = f"{tool} on {lane_id} ran {ran:.0f} s, past its {limit} limit, so it was stopped and the lane is free again. "
-        if closed:
+        if closed is None:
+            text += ("The page did not answer, so agentos is closing the browser; the next call opens it again "
+                     "(logins are kept, the page is gone). Navigate to the page again.")
+        elif closed:
             text += ("The page stopped answering, so the browser was closed; the next call opens it again (logins "
                      "are kept, the page is gone). Navigate to the page again.")
         else:
             text += ("The page still answers but was too slow. Check with browser_snapshot what the call did before "
                      "you call it again.")
-        return EngineError(text)
+        hint = await self.why_slow(lane_id)
+        return EngineError(f"{text} {hint}" if hint else text)
+
+    async def why_slow(self, lane_id: str) -> str | None:
+        """What a lane's `slow_hints` (callbacks other packages add: an environment's machine load) say
+        about a slow or stuck call, within HINT_WAIT_S; None when none says anything."""
+        for hint in list(getattr(self, "slow_hints", ()) or ()):
+            try:
+                said = await abandon_after(hint(lane_id), HINT_WAIT_S)
+            except Exception:
+                log.debug("%s: a slow-call hint failed", lane_id, exc_info=True)
+                continue
+            if said:
+                return str(said)
+        return None
+
+    def _own_calls(self, lane: _Lane, holder: Holder) -> list[_Call]:
+        """The calls on the lane by the same agent (the holder's identity: its grant and thread, across
+        its MCP sessions) that are still running."""
+        return [c for c in lane.calls if not c.task.done() and c.waiter is not None
+                and getattr(c.waiter, "holder", None) is not None and c.waiter.holder.owner == holder.owner
+                and not c.waiter.holder.human]
+
+    async def _free_own_stuck(self, lane_id: str, lane: _Lane, holder: Holder) -> None:
+        """A call of this same agent holds the lane past its deadline (stuck: it ignored its interrupt):
+        stop it and close the browser now, rather than queue behind it, and say so in this call's result."""
+        stuck = [c for c in self._own_calls(lane, holder) if c.overdue]
+        if not stuck:
+            return
+        c = stuck[0]
+        since = self.now() - timedelta(seconds=self._ran_s(c))
+        why = f"your own {c.tool} from {since:%H:%M} UTC was stuck ({self._ran_s(c):.0f} s)"
+        await self.close_stuck(lane_id, stuck, why)
+        notice(f"{why}, so agentos stopped it and closed the browser. This call opened it fresh: the page from "
+               "before is gone, so navigate first.")
+
+    def _own_running(self, lane: _Lane, holder: Holder) -> str | None:
+        """For a busy error: the same agent's own call that holds the lane, in words."""
+        mine = self._own_calls(lane, holder)
+        if not mine:
+            return None
+        c = mine[0]
+        since = self.now() - timedelta(seconds=self._ran_s(c))
+        end = (f"; agentos stops it at its {c.deadline_s:g} s limit, then the lane is free"
+               if c.deadline_s and not c.overdue else "")
+        return f"your own {c.tool} from {since:%H:%M:%S} UTC is still running ({self._ran_s(c):.0f} s){end}"
 
     async def stuck_calls(self, lane_id: str) -> list[_Call]:
         """The calls holding the lane that will not end by themselves: every call past its deadline, and,
@@ -399,12 +468,18 @@ class AccessMixin:
             first = inside[0]
             since = self.now() - timedelta(seconds=max(0.0, now - access.started.get(first, now)))
             who = {**first.holder.public(), "since": since.isoformat(), "claimed": False}
-            text = f"{first.holder.label} is using it since {since:%H:%M:%S} UTC"
+            own = self._own_running(lane, w.holder) if first.holder.owner == w.holder.owner else None
+            who["yours"] = own is not None
+            text = own or f"{first.holder.label} is using it since {since:%H:%M:%S} UTC"
         else:
             who, text = {}, "other callers are ahead of you"
-        e = LaneBusy(f"lane {lane_id} is busy: {text}. You were number {position} in its queue, about {estimate:g} s "
-                     f"from your turn, after {waited:.0f} s of waiting. Call again later; lane_queue(on=\"{lane_id}\") "
-                     "shows the queue.")
+        if who.get("yours"):
+            e = LaneBusy(f"lane {lane_id} is busy: {text}. You waited {waited:.0f} s. Call again in a minute: if it "
+                         "is stuck by then, agentos stops it and closes the browser for you.")
+        else:
+            e = LaneBusy(f"lane {lane_id} is busy: {text}. You were number {position} in its queue, about "
+                         f"{estimate:g} s from your turn, after {waited:.0f} s of waiting. Call again later; "
+                         f"lane_queue(on=\"{lane_id}\") shows the queue.")
         e.details = {"lane": lane_id, "position": position, "estimate_s": estimate, "waited_s": round(waited, 1),
                      "queue_length": len(access.queue), "holder": who}
         return e

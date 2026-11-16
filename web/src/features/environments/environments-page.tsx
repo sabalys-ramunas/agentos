@@ -1,7 +1,8 @@
 /**
- * Environments: the cloud computers agents rent for one chat (docs/design/environments.md). Open ones first,
- * newest first, with what each is doing, its repository and branch, the agent, its age, what it cost so far
- * and the time left before the node closes it. Closed ones below, the newest five, the rest a click away.
+ * Environments: the cloud computers agents rent (docs/design/environments.md). Open ones first, newest
+ * first, with what each is doing and how it stays, its repository and branch, the agent, its age, what it
+ * cost so far and the time left before the node closes it. Then the saves of kept ones, which an agent brings
+ * back by opening them again. Closed ones below, the newest five, the rest a click away.
  * Everything is what the node serves; the page reads it again on its own (no events carry environments).
  */
 import { Link, useNavigate, useParams } from '@tanstack/react-router';
@@ -21,7 +22,8 @@ import { cn } from '@/lib/cn';
 import { dateTime, plural, timeAgo } from '@/lib/format';
 import { PLACES } from '@/lib/vocabulary';
 import { useNow } from '@/lib/use-now';
-import { ENV_STATE_SENTENCE, ENV_STATUS, SHORT_MS, ageOf, agentWords, euro, hourly, isOpen, leftOf, machineSize, openSummary, repoName, span, splitEnvironments } from './words';
+import { SavedCard } from './saved';
+import { ENV_STATE_SENTENCE, ENV_STATUS, KEEP, SHORT_MS, ageOf, agentWords, euro, hourly, idleCost, idleShort, isOpen, keepOf, leftOf, machineSize, openSummary, repoName, span, splitEnvironments } from './words';
 
 /** Closed ones shown before "Show all". */
 export const CLOSED_SHOWN = 5;
@@ -42,8 +44,8 @@ export function EnvironmentsPage() {
         title={PLACES.environments.word}
         description={
           <>
-            Cloud computers your agents rent for one chat, each with a terminal, a browser and your repository. The machine is deleted when
-            the work is done.
+            Cloud computers your agents rent, each with a terminal, a browser and your repository. A single-use one is deleted when the
+            work is done. A kept one stays running, or is saved and comes back when an agent opens it again.
             {environments?.length ? <span className="text-fg"> {openSummary(open)}</span> : null}
           </>
         }
@@ -87,13 +89,14 @@ function EnvironmentsBody({ org, query }: { org: string; query: ReturnType<typeo
     );
   }
   const { open, closed } = splitEnvironments(query.data.environments);
-  if (!open.length && !closed.length) {
+  const saved = query.data.saved ?? [];
+  if (!open.length && !closed.length && !saved.length) {
     return (
       <Card>
         <EmptyState
           icon={<MonitorCloud />}
           title="No environments yet"
-          description="An environment is a cloud computer an agent rents for one chat, with a terminal, a browser and your repository. An agent connected to agentos asks for one with environment_open."
+          description="An environment is a cloud computer of the agent's own, with a terminal, a browser and your repository. It is single use, or kept for the next chat. An agent connected to agentos asks for one with environment_open."
           action={<CodeBlock code={OPEN_CALL} label="Copy the call" className="max-w-full text-left" />}
         />
       </Card>
@@ -102,6 +105,7 @@ function EnvironmentsBody({ org, query }: { org: string; query: ReturnType<typeo
   return (
     <>
       <OpenCard org={org} open={open} />
+      {saved.length ? <SavedCard org={org} saved={saved} now={Date.now()} /> : null}
       {closed.length ? <ClosedCard org={org} closed={closed} /> : null}
     </>
   );
@@ -203,8 +207,14 @@ function EnvRow({ org, env, now, closed, onOpen }: { org: string; env: EnvSummar
         />
       </Td>
       <Td>
-        <span title={ENV_STATE_SENTENCE[env.state]}>
-          <Status status={status} />
+        {/* a flex column, not a grid: a grid in a table cell overflowed into the next column when the
+            mode caption is longer than the status */}
+        <span className="flex flex-col items-start gap-1">
+          <span title={ENV_STATE_SENTENCE[env.state]}>
+            <Status status={status} />
+          </span>
+          {/* a closed single-use one is gone for good: saying so on every row is noise */}
+          {env.keep && !(closed && keepOf(env) === 'none') ? <KeepCaption env={env} /> : null}
         </span>
       </Td>
       <Td className="md:max-lg:hidden" phone={env.repo ? undefined : 'hide'}>
@@ -256,5 +266,17 @@ function EnvRow({ org, env, now, closed, onOpen }: { org: string; env: EnvSummar
         </RowActions>
       </Td>
     </Tr>
+  );
+}
+
+/** How it stays, and what that costs while unused, under its state: "Saves when idle · cents a month". */
+function KeepCaption({ env }: { env: EnvSummary }) {
+  const keep = KEEP[keepOf(env)];
+  const cost = idleShort(env);
+  return (
+    <span className="text-caption text-faint" title={`${keep.sentence} ${idleCost(env)}.`}>
+      {keep.label}
+      {cost ? ` · ${cost}` : null}
+    </span>
   );
 }

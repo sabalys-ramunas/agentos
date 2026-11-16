@@ -10,6 +10,9 @@
     POST /api/repo-connect/{id}/check       can a machine clone it now (after the key was added)? Closes the
                                             card when it can. The owner in person
     POST /api/repo-connect/{id}/decline     not now: the card closes, and the agent hears no. The owner in person
+    POST /api/environments/{id}/download    {"path"}: pack a file or a folder under the environment's /work and
+                                            answer with its one-use download link (agentos.environments.downloads),
+                                            for `agentos environments download`. The owner
 
 `{id}` is the card's approval id, which the questions list marks with `repo_connect`
 (agentos.environments.connect.annotate). Every route answers only the owner signed in with a person
@@ -23,20 +26,26 @@ from __future__ import annotations
 
 from typing import Any
 
+from pydantic import BaseModel, ConfigDict
 from starlette.requests import Request
 from starlette.routing import Route
 
 from agentos.api.access import Presence
-from agentos.api.app import Api, access_of, endpoint, principal_of
+from agentos.api.app import Api, access_of, endpoint, principal_of, read_body
 from agentos.api.errors import ApiError
 from agentos.api.members import OWNER_ID
 from agentos.api.route_ids import path_id
-from agentos.core.errors import AgentosError
+from agentos.core.errors import AgentosError, NotFound
 from agentos.environments import connect
 from agentos.environments import form as token_form
 from agentos.node import forms as node_forms
 
 FRESH_CHECK = "Confirm with your passkey first: a token opens your code to this computer."
+
+
+class DownloadBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    path: str
 
 
 def _owner_has_passkey(api: Api) -> bool:
@@ -90,8 +99,30 @@ def routes(api: Api) -> list[Route]:
         traced(request, "repo.decline", f"said not now to connecting {row['repo']}")
         return {"repo": row["repo"], "declined": True}
 
+    async def download(request: Request) -> dict:
+        """Pack a file or a folder off the environment's machine for the owner (the node's CLI): the same
+        packing, cap and one-use link the agent's environment_download gives."""
+        m = mgr()
+        body = await read_body(request, DownloadBody)
+        try:
+            env = m.get(path_id(request))
+        except (NotFound, ValueError, KeyError):
+            raise NotFound(f"No environment {request.path_params['id']!r}.") from None
+        try:
+            out = await m.download_link(env, body.path, grant_id=None, by="owner")
+        except AgentosError as e:
+            access_of(request).trace("environment.download", status="error", lane=env.terminal_lane,
+                                     summary=f"could not pack {body.path}: {e.code}")
+            raise
+        access_of(request).trace("environment.download", lane=env.terminal_lane,
+                                 summary=f"packed {out['path']} ({out['files']} files, {out['bytes']} bytes) for a "
+                                         "download link")
+        return out
+
     in_person = {"owner": True, "presence": Presence.PERSON}
     return [
+        Route("/api/environments/{id}/download", endpoint(api, download, owner=True, action="environment.download"),
+              methods=["POST"]),
         Route("/api/repo-connect/{id}/form", endpoint(api, token_page, step_up=True, **in_person), methods=["POST"]),
         Route("/api/repo-connect/{id}/deploy-key", endpoint(api, deploy_key, **in_person), methods=["POST"]),
         Route("/api/repo-connect/{id}/check", endpoint(api, check, **in_person), methods=["POST"]),

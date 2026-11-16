@@ -277,8 +277,11 @@ def test_remote_command_quotes_everything():
     wl = Workload(wid="w", argv=["/bin/sh", "-c", "echo 'a b'; rm -rf $HOME"], env={"X": "1 2", "BAD-NAME": "z"},
                   cwd="/srv/my app")
     cmd = ssh.remote_command(wl)
-    assert cmd == "cd '/srv/my app' && exec env X='1 2' /bin/sh -c 'echo '\"'\"'a b'\"'\"'; rm -rf $HOME'"
-    assert ssh.remote_command(Workload(wid="w", argv=["true"], env={})) == "cd && exec true"
+    group = "sh -c 'echo $$ > /tmp/agentos-wl/w.pgid; \"$@\"; rc=$?; trap \"\" TERM; kill -TERM -- -$$ 2>/dev/null; rm -f /tmp/agentos-wl/w.pgid; exit $rc' sh"
+    assert cmd == ("mkdir -p /tmp/agentos-wl && cd '/srv/my app' && exec setsid -w " + group +
+                   " env X='1 2' /bin/sh -c 'echo '\"'\"'a b'\"'\"'; rm -rf $HOME'")
+    assert ssh.remote_command(Workload(wid="w", argv=["true"], env={})) == f"mkdir -p /tmp/agentos-wl && cd && exec setsid -w {group} true"
+    assert ssh.remote_command(Workload(wid="w", argv=["true"], env={}, pty=True)) == "cd && exec true"
 
 
 # ------------------------------------------------------------------ hetzner
@@ -427,7 +430,7 @@ async def test_exec_on_a_vm_lane_is_routed_as_isolated_and_runs_over_ssh(env):
     rt = await envs.warm("dev/a")
     cmd = rt.launcher.command(None, lane, Workload(wid="w", argv=["uname", "-a"], env={}), cgroup=None,
                               workdir=envs.paths.workdir("dev/a"))
-    assert cmd.argv[0] == "ssh" and cmd.argv[-1] == "cd && exec uname -a" and f"root@{lane.remote.host}" in cmd.argv
+    assert cmd.argv[0] == "ssh" and cmd.argv[-1].endswith(" sh uname -a") and "setsid -w" in cmd.argv[-1] and f"root@{lane.remote.host}" in cmd.argv
     assert "AGENTOS" not in json.dumps(cmd.env)
     assert {s.name for s in env_specs(vms.runtime)} >= {"lane_exec", "shell_open"}
 
@@ -478,8 +481,46 @@ async def test_a_sold_out_type_falls_back_to_the_next_cheapest(env):
     rec = await vms.create("dev/a", ttl_minutes=30)
     assert rec.state == "ready" and rec.server_type == "cpx22" and rec.price_hourly_eur == 0.0095
     prov.unavailable = {"cpx42"}
-    with pytest.raises(VmError, match="sold out"):
+    with pytest.raises(VmError, match="no room for cpx42 in nbg1, fsn1 or hel1 now; try again in 5 minutes"):
         await vms.create("dev/b", profile="build", ttl_minutes=30)  # nothing else fits within twice the price
+
+
+async def test_a_sold_out_type_is_tried_in_the_other_locations_of_its_zone_first(env):
+    vms, _, prov, _ = env
+    prov.unavailable = {"cx23@nbg1"}
+    rec = await vms.create("dev/a", ttl_minutes=30)
+    assert (rec.server_type, rec.location) == ("cx23", "fsn1") and prov.made_in == [("cx23", "fsn1")]
+    prov.unavailable = {"cx23@nbg1", "cx23@fsn1", "cx23@hel1"}
+    rec = await vms.create("dev/b", ttl_minutes=30)
+    assert (rec.server_type, rec.location) == ("cpx22", "nbg1")   # only then the next type, at home first
+
+
+async def test_no_fallback_type_has_a_smaller_disk_than_the_image(env):
+    vms, _, prov, _ = env
+    prov.snapshots["snap-7"] = {"agentos-image": "dev"}
+    prov.image_disk_gb = 60
+    plan = await vms.plan("dev/a", image="snapshot:dev")
+    assert plan["server_type"] == "cpx22" and plan["image"] == "snapshot:dev"   # cx23 has 40 GB
+    assert all(prov.specs[t][2] >= 60 for t, _p in plan["fallbacks"])
+    # a type the provider refuses for its disk is skipped in every location, and the error says so
+    from agentos.vms import capacity
+    calls = []
+
+    async def make(t, loc):
+        calls.append((t, loc))
+        raise VmError("Hetzner: service_error: image disk is bigger than server type disk", provider_code="service_error")
+    with pytest.raises(VmError, match="does not fit the disk of cx23; ask for a bigger size") as e:
+        await capacity.create_first("hetzner", [("cx23", "nbg1", 1.0), ("cx23", "fsn1", 1.0)], make)
+    assert calls == [("cx23", "nbg1")] and e.value.provider_code == "image_too_big"
+
+
+def test_no_room_words_name_every_type_and_location_tried():
+    from agentos.vms import capacity
+    words = capacity.no_room_words("hetzner", [("cx23", "nbg1"), ("cx23", "fsn1"), ("cx23", "hel1"), ("cx33", "nbg1")])
+    assert words == ("Hetzner has no room for cx23 in nbg1, fsn1 or hel1 now, nor for cx33 in nbg1; "
+                     "try again in 5 minutes")
+    assert capacity.zone_locations("fsn1", capacity.ZONES) == ["fsn1", "nbg1", "hel1"]
+    assert capacity.zone_locations("ash", capacity.ZONES) == ["ash"]
 
 
 # ---------------------------------------------------------------- private repos

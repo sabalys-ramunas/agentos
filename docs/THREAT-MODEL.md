@@ -141,6 +141,21 @@ takes at most 512 MB, removes the temp file in every case, and checks every memb
 no absolute path, no `..`, no link out of the folder, no device or fifo (tarfile's data filter, run on an
 empty folder so it never reads the node's own files). It never extracts anything on the node itself.
 
+A **download link** (`/view/env/<id>/download?t=...`, from `environment_download` or the owner's `agentos
+environments download`) gives one archive of a file or a folder under the environment's `/work`, off a
+machine the agent can already read with `lane_exec`. It is signed with the viewer key under its own purpose
+(`download`, 15 minutes), so it never opens an upload and an upload link never opens it; it is spent on its
+first use (a `HEAD` spends nothing), kept only in the node's memory and dead once the environment closes. A
+link that leaks is good for one copy of what the agent already packed. What leaves is only what the VM's own
+tar packs: the path is resolved on the VM and refused unless it names a file or a folder under `/work`, and a
+link inside it is packed as a link, never followed. The check and the packing are two steps, so the agent
+could swap a folder for a link between them, but `/work` is a policy line on the agent's own machine, not a
+boundary between the agent and anything it cannot already read there; nothing on the node is ever read. The
+archive streams to a file of the node's own naming (512 MB at most, mode 600, deleted once served, at expiry
+and on close) and is always served as `application/gzip` with `attachment`, `nosniff`, `no-store` and
+`default-src 'none'`, so nothing from the VM renders as a page on the node's own address. The CLI unpacks
+with tarfile's data filter and skips any member that would leave the folder it unpacks into.
+
 Copying out of a lane (`POST /view/{ws}/{name}/clipboard`) reads the lane's clipboard for the person's own
 computer. A clipboard can hold what was never on the screen (a password a page's Copy button put there, a
 token), so the read is at least as strict as the relay's input gate: a control link, control `human`, and a

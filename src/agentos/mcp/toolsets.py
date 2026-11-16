@@ -226,18 +226,20 @@ def more(groups: dict[str, list[Any]], shown: frozenset[str] | None, wanted: Any
     if not isinstance(wanted, str):
         return None, "invalid: toolset: must be a string", False
     key = wanted.strip().lower()
+    tool = None  # a tool's name: only that tool's description and arguments (its toolset is loaded)
     if key not in groups:
         owner = next((name for name, tools in groups.items() if any(t.name == key for t in tools)), None)
         if owner is None:
             known = ", ".join(n for n in (*NAMES, OTHER) if n in groups)
             shown_name = key if len(key) <= 64 else key[:61] + "..."
             return None, f"invalid: toolset: no toolset or tool of yours named {shown_name!r} (yours: {known})", False
-        key = owner
+        key, tool = owner, key
+    tools = [t for t in groups[key] if tool is None or t.name == tool]
     if key in everything:
-        return detail(key, groups[key], state="listed"), None, False
+        return detail(key, tools, state="listed"), None, False
     if load(key):
-        return detail(key, groups[key], state="loaded"), None, True
-    return detail(key, groups[key], state="not_listed"), None, False
+        return detail(key, tools, state="loaded"), None, True
+    return detail(key, tools, state="not_listed"), None, False
 
 
 def call_target(arguments: dict[str, Any]) -> tuple[str, dict[str, Any]] | str:

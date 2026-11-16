@@ -22,10 +22,13 @@ import { ControlFrame } from '@/features/lane/control';
 import { LiveView } from '@/features/lane/live-view';
 import { UnsavedList, unsavedWords } from './close-flow';
 import {
+  KEEP,
   commandStatus,
   hourly,
+  idleCost,
   isJob,
   isOpen,
+  keepOf,
   providerName,
   pullRequestLink,
   shortCommit,
@@ -271,11 +274,16 @@ export function PortsCard({ env }: { env: EnvDetail }) {
           {env.ports.map((port) => {
             const link = safeUrl(port.link ?? null) ?? (port.link?.startsWith('/') ? port.link : null);
             return (
-              <li key={port.port} className="flex min-h-12 items-center gap-3 px-5 py-2">
+              <li key={port.port} className="flex min-h-12 flex-wrap items-center gap-x-3 gap-y-1 px-5 py-2">
                 <span className="font-mono text-code text-fg tabular">{port.port}</span>
                 <span className="min-w-0 flex-1 truncate text-13 text-muted" title={port.process ?? undefined}>
                   {port.process ?? 'Process not known'}
                 </span>
+                {link && port.tunnel ? (
+                  <p className="order-last w-full text-caption text-faint">
+                    First, on your computer: <code className="select-all font-mono text-code text-muted">{port.tunnel}</code>
+                  </p>
+                ) : null}
                 {link ? (
                   <Button asChild size="sm" icon={<ArrowUpRight className="size-4" />}>
                     <a href={link} target="_blank" rel="noreferrer" aria-label={`Open port ${port.port}${port.process ? `, ${port.process}` : ''}`}>
@@ -283,7 +291,7 @@ export function PortsCard({ env }: { env: EnvDetail }) {
                     </a>
                   </Button>
                 ) : (
-                  <span className="text-caption text-faint" title="The node does not forward this port">
+                  <span className="text-caption text-faint" title="The agent can share it with environment_port">
                     On the machine only
                   </span>
                 )}
@@ -366,6 +374,14 @@ export function MachineCard({ env }: { env: EnvDetail }) {
           <span className="font-mono text-code-caption">{env.machine.location}</span>
         </Detail>
         <Detail label="Price">{hourly(env.price_hourly_eur)}</Detail>
+        {env.keep ? (
+          <>
+            <Detail label="Stays">
+              <span title={KEEP[keepOf(env)].sentence}>{KEEP[keepOf(env)].label}</span>
+            </Detail>
+            <Detail label="While unused">{idleCost(env)}</Detail>
+          </>
+        ) : null}
         <Detail label="Terminal">
           <span className="inline-flex items-center gap-1">
             <span className="font-mono text-code-caption">{env.lanes.terminal}</span>

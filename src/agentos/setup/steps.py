@@ -591,14 +591,57 @@ def limits(ctx: Ctx) -> None:
         monthly = ui.number("Monthly cap for VMs, in EUR (0: no cap)", monthly)
         hours = ui.number("Hours one VM may stay open, at most", hours)
         live = int(ui.number("VMs open at once, at most", live, whole=True))
+    updates: dict[str, Any] = {"monthly_eur": monthly, "max_hours": hours, "max_live": live}
+    updates.update(keep_updates(ctx, current))
     try:
-        envcli._write_settings({"monthly_eur": monthly, "max_hours": hours, "max_live": live}, home)
+        envcli._write_settings(updates, home)
     except ValueError as e:
         ui.say(f"Those limits were not saved: {str(e).splitlines()[0]}. Run `agentos setup limits` again.")
         ctx.todo.append("limits")
         return
-    ctx.limits = limit_words(load_settings(home))
+    saved = load_settings(home)
+    ctx.limits = limit_words(saved)
+    ctx.keep = keep_words(saved)
     ui.say(f"Limits: {ctx.limits}.")
+    ui.say(f"Environments: {ctx.keep}.")
+
+
+# How an environment stays after the work (environments.toml default_keep and allow_keep_live).
+KEEP_OPTIONS = (
+    ("none", "Single use: the VM is deleted when the work is done. Nothing to pay after."),
+    ("save", ("Saves when idle: saved and deleted when idle, back when an agent opens it again. "
+              "Cents a month while saved.")),
+    ("live", "Saves when idle, and an agent may keep one running when you ask. That one bills every hour."),
+)
+KEEP_LIVE_COST = ("A VM kept running bills every hour, also while no agent works: about EUR 7.80 a month "
+                  "for the smallest. It is deleted only when you or the agent close it for good.")
+
+
+def keep_updates(ctx: Ctx, current: Any) -> dict[str, Any]:
+    """The one question about how environments stay: environments.toml's default_keep, and
+    allow_keep_live only when the owner chose it here (the default is never live)."""
+    ui = ctx.ui
+    keep = getattr(current, "default_keep", None) or "none"
+    allowed = bool(getattr(current, "allow_keep_live", False))
+    default = "live" if allowed else ("save" if keep == "save" else "none")
+    choice = ui.choose("How should an environment stay after the work?", list(KEEP_OPTIONS), default)
+    if choice == "live" and not allowed:
+        ui.say(KEEP_LIVE_COST)
+        if not ui.confirm("Let agents keep a VM running when you ask them to?", default=False):
+            ui.say("Not allowed. Environments save when idle; run `agentos setup limits` to change it.")
+            choice = "save"
+    updates: dict[str, Any] = {"default_keep": "none" if choice == "none" else "save"}
+    if choice == "live" or allowed:
+        updates["allow_keep_live"] = choice == "live"
+    return updates
+
+
+def keep_words(s: Any) -> str:
+    keep = getattr(s, "default_keep", None) or "none"
+    words = "single use, deleted when the work is done" if keep == "none" else "saved when idle"
+    if getattr(s, "allow_keep_live", False):
+        words += ", kept running when you ask (it bills every hour)"
+    return words
 
 
 def limit_words(s: Any) -> str:
@@ -710,7 +753,8 @@ def _check_github(ctx: Ctx) -> tuple[bool | None, str]:
 def _check_limits(ctx: Ctx) -> tuple[bool, str]:
     from agentos.environments.models import load_settings
 
-    return True, limit_words(load_settings(ctx.home))
+    saved = load_settings(ctx.home)
+    return True, f"{limit_words(saved)}; {keep_words(saved)}"
 
 
 def check(ctx: Ctx) -> None:
@@ -764,7 +808,7 @@ def summary(ctx: Ctx) -> None:
     else:
         ui.say("All set. Nothing bills until an agent opens a VM.", bold=True)
     for what, words in (("VMs", ctx.vms), ("GitHub", ctx.github), ("Limits", ctx.limits),
-                        ("Service", ctx.service_url)):
+                        ("Keeping", ctx.keep), ("Service", ctx.service_url)):
         if words:
             ui.say(f"  {what:<8} {words}")
     owner = ctx.github_login or "<you>"

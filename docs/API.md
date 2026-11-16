@@ -508,6 +508,14 @@ A save answers `{ "profile", "version", "state", "created", "changes": { surface
   (an overlay, nothing deleted). The token is a one-use link from `environment_upload` (15 minutes); a changed,
   expired or used one answers 403 `denied`. Also 400 `invalid` (a member it names), 409 `busy`, 413
   `too_large` (over 512 MB), 502 `error` (tar on the machine failed). docs/design/environments.md, "Uploads".
+- `GET /view/env/{id}/download?t=<token>` -> the `.tar.gz` that `environment_download` (or `POST
+  /api/environments/{id}/download`) packed on the environment's machine, always as an attachment:
+  `Content-Type: application/gzip`, `Content-Disposition: attachment; filename="<name>.tgz"`, `Content-Length`,
+  `Cache-Control: private, no-store`, `X-Content-Type-Options: nosniff`, `Content-Security-Policy: default-src
+  'none'`. The token is a one-use link (15 minutes, purpose `download`: an upload link never opens it). A
+  changed, expired or used one, or one of a closed environment, answers 403 `denied`; 403 `frozen` for an
+  agent's link while the lane is frozen; a `HEAD` answers 405 and spends nothing. The file on the node is
+  deleted once served. docs/design/environments.md, "Downloads".
 
 ### Exposes and forwards (`agentos expose`, `agentos lane forward`)
 - `GET /api/exposes` -> `{ links: [{ id, kind, lane, port, state, by, created_at, expires_at, socket, name?,
@@ -791,6 +799,59 @@ token, any grant and the node token alone are `presence_required`, a member is `
 - `POST /api/repo-connect/{id}/decline` -> `{ "repo", "declined": true }`: the card is denied.
 A closed card is 404. They are traced as `panel.repo.token_form`, `panel.repo.deploy_key`,
 `panel.repo.check` and `panel.repo.decline`, without the token.
+
+### Environment downloads (the owner copies a file or a folder off a machine)
+- `POST /api/environments/{id}/download` `{ "path" }` -> `{ "url", "expires_at", "path", "kind": "file" |
+  "folder", "files", "bytes", "sha256", "max_bytes", "fetch", "unpack", "next" }`: what `environment_download`
+  answers an agent, for `agentos environments download ID PATH [--to DIR]`. `path` is a file or a folder
+  under `/work` (a relative one starts at the workdir). The owner only, as on the other owner routes: an agent's
+  grant is `denied` and uses the tool instead. 400 `invalid` (outside `/work`, a link out
+  of it, missing, over 512 MB packed), 404 (no such environment), 409 `environment_not_ready`. Traced as
+  `panel.environment.download`; the fetch itself is an `environment.download` row with `by: "owner"`.
+
+### Saved environments (keep "save", agentos.environments.saving)
+An environment opened with `keep: "save"` is saved when it idles, at its time limit and on close, and
+`environment_open` with its title resumes it; one with `keep: "none"` gets a rescue save when the reaper
+must delete it with unsaved work (docs/design/environments.md, "Keeping"). The web contract shows them:
+- `GET /api/orgs/{org}/environments` adds `keep` (`none`, `live`, `save`), `last_save` (`{ "id", "at" }` or
+  null) and `save_error` to each summary, and two keys to the answer: `saved`, the saves of environments
+  that are not open, newest first, each `{ "id", "title", "repo", "branch", "head", "saved_at", "snapshot_gb",
+  "files_bytes", "cost_eur_month", "note", "agent" }` (`head` is 12 characters, `note` the agent's own words
+  cut to 300, `cost_eur_month` the snapshot at `snapshot_eur_per_gb_month`), and `snapshots_eur_month`, what
+  every kept snapshot costs a month. A member sees the saves of their own agents, a grant its own family's.
+- `DELETE /api/orgs/{org}/environments/saves/{save_id}` -> `{ "forgot": [ids], "snapshots_deleted": n }`, and
+  `"kept": [{ "id", "why" }]` for a save whose snapshot the provider did not delete (it stays, so nothing billed
+  is lost track of). The owner in person only: a token, a grant and a member get 403. An unknown id is 404.
+  Traced as `environment.forget`.
+- `POST /api/orgs/{org}/environments/{id}/close` is the owner's close: it deletes a `keep: "live"` machine too,
+  and saves a `keep: "save"` one first (502 `save_failed` keeps the machine).
+- `GET /api/orgs/{org}/environments/{id}`: each of `ports` is `{ "port", "process", "link", "tunnel"? }`.
+  `link` is null unless the agent shared the port with `environment_port`; then it is the node's forward,
+  `http://127.0.0.1:<p>/` (on agentos local it opens as is), and on a server node `tunnel` is the
+  `ssh -N -L <p>:127.0.0.1:<p> <node>` line that brings it to the person's computer first. The forward
+  ends when the environment closes.
+
+### Environment tools (agentos.environments.tools, builder I3)
+What an agent gets back, beside the web contract above:
+- `environment_open(title?, repo?, ..., keep?, signins?)`: no `title` with `repo` uses that repository's one
+  open or saved environment (several: `environment_choice`, which lists each title, newest first; none: a new
+  one named after the repository). `signins: false` keeps no browser sign-ins in its saves. `resumed` adds
+  `expires_at`, `signins` (in words, or null), `running_jobs_lost` (when no saved service came back) and, in
+  each of `services`, `{ "cmd", "cwd", "port", "running", "listening"?, "job_id"?, "why"?, "restart"? }`
+  (`restart`: a ready `lane_job_start(...)` call).
+- `environment(id?)` always adds `open` (`this_chat: true` on the one bound here) and `saved`, the agent's
+  `note`, and `git.pull_requests` (`{ "url", "number", "branch", "base" }`).
+- `environment_close(id?, discard?, final?, note?, forget?)` -> as before, plus `saves`: `{ "made": save id or
+  null, "left"?: [{ "id", "saved_at", "snapshot_gb", "cost_eur_month" }], "forgot"?, "snapshots_deleted"? }`,
+  and with a save `pause` ("saved: about EUR 0.02 a month, resumes in about a minute"). `keep` is in the
+  answer only when it saved (keep `save`) or let go (keep `live`). `forget: true` deletes the machine and
+  every save of the title; with unpushed work it needs `discard: true` (else `unsaved_work`).
+- `environment_port(port)` -> `{ "port", "local_port", "url", "tunnel"?, "listening", "next" }`. Errors:
+  `invalid` (not 1 to 65535, or 22 or 3129), `environment_not_ready`.
+- `environment_pull_request(title, body?, base?, draft?, branch?)` -> `{ "url", "number", "branch", "base",
+  "draft", "state", "created", "repo", "next" }` (`created: false`: one was open for that branch already).
+  Only a branch the environment created; never a merge. Errors: `denied`, `invalid` (not on github.com),
+  `pull_request_failed` (no token on the node, or GitHub refused; the token never appears).
 
 ### Assisted login (the owner fills a form, the node types it)
 A person should almost never log in through the live view. `agentos.node.login_assist` reads the

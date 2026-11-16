@@ -4,8 +4,14 @@ step. A mixin of EnvManager."""
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
+import os
+import posixpath
 import secrets
+import tarfile
+import zlib
+from pathlib import Path
 from typing import BinaryIO
 
 from agentos.core.errors import (
@@ -18,6 +24,42 @@ from agentos.env.models import ExecResult
 
 log = logging.getLogger("agentos.env")
 ARGV_BATCH = 500  # paths per rm or rmdir workload, well under the kernel's argument limit
+ARCHIVE_PATHS_MAX = 1000  # paths one get_archive packs (they go on the workload's command line)
+
+
+class ArchiveTooLarge(InvalidRequest):
+    """get_archive stopped: the archive grew past its max_bytes. The partial file is deleted."""
+
+
+def archive_paths(paths: list[str] | None) -> list[str]:
+    """What get_archive passes to tar: every path relative to its folder, as "./<path>" (so a name
+    that starts with "-" is never an option). Refuses absolute paths, "..", and control characters."""
+    if paths is None:
+        return ["."]
+    if not isinstance(paths, list) or not paths or len(paths) > ARCHIVE_PATHS_MAX:
+        raise InvalidRequest(f"paths is a list of 1 to {ARCHIVE_PATHS_MAX} paths relative to the folder")
+    out = []
+    for p in paths:
+        if not isinstance(p, str) or not p or len(p) > 4096 or any(ord(c) < 32 for c in p):
+            raise InvalidRequest(f"{p!r} is not a path; give paths relative to the folder, like \"src/app.ts\"")
+        if p.startswith("/"):
+            raise InvalidRequest(f"{p!r} is an absolute path; give paths relative to the folder")
+        if ".." in p.split("/"):
+            raise InvalidRequest(f"{p!r} has a .. in it; give paths inside the folder")
+        out.append("./" + posixpath.normpath(p).removeprefix("./"))
+    return out
+
+
+def _count_files(path: Path, gzip: bool) -> int:
+    """Regular files in a tar archive (gzip or not)."""
+    n = 0
+    try:
+        with tarfile.open(path, "r:gz" if gzip else "r:") as tf:
+            for m in tf:
+                n += m.isreg()
+    except (tarfile.TarError, OSError, EOFError, zlib.error) as e:
+        raise SandboxError(f"the archive from the lane does not read back ({e})") from None
+    return n
 
 
 def _batches(items: list[str], n: int = ARGV_BATCH) -> list[list[str]]:
@@ -124,6 +166,47 @@ class Sync:
                                   stdin_file=archive, kind="sync")
         await self.store.run(self.store.touch, lane_id)
         return res
+
+    async def get_archive(self, lane_id: str, src: str, dest_file: Path, *, paths: list[str] | None = None,
+                          gzip: bool = True, timeout_s: float = 600, max_bytes: int | None = None) -> dict:
+        """Pack `src` in the lane (or `paths` under it) with `tar -c[z]f -` and stream the archive into
+        `dest_file` on the node (made new, mode 600; a VM lane sends it over its SSH, as put_archive
+        takes one), so the node never holds it in memory. Symbolic links are packed as links, never
+        followed. Past `max_bytes` the workload is ended, the partial file deleted, and ArchiveTooLarge
+        raised; a failed tar deletes it too and raises SandboxError. Returns {"bytes", "files"}
+        (files: the regular files in it)."""
+        if not isinstance(src, str) or not src or any(ord(c) < 32 for c in src):
+            raise InvalidRequest("src is the folder to pack, like /work/shop")
+        names = archive_paths(paths)
+        dest_file = Path(dest_file)
+        script = 'cd -- "$1" && shift && exec tar -c' + ("z" if gzip else "") + 'f - "$@"'
+        rt = await self.warm(lane_id)
+        fd = os.open(dest_file, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600)
+        done = False
+        try:
+            with os.fdopen(fd, "wb") as f:
+                async with rt.exec_sem:
+                    res = await execs.run(rt, ["/bin/sh", "-c", script, "sh", src, *names], timeout_s=timeout_s,
+                                          max_bytes=8192, env={"COPYFILE_DISABLE": "1"}, kind="sync",
+                                          stdout_file=f, stdout_limit=max_bytes)
+            if max_bytes is not None and res.stdout_bytes > max_bytes:
+                raise ArchiveTooLarge(f"the archive of {src} is over {max_bytes} bytes, the most this takes, so it "
+                                      "stopped and kept nothing. Pack less: a folder further down, or leave out "
+                                      "build output and dependencies")
+            if res.timed_out:
+                raise SandboxError(f"packing {src} took over {int(timeout_s)} seconds, so it stopped and kept nothing")
+            changed = res.exit_code == 1 and "changed as we read it" in (res.stderr or "")  # GNU tar: still whole
+            if res.exit_code != 0 and not changed:
+                said = (res.stderr or "").strip()[-600:] or f"exit {res.exit_code} {res.signal or ''}".strip()
+                raise SandboxError(f"tar could not pack {src} in {lane_id}: {said}")
+            files = await asyncio.to_thread(_count_files, dest_file, gzip)
+            done = True
+        finally:
+            if not done:
+                with contextlib.suppress(OSError):
+                    dest_file.unlink()
+        await self.store.run(self.store.touch, lane_id)
+        return {"bytes": res.stdout_bytes, "files": files}
 
     async def _sync_step(self, rt: LaneRuntime, argv: list[str], what: str, *, stdin_file=None) -> None:
         async with rt.exec_sem:

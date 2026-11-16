@@ -2,8 +2,15 @@
 
 `agentos local` runs a small agentos service on your laptop (macOS or Linux). It serves MCP to the
 agents on that laptop (Claude Code, Codex). When an agent opens an environment, agentos rents a
-cloud VM for it (Hetzner, or a Docker container), and deletes the VM again when the agent closes
-it or its time runs out. Nothing costs money while no environment is open.
+cloud VM for it (Hetzner, or a Docker container). A single-use one is deleted when the agent closes
+it or its time runs out. A kept one is saved and its VM deleted when it goes idle, and comes back
+when an agent opens it again with the same title
+([ENVIRONMENTS.md](ENVIRONMENTS.md#keeping-an-environment)).
+Nothing costs money while no environment is open, except saves (cents a month) and any VM you
+chose to keep running.
+
+The agent itself runs on the laptop too. So the laptop must be awake while a VM works: no agent
+works while the lid is closed in this version.
 
 `agentos setup` walks you through all of it. This page is what happens underneath, and how to do
 it by hand.
@@ -128,11 +135,21 @@ rather.
 
 ## Sleep
 
-While the laptop sleeps, its VMs keep running and cost money, and nothing on the laptop can delete
-them. When it wakes, or when the service starts again, agentos at once closes every environment
-past its time limit, and `agentos local status` says what it closed. Close environments you are
-done with before you close the lid. `agentos local stop` leaves open environments running: nothing
-closes them until the next start.
+When the laptop is about to sleep, agentos acts on each open environment by its mode:
+
+- **Saves when idle** (`keep="save"`): it is saved (the disk snapshot and the files) and its VM
+  deleted. Nothing bills while the laptop sleeps but the save. When you are back, say "continue
+  <title> in agentos" in any chat, and it comes back.
+- **Single use** (`keep="none"`): one with nothing to lose is closed. One with unsaved work gets a
+  rescue save (its files and commits), and you are told; an agent that opens the same title gets
+  that work back.
+- **Kept running** (`keep="live"`): it stays on and keeps billing, as you chose.
+
+A sleep that comes too fast for this (the lid closed on a battery about to die) leaves the VMs
+running and billing, and nothing on the laptop can delete them. When it wakes, or when the service
+starts again, agentos at once deals with every environment past its time limit the same way, and
+`agentos local status` says what it closed or saved. `agentos local stop` leaves open environments
+running: nothing closes them until the next start.
 
 ## Remove it
 

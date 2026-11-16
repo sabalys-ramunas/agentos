@@ -12,6 +12,13 @@ class NoEnvironment(AgentosError):
     code = "no_environment"
 
 
+class WhichEnvironment(AgentosError):
+    """A call without `on` while more than one environment of the caller's grant family is open, on a
+    client that sends no MCP session id (every chat of one agent looks the same then). Nothing ran:
+    the agent names the computer with `on` (its title or env/<id>)."""
+    code = "which_environment"
+
+
 class UnsavedWork(AgentosError):
     """environment_close found changes that are not committed, or commits that are not pushed.
     `details` lists them: {"dirty_files": [...], "unpushed": [...]}."""
@@ -36,8 +43,18 @@ class EnvironmentNotReady(AgentosError):
 
 
 class EnvironmentFailed(AgentosError):
-    """The environment's machine did not come up (no SSH, or its setup failed). Its VM is deleted."""
+    """The environment's machine did not come up (no SSH, or its setup failed). Its VM is deleted.
+    With `reason` (FAILURE_REASONS) the message starts with it ("capacity: ..."), so the catalog gives
+    that cause's fix line."""
     code = "environment_failed"
+
+    def __init__(self, message: str, *, reason: str | None = None):
+        super().__init__(f"{reason}: {message}" if reason else message)
+        self.reason = reason
+
+
+# Why an open failed, each with its own fix line in the error catalog (environment_failed.reasons).
+FAILURE_REASONS = ("capacity", "network", "image", "clone", "setup")
 
 
 class EnvironmentInUse(AgentosError):
@@ -47,8 +64,8 @@ class EnvironmentInUse(AgentosError):
 
 
 class EnvironmentAlreadyOpen(AgentosError):
-    """environment_open in a chat that already has a live environment, with another repository than
-    the one asked for. A chat has one environment at a time; nothing was opened."""
+    """environment_open named the title of an open environment of the same agent, with another
+    repository than the one it has. The title names one computer; nothing was opened."""
     code = "environment_already_open"
 
 
@@ -61,6 +78,13 @@ class RepoNotConnected(AgentosError):
     access: Any = None  # what GitService.access found, when the node checked before renting
 
 
+class RepoNotFound(AgentosError):
+    """environment_open named a repository its host answered "not found" for, asked with a login or a
+    token that should see it: it does not exist, or that login cannot see it. Nothing was rented, and no
+    card asks a person for a token (one would not help)."""
+    code = "repo_not_found"
+
+
 class RepoConnectFailed(AgentosError):
     """A token or deploy key a person gave on a repository card did not work, and nothing was kept.
     `reason` says which check failed (bad_token, cannot_see, sso, org_approval, org_policy,
@@ -70,3 +94,32 @@ class RepoConnectFailed(AgentosError):
     def __init__(self, message: str, *, reason: str):
         super().__init__(message)
         self.reason = reason
+
+
+class SaveFailed(AgentosError):
+    """A save of an environment did not finish (its machine did not answer, its disk was full, or the
+    snapshot failed). Nothing was deleted: the machine is kept, and the owner is told. With `reason`
+    the message starts with it ("provider_unreachable: ..."), so the catalog gives that cause's fix line."""
+    code = "save_failed"
+
+    def __init__(self, message: str, *, reason: str | None = None):
+        super().__init__(f"{reason}: {message}" if reason else message)
+        self.reason = reason
+
+
+class RestoreFailed(AgentosError):
+    """An environment could not be resumed from its save. The save is untouched, so the next
+    environment_open with the title tries again."""
+    code = "restore_failed"
+
+
+class SaveLimit(AgentosError):
+    """A save would pass a limit of this node: the file part is bigger than max_saves_gb allows, even
+    after the oldest saves of the title were removed."""
+    code = "save_limit"
+
+
+class KeepLiveNotAllowed(AgentosError):
+    """keep "live" keeps the machine running and billed all month, so the owner opts in first
+    (allow_keep_live), and at most max_live_kept are kept live at once."""
+    code = "keep_live_not_allowed"

@@ -29,7 +29,7 @@ tools_more lists only tools the caller's grant can see. Connector operations (`<
 
 | Toolset | What it holds | Tools |
 |---|---|---|
-| `core` | the everyday lane loop: find and open a lane, look, act, wait, upload, log in, ask a person | `approval_confirm`, `approval_wait`, `browser_act`, `browser_dialog`, `browser_dialog_answer`, `browser_navigate`, `browser_screenshot`, `browser_snapshot`, `browser_tabs`, `browser_upload`, `browser_wait`, `environment`, `environment_close`, `environment_open`, `files_put`, `howto`, `human_ask`, `lane_claim`, `lane_close`, `lane_exec`, `lane_file_edit`, `lane_file_read`, `lane_file_write`, `lane_job_cancel`, `lane_job_read`, `lane_job_start`, `lane_open`, `lane_release`, `lane_view`, `lane_wait_control`, `lanes_list`, `login`, `memory_context`, `run_status`, `whoami` |
+| `core` | the everyday lane loop: find and open a lane, look, act, wait, upload, log in, ask a person | `approval_confirm`, `approval_wait`, `browser_act`, `browser_dialog`, `browser_dialog_answer`, `browser_navigate`, `browser_screenshot`, `browser_snapshot`, `browser_tabs`, `browser_upload`, `browser_wait`, `environment`, `environment_close`, `environment_download`, `environment_forget`, `environment_open`, `environment_save`, `environment_upload`, `files_put`, `howto`, `human_ask`, `lane_claim`, `lane_close`, `lane_exec`, `lane_file_edit`, `lane_file_read`, `lane_file_write`, `lane_job_cancel`, `lane_job_read`, `lane_job_start`, `lane_open`, `lane_release`, `lane_view`, `lane_wait_control`, `lanes_list`, `login`, `memory_context`, `run_status`, `whoami` |
 | `files` | more for a browser lane: its files (inbox and downloads), switching tabs, scrolling a feed | `browser_scroll`, `browser_tab`, `files_delete`, `files_get`, `files_list` |
 | `devtools` | why a page broke: its console messages and page errors, its requests and which failed, and one response's body | `browser_console`, `browser_network` |
 | `control` | sharing lanes: who has one, asking a person for it, the queue, a safety check, a freeze | `lane_check`, `lane_control`, `lane_freeze`, `lane_queue`, `lane_request_control` |
@@ -45,7 +45,7 @@ tools_more lists only tools the caller's grant can see. Connector operations (`<
 | `workspaces` | workspaces: list, plan and apply changes, lane readiness | `lane_set_readiness`, `workspace_apply`, `workspace_list`, `workspace_plan`, `workspace_queue` |
 | `worker` | the node's workers: hand a browser job to the cheap worker on the node (lane_do), and which workers are on | `lane_do`, `plugins_list` |
 | `admin` | your grant, an approval's status without waiting (or all yours still waiting), and the call trail | `approval_status`, `grant_info`, `traces_query` |
-| `terminals` | terminal and service lanes: shells, commands, background jobs, synced files, installs, images, disposable cloud VMs | `env_create`, `env_lanes_list`, `env_remove`, `environment_upload`, `image_build`, `images_list`, `lane_install`, `lane_jobs_list`, `lane_upload`, `lane_upload_check`, `service_logs`, `service_start`, `service_status`, `service_stop`, `shell_close`, `shell_open`, `shell_read`, `shell_write`, `vm_clone`, `vm_create`, `vm_destroy`, `vm_extend`, `vms_list` |
+| `terminals` | terminal and service lanes: shells, commands, background jobs, synced files, installs, images, disposable cloud VMs | `env_create`, `env_lanes_list`, `env_remove`, `environment_port`, `environment_pull_request`, `image_build`, `images_list`, `lane_install`, `lane_jobs_list`, `lane_upload`, `lane_upload_check`, `service_logs`, `service_start`, `service_status`, `service_stop`, `shell_close`, `shell_open`, `shell_read`, `shell_write`, `vm_clone`, `vm_create`, `vm_destroy`, `vm_extend`, `vms_list` |
 | `brains` | agent tasks on the node's brains: run, follow, resume, cancel; the git remotes they reach | `brain_cancel`, `brain_resume`, `brain_run`, `brain_status`, `brain_tail`, `brain_tasks`, `brain_use`, `brains_list`, `git_remotes` |
 | `automation` | events, triggers and the agenda (planned one-off actions, their approval, runs and proof) | `agenda_cancel`, `agenda_draft`, `agenda_get`, `agenda_list`, `agenda_propose`, `agenda_update`, `events_list`, `trigger_propose`, `triggers_list` |
 
@@ -110,10 +110,15 @@ Call any agentos tool by name with its arguments, including tools not in your li
 | [`env_create`](#env_create) | terminals | exec | Create a terminal lane `workspace/name` |
 | [`env_lanes_list`](#env_lanes_list) | terminals | read | List terminal and service lanes on this node: preset, state, and an honest one-line description of the isolation each really gets |
 | [`env_remove`](#env_remove) | terminals | irreversible | Delete a terminal or service lane and its files (its writable layer, logs and home) |
-| [`environment`](#environment) | core | read | Your environment now: state (starting, ready, working, idle, closed, failed), minutes_left, cost_eur, ports listening on the VM (your dev server shows here), git (branch, ahead, dirty, pushed; compare: the pull request link of your pushed branch), proofs (with fresh links), unsaved work and the last 10 calls |
-| [`environment_close`](#environment_close) | core | read | Delete your environment when the work is done: its VM and everything on it, and its browser |
-| [`environment_open`](#environment_open) | core | vm | Your own cloud computer for this chat: a fresh VM with a terminal, a browser and the repo, to build and test on instead of the user's laptop |
-| [`environment_upload`](#environment_upload) | terminals | exec | A one-use link (15 minutes) that puts a .tar.gz of your local checkout, uncommitted changes included, on your environment's machine: no repository needed, and the bytes never go through tool calls |
+| [`environment`](#environment) | core | read | Your environment now: state, minutes_left, cost_eur, ports listening on the VM, git (branch, ahead, dirty, pushed, pull_requests), proofs (fresh links), unsaved work, your note and the last 10 calls (with the client that made each) |
+| [`environment_close`](#environment_close) | core | read | Stop or finish your environment |
+| [`environment_download`](#environment_download) | core | exec | A file or a folder under /work, to your own computer: a one-use .tar.gz link (15 minutes); the bytes never go through tool calls |
+| [`environment_forget`](#environment_forget) | core | read | Delete saves and their disk snapshots (they bill each month): every save of `title`, or one save_id |
+| [`environment_open`](#environment_open) | core | vm | Your own cloud computer: a VM with a terminal, a browser and the repo, to build and test on instead of the user's laptop |
+| [`environment_port`](#environment_port) | terminals | read | Open a dev server of your environment on the human's own computer, as a preview link |
+| [`environment_pull_request`](#environment_pull_request) | terminals | read | Open a pull request on GitHub for the branch your environment pushed, with the node's stored GitHub token (the VM has no gh and no credential) |
+| [`environment_save`](#environment_save) | core | read | Save the environment now, without closing it: commits and stashes no remote has, changed and new files git does not ignore, running services, and with keep "save" a disk snapshot (services pause for it) |
+| [`environment_upload`](#environment_upload) | core | exec | A one-use link (15 minutes) that puts a .tar.gz of your local checkout (uncommitted changes too) on the environment's machine; the bytes never go through tool calls |
 | [`events_list`](#events_list) | automation | read | List recent events on this node (newest first) with their deliveries: what happened (source, kind, lane, node facts), which triggers took it, and what each delivery did and why (waiting for quiet hours, dropped by a rate limit, delivered, dead) |
 | [`files_delete`](#files_delete) | files | draft | Delete a file from the lane's inbox or outbox |
 | [`files_get`](#files_get) | files | read | One file from the lane's inbox or outbox |
@@ -217,7 +222,7 @@ Call any agentos tool by name with its arguments, including tools not in your li
 | [`vm_destroy`](#vm_destroy) | terminals | vm | Delete the VM behind lane `on` now (everything on it is gone) |
 | [`vm_extend`](#vm_extend) | terminals | vm | Give the VM behind lane `on` more time (never past the node's maximum lifetime) |
 | [`vms_list`](#vms_list) | terminals | read | VMs on this node: state, lane, time left, cost so far; and the profiles you may ask for |
-| [`whoami`](#whoami) | core | read | Which agentos node this is and which environment (your cloud computer for this chat) is bound, or how to open one: name, version, lane counts by state, and limits (max warm lanes, idle and busy timeouts) |
+| [`whoami`](#whoami) | core | read | Which agentos node this is and which environment (your cloud computer) calls without `on` go to, or how to open one: name, version, lane counts by state, and limits (max warm lanes, idle and busy timeouts) |
 | [`workflow_catalog`](#workflow_catalog) | workflows | read | What a workflow can use here: operations with what they produce, lists by size (never their addresses, and only a person reads how many are suppressed), templates, and what each trigger hands the steps after it |
 | [`workflow_discard`](#workflow_discard) | workflows | draft | Take back a workflow you saved by mistake or no longer need, as if you had never saved it |
 | [`workflow_get`](#workflow_get) | workflows | read | One workflow: its trigger and steps, what is unfinished, and which steps always ask |
@@ -451,7 +456,7 @@ Errors, each with its next step: ref_not_found, egress_refused (do not retry or 
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | Lane id "workspace/name"; leave it out for this chat's environment. |
+| `on` | `str \| None` | no (default None) | Lane "workspace/name", or your environment's title or env/<id>; leave out for your open one. |
 | `ref` | `str` | yes | A ref from your latest snapshot, for example e12. |
 | `action` | `click \| type \| fill \| select \| press \| hover \| scroll` | yes | Required: what to do with the element. |
 | `text` | `str \| None` | no (default None) | Text to type or fill, the option label to select, or the key to press. |
@@ -465,7 +470,7 @@ The lane's console since its browser started: console messages and uncaught page
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | Lane id "workspace/name"; leave it out for this chat's environment. |
+| `on` | `str \| None` | no (default None) | Lane "workspace/name", or your environment's title or env/<id>; leave out for your open one. |
 | `level` | `'error' \| 'warning' \| 'all'` | no (default 'all') | error (errors and page errors only), warning (warnings and errors) or all. |
 | `since` | `int \| None` | no (default None) | A cursor from an earlier result: only messages after it. |
 | `last` | `int` | no (default 50) | At most this many of the newest matching messages, 1 to 200. |
@@ -479,7 +484,7 @@ The dialog waiting in the lane, if any: type (alert, confirm, prompt, beforeunlo
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | Lane id "workspace/name"; leave it out for this chat's environment. |
+| `on` | `str \| None` | no (default None) | Lane "workspace/name", or your environment's title or env/<id>; leave out for your open one. |
 
 ## browser_dialog_answer
 
@@ -489,7 +494,7 @@ Answer the waiting dialog (the one browser_dialog shows): accept=true presses OK
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | Lane id "workspace/name"; leave it out for this chat's environment. |
+| `on` | `str \| None` | no (default None) | Lane "workspace/name", or your environment's title or env/<id>; leave out for your open one. |
 | `accept` | `bool` | yes |  |
 | `text` | `str \| None` | no (default None) |  |
 
@@ -501,7 +506,7 @@ Open a URL in the lane's active tab (http or https; a bare domain gets https). R
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | Lane id "workspace/name"; leave it out for this chat's environment. |
+| `on` | `str \| None` | no (default None) | Lane "workspace/name", or your environment's title or env/<id>; leave out for your open one. |
 | `url` | `str` | yes | The page to open, for example https://www.reddit.com/ |
 | `snapshot` | `'none' \| 'delta' \| 'full'` | no (default 'none') | "none" (default), "full" (the outline once the page has loaded) or "delta" (what changed since your last snapshot of this tab). |
 | `main_only` | `bool` | no (default False) | With a full outline, fold the page header, menus, side columns and footer to one line each with a count, to read a large page's main content for fewer tokens. |
@@ -514,7 +519,7 @@ The lane's network since its browser started: each request's id, method, url, ty
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | Lane id "workspace/name"; leave it out for this chat's environment. |
+| `on` | `str \| None` | no (default None) | Lane "workspace/name", or your environment's title or env/<id>; leave out for your open one. |
 | `id` | `str \| None` | no (default None) | One request's id from an earlier result (r12): its headers and response body. |
 | `failed_only` | `bool` | no (default False) | Only requests that got no answer or a status of 400 or more. |
 | `min_status` | `int \| None` | no (default None) | Only responses with at least this status, 100 to 599 (500 for server errors). |
@@ -531,7 +536,7 @@ A PNG of what the lane's active tab shows right now. Use it only when the snapsh
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | Lane id "workspace/name"; leave it out for this chat's environment. |
+| `on` | `str \| None` | no (default None) | Lane "workspace/name", or your environment's title or env/<id>; leave out for your open one. |
 | `full_page` | `bool` | no (default False) | The whole page, not only the window. |
 | `width` | `int \| None` | no (default None) | Lay the page out this wide for the shot (390: a phone). An environment's browser only. |
 | `proof` | `str \| None` | no (default None) | Keep it as proof of your work, with this title for the human ("cart after the fix"): kept on the node after the environment closes, with a link to give the human (curl -o proof.png <url> saves it). An environment's browser only. |
@@ -544,7 +549,7 @@ Move further down the page with the real wheel: a few notches, at the lane's own
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | Lane id "workspace/name"; leave it out for this chat's environment. |
+| `on` | `str \| None` | no (default None) | Lane "workspace/name", or your environment's title or env/<id>; leave out for your open one. |
 | `snapshot` | `'none' \| 'delta' \| 'full'` | no (default 'none') | "none" (default), "delta" (only the outline lines that changed) or "full". |
 
 ## browser_snapshot
@@ -555,7 +560,7 @@ Read the lane's active tab as an accessibility outline: roles, names and text, w
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | Lane id "workspace/name"; leave it out for this chat's environment. |
+| `on` | `str \| None` | no (default None) | Lane "workspace/name", or your environment's title or env/<id>; leave out for your open one. |
 | `main_only` | `bool` | no (default False) | Fold the page header, menus, side columns and footer to one line each with a count, to read a large page's main content for fewer tokens. Off by default. |
 
 ## browser_tab
@@ -566,7 +571,7 @@ Make tab `index` (from browser_tabs) the active one: later snapshots, actions an
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | Lane id "workspace/name"; leave it out for this chat's environment. |
+| `on` | `str \| None` | no (default None) | Lane "workspace/name", or your environment's title or env/<id>; leave out for your open one. |
 | `index` | `int` | yes |  |
 
 ## browser_tabs
@@ -577,7 +582,7 @@ The lane's open tabs and popups: index, url, title, which one is active (the one
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | Lane id "workspace/name"; leave it out for this chat's environment. |
+| `on` | `str \| None` | no (default None) | Lane "workspace/name", or your environment's title or env/<id>; leave out for your open one. |
 
 ## browser_upload
 
@@ -587,7 +592,7 @@ Attach inbox files (from files_put) to a file field: `ref` is either the file in
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | Lane id "workspace/name"; leave it out for this chat's environment. |
+| `on` | `str \| None` | no (default None) | Lane "workspace/name", or your environment's title or env/<id>; leave out for your open one. |
 | `ref` | `str` | yes |  |
 | `file_id` | `str \| list[str]` | yes |  |
 
@@ -599,7 +604,7 @@ Wait for something on the page instead of polling with snapshots: a text appears
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | Lane id "workspace/name"; leave it out for this chat's environment. |
+| `on` | `str \| None` | no (default None) | Lane "workspace/name", or your environment's title or env/<id>; leave out for your open one. |
 | `for_text` | `str \| list[str] \| None` | no (default None) | A text to wait for, or a list where any one appearing is enough. |
 | `gone_text` | `str \| list[str] \| None` | no (default None) | A text that must go away, or a list that must all go away. |
 | `exact` | `bool` | no (default False) | Match whole names or texts only, so "Post" does not match "Posts". |
@@ -668,49 +673,111 @@ Delete a terminal or service lane and its files (its writable layer, logs and ho
 
 Toolset: `core`. Effect: `read`. Needs the `environments` service.
 
-Your environment now: state (starting, ready, working, idle, closed, failed), minutes_left, cost_eur, ports listening on the VM (your dev server shows here), git (branch, ahead, dirty, pushed; compare: the pull request link of your pushed branch), proofs (with fresh links), unsaved work and the last 10 calls. Cheap: call it to see if it is ready, if your server listens, or what is left to push. With none in this chat, it lists your grant's open ones by title and last call (environment_open with that title gets one back). Effect: read.
+Your environment now: state, minutes_left, cost_eur, ports listening on the VM, git (branch, ahead, dirty, pushed, pull_requests), proofs (fresh links), unsaved work, your note and the last 10 calls (with the client that made each). Cheap: call it to see if it is ready or what is left to push. It always lists your agent's open and saved ones (`open`, `saved`; environment_open with a title gets one back). Effect: read.
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `id` | `str \| None` | no (default None) | An environment id of your grant; leave it out for this chat's. |
+| `on` | `str \| None` | no (default None) | Which one: its title, its id or env/<id>. Leave it out when you have one open. |
 
 ## environment_close
 
 Toolset: `core`. Effect: `read`. Needs the `environments` service.
 
-Delete your environment when the work is done: its VM and everything on it, and its browser. Refused with unsaved_work (which lists them) while changes are not committed or commits not pushed: push first, or discard=true if the user agreed to lose them. Returns id, state closed, machine ("deleted" once the provider says it is gone; "deleting" while the node still deletes it), cost_eur, minutes, pushed (each branch as it is on the remote now, with its compare link), deleted (branches it deleted) and your proofs. If you forget, the node closes it after an idle hour (never with unsaved work) or at its time limit. Effect: read. Errors: no_environment, unsaved_work.
+Stop or finish your environment. keep save: saved (`saved`; `pause` says what it costs and how fast it resumes), then the VM is deleted; its title resumes it. keep live: only lets it go. keep none: deletes the VM, refused with unsaved_work while work is not pushed (push, or discard=true if the user agreed). Returns id, title, state, machine (deleted, or deleting), cost_eur, pushed, proofs and `saves` (what became of them). A long save goes on in the background (state closing). Effect: read. Errors: no_environment, unsaved_work, save_failed.
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `id` | `str \| None` | no (default None) | An environment id of your grant; leave it out for this chat's. |
-| `discard` | `bool` | no (default False) | Delete it even with work that is not pushed. |
+| `on` | `str \| None` | no (default None) | Which one: its title, its id or env/<id>. Leave it out when you have one open. |
+| `discard` | `bool` | no (default False) | Delete it even with work that is not pushed (no save). |
+| `final` | `bool` | no (default False) | keep live: delete it too. |
+| `note` | `str \| None` | no (default None) | keep save: what you did and what is next, for the next chat (resumed.note). |
+| `forget` | `bool` | no (default False) | Done for good: the VM and every save of its title go. |
+
+## environment_download
+
+Toolset: `core`. Effect: `exec`. Needs the `environments` service.
+
+A file or a folder under /work, to your own computer: a one-use .tar.gz link (15 minutes); the bytes never go through tool calls. Returns fetch and unpack: run them in your own shell (not lane_exec). At most 512 MB packed. Effect: exec.
+
+| Argument | Type | Required | Description |
+|---|---|---|---|
+| `on` | `str \| None` | no (default None) | Lane "workspace/name", or your environment's title or env/<id>; leave out for your open one. |
+| `path` | `str` | yes | A file or a folder under /work, like "/work/shop/dist" or "report.pdf" (a relative one starts at the workdir). |
+
+## environment_forget
+
+Toolset: `core`. Effect: `read`. Needs the `environments` service.
+
+Delete saves and their disk snapshots (they bill each month): every save of `title`, or one save_id. Its title then opens a new environment. Returns forgot and snapshots_deleted. Effect: read.
+
+| Argument | Type | Required | Description |
+|---|---|---|---|
+| `title` | `str` | yes | The environment's title, as environment() lists it under saved. |
+| `save_id` | `str \| None` | no (default None) | Only this save (s and 10 letters or digits). |
 
 ## environment_open
 
 Toolset: `core`. Effect: `vm`. Needs the `environments` service.
 
-Your own cloud computer for this chat: a fresh VM with a terminal, a browser and the repo, to build and test on instead of the user's laptop. Call it once, before work that runs code or serves a page. Then terminal and browser calls without `on` go to it: lane_exec(cmd, cwd), lane_job_start for a dev server, browser_navigate("http://localhost:3000"), ui_check (the studio toolset); localhost there is the VM. Nothing in it waits for a person, opening and pushes included. Commit and `git push origin <branch>` on the VM; then environment_close.
+Your own cloud computer: a VM with a terminal, a browser and the repo, to build and test on instead of the user's laptop. The title names it: a new title opens one, an open one's title attaches to it (your other chats reach it by title too), a saved one's resumes it (`resumed`). Without a title, repo finds that repo's environment. Calls without `on` go to it while it is your only open one; else pass on="<title>". localhost there is the VM. Nothing in it waits for a person.
 
-Returns id, state (ready, or starting: call environment() again), workdir (/work/<name>), branch, machine (cpu, memory_gb, size; `bigger`: what each bigger size costs an hour), expires_at, lanes, and links.browser (its live view) for the human. The same chat gets the same one back; an open one's title gets it back in a new chat (environment_in_use if another chat used it in the last 10 minutes). A private repo the node cannot read returns status approval_pending with review_url: give it to the human, approval_wait, then call again. Errors: environment_limit (a node limit: close one, fewer hours, a smaller size, or tell the user), environment_already_open (this chat has one with another repo), environment_failed (it did not come up).
+Returns id, title, opened (new, attached, resumed), state (starting: call environment()), workdir, branch, machine (`bigger`: sizes and prices), expires_at, keep, links.browser (its live view, for the human); applied and differs when an attach or resume is not what you asked. A private repo the node cannot read: approval_pending with review_url for the human. Errors: environment_limit, environment_already_open (open with another repo: pick another title).
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `title` | `str` | yes | A few words people see, like "Black Friday page". |
+| `title` | `str \| None` | no (default None) | A few words people see, like "Black Friday page". It names the computer. Without it, repo finds that repo's environment (several: a list to pick from). |
 | `repo` | `str \| None` | no (default None) | To clone, like github.com/me/shop. Leave it out for an empty /work. |
 | `ref` | `str \| None` | no (default None) | A branch, tag or commit (default: the default branch). |
-| `size` | `str \| None` | no (default None) | small (2 CPU, 4 GB), medium (4, 8), large (8, 16), xlarge (16, 32), or a server type like cpx42. Leave it out unless the work needs more (a big type check, a large build). |
+| `size` | `str \| None` | no (default None) | small (2 CPU, 4 GB), medium (4, 8), large (8, 16), xlarge (16, 32), or a server type like cpx42. Only when the work needs more. |
 | `hours` | `float \| None` | no (default None) | How long it may live (default 2); it closes sooner when idle. |
-| `wait_s` | `float` | no (default 240) | Seconds to wait for ready, 0 to 280. |
+| `wait_s` | `float` | no (default 240) | Seconds to wait for ready, 0 to 200. |
+| `keep` | `str \| None` | no (default None) | none (deleted when done), save (saved when idle or closed; its title resumes it) or live (kept running; the owner allows it). |
+| `signins` | `bool \| None` | no (default None) | false: saves keep no browser sign-ins. |
+
+## environment_port
+
+Toolset: `terminals`. Effect: `read`. Needs the `environments` service.
+
+Open a dev server of your environment on the human's own computer, as a preview link. The VM's port is forwarded over the environment's own SSH connection to a free 127.0.0.1 port; it closes with the environment. Returns port, local_port and url (on agentos local the human opens it as is; on a server node they first run `tunnel`, the ssh -L line). environment()'s ports show it as `link`. Effect: read. Errors: no_environment, environment_not_ready.
+
+| Argument | Type | Required | Description |
+|---|---|---|---|
+| `port` | `int` | yes | The port your server listens on in the VM, like 3000 or 5173 (environment() lists them). |
+
+## environment_pull_request
+
+Toolset: `terminals`. Effect: `read`. Needs the `environments` service.
+
+Open a pull request on GitHub for the branch your environment pushed, with the node's stored GitHub token (the VM has no gh and no credential). Only a branch this environment created; it never merges. If one is open for that branch already, it returns that one. Returns url (give it to the human), number, branch, base, draft and created. Effect: read. Errors: no_environment, denied (not a branch it pushed), pull_request_failed (no token on the node, or GitHub refused).
+
+| Argument | Type | Required | Description |
+|---|---|---|---|
+| `title` | `str` | yes | The pull request's title. |
+| `body` | `str \| None` | no (default None) | Its description (Markdown): what changed, how it was tested, proof links. |
+| `base` | `str \| None` | no (default None) | The branch to merge into; the repository's default branch if left out. |
+| `draft` | `bool` | no (default False) | Open it as a draft. |
+| `branch` | `str \| None` | no (default None) | Which pushed branch; the newest one this environment pushed if left out. |
+
+## environment_save
+
+Toolset: `core`. Effect: `read`. Needs the `environments` service.
+
+Save the environment now, without closing it: commits and stashes no remote has, changed and new files git does not ignore, running services, and with keep "save" a disk snapshot (services pause for it). environment_open with its title resumes the newest save in any chat. Returns save_id, saved_at, snapshot, files, bytes, verified. Effect: read. Errors: save_failed (nothing was lost: the machine works on), save_limit.
+
+| Argument | Type | Required | Description |
+|---|---|---|---|
+| `note` | `str \| None` | no (default None) | Your own words for the next chat that resumes it: what you were doing and what is next. |
+| `on` | `str \| None` | no (default None) | Which one: its title, its id or env/<id>. Leave it out when you have one open. |
 
 ## environment_upload
 
-Toolset: `terminals`. Effect: `exec`. Needs the `environments` service.
+Toolset: `core`. Effect: `exec`. Needs the `environments` service.
 
-A one-use link (15 minutes) that puts a .tar.gz of your local checkout, uncommitted changes included, on your environment's machine: no repository needed, and the bytes never go through tool calls. Returns pack and send, two commands to run in your own shell (not lane_exec) in the checkout; the reply lists the files. Files in it replace the same paths; nothing else is deleted. At most 512 MB. Effect: exec.
+A one-use link (15 minutes) that puts a .tar.gz of your local checkout (uncommitted changes too) on the environment's machine; the bytes never go through tool calls. Returns pack and send: run them in your own shell (not lane_exec), in the checkout. Files replace the same paths; nothing else is deleted. At most 512 MB. Effect: exec.
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | Lane id "workspace/name"; leave it out for this chat's environment. |
+| `on` | `str \| None` | no (default None) | Lane "workspace/name", or your environment's title or env/<id>; leave out for your open one. |
 | `dest` | `str \| None` | no (default None) | A folder under /work (default: the workdir, /work/<repo> or /work); a relative one starts at the workdir. |
 
 ## events_list
@@ -734,7 +801,7 @@ Delete a file from the lane's inbox or outbox. A download still running is cance
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | Lane id "workspace/name"; leave it out for this chat's environment. |
+| `on` | `str \| None` | no (default None) | Lane "workspace/name", or your environment's title or env/<id>; leave out for your open one. |
 | `file_id` | `str` | yes |  |
 
 ## files_get
@@ -745,7 +812,7 @@ One file from the lane's inbox or outbox. Small images come back as an image (wh
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | Lane id "workspace/name"; leave it out for this chat's environment. |
+| `on` | `str \| None` | no (default None) | Lane "workspace/name", or your environment's title or env/<id>; leave out for your open one. |
 | `file_id` | `str` | yes |  |
 
 ## files_list
@@ -756,7 +823,7 @@ The lane's files: the inbox (what you stored with files_put, the only files brow
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | Lane id "workspace/name"; leave it out for this chat's environment. |
+| `on` | `str \| None` | no (default None) | Lane "workspace/name", or your environment's title or env/<id>; leave out for your open one. |
 
 ## files_put
 
@@ -766,7 +833,7 @@ Store a file in the lane's inbox, ready for browser_upload or a connector tool (
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | Lane id "workspace/name"; leave it out for this chat's environment. |
+| `on` | `str \| None` | no (default None) | Lane "workspace/name", or your environment's title or env/<id>; leave out for your open one. |
 | `name` | `str` | yes |  |
 | `content_base64` | `str \| None` | no (default None) |  |
 | `url` | `str \| None` | no (default None) |  |
@@ -927,7 +994,7 @@ Claim a lane for a job of several acting calls (a post, a login, a form), so no 
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | Lane id "workspace/name"; leave it out for this chat's environment. |
+| `on` | `str \| None` | no (default None) | Lane "workspace/name", or your environment's title or env/<id>; leave out for your open one. |
 | `purpose` | `str` | yes | Required. What the job is, in a few words other callers see, for example "posting a reply". |
 | `ttl_s` | `float` | no (default 120.0) | Seconds the claim lasts after your last call on the lane, 5 to 900. |
 | `wait_s` | `float` | no (default 30.0) | Seconds to wait in the queue for the lane, 0 to 120. |
@@ -940,7 +1007,7 @@ Send a lane to cold: close its browser gracefully (cookies and logins stay on di
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | Lane id "workspace/name"; leave it out for this chat's environment. |
+| `on` | `str \| None` | no (default None) | Lane "workspace/name", or your environment's title or env/<id>; leave out for your open one. |
 
 ## lane_control
 
@@ -950,7 +1017,7 @@ Who may act in a lane right now: "agent" (you may act), "human" (a person took o
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | Lane id "workspace/name"; leave it out for this chat's environment. |
+| `on` | `str \| None` | no (default None) | Lane "workspace/name", or your environment's title or env/<id>; leave out for your open one. |
 
 ## lane_do
 
@@ -983,9 +1050,9 @@ Run one shell command inside a lane and wait for it. Returns exit_code, stdout, 
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | Lane id "workspace/name"; leave it out for this chat's environment. |
+| `on` | `str \| None` | no (default None) | Lane "workspace/name", or your environment's title or env/<id>; leave out for your open one. |
 | `cmd` | `str` | yes |  |
-| `timeout_s` | `float` | no (default 60) |  |
+| `timeout_s` | `float` | no (default 60) | At most 200. |
 | `stdin` | `str \| None` | no (default None) |  |
 | `cwd` | `str \| None` | no (default None) | The folder to run in (on an environment's machine an absolute path like /work/shop; elsewhere one under the lane's home). |
 | `max_bytes` | `int` | no (default 16000) | stdout and stderr together (default 16000, at most 131072). |
@@ -998,7 +1065,7 @@ Replace exact text in a file (a relative path starts at the repository). `old` m
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | Lane id "workspace/name"; leave it out for this chat's environment. |
+| `on` | `str \| None` | no (default None) | Lane "workspace/name", or your environment's title or env/<id>; leave out for your open one. |
 | `path` | `str` | yes |  |
 | `old` | `str` | yes |  |
 | `new` | `str` | yes |  |
@@ -1012,7 +1079,7 @@ Read a text file with line numbers (as cat -n); a relative path starts at the re
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | Lane id "workspace/name"; leave it out for this chat's environment. |
+| `on` | `str \| None` | no (default None) | Lane "workspace/name", or your environment's title or env/<id>; leave out for your open one. |
 | `path` | `str` | yes |  |
 | `offset` | `int` | no (default 1) | The first line (1 is the first). |
 | `limit` | `int` | no (default 2000) | How many lines. |
@@ -1025,7 +1092,7 @@ Write a whole text file (at most 1 MB), replacing it; folders are made. A relati
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | Lane id "workspace/name"; leave it out for this chat's environment. |
+| `on` | `str \| None` | no (default None) | Lane "workspace/name", or your environment's title or env/<id>; leave out for your open one. |
 | `path` | `str` | yes |  |
 | `content` | `str` | yes |  |
 
@@ -1049,7 +1116,7 @@ Install programs into a lane from a pinned source: apt (the node's signed apt so
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | Lane id "workspace/name"; leave it out for this chat's environment. |
+| `on` | `str \| None` | no (default None) | Lane "workspace/name", or your environment's title or env/<id>; leave out for your open one. |
 | `packages` | `list[str]` | yes |  |
 | `source` | `str` | no (default 'apt') |  |
 
@@ -1087,7 +1154,7 @@ Start a shell command in a lane in the background and return its job id at once;
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | Lane id "workspace/name"; leave it out for this chat's environment. |
+| `on` | `str \| None` | no (default None) | Lane "workspace/name", or your environment's title or env/<id>; leave out for your open one. |
 | `cmd` | `str` | yes |  |
 | `cwd` | `str \| None` | no (default None) |  |
 | `env` | `dict[str, str] \| None` | no (default None) |  |
@@ -1124,7 +1191,7 @@ Warm a lane: start its browser, display and live view. Browser tools warm a lane
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | Lane id "workspace/name"; leave it out for this chat's environment. |
+| `on` | `str \| None` | no (default None) | Lane "workspace/name", or your environment's title or env/<id>; leave out for your open one. |
 
 ## lane_queue
 
@@ -1134,7 +1201,7 @@ Who has a lane and who waits for it: the claim (holder, purpose, since when, whe
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | Lane id "workspace/name"; leave it out for this chat's environment. |
+| `on` | `str \| None` | no (default None) | Lane "workspace/name", or your environment's title or env/<id>; leave out for your open one. |
 
 ## lane_release
 
@@ -1144,7 +1211,7 @@ End your claim on a lane (from lane_claim), so the callers waiting for it go on.
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | Lane id "workspace/name"; leave it out for this chat's environment. |
+| `on` | `str \| None` | no (default None) | Lane "workspace/name", or your environment's title or env/<id>; leave out for your open one. |
 
 ## lane_request_control
 
@@ -1154,7 +1221,7 @@ Ask the human who has taken over a lane to hand it back. It only asks: the human
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | Lane id "workspace/name"; leave it out for this chat's environment. |
+| `on` | `str \| None` | no (default None) | Lane "workspace/name", or your environment's title or env/<id>; leave out for your open one. |
 | `reason` | `str` | yes | One short sentence the human sees, for example "The login is done; I need the lane to post the reply." Never put secrets here. |
 
 ## lane_set_readiness
@@ -1177,7 +1244,7 @@ Store file chunks on the node for a later sync into this lane (lane_job_start's 
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | Lane id "workspace/name"; leave it out for this chat's environment. |
+| `on` | `str \| None` | no (default None) | Lane "workspace/name", or your environment's title or env/<id>; leave out for your open one. |
 | `chunks` | `dict[str, str]` | yes |  |
 
 ## lane_upload_check
@@ -1188,7 +1255,7 @@ Which of these chunks (sha256 hex of each piece of a file) the node does not hol
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | Lane id "workspace/name"; leave it out for this chat's environment. |
+| `on` | `str \| None` | no (default None) | Lane "workspace/name", or your environment's title or env/<id>; leave out for your open one. |
 | `chunks` | `list[str]` | yes |  |
 
 ## lane_view
@@ -1199,7 +1266,7 @@ A live-view link for a warm lane, so a human can watch and take over: log in, pa
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | Lane id "workspace/name"; leave it out for this chat's environment. |
+| `on` | `str \| None` | no (default None) | Lane "workspace/name", or your environment's title or env/<id>; leave out for your open one. |
 
 ## lane_wait_control
 
@@ -1209,7 +1276,7 @@ Wait until agents may act in a lane again (the human handed it back, or it went 
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | Lane id "workspace/name"; leave it out for this chat's environment. |
+| `on` | `str \| None` | no (default None) | Lane "workspace/name", or your environment's title or env/<id>; leave out for your open one. |
 | `timeout_s` | `float` | no (default 60.0) | How long to wait, in seconds (0 to 300). Call again to keep waiting. |
 
 ## lanes_list
@@ -1647,7 +1714,7 @@ Open an interactive shell (a PTY) in a lane. The session keeps running when you 
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | Lane id "workspace/name"; leave it out for this chat's environment. |
+| `on` | `str \| None` | no (default None) | Lane "workspace/name", or your environment's title or env/<id>; leave out for your open one. |
 | `cols` | `int` | no (default 120) |  |
 | `rows` | `int` | no (default 32) |  |
 
@@ -1927,7 +1994,7 @@ VMs on this node: state, lane, time left, cost so far; and the profiles you may 
 
 Toolset: `core`. Effect: `read`. Needs the `lanes` service.
 
-Which agentos node this is and which environment (your cloud computer for this chat) is bound, or how to open one: name, version, lane counts by state, and limits (max warm lanes, idle and busy timeouts). No lane ids (see lanes_list). Call it once. Cheap: reads no page. Effect: read.
+Which agentos node this is and which environment (your cloud computer) calls without `on` go to, or how to open one: name, version, lane counts by state, and limits (max warm lanes, idle and busy timeouts). No lane ids (see lanes_list). Call it once. Cheap: reads no page. Effect: read.
 
 ## workflow_catalog
 

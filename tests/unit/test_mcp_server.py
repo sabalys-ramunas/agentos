@@ -303,7 +303,7 @@ async def test_invalid_arguments_start_with_the_code(connect):
     async with connect() as client:
         result = await client.call_tool("browser_act", {"on": "personal/reddit", "ref": "e1"})
         assert result.is_error and text_of(result) == (  # QA 2026-11-15 P2-4: a fix line, and where the arguments are
-            'invalid: action: Field required; tools_more(toolset="browser_act") shows what it takes\n'
+            'invalid: action: Field required; tools_more(toolset="browser_act") describes each one\n'
             "fix: Fix the arguments as the message says, then call again.")
         result = await client.call_tool("browser_navigate", {"on": "personal/reddit", "url": 7})
         assert result.is_error and text_of(result).startswith("invalid: url: ")

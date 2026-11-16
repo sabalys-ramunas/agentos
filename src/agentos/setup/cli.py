@@ -93,6 +93,7 @@ class Ctx:
     github: str = ""
     github_login: str = ""
     limits: str = ""
+    keep: str = ""
     service_url: str = ""
     agents: list[str] = field(default_factory=list)
     todo: list[str] = field(default_factory=list)

@@ -325,7 +325,8 @@ async def test_an_unknown_argument_with_no_close_match_is_named_without_a_sugges
     result = await call(server, "rich_tool", {"on": "a/b", "zzqx": 1})
     text = text_of(result)
     assert result.is_error and text.startswith("invalid:") and "zzqx" in text
-    assert "did you mean" not in text.lower() and "action" not in text
+    assert "did you mean" not in text.lower()
+    assert "It takes: " in text and "action" in text.split("It takes: ")[1]  # the real ones, not a guess
     assert seen == []
 
 

@@ -2,11 +2,17 @@
 
 ## The one line
 
-**agentos gives every agent its own computer in the cloud.**
+**Every agent gets its own computer, and it stays.**
 
 You open a chat. When the agent needs a machine, or you tell it to work in agentos, it asks for
-an environment: a fresh VM with a terminal, a real browser and your repository. It works there,
-pushes a branch, and the VM is deleted. You watch, and take over when you want to.
+an environment: a VM with a terminal, a real browser and your repository. It works there and
+pushes a branch. You watch, and take over when you want to.
+
+A quick fix uses the machine once, and the VM is deleted. Work that spans days keeps its machine:
+when it goes idle it is saved and the VM deleted, and tomorrow, in any chat, "continue the shop in
+agentos" brings it back as it was. The agent's thinking stays on your laptop, in the client you
+already use (Claude Code, Codex, T3 Code). agentos runs next to it, on the laptop first or on a
+server, and rents the machines.
 
 ## The problem
 
@@ -14,7 +20,9 @@ Coding agents are good at writing code and bad at having somewhere to run it. To
 your laptop, as you:
 
 - **Your machine is the test bench.** Installs, builds, test suites, dev servers and browsers
-  heat it up, fill it with leftovers and stop when the lid closes.
+  heat it up and fill it with leftovers.
+- **Somewhere else means starting over.** A sandbox for one session forgets everything: the next
+  chat installs the tools again, rebuilds the cache and starts the dev server from nothing.
 - **Everything you are is in reach.** Your shell holds your SSH keys, your tokens and your
   logged-in browser. One bad install script or one injected web page, and it acts as you.
 - **The browser is not real, or it is too real.** A headless browser cannot show you what the
@@ -28,10 +36,13 @@ A computer that the agent you already use can ask for, over MCP: Claude Code, Co
 Claude or ChatGPT app, or any other MCP client. agentos is **not** an agent, a chat or an IDE. It
 gives whichever one you use:
 
-- **An environment per chat**: a VM rented by your node (Hetzner Cloud, or a Docker container),
+- **An environment of its own**: a VM rented by agentos (Hetzner Cloud, or a Docker container),
   with the repository cloned, a terminal and a browser whose traffic leaves from the VM. Calls
   without a lane go there, so the agent's tools just work, and `localhost` is its dev server.
-  Deleted when the work is pushed, by the agent or by the reaper.
+- **Three ways it stays**: single use (deleted when the work is pushed), saves when idle (the whole
+  machine is saved as a disk snapshot plus its files, the VM deleted, and the same title brings it
+  back from any chat), or kept running (always on, billed every hour, only when the owner allows
+  it).
 - **A trust layer**: a grant per agent that says what it may do and expires, approvals for money
   and for pushes to protected branches, a vault that keeps keys and tokens off the VM, a git
   gateway that pushes for it, and an audit log of every call.
@@ -45,8 +56,10 @@ browser lanes for your own accounts and routines.
 
 - **Node.** The machine agentos runs on: a VPS, a home box, a spare PC. It rents environments,
   keeps the vault and the log, and serves MCP and the web app. It only dials out.
-- **Environment.** A cloud VM for one chat: a terminal lane (`env/<id>`) and a browser lane
-  (`env/<id>-browser`) the node makes and deletes.
+- **Environment.** A cloud VM with a title: a terminal lane (`env/<id>`) and a browser lane
+  (`env/<id>-browser`) the node makes, saves and deletes. Its `keep` says how it stays.
+- **Save.** A kept environment's disk snapshot plus its files, with the agent's note for the next
+  one. Forgotten by the agent or the owner when the work is done.
 - **Lane.** An isolated place on a node where one thing runs: a terminal, a service, a VM, or a
   browser. An account lane is a logged-in browser with its own proxy and device, for one account.
 - **Workspace.** One per business or person. It owns its lanes, logins and rules, and nothing
@@ -62,16 +75,31 @@ The full technical model is in [ARCHITECTURE.md](ARCHITECTURE.md).
 ## How an agent sees it
 
 ```
-environment_open(title, repo)     -> a VM for this chat, the workdir, links for the human
-lane_exec(cmd, cwd), shell_open   -> commands on it (no `on`: this chat's environment)
-browser_navigate(url)             -> its browser; localhost is the VM
-ui_check(url), ui_diff(url)       -> is the page it built any good? measured, not guessed
-environment()                     -> ports, git, cost, the last calls
-environment_close()               -> refuses until the work is pushed, then deletes the VM
+environment_open(title, repo, keep) -> a VM, or the saved one with that title back (resumed)
+lane_exec(cmd, cwd), shell_open     -> commands on it (no `on`: your open environment)
+browser_navigate(url)               -> its browser; localhost is the VM
+ui_check(url), ui_diff(url)         -> is the page it built any good? measured, not guessed
+environment()                       -> ports, git, cost, the last calls; or the open and saved ones
+environment_save(note)              -> the whole machine saved now, with a note for the next agent
+environment_close()                 -> single use: deleted once pushed; kept: saved or left running
+environment_forget(title)           -> the saves of finished work deleted
 ```
 
 The MCP intro and the `agentos-environment` skill tell the agent when to take one: the human
 asks for agentos or a VM, or the work needs a machine (builds, tests, a dev server, a browser).
+They also tell it which way to keep it: single use for a one-off fix, saves when idle when the work
+will span sessions, and kept running only when the person asks for an always-on machine.
+
+## The honest limits
+
+- **The laptop runs the agent.** In local mode the laptop must be awake while a VM works: the
+  agent, the commands, the browser and git all go through it. No agent works while the lid is
+  closed in this version.
+- **Sleep saves, it does not continue.** When the laptop sleeps, an environment that saves when
+  idle is saved and its VM deleted; a single-use one with unsaved work gets a rescue save. The
+  work continues when the laptop wakes and an agent opens it again.
+- **A server keeps going.** On a server node, environments do not depend on your laptop, but the
+  agent still runs where you run it.
 
 ## The features on top
 
@@ -94,23 +122,25 @@ asks for agentos or a VM, or the work needs a machine (builds, tests, a dev serv
   the one you like.
 - **Not a CI system.** An environment runs what the agent runs, for one chat; it is not a
   pipeline or a runner fleet.
-- **Not a hosting platform.** Environments are deleted when the work is done, and nodes only dial
-  out. A dev server is reached through the node's links, not a public address.
+- **Not a hosting platform.** A kept environment is a workbench, not a server for the public:
+  nodes only dial out, and a dev server is reached through the node's links, not a public address.
 - **Not a model reseller.** Brains are your own subscriptions and local models.
 - **Not a flow or skill store.** Flows stay first-party and reviewed.
 
 ## Roadmap
 
-1. **Environments everywhere**: the Docker and Hetzner providers, a `dev` image, the web app's
-   environment page, then more providers (billed by the minute) and a warm pool so a VM is ready
-   when the chat starts.
+1. **Environments that stay**: single use, saves when idle and kept running, resume by title from
+   any chat, then more providers (billed by the minute) and a warm pool so a VM is ready when the
+   chat starts.
 2. **Watching and taking over** from the phone: the environment's browser and terminal, and the
    approvals, in one place.
 3. **Studio on every change**: the page checks run on the environment as part of the agent's
    loop, with the product's brand.
-4. **Files and ports**: copying files in and out of the VM, and sharing a dev server link with a
-   teammate for an hour.
-5. **Teams**: a person's own agent gets a grant to a workspace, with roles, and the same audit.
+4. **Files and ports**: files in and out of the VM (upload and download are built), and sharing a
+   dev server link with a teammate for an hour.
+5. **An agent that keeps working with the laptop closed**: the agent's loop on the node, not only
+   its machine.
+6. **Teams**: a person's own agent gets a grant to a workspace, with roles, and the same audit.
 
 ## Where this could go as a product
 

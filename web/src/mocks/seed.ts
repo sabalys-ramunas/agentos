@@ -4,7 +4,7 @@
  * (RFC 5737), so nothing here can point at a real host.
  */
 import { seedAccess } from './access';
-import type { BrainTask, BrowserDevice, FormTrip, LaneLogin, Proxy, ProofShare, StudioRun, Vm } from '@/api/types';
+import type { BrainTask, BrowserDevice, EnvSave, FormTrip, LaneLogin, Proxy, ProofShare, StudioRun, Vm } from '@/api/types';
 import type { MockBrand } from './brand';
 import type { MockEnv } from './environments';
 import type { MockJob } from './jobs';
@@ -153,6 +153,8 @@ export interface OrgData extends AccessData {
   jobsHeld?: boolean;
   /** Environments, the cloud computers agents rent for one chat (mocks/environments.ts). */
   environments?: MockEnv[];
+  /** Saves of kept environments (mocks/environments.ts), newest first. */
+  environmentSaves?: EnvSave[];
   /** Studio checks (mocks/studio.ts), and whether studio is missing on this computer. */
   studioRuns?: StudioRun[];
   studioMissing?: boolean;

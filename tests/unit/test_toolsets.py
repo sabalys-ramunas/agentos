@@ -43,7 +43,7 @@ TOKEN = "toolsets-node-token-0123456789"
 
 # The default surface's budget. Raise it only on purpose: every tool and every word in it is
 # read by every connected agent on every turn.
-CORE_MAX_TOOLS = 37  # 27, the three environment tools, the four terminal tools and the three file tools an environment needs
+CORE_MAX_TOOLS = 41  # 27, the seven environment tools, the four terminal tools and the three file tools an environment needs
 # approximate: characters of the tools/list JSON / 4. 6,600 since the agent text review (act one at
 # a time, required arguments, call whoami and lanes_list once): on lanebench it cut calls per task
 # by a fifth, which saves far more than these 100 tokens. 7,600 with the three environment tools and the
@@ -60,7 +60,17 @@ CORE_MAX_TOOLS = 37  # 27, the three environment tools, the four terminal tools 
 # 9,250 after the 2026-11-15 node test fixes (about 70 tokens): environment_close says when the VM is really
 # deleted and lists deleted branches, and environment_open's next line says which pushes are refused, so an
 # agent tells the human the truth about the VM and does not try to rewrite a colleague's branch
-CORE_MAX_TOKENS = 9250
+# 9,350 for keeping environments (2026-11-15, about 80 tokens): environment_open's `keep` and
+# environment_close's `final` and `saved` are the owner's three modes (single use, kept live, saved and
+# resumed by title), which an agent must see in every environment chat to choose one
+# 10,050 for environment_save, environment_upload, environment_download and environment_forget in core
+# (2026-11-16, about 740 tokens, less about 60 cut from the environment tools' own descriptions): all three
+# testers of 2026-11-15 needed one of them, none found them behind tools_call (they had no schema there),
+# and one guessed the arguments blind. `on` now also takes an environment's title, which every
+# terminal and browser tool says in a few words. 10,150 when builder I3 merged (2026-11-16): environment_open
+# takes signins and a title found by repo, environment_close a note and forget, and environment() lists the
+# open and saved ones, so an agent stops for the day, finishes and comes back in one call each
+CORE_MAX_TOKENS = 10150
 
 CORE_TOOLS = {
     "whoami", "howto", "lanes_list", "lane_open", "lane_close", "lane_claim", "lane_release", "lane_view",
@@ -68,6 +78,7 @@ CORE_TOOLS = {
     "browser_screenshot", "browser_tabs", "browser_dialog", "browser_dialog_answer", "browser_upload",
     "files_put", "login", "approval_wait", "approval_confirm", "human_ask", "memory_context", "run_status",
     "environment_open", "environment", "environment_close",
+    "environment_save", "environment_upload", "environment_download", "environment_forget",
     "lane_exec", "lane_job_start", "lane_job_read", "lane_job_cancel", "lane_file_read", "lane_file_write",
     "lane_file_edit",
 }

@@ -128,13 +128,33 @@ def exit_status(rt: LaneRuntime, rc: int | None) -> tuple[int | None, str | None
     return rc, None
 
 
+async def _exit_or(proc: asyncio.subprocess.Process, timeout_s: float, stop: asyncio.Event) -> bool:
+    """Wait for the process to exit (TimeoutError past timeout_s) or for `stop`: True when stopped first."""
+    waiter = asyncio.ensure_future(wait_exit(proc, timeout_s))
+    stopper = asyncio.ensure_future(stop.wait())
+    try:
+        await asyncio.wait({waiter, stopper}, return_when=asyncio.FIRST_COMPLETED)
+    finally:
+        for task in (waiter, stopper):
+            if not task.done():
+                task.cancel()
+    if waiter.done() and not waiter.cancelled():
+        waiter.result()  # TimeoutError
+        return False
+    return True
+
+
 async def run(rt: LaneRuntime, argv: list[str], *, timeout_s: float, stdin: bytes | None = None,
               max_bytes: int = 65536, env: dict[str, str] | None = None, install: bool = False,
               cwd: str | None = None, kind: str = "exec", stdin_file: BinaryIO | None = None,
-              budget: int | None = None) -> ExecResult:
+              budget: int | None = None, stdout_file: BinaryIO | None = None,
+              stdout_limit: int | None = None) -> ExecResult:
     """`stdin_file` (an open file) is the workload's stdin as it is, for input too large to hold in
     memory (a sync's tar archive); `stdin` is fed from memory. `max_bytes` is kept of each stream;
-    `budget`, when given, bounds both together (fit)."""
+    `budget`, when given, bounds both together (fit). `stdout_file` (an open file) takes all of
+    stdout instead, for output too large to hold (an archive out of the lane): past `stdout_limit`
+    bytes the workload is ended, nothing more is written, and the result has stdout_bytes over the
+    limit and truncated set."""
     loop = asyncio.get_running_loop()
     oom_before = rt.stat().get("oom_kills", 0)
     wl = Workload(new_wid("i" if install else "x"), argv, rt.base_env(env), cwd=cwd, install=install)
@@ -160,11 +180,30 @@ async def run(rt: LaneRuntime, argv: list[str], *, timeout_s: float, stdin: byte
             except (BrokenPipeError, ConnectionResetError):
                 pass
 
-    readers = asyncio.gather(_pump(proc.stdout, out), _pump(proc.stderr, err), feed())
+    over = asyncio.Event()
+
+    async def to_file() -> None:
+        if proc.stdout is None or stdout_file is None:
+            return
+        while True:
+            data = await proc.stdout.read(65536)
+            if not data:
+                return
+            out.total += len(data)
+            if stdout_limit is not None and out.total > stdout_limit:
+                over.set()
+                return
+            stdout_file.write(data)
+
+    readers = asyncio.gather(to_file() if stdout_file is not None else _pump(proc.stdout, out),
+                             _pump(proc.stderr, err), feed())
     timed_out = False
     try:
         try:
-            await wait_exit(proc, timeout_s)
+            if stdout_file is None:
+                await wait_exit(proc, timeout_s)
+            elif await _exit_or(proc, timeout_s, over):
+                await rt.terminate(sp, grace=1.0)  # past stdout_limit: nothing reads its output any more
         except TimeoutError:
             timed_out = True
             await rt.terminate(sp, grace=2.0)
@@ -189,5 +228,5 @@ async def run(rt: LaneRuntime, argv: list[str], *, timeout_s: float, stdin: byte
     return ExecResult(
         exit_code=exit_code, signal=sig_name, stdout=so, stderr=se, stdout_encoding=so_enc,
         stderr_encoding=se_enc, stdout_bytes=out.total, stderr_bytes=err.total,
-        truncated=bool(out.dropped or err.dropped), timed_out=timed_out,
+        truncated=bool(out.dropped or err.dropped or over.is_set()), timed_out=timed_out,
         oom_killed=oom_after > oom_before, duration_s=round(duration, 3))

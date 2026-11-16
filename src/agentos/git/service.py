@@ -57,12 +57,20 @@ class RepoAccess:
     kind: str | None = None         # its type: "ssh" (a deploy key) or "token"
     stderr: bytes = b""
     why: str | None = None          # explain()'s words when it is not ok
+    wide: bool = False              # a token that sees more than this repository: the GitHub login, or owner/*
+    login: str | None = None        # the GitHub login's account name, when that is the credential
 
     @property
     def unreachable(self) -> bool:
         from agentos.git.upstream import unreachable
 
         return not self.ok and unreachable(self.stderr)
+
+    @property
+    def not_found(self) -> bool:
+        """The host answered that the repository is not there (GitHub says so for one a token cannot see)."""
+        low = self.stderr.decode("utf-8", "replace").lower()
+        return not self.ok and ("repository not found" in low or ("fatal: repository" in low and "not found" in low))
 
 
 async def public_access(repo: str, home: Path, *, probe: Any = None, timeout_s: float = PROBE_TIMEOUT_S
@@ -264,9 +272,11 @@ class GitService:
                 why = None if ok else explain(err, target, scrub=auth.scrub)
         except UpstreamError as e:
             ok, err, why = False, b"", e.message
+        wide = cred is not None and cred.type == "token" and (cred.any_repo or not cred.exact(remote))
+        saved = login.load(self.home) if cred is not None and cred.any_repo else None
         return RepoAccess(remote.slug, ok, via="gateway" if ok else None, declared=True,
                           credential=cred.name if cred else None, kind=cred.type if cred else None, stderr=err,
-                          why=why)
+                          why=why, wide=wide, login=(saved.login or None) if saved else None)
 
     # ------------------------------------------------------------------ brain tasks
     async def task_pairs(self, task_id: str, *, grant_id: str | None, workspace: str, lanes: list[str],

@@ -1,5 +1,6 @@
-"""Bringing an environment up after it is created: the VM, its setup, the tunnels, git, the browser
-lane and the clone, in that order, until it is `ready` or `failed`. A mixin of EnvironmentManager."""
+"""Bringing an environment up after it is created: the VM, its setup, the tunnels and git, then the
+browser lane, the clone and the tools top-up at once, until it is `ready` or `failed`. Each step's
+time is logged at INFO (Steps). A mixin of EnvironmentManager."""
 
 from __future__ import annotations
 
@@ -7,6 +8,7 @@ import asyncio
 import contextlib
 import logging
 import shlex
+import time
 from typing import Any
 
 from agentos.core.errors import AgentosError, LaneExists
@@ -41,6 +43,43 @@ GIT_SETUP = ("umask 077 && mkdir -p ~/.config/agentos && cat > ~/.config/agentos
              "git config --global --add include.path '~/.config/agentos/gitconfig')")
 
 
+class Steps:
+    """How long each step of a bring-up took, logged at INFO as it ends (a failed one too), so a slow
+    open says where its time went."""
+
+    def __init__(self, env_id: str):
+        self.env_id = env_id
+        self.took: list[tuple[str, float]] = []
+        self.started = time.monotonic()
+
+    async def run(self, name: str, coro: Any) -> Any:
+        t = time.monotonic()
+        try:
+            return await coro
+        finally:
+            took = time.monotonic() - t
+            self.took.append((name, took))
+            log.info("environment %s: %s took %.1f s", self.env_id, name, took)
+
+    def total(self) -> float:
+        return time.monotonic() - self.started
+
+    def words(self) -> str:
+        return ", ".join(f"{name} {took:.1f} s" for name, took in self.took)
+
+
+async def together(*coros: Any) -> None:
+    """Run the steps at once; the first that fails cancels the others and raises."""
+    tasks = [asyncio.ensure_future(c) for c in coros]
+    try:
+        await asyncio.gather(*tasks)
+    finally:
+        for t in tasks:
+            if not t.done():
+                t.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+
+
 class BringUp:
     """The steps from `starting` to `ready`, for EnvironmentManager (its store, tunnels, tasks and services)."""
 
@@ -58,36 +97,19 @@ class BringUp:
 
     async def _bring_up(self, env_id: str, plan: dict | None) -> None:
         env = self.store.get(env_id)
+        steps = Steps(env_id)
         try:
-            vms = self.vms()
             if env.vm_id is None:
                 if plan is None:
                     raise EnvironmentFailed("the node restarted before the machine was rented")
-                cloud = machine.cloud_config() if plan["image"] == machine.BASE_IMAGE else ""
-                try:
-                    rec = await vms.create(env.terminal_lane, plan=plan, purpose=f"environment {env.id}: {env.title}",
-                                           created_by=env.grant_id, wait_s=0, cloud_config=cloud, environment=env.id)
-                except AgentosError as e:
-                    if e.code == "vm_limit":
-                        raise EnvironmentLimit(e.message) from None
-                    raise
-                def rented(e: Environment) -> None:
-                    e.vm_id = rec.id
-                    if rec.price_hourly_eur is not None:
-                        e.price_hourly_eur = rec.price_hourly_eur
-                    e.machine.server_type = rec.server_type
+                env = await steps.run("VM create", self._rent(env, plan))
+            await steps.run("VM ready", self._wait_vm(env))
+            await steps.run("setup check", self._wait_setup(env))
+            with contextlib.suppress(AgentosError):  # package lists, fetched in the background (machine.apt_ready)
+                await steps.run("apt ready", self.envs().exec(env.terminal_lane, machine.apt_ready(),
+                                                              timeout_s=machine.APT_READY_S))
+            await self._set_up_work(env, steps)
 
-                env = self.store.update(env_id, rented)
-            await self._wait_vm(env)
-            await self._wait_setup(env)
-            with contextlib.suppress(AgentosError):  # pnpm on an older snapshot (machine.TOOLS_TOP_UP)
-                await self.envs().exec(env.terminal_lane, machine.TOOLS_TOP_UP, timeout_s=machine.TOOLS_TOP_UP_S)
-            await self._start_tunnel(env)
-            await self._make_browser(env)
-            if env.repo:
-                await self._clone(env)
-            else:
-                await self.envs().exec(env.terminal_lane, f"mkdir -p {machine.WORK}", timeout_s=CHECK_TIMEOUT_S)
             def ready(e: Environment) -> bool:
                 if e.state != "starting":
                     return False
@@ -96,18 +118,72 @@ class BringUp:
 
             env = self.store.update(env_id, ready)
             if env.state == "ready":
-                log.info("environment %s ready (%s)", env.id, env.workdir)
+                log.info("environment %s ready (%s) in %.0f s: %s", env.id, env.workdir, steps.total(), steps.words())
         except asyncio.CancelledError:
             raise
         except Exception as e:  # noqa: BLE001
-            msg = str(getattr(e, "message", e)) or type(e).__name__
-            log.warning("environment %s failed to come up: %s", env_id, msg)
-            await self._fail(env_id, msg, code=e.code if isinstance(e, AgentosError) else None)
+            from agentos.environments.failures import classify
 
-    async def _fail(self, env_id: str, why: str, *, code: str | None = None) -> None:
+            reason, msg = classify(e, env, self.settings.max_size)
+            log.warning("environment %s failed to come up%s: %s", env_id, f" ({reason})" if reason else "", msg)
+            code = e.code if isinstance(e, AgentosError) else None
+            if code == "vm_error":
+                code = None  # the provider's refusal is the environment's failure, with its reason
+            if env.restore_from and code in (None, "environment_failed"):
+                code = "restore_failed"  # its save is untouched: the next open with the title tries again
+            await self._fail(env_id, msg, code=code, reason=reason)
+
+    async def _rent(self, env: Environment, plan: dict) -> Environment:
+        """Rent the machine (agentos.vms; its own fallbacks when the provider has no room) and record it."""
+        cloud = machine.cloud_config() if plan["image"] == machine.BASE_IMAGE else ""
+        try:
+            rec = await self.vms().create(env.terminal_lane, plan=plan, purpose=f"environment {env.id}: {env.title}",
+                                          created_by=env.grant_id, wait_s=0, cloud_config=cloud, environment=env.id,
+                                          kept=env.keep == "live")
+        except AgentosError as e:
+            if e.code == "vm_limit":
+                raise EnvironmentLimit(e.message) from None
+            raise
+
+        def rented(e: Environment) -> None:
+            e.vm_id = rec.id
+            if rec.price_hourly_eur is not None:
+                e.price_hourly_eur = rec.price_hourly_eur
+            e.machine.server_type, e.machine.location = rec.server_type, rec.location
+
+        return self.store.update(env.id, rented)
+
+    async def _top_up(self, env: Environment) -> None:
+        with contextlib.suppress(AgentosError):  # pnpm on an older snapshot (machine.TOOLS_TOP_UP)
+            await self.envs().exec(env.terminal_lane, machine.TOOLS_TOP_UP, timeout_s=machine.TOOLS_TOP_UP_S)
+
+    async def _set_up_work(self, env: Environment, steps: Steps) -> None:
+        """The tunnels first (the browser's traffic and the clone through the git gateway go over them),
+        then the browser, the clone and the tools top-up at once: each is a few seconds to a minute of
+        its own. A resume waits for the browser and the tools first: its services start in it."""
+        tools = asyncio.ensure_future(steps.run("tools top-up", self._top_up(env)))
+        try:
+            await steps.run("tunnels and git", self._start_tunnel(env))
+            if env.restore_from:
+                await together(steps.run("browser", self._make_browser(env)), tools)
+                await steps.run("restore", self._restore(env))
+            elif env.repo:
+                await together(steps.run("browser", self._make_browser(env)), steps.run("clone", self._clone(env)),
+                               tools)
+            else:
+                mkdir = self.envs().exec(env.terminal_lane, f"mkdir -p {machine.WORK}", timeout_s=CHECK_TIMEOUT_S)
+                await together(steps.run("browser", self._make_browser(env)), mkdir, tools)
+        finally:
+            if not tools.done():
+                tools.cancel()
+                with contextlib.suppress(BaseException):
+                    await tools
+
+    async def _fail(self, env_id: str, why: str, *, code: str | None = None, reason: str | None = None) -> None:
         def failed(e: Environment) -> None:
             e.error = why[:1200]
             e.error_code = code or "environment_failed"
+            e.error_reason = reason if e.error_code == "environment_failed" else None
 
         env = self.store.update(env_id, failed)
         await self._teardown(env, reason=f"failed to start: {why[:200]}", final="failed")
@@ -121,9 +197,9 @@ class BringUp:
             if rec.state == "ready":
                 return
             if not rec.live:
-                raise EnvironmentFailed(f"the machine did not come up: {rec.error or rec.state}")
+                raise EnvironmentFailed(f"the machine did not come up: {rec.error or rec.state}", reason="setup")
             if loop.time() > deadline:
-                raise EnvironmentFailed(f"the machine did not answer SSH within {vms.settings.boot_timeout_s} s")
+                raise EnvironmentFailed(f"the machine did not answer SSH within {vms.settings.boot_timeout_s} s", reason="setup")
             await asyncio.sleep(VM_POLL_S)
 
     async def _wait_setup(self, env: Environment) -> None:
@@ -142,7 +218,7 @@ class BringUp:
             if first == "ready":
                 return
             if "error" in first:
-                raise EnvironmentFailed(f"the machine's setup failed: {said[-600:]}")
+                raise EnvironmentFailed(f"the machine's setup failed: {said[-600:]}", reason="setup")
             if not ran and machine.boot_done_without_setup(first):
                 # booted and done, but nothing ran the setup: a snapshot made another way (`agentos vm
                 # image build` without the environment's script) or an image with no cloud-init
@@ -151,14 +227,14 @@ class BringUp:
                 try:
                     out = await envs.exec(env.terminal_lane, "sh -s", stdin=machine.setup_script(), timeout_s=left)
                 except AgentosError as e:
-                    raise EnvironmentFailed(f"the machine's setup could not run: {e.message}") from None
+                    raise EnvironmentFailed(f"the machine's setup could not run: {e.message}", reason="setup") from None
                 if out.exit_code != 0:
                     tail = (out.stderr or out.stdout or "").strip()[-600:]
-                    raise EnvironmentFailed(f"the machine's setup failed (exit {out.exit_code}): {tail}")
+                    raise EnvironmentFailed(f"the machine's setup failed (exit {out.exit_code}): {tail}", reason="setup")
                 continue
             await asyncio.sleep(SETUP_POLL_S)
         raise EnvironmentFailed(f"the machine's setup did not finish within {self.settings.setup_timeout_s} s "
-                                f"({said[-200:] or 'no answer'})")
+                                f"({said[-200:] or 'no answer'})", reason="setup")
 
     async def _start_tunnel(self, env: Environment) -> None:
         vms = self.vms()
@@ -213,6 +289,9 @@ class BringUp:
             env = await self._browser_on_vm(env, lanes)
         if env.browser != "vm" and getattr(lanes, "makes_browsers", True) is False:
             return  # a node with no browser of its own (agentos local) and no browser on the machine: a terminal only
+        from agentos.environments import signins
+
+        signins.listen(self, lanes)  # a resume's sign-ins go into the browser when it starts
         with contextlib.suppress(Exception):
             lanes.get(env.browser_lane)
             return

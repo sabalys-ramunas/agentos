@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 SETTINGS_FILE = "environments.toml"
 WORKSPACE = "env"                  # every environment's lanes live in this workspace
@@ -33,6 +33,15 @@ SizeName = Literal["small", "medium", "large", "xlarge"]
 # tunnel); "vm", on the machine itself, driven and watched over the node's SSH connection
 # (agentos.environments.vmbrowser), for a node with no browser of its own (a Mac).
 BrowserWhere = Literal["node", "vm"]
+# What happens to an environment's machine when the work stops (agentos.environments.saving):
+# "none": single use, deleted on close, idle or the time limit (a rescue save first if work is unsaved);
+# "live": the machine is kept and billed until a final close; "save": its whole state is saved (a disk
+# snapshot and a file-level save) and the machine deleted, and environment_open with its title resumes it.
+Keep = Literal["none", "live", "save"]
+KEEPS = ("none", "live", "save")
+# Hetzner's list price for snapshot storage, EUR per GB a month (hetzner.com/cloud, "Snapshots"; net of
+# VAT, as of 2026). The provider bills a snapshot by its compressed size (the image's image_size).
+SNAPSHOT_EUR_PER_GB_MONTH = 0.0119
 
 
 class EnvSettings(BaseModel):
@@ -53,6 +62,34 @@ class EnvSettings(BaseModel):
     unsaved_notice_minutes: int = Field(default=30, ge=1)  # before the time limit, tell the owner of unsaved work
     reap_interval_s: int = Field(default=60, ge=5)
     browser: BrowserWhere = "node"                        # where each new environment's browser runs
+    # Keeping an environment (agentos.environments.saving, docs/design/environments.md "Keeping").
+    default_keep: Keep = "none"                           # environment_open's keep when the agent names none
+    allow_keep_live: bool = False                         # keep "live" bills the machine all month: opt in
+    max_live_kept: int = Field(default=1, ge=0, le=20)    # environments kept live at once
+    keep_last: int = Field(default=3, ge=1, le=50)        # saves kept for one title, newest first
+    max_saves_gb: float = Field(default=5.0, gt=0)        # every save's file part on this node together
+    saved_days: int = Field(default=30, ge=1, le=3650)    # a save older than this is removed (the owner is told first)
+    snapshot_eur_per_gb_month: float = Field(default=SNAPSHOT_EUR_PER_GB_MONTH, ge=0)
+    autosave_minutes: int = Field(default=15, ge=5)       # a file-level save this often while a keep "save" one works
+    snapshots: bool = True                                # keep "save" makes a disk snapshot (false: files only)
+    keep_paths: list[str] = Field(default_factory=list)   # extra folders on the machine a save holds (opt in)
+    keep_paths_max_mb: int = Field(default=500, ge=1)     # their size, at most
+    encrypt_saves: bool = True                            # a save's files sealed with a key the vault holds
+    save_signins: bool = True                             # a save holds the browser's sign-ins (opt out per environment)
+
+    @field_validator("keep_paths")
+    @classmethod
+    def _keep_paths(cls, v: list[str]) -> list[str]:
+        for p in v:
+            if not re.match(r"^/[A-Za-z0-9._/-]+$", p) or ".." in p or p.rstrip("/") in ("", "/work"):
+                raise ValueError(f"keep_paths are absolute folders on the machine, like /root/.cache/ms-playwright: {p!r}")
+        return [p.rstrip("/") for p in v]
+
+    @model_validator(mode="after")
+    def _live_needs_opt_in(self) -> EnvSettings:
+        if self.default_keep == "live" and not self.allow_keep_live:
+            raise ValueError('default_keep = "live" needs allow_keep_live = true (it bills the machine all month)')
+        return self
 
 
 def load_settings(home: Path) -> EnvSettings:
@@ -68,6 +105,7 @@ class Call(BaseModel):
     ok: bool = True
     exit_code: int | None = None              # a command's exit code (lane_exec): ok is the tool's own answer
     error: str | None = None                  # the error's code when the call was refused or failed
+    client: str | None = None                 # the MCP client that made it ("claude-code 2.1.3"), when it said
 
 
 class Push(BaseModel):
@@ -100,6 +138,8 @@ class Environment(BaseModel):
     grant_id: str                             # the grant that opened it (owner: "owner")
     grant_root: str | None = None             # its family (the grant's root): only that family reaches it
     binding: str                              # "session:<mcp-session-id>", else "grant:<grant id>"
+    bound_at: datetime | None = None          # when its session last opened or attached it: a session's
+                                              # calls without `on` go to the one it took last
     agent: str = "an agent"                   # who opened it, in words (the grant's subject)
     subject: str | None = None                # the grant's subject id, as the policy has it
     member: str | None = None                 # the member whose agent opened it; None: the owner's agent
@@ -122,6 +162,7 @@ class Environment(BaseModel):
     cost_eur: float | None = None             # set when it closes; while open, read from its VM
     error: str | None = None
     error_code: str | None = None             # the error's code when it failed (repo_not_connected, environment_failed)
+    error_reason: str | None = None           # environment_failed's cause (errors.FAILURE_REASONS): capacity, network...
     calls: list[Call] = Field(default_factory=list)   # newest last, at most CALLS_KEPT
     pushed: list[Push] = Field(default_factory=list)
     unsaved_noticed: bool = False             # the owner was told it has unsaved work and will not close idle
@@ -135,6 +176,17 @@ class Environment(BaseModel):
     browser: BrowserWhere = "node"            # where its browser runs, as the setting was when it opened
     vm_state: str | None = None               # its machine at close: deleted (the provider says it is gone),
                                               # deleting (the node still retries), none (none was rented)
+    keep: Keep = "none"                       # what happens to it when the work stops (Keep)
+    restore_from: str | None = None           # the save it resumes (agentos.environments.saving), until it is ready
+    resumed: dict | None = None               # what the resume brought back (environment_open's `resumed`)
+    note: str | None = None                   # the agent's own words for the next save's resume note
+    last_save_id: str | None = None
+    last_save_at: datetime | None = None
+    save_error: str | None = None             # the last save that failed, in words (the machine was kept)
+    save_noticed: bool = False                # the owner was told a save failed
+    save_tried_at: datetime | None = None     # the last save, made or failed (a failed one is retried later)
+    keep_signins: bool = True                 # a save holds its browser's sign-ins (agentos.environments.signins)
+    pull_requests: list[dict] = Field(default_factory=list)  # environment_pull_request opened (url, number, branch)
 
     @field_validator("id")
     @classmethod

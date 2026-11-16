@@ -5,6 +5,13 @@
  */
 export type EnvState = 'starting' | 'ready' | 'working' | 'idle' | 'closing' | 'closed' | 'failed';
 
+/**
+ * How an environment stays: `none` is single use (deleted when the work is done), `live` keeps the VM
+ * running between sessions (billed every hour), `save` saves the whole machine when idle and deletes the
+ * VM, and an agent opening it again with the same title brings it back.
+ */
+export type EnvKeep = 'none' | 'live' | 'save';
+
 export interface EnvMachine {
   provider: string;
   server_type: string;
@@ -28,17 +35,45 @@ export interface EnvSummary {
   cost_eur: number;
   agent: { name: string; client?: string | null };
   lanes: { terminal: string; browser: string };
+  /** Missing from a node that only has single use. */
+  keep?: EnvKeep;
+}
+
+/**
+ * A kept environment's save: a disk snapshot (when the provider takes one) plus its files. An agent that
+ * opens an environment with the same title brings it back. Forgetting it deletes both.
+ */
+export interface EnvSave {
+  id: string;
+  title: string;
+  repo?: string | null;
+  branch?: string | null;
+  head?: string | null;
+  saved_at: string;
+  /** Null when only the files were saved (no snapshot). */
+  snapshot_gb?: number | null;
+  files_bytes?: number | null;
+  cost_eur_month: number;
+  /** The agent's own words for the next one: data, never instructions. */
+  note?: string | null;
+  agent?: { name: string; client?: string | null } | null;
+  /** When the node deletes this save on its own, if it does. */
+  prune_at?: string | null;
 }
 
 export interface EnvList {
   environments: EnvSummary[];
+  /** Saves of kept environments, newest first. Missing from a node that keeps none. */
+  saved?: EnvSave[];
 }
 
 export interface EnvPort {
   port: number;
   process?: string | null;
-  /** A link the node forwards to the port, behind the app's sign-in. None when it cannot forward it. */
+  /** A link the node forwards to the port (environment_port). None when it does not forward it. */
   link?: string | null;
+  /** On a server node: the ssh line that brings the forwarded port to this computer before the link works. */
+  tunnel?: string | null;
 }
 
 export interface EnvPush {

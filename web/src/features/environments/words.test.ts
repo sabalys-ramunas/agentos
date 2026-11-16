@@ -2,7 +2,7 @@ import { ApiError } from '@/api/http';
 import type { EnvSummary } from '@/api/types';
 import { seedEnvironments } from '@/mocks/environments';
 import { unsavedFrom, unsavedWords } from './close-flow';
-import { agentWords, closedReason, commandStatus, euro, hourly, isJob, leftOf, machineWhere, openSummary, pullRequestLink, repoName, span, splitEnvironments } from './words';
+import { agentWords, closedReason, commandStatus, euro, hourly, idleCost, idleShort, isJob, keepOf, leftOf, machineWhere, monthly, openSummary, pruneWords, pullRequestLink, repoName, saveHolds, size, span, splitEnvironments } from './words';
 
 const NOW = Date.parse('2026-11-13T12:00:00Z');
 const summaries = (): EnvSummary[] => seedEnvironments(NOW).map((item) => item.detail);
@@ -87,5 +87,32 @@ describe('the pull request link of a pushed branch', () => {
     expect(pullRequestLink('github.com/me/shop', 'trunk', 'trunk')).toBeNull();
     expect(pullRequestLink('gitlab.com/me/shop', 'feat/x')).toBeNull();
     expect(pullRequestLink(null, 'feat/x')).toBeNull();
+  });
+});
+
+describe('the words of keeping', () => {
+  it('says what each mode costs while unused', () => {
+    expect(keepOf({})).toBe('none');
+    expect(idleCost({ keep: 'none', price_hourly_eur: 0.0121 })).toBe('Nothing after it is deleted');
+    expect(idleCost({ keep: 'live', price_hourly_eur: 0.0107 })).toBe('€7.81 a month while unused');
+    expect(idleCost({ keep: 'live', price_hourly_eur: 0 })).toBe('Nothing while unused');
+    expect(idleCost({ keep: 'save', price_hourly_eur: 0.0121 })).toBe('Cents a month while saved');
+    expect(idleCost({ keep: 'save', price_hourly_eur: 0.0121 }, { cost_eur_month: 0.05 })).toBe('€0.05 a month while saved');
+    expect(idleShort({ keep: 'none', price_hourly_eur: 0.0121 })).toBeNull();
+    expect(idleShort({ keep: 'save', price_hourly_eur: 0.0121 })).toBe('cents a month');
+    expect(monthly(0)).toBe('Free');
+  });
+
+  it('says what a save holds, and when the node deletes it only when that is soon', () => {
+    expect(saveHolds({ snapshot_gb: 14, files_bytes: 1 })).toBe('14 GB snapshot');
+    expect(saveHolds({ snapshot_gb: 9.46, files_bytes: 1 })).toBe('9.5 GB snapshot');
+    expect(saveHolds({ snapshot_gb: null, files_bytes: 41 * 1024 * 1024 })).toBe('Files only, 41 MB');
+    expect(saveHolds({ snapshot_gb: null, files_bytes: null })).toBe('Files only');
+    expect(size(300)).toBe('1 KB');
+    expect(size(3 * 1024 ** 3)).toBe('3.0 GB');
+    expect(pruneWords({ prune_at: null }, NOW)).toBeNull();
+    expect(pruneWords({ prune_at: new Date(NOW + 30 * 86_400_000).toISOString() }, NOW)).toBeNull();
+    expect(pruneWords({ prune_at: new Date(NOW + 2 * 86_400_000).toISOString() }, NOW)).toBe('Deleted in 2 days unless an agent opens it again');
+    expect(pruneWords({ prune_at: new Date(NOW - 1).toISOString() }, NOW)).toBe('Deleted soon unless an agent opens it again');
   });
 });
