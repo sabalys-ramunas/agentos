@@ -428,6 +428,15 @@ agent gets a link to it on the node's own address, good for 15 minutes (`environ
 `curl -o proof.png "<url>"`. The web app's environment page shows them too
 (`GET /api/orgs/{org}/environments/{id}` lists `proofs`, and each `src` is its PNG).
 
+### Who the commits are by
+
+With a GitHub login saved (`agentos setup github`), an environment's git commits as you: your GitHub
+display name and your GitHub noreply address, `<id>+<login>@users.noreply.github.com`, so the commits
+link to your account without showing your email. agentos asks GitHub for the account's number once,
+with the saved login, and keeps it in `git/login.json`; only the name and the address reach the VM,
+never a token. Without a login (or when GitHub cannot be asked), commits are by the agent: its name and
+`agent@agentos.invalid`. An agent may still set its own with `git config` on the machine.
+
 ### Pull requests
 
 After `git push origin <branch>`, `environment_pull_request(title, body=None, base=None,

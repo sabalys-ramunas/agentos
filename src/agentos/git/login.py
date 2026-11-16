@@ -46,6 +46,17 @@ class Login(BaseModel):
     source: Literal["gh", "token"] = "token"
     any_repo: bool = False
     saved_at: str = ""
+    user_id: int | None = None               # the account's number, for its noreply address (asked once)
+    name: str = ""                           # its display name, for commits
+
+
+def committer(saved: Login | None) -> tuple[str, str] | None:
+    """Who an environment's commits are by: the login's own name and GitHub noreply address
+    (<id>+<login>@users.noreply.github.com, which links a commit to the account without its real email),
+    or None without a GitHub login or before its id is known."""
+    if saved is None or saved.host != HOST or not saved.login or saved.user_id is None:
+        return None
+    return (saved.name or saved.login)[:100], f"{saved.user_id}+{saved.login}@users.noreply.github.com"
 
 
 def settings_path(home: Path) -> Path:

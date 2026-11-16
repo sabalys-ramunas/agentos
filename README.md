@@ -44,6 +44,7 @@ and want it to do more than edit files:
 - ✅ **Run several agents at once**, each on its own machine, so they never fight over ports,
   branches or `node_modules`.
 - ✅ **Pick up tomorrow** where the agent stopped, with everything still installed.
+- ✅ **Use its own shell on the machine**: `ssh agentos-<id>`, `rsync` and `scp`, as if it were local.
 
 It is not another agent, chat or IDE. Your agent stays where it is, and agentos gives it a machine.
 
@@ -57,10 +58,11 @@ curl -fsSL https://raw.githubusercontent.com/sabalys-ramunas/agentos/main/script
 ```
 
 Setup takes about five minutes: paste a Hetzner Cloud token (or use Docker), reuse your GitHub
-login, and it connects Claude Code and Codex for you. Every step can be skipped and changed later.
+login, and it connects Claude Code and Codex for you (and `ssh` to your agents' machines). Every step
+can be skipped and changed later.
 
 <p align="center">
-  <img src="assets/readme/setup.png" width="100%" alt="agentos setup in a terminal: the install line, a welcome that says nothing bills until a VM opens, a quick start, then four steps (VMs on Hetzner Cloud with the token checked and a dev snapshot built, the GitHub login from gh, how environments stay with saves when idle chosen, and Claude Code, Codex and the skills connected), a health check where every row says ready, and the line All set. Nothing bills until an agent opens a VM.">
+  <img src="assets/readme/setup.png" width="100%" alt="agentos setup in a terminal: the install line, a welcome that says nothing bills until a VM opens, a quick start, then five steps (VMs on Hetzner Cloud with the token checked and a dev snapshot built, the GitHub login from gh, how environments stay with saves when idle chosen, Claude Code, Codex and the skills connected, and ssh from your shell), a health check where every row says ready, and the line All set. Nothing bills until an agent opens a VM.">
 </p>
 
 > [!TIP]
@@ -102,7 +104,9 @@ with a screenshot and the pull request link. You can take over the browser at an
 1. **Your agent asks for a computer** when the task needs one. agentos rents a VM, clones your
    repository into it and starts a browser there.
 2. **The agent works on it like on its own laptop.** It edits files, runs the tests, starts the dev
-   server and opens the page in the browser, where `localhost` is the VM.
+   server and opens the page in the browser, where `localhost` is the VM. It can also use its own
+   shell: `ssh agentos-<id>`, `rsync` and `scp`. Dev servers keep running when agentos restarts or
+   updates.
 3. **It shows you the result**: screenshots kept as proof, at desktop and phone width, and a pushed
    branch with its pull request link. Pushes go through agentos, so the VM never holds your key.
 4. **The VM goes away.** A one-off fix deletes it. Longer work saves the whole machine and deletes
@@ -149,6 +153,10 @@ you.
 - 🌿 **Your branches are safe.** The agent pushes new branches. It never deletes or rewrites your
   default branch, protected branches, tags, or branches someone else pushed.
 - 🧱 **Commands only on the VM.** The agent's commands run in its environment, never on your laptop.
+- 🔒 **One chat per machine.** Each machine answers only the chat that opened it, so two agents never
+  work on the same computer by accident.
+- ✍️ **Commits are yours.** With your GitHub login saved, commits carry your GitHub name and noreply
+  address, so they link to your account without showing your email.
 - 👀 **You can always watch.** Every environment has a live view of its browser, and you can take
   over with one click.
 - 💶 **Hard limits.** Past the monthly cap, the time limit or the VM count, opening is refused.
@@ -241,7 +249,8 @@ forget it. Your keys are not: no token, password or account ever reaches the VM.
 
 Yes, while an agent works. The agent runs on your laptop and reaches its VM through agentos there.
 When the laptop sleeps, an environment that saves when idle is saved and its VM deleted, so nothing
-bills overnight. For machines that keep working while you sleep, run agentos on a server (below).
+bills overnight. A dev server on the VM keeps running while agentos restarts or updates. For
+machines that keep working while you sleep, run agentos on a server (below).
 
 </details>
 
@@ -315,13 +324,14 @@ Install, hardening, backups and upgrades: [deploy/README.md](deploy/README.md).
 
 | Tool | What it does |
 |:--|:--|
-| `environment_open(title, repo, keep)` | opens a computer (or resumes the one with that title) with the repo in `/work/<name>` and a browser |
+| `environment_open(title, repo, keep)` | opens a computer (or resumes the one with that title) with the repo in `/work/<name>` and a browser; returns `on`, which every later call carries |
 | `environment()` | what is open and saved, the cost so far, ports, git, and the pull request link |
 | `environment_close(note)` | ends it: deleted, or saved with a note for the next agent |
 | `environment_save(note)` | saves the whole machine now, before a risky step |
 | `environment_upload()`, `environment_download(path)` | one-use links to send a local checkout up, or a file down to you |
 | `lane_file_read`, `lane_file_edit`, `lane_exec` | read and edit code, run a command on the VM |
-| `lane_job_start`, `lane_job_read` | dev servers and long jobs |
+| `lane_job_start`, `lane_job_read(until_port=3000)` | dev servers and long jobs; wait until a port listens |
+| `ssh agentos-<id>` (local mode) | the agent's own shell on the machine, with `scp` and `rsync` |
 | `browser_navigate`, `browser_snapshot`, `browser_act` | the VM's browser: read the page as an outline, act by reference |
 | `browser_screenshot(proof=...)` | a screenshot kept as proof, at desktop or phone width |
 

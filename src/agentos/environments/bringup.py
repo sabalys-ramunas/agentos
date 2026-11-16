@@ -279,7 +279,11 @@ class BringUp:
                 await together(steps.run("browser", self._make_browser(env)), steps.run("clone", self._clone(env)),
                                *early)
             else:
-                mkdir = self.envs().exec(env.terminal_lane, f"mkdir -p {machine.WORK}", timeout_s=CHECK_TIMEOUT_S)
+                from agentos.environments.identity import committer, git_identity_cmd
+
+                who = git_identity_cmd(await committer(self), env.agent)  # a repository made here commits as them too
+                mkdir = self.envs().exec(env.terminal_lane, f"mkdir -p {machine.WORK} && {{ {who}; }} || true",
+                                         timeout_s=CHECK_TIMEOUT_S)
                 await together(steps.run("browser", self._make_browser(env)), mkdir, *early)
         finally:
             for t in early:
@@ -474,11 +478,12 @@ class BringUp:
         # (public): all of it, at the cloud's speed.
         blobless = declared and env.id not in self._fetch_direct
         how = "--filter=blob:none " if blobless else ""
+        from agentos.environments.identity import committer, git_identity_cmd
+
+        who = git_identity_cmd(await committer(self), env.agent)  # the owner's GitHub account, else the agent
         cmd = (f"mkdir -p {machine.WORK} && if [ ! -d {q(dest)}/.git ]; then "
                f"git clone -q {how}{q(url)} {q(dest)}{checkout}; fi && cd {q(dest)} && "
-               "(git config --global user.name >/dev/null || git config --global user.name "
-               f"{q(env.agent[:60] or 'agentos agent')}) && (git config --global user.email >/dev/null || "
-               "git config --global user.email agent@agentos.invalid) && git rev-parse --abbrev-ref HEAD")
+               f"{who} && git rev-parse --abbrev-ref HEAD")
         # a declared repository goes through the gateway by the VM's own git config (_git_setup)
         res = await self.envs().exec(env.terminal_lane, cmd, timeout_s=CLONE_TIMEOUT_S)
         if res.exit_code != 0:

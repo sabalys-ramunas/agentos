@@ -6,6 +6,51 @@ All notable changes to agentos are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-16
+
+Agents work on their computer the way they work locally, one chat per machine, and a lot less waiting.
+Built from three rounds of agent testers and two field reports from a real project.
+
+### Changed
+
+- **One chat per machine.** `environment_open` returns `on`, a handle only that chat has; every call to
+  the machine carries it. Another chat's title is `environment_in_use`; `take_over=true` moves a machine
+  that has been quiet for 10 minutes. Clients that send no session id must pass `on` on every call.
+- **Commits are yours.** With your GitHub login saved, an environment's commits carry your GitHub name
+  and noreply address (they link to your account without your real email); without one, the agent's.
+- **One count limit** (`environment_full`, with `retry_after`), and `environment_open` waits for a free
+  slot up to its `wait_s` instead of failing.
+
+### Added
+
+- **The agent's own shell:** `ssh agentos-<id>`, `scp` and `rsync` from the laptop (`agentos setup ssh`
+  adds one Include line to `~/.ssh/config`). Each machine has its own key; port forwards are off
+  (`environment_port` gives a local link to a dev server).
+- **Dev servers survive agentos.** Jobs run detached on the VM with their output in files there; a restart
+  or an update of agentos reattaches to them with the same job ids and offsets.
+- `lane_job_read(until_port=3000)` waits on the machine until a dev server listens (or returns the job's
+  end), and `environment(on=...)` waits up to a minute for a starting machine: no more polling.
+- **Memory:** every VM gets swap, and a process the kernel kills for memory is named in the job's and
+  the command's result, with the machine's memory and the next size.
+- A resume brings back dev servers from what was listening when the machine was saved.
+
+### Fixed
+
+- Opening is about three times faster (81 s instead of 255 s on a real run): the local service no longer
+  runs as a throttled macOS Background job, the setup check is one call, the clone through the laptop is
+  blobless (a quarter of the bytes), public repositories clone straight from GitHub, and the mirror warms
+  while the VM boots.
+- Nothing runs on a machine that is still starting (a git command during the clone broke it); a failed
+  one says why on the next call.
+- No system updates in the middle of a session (they reloaded systemd and restarted the network under a
+  starting browser): they are applied when a VM is set up and when the dev snapshot is built, and a
+  kept-running machine gets them at a quiet moment.
+- A save could be undone by the reaper and leave its title held; a push could reuse a fetch from before
+  it and let a force push over a colleague's commit through. Both fixed.
+- Clearer errors: which browser launch step hung, the `pkill -f` that killed its own shell, the two
+  limits' words, `which_environment` naming the open titles, and `unsaved_work` offering a git bundle.
+- Installed skills refresh when the service starts; `agentos local status` shows the right start time.
+
 ## [0.2.0] - 2026-11-16
 
 The first tagged release. agentos is now about agent environments: your coding agent's own
