@@ -210,3 +210,37 @@ async def test_a_plan_that_fails_still_says_so_first_and_stops_the_check(node, m
         await node["call"]("environment_open", title="Other", repo="github.com/me/gone", wait_s=0)
     await asyncio.wait_for(stopped.wait(), 1.0)
     assert probed and not mgr.store.open()
+
+
+# ------------------------------------------------------------------ the provider's types, read before an open needs them
+
+
+async def test_the_reaper_keeps_the_server_types_fresh_so_no_open_waits_for_them(tmp_path):
+    from test_vms import Clock
+
+    from agentos.core.runtime import Runtime
+    from agentos.vms.manager import OFFERS_TTL, VmManager
+    from agentos.vms.models import VmSettings
+    from agentos.vms.provider import FakeProvider
+
+    class Counting(FakeProvider):
+        reads = 0
+
+        async def server_types(self):
+            Counting.reads += 1
+            return await super().server_types()
+
+    clock = Clock()
+    vms = VmManager(tmp_path, runtime=Runtime(), provider=Counting(), settings=VmSettings(), node_name="n1",
+                    clock=clock)
+    await vms.fresh_offers()  # the reaper's first round, a second after the node starts
+    assert Counting.reads == 1
+    await vms.plan("env/eabcdefghjk", ttl_minutes=60)
+    await vms.fresh_offers()
+    assert Counting.reads == 1  # the open used them; still fresh
+    clock.advance(seconds=OFFERS_TTL.total_seconds() - 60)  # stale within two rounds: read again now
+    await vms.fresh_offers()
+    assert Counting.reads == 2
+    clock.advance(seconds=OFFERS_TTL.total_seconds() - 1)
+    await vms.plan("env/eabcdefghjk", ttl_minutes=60)
+    assert Counting.reads == 2 and vms._offers is not None and clock() - vms._offers[0] < OFFERS_TTL

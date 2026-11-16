@@ -233,12 +233,23 @@ class VmManager:
         await asyncio.sleep(1)
         while True:
             if self.configured:
+                await self.fresh_offers()
                 try:
                     self.last_reap = await self.reap_once()
                 except Exception as e:  # noqa: BLE001
                     log.warning("vm reaper: %s", getattr(e, "message", e))
                     self.last_reap = {"at": _iso(self._clock()), "error": str(getattr(e, "message", e))}
             await asyncio.sleep(self.settings.reap_interval_s)
+
+    async def fresh_offers(self) -> None:
+        """Read the provider's server types again before they go stale (OFFERS_TTL), so no open waits
+        for them (Hetzner: types and datacenters; docker: `docker info`, 0.8 s). The reaper calls it, the
+        first time a second after the node starts. A failure leaves it to the next open or round."""
+        early = OFFERS_TTL - timedelta(seconds=2 * self.settings.reap_interval_s)
+        if self._offers is not None and self._clock() - self._offers[0] < early:
+            return
+        with contextlib.suppress(Exception):
+            self._offers = (self._clock(), await self.provider().server_types())
 
     # ================================================================ create
     def _ttl(self, minutes: int | None, *, kept: bool = False) -> int:
