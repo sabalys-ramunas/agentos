@@ -38,6 +38,7 @@ from agentos.core.models import LaneState, parse_lane_id, utcnow
 from agentos.env.models import RemoteHost
 from agentos.vms import capacity, repos, ssh
 from agentos.vms import keys as vmkeys
+from agentos.vms.addresses import EXIT_IP_URLS, lookup_public_ips
 from agentos.vms.images import image_script
 from agentos.vms.models import TOKEN_FILE, Size, VmError, VmFull, VmLimit, VmRecord, VmSettings, load_settings
 from agentos.vms.provider import Provider, ServerSpec, boot_error_words, server_state
@@ -50,8 +51,6 @@ ENV_SAVE_GRACE = timedelta(minutes=15)    # an environment's VM past its limit: 
 SNAPSHOT_WAIT_S = 1200.0  # how long a snapshot the provider still makes is waited for
 SNAPSHOT_POLL_S = 5.0
 ORPHAN_GRACE = timedelta(minutes=10)      # an unknown server younger than this may still be ours, being made
-EXIT_IP_URLS = ("https://api.ipify.org", "https://ipinfo.io/ip")
-EXIT_IP6_URLS = ("https://api6.ipify.org", "https://v6.ipinfo.io/ip")
 MAX_DELETE_BACKOFF_S = 600
 BOOT_POLL_S = 3.0                         # between SSH probes while a VM boots
 IMAGE_BUILD_MAX = timedelta(hours=2)      # a build VM older than this is deleted by any reaper
@@ -71,23 +70,6 @@ def _label_value(text: str) -> str:
 
 def _iso(dt: datetime | None) -> str | None:
     return dt.isoformat() if dt else None
-
-
-async def lookup_public_ips() -> list[str]:
-    """This computer's public IPv4 address and, when it has one, its IPv6 address, as the internet
-    sees them: each asked over its own address family. [] when nothing answered."""
-    out: list[str] = []
-    for local, urls in (("0.0.0.0", EXIT_IP_URLS), ("::", EXIT_IP6_URLS)):
-        for url in urls:
-            try:
-                transport = httpx.AsyncHTTPTransport(local_address=local)
-                async with httpx.AsyncClient(timeout=10, transport=transport) as c:
-                    r = await c.get(url, headers={"User-Agent": "agentos-vms", "Accept": "text/plain"})
-                out.append(str(ipaddress.ip_address(r.text.strip())))
-                break
-            except (httpx.HTTPError, ValueError, OSError):
-                continue
-    return out
 
 
 def _give_launcher(envs: Any) -> None:
@@ -505,14 +487,9 @@ class VmManager:
         prov = self.provider()
         k = vmkeys.make(self.dir, rec.id)
         labels = self._labels(rec.id, rec.lane_id)
-        fw = None
-        if self.settings.firewall and getattr(prov, "firewall", True):
-            fw = await prov.ensure_firewall(f"agentos-{self.node}-{self.home_id}", self._labels(),
-                                            await self._ssh_from())
-        image = await prov.resolve_image(rec.image)
-        key_id = await prov.create_ssh_key(f"agentos-{rec.id}", k.client_pub, labels)
+        fw, image, key_id, zones, types = await self._before_create(rec, k.client_pub, labels)
         tries = capacity.plan_tries((rec.server_type, rec.price_hourly_eur), list(rec.fallbacks), rec.location,
-                                    await self._zones(), await self._types_or_none())
+                                    zones, types)
 
         async def make(server_type: str, location: str) -> Any:
             return await prov.create_server(ServerSpec(
@@ -532,6 +509,29 @@ class VmManager:
         rec.port = server.ssh_port
         self.store.put(rec)
         return rec
+
+    async def _before_create(self, rec: VmRecord, client_pub: str, labels: dict[str, str]) -> tuple:
+        """What a server is made with, asked of the provider at once (each is an API call on Hetzner, and
+        they do not depend on each other): its firewall, the image, the SSH key, the locations and the
+        types. The first failure in that order is raised, and a key made beside it is deleted."""
+        prov = self.provider()
+
+        async def firewall() -> str | None:
+            if not (self.settings.firewall and getattr(prov, "firewall", True)):
+                return None
+            return await prov.ensure_firewall(f"agentos-{self.node}-{self.home_id}", self._labels(),
+                                              await self._ssh_from())
+
+        got = await asyncio.gather(firewall(), prov.resolve_image(rec.image),
+                                   prov.create_ssh_key(f"agentos-{rec.id}", client_pub, labels),
+                                   self._zones(), self._types_or_none(), return_exceptions=True)
+        failed = next((g for g in got if isinstance(g, BaseException)), None)
+        if failed is not None:
+            if not isinstance(got[2], BaseException):
+                with contextlib.suppress(Exception):  # the reaper removes it later if this fails
+                    await prov.delete_ssh_key(got[2])
+            raise failed
+        return tuple(got)
 
     def _remote(self, rec: VmRecord) -> RemoteHost:
         d = self.dir / rec.id
