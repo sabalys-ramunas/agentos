@@ -333,6 +333,26 @@ def test_a_script_writes_its_process_group_for_the_stop_and_keeps_its_exit_statu
     assert r.returncode == 3 and r.stdout.strip().isdigit() and not (Path(base) / "r-ab12.pgid").exists()
 
 
+def test_the_stop_waits_for_a_script_whose_session_opened_late(base, monkeypatch):
+    """A timeout can come before a slow session opened: the stop waits up to a second for the script's
+    process group to be written, then kills it."""
+    import subprocess
+
+    monkeypatch.setattr(ssh, "PGID_DIR", base)
+    script = ssh.grouped("r-late1", "sleep 30")
+    late = subprocess.Popen(["sh", "-c", "sleep 0.4; exec bash -s"], stdin=subprocess.PIPE, start_new_session=True)
+    assert late.stdin is not None
+    late.stdin.write(script.encode())
+    late.stdin.close()
+    try:
+        subprocess.run(["sh", "-c", ssh.run_stop_script("r-late1")], check=True, timeout=5)
+        assert late.wait(timeout=3) == -signal.SIGKILL
+        assert not (Path(base) / "r-late1.pgid").exists()
+    finally:
+        with contextlib.suppress(ProcessLookupError):
+            os.killpg(late.pid, signal.SIGKILL)
+
+
 async def test_stop_ends_a_vm_s_master_and_stop_all_the_ones_this_process_started(mux, base, monkeypatch):
     monkeypatch.setattr(ssh, "SSH", str(fake_ssh(base, "exit 0")))
     path = mux.path(R)

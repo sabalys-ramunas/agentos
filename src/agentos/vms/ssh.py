@@ -400,12 +400,26 @@ async def run(remote: RemoteHost, script: str, *, timeout_s: float = 900.0) -> t
     return proc.returncode or 0, out.decode(errors="replace")[-4000:]
 
 
+RUN_STOP_WAIT_S = 1.0  # how long the stop waits for a script that has not written its process group yet
+
+
+def run_stop_script(wid: str) -> str:
+    """stop_script KILL for a script of ssh.run, once its pgid file is there: a timeout can come before a
+    slow session opened and the script's first line wrote it, so this waits up to RUN_STOP_WAIT_S. A
+    session that opens later still runs its script to the end while its slot here is back already; that
+    window (a session slower than the timeout plus a second) is accepted: it ends with the script."""
+    f = shlex.quote(pgid_file(wid))
+    n = int(RUN_STOP_WAIT_S / 0.05)
+    return (f"i=0; while [ ! -e {f} ] && [ $i -lt {n} ]; do sleep 0.05; i=$((i+1)); done; "
+            + stop_script(wid, "KILL"))
+
+
 def _start_stop(remote: RemoteHost, wid: str) -> subprocess.Popen | None:
-    """The ssh that kills a script's process group on the VM (stop_script), as a plain Popen: a task
+    """The ssh that kills a script's process group on the VM (run_stop_script), as a plain Popen: a task
     cancelled while asyncio starts a subprocess can hang the closing of its loop (seen in a script that
     ended right after a timeout)."""
     try:
-        return subprocess.Popen([*ssh_base(remote), stop_script(wid, "KILL")], stdin=subprocess.DEVNULL,
+        return subprocess.Popen([*ssh_base(remote), run_stop_script(wid)], stdin=subprocess.DEVNULL,
                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
     except OSError:
         return None
