@@ -14,7 +14,7 @@ from agentos.core.errors import (
     PolicyDenied,
 )
 from agentos.env import sync as syncs
-from agentos.env.jobs import OOM_EVERY_S, Job, new_job_id
+from agentos.env.jobs import OOM_EVERY_S, Job, _read_at, new_job_id
 from agentos.env.models import (
     EnvLane,
     JobInfo,
@@ -145,6 +145,10 @@ class Jobs:
             info.stdout_bytes = job.out.total if job.out else info.stdout_bytes
             info.stderr_bytes = job.err.total if job.err else info.stderr_bytes
         return info, out, err
+
+    async def job_log(self, job_id: str, stream: str, offset: int, n: int) -> bytes:
+        """`n` bytes of a job's stdout or stderr log from `offset`, as kept on the node, without waiting."""
+        return await asyncio.to_thread(_read_at, self.jobs.get(job_id).log_path(stream), max(0, offset), n)
 
     async def job_wait_port(self, job_id: str, port: int, wait_s: float) -> bool:
         """Wait up to `wait_s` for `port` to listen in the job's lane (port_wait_script, one command

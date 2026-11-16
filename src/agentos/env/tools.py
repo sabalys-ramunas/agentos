@@ -385,11 +385,11 @@ async def lane_job_read(ctx: ToolContext, *, job: str, on: str | None = None, st
                         stderr_offset: int = 0, wait_ms: int = 1000, max_bytes: int = JOB_READ_BYTES,
                         base64_output: bool = False, until_exit: bool = False, until_port: int = 0) -> dict:
     """Read a job's output after your byte offsets, waiting up to wait_ms (30000) for more while it
-    runs. until_exit=true waits for the job to end; until_port=3000 for that port to listen or the
-    job to end (then the end of its output); both wait_ms up to 120000. Pass back
-    next_stdout_offset and next_stderr_offset; stdout_bytes is the size so far (to read only the
-    end, stdout_offset=stdout_bytes-8000). `state`: running, exited, cancelled, timed_out or lost;
-    then exit_code (or signal). `oom`: what the kernel killed for memory. Effect: read."""
+    runs. until_exit=true waits for the job to end (then its start and its end, a marker naming any
+    bytes skipped); until_port=3000 for that port to listen or the job to end (then the end of its
+    output); both wait_ms up to 120000. Pass back next_stdout_offset and next_stderr_offset;
+    stdout_bytes is the size so far. `state`: running, exited, cancelled, timed_out or lost; then
+    exit_code (or signal). `oom`: what the kernel killed for memory. Effect: read."""
     mgr = _mgr(ctx)
     j = mgr.job(job)
     await ctx.authorize(Effect.READ, lane_id=j.info.lane)
@@ -409,6 +409,10 @@ async def lane_job_read(ctx: ToolContext, *, job: str, on: str | None = None, st
             stderr_offset = max(stderr_offset, j.kept("stderr") - max_bytes)
     info, out, err = await mgr.job_read(job, stdout_offset=stdout_offset, stderr_offset=stderr_offset,
                                         wait_s=wait_s, max_bytes=max_bytes, until_exit=bool(until_exit))
+    ends = {}
+    if until_exit and not port and not base64_output and info.state != "running":
+        ends = {s: e for s, at, data in (("stdout", stdout_offset, out), ("stderr", stderr_offset, err))
+                if (e := await _start_and_end(mgr, j, s, at, data, max_bytes)) is not None}
     if base64_output:
         so, se, enc = base64.b64encode(out).decode(), base64.b64encode(err).decode(), "base64"
     else:
@@ -421,12 +425,42 @@ async def lane_job_read(ctx: ToolContext, *, job: str, on: str | None = None, st
         res["listening"] = listening
     words = [info.note, oom.note(info.oom, running=info.state == "running"),
              self_kill_note(info.cmd, info.exit_code, info.signal, what="job") if info.state == "exited" else None]
+    for stream, (text, end, said) in ends.items():
+        res[stream], res[f"next_{stream}_offset"] = text, end
+        words.append(said)
     if port and not listening:
         words.append(f"Port {port} does not listen yet; call again to wait longer." if info.state == "running" else
                      f"The job ended before port {port} listened: stdout and stderr are the end of its output.")
     if any(words[1:]):
         res["note"] = " ".join(w for w in words if w)
     return res
+
+
+async def _start_and_end(mgr: Any, j: Any, stream: str, offset: int, data: bytes,
+                         max_bytes: int) -> tuple[str, int, str] | None:
+    """lane_job_read(until_exit) of a job that ended with more of `stream` after `offset` than one
+    read: what an agent waits for is the end (the error, the summary). The start and the end as
+    lane_exec keeps them (a quarter and three quarters of max_bytes), cut at line ends, with a
+    marker that names the bytes skipped and the offset that reads them. (text, next offset, note),
+    or None when `data` is all there is."""
+    kept = j.kept(stream)
+    if offset + len(data) >= kept:
+        return None
+    head = data[:max(1, max_bytes // 4)]
+    cut = head.rfind(b"\n")
+    head = head[:cut + 1] if cut >= 0 else execs._trim_utf8_end(head)[0]
+    room = max(1, max_bytes - len(head))
+    raw = await mgr.job_log(j.info.id, stream, kept - room - 1, room + 1)  # one byte more: is it a line start?
+    tail = raw[1:]
+    if raw[:1] != b"\n":
+        line = tail.find(b"\n")
+        tail = tail[line + 1:] if 0 <= line < len(tail) - 1 else execs._trim_utf8_start(tail)
+    skip_from, skipped = offset + len(head), kept - len(tail) - offset - len(head)
+    text = head.decode("utf-8", "replace") + ("\n" if head and not head.endswith(b"\n") else "") + (
+        f"[agentos: {skipped} bytes skipped here, of {kept} in all; read them with {stream}_offset={skip_from}]\n"
+    ) + tail.decode("utf-8", "replace")
+    return text, kept, (f"The job ended with more {stream} than max_bytes: {stream} is its start and its end, "
+                        f"{skipped} bytes skipped between them (read them with {stream}_offset={skip_from}).")
 
 
 def _int(value: Any, name: str) -> int:
