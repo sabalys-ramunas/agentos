@@ -171,3 +171,23 @@ async def test_a_read_returns_early_when_the_kernel_killed_one_of_the_jobs_proce
     assert r["state"] == "running" and r["oom_killed"] is True and r["oom"][0]["pid"] == 4242
     assert "of this job" in r["note"] and "lane_job_cancel" in r["note"]
     await t["lane_job_cancel"](ctx, job=job["id"])
+
+
+async def test_the_read_that_shows_a_killed_line_also_says_what_killed_it(env, monkeypatch):
+    """Live on Hetzner (2026-11-16): the first read returned on the shell's "Killed" line before the
+    background probe ran, so it had oom null; the next read had the note. Now that read asks at once."""
+    kills = oom.parse(KERNEL, elapsed_s=999)[:1]
+    asked = []
+
+    async def fake(self, wid, *, elapsed_s, final=False):
+        asked.append(elapsed_s)
+        return kills if len(asked) > 1 else []  # the first background probe ran before the kill
+
+    monkeypatch.setattr(Job, "on_vm", property(lambda self: self.rt is not None))
+    monkeypatch.setattr(LaneRuntime, "oom_kills", fake)
+    t, ctx = tools(env), Ctx(env)
+    job = await t["lane_job_start"](ctx, on="dev/run", cmd="sleep 0.3; echo Killed >&2; sleep 20")
+    r = await t["lane_job_read"](ctx, job=job["id"], wait_ms=10000)
+    assert "Killed" in r["stderr"] and r["oom_killed"] is True and r["oom"][0]["pid"] == 4242
+    assert "of this job" in r["note"]
+    await t["lane_job_cancel"](ctx, job=job["id"])

@@ -366,8 +366,21 @@ class JobTable:
                     with contextlib.suppress(TimeoutError):
                         await asyncio.wait_for(job.changed.wait_for(ready), min(left, OOM_EVERY_S))
                     self.probe_oom(job)
-        return (await asyncio.to_thread(_read_at, job.log_path("stdout"), stdout_offset, max_bytes),
-                await asyncio.to_thread(_read_at, job.log_path("stderr"), stderr_offset, max_bytes))
+        out = await asyncio.to_thread(_read_at, job.log_path("stdout"), stdout_offset, max_bytes)
+        err = await asyncio.to_thread(_read_at, job.log_path("stderr"), stderr_offset, max_bytes)
+        if b"Killed" in err and len(job.info.oom or []) == kills:
+            await self._ask_oom_now(job)  # the shell says a process was killed: say why in this read
+        return out, err
+
+    async def _ask_oom_now(self, job: Job) -> None:
+        """Ask the kernel now, whenever it was last asked, and wait for the answer (a few seconds
+        at most), so the read that shows a shell's "Killed" line also says what killed it."""
+        if job.oom_task is None or job.oom_task.done():
+            job.oom_asked = None
+        task = self.probe_oom(job)
+        if task is not None:
+            with contextlib.suppress(Exception):
+                await asyncio.wait_for(asyncio.shield(task), oom.PROBE_TIMEOUT_S + 2)
 
 
 def _read_at(path: Path, offset: int, n: int) -> bytes:
