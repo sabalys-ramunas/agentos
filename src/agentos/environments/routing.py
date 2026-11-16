@@ -52,7 +52,8 @@ STUDIO = frozenset({"ui_check", "ui_diff", "ui_baseline", "system_check"})
 # (round 3, T2: "lane_job_read has no argument 'on'"); the handler checks it is the job's lane.
 ON_ONLY = frozenset({"lane_jobs_list", "lane_job_read", "lane_job_cancel"})
 
-LANE_ARG_TEXT = "The on your environment_open gave, or an account lane \"workspace/name\"."
+# in about 23 tools of the default list, so in every turn's tool list: environment_open says where on comes from
+LANE_ARG_TEXT = "Your environment's on, or an account lane \"workspace/name\"."
 
 
 def kind_of(tool: str) -> str | None:
