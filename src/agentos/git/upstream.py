@@ -346,9 +346,11 @@ class Mirror:
             lines.append(f"update {c.ref} {old}\n" if old else f"delete {c.ref}\n")
         await self.git("update-ref", "--stdin", stdin="".join(lines).encode())
 
-    async def push(self, target: Target, auth: Auth, commands: list[Command], force: set[str]) -> None:
+    async def push(self, target: Target, auth: Auth, commands: list[Command]) -> None:
         """Push `commands` from the mirror to the real remote, each guarded by a lease on the value
-        the lane saw, so a branch that moved upstream meanwhile is never overwritten."""
+        the lane saw, so a branch that moved upstream meanwhile is never overwritten. The lease alone
+        lets a force push through when the remote still has that value: a `+` on the refspec would
+        make git skip the lease, and a colleague's commit pushed in between would be lost."""
         args = [*protocol_args(self.allow_file), "push", "--porcelain", "--quiet"]
         if len(commands) > 1:
             args.append("--atomic")
@@ -359,7 +361,7 @@ class Mirror:
             if c.kind == "delete":
                 args.append(f":{c.ref}")
             else:
-                args.append(f"{'+' if c.ref in force else ''}{c.new}:{c.ref}")
+                args.append(f"{c.new}:{c.ref}")
         rc, out, err = await self.git(*args, env=auth.env)
         if rc != 0:
             raise UpstreamError(explain(err + b"\n" + out, target, scrub=auth.scrub))

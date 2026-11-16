@@ -68,8 +68,8 @@ class FakeMirror:
         self.calls.append(["commits", new[:1], [h[:1] for h in haves]])
         return 2, [f"{new[:7]} a change", f"{new[:7]} another"]
 
-    async def push(self, target: Target, auth: Any, commands: list[Command], force: set[str]) -> None:
-        self.calls.append(["push", target.url, auth, [c.ref for c in commands], sorted(force)])
+    async def push(self, target: Target, auth: Any, commands: list[Command]) -> None:
+        self.calls.append(["push", target.url, auth, [c.ref for c in commands]])
         if self.push_error:
             raise UpstreamError(self.push_error)
 

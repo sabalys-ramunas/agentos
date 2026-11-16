@@ -118,8 +118,11 @@ fingerprint, never the secret) and, for one remote, what the owner still has to 
   blobless, and the environments service warms the mirror while the VM boots (`GitService.warm`).
   A push goes into the mirror with `receive-pack` (objects checked with fsck), then the node
   classifies and authorizes each ref, and only then pushes to the real remote, each ref with
-  `--force-with-lease` on the value the lane saw (several refs atomically). A refused, waiting or
-  failed push puts the mirror's refs back; the remote never saw it.
+  `--force-with-lease` on the value the lane saw (several refs atomically). The lease is what lets a
+  force push through, so the refspec has no `+`, which would make git skip it: a commit someone else
+  pushed meanwhile is never lost. A refused, waiting or failed push puts every ref of the push back in
+  the mirror; the remote never saw it. A push that asks for no report of what it did (git always asks
+  for `report-status`; only a hand-made request leaves it out) is refused before the mirror takes it.
 - **SSH keys** are signed for by a small SSH agent inside agentosd (`agentos.git.agent`) on a fresh
   socket in a 0700 directory of its own, for one operation: it holds the key in memory, offers only
   it, signs only an SSH login as `git` (never a commit or file signature), at most four times, and

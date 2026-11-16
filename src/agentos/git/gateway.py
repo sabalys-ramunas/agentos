@@ -447,6 +447,11 @@ class GitGateway:
             push = parse_push(req.body)
         except InvalidRequest as e:
             return Response(400, "text/plain", f"agentos git gateway: {e.message}\n".encode())
+        if not push.capabilities & REPORTS:
+            # Without a report the gateway cannot tell which refs the mirror took, so it could not put
+            # them back; git always asks for one, so only a hand-made request leaves it out.
+            return Response(400, "text/plain", b"agentos git gateway: a push must ask for git's report of what it "
+                                               b"did (report-status). Push with git itself.\n")
 
         def refuse(message: str) -> Response:
             text = "agentos: " + self._scrub(message)
@@ -474,11 +479,25 @@ class GitGateway:
         """One push, in its steps: receive the pack into the mirror, read what each ref does, refuse what
         an environment may not do, ask the policy, then send it upstream. Anything that stops it puts the
         mirror back as it was."""
-        account = self._account(caller, rule)
         steps = steps or Steps(f"push to {remote.slug} for {caller.label}")
         before = await mirror.refs()
         rc, out, _ = await mirror.git("receive-pack", "--stateless-rpc", ".", stdin=body)
         steps.done("receiving the pack")
+        try:
+            return await self._push_received(ctx, caller, rule, remote, target, mirror, push, before, rc, out,
+                                             refuse, steps)
+        except BaseException:
+            # Anything unexpected after the mirror took the pack: put every ref back before it goes up,
+            # so another caller is never served a ref the policy did not let through.
+            with contextlib.suppress(Exception):
+                await mirror.restore(before, push.commands)
+            raise
+
+    async def _push_received(self, ctx: Any, caller: Caller, rule: RemoteRule, remote: Remote, target: Target,
+                             mirror: Mirror, push: Push, before: dict[str, str], rc: int, out: bytes,
+                             refuse: Callable[[str], Response], steps: Steps) -> Response:
+        """The steps of a push after receive-pack put its pack in the mirror (GitGateway._push)."""
+        account = self._account(caller, rule)
         failed = await _receive_failed(mirror, push, before, rc, out)
         if failed is not None:
             return failed
@@ -533,7 +552,7 @@ class GitGateway:
         try:
             async with credential_env(run.target, home=self.home, agent_dir=self.agent_dir,
                                       read_secret=self._read_secret, purpose=purpose) as auth:
-                await run.mirror.push(run.target, auth, run.push.commands, plan.force)
+                await run.mirror.push(run.target, auth, run.push.commands)
         except UpstreamError as e:
             await run.mirror.restore(run.before, run.push.commands)
             run.steps.done("pushing to the remote")
@@ -667,6 +686,7 @@ class Steps:
 # ---------------------------------------------------------------------- a push, step by step
 
 RECEIVE_RESULT = "application/x-git-receive-pack-result"
+REPORTS = frozenset({"report-status", "report-status-v2"})  # a push must ask for one of these (GitGateway._receive)
 
 
 @dataclass
@@ -688,11 +708,10 @@ class _PushRun:
 @dataclass
 class _PushPlan:
     """What a push does, ref by ref: each ref's record (`refs`, the approval binds them), `why` it is
-    irreversible, the `rewrites` an environment may not make, and the refs it force-pushes."""
+    irreversible, and the `rewrites` an environment may not make."""
     refs: list[dict[str, Any]] = field(default_factory=list)
     why: list[str] = field(default_factory=list)
     rewrites: list[str] = field(default_factory=list)
-    force: set[str] = field(default_factory=set)
 
 
 def _without_log(refs: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -701,8 +720,9 @@ def _without_log(refs: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 async def _receive_failed(mirror: Mirror, push: Push, before: dict[str, str], rc: int, out: bytes) -> Response | None:
-    """None when receive-pack applied every ref to the mirror. Otherwise the mirror goes back and git
-    hears why: git's own words for a bad pack, else each ref's reason."""
+    """None when receive-pack applied every ref to the mirror. Otherwise every ref of the push goes back
+    to what it was before (not only those the report says it took: a report can be cut short or say
+    nothing), and git hears why: git's own words for a bad pack, else each ref's reason."""
     try:
         report, _msgs = demux(out, push.sideband)
         unpack, results = parse_report(report)
@@ -711,7 +731,7 @@ async def _receive_failed(mirror: Mirror, push: Push, before: dict[str, str], rc
     applied = [c for c in push.commands if c.ref in results and results[c.ref] is None]
     if unpack == "ok" and len(applied) == len(push.commands):
         return None
-    await mirror.restore(before, applied)
+    await mirror.restore(before, push.commands)
     if unpack != "ok" and rc == 0 and out:
         return Response(200, RECEIVE_RESULT, out)  # the pack itself was bad: git's own words, nothing applied
     reasons = {c.ref: (results.get(c.ref) or "not pushed: another ref of this push was refused")
@@ -743,7 +763,6 @@ async def _plan_ref(plan: _PushPlan, c: Command, mirror: Mirror, rule: RemoteRul
     entry: dict[str, Any] = {"ref": c.ref, "kind": c.kind, "old": oid(c.old), "new": oid(c.new)}
     protected = bool(c.branch and rule.protected(c.branch, default))
     if c.kind == "update" and not await mirror.is_ancestor(c.old, c.new):
-        plan.force.add(c.ref)
         entry["force"] = True
         plan.why.append(f"it force-pushes {c.ref} (commits on the remote would be lost)")
         if protected:
