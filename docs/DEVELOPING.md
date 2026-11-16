@@ -741,6 +741,21 @@ untrusted page data (it taints the grant family as a snapshot does). Tests:
   lists it, and a listed one must not grow. Both lists only shrink:
   `uv run python scripts/complexity.py --update` deletes what you fixed and lowers the numbers.
 
+## Releases
+
+A release is a `vX.Y.Z` tag on the public repository's `main`, with a GitHub release. The
+installer (`scripts/install.sh`) installs the newest such tag unless `AGENTOS_GIT_REF` names
+another ref, so people get a release, never whatever `main` is today. To cut one:
+
+1. Set the version in `pyproject.toml` and `src/agentos/__init__.py` (and `uv lock`).
+2. In `CHANGELOG.md`, rename `[Unreleased]` to `[X.Y.Z] - YYYY-MM-DD` and open a new empty
+   `[Unreleased]` above it.
+3. Push to `main`, wait for CI to pass there, then tag and publish:
+   `gh release create vX.Y.Z --target main --title "agentos X.Y.Z" --notes-file NOTES.md`, with the
+   notes taken from that version's changelog section.
+
+Before 1.0, a minor version may change tools or settings; say so in the release notes.
+
 ## Troubleshooting
 
 - **401 from /mcp**: the token Claude Code sends is not accepted: an agent grant that

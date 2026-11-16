@@ -1,6 +1,6 @@
 [project]
 name = "agentos"
-version = "0.1.0"
+version = "0.2.0"
 description = "Self-hosted cloud dev environments for AI coding agents: a disposable VM with a terminal and a real browser for Claude Code, Codex and any MCP client."
 readme = "README.md"
 license = "Apache-2.0"

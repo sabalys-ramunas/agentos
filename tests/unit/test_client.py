@@ -22,6 +22,7 @@ import pytest
 from test_client_fakes import FakeSystem, NodeServer, wait_until
 from typer.testing import CliRunner
 
+import agentos
 from agentos.client import credentials, ops
 from agentos.client import install as install_mod
 from agentos.client.cli import app
@@ -453,7 +454,7 @@ def test_nodes_and_status(system, node, home):
 
     result = run("status")
     assert result.exit_code == 0, result.output
-    assert f"mynode: node node-test (agentos 0.1.0) via http://localhost:{port}/mcp" in result.output
+    assert f"mynode: node node-test (agentos {agentos.__version__}) via http://localhost:{port}/mcp" in result.output
     assert "lanes: 2 total, 2 cold" in result.output
     assert "personal/reddit" in result.output and "biz-a/instagram" in result.output
     assert TOKEN not in result.output

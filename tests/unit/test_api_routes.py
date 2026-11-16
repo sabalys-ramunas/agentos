@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 from starlette.testclient import TestClient
 
+import agentos
 from agentos.api import ApiSettings, PanelStore, build_api
 from agentos.api.lanes_view import workspace_health
 from agentos.core.config import NodeConfig, load_proxies
@@ -41,7 +42,7 @@ def person(client, store) -> dict:
 
 def test_status(client, rt):
     s = client.get("/api/status", headers=H).json()
-    assert s["version"] == "0.1.0" and s["node"] == "node-1"
+    assert s["version"] == agentos.__version__ and s["node"] == "node-1"
     # 1 pending approval + 1 lane with a captcha
     assert s["needs_you"] == 2
     # the older parts stay as they were; the web's extra parts (failed outcomes, stopped runs, plans,

@@ -40,6 +40,7 @@ SNAPSHOT_GB = 4
 SNAPSHOT_PRICE = "about EUR 0.012 per GB a month"  # Hetzner's snapshot storage
 GH_UNREACHABLE = "could not reach GitHub to check it"
 ANY_REPO_QUESTION = "Let environments clone and push any repository this GitHub login can reach?"
+CLIENT_NAMES = ("Claude Code", "Codex", "Skills")  # the agents step's lines that name a client
 PUSH_RULES = "Push rules still apply: no force push or delete of branches the environment did not create."
 
 
@@ -690,9 +691,12 @@ def agents(ctx: Ctx) -> None:
         ui.say(f"Connecting the agents failed: {getattr(e, 'message', e)}. Run `agentos setup agents` again.")
         ctx.todo.append("the agents")
         return
-    ctx.agents = list(done)
-    for line in ctx.agents:
-        ui.say(f"  {line}")
+    # The grant lines are for `agentos local`; here the person wants to know which agents can reach it.
+    ctx.agents = [name for name, state in (line.split(": ", 1) for line in done if ": " in line)
+                  if name in CLIENT_NAMES and not state.startswith(("skipped", "failed", "not installed"))]
+    for line in done:
+        if not line.startswith(("Agent grant ", "  revoked ")):
+            ui.say(f"  {line}")
 
 
 def restart_if_running(ctx: Ctx) -> None:
@@ -761,7 +765,7 @@ def check(ctx: Ctx) -> None:
     rows = [("Service", *_check_service(ctx)), ("VMs", *_check_vms(ctx)), ("GitHub", *_check_github(ctx)),
             ("Limits", *_check_limits(ctx))]
     if ctx.agents:
-        rows.append(("Agents", True, "connected: " + ", ".join(line.split(":")[0] for line in ctx.agents)))
+        rows.append(("Agents", True, "connected: " + ", ".join(ctx.agents)))
     for what, ok, words in rows:
         mark, color = {True: ("ready", typer.colors.GREEN), False: ("to do", typer.colors.YELLOW),
                        None: ("note", None)}[ok]

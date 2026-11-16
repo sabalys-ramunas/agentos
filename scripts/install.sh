@@ -3,14 +3,14 @@
 #
 #   curl -fsSL https://raw.githubusercontent.com/sabalys-ramunas/agentos/main/scripts/install.sh | sh
 #
-# It installs uv if you do not have it (into ~/.local/bin), then agentos as a uv tool from the
-# git repository with its `local` extra (Playwright, which drives each environment's browser on its
+# It installs uv if you do not have it (into ~/.local/bin), then the newest agentos release as a uv
+# tool from the git repository with its `local` extra (Playwright, which drives each environment's browser on its
 # VM; no browser is downloaded to this computer), puts both on your PATH, and starts `agentos setup` when a terminal is attached
 # (otherwise it prints that one next step). Safe to run again: it updates agentos in place.
 #
 # Environment:
 #   AGENTOS_GIT_URL   the repository to install from (default: AGENTOS_DEFAULT_GIT_URL below)
-#   AGENTOS_GIT_REF   a branch or tag (default main)
+#   AGENTOS_GIT_REF   a branch or tag (default: the newest release tag, vX.Y.Z; main when there is none)
 #   AGENTOS_NO_SETUP  set to 1 to only install, never start agentos setup
 set -eu
 
@@ -18,7 +18,7 @@ set -eu
 AGENTOS_DEFAULT_GIT_URL="https://github.com/sabalys-ramunas/agentos.git"
 
 url="${AGENTOS_GIT_URL:-$AGENTOS_DEFAULT_GIT_URL}"
-ref="${AGENTOS_GIT_REF:-main}"
+ref="${AGENTOS_GIT_REF:-}"
 bin="$HOME/.local/bin"
 
 say() { printf '==> %s\n' "$*"; }
@@ -34,6 +34,13 @@ if ! command -v uv >/dev/null 2>&1; then
   command -v curl >/dev/null 2>&1 || die "curl is not installed"
   curl -LsSf https://astral.sh/uv/install.sh | env UV_NO_MODIFY_PATH=1 sh
   command -v uv >/dev/null 2>&1 || die "uv did not install; see https://docs.astral.sh/uv/"
+fi
+
+# The newest release (the highest vX.Y.Z tag), unless a ref was given; main when there is no release.
+if [ -z "$ref" ]; then
+  ref=$(git ls-remote --tags --refs "$url" 'v*' 2>/dev/null | sed 's#.*refs/tags/##' \
+    | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sed 's/^v//' | sort -t. -k1,1n -k2,2n -k3,3n | tail -n 1) || true
+  if [ -n "$ref" ]; then ref="v$ref"; else ref=main; fi
 fi
 
 say "Installing agentos from $url ($ref)"

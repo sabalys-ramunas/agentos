@@ -72,3 +72,25 @@ def test_installs_from_the_public_repository_by_default(tmp_path):
     proc = run(tmp_path, bin_dir, log)
     assert proc.returncode == 0, proc.stderr
     assert "agentos[local] @ git+https://github.com/sabalys-ramunas/agentos.git@main" in log.read_text()
+
+
+def test_installs_the_newest_release_when_there_are_tags(tmp_path):
+    bin_dir, log = fake_bin(tmp_path, with_uv=True)
+    # git ls-remote lists the tags: v0.10.0 is newer than v0.9.1 (numbers, not text), and a
+    # pre-release or another tag is never picked
+    (bin_dir / "git").write_text(
+        '#!/bin/sh\necho "git $*" >> "$FAKE_LOG"\n'
+        'printf "aaa\\trefs/tags/v0.2.0\\nbbb\\trefs/tags/v0.10.0\\nccc\\trefs/tags/v0.9.1\\n'
+        'ddd\\trefs/tags/v0.11.0-rc1\\neee\\trefs/tags/vnext\\n"\n')
+    proc = run(tmp_path, bin_dir, log, AGENTOS_GIT_URL="https://git.example.test/agentos.git")
+    assert proc.returncode == 0, proc.stderr
+    calls = log.read_text()
+    assert "git ls-remote --tags --refs https://git.example.test/agentos.git v*" in calls
+    assert "agentos[local] @ git+https://git.example.test/agentos.git@v0.10.0" in calls
+    assert "(v0.10.0)" in proc.stdout
+
+    # a ref that is given wins, and no tags are looked up
+    log.write_text("")
+    again = run(tmp_path, bin_dir, log, AGENTOS_GIT_URL="https://git.example.test/agentos.git", AGENTOS_GIT_REF="main")
+    assert again.returncode == 0, again.stderr
+    assert "ls-remote" not in log.read_text() and "agentos.git@main" in log.read_text()

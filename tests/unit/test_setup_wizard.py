@@ -117,7 +117,9 @@ class World:
 
     def register_clients(self, home, port, *, claude=True, codex=True, skills=True):
         self.calls.append(("register", port, claude, codex, skills))
-        return [w for w, on in (("Claude Code: added agentos to ~/.claude.json", claude),
+        return ["Agent grant g_1 issued for claude-code@laptop: every workspace, up to write, specials none",
+                "Token stored in macOS Keychain (service agentos, account agentos-local)"] + [
+            w for w, on in (("Claude Code: added agentos to ~/.claude.json", claude),
                                 ("Codex: added agentos to ~/.codex/config.toml", codex),
                                 ("Skills: agentos-environment", skills)) if on]
 
@@ -200,9 +202,11 @@ def test_quick_start_with_hetzner_and_gh(world):
     # the service started, both agents and the skills connected on its port
     assert ("start", None) in world.calls and ("register", 7410, True, True, True) in world.calls
     assert "runs on this computer at http://127.0.0.1:7410/mcp" in out
+    assert "Agent grant" not in out and "Token stored in macOS Keychain" in out
     # the check, the test VM, the summary and the one next step
     assert "ready  Service  running at http://127.0.0.1:7410/mcp" in out
     assert "ready  GitHub   octo (from gh): any repository it can reach" in out
+    assert "ready  Agents   connected: Claude Code, Codex, Skills" in out
     assert ("test_vm",) in world.calls and "It answered: Linux agentos-vm" in out and "EUR 0.011" in out
     assert "All set. Nothing bills until an agent opens a VM." in out
     assert "Next: start a new Claude Code session and ask:" in out

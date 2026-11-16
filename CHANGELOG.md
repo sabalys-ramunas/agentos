@@ -6,8 +6,29 @@ All notable changes to agentos are recorded here. The format follows
 
 ## [Unreleased]
 
-agentos is now about agent environments: your agent's own computer, and it stays. Two older parts
-are gone.
+## [0.2.0] - 2026-11-16
+
+The first tagged release. agentos is now about agent environments: your coding agent's own
+computer in the cloud, and it stays when you want it to. It runs on your laptop, with no server
+needed. Two older parts are gone.
+
+### Highlights
+
+- **One command to install, then a guided setup.** `curl -fsSL .../scripts/install.sh | sh`
+  installs the newest release (`AGENTOS_GIT_REF` picks another) and starts `agentos setup`: VMs
+  (a Hetzner token, or Docker), your GitHub login, the limits, and Claude Code and Codex connected
+  to a small service on your laptop. Nothing bills until an agent opens a VM.
+- **Three ways an environment stays**: single use (deleted when done), saves when idle (the whole
+  machine is saved and the VM deleted, resumed by its title from any chat), and kept running
+  (only when you allow it).
+- **Private repositories** through your GitHub login, or a card where you paste a token; the agent
+  never sees one.
+- **Moving files**: `environment_upload` sends a local checkout up with a one-use link, and
+  `environment_download` gives you a file from the VM. `environment_port` gives you a link to a
+  dev server, and `environment_pull_request` opens the pull request.
+- **The browser runs on the VM**, ready at boot with the `dev` snapshot that setup offers to build.
+- **A new README and logo**, with a picture of how it works and the setup in a terminal.
+- `agentos setup` shows which agents it connected in plain lines, without the grant details.
 
 ### Added
 
@@ -61,9 +82,9 @@ are gone.
   function of complexity 25 or more or a file over 1,000 lines unless it is listed. Both run in
   `make lint` and CI, and their lists only shrink.
 
-## [0.1.0] (unreleased)
+## [0.1.0] (never tagged)
 
-The first public release. agentos is cloud dev environments for AI coding agents: a chat's agent
+The first public code. agentos is cloud dev environments for AI coding agents: a chat's agent
 asks for a disposable VM with a terminal, a real browser and its repository, works there, pushes a
 branch, and the VM is deleted.
 
