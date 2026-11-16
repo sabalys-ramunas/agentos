@@ -145,6 +145,11 @@ async def test_waiting_for_the_end_of_a_long_job_gives_its_start_and_its_end(env
     r = await t["lane_job_read"](ctx, job=job["id"], until_exit=True, wait_ms=30000)
     out = r["stdout"]
     assert r["state"] == "exited" and r["exit_code"] == 2 and "boom" in r["stderr"]
+    # a read is the job's state and output: what lane_job_start gave and never changes is in lane_jobs_list
+    assert not {"id", "lane", "cmd", "cwd", "started_at", "timeout_s", "by", "sync", "source", "encoding",
+                "signal", "oom_killed", "stdout_dropped"} & set(r)
+    [row] = [j for j in await t["lane_jobs_list"](ctx, on="dev/run") if j["id"] == job["id"]]
+    assert row["cmd"].startswith("echo START") and row["lane"] == "dev/run" and row["started_at"]
     assert out.startswith("START\n1\n") and out.endswith("100000\nDONE\n") and len(out) < 16_400
     assert r["next_stdout_offset"] == r["stdout_bytes"] > 500_000
     skipped = re.search(r"\[agentos: (\d+) bytes skipped here, of (\d+) in all; read them with stdout_offset="

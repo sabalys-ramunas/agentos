@@ -254,7 +254,7 @@ async def test_a_job_that_printed_a_kill_and_exited_0_says_what_killed_it(env, m
     asked.clear()
     quiet = await t["lane_job_start"](ctx, on="dev/run", cmd="echo all fine")
     r = await t["lane_job_read"](ctx, job=quiet["id"], until_exit=True, wait_ms=10000)
-    assert r["oom_killed"] is False and True not in asked     # a clean end costs no ssh call
+    assert "oom_killed" not in r and True not in asked     # a clean end costs no ssh call
 
 
 async def test_a_command_that_printed_killed_and_exited_0_says_what_killed_it(env, monkeypatch):

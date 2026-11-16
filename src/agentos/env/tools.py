@@ -296,6 +296,18 @@ def _job_view(info) -> dict:
     return info.model_dump(mode="json", exclude={"vm_wid"})
 
 
+def _read_view(info) -> dict:
+    """A job as lane_job_read gives it: how it runs or ended, without what lane_job_start returned and
+    never changes (lane, cmd, cwd, started_at, timeout_s, by, sync, source; lane_jobs_list has them),
+    and without fields that hold their default (no signal, no OOM kill, nothing dropped, no note)."""
+    out = {"state": info.state, "exit_code": info.exit_code}
+    extra = {"signal": info.signal, "oom_killed": info.oom_killed or None, "oom": info.oom,
+             "duration_s": info.duration_s, "stdout_bytes": info.stdout_bytes, "stderr_bytes": info.stderr_bytes,
+             "stdout_dropped": info.stdout_dropped or None, "stderr_dropped": info.stderr_dropped or None,
+             "note": info.note}
+    return out | {k: v for k, v in extra.items() if v is not None}
+
+
 BRANCH_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/+-]{0,199}$")
 COMMIT_RE = re.compile(r"^[0-9a-f]{7,64}$")
 
@@ -440,8 +452,10 @@ async def lane_job_read(ctx: ToolContext, *, job: str, on: str | None = None, st
         out, _ = execs._trim_utf8_end(out) if info.state == "running" else (out, b"")
         err, _ = execs._trim_utf8_end(err) if info.state == "running" else (err, b"")
         so, se, enc = out.decode("utf-8", "replace"), err.decode("utf-8", "replace"), "utf-8"
-    res = {**_job_view(info), "stdout": so, "stderr": se, "encoding": enc,
+    res = {**_read_view(info), "stdout": so, "stderr": se,
            "next_stdout_offset": stdout_offset + len(out), "next_stderr_offset": stderr_offset + len(err)}
+    if enc != "utf-8":
+        res["encoding"] = enc
     if listening is not None:
         res["listening"] = listening
     words = [info.note, oom.note(info.oom, running=info.state == "running"),
