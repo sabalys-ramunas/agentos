@@ -26,7 +26,7 @@ from agentos.tui.modals import (
     RunModal,
 )
 from agentos.tui.needs import NeedsView
-from agentos.tui.overview import LaneTree
+from agentos.tui.overview import LaneTree, OverviewView
 from agentos.tui.runs import RunsView
 from agentos.tui.widgets import Banner, TopBar
 
@@ -582,6 +582,40 @@ async def test_node_unreachable_from_the_start(node, tmp_path):
         await settle(pilot)
         assert "Nothing loaded yet" in plain(app.screen.query_one(Banner))
         assert "waiting for the node" in plain(app.query_one("#ov-ws-note"))
+
+
+async def test_a_redraw_while_a_view_is_still_composing_leaves_it_to_its_mount(node, tmp_path):
+    # On a slow runner the first sync (here: the node down) can land after a view joined the DOM
+    # but before its compose mounted its children; the redraw must not query them then.
+    node.go_down()
+    app = make_app(node, tmp_path)
+    async with app.run_test(size=(80, 24)) as pilot:
+        await wait_until(pilot, lambda: app.state.conn.online is False)
+        late = OverviewView(id="late-overview")
+        app.query_one("#overview").mount(late)  # in the DOM now, composed on its first turn
+        assert not late.is_mounted
+        app.changed("conn")
+        app._redraw_now()  # the coalesced redraw, run before the view's compose
+        await settle(pilot)
+        assert "waiting for the node" in plain(late.query_one("#ov-ws-note"))
+
+
+async def test_a_redraw_while_the_dash_shuts_down_draws_nothing(node, tmp_path):
+    # The sync worker can report one last change as the app closes. On a slow runner its redraw ran
+    # while the screens were being pruned, children first, and a view's query for a child raised.
+    node.go_down()
+    app = make_app(node, tmp_path)
+    async with app.run_test(size=(80, 24)) as pilot:
+        await wait_until(pilot, lambda: app.state.conn.online is False)
+        close_all = app._close_all
+
+        async def a_redraw_lands_mid_prune():
+            await app.query_one(OverviewView).query_one("#ov-needs").remove()  # pruned, the view not yet
+            app.changed("conn")
+            app._redraw_now()
+            await close_all()
+
+        app._close_all = a_redraw_lands_mid_prune  # App._shutdown runs it as the context ends
 
 
 async def test_unconfigured_sections_say_so(node, tmp_path):
