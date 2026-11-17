@@ -80,8 +80,11 @@ Docker. Good for trying it, for CI and for a node at home. Put this in `$AGENTOS
 provider = "docker"
 ```
 
-Then build its image once (a few minutes): `agentos environments setup --build` (build it again
-after an upgrade when setup says the image is older than agentos).
+Then get its image once: `agentos environments setup --pull` downloads the prebuilt image for your
+version of agentos (`ghcr.io/sabalys-ramunas/agentos-env:<version>`, a minute or two), and builds it
+here when it cannot (10 to 15 minutes). `--build` always builds it here. `agentos setup --docker`
+does the same for you. Get it again after an upgrade when setup says the image is older than agentos.
+To never download it, set `docker_pull = ""` in `vms.toml`.
 
 What a docker machine is kept from, and what it is not:
 

@@ -72,7 +72,7 @@ class World:
     def docker_state(self, docker_bin, image):
         return self.docker
 
-    def build_docker_image(self, image, docker_bin):
+    def get_docker_image(self, image, docker_bin, pull):
         self.calls.append(("build", image))
         self.docker = (True, True, True)
         return True
@@ -132,7 +132,7 @@ def world(tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(user))  # nothing reaches the real ~/.claude.json, ~/.codex, ~/.agentos
     monkeypatch.setenv("AGENTOS_HOME", str(home))
     w = World(home)
-    for name in ("hetzner_check", "docker_state", "build_docker_image", "gh_available", "gh", "github_user",
+    for name in ("hetzner_check", "docker_state", "get_docker_image", "gh_available", "gh", "github_user",
                  "open_test_vm", "dev_snapshot_state", "build_dev_snapshot"):
         monkeypatch.setattr(steps, name, getattr(w, name))
     modules = {"service": SimpleNamespace(status=w.status, start=w.start, stop=w.stop),

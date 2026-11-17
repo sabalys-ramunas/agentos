@@ -3,7 +3,8 @@
 For a person without a cloud account, for CI, and for working on agentos: everything an agent
 environment does on a cloud VM works the same way here, because the node reaches the machine only
 over SSH (agentos.vms.ssh), with a key and a host key it made itself. Set `provider = "docker"` in
-vms.toml and build the image once with `agentos environments setup --build`.
+vms.toml and get the image once with `agentos environments setup --pull` (the prebuilt one,
+downloaded; --build builds it here).
 
 What differs from a cloud VM, said plainly:
 
@@ -155,7 +156,7 @@ class DockerProvider:
             version = 0
         if version < IMAGE_VERSION:
             raise VmError(f"docker: the image {image} is older than this agentos (it does not wall its machines off "
-                          "from this computer); build it again with `agentos environments setup --build`")
+                          "from this computer); get it again with `agentos environments setup --pull`")
 
     # ------------------------------------------------------------------ provider
     async def check(self) -> None:
@@ -165,7 +166,7 @@ class DockerProvider:
         except ValueError:
             self._info = {}
         if not await self._image_exists(self.image):
-            raise VmError(f"docker: no image {self.image}; build it with `agentos environments setup --build`")
+            raise VmError(f"docker: no image {self.image}; get it with `agentos environments setup --pull`")
         await self._check_version(self.image)
 
     async def price_hourly(self, server_type: str, location: str) -> float | None:
@@ -216,7 +217,7 @@ class DockerProvider:
         if not await self._image_exists(name):
             if image.startswith("snapshot:"):
                 raise VmError(f"no snapshot named {image.split(':', 1)[1]} (docker image {name})")
-            raise VmError(f"docker: no image {name}; build it with `agentos environments setup --build`")
+            raise VmError(f"docker: no image {name}; get it with `agentos environments setup --pull`")
         await self._check_version(name)
         return name
 

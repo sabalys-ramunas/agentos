@@ -632,7 +632,10 @@ def _limit_words(s: Any) -> str:
 
 
 @app.command()
-def setup(build: Annotated[bool, typer.Option("--build", help="Build the docker provider's image now.")] = False
+def setup(build: Annotated[bool, typer.Option("--build", help="Build the docker provider's image here (10 to 15 "
+                                                            "minutes).")] = False,
+          pull: Annotated[bool, typer.Option("--pull", help="Download the docker provider's prebuilt image for this "
+                                                          "version (builds it here when it cannot).")] = False,
           ) -> None:
     """Check what environments need on this node, and say what is missing.
 
@@ -654,6 +657,8 @@ def setup(build: Annotated[bool, typer.Option("--build", help="Build the docker 
 
     if s.provider == "docker" and build:
         _build_image(s.docker_image, s.docker_bin)
+    elif s.provider == "docker" and pull:
+        _get_image(s.docker_image, s.docker_bin, s.docker_pull)
     problem = asyncio.run(check_provider()) if vms.configured else (
         "no Hetzner token: run `agentos vm setup`, or set provider = \"docker\" in vms.toml to use Docker here")
     if problem is None:
@@ -742,7 +747,7 @@ def _browser_line(where: str, provider: str, image: str, docker: str) -> tuple[s
     if out == "1":
         return ("ok", "browser", words + f"; {image} has it")
     return ("missing", "browser", words + f", but {image} has no browser, so each machine installs it when it "
-                                          "opens (minutes): `agentos environments setup --build`")
+                                          "opens (minutes): `agentos environments setup --pull`")
 
 
 def docker_isolation_words(platform: str | None = None) -> str:
@@ -763,6 +768,16 @@ def docker_isolation_words(platform: str | None = None) -> str:
     return words
 
 
+def _image_source() -> Path | None:
+    """The folder with the image's Dockerfile and entrypoint: inside the package (any install: the wheel
+    carries deploy/environments as agentos/environments/image), or a checkout's deploy/environments."""
+    here = Path(__file__).resolve()
+    for folder in (here.parent / "image", here.parents[3] / "deploy" / "environments"):
+        if (folder / "Dockerfile").exists():
+            return folder
+    return None
+
+
 def _build_image(image: str, docker: str) -> None:
     """docker build of deploy/environments/Dockerfile with the package's setup script, in a temp folder."""
     import shutil
@@ -770,18 +785,70 @@ def _build_image(image: str, docker: str) -> None:
     import tempfile
 
     here = Path(__file__).resolve()
-    deploy = here.parents[3] / "deploy" / "environments"
-    if not (deploy / "Dockerfile").exists():
-        raise _fail(NotFound("deploy/environments/Dockerfile is not here (an install without the checkout): "
-                             "build the image from a checkout of agentos"))
+    source = _image_source()
+    if source is None:
+        raise _fail(NotFound("the image's Dockerfile is not in this installation of agentos: install it again "
+                             "(scripts/install.sh), or build the image from a checkout of agentos"))
     with tempfile.TemporaryDirectory(prefix="agentos-env-") as tmp:
-        for f in deploy.iterdir():
+        for f in source.iterdir():
             if f.is_file():
                 shutil.copy(f, tmp)
         for name in ("setup.sh", "browser.sh", "browser-requirements.txt"):
             shutil.copy(here.parent / name, tmp)
-        typer.echo(f"Building {image} (a few minutes the first time)...")
+        typer.echo(f"Building {image} here (10 to 15 minutes the first time)...")
         done = subprocess.run([docker, "build", "-q", "-t", image, tmp], check=False)
         if done.returncode != 0:
             raise typer.Exit(done.returncode)
     typer.echo(f"Built {image}.")
+
+
+def _pull_source(pull: str) -> str:
+    """vms.toml's docker_pull with this version in it: the prebuilt image to download ("" never downloads)."""
+    from agentos import __version__
+
+    return pull.replace("{version}", __version__).strip()
+
+
+def _pull_image(image: str, docker: str, pull: str) -> bool:
+    """docker pull of the prebuilt image for this version of agentos, tagged as `image`.
+
+    False, after saying why, when there is none to pull (no network, no image for this version or for
+    this computer's CPU) or it is older than this agentos: the caller builds it here instead."""
+    import subprocess
+
+    from agentos.vms.docker import IMAGE_LABEL, IMAGE_VERSION
+
+    source = _pull_source(pull)
+    if not source:
+        return False
+    typer.echo(f"Downloading {source} (a minute or two)...")
+    try:
+        done = subprocess.run([docker, "pull", "-q", source], capture_output=True, text=True, timeout=1800,
+                              check=False)
+        if done.returncode != 0:
+            said = (done.stderr or done.stdout or "").strip().splitlines()
+            typer.echo(f"It did not download ({said[-1][:200] if said else f'exit {done.returncode}'}).")
+            return False
+        label = subprocess.run([docker, "image", "inspect", "-f", f'{{{{index .Config.Labels "{IMAGE_LABEL}"}}}}',
+                                source], capture_output=True, text=True, timeout=60, check=False).stdout.strip()
+        if not label.isdigit() or int(label) < IMAGE_VERSION:
+            typer.echo(f"{source} is older than this agentos.")
+            return False
+        if source != image and subprocess.run([docker, "tag", source, image], capture_output=True, timeout=60,
+                                              check=False).returncode != 0:
+            typer.echo(f"It downloaded, but docker could not name it {image}.")
+            return False
+    except (OSError, subprocess.TimeoutExpired) as e:
+        typer.echo(f"It did not download ({type(e).__name__}).")
+        return False
+    typer.echo(f"Downloaded {image}.")
+    return True
+
+
+def _get_image(image: str, docker: str, pull: str) -> None:
+    """The docker provider's image: the prebuilt one for this version when it downloads, else built here."""
+    if _pull_image(image, docker, pull):
+        return
+    if _pull_source(pull):
+        typer.echo("Building it here instead.")
+    _build_image(image, docker)

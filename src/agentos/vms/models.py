@@ -108,6 +108,8 @@ class VmSettings(BaseModel):
     reap_interval_s: int = Field(default=60, ge=10)
     api_url: str = "https://api.hetzner.cloud/v1"
     docker_image: str = "agentos-env:latest"                    # the docker provider's base image (deploy/environments)
+    # the prebuilt docker_image to download, {version} being this agentos's; "" builds it here instead
+    docker_pull: str = "ghcr.io/sabalys-ramunas/agentos-env:{version}"
     docker_bin: str = "docker"
     docker_cpus: float = Field(default=2.0, gt=0, le=512)       # a docker machine's CPUs (a size asks for its own)
     docker_memory_gb: float = Field(default=4.0, ge=0.5, le=4096)  # and memory (no swap on top)

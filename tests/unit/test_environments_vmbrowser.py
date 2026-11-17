@@ -612,5 +612,5 @@ def test_setup_says_where_the_browser_runs():
     status, _what, words = _browser_line("vm", "hetzner", "img", "docker")
     assert status == "ok" and "dev snapshot" in words
     status, _what, words = _browser_line("vm", "docker", "img", "/nonexistent/docker")
-    assert status == "missing" and "agentos environments setup --build" in words
+    assert status == "missing" and "agentos environments setup --pull" in words
     assert "—" not in words

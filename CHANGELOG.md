@@ -6,6 +6,20 @@ All notable changes to agentos are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- **`agentos setup --docker` works from the one-line install.** The machine image's Dockerfile and
+  entrypoint now ship inside the package, so the image builds without a checkout of agentos.
+
+### Changed
+
+- **The Docker image downloads instead of building.** Setup pulls the prebuilt
+  `ghcr.io/sabalys-ramunas/agentos-env:<version>` (amd64 and arm64, published by each release) in a
+  minute or two, and builds it here only when it cannot (10 to 15 minutes). `agentos environments
+  setup --pull` does the same; `--build` still builds it here; `docker_pull = ""` in `vms.toml` never
+  downloads.
+- The README says the web app is not part of the one-line install.
+
 ## [0.3.0] - 2026-11-16
 
 Agents work on their computer the way they work locally, one chat per machine, and a lot less waiting.
