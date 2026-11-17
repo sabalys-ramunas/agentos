@@ -38,7 +38,7 @@ Nothing browser-related is installed on your laptop except Playwright's client (
 
 Where the browser comes from on the VM:
 
-- **Docker**: the machine image has it (`agentos environments setup --build` builds it once).
+- **Docker**: the machine image has it (`agentos setup --docker` downloads it once, or `agentos environments setup --pull`).
 - **Hetzner with the `dev` snapshot**: it is in the snapshot, so each environment's browser starts
   at once. `agentos setup vms` offers to build it, or run
   `AGENTOS_HOME=~/.agentos agentos vm image build dev`. It takes a few minutes and costs a cent or

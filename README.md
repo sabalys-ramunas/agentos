@@ -180,6 +180,10 @@ agentos has a small web app at `http://127.0.0.1:7410/` that lists every environ
 costs and how long it has left. Each one has a page with its live browser, the proof screenshots,
 the commands it ran and its pushed branches.
 
+The one-line install does not include the web app: it is built from a checkout with Node.js 22 and
+pnpm ([web/README.md](web/README.md)). Without it, `http://127.0.0.1:7410/` says so, and every
+environment still has its live view link, and `agentos environments list` in the terminal.
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/readme/environment-dark.png">
   <img src="assets/readme/environment-light.png" width="100%" alt="One environment in the agentos web app: the agent's live browser with Take over and Stop agent buttons, its git branch and pushes, the ports listening on the VM, the commands its terminal ran, the time left, the cost so far, and a Close button.">
@@ -200,8 +204,6 @@ The live view link works on its own, without the web app. Here the VM's browser 
 
 <img src="assets/readme/live-view.png" width="100%" alt="The agentos live view of an environment's browser: a Firefox window on http://localhost:3000 showing the page 'Hello from the VM', with the status Agent in control and the buttons Stop agent and Take control.">
 
-The web app is built once with Node.js 22 and pnpm: see [web/README.md](web/README.md). The CLI
-shows the same with `agentos environments list`.
 
 </details>
 

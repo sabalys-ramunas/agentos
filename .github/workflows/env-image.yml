@@ -1,0 +1,91 @@
+name: env-image
+
+# The docker provider's machine image, prebuilt for each release, so `agentos setup --docker` downloads
+# it in a minute or two instead of building it for 10 to 15 minutes (agentos.environments.cli._pull_image).
+# Published as ghcr.io/<owner>/agentos-env:<version> (vms.toml's docker_pull), for amd64 and arm64,
+# from the same folder `agentos environments setup --build` builds.
+#
+# It runs on each release tag (vX.Y.Z), or by hand on a tag or branch (Actions > env-image > Run
+# workflow): the version is the tag's, or src/agentos/__init__.py's on a branch.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: env-image-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  REPO: ghcr.io/${{ github.repository_owner }}/agentos-env
+
+jobs:
+  build:
+    name: build (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { arch: amd64, runner: ubuntu-24.04 }
+          - { arch: arm64, runner: ubuntu-24.04-arm }
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Version
+        id: v
+        run: |
+          if [ "$GITHUB_REF_TYPE" = tag ]; then v="${GITHUB_REF_NAME#v}"; else
+            v=$(sed -n 's/^__version__ = "\(.*\)"$/\1/p' src/agentos/__init__.py); fi
+          [ -n "$v" ] || { echo "no version"; exit 1; }
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+      - name: The build folder (as agentos.environments.cli._build_image makes it)
+        run: |
+          mkdir ctx
+          cp deploy/environments/* src/agentos/environments/setup.sh src/agentos/environments/browser.sh \
+            src/agentos/environments/browser-requirements.txt ctx/
+      - name: Build
+        run: |
+          docker build -t "$REPO:${{ steps.v.outputs.version }}-${{ matrix.arch }}" \
+            --label "org.opencontainers.image.source=https://github.com/${{ github.repository }}" \
+            --label "org.opencontainers.image.version=${{ steps.v.outputs.version }}" \
+            --label "org.opencontainers.image.revision=${{ github.sha }}" ctx
+      - name: Push
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker push "$REPO:${{ steps.v.outputs.version }}-${{ matrix.arch }}"
+
+  publish:
+    name: publish
+    needs: build
+    # one CPU's image is still worth publishing when the other's build failed (that one builds locally)
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: One name for both CPUs
+        run: |
+          if [ "$GITHUB_REF_TYPE" = tag ]; then v="${GITHUB_REF_NAME#v}"; else
+            v=$(sed -n 's/^__version__ = "\(.*\)"$/\1/p' src/agentos/__init__.py); fi
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          tags="-t $REPO:$v"
+          [ "$GITHUB_REF_TYPE" = tag ] && tags="$tags -t $REPO:latest"
+          parts=""
+          for arch in amd64 arm64; do
+            if docker buildx imagetools inspect "$REPO:$v-$arch" >/dev/null 2>&1; then parts="$parts $REPO:$v-$arch"
+            else echo "::warning::no $arch image for $v: that CPU builds the image locally"; fi
+          done
+          [ -n "$parts" ] || { echo "no image was built"; exit 1; }
+          docker buildx imagetools create $tags $parts
+          docker buildx imagetools inspect "$REPO:$v"

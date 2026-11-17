@@ -71,7 +71,7 @@ def hetzner_check(token: str, api_url: str) -> str | None:
 
 
 def docker_state(docker_bin: str, image: str) -> tuple[bool, bool, bool]:
-    """(installed, running, the image is built)."""
+    """(installed, running, the image is there)."""
     exe = shutil.which(docker_bin)
     if exe is None:
         return False, False, False
@@ -85,11 +85,12 @@ def docker_state(docker_bin: str, image: str) -> tuple[bool, bool, bool]:
     return True, running, built
 
 
-def build_docker_image(image: str, docker_bin: str) -> bool:
+def get_docker_image(image: str, docker_bin: str, pull: str) -> bool:
+    """The prebuilt image for this version, downloaded, or built here when it cannot be."""
     from agentos.environments import cli as envcli
 
     try:
-        envcli._build_image(image, docker_bin)
+        envcli._get_image(image, docker_bin, pull)
     except typer.Exit as e:
         return not e.exit_code
     return True
@@ -320,12 +321,13 @@ def _use_docker(ctx: Ctx, settings: Any, built: bool) -> None:
     write_vm_settings(ctx.home, {"provider": "docker"})
     ui.say("VMs are Docker containers on this computer. They are free, and share this computer's kernel.")
     ui.say("The machine image has each environment's browser, so the browser starts at once.")
-    if not built and ui.confirm(f"Build the machine image {settings.docker_image} now? The first time takes a few "
-                                "minutes.", default=True):
-        built = build_docker_image(settings.docker_image, settings.docker_bin)
-        ui.say("The image is built." if built else "The image did not build. Try again: agentos setup vms")
+    if not built and ui.confirm(f"Get the machine image {settings.docker_image} now? It downloads the prebuilt one "
+                                "(a minute or two), or builds it here when it cannot (10 to 15 minutes).",
+                                default=True):
+        built = get_docker_image(settings.docker_image, settings.docker_bin, settings.docker_pull)
+        ui.say("The image is ready." if built else "The image did not download or build. Try again: agentos setup vms")
     if not built:
-        ctx.todo.append("the Docker image (agentos environments setup --build)")
+        ctx.todo.append("the Docker image (agentos environments setup --pull)")
     ctx.vms = "Docker on this computer (free)"
 
 
@@ -765,8 +767,8 @@ def _check_vms(ctx: Ctx) -> tuple[bool, str]:
         _installed, running, built = docker_state(s.docker_bin, s.docker_image)
         if not running:
             return False, "Docker is not running"
-        return (True, "Docker answers, and the image is built") if built else (
-            False, "Docker answers, but the image is not built: agentos environments setup --build")
+        return (True, "Docker answers, and the image is there") if built else (
+            False, "Docker answers, but the image is not there: agentos environments setup --pull")
     path = ctx.home / TOKEN_FILE
     if not path.exists():
         return False, "not set up: agentos setup vms"
