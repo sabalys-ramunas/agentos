@@ -191,7 +191,7 @@ async def _proof_sections(mgr: Any, http: Any, env: Any, repo: str, auth: dict, 
         return None, sections
     try:
         sent, skipped = await prproofs.send(mgr, http, repo, auth, token, env.id, chosen)
-    except AgentosError as e:
+    except prproofs.ProofsNotSent as e:
         sections[(prproofs.PROOF_BEGIN, prproofs.PROOF_END)] = None
         log.warning("environment %s: its proofs did not go to %s: %s", env.id, repo, e.message)
         return {"in_pull_request": 0, "why": e.message + KEPT_ON_NODE}, sections

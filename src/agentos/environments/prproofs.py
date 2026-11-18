@@ -30,7 +30,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from agentos.core.errors import AgentosError, InvalidRequest
+from agentos.core.errors import InvalidRequest
 
 BRANCH = "agentos-proofs"
 PROOF_BEGIN, PROOF_END = "<!-- agentos:proofs:begin -->", "<!-- agentos:proofs:end -->"
@@ -45,10 +45,13 @@ class _Race(Exception):
     """The branch moved while this made its commit (another pull request's proofs): try once more."""
 
 
-class ProofsNotSent(AgentosError):
+class ProofsNotSent(Exception):
     """GitHub did not take the proofs (the branch is protected, the token may not write): the pull
-    request still opens, and says nothing of them."""
-    code = "pull_request_failed"
+    request still opens without them, and its result says why. Never an error of the call."""
+
+    def __init__(self, message: str):
+        super().__init__(message)
+        self.message = message
 
 
 def md(text: str) -> str:
