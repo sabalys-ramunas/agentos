@@ -87,7 +87,8 @@ function Player({ model }: { model: ReplayModel }) {
       <div className="grid min-w-0 gap-4 p-5 max-lg:pb-4">
         <figure className="grid gap-3">
           <div className={cn('relative overflow-hidden rounded-lg border bg-inset', person ? 'border-fg' : 'border-line')}>
-            <img key={frame.id} src={frame.src} alt={`${frame.page_title ?? 'The page'}: ${causeWords(frame)}`} width={frame.width ?? 1280} height={frame.height ?? 800} className="replay-frame block aspect-[16/10] h-auto w-full object-cover object-top" />
+            {/* every frame in the first one's shape, letterboxed when the window changed, so nothing is cut */}
+            <img key={frame.id} src={frame.src} alt={`${frame.page_title ?? 'The page'}: ${causeWords(frame)}`} width={frame.width ?? 1280} height={frame.height ?? 800} style={{ aspectRatio: frameShape(model) }} className="replay-frame block h-auto max-h-[70dvh] w-full object-contain" />
             {model.frames.slice(index + 1, index + 3).map((next) => (next.src ? <link key={next.id} rel="prefetch" href={next.src} /> : null))}
             {person ? (
               <span className="absolute top-3 left-3 inline-flex items-center gap-2 rounded-full bg-inverse px-3 py-1 text-caption text-on-inverse">
@@ -112,6 +113,13 @@ function Player({ model }: { model: ReplayModel }) {
       <EventLog model={model} index={index} onSeek={(next) => { setPlaying(false); setIndex(next); }} />
     </div>
   );
+}
+
+/** The shape of the replay's pictures: the first frame's, kept between a phone's and a wide screen's. */
+function frameShape(model: ReplayModel): string {
+  const first = model.frames.find((frame) => frame.width && frame.height);
+  const ratio = first?.width && first.height ? first.width / first.height : 16 / 10;
+  return String(Math.min(21 / 9, Math.max(3 / 4, ratio)));
 }
 
 function CauseMark({ cause }: { cause: string }) {
@@ -187,8 +195,9 @@ export function logItems(model: ReplayModel): LogItem[] {
   const items: LogItem[] = [
     ...model.frames.map((frame, at) => ({ key: frame.id, t: frame.t, frame: at, last: at, kind: frame.cause, title: personWords(model, at) ?? causeWords(frame), ok: true, count: 1 })),
     ...model.calls
-      .filter((call) => !model.frames.some((frame) => frame.t === call.t))
-      .map((call, at) => ({ key: `c${at}`, t: call.t, frame: frameAt(model, call.t), last: frameAt(model, call.t), kind: 'call', title: `${toolPlainTitle(call.tool)}: ${call.summary}`, ok: call.ok, count: 1 })),
+      // a call its own frame pictures (the frame waits out the page's next read) is that frame's row
+      .filter((call) => !model.frames.some((frame) => frame.t === call.t || (frame.cause === 'agent' && frame.tool === call.tool && frame.t >= call.t && frame.t - call.t <= AFTER_CALL_MS)))
+      .map((call, at) => ({ key: `c${at}`, t: call.t, frame: frameAt(model, call.t), last: frameAt(model, call.t), kind: 'call', title: call.summary ? `${toolPlainTitle(call.tool)}: ${call.summary}` : toolPlainTitle(call.tool), ok: call.ok, count: 1 })),
   ].sort((a, b) => a.t - b.t);
   const out: LogItem[] = [];
   for (const item of items) {

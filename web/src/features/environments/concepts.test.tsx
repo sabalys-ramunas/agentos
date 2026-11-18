@@ -8,6 +8,7 @@ import { diffCut, diffFiles, patchFiles } from './diff-words';
 import { allowCommand } from './network-card';
 import { openedWords, otherPortWords, scaleEnd, seconds, skipped, stepViews, withoutSkips } from './opened-words';
 import { clipLength } from './proofs';
+import { logItems } from './replay';
 import { actionWords, buildReplay, causeWords, dwell, frameAt, jump, offset } from './replay-model';
 
 const ORG = 'northwind-group';
@@ -159,6 +160,31 @@ describe('the replay model', () => {
     expect(actionWords('click "Add to cart"')).toBe('Clicked "Add to cart"');
     expect(actionWords('type "ada@example.com" into Email')).toBe('Typed "ada@example.com" into Email');
     expect(causeWords({ cause: 'change' })).toBe('The page changed on its own');
+    expect(actionWords('click f4e8')).toBe('Clicked on the page');
+  });
+
+  it('keeps the log readable: a call its frame pictures is one row, a reload goes on the call, and changes on their own are counted', () => {
+    const log = buildReplay(
+      {
+        ...timeline,
+        timeline: [
+          { kind: 'call', at: iso(4), tool: 'browser_act', summary: 'click "Pay"', ok: true },
+          { kind: 'frame', id: 'a', at: iso(5), cause: 'agent', tool: 'browser_act', summary: 'click "Pay"' },
+          { kind: 'call', at: iso(10), tool: 'lane_exec', summary: 'apply_patch src/cart.ts', ok: true },
+          { kind: 'frame', id: 'b', at: iso(12), cause: 'change' },
+          { kind: 'frame', id: 'c', at: iso(60), cause: 'change' },
+          { kind: 'frame', id: 'd', at: iso(70), cause: 'change' },
+          { kind: 'frame', id: 'e', at: iso(80), cause: 'change' },
+        ],
+      },
+      [],
+      iso(120),
+    );
+    expect(logItems(log).map((item) => [item.title, item.frame, item.last, Boolean(item.changed)])).toEqual([
+      ['Clicked "Pay"', 0, 0, false],
+      ['Run a command: apply_patch src/cart.ts', 1, 1, true],
+      ['The page changed on its own, 3 times', 2, 4, false],
+    ]);
   });
 });
 

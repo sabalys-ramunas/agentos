@@ -19,13 +19,13 @@ import { CodeBlock, CopyButton, PageHeader } from '@/components/ui/misc';
 import { StatStrip, StatTile } from '@/components/ui/stat-tile';
 import { EmptyState, ErrorState, NotLive, Skeleton } from '@/components/ui/states';
 import { Status } from '@/components/ui/status';
-import { CellTitle, NoValue, RowActions, Table, TableScroll, Td, Th, Tr } from '@/components/ui/table';
+import { CellTitle, NoValue, RowActions, Table, TableEmpty, TableScroll, Td, Th, Tr } from '@/components/ui/table';
 import { Terminal } from '@/components/ui/terminal';
 import { usePageCrumb } from '@/components/shell/crumb';
 import { cn } from '@/lib/cn';
 import { dateTime, plural, timeAgo } from '@/lib/format';
 import { seconds } from './opened-words';
-import { euro, hourly, repoName, span } from './words';
+import { euro, hourly, repoName } from './words';
 
 const STATE = {
   ready: { label: 'Ready', tone: 'ok' },
@@ -74,6 +74,16 @@ export function PreparedPage() {
   );
 }
 
+/** Seconds as a stat tile's number and its unit: "2 h" and "7 min", "52" and "s", "0" and "min". */
+function durationTile(total: number): { value: string; unit?: string } {
+  const s = Math.max(0, Math.round(total));
+  if (s < 60) return s ? { value: String(s), unit: 's' } : { value: '0', unit: 'min' };
+  const minutes = Math.round(s / 60);
+  if (minutes < 60) return { value: String(minutes), unit: 'min' };
+  const hours = Math.floor(minutes / 60);
+  return { value: `${hours} h`, unit: minutes % 60 ? `${minutes % 60} min` : undefined };
+}
+
 function PreparedBody({ data }: { data: PreparedList }) {
   const images = data.eur_month ?? data.machines.reduce((sum, machine) => sum + machine.cost_eur_month, 0);
   const month = data.month;
@@ -83,7 +93,7 @@ function PreparedBody({ data }: { data: PreparedList }) {
       {month ? (
         <StatStrip>
           <StatTile label="Opens this month" value={String(month.opens)} hint={`${month.from_prepared} from a prepared machine, ${month.from_warm} of them warm`} />
-          <StatTile label="Setup skipped" value={span(month.setup_saved_s * 1000).split(' ').slice(0, 2).join(' ')} unit={span(month.setup_saved_s * 1000).split(' ').slice(2).join(' ') || undefined} hint="Time agents did not wait this month" />
+          <StatTile label="Setup skipped" {...durationTile(month.setup_saved_s)} hint={month.setup_saved_s ? 'Time agents did not wait this month' : 'No open started from a prepared machine yet'} />
           <StatTile label="Images" value={euro(images)} unit="a month" hint={images ? `${plural(data.machines.filter((machine) => machine.gb).length, 'image')} at ${euro(data.eur_per_gb_month, 4)} a GB` : 'Local images cost nothing'} />
           <StatTile
             label="Warm pool"
@@ -191,6 +201,11 @@ function MachinesCard({ machines }: { machines: PreparedMachine[] }) {
             </tr>
           </thead>
           <tbody>
+            {machines.length ? null : (
+              <TableEmpty colSpan={7}>
+                <EmptyState icon={<Layers />} title="No prepared machines yet" description="A repository with a setup in its .agentos/environment.toml gets one after its first open, so the opens after it skip the install." />
+              </TableEmpty>
+            )}
             {machines.map((machine) => (
               <MachineRow key={machine.key} machine={machine} expanded={open === machine.key} onToggle={() => setOpen((value) => (value === machine.key ? null : machine.key))} />
             ))}

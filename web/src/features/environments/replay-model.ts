@@ -137,10 +137,12 @@ export function causeWords(frame: Pick<ReplayFrame, 'cause' | 'tool' | 'summary'
 export function actionWords(summary: string): string {
   const url = summary.match(/^https?:\/\/(\S+)/);
   if (url) return `Opened ${url[1]?.replace(/\/$/, '')}`;
-  const verb = summary.match(/^(click|type|scroll|press|select|upload)\b\s*(.*)$/i);
+  const verb = summary.match(/^(click|type|fill|hover|scroll|press|select|upload)\b\s*(.*)$/i);
   if (verb) {
-    const past: Record<string, string> = { click: 'Clicked', type: 'Typed', scroll: 'Scrolled', press: 'Pressed', select: 'Chose', upload: 'Uploaded' };
-    return `${past[verb[1]?.toLowerCase() ?? ''] ?? verb[1]} ${verb[2] ?? ''}`.trim();
+    const past: Record<string, string> = { click: 'Clicked', type: 'Typed', fill: 'Filled in', hover: 'Pointed at', scroll: 'Scrolled', press: 'Pressed', select: 'Chose', upload: 'Uploaded' };
+    // a bare snapshot ref ("f4e8") names nothing a person knows
+    const what = /^[a-z]?\d*e\d+$/i.test((verb[2] ?? '').trim()) ? 'on the page' : (verb[2] ?? '');
+    return `${past[verb[1]?.toLowerCase() ?? ''] ?? verb[1]} ${what}`.trim();
   }
   return summary.charAt(0).toUpperCase() + summary.slice(1);
 }
