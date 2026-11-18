@@ -190,7 +190,7 @@ function EventLog({ model, index, onSeek }: { model: ReplayModel; index: number;
                 aria-current={active || undefined}
                 onClick={() => onSeek(item.frame)}
                 className={cn(
-                  'grid w-full grid-cols-[40px_minmax(0,1fr)] items-baseline gap-2 rounded-md px-2 py-1 text-left transition-colors duration-(--duration-fast) hover:bg-hover',
+                  'grid w-full grid-cols-[52px_minmax(0,1fr)] items-baseline gap-2 rounded-md px-2 py-1 text-left transition-colors duration-(--duration-fast) hover:bg-hover',
                   active && 'bg-pressed',
                 )}
               >

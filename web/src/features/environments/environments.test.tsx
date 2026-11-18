@@ -294,6 +294,10 @@ describe('kept environments', () => {
   it('says a closed one that saves when idle is saved, and how to bring it back', async () => {
     org().environments!.find((item) => item.detail.id === 'd1dm')!.detail.keep = 'save';
     renderApp(`/${ORG}/environments/d1dm`);
-    expect(await screen.findByText(/its work is under Saved/, undefined, T)).toHaveTextContent('say "continue Dark mode for the dashboard in agentos"');
+    expect(await screen.findByText(/its work is saved: resume it below/, undefined, T)).toBeInTheDocument();
+    // the save itself says how it comes back, with Resume and what to say to an agent
+    const saved = await screen.findByRole('region', { name: 'Saved' }, T);
+    expect(within(saved).getByText('continue Dark mode for the dashboard in agentos')).toBeInTheDocument();
+    expect(within(saved).getByRole('button', { name: 'Resume' })).toBeInTheDocument();
   });
 });

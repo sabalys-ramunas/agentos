@@ -91,7 +91,7 @@ function Steps({ bringup, live }: { bringup: EnvBringUp; live: boolean }) {
         <span />
         <span className="relative h-4">
           {ticks.map((tick, index) => (
-            <span key={tick} className={cn('absolute bottom-0 font-mono text-code-caption text-faint tabular', index === 0 ? 'left-0' : index === 1 ? 'left-1/2 -translate-x-1/2' : 'right-0')}>
+            <span key={tick} className={cn('absolute bottom-0 font-mono text-code-caption text-faint tabular', index === 0 ? 'left-0' : index === 1 ? 'left-1/2 -translate-x-1/2 max-sm:hidden' : 'right-0')}>
               {tick === 0 ? '0' : seconds(tick)}
             </span>
           ))}

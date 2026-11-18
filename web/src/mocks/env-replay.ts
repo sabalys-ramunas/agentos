@@ -171,7 +171,7 @@ function field(x: number, y: number, w: number, label: string, value: string | u
   return `${text(x, y, label, 13, '#475569', 500)}${box(x, y + 8, w, 44, '#ffffff', 6, error ? '#dc2626' : '#cbd5e1')}${value ? text(x + 14, y + 36, value, 15) : ''}`;
 }
 
-function summary(x: number, y: number, total = '€129.00'): string {
+function summary(x: number, y: number, total = '€133.90'): string {
   return `${box(x, y, 400, 260, '#f8fafc', 12, '#e2e8f0')}${text(x + 24, y + 40, 'Order summary', 17, '#0f172a', 600)}
 ${box(x + 24, y + 64, 56, 56, '#cbd5e1', 6)}${text(x + 96, y + 88, 'Canvas field jacket', 15, '#0f172a', 500)}${text(x + 96, y + 110, 'Size M · 1', 13, '#64748b')}
 ${text(x + 24, y + 170, 'Shipping', 14, '#475569')}${text(x + 300, y + 170, '€4.90', 14, '#475569')}

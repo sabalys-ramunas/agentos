@@ -21,7 +21,6 @@ import {
   ageOf,
   agentWords,
   closedReason,
-  continueLine,
   euro,
   hourly,
   isOpen,
@@ -135,7 +134,7 @@ export function ClosedNotice({ env }: { env: EnvDetail }) {
         <span className="font-medium text-fg">{lead}</span> <span className="text-muted">{closedReason(env.closed_reason, env.state)}</span>
         <span className="mt-1 block text-13 text-faint">
           {keepOf(env) === 'save' && !failed
-            ? `Its machine and browser are deleted, and its work is under Saved. An agent brings it back when it opens it again: say "${continueLine(env.title)}".`
+            ? 'Its machine and browser are deleted, and its work is saved: resume it below, or an agent brings it back when it opens it again.'
             : 'Its machine and browser are deleted. What is below is what the node kept.'}
         </span>
       </p>

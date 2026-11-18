@@ -62,7 +62,8 @@ const shots = [
     await page.getByRole('button', { name: 'Resume', exact: true }).first().click();
     await page.getByRole('dialog').getByRole('button', { name: 'Resume', exact: true }).click();
     await page.getByText(/Waking/).first().waitFor();
-    await page.waitForTimeout(1200);
+    // two reads in: the machine is rented and booting
+    await page.waitForTimeout(13_000);
   }, false],
   ['12b-resume-dialog', `/${O}/environments`, async (page) => {
     await page.getByRole('button', { name: 'Resume Checkout redesign' }).click();

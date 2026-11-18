@@ -109,8 +109,8 @@ function FileDiff({ file }: { file: EnvDiffFile }) {
             key={index}
             className={cn(
               'grid grid-cols-[24px_minmax(0,1fr)] px-2',
-              line.kind === 'add' && 'bg-diff-add-fill',
-              line.kind === 'del' && 'bg-diff-del-fill',
+              line.kind === 'add' && 'bg-diff-add',
+              line.kind === 'del' && 'bg-diff-del',
               line.kind === 'hunk' && 'mt-2 text-faint first:mt-0',
             )}
           >
