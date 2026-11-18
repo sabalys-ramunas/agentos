@@ -16,12 +16,12 @@ from test_environments import node  # noqa: F401 - the fixture
 from test_vault_support import make_vault, private_home
 
 from agentos.core.errors import AgentosError
+from agentos.core.models import utcnow
 from agentos.environments import appsecrets, network
 from agentos.environments.envproxy import Blocked, EnvForwarder, EnvPolicy
 from agentos.environments.models import Environment, EnvSettings
 from agentos.environments.network import NetworkNotAllowed, allowlist, narrowed
 from agentos.environments.pulls import _with_blocked
-from agentos.core.models import utcnow
 from agentos.vms import netwall
 from agentos.vms.docker import DockerProvider, entrypoint_text, seed_tar
 from agentos.vms.hetzner import HetznerProvider
@@ -89,13 +89,14 @@ def test_the_machines_script_sets_the_proxy_apt_docker_the_placeholders_and_the_
 
 def test_a_pull_request_says_what_was_blocked():
     class Env:
-        blocked = [{"host": "example.com", "count": 3, "last": "2026-11-18T10:00:00Z"}]
+        def __init__(self, blocked):
+            self.blocked = blocked
 
-    body = _with_blocked(None, Env(), "Fixes the checkout.")
+    body = _with_blocked(None, Env([{"host": "example.com", "count": 3, "last": "2026-11-18T10:00:00Z"}]),
+                         "Fixes the checkout.")
     assert body.startswith("Fixes the checkout.") and "### Blocked during this work" in body
     assert "`example.com` (3x)" in body and "agentos environments allow --host" in body
-    Env.blocked = []
-    assert _with_blocked(None, Env(), "x") == "x"
+    assert _with_blocked(None, Env([]), "x") == "x"
 
 
 # ------------------------------------------------------------------ the proxy
@@ -321,9 +322,9 @@ async def test_a_binding_is_an_api_key_in_the_vault_for_its_hosts_and_environmen
 
 
 def test_no_tool_takes_a_secret_binding():
-    from agentos.environments.tools import environment_open
-
     import inspect
+
+    from agentos.environments.tools import environment_open
 
     params = set(inspect.signature(environment_open).parameters)
     assert not params & {"secret", "secrets", "env", "allow_hosts", "host"}

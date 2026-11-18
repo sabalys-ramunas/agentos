@@ -169,6 +169,8 @@ class Network:
             log.warning("environment %s: could not read the secrets bound to environments: %s", env.id,
                         getattr(e, "message", e))
             return []
+        if env.state == "ready":  # the node restarted: the machine has the placeholders it was given then
+            bound = [b for b in bound if b.var in env.secrets]
         if not bound:
             return []
         state = self._state(env)
@@ -295,8 +297,8 @@ class Network:
     async def net_setup(self, env: Environment) -> None:
         """The machine's side, over SSH (one step of the bring-up, after the tunnels)."""
         node = self._nets.get(env.id)
-        if node is None or (env.network == "full" and node.swap is None):
-            return
+        if node is None or (env.network == "full" and node.swap is None and not env.restore_from):
+            return  # nothing to set; a resumed disk may hold an earlier one's settings, which this clears
         swap = node.swap
         variables = {b.name: b.placeholder for b in swap.bindings} if swap is not None else {}
         script = net.vm_script(env.network, variables=variables,

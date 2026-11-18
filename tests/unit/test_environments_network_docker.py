@@ -50,8 +50,8 @@ async def _upstream(tmp_path) -> tuple[asyncio.AbstractServer, int, list[dict], 
                     conn.start_next_cycle()
                 elif isinstance(ev, h11.ConnectionClosed):
                     return
-        except Exception:  # noqa: BLE001 - a client that went away
-            pass
+        except (OSError, h11.ProtocolError):  # a client that went away
+            return
         finally:
             writer.close()
 

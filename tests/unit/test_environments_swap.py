@@ -56,8 +56,8 @@ class Upstream:
                 writer.write(conn.send(h11.Data(data=out)) + conn.send(h11.EndOfMessage()))
                 await writer.drain()
                 conn.start_next_cycle()
-        except Exception:  # noqa: BLE001 - the test's server: a dropped client ends it
-            pass
+        except (OSError, h11.ProtocolError):  # the test's server: a dropped client ends it
+            return
         finally:
             writer.close()
 
@@ -134,7 +134,7 @@ async def test_the_placeholder_becomes_the_value_for_the_bound_host_on_every_req
                            "Transfer-Encoding: chunked\r\n\r\n5\r\nhello\r\n6\r\n world\r\n0\r\n\r\n".encode())
     w.close()
     assert (one, two) == (b"ok 1", b"ok 2")  # keep-alive: both on one connection
-    (t1, h1, _), (t2, h2, b2) = rig["up"].got
+    (t1, h1, _), (_t2, h2, b2) = rig["up"].got
     assert t1 == f"/v1/charges?key={VALUE}&x=1".encode()
     assert dict(h1)[b"authorization"] == f"Bearer {VALUE}".encode()
     assert base64.b64decode(dict(h2)[b"authorization"].split()[1]) == f"{VALUE}:".encode()

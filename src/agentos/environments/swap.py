@@ -278,22 +278,22 @@ class SwapProxy:
             except Exception:
                 log.exception("environment %s: the swap's event hook failed", self.env_id)
 
+    def _pick(self, sslobj: Any, name: str | None, _ctx: ssl.SSLContext) -> int | None:
+        """The TLS server name picks the certificate, and only a bound host has one. No name: the context
+        it started with (a CONNECT's host; from the relay, none, so the handshake fails)."""
+        if name is None:
+            return None
+        name = name.lower().rstrip(".")
+        if name not in self.hosts:
+            return ssl.ALERT_DESCRIPTION_UNRECOGNIZED_NAME
+        leaf = self.ca.leaf(name)
+        leaf.sni_callback = self._pick
+        sslobj.context = leaf
+        return None
+
     def _base_context(self, expect: str | None) -> ssl.SSLContext:
         ctx = self.ca.leaf(expect) if expect else ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-        hosts = self.hosts
-
-        def pick(sslobj: Any, name: str | None, _ctx: ssl.SSLContext) -> int | None:
-            if name is None:
-                return None if expect else ssl.ALERT_DESCRIPTION_UNRECOGNIZED_NAME
-            name = name.lower().rstrip(".")
-            if name not in hosts or (expect and name != expect):
-                return ssl.ALERT_DESCRIPTION_UNRECOGNIZED_NAME
-            leaf = self.ca.leaf(name)
-            leaf.sni_callback = pick
-            sslobj.context = leaf
-            return None
-
-        ctx.sni_callback = pick
+        ctx.sni_callback = self._pick
         return ctx
 
     async def handle_relay(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
@@ -313,8 +313,8 @@ class SwapProxy:
                 return
             sslobj = writer.get_extra_info("ssl_object")
             host = getattr(getattr(sslobj, "context", None), "agentos_host", None) or expect
-            if not host or host not in self.hosts:
-                return
+            if not host or host not in self.hosts or (expect and host != expect):
+                return  # a CONNECT to one host with the server name of another: neither is served
             await self._serve(reader, writer, host)
         except (ConnectionError, TimeoutError, asyncio.IncompleteReadError, ssl.SSLError, h11.ProtocolError):
             pass

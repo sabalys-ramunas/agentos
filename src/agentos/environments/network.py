@@ -256,6 +256,10 @@ def vm_script(level: str, *, variables: dict[str, str], ca_pem: str | None, secr
             "systemctl enable --now agentos-secret-relay >/dev/null 2>&1 && systemctl restart agentos-secret-relay; "
             "else pkill -f secret-relay.py 2>/dev/null || true; "
             "setsid -f python3 /usr/local/lib/agentos-env/secret-relay.py >/dev/null 2>&1 </dev/null; fi")
+    else:  # none bound (now): no names sent to the relay, and no relay
+        lines.append(_block("/etc/hosts", ""))
+        lines.append("if [ -d /run/systemd/system ]; then systemctl disable --now agentos-secret-relay >/dev/null 2>&1 || true; "
+                     "fi; pkill -f secret-relay.py 2>/dev/null || true")
     lines.append("echo network-ready")
     return "\n".join(lines) + "\n"
 
