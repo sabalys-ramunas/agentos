@@ -343,6 +343,10 @@ def ref_tree(ref: str | None):
                        check=False)
 
 
+def _interrupt(*_: object) -> None:
+    raise KeyboardInterrupt  # a SIGTERM cleans up as Ctrl-C does
+
+
 def cmd_run(argv: list[str]) -> int:
     args = parse(argv)
     tasks = pick_tasks(args.task)
@@ -364,7 +368,8 @@ def cmd_run(argv: list[str]) -> int:
                   f"(each session capped at ${each:.2f}; --max-usd {args.max_usd:.2f})")
     out = args.out or Path(tempfile.mkdtemp(prefix="env-eval-"))
     out.mkdir(parents=True, exist_ok=True)
-    signal.signal(signal.SIGTERM, lambda *_: (_ for _ in ()).throw(KeyboardInterrupt()))
+    signal.signal(signal.SIGINT, signal.default_int_handler)  # Ctrl-C, even when started with it ignored
+    signal.signal(signal.SIGTERM, _interrupt)
     with ref_tree(args.ref) as tree:
         args.src = tree / "src" if tree else None
         args.tree = tree or REPO
