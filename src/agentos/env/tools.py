@@ -198,8 +198,8 @@ async def lane_exec(ctx: ToolContext, *, on: str, cmd: str, timeout_s: float = 6
     note = " ".join(n for n in notes if n)
     if note:
         out["note"] = note
-    if res.exit_code == 0 and (hint := readhint.file_read_hint(cmd, cwd)):
-        out["hint"] = hint  # a plain cat, head or sed -n of a file: the file tools do that
+    if not res.timed_out and (hint := readhint.file_read_hint(cmd, cwd)):
+        out["hint"] = hint  # a plain cat, head or sed -n of a file (an `ls` of a missing folder too): the file tools
     return out
 
 

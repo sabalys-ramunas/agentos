@@ -17,6 +17,7 @@ from agentos.env.readhint import file_read_hint, read_path
     ("sed -n '1,40p' src/app.js", "src/app.js"),
     ("cat -n src/app.js | head -50", "src/app.js"),
     ("ls -la; cat package.json; ls .agentos 2>/dev/null; cat .agentos/environment.toml 2>/dev/null", "package.json"),
+    ("ls -la && cat package.json 2>/dev/null | head -60 && ls .agentos 2>/dev/null", "package.json"),  # Haiku
     ('for f in src/* test/*; do echo "=== $f"; cat "$f"; done', ""),
 ])
 def test_a_plain_read_names_the_file(cmd, path):
