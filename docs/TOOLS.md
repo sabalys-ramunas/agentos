@@ -734,7 +734,7 @@ Returns on, id, title, opened (new, resumed, attached, taken_over), state (start
 | `keep` | `str \| None` | no (default None) | none (deleted when done), save (saved when idle or closed; its title resumes it) or live (kept running; the owner allows it). |
 | `signins` | `bool \| None` | no (default None) | false: saves keep no browser sign-ins. |
 | `take_over` | `bool` | no (default False) | Take a machine another chat of yours holds but has not used for 10 minutes (its work stays on it). Only when that chat is done with it. |
-| `network` | `str \| None` | no (default None) | Only to narrow the node's default: limited (package registries, code hosts and the owner's hosts) or none (the git gateway alone). Never wider than the node allows. |
+| `network` | `str \| None` | no (default None) | limited or none, only to narrow the node's (never wider). |
 
 ## environment_port
 

@@ -348,8 +348,7 @@ async def environment_open(ctx: ToolContext, *, title: str | None = None, repo: 
         signins: false: saves keep no browser sign-ins.
         take_over: Take a machine another chat of yours holds but has not used for 10 minutes (its
             work stays on it). Only when that chat is done with it.
-        network: Only to narrow the node's default: limited (package registries, code hosts and the
-            owner's hosts) or none (the git gateway alone). Never wider than the node allows.
+        network: limited or none, only to narrow the node's (never wider).
     """
     mgr = _mgr(ctx)
     title = check_title(title if title else title_for_repo(ctx, mgr, repo))

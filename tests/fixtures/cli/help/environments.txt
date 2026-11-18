@@ -30,5 +30,8 @@
 │              missing.                                                        │
 │ repo         Connect private repositories: a key or token in the vault, and  │
 │              the declaration for env.                                        │
+│ secret       API keys the app in an environment uses: the machine holds a    │
+│              placeholder, and the node puts the value in for the bound host  │
+│              only.                                                           │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 
