@@ -8,7 +8,8 @@ settings. React 19, TanStack Router and Query, Tailwind 4, built with Vite.
 It speaks one API, `/api/orgs/{org}/...` (`src/api/client.ts`). A node answers it as the org `local`,
 so the same screens run on your own node with nothing branching in them. How the node serves that
 API, and how to add a route: [docs/WEB-NODE.md](../docs/WEB-NODE.md). The design rules every screen
-follows: [DESIGN.md](DESIGN.md).
+follows: [DESIGN.md](DESIGN.md); how to build a screen with the design system, its component groups and
+its checks: [DESIGN-SYSTEM.md](DESIGN-SYSTEM.md) (agents: [AGENTS.md](AGENTS.md)).
 
 ## What you need
 
@@ -72,7 +73,8 @@ pnpm test:e2e                 # real browser flows on the mock, in system Chrome
 over are listed in `eslint.config.js`, and that list only shrinks. `pnpm knip` finds unused files,
 exports and dependencies (`knip.json`).
 
-`pnpm test` (Vitest, jsdom) includes the source rules in `src/test/source-rules.test.ts` (no em dash,
+`pnpm test` (Vitest, jsdom) includes the design rules in `src/test/design-system.test.ts` (tokens only,
+components where they exist, a catalog entry for every component; `pnpm design:check` runs just those), the source rules in `src/test/source-rules.test.ts` (no em dash,
 no hex colour in screens, screens never import the mock, no password field) and the token checks,
 which run `python3 tokens/build-tokens.py --check`. `pnpm test:e2e` starts its own dev server on
 port 5392, or on `E2E_PORT`.

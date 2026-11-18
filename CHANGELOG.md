@@ -8,6 +8,16 @@ All notable changes to agentos are recorded here. The format follows
 
 ### Added
 
+- The web app's design system for agents: `web/DESIGN-SYSTEM.md` (a screen in five steps, the tokens, the
+  component groups, the checks), an index per group in `web/design-system/`, and `web/AGENTS.md` and
+  `web/CLAUDE.md`. The catalog at `/$org/design` (dev only) draws every component by group, and agentos's
+  own composites from the mock; the e2e suite photographs it in both themes at 1440 and 390.
+- Design rules in `pnpm test` (`pnpm design:check`): no raw colour, arbitrary design value, class that is
+  not a token, unknown `var()`, design value in `style`, hand-drawn component or replaced word in a screen,
+  and a catalog entry for every component. What was there is counted in an allowlist that only shrinks.
+- The Tailwind theme is generated from the token script (`web/tokens/theme.py`), and the app's own colours
+  (board wires, Site API fields, the night band, the inverse button's edges) are tokens with light and dark values.
+
 - **An environment's agent signs in to accounts, with logins from your vault.** `agentos environments
   login add <site> [--user NAME] [--totp] --title "<title>" | --repo <repo> | --all` binds a vault login
   to computers (the password, and a TOTP seed, from a hidden prompt or `--stdin`, never the command

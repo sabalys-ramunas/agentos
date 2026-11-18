@@ -31,9 +31,9 @@ describe('source rules from DESIGN.md', () => {
     expect(offenders).toEqual([]);
   });
 
-  it('keeps the primitives on tokens too: no hex in components/ui, except the specimen\'s drawn page', () => {
-    // The drawn product page is another brand's picture (data, marked data-studio="ignore").
-    const ui = sources.filter((path) => path.includes('/components/ui/') && !path.endsWith('/specimen/shot.ts') && !/\.test\.tsx?$/.test(path));
+  it('keeps the primitives on tokens too: no hex in components/ui', () => {
+    // The catalog's drawn product page (src/catalog/shot.ts) is another brand's picture, and lives outside.
+    const ui = sources.filter((path) => path.includes('/components/ui/') && !/\.test\.tsx?$/.test(path));
     expect(ui.filter((path) => /#[0-9a-fA-F]{6}\b/.test(readFileSync(path, 'utf8')))).toEqual([]);
   });
 

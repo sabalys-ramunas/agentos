@@ -48,7 +48,7 @@ export const GROUPS: Group[] = [
       { file: 'src/styles/theme.css', names: 'Type roles (text-body, text-page-title ...)', demo: TypeDemo },
       { file: ui('swatch.tsx'), names: 'Swatch, TokenChip', shownBy: 'the tokens above' },
       { file: ui('kind.tsx'), names: 'KindTile, KindEyebrow, KINDS', demo: KindsDemo },
-      { file: 'src/components/lane-icon.tsx', names: 'LaneIcon (WorkspaceMark is the old name of BusinessMark)', demo: IconsDemo },
+      { file: 'src/components/lane-icon.tsx', names: 'Icons and marks: lucide, LaneIcon, and the marks below', demo: IconsDemo },
       { file: 'src/components/brand/identity.tsx', names: 'BusinessMark, PersonMark, AgentMark', shownBy: 'icons and marks above' },
       { file: 'src/components/brand/site-mark.tsx', names: 'SiteMark', shownBy: 'icons and marks above' },
       { file: 'src/components/brand/vendored.ts', names: 'Two marks Simple Icons dropped (data)', shownBy: 'SiteMark and AgentMark' },

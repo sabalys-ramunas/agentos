@@ -52,7 +52,7 @@ import {
   yesInChatRoute,
 } from './routes/outside';
 import { rootRoute } from './routes/root';
-import { catalogRoute } from './routes/catalog';
+import { catalogRoutes } from './routes/catalog';
 import { settingsIndexRoute, settingsRoute, settingsRoutes, standingRoute } from './routes/settings';
 import {
   accountsRoute,
@@ -132,7 +132,7 @@ const routeTree = rootRoute.addChildren([
     loginsRoute,
     settingsRoute.addChildren([settingsIndexRoute, ...settingsRoutes, standingRoute]),
     // The design system's catalog, in dev only: a live build holds none of it.
-    ...(import.meta.env.DEV ? [catalogRoute] : []),
+    ...catalogRoutes,
   ]),
 ]);
 
