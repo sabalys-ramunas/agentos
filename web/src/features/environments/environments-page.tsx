@@ -22,6 +22,7 @@ import { cn } from '@/lib/cn';
 import { dateTime, plural, timeAgo } from '@/lib/format';
 import { PLACES } from '@/lib/vocabulary';
 import { useNow } from '@/lib/use-now';
+import { ReadyAhead } from './ready-ahead';
 import { SavedCard } from './saved';
 import { ENV_STATE_SENTENCE, ENV_STATUS, KEEP, SHORT_MS, ageOf, agentWords, euro, hourly, idleCost, idleShort, isOpen, keepOf, leftOf, machineSize, openSummary, repoName, span, splitEnvironments } from './words';
 
@@ -105,6 +106,7 @@ function EnvironmentsBody({ org, query }: { org: string; query: ReturnType<typeo
   return (
     <>
       <OpenCard org={org} open={open} />
+      <ReadyAhead org={org} />
       {saved.length ? <SavedCard org={org} saved={saved} now={Date.now()} /> : null}
       {closed.length ? <ClosedCard org={org} closed={closed} /> : null}
     </>

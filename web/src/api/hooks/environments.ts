@@ -73,3 +73,33 @@ export function useForgetSave(org: string) {
     onSuccess: () => void client.invalidateQueries({ queryKey: keys.environmentsAll(org) }),
   });
 }
+
+/** The replay's timeline, read once: it only grows while the environment is open, and the page reads it again on demand. */
+export const useEnvReplay = (org: string, id: string, enabled = true) =>
+  useQuery({ queryKey: keys.environmentReplay(org, id), queryFn: () => environments.replay(org, id), enabled, staleTime: 30_000 });
+
+/** One checkpoint's diff (concept). */
+export const useCheckpointDiff = (org: string, id: string, checkpoint: string | null, against: 'previous' | 'now') =>
+  useQuery({
+    queryKey: keys.checkpointDiff(org, id, checkpoint ?? '', against),
+    queryFn: () => environments.checkpointDiff(org, id, checkpoint ?? '', against),
+    enabled: checkpoint !== null,
+    staleTime: 60_000,
+  });
+
+/** The prepared machines and the warm pool (concept). */
+export const usePreparedMachines = (org: string) =>
+  useQuery({ queryKey: keys.preparedMachines(org), queryFn: () => environments.prepared(org), refetchInterval: 15_000 });
+
+/** Wake a save from the app (concept): the environment opens again and waits for an agent. */
+export function useResumeSave(org: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id }: { id: string }) => environments.resume(org, id),
+    meta: { inline: true },
+    onSuccess: (env) => {
+      void client.invalidateQueries({ queryKey: keys.environmentsAll(org) });
+      void client.invalidateQueries({ queryKey: keys.environment(org, env.id) });
+    },
+  });
+}

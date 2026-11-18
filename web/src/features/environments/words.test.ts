@@ -47,12 +47,12 @@ describe('the words of Environments', () => {
 
   it('puts open ones first, newest first, and closed ones after, newest closing first', () => {
     const { open, closed } = splitEnvironments(summaries());
-    expect(open.map((env) => env.id)).toEqual(['q3mn', 'e7k2', 'w8tp']);
-    expect(closed.map((env) => env.id)).toEqual(['p2lc', 'v6up', 'f9sr', 'o4em', 'd1dm', 'a8fx']);
-    expect(openSummary(open)).toMatch(/^1 working, 1 starting, 1 idle · €/);
+    expect(open.map((env) => env.id)).toEqual(['q3mn', 'h5ap', 'e7k2', 'n3lm', 'c5kp', 'w8tp']);
+    expect(closed.map((env) => env.id)).toEqual(['p2lc', 'r9cl', 'd1dm', 'v6up', 'f9sr', 'o4em', 'a8fx']);
+    expect(openSummary(open)).toMatch(/^3 working, 1 starting, 2 idle · €/);
     expect(openSummary([])).toBe('None open right now.');
     expect(leftOf(closed[0]!, NOW)).toBeNull();
-    expect(leftOf(open[1]!, NOW)).toBe(106 * 60_000);
+    expect(leftOf(open[2]!, NOW)).toBe(106 * 60_000);
   });
 
   it('links a command to its run only when it is a job, and gives each state a word', () => {

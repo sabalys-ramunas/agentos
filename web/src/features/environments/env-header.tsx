@@ -12,6 +12,7 @@ import { Status, StatusDot } from '@/components/ui/status';
 import { NoValue } from '@/components/ui/table';
 import { clock, dateTime, timeAgo } from '@/lib/format';
 import { CloseEnvironment } from './close-flow';
+import { WatchLine } from './resume';
 import {
   ENV_STATE_SENTENCE,
   ENV_STATUS,
@@ -76,6 +77,11 @@ export function EnvHeader({ org, env, now }: { org: string; env: EnvDetail; now:
               </>
             ) : null}
           </p>
+          {isOpen(env) && env.watching?.length ? (
+            <p className="text-secondary text-muted">
+              <WatchLine watching={env.watching} />
+            </p>
+          ) : null}
         </div>
         {actionable && canOperate ? (
           <div className="flex flex-wrap items-center gap-2">

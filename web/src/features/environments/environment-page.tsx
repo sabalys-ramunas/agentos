@@ -18,9 +18,14 @@ import { useNow } from '@/lib/use-now';
 import {
   isOpen,
 } from './words';
+import { CheckpointsCard } from './checkpoints';
 import { BrowserCard, CallsCard, CommandsCard, GitCard, MachineCard, PortsCard } from './env-cards';
 import { ClosedNotice, EnvHeader, Facts } from './env-header';
+import { NetworkCard } from './network-card';
+import { OpenedCard } from './opened';
 import { ProofsCard } from './proofs';
+import { ReplayCard } from './replay';
+import { ResumedNotice, SavedNotice } from './resume';
 
 export const EXTEND = [
   { minutes: 30, label: '30 minutes' },
@@ -106,17 +111,23 @@ function EnvLoaded({ org, env }: { org: string; env: EnvDetail }) {
   return (
     <div className="grid gap-6">
       <EnvHeader org={org} env={env} now={now} />
-      {open ? null : <ClosedNotice env={env} />}
+      {open ? env.state === 'starting' ? null : <ResumedNotice env={env} /> : <ClosedNotice env={env} />}
+      {open ? null : <SavedNotice org={org} env={env} />}
       <Facts env={env} now={now} />
+      {/* a closed one is its replay first: what happened is the page now */}
+      {!open && env.replay ? <ReplayCard org={org} env={env} /> : null}
+      <OpenedCard org={org} env={env} />
       <div className="grid items-start gap-6 lg:grid-cols-12">
         <div className="grid min-w-0 gap-6 lg:col-span-8">
           {open ? <BrowserCard org={org} env={env} /> : null}
+          <CheckpointsCard org={org} env={env} now={now} />
           <ProofsCard env={env} now={now} />
           <CommandsCard org={org} env={env} now={now} />
           <CallsCard env={env} now={now} />
         </div>
         <div className="grid min-w-0 gap-6 lg:col-span-4">
           <GitCard env={env} now={now} />
+          {env.network ? <NetworkCard network={env.network} now={now} /> : null}
           {open ? <PortsCard env={env} /> : null}
           <MachineCard env={env} />
         </div>

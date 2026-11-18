@@ -144,4 +144,7 @@ export const keys = {
   environmentsAll: (org: string) => ['org', org, 'environments'] as const,
   environments: (org: string, state: 'open' | 'all') => ['org', org, 'environments', 'list', state] as const,
   environment: (org: string, id: string) => ['org', org, 'environments', 'one', id] as const,
+  environmentReplay: (org: string, id: string) => ['org', org, 'environments', 'replay', id] as const,
+  checkpointDiff: (org: string, id: string, checkpoint: string, against: string) => ['org', org, 'environments', 'diff', id, checkpoint, against] as const,
+  preparedMachines: (org: string) => ['org', org, 'environments', 'prepared'] as const,
 };

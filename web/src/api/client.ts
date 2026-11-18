@@ -13,9 +13,12 @@ import type {
   BrandProfile,
   BrandProfiles,
   BrandProposal,
+  EnvCheckpointDiff,
   EnvDetail,
   EnvList,
+  EnvReplayTimeline,
   EnvSummary,
+  PreparedList,
   Job,
   JobDetail,
   JobList,
@@ -826,4 +829,13 @@ export const environments = {
     http<EnvSummary>(path`/api/orgs/${org}/environments/${id}/extend`, { method: 'POST', body: { minutes } }),
   /** Forget a kept environment's save: its snapshot and files are deleted. The owner in person. */
   forget: (org: string, saveId: string) => http<{ forgot?: boolean; snapshots_deleted?: number }>(path`/api/orgs/${org}/environments/saves/${saveId}`, { method: 'DELETE' }),
+  /** The replay of its browser: frames and calls by time (agentos.environments.replay). The owner only. */
+  replay: (org: string, id: string) => served(http<EnvReplayTimeline>(path`/api/orgs/${org}/environments/${id}/replay` + query({ limit: '2000' }))),
+  /** Concept: one checkpoint's diff, against the one before it or against now. Not served yet. */
+  checkpointDiff: (org: string, id: string, checkpoint: string, against: 'previous' | 'now') =>
+    served(http<EnvCheckpointDiff>(path`/api/orgs/${org}/environments/${id}/checkpoints/${checkpoint}/diff` + query({ against }))),
+  /** Concept: the prepared machines and the warm pool. Not served yet (the CLI reads them on the node). */
+  prepared: (org: string) => served(http<PreparedList>(path`/api/orgs/${org}/environments/prepared`)),
+  /** Concept: wake a save from the app; the next agent that opens its title takes it over. Not served yet. */
+  resume: (org: string, saveId: string) => http<EnvSummary>(path`/api/orgs/${org}/environments/saves/${saveId}/resume`, { method: 'POST' }),
 };

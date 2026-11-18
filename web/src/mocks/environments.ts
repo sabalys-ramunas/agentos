@@ -16,6 +16,8 @@
 import { http, HttpResponse } from 'msw';
 import type { EnvCall, EnvCommand, EnvDetail, EnvKeep, EnvMachine, EnvProof, EnvSave, EnvState, EnvSummary, Job, JobDetail, Lane } from '@/api/types';
 import { idleControl } from '@/lib/lanes';
+import { conceptHandlers, advanceStory } from './env-concepts';
+import { decorate, linkSaves, storyEnvironments, storySaves } from './env-stories';
 import { scenario } from './scenario';
 import type { Helpers } from './s3';
 import type { MockDb, OrgData } from './seed';
@@ -37,17 +39,19 @@ export interface MockEnv {
   until?: number;
   /** The jobs its terminal ran, with their output, for `/jobs/{id}`. */
   jobs: { job: Job; stdout: string }[];
+  /** A bring-up that moves on its own (mocks/env-stories.ts PLANS): which plan, and when it began. */
+  plan?: { id: string; start: number };
 }
 
-const SMALL: EnvMachine = { provider: 'hetzner', server_type: 'cpx22', cpu: 2, memory_gb: 4, location: 'nbg1' };
-const MEDIUM: EnvMachine = { provider: 'hetzner', server_type: 'cpx32', cpu: 4, memory_gb: 8, location: 'hel1' };
+export const SMALL: EnvMachine = { provider: 'hetzner', server_type: 'cpx22', cpu: 2, memory_gb: 4, location: 'nbg1' };
+export const MEDIUM: EnvMachine = { provider: 'hetzner', server_type: 'cpx32', cpu: 4, memory_gb: 8, location: 'hel1' };
 const PRICE: Record<string, number> = { cpx22: 0.0121, cpx32: 0.0213 };
 
-const at = (now: number, ms: number) => new Date(now + ms).toISOString();
+export const at = (now: number, ms: number) => new Date(now + ms).toISOString();
 const costOf = (machine: EnvMachine, minutes: number) => Math.round(((PRICE[machine.server_type] ?? 0.0121) * minutes) / 60 * 10_000) / 10_000;
 
 /** A kept screenshot: its picture is drawn by the proofs route below, from its id. */
-function proof(env: string, id: string, title: string, takenAt: string, pageUrl: string, width = 1280, height = 800): EnvProof {
+export function proof(env: string, id: string, title: string, takenAt: string, pageUrl: string, width = 1280, height = 800): EnvProof {
   return { id, title, taken_at: takenAt, page_url: pageUrl, width, height, src: `/api/orgs/northwind-group/environments/${env}/proofs/${id}.png` };
 }
 
@@ -55,6 +59,8 @@ const PROOF_PAGES: Record<string, { heading: string; tint: string; phone?: boole
   pf_offer_desktop: { heading: 'Black Friday: 30% off everything', tint: '#1f2937' },
   pf_offer_phone: { heading: '30% off', tint: '#7c2d12', phone: true },
   pf_pricing: { heading: 'Simple pricing', tint: '#1e3a8a' },
+  pf_r9_confirm: { heading: 'Thank you, Ada', tint: '#14532d' },
+  pf_r9_postcode: { heading: 'Enter a UK postcode', tint: '#7f1d1d' },
 };
 
 /** A believable page for a proof: a bar, a heading and a few blocks. Fictional, drawn as SVG. */
@@ -72,15 +78,15 @@ function proofPicture(id: string, width: number, height: number): string {
 </svg>`;
 }
 
-function call(now: number, secondsAgo: number, tool: string, summary: string, ok = true): EnvCall {
+export function call(now: number, secondsAgo: number, tool: string, summary: string, ok = true): EnvCall {
   return { at: at(now, -secondsAgo * SECOND), tool, summary, ok };
 }
 
-function command(now: number, id: string, cmd: string, state: string, minutesAgo: number, exit_code: number | null = null): EnvCommand {
+export function command(now: number, id: string, cmd: string, state: string, minutesAgo: number, exit_code: number | null = null): EnvCommand {
   return { id, cmd, state, started_at: at(now, -minutesAgo * MINUTE), exit_code };
 }
 
-interface Seed {
+export interface Seed {
   id: string;
   title: string;
   state: EnvState;
@@ -97,7 +103,7 @@ interface Seed {
   keep?: EnvKeep;
 }
 
-function summaryOf(now: number, seed: Seed): EnvSummary {
+export function summaryOf(now: number, seed: Seed): EnvSummary {
   const open = seed.state !== 'closed' && seed.state !== 'failed';
   const ran = open ? seed.age : (seed.ran ?? seed.age);
   const created = now - seed.age * MINUTE;
@@ -165,7 +171,7 @@ const VITEST = [
   '',
 ].join('\n');
 
-function job(now: number, env: string, id: string, cmd: string, cwd: string, state: Job['state'], minutesAgo: number, took: number | null, stdout: string): { job: Job; stdout: string } {
+export function job(now: number, env: string, id: string, cmd: string, cwd: string, state: Job['state'], minutesAgo: number, took: number | null, stdout: string): { job: Job; stdout: string } {
   const started = now - minutesAgo * MINUTE;
   return {
     job: {
@@ -344,7 +350,9 @@ export function seedEnvironments(now = Date.now()): MockEnv[] {
       },
     };
   });
-  return [...open, ...ended];
+  const all = [...open, ...storyEnvironments(now), ...ended];
+  decorate(all, now);
+  return all;
 }
 
 const DAY = 24 * HOUR;
@@ -372,7 +380,7 @@ export function seedSaves(now = Date.now()): EnvSave[] {
 }
 
 /** An environment's browser, as a lane on the node: no account, no proxy of its own, nothing kept. */
-function browserLane(sibling: Lane | undefined, env: EnvDetail, now: number): Lane {
+export function browserLane(sibling: Lane | undefined, env: EnvDetail, now: number): Lane {
   const name = `${env.id}-browser`;
   return {
     ...(sibling as Lane),
@@ -407,7 +415,8 @@ export function withEnvironments(db: MockDb, now = Date.now()) {
   const data = db.orgs.get('northwind-group');
   if (!data || scenario.has('no-envs')) return;
   data.environments = seedEnvironments(now);
-  data.environmentSaves = scenario.has('no-saves') ? [] : seedSaves(now);
+  data.environmentSaves = scenario.has('no-saves') ? [] : [...storySaves(now), ...seedSaves(now)];
+  linkSaves(data.environmentSaves, data.environments);
   const sibling = data.lanes.find((lane) => lane.kind === 'browser');
   for (const item of data.environments) {
     if (item.detail.state === 'closed' || item.detail.state === 'failed') continue;
@@ -416,13 +425,15 @@ export function withEnvironments(db: MockDb, now = Date.now()) {
 }
 
 function strip(detail: EnvDetail): EnvSummary {
-  const { ports: _ports, git: _git, calls: _calls, commands: _commands, viewer: _viewer, closed_reason: _reason, unsaved: _unsaved, proofs: _proofs, ...summary } = detail;
+  const { ports: _ports, git: _git, calls: _calls, commands: _commands, viewer: _viewer, closed_reason: _reason, unsaved: _unsaved, proofs: _proofs, ...rest } = detail;
+  const { prepared: _prepared, app: _app, network: _network, bringup: _bringup, checkpoints: _checkpoints, replay: _replay, watching: _watching, ...summary } = rest;
   return summary;
 }
 
 /** What time has done since the last read: a boot ends, a close ends, the cost goes up, a quiet one goes idle. */
 function advance(record: OrgData, item: MockEnv, now: number) {
   const env = item.detail;
+  if (advanceStory(record, item, now) && env.resumed) return;
   if (env.state === 'starting' && item.until !== undefined && now >= item.until) {
     item.until = undefined;
     env.state = 'ready';
@@ -464,6 +475,7 @@ export function environmentHandlers({ org, failure, data }: Pick<Helpers, 'org' 
   };
 
   return [
+    ...conceptHandlers({ org, failure, data }),
     http.get(
       '/api/orgs/:org/environments',
       org((record, { request }) => {
