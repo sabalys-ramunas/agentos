@@ -156,7 +156,7 @@ function OpenBody({ org, env, now }: { org: string; env: EnvDetail; now: number 
 function ClosedBody({ org, env, now }: { org: string; env: EnvDetail; now: number }) {
   return (
     <>
-      {env.replay ? <ReplayCard org={org} env={env} /> : null}
+      {env.replay?.frames ? <ReplayCard org={org} env={env} /> : null}
       <div className="grid items-start gap-6 lg:grid-cols-12">
         <div className="min-w-0 lg:col-span-8">
           <ProofsCard env={env} now={now} />

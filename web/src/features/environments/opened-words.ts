@@ -38,7 +38,7 @@ export function seconds(value: number): string {
   return rest ? `${minutes} min ${rest} s` : `${minutes} min`;
 }
 
-type Opened = Pick<EnvDetail, 'state' | 'prepared' | 'resumed' | 'resumed_by' | 'bringup' | 'repo'>;
+type Opened = Pick<EnvDetail, 'state' | 'prepared' | 'resumed' | 'resumed_by' | 'bringup' | 'repo'> & { machine?: Pick<EnvDetail['machine'], 'provider'> };
 
 /** What a resume wakes from: the record of the resume, else what the bring-up says it restores. */
 export function wakesFrom(env: Pick<EnvDetail, 'resumed' | 'bringup'>): 'snapshot' | 'paused' | 'files' | null {
@@ -139,6 +139,7 @@ export function openedWords(env: Opened): { lead: string; detail: string | null 
 function waitingWords(env: Opened): string | null {
   const from = wakesFrom(env);
   if (from === 'paused') return 'A paused machine comes back as it was, its dev server still running. Usually under 10 s.';
+  if (from === 'snapshot' && env.machine?.provider === 'docker') return 'A snapshot comes back from its image on this computer. Usually a few seconds.';
   if (from === 'snapshot') return 'A snapshot comes back on a new machine. Usually about a minute.';
   if (from === 'files') return 'Its files come back on a fresh machine. A few minutes.';
   return env.prepared?.why ? sentence(env.prepared.why) : null;

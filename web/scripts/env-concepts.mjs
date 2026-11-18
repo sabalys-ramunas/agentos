@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Screenshots of the environment concepts (mock only), light and dark, at 1440 and 390, into OUT_DIR
+ * Screenshots of the environment screens on the mock, light and dark, at 1440 and 390, into OUT_DIR
  * (default screenshots/env-concepts). BASE_URL is the dev server. `--only a,b` narrows by name.
  *
  *   BASE_URL=http://localhost:5341 node scripts/env-concepts.mjs
@@ -27,14 +27,18 @@ const themes = option('theme') ? [option('theme')] : ['light', 'dark'];
 /** name, path, optional action, whether to take the full page. */
 const shots = [
   ['01-list', `/${O}/environments`, null],
-  ['02-opened-prepared', `/${O}/environments/e7k2`, null],
+  ['02-open-environment', `/${O}/environments/e7k2`, null],
+  ['02b-how-it-opened', `/${O}/environments/e7k2`, async (page) => {
+    await page.getByRole('button', { name: /Opened in/ }).click();
+    await page.getByRole('region', { name: 'The app' }).scrollIntoViewIfNeeded();
+  }, false],
   ['03-app-failed', `/${O}/environments/h5ap`, null],
   ['04-network-limited', `/${O}/environments/n3lm`, async (page) => {
     await page.getByRole('heading', { name: 'Network' }).scrollIntoViewIfNeeded();
   }],
   ['05-checkpoints', `/${O}/environments/c5kp`, null],
   ['06-checkpoint-diff', `/${O}/environments/c5kp`, async (page) => {
-    await page.getByRole('button', { name: /Show the changes of checkpoint 3/ }).click();
+    await page.getByRole('button', { name: /Show what changed since checkpoint 3/ }).click();
     await page.getByRole('dialog').waitFor();
     await page.waitForTimeout(300);
   }, false],
@@ -71,6 +75,17 @@ const shots = [
     await page.waitForTimeout(300);
   }, false],
   ['13-starting-live', `/${O}/environments/q3mn`, null],
+  ['14-video-proof', `/${O}/environments/r9cl`, async (page) => {
+    await page.getByRole('button', { name: /Play the video/ }).click();
+    await page.getByRole('dialog').waitFor();
+    await page.waitForTimeout(300);
+  }, false],
+  ['15-resume-refused', `/${O}/environments?mock=still,environment-full`, async (page) => {
+    await page.getByRole('button', { name: 'Resume Checkout redesign' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Resume', exact: true }).click();
+    await page.getByRole('alert').waitFor();
+    await page.waitForTimeout(300);
+  }, false],
 ];
 
 const selected = only ? shots.filter(([name]) => only.some((term) => name.includes(term))) : shots;

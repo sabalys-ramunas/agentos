@@ -22,12 +22,13 @@ import { wakesFrom } from './opened-words';
 import { continueLine, hourly, monthly, saveHolds } from './words';
 
 /** How fast each kind of save comes back, and what comes back with it. */
-export function comebackWords(save: Pick<EnvSave, 'paused' | 'snapshot_gb' | 'services'>): string {
-  if (save.paused) {
-    const running = save.services?.map((service) => service.cmd) ?? [];
-    return running.length ? `Comes back in seconds, as it was: ${running.join(' and ')} still running.` : 'Comes back in seconds, as it was, its programs still running.';
-  }
-  if (save.snapshot_gb) return 'Comes back in about a minute on a new machine. Its programs start again.';
+export function comebackWords(save: Pick<EnvSave, 'paused' | 'snapshot_gb' | 'services' | 'provider'>): string {
+  const running = save.services?.map((service) => service.cmd) ?? [];
+  if (save.paused) return running.length ? `Comes back in seconds, as it was: ${running.join(' and ')} still running.` : 'Comes back in seconds, as it was, its programs still running.';
+  const again = running.length ? `It starts ${running.join(' and ')} again.` : 'Its programs start again.';
+  // a local image on this computer: no machine to rent, so it is back in seconds
+  if (save.snapshot_gb && save.provider === 'docker') return `Comes back in seconds from its image on this computer. ${again}`;
+  if (save.snapshot_gb) return `Comes back in about a minute on a new machine. ${again}`;
   return 'Comes back on a fresh machine with its files, in a few minutes.';
 }
 
@@ -41,8 +42,13 @@ export function ResumeButton({ org, save, primary = false }: { org: string; save
   const [asking, setAsking] = useState(false);
   const [refused, setRefused] = useState<ApiError | null>(null);
   if (!access.can('environments.forget')) return null;
-  const what = save.paused ? 'its paused machine' : save.snapshot_gb ? 'its snapshot on a new machine' : 'its files on a fresh machine';
-  const price = save.price_hourly_eur ? `It bills ${hourly(save.price_hourly_eur)} while it is awake, instead of ${monthly(save.cost_eur_month)} saved.` : 'It bills by the hour while it is awake.';
+  const what = save.paused ? 'its paused machine' : save.snapshot_gb ? (save.provider === 'docker' ? 'its snapshot' : 'its snapshot on a new machine') : 'its files on a fresh machine';
+  const price =
+    save.price_hourly_eur === 0
+      ? 'Its machine costs nothing while it is awake.'
+      : save.price_hourly_eur
+        ? `It bills ${hourly(save.price_hourly_eur)} while it is awake, instead of ${monthly(save.cost_eur_month)} saved.`
+        : 'It bills by the hour while it is awake.';
   const close = (next: boolean) => {
     setAsking(next);
     if (!next) setRefused(null);
@@ -152,7 +158,9 @@ export function ResumedNotice({ env }: { env: EnvDetail }) {
                 ? 'Usually under 10 seconds.'
                 : from === 'files'
                   ? 'A few minutes.'
-                  : 'Usually about a minute.'
+                  : env.machine.provider === 'docker'
+                    ? 'Usually a few seconds.'
+                    : 'Usually about a minute.'
               : `The next agent that opens "${env.title}" takes it over, with its work as it was.`}
           </span>
         </p>
