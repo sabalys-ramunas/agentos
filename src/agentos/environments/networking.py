@@ -27,6 +27,7 @@ import secrets
 import shutil
 import time
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -337,6 +338,19 @@ class Network:
             await self.net_down(env_id, forget=False)
 
     # ================================================================ read
+    def blocked_since(self, env: Environment, since: Any) -> list[str]:
+        """The hosts the environment's proxy refused at `since` or later (a datetime), newest first: what
+        a command's result names as network.blocked_now."""
+        node = self._nets.get(env.id)
+        if env.network == "full" or node is None or node.blocked is None or since is None:
+            return []
+        out = []
+        for row in node.blocked.list():
+            with contextlib.suppress(TypeError, ValueError):
+                if datetime.fromisoformat(str(row.get("last"))) >= since:
+                    out.append(row["host"])
+        return out
+
     def network_view(self, env: Environment) -> dict:
         """`network` of environment() and the web API: the level, the allowed list in short, what was
         refused, and the names of the bound secrets (never a value)."""

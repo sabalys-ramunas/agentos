@@ -208,14 +208,15 @@ def allow_all_wrap(spec: ToolSpec, runtime: Runtime) -> Call:
         freeze = runtime.get("freeze")  # agentos.freeze stops every MCP caller, the owner's agent too
         # a studio check goes through the environment's tunnel, or fails while it is down
         with env_routing.studio_proxy(runtime, spec.name, arguments, session=None, grant_id=None):
+            since = env_routing.now(runtime) if spec.name in env_routing.NETWORK_TOOLS else None
             if freeze is None:
-                return env_routing.with_env(await spec.handler(ctx, **arguments), picked)
+                return env_routing.finish(runtime, spec.name, await spec.handler(ctx, **arguments), picked, since)
             lane_id = arguments.get(spec.lane_arg) if spec.lane_arg else None
             ws = arguments.get("workspace")
             extra = {"workspace": ws} if isinstance(ws, str) and ws else {}
             with freeze.guard(tool=spec.name, lane_id=lane_id if isinstance(lane_id, str) else None, chain=(),
                               **extra):
-                return env_routing.with_env(await spec.handler(ctx, **arguments), picked)
+                return env_routing.finish(runtime, spec.name, await spec.handler(ctx, **arguments), picked, since)
 
     return call
 

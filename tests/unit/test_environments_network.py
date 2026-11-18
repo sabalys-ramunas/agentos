@@ -79,6 +79,7 @@ def test_the_machines_script_sets_the_proxy_apt_docker_the_placeholders_and_the_
                                secret_hosts=["api.stripe.com"])
     assert "HTTPS_PROXY=\"http://127.0.0.1:3130\"" in script and "no_proxy=\"localhost,127.0.0.1,::1\"" in script
     assert "STRIPE_KEY=\"agentos-secret-abc\"" in script and "NODE_EXTRA_CA_CERTS" in script
+    assert "NODE_USE_ENV_PROXY=\"1\"" in script  # Node's fetch takes the proxy too
     assert "Acquire::https::Proxy" in script and "docker.service.d/agentos-proxy.conf" in script
     assert "systemctl is-active --quiet docker" in script  # the daemon restarts only when it runs
     assert "127.0.10.1 api.stripe.com" in script and "update-ca-certificates" in script
@@ -119,6 +120,9 @@ async def test_the_proxy_refuses_in_plain_words_and_keeps_count_of_what_it_refus
     port = server.sockets[0].getsockname()[1]
     try:
         out = await _ask(port, b"CONNECT example.com:443 HTTP/1.1\r\nHost: example.com:443\r\n\r\n")
+        assert out.split(b"\r\n", 1)[0] == (b"HTTP/1.1 403 Forbidden: example.com is not on this environment's "
+                                             b"network list. The owner can allow it: agentos environments allow "
+                                             b"--host example.com")
         assert out.startswith(b"HTTP/1.1 403") and out.endswith(
             b"example.com is not on this environment's network list. The owner can allow it: "
             b"agentos environments allow --host example.com\n")
@@ -285,6 +289,29 @@ async def test_the_node_side_records_refusals_with_the_environment(closing):
     assert out["id"] not in mgr._nets and not (mgr.home / "environments-net" / out["id"]).exists()
 
 
+async def test_a_command_that_was_refused_a_host_says_so_with_the_owners_command(closing, monkeypatch):
+    """curl over HTTPS shows only "CONNECT tunnel failed, response 403": the result of the command that
+    was refused names the host and the fix (network.blocked_now); one that was not says nothing."""
+    out = await closing["call"]("environment_open", title="closed three", network="limited")
+    mgr, fake = closing["mgr"], closing["machine"]
+    node_net = mgr._nets[out["id"]]
+    node_net.blocked.note("old.example.com")  # before the command: not this command's
+    real = fake.exec
+
+    async def refused_meanwhile(lane_id, cmd, **kw):
+        if "rates" in cmd:
+            node_net.blocked.note("rates.example.com")
+        return await real(lane_id, cmd, **kw)
+
+    monkeypatch.setattr(closing["envs"], "exec", refused_meanwhile)
+    ran = await closing["call"]("lane_exec", on=out["on"], cmd="curl -sS https://rates.example.com")
+    net = ran["network"]
+    assert net["blocked_now"] == ["rates.example.com"]
+    assert "agentos environments allow --host rates.example.com" in net["fix"] and "—" not in net["fix"]
+    plain = await closing["call"]("lane_exec", on=out["on"], cmd="npm test")
+    assert "network" not in plain
+
+
 # ------------------------------------------------------------------ the owner's bindings
 
 
@@ -346,3 +373,28 @@ async def test_a_bound_secret_reaches_the_machine_as_a_placeholder_only(node, va
     node_net = mgr._nets[env.id]
     assert node_net.swap_port and node_net.forwards() == ((network.SWAP_PORT_ON_VM, node_net.swap_port),)
     assert (await node["call"]("environment", on=out["on"]))["network"]["secrets"] == ["STRIPE_KEY"]
+
+
+def test_a_job_read_names_what_was_refused_since_its_job_began():
+    from datetime import UTC, datetime
+    from types import SimpleNamespace
+
+    from agentos.environments import routing
+
+    env = SimpleNamespace(id="e1", network="limited")
+    asked = []
+
+    class Svc:
+        def env_of_lane(self, lane):
+            return (env, "terminal") if lane == "env/e1" else None
+
+        def blocked_since(self, e, since):
+            asked.append(since)
+            return ["rates.example.com"]
+
+    rt = SimpleNamespace(get=lambda name: Svc() if name == "environments" else None)
+    job = {"id": "job-1", "lane": "env/e1", "started_at": "2026-11-18T10:00:00Z", "state": "exited"}
+    out = routing.finish(rt, "lane_job_read", job, None)
+    assert out["network"]["blocked_now"] == ["rates.example.com"]
+    assert asked == [datetime(2026, 11, 18, 10, 0, tzinfo=UTC)]
+    assert "network" not in routing.finish(rt, "browser_navigate", {"url": "x"}, None)

@@ -90,7 +90,9 @@ class EnvForwarder(Forwarder):
             await super()._reply(writer, status, message)
             return
         body = f"{message}\n".encode()  # the refusal in plain words, for a CONNECT as for a plain request
-        writer.write(b"HTTP/1.1 403 Forbidden\r\nContent-Type: text/plain\r\nX-Agentos-Egress: denied\r\n"
+        # and in the reason phrase: Python's and Go's clients print it for a refused CONNECT, curl only the code
+        reason = "".join(c for c in f"Forbidden: {message}" if " " <= c <= "~")[:240]
+        writer.write(f"HTTP/1.1 403 {reason}\r\n".encode() + b"Content-Type: text/plain\r\nX-Agentos-Egress: denied\r\n"
                      + f"Content-Length: {len(body)}\r\nConnection: close\r\n\r\n".encode() + body)
         with contextlib.suppress(ConnectionError):
             await writer.drain()

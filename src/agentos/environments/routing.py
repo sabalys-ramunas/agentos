@@ -102,6 +102,45 @@ def with_env(result: Any, env: Any) -> Any:
     return {**result, "environment": env_ref(env)}
 
 
+# a command's result: the hosts the environment's network refused while it ran (lane_job_read: since its job began)
+NETWORK_TOOLS = frozenset({"lane_exec", "lane_job_read"})
+
+
+def now(runtime: Any) -> Any:
+    """The environments' clock now, for finish()'s `since` (None on a node without environments)."""
+    clock = getattr(_service(runtime), "_clock", None)
+    return clock() if callable(clock) else None
+
+
+def finish(runtime: Any, tool: str, result: Any, env: Any, since: Any = None) -> Any:
+    """with_env, and on a command's result `network.blocked_now` when the environment's proxy refused a
+    host while it ran: curl over HTTPS shows only "CONNECT tunnel failed, response 403", so the result
+    names the host and the owner's command (evals, 2026-11-18)."""
+    result = with_env(result, env)
+    if tool not in NETWORK_TOOLS or not isinstance(result, dict) or "network" in result:
+        return result
+    svc = _service(runtime)
+    blocked_since = getattr(svc, "blocked_since", None)
+    if not callable(blocked_since):
+        return result
+    try:
+        if env is None:  # a job read without `on`: the job's own lane
+            found = svc.env_of_lane(result.get("lane"))
+            env = found[0] if found else None
+        if tool == "lane_job_read":
+            from datetime import datetime
+
+            since = datetime.fromisoformat(str(result.get("started_at")))
+        hosts = blocked_since(env, since) if env is not None else []
+    except (TypeError, ValueError, AttributeError):
+        return result
+    if not hosts:
+        return result
+    return {**result, "network": {"blocked_now": hosts[:5], "fix": (
+        f"refused: not on this environment's network list. Do not retry; the owner allows a host with "
+        f"agentos environments allow --host {hosts[0]}")}}
+
+
 def binding(session: str | None, grant_id: str | None) -> str:
     from agentos.environments.manager import binding_of
 
