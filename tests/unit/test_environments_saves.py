@@ -464,9 +464,21 @@ async def test_keep_live_is_never_closed_idle_and_needs_the_opt_in(node):
     assert gone["machine"] == "deleted"
 
 
+async def test_an_open_that_names_no_keep_saves_when_idle(node):
+    """The default since 2026-11-18: agentos is a computer that stays. No environments.toml, no keep: the
+    close saves the whole machine and deletes the VM; single use is one argument away."""
+    assert EnvSettings().default_keep == "save"
+    out = await opened(node)
+    assert out["keep"] == "save"
+    closed = await node["call"]("environment_close", note="next: the menu")
+    assert closed["machine"] == "deleted" and closed["saved"]["snapshot"] is not None
+    one_off = await opened(node, title="Hotfix", session="chat-3", keep="none")
+    assert one_off["keep"] == "none"
+
+
 async def test_keep_none_at_its_time_limit_gets_a_rescue_save_and_the_owner_is_told(node):
     """Acceptance 11 (and 5, a laptop that woke past the limit: the same reaper pass)."""
-    out = await opened(node)
+    out = await opened(node, keep="none")
     head = work_on_it(disk(node, out["id"]) / "work" / "shop")
     mgr = node["mgr"]
     with pytest.raises(ToolCallError) as e:

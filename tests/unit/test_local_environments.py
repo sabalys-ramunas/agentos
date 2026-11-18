@@ -88,7 +88,8 @@ async def local(tmp_path, monkeypatch):
     monkeypatch.setattr(playwright.async_api, "async_playwright", lambda: pw)
     VmTunnel.made, VmTunnel.stopped = [], []
     monkeypatch.setattr(bringup, "Tunnel", VmTunnel)
-    mgr = EnvironmentManager(home, runtime=rt, settings=EnvSettings(browser="vm"))
+    # single use, as an owner who chose it: these tests close and reap machines that are deleted
+    mgr = EnvironmentManager(home, runtime=rt, settings=EnvSettings(browser="vm", default_keep="none"))
     mgr.repo_probe = readable_repo
     rt.register("environments", mgr)
     route_browsers(mgr, lanes)

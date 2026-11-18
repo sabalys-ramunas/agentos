@@ -105,7 +105,9 @@ async def node(tmp_path, monkeypatch):
     lanes = FakeLaneManager()
     rt.register("lanes", lanes)
     monkeypatch.setattr(bringup, "Tunnel", FakeTunnel)
-    mgr = EnvironmentManager(home, runtime=rt, settings=EnvSettings())
+    # Single use, as an owner who chose it: most tests here exercise close, the reaper and unsaved work on
+    # a machine that is deleted. The default (saves when idle) is test_environments_saves's.
+    mgr = EnvironmentManager(home, runtime=rt, settings=EnvSettings(default_keep="none"))
     mgr.repo_probe = readable_repo
     mgr.slot_poll_s, mgr.slot_wait_s, mgr.ready_wait_s = 0.01, 0.05, 0.05  # a full node, a starting machine: short waits
     rt.register("environments", mgr)
@@ -736,7 +738,7 @@ async def test_the_budget_counts_the_hours_open_environments_have_booked(node):
     """An open environment can still bill to its time limit: the next open counts those hours, not
     only what was spent so far. cx23 at EUR 0.006 an hour, cpx22 (EUR 0.0095) its fallback."""
     mgr = node["mgr"]
-    mgr.settings = EnvSettings(monthly_eur=0.05)
+    mgr.settings = EnvSettings(monthly_eur=0.05, default_keep="none")
     a = await opened(node, hours=4)                  # booked: 4 h x 0.006 = 0.024 (0.006 spent so far)
     assert a["state"] == "ready"
     with pytest.raises(ToolCallError, match="environment_limit") as err:
@@ -753,11 +755,11 @@ async def test_extend_checks_the_budget_and_the_longest_life(node):
 
     mgr, vms = node["mgr"], node["vms"]
     out = await opened(node, hours=1)
-    mgr.settings = EnvSettings(monthly_eur=0.04)
+    mgr.settings = EnvSettings(monthly_eur=0.04, default_keep="none")
     with pytest.raises(EnvironmentLimit, match="budget") as err:
         await mgr.extend(out["id"], 10 * 60)         # up to the longest life, 8 h x 0.006 = 0.048
     assert "agentos environments allow --monthly-eur" in str(err.value)
-    mgr.settings = EnvSettings()
+    mgr.settings = EnvSettings(default_keep="none")
     vms.settings = vms.settings.model_copy(update={"monthly_budget_eur": 0.04})
     with pytest.raises(EnvironmentLimit, match="budget"):
         await mgr.extend(out["id"], 10 * 60)         # the node's VM budget holds too

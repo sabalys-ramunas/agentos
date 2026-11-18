@@ -259,7 +259,7 @@ async def test_idle_pauses_and_a_rescue_save_pauses_too(node):
     assert got["closed"] == [out["id"]] and env.vm_state == "paused"
     assert mgr.saves().find(env.last_save_id)[0].paused is not None
 
-    other = await opened(node, title="Hotfix", session="chat-3")  # keep "none", with work not pushed
+    other = await opened(node, title="Hotfix", session="chat-3", keep="none")  # with work not pushed
     work_on_it(disk(node, other["id"]) / "work" / "shop")
     server = node["vms"].store.get(mgr.get(other["id"]).vm_id).provider_id
     got = await mgr.reap_once(mgr.get(other["id"]).expires_at + timedelta(hours=5))
