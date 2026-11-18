@@ -44,7 +44,7 @@ export function OpenedCard({ org, env }: { org: string; env: EnvDetail }) {
   const starting = env.state === 'starting';
   const shown = open || starting;
   return (
-    <Card className="overflow-hidden" aria-labelledby="env-opened">
+    <Card className="@container overflow-hidden" aria-labelledby="env-opened">
       {shown ? null : <FoldedLine env={env} lead={words.lead} controls={body} onOpen={() => setOpen(true)} />}
       {shown ? (
         <div id={body}>
@@ -95,10 +95,12 @@ function FoldedLine({ env, lead, controls, onOpen }: { env: EnvDetail; lead: str
 
 function Unfolded({ org, env, words, bringup, onFold, controls }: { org: string; env: EnvDetail; words: { lead: string; detail: string | null }; bringup: EnvBringUp | null; onFold?: () => void; controls: string }) {
   const starting = env.state === 'starting';
-  const aside = !starting || Boolean(env.app);
   const without = bringup && !starting ? withoutSkips(bringup) : null;
+  const built = Boolean(env.prepared?.used && env.prepared.from);
+  // the side holds the saving, the app and where it was built from: without any of them it is not drawn
+  const aside = Boolean(without || env.app || built || (!starting && noAppWords(env)));
   return (
-    <div className={cn('grid gap-x-8 gap-y-5 px-5 py-5', aside && 'lg:grid-cols-[minmax(0,1fr)_340px]')}>
+    <div className={cn('grid gap-x-8 gap-y-5 px-5 py-5', aside && '@3xl:grid-cols-[minmax(0,1fr)_300px] @5xl:grid-cols-[minmax(0,1fr)_340px]')}>
       <div className="grid min-w-0 content-start gap-4">
         <div className="flex min-w-0 items-start gap-4">
           <div className="grid min-w-0 flex-1 gap-1">
@@ -117,7 +119,7 @@ function Unfolded({ org, env, words, bringup, onFold, controls }: { org: string;
         {bringup ? <Steps env={env} bringup={bringup} live={starting} /> : null}
       </div>
       {aside ? (
-        <aside className="grid min-w-0 content-start gap-5 border-line max-lg:border-t max-lg:pt-5 lg:border-l lg:pl-8">
+        <aside className="grid min-w-0 content-start gap-5 border-line @max-3xl:border-t @max-3xl:pt-5 @3xl:border-l @3xl:pl-8">
           {bringup && without ? <Against total={bringup.total_s ?? 0} without={without} /> : null}
           {env.app ? <AppState env={env} app={env.app} /> : starting ? null : <NoApp env={env} />}
           {env.prepared?.used && env.prepared.from ? (
@@ -289,17 +291,20 @@ function AppState({ env, app }: { env: EnvDetail; app: EnvApp }) {
   );
 }
 
+/** Why nothing was started, when that is worth saying: the repository has no environment file. */
+function noAppWords(env: EnvDetail): boolean {
+  return Boolean(env.prepared?.used === false && env.prepared.why?.includes('has no'));
+}
+
 function NoApp({ env }: { env: EnvDetail }) {
-  if (env.prepared?.used === false && env.prepared.why?.includes('has no')) {
-    return (
-      <section aria-label="The app" className="grid gap-1">
-        <span className="text-caption text-faint">The app</span>
-        <p className="text-secondary text-muted">
-          Nothing was started for it. With a <code className="font-mono text-code-caption text-fg">.agentos/environment.toml</code> in the repository, the next open runs its setup and
-          starts the app, and the ones after start from a prepared machine.
-        </p>
-      </section>
-    );
-  }
-  return null;
+  if (!noAppWords(env)) return null;
+  return (
+    <section aria-label="The app" className="grid gap-1">
+      <span className="text-caption text-faint">The app</span>
+      <p className="text-secondary text-muted">
+        Nothing was started for it. With a <code className="font-mono text-code-caption text-fg">.agentos/environment.toml</code> in the repository, the next open runs its setup and
+        starts the app, and the ones after start from a prepared machine.
+      </p>
+    </section>
+  );
 }
