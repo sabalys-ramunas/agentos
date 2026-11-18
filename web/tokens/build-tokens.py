@@ -8,6 +8,8 @@ Writes:
   web/tokens/tokens.json       Design Tokens (DTCG 2025.10) as a themes map: base, light, dark
   web/src/styles/tokens.css    the same set as CSS custom properties (light default, dark by
                                system or data-theme)
+  web/src/styles/theme.css     web: the Tailwind theme, every class name onto a token (tokens/theme.py)
+  web/tokens/theme-keys.json   web: the same class names as data, for the design rules
 and checks every intended text and background pair against WCAG AA, and that the kind colours stay
 apart from each other and from status for protanopia, deuteranopia and tritanopia. It fails (exit 1)
 if a pair falls short.
@@ -24,6 +26,7 @@ from pathlib import Path
 OUT = Path(__file__).resolve().parent
 # web: the CSS goes where the app imports it.
 CSS_OUT = OUT.parent / "src" / "styles" / "tokens.css"
+THEME_OUT = OUT.parent / "src" / "styles" / "theme.css"
 CHECK = "--check" in sys.argv[1:]
 DRIFT = []
 
@@ -136,6 +139,26 @@ COLORS = {
     # Dark: no shadow can show on black, so a 1 px light on the card's top edge does it instead.
     "shadow.color-card": ("rgba(0,0,0,0.05)", "rgba(0,0,0,0)", "Under a card, light only."),
     "highlight.card": ("rgba(255,255,255,0)", "rgba(255,255,255,0.06)", "The top edge of a card, dark only."),
+    # web: the hover lift of a card that opens something (--shadow-hover).
+    "shadow.color-hover": ("rgba(0,0,0,0.16)", "rgba(0,0,0,0.7)", "The soft drop under a card that lifts on hover."),
+    # web: one step stronger than pressed, for a skeleton's band and a few bars. Was hand-written in aliases.css.
+    "fill.strong": ("rgba(0,0,0,0.09)", "rgba(255,255,255,0.13)", "A skeleton's band, a quiet bar on a well."),
+    # web: the board, the drafting sheet instruments sit on (instrument.css). Wires are hairlines a step
+    # off the surface; marks are the registration crosses. Were hand-written in aliases.css.
+    "board.wire": ("rgba(0,0,0,0.13)", "rgba(255,255,255,0.11)", "A wire on a board: a hairline a step off the surface."),
+    "board.wire-strong": ("rgba(0,0,0,0.3)", "rgba(255,255,255,0.26)", "A wire that carries something now."),
+    "board.mark": ("rgba(0,0,0,0.2)", "rgba(255,255,255,0.2)", "Registration crosses on a board's corners."),
+    "board.dot": ("rgba(0,0,0,0.07)", "rgba(255,255,255,0.055)", "The dotted grid of a board or a picture stage."),
+    # web: a Site API's fields, one hue per field so a column on the page and in the data read as one.
+    # Marks, outlines and wires only, never text and never a surface. No pink or red in the set.
+    "field.1": ("#2a78d6", "#3987e5", "A Site API field's hue: marks and wires only."),
+    "field.2": ("#eb6834", "#d95926", ""),
+    "field.3": ("#1baf7a", "#199e70", ""),
+    "field.4": ("#eda100", "#c98500", ""),
+    "field.5": ("#6250d6", "#9085e9", ""),
+    "field.6": ("#008300", "#2f9e2f", ""),
+    # web: the hours a person was asleep, a band on the day line.
+    "night": ("#3b4cca", "#8f9bff", "The night band on a day line: the hours the person was asleep."),
 }
 
 # W3 mono: the kind of work. Each kind has a mark (a glyph, the card's top edge, a timeline tick),
@@ -201,10 +224,15 @@ TYPE = {
 }
 TRACKING = {"tight": -0.024, "snug": -0.012, "body": -0.006, "none": 0, "wide": 0.01}
 
-DURATION = {"fast": 100, "base": 150, "slow": 200}
-EASE = {"standard": [0.2, 0, 0, 1], "enter": [0, 0, 0.2, 1], "exit": [0.4, 0, 1, 1]}
+# web: settle (280 ms on ease-settle) is a row or panel coming to rest; it was hand-written in aliases.css.
+DURATION = {"fast": 100, "base": 150, "slow": 200, "settle": 280}
+EASE = {"standard": [0.2, 0, 0, 1], "enter": [0, 0, 0.2, 1], "exit": [0.4, 0, 1, 1], "settle": [0.16, 1, 0.3, 1]}
 Z = {"base": 0, "raised": 1, "sticky": 10, "header": 20, "dropdown": 30, "overlay": 40, "dialog": 50, "toast": 60, "tooltip": 70}
 CONTROL = {"sm": 28, "md": 32, "lg": 40}
+# web: the shell's sizes and the page's measure. Were hand-written in aliases.css.
+LAYOUT = {"topbar-height": 56, "rail-width": 240, "tabbar-height": 56, "page-max": 1120}
+# web: the widths a layout changes at (Tailwind's sm to 2xl, the same values, now named here).
+BREAKPOINT = {"sm": 640, "md": 768, "lg": 1024, "xl": 1280, "2xl": 1536}
 ROW = {"compact": 40, "default": 52, "relaxed": 60, "header": 40}
 
 
@@ -298,6 +326,10 @@ for k, v in CONTROL.items():
     set_path(base, ["control-height", k], tok("dimension", px(v)))
 for k, v in ROW.items():
     set_path(base, ["row-height", k], tok("dimension", px(v)))
+for k, v in LAYOUT.items():
+    set_path(base, ["layout", k], tok("dimension", px(v)))
+for k, v in BREAKPOINT.items():
+    set_path(base, ["breakpoint", k], tok("dimension", px(v)))
 set_path(base, ["border-width", "hairline"], tok("dimension", px(1)))
 set_path(base, ["border-width", "focus"], tok("dimension", px(2)))
 set_path(base, ["border-width", "mark"], tok("dimension", px(1.5), "The ring of a hollow status mark."))
@@ -311,6 +343,7 @@ def shadow(layers):
 
 SHADOWS = {
     "card": [("color-card", 0, 1, 2, 0)],
+    "hover": [("color-card", 0, 1, 2, 0), ("color-hover", 0, 12, 32, -12)],
     "popover": [("color-1", 0, 1, 2, 0), ("color-2", 0, 8, 24, -4)],
     "dialog": [("color-1", 0, 1, 2, 0), ("color-2", 0, 16, 40, -8)],
 }
@@ -412,6 +445,10 @@ for k, v in CONTROL.items():
     css.append("  --control-height-%s: %dpx;" % (k, v))
 for k, v in ROW.items():
     css.append("  --row-height-%s: %dpx;" % (k, v))
+for k, v in LAYOUT.items():
+    css.append("  --%s: %dpx;" % (k, v))
+for k, v in BREAKPOINT.items():
+    css.append("  --breakpoint-%s: %dpx;" % (k, v))
 css.append("  --border-width-hairline: 1px;")
 css.append("  --border-width-focus: 2px;")
 css.append("  --border-width-mark: 1.5px;")
@@ -446,9 +483,15 @@ css += dark_lines
 css.append("}")
 css.append("")
 css.append("@media (prefers-reduced-motion: reduce) {")
-css.append("  :root { --duration-fast: 0ms; --duration-base: 0ms; --duration-slow: 0ms; }")
+css.append("  :root { %s }" % " ".join("--duration-%s: 0ms;" % k for k in DURATION))
 css.append("}")
 emit(CSS_OUT, "\n".join(css) + "\n")
+
+# web: the Tailwind theme (class name -> token) and the same keys as data for the design rules.
+import theme  # noqa: E402  (tokens/theme.py, beside this script)
+
+emit(THEME_OUT, theme.theme_css(BREAKPOINT, Z, DURATION))
+emit(OUT / "theme-keys.json", json.dumps(theme.theme_keys(BREAKPOINT, Z, DURATION), indent=2) + "\n")
 
 # ---------------------------------------------------------------------------------------------
 # contrast
