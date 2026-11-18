@@ -6,6 +6,9 @@
       "src/catalog/shot.ts": "A drawn page of another brand for the picture components; its colours are the picture, marked data-studio=ignore.",
       "src/features/onboarding/qr.tsx": "A QR code stays dark on light in both themes, or a phone camera cannot read it.",
       "src/features/onboarding/step-people.tsx": "The white frame behind the QR code, for the same reason as qr.tsx."
+    },
+    "hand-rolled": {
+      "src/catalog/demos/foundations.tsx": "The catalog's list of type roles names text-page-title as a sample, not as a page title."
     }
   },
   "counts": {
@@ -68,8 +71,6 @@
       "src/features/nodes/tab-resources.tsx": 1
     },
     "hand-rolled": {
-      "src/catalog/demos/foundations.tsx": 1,
-      "src/catalog/registry.tsx": 1,
       "src/features/activity/activity.tsx": 1,
       "src/features/activity/artifact.tsx": 2,
       "src/features/activity/history-feed.tsx": 1,

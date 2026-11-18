@@ -101,7 +101,7 @@ function stringFindings(file: string, parsed: Parsed, out: Finding[]) {
       if (!finding || (!screen && finding.rule === 'arbitrary-value')) continue;
       out.push({ rule: finding.rule, file, line, found: token, fix: finding.fix });
     }
-    if (screen && tokens.length > 1) {
+    if (screen && tokens.length) {
       const set = new Set(tokens);
       for (const pattern of HAND_ROLLED) if (pattern.test(set)) out.push({ rule: 'hand-rolled', file, line, found: pattern.found, fix: pattern.fix });
     }

@@ -45,7 +45,7 @@ export const GROUPS: Group[] = [
     purpose: 'The tokens every value comes from, the type roles, the kinds of work, icons and marks.',
     entries: [
       { file: 'src/styles/tokens.css', names: 'Colour, space, radius, depth, motion and layer tokens', demo: TokensDemo },
-      { file: 'src/styles/theme.css', names: 'Type roles (text-body, text-page-title ...)', demo: TypeDemo },
+      { file: 'src/styles/theme.css', names: 'Type roles: one class sets size, line height, weight and tracking', demo: TypeDemo },
       { file: ui('swatch.tsx'), names: 'Swatch, TokenChip', shownBy: 'the tokens above' },
       { file: ui('kind.tsx'), names: 'KindTile, KindEyebrow, KINDS', demo: KindsDemo },
       { file: 'src/components/lane-icon.tsx', names: 'Icons and marks: lucide, LaneIcon, and the marks below', demo: IconsDemo },
