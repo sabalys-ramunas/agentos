@@ -1492,7 +1492,7 @@ The target's own state does not show the effect (the post, the like, the edit), 
 A video proof of the environment's browser did not start or was not kept: the machine has no recorder (ffmpeg) and cannot install it, the node has none, or the recorder failed. The browser and the work are untouched.
 
 - **Agent:** Do not retry in a loop. Keep a screenshot instead: browser_screenshot(proof="..."). Tell the user what the message says when it names a fix for them.
-- **You:** On a machine with network none, open the environment with network limited or full, or build the dev image (`agentos vm image build dev`), which has ffmpeg. On a server node with browser = "node": install the ffmpeg package (deploy/install-node.sh has it; `agentos doctor` warns when it is missing).
+- **You:** Network none: open it with network limited, or build the dev image (`agentos vm image build dev`), which has ffmpeg. A server node with browser = "node": install the ffmpeg package.
 - **Retry:** no
 - **Raised by:** `agentos.environments.errors.RecordingFailed`
 

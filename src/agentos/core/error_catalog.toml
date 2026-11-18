@@ -793,7 +793,7 @@ fix = "On agentos local, `agentos setup github` stores a login; on a server node
 [recording_failed]
 meaning = "A video proof of the environment's browser did not start or was not kept: the machine has no recorder (ffmpeg) and cannot install it, the node has none, or the recorder failed. The browser and the work are untouched."
 agent = "Do not retry in a loop. Keep a screenshot instead: browser_screenshot(proof=\"...\"). Tell the user what the message says when it names a fix for them."
-fix = "On a machine with network none, open the environment with network limited or full, or build the dev image (`agentos vm image build dev`), which has ffmpeg. On a server node with browser = \"node\": install the ffmpeg package (deploy/install-node.sh has it; `agentos doctor` warns when it is missing)."
+fix = "Network none: open it with network limited, or build the dev image (`agentos vm image build dev`), which has ffmpeg. A server node with browser = \"node\": install the ffmpeg package."
 
 [save_failed]
 meaning = "Saving the environment did not finish: its machine did not answer, its disk was full, or the snapshot failed. Nothing was deleted: the machine is kept and still bills, and the owner was told."
