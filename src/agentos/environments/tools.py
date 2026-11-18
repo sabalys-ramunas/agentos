@@ -341,7 +341,7 @@ async def environment_open(ctx: ToolContext, *, title: str | None = None, repo: 
     Returns on, id, title, opened (new, resumed, attached, taken_over), state (starting: call
     environment(on=...)), workdir, branch, machine (`bigger`: sizes and prices), expires_at, keep,
     links.browser (its live view, for the human); applied and differs when it is not what you asked;
-    prepared and app when the repo has .agentos/environment.toml (its setup ran, its dev server runs).
+    prepared and app with a .agentos/environment.toml (setup ran, dev server up).
     A private repo the node cannot read: approval_pending with review_url for the human. Errors:
     environment_in_use, environment_limit, environment_already_open.
 
@@ -356,10 +356,10 @@ async def environment_open(ctx: ToolContext, *, title: str | None = None, repo: 
         wait_s: Seconds to wait for ready, 0 to 200.
         keep: none (deleted when done), save (saved when idle or closed; its title resumes it) or live
             (kept running; the owner allows it).
-        signins: false: saves keep no browser sign-ins.
-        take_over: Take a machine another chat of yours holds but has not used for 10 minutes (its
-            work stays on it). Only when that chat is done with it.
-        network: limited or none, only to narrow the node's (never wider).
+        signins: false: saves keep no sign-ins.
+        take_over: Take a machine another chat of yours holds but has not used for 10 minutes. Only
+            when that chat is done with it.
+        network: limited or none (only narrows the node's).
     """
     mgr = _mgr(ctx)
     title = check_title(title if title else title_for_repo(ctx, mgr, repo))
@@ -554,10 +554,10 @@ async def _wait_ready(mgr: EnvironmentManager, env: Environment) -> Environment:
 
 async def environment(ctx: ToolContext, *, on: str | None = None) -> dict:
     """Your environment now: state, minutes_left, cost_eur, ports listening on the VM, git (branch,
-    ahead, dirty, pushed, pull_requests), proofs (fresh links), unsaved work, your note and the last
-    10 calls (with the client that made each). Cheap: call it to see if it is ready or what is left to
-    push. It always lists your agent's open and saved ones (`open`, `saved`), never another chat's
-    handle. Effect: read.
+    ahead, dirty, pushed, pull_requests), proofs (fresh links), replay (frames for the human),
+    unsaved work, your note and the last 10 calls. Cheap: call it to see if it is ready or what is
+    left to push. It always lists your agent's open and saved ones (`open`, `saved`), never another
+    chat's handle. Effect: read.
 
     Args:
         on: The on your environment_open gave. Without it, only a client with a session id sees its own.
@@ -586,6 +586,7 @@ async def environment(ctx: ToolContext, *, on: str | None = None) -> dict:
     if compare:
         git["compare"] = compare
     out["proofs"] = _proofs(mgr, env)
+    out["replay"] = mgr.replay_summary(env)  # {frames, since, bytes}: the owner watches it, not the agent
     if env.pull_requests:
         git["pull_requests"] = env.pull_requests
     if env.resumed:
@@ -868,8 +869,10 @@ async def environment_pull_request(ctx: ToolContext, *, title: str, body: str | 
 
 
 def tool_specs(runtime: Any) -> list[ToolSpec]:
+    from agentos.environments.checkpoint_tools import tool_specs as checkpoint_specs
+
     t = ("environments",)
-    return [
+    return [*checkpoint_specs(runtime),
         ToolSpec("environment_open", environment_open, Effect.VM, lane_arg=None, tags=(*t, "changes_state"),
                  hidden_without="environments"),
         ToolSpec("environment", environment, Effect.READ, lane_arg=None, tags=t, hidden_without="environments"),

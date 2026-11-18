@@ -14,6 +14,7 @@ dependencies = [
     { name = "croniter" },
     { name = "cryptography" },
     { name = "dnspython" },
+    { name = "h11" },
     { name = "httpx" },
     { name = "idna" },
     { name = "jsonschema" },
@@ -33,6 +34,7 @@ dependencies = [
 
 [package.optional-dependencies]
 local = [
+    { name = "pillow" },
     { name = "playwright" },
 ]
 node = [
@@ -59,10 +61,12 @@ requires-dist = [
     { name = "croniter", specifier = ">=6.2.4" },
     { name = "cryptography", specifier = ">=50.0.2" },
     { name = "dnspython", specifier = ">=2.8.0" },
+    { name = "h11", specifier = ">=0.16" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "idna", specifier = ">=3.20" },
     { name = "jsonschema", specifier = ">=4.26.0" },
     { name = "mcp", specifier = ">=2.3,<3" },
+    { name = "pillow", marker = "extra == 'local'", specifier = ">=11" },
     { name = "pillow", marker = "extra == 'studio'", specifier = ">=11" },
     { name = "playwright", marker = "extra == 'local'", specifier = ">=1.62,<1.63" },
     { name = "playwright", marker = "extra == 'node'", specifier = ">=1.62,<1.63" },

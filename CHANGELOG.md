@@ -8,6 +8,25 @@ All notable changes to agentos are recorded here. The format follows
 
 ### Added
 
+- **Checkpoints and rollback inside an environment.** `environment_checkpoint(note)` keeps every
+  repository under `/work` as it is (tracked and new files git does not ignore) as a git commit under
+  `refs/agentos/checkpoints/<n>`, made with a temporary index: seconds, no provider call, and the
+  agent's index, stash and branches untouched. `environment_rollback(checkpoint)` checkpoints the work
+  first (so it can be undone), then puts the branch back at the checkpoint's HEAD and the files as they
+  were, removing new ones; ignored files (`node_modules`, `.env`) stay. Refused mid merge or rebase.
+  About 20 are kept; `environment()` lists them, and the web API gives what changed since each one and
+  one checkpoint's patch against now. They never leave the machine: the git gateway refuses a push of
+  `refs/agentos/*`, and a files-only resume does not keep them. In `tools_more("terminals")`.
+- **Watching keeps an environment open.** A live view of its browser, or a connection through an
+  `environment_port` link, counts as use while it is open, so the reaper never saves or closes it under
+  you; `environment()` and the web API say `watched`. The web app polling the page no longer counts.
+- **You resume a saved environment without a chat.** `agentos environments resume <title or save id>`,
+  Resume in the web app's Saved list, or the Resume button on the saved environment's live-view link
+  (which now shows the title, when it was saved and the note instead of an error). It resumes as
+  `environment_open` does, within the node's limits, held by no chat: you watch it at once, and the next
+  agent that opens its title takes it (`opened: "resumed"`). An agent's call with the handle of a saved
+  one says when it was saved and how to come back.
+
 - **A network policy per environment.** `network` in `environments.toml` is `full` (the default),
   `limited` (package registries, code hosts, your `allow_hosts` and the hosts of bound secrets) or
   `none` (the git gateway alone). It is held outside the machine: a closed Hetzner firewall, or the
@@ -52,9 +71,20 @@ All notable changes to agentos are recorded here. The format follows
   open. It counts against the node's limits, always yields to an open, and an unclaimed one is
   deleted after `warm_minutes` (50, inside Hetzner's first billed hour). An open that matches takes
   it and is ready in about 2 s on Docker.
+- **A replay of each environment's browser, kept after the VM is gone.** The node keeps small JPEG
+  frames of the environment's own browser: after each agent call that can change the page (with the
+  call and its summary), every 3 seconds while you have control or the page keeps changing, and at
+  save and close. It never waits for or acts on the browser while a call uses it, and never pictures
+  an account lane. `agentos environments replay <id> --out DIR` writes the frames and an
+  `index.html` that steps through them with their captions; `GET /api/orgs/{org}/environments/{id}/replay`
+  gives the owner the frames (with signed links) and the calls by time. Kept 14 days after the close
+  (`replay_days`), within a cap per environment and on the node; `replay = false` in
+  `environments.toml` turns it off. An agent sees only `environment()`'s `replay` count.
 
 ### Fixed
 
+- **A call's log lines no longer carry an environment's handle.** The `on` an agent passes is a
+  secret its chat holds; the node's log context now names the environment's lane (`env/<id>`) instead.
 - **`agentos setup --docker` works from the one-line install.** The machine image's Dockerfile and
   entrypoint now ship inside the package, so the image builds without a checkout of agentos.
 

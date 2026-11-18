@@ -614,3 +614,15 @@ async def test_a_failing_filter_shows_nothing():
     server = build_mcp(runtime_with(), [provider(ToolSpec(name="reader", handler=plain))], visible=visible)
     assert await server.list_tools() == []
     assert (await server.call_tool("reader", {})).is_error
+
+
+def test_a_calls_log_lines_never_carry_an_environments_handle():
+    """An environment's `on` is a secret its chat holds: the log context names its lane instead."""
+    from agentos.environments.picking import new_handle
+    from agentos.mcp.registry import log_lane
+
+    handle = new_handle("e7k2abc")
+    assert log_lane(handle) == "env/e7k2abc"
+    assert log_lane("personal/reddit") == "personal/reddit"
+    assert log_lane("env/e7k2abc") == "env/e7k2abc"
+    assert log_lane(None) is None and log_lane(3) is None

@@ -812,6 +812,16 @@ def apply_view(tool: Any, view: ToolView) -> Any:
     return tool.model_copy(update=update)
 
 
+def log_lane(lane: Any) -> str | None:
+    """The lane a call's log lines name. An environment's handle (`e7k2.<secret>`) is a secret its chat
+    holds, so the lines name its terminal lane (`env/e7k2`) instead, never the handle."""
+    if not isinstance(lane, str):
+        return None
+    if env_routing.is_handle(lane):
+        return f"env/{lane.split('.', 1)[0].strip()}"
+    return lane
+
+
 def _sdk_function(spec: ToolSpec, params: list[ToolParam], call: Call, redactor: Redactor) -> Call:
     """What the SDK registers: the derived signature (so it builds the schema and validates the
     arguments), and a body that runs the wrapped call and turns its outcome into a result."""
@@ -819,8 +829,7 @@ def _sdk_function(spec: ToolSpec, params: list[ToolParam], call: Call, redactor:
     async def run(**arguments: Any) -> CallToolResult:
         lane = arguments.get(spec.lane_arg) if spec.lane_arg else None
         # every log line of this call carries its ids (agentos.core.logs); the policy adds the grant
-        with logs.log_context(request=logs.new_request_id(), tool=spec.name,
-                              lane=lane if isinstance(lane, str) else None):
+        with logs.log_context(request=logs.new_request_id(), tool=spec.name, lane=log_lane(lane)):
             try:
                 result = await call(**arguments)
             except ApprovalPending as exc:

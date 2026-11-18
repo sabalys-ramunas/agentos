@@ -283,6 +283,7 @@ class Saving:
             env = self.store.get(env.id)
             if not env.open or env.state not in ("ready", "closing") or not env.vm_id:
                 raise SaveFailed(f"environment {env.id} is {env.state}; only a ready one can be saved")
+            await self.replay_last(env, "save")  # agentos.environments.replay
             if note is not None:
                 self.store.update(env.id, lambda e: setattr(e, "note", note[:NOTE_MAX] or None))
                 env = self.store.get(env.id)

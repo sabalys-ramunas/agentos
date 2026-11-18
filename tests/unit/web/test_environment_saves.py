@@ -80,3 +80,50 @@ def test_a_member_sees_only_their_own_agents_saves(client: TestClient, mgr: Any)
     mine = put_save(mgr, title="Theirs", member=MEMBER)
     add_operator(client, scopes=("env",))
     assert [r["id"] for r in as_member(client).get(ENVS).json()["saved"]] == [mine.id]
+
+
+def test_the_owner_resumes_a_save_in_person_and_nobody_else_can(client: TestClient, mgr: Any,
+                                                                 monkeypatch: pytest.MonkeyPatch) -> None:
+    """POST .../saves/{id}/resume (agentos.environments.waking): the owner in person; the rest is the
+    service's own (tests/unit/test_environments_checkpoints.py resumes real saves)."""
+    saved = put_save(mgr)
+    now = utcnow()
+    asked: list[str] = []
+
+    async def resume_saved(ref: str, *, by: str = "owner"):
+        asked.append(ref)
+        env = Environment(id="e9new000000", title=saved.title, grant_id="gr_agent", binding="kept:e9new000000",
+                          state="starting", created_at=now, expires_at=now + timedelta(hours=2), keep="save",
+                          resumed={"save_id": saved.id, "from": "snapshot"}, resumed_by="owner")
+        mgr.store.put(env)
+        return env, "resumed"
+
+    monkeypatch.setattr(mgr, "resume_saved", resume_saved)
+    url = f"{ENVS}/saves/{saved.id}/resume"
+    assert as_token(client).post(url).status_code in (401, 403)  # never a token
+    add_operator(client, scopes=("env",))
+    assert as_member(client).post(url).status_code in (403, 404)
+    assert client.post(f"{ENVS}/saves/snotasave00/resume").status_code == 404
+    assert asked == []
+    out = client.post(url)
+    assert out.status_code == 200, out.text
+    body = out.json()
+    assert asked == [saved.id] and body["id"] == "e9new000000" and body["opened"] == "resumed"
+    assert body["state"] == "starting" and body["resumed"]["save_id"] == saved.id
+    assert "/view/env/e9new000000-browser?t=" in body["links"]["browser"]
+
+
+def test_one_checkpoints_diff_is_the_owners(client: TestClient, mgr: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+    now = utcnow()
+    mgr.store.put(Environment(id="e7k2", title="Open one", grant_id="gr_agent", binding="session:x", state="ready",
+                              created_at=now, expires_at=now + timedelta(hours=1)))
+
+    async def checkpoint_diff(env, n):
+        return {"checkpoint": n, "repos": [{"dir": "/work/shop", "files": [], "patch": "", "truncated": False}]}
+
+    monkeypatch.setattr(mgr, "checkpoint_diff", checkpoint_diff)
+    assert client.get(f"{ENVS}/e7k2/checkpoints/3").json()["checkpoint"] == 3
+    assert client.get(f"{ENVS}/e7k2/checkpoints/x").status_code == 400
+    assert as_token(client).get(f"{ENVS}/e7k2/checkpoints/3").status_code == 200  # the owner's own token, as the CLI
+    add_operator(client, scopes=("env",))
+    assert as_member(client).get(f"{ENVS}/e7k2/checkpoints/3").status_code in (403, 404)

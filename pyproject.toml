@@ -42,6 +42,7 @@ dependencies = [
   "pyotp>=2.10.0",
   "publicsuffixlist>=1.1.2.20261101",
   "idna>=3.20",
+  "h11>=0.16",  # the app secrets swap frames HTTP/1.1 itself (agentos.environments.swap)
   "httpx>=0.28.1",
   "starlette>=1.10.0",
   "croniter>=6.2.4",
@@ -72,6 +73,7 @@ node = [
 # No Camoufox here, and no browser binary: nothing runs `playwright install` or `camoufox fetch`.
 local = [
   "playwright>=1.62,<1.63",
+  "Pillow>=11",  # the replay's frames are made smaller on the laptop too (agentos.environments.replay)
 ]
 # Studio's review browser and image work, on a laptop or a node (`uv sync --extra studio`). The
 # engines themselves come from `python -m playwright install chromium` or the installed Chrome.

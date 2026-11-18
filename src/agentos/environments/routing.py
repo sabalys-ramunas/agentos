@@ -146,9 +146,10 @@ def route(runtime: Any, tool: str, kwargs: dict[str, Any], *, session: str | Non
             raise EnvironmentFailed(f"environment {env.id} (\"{env.title}\") did not start and its VM is deleted: "
                                     f"{env.error or 'no reason was kept'}. Nothing ran. environment_open(title=...) "
                                     "opens a new one")
-        if not env.open:
-            raise NoEnvironment(f"environment {env.id} (\"{env.title}\") is closed; environment_open(title=...) opens "
-                                "a new one")
+        if not env.open:  # saved since, perhaps: when, and how to come back (agentos.environments.comeback)
+            from agentos.environments.comeback import closed_words
+
+            raise NoEnvironment(closed_words(svc, env))
     else:
         env = svc.pick(binding(session, grant_id), family, kind)
     if env.state == "starting":
@@ -173,6 +174,11 @@ def not_yet(env: Any, now: Any = None) -> None:
 
 
 def _summary(tool: str, kwargs: dict[str, Any]) -> str:
+    action, ref = kwargs.get("action"), kwargs.get("ref")
+    if isinstance(action, str) and action and isinstance(ref, str) and ref:  # browser_act: "click e12"
+        return f"{action} {ref}"
+    if tool == "browser_tab" and isinstance(kwargs.get("index"), int):
+        return f"tab {kwargs['index']}"
     for key in ("cmd", "url", "action", "text", "path", "name", "packages"):
         value = kwargs.get(key)
         if isinstance(value, str) and value:

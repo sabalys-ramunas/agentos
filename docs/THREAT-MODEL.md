@@ -133,6 +133,19 @@ proof of its work in an environment, and nothing else: no live view, no control.
 key for that one image (purpose `proof`, 15 minutes), so replacing the key revokes it, and a live-view token
 does not open it. The image is the agent's own work, which the agent may already pass on.
 
+A **replay frame** (`/view/env/<id>-browser/replay/<frame>.jpg?t=...`, docs/ENVIRONMENTS.md "Replay") counts as
+a proof-like artefact: the node took it of the environment's browser on its own, after the agent's page calls,
+while a person had control and when the environment closed, so it can show whatever that page showed (a secret
+the app printed, a token in a dev page, what a person typed in the live view). The node takes frames only of an
+open environment's own browser (`env/<id>-browser`, decided by the environments service, never by the caller),
+never of an account lane. Frames stay on the node (`environments/<id>/replay/`, the folder 0700) for
+`replay_days` after the close, within a cap per environment and on the node. Only the owner reads them: the
+owner-only web routes (a member's role and an agent's grant get `denied`), `agentos environments replay` on the
+node, and the links those routes sign with the viewer key (purpose `replay`, one environment, 15 minutes;
+replacing the key revokes them, a live-view or proof token does not open them). An agent gets only a count
+(`environment()`'s `replay`: frames, since, bytes), never a frame or a link. `replay = false` in
+`environments.toml` takes none.
+
 An **upload link** (`/view/env/<id>/upload?t=...`, from `environment_upload`) puts one archive into an
 environment's machine, a machine the agent can already write to with `lane_exec`. It is signed with the viewer
 key (purpose `upload`, 15 minutes), spent on its first use, kept only in the node's memory and dead once the

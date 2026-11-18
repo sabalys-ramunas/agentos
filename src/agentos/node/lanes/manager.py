@@ -38,6 +38,7 @@ from agentos.node.lanes.base import (
     _private_dir,
 )
 from agentos.node.lanes.control import ControlMixin, _is_hold, default_hold_policy
+from agentos.node.lanes.frames import FramesMixin
 from agentos.node.lanes.launch import LaunchMixin
 from agentos.node.lanes.quarantine import SELF_CHECK_URL, QuarantineMixin, direct_exit_ip_probe
 from agentos.node.lanes.resources import (
@@ -58,7 +59,7 @@ _DEFAULT: Any = object()
 
 
 class LaneManagerImpl(ControlMixin, AccessMixin, QuarantineMixin, LaunchMixin, ResourcesMixin, SpecsMixin,
-                      DevicesMixin):
+                      DevicesMixin, FramesMixin):
     # probe_exit_ip() judges the exit itself (IP-literal proxies, pinned gateway exits, never the
     # node's IP) and quarantines on a mismatch, so health checks take its verdict.
     judges_exit_ip = True

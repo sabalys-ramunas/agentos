@@ -13,6 +13,8 @@
 │              cost so far, time left.                                         │
 │ show         One environment: its machine, lanes, the calls its agent made,  │
 │              and its unsaved work.                                           │
+│ replay       Write the replay of an environment's browser to a folder, also  │
+│              after its VM is gone.                                           │
 │ close        Close an environment; refused while its work is not pushed,     │
 │              unless --discard.                                               │
 │ download     Copy a file or a folder off an environment's machine into DIR,  │
@@ -30,6 +32,8 @@
 │              missing.                                                        │
 │ prepare      Build the repository's prepared machine now, and show its       │
 │              steps.                                                          │
+│ resume       Resume a saved environment now, held by no chat, and give its   │
+│              live view.                                                      │
 │ repo         Connect private repositories: a key or token in the vault, and  │
 │              the declaration for env.                                        │
 │ secret       API keys the app in an environment uses: the machine holds a    │

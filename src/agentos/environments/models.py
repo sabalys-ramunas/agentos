@@ -93,6 +93,9 @@ class EnvSettings(BaseModel):
     prepared_max: int = Field(default=5, ge=0, le=50)     # prepared machines on this node, at most
     warm: int = Field(default=0, ge=0, le=10)             # machines kept booted for the next open (each one bills)
     warm_minutes: int = Field(default=50, ge=5, le=1440)  # an unclaimed warm machine is deleted after this
+    # The replay of each environment's browser (agentos.environments.replay): frames kept on the node.
+    replay: bool = True                                   # its browser holds no account and no vault entry
+    replay_days: int = Field(default=14, ge=1, le=365)    # kept this long after the environment closed
 
     @field_validator("keep_paths")
     @classmethod
@@ -229,6 +232,8 @@ class Environment(BaseModel):
     prepared: dict | None = None
     app: dict | None = None
     warm_claimed: bool = False                # its machine came from the warm pool (agentos.environments.warmpool)
+    watched_at: datetime | None = None        # a person last watched it (live view, a port link): agentos.environments.watching
+    resumed_by: str | None = None             # "owner": the owner resumed it from a save, held by no chat (agentos.environments.waking)
 
     @field_validator("id")
     @classmethod

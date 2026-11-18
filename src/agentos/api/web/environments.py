@@ -4,10 +4,21 @@
     GET  /api/orgs/{org}/environments/{id}                EnvDetail, with proofs [{id, title, taken_at,
                                                           page_url, width, height, src}]
     GET  /api/orgs/{org}/environments/{id}/proofs/{proof}.png   a proof's PNG (src above)
+    GET  /api/orgs/{org}/environments/{id}/replay?after=&limit=  the replay of its browser: frames and calls
+                                                          by time (agentos.environments.replay). The owner only
+    GET  /api/orgs/{org}/environments/{id}/replay/{frame}.jpg    a frame's JPEG (its `src`). The owner only
     POST /api/orgs/{org}/environments/{id}/close          {"discard": false} -> EnvSummary (409 unsaved_work)
     POST /api/orgs/{org}/environments/{id}/extend         {"minutes": 60} -> EnvSummary
     DELETE /api/orgs/{org}/environments/saves/{save_id}   forget a save and its snapshot -> {forgot,
                                                           snapshots_deleted}. The owner in person
+    POST /api/orgs/{org}/environments/saves/{save_id}/resume   resume a save, held by no chat
+                                                          (agentos.environments.waking) -> EnvSummary with
+                                                          opened, resumed and links. The owner in person
+    GET  /api/orgs/{org}/environments/{id}/checkpoints/{checkpoint}  one checkpoint against the work now: per
+                                                          repository its files and patch (capped). The owner
+
+The detail's `checkpoints` (agentos.environments.checkpoints) carry `diff` in each repository: what
+changed since, against the work tree now (files added, changed, removed; lines added, removed).
 
 The listing also gives `saved`: [{id, title, repo, branch, head, saved_at, snapshot_gb, files_bytes,
 cost_eur_month, note, agent}], the saves of environments that are not open (agentos.environments.saving),
@@ -186,6 +197,9 @@ def routes(api: Api) -> list[BaseRoute]:
         await access_of(request).authorize(Effect.READ, action="environment.read", lane_id=env.terminal_lane)
         out = await mgr.detail(env)
         out["proofs"] = proofs_of(mgr, env, request.path_params["org"])
+        summaries = getattr(mgr, "checkpoint_summaries", None)
+        if out.get("checkpoints") and callable(summaries):
+            out["checkpoints"] = await summaries(env, out["checkpoints"])
         return out
 
     async def proof_png(request: Request) -> Response:
@@ -258,6 +272,79 @@ def routes(api: Api) -> list[BaseRoute]:
         org_route(api, "/environments", listing, ["GET"], cap="see"),
         org_route(api, "/environments/{id}", one, ["GET"], cap="see"),
         org_route(api, "/environments/{id}/proofs/{proof}.png", proof_png, ["GET"], cap="see"),
+        *replay_routes(api, find),
         org_route(api, "/environments/{id}/close", close, ["POST"], cap="operate"),
         org_route(api, "/environments/{id}/extend", extend, ["POST"], cap="operate"),
+        *_owner_routes(api, find),
     ]
+
+
+def _owner_routes(api: Api, find: Any) -> list[BaseRoute]:
+    """The owner's resume of a save, and one checkpoint's diff (agentos.environments.waking, checkpoints)."""
+
+    async def checkpoint_diff(request: Request) -> dict[str, Any]:
+        mgr, env = find(request, "environment.checkpoint")
+        raw = request.path_params["checkpoint"]
+        if not raw.isdigit() or not 0 < int(raw) < 10**9:
+            raise InvalidRequest("a checkpoint is its number, like 3.")
+        await access_of(request).authorize(Effect.READ, action="environment.checkpoint", lane_id=env.terminal_lane)
+        return await mgr.checkpoint_diff(env, int(raw))
+
+    async def resume_save(request: Request) -> dict[str, Any]:
+        mgr = manager(api)
+        if mgr is None or not callable(getattr(mgr, "resume_saved", None)):
+            raise NotFound(NO_ENVIRONMENTS)
+        access = access_of(request)
+        save_id = request.path_params["save_id"]
+        from agentos.environments.saves import check_save_id
+
+        try:
+            m, _ = mgr.saves().find(check_save_id(save_id))
+        except (NotFound, InvalidRequest):
+            raise NotFound(f"There is no save {save_id}.") from None
+        await access.authorize(Effect.READ, action="environment.resume",
+                               summary=f"Resume the save {m.id} of environment \"{m.title}\" on a machine")
+        env, how = await mgr.resume_saved(m.id)
+        access.done("environment.resume", lane=env.terminal_lane,
+                    summary=f"resumed save {m.id} ({m.title}) as {env.id}" if how == "resumed" else
+                    f"\"{m.title}\" was open already ({env.id})")
+        return mgr.owner_view(env, how)
+
+    return [
+        org_route(api, "/environments/saves/{save_id}/resume", resume_save, ["POST"], owner=True,
+                  presence=Presence.PERSON),
+        org_route(api, "/environments/{id}/checkpoints/{checkpoint}", checkpoint_diff, ["GET"], owner=True),
+    ]
+
+
+def replay_routes(api: Api, find: Any) -> list[BaseRoute]:
+    """The replay of an environment's browser (agentos.environments.replay), for the owner only: no
+    member and no agent's grant reaches it."""
+
+    async def replay(request: Request) -> dict[str, Any]:
+        mgr, env = find(request, "environment.replay")
+        if not callable(getattr(mgr, "replay_timeline", None)):
+            raise NotFound(f"This computer keeps no replay of environment {env.id}.")
+        await access_of(request).authorize(Effect.READ, action="environment.replay", lane_id=env.terminal_lane)
+        query = request.query_params
+        try:
+            limit = int(query.get("limit") or 500)
+        except ValueError:
+            raise InvalidRequest("limit is a whole number from 1 to 2000.") from None
+        if not 1 <= limit <= 2000:
+            raise InvalidRequest("limit is a whole number from 1 to 2000.")
+        src = f"/api/orgs/{request.path_params['org']}/environments/{env.id}/replay"
+        return mgr.replay_timeline(env, src=src, after=query.get("after") or None, limit=limit)
+
+    async def replay_jpg(request: Request) -> Response:
+        mgr, env = find(request, "environment.replay")
+        await access_of(request).authorize(Effect.READ, action="environment.replay", lane_id=env.terminal_lane)
+        read = getattr(mgr, "replay_frame", None)
+        data = read(env.id, request.path_params["frame"]) if callable(read) else None
+        if not data:
+            raise NotFound(f"Environment {env.id} has no frame {request.path_params['frame']}.")
+        return Response(data, media_type="image/jpeg", headers={"Cache-Control": "private, max-age=3600",
+                                                                "X-Content-Type-Options": "nosniff"})
+
+    return [org_route(api, "/environments/{id}/replay", replay, ["GET"], owner=True),
+            org_route(api, "/environments/{id}/replay/{frame}.jpg", replay_jpg, ["GET"], owner=True)]

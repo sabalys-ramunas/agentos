@@ -111,6 +111,16 @@ meaning = "A flow's branch condition could not be checked on the page, so the fl
 agent = "Take a snapshot to see the page, then report the step to the user; the branch's check may need fixing."
 fix = "Look at the page in the lane's live view and fix the branch's check in the flow (flow_save makes a new version)."
 
+[checkpoint_failed]
+meaning = "A checkpoint or a rollback could not be done on the environment's machine: there is no git repository under /work, git could not read one, or the machine did not answer. A checkpoint that failed leaves nothing half made."
+agent = "No repository: git init one in /work, or use environment_save. Git could not read one: fix what it names. The machine did not answer: environment(on=...), then try again."
+fix = "Nothing to fix on the node. `agentos environments show ID` shows the machine and its repositories."
+
+[checkpoint_not_found]
+meaning = "No repository under /work has the checkpoint the rollback named: it was never made, it is older than the about 20 kept, or the environment came back from a files-only save, which keeps none. Nothing changed."
+agent = "Call environment(on=...): its checkpoints list the ones there are. Roll back to one of those, or keep working."
+fix = "Nothing to fix: checkpoints live on the machine as git refs (refs/agentos/checkpoints/<n>)."
+
 [claim_lost]
 meaning = "Your claim on the lane ended before this call, so the call did nothing: it expired, a person took control, a hold or a freeze, a revoked grant, the lane closed to free memory, or the node restarted."
 agent = "Someone else may have changed the page. Take a new snapshot before you act, and claim the lane again with lane_claim if the job still needs it to itself."
@@ -759,6 +769,11 @@ agent = "Close lanes you no longer need with lane_close, wait, then try again."
 fix = "Free memory or disk on the node, or lower max_warm_lanes; `agentos health status` shows what is short."
 retryable = true
 retry_after = 60
+
+[rollback_refused]
+meaning = "A repository is in the middle of a merge, a rebase, a cherry-pick or a revert, so the rollback changed nothing."
+agent = "Finish it or abort it first (git merge --abort, git rebase --abort, git cherry-pick --abort, git revert --abort, in the repository the message names), then call environment_rollback again."
+fix = "Nothing to fix on the node: the agent finishes or aborts what git is in the middle of."
 
 [sandbox_error]
 meaning = "A terminal or service lane's sandbox could not be set up or failed."

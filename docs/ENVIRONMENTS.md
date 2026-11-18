@@ -413,6 +413,7 @@ What the agent does:
 | `environment()` | state, time left, cost so far, listening ports (a shared one with its `link`), git (branch, ahead, dirty, `pushed`: each branch at its commit on the remote now, `deleted`: branches it deleted, `compare`: GitHub's form for the pushed branch, `pull_requests`), proofs, the agent's `note`, the last calls (a command's `exit_code`, a refusal's `error`), and always the agent's `open` and `saved` environments by title |
 | `environment_pull_request(title, body, base, draft)` | opens the pull request for a branch this environment pushed, with the node's GitHub token, and returns its `url` (see below) |
 | `environment_port(port)` | a link on your own computer to a server on the VM (see [Ports](#ports)) |
+| `environment_checkpoint(note)`, `environment_rollback(checkpoint)` | a cheap undo with git, in `tools_more("terminals")` (see [Checkpoints](#checkpoints)) |
 | `environment_close(discard, final, note, forget)` | refuses with `unsaved_work` while any repository under `/work` has work that is not on a remote (changed or new files, commits on any branch, stashes); then deletes the VM, the browser and both lanes; `machine` says `deleted` only once the provider has no such server (`deleting` while the node still deletes it). `saves` says what became of the saves; `note` and `forget` are in [Keeping an environment](#keeping-an-environment) |
 
 Work that is only on your computer (changes not committed yet, or a project with no repository the
@@ -557,7 +558,7 @@ browser's live view**, served by the node itself, the environment's browser as i
 control to click or type yourself, then hand it back, from that link alone: the environment's
 browser holds no account, so no sign-in is needed (an account lane's link still needs your panel
 sign-in for that, [THREAT-MODEL.md](THREAT-MODEL.md#viewer-links)). The agent waits until you hand
-it back, your input counts as use, so the reaper does not close it under you, and the trail records
+it back, watching it and your input count as use, so the reaper does not close it under you, and the trail records
 what you did as `link holder`. The link is on the node's own address as the agent reaches it (for an
 agent on your Mac, `http://localhost:7400` through its tunnel to the node), so it opens on that computer. In T3 Code the agent opens it in the preview pane
 beside the chat (`preview_open`), so you watch the browser while you talk to the agent.
@@ -577,6 +578,66 @@ agent gets a link to it on the node's own address, good for 15 minutes (`environ
 `environment_close` list every proof with a fresh one), which it gives you or saves with
 `curl -o proof.png "<url>"`. The web app's environment page shows them too
 (`GET /api/orgs/{org}/environments/{id}` lists `proofs`, and each `src` is its PNG).
+
+### Replay
+
+Proofs are what the agent chose to keep. The **replay** is what happened in the environment's
+browser between them, and it stays after the VM is gone: the node keeps a timeline of small frames
+(JPEG pictures of the browser's window, 1280 pixels wide when Pillow is installed, about 15 KB each)
+with what led to each one:
+
+- after each agent call that can change the page (`browser_navigate`, `browser_act`,
+  `browser_scroll`, `browser_upload`, `browser_dialog_answer`, `browser_tab`, `browser_wait`), with
+  the call and the same short summary environment() lists for it (`click e12`, the url), scrubbed
+  as the audit log is (`cause: agent`);
+- every 3 seconds while you have control in the live view (`person`), and while the page goes on
+  changing after an agent call (`change`: an animation, a dev server rebuilding), until two looks in
+  a row find no change (at most 20 after one call);
+- when the environment is saved (`save`) and when it closes (`close`), its last state.
+
+A frame that shows nothing new is not kept. Taking one never gets in the agent's way: the node takes
+it only while no call is on the browser and none waits for it, takes no place on it (no call waits
+behind a frame), and drops it when a call starts while it is taken. It is a screenshot only: the
+pointer, the focus, the scroll and the tabs stay as they are. On a docker machine with the browser on
+the VM a frame took about 60 ms (the browser's JPEG is about 30 KB at 1920 pixels; shrinking it on
+the node about 15 ms).
+
+The frames, an index and the calls made on the environment are in
+`$AGENTOS_HOME/environments/<id>/replay/`. One environment keeps at most 1,500 frames and 150 MB
+(past that its oldest `change` frames go first, then its oldest others, never the save and close
+ones), every replay on the node together at most 1 GB (the oldest frames of closed environments go
+first; while only open ones hold it, new frames are skipped). The reaper removes a replay
+`replay_days` after its environment closed. In `environments.toml`:
+
+| Setting | Default | |
+|---|---|---|
+| `replay` | `true` | keep a replay of each environment's browser |
+| `replay_days` | `14` | days a closed environment's replay is kept |
+
+It is on by default because an environment's browser holds no account, no saved login and no vault
+entry: nothing of yours is in it. A frame still shows whatever the page showed, a secret your app
+printed for example, so it is treated like a proof ([THREAT-MODEL.md](THREAT-MODEL.md#viewer-links)):
+only you read it, an account lane is never pictured, and the agent sees only a count
+(`environment()` gives `replay: {frames, since, bytes}`).
+
+To look at one after the VM is gone:
+
+```sh
+agentos environments replay e7k2m9p3x4q --out ./replay    # frames/, timeline.json and index.html
+```
+
+`index.html` is a page that steps through the frames (left and right arrows, space plays them), with
+each caption and the calls in between. It needs no network. The web API gives the same timeline,
+to you only (a member's role and an agent's grant get `denied`):
+
+- `GET /api/orgs/{org}/environments/{id}/replay?after=<at>&limit=500` answers `environment` (id,
+  title, state, browser, created_at, closed_at), `replay` (enabled, frames, since, until, bytes,
+  kept_until), `links_expire_at`, `timeline` and `next`. `timeline` is the frames and the calls by
+  time: a frame is `{kind: "frame", id, at, cause, tool, summary, page_url, page_title, width, height,
+  bytes, url, src}`, a call `{kind: "call", at, tool, summary, ok, error, exit_code, lane}`. `url` is
+  the frame on the node's viewer, signed like a proof's link (15 minutes; replacing the viewer key
+  revokes it), `src` the app's own route for it. Pass `next` as `after` for the next page.
+- `GET /api/orgs/{org}/environments/{id}/replay/{frame}.jpg` is a frame (its `src`).
 
 ### Who the commits are by
 
@@ -621,6 +682,7 @@ From the CLI:
 agentos environments list           # the open ones (alias: agentos envs); --all: closed and failed too
 agentos environments show e7k2      # one in full: machine, cost, ports, git, last calls
 agentos environments close e7k2     # --discard to close with unsaved work
+agentos environments resume "Black Friday page"   # a save, by title or save id: held by no chat
 ```
 
 The web app's Environments page shows the same, with each one's live browser, commands and git on
@@ -747,6 +809,36 @@ no token, no clone.
 `agentos environments prepared` and the node's report show the pool: how many are warm, since when,
 and what they cost so far.
 
+## Checkpoints
+
+`environment_save` saves the whole machine, which takes minutes on Hetzner. For a cheap undo inside
+an environment ("checkpoint, try the big refactor, roll back if the tests explode") the agent has two
+tools in `tools_more("terminals")`:
+
+| Call | What it does |
+|---|---|
+| `environment_checkpoint(note)` | for every repository under `/work` (the ones a save finds), the work as it is now: tracked and new files git does not ignore, written with a temporary index and kept as a commit on top of HEAD under `refs/agentos/checkpoints/<n>`. The agent's index, stash and branches are not touched. Seconds, no provider call, nothing billed. Returns `checkpoint` (the number), `repos` (each one's `head`, `branch` and `files_changed` from HEAD), `compare` (`git diff refs/agentos/checkpoints/<n>`, to run on the machine) and `rollback` |
+| `environment_rollback(checkpoint)` | first checkpoints the work as it is (`undo`, so the rollback can be undone), then puts each repository back: the branch it was on at the checkpoint's HEAD, the index at that HEAD, the work tree to the checkpoint's files, with new files git does not ignore removed. Returns per repository `files_restored`, `files_removed`, `branch`, `head`, `was` (the branch and head before) and `commits_undone` (the undo checkpoint still has them) |
+
+Files git ignores (`node_modules`, `.env`, build output) are never in a checkpoint and a rollback
+leaves them as they are: after a dependency change, run the install again. A rollback is refused,
+changing nothing, while a repository is in the middle of a merge, rebase, cherry-pick or revert
+(`rollback_refused`, with the abort command), and for a checkpoint no repository has
+(`checkpoint_not_found`). Files in `/work` outside any repository are not in a checkpoint; a folder
+with no repository is `checkpoint_failed` (git init one, or use `environment_save`). `git diff
+refs/agentos/checkpoints/<n>` compares the tracked files; a file that is new and still untracked shows
+there as deleted, and `git status` lists it.
+
+About 20 are kept per environment: a new one deletes the oldest refs. `environment()` lists them as
+`checkpoints` (`id`, `note`, `at`, `auto`: the rollback an automatic one was made before, and per
+repository `dir`, `head` and `files`), read by the same command that reads git, so it costs no call.
+The web app's environment page has each one with what changed since, and a diff view of one against
+now (docs/API.md).
+
+Checkpoints never leave the machine. They are git refs on its disk: the git gateway refuses a push
+of `refs/agentos/*` (`push_refused`), and a save's file part carries only branches and stashes. So a
+snapshot save or a paused one (Morph) keeps them, and a resume from the files alone does not.
+
 ## Keeping an environment
 
 An environment has a `keep` mode, chosen by the agent when it opens it (`environment_open(...,
@@ -839,6 +931,23 @@ snapshot and the files, after asking; an agent that opens that title again start
 machine. Agents forget finished work themselves with `environment_forget(title)`.
 `environment()` always lists the agent's `open` and `saved` ones.
 
+**You resume one yourself.** Without a chat: **Resume** on a save in the web app's Saved list, `agentos
+environments resume <title or save id>` on the node, or the Resume button on the saved environment's
+live-view link. It resumes the save as `environment_open` with its title does (a disk snapshot, or on
+Morph the paused machine, in seconds), within the same limits (`environment_limit` and
+`environment_full` name the fix), and no chat holds it, as a kept machine its chat let go: you watch
+it in its live view at once (the CLI and the API give the link), and the next agent that opens the
+title takes it with its `resumed` record (`opened: "resumed"`). Its idle rule and time limit are any
+open environment's: while you watch it stays, and unused and unwatched it is saved again after
+`idle_minutes`. An agent's calls with the `on` of the closed one are refused with when it was saved
+and how to come back (`environment_open(title="...")`); agentos never resumes one on an agent's behalf.
+
+**A saved environment's live-view link.** Once it is saved and its machine closed, the agent's
+`links.browser` shows a small page instead of an error: to you, signed in to the panel in that
+browser (or with your own link), its title, when it was saved, the agent's note (as text) and Resume,
+which then shows the live view once it is ready; to anyone else only that it is saved. A link to one
+that is open again (you or a chat resumed it) says so, and gives you its live view.
+
 **When a save fails.** `save_failed`: the VM is not deleted, so nothing is lost; the agent tries
 once more, then tells you. `restore_failed`: the save is kept; tell the agent to try again later or
 open a fresh one under another title. `save_limit`: forget saves you no longer need.
@@ -851,10 +960,15 @@ open a fresh one under another title. `save_limit`: forget saves you no longer n
   `--monthly-eur` and the node's `monthly_budget_eur`.
 - Every environment has a time limit (`hours` on open, at most `--max-hours`, 8 by default). The
   environment page extends it, up to the same limit.
-- **The reaper** closes an environment that the agent forgot: idle (no call, no running command
-  and no input from you in its live view; in local mode also no use of the agent's own
-  `ssh agentos-<id>`, docs/LOCAL.md) for `idle_minutes` (default 60), or past its time
-  limit. One that saves when idle is saved first; one kept running is left alone. A single-use one
+- **The reaper** closes an environment that the agent forgot: idle (no call, no running command,
+  nobody watching it and no input from you in its live view; in local mode also no use of the
+  agent's own `ssh agentos-<id>`, docs/LOCAL.md) for `idle_minutes` (default 60), or past its time
+  limit. Watching is a live view of its browser open (the node's link or the web app's) or a
+  connection through an `environment_port` link (a dev server's page open on your computer): while
+  one is open the environment is in use, and the idle time counts from when the last one closed. It
+  is noted on the record at most once a minute, and `environment()` and the web app say `watched`
+  (since when, and how many). The web app polling the environment's page is not watching and never
+  counts. One that saves when idle is saved first; one kept running is left alone. A single-use one
   with unsaved work is never deleted for being idle: it waits to its time limit, gets a rescue
   save, and you get a notification. Unsaved work is anything in a repository under `/work` (the cloned
   one or any other) that is not on a remote: changed or new files, commits on any local branch

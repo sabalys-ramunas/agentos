@@ -329,6 +329,25 @@ async def test_a_paused_machine_gone_at_the_provider_resumes_from_the_files(node
     assert git(w, "rev-parse", "HEAD") == head
 
 
+async def test_the_owner_wakes_a_paused_machine_held_by_no_chat_and_the_next_open_takes_it(node):
+    """The owner's resume (agentos.environments.waking) on a provider that pauses: the same machine wakes,
+    its dev server still running, no chat holds it, and an agent's environment_open of the title takes it."""
+    mgr, cloud, vms, machines = node["mgr"], node["cloud"], node["vms"], node["machines"]
+    out = await opened(node, keep="save")
+    await node["envs"].job_start(f"env/{out['id']}", "npm run dev -- --port 3000", cwd="/work/shop")
+    server = vms.store.get(mgr.get(out["id"]).vm_id).provider_id
+    await node["call"]("environment_close", note="back soon")
+    assert cloud.paused == {server}
+    jobs = len(machines.jobs)
+    env, how = await mgr.resume_saved(TITLE)
+    assert how == "resumed" and env.binding == f"kept:{env.id}" and env.lease is None
+    env = await mgr.wait_ready(env.id, 30)
+    assert env.state == "ready" and env.resumed["from"] == "paused" and cloud.paused == set()
+    assert vms.store.get(env.vm_id).provider_id == server and len(machines.jobs) == jobs  # woken, not restarted
+    again = await node["call"]("environment_open", title=TITLE, session="chat-2")
+    assert again["id"] == env.id and again["opened"] == "resumed" and again["resumed"]["from"] == "paused"
+
+
 async def test_a_paused_machine_no_save_points_to_is_deleted_and_the_owner_told(node):
     mgr, cloud, vms = node["mgr"], node["cloud"], node["vms"]
     rec = await vms.create("dev/stray", ttl_minutes=60)

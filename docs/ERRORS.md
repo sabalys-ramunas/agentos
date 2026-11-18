@@ -31,6 +31,8 @@ carries one of these codes:
 | [`busy`](#busy) | The lane stayed taken for longer than the call could wait: another caller claims it or calls ahead in its queue, or every warm lane slot is in use. | yes, after 30 s |
 | [`cancelled`](#cancelled) | The request was cancelled before it finished. | no |
 | [`check_unknown`](#check_unknown) | A flow's branch condition could not be checked on the page, so the flow did not guess which way to go. | no |
+| [`checkpoint_failed`](#checkpoint_failed) | A checkpoint or a rollback could not be done on the environment's machine: there is no git repository under /work, git could not read one, or the machine did not answer. A checkpoint that failed leaves nothing half made. | no |
+| [`checkpoint_not_found`](#checkpoint_not_found) | No repository under /work has the checkpoint the rollback named: it was never made, it is older than the about 20 kept, or the environment came back from a files-only save, which keeps none. Nothing changed. | no |
 | [`claim_lost`](#claim_lost) | Your claim on the lane ended before this call, so the call did nothing: it expired, a person took control, a hold or a freeze, a revoked grant, the lane closed to free memory, or the node restarted. | yes, once the cause is fixed |
 | [`clipboard_too_large`](#clipboard_too_large) | What is copied in the lane is over 1 MB, too much for the live view to bring to your computer, so none of it was read. | no |
 | [`clipboard_unreadable`](#clipboard_unreadable) | The lane's clipboard could not be read as text: the browser did not hand it over in time, it is not text, or xclip failed on the lane's display. | yes, once the cause is fixed |
@@ -155,6 +157,7 @@ carries one of these codes:
 | [`repo_not_found`](#repo_not_found) | environment_open named a repository that the host answered not found for, with a login or token that should see it: it does not exist, or that login cannot see it. Nothing was rented. | no |
 | [`resources_low`](#resources_low) | The node is short of memory or disk, so the lane was not started. | yes, after 60 s |
 | [`restore_failed`](#restore_failed) | The environment could not be resumed from its save. The save is untouched, and its new machine was deleted. | no |
+| [`rollback_refused`](#rollback_refused) | A repository is in the middle of a merge, a rebase, a cherry-pick or a revert, so the rollback changed nothing. | no |
 | [`sandbox_error`](#sandbox_error) | A terminal or service lane's sandbox could not be set up or failed. | no |
 | [`save_failed`](#save_failed) | Saving the environment did not finish: its machine did not answer, its disk was full, or the snapshot failed. Nothing was deleted: the machine is kept and still bills, and the owner was told. | no |
 | [`save_limit`](#save_limit) | The save would pass this node's limit for saves (max_saves_gb, 5 GB of file parts by default), even after the oldest saves of the title were removed. | no |
@@ -404,6 +407,24 @@ A flow's branch condition could not be checked on the page, so the flow did not 
 - **You:** Look at the page in the lane's live view and fix the branch's check in the flow (flow_save makes a new version).
 - **Retry:** no
 - **Runs fail with it in:** `agentos.runner.executor`
+
+## checkpoint_failed
+
+A checkpoint or a rollback could not be done on the environment's machine: there is no git repository under /work, git could not read one, or the machine did not answer. A checkpoint that failed leaves nothing half made.
+
+- **Agent:** No repository: git init one in /work, or use environment_save. Git could not read one: fix what it names. The machine did not answer: environment(on=...), then try again.
+- **You:** Nothing to fix on the node. `agentos environments show ID` shows the machine and its repositories.
+- **Retry:** no
+- **Raised by:** `agentos.environments.errors.CheckpointFailed`
+
+## checkpoint_not_found
+
+No repository under /work has the checkpoint the rollback named: it was never made, it is older than the about 20 kept, or the environment came back from a files-only save, which keeps none. Nothing changed.
+
+- **Agent:** Call environment(on=...): its checkpoints list the ones there are. Roll back to one of those, or keep working.
+- **You:** Nothing to fix: checkpoints live on the machine as git refs (refs/agentos/checkpoints/<n>).
+- **Retry:** no
+- **Raised by:** `agentos.environments.errors.CheckpointNotFound`
 
 ## claim_lost
 
@@ -1548,6 +1569,15 @@ The environment could not be resumed from its save. The save is untouched, and i
 - **You:** Look at the save with `agentos environments saves`; `agentos doctor` and `agentos logs --since 10m` say why the machine did not come back.
 - **Retry:** no
 - **Raised by:** `agentos.environments.errors.RestoreFailed`
+
+## rollback_refused
+
+A repository is in the middle of a merge, a rebase, a cherry-pick or a revert, so the rollback changed nothing.
+
+- **Agent:** Finish it or abort it first (git merge --abort, git rebase --abort, git cherry-pick --abort, git revert --abort, in the repository the message names), then call environment_rollback again.
+- **You:** Nothing to fix on the node: the agent finishes or aborts what git is in the middle of.
+- **Retry:** no
+- **Raised by:** `agentos.environments.errors.RollbackRefused`
 
 ## sandbox_error
 
