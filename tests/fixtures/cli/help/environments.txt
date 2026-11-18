@@ -28,7 +28,11 @@
 │ allow        Set the limits that bound the environments agents open.         │
 │ setup        Check what environments need on this node, and say what is      │
 │              missing.                                                        │
+│ prepare      Build the repository's prepared machine now, and show its       │
+│              steps.                                                          │
 │ repo         Connect private repositories: a key or token in the vault, and  │
 │              the declaration for env.                                        │
+│ prepared     The repositories' prepared machines (an image with their setup  │
+│              run), and the warm pool.                                        │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 

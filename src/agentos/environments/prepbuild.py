@@ -67,8 +67,8 @@ TOKEN_LEFT = ("grep -rlF -f - /root /work /etc /home /tmp /var/tmp /opt /usr/loc
               "true")
 
 
-class BuildFailed(AgentosError):
-    code = "environment_failed"
+class BuildFailed(Exception):
+    """A build that did not make its image: its words go on the prepared machine's record (never to an agent)."""
 
 
 def _tail(text: str, n: int = 1500) -> str:
@@ -208,7 +208,8 @@ class PrepBuild:
                      time.monotonic() - began, setup_s)
             await self._retire_older(rec.repo, rec.key)
         except BaseException as e:
-            words = e.message if isinstance(e, AgentosError) else f"{type(e).__name__}: {e}"
+            words = (str(e) if isinstance(e, BuildFailed) else e.message if isinstance(e, AgentosError)
+                     else f"{type(e).__name__}: {e}")
             if isinstance(e, asyncio.CancelledError):
                 words = "the build was stopped (the node shut down)"
             log.warning("prepared machine of %s failed: %s", rec.repo, words)

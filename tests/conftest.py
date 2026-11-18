@@ -224,6 +224,18 @@ def _a_person_switched_it_on(request, monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _no_raw_files(monkeypatch):
+    """An open reads a public repository's .agentos/environment.toml from GitHub's raw files; in tests,
+    GitHub does not answer (the file is then read in the checkout), unless a test gives raw_fetch."""
+    from agentos.environments import preparing
+
+    async def no_answer(url):
+        return 0, b""
+
+    monkeypatch.setattr(preparing, "raw_get", no_answer)
+
+
+@pytest.fixture(autouse=True)
 def _no_preflight_waits(monkeypatch):
     """A network check before an open is tried again over about 15 s; in tests, at once."""
     from agentos.environments import manager as env_manager
