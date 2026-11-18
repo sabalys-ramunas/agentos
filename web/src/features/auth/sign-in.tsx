@@ -13,6 +13,7 @@ import { describeError } from '@/lib/errors';
 import { getPasskey, passkeysAvailable } from '@/lib/webauthn';
 import { CodeForm } from './code-login';
 import { AuthLayout, Notice, PromisePicture } from './layout';
+import { InlineError } from '@/components/ui/states';
 
 /** The reasons the API puts on `/sign-in?error=`, in words that say what to do next. */
 const GOOGLE_ERRORS: Record<string, string> = {
@@ -113,9 +114,9 @@ export function SignIn() {
         </div>
       ) : null}
       {passkey.isError ? (
-        <p role="alert" className="mt-2 text-13 text-red">
+        <InlineError className="mt-2">
           {onComputer ? 'That passkey did not work. Try again, or use a sign-in code.' : 'That passkey did not work. Try again, or use your email.'}
-        </p>
+        </InlineError>
       ) : null}
     </AuthLayout>
   );

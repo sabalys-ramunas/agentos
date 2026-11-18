@@ -4,7 +4,7 @@
  * ever says "Approved" as if the post went out.
  */
 import { Link } from '@tanstack/react-router';
-import { AlertTriangle, Check, ExternalLink, Loader2, RotateCcw, X } from 'lucide-react';
+import { AlertTriangle, Check, ExternalLink, RotateCcw, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAccess, useApproval, useClearOutcome, useMembers, useSession } from '@/api/hooks';
 import type { Approval, Outcome } from '@/api/types';
@@ -16,6 +16,7 @@ import { cn } from '@/lib/cn';
 import { useNow } from '@/lib/use-now';
 import type { Decided } from './decision-flow';
 import { blockerOf, outcomeLine, outcomeWord, whereOf } from './words';
+import { Spinner } from '@/components/ui/spinner';
 
 /** How long a final result stays before the bar steps aside. */
 const RESULT_MS = 10_000;
@@ -28,7 +29,7 @@ function ResultLine({ outcome, effect, fallback }: { outcome: Outcome | null | u
   if (!outcome || outcome.state === 'pending') {
     return (
       <span className="flex min-w-0 items-center gap-2">
-        <Loader2 aria-hidden="true" className="size-4 shrink-0 animate-spin text-muted" />
+        <Spinner className="shrink-0 text-muted" />
         <span className="min-w-0">{fallback}</span>
       </span>
     );
@@ -141,7 +142,7 @@ export function OutcomeBar({
   else if (!last.taken) {
     body = (
       <span className="flex items-center gap-2">
-        <Loader2 aria-hidden="true" className="size-4 animate-spin text-muted" />
+        <Spinner className="text-muted" />
         {last.label}
       </span>
     );

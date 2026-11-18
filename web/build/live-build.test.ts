@@ -13,7 +13,8 @@ const root = join(__dirname, '..');
 
 function build(): string {
   const out = mkdtempSync(join(tmpdir(), 'agentos-live-'));
-  const env = { ...process.env, VITE_API_MODE: 'live' };
+  // NODE_ENV as a real build has it: under the test runner it is `test`, which builds in dev mode.
+  const env = { ...process.env, VITE_API_MODE: 'live', NODE_ENV: 'production' };
   execFileSync(process.execPath, [join(root, 'node_modules/vite/bin/vite.js'), 'build', '--outDir', out, '--emptyOutDir', '--logLevel', 'error'], { cwd: root, env, stdio: 'pipe' });
   return out;
 }
@@ -27,7 +28,7 @@ function text(dir: string): string {
 }
 
 describe('the live build', () => {
-  it('holds no concept drawing of a computer form, no route to one, and no mock code', () => {
+  it('holds no concept drawing of a computer form, no route to one, no mock code and no catalog', () => {
     const out = build();
     try {
       const all = text(out);
@@ -35,6 +36,8 @@ describe('the live build', () => {
       expect(all).not.toContain('/computer-form/ai-key');
       expect(all).not.toContain('"/computer-form"');
       expect(findMockCode(out)).toEqual([]);
+      // The design system's catalog is dev only (src/app/routes/catalog.tsx): none of it ships.
+      expect(all).not.toContain('agentos-design-catalog');
     } finally {
       rmSync(out, { recursive: true, force: true });
     }

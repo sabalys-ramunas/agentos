@@ -2,6 +2,7 @@ import { useId } from 'react';
 import type { InputHTMLAttributes, ReactElement, ReactNode, Ref, TextareaHTMLAttributes } from 'react';
 import { cloneElement } from 'react';
 import { cn } from '@/lib/cn';
+import { InlineError } from './states';
 
 const control =
   'w-full rounded-md border border-line-strong bg-card text-14 text-fg placeholder:text-faint ' +
@@ -49,9 +50,7 @@ export function Field({ label, hint, error, children, className }: FieldProps) {
         'aria-invalid': error ? true : undefined,
       })}
       {error ? (
-        <p id={`${id}-error`} role="alert" className="text-13 text-bad">
-          {error}
-        </p>
+        <InlineError id={`${id}-error`}>{error}</InlineError>
       ) : hint ? (
         <p id={`${id}-hint`} className="text-13 text-faint">
           {hint}

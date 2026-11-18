@@ -12,6 +12,7 @@ import { Dialog } from '@/components/ui/dialog';
 import { computerName } from '@/lib/computers';
 import { plural } from '@/lib/format';
 import { inWords, NEVER, serviceName } from './words';
+import { InlineError } from '@/components/ui/states';
 
 const VERB = { decide: 'decides each step', write: 'writes text', rescue: 'helps when it is unsure' };
 
@@ -64,7 +65,7 @@ export function TurnOnDialog({ org, data, node, onClose }: { org: string; data: 
             </li>
           ))}
         </ul>
-        {refused ? <p role="alert" className="text-13 text-red">{refused}</p> : null}
+        {refused ? <InlineError>{refused}</InlineError> : null}
       </div>
     </Dialog>
   );

@@ -11,6 +11,7 @@ import { X } from 'lucide-react';
 import { describeError } from '@/lib/errors';
 import { AccountSection } from './account-section';
 import { siteWords, sitesSentence, validSite } from './account-words';
+import { InlineError } from '@/components/ui/states';
 
 export function SitesSection({ org, lane }: { org: string; lane: Lane }) {
   const sites = useLaneSites(org, lane.workspace, lane.name).data;
@@ -80,9 +81,9 @@ export function SitesSection({ org, lane }: { org: string; lane: Lane }) {
             </Button>
           </div>
           {formError ? (
-            <p role="alert" className="text-13 text-red">
+            <InlineError>
               {formError}
-            </p>
+            </InlineError>
           ) : null}
         </form>
       ) : null}

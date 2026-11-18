@@ -34,6 +34,10 @@
   --surface-raised: var(--neutral-0);
   --surface-inverse: var(--neutral-12);
 
+  --inverse-line: rgb(255 255 255 / 0.35);
+  --inverse-hover: rgb(255 255 255 / 0.14);
+  --inverse-pressed: rgb(255 255 255 / 0.22);
+
   --fill-hover: rgb(0 0 0 / 0.035);
   --fill-pressed: rgb(0 0 0 / 0.06);
 
@@ -78,6 +82,7 @@
   --terminal-bg: #0a0a0a;
   --terminal-text: #e5e5e5;
   --terminal-dim: #8a8a8a;
+  --terminal-line: rgb(255 255 255 / 0.1);
 
   --ansi-red: #ff7b7f;
   --ansi-green: #5fd28b;
@@ -104,6 +109,24 @@
   --shadow-color-card: rgb(0 0 0 / 0.05);
 
   --highlight-card: rgb(255 255 255 / 0);
+
+  --shadow-color-hover: rgb(0 0 0 / 0.16);
+
+  --fill-strong: rgb(0 0 0 / 0.09);
+
+  --board-wire: rgb(0 0 0 / 0.13);
+  --board-wire-strong: rgb(0 0 0 / 0.3);
+  --board-mark: rgb(0 0 0 / 0.2);
+  --board-dot: rgb(0 0 0 / 0.07);
+
+  --field-1: #2a78d6;
+  --field-2: #eb6834;
+  --field-3: #1baf7a;
+  --field-4: #eda100;
+  --field-5: #6250d6;
+  --field-6: #008300;
+
+  --night: #3b4cca;
 
   --kind-test-mark: #9a5bd6;
   --kind-test-text: #7a3fbf;
@@ -295,6 +318,15 @@
   --row-height-default: 52px;
   --row-height-relaxed: 60px;
   --row-height-header: 40px;
+  --topbar-height: 56px;
+  --rail-width: 240px;
+  --tabbar-height: 56px;
+  --page-max: 1120px;
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
   --border-width-hairline: 1px;
   --border-width-focus: 2px;
   --border-width-mark: 1.5px;
@@ -302,6 +334,7 @@
 
   /* Elevation: a card's 1 px lift (--shadow-card, with --highlight-card in dark), and floating layers. */
   --shadow-card: 0px 1px 2px 0px var(--shadow-color-card);
+  --shadow-hover: 0px 1px 2px 0px var(--shadow-color-card), 0px 12px 32px -12px var(--shadow-color-hover);
   --shadow-popover: 0px 1px 2px 0px var(--shadow-color-1), 0px 8px 24px -4px var(--shadow-color-2);
   --shadow-dialog: 0px 1px 2px 0px var(--shadow-color-1), 0px 16px 40px -8px var(--shadow-color-2);
 
@@ -309,9 +342,11 @@
   --duration-fast: 100ms;
   --duration-base: 150ms;
   --duration-slow: 200ms;
+  --duration-settle: 280ms;
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --ease-enter: cubic-bezier(0, 0, 0.2, 1);
   --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --ease-settle: cubic-bezier(0.16, 1, 0.3, 1);
 
   /* Layers */
   --z-base: 0;
@@ -348,6 +383,10 @@
     --surface-inset: var(--neutral-2);
     --surface-raised: var(--neutral-3);
     --surface-inverse: var(--neutral-11);
+
+    --inverse-line: rgb(0 0 0 / 0.35);
+    --inverse-hover: rgb(0 0 0 / 0.14);
+    --inverse-pressed: rgb(0 0 0 / 0.22);
 
     --fill-hover: rgb(255 255 255 / 0.05);
     --fill-pressed: rgb(255 255 255 / 0.08);
@@ -393,6 +432,7 @@
     --terminal-bg: #050505;
     --terminal-text: #e5e5e5;
     --terminal-dim: #8a8a8a;
+    --terminal-line: rgb(255 255 255 / 0.1);
 
     --ansi-red: #ff7b7f;
     --ansi-green: #5fd28b;
@@ -419,6 +459,24 @@
     --shadow-color-card: rgb(0 0 0 / 0);
 
     --highlight-card: rgb(255 255 255 / 0.06);
+
+    --shadow-color-hover: rgb(0 0 0 / 0.7);
+
+    --fill-strong: rgb(255 255 255 / 0.13);
+
+    --board-wire: rgb(255 255 255 / 0.11);
+    --board-wire-strong: rgb(255 255 255 / 0.26);
+    --board-mark: rgb(255 255 255 / 0.2);
+    --board-dot: rgb(255 255 255 / 0.055);
+
+    --field-1: #3987e5;
+    --field-2: #d95926;
+    --field-3: #199e70;
+    --field-4: #c98500;
+    --field-5: #9085e9;
+    --field-6: #2f9e2f;
+
+    --night: #8f9bff;
 
     --kind-test-mark: #b18cfa;
     --kind-test-text: #c4a8ff;
@@ -461,6 +519,10 @@
   --surface-inset: var(--neutral-2);
   --surface-raised: var(--neutral-3);
   --surface-inverse: var(--neutral-11);
+
+  --inverse-line: rgb(0 0 0 / 0.35);
+  --inverse-hover: rgb(0 0 0 / 0.14);
+  --inverse-pressed: rgb(0 0 0 / 0.22);
 
   --fill-hover: rgb(255 255 255 / 0.05);
   --fill-pressed: rgb(255 255 255 / 0.08);
@@ -506,6 +568,7 @@
   --terminal-bg: #050505;
   --terminal-text: #e5e5e5;
   --terminal-dim: #8a8a8a;
+  --terminal-line: rgb(255 255 255 / 0.1);
 
   --ansi-red: #ff7b7f;
   --ansi-green: #5fd28b;
@@ -533,6 +596,24 @@
 
   --highlight-card: rgb(255 255 255 / 0.06);
 
+  --shadow-color-hover: rgb(0 0 0 / 0.7);
+
+  --fill-strong: rgb(255 255 255 / 0.13);
+
+  --board-wire: rgb(255 255 255 / 0.11);
+  --board-wire-strong: rgb(255 255 255 / 0.26);
+  --board-mark: rgb(255 255 255 / 0.2);
+  --board-dot: rgb(255 255 255 / 0.055);
+
+  --field-1: #3987e5;
+  --field-2: #d95926;
+  --field-3: #199e70;
+  --field-4: #c98500;
+  --field-5: #9085e9;
+  --field-6: #2f9e2f;
+
+  --night: #8f9bff;
+
   --kind-test-mark: #b18cfa;
   --kind-test-text: #c4a8ff;
   --kind-test-soft: #1a1328;
@@ -552,5 +633,5 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  :root { --duration-fast: 0ms; --duration-base: 0ms; --duration-slow: 0ms; }
+  :root { --duration-fast: 0ms; --duration-base: 0ms; --duration-slow: 0ms; --duration-settle: 0ms; }
 }

@@ -1,6 +1,6 @@
 /**
  * The Mono primitives: what each one promises (web/DESIGN.md). The look is checked in the browser on
- * the specimen (/$org/design); these hold the behaviour and the accessible names.
+ * the catalog (/$org/design); these hold the behaviour and the accessible names.
  */
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';

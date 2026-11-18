@@ -10,7 +10,7 @@ import { ConfirmDialog, Dialog } from '@/components/ui/dialog';
 import { Field, Input } from '@/components/ui/field';
 import { Select } from '@/components/ui/select';
 import { Status } from '@/components/ui/status';
-import { EmptyState, NotLive, QueryView, Skeleton } from '@/components/ui/states';
+import { EmptyState, InlineError, NotLive, QueryView, Skeleton } from '@/components/ui/states';
 import { plural } from '@/lib/format';
 import { THINGS } from '@/lib/vocabulary';
 import { useTechnical } from '@/lib/technical';
@@ -68,7 +68,7 @@ function AddBrowserDialog({ org, open, onOpenChange, proxies }: { org: string; o
         </>
       }
     >
-      {create.isError ? <p className="mb-4 text-14 text-red" role="alert">That did not work. Nothing was added.</p> : null}
+      {create.isError ? <InlineError className="mb-4">That did not work. Nothing was added.</InlineError> : null}
       <div className="grid gap-4">
         <Field label="Name" hint="Lowercase letters, numbers and dashes."><Input className="mono" value={name} onChange={(event) => setName(event.target.value.toLowerCase())} placeholder="shop-browser" autoFocus /></Field>
         <div className="grid gap-2 text-13 font-medium">
@@ -149,7 +149,7 @@ function AddConnectionDialog({ org, open, onOpenChange }: { org: string; open: b
         </>
       }
     >
-      {create.isError ? <p className="mb-4 text-14 text-red" role="alert">That did not work. Nothing was added.</p> : null}
+      {create.isError ? <InlineError className="mb-4">That did not work. Nothing was added.</InlineError> : null}
       <div className="grid gap-4">
         <Field label="Name"><Input className="mono" value={label} onChange={(event) => setLabel(event.target.value.toLowerCase())} placeholder="de1" autoFocus /></Field>
         <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_112px]">
@@ -192,7 +192,7 @@ function MoveDialog({ org, lane, from, devices, onClose }: { org: string; lane: 
         </>
       }
     >
-      {move.isError ? <p className="mb-4 text-14 text-red" role="alert">That did not work. Nothing moved.</p> : null}
+      {move.isError ? <InlineError className="mb-4">That did not work. Nothing moved.</InlineError> : null}
       <div className="grid gap-4">
         <div className="grid gap-2 text-13 font-medium">
           <span>Browser</span>

@@ -88,7 +88,7 @@ export function PersonMark({ id, name, photo, size = 20, label = false, classNam
     <span
       {...a11y}
       style={{ width: size, height: size, backgroundColor: photo ? undefined : hueFor(id), fontSize: Math.round(size * 0.42) }}
-      className={cn('inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full leading-none font-semibold text-white', className)}
+      className={cn('inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full leading-none font-semibold text-identity-ink', className)}
     >
       {photo ? <img src={photo} alt="" className="size-full object-cover" /> : initials(name, 2)}
     </span>

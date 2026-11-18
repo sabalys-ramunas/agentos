@@ -24,6 +24,7 @@ import { Ready, SetupLayout } from './layout';
 import { AllowPicture, DoneRow, MenuPicture, PastePicture, PictureStep, TerminalPicture } from './pictures';
 import { ceilingOf } from './step-accounts';
 import { DEFAULT_ASKS, agentName, itemOf, mayWords, remember } from './setup';
+import { InlineError } from '@/components/ui/states';
 
 interface Tile {
   key: KnownAgent;
@@ -175,9 +176,9 @@ export function AiStep({ ctx }: { ctx: StepContext }) {
               </div>
             )}
             {grant.isError && !isNotServed(grant.error) ? (
-              <p role="alert" className="text-13 text-red">
+              <InlineError>
                 {describeError(grant.error)}
-              </p>
+              </InlineError>
             ) : null}
           </div>
         )}

@@ -12,7 +12,7 @@ import {
 import { isNotServed } from '@/api/http';
 import type { EnvList, Status, Workspace } from '@/api/types';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Card, cardLink } from '@/components/ui/card';
 import { KindTile } from '@/components/ui/kind';
 import { StatusDot } from '@/components/ui/status';
 import { StateGlyph } from '@/components/ui/state-badge';
@@ -68,7 +68,7 @@ function Part({ org, part }: { org: string; part: LinePart }) {
   }
 }
 
-const footLink = 'group flex min-w-0 items-center gap-3 rounded-xl border border-line bg-card px-5 py-4 shadow-lift transition-colors duration-(--duration-fast) hover:border-line-strong';
+const footLink = cn(cardLink, 'group flex min-w-0 items-center gap-3 px-5 py-4');
 
 /** What a foot link says: its title with an icon, then the numbers. */
 function FootBody({ icon, title, children }: { icon: ReactNode; title: string; children: ReactNode }) {

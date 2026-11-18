@@ -10,6 +10,7 @@ import { CopyButton } from '@/components/ui/misc';
 import { describeError } from '@/lib/errors';
 import { timeUntil } from '@/lib/format';
 import { AccountSection } from './account-section';
+import { InlineError } from '@/components/ui/states';
 
 export function WatchSection({ org, lane }: { org: string; lane: Lane }) {
   const canWatch = useAccess(org).can('lanes.watch');
@@ -42,9 +43,9 @@ export function WatchSection({ org, lane }: { org: string; lane: Lane }) {
             Make a watch link
           </Button>
           {link.isError ? (
-            <p role="alert" className="text-13 text-red">
+            <InlineError>
               {describeError(link.error)}
-            </p>
+            </InlineError>
           ) : null}
         </div>
       )}

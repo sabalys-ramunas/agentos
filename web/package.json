@@ -16,7 +16,9 @@
     "test:live": "playwright test -c playwright.live.config.ts",
     "test:live:sim": "playwright test -c playwright.live-sim.config.ts",
     "screenshots": "node scripts/screenshots.mjs",
-    "knip": "knip"
+    "knip": "knip",
+    "design:check": "vitest run src/test/design-system.test.ts src/test/source-rules.test.ts src/styles/tokens.test.ts",
+    "design:shrink": "DESIGN_SHRINK=1 vitest run src/test/design-system.test.ts"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",

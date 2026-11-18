@@ -21,7 +21,7 @@ import { Field, Input } from '@/components/ui/field';
 import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger } from '@/components/ui/menu';
 import { CodeBlock } from '@/components/ui/misc';
 import { Status } from '@/components/ui/status';
-import { EmptyState, QueryView, Skeleton } from '@/components/ui/states';
+import { EmptyState, InlineError, QueryView, Skeleton } from '@/components/ui/states';
 import { Checkbox, Switch } from '@/components/ui/toggle';
 import { mainCell, Table, Td, Th, Tr } from '@/components/ui/table';
 import { cn } from '@/lib/cn';
@@ -411,9 +411,9 @@ export function WebhooksSettings() {
           </QueryView>
         </Card>
         {update.isError && !isCancelled(update.error) ? (
-          <p role="alert" className="text-13 text-red">
+          <InlineError>
             {describeError(update.error)} It is back as it was.
-          </p>
+          </InlineError>
         ) : null}
         <Signature />
       </div>

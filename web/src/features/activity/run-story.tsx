@@ -140,7 +140,7 @@ function Steps({ view }: { view: StoryView }) {
             <li key={step.id} className="flex items-start gap-3 text-14">
               <span className="mt-px shrink-0">
                 {bad ? (
-                  <span className="flex size-4 items-center justify-center rounded-full bg-(--stuck-dot) text-white">
+                  <span className="flex size-4 items-center justify-center rounded-full bg-(--stuck-dot) text-status-ink">
                     <X className="size-3" strokeWidth={3} />
                   </span>
                 ) : (

@@ -72,7 +72,7 @@ function marked(segments: Segment[], needle: string): ReactNode[] {
     for (let at = lower.indexOf(needle); at !== -1; at = lower.indexOf(needle, from)) {
       if (at > from) parts.push(seg.text.slice(from, at));
       parts.push(
-        <mark key={at} className="rounded-xs bg-ansi-yellow/35 text-inherit">
+        <mark key={at} className="rounded-sm bg-ansi-yellow/35 text-inherit">
           {seg.text.slice(at, at + needle.length)}
         </mark>,
       );
@@ -232,7 +232,7 @@ export function OutputView({ items, label, wrap, follow, onFollowChange, query =
           {slice.map((item) => {
             if (!isRow(item)) {
               return (
-                <div key={`div-${item.divider}`} data-line="" className="mt-2 border-t border-white/10 pt-2">
+                <div key={`div-${item.divider}`} data-line="" className="mt-2 border-t border-terminal-line pt-2">
                   <span data-line-no="" />
                   <span data-line-text="" className="text-terminal-dim">
                     Errors (stderr), {item.count} {item.count === 1 ? 'line' : 'lines'}

@@ -1,4 +1,4 @@
-/** Settings and its pages, standing approvals and the design specimen. */
+/** Settings and its pages, and standing approvals. */
 import {
   createRoute,
   lazyRouteComponent,
@@ -69,11 +69,4 @@ export const standingRoute = createRoute({
   path: '/standing',
   validateSearch: (search: Record<string, unknown>): { show?: 'all' } => (search.show === 'all' ? { show: 'all' } : {}),
   component: lazyRouteComponent(() => import('@/features/standing/standing'), 'StandingSettings'),
-});
-
-/** The design specimen: every primitive in every state. Dev only, never linked from the app. */
-export const designRoute = createRoute({
-  getParentRoute: () => orgRoute,
-  path: '/design',
-  component: lazyRouteComponent(() => import('@/components/ui/specimen/specimen'), 'Specimen'),
 });

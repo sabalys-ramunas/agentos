@@ -9,7 +9,7 @@ import { FormCard } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/field';
 import { CopyButton } from '@/components/ui/misc';
-import { NoAccess, QueryView, Skeleton } from '@/components/ui/states';
+import { InlineError, NoAccess, QueryView, Skeleton } from '@/components/ui/states';
 import { describeError } from '@/lib/errors';
 import { orgSlugProblem } from '@/lib/org-slug';
 import { useTechnical } from '@/lib/technical';
@@ -40,9 +40,9 @@ function Name({ org, name, canEdit }: { org: string; name: string; canEdit: bool
     >
       <Input aria-label="Name" className="max-w-sm" maxLength={80} readOnly={!canEdit} value={value} onChange={(event) => setValue(event.target.value)} />
       {update.isError ? (
-        <p role="alert" className="text-13 text-red">
+        <InlineError>
           {describeError(update.error)}
-        </p>
+        </InlineError>
       ) : null}
     </FormCard>
   );
@@ -106,9 +106,9 @@ function Address({ org, slug, canEdit }: { org: string; slug: string; canEdit: b
             />
           </div>
           {error ? (
-            <p role="alert" className="text-13 text-red">
+            <InlineError>
               {error}
-            </p>
+            </InlineError>
           ) : null}
         </div>
       </FormCard>

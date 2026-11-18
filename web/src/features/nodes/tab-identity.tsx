@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input, Label } from '@/components/ui/field';
 import { Status } from '@/components/ui/status';
-import { ErrorState, Skeleton } from '@/components/ui/states';
+import { ErrorState, InlineError, Skeleton } from '@/components/ui/states';
 import { plural, timeAgo } from '@/lib/format';
 import { identityState } from '@/lib/labels';
 import { placeName, placeNames } from '@/lib/plain-node';
@@ -107,9 +107,9 @@ function AccountIdentity({ org, node, account, owner, title }: { org: string; no
             Add site
           </Button>
           {add.isError ? (
-            <p role="alert" className="text-13 text-red sm:col-span-3">
+            <InlineError className="sm:col-span-3">
               {(add.error as Error).message}
-            </p>
+            </InlineError>
           ) : null}
         </form>
       ) : null}

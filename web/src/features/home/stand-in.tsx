@@ -79,7 +79,7 @@ function Body({ kind, accent }: { kind: WorkKind; accent: string }) {
       );
     case 'table':
       return (
-        <div className="grid grid-cols-3 gap-px overflow-hidden rounded-[4px] bg-fg/10">
+        <div className="grid grid-cols-3 gap-px overflow-hidden rounded-sm bg-fg/10">
           {Array.from({ length: 9 }, (_, cell) => (
             <span key={cell} className="flex h-3 items-center bg-bg px-1">
               <span className={cn(bar, 'h-1 w-full', cell < 3 && 'bg-fg/25', cell === 5 && 'bg-transparent')} style={cell === 5 ? { background: accent, opacity: 0.6 } : undefined} />
@@ -137,7 +137,7 @@ function Body({ kind, accent }: { kind: WorkKind; accent: string }) {
     default:
       return (
         <div className="grid gap-2">
-          <span className="block aspect-[16/5] rounded-[4px]" style={{ background: `linear-gradient(160deg, color-mix(in srgb, ${accent} 30%, transparent), color-mix(in srgb, ${accent} 8%, transparent))` }} />
+          <span className="block aspect-[16/5] rounded-sm" style={{ background: `linear-gradient(160deg, color-mix(in srgb, ${accent} 30%, transparent), color-mix(in srgb, ${accent} 8%, transparent))` }} />
           <span className={cn(bar, 'w-4/5')} />
         </div>
       );

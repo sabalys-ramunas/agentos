@@ -1,14 +1,15 @@
 /*
- * Names the app used before Mono, mapped onto the Mono roles in tokens.css, and the few tokens the
- * app has that are not foundations (the board, Site API fields, layout sizes).
+ * Names the app used before Mono, mapped onto the Mono roles in tokens.css, and the board's own
+ * names (the surface instruments sit on).
  *
  * Why this file exists: about 1,900 class names and 600 var() calls in the screens use the old
  * names. Mapping them here gives every screen the Mono look without touching it. New code uses the
  * Mono names (web/DESIGN.md, "Tokens"); a screen that is rebuilt moves to them, and an alias goes
  * when nothing uses it.
  *
- * Every colour here is a reference to a Mono token, except the app-only tokens at the end, which
- * keep light-dark() because they are not part of the token set studio checks.
+ * Every value here is a reference to a token in tokens.css: no colour is written out (a test holds
+ * it). The app-only colours (the board's wires, Site API fields, the night band, fill-strong) are
+ * tokens in web/tokens/build-tokens.py since 2026-11-18, so studio reads them too.
  */
 
 :root {
@@ -20,8 +21,8 @@
 
   --fill-1: var(--fill-hover);
   --fill-2: var(--fill-pressed);
-  /* No Mono role: one step stronger than pressed, for a skeleton's band and a few bars. */
-  --fill-3: light-dark(rgb(0 0 0 / 0.09), rgb(255 255 255 / 0.13));
+  /* One step stronger than pressed: the token is --fill-strong. */
+  --fill-3: var(--fill-strong);
 
   --border: var(--line-default);
   --border-strong: var(--line-strong);
@@ -124,52 +125,24 @@
   --shadow-1: var(--shadow-color-1);
   --shadow-2: var(--shadow-color-1);
   --shadow-3: var(--shadow-color-2);
-  --shadow-hover: var(--shadow-card), 0 12px 32px -12px light-dark(rgb(0 0 0 / 0.16), rgb(0 0 0 / 0.7));
   /* Cards are 10, pictures 8. */
   --radius-card: var(--radius-xl);
   --radius-thumb: var(--radius-lg);
 
   --ease: var(--ease-standard);
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --duration-settle: 280ms;
-
-  /* ---- App-only tokens: not foundations, so not in tokens.json. ---- */
+  --ease-out: var(--ease-settle);
 
   /*
-   * The board: the surface the fleet map and instruments sit on. Wires are hairlines a step off
-   * the surface, and marks are the registration crosses where two wires pass without connecting.
+   * The board: the surface the fleet map and instruments sit on. Its wires, marks and dots are tokens
+   * (--board-wire, --board-wire-strong, --board-mark, --board-dot); these name the surfaces under them.
    */
   --board: var(--surface-page);
   --board-raised: var(--surface-card);
-  --board-wire: light-dark(rgb(0 0 0 / 0.13), rgb(255 255 255 / 0.11));
-  --board-wire-strong: light-dark(rgb(0 0 0 / 0.3), rgb(255 255 255 / 0.26));
   --board-lit: var(--text-primary);
-  --board-mark: light-dark(rgb(0 0 0 / 0.2), rgb(255 255 255 / 0.2));
-  --board-dot: light-dark(rgb(0 0 0 / 0.07), rgb(255 255 255 / 0.055));
   --board-line: var(--line-default);
   --board-line-strong: var(--line-strong);
-
-  /*
-   * The fields of a Site API: one hue per field, so a column on the page and the same column in the
-   * data read as one thing. Marks and wires only, never text and never a surface.
-   */
-  --field-1: light-dark(#2a78d6, #3987e5);
-  --field-2: light-dark(#eb6834, #d95926);
-  --field-3: light-dark(#1baf7a, #199e70);
-  --field-4: light-dark(#eda100, #c98500);
-  --field-5: light-dark(#6250d6, #9085e9);
-  --field-6: light-dark(#008300, #2f9e2f);
 
   /* Calls to a Site API on a chart: the cache is the quiet majority, a fresh read is what cost pace. */
   --mark-cached: var(--chart-bar);
   --mark-fresh: var(--chart-bar-strong);
-
-  /* The map's night band: the hours the person was asleep. */
-  --night: light-dark(#3b4cca, #8f9bff);
-
-  /* Layout */
-  --topbar-height: 56px;
-  --rail-width: 240px;
-  --tabbar-height: 56px;
-  --page-max: 1120px;
 }

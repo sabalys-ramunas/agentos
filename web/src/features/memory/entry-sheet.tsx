@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { ConfirmDialog, Drawer } from '@/components/ui/dialog';
 import { Field, Textarea } from '@/components/ui/field';
 import { Detail } from '@/components/ui/misc';
-import { QueryView, Skeleton } from '@/components/ui/states';
+import { InlineError, QueryView, Skeleton } from '@/components/ui/states';
 import { Status, StatusDot } from '@/components/ui/status';
 import { describeError } from '@/lib/errors';
 import { dateTime, timeAgo } from '@/lib/format';
@@ -182,9 +182,9 @@ function EntryView({ org, target, entry, workspaceName }: { org: string; target:
       ) : null}
 
       {failure ? (
-        <p role="alert" className="text-13 text-red">
+        <InlineError>
           {describeError(failure)}
-        </p>
+        </InlineError>
       ) : null}
 
       {live ? (

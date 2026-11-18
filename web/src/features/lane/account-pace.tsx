@@ -11,6 +11,7 @@ import { Field, Input } from '@/components/ui/field';
 import { describeError } from '@/lib/errors';
 import { AccountSection, Answer } from './account-section';
 import { laneTimeWords, nextPostWords, paceSentence, paceStatus, postsWords, quietHoursWords, wholeOrNull, windowText } from './account-words';
+import { InlineError } from '@/components/ui/states';
 
 const RECOMMENDED = 'between 08:00 and 22:00, 45 minutes apart, 3 posts a day';
 
@@ -155,9 +156,9 @@ function PaceDialog({ org, lane, pace, onClose }: { org: string; lane: Lane; pac
           <Input mono value={clock} placeholder={pace.zone.timezone} onChange={(event) => setClock(event.target.value)} autoComplete="off" />
         </Field>
         {formError ? (
-          <p role="alert" className="text-13 text-red">
+          <InlineError>
             {formError}
-          </p>
+          </InlineError>
         ) : null}
       </form>
     </Dialog>

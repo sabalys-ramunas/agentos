@@ -20,6 +20,7 @@ import { slugify } from '@/lib/format';
 import { GOALS, goalOf } from './goals';
 import { SetupLayout } from './layout';
 import { remember, useSetup } from './setup';
+import { InlineError } from '@/components/ui/states';
 
 type Who = 'business' | 'personal';
 
@@ -215,9 +216,9 @@ export function GoalStep({ org }: { org: string | null }) {
           ) : null}
         </div>
         {error ? (
-          <p role="alert" className="text-13 text-red">
+          <InlineError>
             {error}
-          </p>
+          </InlineError>
         ) : null}
       </form>
     </SetupLayout>

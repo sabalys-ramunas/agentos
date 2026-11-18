@@ -9,6 +9,10 @@ export default defineConfig({
   timeout: 30_000,
   fullyParallel: false,
   reporter: [['list']],
+  // The catalog's baselines (e2e/catalog.spec.ts): one set for every machine, so no platform in the name,
+  // and a machine without them yet writes them instead of failing.
+  snapshotPathTemplate: '{testDir}/__screenshots__/{arg}{ext}',
+  updateSnapshots: 'missing',
   use: {
     baseURL: `http://localhost:${port}`,
     channel: 'chrome',

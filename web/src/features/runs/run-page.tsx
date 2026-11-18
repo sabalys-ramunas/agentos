@@ -17,7 +17,7 @@ import { Card } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/dialog';
 import { KindEyebrow } from '@/components/ui/kind';
 import { useCopy } from '@/components/ui/misc';
-import { EmptyState, ErrorState, NotLive, Skeleton } from '@/components/ui/states';
+import { EmptyState, ErrorState, InlineError, NotLive, Skeleton } from '@/components/ui/states';
 import { Status } from '@/components/ui/status';
 import { cn } from '@/lib/cn';
 import { clock, dateTime } from '@/lib/format';
@@ -208,11 +208,11 @@ function RunHeader({ org, job, kind, title, now }: { org: string; job: Job; kind
       </div>
       <p className="max-w-[60em] text-14 text-muted">{lede(job, now)}</p>
       {cancel.error ? (
-        <p role="alert" className="text-13 text-bad">
+        <InlineError>
           {cancel.error instanceof ApiError && cancel.error.status === 403
             ? 'Your role does not let you stop runs in this workspace. Nothing was changed.'
             : 'The machine did not stop the run. Nothing was changed; try again.'}
-        </p>
+        </InlineError>
       ) : null}
       <ConfirmDialog
         open={asking}

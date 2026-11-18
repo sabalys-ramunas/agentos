@@ -23,6 +23,7 @@ import { laneParams } from './run-story';
 import type { Result } from './story';
 import type { StoryView } from './story-view';
 import { fromHistory, subjectOf } from './story-view';
+import { StatusDot } from '@/components/ui/status';
 
 const PILL: Record<Result, string> = {
   checked: 'bg-(--ok-soft) text-green',
@@ -46,7 +47,7 @@ export function ResultPill({ view, className }: { view: Pick<StoryView, 'result'
       ) : view.result === 'failed' ? (
         <X aria-hidden="true" className="size-3" strokeWidth={2.5} />
       ) : view.result === 'working' ? (
-        <span aria-hidden="true" className="size-2 animate-pulse-dot rounded-full bg-live" />
+        <StatusDot tone="live" pulse />
       ) : (
         <StateGlyph state="waiting" size={14} />
       )}
@@ -304,7 +305,7 @@ export function WorkingNow({ org, stories }: { org: string; stories: HistoryStor
         </span>
         <div className="min-w-0 flex-1 basis-60">
           <p className="flex items-start gap-2 text-14 font-medium">
-            <span aria-hidden="true" className="mt-2 size-2 shrink-0 animate-pulse-dot rounded-full bg-live" />
+            <StatusDot tone="live" pulse className="mt-2 shrink-0" />
             <span>
               {subjectOf(view)} is {view.sentence.charAt(0).toLowerCase()}
               {view.sentence.slice(1)}

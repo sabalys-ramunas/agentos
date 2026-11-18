@@ -12,7 +12,7 @@ import { ConfirmDialog, Dialog } from '@/components/ui/dialog';
 import { Field, Input } from '@/components/ui/field';
 import { CodeBlock } from '@/components/ui/misc';
 import { Select } from '@/components/ui/select';
-import { EmptyState, ErrorState, Skeleton } from '@/components/ui/states';
+import { EmptyState, ErrorState, InlineError, Skeleton } from '@/components/ui/states';
 import { mainCell, Table, Td, Th, Tr } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/toggle';
 import { Tooltip } from '@/components/ui/menu';
@@ -85,9 +85,9 @@ function NewKey({ org, api, open, onClose }: { org: string; api: SiteApiDetail; 
           }
         >
           {revoke.error ? (
-            <p role="alert" className="text-13 text-red">
+            <InlineError>
               {describeError(revoke.error)}
-            </p>
+            </InlineError>
           ) : null}
         </Dialog>
       );
@@ -157,9 +157,9 @@ function NewKey({ org, api, open, onClose }: { org: string; api: SiteApiDetail; 
           <Select value={ceiling} onValueChange={(value) => setCeiling(value as SiteApiEffect)} options={CEILINGS.map(({ value, label: word }) => ({ value, label: word }))} />
         </Field>
         {create.error ? (
-          <p role="alert" className="text-13 text-red">
+          <InlineError>
             {describeError(create.error)}
-          </p>
+          </InlineError>
         ) : null}
       </div>
     </Dialog>

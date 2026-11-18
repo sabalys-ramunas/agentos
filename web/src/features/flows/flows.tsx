@@ -285,7 +285,7 @@ function ListSkeleton() {
       <div className="grid gap-4">
         {Array.from({ length: 5 }, (_, index) => (
           <div key={index} className="flex items-center gap-4 py-2">
-            <Skeleton className="size-10 rounded-[10px]" />
+            <Skeleton className="size-10 rounded-xl" />
             <div className="grid flex-1 gap-2">
               <Skeleton className="w-48" />
               <Skeleton className="w-2/3" />

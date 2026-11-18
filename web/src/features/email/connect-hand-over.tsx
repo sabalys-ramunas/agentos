@@ -13,6 +13,7 @@ import { adminNote, endingWords, GOOGLE_SECURITY, mailCompanyNote } from './word
 import type { Check, Ending } from './words';
 import type { Go, OpenedForm, TypedServers } from './connect-steps';
 import { ComputerChoice, Disclosure } from './connect-steps';
+import { InlineError } from '@/components/ui/states';
 
 /** The mailbox id a new one gets: its business, then the part of the address before the @. */
 function mailboxIdFor(address: string, workspace: string) {
@@ -88,7 +89,7 @@ export function HandOverStep({ org, found, computer, typed, go, onOpened }: { or
           <Button className="mt-3" onClick={() => go('waiting')}>I ran it</Button>
         </div>
       ) : null}
-      {opener.error ? <p role="alert" className="mt-3 text-13 text-red">{describeError(opener.error)}</p> : null}
+      {opener.error ? <InlineError className="mt-3">{describeError(opener.error)}</InlineError> : null}
       <p className="mt-4 text-13 text-faint">{computer.has_screen ? 'The form works once, and only for a short time. ' : ''}Nothing is saved until both checks pass.</p>
       {computer.has_screen ? (
         <div className="mt-2">
@@ -169,7 +170,7 @@ export function WaitingStep({ org, found, computer, typed, form, go, onOpened }:
             Back
           </Button>
         </div>
-        {opener.error ? <p role="alert" className="mt-3 text-13 text-red">{describeError(opener.error)}</p> : null}
+        {opener.error ? <InlineError className="mt-3">{describeError(opener.error)}</InlineError> : null}
       </div>
     );
   }
@@ -189,7 +190,7 @@ export function WaitingStep({ org, found, computer, typed, form, go, onOpened }:
         <button type="button" className="link text-13" disabled={end.isPending} onClick={cancel}>Cancel</button>
         {apiMode === 'mock' ? <button type="button" className="link text-13" onClick={() => go('checks', { replace: true })}>Concept: pretend it was filled in</button> : null}
       </div>
-      {opener.error ? <p role="alert" className="mt-3 text-13 text-red">{describeError(opener.error)}</p> : null}
+      {opener.error ? <InlineError className="mt-3">{describeError(opener.error)}</InlineError> : null}
     </div>
   );
 }

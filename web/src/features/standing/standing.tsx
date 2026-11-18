@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/dialog';
 import { Status, StatusDot } from '@/components/ui/status';
-import { EmptyState, QueryView, Skeleton } from '@/components/ui/states';
+import { EmptyState, InlineError, QueryView, Skeleton } from '@/components/ui/states';
 import { cn } from '@/lib/cn';
 import { date, timeUntil } from '@/lib/format';
 import { laneName, standingState } from '@/lib/labels';
@@ -196,9 +196,9 @@ export function StandingSettings() {
         )}
       </QueryView>
       {revoke.isError ? (
-        <p role="alert" className="mt-4 text-13 text-red">
+        <InlineError className="mt-4">
           That did not go through, so it is still active. Try again.
-        </p>
+        </InlineError>
       ) : null}
       {creating ? (
         <StandingDialog org={org} open={creating} onOpenChange={setCreating} onCreated={() => toast('Standing approval created')} />

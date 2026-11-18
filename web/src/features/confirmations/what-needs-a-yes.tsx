@@ -11,7 +11,7 @@ import { isCancelled } from '@/api/http';
 import type { ConfirmationView, ConfirmRow, Workspace } from '@/api/types';
 import { AgentMark, BusinessMark } from '@/components/brand/identity';
 import { Button } from '@/components/ui/button';
-import { QueryView, Skeleton } from '@/components/ui/states';
+import { InlineError, QueryView, Skeleton } from '@/components/ui/states';
 import { Switch } from '@/components/ui/toggle';
 import { describeError } from '@/lib/errors';
 import { cn } from '@/lib/cn';
@@ -208,9 +208,9 @@ function Page({ org, view, workspaces }: { org: string; view: ConfirmationView; 
       </section>
       <ChatAnswers view={view} canChange={canAny} busy={set.isPending} onChange={setChat} />
       {said?.row === 'chat' ? (
-        <p role="alert" className="text-13 text-red">
+        <InlineError>
           {said.words}
-        </p>
+        </InlineError>
       ) : null}
       <p className="text-13 text-muted">
         <Link to="/$org/settings/say-yes" params={{ org }} className="inline-flex items-center gap-1 hover:text-fg">

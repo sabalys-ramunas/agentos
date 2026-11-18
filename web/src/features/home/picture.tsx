@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 import { StandIn } from './stand-in';
+import { StatusDot } from '@/components/ui/status';
 
 /** True once the element has come within a screen of the viewport. Stays true. */
 function useNear<T extends Element>() {
@@ -126,10 +127,5 @@ export function PictureChip({ children, tone = 'plain', className }: { children:
 }
 
 export function LiveDot() {
-  return (
-    <span aria-hidden="true" className="relative inline-flex size-2">
-      <span className="absolute inset-0 animate-ping rounded-full bg-live opacity-60 motion-reduce:hidden" />
-      <span className="relative size-2 rounded-full bg-live" />
-    </span>
-  );
+  return <StatusDot tone="live" pulse />;
 }

@@ -11,6 +11,7 @@ import { ConfirmDialog } from '@/components/ui/dialog';
 import { describeError } from '@/lib/errors';
 import { AccountSection, Answer } from './account-section';
 import { queueSentence, taintSentence } from './account-words';
+import { InlineError } from '@/components/ui/states';
 
 /** Who holds the account, and who is queued behind it. Polled, since it moves with every call. */
 export function WaitingSection({ org, lane }: { org: string; lane: Lane }) {
@@ -51,9 +52,9 @@ export function TaintSection({ org, lane }: { org: string; lane: Lane }) {
         </div>
       ) : null}
       {clear.isError ? (
-        <p role="alert" className="text-13 text-red">
+        <InlineError>
           {describeError(clear.error)}
-        </p>
+        </InlineError>
       ) : null}
       <ConfirmDialog
         open={confirming}

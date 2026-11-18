@@ -41,7 +41,9 @@ Said plainly, for anyone who knew the app before:
 ## Tokens
 
 [`tokens/build-tokens.py`](tokens/build-tokens.py) is the one place the values live. It writes
-`tokens/tokens.json` and `src/styles/tokens.css`, checks 112 text and mark pairs against WCAG AA in both
+`tokens/tokens.json` and `src/styles/tokens.css`, and from [`tokens/theme.py`](tokens/theme.py) the Tailwind
+theme (`src/styles/theme.css`) and its keys as data (`tokens/theme-keys.json`, which the design rules read).
+It checks 112 text and mark pairs against WCAG AA in both
 themes, and checks that the kind colours stay apart from each other and from status for protanopia,
 deuteranopia and tritanopia (OKLab distance 0.04 or more). `src/styles/tokens.test.ts` fails when the
 two files drift from each other or from the script, or a check fails:
@@ -56,17 +58,19 @@ Light is the default. Dark comes from the system (`prefers-color-scheme`) unless
 
 Three files, in this order, from `src/styles/app.css`:
 
+0. `theme.css`: the Tailwind theme, every class name onto a token (generated from `tokens/theme.py`).
 1. `tokens.css`: the Mono set (generated). Roles, never steps: `--surface-*`, `--line-*`, `--text-*`,
    `--status-*`, `--kind-*`, `--terminal-*`, `--ansi-*`, `--diff-*`, `--chart-*`, `--type-*`.
 2. `aliases.css`: the names the screens used before Mono (`--background`, `--foreground-muted`,
-   `--border`, `--ok-dot`, `--current` ...), each a reference to a Mono role, and the app-only tokens
-   that are not foundations (the board, Site API fields, layout sizes). New code uses Mono names; an
-   alias goes when nothing uses it.
+   `--border`, `--ok-dot`, `--current` ...), each a reference to a token. It writes no colour of its own
+   (a test holds it): the board's wires, Site API fields, the night band and the layout sizes are tokens
+   now. New code uses Mono names; an alias goes when nothing uses it.
 3. `primitives.css`: the rules the primitives need real selectors for (table, status shapes, kinds,
    terminal, image frame, slider). Screens never write these classes.
 
-`app.css` maps tokens to Tailwind and **clears Tailwind's default palette, radii and shadows**. A class
-like `bg-red-500` does not exist. Both sets of names work:
+`theme.css` (generated) maps tokens to Tailwind and **clears Tailwind's default palette, sizes, radii and
+shadows**. A class like `bg-red-500` or `text-sm` does not exist, and the design rules fail on one. Both sets
+of names work, and the rules let the old ones only shrink:
 
 | Use | Mono class | Old class (still works) | Token |
 |---|---|---|---|
@@ -154,9 +158,10 @@ pill). There is no fifth hue: a new kind shares its family's hue and leans on it
 
 ## Components
 
-Primitives live in `src/components/ui`. Use them; do not restyle them in a screen. Every one is on the
-specimen page, **`/$org/design`** (dev only), in every state; open it in both themes at 375, 768 and
-1440 before you change one.
+Primitives live in `src/components/ui`. Use them; do not restyle them in a screen. Every one is in the
+catalog, **`/$org/design`** (dev only, `src/catalog/`), in every state and by group; open it in both themes
+at 390 and 1440 before you change one. How to build with them, the groups and the checks:
+[DESIGN-SYSTEM.md](DESIGN-SYSTEM.md).
 
 - **Button:** `primary` is ink, once per view, for the point of a screen (an empty state's next action,
   a dialog's confirm, Approve). `secondary` is the card with a firm hairline and the lift, and is the
@@ -832,7 +837,7 @@ python3 tokens/build-tokens.py --check   # the token set and its contrast and co
 (cd .. && make emdash)             # no em dash in text a person reads
 ```
 
-Open `/$org/design` (the specimen) after touching a primitive. The script writes every route at 1440 and 375, light and dark, to `screenshots/` (git-ignored); set `BASE_URL` to your dev server (never port 5310 on a shared machine).
+Open `/$org/design` (the catalog) after touching a primitive. The script writes every route at 1440 and 375, light and dark, to `screenshots/` (git-ignored); set `BASE_URL` to your dev server (never port 5310 on a shared machine).
 `--only home,needs` narrows it, and `--sheet` builds contact sheets for reviewing many at once.
 Read them against the bar. Look for alignment, rhythm, hierarchy, density and anything that
 feels like a template.

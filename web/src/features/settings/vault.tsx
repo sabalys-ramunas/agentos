@@ -9,7 +9,7 @@ import { Card } from '@/components/ui/card';
 import { ConfirmDialog, Dialog } from '@/components/ui/dialog';
 import { Field, Input } from '@/components/ui/field';
 import { Select } from '@/components/ui/select';
-import { EmptyState, QueryView, Skeleton } from '@/components/ui/states';
+import { EmptyState, InlineError, QueryView, Skeleton } from '@/components/ui/states';
 import { mainCell, Table, Td, Th, Tr } from '@/components/ui/table';
 import { timeAgo } from '@/lib/format';
 import { vaultKind } from '@/lib/labels';
@@ -88,7 +88,7 @@ function AddDialog({ org, open, onOpenChange }: { org: string; open: boolean; on
         )
       }
     >
-      {form.failed ? <p className="mb-4 text-14 text-red" role="alert">That did not start. Nothing was changed.</p> : null}
+      {form.failed ? <InlineError className="mb-4">That did not start. Nothing was changed.</InlineError> : null}
       {form.link ? (
         <p className="text-14 text-muted" role="status">{FORM_WORDS[form.stage ?? 'waiting']}</p>
       ) : (
@@ -152,7 +152,7 @@ export function VaultSettings() {
           </div>
         }
       />
-      {unlock.failed ? <p className="mb-4 text-14 text-red" role="alert">That did not start. Nothing was changed.</p> : null}
+      {unlock.failed ? <InlineError className="mb-4">That did not start. Nothing was changed.</InlineError> : null}
       {unlock.link && sealed ? (
         <p className="mb-4 text-14 text-muted" role="status">
           {FORM_WORDS[unlock.stage ?? 'waiting']}{' '}
