@@ -38,7 +38,7 @@ from agentos.environments.models import WORKSPACE
 log = logging.getLogger("agentos.environments")
 
 ENV_LANES = f"{WORKSPACE}/*"
-SETTLE_S = 10.0       # after opening the login page, before the fill reads it
+SETTLE_S = 5.0        # after opening the login page, before the fill reads it (at most)
 
 
 @dataclass(frozen=True)
@@ -277,8 +277,9 @@ class Logins:
         finally:
             track.filling -= 1
 
-    async def _login_target(self, env: Any, url_now: str, entry: str | None) -> tuple[str | None, str | None]:
-        """(the page to open first or None, the entry to fill or None) for a sign-in on this browser."""
+    async def _login_target(self, env: Any, url_now: str, entry: str | None) -> tuple[BoundLogin | None, bool]:
+        """(the login to fill, or None to let the vault pick for this page; whether the browser is off its
+        site, so its login page opens first) for a sign-in on this browser."""
         from agentos.vault.policy import check_origin
 
         logins = await bound_for(self._get("vault"), env.browser_lane)  # type: ignore[attr-defined]
@@ -286,12 +287,12 @@ class Logins:
             named = find(logins, entry)
             if len(named) != 1:
                 raise NotFound(_none_words(env, logins, entry) if not named else _several_words(named))
-            chosen = named[0]
-            return (None if check_origin(chosen.meta, url_now).allowed else chosen.login_url), chosen.ref
-        if any(check_origin(b.meta, url_now).allowed for b in logins):
-            return None, None  # on a bound site already: the vault picks the entry for this page
+            return named[0], not check_origin(named[0].meta, url_now).allowed
+        here = [b for b in logins if check_origin(b.meta, url_now).allowed]
+        if here:  # on a bound site already
+            return (here[0] if len(here) == 1 else None), False
         if len(logins) == 1:
-            return logins[0].login_url, logins[0].ref
+            return logins[0], True
         if not logins:
             raise NotFound(_none_words(env, logins, None))
         raise InvalidRequest(_several_words(logins))
@@ -299,24 +300,35 @@ class Logins:
     async def env_login(self, ctx: Any, vault: Any, typist: Any, page: Any, *, lane_id: str,
                         entry: str | None = None) -> dict[str, Any] | None:
         """`login` on an environment's browser: open the bound login's page when the browser is not on its
-        site, then fill it. None: not an environment's browser (the caller runs the plain login)."""
+        site (or is, on a page with no login form), then fill it. None: not an environment's browser (the
+        caller runs the plain login)."""
         found = self.env_of_lane(lane_id)  # type: ignore[attr-defined]
         if found is None or found[1] != "browser":
             return None
-        from agentos.vault.login import login_flow
-
         env = found[0]
-        target, ref = await self._login_target(env, str(getattr(page, "url", "") or ""), entry)
-        if target is not None:
-            await _open_page(self.runtime, page, target)  # type: ignore[attr-defined]
-            with contextlib.suppress(Exception):
-                await typist.settle(SETTLE_S)
-        with self.filling(env.id):
-            result = await login_flow(ctx, vault, typist, lane_id=lane_id, entry=ref)
-        if result.get("step") == "no_login_form" and not result.get("needs"):
-            result["note"] = ("no login form on this page: the site may have this browser signed in already "
+        chosen, off_site = await self._login_target(env, str(getattr(page, "url", "") or ""), entry)
+        ref = chosen.ref if chosen is not None else None
+        if off_site and chosen is not None:
+            await self._login_page(page, typist, chosen)
+        result = await self._fill(ctx, vault, typist, env, lane_id, ref)
+        if _no_form(result) and not off_site and chosen is not None:  # on the site, not on its login page
+            await self._login_page(page, typist, chosen)
+            result = await self._fill(ctx, vault, typist, env, lane_id, ref)
+        if _no_form(result):
+            result["note"] = ("no login form on the login page: the site may have this browser signed in already "
                               "(browser_snapshot shows it)")
         return result
+
+    async def _login_page(self, page: Any, typist: Any, chosen: BoundLogin) -> None:
+        await _open_page(self.runtime, page, chosen.login_url)  # type: ignore[attr-defined]
+        with contextlib.suppress(Exception):  # a form a script draws after the load
+            await typist.settle(SETTLE_S)
+
+    async def _fill(self, ctx: Any, vault: Any, typist: Any, env: Any, lane_id: str, ref: str | None) -> dict:
+        from agentos.vault.login import login_flow
+
+        with self.filling(env.id):
+            return await login_flow(ctx, vault, typist, lane_id=lane_id, entry=ref)
 
     async def sign_in_now(self, title: str, site: str, *, by: str = "owner") -> dict[str, Any]:
         """The owner's `agentos environments login <title> <site>`: fill that login in that environment's
@@ -386,6 +398,10 @@ async def _open_page(runtime: Any, page: Any, url: str) -> None:
         await interaction.navigate(page, url)
     else:
         await page.goto(url, wait_until="domcontentloaded")
+
+
+def _no_form(result: dict) -> bool:
+    return result.get("step") == "no_login_form" and not result.get("needs")
 
 
 def _none_words(env: Any, logins: list[BoundLogin], ref: str | None) -> str:
