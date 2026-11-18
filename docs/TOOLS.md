@@ -167,7 +167,7 @@ Call any agentos tool by name with its arguments, including tools not in your li
 | [`lane_wait_control`](#lane_wait_control) | core | read | Wait until agents may act in a lane again (the human handed it back, or it went back after a while without human input) |
 | [`lanes_list`](#lanes_list) | core | read | Every lane you may use on this node: id, kind, engine, state (cold, warming, warm, active, quarantined), proxy label, device (lanes on one device share one computer's fingerprint and proxy; null: a device of its own) and last use |
 | [`leads_propose`](#leads_propose) | workflows | draft | Propose addresses for a list a mail workflow sends to (docs/WORKFLOWS.md, Leads), for a person to review: each lead is {email, name?, company?, source, why?}, one record for one address you actually found, and source says where (the page's address, or a name) |
-| [`login`](#login) | core | secret | Log in on the lane's current page with a stored vault login; navigate to the site's login page first |
+| [`login`](#login) | core | secret | Sign the browser in with a login stored in the vault |
 | [`mail_connect`](#mail_connect) | mail | draft | Ask a person to connect a mailbox: puts a card in Needs you that names the address |
 | [`mail_list`](#mail_list) | mail | read | List a mailbox's mail, newest first: headers and a short clip |
 | [`mail_mailboxes`](#mail_mailboxes) | mail | read | The mailboxes you may use: each one's id (pass it as `mailbox` to the other mail tools) and its address |
@@ -1345,11 +1345,11 @@ Propose addresses for a list a mail workflow sends to (docs/WORKFLOWS.md, Leads)
 
 Toolset: `core`. Effect: `secret`. Needs the `lanes` service.
 
-Log in on the lane's current page with a stored vault login; navigate to the site's login page first. The node finds the form by structure, checks that the entry is bound to this lane and this site, types the username and password with human input and submits. A one-time code comes from the entry's TOTP seed, its email code catcher, or the owner in the panel (the call waits for them, up to a few minutes). You never see the secret or the code. Pass `entry` only when several entries match: the error names them (vault_list, in the vault toolset, lists a lane's logins). It asks nobody: a password in the vault is the owner's permission to use it. Returns ok, step, needs ("totp", "code" when the owner gave no code in time, "captcha", "human" or null) and the page signal. Do not retry a "code" result in a loop; ask the owner.
+Sign the browser in with a login stored in the vault. An environment's browser opens the login page itself when needed; on an account lane, browser_navigate there first. The node finds the form, checks the login is bound to this browser and site, types it with human input and submits, and a code from its TOTP seed, its mail or the owner (waits a few minutes). You never see a secret. It asks nobody: call it again whenever a site logs you out. `entry`: a login's name, only when several match (environment(), or vault_list in the vault toolset, names them). Returns ok, step, needs ("totp", "code", "captcha", "human" or null; not null: the human's turn, in the live view) and the signal.
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str` | yes | Lane id: "workspace/name". |
+| `on` | `str \| None` | no (default None) | The on your environment_open gave, or an account lane "workspace/name". |
 | `entry` | `str \| None` | no (default None) |  |
 
 ## mail_connect
@@ -1961,7 +1961,7 @@ Fill one login field from a vault entry. `field` is a snapshot ref (for example 
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str` | yes | Lane id: "workspace/name". |
+| `on` | `str \| None` | no (default None) | The on your environment_open gave, or an account lane "workspace/name". |
 | `field` | `str` | yes |  |
 | `entry` | `str` | yes |  |
 

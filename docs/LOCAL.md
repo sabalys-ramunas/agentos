@@ -49,6 +49,28 @@ Where the browser comes from on the VM:
 `environments.toml` has `browser = "vm"` here, also when it does not say so. `browser = "node"` (a
 server's setting) stops the service with a message, because a laptop cannot run that browser.
 
+## Signing in
+
+The browser on the VM is a plain browser with tabs that the agent uses when it needs to. When the work
+needs an account (a dashboard, a staging site), give the computer a login from your vault, here on your
+laptop. The agent then signs in by itself whenever it needs to, and never sees the password:
+
+```
+agentos environments login add github.com --user me@example.com --title "Shop fix"   # hidden prompt
+agentos environments login list
+agentos environments login "Shop fix" github.com                                      # signed out? sign it in again now
+```
+
+`--title` follows that title across saves and resumes, `--repo` covers a repository's environments,
+`--all` every one; `--totp` stores the TOTP seed too, so codes fill as well. The agent's `login` tool
+opens the site's login page and fills it; `environment()` lists the logins the computer may use. A
+CAPTCHA, a device approval or a code by email or text is yours, in the live view.
+
+The password is typed into the VM's browser over the connection this laptop already drives, so it
+passes through that browser's process, and the session cookies stay in that browser and in its saves
+(encrypted). Anything running as root on the VM could read what the browser holds, so bind only what
+that computer's work needs. All of it is in [ENVIRONMENTS.md](ENVIRONMENTS.md#signing-in).
+
 ## Your own shell: ssh agentos-<id>
 
 In local mode an agent can also use its own shell on the VM: `ssh agentos-<id>`, `scp`, `rsync` and

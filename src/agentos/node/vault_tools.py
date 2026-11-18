@@ -40,7 +40,7 @@ async def login(ctx: ToolContext, *, on: str, entry: str | None = None) -> dict:
     """Sign the browser in with a login stored in the vault. An environment's browser opens the
     login page itself when needed; on an account lane, browser_navigate there first. The node finds
     the form, checks the login is bound to this browser and site, types it with human input and
-    submits, and a code from its TOTP seed or the owner (waits a few minutes). You never see a
+    submits, and a code from its TOTP seed, its mail or the owner (waits a few minutes). You never see a
     secret. It asks nobody: call it again whenever a site logs you out. `entry`: a login's name, only
     when several match (environment(), or vault_list in the vault toolset, names them). Returns ok, step, needs ("totp",
     "code", "captcha", "human" or null; not null: the human's turn, in the live view) and the signal."""

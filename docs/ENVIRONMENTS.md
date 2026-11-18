@@ -388,6 +388,57 @@ What is covered, exactly:
 - Warm machines (a pool the node keeps ready, when it has one) are `full` machines: an open with
   `limited` or `none` rents its own closed machine. Secrets are set up on any machine as it opens.
 
+### Signing in
+
+An environment's browser is a plain browser with tabs, and some work needs an account: a dashboard to
+check, a staging site, a service's settings. Bind the login once at the node, and the agent signs in
+whenever it needs to, without asking anyone and without ever seeing the password:
+
+```
+agentos environments login add github.com --user me@example.com --title "Shop fix"      # that title
+agentos environments login add https://staging.example.com/login --repo github.com/me/shop
+agentos environments login add example.com --user me@example.com --all --totp           # every one, with codes
+agentos environments login add github.com --entry "github work" --title "Shop fix"       # one already in the vault
+agentos environments login list                                                          # names and scopes only
+agentos environments login remove github.com [--title "Shop fix"]
+agentos environments login "Shop fix" github.com                                         # sign it in now
+```
+
+- **The binding.** The password (and with `--totp` the TOTP seed) is read from a hidden prompt, or
+  from stdin with `--stdin` (the password on the first line, the seed on the second), never from the
+  command line. It is an ordinary vault login bound to environments (`env/*`), with the computers it
+  covers: `--title` (one title: it follows the title across saves and resumes, where the id changes),
+  `--repo` (that repository's environments) or `--all`. `add` again with another scope adds it;
+  `remove` takes one scope off (or all), and a login `add` stored leaves the vault with its last one.
+  A login is named after its site; `--name` tells two logins of one site apart. Only you bind one: no
+  tool takes a binding, and the vault seals its bindings with its key, so an agent can never add or
+  widen one. Storing it is the permission: signing in never asks.
+- **The agent.** `environment_open` and `environment()` list the logins the computer may use, by name
+  and site (`logins`; never a secret, and not the username, which the vault scrubs from everything an
+  agent reads). `login(on=...)` signs in: the node opens the login's page when the browser is not on
+  it, finds the form by its structure, checks the vault's rules (the login is bound to this computer
+  and to this site, over https or on the machine's own `localhost`, the field is a password field)
+  and types the username and password with human rhythm, then the TOTP code when the login has a
+  seed. When a site logs the browser out, the agent calls `login` again. A CAPTCHA, a device approval
+  or a code sent by email or text is the person's: the result says `needs`, and you finish it in the
+  live view (`links.browser`).
+- **You, again.** `agentos environments login "<title>" <site>` fills the login in that open
+  environment's browser now, for when the agent is not running, and says what happened: signed in, or
+  what needs you (with the live view's link). A saved environment comes back first with
+  `agentos environments resume "<title>"`.
+- **Where the password goes.** It is typed where the browser runs: with `browser = "vm"` (a laptop)
+  into the VM's browser, over the connection the node already drives, so it passes through that
+  browser's process; with `browser = "node"` it stays on the node. The session cookies the sign-in
+  makes stay in that browser and in its saves (encrypted with `encrypt_saves`), so a resumed
+  environment is still signed in. Never in a command line, a log, a trace, a tool result or a replay
+  caption, and no replay frame is taken while a fill runs. A frame or a video can show the page
+  after it, and the username as typed (the password field shows dots). Anything running as root on
+  that machine could read what the browser holds: bind only what the computer's work needs
+  ([THREAT-MODEL.md](THREAT-MODEL.md#logins-in-an-environments-browser)).
+- **The grant.** The `environments` special of `agentos connect` includes typing a bound login on
+  `env/*` lanes. An agent connected before this change gets `special: this grant does not include
+  secret`: run `agentos connect` again.
+
 ### 5. Check it
 
 ```
@@ -502,8 +553,8 @@ the CLI; a member sees and closes the ones their own agents opened.
 
 Nothing in the environment waits for a person, even after the agent read a web page: not opening
 it, not its commands, not its browser (a click that publishes, an upload), not a push. The VM holds
-no account and no key, its browser no login and no vault entry, and its one token pushes only its
-own repository. What stays are refusals, never questions: the limits above, a push that would
+no account and no key, its browser only the logins you bound to it ([Signing in](#signing-in)), and
+its one token pushes only its own repository. What stays are refusals, never questions: the limits above, a push that would
 rewrite or delete the default branch or a branch the environment did not create, a repository the
 token does not reach. Reading a page in the
 environment's browser still marks the agent as having read untrusted text, so what it does next on
@@ -666,9 +717,9 @@ first; while only open ones hold it, new frames are skipped). The reaper removes
 | `replay` | `true` | keep a replay of each environment's browser |
 | `replay_days` | `14` | days a closed environment's replay is kept |
 
-It is on by default because an environment's browser holds no account, no saved login and no vault
-entry: nothing of yours is in it. A frame still shows whatever the page showed, a secret your app
-printed for example, so it is treated like a proof ([THREAT-MODEL.md](THREAT-MODEL.md#viewer-links)):
+It is on by default because an environment's browser holds no account of yours but the logins you
+bound to it ([Signing in](#signing-in)), and no frame is taken while one is typed. A frame still shows
+whatever the page showed, a secret your app printed or a signed-in page for example, so it is treated like a proof ([THREAT-MODEL.md](THREAT-MODEL.md#viewer-links)):
 only you read it, an account lane is never pictured, and the agent sees only a count
 (`environment()` gives `replay: {frames, since, bytes}`).
 
@@ -1097,8 +1148,9 @@ Not on it:
 - agentos itself, a node token, a grant, the vault, any key or token, any account.
 - The browser, with the default `browser = "node"`. It runs on the node, with its traffic carried
   through the VM (a SOCKS tunnel over SSH, DNS included), so `localhost` is the VM and sites see the
-  VM's address. With `browser = "vm"` it runs on the VM (above). Either way it has no account,
-  no saved login and no vault entry, and it is deleted with the environment. Its window fills a
+  VM's address. With `browser = "vm"` it runs on the VM (above). Either way it has no account and no
+  saved login but the logins you bound to it ([Signing in](#signing-in)), whose sessions stay in it and
+  its saves; it is deleted with the environment. Its window fills a
   1920x1080 screen, so pages show their desktop layout (an account lane's window is the size its
   identity drew).
 

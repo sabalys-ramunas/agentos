@@ -119,14 +119,17 @@ anyone but a person made, 8 hours for an owner link. The owner's control API fol
 hand-back, and a take over of a held lane, need `person`.
 
 **An agent environment's own browser** (`env/<id>-browser`, decided 2026-11-15) is the one exception. It holds
-no account, no saved login and no vault entry, and its traffic leaves from the environment's own VM, so there
-is nothing behind it that a person must guard. There, a control link alone may take over (also a held lane),
+no account of the owner's but the logins the owner bound to that computer
+([Logins in an environment's browser](#logins-in-an-environments-browser)), and its traffic leaves from the
+environment's own VM, so there is nothing behind it that a person must guard beyond what the owner chose to
+put there. A control link to a browser signed in to a bound login reaches that account as the agent does:
+share it as you would the account. There, a control link alone may take over (also a held lane),
 type, copy and hand back; the page says so and the relay passes its input while control is `human`. What it
 does is recorded as `link holder`, never as the owner. The node decides which lane that is (the environments
 service: an open environment whose browser lane is exactly this one), never the link or the page: a lane of an
 environment that closed, every account lane, and a lane the service cannot answer about keep every rule above.
 A view link still only watches, a freeze still ends the link, the hard end still holds, and adding a site and
-the assisted login stay a person's (an environment's browser has no login).
+the assisted login stay a person's (an environment's browser signs in only with the logins the owner bound).
 
 A **proof link** (`/view/env/<id>-browser/proof/<proof>.png?t=...`) opens one screenshot an agent kept as
 proof of its work in an environment, and nothing else: no live view, no control. It is signed with the viewer
@@ -359,6 +362,34 @@ What this does not stop:
   clients fall back to HTTP/1.1 or 2 over TLS, and the swap speaks HTTP/1.1 only.
 - **A key bound to a host the agent controls.** The binding is the owner's; bind a key only to the
   host that issued it.
+
+## Logins in an environment's browser
+
+[ENVIRONMENTS.md, Signing in](ENVIRONMENTS.md#signing-in) is how it works. The owner binds a vault login to environments (`agentos environments login add <site> --title/--repo/--all`),
+and the agent's `login` signs the environment's browser in with it. A bound login reaches the browser of the
+computers it is bound to, its session cookies stay in that browser and in its saves (encrypted,
+`encrypt_saves`), the agent (the model) never sees the value, and anything running as root on that machine
+could read what the browser holds, so bind only what that computer's work needs.
+
+| Question | Answer |
+|---|---|
+| Who binds | the owner, at the node: the CLI writes the vault entry with the vault's key (its metadata, the bindings included, is sealed with it). No tool, page, repository file or command adds or widens one; an agent names a login only by the name `environment()` gives it |
+| Which computers | the ones the binding covers, read from the node's own records each time a field is filled (agentos.vault.policy.entry_bound): an open environment with that title, of that repository, or every one. An environment the node does not know as open covers nothing |
+| Where the value goes | where the browser runs. With `browser = "vm"` (a laptop) the node types it into the VM's browser over the connection it drives (Playwright through the environment's SSH tunnel), so it passes through that browser's process on the VM; with `browser = "node"` it stays on the node. Never on a command line (the CLI reads a hidden prompt or stdin), in a log, a trace, a tool result, a replay caption or the record |
+| Which fields | the vault's rules, as on any lane: the page's site is the login's (https, or the machine's own `localhost` over http), no frame from another origin, and the password only into a password input (the page masks it). A TOTP code from the stored seed; an emailed or texted code, a CAPTCHA or a device approval stays with the person, in the live view |
+| What a picture shows | no replay frame is taken while a fill runs. A frame or a video proof can show the page after it, and before the submit a username as typed into a visible field (as the live view does) |
+| What stays after | the site's session cookies and storage, in the browser and in the saves (`save_signins`, sealed with the saves key). A resumed environment is signed in; `agentos environments login remove` stops new sign-ins, and the session lasts until the site ends it |
+
+What this does not stop:
+
+- **Root on the VM.** With `browser = "vm"` the agent is root on the machine where the browser runs. It
+  cannot read the vault, but it can read the browser's process and profile: a typed password while it is
+  in the page, and the session cookies for as long as they last. The binding is the owner's statement that
+  this computer may hold that account.
+- **What the signed-in agent does.** Signed in, the agent acts in the account as the account can. Nothing
+  in an environment asks a person (docs/design/environments.md), so bind an account whose reach fits the
+  work, a test or staging account where one exists.
+- **A link holder.** A control link of that browser types into the signed-in session (above).
 
 ## The agent's own ssh to its environment (local mode)
 

@@ -58,9 +58,9 @@ Guiding invariants, true everywhere below:
   VM's git config sends declared hosts there. Clone, fetch and push run under workspace `env`'s
   declarations: a push never asks, a force push or a delete of the default branch is refused
   (`push_refused`), the key stays in the vault ([GIT.md](GIT.md)).
-- **Browser.** A browser lane on the node (`env/<id>-browser`) with no account, no vault entry and
-  no keepalive, whose proxy is a SOCKS tunnel over the VM's SSH. Every request, DNS included,
-  leaves from the VM: `localhost` is the VM. Studio's review browser takes the same proxy, so
+- **Browser.** A browser lane on the node (`env/<id>-browser`) with no account, no keepalive and no
+  vault entry but the logins the owner bound to it (agentos.environments.logins), whose proxy is a
+  SOCKS tunnel over the VM's SSH. Every request, DNS included, leaves from the VM: `localhost` is the VM. Studio's review browser takes the same proxy, so
   `ui_check` on `http://localhost:3000` checks the VM's dev server. The live view and take over
   work as on any lane.
 - **Binding.** The environment is bound to the MCP session (`mcp-session-id`), or to the grant

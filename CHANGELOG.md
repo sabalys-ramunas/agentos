@@ -8,6 +8,19 @@ All notable changes to agentos are recorded here. The format follows
 
 ### Added
 
+- **An environment's agent signs in to accounts, with logins from your vault.** `agentos environments
+  login add <site> [--user NAME] [--totp] --title "<title>" | --repo <repo> | --all` binds a vault login
+  to computers (the password, and a TOTP seed, from a hidden prompt or `--stdin`, never the command
+  line; `--entry` binds a login already in the vault; `list`, `remove`). A binding by title follows the
+  title across saves and resumes. The agent's `login(on=...)` opens the site's login page when the
+  browser is elsewhere and fills it with the vault's own checks, again whenever a site logs it out, and
+  never asks anyone; `environment_open` and `environment()` list the computer's `logins` by name and
+  site. `agentos environments login "<title>" <site>` signs it in now from the node and says what needs
+  you (a CAPTCHA, a code by email or text) with the live view's link. With `browser = "vm"` the value is
+  typed into the VM's browser, whose session cookies stay in it and in its saves (encrypted): see
+  docs/THREAT-MODEL.md. No replay frame is taken while a fill runs. The local node now serves `login`,
+  `vault_fill` and `vault_list`, and the `environments` special includes `secret` on `env/*` lanes: an
+  agent connected before needs `agentos connect` again.
 - **What the evals found, fixed.** A lane's name passed as `on` (`<id>-browser`, the open's old
   `lanes.browser`) reaches the machine for the chat whose session holds it, and anyone else hears it is a
   lane's name and to pass the `on`; the open's result names no lane any more. `lane_exec` adds a one-line
