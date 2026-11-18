@@ -864,6 +864,58 @@ What an agent gets back, beside the web contract above:
   Only a branch the environment created; never a merge. Errors: `denied`, `invalid` (not on github.com),
   `pull_request_failed` (no token on the node, or GitHub refused; the token never appears).
 
+### Checkpoints, watching and the owner's resume (agentos.environments.checkpoints, watching, waking)
+Checkpoints are git's, on the machine (docs/ENVIRONMENTS.md, "Checkpoints"); a person watching counts as
+use; the owner resumes a save held by no chat.
+- `GET /api/orgs/{org}/environments/{id}` adds `watched` (null, or `{ "since", "viewers", "live_views",
+  "port_connections" }`: live views of its browser and connections through an `environment_port` link open
+  now) and `checkpoints`, newest first, at most about 20:
+  `[{ "id": 3, "note": "before the refactor", "at": "2026-11-18T11:50:03+00:00", "auto": null, "repos": [{
+  "dir": "/work/shop", "head": "2723947348e2", "files": 4, "diff": { "files_added": 1, "files_changed": 2,
+  "files_removed": 1, "lines_added": 40, "lines_removed": 12 } }] }]`. `head` is the commit the checkpoint
+  sits on (12 characters), `files` how many files it had changed from that head, `auto` the rollback an
+  automatic one was made before (`"before rollback to 2"`) or null, and `diff` what changed since, against
+  the work tree now (null when the machine did not answer; read at most every 15 s per environment, so
+  polling the page is cheap). Polling this route never counts as use of the machine.
+- `GET /api/orgs/{org}/environments/{id}/checkpoints/{checkpoint}` -> `{ "checkpoint": 3, "max_bytes": 200000,
+  "max_files": 500, "repos": [{ "dir": "/work/shop", "files_total": 4, "files": [{ "path": "src/cart.ts",
+  "status": "M", "lines_added": 12, "lines_removed": 3 }], "patch": "diff --git a/src/cart.ts ...",
+  "patch_bytes": 5120, "truncated": false }] }`: one checkpoint against the work tree now, for a diff view.
+  `status` is git's `A`, `M`, `D` or `T` (from the checkpoint to now: `A` is a file made since, which a
+  rollback removes); `lines_*` are null for a binary file. The patch of every repository together is cut
+  at `max_bytes` and each file list at `max_files` (`truncated: true`). The owner only (a member or a grant
+  is 403). 404 `checkpoint_not_found` when no repository has it, 503 `environment_not_ready` when the
+  machine is not ready, 409 `checkpoint_failed` when git or the machine could not answer.
+- `POST /api/orgs/{org}/environments/saves/{save_id}/resume` -> EnvSummary plus `{ "opened": "resumed" |
+  "already_open", "resumed": { "save_id", "saved_at", "from": "snapshot" | "paused" | "files", "branch",
+  "head", "state": "restoring", "note", ... }, "links": { "browser": "http://localhost:7400/view/env/<id>-browser?t=...",
+  "browser_expires_at", "tunnel"? } }`. It resumes the save as `environment_open(title)` does, within the
+  same limits (409 `environment_limit` or `environment_full`, whose fix names the setting), held by no chat (`binding` `kept:<id>`):
+  the state is `starting` and the live-view link shows a page that reloads until the browser is up, then
+  the browser. `already_open`: its title is open, and that one is returned unchanged. The next
+  `environment_open` with its title takes it with `opened: "resumed"`. The owner in person only, as Forget.
+  Traced as `environment.resume`.
+- `POST /api/environments/resume` `{ "ref": "<title or save id>" }` -> the same answer, for `agentos environments
+  resume`, the owner only (the node token, as the other owner routes). A title shared by saves of several
+  agents is 400 `invalid` naming their save ids.
+- The live view of a saved environment: `GET /view/env/<id>-browser?t=...` after its machine closed answers
+  a small page, not 404: for the owner (an owner link, or the panel session in that browser) the title, when
+  it was saved, the agent's note and a Resume form, `POST /view/env/<id>-browser/resume?t=...`, which needs
+  that same person and this page's `Origin`, resumes it and answers 303 to the new environment's live view
+  (an owner link); for anyone else only that it is saved. A link to one that is open again says so (the
+  owner gets its live view), one still starting reloads itself, one closed with no save is 410. An expired
+  link shows the page only to the signed-in owner.
+- MCP `environment_checkpoint(note?, on?)` -> `{ "checkpoint", "note", "at", "repos": [{ "dir", "head",
+  "branch", "files_changed" }], "compare": "git diff refs/agentos/checkpoints/<n>", "rollback", "ignored",
+  "stays", "next" }`; `environment_rollback(checkpoint, on?)` -> `{ "checkpoint", "repos": [{ "dir",
+  "branch", "head", "files_restored", "files_removed", "was": { "branch", "head" }, "commits_undone"?,
+  "branch_was_at"? }], "untouched": [dirs without that checkpoint], "undo": { "checkpoint", "rollback" },
+  "failed"?, "ignored", "next" }`. Errors: `checkpoint_failed`, `checkpoint_not_found`, `rollback_refused`.
+  `environment()` adds `checkpoints` (as above, without `diff`) and `watched`.
+- A call with the `on` of an environment saved and closed since is `no_environment`, saying when it was
+  saved and `environment_open(title="...")` (or that it is open again and how to take it); it is never
+  resumed for the agent.
+
 ### Assisted login (the owner fills a form, the node types it)
 A person should almost never log in through the live view. `agentos.node.login_assist` reads the
 lane's sign-in page, shows the owner a form with exactly the fields this step asks for, types what

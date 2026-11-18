@@ -298,7 +298,8 @@ class Picking:
         `session`: the caller sends a session id, so a machine it does not hold is another chat's;
         without one agentos cannot tell, and the caller's own machines are in the list too."""
         if is_let_go(env):
-            return f"let go: environment_open(title=\"{env.title}\") takes it"
+            who = "resumed by the owner" if env.resumed_by else "let go"
+            return f"{who}, held by no chat: environment_open(title=\"{env.title}\") takes it"
         quiet = now - env.last_activity()
         if quiet >= self.take_over_after():
             return (f"quiet for {_minutes(quiet)} min: environment_open(title=\"{env.title}\", take_over=true) "
@@ -341,15 +342,18 @@ class Picking:
     def reattach(self, binding: str, title: str, family: str | None, repo: str | None = None, *,
                  take_over: bool = False) -> tuple[Environment, str] | None:
         """The live environment of this family with this title (starting or ready) that environment_open
-        may give this chat, and how ("attached" or "taken_over"); None: no live one has the title. A
-        session gets back its own; a machine let go is anybody's; one another chat holds is
-        environment_in_use, unless take_over and its holder has made no call for take_over_minutes.
-        Nothing changes here: `give` moves it once the call is authorized."""
+        may give this chat, and how ("attached", "taken_over", or "resumed" for one the owner resumed
+        that no chat took yet: agentos.environments.waking); None: no live one has the title. A session
+        gets back its own; a machine let go is anybody's; one another chat holds is environment_in_use,
+        unless take_over and its holder has made no call for take_over_minutes. Nothing changes here:
+        `give` moves it once the call is authorized."""
         env = self._titled(title, family, repo)
         if env is None:
             return None
         if is_let_go(env) or (is_session(binding) and env.binding == binding):
-            return env, "attached"
+            from agentos.environments.waking import is_owner_woken
+
+            return env, "resumed" if is_owner_woken(env) else "attached"
         now = self._clock()
         if not take_over or now - env.last_activity() < self.take_over_after():
             raise self.in_use(env, now, session=is_session(binding), take_over=take_over)

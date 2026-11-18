@@ -47,7 +47,7 @@ SELF_AUTHORIZED_LANE_PARAM = {
     # only in its grant family and only when the caller holds it (EnvironmentManager.reach); refuse_frozen
     # on its lanes (agentos.environments.tools._find)
     "environment": "on", "environment_close": "on", "environment_save": "on", "environment_port": "on",
-    "environment_pull_request": "on",
+    "environment_pull_request": "on", "environment_checkpoint": "on", "environment_rollback": "on",
     # `on` is an environment's handle: agentos.environments.routing.studio_proxy reaches it (the lease) and
     # points the review browser at its tunnel; the check acts on no lane (a review browser is no lane)
     "ui_check": "on", "ui_diff": "on", "system_check": "on", "ui_baseline": "on",
@@ -90,6 +90,8 @@ SELF_AUTHORIZED_INDIRECT = {
     "environment": "the picked environment, or `on` in the grant family; refuse_frozen on its lanes",
     "environment_close": "the picked environment, or `on` in the grant family; refuse_frozen on its lanes",
     "environment_save": "the picked environment, or `on` in the grant family; refuse_frozen on its lanes",
+    "environment_checkpoint": "the picked environment, or `on` in the grant family; refuse_frozen on its lanes",
+    "environment_rollback": "the picked environment, or `on` in the grant family; refuse_frozen on its lanes",
     "environment_port": "the picked environment, or `on` in the grant family; refuse_frozen on its lanes",
     "environment_pull_request": "the picked environment, or `on` in the grant family; refuse_frozen on its lanes",
     # saves of the caller's grant family by title (Saving.forget), no lane: the machine is gone

@@ -648,3 +648,23 @@ kbd {
   .actions .btn { flex: 1 1 auto; height: 44px; }
   .hint { font-size: 13px; }
 }
+
+/* ---- a saved environment's page (agentos.node.viewer_saved) ---- */
+
+.saved-card { text-align: left; }
+.saved-card h1 { text-align: center; }
+.saved-card p + p { margin-top: 10px; }
+.saved-note-label { font-size: 12px; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; color: var(--faint); }
+.saved-card .saved-note {
+  margin-top: 4px;
+  padding: 10px 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--text);
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+}
+.saved-error { color: var(--danger); }
+.saved-actions { display: flex; justify-content: center; margin: 20px 0 0; }
+.saved-actions .btn { min-width: 140px; justify-content: center; text-decoration: none; }
+.saved-hint { font-size: 13px; text-align: center; }

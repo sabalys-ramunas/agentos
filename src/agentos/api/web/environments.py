@@ -11,6 +11,14 @@
     POST /api/orgs/{org}/environments/{id}/extend         {"minutes": 60} -> EnvSummary
     DELETE /api/orgs/{org}/environments/saves/{save_id}   forget a save and its snapshot -> {forgot,
                                                           snapshots_deleted}. The owner in person
+    POST /api/orgs/{org}/environments/saves/{save_id}/resume   resume a save, held by no chat
+                                                          (agentos.environments.waking) -> EnvSummary with
+                                                          opened, resumed and links. The owner in person
+    GET  /api/orgs/{org}/environments/{id}/checkpoints/{checkpoint}  one checkpoint against the work now: per
+                                                          repository its files and patch (capped). The owner
+
+The detail's `checkpoints` (agentos.environments.checkpoints) carry `diff` in each repository: what
+changed since, against the work tree now (files added, changed, removed; lines added, removed).
 
 The listing also gives `saved`: [{id, title, repo, branch, head, saved_at, snapshot_gb, files_bytes,
 cost_eur_month, note, agent}], the saves of environments that are not open (agentos.environments.saving),
@@ -189,6 +197,9 @@ def routes(api: Api) -> list[BaseRoute]:
         await access_of(request).authorize(Effect.READ, action="environment.read", lane_id=env.terminal_lane)
         out = await mgr.detail(env)
         out["proofs"] = proofs_of(mgr, env, request.path_params["org"])
+        summaries = getattr(mgr, "checkpoint_summaries", None)
+        if out.get("checkpoints") and callable(summaries):
+            out["checkpoints"] = await summaries(env, out["checkpoints"])
         return out
 
     async def proof_png(request: Request) -> Response:
@@ -264,6 +275,45 @@ def routes(api: Api) -> list[BaseRoute]:
         *replay_routes(api, find),
         org_route(api, "/environments/{id}/close", close, ["POST"], cap="operate"),
         org_route(api, "/environments/{id}/extend", extend, ["POST"], cap="operate"),
+        *_owner_routes(api, find),
+    ]
+
+
+def _owner_routes(api: Api, find: Any) -> list[BaseRoute]:
+    """The owner's resume of a save, and one checkpoint's diff (agentos.environments.waking, checkpoints)."""
+
+    async def checkpoint_diff(request: Request) -> dict[str, Any]:
+        mgr, env = find(request, "environment.checkpoint")
+        raw = request.path_params["checkpoint"]
+        if not raw.isdigit() or not 0 < int(raw) < 10**9:
+            raise InvalidRequest("a checkpoint is its number, like 3.")
+        await access_of(request).authorize(Effect.READ, action="environment.checkpoint", lane_id=env.terminal_lane)
+        return await mgr.checkpoint_diff(env, int(raw))
+
+    async def resume_save(request: Request) -> dict[str, Any]:
+        mgr = manager(api)
+        if mgr is None or not callable(getattr(mgr, "resume_saved", None)):
+            raise NotFound(NO_ENVIRONMENTS)
+        access = access_of(request)
+        save_id = request.path_params["save_id"]
+        from agentos.environments.saves import check_save_id
+
+        try:
+            m, _ = mgr.saves().find(check_save_id(save_id))
+        except (NotFound, InvalidRequest):
+            raise NotFound(f"There is no save {save_id}.") from None
+        await access.authorize(Effect.READ, action="environment.resume",
+                               summary=f"Resume the save {m.id} of environment \"{m.title}\" on a machine")
+        env, how = await mgr.resume_saved(m.id)
+        access.done("environment.resume", lane=env.terminal_lane,
+                    summary=f"resumed save {m.id} ({m.title}) as {env.id}" if how == "resumed" else
+                    f"\"{m.title}\" was open already ({env.id})")
+        return mgr.owner_view(env, how)
+
+    return [
+        org_route(api, "/environments/saves/{save_id}/resume", resume_save, ["POST"], owner=True,
+                  presence=Presence.PERSON),
+        org_route(api, "/environments/{id}/checkpoints/{checkpoint}", checkpoint_diff, ["GET"], owner=True),
     ]
 
 

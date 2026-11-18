@@ -9,6 +9,8 @@ environments service says about other lanes. A freeze still ends the environment
 
 from __future__ import annotations
 
+import asyncio
+
 import httpx
 import pytest
 from test_lanes import make
@@ -44,6 +46,15 @@ class Environments:
 
     def signed_proof(self, workspace, name, proof, token):
         return self.proofs.get((workspace, name, proof, token))
+
+    def watch_lane(self, lane_id, kind="live_view"):
+        """A person watching counts as use (agentos.environments.watching): open now, and until it stops."""
+        self.watching = [*getattr(self, "watching", []), (lane_id, kind)]
+
+        def stop():
+            self.stopped = [*getattr(self, "stopped", []), lane_id]
+
+        return stop
 
 
 async def _node(tmp_path, monkeypatch, lane: str, envs: Environments):
@@ -222,3 +233,17 @@ async def test_a_proof_link_opens_its_image_and_nothing_else(env_node):
         assert r.headers["cache-control"] == "private, no-store"
         bad = await c.get(node.url(f"/view/{ENV_LANE}/proof/pabcdefghjk.png", "forged"))
         assert bad.status_code == 403 and "not valid or has expired" in bad.json()["error"]["message"]
+
+
+async def test_an_open_live_view_counts_as_watching_until_it_closes(env_node):
+    node = env_node
+    token = node.token("view", lane=ENV_LANE)  # watching only: a view link counts too
+    async with connect(node.ws(token, lane=ENV_LANE), subprotocols=["binary"], origin=f"http://{node.host}") as ws:
+        await handshake(ws)
+        assert node.envs.watching == [(ENV_LANE, "live_view")] and not getattr(node.envs, "stopped", [])
+    for _ in range(100):
+        if getattr(node.envs, "stopped", None):
+            break
+        await asyncio.sleep(0.02)
+    assert node.envs.stopped == [ENV_LANE]
+

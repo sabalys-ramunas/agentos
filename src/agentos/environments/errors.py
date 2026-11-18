@@ -134,3 +134,23 @@ class KeepLiveNotAllowed(AgentosError):
     """keep "live" keeps the machine running and billed all month, so the owner opts in first
     (allow_keep_live), and at most max_live_kept are kept live at once."""
     code = "keep_live_not_allowed"
+
+
+class CheckpointFailed(AgentosError):
+    """environment_checkpoint or environment_rollback could not do its work on the machine: there is
+    no git repository under /work, git could not read one, or the machine did not answer. A checkpoint
+    that failed leaves no half of itself behind."""
+    code = "checkpoint_failed"
+
+
+class CheckpointNotFound(AgentosError):
+    """environment_rollback named a checkpoint no repository under /work has: it was never made, or it
+    is older than the ones kept (about 20 per environment), or a files-only resume left it behind.
+    Nothing changed."""
+    code = "checkpoint_not_found"
+
+
+class RollbackRefused(AgentosError):
+    """environment_rollback found a repository in the middle of a merge, a rebase, a cherry-pick or a
+    revert. Nothing changed: the agent finishes or aborts that first."""
+    code = "rollback_refused"

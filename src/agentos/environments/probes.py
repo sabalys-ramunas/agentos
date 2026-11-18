@@ -17,7 +17,8 @@ CHECK_TIMEOUT_S = 30.0  # one short command on the VM (a probe, mkdir, the setup
 # node_modules and .venv), its branch, the commits on any local branch (or a detached HEAD) that no
 # remote has, its stashes, and the files git status lists, untracked ones included. That is the
 # work close and the reaper never delete without discard. A repository git cannot read says
-# `error=`, which counts as unsaved. safe.directory: one made by another user still answers.
+# `error=`, which counts as unsaved. safe.directory: one made by another user still answers. Its
+# checkpoints (agentos.environments.checkpoints) come along as `checkpoint=` lines, at no call of their own.
 GIT_STATE = r"""
 find /work -maxdepth 4 \( -name node_modules -o -name .venv \) -prune -o -name .git -print -prune 2>/dev/null | sort |
 while IFS= read -r gitdir; do
@@ -34,6 +35,8 @@ while IFS= read -r gitdir; do
     || g log --format='unpushed=%h %s' --branches --not --remotes 2>/dev/null; } | head -n 50
   echo "stash_count=$(g stash list 2>/dev/null | wc -l | tr -d ' ')"
   g stash list --format='stash=%gd %s' 2>/dev/null | head -n 20
+  g for-each-ref --format='checkpoint=%(refname:lstrip=3)%09%(parent)%09%(committerdate:iso-strict)%09%(subject)' \
+    refs/agentos/checkpoints 2>/dev/null | head -n 40
 done
 """ + r"""
 { find /work -maxdepth 4 \( -name node_modules -o -name .venv \) -prune -o -name .git -print -prune 2>/dev/null |
@@ -110,6 +113,8 @@ def parse_git_state(text: str) -> list[dict]:
             cur["unpushed"].append(value)
         elif key == "stash":
             cur["stashes"].append(value)
+        elif key == "checkpoint":
+            cur.setdefault("checkpoints", []).append(value)
         elif key == "error":
             cur["error"] = value or "git cannot read it"
     if loose or loose_count:

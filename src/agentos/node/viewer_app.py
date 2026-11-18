@@ -9,6 +9,7 @@ Two pieces for the daemon's HTTP server (docs/API.md, "Lane control"):
       GET  /viewer-ws/{ws}/{name}?t=...      WebSocket relay to the lane's x11vnc
       POST /view/{ws}/{name}/control?t=...   {"action": take|hand_back|stop_agent|deny_request, "note"?}
       POST /view/{ws}/{name}/renew?t=...     a fresh token for an open page
+      POST /view/env/{id}-browser/resume?t=... the owner resumes a saved environment (agentos.node.viewer_saved)
       POST /view/{ws}/{name}/sites?t=...     {"add": entry}: an owner link allows a refused host
       POST /view/{ws}/{name}/clipboard?t=... {} -> {text, chars}: what the lane copied, for a person in control
       GET  /view/{ws}/{name}/events?t=...    SSE: hello, control, lane, action, egress, ended
@@ -80,7 +81,7 @@ from agentos.core.errors import AgentosError, LaneNotFound
 from agentos.core.live import CLOSE_DENIED, CLOSE_REVOKED, LiveEntry, LiveSockets
 from agentos.core.models import ControlState, LaneInfo, parse_lane_id
 from agentos.core.presence import Presence
-from agentos.node import lane_clipboard
+from agentos.node import lane_clipboard, viewer_saved
 from agentos.node.viewer_actions import ACTIONS, apply_action, change_sites, handback_warning, person_needed
 from agentos.node.viewer_state import ControlHub, action_dict, control_dict, lane_dict, recent_actions
 from agentos.node.viewer_tokens import (
@@ -355,12 +356,15 @@ class ViewerApp:
         try:
             lane_id, link = self._link(request)
         except TokenError as e:
+            # a saved environment's link, expired: its page for the signed-in owner (agentos.node.viewer_saved)
+            saved = viewer_saved.expired_page(self, request) if e.code == "expired" else None
             titles = {"expired": "Link expired", "wrong_lane": "Wrong lane"}
-            return self._error_page(request, 403, titles.get(e.code, "Link not valid"), e.message)
+            return saved or self._error_page(request, 403, titles.get(e.code, "Link not valid"), e.message)
         try:
             info = self.lanes.get(lane_id)
-        except LaneNotFound:
-            return self._error_page(request, 404, "No such lane", f"There is no lane {lane_id} on this node.")
+        except LaneNotFound:  # an environment's browser that was saved, or is still starting, has its own page
+            return viewer_saved.page(self, request, lane_id, link) or self._error_page(
+                request, 404, "No such lane", f"There is no lane {lane_id} on this node.")
         base = request.scope.get("root_path", "")
         workspace, name = parse_lane_id(lane_id)
         person = link.owner
@@ -697,6 +701,7 @@ class ViewerApp:
         if attached:
             getattr(self.lanes, "viewer_attached", lambda _: None)(lane_id)
         getattr(self.lanes, "view_opened", lambda _: None)(lane_id)  # any watcher: no exit IP probe window
+        watched = viewer_saved.watch(self, lane_id)  # an environment watched is in use (agentos.environments.watching)
         try:
             with self._tracked("viewer", lane_id, link, person=person) as entry:
                 await _race(relay.run(), entry.wait_closed())
@@ -704,6 +709,8 @@ class ViewerApp:
                     with contextlib.suppress(RuntimeError, WebSocketDisconnect):
                         await websocket.close(code=entry.code or CLOSE_DENIED, reason=entry.reason or "")
         finally:
+            if watched is not None:
+                watched()
             getattr(self.lanes, "view_closed", lambda _: None)(lane_id)
             if attached:
                 getattr(self.lanes, "viewer_detached", lambda _: None)(lane_id)
@@ -881,6 +888,10 @@ class ViewerApp:
             "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff",
             "Content-Security-Policy": "default-src 'none'", "Referrer-Policy": "no-referrer"})
 
+    async def resume(self, request: Request) -> Response:
+        """A saved environment's Resume button, for the owner in person (agentos.node.viewer_saved)."""
+        return await viewer_saved.resume(self, request)
+
     def routes(self) -> list:
         return [
             Route("/view/{workspace}/{name}/proof/{proof}.png", self.proof, methods=["GET"]),
@@ -893,6 +904,7 @@ class ViewerApp:
             Route("/view/{workspace}/{name}", self.page, methods=["GET"]),
             Route("/view/{workspace}/{name}/control", self.control, methods=["POST"]),
             Route("/view/{workspace}/{name}/renew", self.renew, methods=["POST"]),
+            Route("/view/{workspace}/{name}/resume", self.resume, methods=["POST"]),
             Route("/view/{workspace}/{name}/sites", self.sites, methods=["POST"]),
             Route("/view/{workspace}/{name}/clipboard", self.clipboard, methods=["POST"]),
             Route("/view/{workspace}/{name}/events", self.events, methods=["GET"]),

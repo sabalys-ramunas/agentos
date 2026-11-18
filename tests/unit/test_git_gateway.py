@@ -532,6 +532,24 @@ async def test_a_mixed_push_with_one_foreign_rewrite_sends_nothing(node):
     assert node.rt.get("environments").own.get(ENV_LANE, []) == []
 
 
+async def test_an_environments_checkpoints_never_leave_it(node):
+    """refs/agentos/* are the machine's own checkpoints (agentos.environments.checkpoints): a push of one
+    is refused, alone or with a branch, and neither the mirror nor the remote gets it."""
+    _g, run, work, _env = await vm(node)
+    git("update-ref", "refs/agentos/checkpoints/1", "HEAD", cwd=work)
+    for args in (["refs/agentos/checkpoints/1"], ["refs/agentos/checkpoints/1:refs/heads/agent/c"],
+                 ["refs/agentos/*:refs/agentos/*"], ["HEAD:refs/agentos/checkpoints/9", "HEAD:refs/heads/agent/d"]):
+        r = await run("push", "origin", *args, cwd=work)
+        if args[0].endswith(":refs/heads/agent/c"):  # a checkpoint's commit pushed as a branch is a branch push
+            assert r.returncode == 0, r.stderr
+            continue
+        assert r.returncode != 0, args
+        assert "push_refused" in r.stderr and "never leave it" in r.stderr, (args, r.stderr)
+    for ref in ("refs/agentos/checkpoints/1", "refs/agentos/checkpoints/9", "refs/heads/agent/d"):
+        assert mirror_ref(node, ref) == ""
+        assert git("rev-parse", "--verify", "-q", ref, cwd=node.upstream, check=False).returncode != 0
+
+
 # ------------------------------------------------------------------ speed: one fetch, a warm mirror, a blobless clone
 
 

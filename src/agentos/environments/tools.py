@@ -869,8 +869,10 @@ async def environment_pull_request(ctx: ToolContext, *, title: str, body: str | 
 
 
 def tool_specs(runtime: Any) -> list[ToolSpec]:
+    from agentos.environments.checkpoint_tools import tool_specs as checkpoint_specs
+
     t = ("environments",)
-    return [
+    return [*checkpoint_specs(runtime),
         ToolSpec("environment_open", environment_open, Effect.VM, lane_arg=None, tags=(*t, "changes_state"),
                  hidden_without="environments"),
         ToolSpec("environment", environment, Effect.READ, lane_arg=None, tags=t, hidden_without="environments"),

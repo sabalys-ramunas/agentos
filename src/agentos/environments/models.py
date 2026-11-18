@@ -232,6 +232,8 @@ class Environment(BaseModel):
     prepared: dict | None = None
     app: dict | None = None
     warm_claimed: bool = False                # its machine came from the warm pool (agentos.environments.warmpool)
+    watched_at: datetime | None = None        # a person last watched it (live view, a port link): agentos.environments.watching
+    resumed_by: str | None = None             # "owner": the owner resumed it from a save, held by no chat (agentos.environments.waking)
 
     @field_validator("id")
     @classmethod

@@ -45,7 +45,7 @@ tools_more lists only tools the caller's grant can see. Connector operations (`<
 | `workspaces` | workspaces: list, plan and apply changes, lane readiness | `lane_set_readiness`, `workspace_apply`, `workspace_list`, `workspace_plan`, `workspace_queue` |
 | `worker` | the node's workers: hand a browser job to the cheap worker on the node (lane_do), and which workers are on | `lane_do`, `plugins_list` |
 | `admin` | your grant, an approval's status without waiting (or all yours still waiting), and the call trail | `approval_status`, `grant_info`, `traces_query` |
-| `terminals` | terminal and service lanes: shells, commands, background jobs, synced files, installs, images, disposable cloud VMs | `env_create`, `env_lanes_list`, `env_remove`, `environment_port`, `environment_pull_request`, `image_build`, `images_list`, `lane_install`, `lane_jobs_list`, `lane_upload`, `lane_upload_check`, `service_logs`, `service_start`, `service_status`, `service_stop`, `shell_close`, `shell_open`, `shell_read`, `shell_write`, `vm_clone`, `vm_create`, `vm_destroy`, `vm_extend`, `vms_list` |
+| `terminals` | terminal and service lanes: shells, commands, background jobs, synced files, installs, images, disposable cloud VMs | `env_create`, `env_lanes_list`, `env_remove`, `environment_checkpoint`, `environment_port`, `environment_pull_request`, `environment_rollback`, `image_build`, `images_list`, `lane_install`, `lane_jobs_list`, `lane_upload`, `lane_upload_check`, `service_logs`, `service_start`, `service_status`, `service_stop`, `shell_close`, `shell_open`, `shell_read`, `shell_write`, `vm_clone`, `vm_create`, `vm_destroy`, `vm_extend`, `vms_list` |
 | `brains` | agent tasks on the node's brains: run, follow, resume, cancel; the git remotes they reach | `brain_cancel`, `brain_resume`, `brain_run`, `brain_status`, `brain_tail`, `brain_tasks`, `brain_use`, `brains_list`, `git_remotes` |
 | `automation` | events, triggers and the agenda (planned one-off actions, their approval, runs and proof) | `agenda_cancel`, `agenda_draft`, `agenda_get`, `agenda_list`, `agenda_propose`, `agenda_update`, `events_list`, `trigger_propose`, `triggers_list` |
 
@@ -111,12 +111,14 @@ Call any agentos tool by name with its arguments, including tools not in your li
 | [`env_lanes_list`](#env_lanes_list) | terminals | read | List terminal and service lanes on this node: preset, state, and an honest one-line description of the isolation each really gets |
 | [`env_remove`](#env_remove) | terminals | irreversible | Delete a terminal or service lane and its files (its writable layer, logs and home) |
 | [`environment`](#environment) | core | read | Your environment now: state, minutes_left, cost_eur, ports listening on the VM, git (branch, ahead, dirty, pushed, pull_requests), proofs (fresh links), replay (frames for the human), unsaved work, your note and the last 10 calls |
+| [`environment_checkpoint`](#environment_checkpoint) | terminals | read | A cheap undo point before a risky step, in seconds and at no cost: every repository under /work as it is now (tracked and new files git does not ignore), kept as git's refs/agentos/checkpoints/<n> |
 | [`environment_close`](#environment_close) | core | read | Stop or finish your environment |
 | [`environment_download`](#environment_download) | core | exec | A file or a folder under /work, to your own computer: a one-use .tar.gz link (15 minutes); the bytes never go through tool calls |
 | [`environment_forget`](#environment_forget) | core | read | Delete saves and their disk snapshots (they bill each month): every save of `title`, or one save_id |
 | [`environment_open`](#environment_open) | core | vm | Your own cloud computer: a VM with a terminal, a browser and the repo, to build and test on instead of the user's laptop |
 | [`environment_port`](#environment_port) | terminals | read | Open a dev server of your environment on the human's own computer, as a preview link |
 | [`environment_pull_request`](#environment_pull_request) | terminals | read | Open a pull request on GitHub for the branch your environment pushed, with the node's stored GitHub token (the VM has no gh and no credential) |
+| [`environment_rollback`](#environment_rollback) | terminals | read | Put every repository under /work back to a checkpoint: the branch it was on at the checkpoint's HEAD, the index at that HEAD, the files as they were (new files git does not ignore are removed) |
 | [`environment_save`](#environment_save) | core | read | Save the environment now, without closing it: commits and stashes no remote has, changed and new files git does not ignore, running services, and with keep "save" a disk snapshot (services pause for it) |
 | [`environment_upload`](#environment_upload) | core | exec | A one-use link (15 minutes) that puts a .tar.gz of your local checkout (uncommitted changes too) on the environment's machine; the bytes never go through tool calls |
 | [`events_list`](#events_list) | automation | read | List recent events on this node (newest first) with their deliveries: what happened (source, kind, lane, node facts), which triggers took it, and what each delivery did and why (waiting for quiet hours, dropped by a rate limit, delivered, dead) |
@@ -679,6 +681,17 @@ Your environment now: state, minutes_left, cost_eur, ports listening on the VM, 
 |---|---|---|---|
 | `on` | `str \| None` | no (default None) | The on your environment_open gave. Without it, only a client with a session id sees its own. |
 
+## environment_checkpoint
+
+Toolset: `terminals`. Effect: `read`. Needs the `environments` service.
+
+A cheap undo point before a risky step, in seconds and at no cost: every repository under /work as it is now (tracked and new files git does not ignore), kept as git's refs/agentos/checkpoints/<n>. Your index, stash and branches are not touched; files git ignores (node_modules, .env) are not in it. About 20 are kept. Returns checkpoint, repos (head, files_changed from HEAD), compare (the git diff to run yourself) and rollback. Effect: read. Errors: checkpoint_failed.
+
+| Argument | Type | Required | Description |
+|---|---|---|---|
+| `note` | `str \| None` | no (default None) | What you are about to try, like "before the big refactor". |
+| `on` | `str \| None` | no (default None) | The on your environment_open gave (a client with a session id may leave it out). |
+
 ## environment_close
 
 Toolset: `core`. Effect: `read`. Needs the `environments` service.
@@ -760,6 +773,17 @@ Open a pull request on GitHub for the branch your environment pushed, with the n
 | `base` | `str \| None` | no (default None) | The branch to merge into; the repository's default branch if left out. |
 | `draft` | `bool` | no (default False) | Open it as a draft. |
 | `branch` | `str \| None` | no (default None) | Which pushed branch; the newest one this environment pushed if left out. |
+| `on` | `str \| None` | no (default None) | The on your environment_open gave (a client with a session id may leave it out). |
+
+## environment_rollback
+
+Toolset: `terminals`. Effect: `read`. Needs the `environments` service.
+
+Put every repository under /work back to a checkpoint: the branch it was on at the checkpoint's HEAD, the index at that HEAD, the files as they were (new files git does not ignore are removed). It checkpoints the work as it is first, so `undo` takes the rollback back. Files git ignores (node_modules, .env, build output) are not touched: after a dependency change, run the install again. Returns checkpoint, repos (files_restored, files_removed, branch, head, was), undo. Effect: read. Errors: checkpoint_not_found, rollback_refused (mid merge or rebase).
+
+| Argument | Type | Required | Description |
+|---|---|---|---|
+| `checkpoint` | `int` | yes | Its number, from environment_checkpoint or environment()'s checkpoints. |
 | `on` | `str \| None` | no (default None) | The on your environment_open gave (a client with a session id may leave it out). |
 
 ## environment_save

@@ -326,6 +326,9 @@ class Handlers:
 
         if control_view:
             lanes.add_control_listener(on_control)
+        envs = self.api.optional("environments")  # a person watching an environment keeps it in use
+        begin = getattr(envs, "watch_lane", None)
+        unwatch = begin(lane_id, "live_view") if callable(begin) else None
         try:
             with self.live.track("vnc", _recheck(self.api, websocket, "vnc", lane_id, auth), **_keys(auth, lane_id)) as entry:
                 await _race(run_relay(), entry.wait_closed(), *([handed.wait()] if control_view else []))
@@ -335,6 +338,8 @@ class Handlers:
                     with contextlib.suppress(RuntimeError, WebSocketDisconnect):
                         await websocket.close(code=WS_HANDED_BACK, reason="handed_back")
         finally:
+            if callable(unwatch):
+                unwatch()
             if control_view:
                 lanes.remove_control_listener(on_control)
 
