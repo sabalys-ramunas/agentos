@@ -10,6 +10,8 @@ import type { Page } from '@playwright/test';
 const GROUPS = ['foundations', 'layout', 'data', 'feedback', 'actions', 'overlays', 'instrument', 'composites'];
 
 async function open(page: Page) {
+  // One fixed moment, so "4m ago" and "closes at 16:21" read the same on every run and every machine.
+  await page.clock.setFixedTime(new Date('2026-11-18T14:00:00Z'));
   await page.goto('/sign-in');
   await page.evaluate(() => {
     sessionStorage.setItem('agentos.mock.scenario', 'still');
@@ -25,7 +27,7 @@ async function open(page: Page) {
 for (const scheme of ['light', 'dark'] as const) {
   for (const width of [1440, 390]) {
     test.describe(`the catalog, ${scheme}, ${width} wide`, () => {
-      test.use({ colorScheme: scheme, viewport: { width, height: 900 } });
+      test.use({ colorScheme: scheme, viewport: { width, height: 900 }, timezoneId: 'UTC', locale: 'en-GB' });
 
       test('every group looks as it did, and nothing is wider than the screen', async ({ page }) => {
         await open(page);
