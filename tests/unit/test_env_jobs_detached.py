@@ -8,6 +8,7 @@ scripts the ssh would (agentos.vms.ssh), with a stand-in for util-linux setsid w
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import os
 import shutil
 import sys
@@ -20,7 +21,7 @@ from agentos.env.manager import EnvManager
 from agentos.env.models import RemoteHost
 from agentos.env.paths import EnvSettings
 from agentos.env.sandbox import DirectLauncher
-from agentos.vms import ssh
+from agentos.vms import ssh, sshmux
 
 SETSID = '''#!{py}
 import os, sys
@@ -41,7 +42,7 @@ class ShLauncher(ssh.SshLauncher):
     def __init__(self, path: str):
         self.path = path
 
-    def transport(self, lane, script, *, tty=False, quiet=False):
+    def transport(self, lane, script, *, tty=False, quiet=False, mux=None):
         return ["/usr/bin/env", f"PATH={self.path}", "sh", "-c", script]
 
     async def run_script(self, lane, script, *, timeout_s):
@@ -146,7 +147,33 @@ async def test_a_job_on_a_vm_runs_detached_and_ends_with_its_exit_code(vm):
     assert done.state == "exited" and done.exit_code == 3
     _, out, err = await mgr.job_read(info.id)
     assert out == b"out\n" and err == b"err\n"
+    await ended(mgr, info.id)
     assert not list(wl.glob(f"{info.vm_wid}.*"))  # its files on the machine went once read
+    await mgr.shutdown()
+
+
+async def ended(mgr, job_id) -> None:
+    """The job's end is done: its files on the machine go just after a read had its answer."""
+    task = mgr.jobs.get(job_id).task
+    if task is not None:
+        await asyncio.wait_for(asyncio.shield(task), 10)
+
+
+async def test_a_read_waiting_for_the_end_does_not_wait_for_the_files_to_go(vm, monkeypatch):
+    """The read that waits for the end answers once the node knows it; removing the job's files on
+    the machine (one more ssh) comes after."""
+    manager, wl, _ = vm
+    forget = ssh.forget_script
+    monkeypatch.setattr(ssh, "forget_script", lambda wid: "sleep 2; " + forget(wid))
+    mgr = manager()
+    await mgr.start()
+    info = await mgr.job_start(LANE, "echo hi")
+    loop = asyncio.get_running_loop()
+    began = loop.time()
+    done = await wait_state(mgr, info.id)
+    assert done.state == "exited" and done.exit_code == 0 and loop.time() - began < 1.8
+    await ended(mgr, info.id)
+    assert not list(wl.glob(f"{info.vm_wid}.*"))
     await mgr.shutdown()
 
 
@@ -304,3 +331,106 @@ async def test_a_read_waiting_for_the_end_says_exited_not_running_with_an_exit_c
     done, _, _ = await mgr.job_read(info.id, wait_s=10, until_exit=True)
     assert done.state == "exited" and done.exit_code == 0, done
     await mgr.shutdown()
+
+
+def test_a_follower_ends_as_soon_as_it_sent_the_end_of_a_job_that_ended(tmp_path, monkeypatch):
+    """It waited 0.2 s and looked once more before it ended; whether the job runs is asked before the
+    sizes are read, so the round that found it ended sent all it wrote."""
+    import subprocess
+    import time
+
+    monkeypatch.setattr(ssh, "PGID_DIR", str(tmp_path))
+    (tmp_path / "j-1.out").write_bytes(b"hello\n")
+    (tmp_path / "j-1.err").write_bytes(b"oops\n")
+    (tmp_path / "j-1.rc").write_text("0 1794860000\n")
+    began = time.monotonic()
+    r = subprocess.run(["sh", "-c", ssh.follow_script("j-1", 2, 0)], capture_output=True, timeout=10, check=False)
+    assert (r.returncode, r.stdout, r.stderr) == (0, b"llo\n", b"oops\n")
+    assert time.monotonic() - began < 0.15
+
+
+class OneMux(sshmux.Mux):
+    """Every one-shot command gets a session on one stand-in master ("/m"): the transport is a local shell."""
+
+    def lease(self, remote):
+        self.sessions["/m"] = self.sessions.get("/m", 0) + 1
+        return sshmux.Lease(self, "/m")
+
+
+async def test_a_cancelled_exec_ends_its_processes_on_the_vm_before_its_session_goes_back(vm, monkeypatch, caplog):
+    """A cancelled lane_exec gave its session back while sshd kept it (its command ran on): the node's count
+    drifted below sshd's, until every call was refused. Now its process group there is killed first."""
+    manager, _, tmp = vm
+    mux = OneMux()
+    monkeypatch.setattr(ssh, "MUX", mux)
+    mgr = manager()
+    await mgr.start()
+    child = tmp / "child.pid"
+    task = asyncio.ensure_future(mgr.exec(LANE, f"sleep 300 & echo $! > {child}; sleep 300"))
+    loop = asyncio.get_running_loop()
+    end = loop.time() + 10
+    while not (child.exists() and child.read_text().strip()):
+        assert loop.time() < end, "the command never started"
+        await asyncio.sleep(0.05)
+    pid = int(child.read_text())
+    assert mux.sessions["/m"] == 1
+    task.cancel()
+    with contextlib.suppress(asyncio.CancelledError):
+        await task
+    while mux.sessions["/m"]:
+        assert loop.time() < end + 10, "the session never went back"
+        await asyncio.sleep(0.05)
+    assert await gone(pid, timeout=1), "the session went back while its command ran on"
+    await mgr.shutdown()
+    import gc
+
+    gc.collect()
+    await asyncio.sleep(0)
+    assert "never retrieved" not in caplog.text  # its output readers' end is collected, not logged as an error
+
+
+async def test_ssh_s_words_about_a_shared_connection_never_reach_an_exec_s_stderr(vm, monkeypatch):
+    manager, _, _ = vm
+    mux = OneMux()
+    monkeypatch.setattr(ssh, "MUX", mux)
+    mgr = manager()
+    await mgr.start()
+    res = await mgr.exec(LANE, "echo 'muxclient: master hello exchange failed' >&2; echo real >&2; echo out")
+    assert (res.stdout, res.stderr, res.stderr_bytes, res.exit_code) == ("out\n", "real\n", 5, 0)
+    assert mux.sessions["/m"] == 0 and mux.not_before["/m"] > 0  # the master rests a while
+    await mgr.shutdown()
+
+
+@pytest.mark.parametrize("cmd", ["echo 'mux_util.c:12:5: error: expected ;' >&2; exit 255",
+                                 "echo 'cc mux_util.c' >&2; echo 'mux_util.c:12:5: error: expected ;' >&2; exit 255"])
+async def test_a_command_s_own_mux_lines_reach_its_stderr_whole(vm, monkeypatch, cmd):
+    """gcc on mux_util.c returned stderr='' and stderr_bytes=0, and rested the master 30 s."""
+    manager, _, _ = vm
+    mux = OneMux()
+    monkeypatch.setattr(ssh, "MUX", mux)
+    mgr = manager()
+    await mgr.start()
+    res = await mgr.exec(LANE, cmd)
+    want = ("cc mux_util.c\n" if "cc mux" in cmd else "") + "mux_util.c:12:5: error: expected ;\n"
+    assert (res.stderr, res.stderr_bytes, res.exit_code) == (want, len(want), 255)
+    assert "/m" not in mux.not_before
+    await mgr.shutdown()
+
+
+async def test_a_vm_lane_s_removal_and_the_node_s_stop_end_the_shared_connections(vm, monkeypatch):
+    manager, _, _ = vm
+    mgr = manager()
+    await mgr.start()
+    calls: list[tuple] = []
+
+    async def removed(lane):
+        calls.append(("removed", lane.remote.vm_id))
+
+    async def stopped():
+        calls.append(("shutdown",))
+
+    monkeypatch.setattr(mgr.remote_launcher, "lane_removed", removed)
+    monkeypatch.setattr(mgr.remote_launcher, "shutdown", stopped)
+    await mgr.remove(LANE, vm_ok=True)
+    await mgr.shutdown()
+    assert calls == [("removed", "vm_1"), ("shutdown",)]

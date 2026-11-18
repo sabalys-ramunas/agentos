@@ -211,6 +211,10 @@ class EnvManager(Jobs, Sync):
             await self.shell_close(sid)
         for lane_id in list(self._rts):
             await self.cool(lane_id)
+        stop = getattr(self.remote_launcher, "shutdown", None)
+        if callable(stop):  # the shared ssh connections to VMs this process started
+            with contextlib.suppress(Exception):
+                await stop()
         if self._started:
             await asyncio.to_thread(self.host.cgroup_prune)
         self._started = False
@@ -522,6 +526,10 @@ class EnvManager(Jobs, Sync):
                                  "which deletes the machine too")
         await self.ensure_started()
         await self.cool(lane_id)
+        gone = getattr(self.remote_launcher, "lane_removed", None)
+        if lane.remote is not None and callable(gone):  # its machine is deleted: the node's ssh to it ends
+            with contextlib.suppress(Exception):
+                await gone(lane)
         self.services.pop(lane_id, None)
         self.jobs.forget_lane(lane_id)
         self._stores.pop(lane_id, None)

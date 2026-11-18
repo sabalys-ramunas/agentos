@@ -12,22 +12,27 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import secrets
 import shlex
+import subprocess
 from pathlib import Path
 
 from agentos.env import oom
+from agentos.env.lanes import wait_exit
 from agentos.env.models import EnvLane, RemoteHost
 from agentos.env.sandbox import Command, LanePlan, Workload
+from agentos.vms.sshmux import MUX
 
 SSH = "ssh"
 CONNECT_TIMEOUT_S = 10
 JOB_STATUS_TIMEOUT_S = 20.0
 
 
-def ssh_base(remote: RemoteHost, *, tty: bool = False, quiet: bool = False) -> list[str]:
+def ssh_base(remote: RemoteHost, *, tty: bool = False, quiet: bool = False, mux: list[str] | None = None) -> list[str]:
     """The ssh argv up to (not including) the remote command. No config file, no agent, no
     password, no forwarding of anything. `quiet`: ssh says nothing of its own on stderr (a job's
-    follower, whose stderr is the job's: a word of ssh's there would shift the offsets)."""
+    follower, whose stderr is the job's: a word of ssh's there would shift the offsets). `mux`: the
+    options of a session on the VM's shared connection (agentos.vms.sshmux.Lease.args)."""
     return [
         SSH, "-F", "/dev/null",
         "-i", remote.key_path,
@@ -49,6 +54,7 @@ def ssh_base(remote: RemoteHost, *, tty: bool = False, quiet: bool = False) -> l
         "-o", "ForwardX11=no",
         "-o", "ClearAllForwardings=yes",
         "-o", f"LogLevel={'QUIET' if quiet else 'ERROR'}",
+        *(mux or ()),
         "-tt" if tty else "-T",
         f"{remote.user}@{remote.host}",
     ]
@@ -148,24 +154,30 @@ _ALIVE = ('a=0; [ ! -e "$w.rc" ] && p=$(cat "$w.pgid" 2>/dev/null) && [ -n "$p" 
           'kill -s 0 -- "-$p" 2>/dev/null && a=1')
 
 
+FOLLOW_FAST = 10          # a follower's first rounds wait 0.05 s, not 0.2 s: a short job's end is seen at once
+
+
 def follow_script(wid: str, out_offset: int, err_offset: int) -> str:
     """Print the job's stdout (to stdout) and stderr (to stderr) from the given offsets as they grow, and
     end once the job has ended and all of it is sent, or when the ssh that runs it is gone. The job runs
-    while its rc file is not written and a process of its group lives."""
+    while its rc file is not written and a process of its group lives. Whether it runs is asked before
+    the sizes are read, so a round that found it ended has sent all it wrote and ends the follower (what
+    a leftover writes later, the node reads with the next follower: agentos.env.jobs drains it)."""
     d, w = shlex.quote(PGID_DIR), shlex.quote(wid)
     o, e = max(0, int(out_offset)), max(0, int(err_offset))
     return f"""cd {d} 2>/dev/null || exit 0
-w={w}; o={o}; e={e}; i=0; pp=$PPID; k=0
-while [ ! -e "$w.pgid" ] && [ ! -e "$w.rc" ] && [ -e "$w.out" ] && [ $i -lt {FOLLOW_WAIT_S * 10} ]; do sleep 0.1; i=$((i+1)); done
+w={w}; o={o}; e={e}; i=0; pp=$PPID; k=0; r=0
+while [ ! -e "$w.pgid" ] && [ ! -e "$w.rc" ] && [ -e "$w.out" ] && [ $i -lt {FOLLOW_WAIT_S * 50} ]; do sleep 0.02; i=$((i+1)); done
 while :; do
   {_ALIVE}
   n=$(wc -c < "$w.out" 2>/dev/null); n=$((n+0)); m=$(wc -c < "$w.err" 2>/dev/null); m=$((m+0)); new=0
   if [ $n -gt $o ]; then tail -c +$((o+1)) "$w.out" | head -c $((n-o)) || exit 0; o=$n; new=1; fi
   if [ $m -gt $e ]; then tail -c +$((e+1)) "$w.err" | head -c $((m-e)) >&2 || exit 0; e=$m; new=1; fi
-  [ $a = 1 ] || [ $new = 1 ] || exit 0
+  [ $a = 1 ] || exit 0
   kill -s 0 $pp 2>/dev/null || exit 0
   if [ $new = 1 ]; then k=0; else k=$((k+1)); fi
-  if [ $k -lt 5 ]; then sleep 0.2; elif [ $k -lt 20 ]; then sleep 0.5; else sleep 1; fi
+  r=$((r+1))
+  if [ $r -le {FOLLOW_FAST} ]; then sleep 0.05; elif [ $k -lt 5 ]; then sleep 0.2; elif [ $k -lt 20 ]; then sleep 0.5; else sleep 1; fi
 done
 """
 
@@ -193,7 +205,8 @@ def forget_script(wid: str) -> str:
     d = shlex.quote(PGID_DIR)
     files = " ".join(shlex.quote(wid + s) for s in JOB_SUFFIXES)
     return (f"cd {d} 2>/dev/null || exit 0; rm -f {files} {shlex.quote(wid + '.rc.n')}; "
-            f"find . -maxdepth 1 -type f -name 'j-*' -mmin +{JOB_STALE_MINUTES} -delete 2>/dev/null; true\n")
+            f"find . -maxdepth 1 -type f \\( -name 'j-*' -o -name 'r-*' \\) -mmin +{JOB_STALE_MINUTES} -delete "
+            "2>/dev/null; true\n")
 
 
 def parse_status(text: str) -> dict | None:
@@ -237,14 +250,24 @@ class SshLauncher:
 
     detaches_jobs = True  # a job runs detached on the VM and outlives the node's ssh (agentos.env.jobs)
 
-    def transport(self, lane: EnvLane, script: str, *, tty: bool = False, quiet: bool = False) -> list[str]:
-        """The argv that runs `script` on the lane's VM (one ssh)."""
+    def transport(self, lane: EnvLane, script: str, *, tty: bool = False, quiet: bool = False,
+                  mux: list[str] | None = None) -> list[str]:
+        """The argv that runs `script` on the lane's VM (one ssh; `mux`: over its shared connection)."""
         assert lane.remote is not None, "SshLauncher serves VM lanes only"
-        return ssh_base(lane.remote, tty=tty, quiet=quiet) + [script]
+        return ssh_base(lane.remote, tty=tty, quiet=quiet, mux=mux) + [script]
 
     async def run_script(self, lane: EnvLane, script: str, *, timeout_s: float) -> tuple[int, str]:
         assert lane.remote is not None, "SshLauncher serves VM lanes only"
         return await run(lane.remote, script, timeout_s=timeout_s)
+
+    async def lane_removed(self, lane: EnvLane) -> None:
+        """A VM lane goes (its machine is deleted): the node's shared connection to it ends now."""
+        if lane.remote is not None:
+            await MUX.stop(lane.remote)
+
+    async def shutdown(self) -> None:
+        """The node stops: the shared connections it started end with it."""
+        await MUX.stop_all()
 
     def command(self, plan: LanePlan | None, lane: EnvLane, wl: Workload, *, cgroup: str | None,
                 workdir: Path) -> Command:
@@ -257,11 +280,14 @@ class SshLauncher:
                 script = f"{start_script(wl, wl.detach_timeout_s)} && {{\n{script}}}"
         else:
             script = remote_command(wl)
-        argv = (cgroup_wrap(cgroup) if cgroup else []) + self.transport(lane, script, tty=wl.pty, quiet=quiet)
+        # a one-shot command goes over the VM's shared connection when one is up (agentos.vms.sshmux)
+        lease = MUX.lease(lane.remote) if wl.mux and not wl.pty and not quiet and lane.remote else None
+        argv = (cgroup_wrap(cgroup) if cgroup else []) + self.transport(
+            lane, script, tty=wl.pty, quiet=quiet, mux=lease.args if lease else None)
         # the local ssh client gets a plain environment: nothing of agentosd's leaks to it
         env = {"PATH": "/usr/sbin:/usr/bin:/sbin:/bin", "HOME": str(workdir), "LANG": "C.UTF-8"}
         workdir.mkdir(parents=True, exist_ok=True)
-        return Command(argv, env, str(workdir))
+        return Command(argv, env, str(workdir), session=lease)
 
     def stop_argv(self, lane: EnvLane, wid: str, sig: str) -> list[str] | None:
         """The ssh command that sends `sig` (TERM or KILL) to a workload's process group on the VM
@@ -314,24 +340,112 @@ async def probe(remote: RemoteHost, *, timeout_s: float = 20.0) -> tuple[bool, s
     return False, (err or b"").decode(errors="replace").strip()[-300:] or f"ssh exited {proc.returncode}"
 
 
+RUN_STOP_S = 15.0  # how long the ssh that ends a timed-out script's processes on the VM may take
+_ENDING: set[asyncio.Task] = set()
+
+
+def grouped(wid: str, script: str) -> str:
+    """The script, first writing its process group's id (sshd gives each session one) to pgid_file(wid),
+    so stop_script can end all it started; the file goes when it exits."""
+    f = shlex.quote(pgid_file(wid))
+    return (f'{{ {{ read -r _ _ _ _ g _ < /proc/$$/stat || g=$(ps -o pgid= -p $$ | tr -d " "); }} && [ -n "$g" ] && '
+            f'mkdir -p {PGID_DIR} && echo "$g" > {f}; }} 2>/dev/null; trap \'rm -f {f}\' EXIT\n{script}')
+
+
+async def _talk(proc: asyncio.subprocess.Process, data: bytes) -> bytes:
+    assert proc.stdin is not None and proc.stdout is not None
+    with contextlib.suppress(BrokenPipeError, ConnectionResetError):
+        proc.stdin.write(data)
+        await proc.stdin.drain()
+        proc.stdin.close()
+    return await proc.stdout.read()
+
+
 async def run(remote: RemoteHost, script: str, *, timeout_s: float = 900.0) -> tuple[int, str]:
-    """Run a shell script on the VM (image builds). Returns (exit code, the last 4000 characters
-    of its output)."""
-    argv = ssh_base(remote) + ["bash -s"]
-    proc = await asyncio.create_subprocess_exec(*argv, stdin=asyncio.subprocess.PIPE,
-                                                stdout=asyncio.subprocess.PIPE,
-                                                stderr=asyncio.subprocess.STDOUT)
+    """Run a shell script on the VM (image builds, a job's status, the kernel's oom kills), over the
+    VM's shared connection when one is up (agentos.vms.sshmux). Returns (exit code, the last 4000
+    characters of its output). The timeout holds over a shared connection too: the master keeps a
+    killed client's pipes until the script ends, so this waits for the ssh process, not its pipes,
+    and ends what the script started on the VM (stop_script) before its session goes back."""
+    lease = MUX.lease(remote)
+    wid = f"r-{secrets.token_hex(4)}"
     try:
-        out, _ = await asyncio.wait_for(proc.communicate(script.encode()), timeout=timeout_s)
-    except TimeoutError:
-        proc.kill()
-        await proc.wait()
-        return 124, "timed out"
-    except BaseException:  # the caller gave up (a probe beside a read): no ssh is left behind
+        argv = ssh_base(remote, mux=lease.args if lease else None) + ["bash -s"]
+        proc = await asyncio.create_subprocess_exec(*argv, stdin=asyncio.subprocess.PIPE,
+                                                    stdout=asyncio.subprocess.PIPE,
+                                                    stderr=asyncio.subprocess.STDOUT)
+    except BaseException:
+        if lease is not None:
+            lease.release()
+        raise
+    loop = asyncio.get_running_loop()
+    end = loop.time() + timeout_s
+    talk = asyncio.ensure_future(_talk(proc, grouped(wid, script).encode()))
+    try:
+        await wait_exit(proc, timeout_s)
+        out = await asyncio.wait_for(asyncio.shield(talk), max(0.0, end - loop.time()))
+    except BaseException as e:  # timed out, or the caller gave up (a probe beside a read)
+        talk.cancel()
         with contextlib.suppress(ProcessLookupError):
             proc.kill()
+        task = loop.create_task(_end_remote(remote, wid, lease), name=f"ssh-stop-{wid}")
+        _ENDING.add(task)
+        task.add_done_callback(_ENDING.discard)
+        if isinstance(e, TimeoutError):
+            return 124, "timed out"
         raise
-    return proc.returncode or 0, (out or b"").decode(errors="replace")[-4000:]
+    if lease is not None:
+        out = lease.clean(out)
+        lease.release()
+    return proc.returncode or 0, out.decode(errors="replace")[-4000:]
+
+
+RUN_STOP_WAIT_S = 1.0  # how long the stop waits for a script that has not written its process group yet
+
+
+def run_stop_script(wid: str) -> str:
+    """stop_script KILL for a script of ssh.run, once its pgid file is there: a timeout can come before a
+    slow session opened and the script's first line wrote it, so this waits up to RUN_STOP_WAIT_S. A
+    session that opens later still runs its script to the end while its slot here is back already; that
+    window (a session slower than the timeout plus a second) is accepted: it ends with the script."""
+    f = shlex.quote(pgid_file(wid))
+    n = int(RUN_STOP_WAIT_S / 0.05)
+    return (f"i=0; while [ ! -e {f} ] && [ $i -lt {n} ]; do sleep 0.05; i=$((i+1)); done; "
+            + stop_script(wid, "KILL"))
+
+
+def _start_stop(remote: RemoteHost, wid: str) -> subprocess.Popen | None:
+    """The ssh that kills a script's process group on the VM (run_stop_script), as a plain Popen: a task
+    cancelled while asyncio starts a subprocess can hang the closing of its loop (seen in a script that
+    ended right after a timeout)."""
+    try:
+        return subprocess.Popen([*ssh_base(remote), run_stop_script(wid)], stdin=subprocess.DEVNULL,
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+    except OSError:
+        return None
+
+
+def _reap(proc: subprocess.Popen) -> None:
+    proc.kill()
+    with contextlib.suppress(subprocess.TimeoutExpired):
+        proc.wait(1)
+
+
+async def _end_remote(remote: RemoteHost, wid: str, lease) -> None:
+    """End what a script that timed out (or whose caller gave up) started on the VM, over a connection of
+    its own (the shared one may be what hangs); then its session goes back."""
+    proc = _start_stop(remote, wid)
+    loop = asyncio.get_running_loop()
+    end = loop.time() + RUN_STOP_S
+    try:
+        while proc is not None and proc.poll() is None:
+            if loop.time() > end:
+                _reap(proc)
+                break
+            await asyncio.sleep(0.02)
+    finally:
+        if lease is not None:
+            lease.release()
 
 
 async def push_tree(remote: RemoteHost, src: Path, dest: str, *, timeout_s: float = 600.0) -> None:

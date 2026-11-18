@@ -21,7 +21,7 @@ from agentos.env.host import Host
 from agentos.env.models import EnvLane
 from agentos.env.netproxy import EgressPolicy, Forwarder, Upstream
 from agentos.env.paths import EnvPaths, EnvSettings
-from agentos.env.sandbox import DEFAULT_PATH, LanePlan, Workload
+from agentos.env.sandbox import DEFAULT_PATH, LanePlan, SharedSession, Workload
 
 log = logging.getLogger("agentos.env")
 REMOTE_STOP_S = 15.0  # how long the ssh that ends a workload's processes on a VM may take
@@ -54,23 +54,33 @@ class Spawned:
     kind: str
     cgroup: str | None
     started: float = field(default_factory=lambda: asyncio.get_running_loop().time())
+    session: SharedSession | None = None  # Command.session, given back once by LaneRuntime.release
 
 
 def new_wid(prefix: str) -> str:
     return f"{prefix}-{secrets.token_hex(4)}"
 
 
+# wait_exit looks at the process every EXIT_POLL_S[0] seconds, half again as long each time, up to
+# EXIT_POLL_S[1] in its first EXIT_POLL_FAST_S and EXIT_POLL_S[2] after: a command over a VM's shared ssh
+# connection ends in about 20 ms, and doubling from 5 ms to 50 ms saw that end 13 ms late, a quarter of
+# a lane_exec (2026-11-16); a dev server's follower that runs for hours is still looked at 20 times a second.
+EXIT_POLL_S = (0.002, 0.01, 0.05)
+EXIT_POLL_FAST_S = 1.0
+
+
 async def wait_exit(proc: asyncio.subprocess.Process, timeout: float | None = None) -> int:
     """Wait for the process itself to exit. (asyncio's proc.wait() also waits for its pipes,
     which a background child can hold open for as long as it likes.)"""
     loop = asyncio.get_running_loop()
-    deadline = None if timeout is None else loop.time() + timeout
-    delay = 0.005
+    start = loop.time()
+    deadline = None if timeout is None else start + timeout
+    delay, fast_cap, slow_cap = EXIT_POLL_S
     while proc.returncode is None:
         if deadline is not None and loop.time() >= deadline:
             raise TimeoutError
         await asyncio.sleep(delay)
-        delay = min(delay * 2, 0.05)
+        delay = min(delay * 1.5, fast_cap if loop.time() - start < EXIT_POLL_FAST_S else slow_cap)
     return proc.returncode
 
 
@@ -88,6 +98,7 @@ class LaneRuntime:
         self.cgroup: str | None = None
         self.forwarder: Forwarder | None = None
         self.workloads: dict[str, Spawned] = {}
+        self._abandoned: set[asyncio.Task] = set()  # abandon()'s ends under way
         self.exec_sem = asyncio.Semaphore(settings.max_concurrent_exec)
         self.up_done = False
         self.proxy_port: int | None = None
@@ -247,10 +258,14 @@ class LaneRuntime:
                 *cmd.argv, env=cmd.env, cwd=cmd.cwd, stdin=stdin, stdout=stdout, stderr=stderr,
                 pass_fds=cmd.pass_fds, start_new_session=True,
                 preexec_fn=_take_controlling_tty if take_tty else None)
+        except BaseException:
+            if cmd.session is not None:
+                cmd.session.release()
+            raise
         finally:
             for fd in cmd.close_after_spawn:
                 os.close(fd)
-        sp = Spawned(proc, wl.wid, kind, cg)
+        sp = Spawned(proc, wl.wid, kind, cg, session=cmd.session)
         self.workloads[wl.wid] = sp
         return sp
 
@@ -308,9 +323,27 @@ class LaneRuntime:
             except (ProcessLookupError, PermissionError):
                 pass
 
+    def abandon(self, sp: Spawned) -> None:
+        """A workload whose caller went away (its call was cancelled): kill it, on a VM its process group
+        there too, then release it, in the background (a cancelled call does not wait). On a VM's shared
+        connection its session stays open in sshd while the command runs: it goes back once that ended."""
+
+        async def end() -> None:
+            try:
+                await self.kill(sp)
+            finally:
+                await self.release(sp)
+
+        task = asyncio.get_running_loop().create_task(end(), name=f"env-abandon-{sp.wid}")
+        self._abandoned.add(task)
+        task.add_done_callback(self._abandoned.discard)
+
     async def release(self, sp: Spawned) -> None:
         """After a workload ends: kill leftovers (background children) and drop its cgroup. On a VM the
         workload's own shell ends its leftovers (agentos.vms.ssh.remote_command)."""
+        if sp.session is not None:
+            session, sp.session = sp.session, None
+            session.release()
         if sp.cgroup:
             await asyncio.to_thread(self.host.cgroup_remove, sp.cgroup)
         else:

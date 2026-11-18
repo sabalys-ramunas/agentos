@@ -607,6 +607,25 @@ async def test_visible_filter_narrows_listing_and_calls():
     assert seen[:2] == ["full", "narrow"] and seen[-1] is None
 
 
+async def test_a_call_asks_the_filter_about_its_own_tool_only():
+    """A call ran the filter over every tool the node serves (4 ms a call): now over the one it calls."""
+    asked: list[list[str]] = []
+
+    def visible(token, specs):
+        asked.append([s.name for s in specs])
+        return [s for s in specs if s.effect is Effect.READ]
+
+    specs = [ToolSpec(name="reader", handler=plain), ToolSpec(name="writer", handler=plain, effect=Effect.COMMIT),
+             ToolSpec(name="other", handler=plain)]
+    server = build_mcp(runtime_with(), [provider(*specs)], visible=visible)
+    with bind_request_token("t"):
+        assert not (await server.call_tool("reader", {})).is_error
+        assert asked == [["reader"]]
+        refused = await server.call_tool("writer", {})
+        assert refused.content[0].text.startswith("not_found: no tool named 'writer'")
+        assert asked[1] == ["writer"] and len(asked[2]) >= 3  # a refusal still sees the whole list for its words
+
+
 async def test_a_failing_filter_shows_nothing():
     def visible(token, specs):
         raise RuntimeError("policy store is locked")

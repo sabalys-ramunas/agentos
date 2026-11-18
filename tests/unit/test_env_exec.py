@@ -107,3 +107,30 @@ async def test_isolated_lane_warm_and_cool_with_fake_mechanisms(mgr):
     await mgr.cool("ws/sb")
     assert not host.mounted and not host.netns
     assert mgr.state("ws/sb").value == "cold"
+
+
+async def test_wait_exit_looks_often_at_first_and_less_after_a_while(monkeypatch):
+    """A command over a VM's shared ssh ends in about 20 ms: waits that doubled from 5 ms to 50 ms saw
+    that end 13 ms late. The first second is looked at every 10 ms at most, the rest every 50 ms."""
+    from agentos.env import lanes
+
+    class Proc:
+        def __init__(self, after: int):
+            self.after, self.returncode = after, None
+
+    waits: list[float] = []
+
+    async def sleep(s):
+        waits.append(round(s, 5))
+        if len(waits) >= proc.after:
+            proc.returncode = 0
+
+    monkeypatch.setattr(lanes.asyncio, "sleep", sleep)
+    proc = Proc(8)
+    assert await lanes.wait_exit(proc) == 0  # type: ignore[arg-type]
+    assert waits == [0.002, 0.003, 0.0045, 0.00675, 0.01, 0.01, 0.01, 0.01]
+    waits.clear()
+    monkeypatch.setattr(lanes, "EXIT_POLL_FAST_S", 0.0)  # past the first second
+    proc = Proc(9)
+    await lanes.wait_exit(proc)  # type: ignore[arg-type]
+    assert waits[-1] == 0.05 and max(waits) == 0.05

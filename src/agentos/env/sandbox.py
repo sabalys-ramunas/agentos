@@ -27,6 +27,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Protocol
 
 from agentos.core.errors import InvalidRequest
 from agentos.env.models import EnvLane
@@ -130,6 +131,20 @@ class Workload:
     detach: tuple[int, int] | None = None
     detach_start: bool = False
     detach_timeout_s: float | None = None
+    # a one-shot command (agentos.env.execs): on a VM it may share the node's connection to it (agentos.vms.sshmux)
+    mux: bool = False
+
+
+class SharedSession(Protocol):
+    """A command's session on a VM's shared ssh connection (agentos.vms.sshmux.Lease)."""
+
+    def clean(self, data: bytes) -> bytes:
+        """The command's stderr without the leading lines ssh says of the shared connection."""
+        ...
+
+    def release(self) -> None:
+        """Give it back, once the command's processes on the VM ended."""
+        ...
 
 
 @dataclass
@@ -140,6 +155,7 @@ class Command:
     pass_fds: tuple[int, ...] = ()
     close_after_spawn: tuple[int, ...] = ()
     takes_tty: bool = False  # the payload makes the PTY its controlling terminal itself (setsid -c)
+    session: SharedSession | None = None  # a session on a VM's shared connection (agentos.vms.sshmux.Lease)
 
 
 def check_home(paths: EnvPaths, settings: EnvSettings) -> None:

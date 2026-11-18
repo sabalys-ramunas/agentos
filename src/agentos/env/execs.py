@@ -10,7 +10,7 @@ from typing import Any, BinaryIO
 from agentos.env import oom
 from agentos.env.lanes import LaneRuntime, new_wid, wait_exit
 from agentos.env.models import ExecResult
-from agentos.env.sandbox import Workload
+from agentos.env.sandbox import SharedSession, Workload
 
 LEFTOVER_GRACE_S = 0.5
 
@@ -52,6 +52,24 @@ class Capture:
         out.tail = self.tail[len(self.tail) - out.tail_cap:]
         out.total = self.total
         return out
+
+
+def _cleaned(cap: Capture, session: SharedSession) -> Capture:
+    """The captured stream through session.clean (agentos.vms.sshmux.Lease.clean), which takes out only
+    ssh's leading lines: the start of the stream, so the head; its sizes kept true."""
+    if not cap.dropped:
+        out = Capture(cap.head_cap + cap.tail_cap)
+        out.feed(session.clean(bytes(cap.head + cap.tail)))
+        return out
+    head = session.clean(bytes(cap.head))
+    out = Capture(cap.head_cap + cap.tail_cap)
+    out.head, out.tail, out.total = bytearray(head), bytearray(cap.tail), cap.total - (len(cap.head) - len(head))
+    return out
+
+
+def _collected(fut: asyncio.Future) -> None:
+    if not fut.cancelled():
+        fut.exception()
 
 
 def fit(out: Capture, err: Capture, budget: int) -> tuple[Capture, Capture]:
@@ -163,7 +181,7 @@ async def run(rt: LaneRuntime, argv: list[str], *, timeout_s: float, stdin: byte
     loop = asyncio.get_running_loop()
     oom_before = rt.stat().get("oom_kills", 0)
     wl = Workload(new_wid("i" if install else "x"), argv, rt.base_env(env), cwd=cwd, install=install,
-                  oom_record=oom_check)
+                  oom_record=oom_check, mux=True)
     start = loop.time()
     stdin_arg: Any = stdin_file if stdin_file is not None else (
         asyncio.subprocess.PIPE if stdin is not None else asyncio.subprocess.DEVNULL)
@@ -204,7 +222,8 @@ async def run(rt: LaneRuntime, argv: list[str], *, timeout_s: float, stdin: byte
     signs = oom.Signs() if oom_check else None  # a "Killed" line or an exit code 137 in the output
     readers = asyncio.gather(to_file() if stdout_file is not None else _pump(proc.stdout, out, signs),
                              _pump(proc.stderr, err, signs), feed())
-    timed_out = False
+    readers.add_done_callback(_collected)  # a cancelled call leaves them unawaited: their end is no error
+    timed_out = abandoned = False
     try:
         try:
             if stdout_file is None:
@@ -223,8 +242,17 @@ async def run(rt: LaneRuntime, argv: list[str], *, timeout_s: float, stdin: byte
                 await asyncio.wait_for(readers, 2)
             except TimeoutError:
                 readers.cancel()
+    except asyncio.CancelledError:
+        if proc.returncode is None:  # the caller went away: what it runs ends, on a VM too, before it is released
+            abandoned = True
+            readers.cancel()
+            rt.abandon(sp)
+        raise
     finally:
-        await rt.release(sp)
+        if not abandoned:
+            if sp.session is not None:  # ssh's own lines about a shared connection are never the command's
+                err = _cleaned(err, sp.session)
+            await rt.release(sp)
     duration = loop.time() - start
     exit_code, sig_name = exit_status(rt, proc.returncode)
     oom_after = rt.stat().get("oom_kills", 0)
