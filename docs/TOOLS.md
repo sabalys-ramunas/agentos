@@ -721,7 +721,7 @@ Toolset: `core`. Effect: `vm`. Needs the `environments` service.
 
 Your own cloud computer: a VM with a terminal, a browser and the repo, to build and test on instead of the user's laptop. It returns `on`, this machine's handle: keep it and pass on="<it>" on every call, since only calls that carry it reach the machine. A new title opens one; a saved one's title resumes it (`resumed`). Another chat's live machine is environment_in_use (pick another title). Without a title, repo finds that repo's environment. localhost there is the VM. Nothing in it waits for a person.
 
-Returns on, id, title, opened (new, resumed, attached, taken_over), state (starting: call environment(on=...)), workdir, branch, machine (`bigger`: sizes and prices), expires_at, keep, links.browser (its live view, for the human); applied and differs when it is not what you asked; prepared and app when the repo has .agentos/environment.toml (its setup ran, its dev server runs). A private repo the node cannot read: approval_pending with review_url for the human. Errors: environment_in_use, environment_limit, environment_already_open.
+Returns on, id, title, opened (new, resumed, attached, taken_over), state (starting: call environment(on=...)), workdir, branch, machine (`bigger`: sizes and prices), expires_at, keep, links.browser (its live view, for the human); applied and differs when it is not what you asked; prepared and app with a .agentos/environment.toml (setup ran, dev server up). A private repo the node cannot read: approval_pending with review_url for the human. Errors: environment_in_use, environment_limit, environment_already_open.
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
@@ -732,9 +732,9 @@ Returns on, id, title, opened (new, resumed, attached, taken_over), state (start
 | `hours` | `float \| None` | no (default None) | How long it may live (default 2); it closes sooner when idle. |
 | `wait_s` | `float` | no (default 240) | Seconds to wait for ready, 0 to 200. |
 | `keep` | `str \| None` | no (default None) | none (deleted when done), save (saved when idle or closed; its title resumes it) or live (kept running; the owner allows it). |
-| `signins` | `bool \| None` | no (default None) | false: saves keep no browser sign-ins. |
-| `take_over` | `bool` | no (default False) | Take a machine another chat of yours holds but has not used for 10 minutes (its work stays on it). Only when that chat is done with it. |
-| `network` | `str \| None` | no (default None) | limited or none, only to narrow the node's (never wider). |
+| `signins` | `bool \| None` | no (default None) | false: saves keep no sign-ins. |
+| `take_over` | `bool` | no (default False) | Take a machine another chat of yours holds but has not used for 10 minutes. Only when that chat is done with it. |
+| `network` | `str \| None` | no (default None) | limited or none (only narrows the node's). |
 
 ## environment_port
 

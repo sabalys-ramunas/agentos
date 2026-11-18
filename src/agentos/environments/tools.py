@@ -341,7 +341,7 @@ async def environment_open(ctx: ToolContext, *, title: str | None = None, repo: 
     Returns on, id, title, opened (new, resumed, attached, taken_over), state (starting: call
     environment(on=...)), workdir, branch, machine (`bigger`: sizes and prices), expires_at, keep,
     links.browser (its live view, for the human); applied and differs when it is not what you asked;
-    prepared and app when the repo has .agentos/environment.toml (its setup ran, its dev server runs).
+    prepared and app with a .agentos/environment.toml (setup ran, dev server up).
     A private repo the node cannot read: approval_pending with review_url for the human. Errors:
     environment_in_use, environment_limit, environment_already_open.
 
@@ -356,10 +356,10 @@ async def environment_open(ctx: ToolContext, *, title: str | None = None, repo: 
         wait_s: Seconds to wait for ready, 0 to 200.
         keep: none (deleted when done), save (saved when idle or closed; its title resumes it) or live
             (kept running; the owner allows it).
-        signins: false: saves keep no browser sign-ins.
-        take_over: Take a machine another chat of yours holds but has not used for 10 minutes (its
-            work stays on it). Only when that chat is done with it.
-        network: limited or none, only to narrow the node's (never wider).
+        signins: false: saves keep no sign-ins.
+        take_over: Take a machine another chat of yours holds but has not used for 10 minutes. Only
+            when that chat is done with it.
+        network: limited or none (only narrows the node's).
     """
     mgr = _mgr(ctx)
     title = check_title(title if title else title_for_repo(ctx, mgr, repo))
