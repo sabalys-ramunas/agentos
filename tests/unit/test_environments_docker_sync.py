@@ -42,7 +42,7 @@ async def test_local_changes_reach_the_environment_by_upload_and_sync(node):  # 
     manifest = Manifest(files=[Entry(path=p, size=len(d), chunks=[_chunk(d)[0]]) for p, d in files.items()])
     msha, mb64 = _chunk(manifest.model_dump_json().encode())
     missing = await call("lane_upload_check", chunks=[*chunks, msha])
-    assert sorted(missing["missing"]) == sorted([*chunks, msha]) and missing["lane"] == env["lanes"]["terminal"]
+    assert sorted(missing["missing"]) == sorted([*chunks, msha]) and missing["lane"] == f"env/{env['id']}"
     stored = await call("lane_upload", chunks={**chunks, msha: mb64})
     assert stored.get("status") != "approval_pending" and stored["stored"] == 3, stored
 

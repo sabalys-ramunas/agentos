@@ -229,10 +229,13 @@ Returns:
  "machine": {"provider": "hetzner", "server_type": "cpx22", "cpu": 2, "memory_gb": 4,
              "location": "nbg1", "price_hourly_eur": 0.012},
  "expires_at": "2026-11-13T18:00:00Z",
- "lanes": {"terminal": "env/e7k2", "browser": "env/e7k2-browser"},
  "links": {"browser": "http://localhost:7450/...the node's live view, signed..."},
  "next": "Give the human links.browser. Then lane_exec(cmd=\"ls\", cwd=\"/work/shop\") ..."}
 ```
+
+Since 2026-11-18 it has no `lanes`: an agent took `lanes.browser` for an `on`. A lane's name as `on`
+(`env/<id>`, `env/<id>-browser`, `<id>-browser`) reaches the machine only for the session that holds it;
+anyone else hears it is a lane's name and to pass the `on`.
 
 Since 2026-11-15 the result adds `keep`, and when it resumes a save `resumed`: `{save_id, saved_at, from:
 "snapshot" | "files", branch, head, files_restored, commits_restored, services: [{cmd, cwd, port, running}],

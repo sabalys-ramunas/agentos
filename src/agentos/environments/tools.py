@@ -266,7 +266,7 @@ def _open_result(ctx: ToolContext, mgr: EnvironmentManager, env: Environment, ha
     out = {"id": env.id, "title": env.title, "opened": opened, "state": "ready" if env.state == "ready" else env.state,
            "on": handle,
            "workdir": env.workdir, "repo": env.repo, "branch": env.branch, "machine": machine,
-           "expires_at": s["expires_at"], "lanes": env.lanes, "links": _links(ctx, env), "keep": env.keep}
+           "expires_at": s["expires_at"], "links": _links(ctx, env), "keep": env.keep}  # no lane names: `on` is the way in
     if differs:
         out["applied"], out["differs"] = applied or {}, differs
     if env.resumed:

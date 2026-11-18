@@ -38,7 +38,7 @@ def default_grant(node, subject: str):  # noqa: F811
 
 async def test_another_agent_cannot_run_on_drive_or_list_an_environment(node):  # noqa: F811
     a = await opened(node)
-    terminal, browser = a["lanes"]["terminal"], a["lanes"]["browser"]
+    terminal, browser = f"env/{a['id']}", f"env/{a['id']}-browser"
     g2, tok2 = default_grant(node, "stranger")
     before = list(node["machine"].ran)
     for tool, kw in (("lane_exec", {"cmd": "cat ~/.bash_history"}), ("lane_job_start", {"cmd": "sleep 1"}),
@@ -59,7 +59,7 @@ async def test_another_agent_cannot_run_on_drive_or_list_an_environment(node):  
 
 async def test_the_family_reaches_it_and_the_owner_only_outside_mcp(node):  # noqa: F811
     a = await opened(node)
-    terminal = a["lanes"]["terminal"]
+    terminal = f"env/{a['id']}"
     policy = node["policy"]
     # a grant narrowed from the opener's (a brain or a routine of the same agent) is the same family: with
     # the handle the opener hands it, it works there; by the lane's id alone it does not (one holder)
@@ -141,7 +141,7 @@ def _vm_token(fed) -> str:
 async def test_the_vm_token_reaches_its_own_repository_only_and_never_a_command_line(node, git):  # noqa: F811
     a = await opened(node, repo=f"{HOST}/me/shop")
     assert a["state"] == "ready", a
-    lane = a["lanes"]["terminal"]
+    lane = f"env/{a['id']}"
     token = _vm_token(git.fed)
     # it went in through stdin; no command line on the node carries it (ps shows those)
     assert all(token not in cmd for cmd, _ in git.fed) and all(token not in cmd for cmd, _ in node["machine"].ran)
@@ -179,7 +179,7 @@ async def test_no_declared_repository_means_no_token_at_all(node, git):  # noqa:
 
 async def test_the_token_dies_with_its_environment(node, git):  # noqa: F811
     a = await opened(node, repo=f"{HOST}/me/shop")
-    lane = a["lanes"]["terminal"]
+    lane = f"env/{a['id']}"
     token = _vm_token(git.fed)
     port = git.svc._vm_listeners[lane][1]
     await node["call"]("environment_close", discard=True)
@@ -193,7 +193,7 @@ async def test_the_token_dies_with_its_environment(node, git):  # noqa: F811
 
 async def test_a_token_of_a_closed_environment_is_refused_even_before_teardown(node, git):  # noqa: F811
     a = await opened(node, repo=f"{HOST}/me/shop")
-    lane = a["lanes"]["terminal"]
+    lane = f"env/{a['id']}"
     token = _vm_token(git.fed)
     node["mgr"].store.update(a["id"], lambda e: setattr(e, "state", "closed"))  # as the CLI and a crash leave it
     with pytest.raises(Refused, match="environment closed"):
