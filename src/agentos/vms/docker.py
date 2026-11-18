@@ -345,16 +345,21 @@ class DockerProvider:
 
     async def create_snapshot(self, server_id: str, description: str, labels: dict[str, str]) -> str:
         """`docker commit`. An image build's is `<repository>:snapshot-<name>`; an environment's save
-        (label agentos-save) is `<repository>:save-<id>`, and that name is its id: a machine boots from it."""
+        (label agentos-save) is `<repository>:save-<id>`, and a prepared machine's (label agentos-prepared)
+        `<repository>:prepared-<key>`: that name is its id, and a machine boots from it."""
         save = labels.get("agentos-save")
+        prepared = labels.get("agentos-prepared")
         repo = self.image.rsplit(":", 1)[0]
-        image = f"{repo}:save-{save}" if save else self._image_for(f"snapshot:{labels.get('agentos-image') or 'snapshot'}")
+        if prepared:
+            save = None
+        image = (f"{repo}:save-{save}" if save else f"{repo}:prepared-{prepared}" if prepared
+                 else self._image_for(f"snapshot:{labels.get('agentos-image') or 'snapshot'}"))
         changes = [f"LABEL {k}={v}" for k, v in sorted(labels.items())]
         args = ["commit", "-m", description[:200]]
         for c in changes:
             args += ["--change", c]
         out = (await self._run(*args, server_id, image, timeout_s=900)).strip()[:19]
-        return image if save else (out or image)
+        return image if save or prepared else (out or image)
 
     async def get_image(self, image_id: str) -> dict | None:
         raw = await self._run("image", "inspect", "--format", "{{.Size}}", image_id, ok_codes=(0, 1))

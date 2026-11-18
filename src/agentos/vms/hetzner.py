@@ -233,6 +233,10 @@ class HetznerProvider:
     async def delete_server(self, server_id: str) -> None:
         await self._call("DELETE", f"/servers/{server_id}", ok_404=True)
 
+    async def update_labels(self, server_id: str, labels: dict[str, str]) -> None:
+        """Replace a server's labels (a warm machine bound to an environment, agentos.environments.warmpool)."""
+        await self._call("PUT", f"/servers/{server_id}", body={"labels": labels})
+
     async def ensure_firewall(self, name: str, labels: dict[str, str], ssh_from: list[str]) -> str:
         rules = [
             {"direction": "in", "protocol": "tcp", "port": "22", "source_ips": ssh_from,

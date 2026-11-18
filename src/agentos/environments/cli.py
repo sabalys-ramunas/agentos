@@ -601,6 +601,8 @@ def allow(max_live: Annotated[int | None, typer.Option("--max-live", help="Open 
                                                          "month).")] = None,
           max_live_kept: Annotated[int | None, typer.Option("--max-live-kept", help="Machines kept live at once, at "
                                                             "most (default 1).")] = None,
+          warm: Annotated[int | None, typer.Option("--warm", help="Machines kept booted for the next open (default "
+                                                   "0: none). Each one bills while it waits.")] = None,
           days: Annotated[int, typer.Option(help="No longer used: opening one never asks, so there is no yes "
                                                  "to last.", hidden=True)] = 30,
           workspace: Annotated[str, typer.Option(help="No longer used.", hidden=True)] = "env") -> None:
@@ -613,12 +615,17 @@ def allow(max_live: Annotated[int | None, typer.Option("--max-live", help="Open 
     if max_size is not None and max_size not in SIZES:
         raise _fail(InvalidRequest(f"--max-size is one of {', '.join(SIZES)}"))
     path = _write_settings({"max_live": max_live, "max_hours": max_hours, "monthly_eur": monthly_eur,
-                            "max_size": max_size, "allow_keep_live": keep_live, "max_live_kept": max_live_kept})
+                            "max_size": max_size, "allow_keep_live": keep_live, "max_live_kept": max_live_kept,
+                            "warm": warm})
     typer.echo(f"Environments: {_limit_words(load_settings(_home()))}. Limits in {path}.")
     s = load_settings(_home())
     if s.allow_keep_live:
         typer.echo(f"Agents may keep up to {s.max_live_kept} machine{'s' if s.max_live_kept != 1 else ''} live between "
                    "chats (keep \"live\"). Each bills its full hourly price until it is closed.")
+    if s.warm:
+        typer.echo(f"Warm pool: {s.warm} machine{'s' if s.warm != 1 else ''} kept booted for the next open, each deleted "
+                   f"after {s.warm_minutes} min unclaimed (warm_minutes). Each one counts against the limits above and "
+                   "bills while it waits.")
     typer.echo("Opening one never asks you; the node refuses one past these limits.")
 
 

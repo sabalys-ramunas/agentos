@@ -80,6 +80,12 @@ class EnvSettings(BaseModel):
     keep_paths_max_mb: int = Field(default=500, ge=1)     # their size, at most
     encrypt_saves: bool = True                            # a save's files sealed with a key the vault holds
     save_signins: bool = True                             # a save holds the browser's sign-ins (opt out per environment)
+    # Prepared machines and the warm pool (agentos.environments.preparing, prepbuild and warmpool).
+    prepared_builds: bool = True                          # build a prepared machine for a repository that says how
+    prepared_days: int = Field(default=14, ge=1, le=3650)  # one no open used for this long is deleted
+    prepared_max: int = Field(default=5, ge=0, le=50)     # prepared machines on this node, at most
+    warm: int = Field(default=0, ge=0, le=10)             # machines kept booted for the next open (each one bills)
+    warm_minutes: int = Field(default=50, ge=5, le=1440)  # an unclaimed warm machine is deleted after this
 
     @field_validator("keep_paths")
     @classmethod
@@ -198,6 +204,11 @@ class Environment(BaseModel):
     save_tried_at: datetime | None = None     # the last save, made or failed (a failed one is retried later)
     keep_signins: bool = True                 # a save holds its browser's sign-ins (agentos.environments.signins)
     pull_requests: list[dict] = Field(default_factory=list)  # environment_pull_request opened (url, number, branch)
+    # Prepared machines and the app (agentos.environments.preparing): what the open found and did with the
+    # repository's .agentos/environment.toml, and the dev server it started.
+    prepared: dict | None = None
+    app: dict | None = None
+    warm_claimed: bool = False                # its machine came from the warm pool (agentos.environments.warmpool)
 
     @field_validator("id")
     @classmethod

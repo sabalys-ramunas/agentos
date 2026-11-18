@@ -264,7 +264,8 @@ class BearerAuth:
     """
 
     def __init__(self, app: ASGIApp, token: str, *, accept: TokenCheck | None = None,
-                 bind: TokenBinder | None = None, explain: TokenRefusal | None = None):
+                 bind: TokenBinder | None = None, explain: TokenRefusal | None = None,
+                 on_session: Callable[[str], None] | None = None):
         if not token:
             raise ValueError("mcp_token is empty; run `agentos node init` first")
         self.app = app
@@ -273,6 +274,7 @@ class BearerAuth:
         self._explain = explain
         self._bind = bind
         self._bind_session = bind is not None and _takes_session(bind)
+        self._on_session = on_session  # a new MCP session began (its first POST carries no session id)
 
     def _supplied(self, scope: Scope) -> bytes | None:
         header = b""
@@ -341,6 +343,12 @@ class BearerAuth:
             await response(scope, receive, send)
             return
         assert supplied is not None
+        if (self._on_session is not None and scope["type"] == "http" and scope.get("method") == "POST"
+                and _header(scope, b"mcp-session-id") is None):
+            try:
+                self._on_session(supplied.decode("latin-1"))
+            except Exception:
+                log.debug("the new-session hint failed", exc_info=True)
         with ExitStack() as stack:
             self._bind_all(stack, supplied.decode("latin-1"), scope)
             if scope["type"] != "http":
@@ -395,6 +403,18 @@ class RequestIds:
             await self.app(scope, receive, send)
 
 
+def _session_hint(runtime: Runtime) -> Callable[[str], None]:
+    """A chat connected: the environments service may warm a machine for it (its warm pool, off by
+    default; it checks the token may open one). Cheap: it only schedules work."""
+    def hint(token: str) -> None:
+        envs = runtime.get("environments") if runtime.has("environments") else None
+        fn = getattr(envs, "session_hint", None)
+        if callable(fn):
+            fn(token)
+
+    return hint
+
+
 def build_app(
     runtime: Runtime,
     mcp: MCPServer,
@@ -413,7 +433,8 @@ def build_app(
     hosts = allowed_hosts(config)
     mcp_app = mcp.streamable_http_app(streamable_http_path=MCP_PATH, host=config.mcp_host,
                                       transport_security=sdk_transport_security(hosts))
-    guarded = BearerAuth(mcp_app, config.mcp_token, accept=accept_token, bind=bind_token, explain=explain_token)
+    guarded = BearerAuth(mcp_app, config.mcp_token, accept=accept_token, bind=bind_token, explain=explain_token,
+                         on_session=_session_hint(runtime))
     routes: list[tuple[str, ASGIApp]] = []
     if api_app is not None:
         routes += [(API_PREFIX, api_app), (SITES_PREFIX, api_app)]

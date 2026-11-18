@@ -13,6 +13,9 @@
     POST /api/environments/{id}/download    {"path"}: pack a file or a folder under the environment's /work and
                                             answer with its one-use download link (agentos.environments.downloads),
                                             for `agentos environments download`. The owner
+    POST /api/environments/prepare          {"repo", "ref", "force"}: start the build of the repository's prepared
+                                            machine (agentos.environments.prepbuild), for `agentos environments
+                                            prepare`, which follows its steps in the store. The owner
 
 `{id}` is the card's approval id, which the questions list marks with `repo_connect`
 (agentos.environments.connect.annotate). Every route answers only the owner signed in with a person
@@ -46,6 +49,13 @@ FRESH_CHECK = "Confirm with your passkey first: a token opens your code to this 
 class DownloadBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
     path: str
+
+
+class PrepareBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    repo: str
+    ref: str | None = None
+    force: bool = False
 
 
 def _owner_has_passkey(api: Api) -> bool:
@@ -119,9 +129,19 @@ def routes(api: Api) -> list[Route]:
                                          "download link")
         return out
 
+    async def prepare(request: Request) -> dict:
+        """Start a prepared machine's build now (`agentos environments prepare`); the CLI follows its steps
+        in the store. The owner."""
+        body = await read_body(request, PrepareBody)
+        out = await mgr().prepare_now(body.repo, body.ref, force=body.force)
+        access_of(request).trace("environment.prepare", summary=f"started the prepared machine build of {out['repo']}")
+        return out
+
     in_person = {"owner": True, "presence": Presence.PERSON}
     return [
         Route("/api/environments/{id}/download", endpoint(api, download, owner=True, action="environment.download"),
+              methods=["POST"]),
+        Route("/api/environments/prepare", endpoint(api, prepare, owner=True, action="environment.prepare"),
               methods=["POST"]),
         Route("/api/repo-connect/{id}/form", endpoint(api, token_page, step_up=True, **in_person), methods=["POST"]),
         Route("/api/repo-connect/{id}/deploy-key", endpoint(api, deploy_key, **in_person), methods=["POST"]),
