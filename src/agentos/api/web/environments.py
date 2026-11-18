@@ -1,8 +1,14 @@
 """Environments: each agent's cloud computer, as the app's Environments pages read them.
 
     GET  /api/orgs/{org}/environments?state=open|all      {"environments": [EnvSummary]}
+    GET  /api/orgs/{org}/environments/prepared            {machines, eur_month, eur_per_gb_month, pool, month}:
+                                                          the prepared machines, the warm pool with its price
+                                                          and worst month, this month's opens
+                                                          (agentos.environments.fleet). The owner only
     GET  /api/orgs/{org}/environments/{id}                EnvDetail, with proofs [{id, title, taken_at,
-                                                          page_url, width, height, src}]
+                                                          page_url, width, height, src}], bringup, replay
+                                                          and the resume (resumed, resumed_by, owner_woken,
+                                                          resumed_at)
     GET  /api/orgs/{org}/environments/{id}/proofs/{proof}.png   a proof's PNG (src above)
     GET  /api/orgs/{org}/environments/{id}/replay?after=&limit=  the replay of its browser: frames and calls
                                                           by time (agentos.environments.replay). The owner only
@@ -20,9 +26,14 @@
 The detail's `checkpoints` (agentos.environments.checkpoints) carry `diff` in each repository: what
 changed since, against the work tree now (files added, changed, removed; lines added, removed).
 
+The detail's `bringup` (agentos.environments.timings) is each step of the bring-up with when it began and
+its seconds, the steps running now while it starts, and the work it did not need (a prepared machine's
+setup, a warm machine's rent and boot); `replay` is {frames, since, bytes, kept_until} or null.
+
 The listing also gives `saved`: [{id, title, repo, branch, head, saved_at, snapshot_gb, files_bytes,
-cost_eur_month, note, agent}], the saves of environments that are not open (agentos.environments.saving),
-and `snapshots_eur_month`, what the kept snapshots cost. Each summary has `keep` (none, live, save).
+cost_eur_month, note, agent, prune_at, paused, kind, env_id, provider, server_type, price_hourly_eur,
+services}], the saves of environments that are not open (agentos.environments.saving, fleet), and
+`snapshots_eur_month`, what the kept snapshots cost. Each summary has `keep` (none, live, save).
 
 The shapes are the contract of docs/design/environments.md. These read the environments service
 (agentos.environments) themselves and decide who may: reading needs `see` and a close or an extend
@@ -127,7 +138,31 @@ def _save_visible(access: Any, m: Any) -> bool:
 
 
 SAVED_KEYS = ("id", "title", "repo", "branch", "head", "saved_at", "snapshot_gb", "files_bytes", "cost_eur_month",
-              "note", "agent", "prune_at")
+              "note", "agent", "prune_at", "paused", "kind", "env_id", "provider", "server_type", "price_hourly_eur",
+              "services")
+
+
+def replay_of(mgr: Any, env: Any) -> dict | None:
+    """The detail's `replay`: {frames, since, bytes, kept_until}, or None when the node keeps none."""
+    summary = getattr(mgr, "replay_summary", None)
+    out = summary(env) if callable(summary) else None
+    if out is None:
+        return None
+    from agentos.core import clock
+
+    kept = getattr(mgr, "replay_kept_until", None)
+    return {**out, "kept_until": clock.iso_or_none(kept(env), z=True) if callable(kept) else None}
+
+
+def resume_of(env: Any) -> dict[str, Any]:
+    """The detail's resume: `resumed` (as environment_open's, null when it was not resumed), `resumed_by`
+    ("owner" or null), `owner_woken` (the owner resumed it and no chat took it yet) and `resumed_at` (its
+    open, which is when the resume began)."""
+    from agentos.core import clock
+    from agentos.environments.waking import is_owner_woken
+
+    return {"resumed": env.resumed, "resumed_by": env.resumed_by, "owner_woken": is_owner_woken(env),
+            "resumed_at": clock.iso_or_none(env.created_at, z=True) if env.resumed else None}
 
 
 def proofs_of(mgr: Any, env: Any, org: str) -> list[dict[str, Any]]:
@@ -182,10 +217,10 @@ def routes(api: Api) -> list[BaseRoute]:
         envs = mgr.store.open() if state == "open" else mgr.store.recent(200)
         out: dict[str, Any] = {"environments": [mgr.summary(e) for e in envs if _visible(access, e)],
                                "available": True}
-        saved_for = getattr(mgr, "saved_for", None)
-        if callable(saved_for):
+        saved_rows = getattr(mgr, "saved_rows", None)
+        if callable(saved_rows):
             try:
-                rows = saved_for(None, visible=lambda m: _save_visible(access, m))
+                rows = saved_rows(lambda m: _save_visible(access, m))
             except Exception:  # noqa: BLE001 - the page without its saves rather than none at all
                 rows = []
             out["saved"] = [{k: r.get(k) for k in SAVED_KEYS} for r in rows]
@@ -200,6 +235,8 @@ def routes(api: Api) -> list[BaseRoute]:
         summaries = getattr(mgr, "checkpoint_summaries", None)
         if out.get("checkpoints") and callable(summaries):
             out["checkpoints"] = await summaries(env, out["checkpoints"])
+        out["replay"] = replay_of(mgr, env)
+        out.update(resume_of(env))
         return out
 
     async def proof_png(request: Request) -> Response:
@@ -270,6 +307,7 @@ def routes(api: Api) -> list[BaseRoute]:
         org_route(api, "/environments/saves/{save_id}", forget_save, ["DELETE"], owner=True,
                   presence=Presence.PERSON),
         org_route(api, "/environments", listing, ["GET"], cap="see"),
+        prepared_route(api),  # before /environments/{id}: "prepared" is no environment's id
         org_route(api, "/environments/{id}", one, ["GET"], cap="see"),
         org_route(api, "/environments/{id}/proofs/{proof}.png", proof_png, ["GET"], cap="see"),
         *replay_routes(api, find),
@@ -277,6 +315,19 @@ def routes(api: Api) -> list[BaseRoute]:
         org_route(api, "/environments/{id}/extend", extend, ["POST"], cap="operate"),
         *_owner_routes(api, find),
     ]
+
+
+def prepared_route(api: Api) -> BaseRoute:
+    """The owner's prepared machines, the warm pool and this month's opens (agentos.environments.fleet)."""
+
+    async def prepared(request: Request) -> dict[str, Any]:
+        mgr = manager(api)
+        if mgr is None or not callable(getattr(mgr, "prepared_overview", None)):
+            raise NotFound(NO_ENVIRONMENTS)
+        await access_of(request).authorize(Effect.READ, action="environment.prepared")
+        return await mgr.prepared_overview()
+
+    return org_route(api, "/environments/prepared", prepared, ["GET"], owner=True)
 
 
 def _owner_routes(api: Api, find: Any) -> list[BaseRoute]:

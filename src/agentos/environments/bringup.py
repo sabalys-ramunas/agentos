@@ -13,7 +13,7 @@ from typing import Any
 
 from agentos.core.errors import AgentosError, LaneExists
 from agentos.core.models import LaneSpec
-from agentos.environments import machine
+from agentos.environments import machine, timings
 from agentos.environments.errors import (
     EnvironmentFailed,
     EnvironmentLimit,
@@ -93,13 +93,17 @@ class Steps:
     def __init__(self, env_id: str):
         self.env_id = env_id
         self.took: list[tuple[str, float]] = []
+        self.done: list[dict] = []  # {step, at_s, seconds, ok} as each ends (agentos.environments.timings)
         self.started = time.monotonic()
 
     async def run(self, name: str, coro: Any) -> Any:
         t = time.monotonic()
         NOW.setdefault(self.env_id, {})[name] = t
+        ok = False
         try:
-            return await coro
+            out = await coro
+            ok = True
+            return out
         finally:
             running = NOW.get(self.env_id, {})
             running.pop(name, None)
@@ -107,7 +111,14 @@ class Steps:
                 NOW.pop(self.env_id, None)
             took = time.monotonic() - t
             self.took.append((name, took))
+            self.done.append({"step": name, "at_s": round(t - self.started, 1), "seconds": round(took, 1), "ok": ok})
             log.info("environment %s: %s took %.1f s", self.env_id, name, took)
+
+    def running(self) -> list[dict]:
+        """The steps in progress: {step, at_s, so_far_s}."""
+        now = time.monotonic()
+        return [{"step": name, "at_s": round(began - self.started, 1), "so_far_s": round(now - began, 1)}
+                for name, began in (NOW.get(self.env_id) or {}).items()]
 
     def total(self) -> float:
         return time.monotonic() - self.started
@@ -150,7 +161,7 @@ class BringUp:
 
     async def _bring_up(self, env_id: str, plan: dict | None) -> None:
         env = self.store.get(env_id)
-        steps = Steps(env_id)
+        steps = timings.LIVE[env_id] = Steps(env_id)
         warm = self._warm_mirror(env)
         try:
             if env.vm_id is None:
@@ -165,7 +176,7 @@ class BringUp:
             def ready(e: Environment) -> bool:
                 if e.state != "starting":
                     return False
-                e.state, e.ready_at = "ready", self._clock()
+                e.state, e.ready_at, e.bringup = "ready", self._clock(), timings.record(steps, ok=True)
                 return True
 
             env = self.store.update(env_id, ready)
@@ -190,7 +201,9 @@ class BringUp:
                 code = "restore_failed"  # its save is untouched: the next open with the title tries again
             if warm is not None and not warm.done():
                 warm.cancel()  # no clone waits for it any more
-            await self._fail(env_id, msg, code=code, reason=reason)
+            await self._fail(env_id, msg, code=code, reason=reason, bringup=timings.record(steps, ok=False))
+        finally:
+            timings.ended(env_id, steps)
 
     async def _rent(self, env: Environment, plan: dict) -> Environment:
         """Rent the machine (agentos.vms; its own fallbacks when the provider has no room) and record it."""
@@ -304,9 +317,11 @@ class BringUp:
                     with contextlib.suppress(BaseException):
                         await t
 
-    async def _fail(self, env_id: str, why: str, *, code: str | None = None, reason: str | None = None) -> None:
+    async def _fail(self, env_id: str, why: str, *, code: str | None = None, reason: str | None = None,
+                    bringup: dict | None = None) -> None:
         def failed(e: Environment) -> None:
             e.error = why[:1200]
+            e.bringup = bringup or e.bringup
             e.error_code = code or "environment_failed"
             e.error_reason = reason if e.error_code == "environment_failed" else None
 

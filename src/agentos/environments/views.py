@@ -205,6 +205,9 @@ class Views:
         out["watched"] = self.watched(env)  # type: ignore[attr-defined]  (Watching, on the same manager)
         out["network"] = self.network_view(env)  # type: ignore[attr-defined]  (Network, on the same manager)
         out.update(self.prepared_view(env))  # type: ignore[attr-defined]  (Preparing, on the same manager)
+        from agentos.environments import timings
+
+        out["bringup"] = timings.view(self, env)  # each step of its bring-up and its seconds
         busy = self.in_background(env.id)  # type: ignore[attr-defined]  (Saving, on the same manager)
         if busy:
             out["background"] = f"{busy}: an agent's environment_{'close' if busy == 'closing' else 'save'} goes on"
