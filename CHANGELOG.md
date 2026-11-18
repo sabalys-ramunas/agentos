@@ -6,6 +6,20 @@ All notable changes to agentos are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **A network policy per environment.** `network` in `environments.toml` is `full` (the default),
+  `limited` (package registries, code hosts, your `allow_hosts` and the hosts of bound secrets) or
+  `none` (the git gateway alone). It is held outside the machine: a closed Hetzner firewall, or the
+  docker entrypoint's closed wall. The machine's way out is the node's allowlist proxy, over its SSH
+  connection; refused hosts get a 403 that names the fix, and are listed in `environment()`, the web
+  API and the pull request. `agentos environments allow --network limited --host api.example.com`
+  sets it; an agent may only narrow it on `environment_open(network=...)`.
+- **Secrets for the app, never on the VM.** `agentos environments secret add STRIPE_SECRET_KEY --host
+  api.stripe.com [--repo ...]` binds a vault API key to environments. The machine holds a
+  placeholder, and the node's TLS swap puts the value in for the bound host only (headers and query,
+  HTTP/1.1). `list` and `remove` too.
+
 ### Fixed
 
 - **`agentos setup --docker` works from the one-line install.** The machine image's Dockerfile and

@@ -239,6 +239,121 @@ How environments stay is set in the same file: `default_keep` (`none`, the defau
 one, and turns the second on only when you choose it. See
 [Keeping an environment](#keeping-an-environment).
 
+### Network
+
+What a machine may reach is `network` in `environments.toml`, the node's default for every new
+environment:
+
+| `network` | The machine reaches |
+|---|---|
+| `full` (the default) | the internet, as before (not this computer or your network: see step 1) |
+| `limited` | package registries and code hosts (the list below), the repository's own git host, your `allow_hosts`, the hosts of [bound secrets](#secrets-for-the-app), and the git gateway |
+| `none` | the git gateway and the hosts of bound secrets, nothing else |
+
+```
+agentos environments allow --network limited                # the node's default
+agentos environments allow --host api.example.com           # one more host for limited (repeat --host)
+agentos environments allow --host .example.com              # a domain and every host under it
+```
+
+`allow_hosts` takes a host (`api.example.com`), a domain with its hosts (`.example.com` or
+`*.example.com`), and a port when it is not 80 or 443 (`api.example.com:8443`). An agent may pass
+`network` to `environment_open` only to narrow it (full, then limited, then none). Asking for a wider
+one is refused with `network_not_allowed` and the command that widens it: nothing an agent reads, and
+nothing in a repository, widens it. A machine keeps the network it opened with.
+
+`limited` reaches, on ports 80 and 443 (`agentos.environments.network.PRESET` is the exact list):
+npm, yarn, nodejs.org and JSR; PyPI and its files; crates.io and rustup; the Go module proxy and its
+checksum database; RubyGems, Packagist, NuGet; Maven Central and Gradle; Ubuntu's archive (and its
+country mirrors), security and ports hosts, and Hetzner's mirror; Docker Hub and ghcr.io; GitHub's
+code, API, release and raw hosts; Playwright's browser downloads. It is narrower than the "common
+dependencies" lists of other agents: no google.com, no microsoft.com, no cloud consoles.
+
+How it holds. The agent is root on its machine, so the network is closed outside it:
+
+- On Hetzner, a closed machine gets the node's second firewall (`agentos-<node>-<home>-closed`)
+  instead of its usual one: SSH and ping in from the node as before, and one outbound rule (ping to
+  the node), which makes Hetzner drop every other packet the machine sends. The firewall is stateful,
+  so the node's SSH connection keeps working. It needs the `dev` image: a machine closed from its
+  first boot cannot install its tools (`network_not_allowed` says so).
+- On docker, the entrypoint refuses every new connection out but loopback, DNS included, before
+  sshd starts, with no NET_ADMIN left after. The docker provider copies its own entrypoint in for
+  this, so an image pulled before this works too.
+- Another provider that cannot close a machine refuses `limited` and `none` (`network_not_allowed`)
+  before it rents anything.
+
+The machine's way out is the node's proxy, reached through the machine's SSH connection as
+`127.0.0.1:3130` there (like the git gateway on 3129). The node resolves every name itself and
+refuses private and local addresses. On the machine, every process gets `HTTP_PROXY`, `HTTPS_PROXY`
+(and the lower case ones) and `NO_PROXY=localhost,127.0.0.1,::1` from `/etc/environment`, apt has a
+proxy file, git and the package managers follow the variables, and Docker's daemon gets a systemd
+drop-in (restarted only when it runs). A program that ignores the proxy variables reaches nothing.
+
+What it refuses, it says and keeps. A request to a host that is not on the list gets a 403 whose body
+says `<host> is not on this environment's network list. The owner can allow it: agentos environments
+allow --host <host>`. Nobody is asked. `environment()` and the web app's environment page list each
+refused host with a count and when it was last refused (`network.blocked`), and
+`environment_pull_request` adds a "Blocked during this work" section to the pull request when there
+were any.
+
+The browser. With `browser = "node"`, a closed environment's browser uses a proxy on the node that
+splits: `localhost` and the machine's loopback go through the machine's tunnel (your dev server, as
+before), and every other host goes out from the node through the same list. Sites then see the
+node's address, not the machine's. With `browser = "vm"`, the machine's browser uses the proxy on
+`127.0.0.1:3130` there, and `localhost` stays the machine's own.
+
+### Secrets for the app
+
+An app often needs an API key for its tests or its dev server (a payment API's test key, say). Bind
+it once at the node, and the machine never holds it:
+
+```
+agentos environments secret add STRIPE_SECRET_KEY --host api.stripe.com                 # every environment
+agentos environments secret add STRIPE_SECRET_KEY --host api.stripe.com --repo github.com/me/shop
+agentos environments secret list                                                        # names and hosts only
+agentos environments secret remove STRIPE_SECRET_KEY [--repo github.com/me/shop]
+```
+
+The value is read from a prompt (or stdin with `--stdin`), never the command line, and kept in the
+vault as an API key bound to those hosts and to environments (`env/*`). Storing it is the
+permission: nothing asks when it is used. Only you bind one: no tool takes a binding, so an agent
+cannot bind a variable to a host of its choosing. A binding for a repository wins over one for every
+environment. New environments get it; open ones when they open again.
+
+On the machine, `STRIPE_SECRET_KEY` holds a placeholder, `agentos-secret-<random>` (another one in
+each environment), in `/etc/environment`. A request to the bound host reaches the node, which ends
+its TLS with a certificate from the environment's own CA, puts the real value in place of the
+placeholder, and sends the request on to the real host over TLS with full certificate checks, to an
+address it resolved itself. `environment()` lists the bound secrets by name (`network.secrets`),
+never a value.
+
+- In `limited` and `none`, the bound hosts are on the list, and their HTTPS through the proxy is
+  ended by the node instead of passed through blind.
+- In `full`, the machine's `/etc/hosts` sends the bound hosts to `127.0.10.1`, where a small relay
+  (a systemd service on a cloud VM, a process on docker) passes the connection to the node through
+  the SSH connection (`127.0.0.1:3131`). If the agent breaks the relay, its requests fail; the value
+  still never reaches the machine.
+- The CA: one per environment, made on the node; its key never leaves the node and is deleted when the
+  environment closes. The machine trusts its certificate: the system store, and
+  `NODE_EXTRA_CA_CERTS`, `REQUESTS_CA_BUNDLE` and `SSL_CERT_FILE` in `/etc/environment`.
+
+What is covered, exactly:
+
+- The value goes in only when the TLS server name and the request's `Host` header are both a host the
+  secret is bound to, and only into the request's headers (a `Basic` credential's user or password
+  included) and its URL's query. Every request on a kept-alive connection gets it.
+- Not into a body (a key in JSON or a form is sent as the placeholder), not over plain HTTP, and
+  never to another host: a placeholder sent anywhere else goes out as it is and is listed under
+  `network.blocked`.
+- HTTP/1.1 only (the node offers `http/1.1` alone, and clients fall back to it). HTTP/3 (QUIC) is not
+  carried; clients fall back to TCP. A client that pins the API's certificate refuses the
+  environment's CA, so its requests fail. WebSockets to a bound host are not carried.
+- The response comes back as it is: an API that echoes your key in a response hands it to the
+  machine. The browser does not trust the environment's CA: opening a bound host in it shows a
+  certificate error (it is meant for the app's API calls).
+- Warm machines (a pool the node keeps ready, when it has one) are `full` machines: an open with
+  `limited` or `none` rents its own closed machine. Secrets are set up on any machine as it opens.
+
 ### 5. Check it
 
 ```
@@ -264,7 +379,7 @@ What the agent does:
 
 | Call | What it does |
 |---|---|
-| `environment_open(title, repo, ref, size, hours, keep, signins)` | rents the VM, clones `repo` into `/work/<name>`, opens the browser; returns the workdir and the browser's live view link for you. With `repo` and no `title` it finds that repository's one open or saved environment (several: `environment_choice`, with each title to pick from; none: a new one named after the repository) |
+| `environment_open(title, repo, ref, size, hours, keep, signins, network)` | rents the VM, clones `repo` into `/work/<name>`, opens the browser; returns the workdir and the browser's live view link for you. With `repo` and no `title` it finds that repository's one open or saved environment (several: `environment_choice`, with each title to pick from; none: a new one named after the repository) |
 | `lane_file_read(path, offset, limit)`, `lane_file_edit(path, old, new)`, `lane_file_write(path, content)` | the repository's files on the VM, with line numbers; an edit replaces exact text that occurs once (a relative path starts in the repository) |
 | `lane_exec(cmd, cwd, max_bytes)`, `lane_job_start`, `lane_job_read(until_exit, until_port)`, `lane_job_cancel` | commands and dev servers on the VM (`on`: the handle your environment_open gave; the job tools take it too and check it names the job's machine, though the job id alone is enough); in every agent's tool list. A command's output comes back within 16 KB by default (the middle is cut, with the full sizes). `shell_open` and the rest are `tools_more("terminals")`. See [Waiting and memory](#waiting-and-memory) |
 | `browser_navigate(url)`, `browser_snapshot`, `browser_act` | the environment's browser, a desktop window; `localhost` is the VM |
@@ -619,6 +734,11 @@ On it:
   with.
 - A git config that sends declared hosts to the gateway (`127.0.0.1:3129` on the VM is the node's
   gateway, through the VM's SSH connection).
+- With a closed network (`limited`, `none`): the proxy variables in `/etc/environment`, an apt proxy
+  file (`/etc/apt/apt.conf.d/95agentos-proxy`) and Docker's drop-in. With bound secrets: their
+  placeholders in `/etc/environment`, the environment CA's certificate (never its key), the bound
+  hosts in `/etc/hosts` and the relay (`/usr/local/lib/agentos-env/secret-relay.py`). See
+  [Network](#network).
 - Whatever the agent installs. It is the agent's machine, by its title.
 - In local mode only: the public half of the environment's own ssh key in root's authorized_keys,
   restricted to a terminal and commands (no forwarding), so `ssh agentos-<id>` works from the agent's
@@ -656,6 +776,9 @@ Not on it:
 | You see | What it means | What to do |
 |---|---|---|
 | `environment_limit` | `max_live`, the longest life or the month's budget is reached; the message says which | close one (`agentos environments list`), or raise that limit with `agentos environments allow` |
+| `network_not_allowed` | the agent asked for a wider network than the node's, the provider cannot close a machine, `none` cannot clone an undeclared repository, or a closed Hetzner machine has no `dev` image | the message names the command: `agentos environments allow --network ...`, `agentos environments repo add ...` or `agentos vm image build dev` |
+| a 403 that says a host "is not on this environment's network list" | the environment's network is `limited` or `none`, and that host is not allowed | `agentos environments allow --host <host>`; new environments get it |
+| a bound secret's API answers 401 | the request carried the placeholder: a body, plain HTTP, or another host than the bound one (`network.blocked` says which) | send the key in a header or the query, over HTTPS, to the bound host |
 | `environment_failed` | the VM did not boot or answer SSH in time; it was deleted | `agentos environments setup`; on Hetzner, `agentos vm types` (sold out in the location?) |
 | `state: "starting"` for minutes | first boot without the `dev` image installs the tools | wait, or build the image (step 2) |
 | `no_environment` | a call without `on` in a chat with no environment | the agent calls `environment_open(title=...)` first, or names an account lane with `on` |

@@ -295,6 +295,43 @@ owner's shell, and can read AGENTOS_HOME); two grants' commands in one lane with
 what the pushed commits contain; and a lane whose own egress allowlist lists the git host, which
 can reach it directly with a credential the agent brought itself (never the node's).
 
+## An environment's network and its app's secrets (docs/ENVIRONMENTS.md)
+
+An environment's agent is root on its VM, so nothing set inside the VM can bound it. Its `network`
+(`full`, `limited`, `none`) is held outside: on Hetzner a firewall whose one outbound rule (ping to the
+node) makes Hetzner drop every other packet out; on docker the entrypoint's closed wall, set before sshd
+with no NET_ADMIN left. A closed machine's one way out is the node's allowlist proxy, forwarded into it
+over the SSH connection the node holds. A secret bound to environments stays in the node's vault; the
+VM holds a placeholder, and the node's TLS swap puts the value in for the bound host only.
+
+| Question | Answer |
+|---|---|
+| Who sets the network and the bindings | the owner, at the node (`environments.toml`, `agentos environments allow --network/--host`, `agentos environments secret add`). An agent may only narrow the network on `environment_open`; no tool, page, repository file or command widens it or binds a secret |
+| What a closed machine reaches | the node's proxy (registries and code hosts for `limited`, the owner's hosts, bound hosts), the git gateway, its own loopback. Names are resolved on the node, and private, loopback and link-local addresses are refused there |
+| Where a secret's value is | in the vault, and in agentosd's memory while requests use it (read from the vault again each minute). Never on the VM, in a tool result, a log line, the record or the web app: they hold the variable's name only |
+| When the value is put in | a request on a TLS connection whose server name is a bound host, and whose Host header is that same host: headers (a Basic credential included) and the URL's query. Not bodies, not plain HTTP, not another host. A placeholder sent anywhere else goes out as it is and is listed under `blocked` |
+| The environment's CA | made per environment on the node; its key never leaves the node and is deleted at close; it signs certificates for bound hosts only; the VM trusts it |
+| The swap's own connection out | to the bound host by name, an address the node resolved itself (public only), with full certificate checks against the node's trust store; HTTP/1.1 |
+| What is recorded | the refused hosts (host, count, last) with the environment, shown in `environment()`, the web app and the pull request; each use of a secret in the vault's use count and the node's log (entry and host, no value) |
+
+What this does not stop:
+
+- **DNS on a `full` machine.** A full machine resolves names itself and reaches any public host; the
+  network setting is the guard, so choose `limited` or `none` where it matters. A bound host is
+  mapped in the VM's `/etc/hosts`, which root on the VM can change: a request that bypasses the
+  relay then gets no value (the secret is never on the VM), it fails.
+- **What the agent can still read.** Everything in the repository, the files it cloned and whatever
+  the allowed hosts serve. `limited` reaches github.com and the registries: code pushed to a public
+  package, gist or issue there leaves too. Data leaves through any allowed host that accepts data.
+- **What the bound host does with the request.** The agent can make any request it likes to the bound
+  API with the real key (that is what binding it allows), and an API that echoes the key back in a
+  response hands it to the VM.
+- **Certificate pinning and HTTP/3.** A client that pins the API's certificate refuses the
+  environment's CA, and its requests fail (they never carry the value). QUIC (UDP) is not proxied:
+  clients fall back to HTTP/1.1 or 2 over TLS, and the swap speaks HTTP/1.1 only.
+- **A key bound to a host the agent controls.** The binding is the owner's; bind a key only to the
+  host that issued it.
+
 ## The agent's own ssh to its environment (local mode)
 
 In local mode (docs/LOCAL.md) the agent runs on the same laptop as agentos, and each ready environment
