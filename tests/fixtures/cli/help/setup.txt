@@ -7,8 +7,8 @@
  thing, run its step again, like `agentos setup github`.
 
 ╭─ Arguments ──────────────────────────────────────────────────────────────────╮
-│   [STEP]      <str>  Run one step again: vms, github, limits, agents, ssh,   │
-│                      check or test-vm.                                       │
+│   [STEP]      <str>  Run one step again: vms, github, limits, agents, web,   │
+│                      ssh, check or test-vm.                                  │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ╭─ Options ────────────────────────────────────────────────────────────────────╮
 │ --yes                 -y              Take every default and ask nothing     │
@@ -19,6 +19,8 @@
 │                                       (free).                                │
 │ --github-token-file           <path>  Read a GitHub token from this file (-  │
 │                                       for stdin).                            │
+│ --no-web                              Skip the web app (`agentos setup web`  │
+│                                       adds it later).                        │
 │ --home                        <path>  Where agentos keeps its files          │
 │                                       (default: ~/.agentos).                 │
 │ --help                                Show this message and exit.            │

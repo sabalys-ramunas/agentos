@@ -18,6 +18,7 @@
 │ status        Is it up, and which lanes it has (--check: what is wrong).     │
 │ open          Watch a lane live and take control (--terminal: a dashboard).  │
 │ local         agentos on this computer: start, stop, status, logs.           │
+│ web           The web app in your browser: install, update, remove.          │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ╭─ Build and check ────────────────────────────────────────────────────────────╮
 │ run           Run a command on the node against this working tree.           │

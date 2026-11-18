@@ -19,7 +19,8 @@ import pytest
 from typer.testing import CliRunner
 
 from agentos.cli import app
-from agentos.setup import steps
+from agentos.core import webapp
+from agentos.setup import steps, webstep
 
 HZ_TOKEN = "hz_" + "h" * 40
 GH_TOKEN = "gho_" + "g" * 36
@@ -48,6 +49,8 @@ class World:
     running: bool = False
     snapshot: bool | None = True  # the Hetzner project has the dev snapshot (None: Hetzner did not say)
     snapshot_fails: str | None = None
+    web_version: str = "0.0.0"  # set to agentos's own version by the fixture
+    web_fails: str | None = None
     calls: list = field(default_factory=list)
 
     # the outside world
@@ -97,6 +100,20 @@ class World:
         user = self.github_users.get(token)
         return (user, None) if user else (None, "GitHub refused it (expired, revoked or mistyped)")
 
+    def get_web_app(self, home):
+        """The release's web app, as agentos.setup.webapp.install leaves it (tests/unit/test_web_install.py
+        tests the real download)."""
+        from agentos.setup.webapp import Installed, WebAppMissing, _write_state
+
+        self.calls.append(("web install",))
+        if self.web_fails:
+            raise WebAppMissing(self.web_fails)
+        app_dir = webapp.installed_dir(home)
+        app_dir.mkdir(parents=True, exist_ok=True)
+        (app_dir / "index.html").write_text("<!doctype html><title>agentos</title>")
+        _write_state(home, version=self.web_version, sha256="0" * 64, wanted=True)
+        return Installed(version=self.web_version, sha256="0" * 64, files=1, path=app_dir)
+
     def open_test_vm(self, home):
         self.calls.append(("test_vm",))
         return "Linux agentos-vm 6.8.0-49-generic #49-Ubuntu SMP x86_64 GNU/Linux", 0.0106
@@ -140,6 +157,18 @@ def world(tmp_path, monkeypatch):
                "paths": SimpleNamespace(default_home=lambda: user / ".agentos", DEFAULT_PORT=7410)}
     monkeypatch.setattr(steps, "local", lambda name: modules[name])
     _keep_fields(monkeypatch)
+    # The web app: the tests run as from a checkout that built it, so the web step asks nothing (the
+    # web step's own tests below take the build away).
+    from agentos import __version__
+
+    w.web_version = __version__
+    dist = tmp_path / "checkout" / "web" / "dist"
+    dist.mkdir(parents=True)
+    (dist / "index.html").write_text("<!doctype html><title>agentos</title>")
+    monkeypatch.delenv("AGENTOS_PANEL_DIR", raising=False)
+    monkeypatch.delenv("AGENTOS_NO_WEB", raising=False)
+    monkeypatch.setattr(webapp, "checkout_dist", lambda: dist)
+    monkeypatch.setattr(webstep, "get_web_app", w.get_web_app)
     return w
 
 
@@ -180,9 +209,10 @@ def test_quick_start_with_hetzner_and_gh(world):
     _no_secrets(out)
     assert "Welcome to agentos" in out and "about EUR 0.011 an hour" in out
     assert "nothing until a VM opens" in out
-    for n, title in enumerate(("VMs", "GitHub", "Limits", "Your agents", "SSH from your shell", "Health check",
-                               "A test VM"), 1):
-        assert f"Step {n} of 7: {title}" in out
+    for n, title in enumerate(("VMs", "GitHub", "Limits", "Your agents", "The web app", "SSH from your shell",
+                               "Health check", "A test VM"), 1):
+        assert f"Step {n} of 8: {title}" in out
+    assert "The web app is served from this checkout's own build" in out
     # ssh agentos-<id> from the person's shell: one Include at the top of ~/.ssh/config
     ssh_config = Path(os.environ["HOME"]) / ".ssh" / "config"
     assert ssh_config.read_text().splitlines()[1] == f"Include {home}/ssh/config"
@@ -527,3 +557,76 @@ def test_no_to_ssh_changes_nothing_and_says_the_other_command(world):
     assert r.exit_code == 0, r.output
     assert not (Path(os.environ["HOME"]) / ".ssh" / "config").exists()
     assert f"ssh -F {world.home}/ssh/config agentos-<id>" in r.output
+
+
+# ---- the web app step (agentos.setup.webstep): the release's prebuilt copy, default yes
+
+
+@pytest.fixture
+def no_build(world, tmp_path, monkeypatch):
+    """An installed agentos: no checkout build beside the code, so the step offers the release's copy."""
+    monkeypatch.setattr(webapp, "checkout_dist", lambda: tmp_path / "no-checkout" / "web" / "dist")
+    return world
+
+
+def test_the_web_step_adds_the_app_by_default(no_build):
+    r = run("web", input="\n")
+    assert r.exit_code == 0, r.output
+    assert "Add the web app" in r.output and "Added the web app" in r.output and "sha256 checked" in r.output
+    assert ("web install",) in no_build.calls
+    st = webapp.status(no_build.home)
+    assert st.source == "installed" and st.installed == no_build.web_version and not st.mismatched
+    _no_secrets(r.output)
+
+
+def test_a_no_is_remembered_and_yes_mode_then_leaves_it_out(no_build):
+    r = run("web", input="n\n")
+    assert r.exit_code == 0 and "No web app" in r.output and "agentos setup web" in r.output
+    assert webapp.status(no_build.home).wanted is False
+    assert ("web install",) not in no_build.calls
+    r = run("--yes", "--docker", input="")  # the question's default is now the earlier no
+    assert r.exit_code == 0, r.output
+    assert ("web install",) not in no_build.calls
+    assert "not installed (you said no)" in r.output  # the health check's line
+
+
+def test_no_web_skips_the_step_without_a_question(no_build):
+    r = run("--yes", "--docker", "--no-web", input="")
+    assert r.exit_code == 0, r.output
+    assert "Skipped the web app (--no-web)" in r.output and ("web install",) not in no_build.calls
+    assert webapp.status(no_build.home).wanted is None  # a skip is not a no: the next setup asks again
+
+
+def test_yes_mode_adds_the_app(no_build):
+    r = run("--yes", "--docker", input="")
+    assert r.exit_code == 0, r.output
+    assert ("web install",) in no_build.calls and "Added the web app" in r.output
+
+
+def test_an_app_from_another_release_is_updated_without_a_question(no_build):
+    no_build.get_web_app(no_build.home)
+    from agentos.setup.webapp import _write_state
+
+    _write_state(no_build.home, version="0.0.1", sha256="0" * 64, wanted=True)
+    assert webapp.status(no_build.home).mismatched
+    r = run("check", input="")
+    assert "to do" in r.output and "version 0.0.1 is installed, but this agentos is" in r.output
+    r = run("web", input="")
+    assert r.exit_code == 0 and "is 0.0.1, and this agentos is" in r.output and "updating it" in r.output
+    assert not webapp.status(no_build.home).mismatched
+
+
+def test_step_by_step_can_remove_the_app(no_build):
+    run("web", input="\n")
+    r = run("web", input="n\n")  # "Keep it?" no
+    assert r.exit_code == 0 and "Removed" in r.output
+    st = webapp.status(no_build.home)
+    assert st.source == "none" and st.wanted is False and not webapp.installed_dir(no_build.home).exists()
+
+
+def test_no_network_says_so_and_setup_goes_on(no_build):
+    no_build.web_fails = "could not reach the release: no network"
+    r = run("--yes", "--docker", input="")
+    assert r.exit_code == 0, r.output
+    assert "Could not add the web app: could not reach the release" in r.output
+    assert "The node works without it" in r.output and "the web app" in r.output.split("Still to do:")[1]
