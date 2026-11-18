@@ -496,7 +496,7 @@ or the lane identity `workspace/lane` (a browser lane's name encodes its
 account, for example `biz-a/instagram`; a second account is `biz-a/instagram-2`, and the
 handle lives in `LaneSpec.account`).
 
-The node exposes about 150 tools today. [TOOLS.md](TOOLS.md) is the generated reference (run
+[TOOLS.md](TOOLS.md) is the generated reference for every tool the node exposes (run
 `agentos tools` for the list on your build). The main groups:
 
 - **Environments:** `environment_open` (the title names the computer), `environment`,

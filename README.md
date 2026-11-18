@@ -339,7 +339,7 @@ Install, hardening, backups and upgrades: [deploy/README.md](deploy/README.md).
 | `browser_navigate`, `browser_snapshot`, `browser_act` | the VM's browser: read the page as an outline, act by reference |
 | `browser_screenshot(proof=...)` | a screenshot kept as proof, at desktop or phone width |
 
-About 150 more tools load in groups when the agent needs them: [docs/TOOLS.md](docs/TOOLS.md). The
+The other tools load in groups when the agent needs them: [docs/TOOLS.md](docs/TOOLS.md). The
 skill that teaches an agent the loop:
 [agentos-environment](src/agentos/client/skills/agentos-environment/SKILL.md).
 

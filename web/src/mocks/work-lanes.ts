@@ -10,9 +10,9 @@ const MINUTE = 60_000;
 
 /** [lane id, its address, warm, minutes since last used, handle] */
 const WORK: [string, string, boolean, number, string][] = [
-  ['aster/gmail', 'mail.google.com', true, 22, 'hello@astercoffee.com'],
+  ['aster/gmail', 'mail.google.com', true, 22, 'hello@astercoffee.example'],
   ['aster/bank', 'ib.swedbank.lt', false, 95, 'Aster Coffee UAB'],
-  ['aster/sheets', 'sheets.google.com', false, 140, 'hello@astercoffee.com'],
+  ['aster/sheets', 'sheets.google.com', false, 140, 'hello@astercoffee.example'],
   ['aster/portal', 'orders.nordicbeans.example', false, 300, 'Aster Coffee'],
   ['harbor/xero', 'go.xero.com', true, 48, 'Harbor Supply Ltd'],
   ['harbor/quickbooks', 'qbo.intuit.com', false, 1440, 'Harbor Supply Ltd'],

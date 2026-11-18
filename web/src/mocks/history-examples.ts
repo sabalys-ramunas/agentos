@@ -34,8 +34,8 @@ const EXAMPLES: Example[] = [
     why: { trigger: 'agent', text: 'Asked from a chat', approval: { by: 'Tomas Reyes', at: new Date(Date.now() - 23 * MINUTE).toISOString(), state: 'approved', method: 'chat', level: 'chat', where: 'Claude Code' } },
     artifact: {
       type: 'email',
-      from: 'Aster Coffee <hello@astercoffee.com>',
-      to: ['accounts@northwindfreight.com'],
+      from: 'Aster Coffee <hello@astercoffee.example>',
+      to: ['accounts@northwindfreight.example'],
       subject: 'Invoice 2026-0412 for October',
       body: 'Hello Marta,\n\nPlease find our invoice for October attached: 40 kg of house espresso and the two grinder services.\n\nPayment within 14 days, as usual. Thank you!\n\nIngrid\nAster Coffee',
       attachments: [{ name: 'Invoice-2026-0412.pdf', size: 84_200 }],
@@ -287,8 +287,8 @@ const EXAMPLES: Example[] = [
     why: chat,
     artifact: {
       type: 'email',
-      from: 'Solstice Studio <studio@solstice.design>',
-      to: ['ana.ruiz@museodelprado.es'],
+      from: 'Solstice Studio <studio@solstice.example>',
+      to: ['ana.ruiz@museum.example'],
       subject: 'Quote: gallery wall for the new print room',
       body: 'Dear Ana,\n\nAs promised, our quote for the print room wall: design, two sample panels and installation over three days.\n\nWe can start in the second week of January.\n\nWarm regards,\nSolstice Studio',
       attachments: [{ name: 'Solstice quote Q-2026-31.pdf', size: 236_000 }],
