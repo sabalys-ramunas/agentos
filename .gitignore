@@ -4,6 +4,8 @@ __pycache__/
 .DS_Store
 .node-home/
 bench/.last.txt
+# make web-asset: the release's web app archive (scripts/web_asset.py)
+dist-release/
 
 # lanebench lab: harvested fixtures and Jev answers, rebuilt by a command
 tests/lanebench/lab/data/

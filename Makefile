@@ -1,6 +1,6 @@
 # One command for what CI checks. `make check` before every push.
 
-.PHONY: check merge-check lint layers complexity deadcode shell test emdash typecheck audit tools-doc errors-doc protocol-doc golden bench eval export-check
+.PHONY: check merge-check lint layers complexity deadcode shell test emdash typecheck audit tools-doc errors-doc protocol-doc golden bench eval export-check web-asset
 
 check: lint deadcode shell emdash typecheck test
 
@@ -101,3 +101,9 @@ eval:
 # directory and scanned for private names, hosts and em dashes. Commit first: it reads HEAD.
 export-check:
 	uv run python scripts/public_export.py --check
+
+# The release's web app (.github/workflows/web-release.yml does the same): build web/ in live mode, then
+# pack web/dist as dist-release/agentos-web-<version>.tar.gz and its .sha256 (scripts/web_asset.py).
+web-asset:
+	cd web && pnpm install --frozen-lockfile && pnpm build
+	python3 scripts/web_asset.py --dist web/dist --out dist-release
