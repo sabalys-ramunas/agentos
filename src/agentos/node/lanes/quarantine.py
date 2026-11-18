@@ -72,6 +72,12 @@ class QuarantineMixin:
         """Read the exit IP from inside the lane. Returns (reason, record) to quarantine (a
         record makes it persist until a human clears it), or None."""
         assert lane.session is not None
+        if proxy is not None and not proxy.check_exit:
+            # An environment's tunnel: its exit is never judged, so it is not read either. On a closed
+            # network the read is refused (ipinfo.io is on no list): it quarantined the lane and showed
+            # ipinfo.io as blocked (video proofs, 2026-11-18); on any network it cost the first page a fetch.
+            log.info("%s: exit IP not read through %s (an environment's tunnel: not compared)", lane_id, proxy.label)
+            return None
         try:
             ip = await asyncio.wait_for(self._fetch_exit_ip(lane.session), self.self_check_timeout)
             ip = str(ipaddress.ip_address(str(ip).strip()))
