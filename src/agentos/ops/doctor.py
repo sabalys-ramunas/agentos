@@ -35,8 +35,9 @@ ORDER = {FAIL: 0, WARN: 1, PASS: 2, SKIP: 3}
 
 REQUIRED_PACKAGES = ["xvfb", "x11vnc", "fonts-liberation", "fonts-noto-color-emoji"]
 OPTIONAL_PACKAGES = {"bubblewrap": "terminal and service lanes isolate programs with it",
-                     "xclip": "the live view copies what a lane copied to your computer with it"}
-PACKAGE_BINARIES = {"xvfb": "Xvfb", "x11vnc": "x11vnc", "bubblewrap": "bwrap", "xclip": "xclip"}
+                     "xclip": "the live view copies what a lane copied to your computer with it",
+                     "ffmpeg": "video proofs of an environment's browser (browser_record) record its screen with it"}
+PACKAGE_BINARIES = {"xvfb": "Xvfb", "x11vnc": "x11vnc", "bubblewrap": "bwrap", "xclip": "xclip", "ffmpeg": "ffmpeg"}
 
 LANE_RAM = 700 * 1024**2      # what one warm Camoufox lane takes, measured on the 4 GB node
 BASE_RAM = 512 * 1024**2      # agentosd, Xvfb overhead and the OS

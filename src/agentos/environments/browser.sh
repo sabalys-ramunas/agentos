@@ -33,9 +33,10 @@ uv venv -q --python 3.12 "$DIR/venv"
 uv pip install -q --python "$DIR/venv/bin/python" --require-hashes -r "$REQ"
 apt-get update -q
 # What Firefox needs to run, as the pinned Playwright lists it (the node installs the same), then the
-# screen, its live view (and its clipboard, xclip) and the fonts the node's browsers have.
+# screen, its live view (and its clipboard, xclip), the recorder of video proofs (ffmpeg, agentos.environments.
+# recording) and the fonts the node's browsers have.
 "$DIR/venv/bin/python" -m playwright install-deps firefox
-apt-get install -y -q --no-install-recommends xvfb x11vnc xclip fonts-liberation fonts-noto-color-emoji
+apt-get install -y -q --no-install-recommends xvfb x11vnc xclip ffmpeg fonts-liberation fonts-noto-color-emoji
 # The browser build camoufox 0.5.9 is paired with (its browser-pin.json), and the fingerprint model.
 "$DIR/venv/bin/python" -m camoufox fetch
 rm -rf "$UV_CACHE_DIR"

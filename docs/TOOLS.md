@@ -30,7 +30,7 @@ tools_more lists only tools the caller's grant can see. Connector operations (`<
 | Toolset | What it holds | Tools |
 |---|---|---|
 | `core` | the everyday lane loop: find and open a lane, look, act, wait, upload, log in, ask a person | `approval_confirm`, `approval_wait`, `browser_act`, `browser_dialog`, `browser_dialog_answer`, `browser_navigate`, `browser_screenshot`, `browser_snapshot`, `browser_tabs`, `browser_upload`, `browser_wait`, `environment`, `environment_close`, `environment_download`, `environment_forget`, `environment_open`, `environment_save`, `environment_upload`, `files_put`, `howto`, `human_ask`, `lane_claim`, `lane_close`, `lane_exec`, `lane_file_edit`, `lane_file_read`, `lane_file_write`, `lane_job_cancel`, `lane_job_read`, `lane_job_start`, `lane_open`, `lane_release`, `lane_view`, `lane_wait_control`, `lanes_list`, `login`, `memory_context`, `run_status`, `whoami` |
-| `files` | more for a browser lane: its files (inbox and downloads), switching tabs, scrolling a feed | `browser_scroll`, `browser_tab`, `files_delete`, `files_get`, `files_list` |
+| `files` | more for a browser lane: its files (inbox and downloads), switching tabs, scrolling a feed, a video proof of an environment's browser (browser_record) | `browser_record`, `browser_scroll`, `browser_tab`, `files_delete`, `files_get`, `files_list` |
 | `devtools` | why a page broke: its console messages and page errors, its requests and which failed, and one response's body | `browser_console`, `browser_network` |
 | `control` | sharing lanes: who has one, asking a person for it, the queue, a safety check, a freeze | `lane_check`, `lane_control`, `lane_freeze`, `lane_queue`, `lane_request_control` |
 | `vault` | stored logins: what the vault holds, filling one login field, asking for a log in | `lane_login_request`, `vault_fill`, `vault_list` |
@@ -53,7 +53,7 @@ tools_more lists only tools the caller's grant can see. Connector operations (`<
 
 Meta tool, listed whenever the list is not `full`. Effect: none (it lists tools).
 
-More agentos tools, by toolset: files (files, tabs, scrolling), devtools, control (who has a lane, asking for it, queue, freeze), vault (stored logins), flows (saved flows and runs), workflows (routines on a schedule or a trigger), connectors (site operations), site_apis (a page's data as an API), mail, memory, profiles, studio (check a page you build), workspaces, worker (hand a browser job to the node), admin (grant, approvals, call trail), terminals (shells, commands, services), brains (agent tasks on the node), automation (events, triggers, agenda). tools_more(toolset) returns its tools with their arguments and adds them to your list (a tool's name works too); with no toolset it lists every toolset's tools. tools_call runs any tool, listed or not.
+More agentos tools, by toolset: files (files, tabs, scroll, video), devtools, control (who has a lane, asking for it, queue, freeze), vault (stored logins), flows (saved flows and runs), workflows (routines on a schedule or a trigger), connectors (site operations), site_apis (a page's data as an API), mail, memory, profiles, studio (check a page you build), workspaces, worker (hand a browser job to the node), admin (grant, approvals, call trail), terminals (shells, commands, services), brains (agent tasks on the node), automation (events, triggers, agenda). tools_more(toolset) returns its tools with their arguments and adds them to your list (a tool's name works too); with no toolset it lists every toolset's tools. tools_call runs any tool, listed or not.
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
@@ -98,6 +98,7 @@ Call any agentos tool by name with its arguments, including tools not in your li
 | [`browser_dialog_answer`](#browser_dialog_answer) | core | draft | Answer the waiting dialog (the one browser_dialog shows): accept=true presses OK (for a prompt, with `text`; for beforeunload it leaves the page), accept=false presses Cancel (stays on the page) |
 | [`browser_navigate`](#browser_navigate) | core | read | Open a URL in the lane's active tab (http or https; a bare domain gets https) |
 | [`browser_network`](#browser_network) | devtools | read | The lane's network since its browser started: each request's id, method, url, type (document, script, fetch, xhr, image...), status, ms, mime and failure (when it got no answer), newest last, to see which call failed and how |
+| [`browser_record`](#browser_record) | files | read | A video of your environment's browser as proof: start, do the flow (navigate, fill, click), then stop with a title |
 | [`browser_screenshot`](#browser_screenshot) | core | read | A PNG of what the lane's active tab shows right now |
 | [`browser_scroll`](#browser_scroll) | files | read | Move further down the page with the real wheel: a few notches, at the lane's own pace, as a person keeps reading |
 | [`browser_snapshot`](#browser_snapshot) | core | read | Read the lane's active tab as an accessibility outline: roles, names and text, with a ref like [ref=e12] on everything you can act on (pass it to browser_act); unnamed icon buttons get a (hint: ...) read from their attributes |
@@ -528,6 +529,18 @@ The lane's network since its browser started: each request's id, method, url, ty
 | `since` | `int \| None` | no (default None) | A cursor from an earlier result: only requests after it. |
 | `last` | `int` | no (default 50) | At most this many of the newest matching requests, 1 to 200. |
 
+## browser_record
+
+Toolset: `files`. Effect: `read`. Needs the `environments` service.
+
+A video of your environment's browser as proof: start, do the flow (navigate, fill, click), then stop with a title. Kept like a screenshot proof (an MP4 and a GIF preview, with links), and environment_pull_request shows it. It stops by itself after a few minutes, or when the environment closes. The first one on an older machine installs the recorder (about a minute). Effect: read.
+
+| Argument | Type | Required | Description |
+|---|---|---|---|
+| `on` | `str \| None` | no (default None) | The on your environment_open gave, or an account lane "workspace/name". |
+| `action` | `str` | yes | "start", or "stop" to keep it. |
+| `proof` | `str \| None` | no (default None) | Its title for the human ("guest checkout, end to end"), at start or stop. |
+
 ## browser_screenshot
 
 Toolset: `core`. Effect: `read`. Needs the `interaction` service.
@@ -539,7 +552,7 @@ A PNG of what the lane's active tab shows right now. Use it only when the snapsh
 | `on` | `str \| None` | no (default None) | The on your environment_open gave, or an account lane "workspace/name". |
 | `full_page` | `bool` | no (default False) | The whole page, not only the window. |
 | `width` | `int \| None` | no (default None) | Lay the page out this wide for the shot (390: a phone). An environment's browser only. |
-| `proof` | `str \| None` | no (default None) | Keep it as proof of your work, with this title for the human ("cart after the fix"): kept on the node after the environment closes, with a link to give the human (curl -o proof.png <url> saves it). An environment's browser only. |
+| `proof` | `str \| None` | no (default None) | Keep it as proof, titled for the human ("cart after the fix"): kept after the environment closes, with a link for the human (curl -o proof.png <url>); browser_record (files toolset) keeps a video. An environment's browser only. |
 
 ## browser_scroll
 
@@ -751,15 +764,16 @@ Open a dev server of your environment on the human's own computer, as a preview 
 
 Toolset: `terminals`. Effect: `read`. Needs the `environments` service.
 
-Open a pull request on GitHub for the branch your environment pushed, with the node's stored GitHub token (the VM has no gh and no credential). Only a branch this environment created; it never merges. If one is open for that branch already, it returns that one. Returns url (give it to the human), number, branch, base, draft and created. Effect: read. Errors: no_environment, denied (not a branch it pushed), pull_request_failed (no token on the node, or GitHub refused).
+Open a pull request on GitHub for the branch your environment pushed, with the node's stored GitHub token (the VM has no gh and no credential). Only a branch this environment created; it never merges. Your proofs (screenshots, recordings) go in its Proof section, stored on the repository's agentos-proofs branch, never in the diff. If one is open for that branch already, it returns that one with its Proof section brought up to date (your text and others' stay). Returns url (give it to the human), number, branch, base, draft, created and proofs. Effect: read. Errors: no_environment, denied (not a branch it pushed), pull_request_failed (no token on the node, or GitHub refused).
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
 | `title` | `str` | yes | The pull request's title. |
-| `body` | `str \| None` | no (default None) | Its description (Markdown): what changed, how it was tested, proof links. |
+| `body` | `str \| None` | no (default None) | Its description (Markdown): what changed, how it was tested. |
 | `base` | `str \| None` | no (default None) | The branch to merge into; the repository's default branch if left out. |
 | `draft` | `bool` | no (default False) | Open it as a draft. |
 | `branch` | `str \| None` | no (default None) | Which pushed branch; the newest one this environment pushed if left out. |
+| `proofs` | `bool \| list[str] \| None` | no (default None) | false leaves the proofs out; a list of proof ids or titles shows only those. |
 | `on` | `str \| None` | no (default None) | The on your environment_open gave (a client with a session id may leave it out). |
 
 ## environment_save
