@@ -54,6 +54,9 @@ are there for that.
 - One topic per pull request, in small commits. Commit subjects follow the repo's style:
   `Area: what changed, in plain words` (for example `Vault: refuse a fill on another domain`).
 - Add or update tests with the change. A bug fix comes with a test that fails without it.
+- A change to what an agent sees in an environment (a tool, a result, a description, the skill):
+  run `make eval` before and after (Docker, free) and say what [docs/EVALS.md](docs/EVALS.md)'s
+  compare shows.
 - Generated docs must stay current: `make tools-doc`, `make errors-doc`, `make protocol-doc`
   (CI checks them).
 - **No em dashes in anything a person reads**: UI strings, CLI output, docstrings, docs. Use a

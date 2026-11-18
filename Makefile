@@ -1,6 +1,6 @@
 # One command for what CI checks. `make check` before every push.
 
-.PHONY: check merge-check lint layers complexity deadcode shell test emdash typecheck audit tools-doc errors-doc protocol-doc golden bench export-check
+.PHONY: check merge-check lint layers complexity deadcode shell test emdash typecheck audit tools-doc errors-doc protocol-doc golden bench eval export-check
 
 check: lint deadcode shell emdash typecheck test
 
@@ -90,6 +90,12 @@ bench:
 	@cat bench/.last.txt
 	@sed -n 's/^BENCH //p' bench/.last.txt >> bench/results.jsonl
 	uv run python scripts/bench_compare.py
+
+# The environments eval (docs/EVALS.md): the free suite (the perfect and careless scripts on a docker
+# node of its own), appended to bench/evals.jsonl and compared with the run before. EVAL_ARGS adds
+# flags: EVAL_ARGS="--agent claude --model haiku --task t01" for a paid run (--max-usd guards it).
+eval:
+	uv run python tests/env_eval/run.py $(EVAL_ARGS)
 
 # The public repository's tree (scripts/public-export.toml), exported from HEAD to a temporary
 # directory and scanned for private names, hosts and em dashes. Commit first: it reads HEAD.

@@ -61,6 +61,16 @@ All notable changes to agentos are recorded here. The format follows
   gives the owner the frames (with signed links) and the calls by time. Kept 14 days after the close
   (`replay_days`), within a cap per environment and on the node; `replay = false` in
   `environments.toml` turns it off. An agent sees only `environment()`'s `replay` count.
+- **An eval of the agent's experience in environments.** `make eval` (or `uv run python
+  tests/env_eval/run.py`) runs six tasks an agent really does (fix and open a pull request, a dev
+  server with a proof, continue tomorrow, cold, prepared and warm opens, a refused host on a limited
+  network, a checkpoint and rollback) on a docker node of its own with local repositories and a
+  stand-in for GitHub, and measures finished, time to a ready machine, calls, errors, wrong turns and
+  the tokens of tool output read, from a recording MCP proxy every agent goes through. Scripted
+  `perfect` and `careless` agents prove the checkers for free; `--agent claude --model haiku` (and
+  `codex`, or any `--agent-cmd`) runs a real model under a cost guard (`--max-usd`). Each run goes to
+  `bench/evals.jsonl` and is compared with the one before; `--ref <commit>` runs another commit's
+  agentos under the same harness for an A/B. [docs/EVALS.md](docs/EVALS.md).
 
 ### Fixed
 
