@@ -8,6 +8,18 @@ All notable changes to agentos are recorded here. The format follows
 
 ### Added
 
+- **What the evals found, fixed.** A lane's name passed as `on` (`<id>-browser`, the open's old
+  `lanes.browser`) reaches the machine for the chat whose session holds it, and anyone else hears it is a
+  lane's name and to pass the `on`; the open's result names no lane any more. `lane_exec` adds a one-line
+  `hint` naming `lane_file_read(path=...)` when a command only read a file (nothing on any other command).
+  A command refused a host on a `limited` network says so in its own result (`network.blocked_now` with the
+  owner's command), and the CONNECT 403's status line carries the same words. `NODE_USE_ENV_PROXY=1` joins
+  the proxy variables, so Node's `fetch` gets the 403 instead of ENOTFOUND. The environment's browser starts
+  during the open, beside the clone (a close cancels a start nobody used), so the first `browser_navigate`
+  no longer waits 10 to 15 s for it. A `browser = "vm"` environment on a `limited` network is no longer
+  quarantined by the exit IP self-check (an environment's tunnel is not read), so a video proof works there.
+  The evals gain `t07_video_proof`, the `first_navigate_s` metric and a wrong turn for a lane's name as `on`.
+
 - **An environment's page in the web app tells what happened, on the real node.** A closed one leads
   with its replay (frame by frame, the agent's calls, a person's take-overs and the proofs on one track
   that fits a phone), then its proofs and pull request; an open one with its live browser. How it opened

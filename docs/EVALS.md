@@ -213,3 +213,12 @@ Each session starts with 38 tools of about 9,480 tokens and instructions of abou
 after a cold open. `--agent claude --model haiku` (Haiku 5.5) finished t01 and t02 in 32 s and 47 s
 for $0.015, with 5 wrong turns between them: files read with `cat` through `lane_exec`, and a
 `browser_navigate` with `on` set to the environment's `lanes.browser` instead of its `on`.
+
+After the fixes for those (2026-11-18, `envs/axfixes`): `perfect` and `careless` still finish all and
+none; t05 reads 1,668 tokens instead of 2,992 and makes 4 calls instead of 5 (the refused host is in
+the command's own result, no `environment()` needed); every other metric within its noise. The
+browser starts during the open, so it is ready by the time an agent that thinks between calls
+navigates: Haiku's first `browser_navigate` took 3.3 s instead of 15.6 s, and t01 and t02 took 30 s
+and 30 s for the same $0.015, with 3 wrong turns (the `cat`s, before the hint) and no tool error. A
+script that navigates a second after the open still waits for most of the start (t02: 6.8 s, was
+7.7 s). `t07_video_proof` finishes in 45 s, 25 of them installing ffmpeg on this image.
