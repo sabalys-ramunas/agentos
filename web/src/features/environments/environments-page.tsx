@@ -45,8 +45,8 @@ export function EnvironmentsPage() {
         title={PLACES.environments.word}
         description={
           <>
-            Cloud computers your agents rent, each with a terminal, a browser and your repository. A single-use one is deleted when the
-            work is done. A kept one stays running, or is saved and comes back when an agent opens it again.
+            A computer for each agent, with a terminal, a browser and your repository, that stays. When idle it is saved and the VM
+            deleted, and it comes back when an agent opens it again. A single-use one is deleted when the work is done.
             {environments?.length ? <span className="text-fg"> {openSummary(open)}</span> : null}
           </>
         }
@@ -97,7 +97,7 @@ function EnvironmentsBody({ org, query }: { org: string; query: ReturnType<typeo
         <EmptyState
           icon={<MonitorCloud />}
           title="No environments yet"
-          description="An environment is a cloud computer of the agent's own, with a terminal, a browser and your repository. It is single use, or kept for the next chat. An agent connected to agentos asks for one with environment_open."
+          description="An environment is a cloud computer of the agent's own, with a terminal, a browser and your repository. It is saved when idle and comes back in the next chat, or single use when the agent asks. An agent connected to agentos asks for one with environment_open."
           action={<CodeBlock code={OPEN_CALL} label="Copy the call" className="max-w-full text-left" />}
         />
       </Card>

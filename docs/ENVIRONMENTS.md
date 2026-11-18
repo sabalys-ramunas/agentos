@@ -2,8 +2,9 @@
 
 An environment is a VM that the node rents for an agent. It has a terminal, a real browser whose
 traffic leaves from the VM, and your repository in `/work/<name>`. The agent works there, commits
-and pushes a branch. A single-use one is deleted when it is done; a kept one is saved or stays
-running, and comes back when an agent opens it again with the same title
+and pushes a branch. By default it stays: when it goes idle the whole machine is saved and the VM
+deleted, and it comes back when an agent opens it again with the same title. A single-use one is
+deleted when it is done, and one kept running stays on
 ([Keeping an environment](#keeping-an-environment)). You can watch its browser and its commands
 live and take over.
 
@@ -264,7 +265,7 @@ one to its time limit, not only what it has cost so far. The node's own limits i
 (`max_live`, `max_ttl_minutes`, `monthly_budget_eur`) hold too, and the tighter one wins.
 `allow` grants nothing; it only writes the limits to `environments.toml`.
 
-How environments stay is set in the same file: `default_keep` (`none`, the default, or `save`),
+How environments stay is set in the same file: `default_keep` (`save`, the default, or `none`),
 `allow_keep_live` (off until you turn it on) and `max_live_kept`. `agentos setup` asks the first
 one, and turns the second on only when you choose it. See
 [Keeping an environment](#keeping-an-environment).
@@ -971,13 +972,14 @@ keep=...)`), else `default_keep` in `environments.toml`:
 
 | Mode | In the web app | What happens | While nobody uses it |
 |---|---|---|---|
+| `save` (the default) | Saves when idle | on idle, close, its time limit or laptop sleep, the whole machine is saved (a disk snapshot plus the files) and the VM deleted; autosave every 15 minutes | the snapshot, about EUR 0.012 per GB a month (cents) |
 | `none` | Single use | work, push, close; the VM is deleted | nothing |
-| `save` | Saves when idle | on idle, close, its time limit or laptop sleep, the whole machine is saved (a disk snapshot plus the files) and the VM deleted; autosave every 15 minutes | the snapshot, about EUR 0.012 per GB a month (cents) |
 | `live` | Kept running | the VM stays on; deleted only on a final close or by you | every hour, about EUR 7.80 a month for a `cx23` |
 
-The skill and the MCP intro tell the agent to choose single use for a one-off fix, `save` when the
-work will span sessions or you say "keep it" or "continue tomorrow", and `live` only when you ask
-for an always-on machine. `live` is refused (`keep_live_not_allowed`) until you allow it:
+The skill and the MCP intro tell the agent to keep the default, `save`, and to choose single use
+(`keep="none"`) only for a one-off fix, and `live` only when you ask for an always-on machine. To
+make single use the default again, set `default_keep = "none"` (or choose it in `agentos setup
+limits`). `live` is refused (`keep_live_not_allowed`) until you allow it:
 
 ```
 agentos environments allow --keep-live

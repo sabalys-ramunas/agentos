@@ -67,7 +67,7 @@ class EnvSettings(BaseModel):
     take_over_minutes: int = Field(default=10, ge=1, le=1440)
     browser: BrowserWhere = "node"                        # where each new environment's browser runs
     # Keeping an environment (agentos.environments.saving, docs/design/environments.md "Keeping").
-    default_keep: Keep = "none"                           # environment_open's keep when the agent names none
+    default_keep: Keep = "save"                           # environment_open's keep when the agent names none
     allow_keep_live: bool = False                         # keep "live" bills the machine all month: opt in
     max_live_kept: int = Field(default=1, ge=0, le=20)    # environments kept live at once
     keep_last: int = Field(default=3, ge=1, le=50)        # saves kept for one title, newest first

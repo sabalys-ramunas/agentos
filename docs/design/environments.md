@@ -157,7 +157,8 @@ closed. An environment's `keep` says what happens to its machine when the work s
   (`allow_keep_live`, `agentos environments allow --keep-live`) and `max_live_kept` (1) caps them; else
   `keep_live_not_allowed`. Its VM is `kept`: max_hours and vms.toml max_ttl_minutes do not bound it, the
   monthly budget does.
-- The default keep is environments.toml `default_keep` ("none"; "live" there needs the opt-in).
+- The default keep is environments.toml `default_keep` ("save" since 2026-11-18: agentos is a computer
+  that stays; "none" stays one argument away; "live" there needs the opt-in).
 - While a `save` one works, a file-level autosave runs every `autosave_minutes` (15) after use, without
   a snapshot; only the newest autosave of a title is kept, and none older than a full save.
 

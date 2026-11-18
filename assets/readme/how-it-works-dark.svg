@@ -59,7 +59,7 @@
     <rect x="34" y="174" width="202" height="32" rx="16" fill="#053321"/>
     <circle cx="54" cy="190" r="6" fill="#6ce9a6"/>
     <text x="68" y="195" font-size="13" font-weight="600" fill="#6ce9a6">Pull request ready</text>
-    <text x="135" y="252" text-anchor="middle" font-size="13" fill="#8b949e">Then the VM is deleted, or kept</text>
-    <text x="135" y="270" text-anchor="middle" font-size="13" fill="#8b949e">until tomorrow for cents a month</text>
+    <text x="135" y="252" text-anchor="middle" font-size="13" fill="#8b949e">Then it is saved when idle, and</text>
+    <text x="135" y="270" text-anchor="middle" font-size="13" fill="#8b949e">back tomorrow for cents a month</text>
   </g>
 </svg>

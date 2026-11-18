@@ -2,10 +2,10 @@
 
 `agentos local` runs a small agentos service on your laptop (macOS or Linux). It serves MCP to the
 agents on that laptop (Claude Code, Codex). When an agent opens an environment, agentos rents a
-cloud VM for it (Hetzner, or a Docker container). A single-use one is deleted when the agent closes
-it or its time runs out. A kept one is saved and its VM deleted when it goes idle, and comes back
-when an agent opens it again with the same title
-([ENVIRONMENTS.md](ENVIRONMENTS.md#keeping-an-environment)).
+cloud VM for it (Hetzner, Morph, or a Docker container). By default it stays: when it goes idle it
+is saved and its VM deleted, and it comes back when an agent opens it again with the same title
+([ENVIRONMENTS.md](ENVIRONMENTS.md#keeping-an-environment)). A single-use one is deleted when the
+agent closes it or its time runs out.
 Nothing costs money while no environment is open, except saves (cents a month) and any VM you
 chose to keep running.
 
@@ -226,7 +226,7 @@ rather.
 
 When the laptop is about to sleep, agentos acts on each open environment by its mode:
 
-- **Saves when idle** (`keep="save"`): it is saved (the disk snapshot and the files) and its VM
+- **Saves when idle** (`keep="save"`, the default): it is saved (the disk snapshot and the files) and its VM
   deleted. Nothing bills while the laptop sleeps but the save. When you are back, say "continue
   <title> in agentos" in any chat, and it comes back.
 - **Single use** (`keep="none"`): one with nothing to lose is closed. One with unsaved work gets a

@@ -617,10 +617,11 @@ def limits(ctx: Ctx) -> None:
 
 
 # How an environment stays after the work (environments.toml default_keep and allow_keep_live).
+# Saves when idle comes first and is the default: agentos is a computer that stays.
 KEEP_OPTIONS = (
+    ("save", ("Saves when idle (recommended): saved and the VM deleted when idle, back when an agent opens it "
+              "again. Cents a month while saved.")),
     ("none", "Single use: the VM is deleted when the work is done. Nothing to pay after."),
-    ("save", ("Saves when idle: saved and deleted when idle, back when an agent opens it again. "
-              "Cents a month while saved.")),
     ("live", "Saves when idle, and an agent may keep one running when you ask. That one bills every hour."),
 )
 KEEP_LIVE_COST = ("A VM kept running bills every hour, also while no agent works: about EUR 7.80 a month "
@@ -629,11 +630,11 @@ KEEP_LIVE_COST = ("A VM kept running bills every hour, also while no agent works
 
 def keep_updates(ctx: Ctx, current: Any) -> dict[str, Any]:
     """The one question about how environments stay: environments.toml's default_keep, and
-    allow_keep_live only when the owner chose it here (the default is never live)."""
+    allow_keep_live only when the owner chose it here (the default saves when idle, never live)."""
     ui = ctx.ui
-    keep = getattr(current, "default_keep", None) or "none"
+    keep = getattr(current, "default_keep", None) or "save"
     allowed = bool(getattr(current, "allow_keep_live", False))
-    default = "live" if allowed else ("save" if keep == "save" else "none")
+    default = "live" if allowed else ("none" if keep == "none" else "save")
     choice = ui.choose("How should an environment stay after the work?", list(KEEP_OPTIONS), default)
     if choice == "live" and not allowed:
         ui.say(KEEP_LIVE_COST)
@@ -647,7 +648,7 @@ def keep_updates(ctx: Ctx, current: Any) -> dict[str, Any]:
 
 
 def keep_words(s: Any) -> str:
-    keep = getattr(s, "default_keep", None) or "none"
+    keep = getattr(s, "default_keep", None) or "save"
     words = "single use, deleted when the work is done" if keep == "none" else "saved when idle"
     if getattr(s, "allow_keep_live", False):
         words += ", kept running when you ask (it bills every hour)"

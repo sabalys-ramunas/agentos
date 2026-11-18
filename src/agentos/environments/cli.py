@@ -377,7 +377,8 @@ def saves(json_out: Annotated[bool, typer.Option("--json")] = False) -> None:
         typer.echo(json.dumps({"saved": rows}, indent=2))
         return
     if not rows:
-        typer.echo("No saved environments. Agents save one with keep=\"save\" or environment_save.")
+        typer.echo("No saved environments. One is saved when it goes idle or closes (unless it is single use), "
+                   "or with environment_save.")
         return
     for r in rows:
         snap = f"snapshot {_gb(r['snapshot_gb'])}, EUR {r['cost_eur_month']:.2f} a month" if r["snapshot_gb"] else \
