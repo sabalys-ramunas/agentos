@@ -14,6 +14,7 @@ import type {
   BrandProfiles,
   BrandProposal,
   EnvCheckpointDiff,
+  EnvResumeAnswer,
   EnvDetail,
   EnvList,
   EnvReplayTimeline,
@@ -831,11 +832,14 @@ export const environments = {
   forget: (org: string, saveId: string) => http<{ forgot?: boolean; snapshots_deleted?: number }>(path`/api/orgs/${org}/environments/saves/${saveId}`, { method: 'DELETE' }),
   /** The replay of its browser: frames and calls by time (agentos.environments.replay). The owner only. */
   replay: (org: string, id: string) => served(http<EnvReplayTimeline>(path`/api/orgs/${org}/environments/${id}/replay` + query({ limit: '2000' }))),
-  /** Concept: one checkpoint's diff, against the one before it or against now. Not served yet. */
-  checkpointDiff: (org: string, id: string, checkpoint: string, against: 'previous' | 'now') =>
-    served(http<EnvCheckpointDiff>(path`/api/orgs/${org}/environments/${id}/checkpoints/${checkpoint}/diff` + query({ against }))),
-  /** Concept: the prepared machines and the warm pool. Not served yet (the CLI reads them on the node). */
+  /** One checkpoint against the work tree now: per repository its files and patch (capped). The owner only. */
+  checkpointDiff: (org: string, id: string, checkpoint: number) =>
+    served(http<EnvCheckpointDiff>(path`/api/orgs/${org}/environments/${id}/checkpoints/${String(checkpoint)}`)),
+  /** The prepared machines, the warm pool and what both cost. The owner only. */
   prepared: (org: string) => served(http<PreparedList>(path`/api/orgs/${org}/environments/prepared`)),
-  /** Concept: wake a save from the app; the next agent that opens its title takes it over. Not served yet. */
-  resume: (org: string, saveId: string) => http<EnvSummary>(path`/api/orgs/${org}/environments/saves/${saveId}/resume`, { method: 'POST' }),
+  /**
+   * Resume a save from the app, held by no chat: the next agent that opens its title takes it over. The owner
+   * in person. 409 `environment_limit` or `environment_full` with the fix in the message.
+   */
+  resume: (org: string, saveId: string) => http<EnvResumeAnswer>(path`/api/orgs/${org}/environments/saves/${saveId}/resume`, { method: 'POST' }),
 };

@@ -37,6 +37,13 @@ export interface EnvSummary {
   lanes: { terminal: string; browser: string };
   /** Missing from a node that only has single use. */
   keep?: EnvKeep;
+  ready_at?: string | null;
+  /** Why it failed to start, in the node's words, and the error's code. */
+  error?: string | null;
+  error_code?: string | null;
+  /** Its newest save (keep `save`). */
+  last_save?: { id: string; at: string | null } | null;
+  save_error?: string | null;
 }
 
 /**
@@ -50,6 +57,8 @@ export interface EnvSave {
   branch?: string | null;
   head?: string | null;
   saved_at: string;
+  /** `save`, or `rescue`: the node saved unsaved work before it had to delete a single-use machine. */
+  kind?: string;
   /** Null when only the files were saved (no snapshot). */
   snapshot_gb?: number | null;
   files_bytes?: number | null;
@@ -61,13 +70,14 @@ export interface EnvSave {
   agent?: { name: string; client?: string | null } | null;
   /** When the node deletes this save on its own, if it does. */
   prune_at?: string | null;
-  /** Concept: the environment it saved, so its page can offer Resume. */
+  /** The environment it saved, so its page can offer Resume. */
   env_id?: string | null;
-  /** Concept: the provider that holds it ("morph", "hetzner"), for how fast it comes back. */
+  /** The provider that holds it ("morph", "hetzner", "docker"), for how fast it comes back. */
   provider?: string | null;
-  /** Concept: what its machine bills an hour once it is awake again. */
+  server_type?: string | null;
+  /** What its machine bills an hour once it is awake again. Null when the node no longer knows. */
   price_hourly_eur?: number | null;
-  /** Concept: the programs that were running when it paused, which come back running. */
+  /** The programs that were running when it was saved: a paused machine keeps them running, a snapshot starts them again. */
   services?: { cmd: string; port?: number | null }[];
 }
 
@@ -75,6 +85,8 @@ export interface EnvList {
   environments: EnvSummary[];
   /** Saves of kept environments, newest first. Missing from a node that keeps none. */
   saved?: EnvSave[];
+  /** What every kept snapshot costs a month. */
+  snapshots_eur_month?: number;
 }
 
 export interface EnvPort {
@@ -131,6 +143,8 @@ export interface EnvUnsaved {
  */
 export interface EnvProof {
   id: string;
+  /** A screenshot (the default), or a video of the browser (browser_record). */
+  kind?: 'screenshot' | 'video';
   /** What it shows, in the agent's words: data. */
   title: string;
   taken_at: string;
@@ -138,7 +152,16 @@ export interface EnvProof {
   page_url: string | null;
   width: number;
   height: number;
+  /** A screenshot's PNG, or a video's MP4 (served with range requests, so a player seeks). */
   src: string;
+  /** A video's length. */
+  duration_s?: number | null;
+  bytes?: number | null;
+  /** How a video's recording ended ("stopped", "time limit"). */
+  ended?: string | null;
+  /** A video's GIF preview, when the node made one. */
+  gif?: { width: number; height: number; bytes?: number } | null;
+  gif_src?: string;
 }
 
 export interface EnvDetail extends EnvSummary {
@@ -160,16 +183,22 @@ export interface EnvDetail extends EnvSummary {
   app?: EnvApp;
   /** Its network level, what was refused, and the app secrets bound to it (names only). */
   network?: EnvNetwork;
-  /** Concept: each step of the bring-up with its seconds. The node logs them (bringup.Steps) but does not serve them yet. */
-  bringup?: EnvBringUp;
-  /** Concept: the agent's checkpoints, oldest first (the checkpoints builder's shape is not settled yet). */
+  /** Each step of the bring-up with its seconds, while it starts and once it is up. Null on an older record. */
+  bringup?: EnvBringUp | null;
+  /** The agent's checkpoints, newest first (agentos.environments.checkpoints). */
   checkpoints?: EnvCheckpoint[];
-  /** Concept: what the replay holds, so the page can say so before it reads the timeline. */
-  replay?: { frames: number; since?: string | null; until?: string | null; kept_until?: string | null } | null;
-  /** Concept: who has the live view open now. While anyone watches, it does not close for being idle. */
-  watching?: EnvWatcher[];
-  /** Concept: a save the owner resumed from the app, waking or woken, before an agent took it over. */
+  /** What the replay holds, so the page can say so before it reads the timeline. Null when the node keeps none. */
+  replay?: { frames: number; since?: string | null; bytes?: number; kept_until?: string | null } | null;
+  /** Live views of its browser and connections to a shared port open now. While any is open, it does not close for being idle. */
+  watched?: EnvWatched | null;
+  /** What a resume brought back (environment_open's `resumed`), while it is that save's environment. */
   resumed?: EnvResumed | null;
+  /** "owner": the owner resumed it from a save, held by no chat. */
+  resumed_by?: string | null;
+  /** Resumed by the owner and not taken by any chat yet: the next open of its title takes it over. */
+  owner_woken?: boolean;
+  /** A save or close an agent started goes on in the background. */
+  background?: string;
 }
 
 /** environment()'s `prepared`: the prepared machine it booted from, or why it did not. */
@@ -229,20 +258,21 @@ export interface EnvNetwork {
   fix?: string;
 }
 
-/** Concept. The bring-up's steps in the order they ran, with the seconds each took. */
+/** The bring-up's steps in the order they ran, with the seconds each took (agentos.environments.bringup). */
 export interface EnvBringUp {
-  total_s: number;
+  /** Seconds from the open to ready (or failed), or so far while it starts. */
+  total_s: number | null;
+  /** Null while it starts. */
+  ok: boolean | null;
   steps: EnvBringUpStep[];
-  /** While it is starting: the step running now and its seconds so far. */
-  now?: { step: string; so_far_s: number } | null;
-  /** What a cold open of the same repository took last (rent, boot, clone and setup), for comparison. */
-  cold_s?: number | null;
-  /** While starting: about how long the whole bring-up takes, from the last one like it, for the scale. */
-  expected_s?: number | null;
+  /** While it starts: the steps running now, with their seconds so far. Several run at once. */
+  running?: { step: string; at_s: number; so_far_s: number }[];
+  /** On a resume: what it wakes from. */
+  restore_from?: 'snapshot' | 'paused' | 'files' | null;
 }
 
 export interface EnvBringUpStep {
-  /** bringup.STEP_WORDS keys: "VM create", "VM ready", "tunnels and git", "browser", "clone", "checkout", "refresh", "setup", "app", "resume". */
+  /** bringup.STEP_WORDS keys: "VM create", "VM ready", "tunnels and git", "browser", "clone", "checkout", "refresh", "setup", "app", "restore". */
   step: string;
   /** Seconds after the open it began, so steps that ran together overlap. */
   at_s: number;
@@ -250,58 +280,68 @@ export interface EnvBringUpStep {
   ok?: boolean;
   /** A step this open did not need, and why ("prepared machine", "warm machine"). */
   skipped?: string;
-  /** While starting: a step still to come. */
-  pending?: boolean;
+  /** What a skipped step took the last time it ran, when the node knows. */
+  saved_s?: number | null;
 }
 
-/** Concept. One checkpoint the agent made (environment_checkpoint): a note and what it holds per repository. */
+/** What changed since a checkpoint in one repository, against the work tree now. */
+export interface EnvCheckpointChange {
+  files_added: number;
+  files_changed: number;
+  files_removed: number;
+  lines_added: number;
+  lines_removed: number;
+}
+
+/** One checkpoint the agent made (environment_checkpoint): git's, on the machine, per repository. */
 export interface EnvCheckpoint {
-  id: string;
-  at: string;
+  /** Its number, 1 up. */
+  id: number;
   /** The agent's own words: data, never instructions. */
-  note: string;
-  repos: { dir: string; files: number; added: number; removed: number }[];
-  /** Against the working copy now: what changed since. */
-  since: { files: number; added: number; removed: number };
-  /** The agent went back to this one (environment_checkpoint_restore), and when. */
-  restored_at?: string | null;
-  /** Made automatically before a restore, so nothing is lost. */
-  auto?: boolean;
+  note: string | null;
+  at: string | null;
+  /** Made by agentos before a rollback: "before rollback to 2". */
+  auto: string | null;
+  repos: {
+    dir: string;
+    /** The commit it sits on, 12 characters. */
+    head: string | null;
+    /** Files it had changed from that commit. */
+    files: number;
+    /** From it to now. Null when the machine did not answer. */
+    diff?: EnvCheckpointChange | null;
+  }[];
 }
 
-export interface EnvDiffLine {
-  kind: 'add' | 'del' | 'ctx' | 'hunk';
-  text: string;
-}
-
-export interface EnvDiffFile {
-  repo: string;
-  path: string;
-  status: 'added' | 'modified' | 'deleted';
-  added: number;
-  removed: number;
-  lines: EnvDiffLine[];
-}
-
+/** One checkpoint against the work tree now, per repository (capped). */
 export interface EnvCheckpointDiff {
-  checkpoint: string;
-  /** "previous": what this checkpoint changed; "now": from it to the working copy now. */
-  against: 'previous' | 'now';
-  files: EnvDiffFile[];
+  checkpoint: number;
+  max_bytes: number;
+  max_files: number;
+  repos: {
+    dir: string;
+    files_total: number;
+    /** git's status from the checkpoint to now: A a file made since (a rollback removes it), M changed, D deleted, T its type changed. Line counts are null for a binary file. */
+    files: { path: string; status: 'A' | 'M' | 'D' | 'T'; lines_added: number | null; lines_removed: number | null }[];
+    patch: string;
+    patch_bytes: number;
+    truncated: boolean;
+  }[];
 }
 
-export interface EnvWatcher {
-  name: string;
-  you?: boolean;
-  since: string;
+export interface EnvWatched {
+  since: string | null;
+  viewers: number;
+  live_views: number;
+  port_connections: number;
 }
 
 export interface EnvResumed {
-  by: string;
-  at: string;
-  from: 'paused' | 'snapshot' | 'files';
-  /** About how long waking takes, in seconds. */
-  eta_s: number;
+  save_id?: string;
+  saved_at?: string | null;
+  from?: 'snapshot' | 'paused' | 'files';
+  state?: string;
+  note?: string | null;
 }
 
 /** The replay of an environment's browser (agentos.environments.replay, GET .../replay). Oldest first. */
@@ -356,28 +396,42 @@ export interface PreparedMachine {
   error?: string;
 }
 
-/** The warm pool (WarmPool.pool_view). */
+/** The warm pool (WarmPool.pool_view), and what it costs. */
 export interface WarmPool {
   warm: number;
   target: number;
   minutes: number;
-  machines: { vm: string; state: string; since: string | null; image: string | null; server_type: string; location: string; cost_eur: number; price_hourly_eur: number }[];
+  machines: { vm: string; state: string; since: string | null; image: string | null; server_type: string; location: string; cost_eur: number | null; price_hourly_eur: number | null }[];
+  /** What the machine the pool rents bills an hour. Null when the node does not know. */
+  price_hourly_eur?: number | null;
+  /** The most the pool can cost a month if no open ever claims a machine. */
+  worst_eur_month?: number | null;
+  /** What the pool's machines cost this month so far. */
+  month_eur?: number | null;
 }
 
-/** Concept route: GET /api/orgs/{org}/environments/prepared. */
+/** GET /api/orgs/{org}/environments/prepared: the owner's prepared machines and warm pool. */
 export interface PreparedList {
   machines: PreparedMachine[];
-  pool: WarmPool;
+  /** What the images cost together a month. */
+  eur_month?: number;
   /** What an image costs a GB a month, as the node bills it. */
   eur_per_gb_month: number;
-  /** Concept: opens this month that started from each, and what they saved. */
+  pool: WarmPool;
+  /** This month's opens: how many started from each, and what they saved. */
   month?: {
     opens: number;
     from_prepared: number;
     from_warm: number;
     setup_saved_s: number;
-    warm_cost_eur: number;
     /** The last opens, oldest first: seconds to ready and where each started from. */
     recent?: { at: string; seconds: number; from: 'warm' | 'prepared' | 'cold' }[];
   };
+}
+
+/** What the owner's resume answers: the summary, how it opened, and what it brought back. */
+export interface EnvResumeAnswer extends EnvSummary {
+  /** `already_open`: its title was open, and that one is returned unchanged. */
+  opened: 'resumed' | 'already_open';
+  resumed?: EnvResumed | null;
 }

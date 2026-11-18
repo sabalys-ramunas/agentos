@@ -1,28 +1,42 @@
 /**
- * Checkpoint diffs for the mock (concept): what a checkpoint changed against the one before it, and what
- * changed from it to the working copy now. The cart discounts story (c5kp) and the offer page (e7k2).
+ * Checkpoint diffs for the mock, as the node serves them: one checkpoint against the work tree now, per
+ * repository its files with git's status and line counts, and a unified patch. The cart discounts story
+ * (c5kp) and the offer page (e7k2).
  */
-import type { EnvCheckpointDiff, EnvDiffFile, EnvDiffLine } from '@/api/types';
+import type { EnvCheckpointDiff } from '@/api/types';
 
-/** A unified diff body as lines: "+" added, "-" removed, "@@" a hunk head, anything else context. */
-function lines(body: string): EnvDiffLine[] {
-  return body.split('\n').map((line) => {
-    if (line.startsWith('@@')) return { kind: 'hunk', text: line };
-    if (line.startsWith('+')) return { kind: 'add', text: line.slice(1) };
-    if (line.startsWith('-')) return { kind: 'del', text: line.slice(1) };
-    return { kind: 'ctx', text: line.startsWith(' ') ? line.slice(1) : line };
-  });
+type Status = 'A' | 'M' | 'D' | 'T';
+
+interface MockFile {
+  path: string;
+  status: Status;
+  body: string;
+  /** Null for a binary file, as git counts it. */
+  added?: number | null;
+  removed?: number | null;
 }
 
-function file(repo: string, path: string, status: EnvDiffFile['status'], body: string, added?: number, removed?: number): EnvDiffFile {
-  const parsed = lines(body);
+const f = (path: string, status: Status, body: string, added?: number | null, removed?: number | null): MockFile => ({ path, status, body, added, removed });
+
+const count = (body: string, mark: '+' | '-') => body.split('\n').filter((line) => line.startsWith(mark)).length;
+
+/** git's header for one file, then its hunks. */
+function patchOf(file: MockFile): string {
+  const a = file.status === 'A' ? '/dev/null' : `a/${file.path}`;
+  const b = file.status === 'D' ? '/dev/null' : `b/${file.path}`;
+  const mode = file.status === 'A' ? 'new file mode 100644\n' : file.status === 'D' ? 'deleted file mode 100644\n' : '';
+  return `diff --git a/${file.path} b/${file.path}\n${mode}index 3c1e2a0..9b7f4d1 100644\n--- ${a}\n+++ ${b}\n${file.body}`;
+}
+
+function repoDiff(dir: string, files: MockFile[]): EnvCheckpointDiff['repos'][number] {
+  const patch = files.map(patchOf).join('\n');
   return {
-    repo,
-    path,
-    status,
-    added: added ?? parsed.filter((line) => line.kind === 'add').length,
-    removed: removed ?? parsed.filter((line) => line.kind === 'del').length,
-    lines: parsed,
+    dir: `/work/${dir}`,
+    files_total: files.length,
+    files: files.map((file) => ({ path: file.path, status: file.status, lines_added: file.added === undefined ? count(file.body, '+') : file.added, lines_removed: file.removed === undefined ? count(file.body, '-') : file.removed })),
+    patch,
+    patch_bytes: patch.length,
+    truncated: false,
   };
 }
 
@@ -108,29 +122,32 @@ const NOW_AFTER_3 = `@@ -22,7 +22,9 @@ export function totals(cart: Cart, discou
 +  const shipping = paid >= 100 ? 0 : 4.9;
    return { subtotal, discount: off, shipping, total: roundCents(subtotal - off + shipping) };`;
 
-const DIFFS: Record<string, Record<'previous' | 'now', EnvDiffFile[]>> = {
-  ck1: { previous: [], now: [file('shop', 'src/cart/totals.ts', 'modified', TOTALS_PERCENT), file('shop', 'src/cart/totals.test.ts', 'added', TOTALS_TEST), file('shop', 'src/cart/summary.tsx', 'modified', SUMMARY), file('ui-kit', 'src/price-badge.tsx', 'modified', BADGE)] },
-  ck2: {
-    previous: [file('shop', 'src/cart/totals.ts', 'modified', TOTALS_PERCENT.split('\n').slice(0, 12).join('\n'), 52, 9), file('shop', 'src/cart/summary.tsx', 'modified', SUMMARY), file('shop', 'src/cart/code-field.tsx', 'added', "@@ -0,0 +1,3 @@\n+export function CodeField({ onApply }: { onApply: (code: string) => void }) {\n+  return <form onSubmit={(event) => { event.preventDefault(); onApply(new FormData(event.currentTarget).get('code') as string); }}><input name=\"code\" /></form>;\n+}", 27, 0)],
-    now: [file('shop', 'src/cart/totals.ts', 'modified', NOW_AFTER_3), file('shop', 'src/cart/totals.test.ts', 'added', TOTALS_TEST), file('ui-kit', 'src/price-badge.tsx', 'modified', BADGE)],
+const SHIPPING_TEST = "@@ -18,3 +18,7 @@ describe('totals', () => {\n   });\n+\n+  it('still ships a cart a fixed discount emptied', () => {\n+    expect(totals(cart(12), { kind: 'fixed', amount: 20 }).shipping).toBe(4.9);\n+  });\n });";
+const SHIPPING_ROW = "@@ -18,1 +18,1 @@\n-      <Row label=\"Shipping\" value={t.shipping} free={t.shipping === 0} />\n+      <Row label=\"Shipping\" value={t.shipping} free={t.shipping === 0} hint={t.shipping ? 'Free from 100' : undefined} />";
+const REFUND = '@@ -1,4 +0,0 @@\n-export function refundLine(order: Order, lineId: string) {\n-  const line = order.lines.find((entry) => entry.id === lineId);\n-  return line ? line.price * line.qty - line.discount : 0;\n-}';
+const LOGO = 'Binary files a/public/offer-hero.webp and b/public/offer-hero.webp differ';
+
+/** Each checkpoint of a story, from it to the work tree now, by repository folder. */
+const DIFFS: Record<string, Record<number, Record<string, MockFile[]>>> = {
+  c5kp: {
+    1: {
+      shop: [f('src/cart/totals.ts', 'M', TOTALS_PERCENT), f('src/cart/totals.test.ts', 'A', TOTALS_TEST), f('src/cart/summary.tsx', 'M', SUMMARY), f('src/cart/code-field.tsx', 'A', "@@ -0,0 +1,3 @@\n+export function CodeField({ onApply }: { onApply: (code: string) => void }) {\n+  return <form onSubmit={(event) => { event.preventDefault(); onApply(new FormData(event.currentTarget).get('code') as string); }}><input name=\"code\" /></form>;\n+}")],
+      'ui-kit': [f('src/price-badge.tsx', 'M', BADGE)],
+    },
+    2: { shop: [f('src/cart/totals.ts', 'M', NOW_AFTER_3), f('src/cart/totals.test.ts', 'A', TOTALS_TEST), f('src/cart/summary.tsx', 'M', SUMMARY)] },
+    3: { shop: [f('src/cart/totals.ts', 'M', NOW_AFTER_3), f('src/cart/totals.test.ts', 'M', SHIPPING_TEST), f('src/cart/summary.tsx', 'M', SHIPPING_ROW)], 'ui-kit': [] },
+    4: { shop: [f('src/cart/totals.ts', 'M', LINE_ITEMS.replace(/^\+/gm, '-'), 3, 214), f('src/cart/refund.ts', 'D', REFUND, 0, 96)], 'ui-kit': [f('src/price-badge.tsx', 'M', BADGE, 9, 31)] },
+    5: { shop: [f('src/cart/totals.ts', 'M', LINE_ITEMS.replace(/^\+/gm, '-'), 3, 214), f('src/cart/refund.ts', 'D', REFUND, 0, 96)], 'ui-kit': [f('src/price-badge.tsx', 'M', BADGE, 9, 31)] },
+    6: { shop: [f('src/cart/totals.ts', 'M', NOW_AFTER_3.split('\n').slice(0, 5).join('\n'), 2, 1), f('src/cart/totals.test.ts', 'M', SHIPPING_TEST)], 'ui-kit': [] },
   },
-  ck3: {
-    previous: [file('shop', 'src/cart/totals.ts', 'modified', TOTALS_PERCENT), file('shop', 'src/cart/totals.test.ts', 'added', TOTALS_TEST), file('ui-kit', 'src/price-badge.tsx', 'modified', BADGE)],
-    now: [file('shop', 'src/cart/totals.ts', 'modified', NOW_AFTER_3), file('shop', 'src/cart/totals.test.ts', 'modified', "@@ -18,3 +18,7 @@ describe('totals', () => {\n   });\n+\n+  it('still ships a cart a fixed discount emptied', () => {\n+    expect(totals(cart(12), { kind: 'fixed', amount: 20 }).shipping).toBe(4.9);\n+  });\n });"), file('shop', 'src/cart/summary.tsx', 'modified', "@@ -18,1 +18,1 @@\n-      <Row label=\"Shipping\" value={t.shipping} free={t.shipping === 0} />\n+      <Row label=\"Shipping\" value={t.shipping} free={t.shipping === 0} hint={t.shipping ? 'Free from €100' : undefined} />")],
+  e7k2: {
+    1: { shop: [f('src/pricing/plan-card.tsx', 'M', '@@ -9,2 +9,4 @@\n-      <Price value={plan.price} />\n+      <s className="was">{money(plan.price)}</s>\n+      <Price value={plan.price * 0.7} />', 26, 15), f('public/offer-hero.webp', 'M', LOGO, null, null)] },
+    2: { shop: [] },
   },
-  ck4: {
-    previous: [file('shop', 'src/cart/totals.ts', 'modified', LINE_ITEMS, 214, 41), file('shop', 'src/cart/refund.ts', 'added', '@@ -0,0 +1,4 @@\n+export function refundLine(order: Order, lineId: string) {\n+  const line = order.lines.find((entry) => entry.id === lineId);\n+  return line ? line.price * line.qty - line.discount : 0;\n+}', 96, 0), file('ui-kit', 'src/price-badge.tsx', 'modified', BADGE, 31, 9)],
-    now: [file('shop', 'src/cart/totals.ts', 'modified', LINE_ITEMS.replace(/^\+/gm, '-'), 3, 214), file('shop', 'src/cart/refund.ts', 'deleted', '@@ -1,4 +0,0 @@\n-export function refundLine(order: Order, lineId: string) {\n-  const line = order.lines.find((entry) => entry.id === lineId);\n-  return line ? line.price * line.qty - line.discount : 0;\n-}', 0, 96)],
-  },
-  ck5: {
-    previous: [file('shop', 'src/cart/totals.test.ts', 'modified', "@@ -30,2 +30,6 @@\n+  it('splits a fixed discount across lines', () => {\n+    expect(lineShares(cart(10, 30), fixed(4)).map((line) => line.discount)).toEqual([1, 3]);\n+  });")],
-    now: [file('shop', 'src/cart/totals.ts', 'modified', LINE_ITEMS.replace(/^\+/gm, '-'), 3, 214), file('shop', 'src/cart/refund.ts', 'deleted', '@@ -1,4 +0,0 @@\n-export function refundLine(order: Order, lineId: string) {', 0, 96)],
-  },
-  ck_e7k2_1: { previous: [file('shop', 'src/offer/banner.tsx', 'added', '@@ -0,0 +1,3 @@\n+export function OfferBanner() {\n+  return <section className="offer">Black Friday: 30% off everything</section>;\n+}', 64, 4)], now: [file('shop', 'src/pricing/plan-card.tsx', 'modified', '@@ -9,2 +9,4 @@\n-      <Price value={plan.price} />\n+      <s className="was">{money(plan.price)}</s>\n+      <Price value={plan.price * 0.7} />', 26, 15)] },
-  ck_e7k2_2: { previous: [file('shop', 'src/pricing/plan-card.tsx', 'modified', '@@ -9,2 +9,4 @@\n-      <Price value={plan.price} />\n+      <s className="was">{money(plan.price)}</s>\n+      <Price value={plan.price * 0.7} />', 26, 15)], now: [] },
 };
 
-export function checkpointDiff(_env: string, checkpoint: string, against: 'previous' | 'now'): EnvCheckpointDiff | null {
-  const found = DIFFS[checkpoint];
-  return found ? { checkpoint, against, files: found[against] } : null;
+export function checkpointDiff(env: string, checkpoint: number): EnvCheckpointDiff | null {
+  const found = DIFFS[env]?.[checkpoint];
+  if (!found) return null;
+  return { checkpoint, max_bytes: 200_000, max_files: 500, repos: Object.entries(found).map(([dir, files]) => repoDiff(dir, files)) };
 }

@@ -78,20 +78,26 @@ export function useForgetSave(org: string) {
 export const useEnvReplay = (org: string, id: string, enabled = true) =>
   useQuery({ queryKey: keys.environmentReplay(org, id), queryFn: () => environments.replay(org, id), enabled, staleTime: 30_000 });
 
-/** One checkpoint's diff (concept). */
-export const useCheckpointDiff = (org: string, id: string, checkpoint: string | null, against: 'previous' | 'now') =>
+/** One checkpoint against the work tree now (the owner's). It changes as the agent works, so it is read again when it is opened again. */
+export const useCheckpointDiff = (org: string, id: string, checkpoint: number | null) =>
   useQuery({
-    queryKey: keys.checkpointDiff(org, id, checkpoint ?? '', against),
-    queryFn: () => environments.checkpointDiff(org, id, checkpoint ?? '', against),
+    queryKey: keys.checkpointDiff(org, id, String(checkpoint ?? '')),
+    queryFn: () => environments.checkpointDiff(org, id, checkpoint ?? 0),
     enabled: checkpoint !== null,
-    staleTime: 60_000,
+    staleTime: 15_000,
   });
 
-/** The prepared machines and the warm pool (concept). */
-export const usePreparedMachines = (org: string) =>
-  useQuery({ queryKey: keys.preparedMachines(org), queryFn: () => environments.prepared(org), refetchInterval: 15_000 });
+/** The prepared machines and the warm pool, the owner's: not asked again once the node refuses. */
+export const usePreparedMachines = (org: string, enabled = true) =>
+  useQuery({
+    queryKey: keys.preparedMachines(org),
+    queryFn: () => environments.prepared(org),
+    enabled,
+    retry: false,
+    refetchInterval: (query) => (query.state.error ? false : 15_000),
+  });
 
-/** Wake a save from the app (concept): the environment opens again and waits for an agent. */
+/** Resume a save from the app: the environment opens again, held by no chat, and waits for an agent. */
 export function useResumeSave(org: string) {
   const client = useQueryClient();
   return useMutation({

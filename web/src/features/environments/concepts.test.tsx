@@ -1,9 +1,13 @@
 import { screen, waitFor, within } from '@testing-library/react';
+import { HttpResponse, http } from 'msw';
 import type { EnvCheckpoint, EnvReplayTimeline } from '@/api/types';
 import { renderApp } from '@/test/render';
-import { checkpointRows } from './checkpoint-words';
+import { server } from '@/test/setup';
+import { checkpointRows, sinceOf } from './checkpoint-words';
+import { diffCut, diffFiles, patchFiles } from './diff-words';
 import { allowCommand } from './network-card';
-import { openedWords, otherPortWords, scaleEnd, seconds } from './opened-words';
+import { openedWords, otherPortWords, scaleEnd, seconds, skipped, stepViews, withoutSkips } from './opened-words';
+import { clipLength } from './proofs';
 import { actionWords, buildReplay, causeWords, dwell, frameAt, jump, offset } from './replay-model';
 
 const ORG = 'northwind-group';
@@ -23,16 +27,29 @@ describe('the words of how one opened', () => {
   it('leads with how long and from what, then where the time went', () => {
     const words = openedWords({
       state: 'working',
-      bringup: { total_s: 4.1, steps: [] },
+      bringup: { total_s: 4.1, ok: true, steps: [] },
       prepared: { used: true, warm: 'warm pool', from: { commit: 'abc', age: '2 days' }, setup_s: { build: 192.4, here: 1.4, saved: 191 } },
     });
     expect(words.lead).toBe('Opened in 4.1 s on a warm, prepared machine.');
     expect(words.detail).toBe('Setup ran when it was built 2 days ago, so here it only refreshed: 1.4 s instead of 3 min 12 s.');
-    const cold = openedWords({ state: 'ready', bringup: { total_s: 123.8, steps: [] }, prepared: { used: false, why: 'no prepared machine yet', setup: { ok: true, seconds: 51.6 }, build: { started: true } } });
+    const cold = openedWords({ state: 'ready', bringup: { total_s: 123.8, ok: true, steps: [] }, prepared: { used: false, why: 'no prepared machine yet', setup: { ok: true, seconds: 51.6 }, build: { started: true } } });
     expect(cold.lead).toBe('Opened in 2 min 4 s.');
     expect(cold.detail).toBe('No prepared machine yet. Setup took 52 s. A prepared machine is being built from it, so the next open skips setup.');
-    const waking = openedWords({ state: 'starting', resumed: { by: 'You', at: iso(0), from: 'snapshot', eta_s: 56 }, bringup: { total_s: 20, steps: [], now: { step: 'VM ready', so_far_s: 8.8 } } });
+    const waking = openedWords({ state: 'starting', resumed_by: 'owner', resumed: { from: 'snapshot' }, bringup: { total_s: 20, ok: null, steps: [], running: [{ step: 'VM ready', at_s: 11.2, so_far_s: 8.8 }] } });
     expect(waking.lead).toBe('Boot: 8.8 s so far, 20 s since you resumed it.');
+    const woke = openedWords({ state: 'ready', bringup: { total_s: 5.9, ok: true, steps: [], restore_from: 'paused' } });
+    expect(woke.lead).toBe('Woke in 5.9 s from its paused machine.');
+    const failed = openedWords({ state: 'failed', bringup: { total_s: 40, ok: false, steps: [{ step: 'clone', at_s: 30, seconds: 9.5, ok: false }] } });
+    expect(failed.lead).toBe('Clone the repository failed after 9.5 s.');
+  });
+
+  it('counts what a skipped step took when it last ran, and shows what is still to come while it starts', () => {
+    const bringup = { total_s: 4.1, ok: true, steps: [{ step: 'VM create', at_s: 0, seconds: 0, skipped: 'warm machine', saved_s: 9.1 }, { step: 'setup', at_s: 0, seconds: 0, skipped: 'prepared machine', saved_s: 190.9 }, { step: 'app', at_s: 2.9, seconds: 1.2, ok: true }] };
+    expect(skipped(bringup).seconds).toBe(200);
+    expect(withoutSkips(bringup)).toBeCloseTo(204.1);
+    expect(withoutSkips({ total_s: 60, ok: true, steps: [] })).toBeNull();
+    const starting = stepViews({ state: 'starting', repo: 'github.com/a/b', bringup: { total_s: 12, ok: null, steps: [{ step: 'VM create', at_s: 0, seconds: 9, ok: true }], running: [{ step: 'VM ready', at_s: 9, so_far_s: 3 }] } });
+    expect(starting.map((step) => `${step.step}${step.running ? ' running' : ''}${step.pending ? ' to come' : ''}`)).toEqual(['VM create', 'VM ready running', 'tunnels and git to come', 'browser to come', 'clone to come']);
   });
 
   it('names the port the app listens on instead, and the one line that fixes it', () => {
@@ -43,18 +60,63 @@ describe('the words of how one opened', () => {
 });
 
 describe('checkpoints as a line of work', () => {
-  const cp = (id: string, s: number, extra: Partial<EnvCheckpoint> = {}): EnvCheckpoint => ({ id, at: iso(s), note: id, repos: [], since: { files: 1, added: 1, removed: 0 }, ...extra });
+  const change = (files: number, added: number) => ({ files_added: 0, files_changed: files, files_removed: 0, lines_added: added, lines_removed: 1 });
+  const cp = (id: number, extra: Partial<EnvCheckpoint> = {}): EnvCheckpoint => ({ id, at: iso(id * 10), note: `c${id}`, auto: null, repos: [{ dir: '/work/shop', head: 'abc', files: 1, diff: change(id, id * 10) }], ...extra });
 
-  it('puts the work after the one it went back to on the side line, and the line goes on from that one', () => {
-    const rows = checkpointRows([cp('c1', 0), cp('c2', 10), cp('c3', 20, { restored_at: iso(45) }), cp('c4', 30), cp('c5', 45, { auto: true })]);
-    expect(rows.map((row) => (row.kind === 'checkpoint' ? `${row.number}${row.side ? ' side' : ''}${row.forks ? ' fork' : ''}` : row.kind))).toEqual(['now', 'restore', '5 side', '4 side', '3 fork', '2', '1']);
-    expect(rows[0]).toMatchObject({ kind: 'now', base: { number: 3 } });
+  it('reads a rollback from the checkpoint agentos made before it, and puts the work it went back past on the side line', () => {
+    const rows = checkpointRows([cp(1), cp(2), cp(3), cp(4), cp(5, { auto: 'before rollback to 3' }), cp(6)]);
+    expect(rows.map((row) => (row.kind === 'checkpoint' ? `${row.number}${row.side ? ' side' : ''}${row.forks ? ' fork' : ''}` : row.kind))).toEqual(['now', '6', 'restore', '5 side', '4 side', '3 fork', '2', '1']);
+    expect(rows[0]).toMatchObject({ kind: 'now', base: { number: 6 }, since: { files: 6, added: 60, removed: 1 } });
+    expect(rows[2]).toMatchObject({ kind: 'restore', to: 3, at: iso(50) });
   });
 
   it('without a rollback, the working copy builds on the newest', () => {
-    const rows = checkpointRows([cp('c1', 0), cp('c2', 10)]);
+    const rows = checkpointRows([cp(2), cp(1)]);
     expect(rows[0]).toMatchObject({ kind: 'now', base: { number: 2 } });
     expect(rows.some((row) => row.kind === 'restore')).toBe(false);
+  });
+
+  it('sums what changed since over its repositories, and says nothing when the machine did not', () => {
+    expect(sinceOf(cp(1, { repos: [{ dir: '/work/a', head: null, files: 0, diff: change(2, 5) }, { dir: '/work/b', head: null, files: 0, diff: change(1, 3) }] }))).toEqual({ files: 3, added: 8, removed: 2 });
+    expect(sinceOf(cp(1, { repos: [{ dir: '/work/a', head: null, files: 0, diff: null }] }))).toBeNull();
+  });
+});
+
+describe('a checkpoint diff', () => {
+  const patch = [
+    'diff --git a/src/a.ts b/src/a.ts',
+    'index 1..2 100644',
+    '--- a/src/a.ts',
+    '+++ b/src/a.ts',
+    '@@ -1,2 +1,2 @@',
+    ' keep',
+    '-old',
+    '+new',
+    '\\ No newline at end of file',
+    'diff --git a/logo.png b/logo.png',
+    'Binary files a/logo.png and b/logo.png differ',
+  ].join('\n');
+  const diff = {
+    checkpoint: 3, max_bytes: 200_000, max_files: 500,
+    repos: [{ dir: '/work/shop', files_total: 4, files: [{ path: 'src/a.ts', status: 'M' as const, lines_added: 1, lines_removed: 1 }, { path: 'logo.png', status: 'M' as const, lines_added: null, lines_removed: null }, { path: 'src/b.ts', status: 'A' as const, lines_added: 9, lines_removed: 0 }], patch, patch_bytes: patch.length, truncated: true }],
+  };
+
+  it('cuts the patch by file, from the first hunk on', () => {
+    expect(patchFiles(patch).get('src/a.ts')).toEqual([{ kind: 'hunk', text: '@@ -1,2 +1,2 @@' }, { kind: 'ctx', text: 'keep' }, { kind: 'del', text: 'old' }, { kind: 'add', text: 'new' }]);
+    expect(patchFiles(patch).get('logo.png')).toEqual([]);
+  });
+
+  it('gives every file its lines when the patch holds them, and says what the cap left out', () => {
+    expect(diffFiles(diff).map((file) => [file.repo, file.path, file.status, file.lines?.length ?? null])).toEqual([['shop', 'src/a.ts', 'M', 4], ['shop', 'logo.png', 'M', 0], ['shop', 'src/b.ts', 'A', null]]);
+    expect(diffCut(diff)).toEqual({ more: 1, truncated: true });
+  });
+});
+
+describe('a video proof', () => {
+  it('shows its length as a player does', () => {
+    expect(clipLength(42.6)).toBe('0:43');
+    expect(clipLength(3909)).toBe('1:05:09');
+    expect(clipLength(null)).toBeNull();
   });
 });
 
@@ -102,12 +164,22 @@ describe('the replay model', () => {
 
 describe('the environment concepts on the mock', () => {
   it('shows how the offer page opened: 4.1 s on a warm, prepared machine, its app listening', async () => {
-    renderApp(`/${ORG}/environments/e7k2`);
-    expect(await screen.findByText('Opened in 4.1 s on a warm, prepared machine.', undefined, T)).toBeInTheDocument();
+    const { user } = renderApp(`/${ORG}/environments/e7k2`);
+    await user.click(await screen.findByRole('button', { name: /Opened in 4\.1 s on a warm, prepared machine/ }, T));
+    expect(screen.getByText('Opened in 4.1 s on a warm, prepared machine.')).toBeInTheDocument();
     const app = screen.getByRole('region', { name: 'The app' });
     expect(within(app).getByText('Listening')).toBeInTheDocument();
     expect(within(app).getByRole('link', { name: 'Open the app on port 3000' })).toBeInTheDocument();
-    expect(screen.getByText(/You are watching, so it stays open/)).toBeInTheDocument();
+    expect(screen.getByText(/Watched now \(1 live view\), so it stays open/)).toBeInTheDocument();
+  });
+
+  it('folds how it opened to one line once it is up, and opens it again', async () => {
+    const { user } = renderApp(`/${ORG}/environments/e7k2`);
+    const fold = await screen.findByRole('button', { name: /Opened in 4\.1 s on a warm, prepared machine/ }, T);
+    expect(fold).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('region', { name: 'The app' })).not.toBeInTheDocument();
+    await user.click(fold);
+    expect(screen.getByRole('region', { name: 'The app' })).toBeInTheDocument();
   });
 
   it('says why the app did not listen, with the end of its log and the line that fixes it', async () => {
@@ -133,16 +205,17 @@ describe('the environment concepts on the mock', () => {
     expect(within(secrets).queryByRole('textbox')).not.toBeInTheDocument();
   });
 
-  it('draws the checkpoints with the rollback, and opens one checkpoint\'s diff', async () => {
+  it('draws the checkpoints with the rollback, and opens what changed since one', async () => {
     const { user } = renderApp(`/${ORG}/environments/c5kp`);
     const list = await screen.findByRole('list', { name: 'Checkpoints, newest first' }, T);
     expect(within(list).getByText('Went back to 3')).toBeInTheDocument();
     expect(within(list).getByText('Made by agentos')).toBeInTheDocument();
-    await user.click(within(list).getByRole('button', { name: 'Show the changes of checkpoint 3' }));
+    await user.click(within(list).getByRole('button', { name: 'Show what changed since checkpoint 3' }));
     const dialog = await screen.findByRole('dialog', undefined, T);
     expect(await within(dialog).findByRole('region', { name: 'shop/src/cart/totals.ts' }, T)).toBeInTheDocument();
-    await user.click(within(dialog).getByRole('radio', { name: 'From it to now' }));
-    expect(await within(dialog).findByText(/A fixed discount that empties the cart still ships/, undefined, T)).toBeInTheDocument();
+    expect(within(dialog).getByText(/A fixed discount that empties the cart still ships/)).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: /summary\.tsx/ }));
+    expect(within(dialog).getByRole('region', { name: 'shop/src/cart/summary.tsx' })).toBeInTheDocument();
   });
 
   it('replays a closed environment frame by frame, from the keyboard', async () => {
@@ -173,6 +246,18 @@ describe('the environment concepts on the mock', () => {
     expect(await screen.findByText('Waking its paused machine', undefined, T)).toBeInTheDocument();
   });
 
+  it('keeps a resume the node refuses in its dialog, with the fix', async () => {
+    const full = 'All 3 machines this node allows at once are in use (3 open). Close one, or raise the limit on the node: `agentos environments allow --max-vms 4`.';
+    server.use(http.post('/api/orgs/:org/environments/saves/:id/resume', () => HttpResponse.json({ error: { code: 'environment_full', message: full } }, { status: 409 })));
+    const { user } = renderApp(`/${ORG}/environments`);
+    await user.click(await screen.findByRole('button', { name: 'Resume Checkout redesign' }, T));
+    const dialog = await screen.findByRole('dialog', { name: 'Resume Checkout redesign?' });
+    await user.click(within(dialog).getByRole('button', { name: 'Resume' }));
+    expect(await within(dialog).findByRole('alert', undefined, T)).toHaveTextContent('No room for another machine now. Nothing was rented.');
+    expect(within(dialog).getByText('agentos environments allow --max-vms 4')).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+  });
+
   it('lists the prepared machines with what each costs, and a failed build with the end of its log', async () => {
     renderApp(`/${ORG}/environments/prepared`);
     const table = await screen.findByRole('table', { name: 'Prepared machines' }, T);
@@ -180,5 +265,6 @@ describe('the environment concepts on the mock', () => {
     expect(within(table).getByText('Build failed')).toBeInTheDocument();
     expect(within(table).getByText(/ERR_PNPM_FETCH_404/)).toBeInTheDocument();
     expect(document.body.textContent).toContain('agentos environments allow --warm 0');
+    expect(screen.getByText('At most a month').parentElement).toHaveTextContent('€8.71');
   });
 });

@@ -1,21 +1,22 @@
 /**
- * The concept routes of Environments (mock only; the node does not serve these yet, except the replay,
- * which the replay builder's branch serves):
+ * The owner's routes of Environments, as the node serves them (src/agentos/api/web/environments.py):
  *
- *   GET  /environments/prepared                       the prepared machines and the warm pool
+ *   GET  /environments/prepared                       the prepared machines, the warm pool and their cost
  *   GET  /environments/{id}/replay                    the replay's timeline (agentos.environments.replay)
  *   GET  /environments/{id}/replay/{frame}.jpg        a frame (drawn here as SVG)
- *   GET  /environments/{id}/checkpoints/{cp}/diff     one checkpoint's diff, ?against=previous|now
- *   POST /environments/saves/{id}/resume              wake a save from the app; the next agent takes it over
+ *   GET  /environments/{id}/checkpoints/{cp}          one checkpoint against the work tree now
+ *   POST /environments/saves/{id}/resume              resume a save from the app; the next agent takes it over
  *
- * A resumed save wakes in the time its kind takes (a paused machine in about 6 s, a snapshot in about a
- * minute), its bring-up growing step by step, then waits for an agent with the owner watching.
+ * Each is the owner's: another role gets 403. A resumed save wakes in the time its kind takes (a paused
+ * machine in about 6 s, a snapshot in about a minute), its bring-up growing step by step, then waits for an
+ * agent with the owner watching. `?mock=environment-full` makes a resume hear the node's limit.
  */
 import { http, HttpResponse } from 'msw';
-import type { EnvDetail, EnvMachine, PreparedList } from '@/api/types';
+import type { EnvDetail, EnvMachine, EnvResumeAnswer, PreparedList } from '@/api/types';
 import { checkpointDiff } from './env-diffs';
 import { framePicture, replayTimeline } from './env-replay';
-import { PLANS, bringupAt } from './env-stories';
+import { PLANS, bringupAt, planSeconds } from './env-stories';
+import { scenario } from './scenario';
 import type { MockEnv } from './environments';
 import { browserLane, mockEnvironments, summaryOf } from './environments';
 import type { Helpers } from './s3';
@@ -38,12 +39,15 @@ export function preparedList(now: number): PreparedList {
         error: 'setup failed with exit code 1: pnpm install\n ERR_PNPM_FETCH_404  GET https://registry.npmjs.org/@meridian%2Finvoice-pdf: Not Found - 404\n\nThis error happened while installing a direct dependency of /work/back-office\n\n@meridian/invoice-pdf is not in the npm registry, or you have no permission to fetch it.' },
       { repo: 'github.com/solstice-studio/mailers', state: 'ready', commit: '1f7a9e3c5b2d', ref: null, built_at: iso(-19 * DAY), last_used_at: iso(-17 * DAY), uses: 4, gb: 6.9, cost_eur_month: 0.08, key: '4c2b9e70d1a3', age: '19 days', setup_s: 64.8 },
     ],
+    eur_month: 0.46,
     pool: {
       warm: 1, target: 1, minutes: 55,
       machines: [{ vm: 'vm-warm-8e21', state: 'ready', since: iso(-12 * MINUTE), image: 'agentos-prepared-a41c9e2b7d03', server_type: 'cpx22', location: 'nbg1', cost_eur: 0.0024, price_hourly_eur: 0.0121 }],
+      // a machine for every hour of a 30 day month, billed by the started hour
+      price_hourly_eur: 0.0121, worst_eur_month: 8.712, month_eur: 0.34,
     },
     month: {
-      opens: 64, from_prepared: 41, from_warm: 19, setup_saved_s: 41 * 186, warm_cost_eur: 0.34, recent: recentOpens(now),
+      opens: 64, from_prepared: 41, from_warm: 19, setup_saved_s: 41 * 186, recent: recentOpens(now),
     },
   };
 }
@@ -64,24 +68,25 @@ export function advanceStory(record: OrgData, item: MockEnv, now: number): boole
   const env = item.detail;
   if (!item.plan || env.state !== 'starting') return false;
   const elapsed = (now - item.plan.start) / 1000;
-  env.bringup = bringupAt(PLANS[item.plan.id], elapsed, env.bringup?.cold_s ?? undefined);
-  if (!env.resumed || env.bringup.now) return true;
+  env.bringup = bringupAt(PLANS[item.plan.id], elapsed, env.bringup?.restore_from === 'paused' || env.bringup?.restore_from === 'snapshot' ? env.bringup.restore_from : undefined);
+  if (env.resumed_by !== 'owner' || env.bringup.running?.length) return true;
   env.state = 'ready';
+  env.ready_at = new Date(now).toISOString();
   item.until = undefined;
   env.viewer = { path: `/api/orgs/${record.org.slug}/lanes/${env.lanes.browser}/vnc` };
-  env.calls = [{ at: new Date(now).toISOString(), tool: 'environment', summary: `resumed by you from its ${env.resumed.from === 'paused' ? 'paused machine' : 'snapshot'}, waiting for an agent`, ok: true }, ...env.calls];
+  env.owner_woken = true;
   const lane = record.lanes.find((entry) => entry.id === env.lanes.browser);
   if (lane) Object.assign(lane, { state: 'warm', viewer: { url: `/api/orgs/${record.org.slug}/lanes/${env.lanes.browser}/vnc` } });
   return true;
 }
 
-function resume(record: OrgData, saveId: unknown, now: number): EnvDetail | null {
+function resume(record: OrgData, saveId: unknown, now: number): EnvResumeAnswer | null {
   const saves = record.environmentSaves ?? [];
   const save = saves.find((entry) => entry.id === saveId);
   if (!save) return null;
   const items = mockEnvironments(record);
   const kind = save.paused ? 'paused' : 'snapshot';
-  const eta = Math.ceil(bringupAt(PLANS[kind], Number.POSITIVE_INFINITY).total_s);
+  const eta = Math.ceil(planSeconds(PLANS[kind]));
   let item = save.env_id ? items.find((entry) => entry.detail.id === save.env_id) : undefined;
   if (!item) {
     const summary = summaryOf(now, {
@@ -92,28 +97,36 @@ function resume(record: OrgData, saveId: unknown, now: number): EnvDetail | null
     items.unshift(item);
   }
   const env = item.detail;
+  const resumed = { save_id: save.id, saved_at: save.saved_at, from: kind, state: 'restoring', note: save.note ?? null } as const;
   Object.assign(env, {
     state: 'starting', closed_at: null, closed_reason: null, expires_at: new Date(now + HOUR).toISOString(),
     // a new session of the same environment: its clock and cost start again
-    created_at: new Date(now).toISOString(), cost_eur: 0, last_call_at: null,
-    resumed: { by: 'You', at: new Date(now).toISOString(), from: kind, eta_s: eta },
-    watching: [{ name: 'You', you: true, since: new Date(now).toISOString() }],
+    created_at: new Date(now).toISOString(), ready_at: null, cost_eur: 0, last_call_at: null,
+    resumed, resumed_by: 'owner', owner_woken: true,
+    watched: { since: new Date(now).toISOString(), viewers: 1, live_views: 1, port_connections: 0 },
     ports: save.services?.map((service) => ({ port: service.port ?? 0, process: service.cmd, link: null })).filter((port) => port.port) ?? [],
-    bringup: bringupAt(PLANS[kind], 0),
+    bringup: bringupAt(PLANS[kind], 0, kind),
     app: undefined,
+    calls: [],
   } satisfies Partial<EnvDetail>);
   item.plan = { id: kind, start: now };
   item.until = now + eta * 1000;
   record.environmentSaves = saves.filter((entry) => entry !== save);
   const sibling = record.lanes.find((lane) => lane.kind === 'browser');
   if (!record.lanes.some((lane) => lane.id === env.lanes.browser)) record.lanes.push(browserLane(sibling, env, now));
-  return env;
+  return { ...env, opened: 'resumed', resumed };
 }
+
+/** The node's words when the machines at once are all taken (agentos.environments.sizing). */
+const FULL = 'All 3 machines this node allows at once are in use (3 open). Close one, or raise the limit on the node: `agentos environments allow --max-vms 4`.';
 
 export function conceptHandlers({ org, failure }: Pick<Helpers, 'org' | 'failure'> & { data: () => MockDb }) {
   const find = (record: OrgData, id: unknown) => mockEnvironments(record).find((item) => item.detail.id === id);
   return [
-    http.get('/api/orgs/:org/environments/prepared', org(() => HttpResponse.json(preparedList(Date.now())))),
+    http.get(
+      '/api/orgs/:org/environments/prepared',
+      org((record) => (record.role !== 'owner' ? failure(403, 'denied', 'Only the owner sees the prepared machines.') : HttpResponse.json(preparedList(Date.now())))),
+    ),
     http.get(
       '/api/orgs/:org/environments/:id/replay',
       org((record, { params }) => {
@@ -133,11 +146,11 @@ export function conceptHandlers({ org, failure }: Pick<Helpers, 'org' | 'failure
       }),
     ),
     http.get(
-      '/api/orgs/:org/environments/:id/checkpoints/:cp/diff',
-      org((_record, { params, request }) => {
-        const against = new URL(request.url).searchParams.get('against') === 'now' ? 'now' : 'previous';
-        const diff = checkpointDiff(String(params.id), String(params.cp), against);
-        if (!diff) return failure(404, 'not_found', 'No such checkpoint.');
+      '/api/orgs/:org/environments/:id/checkpoints/:cp',
+      org((record, { params }) => {
+        if (record.role !== 'owner') return failure(403, 'denied', 'Only the owner reads a checkpoint.');
+        const diff = checkpointDiff(String(params.id), Number(params.cp));
+        if (!diff) return failure(404, 'checkpoint_not_found', `This environment has no checkpoint ${String(params.cp)}.`);
         return HttpResponse.json(diff);
       }),
     ),
@@ -145,6 +158,7 @@ export function conceptHandlers({ org, failure }: Pick<Helpers, 'org' | 'failure
       '/api/orgs/:org/environments/saves/:id/resume',
       org((record, { params }) => {
         if (record.role !== 'owner') return failure(403, 'denied', 'Only the owner can resume a saved environment from the app.');
+        if (scenario.has('environment-full')) return failure(409, 'environment_full', FULL);
         const env = resume(record, params.id, Date.now());
         if (!env) return failure(404, 'not_found', 'No save with that id on this computer.');
         return HttpResponse.json(env);

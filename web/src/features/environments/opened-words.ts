@@ -1,5 +1,5 @@
 /**
- * The words of how an environment opened (concept): each bring-up step's name, seconds as a person reads
+ * The words of how an environment opened: each bring-up step's name, seconds as a person reads
  * them, the one sentence about where it started from, and the app's state. Pure, and tested.
  */
 import type { EnvApp, EnvBringUp, EnvBringUpStep, EnvDetail, EnvPrepared } from '@/api/types';
@@ -23,6 +23,7 @@ export const STEP_NAMES: Record<string, string> = {
   setup: 'Run setup',
   app: 'Start the app',
   resume: 'Wake the machine',
+  swap: 'Turn on swap',
 };
 
 export const stepName = (step: string) => STEP_NAMES[step] ?? step.charAt(0).toUpperCase() + step.slice(1);
@@ -37,9 +38,17 @@ export function seconds(value: number): string {
   return rest ? `${minutes} min ${rest} s` : `${minutes} min`;
 }
 
-/** Where it started from, in a few words: "a warm, prepared machine", "a paused machine". */
-export function startedFrom(env: Pick<EnvDetail, 'prepared' | 'resumed'>): string | null {
-  if (env.resumed) return env.resumed.from === 'paused' ? 'its paused machine' : env.resumed.from === 'snapshot' ? 'its snapshot' : 'its saved files';
+type Opened = Pick<EnvDetail, 'state' | 'prepared' | 'resumed' | 'resumed_by' | 'bringup' | 'repo'>;
+
+/** What a resume wakes from: the record of the resume, else what the bring-up says it restores. */
+export function wakesFrom(env: Pick<EnvDetail, 'resumed' | 'bringup'>): 'snapshot' | 'paused' | 'files' | null {
+  return env.resumed?.from ?? env.bringup?.restore_from ?? null;
+}
+
+/** Where it started from, in a few words: "a warm, prepared machine", "its paused machine". */
+export function startedFrom(env: Pick<EnvDetail, 'prepared' | 'resumed' | 'bringup'>): string | null {
+  const from = wakesFrom(env);
+  if (from) return from === 'paused' ? 'its paused machine' : from === 'snapshot' ? 'its snapshot' : 'its saved files';
   const prepared = env.prepared;
   if (!prepared) return null;
   if (prepared.used && prepared.warm) return 'a warm, prepared machine';
@@ -48,10 +57,40 @@ export function startedFrom(env: Pick<EnvDetail, 'prepared' | 'resumed'>): strin
   return null;
 }
 
-/** Steps skipped, and the seconds they would have taken. */
+/** A step as a row shows it: done, running now (its seconds so far), or still to come. */
+export interface StepView extends EnvBringUpStep {
+  running?: boolean;
+  pending?: boolean;
+}
+
+/** The steps every bring-up of this kind goes through, so a starting one can show what is still to come. */
+function usualSteps(env: Opened): string[] {
+  const from = wakesFrom(env);
+  const work = from ? 'restore' : env.repo ? 'clone' : null;
+  return ['VM create', 'VM ready', 'tunnels and git', 'browser', ...(work ? [work] : [])];
+}
+
+/** The rows: the steps done, the ones running now, and (while it starts) the usual ones still to come. */
+export function stepViews(env: Opened): StepView[] {
+  const bringup = env.bringup;
+  if (!bringup) return [];
+  const done: StepView[] = [...bringup.steps];
+  const running: StepView[] = (bringup.running ?? []).map((step) => ({ step: step.step, at_s: step.at_s, seconds: step.so_far_s, running: true }));
+  const seen = new Set([...done, ...running].map((step) => step.step));
+  const pending: StepView[] = env.state === 'starting' ? usualSteps(env).filter((step) => !seen.has(step)).map((step) => ({ step, at_s: 0, seconds: 0, pending: true })) : [];
+  return [...done, ...running, ...pending];
+}
+
+/** Steps skipped, and the seconds they took the last time they ran (when the node knows). */
 export function skipped(bringup: EnvBringUp): { steps: EnvBringUpStep[]; seconds: number } {
   const steps = bringup.steps.filter((step) => step.skipped);
-  return { steps, seconds: steps.reduce((sum, step) => sum + step.seconds, 0) };
+  return { steps, seconds: steps.reduce((sum, step) => sum + (step.saved_s ?? step.seconds), 0) };
+}
+
+/** About what the same open takes without what it skipped: this one plus the skipped steps' last seconds. Null when nothing measured was skipped. */
+export function withoutSkips(bringup: EnvBringUp): number | null {
+  const saved = skipped(bringup).seconds;
+  return bringup.total_s !== null && saved > 0 ? bringup.total_s + saved : null;
 }
 
 const sentence = (text: string) => {
@@ -64,29 +103,44 @@ const sentence = (text: string) => {
 /** The node's own words, as a sentence: capitalised and ended. */
 export const nodeSentence = sentence;
 
+/** The small heading over it: what is happening, or that it happened. */
+export function openedEyebrow(env: Opened): string {
+  if (env.state !== 'starting') return env.state === 'failed' ? 'How it failed to open' : 'How it opened';
+  return wakesFrom(env) ? `Waking ${startedFrom(env) ?? ''}`.trim() : 'Opening now';
+}
+
 /**
  * The lead and the line under it. "Opened in 4.1 s on a warm, prepared machine." then where the time
  * went: "Setup ran when it was built 2 days ago, so here it only refreshed: 1.4 s instead of 3 min 12 s."
+ * While it starts: the steps running now and how long since the open.
  */
-/** The small heading over it: what is happening, or that it happened. */
-export function openedEyebrow(env: Pick<EnvDetail, 'state' | 'prepared' | 'resumed'>): string {
-  if (env.state !== 'starting') return 'How it opened';
-  return env.resumed ? `Waking ${startedFrom(env) ?? ''}`.trim() : 'Opening now';
-}
-
-export function openedWords(env: Pick<EnvDetail, 'state' | 'prepared' | 'resumed' | 'bringup'>): { lead: string; detail: string | null } {
+export function openedWords(env: Opened): { lead: string; detail: string | null } {
   const bringup = env.bringup;
   const from = startedFrom(env);
-  if (env.state === 'starting' && bringup?.now) {
-    return { lead: `${stepName(bringup.now.step)}: ${seconds(bringup.now.so_far_s)} so far, ${seconds(bringup.total_s)} since ${env.resumed ? 'you resumed it' : 'the open'}.`, detail: waitingWords(env) };
+  const woke = Boolean(wakesFrom(env));
+  if (env.state === 'starting') {
+    const since = bringup?.total_s !== null && bringup?.total_s !== undefined ? `, ${seconds(bringup.total_s)} since ${env.resumed_by === 'owner' ? 'you resumed it' : woke ? 'the resume' : 'the open'}` : '';
+    const now = bringup?.running ?? [];
+    const lead = now.length
+      ? `${now.map((step) => `${stepName(step.step)}: ${seconds(step.so_far_s)} so far`).join(', ')}${since}.`
+      : `Starting${since}.`;
+    return { lead, detail: waitingWords(env) };
   }
-  const total = bringup ? seconds(bringup.total_s) : null;
-  const lead = total ? `Opened in ${total}${from ? ` on ${from}` : ''}.` : from ? `Opened on ${from}.` : 'Opened.';
-  return { lead: env.resumed ? lead.replace('Opened', 'Woke') : lead, detail: preparedDetail(env.prepared) };
+  if (env.state === 'failed') {
+    const failed = bringup?.steps.find((step) => step.ok === false);
+    return { lead: failed ? `${stepName(failed.step)} failed after ${seconds(failed.seconds)}.` : 'It did not come up.', detail: null };
+  }
+  const total = bringup?.total_s !== null && bringup?.total_s !== undefined ? seconds(bringup.total_s) : null;
+  const verb = woke ? 'Woke' : 'Opened';
+  const lead = total ? `${verb} in ${total}${from ? ` from ${from}` : ''}.` : from ? `${verb} from ${from}.` : `${verb}.`;
+  return { lead: woke ? lead : lead.replace(' from ', ' on '), detail: preparedDetail(env.prepared) };
 }
 
-function waitingWords(env: Pick<EnvDetail, 'resumed' | 'prepared'>): string | null {
-  if (env.resumed) return env.resumed.from === 'paused' ? 'A paused machine comes back as it was, its dev server still running. Usually under 10 s.' : 'A snapshot comes back on a new machine. Usually about a minute.';
+function waitingWords(env: Opened): string | null {
+  const from = wakesFrom(env);
+  if (from === 'paused') return 'A paused machine comes back as it was, its dev server still running. Usually under 10 s.';
+  if (from === 'snapshot') return 'A snapshot comes back on a new machine. Usually about a minute.';
+  if (from === 'files') return 'Its files come back on a fresh machine. A few minutes.';
   return env.prepared?.why ? sentence(env.prepared.why) : null;
 }
 

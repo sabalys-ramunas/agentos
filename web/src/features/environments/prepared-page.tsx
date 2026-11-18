@@ -1,22 +1,23 @@
 /**
- * Prepared machines (concept, /environments/prepared): what the node keeps ready ahead of an open, and
- * what that costs. The last opens first, as a picture: seconds to ready on one scale, a dot each, filled
+ * Prepared machines (/environments/prepared, the owner's): what the node keeps ready ahead of an open, and
+ * what that costs, the warm pool's worst month included. The last opens first, as a picture: seconds to ready on one scale, a dot each, filled
  * from a warm machine, ringed from a prepared one, hollow from cold, so the saving is visible before it is
  * read. Then each repository's prepared machine (built from which commit, when, the setup it saves, its
  * size and what it costs a month, building with its step or failed with the end of its log), then the warm
  * pool. Nothing here changes a setting: each change is the command the owner runs on the node.
  */
 import { Link, useParams } from '@tanstack/react-router';
-import { ChevronDown, Flame, Layers } from 'lucide-react';
+import { ChevronDown, Flame, Layers, Lock } from 'lucide-react';
 import { useState } from 'react';
+import type { ReactNode } from 'react';
 import { usePreparedMachines } from '@/api/hooks';
-import { isNotServed } from '@/api/http';
+import { ApiError, isNotServed } from '@/api/http';
 import type { PreparedList, PreparedMachine, WarmPool } from '@/api/types';
 import { BranchPill } from '@/components/ui/branch';
 import { Card, CardHeader } from '@/components/ui/card';
 import { CodeBlock, CopyButton, PageHeader } from '@/components/ui/misc';
 import { StatStrip, StatTile } from '@/components/ui/stat-tile';
-import { ErrorState, NotLive, Skeleton } from '@/components/ui/states';
+import { EmptyState, ErrorState, NotLive, Skeleton } from '@/components/ui/states';
 import { Status } from '@/components/ui/status';
 import { CellTitle, NoValue, RowActions, Table, TableScroll, Td, Th, Tr } from '@/components/ui/table';
 import { Terminal } from '@/components/ui/terminal';
@@ -24,7 +25,7 @@ import { usePageCrumb } from '@/components/shell/crumb';
 import { cn } from '@/lib/cn';
 import { dateTime, plural, timeAgo } from '@/lib/format';
 import { seconds } from './opened-words';
-import { euro, hourly, monthly, repoName, span } from './words';
+import { euro, hourly, repoName, span } from './words';
 
 const STATE = {
   ready: { label: 'Ready', tone: 'ok' },
@@ -58,6 +59,10 @@ export function PreparedPage() {
         <Card>
           <NotLive />
         </Card>
+      ) : query.error instanceof ApiError && query.error.status === 403 ? (
+        <Card>
+          <EmptyState icon={<Lock />} title="The owner's page" description="Prepared machines and the warm pool cost the owner money, so only the owner sees them here." />
+        </Card>
       ) : !query.data ? (
         <Card>
           <ErrorState error={query.error} onRetry={() => void query.refetch()} />
@@ -70,16 +75,22 @@ export function PreparedPage() {
 }
 
 function PreparedBody({ data }: { data: PreparedList }) {
-  const images = data.machines.reduce((sum, machine) => sum + machine.cost_eur_month, 0);
+  const images = data.eur_month ?? data.machines.reduce((sum, machine) => sum + machine.cost_eur_month, 0);
   const month = data.month;
+  const pool = data.pool;
   return (
     <>
       {month ? (
         <StatStrip>
           <StatTile label="Opens this month" value={String(month.opens)} hint={`${month.from_prepared} from a prepared machine, ${month.from_warm} of them warm`} />
           <StatTile label="Setup skipped" value={span(month.setup_saved_s * 1000).split(' ').slice(0, 2).join(' ')} unit={span(month.setup_saved_s * 1000).split(' ').slice(2).join(' ') || undefined} hint="Time agents did not wait this month" />
-          <StatTile label="Images" value={euro(images)} unit="a month" hint={`${plural(data.machines.filter((machine) => machine.gb).length, 'image')} at ${euro(data.eur_per_gb_month, 4)} a GB`} />
-          <StatTile label="Warm pool" value={euro(month.warm_cost_eur)} unit="this month" hint={data.pool.target ? `${data.pool.warm} of ${data.pool.target} warm now` : 'Off'} />
+          <StatTile label="Images" value={euro(images)} unit="a month" hint={images ? `${plural(data.machines.filter((machine) => machine.gb).length, 'image')} at ${euro(data.eur_per_gb_month, 4)} a GB` : 'Local images cost nothing'} />
+          <StatTile
+            label="Warm pool"
+            value={euro(pool.month_eur ?? 0)}
+            unit="this month"
+            hint={pool.target ? `${pool.warm} of ${pool.target} warm now${pool.worst_eur_month ? `, ${euro(pool.worst_eur_month)} a month at most` : ''}` : 'Off: nothing bills ahead of an open'}
+          />
         </StatStrip>
       ) : null}
       {month?.recent?.length ? <OpenTimes recent={month.recent} /> : null}
@@ -263,6 +274,7 @@ function MachineRow({ machine, expanded, onToggle }: { machine: PreparedMachine;
 }
 
 function PoolCard({ pool }: { pool: WarmPool }) {
+  const worst = pool.worst_eur_month ?? null;
   return (
     <Card className="overflow-hidden">
       <CardHeader
@@ -274,31 +286,48 @@ function PoolCard({ pool }: { pool: WarmPool }) {
         }
         meta={pool.target ? `${pool.warm} of ${pool.target} warm` : 'Off'}
       />
+      {pool.target ? (
+        <div className="grid gap-x-8 gap-y-4 border-b border-line px-5 py-4 sm:grid-cols-3">
+          <PoolFact label="At most a month" value={worst === null ? <NoValue /> : euro(worst)} hint={worst === null ? 'The node does not know the hourly price' : 'If no open ever claims a machine'} strong />
+          <PoolFact label="This month so far" value={euro(pool.month_eur ?? 0)} hint={`${plural(pool.target, 'machine')} kept warm`} />
+          <PoolFact label="Each machine" value={pool.price_hourly_eur ? hourly(pool.price_hourly_eur) : <NoValue />} hint={`For ${pool.minutes} min at most, unless an open claims it`} />
+        </div>
+      ) : null}
       {pool.machines.length ? (
         <ul className="divide-y divide-line">
           {pool.machines.map((machine) => (
             <li key={machine.vm} className="flex min-h-14 flex-wrap items-center gap-x-4 gap-y-1 px-5 py-3">
-              <Status status={{ label: 'Warm', tone: 'ok' }} />
+              <Status status={machine.state === 'ready' ? { label: 'Warm', tone: 'ok' } : { label: 'Booting', tone: 'live', pulse: true }} />
               <span className="font-mono text-code text-fg">{machine.vm}</span>
               <span className="text-secondary text-muted">
                 {machine.server_type} in {machine.location}
                 {machine.since ? ` · booted ${timeAgo(machine.since).toLowerCase()}` : ''}
               </span>
-              <span className="ml-auto font-mono text-code-caption text-fg tabular" title={hourly(machine.price_hourly_eur)}>
-                {euro(machine.cost_eur)} so far
+              <span className="ml-auto font-mono text-code-caption text-fg tabular" title={machine.price_hourly_eur ? hourly(machine.price_hourly_eur) : undefined}>
+                {euro(machine.cost_eur ?? 0)} so far
               </span>
             </li>
           ))}
         </ul>
       ) : null}
-      <div className="grid gap-3 border-t border-line px-5 py-4">
+      <div className="grid gap-3 px-5 py-4">
         <p className="text-secondary text-muted">
           {pool.target
-            ? `A warm machine bills from its boot until an open claims it, or for ${pool.minutes} min at most, then it is deleted before its first billed hour ends. It counts against the machines you allow at once, and yields to any open. If none is ever claimed, about ${monthly(pool.machines[0]?.price_hourly_eur ? pool.machines[0].price_hourly_eur * 24 * 30 * pool.target : 0)} at most.`
-            : 'Off. Nothing bills until an agent opens a machine.'}
+            ? `A warm machine bills from its boot until an open claims it, or for ${pool.minutes} min at most, then it is deleted before its first billed hour ends and another takes its place. It counts against the machines you allow at once, and yields to any open.`
+            : 'Off. Nothing bills until an agent opens a machine. With one warm machine, an open skips the rent and the boot.'}
         </p>
         <CodeBlock code={pool.target ? 'agentos environments allow --warm 0' : 'agentos environments allow --warm 1'} label="Copy the command" />
       </div>
     </Card>
+  );
+}
+
+function PoolFact({ label, value, hint, strong = false }: { label: string; value: ReactNode; hint: string; strong?: boolean }) {
+  return (
+    <div className="grid content-start gap-1">
+      <span className="text-caption text-faint">{label}</span>
+      <span className={cn('font-mono tabular', strong ? 'text-section-title text-fg' : 'text-code text-fg')}>{value}</span>
+      <span className="text-caption text-muted">{hint}</span>
+    </div>
   );
 }

@@ -13,8 +13,8 @@
  * - Saved: a paused machine on Morph (back in seconds with its dev server) and the dark mode snapshot
  *   (about a minute); Resume wakes either from the app (mocks/env-concepts.ts).
  */
-import type { EnvBringUp, EnvBringUpStep, EnvCheckpoint, EnvDetail, EnvSave } from '@/api/types';
-import { MEDIUM, SMALL, at, call, command, job, proof, summaryOf } from './environments';
+import type { EnvBringUp, EnvBringUpStep, EnvCheckpoint, EnvCheckpointChange, EnvDetail, EnvSave } from '@/api/types';
+import { MEDIUM, SMALL, at, call, command, job, proof, summaryOf, videoProof } from './environments';
 import type { MockEnv } from './environments';
 import { scenario } from './scenario';
 
@@ -26,7 +26,8 @@ const HOUR = 60 * MINUTE;
 export type Plan = EnvBringUpStep[];
 
 const s = (step: string, atS: number, seconds: number, extra: Partial<EnvBringUpStep> = {}): EnvBringUpStep => ({ step, at_s: atS, seconds, ok: true, ...extra });
-const skip = (step: string, why: string, seconds: number): EnvBringUpStep => ({ step, at_s: 0, seconds, skipped: why });
+/** A step the open did not need, as the node marks it: no seconds of its own, and what it took when it last ran. */
+const skip = (step: string, why: string, saved: number | null): EnvBringUpStep => ({ step, at_s: 0, seconds: 0, ok: true, skipped: why, saved_s: saved });
 
 export const PLANS: Record<string, Plan> = {
   e7k2: [
@@ -97,46 +98,44 @@ export const PLANS: Record<string, Plan> = {
     s('VM ready', 11.2, 34.8),
     s('tunnels and git', 46, 1.3),
     s('browser', 47.3, 3.1),
-    skip('clone', 'saved machine', 6.2),
-    s('app', 47.3, 4.6),
+    s('restore', 47.3, 2.1),
   ],
   /** Waking a paused machine: the same machine, memory and all, so the dev server never stopped. */
   paused: [
-    skip('VM create', 'paused machine', 9),
-    skip('VM ready', 'paused machine', 23),
-    s('resume', 0, 2.8),
+    s('VM create', 0, 1.2),
+    s('VM ready', 1.2, 1.6),
     s('tunnels and git', 2.8, 0.9),
     s('browser', 3.7, 1.6),
-    skip('clone', 'paused machine', 6),
-    s('app', 3.7, 0.4),
+    s('restore', 5.3, 0.6),
   ],
 };
 
-const COLD_S: Record<string, number> = { e7k2: 236.2, n3lm: 241, r9cl: 229.6 };
-
 const endOf = (step: EnvBringUpStep) => step.at_s + step.seconds;
+const tenths = (value: number) => Math.round(value * 10) / 10;
 
-/** The bring-up `elapsed` seconds in: the steps done, and the one running now when it is not over. */
-export function bringupAt(plan: Plan | undefined, elapsed: number, cold?: number): EnvBringUp {
+/** The bring-up `elapsed` seconds in, as the node serves it: the steps done, and the ones running now. */
+export function bringupAt(plan: Plan | undefined, elapsed: number, restoreFrom?: 'snapshot' | 'paused'): EnvBringUp {
   plan ??= [];
   const ran = plan.filter((step) => !step.skipped);
   const total = ran.length ? Math.max(...ran.map(endOf)) : 0;
   const over = elapsed >= total;
-  const running = ran.filter((step) => step.at_s <= elapsed && endOf(step) > elapsed);
-  const last = running[running.length - 1];
-  const now = !over && last ? { step: last.step, so_far_s: Math.round((elapsed - last.at_s) * 10) / 10 } : null;
-  const steps = plan.map((step): EnvBringUpStep => {
-    if (step.skipped || over || endOf(step) <= elapsed) return step;
-    if (step.at_s <= elapsed) return { ...step, seconds: Math.round((elapsed - step.at_s) * 10) / 10 };
-    return { ...step, seconds: 0, pending: true };
-  });
-  return { total_s: Math.round((over ? total : elapsed) * 10) / 10, steps, now, cold_s: cold ?? null, expected_s: over ? null : Math.round(total) };
+  const steps = plan.filter((step) => step.skipped || over || endOf(step) <= elapsed);
+  const running = over ? [] : ran.filter((step) => step.at_s <= elapsed && endOf(step) > elapsed).map((step) => ({ step: step.step, at_s: step.at_s, so_far_s: tenths(elapsed - step.at_s) }));
+  return { total_s: tenths(over ? total : elapsed), ok: over ? plan.every((step) => step.ok !== false) : null, steps, running, ...(restoreFrom ? { restore_from: restoreFrom } : {}) };
 }
 
-const done = (id: string): EnvBringUp => bringupAt(PLANS[id], Number.POSITIVE_INFINITY, COLD_S[id]);
+/** The time a plan takes from the open to ready. */
+export const planSeconds = (plan: Plan | undefined) => Math.max(0, ...(plan ?? []).filter((step) => !step.skipped).map(endOf));
 
-function checkpoint(now: number, id: string, minutesAgo: number, note: string, repos: EnvCheckpoint['repos'], since: EnvCheckpoint['since'], extra: Partial<EnvCheckpoint> = {}): EnvCheckpoint {
-  return { id, at: at(now, -minutesAgo * MINUTE), note, repos, since, ...extra };
+const done = (id: string): EnvBringUp => bringupAt(PLANS[id], Number.POSITIVE_INFINITY);
+
+const change = (files: [number, number, number], added: number, removed: number): EnvCheckpointChange => ({ files_added: files[0], files_changed: files[1], files_removed: files[2], lines_added: added, lines_removed: removed });
+
+/** One repository of a checkpoint: what it held and what changed since. */
+const repo = (dir: string, head: string, files: number, since: EnvCheckpointChange | null): EnvCheckpoint['repos'][number] => ({ dir: `/work/${dir}`, head, files, diff: since });
+
+function checkpoint(now: number, id: number, minutesAgo: number, note: string, repos: EnvCheckpoint['repos'], auto: string | null = null): EnvCheckpoint {
+  return { id, at: at(now, -minutesAgo * MINUTE), note, auto, repos };
 }
 
 const VITE_TAIL = [
@@ -168,11 +167,11 @@ export function decorate(envs: MockEnv[], now: number) {
       },
       app: { command: 'pnpm dev', port: 3000, listening: true, job_id: 'job-8c1f0e2a3b', seconds: 1.2, link: '/api/orgs/northwind-group/environments/e7k2/ports/3000/' },
       network: { policy: 'full', allowed: { all: true }, blocked: [], secrets: ['STRIPE_TEST_SECRET'] },
-      watching: [{ name: 'You', you: true, since: at(now, -6 * MINUTE) }],
-      replay: { frames: 9, since: offer.created_at, until: at(now, -25 * SECOND), kept_until: null },
+      watched: { since: at(now, -6 * MINUTE), viewers: 1, live_views: 1, port_connections: 0 },
+      replay: { frames: 9, since: offer.created_at, bytes: 9 * 48_000, kept_until: null },
       checkpoints: [
-        checkpoint(now, 'ck_e7k2_1', 12, 'The offer banner on the home page, before the pricing table', [{ dir: 'shop', files: 3, added: 64, removed: 4 }], { files: 5, added: 88, removed: 19 }),
-        checkpoint(now, 'ck_e7k2_2', 4, 'Struck-through yearly prices, checked at 360 and 1280', [{ dir: 'shop', files: 2, added: 26, removed: 15 }], { files: 0, added: 0, removed: 0 }),
+        checkpoint(now, 2, 4, 'Struck-through yearly prices, checked at 360 and 1280', [repo('shop', 'c81e07d2a4f9', 5, change([0, 0, 0], 0, 0))]),
+        checkpoint(now, 1, 12, 'The offer banner on the home page, before the pricing table', [repo('shop', 'c81e07d2a4f9', 3, change([1, 2, 0], 26, 15))]),
       ],
     } satisfies Partial<EnvDetail>);
   }
@@ -180,13 +179,13 @@ export function decorate(envs: MockEnv[], now: number) {
   if (flaky) {
     const elapsed = scenario.has('still') ? 47 : (now - Date.parse(flaky.detail.created_at)) / SECOND;
     if (!scenario.has('still')) flaky.plan = { id: 'q3mn', start: now - elapsed * SECOND };
-    flaky.detail.bringup = bringupAt(PLANS.q3mn, elapsed, 214);
+    flaky.detail.bringup = bringupAt(PLANS.q3mn, elapsed);
     flaky.detail.prepared = { used: false, why: 'a prepared machine for this repository is being built; the next open starts from it' };
   }
   const invoices = byId.get('w8tp')?.detail;
   if (invoices) {
     invoices.network = { policy: 'limited', allowed: { preset: 'package registries and code hosts', hosts: [], secret_hosts: [] }, blocked: [], secrets: [] };
-    invoices.watching = [{ name: 'Dana', since: at(now, -18 * MINUTE) }];
+    invoices.watched = { since: at(now, -18 * MINUTE), viewers: 2, live_views: 1, port_connections: 1 };
   }
   const dark = byId.get('d1dm');
   if (dark) {
@@ -196,7 +195,7 @@ export function decorate(envs: MockEnv[], now: number) {
     dark.detail.closed_at = at(now, -3 * HOUR);
     dark.detail.created_at = at(now, -7 * HOUR);
     dark.detail.last_call_at = at(now, -3 * HOUR - 10 * MINUTE);
-    dark.detail.replay = { frames: 64, since: dark.detail.created_at, until: dark.detail.closed_at, kept_until: at(now, 11 * 24 * HOUR) };
+    dark.detail.replay = { frames: 64, since: dark.detail.created_at, bytes: 64 * 52_000, kept_until: at(now, 11 * 24 * HOUR) };
   }
 }
 
@@ -205,7 +204,7 @@ export function storySaves(now: number): EnvSave[] {
   return [
     {
       id: 'sv_k7pz_2', title: 'Checkout redesign', repo: 'github.com/harbor-supply/shop', branch: 'feat/checkout-redesign', head: '5e1b7c9a0d3f2468a1c3e5f7b9d0a2c4e6f8b0d2',
-      saved_at: at(now, -2 * HOUR), snapshot_gb: null, files_bytes: 284 * 1024 * 1024, paused: true, cost_eur_month: 2.4, provider: 'morph', price_hourly_eur: 0.048,
+      saved_at: at(now, -2 * HOUR), kind: 'save', snapshot_gb: null, files_bytes: 284 * 1024 * 1024, paused: true, cost_eur_month: 2.4, provider: 'morph', server_type: 'morph-4x8', price_hourly_eur: 0.048,
       note: 'The address step is done and pnpm dev is running. Next: the payment step, then the e2e test for a guest.',
       agent: { name: 'Claude Code', client: 'T3 Code' }, prune_at: at(now, 12 * 24 * HOUR),
       services: [{ cmd: 'pnpm dev', port: 3000 }, { cmd: 'docker compose up db', port: 5432 }],
@@ -265,7 +264,7 @@ export function storyEnvironments(now: number): MockEnv[] {
           log_tail: VITE_TAIL, listening_instead: [3000], next: `lane_job_read(job="${devJob.job.id}") shows its whole output`,
         },
         network: { policy: 'full', allowed: { all: true }, blocked: [], secrets: [] },
-        watching: [],
+        watched: null,
         checkpoints: [],
       },
     },
@@ -308,7 +307,7 @@ export function storyEnvironments(now: number): MockEnv[] {
           secrets: ['PARCELPOINT_API_KEY', 'SENTRY_DSN'],
           fix: 'the owner allows a host with `agentos environments allow --host api.segment.io`',
         },
-        watching: [],
+        watched: null,
         checkpoints: [],
       },
     },
@@ -319,10 +318,10 @@ export function storyEnvironments(now: number): MockEnv[] {
         ports: [{ port: 3000, process: 'next-server', link: '/api/orgs/northwind-group/environments/c5kp/ports/3000/' }],
         git: { branch: 'fix/cart-discounts', ahead: 2, dirty: 3, pushed: [] },
         calls: [
-          call(now, 15, 'environment_checkpoint', 'list: 5 checkpoints'),
+          call(now, 6 * 60, 'environment_checkpoint', 'made 6, "Fixed discounts never take the total under zero"'),
           call(now, 70, 'lane_job_start', 'pnpm vitest run src/cart'),
           call(now, 9 * 60, 'lane_exec', 'git commit -m "Cart: a fixed discount never takes the total under zero"'),
-          call(now, 18 * 60, 'environment_checkpoint_restore', 'back to 3, "Percent and fixed discounts, with tests" (made 5 first)'),
+          call(now, 18 * 60, 'environment_rollback', 'back to 3, "Percent and fixed discounts, with tests" (kept the work as 5 first)'),
           call(now, 19 * 60, 'lane_job_start', 'pnpm vitest run src/cart: 6 failed', false),
           call(now, 25 * 60, 'environment_checkpoint', 'made 4, "Try: discounts per line item"'),
           call(now, 37 * 60, 'environment_checkpoint', 'made 3, "Percent and fixed discounts, with tests"'),
@@ -337,13 +336,15 @@ export function storyEnvironments(now: number): MockEnv[] {
         bringup: done('c5kp'),
         prepared: { used: false, why: 'the repository has no .agentos/environment.toml, so there is nothing to prepare' },
         network: { policy: 'full', allowed: { all: true }, blocked: [], secrets: [] },
-        watching: [{ name: 'You', you: true, since: at(now, -3 * MINUTE) }],
+        watched: { since: at(now, -3 * MINUTE), viewers: 1, live_views: 1, port_connections: 0 },
         checkpoints: [
-          checkpoint(now, 'ck1', 52, 'Before anything: the cart as it was', [{ dir: 'shop', files: 0, added: 0, removed: 0 }, { dir: 'ui-kit', files: 0, added: 0, removed: 0 }], { files: 9, added: 251, removed: 37 }),
-          checkpoint(now, 'ck2', 44, 'Discount codes apply to the subtotal', [{ dir: 'shop', files: 4, added: 86, removed: 12 }], { files: 7, added: 179, removed: 31 }),
-          checkpoint(now, 'ck3', 37, 'Percent and fixed discounts, with tests', [{ dir: 'shop', files: 6, added: 198, removed: 29 }, { dir: 'ui-kit', files: 1, added: 14, removed: 2 }], { files: 3, added: 41, removed: 6 }, { restored_at: at(now, -18 * MINUTE) }),
-          checkpoint(now, 'ck4', 25, 'Try: discounts per line item', [{ dir: 'shop', files: 11, added: 398, removed: 74 }, { dir: 'ui-kit', files: 2, added: 31, removed: 9 }], { files: 12, added: 102, removed: 391 }),
-          checkpoint(now, 'ck5', 18, 'Before going back to 3', [{ dir: 'shop', files: 3, added: 22, removed: 41 }], { files: 12, added: 102, removed: 391 }, { auto: true }),
+          // the agent went back to 3 eighteen minutes ago: agentos kept the work as it was first, as 5
+          checkpoint(now, 6, 6, 'Fixed discounts never take the total under zero', [repo('shop', '8e2f1c0a9b3d', 2, change([0, 1, 0], 9, 2)), repo('ui-kit', '4a7d9b3c2e10', 0, change([0, 0, 0], 0, 0))]),
+          checkpoint(now, 5, 18, 'automatic, before the rollback to checkpoint 3', [repo('shop', '4a7d9b3c2e10', 11, change([1, 9, 2], 102, 391)), repo('ui-kit', '4a7d9b3c2e10', 2, change([0, 2, 0], 9, 31))], 'before rollback to 3'),
+          checkpoint(now, 4, 25, 'Try: discounts per line item', [repo('shop', '4a7d9b3c2e10', 11, change([1, 9, 2], 102, 391)), repo('ui-kit', '4a7d9b3c2e10', 2, change([0, 2, 0], 9, 31))]),
+          checkpoint(now, 3, 37, 'Percent and fixed discounts, with tests', [repo('shop', '4a7d9b3c2e10', 6, change([0, 3, 0], 41, 6)), repo('ui-kit', '4a7d9b3c2e10', 1, change([0, 0, 0], 0, 0))]),
+          checkpoint(now, 2, 44, 'Discount codes apply to the subtotal', [repo('shop', '1c90d7e2f3a4', 4, change([2, 5, 0], 179, 31))]),
+          checkpoint(now, 1, 52, 'Before anything: the cart as it was', [repo('shop', '1c90d7e2f3a4', 0, change([3, 6, 0], 251, 37)), repo('ui-kit', '1c90d7e2f3a4', 0, change([0, 1, 0], 14, 2))]),
         ],
       },
     },
@@ -364,6 +365,7 @@ export function storyEnvironments(now: number): MockEnv[] {
         closed_reason: 'agent',
         unsaved: null,
         proofs: [
+          videoProof('r9cl', 'pf_r9_video', 'A guest pays and gets the confirmation, end to end', new Date(guestStart + 36 * MINUTE).toISOString(), 'http://localhost:3000/checkout', 42.6),
           proof('r9cl', 'pf_r9_confirm', 'The order confirmation for a guest', new Date(guestStart + 33 * MINUTE).toISOString(), 'http://localhost:3000/order/HS-10482'),
           proof('r9cl', 'pf_r9_postcode', 'The postcode error, in words a person reads', new Date(guestStart + 23 * MINUTE).toISOString(), 'http://localhost:3000/checkout'),
         ],
@@ -378,7 +380,7 @@ export function storyEnvironments(now: number): MockEnv[] {
         },
         app: { command: 'pnpm dev', port: 3000, listening: true, seconds: 1.4 },
         network: { policy: 'limited', allowed: { preset: 'package registries and code hosts', hosts: [], secret_hosts: ['api.stripe.com'] }, blocked: [{ host: 'js.stripe.com', count: 2, last: new Date(guestEnd - 30 * MINUTE).toISOString() }], secrets: ['STRIPE_TEST_SECRET'] },
-        replay: { frames: 0, since: guest.created_at, until: guest.closed_at, kept_until: new Date(guestEnd + 14 * 24 * HOUR).toISOString() },
+        replay: { frames: 30, since: guest.created_at, bytes: 30 * 51_000, kept_until: new Date(guestEnd + 14 * 24 * HOUR).toISOString() },
         checkpoints: [],
       },
     },
@@ -392,6 +394,8 @@ export function linkSaves(saves: EnvSave[], envs: MockEnv[]) {
   if (dark && save) {
     save.env_id = 'd1dm';
     save.provider = 'hetzner';
+    save.server_type = dark.machine.server_type;
     save.price_hourly_eur = dark.price_hourly_eur;
+    save.kind = 'save';
   }
 }

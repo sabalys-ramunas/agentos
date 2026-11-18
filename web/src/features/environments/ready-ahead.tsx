@@ -1,21 +1,22 @@
 /**
- * Ready ahead (concept): one quiet line on Environments that says what the node keeps ready for the next
- * open, and what it costs, with the way to the Prepared machines page. Shown only when the node says.
+ * Ready ahead: one quiet line on Environments that says what the node keeps ready for the next
+ * open, and what it costs, with the way to the Prepared machines page. Shown only to the owner, when the node says.
  */
 import { Link } from '@tanstack/react-router';
 import { ChevronRight, Layers } from 'lucide-react';
-import { usePreparedMachines } from '@/api/hooks';
+import { useAccess, usePreparedMachines } from '@/api/hooks';
 import { plural } from '@/lib/format';
 import { euro } from './words';
 
 export function ReadyAhead({ org }: { org: string }) {
-  const query = usePreparedMachines(org);
+  const access = useAccess(org);
+  const query = usePreparedMachines(org, access.role === 'owner');
   const data = query.data;
-  if (!data) return null;
+  if (!data || (!data.machines.length && !data.pool.target && !data.pool.warm)) return null;
   const ready = data.machines.filter((machine) => machine.state === 'ready').length;
   const building = data.machines.filter((machine) => machine.state === 'building').length;
   const failed = data.machines.filter((machine) => machine.state === 'failed').length;
-  const month = data.machines.reduce((sum, machine) => sum + machine.cost_eur_month, 0) + (data.month?.warm_cost_eur ?? 0);
+  const month = (data.eur_month ?? data.machines.reduce((sum, machine) => sum + machine.cost_eur_month, 0)) + (data.pool.month_eur ?? 0);
   const parts = [`${ready} ready`, building ? `${building} building` : null, failed ? `${failed} failed` : null].filter(Boolean).join(', ');
   return (
     <Link

@@ -76,9 +76,9 @@ export function EnvHeader({ org, env, now }: { org: string; env: EnvDetail; now:
               </>
             ) : null}
           </p>
-          {isOpen(env) && env.watching?.length ? (
+          {isOpen(env) && env.watched?.viewers ? (
             <p className="text-secondary text-muted">
-              <WatchLine watching={env.watching} />
+              <WatchLine watched={env.watched} />
             </p>
           ) : null}
         </div>

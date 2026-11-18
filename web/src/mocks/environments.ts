@@ -51,6 +51,12 @@ export const at = (now: number, ms: number) => new Date(now + ms).toISOString();
 const costOf = (machine: EnvMachine, minutes: number) => Math.round(((PRICE[machine.server_type] ?? 0.0121) * minutes) / 60 * 10_000) / 10_000;
 
 /** A kept screenshot: its picture is drawn by the proofs route below, from its id. */
+/** A video proof (browser_record), as the node lists it: its MP4, its GIF preview, its length. */
+export function videoProof(env: string, id: string, title: string, takenAt: string, pageUrl: string, seconds: number): EnvProof {
+  const base = `/api/orgs/northwind-group/environments/${env}/proofs/${id}`;
+  return { id, kind: 'video', title, taken_at: takenAt, page_url: pageUrl, width: 1280, height: 800, src: `${base}.mp4`, duration_s: seconds, bytes: Math.round(seconds * 180_000), ended: 'stopped', gif: { width: 640, height: 400, bytes: 2_400_000 }, gif_src: `${base}.gif` };
+}
+
 export function proof(env: string, id: string, title: string, takenAt: string, pageUrl: string, width = 1280, height = 800): EnvProof {
   return { id, title, taken_at: takenAt, page_url: pageUrl, width, height, src: `/api/orgs/northwind-group/environments/${env}/proofs/${id}.png` };
 }
@@ -426,14 +432,14 @@ export function withEnvironments(db: MockDb, now = Date.now()) {
 
 function strip(detail: EnvDetail): EnvSummary {
   const { ports: _ports, git: _git, calls: _calls, commands: _commands, viewer: _viewer, closed_reason: _reason, unsaved: _unsaved, proofs: _proofs, ...rest } = detail;
-  const { prepared: _prepared, app: _app, network: _network, bringup: _bringup, checkpoints: _checkpoints, replay: _replay, watching: _watching, ...summary } = rest;
+  const { prepared: _prepared, app: _app, network: _network, bringup: _bringup, checkpoints: _checkpoints, replay: _replay, watched: _watched, resumed: _resumed, resumed_by: _by, owner_woken: _woken, ...summary } = rest;
   return summary;
 }
 
 /** What time has done since the last read: a boot ends, a close ends, the cost goes up, a quiet one goes idle. */
 function advance(record: OrgData, item: MockEnv, now: number) {
   const env = item.detail;
-  if (advanceStory(record, item, now) && env.resumed) return;
+  if (advanceStory(record, item, now) && env.resumed_by === 'owner') return;
   if (env.state === 'starting' && item.until !== undefined && now >= item.until) {
     item.until = undefined;
     env.state = 'ready';
@@ -507,9 +513,10 @@ export function environmentHandlers({ org, failure, data }: Pick<Helpers, 'org' 
       '/api/orgs/:org/environments/:id/proofs/:file',
       org((record, { params }) => {
         const item = find(record, params.id);
-        const id = String(params.file).replace(/\.png$/, '');
+        const id = String(params.file).replace(/\.(png|gif|mp4)$/, '');
         const kept = item?.detail.proofs?.find((entry) => entry.id === id);
-        if (!kept) return missing();
+        // the mock draws pictures only: a video's MP4 is not here, its GIF preview is a still
+        if (!kept || String(params.file).endsWith('.mp4')) return missing();
         return new HttpResponse(proofPicture(kept.id, kept.width, kept.height), { headers: { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'private, max-age=86400, immutable' } });
       }),
     ),

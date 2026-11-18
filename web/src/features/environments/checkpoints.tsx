@@ -1,9 +1,10 @@
 /**
- * Checkpoints (concept): the agent's own save points in an environment, as a line of work. The working
- * copy on top, then each checkpoint newest first with its note (the agent's words, shown as text), when,
- * and what it holds per repository. When the agent went back to one, the checkpoints it left are drawn on
- * a dashed side line that ends, and the line goes on from the one it went back to. Each opens its diff:
- * what it changed, or from it to now. Only the agent goes back; nothing here changes a file.
+ * Checkpoints: the agent's own undo points in an environment (git's, on the machine), as a line of work.
+ * The working copy on top with what changed since the checkpoint it builds on, then each checkpoint newest
+ * first with its note (the agent's words, shown as text), when, what it held per repository and what
+ * changed since. When the agent went back to one, the checkpoints it went back past are drawn on a dashed
+ * side line that ends, and the line goes on from the one it went back to. Each opens its diff from it to
+ * now. Only the agent goes back; nothing here changes a file.
  */
 import { Undo2 } from 'lucide-react';
 import { useState } from 'react';
@@ -14,8 +15,8 @@ import { Card, CardHeader } from '@/components/ui/card';
 import { cn } from '@/lib/cn';
 import { dateTime, plural, timeAgo } from '@/lib/format';
 import { CheckpointDiffDialog } from './checkpoint-diff';
-import { checkpointRows } from './checkpoint-words';
-import type { CheckpointRow } from './checkpoint-words';
+import { checkpointRows, noteOf, repoDir, sinceOf } from './checkpoint-words';
+import type { Change, CheckpointRow } from './checkpoint-words';
 
 const MAIN = 'left-[11px]';
 const SIDE = 'left-[31px]';
@@ -98,7 +99,8 @@ function Dot({ row }: { row: CheckpointRow }) {
   );
 }
 
-function Changes({ change, label }: { change: { files: number; added: number; removed: number }; label?: string }) {
+function Changes({ change, label }: { change: Change | null; label?: string }) {
+  if (!change) return <span className="text-caption text-faint">{label ? `${label}: ` : ''}the machine did not say</span>;
   if (!change.files) return <span className="text-caption text-faint">{label ? `${label}: ` : ''}no changes</span>;
   return (
     <span className="inline-flex items-center gap-2 font-mono text-code-caption tabular">
@@ -146,27 +148,30 @@ function Row({ row, first, last, sideTop, now, onOpen }: RowProps) {
         <div className="grid min-w-0 gap-1">
           <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
             <span className={cn('font-mono text-code-caption tabular', side ? 'text-faint' : 'text-muted')}>{number}</span>
-            <span className={cn('min-w-0 text-14 [overflow-wrap:anywhere]', side ? 'text-muted' : 'font-medium text-fg')}>{checkpoint.note}</span>
+            <span className={cn('min-w-0 text-14 [overflow-wrap:anywhere]', side ? 'text-muted' : 'font-medium text-fg', !checkpoint.note && 'text-faint')}>{noteOf(checkpoint)}</span>
             {row.forks ? <Badge tone="accent">Went back here</Badge> : null}
             {checkpoint.auto ? <Badge>Made by agentos</Badge> : null}
           </span>
           <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
-            <time dateTime={checkpoint.at} title={dateTime(checkpoint.at)} className="text-caption text-faint">
-              {timeAgo(checkpoint.at, now)}
-            </time>
+            {checkpoint.at ? (
+              <time dateTime={checkpoint.at} title={dateTime(checkpoint.at)} className="text-caption text-faint">
+                {timeAgo(checkpoint.at, now)}
+              </time>
+            ) : null}
             {checkpoint.repos.map((repo) => (
-              <span key={repo.dir} className="inline-flex items-center gap-2">
-                <span className="font-mono text-code-caption text-faint">{repo.dir}</span>
-                <Changes change={repo} />
+              <span key={repo.dir} className="inline-flex items-center gap-2" title={repo.head ? `${repo.dir}, on ${repo.head}` : repo.dir}>
+                <span className="font-mono text-code-caption text-faint">{repoDir(repo.dir)}</span>
+                <span className="font-mono text-code-caption text-muted tabular">{repo.files ? plural(repo.files, 'file') : 'clean'}</span>
               </span>
             ))}
+            {side ? null : <Changes change={sinceOf(checkpoint)} label="Since then" />}
           </span>
         </div>
         <Button
           variant="ghost"
           size="sm"
           className="justify-self-start sm:justify-self-end"
-          aria-label={`Show the changes of checkpoint ${number}`}
+          aria-label={`Show what changed since checkpoint ${number}`}
           onClick={() => onOpen({ checkpoint, number })}
         >
           Changes
