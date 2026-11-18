@@ -389,6 +389,20 @@ async def test_second_open_boots_the_prepared_machine_skips_setup_and_refreshes(
     assert not node.mgr._builds()  # nothing to build: it is ready
 
 
+async def test_an_image_deleted_outside_agentos_is_forgotten_and_built_again(node):
+    await node.call("environment_open", title="Shop", repo=REPO)
+    await builds_done(node.mgr)
+    [rec] = node.mgr.prepared_store().all()
+    await node.prov.delete_image(rec.image)
+    out = await node.call("environment_open", title="Shop 2", repo=REPO, session="chat-2")
+    assert out["state"] == "ready", out
+    assert out["prepared"]["used"] is False and "image is gone" in out["prepared"]["why"]
+    assert out["prepared"]["setup"]["ok"] is True and out["prepared"]["build"]["started"] is True
+    await builds_done(node.mgr)
+    [again] = node.mgr.prepared_store().all()
+    assert again.state == "ready" and again.image != rec.image
+
+
 async def test_a_new_lockfile_misses_the_prepared_machine(node):
     await node.call("environment_open", title="Shop", repo=REPO)
     await builds_done(node.mgr)

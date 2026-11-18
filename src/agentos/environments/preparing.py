@@ -168,6 +168,17 @@ class Preparing:
         if prepared.get("state") != "ready" or not prepared.get("image"):
             return plan
         try:
+            gone = await self.vms().image(prepared["image"]) is None
+        except Exception:  # noqa: BLE001 - the provider cannot say now: the rent will
+            gone = False
+        if gone:  # deleted outside agentos: forget it, so setup runs here and a new one is built
+            with contextlib.suppress(Exception):
+                self.prepared_store().remove(prepared.get("key") or "")
+            prepared.update(state="none", why="its prepared machine's image is gone, so setup ran here and a new "
+                                              "one is built")
+            prepared.pop("image", None)
+            return plan
+        try:
             again = await self.plan(env_id, size=size, hours=hours, keep=keep, image=prepared["image"])
         except AgentosError as e:
             prepared.update(state="none", why=f"its prepared machine could not be planned ({e.message[:200]})")
