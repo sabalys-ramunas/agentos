@@ -40,13 +40,13 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))   # tests/, so env_eval imports
 
-from env_eval import agents as agent_runs  # noqa: E402
-from env_eval import budget, history  # noqa: E402
-from env_eval.ghstub import GitHubStub  # noqa: E402
-from env_eval.metrics import final_json, open_times, time_to_ready, trace_metrics  # noqa: E402
-from env_eval.node import REPO, EvalNode, NodeFailed, docker_ready, sweep_stale  # noqa: E402
-from env_eval.proxy import McpProxy, Recorder  # noqa: E402
-from env_eval.tasks import Agent, Ctx, Task, all_tasks, has_node  # noqa: E402
+from env_eval import agents as agent_runs
+from env_eval import budget, history
+from env_eval.ghstub import GitHubStub
+from env_eval.metrics import final_json, open_times, time_to_ready, trace_metrics
+from env_eval.node import REPO, EvalNode, NodeFailed, docker_ready, sweep_stale
+from env_eval.proxy import McpProxy, Recorder
+from env_eval.tasks import Agent, Ctx, Task, all_tasks, has_node
 
 SCRIPTED = budget.FREE_AGENTS
 MODEL_AGENTS = ("claude", "codex", "cmd")
@@ -224,8 +224,9 @@ async def run_all(args: argparse.Namespace, tasks: list[Task], out: Path, cap_us
 # ---- the table and the verdict ----
 
 def table(results: list[dict[str, Any]]) -> str:
-    lines = ["| agent | task | finished | seconds | ready s | opens s | calls | tokens read | errors | wrong turns "
-             "| model tokens in/out/cache | cost |", "|---|---|---|---|---|---|---|---|---|---|---|---|"]
+    head = ("| agent | task | finished | seconds | ready s | opens s | calls | tokens read | errors | wrong turns "
+            "| model tokens in/out/cache | cost |")
+    lines = [head, "|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for r in results:
         if r.get("skipped"):
             lines.append(f"| {r['agent']} | {r['task']} | skipped | | | | | | | {r['skipped']} | | |")
@@ -237,7 +238,7 @@ def table(results: list[dict[str, Any]]) -> str:
         lines.append(f"| {r['agent']} | {r['task']} | {'yes' if r['finished'] else 'no'} | {r['seconds']} | "
                      f"{r['ready_s'] if r['ready_s'] is not None else '-'} | {opens} | {r['calls']} | "
                      f"{r['tokens_read']} | {r['tool_errors']} | {len(r['wrong_turns'])} | {tok} | "
-                     f"{('$%.3f' % m['cost_usd']) if 'cost_usd' in m else '-'} |")
+                     f"{f'${m["cost_usd"]:.3f}' if 'cost_usd' in m else '-'} |")
     return "\n".join(lines)
 
 

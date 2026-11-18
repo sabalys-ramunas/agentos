@@ -44,10 +44,10 @@ class GitHubStub:
             def log_message(self, *args: Any) -> None:
                 pass
 
-            def do_GET(self) -> None:  # noqa: N802 - http.server's name
+            def do_GET(self) -> None:
                 stub._answer(self, "GET")
 
-            def do_POST(self) -> None:  # noqa: N802
+            def do_POST(self) -> None:
                 stub._answer(self, "POST")
 
         self.server = http.server.ThreadingHTTPServer(("127.0.0.1", self.port), Handler)

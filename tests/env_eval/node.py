@@ -248,9 +248,9 @@ class EvalNode:
         """The containers of these environments that still exist (their VM records' provider ids)."""
         left = []
         for rec in self.vms():
-            if rec.environment in env_ids and rec.provider_id:
-                if docker("container", "inspect", "--format", "{{.Id}}", rec.provider_id).returncode == 0:
-                    left.append(rec.provider_id[:12])
+            if (rec.environment in env_ids and rec.provider_id
+                    and docker("container", "inspect", "--format", "{{.Id}}", rec.provider_id).returncode == 0):
+                left.append(rec.provider_id[:12])
         return left
 
     def warm_ready(self) -> bool:

@@ -22,7 +22,7 @@ import contextlib
 import json
 import time
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Self
 
 HOP = {"host", "content-length", "connection", "keep-alive", "transfer-encoding", "te", "trailer", "upgrade",
        "proxy-authorization", "proxy-authenticate", "accept-encoding"}
@@ -145,7 +145,7 @@ class McpProxy:
     def url(self) -> str:
         return f"http://127.0.0.1:{self.port}/mcp"
 
-    async def __aenter__(self) -> McpProxy:
+    async def __aenter__(self) -> Self:
         import httpx
         import uvicorn
         from starlette.applications import Starlette
