@@ -41,5 +41,8 @@
 │              only.                                                           │
 │ prepared     The repositories' prepared machines (an image with their setup  │
 │              run), and the warm pool.                                        │
+│ login        Logins an environment's browser signs in with, from the vault:  │
+│              bind them to computers by title, repository or all. `agentos    │
+│              environments login TITLE SITE` signs one in now.                │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 
