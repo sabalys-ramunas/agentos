@@ -117,13 +117,40 @@ through the tools only.
 | `agentos setup github` | your `gh` login, `gh auth login`, a pasted token, or none; and whether environments may use any repository the login reaches |
 | `agentos setup limits` | the monthly cap (10 EUR by default here), hours per VM, VMs at once |
 | `agentos setup agents` | starts the service, connects Claude Code and Codex, adds the skills |
+| `agentos setup web` | the web app at `http://127.0.0.1:7410/`: adds the copy built for your version (yes by default), updates one from another version, or removes it |
 | `agentos setup ssh` | adds `Include ~/.agentos/ssh/config` at the top of `~/.ssh/config`, so `ssh agentos-<id>` works |
 | `agentos setup check` | each piece, in plain words |
 | `agentos setup test-vm` | opens a VM, runs `uname -a`, closes it (about 0.01 EUR on Hetzner) |
 
 For scripts: `agentos setup --yes` takes every default and asks nothing, with
-`--hetzner-token-file FILE`, `--github-token-file FILE` or `--docker`. A test VM never opens
-without a yes.
+`--hetzner-token-file FILE`, `--github-token-file FILE`, `--docker` or `--no-web`. A test VM never
+opens without a yes.
+
+## The web app
+
+The web app is optional. Setup offers it, and `agentos web` changes it later:
+
+| Command | What it does |
+|---|---|
+| `agentos web install` | downloads `agentos-web-<version>.tar.gz` from the GitHub release of the agentos you have, checks it against that release's `.sha256`, and unpacks it into `~/.agentos/web/app` (no sudo) |
+| `agentos web update` | the same, only when it is out of date, and never after a no or a `remove` |
+| `agentos web remove` | takes it away; updates leave it away until `agentos web install` |
+| `agentos web status` | what `/` serves now, and whether it matches your agentos |
+
+Running the installer again updates agentos and then the web app to the same version (setup's web step
+does it; without setup, the installer runs `agentos web update`, and `AGENTOS_NO_WEB=1` skips it). A
+copy from another version shows as "to do" in `agentos setup check` and as a warning in
+`agentos doctor`.
+
+Where `/` comes from, first match wins: `AGENTOS_PANEL_DIR`, then a checkout's own build
+(`web/dist`, [web/README.md](../web/README.md)), then the installed copy. The service looks on every
+request, so an install or a remove shows on the next reload. It serves those files as they are, from
+inside that folder only: an archive with a link, an absolute path or a `..` in it is refused before
+anything is unpacked. The app holds no secret: it is static files that talk to the service's API with your
+browser's session.
+
+Without network, or for a release made before the web app was published, setup says so and goes on;
+the service, MCP and the live view links work without it.
 
 ## By hand, step by step
 

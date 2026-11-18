@@ -758,6 +758,12 @@ another ref, so people get a release, never whatever `main` is today. To cut one
 3. Push to `main`, wait for CI to pass there, then tag and publish:
    `gh release create vX.Y.Z --target main --title "agentos X.Y.Z" --notes-file NOTES.md`, with the
    notes taken from that version's changelog section.
+4. Publishing starts two workflows: `env-image` pushes the docker provider's machine image
+   (`ghcr.io/<owner>/agentos-env:X.Y.Z`), and `web-release` builds the web app in live mode and
+   attaches `agentos-web-X.Y.Z.tar.gz` and its `.sha256` to the release (`scripts/web_asset.py`;
+   `make web-asset` makes the same archive locally). `agentos web install` and setup's web step
+   download exactly that version's pair, so check both files are on the release before you announce
+   it. If the workflow failed, run it again from Actions > web-release > Run workflow with the tag.
 
 Before 1.0, a minor version may change tools or settings; say so in the release notes.
 

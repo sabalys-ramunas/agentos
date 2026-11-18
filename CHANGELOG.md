@@ -21,6 +21,17 @@ All notable changes to agentos are recorded here. The format follows
   docs/THREAT-MODEL.md. No replay frame is taken while a fill runs. The local node now serves `login`,
   `vault_fill` and `vault_list`, and the `environments` special includes `secret` on `env/*` lanes: an
   agent connected before needs `agentos connect` again.
+- **The one-line install includes the web app, as an option.** Each release carries the web app
+  prebuilt (`agentos-web-<version>.tar.gz` and its `.sha256`, from the new `web-release` workflow and
+  `scripts/web_asset.py`, or `make web-asset` locally). `agentos setup` gains a web step that offers it
+  (yes by default, `--no-web` skips it): it downloads the copy for the installed version, refuses one
+  whose sha256 differs or whose archive holds a link, an absolute path or a `..`, and unpacks it into
+  `~/.agentos/web/app` without sudo. `agentos web install|update|remove|status` change it later.
+  Running the installer again updates the web app to the same version (without setup, the installer
+  runs `agentos web update`; `AGENTOS_NO_WEB=1` skips it), and a copy from another version shows in
+  `agentos setup check` and `agentos doctor`. The service serves a checkout's own `web/dist` first and
+  the installed copy second, looked up on each request, so an install shows on the next reload.
+
 - **What the evals found, fixed.** A lane's name passed as `on` (`<id>-browser`, the open's old
   `lanes.browser`) reaches the machine for the chat whose session holds it, and anyone else hears it is a
   lane's name and to pass the `on`; the open's result names no lane any more. `lane_exec` adds a one-line

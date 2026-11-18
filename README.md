@@ -180,9 +180,11 @@ agentos has a small web app at `http://127.0.0.1:7410/` that lists every environ
 costs and how long it has left. Each one has a page with its live browser, the proof screenshots,
 the commands it ran and its pushed branches.
 
-The one-line install does not include the web app: it is built from a checkout with Node.js 22 and
-pnpm ([web/README.md](web/README.md)). Without it, `http://127.0.0.1:7410/` says so, and every
-environment still has its live view link, and `agentos environments list` in the terminal.
+The one-line install includes the web app, as an option: `agentos setup` offers it (yes by default)
+and downloads the copy built for your version, checked against its release's sha256. Running the
+installer again updates it with agentos. To leave it out, answer no, or add it later with
+`agentos web install` (`agentos web remove` takes it away). Without it, every environment still has
+its live view link, and `agentos environments list` in the terminal.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/readme/environment-dark.png">

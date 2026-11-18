@@ -55,7 +55,19 @@ pnpm build                    # writes dist/, in live mode
 ```
 
 A node serves `web/dist` at `/` beside its API, as soon as `dist/` is built (`AGENTOS_PANEL_DIR`
-points it at another build). The node's installer (`deploy/install-node.sh`) builds `web/` whenever its sources changed since the last
+points it at another build). A checkout's own build comes first; an agentos installed without a
+checkout serves the prebuilt copy `agentos web install` unpacks into `~/.agentos/web/app`
+([docs/LOCAL.md](../docs/LOCAL.md#the-web-app)).
+
+Each release carries that copy: the `web-release` workflow builds `web/` in live mode and packs
+`dist/` with `scripts/web_asset.py` into `agentos-web-<version>.tar.gz` and its `.sha256`. To make
+the same archive here (it is reproducible: the same build packs to the same bytes):
+
+```bash
+make web-asset                # pnpm build, then dist-release/agentos-web-<version>.tar.gz and .sha256
+```
+
+The packer refuses a `dist/` with a link in it or the mock backend in it. The node's installer (`deploy/install-node.sh`) builds `web/` whenever its sources changed since the last
 good build, and keeps that build if a new one fails.
 
 To open it on a node, run `agentos panel login` there: it prints a one-time sign-in link. From your
