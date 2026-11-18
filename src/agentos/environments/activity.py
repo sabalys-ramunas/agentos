@@ -8,6 +8,7 @@ import asyncio
 import contextlib
 import re
 from datetime import UTC, datetime
+from typing import Any
 
 from agentos.core.models import LaneState
 from agentos.environments.models import Environment
@@ -47,10 +48,13 @@ class Activity:
             return False  # the one job, not a build or a test, and a port listens: it is the server
         return bool(left)
 
-    def _last_used(self, env: Environment) -> datetime:
-        """The last sign of use: an agent's call, a command on the terminal lane, or a person's input
-        in the browser's live view (the viewer relay notes each one on the lane's control)."""
-        last = env.last_activity()
+    def _last_used(self, env: Environment, now: datetime | None = None) -> datetime:
+        """The last sign of use: an agent's call, a command on the terminal lane, a person's input in the
+        browser's live view (the viewer relay notes each one on the lane's control), or a person watching
+        it (a live view or a port link open now is use `now`, the reaper's clock: agentos.environments.watching)."""
+        if self.watching_since(env) is not None:
+            return now or self._clock()
+        last = max(t for t in (env.last_activity(), env.watched_at) if t is not None)
         envs = self._get("envs")
         with contextlib.suppress(Exception):
             used = envs.store.last_used(env.terminal_lane) if envs is not None else None
@@ -63,6 +67,21 @@ class Activity:
             if human is not None:
                 last = max(last, human if human.tzinfo else human.replace(tzinfo=UTC))
         return last
+
+    async def probe_exec(self, lane_id: str, cmd: str, **kw: Any) -> Any:
+        """A command the node runs on the machine to read it for a page (ports, git, checkpoints), which is
+        no use of the machine: the terminal lane's last use is put back as it was, so the web app polling
+        an environment's page never keeps it from going idle."""
+        envs = self.envs()
+        before = None
+        with contextlib.suppress(Exception):
+            before = envs.store.last_used(lane_id)
+        try:
+            return await envs.exec(lane_id, cmd, **kw)
+        finally:
+            if before is not None:
+                with contextlib.suppress(Exception):
+                    envs.store.touch(lane_id, before)
 
     async def load_hint(self, lane_id: str) -> str | None:
         """For a browser call that was slow or stuck on an environment's machine: its load and memory,

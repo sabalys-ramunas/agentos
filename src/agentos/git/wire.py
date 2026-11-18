@@ -157,8 +157,9 @@ def check_sha(sha: str) -> str:
 
 def check_ref(ref: str) -> str:
     """A branch or tag name a push may update (`refs/heads/...`, `refs/tags/...`), checked as
-    `git check-ref-format` would. Every other namespace is refused."""
-    if not (ref.startswith(("refs/heads/", "refs/tags/"))):
+    `git check-ref-format` would. Every other namespace is refused. refs/agentos/... (an environment's
+    checkpoints) parses, so the gateway's refusal of it reaches git as words (GitGateway._receive)."""
+    if not (ref.startswith(("refs/heads/", "refs/tags/", "refs/agentos/"))):
         raise InvalidRequest(f"a push may update branches and tags only, not {ref[:120]!r}")
     if len(ref) > 255 or ".." in ref or "@{" in ref or ref.endswith((".", "/", ".lock")) or "//" in ref:
         raise InvalidRequest(f"not a valid ref name: {ref[:120]!r}")

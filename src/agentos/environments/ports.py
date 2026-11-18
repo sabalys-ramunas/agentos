@@ -53,12 +53,15 @@ async def socks_connect(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
 
 class PortForward(Guard):
     """127.0.0.1:<local> on the node, relayed through the environment's SOCKS socket to <port> on its
-    machine. `target()` is the tunnel's socket now (the tunnel may have been started again)."""
+    machine. `target()` is the tunnel's socket now (the tunnel may have been started again). `on_use()`,
+    for each connection that reached the machine, notes that a person uses the link and returns what
+    ends that (agentos.environments.watching), so the reaper never closes it under their open page."""
 
-    def __init__(self, local: int, port: int, target: Any, *, allow: Any = peer_is_us):
+    def __init__(self, local: int, port: int, target: Any, *, allow: Any = peer_is_us, on_use: Any = None):
         super().__init__(local, "", allow=allow)
         self.remote_port = port
         self.socks = target
+        self.on_use = on_use
 
     async def _client(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         peer = writer.get_extra_info("peername") or ("", 0)
@@ -81,11 +84,17 @@ class PortForward(Guard):
             for w in (up_w, writer):
                 w.close()
             return
+        stop = None
+        if self.on_use is not None:
+            with contextlib.suppress(Exception):
+                stop = self.on_use()
         try:
             await asyncio.gather(_pipe(reader, up_w), _pipe(up_r, writer))
         finally:
             for w in (up_w, writer):
                 w.close()
+            if callable(stop):
+                stop()
 
 
 def _forwards(mgr: Any) -> dict[str, dict[int, PortForward]]:
@@ -151,7 +160,9 @@ async def forward(mgr: Any, env: Any, port: int) -> dict:
     if len(mine) >= MAX_FORWARDS:
         raise InvalidRequest(f"environment {env.id} forwards {MAX_FORWARDS} ports already "
                              f"({', '.join(str(p) for p in sorted(mine))}); use one of those")
-    fwd = PortForward(free_port(), port, lambda: getattr(mgr.tunnel_of(env.id), "socks_path", None))
+    watch = getattr(mgr, "watch_lane", None)
+    fwd = PortForward(free_port(), port, lambda: getattr(mgr.tunnel_of(env.id), "socks_path", None),
+                      on_use=(lambda: watch(env.terminal_lane, "port")) if callable(watch) else None)
     await fwd.start()
     mine[port] = fwd
     log.info("environment %s: port %d on its machine is 127.0.0.1:%d here", env.id, port, fwd.port)

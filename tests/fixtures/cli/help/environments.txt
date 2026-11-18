@@ -30,6 +30,8 @@
 │              missing.                                                        │
 │ prepare      Build the repository's prepared machine now, and show its       │
 │              steps.                                                          │
+│ resume       Resume a saved environment now, held by no chat, and give its   │
+│              live view.                                                      │
 │ repo         Connect private repositories: a key or token in the vault, and  │
 │              the declaration for env.                                        │
 │ secret       API keys the app in an environment uses: the machine holds a    │

@@ -25,8 +25,8 @@ class Views:
     # ================================================================ read
     async def ports(self, env: Environment) -> list[dict]:
         try:
-            res = await self.envs().exec(env.terminal_lane, "ss -ltnpH 2>/dev/null || ss -ltnp",
-                                         timeout_s=CHECK_TIMEOUT_S)
+            res = await self.probe_exec(  # type: ignore[attr-defined]  (Activity, on the same manager)
+                env.terminal_lane, "ss -ltnpH 2>/dev/null || ss -ltnp", timeout_s=CHECK_TIMEOUT_S)
         except AgentosError:
             return []
         from agentos.environments import ports as env_ports
@@ -37,7 +37,8 @@ class Views:
         """Every repository under /work, the cloned one and any other the agent made: None when the
         machine does not answer."""
         try:
-            res = await self.envs().exec(env.terminal_lane, GIT_STATE, timeout_s=CHECK_TIMEOUT_S)
+            res = await self.probe_exec(  # type: ignore[attr-defined]  (Activity, on the same manager)
+                env.terminal_lane, GIT_STATE, timeout_s=CHECK_TIMEOUT_S)
         except AgentosError:
             return None
         if res.exit_code not in (0, None) and not res.stdout:
@@ -198,6 +199,10 @@ class Views:
         out["commands"] = self._commands(env)
         out["viewer"] = self._viewer(env)
         out["unsaved"] = self.unsaved_of(repos)
+        from agentos.environments.checkpoints import listed
+
+        out["checkpoints"] = listed(repos)  # git's own undo points on the machine (agentos.environments.checkpoints)
+        out["watched"] = self.watched(env)  # type: ignore[attr-defined]  (Watching, on the same manager)
         out["network"] = self.network_view(env)  # type: ignore[attr-defined]  (Network, on the same manager)
         out.update(self.prepared_view(env))  # type: ignore[attr-defined]  (Preparing, on the same manager)
         busy = self.in_background(env.id)  # type: ignore[attr-defined]  (Saving, on the same manager)

@@ -16,6 +16,9 @@
     POST /api/environments/prepare          {"repo", "ref", "force"}: start the build of the repository's prepared
                                             machine (agentos.environments.prepbuild), for `agentos environments
                                             prepare`, which follows its steps in the store. The owner
+    POST /api/environments/resume           {"ref"}: resume a save (its title or save id) held by no chat
+                                            (agentos.environments.waking), for `agentos environments resume`. The
+                                            owner
 
 `{id}` is the card's approval id, which the questions list marks with `repo_connect`
 (agentos.environments.connect.annotate). Every route answers only the owner signed in with a person
@@ -49,6 +52,11 @@ FRESH_CHECK = "Confirm with your passkey first: a token opens your code to this 
 class DownloadBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
     path: str
+
+
+class ResumeBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    ref: str
 
 
 class PrepareBody(BaseModel):
@@ -137,11 +145,27 @@ def routes(api: Api) -> list[Route]:
         access_of(request).trace("environment.prepare", summary=f"started the prepared machine build of {out['repo']}")
         return out
 
+    async def resume(request: Request) -> dict:
+        """Resume a saved environment held by no chat (`agentos environments resume`). The owner."""
+        body = await read_body(request, ResumeBody)
+        m = mgr()
+        try:
+            env, how = await m.resume_saved(body.ref)
+        except AgentosError as e:
+            access_of(request).trace("environment.resume", status="error", summary=f"{body.ref[:80]}: {e.code}")
+            raise
+        access_of(request).trace("environment.resume", lane=env.terminal_lane,
+                                 summary=f"resumed \"{env.title}\" as {env.id}" if how == "resumed" else
+                                 f"\"{env.title}\" was open already ({env.id})")
+        return m.owner_view(env, how)
+
     in_person = {"owner": True, "presence": Presence.PERSON}
     return [
         Route("/api/environments/{id}/download", endpoint(api, download, owner=True, action="environment.download"),
               methods=["POST"]),
         Route("/api/environments/prepare", endpoint(api, prepare, owner=True, action="environment.prepare"),
+              methods=["POST"]),
+        Route("/api/environments/resume", endpoint(api, resume, owner=True, action="environment.resume"),
               methods=["POST"]),
         Route("/api/repo-connect/{id}/form", endpoint(api, token_page, step_up=True, **in_person), methods=["POST"]),
         Route("/api/repo-connect/{id}/deploy-key", endpoint(api, deploy_key, **in_person), methods=["POST"]),

@@ -39,6 +39,7 @@ from agentos.core.models import ProxyConfig, utcnow
 from agentos.environments.activity import Activity
 from agentos.environments.bringup import BringUp
 from agentos.environments.caller import binding_of
+from agentos.environments.checkpoints import Checkpoints
 from agentos.environments.downloads import Downloads
 from agentos.environments.errors import (
     EnvironmentFailed,
@@ -74,7 +75,9 @@ from agentos.environments.tunnels import Tunnel
 from agentos.environments.updates import Updates
 from agentos.environments.uploads import Uploads
 from agentos.environments.views import Views
+from agentos.environments.waking import Waking
 from agentos.environments.warmpool import WarmPool
+from agentos.environments.watching import Watching
 
 log = logging.getLogger("agentos.environments")
 
@@ -140,7 +143,7 @@ def check_ref(ref: str | None) -> str | None:
 
 
 class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downloads, Pausing, Saving, Activity,
-                         SshAccess, Updates, Network, Preparing, PrepBuild, WarmPool):
+                         SshAccess, Updates, Network, Preparing, PrepBuild, WarmPool, Checkpoints, Watching, Waking):
     """The environments service. Which environment a call means and attaching by title (Picking), its
     sizing and cost (Sizing), its bring-up (BringUp), its read side (Views), its saves (Saving) and what
     counts as busy (Activity), and in local mode the agent's own ssh (SshAccess) are mixins in their own
@@ -817,7 +820,7 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
             if rec.state == "ready":
                 await self.ssh_keep(env, now)  # local mode: the agent's own ssh, and its use counted as use
                 await self.quiet_upgrade(env, now)  # a keep "live" machine's security updates (agentos.environments.updates)
-            idle = (now - self._last_used(env) >= timedelta(minutes=self.settings.idle_minutes)
+            idle = (now - self._last_used(env, now) >= timedelta(minutes=self.settings.idle_minutes)
                     and not await self._busy_for_idle(env))
             if env.keep == "live" or env.state != "ready":
                 continue  # a kept machine is never closed for idleness

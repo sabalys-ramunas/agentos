@@ -8,6 +8,25 @@ All notable changes to agentos are recorded here. The format follows
 
 ### Added
 
+- **Checkpoints and rollback inside an environment.** `environment_checkpoint(note)` keeps every
+  repository under `/work` as it is (tracked and new files git does not ignore) as a git commit under
+  `refs/agentos/checkpoints/<n>`, made with a temporary index: seconds, no provider call, and the
+  agent's index, stash and branches untouched. `environment_rollback(checkpoint)` checkpoints the work
+  first (so it can be undone), then puts the branch back at the checkpoint's HEAD and the files as they
+  were, removing new ones; ignored files (`node_modules`, `.env`) stay. Refused mid merge or rebase.
+  About 20 are kept; `environment()` lists them, and the web API gives what changed since each one and
+  one checkpoint's patch against now. They never leave the machine: the git gateway refuses a push of
+  `refs/agentos/*`, and a files-only resume does not keep them. In `tools_more("terminals")`.
+- **Watching keeps an environment open.** A live view of its browser, or a connection through an
+  `environment_port` link, counts as use while it is open, so the reaper never saves or closes it under
+  you; `environment()` and the web API say `watched`. The web app polling the page no longer counts.
+- **You resume a saved environment without a chat.** `agentos environments resume <title or save id>`,
+  Resume in the web app's Saved list, or the Resume button on the saved environment's live-view link
+  (which now shows the title, when it was saved and the note instead of an error). It resumes as
+  `environment_open` does, within the node's limits, held by no chat: you watch it at once, and the next
+  agent that opens its title takes it (`opened: "resumed"`). An agent's call with the handle of a saved
+  one says when it was saved and how to come back.
+
 - **A network policy per environment.** `network` in `environments.toml` is `full` (the default),
   `limited` (package registries, code hosts, your `allow_hosts` and the hosts of bound secrets) or
   `none` (the git gateway alone). It is held outside the machine: a closed Hetzner firewall, or the

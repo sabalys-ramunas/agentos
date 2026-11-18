@@ -23,8 +23,8 @@ the machine.
 ## Coming back
 
 `environment_open` with the same title resumes a save in any chat, with a new `on`.
-`environment_open(repo=...)` alone finds that repo's one environment; with several it lists them
-(`environment_choice`): pick a title. `environment()` lists the `open` and `saved` ones. Read `resumed`:
+`environment_open(repo=...)` alone finds that repo's environment; with several
+(`environment_choice`), pick a title. `environment()` lists the `open` and `saved` ones. Read `resumed`:
 - `from`: `"snapshot"` (whole machine), `"paused"` (kept running), `"files"` (`/work`: reinstall).
 - `branch`, `head`, `commits_restored`, `files_restored`: check `git status`.
 - `services`: dev servers start again. One not `running` or `listening` has a ready `restart`
@@ -53,9 +53,10 @@ the machine.
      a sleep loop.
    - `browser_navigate(url="http://localhost:3000")`. `localhost` is the VM.
    - Also listed: `environment_save`, `environment_forget`, `environment_download(path)`. With
-     `tools_more("terminals")`: `environment_port`, `environment_pull_request`.
-   - A result with `ssh` (local mode): `ssh agentos-<id>`, scp, rsync and git reach the VM
-     (`ssh.examples`); not in agentos's call log.
+     `tools_more("terminals")`: `environment_port`, `environment_pull_request`, and
+     `environment_checkpoint(note)` before a risky step (`environment_rollback(checkpoint=n)` undoes it;
+     ignored files stay).
+   - A result with `ssh`: `ssh agentos-<id>`, scp and rsync reach the VM.
 4. Check the page: `tools_more("studio")`, then `ui_check(url="http://localhost:3000", on=...)`; fix
    what it measured.
 5. Show the human the dev server: `app.link`, else `environment_port(port=3000)` gives `url`. On a
@@ -80,7 +81,7 @@ the machine.
 10. Tell the human the pull request, the proofs, and how to come back
     ("continue Black Friday page in agentos") or that the VM is deleted.
 
-It has Ubuntu 24.04, git, Node 22 with pnpm, Python 3 with uv and Docker; install the rest.
+Ubuntu 24.04 with git, Node 22, pnpm, Python 3, uv and Docker; install the rest.
 
 A 403 "not on this environment's network list": give the human its command.
 `network.secrets`: variables whose placeholder works for their host.

@@ -235,3 +235,31 @@ def pause_words(cost_eur_month: float | None, *, snapshot: bool, provider: str =
     else:
         cost = f"about EUR {cost_eur_month:.2f} a month" if cost_eur_month >= 0.01 else "under a cent a month"
     return f"saved: {cost}, resumes {resume_time('snapshot' if snapshot else 'files', provider)}"
+
+
+def closed_words(mgr: Any, env: Any) -> str:
+    """What a call with the handle of an environment that has closed hears. Saved: when, and how to come
+    back (environment_open with its title, never on the agent's behalf), or that it is open again (the
+    owner resumed it, or another chat did). Not saved: closed, and how to open a new one."""
+    from agentos.environments.models import LIVE_STATES
+    from agentos.environments.picking import _when, is_let_go, same_title
+
+    title = env.title
+    why = f" ({env.closed_reason})" if env.closed_reason else ""
+    saved = None
+    with contextlib.suppress(Exception):
+        saved = mgr.saves().latest(env.family, title)
+    again = next((e for e in mgr.open_for_family(env.family) if same_title(e.title, title) and e.state in LIVE_STATES),
+                 None)
+    if saved is None and again is None:
+        return (f"environment {env.id} (\"{title}\") is closed{why} and has no save, so this on reaches nothing and "
+                "nothing ran. environment_open(title=...) opens a new one")
+    when = _when(saved.saved_at) if saved is not None else None
+    head = (f"environment {env.id} (\"{title}\") was saved{' at ' + when if when else ''} and its machine "
+            f"closed{why}, so this on no longer reaches a machine and nothing ran. ")
+    if again is not None:
+        take = ("no chat holds it: environment_open(title=\"{t}\") takes it" if is_let_go(again) else
+                "another chat holds it: environment_open(title=\"{t} 2\") opens your own").format(t=title)
+        return head + f"It is open again as {again.id}; {take}"
+    return head + (f"environment_open(title=\"{title}\") resumes it on a new machine with a new on (it is never "
+                   "resumed for you)")

@@ -457,6 +457,9 @@ class GitGateway:
             text = "agentos: " + self._scrub(message)
             refused: dict[str, str | None] = {c.ref: text for c in push.commands}
             return Response(200, ctype, build_report(refused, sideband=push.sideband, messages=[text]))
+        if any(c.ref.startswith("refs/agentos/") for c in push.commands):  # an environment's checkpoints stay on it
+            return refuse("push_refused: refs/agentos/* are this machine's own checkpoints and never leave it; nothing "
+                          "was pushed. Push a branch instead: git push origin HEAD:<new-branch>")
         try:
             caller, rule = self._resolve(req, remote, listener_lane, push=True)
             account = self._account(caller, rule)
