@@ -199,29 +199,32 @@ async def _commit(http: Any, repo: str, auth: dict, token: str, head: str | None
 
 
 async def send(mgr: Any, http: Any, repo: str, auth: dict, token: str, env_id: str,
-               records: list[dict]) -> dict[str, dict[str, int]]:
+               records: list[dict]) -> tuple[dict[str, dict[str, int]], list[str]]:
     """Put the proofs' files on the branch (the ones not there yet). Returns proof id -> {extension:
-    bytes} of its files there. Raises ProofsNotSent; a race with another push is tried once more."""
+    bytes} of its files there, and the files too large for GitHub. Raises ProofsNotSent; a race with
+    another push is tried once more."""
     for attempt in (1, 2):
         head, there = await _on_branch(http, repo, auth, token, env_id)
         sent: dict[str, dict[str, int]] = {}
+        skipped: list[str] = []
         tree = []
         for r in records:
             for ext, path in files_of(mgr, env_id, r):
                 name, size = f"{r['id']}.{ext}", path.stat().st_size
                 if size > FILE_MAX:
-                    continue  # GitHub takes no file this large: the link on the node stays
+                    skipped.append(name)  # GitHub takes no file this large: the link on the node stays
+                    continue
                 if name not in there:
                     tree.append({"path": f"{env_id}/{name}", "mode": "100644", "type": "blob",
                                  "sha": await _blob(http, repo, auth, token, path)})
                 sent.setdefault(r["id"], {})[ext] = size
         if not tree:
-            return sent
+            return sent, skipped
         try:
             await _commit(http, repo, auth, token, head, tree, env_id)
-            return sent
+            return sent, skipped
         except _Race:
             if attempt == 2:
                 raise ProofsNotSent(f"the {BRANCH} branch kept moving while the proofs were sent; call "
                                     "environment_pull_request again") from None
-    return {}
+    return {}, []

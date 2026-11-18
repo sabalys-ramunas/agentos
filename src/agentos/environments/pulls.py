@@ -190,16 +190,15 @@ async def _proof_sections(mgr: Any, http: Any, env: Any, repo: str, auth: dict, 
         sections[(prproofs.PROOF_BEGIN, prproofs.PROOF_END)] = None
         return None, sections
     try:
-        sent = await prproofs.send(mgr, http, repo, auth, token, env.id, chosen)
+        sent, skipped = await prproofs.send(mgr, http, repo, auth, token, env.id, chosen)
     except AgentosError as e:
         sections[(prproofs.PROOF_BEGIN, prproofs.PROOF_END)] = None
         log.warning("environment %s: its proofs did not go to %s: %s", env.id, repo, e.message)
         return {"in_pull_request": 0, "why": e.message + KEPT_ON_NODE}, sections
     sections[(prproofs.PROOF_BEGIN, prproofs.PROOF_END)] = prproofs.section(repo, env.id, chosen, sent)
-    left = [r["id"] for r in chosen if r["id"] not in sent]
     return {"in_pull_request": len(sent), "branch": prproofs.BRANCH,
-            **({"too_large": left, "why": "GitHub takes no file of 100 MB or more" + KEPT_ON_NODE} if left else {})
-            }, sections
+            **({"too_large": skipped, "why": "GitHub takes no file of 100 MB or more" + KEPT_ON_NODE}
+               if skipped else {})}, sections
 
 
 def _compose(body: str | None, sections: dict[tuple[str, str], str | None]) -> str:
