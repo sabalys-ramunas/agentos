@@ -142,6 +142,8 @@ def wrong_turns(rows: list[dict[str, Any]], *, new_environments: int = 1) -> lis
             if opened_new > new_environments:
                 out.append(f"opened another new environment ({opened_new} where the task needs "
                            f"{new_environments})")
+        if prev is not None and prev.get("session") != r.get("session"):
+            prev = None  # another chat: its first call repeats nothing
         if prev is not None and _failed(prev) and _key(prev) == _key(r):
             out.append(f"repeated the failing {tool} unchanged")
         prev = r
@@ -183,6 +185,15 @@ def time_to_ready(rows: list[dict[str, Any]], t0: float) -> float | None:
 
 # ---- the trace's sums ----
 
+def _seconds_by_tool(rows: list[dict[str, Any]]) -> dict[str, float]:
+    """Where the time went: each tool's calls added up (the first browser call starts the browser)."""
+    out: dict[str, float] = {}
+    for r in rows:
+        if r.get("ended") is not None and r.get("started") is not None:
+            out[r["tool"]] = round(out.get(r["tool"], 0.0) + r["ended"] - r["started"], 2)
+    return dict(sorted(out.items(), key=lambda kv: -kv[1]))
+
+
 def trace_metrics(rows: list[dict[str, Any]], *, new_environments: int = 1) -> dict[str, Any]:
     rows_u = [unwrap(r) for r in rows]
     errors = [r for r in rows_u if not r.get("ok")]
@@ -190,6 +201,7 @@ def trace_metrics(rows: list[dict[str, Any]], *, new_environments: int = 1) -> d
     return {
         "calls": len(rows_u),
         "calls_by_tool": dict(Counter(r["tool"] for r in rows_u)),
+        "seconds_by_tool": _seconds_by_tool(rows_u),
         "tool_errors": len(errors),
         "errors_by_code": dict(Counter(r.get("code") or "error" for r in errors)),
         "tokens_read": tokens(sum(len(str(r.get("text") or "")) for r in rows_u)),

@@ -1,0 +1,9 @@
+{
+  "name": "storefront",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "setup": "sh scripts/setup.sh",
+    "dev": "node server.js"
+  }
+}
