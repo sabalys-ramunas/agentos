@@ -297,6 +297,8 @@ def parse(argv: list[str]) -> argparse.Namespace:
     p.add_argument("--repeat", type=int, default=1, help="runs of each task (medians go in the history)")
     p.add_argument("--max-usd", type=float, default=budget.DEFAULT_MAX_USD,
                    help=f"refuse a paid run estimated above this; also its hard cap (default {budget.DEFAULT_MAX_USD})")
+    p.add_argument("--session-usd", type=float, help="your estimate of one session's cost, for a model the price "
+                                                      "table does not know (a Codex model)")
     p.add_argument("--ref", help="run the node of this commit (a temporary worktree of it), under this harness")
     p.add_argument("--out", type=Path, help="results and transcripts (default: a new temporary folder)")
     p.add_argument("--keep", action="store_true", help="keep each node's home and repositories under --out")
@@ -352,7 +354,7 @@ def cmd_run(argv: list[str]) -> int:
     cap = 0.0
     for kind in args.agent:
         try:
-            est, each = budget.guard(kind, args.model, sessions, args.max_usd)
+            est, each = budget.guard(kind, args.model, sessions, args.max_usd, args.session_usd)
         except budget.OverBudget as e:
             print(f"env eval: refused: {e}", file=sys.stderr)
             return 2

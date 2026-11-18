@@ -43,22 +43,25 @@ def session_usd(model: str) -> float | None:
     return round(sum(t * p for t, p in zip(SESSION_TOKENS, price, strict=True)) / 1e6, 4)
 
 
-def estimate(agent: str, model: str, sessions: int) -> float | None:
-    """The run's estimated cost in USD: 0 for a scripted agent, None when the model's price is unknown."""
+def estimate(agent: str, model: str, sessions: int, each_usd: float | None = None) -> float | None:
+    """The run's estimated cost in USD: 0 for a scripted agent, None when the model's price is unknown
+    (`each_usd`, the caller's own estimate of a session, stands in for it)."""
     if agent in FREE_AGENTS:
         return 0.0
-    each = session_usd(model)
+    each = each_usd if each_usd is not None else session_usd(model)
     return None if each is None else round(each * sessions, 2)
 
 
-def guard(agent: str, model: str, sessions: int, max_usd: float) -> tuple[float | None, float]:
+def guard(agent: str, model: str, sessions: int, max_usd: float, each_usd: float | None = None
+          ) -> tuple[float | None, float]:
     """(the estimate, each session's cap). Raises OverBudget when the estimate is above max_usd, or the
-    model's price is unknown (a model whose name holds none of the aliases above)."""
-    est = estimate(agent, model, sessions)
+    model's price is unknown (none of the aliases above in its name, and no `each_usd`: --session-usd)."""
+    est = estimate(agent, model, sessions, each_usd)
     if agent in FREE_AGENTS:
         return 0.0, 0.0
     if est is None:
-        raise OverBudget(f"no price known for the model {model!r}: use haiku, sonnet, opus or fable in its name")
+        raise OverBudget(f"no price known for the model {model!r}: name haiku, sonnet, opus or fable, or give "
+                         "your own estimate of one session with --session-usd")
     if est > max_usd:
         raise OverBudget(f"the estimate is ${est:.2f} for {sessions} sessions on {model}, above --max-usd "
                          f"{max_usd:.2f}: run fewer tasks or repeats, or raise --max-usd")
