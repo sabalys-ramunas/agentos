@@ -197,6 +197,11 @@ the VM, so no proxy is needed. It is a fresh browser each time it opens. A VM bo
 without the browser installs it while the environment starts (a few minutes). `ui_check` still runs
 studio's browser on the node, through the tunnel. An environment keeps the setting it opened with.
 
+Either way the browser starts while the environment comes up, beside the clone, and keeps starting
+after the open returns: the first `browser_navigate` finds it running (or waits for the rest of its
+start) instead of starting it then. A start that fails is only logged, and the first browser call
+starts it again.
+
 A VM with the browser and one page open uses about 1 GB of memory (measured on the docker provider).
 The smallest size (`small`, 2 CPU and 4 GB, a Hetzner cx23) leaves room for a typical dev server; a
 heavy build next to a big dev server wants `size="medium"`.
@@ -310,13 +315,17 @@ How it holds. The agent is root on its machine, so the network is closed outside
 The machine's way out is the node's proxy, reached through the machine's SSH connection as
 `127.0.0.1:3130` there (like the git gateway on 3129). The node resolves every name itself and
 refuses private and local addresses. On the machine, every process gets `HTTP_PROXY`, `HTTPS_PROXY`
-(and the lower case ones) and `NO_PROXY=localhost,127.0.0.1,::1` from `/etc/environment`, apt has a
-proxy file, git and the package managers follow the variables, and Docker's daemon gets a systemd
-drop-in (restarted only when it runs). A program that ignores the proxy variables reaches nothing.
+(and the lower case ones), `NO_PROXY=localhost,127.0.0.1,::1` and `NODE_USE_ENV_PROXY=1` (so Node's own
+`fetch` takes the proxy too, Node 22.21 and later) from `/etc/environment`, apt has a proxy file, git and
+the package managers follow the variables, and Docker's daemon gets a systemd drop-in (restarted only
+when it runs). A program that ignores the proxy variables reaches nothing.
 
 What it refuses, it says and keeps. A request to a host that is not on the list gets a 403 whose body
 says `<host> is not on this environment's network list. The owner can allow it: agentos environments
-allow --host <host>`. Nobody is asked. `environment()` and the web app's environment page list each
+allow --host <host>`, and a refused CONNECT says it in its status line too (Python and Node's `https`
+print it; curl shows only "response 403"). The result of the `lane_exec` or `lane_job_read` whose command
+was refused names it: `network: {blocked_now: [hosts], fix}`. Nobody is asked. `environment()` and the
+web app's environment page list each
 refused host with a count and when it was last refused (`network.blocked`), and
 `environment_pull_request` adds a "Blocked during this work" section to the pull request when there
 were any.

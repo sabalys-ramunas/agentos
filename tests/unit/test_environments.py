@@ -217,6 +217,38 @@ async def test_open_never_asks_then_rents_clones_and_is_ready(node):
     assert "https://example.test/me/shop.git" in clone and "/work/shop" in clone and grant is None
 
 
+async def test_the_browser_starts_beside_the_clone_and_the_open_never_waits_for_it(node, monkeypatch):
+    """The first browser_navigate waited 10 to 14 s for the machine's browser (evals, 2026-11-18): it
+    starts during the bring-up now, in the background. A start that fails is only logged; the first
+    browser call starts it again, as before."""
+    from agentos.core.models import LaneState
+
+    lanes, mgr = node["lanes"], node["mgr"]
+    gate = asyncio.Event()
+    real_open = lanes.open
+
+    async def slow_open(lane_id, **kw):
+        await gate.wait()
+        return await real_open(lane_id, **kw)
+
+    monkeypatch.setattr(lanes, "open", slow_open)
+    out = await opened(node)
+    assert out["state"] == "ready"  # ready while the browser still starts
+    lane = f"env/{out['id']}-browser"
+    assert lanes.get(lane).state != LaneState.WARM and mgr._warming
+    gate.set()
+    await asyncio.gather(*mgr._warming)
+    assert lanes.get(lane).state == LaneState.WARM
+
+    async def broken(lane_id, **kw):
+        raise RuntimeError("no display")
+
+    monkeypatch.setattr(lanes, "open", broken)
+    again = await opened(node, title="Second one", session="chat-2")
+    await asyncio.gather(*mgr._warming)
+    assert again["state"] == "ready" and mgr.get(again["id"]).open
+
+
 async def test_the_live_view_link_stays_the_same_and_says_how_long_it_and_older_ones_work(node):
     """environment() signed a new live-view link on every call, and the agent could not tell whether the
     one the human had open still worked (2026-11-16). The same link comes back while it is valid; a new
@@ -344,9 +376,9 @@ async def test_the_browser_and_the_clone_come_up_at_once_and_each_step_is_logged
     began = asyncio.Event()
     browser, clone = mgr._make_browser, mgr._clone
 
-    async def slow_browser(env):
+    async def slow_browser(env, **kw):
         await asyncio.wait_for(began.wait(), 5)  # only ends once the clone runs beside it
-        await browser(env)
+        await browser(env, **kw)
 
     async def cloning(env):
         began.set()

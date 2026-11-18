@@ -300,16 +300,17 @@ class BringUp:
             if env.restore_from:
                 await together(steps.run("browser", self._make_browser(env)), *early)
                 await steps.run("restore", self._restore_any(env))
+                self.start_browser(env)  # after the restore: its sign-ins go into the browser as it starts
             elif env.repo:
-                await together(steps.run("browser", self._make_browser(env)), steps.run("clone", self._clone(env)),
-                               *early)
+                await together(steps.run("browser", self._make_browser(env, start=True)),
+                               steps.run("clone", self._clone(env)), *early)
             else:
                 from agentos.environments.identity import committer, git_identity_cmd
 
                 who = git_identity_cmd(await committer(self), env.agent)  # a repository made here commits as them too
                 mkdir = self.envs().exec(env.terminal_lane, f"mkdir -p {machine.WORK} && {{ {who}; }} || true",
                                          timeout_s=CHECK_TIMEOUT_S)
-                await together(steps.run("browser", self._make_browser(env)), mkdir, *early)
+                await together(steps.run("browser", self._make_browser(env, start=True)), mkdir, *early)
         finally:
             for t in early:
                 if not t.done():
@@ -445,10 +446,46 @@ class BringUp:
             return False
         return res.exit_code == 0 and (res.stdout or "").strip().endswith("public")
 
-    async def _make_browser(self, env: Environment) -> None:
+    async def _make_browser(self, env: Environment, *, start: bool = False) -> None:
         """A scratch browser lane made by the node: no account, no vault entry, no keepalive; its
         proxy is the environment's tunnel, so every request leaves from the VM. With browser = "vm" the
-        lane's browser runs on the machine instead (agentos.environments.vmbrowser)."""
+        lane's browser runs on the machine instead (agentos.environments.vmbrowser). `start`: and its
+        browser starts now, beside the clone (start_browser)."""
+        await self._make_browser_lane(env)
+        if start:
+            self.start_browser(env)
+
+    def start_browser(self, env: Environment) -> None:
+        """Start the environment's browser in the background, so the agent's first browser call finds it
+        running: it was the largest wait after a cold open (10 to 14 s on a docker machine, evals
+        2026-11-18). Nothing waits for it, the open neither: a browser call meanwhile waits for the
+        start in progress, and one that failed is started again by the first call, as before."""
+        lanes = self._get("lanes")
+        opener = getattr(lanes, "open", None)
+        if not callable(opener) or not callable(getattr(lanes, "get", None)):
+            return
+        try:
+            lanes.get(env.browser_lane)
+        except Exception:  # noqa: BLE001 - no browser lane (a node with no browser, a terminal only)
+            return
+
+        async def start() -> None:
+            began = time.monotonic()
+            try:
+                await opener(env.browser_lane)
+            except asyncio.CancelledError:
+                raise
+            except Exception as e:  # noqa: BLE001 - the first browser call starts it, and says why it fails
+                log.info("environment %s: its browser did not start ahead (%s); the first browser call starts "
+                         "it", env.id, str(e)[:200] or type(e).__name__)
+                return
+            log.info("environment %s: its browser started ahead in %.1f s", env.id, time.monotonic() - began)
+
+        task = asyncio.create_task(start(), name=f"environment-{env.id}-browser")
+        self._warming.add(task)  # held until done, and cancelled at shutdown
+        task.add_done_callback(self._warming.discard)
+
+    async def _make_browser_lane(self, env: Environment) -> None:
         lanes = self._get("lanes")
         if lanes is None:
             return

@@ -51,7 +51,7 @@ holds no key of the human's, and nothing in it waits for a person.
      build; `lane_job_read(job=..., until_exit=true)` waits for it; `until_port=3000` for its port, not
      a sleep loop.
    - `browser_navigate(url="http://localhost:3000")`. `localhost` is the VM.
-   - Also listed: `environment_save`, `environment_forget`, `environment_download(path)`. With
+   - Also listed: `environment_save`, `environment_forget`, `environment_download(path)`. In
      `tools_more("terminals")`: `environment_port`, `environment_pull_request`, and
      `environment_checkpoint(note)` before a risky step (`environment_rollback(checkpoint=n)` undoes it;
      ignored files stay).
@@ -84,7 +84,7 @@ holds no key of the human's, and nothing in it waits for a person.
 
 Ubuntu 24.04 with git, Node 22, pnpm, Python 3, uv and Docker; install the rest.
 
-A 403 "not on this environment's network list": give the human its command.
+A refused host (a 403, `network.blocked_now`): give the human its command; never retry.
 `network.secrets`: variables whose placeholder works for their host.
 
 ## Never
@@ -97,7 +97,7 @@ A 403 "not on this environment's network list": give the human its command.
 ## When a call fails
 
 - `no_environment`: this chat holds none: `environment_open(title=...)`.
-- `which_environment`: the call had no `on` (or a title): pass yours, never another chat's.
+- `which_environment`: no `on` (or a title, a lane's name): pass yours, never another chat's.
 - `environment_already_open`: that title is open with another repo. Pick another.
 - `environment_in_use`: another chat holds that title. Pick another. `take_over=true` only when the
   message says it is quiet and that chat is done.
