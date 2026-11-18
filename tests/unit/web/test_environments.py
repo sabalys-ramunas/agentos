@@ -14,6 +14,7 @@ from starlette.testclient import TestClient
 
 from agentos.api.auth import SESSION_COOKIE
 from agentos.api.members import Role
+from agentos.core import clock
 from agentos.core.models import utcnow
 from agentos.environments.models import Call, Environment, Machine
 
@@ -211,3 +212,77 @@ def test_an_environments_lanes_are_not_accounts(client: TestClient, envs: Any) -
     assert mixed == [{"id": "env", "lanes": [{"id": "env/mine"}]}]
     # a lane named like one of an environment that does not exist stays where it is
     assert without_environments(api, [{"id": "env", "lanes": [{"id": "env/zzzz-browser"}]}])[0]["lanes"]
+
+
+def test_the_detail_has_the_bring_up_the_replay_and_the_resume(client: TestClient, envs: Any) -> None:
+    body = client.get(f"{ENVS}/e7k2").json()
+    assert body["bringup"] is None  # a record from before the steps were kept
+    assert body["resumed"] is None and body["resumed_by"] is None and body["owner_woken"] is False
+    assert body["resumed_at"] is None
+    assert body["replay"] == {"frames": 0, "since": None, "bytes": 0, "kept_until": None}  # open: kept while it is
+    steps = [{"step": "VM create", "at_s": 0.0, "seconds": 21.3, "ok": True},
+             {"step": "clone", "at_s": 40.1, "seconds": 8.0, "ok": True},
+             {"step": "browser", "at_s": 39.9, "seconds": 3.2, "ok": True}]
+
+    def resumed(e: Environment) -> None:
+        e.bringup = {"total_s": 52.4, "ok": True, "steps": steps}
+        e.resumed, e.resumed_by = {"save_id": "s1", "from": "snapshot", "state": "restoring"}, "owner"
+        e.binding = "kept:e7k2"
+
+    envs.store.update("e7k2", resumed)
+    body = client.get(f"{ENVS}/e7k2").json()
+    up = body["bringup"]
+    assert up["total_s"] == 52.4 and up["ok"] is True and up["running"] == [] and up["restore_from"] == "snapshot"
+    assert [s["step"] for s in up["steps"]] == ["VM create", "browser", "clone"]  # by when each began
+    assert body["resumed"]["save_id"] == "s1" and body["resumed_by"] == "owner"
+    assert body["resumed_at"] == body["created_at"]
+    assert body["owner_woken"] is False  # a chat made calls on it already
+    closed = envs.get("eold")
+    kept = client.get(f"{ENVS}/eold").json()["replay"]["kept_until"]
+    assert kept == clock.iso(closed.closed_at + timedelta(days=envs.settings.replay_days), z=True)
+    envs.settings.replay = False
+    assert client.get(f"{ENVS}/e7k2").json()["replay"] is None  # the node keeps none
+
+
+def test_the_prepared_machines_and_pool_are_the_owners(client: TestClient, envs: Any,
+                                                       monkeypatch: pytest.MonkeyPatch) -> None:
+    from agentos.core.models import Effect
+    from agentos.environments.fleet import worst_eur_month
+
+    async def price() -> float:
+        return 0.0123
+
+    monkeypatch.setattr(envs, "_pool_plan_price", price)
+    envs.settings.warm = 2
+    got = client.get(f"{ENVS}/prepared")
+    assert got.status_code == 200, got.text
+    body = got.json()
+    assert set(body) == {"machines", "eur_month", "eur_per_gb_month", "pool", "month"}
+    assert body["machines"] == [] and body["eur_month"] == 0.0
+    pool = body["pool"]
+    assert {"warm", "target", "minutes", "machines", "price_hourly_eur", "worst_eur_month", "month_eur"} <= set(pool)
+    assert pool["price_hourly_eur"] == 0.0123 and pool["target"] == 2
+    assert pool["worst_eur_month"] == worst_eur_month(2, pool["minutes"], 0.0123)
+    month = body["month"]
+    start = utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    mine = [e for e in envs.store.recent(10) if e.created_at >= start]  # both, but on the 1st just after midnight
+    assert month["opens"] == len(mine) and month["from_prepared"] == 0 and month["from_warm"] == 0
+    assert [r["from"] for r in month["recent"]] == ["cold"] * len(mine)
+    assert all(r["seconds"] == 60.0 for r in month["recent"])  # created 30 min ago, ready 29 min ago
+    assert as_token(client).get(f"{ENVS}/prepared").status_code == 200  # the owner's own token
+    add_operator(client, scopes=("env",))
+    assert as_member(client).get(f"{ENVS}/prepared").status_code == 403
+    policy = client.app.state.api.runtime.get("policy")
+    _grant, token = policy.issue(subject={"id": "agent-b"}, workspaces=["*"], ceiling=Effect.COMMIT,
+                                 specials={"vm": {}})
+    agent = TestClient(client.app, base_url="http://localhost")
+    agent.headers["authorization"] = f"Bearer {token}"
+    assert agent.get(f"{ENVS}/prepared").status_code == 403
+
+
+def test_no_environments_service_is_404_for_the_prepared_machines(client: TestClient,
+                                                                  monkeypatch: pytest.MonkeyPatch) -> None:
+    from agentos.api.web import environments
+
+    monkeypatch.setattr(environments, "manager", lambda api: None)
+    assert client.get(f"{ENVS}/prepared").status_code == 404

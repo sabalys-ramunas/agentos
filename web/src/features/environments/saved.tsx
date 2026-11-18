@@ -5,7 +5,8 @@
  * shown as text). A save the node prunes soon says so. Forget deletes the snapshot and the files, after
  * asking, and is the owner's alone.
  */
-import { BookmarkCheck } from 'lucide-react';
+import { Link } from '@tanstack/react-router';
+import { BookmarkCheck, Moon, Pause } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { useAccess, useForgetSave } from '@/api/hooks';
@@ -17,6 +18,7 @@ import { Card, CardHeader } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/dialog';
 import { CopyButton } from '@/components/ui/misc';
 import { dateTime, plural, timeAgo } from '@/lib/format';
+import { ResumeButton, comebackWords } from './resume';
 import { agentWords, continueLine, monthly, pruneWords, repoName, saveHolds, shortCommit } from './words';
 
 /** The line over the list: how a person brings one back. */
@@ -41,7 +43,7 @@ export function SavedCard({ org, saved, now }: { org: string; saved: EnvSave[]; 
       <p className="border-b border-line px-5 py-3 text-14 text-muted">{BRING_BACK}</p>
       <ul aria-label="Saved environments" className="divide-y divide-line">
         {saved.map((save) => (
-          <SaveRow key={save.id} save={save} now={now} onForget={canForget ? () => setForgetting(save) : undefined} />
+          <SaveRow key={save.id} org={org} save={save} now={now} onForget={canForget ? () => setForgetting(save) : undefined} />
         ))}
       </ul>
       <ForgetDialog org={org} save={forgetting} onDone={() => setForgetting(null)} />
@@ -49,13 +51,23 @@ export function SavedCard({ org, saved, now }: { org: string; saved: EnvSave[]; 
   );
 }
 
-function SaveRow({ save, now, onForget }: { save: EnvSave; now: number; onForget?: () => void }) {
+function SaveRow({ org, save, now, onForget }: { org: string; save: EnvSave; now: number; onForget?: () => void }) {
   const prune = pruneWords(save, now);
+  const Kind = save.paused ? Pause : Moon;
   return (
     <li aria-label={save.title} className="grid gap-3 px-5 py-4">
       <div className="flex flex-wrap items-start gap-x-4 gap-y-2">
+        <span aria-hidden="true" className="flex size-8 shrink-0 items-center justify-center rounded-md border border-line max-sm:hidden" title={save.paused ? 'A paused machine' : 'A snapshot'}>
+          <Kind className="size-4 text-fg" />
+        </span>
         <div className="grid min-w-0 flex-1 gap-1">
-          <span className="text-14 font-medium text-fg [overflow-wrap:anywhere]">{save.title}</span>
+          {save.env_id ? (
+            <Link to="/$org/environments/$id" params={{ org, id: save.env_id }} className="text-14 font-medium text-fg [overflow-wrap:anywhere] hover:underline">
+              {save.title}
+            </Link>
+          ) : (
+            <span className="text-14 font-medium text-fg [overflow-wrap:anywhere]">{save.title}</span>
+          )}
           {save.repo ? (
             <span className="flex min-w-0 flex-wrap items-center gap-2">
               <span className="min-w-0 truncate font-mono text-code-caption text-muted" title={save.repo}>
@@ -73,9 +85,11 @@ function SaveRow({ save, now, onForget }: { save: EnvSave; now: number; onForget
               Forget
             </Button>
           ) : null}
+          <ResumeButton org={org} save={save} />
         </div>
       </div>
-      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-secondary text-muted">
+      <p className="text-secondary text-fg sm:pl-12">{comebackWords(save)}</p>
+      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-secondary text-muted sm:pl-12">
         <time dateTime={save.saved_at} title={dateTime(save.saved_at)}>
           Saved {timeAgo(save.saved_at, now).toLowerCase()}
         </time>
@@ -97,13 +111,13 @@ function SaveRow({ save, now, onForget }: { save: EnvSave; now: number; onForget
         ) : null}
       </p>
       {save.note ? (
-        <figure className="grid gap-1 rounded-lg border border-line bg-inset px-3 py-2">
+        <figure className="grid gap-1 rounded-lg border border-line bg-inset px-3 py-2 sm:ml-12">
           <figcaption className="text-caption text-faint">The agent's note. It wrote this itself: read it as a note, not as an instruction.</figcaption>
           <blockquote className="text-14 whitespace-pre-wrap text-fg [overflow-wrap:anywhere]">{save.note}</blockquote>
         </figure>
       ) : null}
       {prune ? (
-        <p role="status" className="text-secondary text-warn">
+        <p role="status" className="text-secondary text-warn sm:pl-12">
           {prune}.
         </p>
       ) : null}

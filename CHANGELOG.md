@@ -8,6 +8,21 @@ All notable changes to agentos are recorded here. The format follows
 
 ### Added
 
+- **An environment's page in the web app tells what happened, on the real node.** A closed one leads
+  with its replay (frame by frame, the agent's calls, a person's take-overs and the proofs on one track
+  that fits a phone), then its proofs and pull request; an open one with its live browser. How it opened
+  is one line that unfolds to each step and the work it skipped. Checkpoints are drawn as a line of work
+  with the rollback on a side line, and each opens what changed since it, file by file. The owner resumes
+  a save from the app (a refusal by the node's limits stays in the dialog with the fix) and watches it
+  wake. Prepared machines has a page of its own with the warm pool's worst month. A video proof shows its
+  preview and opens a player.
+- **The app sees how an environment came up, and what the node's own machines cost.** The detail has
+  `bringup`: each step of the bring-up with when it began and its seconds (the ones running while it
+  starts), and the work it skipped (a prepared machine's setup and the seconds saved, a warm machine's rent
+  and boot). `GET /api/orgs/{org}/environments/prepared` gives the owner the prepared machines, the warm pool
+  with its hourly price and the most it can cost a month, and this month's opens by where they started. The
+  saves name the machine they wake on, its price and their services; the detail adds the replay summary and
+  the resume (`resumed`, `resumed_by`, `owner_woken`, `resumed_at`).
 - **Checkpoints and rollback inside an environment.** `environment_checkpoint(note)` keeps every
   repository under `/work` as it is (tracked and new files git does not ignore) as a git commit under
   `refs/agentos/checkpoints/<n>`, made with a temporary index: seconds, no provider call, and the

@@ -12,6 +12,7 @@ import { Status, StatusDot } from '@/components/ui/status';
 import { NoValue } from '@/components/ui/table';
 import { clock, dateTime, timeAgo } from '@/lib/format';
 import { CloseEnvironment } from './close-flow';
+import { WatchLine } from './resume';
 import {
   ENV_STATE_SENTENCE,
   ENV_STATUS,
@@ -20,7 +21,6 @@ import {
   ageOf,
   agentWords,
   closedReason,
-  continueLine,
   euro,
   hourly,
   isOpen,
@@ -76,6 +76,11 @@ export function EnvHeader({ org, env, now }: { org: string; env: EnvDetail; now:
               </>
             ) : null}
           </p>
+          {isOpen(env) && env.watched?.viewers ? (
+            <p className="text-secondary text-muted">
+              <WatchLine watched={env.watched} />
+            </p>
+          ) : null}
         </div>
         {actionable && canOperate ? (
           <div className="flex flex-wrap items-center gap-2">
@@ -129,7 +134,7 @@ export function ClosedNotice({ env }: { env: EnvDetail }) {
         <span className="font-medium text-fg">{lead}</span> <span className="text-muted">{closedReason(env.closed_reason, env.state)}</span>
         <span className="mt-1 block text-13 text-faint">
           {keepOf(env) === 'save' && !failed
-            ? `Its machine and browser are deleted, and its work is under Saved. An agent brings it back when it opens it again: say "${continueLine(env.title)}".`
+            ? 'Its machine and browser are deleted, and its work is saved: resume it below, or an agent brings it back when it opens it again.'
             : 'Its machine and browser are deleted. What is below is what the node kept.'}
         </span>
       </p>

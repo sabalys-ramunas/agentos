@@ -256,6 +256,10 @@ class Replay:
         except Exception:  # noqa: BLE001 - the environment's state without it rather than none
             return None
 
+    def replay_kept_until(self, env: Environment) -> datetime | None:
+        """When a closed environment's replay goes (replay_days after the close); None while it is open."""
+        return (env.closed_at + timedelta(days=self.settings.replay_days)) if env.closed_at and not env.open else None
+
     def replay_frame(self, env_id: str, frame_id: str) -> bytes | None:
         return self.replay_store().frame_bytes(env_id, frame_id)
 
@@ -305,7 +309,7 @@ class Replay:
         if after:
             items = [i for i in items if str(i.get("at") or "") > after]
         limit = max(1, min(int(limit), TIMELINE_MAX))
-        kept = (env.closed_at + timedelta(days=self.settings.replay_days)) if env.closed_at and not env.open else None
+        kept = self.replay_kept_until(env)
         return {
             "environment": {"id": env.id, "title": env.title, "state": env.state, "browser": env.browser,
                             "created_at": clock.iso_or_none(env.created_at, z=True),

@@ -1,0 +1,36 @@
+/*
+ * Environments' own drawing (concept): the hatch of a skipped step, the replay's track and its playhead.
+ * Colour stays in tokens: ink is the agent acting, a diamond a person in control, red only a failure.
+ */
+.env-hatch {
+  background-image: repeating-linear-gradient(135deg, var(--line-strong) 0 1px, transparent 1px 6px);
+}
+
+.env-bar-live {
+  animation: env-bar-breathe 1.6s var(--ease-standard) infinite;
+}
+
+@keyframes env-bar-breathe {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .env-bar-live {
+    animation: none;
+  }
+}
+
+.replay-track {
+  touch-action: none;
+}
+
+.replay-track:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.replay-frame {
+  transition: opacity var(--duration-fast) var(--ease-standard);
+}

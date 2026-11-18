@@ -20,7 +20,9 @@ import { toolPlainTitle } from '@/lib/plain-node';
 import { useTechnical } from '@/lib/technical';
 import { ControlFrame } from '@/features/lane/control';
 import { LiveView } from '@/features/lane/live-view';
+import { SegmentedControl } from '@/components/ui/tabs';
 import { UnsavedList, unsavedWords } from './close-flow';
+import { ReplayCard } from './replay';
 import {
   KEEP,
   commandStatus,
@@ -49,18 +51,39 @@ function Stage({ icon, title, children }: { icon: ReactNode; title: string; chil
 export function BrowserCard({ org, env }: { org: string; env: EnvDetail }) {
   const [ws = 'env', name = ''] = env.lanes.browser.split('/');
   const starting = env.state === 'starting';
+  // Concept: what its browser did so far, beside the live view, as a view of the same thing.
+  const [view, setView] = useState<'live' | 'replay'>('live');
+  const replayable = !starting && Boolean(env.replay?.frames);
   return (
     <section aria-label="Browser" className="grid gap-3">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <h2 className="flex items-center gap-2 text-card-title">
           <Globe aria-hidden="true" className="size-4 text-faint" />
           Browser
         </h2>
-        <p className="min-w-0 text-secondary text-faint">
-          Its traffic leaves from the machine, so <span className="font-mono text-code-caption text-muted">localhost</span> is the machine.
-        </p>
+        {view === 'live' ? (
+          <p className="min-w-0 text-secondary text-faint max-md:order-last max-md:w-full">
+            Its traffic leaves from the machine, so <span className="font-mono text-code-caption text-muted">localhost</span> is the machine.
+          </p>
+        ) : null}
+        {replayable ? (
+          <SegmentedControl<'live' | 'replay'>
+            label="Browser view"
+            value={view}
+            onValueChange={setView}
+            options={[
+              { value: 'live', label: 'Live' },
+              { value: 'replay', label: 'Replay so far' },
+            ]}
+            className="ml-auto"
+          />
+        ) : null}
       </div>
-      {starting ? (
+      {view === 'replay' && replayable ? (
+        <Card className="overflow-hidden">
+          <ReplayCard org={org} env={env} embedded />
+        </Card>
+      ) : starting ? (
         <Card className="overflow-hidden">
           <Stage icon={<Spinner />} title="Starting the machine">
             The browser opens when the machine is ready, usually within two minutes.

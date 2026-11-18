@@ -48,6 +48,7 @@ from agentos.environments.errors import (
     SaveLimit,
     UnsavedWork,
 )
+from agentos.environments.fleet import Fleet
 from agentos.environments.models import (
     BRANCHES_KEPT,
     CALLS_KEPT,
@@ -146,7 +147,7 @@ def check_ref(ref: str | None) -> str | None:
 
 class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downloads, Pausing, Saving, Activity,
                          SshAccess, Updates, Network, Preparing, PrepBuild, WarmPool, Replay, Checkpoints, Watching,
-                         Waking, Recording):
+                         Waking, Recording, Fleet):
     """The environments service. Which environment a call means and attaching by title (Picking), its
     sizing and cost (Sizing), its bring-up (BringUp), its read side (Views), its saves (Saving) and what
     counts as busy (Activity), and in local mode the agent's own ssh (SshAccess) are mixins in their own

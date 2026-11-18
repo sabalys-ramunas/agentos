@@ -17,11 +17,11 @@ from agentos.environments.saves import SaveManifest, Snapshot, new_save_id, seal
 from .test_environments import ENVS, MEMBER, add_operator, as_member, as_token
 
 KEYS = {"id", "title", "repo", "branch", "head", "saved_at", "snapshot_gb", "files_bytes", "cost_eur_month", "note",
-        "agent", "prune_at"}
+        "agent", "prune_at", "paused", "kind", "env_id", "provider", "server_type", "price_hourly_eur", "services"}
 
 
-def put_save(mgr: Any, *, title: str = "Black Friday page", member: str | None = None, family: str = "gr_agent"
-             ) -> SaveManifest:
+def put_save(mgr: Any, *, title: str = "Black Friday page", member: str | None = None, family: str = "gr_agent",
+             **more: Any) -> SaveManifest:
     store = mgr.saves()
     tmp = store.tmp()
     (tmp / "files.tgz").write_bytes(b"\x1f\x8b" + b"0" * 100)
@@ -29,7 +29,7 @@ def put_save(mgr: Any, *, title: str = "Black Friday page", member: str | None =
     m = SaveManifest(id=sid, family=family, title=title, env_id="e7k2old0000", agent="claude-code", member=member,
                      repo="github.com/me/shop", branch="sale", head="a" * 40, saved_at=utcnow() - timedelta(hours=2),
                      snapshot=Snapshot(id="1234567", gb=2.0), checksums=seal_payload(tmp, sid, None), encrypted=False,
-                     bytes=102, agent_note="the banner is next")
+                     bytes=102, agent_note="the banner is next", **more)
     store.commit(tmp, m)
     return m
 
@@ -60,6 +60,31 @@ def test_the_listing_has_saved_and_keep(client: TestClient, mgr: Any) -> None:
     assert row["cost_eur_month"] == round(2.0 * mgr.settings.snapshot_eur_per_gb_month, 4)
     assert row["note"] == "the banner is next" and row["head"] == "a" * 12
     assert body["snapshots_eur_month"] == row["cost_eur_month"]
+    # the machine it wakes on: the environment's record is gone, so its price is unknown
+    assert row["paused"] is False and row["kind"] == "save" and row["env_id"] == "e7k2old0000"
+    assert row["provider"] is None and row["server_type"] is None and row["price_hourly_eur"] is None
+    assert row["services"] == []
+
+
+def test_a_saves_row_names_its_machine_and_services(client: TestClient, mgr: Any) -> None:
+    from agentos.environments.models import Machine
+    from agentos.environments.saves import Paused, Service
+
+    now = utcnow()
+    mgr.store.put(Environment(id="e7k2old0000", title="Black Friday page", grant_id="gr_agent", binding="session:x",
+                              state="closed", created_at=now - timedelta(hours=3), closed_at=now - timedelta(hours=2),
+                              expires_at=now, price_hourly_eur=0.0095,
+                              machine=Machine(provider="hetzner", server_type="cpx22")))
+    long_cmd = "pnpm dev --host 0.0.0.0 " + "x" * 400
+    put_save(mgr, server_type="cpx22", paused=Paused(vm_id="vm1", provider_id="42", provider="hetzner",
+                                                     server_type="cpx22", eur_month=1.2),
+             services=[Service(cmd=long_cmd, cwd="/work/shop", port=3000), Service(cmd="redis-server")])
+    [row] = client.get(ENVS).json()["saved"]
+    assert row["paused"] is True and row["provider"] == "hetzner" and row["server_type"] == "cpx22"
+    assert row["price_hourly_eur"] == 0.0095 and row["cost_eur_month"] == 1.2
+    [web, redis] = row["services"]
+    assert web["port"] == 3000 and web["cmd"].startswith("pnpm dev") and len(web["cmd"]) < 240  # cut, as a call summary
+    assert redis == {"cmd": "redis-server", "port": None}
 
 
 def test_the_owner_forgets_a_save_in_person_and_nobody_else_can(client: TestClient, mgr: Any) -> None:

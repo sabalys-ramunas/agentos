@@ -19,6 +19,13 @@ export const environmentsRoute = createRoute({
   component: lazyRouteComponent(() => import('@/features/environments/environments-page'), 'EnvironmentsPage'),
 });
 
+// Concept: what the node keeps ready ahead of an open. A static segment, so it wins over $id.
+export const preparedMachinesRoute = createRoute({
+  getParentRoute: () => orgRoute,
+  path: '/environments/prepared',
+  component: lazyRouteComponent(() => import('@/features/environments/prepared-page'), 'PreparedPage'),
+});
+
 export const environmentRoute = createRoute({
   getParentRoute: () => orgRoute,
   path: '/environments/$id',

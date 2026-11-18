@@ -22,12 +22,13 @@ import { cn } from '@/lib/cn';
 import { dateTime, plural, timeAgo } from '@/lib/format';
 import { PLACES } from '@/lib/vocabulary';
 import { useNow } from '@/lib/use-now';
+import { ReadyAhead } from './ready-ahead';
 import { SavedCard } from './saved';
 import { ENV_STATE_SENTENCE, ENV_STATUS, KEEP, SHORT_MS, ageOf, agentWords, euro, hourly, idleCost, idleShort, isOpen, keepOf, leftOf, machineSize, openSummary, repoName, span, splitEnvironments } from './words';
 
 /** Closed ones shown before "Show all". */
 export const CLOSED_SHOWN = 5;
-const OPEN_COLUMNS = ['Environment', 'State', 'Repository', 'Agent', 'Age', 'Cost', 'Time left'];
+const OPEN_COLUMNS = ['Environment', 'State', 'Repository', 'Agent', 'Cost', 'Time left'];
 
 /** How an agent asks for one, as it would call it. */
 export const OPEN_CALL = 'environment_open(title="Fix the login page", repo="github.com/you/app")';
@@ -105,6 +106,7 @@ function EnvironmentsBody({ org, query }: { org: string; query: ReturnType<typeo
   return (
     <>
       <OpenCard org={org} open={open} />
+      <ReadyAhead org={org} />
       {saved.length ? <SavedCard org={org} saved={saved} now={Date.now()} /> : null}
       {closed.length ? <ClosedCard org={org} closed={closed} /> : null}
     </>
@@ -114,7 +116,7 @@ function EnvironmentsBody({ org, query }: { org: string; query: ReturnType<typeo
 function OpenCard({ org, open }: { org: string; open: EnvSummary[] }) {
   const now = useNow(open.length > 0);
   return (
-    <Card className="overflow-hidden">
+    <Card className="@container overflow-hidden">
       <CardHeader title="Open" meta={open.length ? plural(open.length, 'environment') : undefined} />
       {open.length ? (
         <EnvTable org={org} rows={open} now={now} label="Open environments" />
@@ -133,7 +135,7 @@ function ClosedCard({ org, closed }: { org: string; closed: EnvSummary[] }) {
   const shown = all ? closed : closed.slice(0, CLOSED_SHOWN);
   const hidden = closed.length - CLOSED_SHOWN;
   return (
-    <Card className="overflow-hidden">
+    <Card className="@container overflow-hidden">
       <CardHeader title="Closed" meta={plural(closed.length, 'environment')} />
       <EnvTable org={org} rows={shown} now={Date.now()} closed label="Closed environments" />
       {hidden > 0 ? (
@@ -147,6 +149,13 @@ function ClosedCard({ org, closed }: { org: string; closed: EnvSummary[] }) {
   );
 }
 
+/**
+ * Columns drop by the card's own width, never by scrolling (DESIGN.md, Tables): the agent goes first, then
+ * the repository, and the phone list (under 768 px) shows both again on their own lines.
+ */
+const REPO_COLUMN = 'md:@max-3xl:hidden';
+const AGENT_COLUMN = 'md:@max-4xl:hidden';
+
 function EnvTable({ org, rows, now, closed = false, label }: { org: string; rows: EnvSummary[]; now: number; closed?: boolean; label: string }) {
   const navigate = useNavigate();
   return (
@@ -156,12 +165,9 @@ function EnvTable({ org, rows, now, closed = false, label }: { org: string; rows
           <tr>
             <Th>Environment</Th>
             <Th>{closed ? 'Result' : 'State'}</Th>
-            <Th className="md:max-lg:hidden">Repository</Th>
-            <Th className="md:max-lg:hidden" phone="hide">
+            <Th className={REPO_COLUMN}>Repository</Th>
+            <Th className={AGENT_COLUMN} phone="hide">
               Agent
-            </Th>
-            <Th align="end" phone="hide">
-              {closed ? 'Ran' : 'Age'}
             </Th>
             <Th align="end">Cost</Th>
             <Th align="end">{closed ? 'Closed' : 'Time left'}</Th>
@@ -217,9 +223,9 @@ function EnvRow({ org, env, now, closed, onOpen }: { org: string; env: EnvSummar
           {env.keep && !(closed && keepOf(env) === 'none') ? <KeepCaption env={env} /> : null}
         </span>
       </Td>
-      <Td className="md:max-lg:hidden" phone={env.repo ? undefined : 'hide'}>
+      <Td className={REPO_COLUMN} phone={env.repo ? undefined : 'hide'}>
         {env.repo ? (
-          <div className="grid w-52 min-w-0 justify-items-start gap-1 max-md:w-auto">
+          <div className="grid w-48 min-w-0 justify-items-start gap-1 max-md:w-auto">
             <span className="max-w-full truncate font-mono text-code-caption text-muted" title={env.repo}>
               {repoName(env.repo)}
             </span>
@@ -229,36 +235,37 @@ function EnvRow({ org, env, now, closed, onOpen }: { org: string; env: EnvSummar
           <span className="text-secondary text-faint">No repository</span>
         )}
       </Td>
-      <Td className="md:max-lg:hidden" phone="hide">
-        <span className="block max-w-44 truncate text-secondary text-fg" title={agentWords(env.agent)}>
-          {env.agent.name}
-          {env.agent.client && env.agent.client !== env.agent.name ? <span className="text-faint"> in {env.agent.client}</span> : null}
-        </span>
-      </Td>
-      <Td numeric label={closed ? 'Ran' : 'Age'} phone="hide">
-        <span title={`Opened ${dateTime(env.created_at)}`} className="text-muted">
-          {span(ageOf(env, now))}
+      <Td className={AGENT_COLUMN} phone="hide">
+        <span className="grid max-w-32 gap-px" title={agentWords(env.agent)}>
+          <span className="truncate text-secondary text-fg">{env.agent.name}</span>
+          {env.agent.client && env.agent.client !== env.agent.name ? <span className="truncate text-caption text-faint">in {env.agent.client}</span> : null}
         </span>
       </Td>
       <Td numeric label="Cost">
         <span title={hourly(env.price_hourly_eur)}>{euro(env.cost_eur)}</span>
       </Td>
       <Td numeric label={closed ? 'Closed' : 'Time left'}>
-        {closed ? (
-          env.closed_at ? (
-            <time dateTime={env.closed_at} title={dateTime(env.closed_at)} className="text-muted">
-              {timeAgo(env.closed_at, now)}
-            </time>
-          ) : (
+        <span className="grid justify-items-end gap-px">
+          {closed ? (
+            env.closed_at ? (
+              <time dateTime={env.closed_at} title={dateTime(env.closed_at)} className="text-muted">
+                {timeAgo(env.closed_at, now)}
+              </time>
+            ) : (
+              <NoValue />
+            )
+          ) : left === null ? (
             <NoValue />
-          )
-        ) : left === null ? (
-          <NoValue />
-        ) : (
-          <time dateTime={env.expires_at} title={`The node closes it at ${dateTime(env.expires_at)}`} className={left < SHORT_MS ? 'text-warn' : 'text-fg'}>
-            {left <= 0 ? 'Ends now' : span(left)}
-          </time>
-        )}
+          ) : (
+            <time dateTime={env.expires_at} title={`The node closes it at ${dateTime(env.expires_at)}`} className={left < SHORT_MS ? 'text-warn' : 'text-fg'}>
+              {left <= 0 ? 'Ends now' : span(left)}
+            </time>
+          )}
+          {/* how long it has run: the age the table had its own column for */}
+          <span title={`Opened ${dateTime(env.created_at)}`} className="font-sans text-caption text-faint max-md:hidden">
+            {closed ? `ran ${span(ageOf(env, now))}` : `open ${span(ageOf(env, now))}`}
+          </span>
+        </span>
       </Td>
       <Td className="w-1 text-right" phone="hide" onClick={(event) => event.stopPropagation()}>
         <RowActions>

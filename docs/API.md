@@ -819,6 +819,17 @@ A closed card is 404. They are traced as `panel.repo.token_form`, `panel.repo.de
   "Prepared machines"), for `agentos environments prepare`, which then follows the build's steps in the node's
   store. The owner only. 400 `invalid` when the repository has no usable file, when one is ready already
   (without `force`), or when the node has no room for a build now. Traced as `panel.environment.prepare`.
+- `GET /api/orgs/{org}/environments/prepared` -> `{ "machines": [...], "eur_month", "eur_per_gb_month", "pool",
+  "month" }` for the app. `machines` are the rows of `agentos environments prepared --json`, newest build first;
+  `eur_month` what their images cost together, at `eur_per_gb_month` (`snapshot_eur_per_gb_month`). `pool` is
+  the warm pool (`warm`, `target`, `minutes`, `machines`) plus `price_hourly_eur` (a warm machine's own price,
+  else what the pool would rent at the default size; null when the provider cannot say), `worst_eur_month`
+  (the most it costs a month if no open ever takes a machine: `target` x (730 h x 60 / `minutes`) lives x the
+  started hours of each, `ceil(minutes / 60)`, x `price_hourly_eur`; 0 on docker) and `month_eur` (this
+  month's warm machines no open took, so far). `month` is this calendar month's opens: `{ "opens",
+  "from_prepared", "from_warm", "setup_saved_s", "recent": [{ "at", "seconds", "from": "warm" | "prepared" |
+  "cold" }] }`, `recent` the last 40 that became ready, oldest first (`at` the open, `seconds` until ready).
+  The owner only (a member or a grant is 403); 404 on a computer with no environments.
 
 ### Saved environments (keep "save", agentos.environments.saving)
 An environment opened with `keep: "save"` is saved when it idles, at its time limit and on close, and
@@ -827,9 +838,14 @@ must delete it with unsaved work (docs/design/environments.md, "Keeping"). The w
 - `GET /api/orgs/{org}/environments` adds `keep` (`none`, `live`, `save`), `last_save` (`{ "id", "at" }` or
   null) and `save_error` to each summary, and two keys to the answer: `saved`, the saves of environments
   that are not open, newest first, each `{ "id", "title", "repo", "branch", "head", "saved_at", "snapshot_gb",
-  "files_bytes", "cost_eur_month", "note", "agent" }` (`head` is 12 characters, `note` the agent's own words
-  cut to 300, `cost_eur_month` the snapshot at `snapshot_eur_per_gb_month`), and `snapshots_eur_month`, what
-  every kept snapshot costs a month. A member sees the saves of their own agents, a grant its own family's.
+  "files_bytes", "cost_eur_month", "note", "agent", "prune_at", "paused", "kind", "env_id", "provider",
+  "server_type", "price_hourly_eur", "services" }` (`head` is 12 characters, `note` the agent's own words
+  cut to 300, `cost_eur_month` the snapshot at `snapshot_eur_per_gb_month`, or the paused machine's own;
+  `paused` true when it keeps the machine itself asleep; `provider` and `server_type` the machine it wakes
+  on; `price_hourly_eur` what that bills an hour once awake, from its environment's record, null once the node
+  no longer keeps it; `services` `[{ "cmd", "port" }]`, the commands it starts again, each cut to about 200
+  characters), and `snapshots_eur_month`, what every kept snapshot costs a month. A member sees the saves of
+  their own agents, a grant its own family's.
 - `DELETE /api/orgs/{org}/environments/saves/{save_id}` -> `{ "forgot": [ids], "snapshots_deleted": n }`, and
   `"kept": [{ "id", "why" }]` for a save whose snapshot the provider did not delete (it stays, so nothing billed
   is lost track of). The owner in person only: a token, a grant and a member get 403. An unknown id is 404.
@@ -841,6 +857,21 @@ must delete it with unsaved work (docs/design/environments.md, "Keeping"). The w
   `http://127.0.0.1:<p>/` (on agentos local it opens as is), and on a server node `tunnel` is the
   `ssh -N -L <p>:127.0.0.1:<p> <node>` line that brings it to the person's computer first. The forward
   ends when the environment closes.
+- `GET /api/orgs/{org}/environments/{id}` also has `bringup`, its bring-up step by step: `{ "total_s", "ok",
+  "steps": [{ "step", "at_s", "seconds", "ok", "skipped"?, "saved_s"? }], "running": [{ "step", "at_s",
+  "so_far_s" }], "restore_from"?: "snapshot" | "paused" | "files" }`, or null for an environment from before
+  steps were kept. `step` is a name like `VM create`, `VM ready`, `setup check`, `tunnels and git`, `network`,
+  `browser`, `clone`, `restore`, `checkout`, `refresh`, `setup`, `app`, `apt ready`, `swap`, `tools top-up` or
+  `ssh`; `at_s` the seconds after the bring-up began (steps that ran at once overlap); `ok` false for a step that
+  raised. While it starts, `steps` are the ones done so far, `running` the ones in progress, `total_s` the
+  seconds so far and `ok` null. Work the open did not need is named: `setup` with `skipped: "prepared
+  machine"`, `seconds: 0` and `saved_s` (the build's setup less the refresh here) when it booted a prepared
+  machine, and `VM create` and `VM ready` with `skipped: "warm machine"` (their measured seconds kept) when it
+  took a warm one. `restore_from` is what a resume woke from. Also `replay` (`{ "frames", "since", "bytes",
+  "kept_until" }`, `kept_until` null while it is open; null when the node keeps no replays), and the resume:
+  `resumed` (as `environment_open`'s, null when it was not resumed), `resumed_by` (`"owner"` or null),
+  `owner_woken` (the owner resumed it and no chat has taken it yet) and `resumed_at` (its open, which is when
+  the resume began; null when not resumed). `environment()` gets `bringup` too.
 
 ### Environment tools (agentos.environments.tools, builder I3)
 What an agent gets back, beside the web contract above:

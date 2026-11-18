@@ -13,9 +13,13 @@ import type {
   BrandProfile,
   BrandProfiles,
   BrandProposal,
+  EnvCheckpointDiff,
+  EnvResumeAnswer,
   EnvDetail,
   EnvList,
+  EnvReplayTimeline,
   EnvSummary,
+  PreparedList,
   Job,
   JobDetail,
   JobList,
@@ -826,4 +830,16 @@ export const environments = {
     http<EnvSummary>(path`/api/orgs/${org}/environments/${id}/extend`, { method: 'POST', body: { minutes } }),
   /** Forget a kept environment's save: its snapshot and files are deleted. The owner in person. */
   forget: (org: string, saveId: string) => http<{ forgot?: boolean; snapshots_deleted?: number }>(path`/api/orgs/${org}/environments/saves/${saveId}`, { method: 'DELETE' }),
+  /** The replay of its browser: frames and calls by time (agentos.environments.replay). The owner only. */
+  replay: (org: string, id: string) => served(http<EnvReplayTimeline>(path`/api/orgs/${org}/environments/${id}/replay` + query({ limit: '2000' }))),
+  /** One checkpoint against the work tree now: per repository its files and patch (capped). The owner only. */
+  checkpointDiff: (org: string, id: string, checkpoint: number) =>
+    served(http<EnvCheckpointDiff>(path`/api/orgs/${org}/environments/${id}/checkpoints/${String(checkpoint)}`)),
+  /** The prepared machines, the warm pool and what both cost. The owner only. */
+  prepared: (org: string) => served(http<PreparedList>(path`/api/orgs/${org}/environments/prepared`)),
+  /**
+   * Resume a save from the app, held by no chat: the next agent that opens its title takes it over. The owner
+   * in person. 409 `environment_limit` or `environment_full` with the fix in the message.
+   */
+  resume: (org: string, saveId: string) => http<EnvResumeAnswer>(path`/api/orgs/${org}/environments/saves/${saveId}/resume`, { method: 'POST' }),
 };
