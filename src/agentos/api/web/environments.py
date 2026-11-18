@@ -29,7 +29,7 @@ from __future__ import annotations
 from typing import Any
 
 from starlette.requests import Request
-from starlette.responses import JSONResponse, Response
+from starlette.responses import FileResponse, JSONResponse, Response
 from starlette.routing import BaseRoute
 
 from agentos.api.access import Presence
@@ -132,7 +132,14 @@ def proofs_of(mgr: Any, env: Any, org: str) -> list[dict[str, Any]]:
         records = listed(env, links=False)
     except Exception:  # noqa: BLE001 - the page without its proofs rather than none at all
         return []
-    return [{**r, "src": f"/api/orgs/{org}/environments/{env.id}/proofs/{r['id']}.png"} for r in records]
+    out = []
+    for r in records:
+        base = f"/api/orgs/{org}/environments/{env.id}/proofs/{r['id']}"
+        if r.get("kind") == "video":
+            out.append({**r, "src": f"{base}.mp4", **({"gif_src": f"{base}.gif"} if r.get("gif") else {})})
+        else:
+            out.append({**r, "src": f"{base}.png"})
+    return out
 
 
 async def _body(request: Request) -> dict[str, Any]:
@@ -202,6 +209,18 @@ def routes(api: Api) -> list[BaseRoute]:
         return Response(data, media_type="image/png", headers={"Cache-Control": "private, max-age=3600",
                                                                "X-Content-Type-Options": "nosniff"})
 
+    async def proof_media(request: Request) -> Response:
+        """A video proof's MP4 or GIF preview, with range requests (a player seeks)."""
+        mgr, env = find(request, "environment.proof")
+        await access_of(request).authorize(Effect.READ, action="environment.proof", lane_id=env.terminal_lane)
+        proof_id, ext = request.path_params["proof"], request.url.path.rsplit(".", 1)[-1]
+        read = getattr(mgr, "proof_path", None)
+        path = read(env.id, proof_id, ext) if callable(read) else None
+        if path is None:
+            raise NotFound(f"Environment {env.id} has no proof {proof_id}.{ext}.")
+        return FileResponse(path, media_type="video/mp4" if ext == "mp4" else "image/gif",
+                            headers={"Cache-Control": "private, max-age=3600", "X-Content-Type-Options": "nosniff"})
+
     async def close(request: Request) -> Any:
         mgr, env = find(request, "environment.close")
         access = access_of(request)
@@ -261,6 +280,8 @@ def routes(api: Api) -> list[BaseRoute]:
         org_route(api, "/environments", listing, ["GET"], cap="see"),
         org_route(api, "/environments/{id}", one, ["GET"], cap="see"),
         org_route(api, "/environments/{id}/proofs/{proof}.png", proof_png, ["GET"], cap="see"),
+        org_route(api, "/environments/{id}/proofs/{proof}.mp4", proof_media, ["GET"], cap="see"),
+        org_route(api, "/environments/{id}/proofs/{proof}.gif", proof_media, ["GET"], cap="see"),
         *replay_routes(api, find),
         org_route(api, "/environments/{id}/close", close, ["POST"], cap="operate"),
         org_route(api, "/environments/{id}/extend", extend, ["POST"], cap="operate"),

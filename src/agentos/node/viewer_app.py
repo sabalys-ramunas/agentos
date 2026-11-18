@@ -16,6 +16,7 @@ Two pieces for the daemon's HTTP server (docs/API.md, "Lane control"):
       POST /view/{ws}/{name}/login?t=...     {"action": start|step|refresh|take|resume|cancel|save, ...}
       GET  /view/{ws}/{name}/login.png?t=... the login step's redacted screenshot
       GET  /view/env/{id}-browser/proof/{proof}.png?t=...  an environment's proof image (its own signed link)
+      GET  /view/env/{id}-browser/proof/{proof}.mp4?t=...  a video proof, and .gif its preview (the same link; ranges)
       GET  /view/env/{id}-browser/replay/{frame}.jpg?t=... a frame of an environment's replay (the owner's signed link)
       PUT  /view/env/{id}/upload?t=...       a .tar.gz into an environment's machine (a one-use signed link; POST too)
       GET  /view/env/{id}/download?t=...     a .tar.gz off an environment's machine (a one-use signed link)
@@ -69,7 +70,7 @@ from urllib.parse import urlsplit
 
 from starlette.applications import Starlette
 from starlette.requests import Request
-from starlette.responses import HTMLResponse, JSONResponse, Response, StreamingResponse
+from starlette.responses import FileResponse, HTMLResponse, JSONResponse, Response, StreamingResponse
 from starlette.routing import Mount, Route, WebSocketRoute
 from starlette.staticfiles import StaticFiles
 from starlette.websockets import WebSocket, WebSocketDisconnect
@@ -93,6 +94,7 @@ from agentos.node.viewer_tokens import (
 from agentos.node.vnc_relay import CLOSE_LANE_NOT_RUNNING, CLOSE_POLICY, VncRelay, upstream
 
 log = logging.getLogger("agentos.viewer")
+PROOF_MEDIA = {"mp4": "video/mp4", "gif": "image/gif"}  # a video proof's files (agentos.environments.proofs)
 
 VIEWER_DIR = Path(__file__).parent / "viewer"
 ASSETS_DIR = VIEWER_DIR / "assets"
@@ -804,6 +806,26 @@ class ViewerApp:
                                   "This proof link is not valid or has expired. Ask the agent for a fresh one "
                                   "(environment() lists them).")
 
+    async def proof_media(self, request: Request) -> Response:
+        """A video proof's MP4 or its GIF preview, for its proof's signed link. Served from its file with
+        range requests, so a player seeks without loading it all."""
+        ext = request.url.path.rsplit(".", 1)[-1]
+        svc = self.environments() if self.environments is not None else None
+        read = getattr(svc, "signed_proof_path", None)
+        params, path = request.path_params, None
+        if callable(read) and ext in PROOF_MEDIA:
+            try:
+                path = read(params["workspace"], params["name"], params["proof"], ext, request.query_params.get("t"))
+            except Exception:
+                log.warning("could not read an environment's proof", exc_info=True)
+        if path is None:
+            return _error(403, "denied", "This proof link is not valid or has expired. Ask the agent for a fresh "
+                                         "one (environment() lists them).")
+        return FileResponse(path, media_type=PROOF_MEDIA[ext], headers={
+            "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff",
+            "Content-Security-Policy": "default-src 'none'; media-src 'self'; img-src 'self'",
+            "Referrer-Policy": "no-referrer"})
+
     async def replay_frame(self, request: Request) -> Response:
         """A frame of an environment's replay (agentos.environments.replay), for the owner's signed link:
         it opens that environment's frames and nothing of the lane."""
@@ -884,6 +906,8 @@ class ViewerApp:
     def routes(self) -> list:
         return [
             Route("/view/{workspace}/{name}/proof/{proof}.png", self.proof, methods=["GET"]),
+            Route("/view/{workspace}/{name}/proof/{proof}.mp4", self.proof_media, methods=["GET"]),
+            Route("/view/{workspace}/{name}/proof/{proof}.gif", self.proof_media, methods=["GET"]),
             Route("/view/{workspace}/{name}/replay/{frame}.jpg", self.replay_frame, methods=["GET"]),
             Route("/view/{workspace}/{name}/download", self.download, methods=["GET"]),
             Route("/view/{workspace}/{name}/upload", self.upload, methods=["PUT", "POST"]),

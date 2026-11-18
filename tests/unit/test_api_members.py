@@ -406,6 +406,8 @@ MEMBER_ROUTES.update({
 MEMBER_ROUTES.update({
     ("GET", "/api/orgs/{org}/environments"): SEES, ("GET", "/api/orgs/{org}/environments/{id}"): SEES,
     ("GET", "/api/orgs/{org}/environments/{id}/proofs/{proof}.png"): SEES,
+    ("GET", "/api/orgs/{org}/environments/{id}/proofs/{proof}.mp4"): SEES,
+    ("GET", "/api/orgs/{org}/environments/{id}/proofs/{proof}.gif"): SEES,
     ("POST", "/api/orgs/{org}/environments/{id}/close"): frozenset({"operator", "admin"}),
     ("POST", "/api/orgs/{org}/environments/{id}/extend"): frozenset({"operator", "admin"}),
     # forgetting a save deletes its snapshot at the provider: the owner's alone, in person

@@ -829,19 +829,24 @@ async def environment_port(ctx: ToolContext, *, port: int, on: str | None = None
 
 async def environment_pull_request(ctx: ToolContext, *, title: str, body: str | None = None,
                                    base: str | None = None, draft: bool = False,
-                                   branch: str | None = None, on: str | None = None) -> dict:
+                                   branch: str | None = None, proofs: bool | list[str] | None = None,
+                                   on: str | None = None) -> dict:
     """Open a pull request on GitHub for the branch your environment pushed, with the node's stored
     GitHub token (the VM has no gh and no credential). Only a branch this environment created; it
-    never merges. If one is open for that branch already, it returns that one. Returns url (give it
-    to the human), number, branch, base, draft and created. Effect: read. Errors: no_environment,
-    denied (not a branch it pushed), pull_request_failed (no token on the node, or GitHub refused).
+    never merges. Your proofs (screenshots, recordings) go in its Proof section, stored on the
+    repository's agentos-proofs branch, never in the diff. If one is open for that branch already,
+    it returns that one with its Proof section brought up to date (your text and others' stay).
+    Returns url (give it to the human), number, branch, base, draft, created and proofs. Effect:
+    read. Errors: no_environment, denied (not a branch it pushed), pull_request_failed (no token on
+    the node, or GitHub refused).
 
     Args:
         title: The pull request's title.
-        body: Its description (Markdown): what changed, how it was tested, proof links.
+        body: Its description (Markdown): what changed, how it was tested.
         base: The branch to merge into; the repository's default branch if left out.
         draft: Open it as a draft.
         branch: Which pushed branch; the newest one this environment pushed if left out.
+        proofs: false leaves the proofs out; a list of proof ids or titles shows only those.
         on: The on your environment_open gave (a client with a session id may leave it out).
     """
     from agentos.environments import pulls
@@ -853,7 +858,8 @@ async def environment_pull_request(ctx: ToolContext, *, title: str, body: str | 
     await ctx.authorize(Effect.READ, lane_id=None,
                         summary=f"open a pull request for environment {env.id}'s branch on {env.repo}")
     try:
-        out = await pulls.open_pull_request(mgr, env, title=title, body=body, base=base, draft=draft, branch=branch)
+        out = await pulls.open_pull_request(mgr, env, title=title, body=body, base=base, draft=draft, branch=branch,
+                                            proofs=proofs)
     except AgentosError as e:
         mgr.record_call(env.terminal_lane, "environment_pull_request", ok=False, error=e.code)
         raise
