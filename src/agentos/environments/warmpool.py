@@ -62,6 +62,22 @@ class WarmPool:
     def _pool_tasks(self) -> set[asyncio.Task]:
         return self.__dict__.setdefault("_warm_tasks", set())
 
+    def _pool_settings(self) -> Any:
+        """The settings, with `warm` and `warm_minutes` read again when environments.toml changed, so
+        `agentos environments allow --warm N` takes effect on a running node."""
+        from agentos.environments.models import SETTINGS_FILE, load_settings
+
+        try:
+            stamp = (self.home / SETTINGS_FILE).stat().st_mtime_ns
+        except OSError:
+            return self.settings
+        if self.__dict__.get("_pool_stamp") != stamp:
+            self.__dict__["_pool_stamp"] = stamp
+            with contextlib.suppress(Exception):  # a file agentosd would not start with: keep what it has
+                fresh = load_settings(self.home)
+                self.settings.warm, self.settings.warm_minutes = fresh.warm, fresh.warm_minutes
+        return self.settings
+
     def side_tasks(self) -> list[asyncio.Task]:
         """The pool's and the builds' tasks, for the manager's shutdown."""
         builds = self.__dict__.get("_prepared_builds") or {}
@@ -94,7 +110,7 @@ class WarmPool:
         """A chat connected (a new MCP session): fill the pool when it is on and the token may open machines.
         Cheap and never raises: the work runs in the background."""
         try:
-            if self.settings.warm <= 0 or not self._may_open(token):
+            if self._pool_settings().warm <= 0 or not self._may_open(token):
                 return
             self.pool_refill_soon()
         except Exception:
@@ -113,7 +129,7 @@ class WarmPool:
             return False
 
     def pool_refill_soon(self) -> None:
-        if self.settings.warm <= 0:
+        if self._pool_settings().warm <= 0:
             return
         if any(not t.done() for t in self._pool_tasks()):
             return
@@ -129,7 +145,7 @@ class WarmPool:
         image than the newest open's is replaced."""
         made: list[str] = []
         async with self._pool_lock():
-            want = self.settings.warm
+            want = self._pool_settings().warm
             if want <= 0:
                 return made
             image = await self._warm_image()
@@ -258,7 +274,7 @@ class WarmPool:
         now = now or self._clock()
         gone: list[str] = []
         warm = self.warm_vms()
-        keep = max(0, self.settings.warm)
+        keep = max(0, self._pool_settings().warm)
         for i, r in enumerate(reversed(warm)):  # newest first: the oldest go when there are too many
             old = (now - r.created_at).total_seconds() >= self.settings.warm_minutes * 60
             if old or i >= keep:
@@ -273,6 +289,7 @@ class WarmPool:
 
     def pool_view(self) -> dict:
         """The pool for report(), environment() and the CLI."""
+        self._pool_settings()
         now = self._clock()
         rows = []
         for r in self.warm_vms():

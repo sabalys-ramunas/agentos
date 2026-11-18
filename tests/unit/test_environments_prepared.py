@@ -682,3 +682,77 @@ async def test_a_new_mcp_session_gives_the_hint(node):
     await guard(scope, None, None)
     assert seen == ["owner-token"]
     await asyncio.sleep(0)
+
+
+async def test_allow_warm_takes_effect_on_a_running_node(node):
+    """`agentos environments allow --warm 1` writes environments.toml; the pool reads it when it changes."""
+    from agentos.environments.cli import _write_settings
+
+    assert node.mgr.pool_view()["target"] == 0
+    _write_settings({"warm": 1, "warm_minutes": 30}, home=node.mgr.home)
+    view = node.mgr.pool_view()
+    assert view["target"] == 1 and view["minutes"] == 30
+
+
+# ------------------------------------------------------------------ the owner's CLI and route
+
+
+@pytest.fixture
+def cli(node, monkeypatch):
+    import httpx
+    from test_environments_downloads import _bridge
+    from typer.testing import CliRunner
+
+    from agentos.api import ApiSettings, build_api
+    from agentos.core import config as config_mod
+    from agentos.environments import prepared_cli
+
+    home = node.mgr.home
+    api = build_api(node.rt, ApiSettings(lane_pump_seconds=0, panel_dir=home / "no-panel"))
+    cfg = node.rt.get("config")
+    toml = home / "node.toml"
+    toml.write_text("")
+    monkeypatch.setattr(config_mod, "config_path", lambda h=None: toml)
+    monkeypatch.setattr(config_mod, "load_config", lambda h=None: cfg)
+    monkeypatch.setattr(prepared_cli, "POLL_S", 0.05)
+    monkeypatch.setattr(prepared_cli, "_managers", lambda: (node.mgr, node.vms))
+
+    async def run(*args: str):
+        transport = _bridge(asyncio.get_running_loop(), {"/api/": api})
+        monkeypatch.setattr(prepared_cli, "_http_client", lambda: httpx.Client(transport=transport))
+        return await asyncio.to_thread(CliRunner().invoke, prepared_cli.app, ["--home", str(home), *args])
+
+    return SimpleNamespace(run=run, api=api)
+
+
+async def test_the_cli_builds_lists_and_forgets_a_prepared_machine(node, cli):
+    res = await cli.run("prepare", REPO)
+    assert res.exit_code == 0, res.output
+    assert " s  " in res.output and "Ready: example.test/me/shop at 0123456789ab" in res.output  # its steps, then the end
+    res = await cli.run("prepare", REPO)
+    assert res.exit_code == 1 and "it is ready already" in res.output and "--force" in res.output
+    res = await cli.run("prepared")
+    assert res.exit_code == 0 and "example.test/me/shop  ready  0123456789ab" in res.output
+    assert "Warm pool: off" in res.output
+    res = await cli.run("prepared", "forget", REPO)
+    assert res.exit_code == 0 and "Forgot 1 prepared machine of example.test/me/shop" in res.output
+    assert not node.prov.snapshots
+
+
+async def test_the_cli_says_when_there_is_nothing_to_prepare(node, cli):
+    node.reads["text"] = None
+    res = await cli.run("prepare", REPO)
+    assert res.exit_code == 1 and "nothing to prepare" in res.output and ".agentos/environment.toml" in res.output
+
+
+async def test_the_prepare_route_is_the_owners_only(node, cli):
+    import httpx
+
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=cli.api), base_url="http://localhost") as c:
+        r = await c.post("/api/environments/prepare", json={"repo": REPO},
+                         headers={"Authorization": f"Bearer {node.token}"})
+        assert r.status_code in (401, 403), r.text
+        owner = node.rt.get("config").mcp_token
+        r = await c.post("/api/environments/prepare", json={"repo": REPO}, headers={"Authorization": f"Bearer {owner}"})
+        assert r.status_code == 200 and r.json()["started"] is True, r.text
+    await builds_done(node.mgr)
