@@ -3,8 +3,8 @@
 The owner binds at the node (`agentos environments login add github.com --user me --title "Shop fix"`,
 or `--repo github.com/me/shop`, or `--all`). It is an ordinary password entry of the vault, bound to
 every environment's lanes (`env/*`), whose config `envs` names the environments it covers (`scopes`:
-a title, a repository, or all), the username and login page the agent is shown (`user`, `url`), and
-whether this command made the entry (`made`: it goes with its last binding). An existing vault login
+a title, a repository, or all), the username the owner's list shows and the login page the node opens
+(`user`, `url`), and whether this command made the entry (`made`: it goes with its last binding). An existing vault login
 can be bound instead (`--entry`). The vault's own check (agentos.vault.policy.entry_bound) reads the
 lane's environment from the node's records (`lane_facts`): a binding by title follows the title across
 saves and resumes (the id changes, the title does not). Storing and binding it is the permission:
@@ -14,7 +14,8 @@ sealed with the vault key.
 The agent signs in with `login` on its environment's browser (`env_login`): the node opens the login
 page when the page is not on the bound login's site, then fills it with the vault's login flow
 (agentos.vault.login), the model never seeing a value. `environment()` and `environment_open` list the
-login names (site and username, never a secret). The owner signs it in again from the node with
+logins by name and site (a login is named after its site unless the owner names it). Not by username:
+the vault scrubs every stored username from what an agent reads. The owner signs it in again from the node with
 `agentos environments login <title> <site>` (`sign_in_now`), when the agent is not running.
 
 Typing happens where the browser is: with browser = "vm" the value goes into the VM's browser over
@@ -65,8 +66,13 @@ class BoundLogin:
         return self.url or f"https://{self.site}/"
 
     def public(self) -> dict[str, Any]:
-        """What the agent and the owner's list see: names only, never a secret."""
-        return {"name": self.name, "site": self.site, "user": self.user, "totp": bool(self.meta.has_totp)}
+        """What the agent sees: the login's name and site, never a secret. Not its username: the vault
+        scrubs every stored username from what an agent reads, so it would only read [redacted]."""
+        return {"name": self.name, "site": self.site, "totp": bool(self.meta.has_totp)}
+
+    def owner_view(self) -> dict[str, Any]:
+        """What the owner's `login list` shows: the username too (not a secret to the owner)."""
+        return {**self.public(), "user": self.user}
 
 
 def scope_of(title: str | None, repo: str | None, all_: bool) -> dict[str, Any]:
@@ -151,26 +157,40 @@ def find(logins: list[BoundLogin], ref: str) -> list[BoundLogin]:
     return [b for b in logins if b.site == domain]
 
 
-def entry_name(domain: str, user: str | None) -> str:
-    name = f"{domain} as {user}" if user else domain
-    return name if len(name) <= 80 else name[:77] + "..."
+def entry_name(domain: str, name: str | None = None) -> str:
+    """The login's name: the site, or the owner's own (--name) for a second login of one site."""
+    return " ".join(name.split())[:80] if name and name.strip() else domain
 
 
 async def add(vault: Any, site: str, *, user: str | None, password: Any, totp: Any = None,
-              scope: dict, replace: bool = False) -> BoundLogin:
+              scope: dict, replace: bool = False, name: str | None = None) -> BoundLogin:
     """Store a login in the vault, bound to the environments of `scope`."""
     domain, url = parse_site(site)
     config = {"envs": {"scopes": [scope], "user": user, "url": url, "made": True}}
-    meta = await vault.add_entry(name=entry_name(domain, user), kind="password", domain=domain, lanes=[ENV_LANES],
+    meta = await vault.add_entry(name=entry_name(domain, name), kind="password", domain=domain, lanes=[ENV_LANES],
                                  username=user, secret=password, totp=totp, config=config, replace=replace)
     return _any_login(meta)
 
 
-async def existing(vault: Any, site: str, user: str | None) -> BoundLogin | None:
-    """The login `add` made for this site and user, if there is one."""
+async def existing(vault: Any, site: str, user: str | None, name: str | None = None) -> BoundLogin | None:
+    """The login `add` made with this name, if there is one; InvalidRequest when that name is another
+    username's login (the owner names this one with --name) or a vault entry `add` did not make."""
+    from agentos.vault.errors import EntryNotFound
+
     domain, _url = parse_site(site)
-    name = entry_name(domain, user)
-    return next((b for b in await all_bound(vault) if b.name == name and b.made), None)
+    named = entry_name(domain, name)
+    try:
+        meta = await vault.get_entry(named)
+    except EntryNotFound:
+        return None
+    found = _bound(meta)
+    if found is None or not found.made:
+        raise InvalidRequest(f"the vault has an entry named {named!r} already: bind it with --entry \"{named}\", "
+                             "or give this login another name with --name")
+    if found.site != domain or (user or None) != (found.user or None):
+        raise InvalidRequest(f"a login named {named!r} is stored already for another username or site; give this "
+                             "one a name of its own with --name")
+    return found
 
 
 async def bind(vault: Any, ref: str, scope: dict, *, user: str | None = None, url: str | None = None) -> BoundLogin:

@@ -114,6 +114,8 @@ def add(site: Annotated[str, typer.Argument(metavar="SITE", help="The site (gith
         totp: Annotated[bool, typer.Option("--totp", help="Also store its TOTP seed, so codes fill too.")] = False,
         entry: Annotated[str | None, typer.Option("--entry", help="Bind a login already in the vault (its name) "
                                                   "instead of typing it again.")] = None,
+        name: Annotated[str | None, typer.Option("--name", help="The login's name (default: the site), for a "
+                                                 "second login of one site.")] = None,
         stdin: Annotated[bool, typer.Option("--stdin", help="Read the password (and on the next line the seed) from "
                                             "stdin instead of a prompt.")] = False,
         replace: Annotated[bool, typer.Option("--replace", help="Replace the stored password of this login.")] = False
@@ -135,7 +137,7 @@ def add(site: Annotated[str, typer.Argument(metavar="SITE", help="The site (gith
         if entry is not None:
             await _unsealed(vault)
             return await logins.bind(vault, entry, scope, user=user, url=url), "bound"
-        found = await logins.existing(vault, site, user)
+        found = await logins.existing(vault, site, user, name)
         if found is not None and not replace:
             if scope in found.scopes:
                 return found, "already"
@@ -144,12 +146,14 @@ def add(site: Annotated[str, typer.Argument(metavar="SITE", help="The site (gith
         password, seed = read_values(domain, user, totp=totp, stdin=stdin)
         await _unsealed(vault)
         if found is not None:  # --replace: a new password, and the bindings it had stay
-            out = await logins.add(vault, site, user=user, password=password, totp=seed, scope=scope, replace=True)
+            out = await logins.add(vault, site, user=user, password=password, totp=seed, scope=scope, replace=True,
+                                   name=name)
             for s in found.scopes:
                 if s != scope:
                     out = await logins.bind(vault, out.ref, s)
             return out, "replaced"
-        return await logins.add(vault, site, user=user, password=password, totp=seed, scope=scope), "stored"
+        return await logins.add(vault, site, user=user, password=password, totp=seed, scope=scope,
+                                name=name), "stored"
 
     login, how = _run(go())
     words = {"stored": "Stored", "replaced": "Stored a new password for", "bound": "Bound",
@@ -166,7 +170,7 @@ def list_cmd(json_out: Annotated[bool, typer.Option("--json")] = False) -> None:
     """The logins bound to environments: name, site, username and which computers, never a secret."""
     from agentos.environments import logins
 
-    rows = [{**b.public(), "environments": [logins.scope_words(s) for s in b.scopes]}
+    rows = [{**b.owner_view(), "environments": [logins.scope_words(s) for s in b.scopes]}
             for b in _run(logins.all_bound(_vault()))]
     if json_out:
         typer.echo(json.dumps({"logins": rows}, indent=2))
@@ -177,7 +181,8 @@ def list_cmd(json_out: Annotated[bool, typer.Option("--json")] = False) -> None:
         return
     for r in rows:
         totp = ", TOTP" if r["totp"] else ""
-        typer.echo(f"{r['name']:<36} {r['site'] + totp:<24} {'; '.join(r['environments'])}")
+        user = f" ({r['user']})" if r["user"] else ""
+        typer.echo(f"{r['name'] + user:<40} {r['site'] + totp:<22} {'; '.join(r['environments'])}")
 
 
 @login_app.command("remove")

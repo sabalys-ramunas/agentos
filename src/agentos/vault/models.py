@@ -247,8 +247,8 @@ def _env_scope(value: Any) -> dict[str, Any]:
 
 def _envs_binding(kind: EntryKind, value: Any) -> dict[str, Any]:
     """A login the owner bound to agent environments (agentos.environments.logins): the environments
-    it covers (`scopes`), the username and login page shown to the agent (`user`, `url`: names, never a
-    secret), and whether `agentos environments login add` made the entry (`made`: removed with its
+    it covers (`scopes`), the username the owner's list shows and the login page the node opens (`user`,
+    `url`: never a secret), and whether `agentos environments login add` made the entry (`made`: removed with its
     last binding)."""
     if kind is not EntryKind.PASSWORD:
         raise EntryInvalid("an environment login binding applies to password entries only")
@@ -263,7 +263,7 @@ def _envs_binding(kind: EntryKind, value: Any) -> dict[str, Any]:
             out_scopes.append(scope)
     user, url = value.get("user"), value.get("url")
     if user is not None and (not isinstance(user, str) or not user or len(user) > USERNAME_MAX or "\n" in user):
-        raise EntryInvalid("envs.user is the login's username shown to the agent, on one line")
+        raise EntryInvalid("envs.user is the login's username, on one line")
     if url is not None and (not isinstance(url, str) or len(url) > LOGIN_URL_MAX
                             or not url.startswith(("https://", "http://"))):
         raise EntryInvalid("envs.url is the site's login page, an http or https address")
