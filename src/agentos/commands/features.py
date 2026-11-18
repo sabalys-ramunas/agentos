@@ -46,9 +46,9 @@ def mount_features(app: typer.Typer) -> None:
         ("agentos.env.cli", None, "env"),
         ("agentos.vms.cli", None, "vm"),  # setup, types, list, destroy, status, image build (cloud VMs)
         # list, show, close, allow, setup (a computer per chat); prepared_cli adds prepare and prepared to its
-        # app, and resume_cli (which imports prepared_cli) resume
-        ("agentos.environments.resume_cli", None, "environments"),
-        ("agentos.environments.resume_cli", None, "envs"),  # the same group, shorter
+        # app, resume_cli (which imports prepared_cli) resume, and logins_cli (which imports resume_cli) login
+        ("agentos.environments.logins_cli", None, "environments"),
+        ("agentos.environments.logins_cli", None, "envs"),  # the same group, shorter
         ("agentos.controller.cli", None, "controller"),  # controller serve | join-token | login | nodes
         ("agentos.webbotauth.cli", None, "identity"),  # init | show | hosts | test-sign (Web Bot Auth)
         ("agentos.freeze.cli", None, "freeze"),  # freeze lane | workspace | node, freeze status

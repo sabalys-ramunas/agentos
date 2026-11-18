@@ -20,7 +20,6 @@ import typer
 from agentos.core import catalog
 from agentos.core.config import home_from_env
 from agentos.core.errors import AgentosError, InvalidRequest, NotFound
-from agentos.environments.logins_cli import login_app
 from agentos.environments.models import SIZES, WORKSPACE
 from agentos.environments.secrets_cli import secret_app
 
@@ -459,7 +458,6 @@ repo_app = typer.Typer(no_args_is_help=True, help=(
     "Connect private repositories: a key or token in the vault, and the declaration for env."))
 app.add_typer(repo_app, name="repo")
 app.add_typer(secret_app, name="secret")
-app.add_typer(login_app, name="login")
 
 
 def _remote_or_fail(remote: str) -> Any:

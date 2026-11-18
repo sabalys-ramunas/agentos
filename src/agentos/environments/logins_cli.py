@@ -10,6 +10,9 @@ in again (agentos.environments.logins). Only the owner runs these, at the node; 
 
 The password (and a TOTP seed) is read from a hidden prompt, or from stdin with --stdin (the password
 on the first line, the seed on the second), never from the command line.
+
+Its group joins `agentos environments` (agentos.environments.cli's app, with prepared_cli's and
+resume_cli's commands; agentos.commands.features mounts this module).
 """
 
 from __future__ import annotations
@@ -26,6 +29,7 @@ from typer.core import TyperGroup
 
 from agentos.core import catalog
 from agentos.core.errors import AgentosError, InvalidRequest
+from agentos.environments.resume_cli import _post, app
 
 
 class _LoginGroup(TyperGroup):
@@ -202,8 +206,6 @@ def now(title: Annotated[str, typer.Argument(metavar="TITLE", help="The open env
         site: Annotated[str, typer.Argument(metavar="SITE", help="The bound login's site or name.")],
         json_out: Annotated[bool, typer.Option("--json")] = False) -> None:
     """Sign an environment's browser in now with its bound login (also: agentos environments login TITLE SITE)."""
-    from agentos.environments.resume_cli import _post
-
     out = _post("/api/environments/login", {"title": title, "site": site})
     if json_out:
         typer.echo(json.dumps(out, indent=2))
@@ -229,3 +231,6 @@ def signed_in_words(out: dict) -> str:
     if out.get("step") == "no_login_form":
         return f"No login form on the page in {where}: the site may have it signed in already.{tail}"
     return f"The sign-in to {login.get('name')} in {where} stopped at {out.get('step')}.{tail}"
+
+
+app.add_typer(login_app, name="login")
