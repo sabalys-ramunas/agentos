@@ -500,7 +500,8 @@ def _family_lists(ctx: ToolContext, mgr: EnvironmentManager, here: Environment |
     reached with its handle or its session) is `this_chat`."""
     mine = [e for e in mgr.open_for_family(caller.family(ctx))
             if _mine(ctx, e) and not frozen_off(ctx, lanes=e.lanes.values())]
-    saved = [{k: r[k] for k in ("title", "repo", "branch", "saved_at", "snapshot_gb", "cost_eur_month", "note")}
+    saved = [{k: r[k] for k in ("title", "repo", "branch", "saved_at", "snapshot_gb", "paused", "cost_eur_month",
+                                "note")}
              for r in mgr.saved_for(caller.family(ctx) or caller.grant_id(ctx)) if r["latest"]]
     open_, now, binding = [], mgr._clock(), caller.binding(ctx)
     for e in mine:

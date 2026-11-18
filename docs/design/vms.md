@@ -100,6 +100,81 @@ A public repo needs none of this: the agent runs git clone on the VM.
 cleaned of keys and cloud-init state. A profile with `image = "snapshot:dev"` then boots ready
 in under a minute instead of installing on every VM.
 
+## Providers and what they can do
+
+`provider` in vms.toml picks one: `hetzner` (the default), `docker` (local containers,
+agentos.vms.docker) or `morph` (Morph Cloud, agentos.vms.morph). Each declares `capabilities`, and
+callers check a name (`agentos.vms.provider.capable`) before they use what it stands for:
+
+| Capability | Meaning | Hetzner | Docker | Morph |
+|---|---|---|---|---|
+| `firewall` | a provider firewall lets SSH in from the node only | yes | no (loopback) | no (its gateway) |
+| `snapshot` | a disk snapshot that new machines boot from | yes | yes (`docker commit`) | yes |
+| `pause` | pause and resume with memory: processes keep running | no | no | yes |
+| `branch` | copy a running machine, memory included (not used yet) | no | no | yes |
+| `wake_on_http` | a paused machine wakes on an HTTP request (not used yet) | no | no | yes |
+| `network_policy` | agentos can limit a machine's outbound traffic | yes | yes | no |
+| `cloud_init` | first-boot user data runs | yes | no | no |
+
+Without `cloud_init` the node runs the environment's setup over SSH as soon as the machine answers
+(agentos.environments.bringup), and the image a snapshot is built from needs none.
+
+### Morph Cloud
+
+Bring your own account: `agentos vm setup --provider morph` asks for a Morph API key (hidden),
+checks it (`GET /instance`), keeps it in `$AGENTOS_HOME/secrets/morph.token` (0600), pins the host
+key of Morph's SSH gateway in `vms/morph_known_hosts` (ssh-keyscan, trust on first use; the
+fingerprints are printed to compare) and sets `provider = "morph"`. `agentos setup` offers Morph
+next to Hetzner and Docker. agentos calls Morph's REST API with httpx; the morphcloud package is not
+a dependency.
+
+- **Sizes.** On Morph the resources come with the snapshot a machine starts from. A start
+  (`POST /instance`) restores the snapshot's memory and processes at the snapshot's size, in about a
+  second; a boot (`POST /snapshot/{id}/boot`, `POST /image/{id}/boot`) is a cold start into the
+  vCPU, memory and disk asked for. The server types are agentos's sizes: `morph-small` (2 vCPU,
+  4 GB, 32 GB), `morph-medium` (4, 8, 64), `morph-large` (8, 16, 128), `morph-xlarge` (16, 32, 256).
+  A machine starts warm when its snapshot has its size (the `dev` snapshot is built at the default
+  size) and boots cold into any other. The cheapest that fits is picked as on Hetzner.
+- **Prices**, in vms.toml, from Morph's pricing page (2026): a machine costs
+  max(vCPU, memory GB / 4, disk GB / 16) MCUs an hour, `morph_usd_per_mcu = 0.05`; stored snapshots
+  and paused machines are 5 TB-hours an MCU, `morph_storage_usd_per_gb_month = 0.0073`; and
+  `morph_eur_per_usd = 0.86` turns them into EUR, so the node's EUR limits hold. They are estimates
+  (`estimate: true` in the server types; a paused save says "an estimate"); set them to your plan
+  and the day's rate. `morph-small` is about EUR 0.09 an hour.
+- **SSH.** Through the gateway, as `<instance id>@ssh.cloud.morph.so`, with the instance's own key
+  (`GET /instance/{id}/ssh/key`), written 0600 in place of agentos's own key, and the pinned gateway
+  key under the VM's HostKeyAlias. Nothing secret is on a command line: Morph's SDK puts
+  `<instance id>:<api key>` in the user name, which `ps` on the node would show, and agentos never
+  does. An image build keeps the machine's SSH keys (Morph's gateway signs in with them).
+- **Labels** are Morph metadata (`metadata[key]=value` filters lists), for the reaper's reconcile,
+  the orphan sweep, `snapshot:<name>` images and saves.
+- **The backstop.** Every instance has a Morph TTL (action `stop`): its time limit plus the save's
+  grace plus an hour, moved along with each extend, so a machine the node forgot (a node that never
+  came back) does not bill forever. A paused one's TTL is the save's life (`saved_days`) plus a day.
+- **No firewall, no egress control.** The gateway is the only way in, and Morph's API has no
+  outbound rules, so `network_policy` is off.
+
+**Pause.** A paused Morph machine keeps its memory and bills only its storage; it resumes in
+seconds with its processes running. An environment's save uses that (agentos.environments.pausing,
+docs/ENVIRONMENTS.md "Keeping an environment"). The VM record turns `paused`: not live, so it counts
+toward no limit and its hours stop; its keys move to `vms/paused/<vm id>/`, so a lane of the closed
+environment reaches nothing; wake on SSH and HTTP are turned off first; and the reaper's orphan
+check leaves a paused machine alone. Resuming makes a new VM record for the same instance.
+
+**Not verified against a live account yet** (no key was available when it was built; built from
+Morph's docs, its OpenAPI spec and its SDK). `scripts/morph_live_check.py` checks each of these
+with a real key for a few cents and deletes what it made:
+
+- that the instance's own key signs in as `<instance id>@ssh.cloud.morph.so` (the docs' sharing
+  bundle says so; the key may also need the bundle's password, which agentos does not use);
+- that `-D`, `-R` (documented by Morph) and `-L` to a Unix socket (the "vm" browser's live view)
+  pass the gateway;
+- that the gateway's host key is stable, and that `morphvm-minimal` has apt, systemd and python3
+  for the image script;
+- that pausing keeps a process running across a resume, that SSH to a paused machine does not
+  wake it, and that a TTL runs out while a machine is paused;
+- the prices, against the account's bill.
+
 ## Settings (`$AGENTOS_HOME/vms.toml`)
 
 ```toml
@@ -132,6 +207,20 @@ server_type = "ccx23"     # exactly this type (`agentos vm types` lists them)
 The token lives in `$AGENTOS_HOME/secrets/hetzner.token` (0600), written by `agentos vm setup`. Use
 a Hetzner project that holds nothing but these VMs: the token can delete any server in it.
 
+On Morph:
+
+```toml
+provider = "morph"
+morph_usd_per_mcu = 0.05                 # Morph's price of an MCU (cloud.morph.so/web/subscribe)
+morph_storage_usd_per_gb_month = 0.0073  # stored snapshots and paused machines
+morph_eur_per_usd = 0.86                 # the day's rate, for the EUR limits
+morph_base_image = "morphvm-minimal"     # what a machine starts from with no snapshot
+```
+
+The key lives in `$AGENTOS_HOME/secrets/morph.token` (0600), written by `agentos vm setup
+--provider morph`. agentos rents only what it labels, but the key reaches every instance of the
+account: use an account (or organization) for agentos alone.
+
 ## Not in phase 1
 
 - Copying files in and out other than through commands (`lane_exec` with stdin, `git`): a
@@ -140,5 +229,6 @@ a Hetzner project that holds nothing but these VMs: the token can delete any ser
 - A panel tile and a doctor line for live VMs and the month's spend; the meters do not count VM
   spend yet (it is in EUR and has its own monthly budget).
 - Other providers (Scaleway bills by the minute), and VMs as controller nodes for capacity.
+- Morph's branch (copy a running machine) and wake on HTTP: declared as capabilities, not used.
 - Killing a remote command when its ssh dies without a TTY (the VM is disposable, so for now the
   process lives until the VM goes).

@@ -25,7 +25,8 @@ the machine.
 `environment_open` with the same title resumes a save in any chat, on a new machine with a new `on`.
 `environment_open(repo=...)` alone finds that repo's one environment; with several it lists them
 (`environment_choice`): pick a title. `environment()` lists the `open` and `saved` ones. Read `resumed`:
-- `from`: `"snapshot"` (the whole machine) or `"files"` (only `/work`: reinstall).
+- `from`: `"snapshot"` (the whole machine), `"paused"` (the same machine woke up: its processes and dev
+  server kept running, so start nothing again) or `"files"` (only `/work`: reinstall).
 - `branch`, `head`, `commits_restored`, `files_restored`: check `git status`.
 - `services`: dev servers start again. One not `running` or `listening` has a ready `restart`
   call; `running_jobs_lost` lists them when none came back.

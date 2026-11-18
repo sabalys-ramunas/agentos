@@ -6,6 +6,23 @@ All notable changes to agentos are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Morph Cloud as a VM provider.** `agentos vm setup --provider morph` takes a Morph API key from
+  your own account (hidden, checked, kept 0600), pins the host key of Morph's SSH gateway and makes
+  Morph the provider; `agentos setup` offers it next to Hetzner and Docker. Machines start from a
+  snapshot in about a second, sign in through Morph's gateway with each machine's own key (the API
+  key is never on a command line), and carry a Morph time limit as a backstop. Sizes are agentos's
+  (`morph-small` to `morph-xlarge`), and prices are estimates from Morph's MCU rates in `vms.toml`.
+- **On Morph, a save pauses the machine.** A kept environment that goes idle, is closed or reaches
+  its time limit is paused with its memory instead of snapshotted and deleted, and
+  `environment_open` with its title resumes the same machine in seconds, its dev server still
+  running (`resumed.from` is `paused`). Forget and retention delete the paused machine.
+  `pause_saves = false` in `environments.toml` turns it off.
+- Providers declare what they can do (firewall, snapshot, pause, network policy, cloud-init), and a
+  machine without cloud-init gets its setup from the node at once.
+- `scripts/morph_live_check.py` checks the Morph provider against a real account for a few cents.
+
 ### Fixed
 
 - **`agentos setup --docker` works from the one-line install.** The machine image's Dockerfile and

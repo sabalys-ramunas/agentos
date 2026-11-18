@@ -69,12 +69,12 @@ class Pausing:
                        snapshot: bool | None = None, then_delete: bool = False) -> SaveManifest:
         wants = snapshot if snapshot is not None else env.keep == "save" and self.settings.snapshots
         if not (then_delete and (wants or kind == "rescue") and self.pauses_saves()):
-            return await super().save_env(env, kind=kind, reason=reason, note=note,  # type: ignore[misc]
+            return await super().save_env(env, kind=kind, reason=reason, note=note,
                                           snapshot=snapshot, then_delete=then_delete)
         now = self._pausing()
         now[env.id] = None
         try:
-            return await super().save_env(env, kind=kind, reason=reason, note=note,  # type: ignore[misc]
+            return await super().save_env(env, kind=kind, reason=reason, note=note,
                                           snapshot=True, then_delete=True)
         except BaseException:
             made = now.get(env.id)
@@ -88,7 +88,7 @@ class Pausing:
         """Saving's disk snapshot, or the pause in its place (found["paused"]: the manifest records it)."""
         now = self._pausing()
         if env.id not in now or resume_after:
-            return await super()._snapshot(env, sid, found, resume_after=resume_after)  # type: ignore[misc]
+            return await super()._snapshot(env, sid, found, resume_after=resume_after)
         found["paused"] = now[env.id] = await self._pause_machine(env, sid)
         return None
 
@@ -134,17 +134,17 @@ class Pausing:
         """Saving's drop, the paused machine first: one the provider did not delete keeps its save."""
         if m.paused is not None and not await self.vms().forget_paused(m.paused.vm_id, why=f"save {m.id} removed"):
             return False
-        return await super()._drop(m)  # type: ignore[misc]
+        return await super()._drop(m)
 
     def snapshots_eur_month(self) -> float:
         paused = sum(m.paused.eur_month or 0 for m in self.saves().all() if m.paused is not None)
-        return round(super().snapshots_eur_month() + paused, 4)  # type: ignore[misc]
+        return round(super().snapshots_eur_month() + paused, 4)
 
     async def sweep_snapshots(self, now: datetime | None = None, *, force: bool = False) -> dict:
         """Saving's sweep, and paused machines no save points to (a node that stopped mid save)."""
         from agentos.environments.saving import SNAPSHOT_GRACE
 
-        out = await super().sweep_snapshots(now, force=force)  # type: ignore[misc]
+        out = await super().sweep_snapshots(now, force=force)
         now = now or self._clock()
         last = self.__dict__.get("_paused_swept")
         if not force and last is not None and (now - last).total_seconds() < PAUSED_SWEEP_S:
@@ -181,20 +181,20 @@ class Pausing:
                 plan["restore"] = {"save_id": m.id, "from": "paused", "paused_vm": m.paused.vm_id,
                                    "snapshot_missing": False}
                 return plan
-        plan = await super().plan_restore(env_id, m, hours=hours, keep=keep)  # type: ignore[misc]
+        plan = await super().plan_restore(env_id, m, hours=hours, keep=keep)
         if m.paused is not None:
             plan["restore"]["paused_missing"] = True
         return plan
 
     def resuming(self, m: SaveManifest, plan: dict) -> dict:
-        out = super().resuming(m, plan)  # type: ignore[misc]
+        out = super().resuming(m, plan)
         if plan["restore"].get("paused_missing"):
             out["paused_missing"] = True
         return out
 
     def resume_note(self, m: SaveManifest, source: str) -> str:
         if source != "paused":
-            return super().resume_note(m, source)  # type: ignore[misc]
+            return super().resume_note(m, source)
         from agentos.environments.saving import UNTRUSTED, _when
 
         note = (f"Resumed from save {m.id} of {_when(m.saved_at)} (the same machine, paused with its memory: the "

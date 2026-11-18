@@ -272,8 +272,10 @@ repository. The token never goes through the chat, and the agent never sees it.
 
 <br>
 
-Hetzner Cloud, and Docker on your own computer. The provider layer (`agentos.vms`) is small, and
-more providers are welcome.
+Hetzner Cloud, Morph Cloud (machines start in about a second, and a saved environment pauses with
+its memory, so it comes back in seconds with its dev server still running), and Docker on your own
+computer. Each uses your own account. The provider layer (`agentos.vms`) is small, and more providers
+are welcome.
 
 </details>
 
