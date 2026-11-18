@@ -161,6 +161,19 @@ def test_the_skill_and_the_intros_teach_the_three_modes_and_coming_back():
                   "continue <title> in agentos", "environment_download(path)", "sleep"):
         assert words in LOCAL, words
     assert EM_DASH not in LOCAL
+    # saves when idle is the default (2026-11-18): single use is asked for, and only for a one-off fix
+    assert '`keep="save"`, the default' in text and '`keep="none"` for a one-off fix only' in text
+    assert 'keep="save" is the default' in first and 'keep="none" only for a one-off fix' in first
+    assert '"save" is the default' in LOCAL and 'keep="none" for a one-off fix only' in LOCAL
+
+
+def test_the_skill_and_the_intros_say_how_the_agent_signs_in():
+    """A sign-in page: the login tool types a login the owner bound to the machine; the model never sees it."""
+    from agentos.local.node import INSTRUCTIONS as LOCAL
+
+    assert "`login` types a login the owner bound; you never see it" in skills.source("agentos-environment")
+    assert "login (the owner's bound logins)" in INSTRUCTIONS.split("\n\n")[0]
+    assert "login types a login the owner bound to this machine (you never see it)" in LOCAL
 
 
 def test_the_skill_and_the_intros_teach_coming_back_ports_and_pull_requests():
