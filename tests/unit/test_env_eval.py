@@ -342,9 +342,9 @@ async def test_the_github_stand_in_keeps_the_proofs_agentos_sends_it(tmp_path):
     """agentos.environments.prproofs.send against the stand-in: the files land on agentos-proofs, a second
     send adds only what is new, and the stand-in lists them for a checker."""
     import httpx
+    from env_eval.ghstub import GitHubStub
 
     from agentos.environments import prproofs
-    from env_eval.ghstub import GitHubStub
 
     files = {"p1.mp4": b"mp4" * 100, "p1.gif": b"gif" * 50}
     for name, data in files.items():
