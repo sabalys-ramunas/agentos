@@ -27,6 +27,7 @@ import asyncio
 import contextlib
 import logging
 import secrets
+import time
 from datetime import datetime
 from types import SimpleNamespace
 from typing import Any
@@ -39,6 +40,7 @@ from agentos.environments.models import WORKSPACE, Environment
 log = logging.getLogger("agentos.environments")
 
 WARM_PREFIX = "warm-"
+HINT_EVERY_S = 30.0   # session hints closer together than this are one
 
 
 def is_warm(rec: Any) -> bool:
@@ -57,7 +59,12 @@ class WarmPool:
     booked_eur(), prepared_store(), _image() and _wait_setup()."""
 
     def _pool_lock(self) -> asyncio.Lock:
+        """Held by a claim and by a drop (short), never while a warm machine is rented."""
         return self.__dict__.setdefault("_warm_lock", asyncio.Lock())
+
+    def _fill_lock(self) -> asyncio.Lock:
+        """One fill at a time."""
+        return self.__dict__.setdefault("_warm_fill_lock", asyncio.Lock())
 
     def _pool_tasks(self) -> set[asyncio.Task]:
         return self.__dict__.setdefault("_warm_tasks", set())
@@ -110,8 +117,12 @@ class WarmPool:
         """A chat connected (a new MCP session): fill the pool when it is on and the token may open machines.
         Cheap and never raises: the work runs in the background."""
         try:
-            if self._pool_settings().warm <= 0 or not self._may_open(token):
+            if self._pool_settings().warm <= 0:
                 return
+            now = time.monotonic()  # a client with no session id looks new on every call: at most one hint a while
+            if now - self.__dict__.get("_hinted", -HINT_EVERY_S) < HINT_EVERY_S or not self._may_open(token):
+                return
+            self.__dict__["_hinted"] = now
             self.pool_refill_soon()
         except Exception:
             log.debug("warm pool: the session hint failed", exc_info=True)
@@ -138,13 +149,20 @@ class WarmPool:
         task.add_done_callback(self._pool_tasks().discard)
 
     async def _warm_image(self) -> str:
-        return self.prepared_store().last_image() or await self._image()
+        """The image the newest open booted, unless it was a prepared machine's that is gone since (a newer
+        build replaced it): then the base image."""
+        base = await self._image()
+        last = self.prepared_store().last_image()
+        ready = {r.image for r in self.prepared_store().all() if r.state == "ready" and r.image}
+        if last is None or (last not in ready and last not in (base, machine.BASE_IMAGE, machine.SNAPSHOT_IMAGE)):
+            return base
+        return last
 
     async def fill_pool(self) -> list[str]:
         """Rent warm machines up to `warm`, within the limits. The VM ids made. A warm machine of another
         image than the newest open's is replaced."""
         made: list[str] = []
-        async with self._pool_lock():
+        async with self._fill_lock():
             want = self._pool_settings().warm
             if want <= 0:
                 return made
@@ -208,7 +226,15 @@ class WarmPool:
             log.info("warm pool: %s ready for an open", vm_id)
 
     async def _drop_warm(self, rec: Any, why: str) -> None:
+        async with self._pool_lock():
+            await self._drop_warm_now(rec, why)
+
+    async def _drop_warm_now(self, rec: Any, why: str) -> None:
+        """Delete it, unless an open claimed it meanwhile (under the pool lock)."""
         with contextlib.suppress(Exception):
+            fresh = self.vms().store.get(rec.id)
+            if not fresh.live or not is_warm(fresh):
+                return
             await self.vms().destroy(rec.id, reason=f"warm machine: {why}")
             log.info("warm pool: %s deleted: %s", rec.id, why)
 
@@ -265,7 +291,7 @@ class WarmPool:
         async with self._pool_lock():
             warm = self.warm_vms()
             if warm and len(vms.store.live()) >= vms.max_live:
-                await self._drop_warm(warm[0], "its slot went to an open")
+                await self._drop_warm_now(warm[0], "its slot went to an open")
 
     # ================================================================ the reaper
     async def pool_reap(self, now: datetime | None = None) -> list[str]:

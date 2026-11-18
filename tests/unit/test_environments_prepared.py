@@ -767,3 +767,30 @@ async def test_the_prepare_route_is_the_owners_only(node, cli):
         r = await c.post("/api/environments/prepare", json={"repo": REPO}, headers={"Authorization": f"Bearer {owner}"})
         assert r.status_code == 200 and r.json()["started"] is True, r.text
     await builds_done(node.mgr)
+
+
+async def test_the_pool_never_boots_an_image_a_newer_build_replaced(node):
+    node.mgr.prepared_store().set_last_image("snap-gone")
+    assert await node.mgr._warm_image() == await node.mgr._image()
+    sid = await _ready(node.mgr, node.prov, "k", REPO, built=utcnow())
+    node.mgr.prepared_store().set_last_image(sid)
+    assert await node.mgr._warm_image() == sid
+
+
+async def test_a_fill_never_deletes_a_machine_an_open_just_claimed(node):
+    node.reads["text"] = None
+    [vm_id] = await _warm(node)
+    out = await node.call("environment_open", title="Shop", repo=REPO)
+    assert node.mgr.get(out["id"]).vm_id == vm_id
+    await node.mgr._drop_warm(node.vms.store.get(vm_id), "a stale view of the pool")
+    assert node.vms.store.get(vm_id).live  # it is the environment's now
+
+
+async def test_session_hints_close_together_are_one(node):
+    node.mgr.settings = EnvSettings(warm=1)
+    node.mgr.session_hint(node.token)
+    first = set(node.mgr._pool_tasks())
+    for t in list(first):
+        await t
+    node.mgr.session_hint(node.token)
+    assert not [t for t in node.mgr._pool_tasks() if t.get_name() == "environments-warm-fill"]  # within HINT_EVERY_S

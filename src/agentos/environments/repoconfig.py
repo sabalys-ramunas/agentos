@@ -23,7 +23,6 @@ import hashlib
 import json
 import tomllib
 from dataclasses import dataclass, field
-from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
@@ -150,9 +149,6 @@ class ConfigRead:
     inputs: dict[str, str | None] = field(default_factory=dict)  # path: git blob id (None: not in the repository)
     source: str = ""                     # mirror, github or checkout
     why: str | None = None
-
-    def public(self) -> dict[str, Any]:
-        return {"state": self.state, "source": self.source, "commit": self.commit, "why": self.why}
 
 
 def from_text(text: str | None, *, source: str, commit: str | None = None) -> ConfigRead:

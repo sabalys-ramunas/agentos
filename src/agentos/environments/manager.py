@@ -845,8 +845,9 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
             swept = await self.sweep_snapshots(now)
             if swept.get("deleted"):
                 out["snapshots_deleted"] = swept["deleted"]
-        with contextlib.suppress(Exception):  # prepared machines past their retention, warm machines past their time
+        with contextlib.suppress(Exception):  # prepared machines past their retention (agentos.environments.prepbuild)
             out["prepared"] = await self.prepared_reap(now)
+        with contextlib.suppress(Exception):  # warm machines past warm_minutes (agentos.environments.warmpool)
             out["warm_deleted"] = await self.pool_reap(now)
         return out
 
