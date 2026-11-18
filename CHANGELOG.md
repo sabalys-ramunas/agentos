@@ -8,6 +8,13 @@ All notable changes to agentos are recorded here. The format follows
 
 ### Added
 
+- **The app sees how an environment came up, and what the node's own machines cost.** The detail has
+  `bringup`: each step of the bring-up with when it began and its seconds (the ones running while it
+  starts), and the work it skipped (a prepared machine's setup and the seconds saved, a warm machine's rent
+  and boot). `GET /api/orgs/{org}/environments/prepared` gives the owner the prepared machines, the warm pool
+  with its hourly price and the most it can cost a month, and this month's opens by where they started. The
+  saves name the machine they wake on, its price and their services; the detail adds the replay summary and
+  the resume (`resumed`, `resumed_by`, `owner_woken`, `resumed_at`).
 - **Checkpoints and rollback inside an environment.** `environment_checkpoint(note)` keeps every
   repository under `/work` as it is (tracked and new files git does not ignore) as a git commit under
   `refs/agentos/checkpoints/<n>`, made with a temporary index: seconds, no provider call, and the
