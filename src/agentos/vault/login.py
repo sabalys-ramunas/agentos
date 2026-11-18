@@ -41,7 +41,7 @@ from agentos.vault.policy import (
     check_origin,
     classify_fields,
     decide,
-    lane_bound,
+    entry_bound,
     matching_entries,
     otp_group,
     secure_origin,
@@ -87,6 +87,12 @@ def _no_code(entry: EntryMeta) -> str:
     return "code" if _relay(entry) else "totp"
 
 
+def _facts(vault: Any, lane_id: str) -> Any:
+    """The lane's environment for a login bound to environments (agentos.vault.policy.entry_bound)."""
+    facts_for = getattr(vault, "facts_for", None)
+    return facts_for(lane_id) if callable(facts_for) else None
+
+
 def _deny(ctx: Any, entry: EntryMeta | None, lane_id: str, d: Decision, sink: Sink = Sink.FORM_PASSWORD) -> None:
     ctx.trace("vault.deny", entry=entry.id if entry else None, lane=lane_id, host=d.host,
               sink=sink.value, reason=d.reason.value)
@@ -104,7 +110,7 @@ async def choose_entry(ctx: Any, vault: Any, *, lane_id: str, url: str, entry: s
         if meta.kind is not EntryKind.PASSWORD:
             _deny(ctx, meta, lane_id, Decision(False, Reason.KIND_SINK, None,
                                                f"a {meta.kind.value} entry cannot be used to log in"))
-        if not lane_bound(meta.lanes, lane_id):
+        if not entry_bound(meta, lane_id, _facts(vault, lane_id)):
             _deny(ctx, meta, lane_id, Decision(False, Reason.LANE_NOT_BOUND, None,
                                                f"entry is not bound to lane {lane_id}"))
         d = check_origin(meta, url)
@@ -116,7 +122,8 @@ async def choose_entry(ctx: Any, vault: Any, *, lane_id: str, url: str, entry: s
         _deny(ctx, None, lane_id, d)
     assert origin is not None
     host = origin.host
-    candidates = matching_entries(await vault.list_entries(), lane_id=lane_id, url=url)
+    candidates = matching_entries(await vault.list_entries(), lane_id=lane_id, url=url,
+                                  lane_facts=_facts(vault, lane_id))
     if not candidates:
         _deny(ctx, None, lane_id, Decision(False, Reason.NO_ENTRY, host,
                                            f"no vault entry bound to lane {lane_id} matches {host}"))
@@ -184,7 +191,7 @@ async def _fill_code(ctx: Any, vault: Any, typist: Typist, entry: EntryMeta, lan
         fresh = await typist.focus(group[0])
         pool = _pool(await typist.fields(), fresh)
         d = decide(entry, lane_id=lane_id, sink=Sink.FORM_OTP, url=await typist.page_url(), field=fresh,
-                   fields=pool)
+                   fields=pool, lane_facts=_facts(vault, lane_id))
         if not d.allowed:
             _deny(ctx, entry, lane_id, d, Sink.FORM_OTP)
     if len(group) > 1 and len(group) == len(code):
@@ -193,7 +200,7 @@ async def _fill_code(ctx: Any, vault: Any, typist: Typist, entry: EntryMeta, lan
         for box, digit in zip(group[1:], digits[1:], strict=True):
             box_fresh = await typist.focus(box)
             d = decide(entry, lane_id=lane_id, sink=Sink.FORM_OTP, url=await typist.page_url(),
-                       field=box_fresh, fields=_pool(pool, box_fresh))
+                       field=box_fresh, fields=_pool(pool, box_fresh), lane_facts=_facts(vault, lane_id))
             if not d.allowed:
                 _deny(ctx, entry, lane_id, d, Sink.FORM_OTP)
             await _type(typist, entry, box_fresh, Secret(digit))
@@ -227,7 +234,8 @@ async def login_flow(ctx: Any, vault: Any, typist: Typist, *, lane_id: str, entr
         return _result(False, "no_login_form", "human", signal)
     if first_sink is Sink.FORM_OTP and not (chosen.has_totp or chosen.config.get("catcher")):
         return _result(False, "start", "totp", signal)   # already at the code step; a human has the code
-    d = decide(chosen, lane_id=lane_id, sink=first_sink, url=url, field=first, fields=fields)
+    d = decide(chosen, lane_id=lane_id, sink=first_sink, url=url, field=first, fields=fields,
+               lane_facts=_facts(vault, lane_id))
     if not d.allowed:
         _deny(ctx, chosen, lane_id, d, first_sink)
 
@@ -334,7 +342,7 @@ async def fill_flow(ctx: Any, vault: Any, typist: Typist, *, lane_id: str, field
                                            "the field is not a login field (password, username or one-time code)"))
     assert role is not None
     sink = ROLE_SINK[role]
-    d = decide(meta, lane_id=lane_id, sink=sink, url=url, field=field, fields=pool)
+    d = decide(meta, lane_id=lane_id, sink=sink, url=url, field=field, fields=pool, lane_facts=_facts(vault, lane_id))
     if not d.allowed:
         _deny(ctx, meta, lane_id, d, sink)
     origin = parse_origin(url)

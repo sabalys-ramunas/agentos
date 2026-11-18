@@ -178,7 +178,7 @@ def _check_secret(label: str, value: Secret | None, limit: int, *, single_line: 
 
 def validate_config(kind: EntryKind, config: dict[str, Any] | None) -> dict[str, Any]:
     config = dict(config or {})
-    allowed = {"header", "prefix", "catcher", "env"}
+    allowed = {"header", "prefix", "catcher", "env", "envs"}
     unknown = set(config) - allowed
     if unknown:
         raise EntryInvalid(f"unknown entry config keys: {', '.join(sorted(unknown))}")
@@ -196,6 +196,8 @@ def validate_config(kind: EntryKind, config: dict[str, Any] | None) -> dict[str,
         config["header"], config["prefix"] = header, prefix
     if "env" in config:
         config["env"] = _env_binding(kind, config["env"])
+    if "envs" in config:
+        config["envs"] = _envs_binding(kind, config["envs"])
     if "catcher" in config:
         from agentos.vault.catcher import validate_catcher_config
 
@@ -205,6 +207,7 @@ def validate_config(kind: EntryKind, config: dict[str, Any] | None) -> dict[str,
     return config
 
 
+REPO_RE = re.compile(r"^[a-z0-9.-]+/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$")
 ENV_VAR_RE = re.compile(r"^[A-Z_][A-Z0-9_]{0,63}$")
 
 
@@ -218,9 +221,53 @@ def _env_binding(kind: EntryKind, value: Any) -> dict[str, Any]:
     var, repo = value.get("var"), value.get("repo")
     if not isinstance(var, str) or not ENV_VAR_RE.match(var):
         raise EntryInvalid("env.var is a variable name in capitals, like STRIPE_SECRET_KEY")
-    if repo is not None and (not isinstance(repo, str) or not re.match(r"^[a-z0-9.-]+/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$", repo)):
+    if repo is not None and (not isinstance(repo, str) or not REPO_RE.match(repo)):
         raise EntryInvalid("env.repo is a repository, like github.com/me/shop")
     return {"var": var, "repo": repo}
+
+
+ENV_TITLE_MAX = 80
+LOGIN_URL_MAX = 500
+
+
+def _env_scope(value: Any) -> dict[str, Any]:
+    if not isinstance(value, dict) or len(value) != 1:
+        raise EntryInvalid("an environment scope is one of {title}, {repo} or {all: true}")
+    (key, v), = value.items()
+    if key == "all" and v is True:
+        return {"all": True}
+    if key == "repo" and isinstance(v, str) and REPO_RE.match(v):
+        return {"repo": v}
+    if key == "title" and isinstance(v, str) and v.strip() and len(v) <= ENV_TITLE_MAX \
+            and not any(unicodedata.category(c).startswith("C") for c in v):
+        return {"title": " ".join(v.split())}
+    raise EntryInvalid("an environment scope is a title (1 to 80 characters), a repository like "
+                       "github.com/me/shop, or all")
+
+
+def _envs_binding(kind: EntryKind, value: Any) -> dict[str, Any]:
+    """A login the owner bound to agent environments (agentos.environments.logins): the environments
+    it covers (`scopes`), the username and login page shown to the agent (`user`, `url`: names, never a
+    secret), and whether `agentos environments login add` made the entry (`made`: removed with its
+    last binding)."""
+    if kind is not EntryKind.PASSWORD:
+        raise EntryInvalid("an environment login binding applies to password entries only")
+    if not isinstance(value, dict) or set(value) - {"scopes", "user", "url", "made"}:
+        raise EntryInvalid("envs is {scopes, user, url, made}")
+    scopes = value.get("scopes") or []
+    if not isinstance(scopes, list) or len(scopes) > 50:
+        raise EntryInvalid("envs.scopes is a list of at most 50 scopes")
+    out_scopes: list[dict[str, Any]] = []
+    for scope in (_env_scope(s) for s in scopes):
+        if scope not in out_scopes:
+            out_scopes.append(scope)
+    user, url = value.get("user"), value.get("url")
+    if user is not None and (not isinstance(user, str) or not user or len(user) > USERNAME_MAX or "\n" in user):
+        raise EntryInvalid("envs.user is the login's username shown to the agent, on one line")
+    if url is not None and (not isinstance(url, str) or len(url) > LOGIN_URL_MAX
+                            or not url.startswith(("https://", "http://"))):
+        raise EntryInvalid("envs.url is the site's login page, an http or https address")
+    return {"scopes": out_scopes, "user": user, "url": url, "made": bool(value.get("made"))}
 
 
 def validate_new_entry(entry: NewEntry) -> NewEntry:

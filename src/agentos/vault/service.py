@@ -41,7 +41,7 @@ from agentos.vault.errors import (
     WrongPassphrase,
 )
 from agentos.vault.models import EntryKind, EntryMeta, NewEntry, validate_lanes, validate_new_entry
-from agentos.vault.policy import Decision, Reason, Sink, decide, lane_bound, matching_entries
+from agentos.vault.policy import Decision, Reason, Sink, decide, entry_bound, lane_bound, matching_entries
 from agentos.vault.relay import CodeRelay, RelayCodeSource
 from agentos.vault.secret import Secret
 from agentos.vault.store import SEALED_FIELDS, VaultStore, WrongKey
@@ -167,6 +167,9 @@ class VaultService:
         self.socket_path = Path(socket_path) if socket_path else vault_socket(self.home)  # short when home is long
         self.catcher_factory = catcher_factory
         self.typist_factory: TypistFactory | None = None
+        # an environment lane's title and repository (agentos.environments.logins sets it): what decides
+        # which environments a login the owner bound to them covers (agentos.vault.policy.entry_bound)
+        self.lane_facts: Callable[[str], dict[str, Any] | None] | None = None
         self._clock, self._sleep = clock, sleep
         self._master: bytearray | None = None
         self._sealed_by_owner = False
@@ -357,10 +360,22 @@ class VaultService:
 
     # ---- entries (metadata and admin) -------------------------------------------
 
+    def facts_for(self, lane_id: str) -> dict[str, Any] | None:
+        """The environment of an environment's lane, as entry_bound reads it; None for any other lane, an
+        environment that is not open, or a node without environments (then no scoped login is used)."""
+        if self.lane_facts is None or not str(lane_id).startswith("env/"):
+            return None
+        try:
+            return self.lane_facts(lane_id)
+        except Exception:  # noqa: BLE001 - fail closed: no environment known covers nothing
+            log.warning("vault: could not read the environment of %s", lane_id, exc_info=True)
+            return None
+
     async def list_entries(self, lane: str | None = None) -> list[EntryMeta]:
         entries = await asyncio.to_thread(self.store.list)
         if lane is not None:
-            entries = [e for e in entries if lane_bound(e.lanes, lane)]
+            facts = self.facts_for(lane)
+            entries = [e for e in entries if entry_bound(e, lane, facts)]
         return entries
 
     async def get_entry(self, ref: str) -> EntryMeta:
@@ -484,7 +499,8 @@ class VaultService:
             raise InvalidRequest("resolve_field fills username and password fields; use one_time_code")
         column = "username" if sink is Sink.FORM_USERNAME else "secret"
         meta, values = await self._open(ref, (column,))
-        d = decide(meta, lane_id=lane_id, sink=sink, url=url, field=field, fields=fields)
+        d = decide(meta, lane_id=lane_id, sink=sink, url=url, field=field, fields=fields,
+                   lane_facts=self.facts_for(lane_id))
         if not d.allowed:
             self._denied(ctx, meta, lane_id, sink, d)
         value = values[column]
@@ -500,7 +516,8 @@ class VaultService:
         owner typed into the panel's code card. None when the source timed out; CodeDeclined
         when the owner dismissed the card."""
         meta, values = await self._open(ref, ("totp",))
-        d = decide(meta, lane_id=lane_id, sink=Sink.FORM_OTP, url=url, field=field, fields=fields)
+        d = decide(meta, lane_id=lane_id, sink=Sink.FORM_OTP, url=url, field=field, fields=fields,
+                   lane_facts=self.facts_for(lane_id))
         if not d.allowed:
             self._denied(ctx, meta, lane_id, Sink.FORM_OTP, d)
         seed = values["totp"]
@@ -583,7 +600,8 @@ class VaultService:
     async def _pick(self, lane_id: str, url: str, ref: str | None, kind: EntryKind) -> EntryMeta:
         if ref is not None:
             return await self.get_entry(ref)
-        entries = matching_entries(await self.list_entries(), lane_id=lane_id, url=url, kinds=(kind,))
+        entries = matching_entries(await self.list_entries(), lane_id=lane_id, url=url, kinds=(kind,),
+                                   lane_facts=self.facts_for(lane_id))
         if not entries:
             try:
                 host = parse_origin(url).host

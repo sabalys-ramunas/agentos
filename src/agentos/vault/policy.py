@@ -4,7 +4,10 @@ A secret resolves only when ALL of these hold:
 
 1. the entry's kind may flow into the requested sink (passwords into login form fields,
    api keys into an auth header, cookies into the cookie jar, notes nowhere);
-2. the lane is bound to the entry (an exact lane id or a `workspace/*` wildcard);
+2. the lane is bound to the entry (an exact lane id or a `workspace/*` wildcard), and for a login
+   the owner bound to agent environments (config `envs`) on an environment's lane, the lane's
+   environment is one it covers: by title, by repository or every one (`lane_facts`, read from the
+   node's own records by the vault service; none known is no environment covered);
 3. the target origin is https (http only on localhost / loopback IPs), and its host's
    registrable domain equals the entry's domain, in A-label form (Google's country domains
    count as one site), and the host is in the entry's allowed hosts when it has any;
@@ -20,7 +23,7 @@ attribute names), never from localized label text.
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 
@@ -124,6 +127,40 @@ def lane_bound(patterns: Iterable[str], lane_id: str) -> bool:
         if WILDCARD_RE.match(p) and p[:-2] == workspace:
             return True
     return False
+
+
+ENV_WORKSPACE = "env"  # agentos.environments.models.WORKSPACE: every agent environment's lanes
+
+
+def _same_title(a: str, b: str) -> bool:
+    """Titles as agentos.environments.picking.same_title compares them: case and spaces aside."""
+    return " ".join(a.split()).lower() == " ".join(b.split()).lower()
+
+
+def env_scope_allows(entry: EntryMeta, lane_id: str, facts: Mapping[str, object] | None) -> bool:
+    """For an entry the owner bound to agent environments (config `envs`, agentos.environments.logins):
+    on an environment's lane, does one of its scopes cover the lane's environment (`facts`: its title
+    and repository)? Any other lane, or an entry with no such binding: True (its lanes decide)."""
+    envs = entry.config.get("envs")
+    if not isinstance(envs, dict) or not str(lane_id).startswith(ENV_WORKSPACE + "/"):
+        return True
+    if not facts:
+        return False
+    title, repo = str(facts.get("title") or ""), facts.get("repo")
+    for scope in envs.get("scopes") or []:
+        if scope.get("all") is True:
+            return True
+        if scope.get("title") and title and _same_title(str(scope["title"]), title):
+            return True
+        if scope.get("repo") and repo and scope["repo"] == repo:
+            return True
+    return False
+
+
+def entry_bound(entry: EntryMeta, lane_id: str, facts: Mapping[str, object] | None = None) -> bool:
+    """The entry may be used on this lane: bound to it (lane_bound), and for an environment's lane
+    within the environments the owner bound it to (env_scope_allows)."""
+    return lane_bound(entry.lanes, lane_id) and env_scope_allows(entry, lane_id, facts)
 
 
 # ---- origins --------------------------------------------------------------------
@@ -278,16 +315,18 @@ def decide(
     url: str,
     field: FieldInfo | None = None,
     fields: Sequence[FieldInfo] = (),
+    lane_facts: Mapping[str, object] | None = None,
 ) -> Decision:
     """May `entry` resolve into `sink` at `url` (the top document URL for form sinks,
-    the request URL for an auth header or cookie, `imaps://host:port` for IMAP)?"""
+    the request URL for an auth header or cookie, `imaps://host:port` for IMAP)? `lane_facts`:
+    the title and repository of the environment whose lane it is (entry_bound)."""
     if sink not in KIND_SINKS.get(entry.kind, frozenset()):
         return _deny(Reason.KIND_SINK, kind=entry.kind.value, sink=sink.value)
     if sink is Sink.FORM_USERNAME and not entry.has_username:
         return _deny(Reason.NO_USERNAME)
     if sink is Sink.FORM_OTP and not (entry.has_totp or entry.config.get("catcher")):
         return _deny(Reason.NO_CODE_SOURCE)
-    if not lane_bound(entry.lanes, lane_id):
+    if not entry_bound(entry, lane_id, lane_facts):
         return _deny(Reason.LANE_NOT_BOUND, lane=lane_id)
     schemes = ("imaps", "imap") if sink is Sink.IMAP_LOGIN else ("http", "https")
     origin_decision = check_origin(entry, url, schemes=schemes)
@@ -313,10 +352,11 @@ def decide(
 
 
 def matching_entries(entries: Iterable[EntryMeta], *, lane_id: str, url: str,
-                     kinds: Iterable[EntryKind] = (EntryKind.PASSWORD,)) -> list[EntryMeta]:
+                     kinds: Iterable[EntryKind] = (EntryKind.PASSWORD,),
+                     lane_facts: Mapping[str, object] | None = None) -> list[EntryMeta]:
     """Entries bound to the lane whose domain matches the page (for picking one)."""
     kinds = set(kinds)
     return [
         e for e in entries
-        if e.kind in kinds and lane_bound(e.lanes, lane_id) and check_origin(e, url).allowed
+        if e.kind in kinds and entry_bound(e, lane_id, lane_facts) and check_origin(e, url).allowed
     ]
