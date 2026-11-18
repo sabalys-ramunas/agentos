@@ -13,7 +13,7 @@ from agentos.core import progress
 from agentos.core.errors import InvalidRequest
 from agentos.core.models import Effect
 from agentos.core.tools import ToolContext, ToolSpec
-from agentos.env import execs, exposure, oom, programs
+from agentos.env import execs, exposure, oom, programs, readhint
 from agentos.env.models import EnvLane
 from agentos.env.sync import check_sha as sync_check_sha
 
@@ -198,6 +198,8 @@ async def lane_exec(ctx: ToolContext, *, on: str, cmd: str, timeout_s: float = 6
     note = " ".join(n for n in notes if n)
     if note:
         out["note"] = note
+    if res.exit_code == 0 and (hint := readhint.file_read_hint(cmd, cwd)):
+        out["hint"] = hint  # a plain cat, head or sed -n of a file: the file tools do that
     return out
 
 
