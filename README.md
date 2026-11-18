@@ -145,15 +145,18 @@ An agent's computer can stay signed in to the accounts it works with: a staging 
 admin page, a test account. It does not post or click for you on a schedule. It opens the account
 when the work needs it, like you would.
 
-You choose which logins from your vault a computer may use:
+You choose which logins from your vault a computer may use, by its title, its repository or all of
+them (the password comes from a hidden prompt, never the command line):
 
 ```sh
-agentos environments login add <site>
+agentos environments login add admin.example.com --title "Shop admin"   # or --repo me/shop, or --all
 ```
 
 When the agent reaches a sign-in page, it calls the login tool. agentos types the stored login into
-that computer's browser, and the model never sees it. If the site signs it out later, agentos signs
-it in again without asking you. Nothing else in your vault reaches the machine.
+that computer's browser, and the model never sees it. If the site signs it out later, the agent signs
+in again the same way, without asking you, or you do it from your laptop:
+`agentos environments login "Shop admin" admin.example.com`. Nothing else in your vault reaches the
+machine.
 
 ## What it costs
 
