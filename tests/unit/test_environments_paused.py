@@ -62,11 +62,16 @@ class Machines(LocalMachines):
     def __init__(self, *a, **kw):
         super().__init__(*a, **kw)
         self.setups: list[str] = []
+        self.unreachable_checks = 0      # setup checks whose ssh fails first (exit 255), as while sshd starts
 
     async def exec(self, lane_id, cmd, *, timeout_s=None, stdin=None, grant_id=None, max_bytes=None, oom_check=False):
         if cmd == pausing.TOKEN_SCRUB:
             disk = self.disk_of(lane_id)
             return await asyncio.to_thread(self.run, ["bash", "-c", cmd], disk, None)
+        if cmd == machine.SETUP_STATE and self.unreachable_checks:
+            self.unreachable_checks -= 1
+            return ExecResult(exit_code=255, stdout="", stderr="ssh: connect to host: Connection refused",
+                              duration_s=0.01)
         if cmd == machine.SETUP_STATE:
             done = (self.disk_of(lane_id) / "ready-marker").exists()
             return ExecResult(exit_code=0, stdout="ready\n" if done else "no cloud-init and no setup marker\n",
@@ -189,6 +194,15 @@ async def test_close_pauses_the_machine_and_open_resumes_it_with_its_processes(n
     w = disk(node, again["id"]) / "work" / "shop"
     assert git(w, "rev-parse", "HEAD") == head and (w / "notes.md").exists() and not (w / "old.txt").exists()
     assert mgr.get(again["id"]).workdir == "/work/shop"
+
+
+async def test_without_cloud_init_the_setup_waits_for_a_check_that_ran(node, monkeypatch):
+    """A setup check whose ssh failed (exit 255) is no answer: the node asks again, and runs the setup
+    only once the machine said it has none (the docker e2e of 2026-11-18 ran it on a failed check)."""
+    monkeypatch.setattr(bringup, "SETUP_POLL_S", 0.01)
+    node["machines"].unreachable_checks = 2
+    out = await opened(node)
+    assert node["machines"].setups == [f"env/{out['id']}"] and node["machines"].unreachable_checks == 0
 
 
 async def test_forget_deletes_the_paused_machine(node):

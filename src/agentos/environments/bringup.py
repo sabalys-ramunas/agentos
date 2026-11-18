@@ -330,12 +330,12 @@ class BringUp:
         said = ""
         ran = False
         while loop.time() < deadline:
-            answered = True
+            answered = False  # the check ran on the machine (it always exits 0 there; ssh's own failure is 255)
             try:
                 res = await envs.exec(env.terminal_lane, machine.SETUP_STATE, timeout_s=CHECK_TIMEOUT_S)
-                said = (res.stdout or res.stderr or "").strip()
+                said, answered = (res.stdout or res.stderr or "").strip(), res.exit_code == 0
             except AgentosError as e:
-                said, answered = e.message, False
+                said = e.message
             first = said.split("\n", 1)[0]
             if first == "ready":
                 return machine.needs_pnpm(said)
