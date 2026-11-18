@@ -49,7 +49,8 @@ holds no key of the human's, and nothing in it waits for a person.
    - `lane_job_start(cmd="pnpm dev --host 0.0.0.0", cwd="/work/shop")` for a dev server or build;
      `lane_job_read(job=..., until_exit=true)` waits for it; `until_port=3000` for its port, never sleep.
    - `browser_navigate(url="http://localhost:3000")`. `localhost` is the VM.
-   - A sign-in page: `login()` types one of the open's `logins`, also after a logout; you never see it.
+   - A sign-in page: `login` types a login the owner bound; you never see it (the open's `logins`, also
+     after a logout).
    - Also listed: `environment_save`, `environment_forget`, `environment_download(path)`. In
      `tools_more("terminals")`: `environment_port`, `environment_pull_request`, and
      `environment_checkpoint(note)` before a risky step (`environment_rollback(checkpoint=n)` undoes it;
