@@ -484,6 +484,19 @@ class BringUp:
         task = asyncio.create_task(start(), name=f"environment-{env.id}-browser")
         self._warming.add(task)  # held until done, and cancelled at shutdown
         task.add_done_callback(self._warming.discard)
+        starts = self.__dict__.setdefault("_browser_starts", {})
+        starts[env.id] = task
+        task.add_done_callback(lambda t, i=env.id: starts.pop(i, None) if starts.get(i) is t else None)
+
+    async def stop_browser_start(self, env_id: str) -> None:
+        """A close does not wait for a browser nobody used to finish starting: its start is cancelled
+        (the lane manager tears a half-started browser down). An agent that pushed and closed within
+        seconds of the open waited 2 to 3 s for it (evals, 2026-11-18)."""
+        task = (self.__dict__.get("_browser_starts") or {}).pop(env_id, None)
+        if task is not None and not task.done():
+            task.cancel()
+            with contextlib.suppress(BaseException):
+                await task
 
     async def _make_browser_lane(self, env: Environment) -> None:
         lanes = self._get("lanes")

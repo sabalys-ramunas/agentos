@@ -240,6 +240,13 @@ async def test_the_browser_starts_beside_the_clone_and_the_open_never_waits_for_
     await asyncio.gather(*mgr._warming)
     assert lanes.get(lane).state == LaneState.WARM
 
+    # a close while it still starts does not wait for it: the start is cancelled
+    gate.clear()
+    third = await opened(node, title="Third one", session="chat-3")
+    starting = mgr.__dict__["_browser_starts"][third["id"]]
+    await asyncio.wait_for(node["call"]("environment_close", on=third["on"], session="chat-3"), 5)
+    assert starting.cancelled() and mgr.get(third["id"]).state == "closed"
+
     async def broken(lane_id, **kw):
         raise RuntimeError("no display")
 

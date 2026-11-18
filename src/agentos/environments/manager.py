@@ -587,6 +587,7 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
         env = self.store.update(env.id, closing)
         self.ssh_down(env)  # the agent's `ssh agentos-<id>` goes first: its machine is going
         self.drop_downloads(env.id)  # its download links end, and their archives go (agentos.environments.downloads)
+        await self.stop_browser_start(env.id)  # a browser still starting (bringup.start_browser) is not waited for
         await self.last_looks(env, "close")  # its recording kept, the browser's last frame (recording, replay)
         if env.browser == "vm":  # its browser and screen stop on the machine while the tunnel still reaches it
             await self._remove_browser(env)
