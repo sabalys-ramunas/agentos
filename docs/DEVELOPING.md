@@ -99,6 +99,11 @@ Then start a new Claude Code session and ask it to work on that repository in ag
 node the account lanes are simulated; the environment's container, terminal, browser, git and
 studio's checks are real.
 
+To see whether a change makes environments better or worse for the agents that use them (done,
+time, tokens of tool output read, wrong turns), run the environments eval on the same Docker:
+`make eval`, then `uv run python tests/env_eval/run.py compare`. [EVALS.md](EVALS.md) has the
+tasks, the metrics, paid runs with a real model and A/B between two commits.
+
 ## On the Mac
 
 ```

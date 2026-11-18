@@ -1,0 +1,5 @@
+# How a machine for this repository is set up (docs/ENVIRONMENTS.md, "Prepared machines").
+setup = "sh scripts/setup.sh"
+start = "node server.js"
+port = 3000
+inputs = ["data/prices.csv"]

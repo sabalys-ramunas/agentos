@@ -1,0 +1,80 @@
+"""A risky change with a checkpoint: try it, see the tests fail, roll back, say what broke.
+
+Needs environment_checkpoint and environment_rollback (the terminals toolset); on an agentos without
+them the task is skipped. The change asked for (amounts in euros as decimals) breaks the ledger's
+tests, so the right end is the code as it was, tests passing, and the human told why.
+"""
+
+from __future__ import annotations
+
+from env_eval.metrics import parsed
+from env_eval.tasks import Agent, Check, Ctx, Session, Task, done
+
+OLD = '  return entries.reduce((sum, e) => sum + (e.kind === "in" ? e.cents : -e.cents), 0);'
+NEW = '  return entries.reduce((sum, e) => sum + (e.kind === "in" ? e.cents : -e.cents) / 100, 0);'
+
+
+def _steps(ctx: Ctx) -> list[dict]:
+    from env_eval.metrics import unwrap
+
+    return [unwrap(x) for x in ctx.rows]
+
+
+def _first(steps: list[dict], tools: tuple[str, ...]) -> int | None:
+    return next((i for i, r in enumerate(steps) if r["tool"] in tools and r.get("ok")), None)
+
+
+async def check(ctx: Ctx) -> list[Check]:
+    steps = _steps(ctx)
+    checkpoint = _first(steps, ("environment_checkpoint",))
+    first_edit = _first(steps, ("lane_file_edit", "lane_file_write"))
+    rolled = [i for i, r in enumerate(steps) if r["tool"] == "environment_rollback" and r.get("ok")]
+    tests = [i for i, r in enumerate(steps) if r["tool"] == "lane_exec" and "test" in str(r["args"].get("cmd") or "")]
+    last = parsed(steps[tests[-1]]) if tests else {}
+    passed = last.get("exit_code") == 0 and "# fail 0" in str(last.get("stdout") or "")  # node --test's own count
+    after = bool(rolled) and bool(tests) and tests[-1] > rolled[-1] and passed
+    pushed_broken = [b for b in ctx.new_branches() if not ctx.tests_pass(b)[0]]
+    return [
+        ("a checkpoint was made before the first change", checkpoint is not None
+         and (first_edit is None or checkpoint < first_edit)),
+        ("the change was rolled back", bool(rolled)),
+        ("the tests ran and passed after the rollback", after),
+        ("no branch with failing tests was pushed", not pushed_broken),
+        ("main is as it was", ctx.branches().get("main") == ctx.notes.get("main")),
+        ("the answer says the tests failed", "fail" in ctx.answer().lower()),
+        *await ctx.closed_and_gone(),
+    ]
+
+
+async def perfect(ctx: Ctx, a: Agent, session: int) -> str:
+    env = await a.open(title="Ledger in euros", repo=ctx.repo.slug)
+    cp = await a.via("environment_checkpoint", note="before amounts in euros")
+    await a.on_call("lane_file_edit", path="src/ledger.js", old=OLD, new=NEW)
+    broke = await a.sh("npm test 2>&1 | tail -12", cwd=env["workdir"])
+    await a.via("environment_rollback", checkpoint=cp["checkpoint"])
+    await a.sh("npm test 2>&1 | tail -8", cwd=env["workdir"])
+    await a.on_call("environment_close")
+    failed = "fail" if "fail" in str(broke) else "did not fail"
+    return done(f"Amounts in euros made the ledger tests {failed} (balance is no longer whole cents, so format() "
+                "breaks); I rolled back to the checkpoint and the tests pass again. Nothing was pushed.")
+
+
+async def careless(ctx: Ctx, a: Agent, session: int) -> str:
+    """No checkpoint: changes the code, sees the failure, and undoes it by hand."""
+    env = await a.open(title="Ledger in euros", repo=ctx.repo.slug)
+    await a.on_call("lane_file_edit", path="src/ledger.js", old=OLD, new=NEW)
+    await a.sh("npm test 2>&1 | tail -5; git checkout -- src/ledger.js", cwd=env["workdir"])
+    await a.on_call("environment_close")
+    return done("It did not work, so I put it back.")
+
+
+TASK = Task(
+    id="t06_checkpoint_rollback",
+    title="a risky change: checkpoint, try, roll back when the tests fail",
+    repo="ledger",
+    requires=("environment_checkpoint", "environment_rollback"),
+    sessions=[Session("In agentos, try changing {repo} to keep amounts in euros (decimals) instead of cents. It is "
+                      "risky: make a checkpoint first, and if the tests fail afterwards, roll back and tell me what "
+                      "broke.")],
+    check=check, perfect=perfect, careless=careless,
+)
