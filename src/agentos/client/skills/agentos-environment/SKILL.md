@@ -45,26 +45,26 @@ holds no key of the human's, and nothing in it waits for a person.
    (`preview_open`). While they have control, wait with `lane_wait_control`.
 3. Work, with `on` on every terminal, browser and studio call. These are in your tool list:
    - Files: `lane_file_read(path="src/cart.ts")`, `lane_file_edit(path, old, new)`,
-     `lane_file_write(path, content)`, not `cat`, heredocs or `sed`.
-   - `lane_exec(cmd="pnpm test", cwd="/work/shop")` runs a command and waits.
-   - `lane_job_start(cmd="pnpm dev --host 0.0.0.0", cwd="/work/shop")` for a dev server or a long
-     build; `lane_job_read(job=..., until_exit=true)` waits for it; `until_port=3000` for its port, not
-     a sleep loop.
+     `lane_file_write(path, content)`, not `cat` or `sed`.
+   - `lane_exec(cmd="pnpm test", cwd="/work/shop")` runs it and waits.
+   - `lane_job_start(cmd="pnpm dev --host 0.0.0.0", cwd="/work/shop")` for a dev server or build;
+     `lane_job_read(job=..., until_exit=true)` waits for it; `until_port=3000` for its port, never sleep.
    - `browser_navigate(url="http://localhost:3000")`. `localhost` is the VM.
+   - `login()` signs in to the open's `logins`, again after a logout.
    - Also listed: `environment_save`, `environment_forget`, `environment_download(path)`. In
      `tools_more("terminals")`: `environment_port`, `environment_pull_request`, and
      `environment_checkpoint(note)` before a risky step (`environment_rollback(checkpoint=n)` undoes it;
      ignored files stay).
    - A result with `ssh`: `ssh agentos-<id>`, scp and rsync reach the VM.
-4. Check the page: `tools_more("studio")`, then `ui_check(url="http://localhost:3000", on=...)`; fix
-   what it measured.
-5. Show the human the dev server: `app.link`, else `environment_port(port=3000)` gives `url`. On a
-   server node they run its `tunnel` line first.
+4. Check pages: `tools_more("studio")`, then `ui_check(url="http://localhost:3000", on=...)`; fix
+   its findings.
+5. Show the human the dev server: `app.link`, else `environment_port(port=3000)` gives `url`. Server
+   node: run its `tunnel` line first.
 6. Keep proof: `browser_screenshot(proof="checkout page after the fix")`. A video:
    `tools_more("browser_record")`, `browser_record(action="start")`, the flow,
    `browser_record(action="stop", proof="guest checkout")`. Give the human `proof.url`.
 7. Commit on a branch, `git push origin <branch>` from the VM. Force-pushing or deleting the
-   default branch or a branch not made here is refused (`push_refused`).
+   default branch, or one not made here, is refused (`push_refused`).
    - No `.agentos/environment.toml` (`prepared.why`)? Add one in your branch: `setup = "pnpm
      install"`, `start = "pnpm dev --host 0.0.0.0"`, `port = 3000`.
 8. `environment_pull_request(title="...", body="what changed, how it was tested")` opens the pull
