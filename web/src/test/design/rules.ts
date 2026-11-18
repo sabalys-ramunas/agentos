@@ -78,6 +78,7 @@ const HAND_ROLLED: Array<{ test: (tokens: Set<string>) => boolean; found: string
 /** Components kept for the screens that still use them, each with the one to use instead. */
 const DEPRECATED: Record<string, string> = {
   '@/components/charts/small#Segmented': 'SegmentedControl (components/ui/tabs.tsx): the Mono segmented control. Segmented is the older one',
+  '@/components/lane-icon#WorkspaceMark': 'BusinessMark (components/brand/identity.tsx). WorkspaceMark is its old name',
 };
 
 function importFindings(file: string, parsed: Parsed, out: Finding[]) {

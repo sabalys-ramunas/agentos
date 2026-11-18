@@ -1,6 +1,7 @@
 /**
- * A drawn product page for the specimen's picture primitives: another brand's page, so its colours are
- * data, not this app's style (the specimen marks it data-studio="ignore").
+ * A drawn product page for the catalog's picture components: another brand's page, so its colours are
+ * data, not this app's style (the catalog marks it data-studio="ignore", and the design rules list
+ * this file as a reviewed exception).
  */
 export function shot(version: 'before' | 'after'): string {
   const badge = version === 'before' ? '#4d8dff' : '#2563eb';
