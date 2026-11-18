@@ -110,7 +110,7 @@ def test_the_wrong_turns_a_careful_agent_does_not_take():
     ]
     turns = wrong_turns(rows)
     assert len(turns) == 6, turns
-    assert turns[0].startswith("lane_exec without its on (refused: which_environment)")
+    assert turns[0] == "lane_exec without the on its environment_open gave (refused: which_environment)"
     assert "read a file through lane_exec" in turns[1]
     assert turns[2] == "repeated the failing lane_exec unchanged"
     assert "waited with sleep" in turns[3]

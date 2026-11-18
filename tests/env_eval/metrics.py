@@ -123,7 +123,7 @@ def wrong_turns(rows: list[dict[str, Any]], *, new_environments: int = 1) -> lis
     for r in rows:
         tool, args = r["tool"], r.get("args") or {}
         if r.get("code") in NO_ON_CODES and tool != "environment_open":
-            out.append(f"{tool} without its on (refused: {r['code']})")
+            out.append(f"{tool} without the on its environment_open gave (refused: {r['code']})")
         if tool == "lane_exec":
             cmd = str(args.get("cmd") or "")
             how = shell_file_io(cmd)
