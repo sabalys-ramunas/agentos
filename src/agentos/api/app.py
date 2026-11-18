@@ -8,7 +8,6 @@ import importlib
 import inspect
 import json
 import logging
-import os
 import time
 from collections.abc import AsyncIterator, Awaitable, Callable
 from dataclasses import dataclass, field
@@ -40,6 +39,7 @@ from agentos.api.events import EventBus
 from agentos.api.jsonable import jsonable
 from agentos.api.members import Members, MemberStore
 from agentos.core import live as live_sockets
+from agentos.core import webapp
 from agentos.core.aio import maybe_await
 from agentos.core.errors import AgentosError, InvalidRequest, NotFound, ServiceUnavailable
 from agentos.core.logs import log_context
@@ -56,21 +56,12 @@ LOOPBACK = frozenset({"127.0.0.1", "::1", "localhost"})
 MAX_BODY = 1_000_000
 
 
-def _default_panel_dir(root: Path | None = None) -> Path:
-    """The built web app to serve: $AGENTOS_PANEL_DIR when set, otherwise web/dist next to the code."""
-    env = os.environ.get("AGENTOS_PANEL_DIR")
-    if env:
-        return Path(env)
-    root = root or Path(__file__).resolve().parents[3]  # src/agentos/api/app.py -> the repo root
-    return root / "web" / "dist"
-
-
 @dataclass
 class ApiSettings:
     owner_token: str | None = None        # default: the node's mcp_token from config
     home: Path | None = None              # default: config.home; panel.db lives here
     store: PanelStore | None = None       # tests pass an in-memory store
-    panel_dir: Path | None = None         # default: $AGENTOS_PANEL_DIR or <repo>/web/dist
+    panel_dir: Path | None = None         # default: agentos.core.webapp.panel_dir (env, checkout, installed)
     mcp_url: str | None = None            # shown in the first-run wizard
     session_ttl: int = 7 * 24 * 3600
     device_ttl: int = 90 * 24 * 3600      # the owner's device credential (`agentos connect` on the Mac)
@@ -128,13 +119,20 @@ class Api:
         self.owner_token = settings.owner_token or getattr(cfg, "mcp_token", None) or None
         self.limiter = RateLimiter(per_key=settings.login_per_ip, global_max=settings.login_global,
                                    window=settings.login_window)
-        self.panel_dir = settings.panel_dir or _default_panel_dir()
+        self._panel_dir = settings.panel_dir
+        self._home = settings.home or getattr(cfg, "home", None)
         if settings.mcp_url:
             self.mcp_url = settings.mcp_url
         elif cfg is not None:
             self.mcp_url = f"http://localhost:{cfg.mcp_port}/mcp"
         else:
             self.mcp_url = None
+
+    @property
+    def panel_dir(self) -> Path:
+        """The built web app to serve (agentos.core.webapp.panel_dir), looked up on each request, so an
+        app `agentos web install` adds or `remove` takes away shows without a restart."""
+        return self._panel_dir or webapp.panel_dir(self._home)
 
     # ---- services (real ones through agentos.api.bridge) ----
     def svc(self, name: str) -> Any:

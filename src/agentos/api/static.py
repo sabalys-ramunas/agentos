@@ -1,4 +1,6 @@
-"""The built web app (web/dist) at `/`, with SPA fallback and cache headers.
+"""The built web app at `/` (a checkout's web/dist, or the copy `agentos web install` unpacked; see
+agentos.core.webapp), with SPA fallback and cache headers. Files are served as they are, from under
+that folder only: a path or link that leads out of it is refused.
 
 Hashed files under /assets are immutable for a year; everything else (index.html, the
 icon) is revalidated on every load so a new build shows up at once.
@@ -29,13 +31,14 @@ in <code>web/</code> (Node.js 22 or later; <code>npx pnpm@10.33.0</code> works w
 then start agentos again. Or point <code>AGENTOS_PANEL_DIR</code> at a built copy.</p>
 </body></html>"""
 
-# an installation without the app's source (no web/ beside it)
+# an installation without the app's source (no web/ beside it) and no installed copy (agentos web install)
 NO_APP = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><title>agentos</title>
 <meta name="viewport" content="width=device-width, initial-scale=1"></head>
 <body style="font: 16px system-ui, sans-serif; max-width: 36rem; margin: 4rem auto; padding: 0 1rem">
 <h1>This node has no web app</h1>
-<p>The API and MCP are running. This installation has no web app source to build.</p>
+<p>The API and MCP are running. Add the web app with <code>agentos web install</code> on this computer,
+then reload this page.</p>
 <p>To watch an environment, open the live view link the agent gives you (it starts with
 <code>/view/</code>), or run <code>agentos environments list</code>, <code>agentos environments show ID</code>
 and <code>agentos open --terminal</code> on the node.</p>
@@ -70,10 +73,11 @@ def routes(api: Api) -> list[Route]:
             return JSONResponse(
                 {**error_body("not_found", "No such API route."), "not_served": True}, status_code=404
             )
-        root = api.panel_dir.resolve() if api.panel_dir.exists() else None
-        index = root / "index.html" if root else None
-        if root is None or index is None or not index.is_file():
-            return HTMLResponse(placeholder(api.panel_dir), headers={"Cache-Control": REVALIDATE})
+        panel_dir = api.panel_dir
+        root = panel_dir.resolve() if panel_dir.exists() else None
+        index = _resolve(root, "index.html") if root else None  # a linked index.html is held to root too
+        if root is None or index is None:
+            return HTMLResponse(placeholder(panel_dir), headers={"Cache-Control": REVALIDATE})
         file = _resolve(root, path)
         if file is not None and file.name != "index.html":
             cache = IMMUTABLE if path.startswith("assets/") else REVALIDATE

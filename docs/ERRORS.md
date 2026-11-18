@@ -219,6 +219,8 @@ carries one of these codes:
 | [`vault_wrong_passphrase`](#vault_wrong_passphrase) | The vault passphrase is wrong. | no |
 | [`vm_error`](#vm_error) | The cloud provider refused or failed a VM call: a bad token, a server type or location it does not offer, the project's server limit, or its API being down. | no |
 | [`vm_limit`](#vm_limit) | A VM limit set on this node was reached: how many VMs at once, how long one lives, or the monthly budget. | no |
+| [`web_app_missing`](#web_app_missing) | The web app for this agentos release could not be downloaded: the release has none yet, or GitHub could not be reached. The node, MCP and live view links work without it. | yes, once the cause is fixed |
+| [`web_app_refused`](#web_app_refused) | The downloaded web app was refused: its sha256 differs from the one its release publishes, or the archive holds a link, an absolute path or a path that leads out of its folder. Nothing was installed. | no |
 | [`which_environment`](#which_environment) | The call needs the handle of the machine it is for, and did not carry it: a call without `on` from a client that sends no MCP session id, or an `on` that is a title or an id. Only the chat that holds a machine reaches it. Nothing ran. | no |
 | [`workflow_missing`](#workflow_missing) | The version of the workflow this run was started on is no longer on this computer. | no |
 | [`wrong_account`](#wrong_account) | The lane is logged in as another account than the one the run is bound to, so it did nothing and the lane is held. | no |
@@ -2138,6 +2140,24 @@ A VM limit set on this node was reached: how many VMs at once, how long one live
 - **You:** Raise max_live, max_ttl_minutes or monthly_budget_eur in vms.toml, or delete VMs with `agentos vm destroy`.
 - **Retry:** no
 - **Raised by:** `agentos.vms.models.VmLimit`
+
+## web_app_missing
+
+The web app for this agentos release could not be downloaded: the release has none yet, or GitHub could not be reached. The node, MCP and live view links work without it.
+
+- **Agent:** Nothing for an agent to do: the web app is for a person. Keep working; live view links work without it.
+- **You:** Run `agentos web install` again when you are online. A release made before the web app was published has none: update agentos (run the installer again).
+- **Retry:** yes, once the cause is fixed
+- **Raised by:** `agentos.setup.webapp.WebAppMissing`
+
+## web_app_refused
+
+The downloaded web app was refused: its sha256 differs from the one its release publishes, or the archive holds a link, an absolute path or a path that leads out of its folder. Nothing was installed.
+
+- **Agent:** Nothing for an agent to do. Tell the user the web app download was refused, and why.
+- **You:** Run `agentos web install` again. If it is refused again, the download is not the release's file: report it, and use the node without the web app until then.
+- **Retry:** no
+- **Raised by:** `agentos.setup.webapp.WebAppRefused`
 
 ## which_environment
 

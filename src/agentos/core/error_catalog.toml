@@ -1126,6 +1126,17 @@ meaning = "A VM limit set on this node was reached: how many VMs at once, how lo
 agent = "Destroy a VM you no longer need (vm_destroy), ask for a shorter time, or tell the user the limit."
 fix = "Raise max_live, max_ttl_minutes or monthly_budget_eur in vms.toml, or delete VMs with `agentos vm destroy`."
 
+[web_app_missing]
+meaning = "The web app for this agentos release could not be downloaded: the release has none yet, or GitHub could not be reached. The node, MCP and live view links work without it."
+agent = "Nothing for an agent to do: the web app is for a person. Keep working; live view links work without it."
+fix = "Run `agentos web install` again when you are online. A release made before the web app was published has none: update agentos (run the installer again)."
+retryable = true
+
+[web_app_refused]
+meaning = "The downloaded web app was refused: its sha256 differs from the one its release publishes, or the archive holds a link, an absolute path or a path that leads out of its folder. Nothing was installed."
+agent = "Nothing for an agent to do. Tell the user the web app download was refused, and why."
+fix = "Run `agentos web install` again. If it is refused again, the download is not the release's file: report it, and use the node without the web app until then."
+
 [workflow_missing]
 meaning = "The version of the workflow this run was started on is no longer on this computer."
 agent = "Do not retry this run. Tell the user, and start a new run of the current version."

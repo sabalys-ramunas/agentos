@@ -64,6 +64,7 @@ VISIBLE: tuple[tuple[str, str, str], ...] = (
     ("run", BUILD, "Run a command on the node against this working tree."),
     ("expose", BUILD, "Your laptop's dev server, opened in one browser lane."),
     ("local", START, "agentos on this computer: start, stop, status, logs."),
+    ("web", START, "The web app in your browser: install, update, remove."),
     ("environments", BUILD, "Your agents' cloud computers: list, show, close, setup, repo."),
     ("studio", BUILD, "Check the pages you build: layout, contrast, brand, changes."),
     ("lane", WORK, "Browser lanes (one account each), devices and proxies."),
@@ -83,7 +84,7 @@ agentos {version}: a computer in the cloud for each of your agents.
 
 First time, on your computer:
   agentos setup                   VMs, GitHub, limits, and Claude Code and Codex, in a few questions
-  agentos setup <step>            change one thing: vms, github, limits, agents, check, test-vm
+  agentos setup <step>            change one thing: vms, github, limits, agents, web, check, test-vm
 Or run it on a server (always on, account browsers):
   agentos connect <user@host>     install a node on your server (if needed) and connect to it
   agentos connect --check         do Claude Code and Codex see it? what to try first
@@ -376,7 +377,7 @@ def _built_groups(m: _Mounted) -> dict[str, typer.Typer]:
                                commands=[*m.as_cmd("logs"), *m.as_cmd("migrate-service-user")],
                                groups=[*m.as_group("config"), *m.as_group("doctor"), *m.as_group("health"),
                                        *m.as_group("backup"), *m.as_group("migrate"), *m.as_group("upgrade")])
-    for name in ("controller", "panel", "studio", "environments", "local"):
+    for name in ("controller", "panel", "studio", "environments", "local", "web"):
         if name in m.groups:
             built[name] = m.group_typer(name)
     if "dev" in m.groups:

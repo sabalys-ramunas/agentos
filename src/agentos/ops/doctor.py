@@ -29,6 +29,7 @@ from agentos.core.layout import BROWSER_BIN, connect_ro, default_backup_dir, lan
 from agentos.core.models import ProxyConfig
 from agentos.core.system import Host, redact
 from agentos.node import fingerprint as fpmod
+from agentos.ops.doctor_web import check_web
 
 PASS, WARN, FAIL, SKIP = "pass", "warn", "fail", "skip"
 ORDER = {FAIL: 0, WARN: 1, PASS: 2, SKIP: 3}
@@ -931,6 +932,7 @@ CHECKS: dict[str, Check] = {
     "keepalive": check_keepalive,
     "effect_rules": check_effect_rules,
     "connections": check_connections,
+    "web": check_web,
 }
 CLIENT_CHECKS = ["connections"]  # what runs on a computer that is not a node but connects to nodes
 

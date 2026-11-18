@@ -27,6 +27,7 @@ from agentos.core import catalog
 from agentos.core.config import NodeConfig
 from agentos.dev import cli as dev_cli
 from agentos.local import cli as local_cli
+from agentos.setup import web_cli
 from agentos.setup.cli import setup as setup_command
 from agentos.studio import cli as studio_cli
 
@@ -142,6 +143,7 @@ mount_features(app)
 wire_feature_clis()
 app.add_typer(dev_cli.app, name="dev")  # agentos dev up: a fake node on this machine (agentos.dev)
 app.add_typer(local_cli.app, name="local")  # agentos local: the node on this computer, environments only
+app.add_typer(web_cli.app, name="web")  # agentos web: the prebuilt web app, optional (agentos.setup.webapp)
 app.add_typer(studio_cli.app, name="studio")  # agentos studio up: the studio tools with a real browser, on a laptop
 app.add_typer(lanebench_cli.app, name="lanebench")  # the local lane benchmark (tests/lanebench)
 

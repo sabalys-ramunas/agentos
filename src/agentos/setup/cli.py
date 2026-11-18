@@ -2,8 +2,8 @@
 
 A person installs the CLI (scripts/install.sh ends by starting this) and answers a few questions:
 where VMs come from (Hetzner, or Docker here), their GitHub login, the limits, then the local
-service starts and Claude Code and Codex are connected. Quick start takes good defaults; step by
-step asks each setting. Every step can be skipped, and `agentos setup <step>` runs one again to
+service starts, Claude Code and Codex are connected, and the web app is offered (agentos.setup.webstep).
+Quick start takes good defaults; step by step asks each setting. Every step can be skipped, and `agentos setup <step>` runs one again to
 change one thing. `--yes` answers every question with its default, for scripts.
 
 The steps are in agentos.setup.steps; this module is the command, the order, and the
@@ -20,9 +20,9 @@ from typing import Annotated
 import click
 import typer
 
-STEPS = ("vms", "github", "limits", "agents", "ssh", "check", "test-vm")
+STEPS = ("vms", "github", "limits", "agents", "web", "ssh", "check", "test-vm")
 STEP_TITLES = {"vms": "VMs", "github": "GitHub", "limits": "Limits", "agents": "Your agents",
-               "ssh": "SSH from your shell", "check": "Health check", "test-vm": "A test VM"}
+               "web": "The web app", "ssh": "SSH from your shell", "check": "Health check", "test-vm": "A test VM"}
 
 
 @dataclass
@@ -32,6 +32,7 @@ class SetupOptions:
     hetzner_token_file: Path | None = None
     docker: bool = False
     github_token_file: Path | None = None
+    no_web: bool = False
 
 
 class Ui:
@@ -96,6 +97,7 @@ class Ctx:
     keep: str = ""
     service_url: str = ""
     ssh: str = ""
+    web: str = ""
     agents: list[str] = field(default_factory=list)
     todo: list[str] = field(default_factory=list)
 
@@ -128,9 +130,10 @@ def welcome(ui: Ui) -> None:
 
 def run_all(ctx: Ctx) -> None:
     from agentos.setup import steps as s
+    from agentos.setup.webstep import web
 
-    order = [("vms", s.vms), ("github", s.github), ("limits", s.limits), ("agents", s.agents), ("ssh", s.ssh),
-             ("check", s.check), ("test-vm", s.test_vm)]
+    order = [("vms", s.vms), ("github", s.github), ("limits", s.limits), ("agents", s.agents), ("web", web),
+             ("ssh", s.ssh), ("check", s.check), ("test-vm", s.test_vm)]
     for i, (name, step) in enumerate(order, 1):
         ctx.ui.head(i, len(order), STEP_TITLES[name])
         step(ctx)
@@ -139,17 +142,18 @@ def run_all(ctx: Ctx) -> None:
 
 def run_one(ctx: Ctx, step: str) -> None:
     from agentos.setup import steps as s
+    from agentos.setup.webstep import web
 
     ctx.ui.head(None, 0, STEP_TITLES[step])
-    {"vms": s.vms, "github": s.github, "limits": s.limits, "agents": s.agents, "ssh": s.ssh, "check": s.check,
-     "test-vm": s.test_vm}[step](ctx)
+    {"vms": s.vms, "github": s.github, "limits": s.limits, "agents": s.agents, "web": web, "ssh": s.ssh,
+     "check": s.check, "test-vm": s.test_vm}[step](ctx)
     if step in ("vms", "limits"):
         s.restart_if_running(ctx)
 
 
 def setup(
     step: Annotated[str | None, typer.Argument(
-        metavar="[STEP]", help="Run one step again: vms, github, limits, agents, ssh, check or test-vm.")] = None,
+        metavar="[STEP]", help="Run one step again: vms, github, limits, agents, web, ssh, check or test-vm.")] = None,
     yes: Annotated[bool, typer.Option("--yes", "-y", help="Take every default and ask nothing (for scripts).")]
     = False,
     hetzner_token_file: Annotated[Path | None, typer.Option(
@@ -157,6 +161,8 @@ def setup(
     docker: Annotated[bool, typer.Option("--docker", help="Use Docker on this computer for VMs (free).")] = False,
     github_token_file: Annotated[Path | None, typer.Option(
         "--github-token-file", help="Read a GitHub token from this file (- for stdin).")] = None,
+    no_web: Annotated[bool, typer.Option("--no-web", help="Skip the web app (`agentos setup web` adds it later).")]
+    = False,
     home: Annotated[Path | None, typer.Option(help="Where agentos keeps its files (default: ~/.agentos).")] = None,
 ) -> None:
     """Set up agentos on this computer: VMs, GitHub, limits, and your agents.
@@ -165,7 +171,7 @@ def setup(
     if step is not None and step not in STEPS:
         raise typer.BadParameter(f"{step!r} is not a step; the steps are {', '.join(STEPS)}", param_hint="STEP")
     opts = SetupOptions(yes=yes, home=home, hetzner_token_file=hetzner_token_file, docker=docker,
-                        github_token_file=github_token_file)
+                        github_token_file=github_token_file, no_web=no_web)
     where = resolve_home(home)
     where.mkdir(mode=0o700, parents=True, exist_ok=True)
     os.environ["AGENTOS_HOME"] = str(where)  # every command this runs (vm, vault, environments) uses it

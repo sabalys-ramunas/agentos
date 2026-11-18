@@ -808,8 +808,10 @@ def _check_limits(ctx: Ctx) -> tuple[bool, str]:
 
 
 def check(ctx: Ctx) -> None:
+    from agentos.setup.webstep import check_row
+
     rows = [("Service", *_check_service(ctx)), ("VMs", *_check_vms(ctx)), ("GitHub", *_check_github(ctx)),
-            ("Limits", *_check_limits(ctx))]
+            ("Limits", *_check_limits(ctx)), ("Web app", *check_row(ctx))]
     if ctx.agents:
         rows.append(("Agents", True, "connected: " + ", ".join(ctx.agents)))
     for what, ok, words in rows:
@@ -860,11 +862,11 @@ def summary(ctx: Ctx) -> None:
     else:
         ui.say("All set. Nothing bills until an agent opens a VM.", bold=True)
     for what, words in (("VMs", ctx.vms), ("GitHub", ctx.github), ("Limits", ctx.limits),
-                        ("Keeping", ctx.keep), ("Service", ctx.service_url), ("SSH", ctx.ssh)):
+                        ("Keeping", ctx.keep), ("Service", ctx.service_url), ("Web app", ctx.web), ("SSH", ctx.ssh)):
         if words:
             ui.say(f"  {what:<8} {words}")
     owner = ctx.github_login or "<you>"
     ui.say()
     ui.say("Next: start a new Claude Code session and ask:")
     ui.say(f'  "work in agentos on github.com/{owner}/<repo>: fix the failing test and open a pull request"')
-    ui.say("Change one thing later: agentos setup vms, github, limits, agents, ssh, check or test-vm.")
+    ui.say("Change one thing later: agentos setup vms, github, limits, agents, web, ssh, check or test-vm.")
