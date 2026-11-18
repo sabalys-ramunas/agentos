@@ -8,6 +8,22 @@ All notable changes to agentos are recorded here. The format follows
 
 ### Added
 
+- **Video proofs.** `browser_record(action="start")`, the flow, then `browser_record(action="stop",
+  proof="guest checkout, end to end")` records the real screen of an environment's browser with
+  ffmpeg (10 frames a second, at most 1280 pixels wide), in a process of its own that never gets in
+  the agent's way, and keeps an MP4 and a short GIF preview as one proof beside the screenshots: the
+  same links (served with range requests), retention and node-wide cap. A recording stops by itself
+  after `record_max_s` (default 180 s), on save and close, and when the browser goes away. The docker
+  and `dev` images and `deploy/install-node.sh` have ffmpeg; an older machine installs it on its
+  first recording, and `agentos doctor` warns on a node without it. The tool is in the `files`
+  toolset (`tools_more("browser_record")`).
+- **The pull request shows the proof.** `environment_pull_request` puts the environment's proofs on
+  the repository's `agentos-proofs` branch (an orphan branch made through GitHub's Git Data API with
+  the same token, never in the diff) and adds a Proof section to the body: each screenshot or GIF
+  inline, each recording's MP4 as a link. Called again for an open pull request, it updates only
+  agentos's own sections between their markers. `proofs=false` (or `pr_proofs = false` in
+  `environments.toml`) leaves them out, and `proofs=[...]` names some. A proof in the repository is
+  visible to everyone who can see the repository.
 - **A network policy per environment.** `network` in `environments.toml` is `full` (the default),
   `limited` (package registries, code hosts, your `allow_hosts` and the hosts of bound secrets) or
   `none` (the git gateway alone). It is held outside the machine: a closed Hetzner firewall, or the

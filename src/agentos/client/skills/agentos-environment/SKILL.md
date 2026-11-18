@@ -8,8 +8,7 @@ description: How to work in an agentos environment, your own cloud computer (a V
 A cloud VM agentos rents for you: a terminal, a real browser and the repo in `/work/<name>`. It
 holds no key of the human's, and nothing in it waits for a person.
 
-**Keep the `on` from your `environment_open` and pass it on every call.** Only calls with it reach
-the machine.
+**Keep the `on` from your `environment_open` and pass it on every call.**
 
 ## How long it stays (`keep`)
 
@@ -54,19 +53,21 @@ the machine.
    - `browser_navigate(url="http://localhost:3000")`. `localhost` is the VM.
    - Also listed: `environment_save`, `environment_forget`, `environment_download(path)`. With
      `tools_more("terminals")`: `environment_port`, `environment_pull_request`.
-   - A result with `ssh` (local mode): `ssh agentos-<id>`, scp, rsync and git reach the VM
-     (`ssh.examples`); not in agentos's call log.
+   - A result with `ssh` (local mode): `ssh agentos-<id>`, scp and rsync reach the VM
+     (`ssh.examples`).
 4. Check the page: `tools_more("studio")`, then `ui_check(url="http://localhost:3000", on=...)`; fix
    what it measured.
 5. Show the human the dev server: `app.link`, else `environment_port(port=3000)` gives `url`. On a
    server node they run its `tunnel` line first.
-6. Keep proof: `browser_screenshot(proof="checkout page after the fix")`; give the human `proof.url`.
+6. Keep proof: `browser_screenshot(proof="checkout page after the fix")`. A video:
+   `tools_more("browser_record")`, `browser_record(action="start")`, the flow,
+   `browser_record(action="stop", proof="guest checkout")`. Give the human `proof.url`.
 7. Commit on a branch, `git push origin <branch>` from the VM. Force-pushing or deleting the
    default branch or a branch not made here is refused (`push_refused`).
    - No `.agentos/environment.toml` (`prepared.why`)? Add one in your branch: `setup = "pnpm
      install"`, `start = "pnpm dev --host 0.0.0.0"`, `port = 3000`.
 8. `environment_pull_request(title="...", body="what changed, how it was tested")` opens the pull
-   request for your pushed branch: give the human its `url`.
+   request, showing your proofs: give the human its `url`. Call it again after new proof.
    `pull_request_failed`: give the human `git.compare` from `environment()` instead.
 9. Stop or finish:
    - Stopping for the day: `environment_close(note="tests pass; next: the mobile menu")`. With

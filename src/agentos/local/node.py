@@ -86,7 +86,7 @@ computer: environment_upload() gives a link and the commands that pack and send 
 environment_download(path) gives the human a one-use link to a file. Give the human links.browser, its \
 live view (in T3 Code: preview_open). With on: lane_file_read/lane_file_edit for code, \
 lane_exec for a command, lane_job_start for a dev server, browser_navigate; localhost there is the VM; \
-browser_screenshot(proof=...) keeps proof. In local mode you can also use your own shell: ssh agentos-<id>, \
+browser_screenshot(proof=...) keeps proof, browser_record (files toolset) a video of it. In local mode you can also use your own shell: ssh agentos-<id>, \
 scp, rsync (the open's `ssh` has the commands). Nothing in it waits for a person, a push included. environment() \
 shows ports, git and cost. Push a branch (the default one only when asked); \
 tools_call(name="environment_pull_request", arguments={"title": ...}) opens its pull request and gives the \
