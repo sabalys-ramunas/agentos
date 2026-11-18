@@ -59,6 +59,7 @@ from agentos.environments.models import (
     Push,
     load_settings,
 )
+from agentos.environments.pausing import Pausing
 from agentos.environments.picking import Picking, current_client, is_session, same_title
 from agentos.environments.ports import ended
 from agentos.environments.proofs import Proofs
@@ -134,8 +135,8 @@ def check_ref(ref: str | None) -> str | None:
     return ref
 
 
-class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downloads, Saving, Activity, SshAccess,
-                         Updates):
+class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downloads, Pausing, Saving, Activity,
+                         SshAccess, Updates):
     """The environments service. Which environment a call means and attaching by title (Picking), its
     sizing and cost (Sizing), its bring-up (BringUp), its read side (Views), its saves (Saving) and what
     counts as busy (Activity), and in local mode the agent's own ssh (SshAccess) are mixins in their own
@@ -598,7 +599,8 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
     async def _delete_machine(self, env: Environment, reason: str) -> tuple[float | None, str]:
         """Delete the environment's VM: (its cost, what became of it). "deleted" only when the provider
         says the server is gone; "deleting" while the provider still has it (the node retries the
-        delete); "unknown" when the provider could not be asked; "none" when no machine was rented."""
+        delete); "unknown" when the provider could not be asked; "none" when no machine was rented;
+        "paused" when its save paused it (agentos.environments.pausing): it is kept, asleep."""
         if not env.vm_id:
             return None, "none"
         vms = self.vms()
@@ -609,6 +611,8 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
         if rec.live:
             rec = await vms.destroy(rec.id, reason=f"environment {env.id}: {reason}")
         cost = rec.cost_eur(self._clock())
+        if rec.state == "paused":
+            return cost, "paused"
         if rec.state not in ("deleted", "failed"):
             return cost, "deleting"
         if not rec.provider_id:

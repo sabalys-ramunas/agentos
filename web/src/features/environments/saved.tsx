@@ -113,7 +113,11 @@ function SaveRow({ save, now, onForget }: { save: EnvSave; now: number; onForget
 
 function ForgetDialog({ org, save, onDone }: { org: string; save: EnvSave | null; onDone: () => void }) {
   const forget = useForgetSave(org);
-  const what = save?.snapshot_gb ? `its ${saveHolds(save).replace(' snapshot', '')} snapshot and its files` : 'its files';
+  const what = save?.paused
+    ? 'its paused machine and its files'
+    : save?.snapshot_gb
+      ? `its ${saveHolds(save).replace(' snapshot', '')} snapshot and its files`
+      : 'its files';
   return (
     <ConfirmDialog
       open={save !== null}

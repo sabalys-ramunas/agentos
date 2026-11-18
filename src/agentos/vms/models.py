@@ -14,8 +14,11 @@ from agentos.core.errors import AgentosError
 
 SETTINGS_FILE = "vms.toml"
 TOKEN_FILE = "secrets/hetzner.token"
+MORPH_TOKEN_FILE = "secrets/morph.token"      # the Morph Cloud API key (agentos.vms.morph), 0600
 
-VmState = Literal["creating", "booting", "ready", "deleting", "deleted", "failed"]
+# paused: the machine is kept with its memory and bills only its storage (a provider with the "pause"
+# capability; an environment's save, agentos.environments.pausing). Not live: it counts toward no limit.
+VmState = Literal["creating", "booting", "ready", "deleting", "deleted", "failed", "paused"]
 LIVE_STATES = ("creating", "booting", "ready", "deleting")
 
 
@@ -90,7 +93,8 @@ DEFAULT_PROFILES = {
 class VmSettings(BaseModel):
     """`$AGENTOS_HOME/vms.toml`. Every limit here is enforced by the node, whatever a grant says."""
     model_config = ConfigDict(extra="forbid")
-    provider: Literal["hetzner", "docker"] = "hetzner"   # docker: local containers with sshd (agentos.vms.docker)
+    # docker: local containers with sshd (agentos.vms.docker); morph: Morph Cloud (agentos.vms.morph)
+    provider: Literal["hetzner", "docker", "morph"] = "hetzner"
     location: str = "nbg1"
     default_profile: str = "small"
     profiles: dict[str, Profile] = Field(default_factory=lambda: dict(DEFAULT_PROFILES))
@@ -114,6 +118,16 @@ class VmSettings(BaseModel):
     docker_cpus: float = Field(default=2.0, gt=0, le=512)       # a docker machine's CPUs (a size asks for its own)
     docker_memory_gb: float = Field(default=4.0, ge=0.5, le=4096)  # and memory (no swap on top)
     docker_pids: int = Field(default=512, ge=64, le=1_000_000)  # and processes and threads at once
+    # Morph Cloud (agentos.vms.morph). Its prices are in MCUs and USD (cloud.morph.so/web/subscribe, 2026):
+    # an hour of a machine is max(vCPU, memory GB / 4, disk GB / 16) MCUs, an MCU is USD 0.05, and stored
+    # snapshots and paused machines are 5 TB-hours an MCU (USD 0.0073 per GB a month). agentos turns them
+    # into EUR with morph_eur_per_usd and shows them as estimates; set them to your plan and the day's rate.
+    morph_api_url: str = "https://cloud.morph.so/api"
+    morph_ssh_host: str = "ssh.cloud.morph.so"                  # Morph's SSH gateway
+    morph_base_image: str = "morphvm-minimal"                   # what a machine starts from with no snapshot
+    morph_usd_per_mcu: float = Field(default=0.05, ge=0)
+    morph_storage_usd_per_gb_month: float = Field(default=0.0073, ge=0)
+    morph_eur_per_usd: float = Field(default=0.86, gt=0)
 
     @field_validator("profiles")
     @classmethod
@@ -131,6 +145,8 @@ class VmSettings(BaseModel):
             raise ValueError("default_ttl_minutes is longer than max_ttl_minutes")
         if self.provider == "docker" and "location" not in self.model_fields_set:
             self.location = "local"  # a container on this computer, not a Hetzner site
+        if self.provider == "morph" and "location" not in self.model_fields_set:
+            self.location = "morph"  # Morph picks the site; it has one region
         return self
 
 
@@ -167,6 +183,7 @@ class VmRecord(BaseModel):
     port: int = 22                            # SSH port at `host` (the docker provider maps one per machine)
     environment: str | None = None            # the agent environment this VM is the machine of (agentos.environments)
     kept: bool = False                        # an environment kept live (keep "live"): max_ttl_minutes does not bound it
+    ssh_user: str = "root"                    # who the node signs in as (Morph: the instance id, at its gateway)
 
     @property
     def live(self) -> bool:

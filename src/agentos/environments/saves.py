@@ -80,6 +80,17 @@ class Snapshot(BaseModel):
     location: str = ""
 
 
+class Paused(BaseModel):
+    """A save that kept the machine itself, paused with its memory (agentos.environments.pausing): its
+    VM record and the provider's server, and what pausing it costs a month (an estimate)."""
+    vm_id: str
+    provider_id: str
+    provider: str = ""
+    server_type: str = ""
+    location: str = ""
+    eur_month: float | None = None
+
+
 class RepoSave(BaseModel):
     dir: str                                 # /work/shop
     branch: str | None = None
@@ -114,6 +125,7 @@ class SaveManifest(BaseModel):
     keep: str = "save"
     saved_at: datetime
     snapshot: Snapshot | None = None
+    paused: Paused | None = None             # the machine paused with its memory, in place of a snapshot
     server_type: str = ""
     size: str | None = None
     location: str = ""
@@ -459,9 +471,12 @@ def public(m: SaveManifest, eur_per_gb_month: float) -> dict[str, Any]:
     from agentos.core import clock
 
     gb = m.snapshot.gb if m.snapshot is not None else None
+    cost = round(gb * eur_per_gb_month, 4) if gb else 0.0
+    if m.paused is not None:  # the machine itself, paused: what its provider says that costs
+        cost = m.paused.eur_month or 0.0
     return {"id": m.id, "title": m.title, "repo": m.repo, "branch": m.branch, "head": (m.head or "")[:12] or None,
             "saved_at": clock.iso_or_none(m.saved_at, z=True), "kind": m.kind,
-            "snapshot_gb": gb, "files_bytes": m.bytes,
-            "cost_eur_month": round(gb * eur_per_gb_month, 4) if gb else 0.0,
+            "snapshot_gb": gb, "files_bytes": m.bytes, "paused": m.paused is not None,
+            "cost_eur_month": cost,
             "note": (m.agent_note or "")[:300] or None, "agent": m.agent}
 

@@ -288,6 +288,7 @@ def vms(ctx: Ctx) -> None:
     if has_token:
         options.append(("keep", "Keep the saved Hetzner token"))
     options.append(("hetzner", f"Hetzner Cloud: a real VM for each chat, {HETZNER_HOURLY} while one is open"))
+    options.append(("morph", "Morph Cloud: starts in seconds, and a save pauses it with its memory"))
     if running:
         options.append(("docker", "Docker on this computer: free, but less isolated than a cloud VM"))
     options.append(("skip", "Skip for now (agentos setup vms later)"))
@@ -296,6 +297,10 @@ def vms(ctx: Ctx) -> None:
     choice = ui.choose("Where should VMs come from?", options, _vm_default(ctx, settings, has_token, running))
     if choice == "docker":
         _use_docker(ctx, settings, built)
+    elif choice == "morph":
+        from agentos.setup.morph import use_morph
+
+        use_morph(ctx, settings)
     elif choice in ("hetzner", "keep"):
         _use_hetzner(ctx, settings, keep=choice == "keep")
     else:
@@ -311,6 +316,8 @@ def _vm_default(ctx: Ctx, settings: Any, has_token: bool, running: bool) -> str:
         return "hetzner"
     if settings.provider == "docker" and running:
         return "docker"
+    if settings.provider == "morph":
+        return "morph"
     if has_token:
         return "keep"
     return "skip" if ctx.ui.yes else "hetzner"
@@ -769,6 +776,13 @@ def _check_vms(ctx: Ctx) -> tuple[bool, str]:
             return False, "Docker is not running"
         return (True, "Docker answers, and the image is there") if built else (
             False, "Docker answers, but the image is not there: agentos environments setup --pull")
+    if s.provider == "morph":
+        from agentos.setup.morph import morph_check
+        from agentos.vms.models import MORPH_TOKEN_FILE
+
+        key = ctx.home / MORPH_TOKEN_FILE
+        problem = morph_check(key.read_text().strip(), s.morph_api_url) if key.exists() else "no API key"
+        return (True, "Morph answers") if problem is None else (False, f"Morph: {problem} (agentos setup vms)")
     path = ctx.home / TOKEN_FILE
     if not path.exists():
         return False, "not set up: agentos setup vms"
@@ -810,17 +824,19 @@ def check(ctx: Ctx) -> None:
 
 
 def test_vm(ctx: Ctx) -> None:
-    from agentos.vms.models import TOKEN_FILE, load_settings
+    from agentos.vms.models import load_settings
 
     ui = ctx.ui
     try:
         s = load_settings(ctx.home)
     except (ValueError, OSError):
         return
-    if s.provider != "docker" and not (ctx.home / TOKEN_FILE).exists():
+    from agentos.vms.providers import configured
+
+    if not configured(ctx.home, s):
         ui.say("No VMs are set up, so there is nothing to test yet.")
         return
-    cost = "free on Docker" if s.provider == "docker" else "about EUR 0.01"
+    cost = {"docker": "free on Docker", "morph": "about EUR 0.01 on Morph"}.get(s.provider, "about EUR 0.01")
     if not ui.confirm(f"Open a test VM now? It starts one, runs `uname -a` and closes it ({cost}).",
                       default=False):
         ui.say("No test VM. `agentos setup test-vm` runs one later.")

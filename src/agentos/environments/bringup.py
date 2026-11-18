@@ -193,9 +193,12 @@ class BringUp:
         """Rent the machine (agentos.vms; its own fallbacks when the provider has no room) and record it."""
         cloud = machine.cloud_config() if plan["image"] == machine.BASE_IMAGE else ""
         try:
-            rec = await self.vms().create(env.terminal_lane, plan=plan, purpose=f"environment {env.id}: {env.title}",
-                                          created_by=env.grant_id, wait_s=0, cloud_config=cloud, environment=env.id,
-                                          kept=env.keep == "live")
+            if (plan.get("restore") or {}).get("from") == "paused":  # the same machine (agentos.environments.pausing)
+                rec = await self._resume_paused(env, plan)
+            else:
+                rec = await self.vms().create(env.terminal_lane, plan=plan, purpose=f"environment {env.id}: {env.title}",
+                                              created_by=env.grant_id, wait_s=0, cloud_config=cloud,
+                                              environment=env.id, kept=env.keep == "live")
         except AgentosError as e:
             from agentos.vms.models import VmFull
 
@@ -274,7 +277,7 @@ class BringUp:
             await steps.run("tunnels and git", self._start_tunnel(env))
             if env.restore_from:
                 await together(steps.run("browser", self._make_browser(env)), *early)
-                await steps.run("restore", self._restore(env))
+                await steps.run("restore", self._restore_any(env))
             elif env.repo:
                 await together(steps.run("browser", self._make_browser(env)), steps.run("clone", self._clone(env)),
                                *early)
@@ -316,24 +319,29 @@ class BringUp:
             await asyncio.sleep(VM_POLL_S)
 
     async def _wait_setup(self, env: Environment) -> bool:
-        """Until the machine's setup is done. True when pnpm is missing there (the tools top-up runs)."""
+        """Until the machine's setup is done. True when pnpm is missing there (the tools top-up runs). A
+        provider without cloud-init (Morph) never runs it on its own: the node runs it at once."""
+        from agentos.vms.provider import capable
+
         envs = self.envs()
+        no_cloud_init = not capable(self.vms().provider(), "cloud_init")
         loop = asyncio.get_running_loop()
         deadline = loop.time() + self.settings.setup_timeout_s
         said = ""
         ran = False
         while loop.time() < deadline:
+            answered = True
             try:
                 res = await envs.exec(env.terminal_lane, machine.SETUP_STATE, timeout_s=CHECK_TIMEOUT_S)
                 said = (res.stdout or res.stderr or "").strip()
             except AgentosError as e:
-                said = e.message
+                said, answered = e.message, False
             first = said.split("\n", 1)[0]
             if first == "ready":
                 return machine.needs_pnpm(said)
             if "error" in first:
                 raise EnvironmentFailed(f"the machine's setup failed: {said[-600:]}", reason="setup")
-            if not ran and machine.boot_done_without_setup(first):
+            if not ran and ((no_cloud_init and answered) or machine.boot_done_without_setup(first)):
                 # booted and done, but nothing ran the setup: a snapshot made another way (`agentos vm
                 # image build` without the environment's script) or an image with no cloud-init
                 ran = True

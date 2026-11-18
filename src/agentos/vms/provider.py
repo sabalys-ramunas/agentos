@@ -1,6 +1,10 @@
 """What agentos needs from a cloud: create, read, list by label and delete servers, plus the
-firewall, a throwaway SSH key resource and snapshots. Hetzner first (hetzner.py); a fake for tests
-and `agentos dev up`."""
+firewall, a throwaway SSH key resource and snapshots. Hetzner (hetzner.py), Docker (docker.py),
+Morph Cloud (morph.py), and a fake for tests and `agentos dev up`.
+
+Providers differ in what they can do, so each declares `capabilities` (CAPABILITIES says what each
+name means) and callers ask `capable(provider, name)` before they use one. A provider without the
+attribute has DEFAULT_CAPABILITIES (what every provider had before the set existed)."""
 
 from __future__ import annotations
 
@@ -20,6 +24,11 @@ class Server:
     server_type: str = ""
     created: str = ""
     ssh_port: int = 22          # the port SSH answers on at ipv4 (the docker provider maps one per machine)
+    ssh_user: str = "root"      # who the node signs in as (Morph: the instance's id, at its SSH gateway)
+    # A provider that hands out the login itself (Morph: the instance's own private key, and the host key
+    # of its SSH gateway, pinned when the provider was set up): agentos.vms.keys.adopt writes them 0600.
+    ssh_key: str | None = field(default=None, repr=False)
+    host_keys: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -32,11 +41,31 @@ class ServerSpec:
     labels: dict[str, str]
     ssh_key_id: str | None = None
     firewall_id: str | None = None
+    ttl_s: int | None = None    # a backstop: the provider deletes the server itself after this (Morph's TTL)
+
+
+# What a provider can do. Callers check a name before they use what it stands for.
+CAPABILITIES = {
+    "firewall": "a provider firewall lets SSH in from the node only (Hetzner)",
+    "snapshot": "a disk snapshot of a running server that new servers boot from",
+    "pause": "pause and resume a server with its memory: processes keep running (pause_server, resume_server)",
+    "branch": "copy a running server into new ones, memory included (not used yet)",
+    "wake_on_http": "a paused server wakes on an HTTP request (not used yet)",
+    "network_policy": "agentos can limit where a machine's outbound traffic goes",
+    "cloud_init": "first-boot user data runs (the host key, the setup script); without it the node runs the setup",
+}
+DEFAULT_CAPABILITIES = frozenset({"firewall", "snapshot", "network_policy", "cloud_init"})
+
+
+def capable(provider: Any, name: str) -> bool:
+    """Does the provider declare this capability (CAPABILITIES)?"""
+    return name in getattr(provider, "capabilities", DEFAULT_CAPABILITIES)
 
 
 class Provider(Protocol):
     name: str
     firewall: bool              # False: the provider's machines are not on the internet (docker), no firewall
+    capabilities: frozenset[str]
 
     async def check(self) -> None: ...
     async def price_hourly(self, server_type: str, location: str) -> float | None: ...
@@ -57,6 +86,15 @@ class Provider(Protocol):
     async def list_images(self, labels: dict[str, str]) -> list[dict]: ...
 
 
+class Pausable(Protocol):
+    """What a provider with the "pause" capability has too."""
+
+    async def pause_server(self, server_id: str) -> None: ...
+    async def resume_server(self, server_id: str) -> Server: ...
+    async def set_ttl(self, server_id: str, seconds: int | None, action: str = "stop") -> None: ...
+    async def paused_eur_month(self, server_type: str) -> float | None: ...
+
+
 FAKE_PRICES = {"cx23": 0.006, "cax11": 0.0055, "cpx22": 0.0095, "cpx42": 0.04, "ccx23": 0.05}
 # name: (cores, memory GB, disk GB, architecture, cpu type), like Hetzner's 2026 line
 FAKE_SPECS = {"cx23": (2, 4.0, 40, "x86", "shared"), "cax11": (2, 4.0, 40, "arm", "shared"),
@@ -71,9 +109,18 @@ def _match(labels: dict[str, str], want: dict[str, str]) -> bool:
 @dataclass
 class FakeProvider:
     """An in-memory cloud. Servers are running the moment they exist; `fail_create` and
-    `fail_delete` make the next calls raise, for tests."""
+    `fail_delete` make the next calls raise, for tests. `capabilities` turns features on: with
+    "pause", servers pause and resume (`paused`); without "cloud_init", user data never runs, like
+    on Morph, so the node runs the setup itself."""
     name: str = "fake"
     firewall: bool = True
+    capabilities: frozenset[str] = DEFAULT_CAPABILITIES
+    paused: set[str] = field(default_factory=set)        # servers paused now
+    ttls: dict[str, tuple[int | None, str]] = field(default_factory=dict)  # server: (TTL seconds, action)
+    fail_pause: int = 0                                  # the next pauses fail
+    fail_resume: int = 0                                 # the next resumes fail
+    pause_eur_month: float = 0.12                        # what a paused server costs a month
+    ssh_user: str = "root"
     servers: dict[str, Server] = field(default_factory=dict)
     keys: dict[str, tuple[str, dict[str, str]]] = field(default_factory=dict)
     firewalls: dict[str, list[str]] = field(default_factory=dict)
@@ -137,10 +184,42 @@ class FakeProvider:
         self.made_in.append((spec.server_type, spec.location))
         sid = str(next(self._ids))
         s = Server(id=sid, name=spec.name, status="running", ipv4=f"203.0.113.{int(sid) % 250 + 1}",
-                   labels=dict(spec.labels), server_type=spec.server_type)
+                   labels=dict(spec.labels), server_type=spec.server_type, ssh_user=self.ssh_user)
         self.servers[sid] = s
-        self.user_data[sid] = spec.user_data
+        if "cloud_init" in self.capabilities:
+            self.user_data[sid] = spec.user_data
+        if spec.ttl_s is not None:
+            self.ttls[sid] = (spec.ttl_s, "stop")
         return s
+
+    async def pause_server(self, server_id: str) -> None:
+        from agentos.vms.models import VmError
+        if self.fail_pause:
+            self.fail_pause -= 1
+            raise VmError("fake: the pause failed", provider_code="service_error")
+        s = self.servers.get(server_id)
+        if s is None:
+            raise VmError(f"fake: no server {server_id}")
+        s.status = "paused"
+        self.paused.add(server_id)
+
+    async def resume_server(self, server_id: str) -> Server:
+        from agentos.vms.models import VmError
+        if self.fail_resume:
+            self.fail_resume -= 1
+            raise VmError("fake: the resume failed", provider_code="service_error")
+        s = self.servers.get(server_id)
+        if s is None:
+            raise VmError(f"fake: no server {server_id}")
+        s.status = "running"
+        self.paused.discard(server_id)
+        return s
+
+    async def set_ttl(self, server_id: str, seconds: int | None, action: str = "stop") -> None:
+        self.ttls[server_id] = (seconds, action)
+
+    async def paused_eur_month(self, server_type: str) -> float | None:
+        return self.pause_eur_month
 
     async def get_server(self, server_id: str) -> Server | None:
         return self.servers.get(server_id)

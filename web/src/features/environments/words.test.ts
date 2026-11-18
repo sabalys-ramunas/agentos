@@ -108,6 +108,7 @@ describe('the words of keeping', () => {
     expect(saveHolds({ snapshot_gb: 9.46, files_bytes: 1 })).toBe('9.5 GB snapshot');
     expect(saveHolds({ snapshot_gb: null, files_bytes: 41 * 1024 * 1024 })).toBe('Files only, 41 MB');
     expect(saveHolds({ snapshot_gb: null, files_bytes: null })).toBe('Files only');
+    expect(saveHolds({ snapshot_gb: null, files_bytes: 1, paused: true })).toBe('Paused machine');
     expect(size(300)).toBe('1 KB');
     expect(size(3 * 1024 ** 3)).toBe('3.0 GB');
     expect(pruneWords({ prune_at: null }, NOW)).toBeNull();
