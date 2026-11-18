@@ -92,7 +92,7 @@ class Repo:
 class EvalNode:
     def __init__(self, root: Path, *, port: int, github_api: str, settings: dict[str, Any] | None = None,
                  src: Path | None = None, keep: bool = False):
-        self.root = root
+        self.root = Path(root).resolve()
         self.port = port
         self.github_api = github_api
         self.settings = dict(settings or {})

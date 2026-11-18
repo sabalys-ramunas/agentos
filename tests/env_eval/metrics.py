@@ -131,7 +131,8 @@ def wrong_turns(rows: list[dict[str, Any]], *, new_environments: int = 1) -> lis
                 out.append(f"{'read' if how == 'read' else 'wrote'} a file through lane_exec "
                            f"({cmd[:50]!r}), not lane_file_{'read' if how == 'read' else 'edit'}")
             if sleeps(cmd) >= SLEEP_S:
-                out.append(f"waited with sleep in lane_exec ({cmd[:50]!r}), not lane_job_read(until_port=...)")
+                out.append(f"waited with sleep in lane_exec ({cmd[:50]!r}); lane_job_read's until_port or "
+                           "until_exit waits on the machine")
         if tool == "lane_job_read" and not args.get("until_exit") and not args.get("until_port"):
             job = str(args.get("job"))
             polls[job] += 1
