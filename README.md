@@ -5,9 +5,9 @@
 <h1 align="center">agentos</h1>
 
 <p align="center">
-  <strong>Give your coding agent its own computer in the cloud.</strong><br>
-  A fresh VM with a terminal, a real browser and your repo, opened when the agent asks for one.<br>
-  Deleted when the work is done, or saved for tomorrow.
+  <strong>A computer for your agent, with a browser, a terminal and a disk that stay.</strong><br>
+  For Claude Code, Codex or any MCP agent, on machines in your own account. It saves when idle<br>
+  and comes back in the next chat, signed in with logins from your vault the model never sees.
 </p>
 
 <p align="center">
@@ -20,6 +20,7 @@
 <p align="center">
   <a href="#install">Install</a> ·
   <a href="#how-it-works">How it works</a> ·
+  <a href="#signed-in-without-showing-a-password">Logins</a> ·
   <a href="#what-it-costs">Costs</a> ·
   <a href="#safe-by-default">Safety</a> ·
   <a href="#faq">FAQ</a> ·
@@ -30,23 +31,27 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/readme/how-it-works-dark.svg">
-  <img src="assets/readme/how-it-works-light.svg" width="100%" alt="How agentos works. 1: you ask your agent in Claude Code, Codex or T3 Code, on your laptop as today. 2: it gets its own computer, a fresh VM with a terminal, a real browser and your repository, ready in about two minutes. 3: you get the result, a screenshot as proof and a pull request, and the VM is deleted or kept until tomorrow for cents a month.">
+  <img src="assets/readme/how-it-works-light.svg" width="100%" alt="How agentos works. 1: you ask your agent in Claude Code, Codex or T3 Code, on your laptop as today. 2: it gets its own computer, a VM with a terminal, a real browser and your repository, ready in about two minutes. 3: you get the result, a screenshot as proof and a pull request, and the computer is saved when idle and back tomorrow for cents a month.">
 </picture>
 
 ## Is it for you?
 
-agentos is for developers who already use a coding agent (**Claude Code**, **Codex** or **T3 Code**)
-and want it to do more than edit files:
+agentos is for people who already use an agent (**Claude Code**, **Codex**, **T3 Code** or any MCP
+client) and want it to have a computer of its own, one that is still there tomorrow:
 
+- ✅ **A computer that stays.** Its installs, its branch, its dev server and its browser are there
+  in the next chat. It saves itself when idle, so a quiet computer costs cents a month.
+- ✅ **A browser it can stay signed in to.** It opens the accounts it works with (a dashboard, an
+  admin page, a test shop) and acts there when the work needs it. Logins come from your own vault,
+  and the model never sees them.
 - ✅ **Run the app and check it in a real browser**, instead of saying it should work.
-- ✅ **Keep your laptop out of it.** Installs, builds, Docker and dev servers run on the VM, which
-  holds none of your keys.
-- ✅ **Run several agents at once**, each on its own machine, so they never fight over ports,
-  branches or `node_modules`.
-- ✅ **Pick up tomorrow** where the agent stopped, with everything still installed.
+- ✅ **Keep your laptop out of it.** Installs, builds, Docker and dev servers run on the machine,
+  and no key sits there.
+- ✅ **One computer per agent.** Several agents work at once, each on its own machine, so they never
+  fight over ports, branches, cookies or `node_modules`.
 - ✅ **Use its own shell on the machine**: `ssh agentos-<id>`, `rsync` and `scp`, as if it were local.
 
-It is not another agent, chat or IDE. Your agent stays where it is, and agentos gives it a machine.
+It is not another agent, chat or IDE. Your agent stays where it is, and agentos gives it a computer.
 
 ## Install
 
@@ -101,34 +106,54 @@ with a screenshot and the pull request link. You can take over the browser at an
 
 ## How it works
 
-1. **Your agent asks for a computer** when the task needs one. agentos rents a VM, clones your
-   repository into it and starts a browser there.
-2. **The agent works on it like on its own laptop.** It edits files, runs the tests, starts the dev
-   server and opens the page in the browser, where `localhost` is the VM. It can also use its own
-   shell: `ssh agentos-<id>`, `rsync` and `scp`. Dev servers keep running when agentos restarts or
-   updates.
-3. **It shows you the result**: screenshots kept as proof, at desktop and phone width, and a pushed
-   branch with its pull request link. Pushes go through agentos, so the VM never holds your key.
-4. **The VM goes away.** A one-off fix deletes it. Longer work saves the whole machine and deletes
-   the VM, so it costs cents a month until an agent picks it up again.
+1. **Your agent asks for its computer** when the task needs one. agentos rents a VM in your own
+   account (Hetzner or Morph) or starts a Docker container, clones your repository into it and
+   starts a browser there.
+2. **The agent works on it like on its own laptop.** It edits files, runs the tests in its
+   terminal, starts the dev server and opens the page in its browser, where `localhost` is the
+   machine. It can also use its own shell: `ssh agentos-<id>`, `rsync` and `scp`. Dev servers keep
+   running when agentos restarts or updates.
+3. **It signs in when it needs to.** On a sign-in page it asks agentos, which types a login you
+   chose from your vault into its browser. The model never sees the password.
+4. **It shows you the result**: screenshots and videos kept as proof, and a pushed branch with its
+   pull request. Pushes go through agentos, so the machine never holds your key.
+5. **It stays.** When the agent goes idle or stops for the day, the whole machine is saved and the
+   VM deleted, so it costs cents a month. The next chat that asks for it by its title gets it back:
+   in seconds on Morph, in about a minute on Hetzner.
 
-The thinking stays on your laptop, in the agent you already use. agentos only rents the machines,
-and only while an agent works in one.
+The thinking stays on your laptop, in the agent you already use. agentos rents the machines in
+your account, and bills you nothing of its own.
 
-## Keep a computer between chats
+## Keep it and come back
 
 Each computer has a title. Say *"continue the checkout fix in agentos"* in any new chat, and the
-agent gets the same machine back: the branch, the files, `node_modules`, Docker volumes and the dev
-server, plus the note the last agent left.
+agent gets the same machine back: the branch, the files, `node_modules`, Docker volumes, the dev
+server and the browser's sign-ins, plus the note the last agent left.
 
 | | Good for | While nobody uses it |
 |:--|:--|:--|
-| 🧹 **Single use** (the default) | a quick fix: work, push, done | nothing: the VM is deleted |
-| 💾 **Saves when idle** | work that spans days, or "keep it" | cents a month: the machine is saved and the VM deleted, back in about a minute |
+| 💾 **Saves when idle** (the default) | a computer that stays: work that spans days, accounts it stays signed in to | cents a month: the machine is saved and the VM deleted, back in seconds on Morph or about a minute on Hetzner |
+| 🧹 **Single use** | a quick fix: work, push, done | nothing: the VM is deleted |
 | ⚡ **Kept running** | a machine that is always on | billed every hour (about 7.80 EUR a month), and only after you allow it |
 
-You choose the default in setup. The agent picks per task, and never keeps one running unless you
-asked for it.
+Setup offers saves when idle first. The agent asks for single use only for a one-off fix, and never
+keeps one running unless you asked for it.
+
+## Signed in, without showing a password
+
+An agent's computer can stay signed in to the accounts it works with: a staging dashboard, an
+admin page, a test account. It does not post or click for you on a schedule. It opens the account
+when the work needs it, like you would.
+
+You choose which logins from your vault a computer may use:
+
+```sh
+agentos environments login add <site>
+```
+
+When the agent reaches a sign-in page, it calls the login tool. agentos types the stored login into
+that computer's browser, and the model never sees it. If the site signs it out later, agentos signs
+it in again without asking you. Nothing else in your vault reaches the machine.
 
 ## What it costs
 
@@ -148,8 +173,11 @@ you.
 
 ## Safe by default
 
-- 🔑 **No keys on the VM.** Your GitHub and Hetzner tokens stay on your laptop. A push from the VM
-  goes through agentos with a token for that one repository, which dies with the VM.
+- 🔑 **No keys on the machine.** No key, token or password reaches the machine unless you bind a
+  login to it, and the model never sees one. Your GitHub and cloud tokens stay on your laptop. A
+  push goes through agentos with a token for that one repository, which dies with the VM.
+- 🔐 **Logins you choose.** A login you bind is typed into that computer's browser, so its browser
+  holds that session. A computer gets no other login.
 - 🌿 **Your branches are safe.** The agent pushes new branches. It never deletes or rewrites your
   default branch, protected branches, tags, or branches someone else pushed.
 - 🧱 **Commands only on the VM.** The agent's commands run in its environment, never on your laptop.
@@ -160,8 +188,9 @@ you.
 - 👀 **You can always watch.** Every environment has a live view of its browser, and you can take
   over with one click.
 - 💶 **Hard limits.** Past the monthly cap, the time limit or the VM count, opening is refused.
-- 🗑️ **Nothing left behind.** An idle environment is closed after an hour. A kept one is saved
-  first, and work that was never pushed gets a rescue save instead of being lost.
+- 🗑️ **Nothing left running.** An idle computer is saved and its VM deleted after an hour (a
+  single-use one is deleted), and work that was never pushed gets a rescue save instead of being
+  lost.
 
 What this defends against, and what it does not: [docs/THREAT-MODEL.md](docs/THREAT-MODEL.md).
 
@@ -174,16 +203,17 @@ What this defends against, and what it does not: [docs/THREAT-MODEL.md](docs/THR
 | **T3 Code** | nothing more: it uses Claude Code's and Codex's settings, and shows the live view in its preview pane |
 | **Any MCP client** (Cursor, for example) | by hand: Streamable HTTP at `http://127.0.0.1:7410/mcp`, with the token setup keeps for your agents |
 
-## Watch it work
+## The web app
 
-agentos has a small web app at `http://127.0.0.1:7410/` that lists every environment, what each
-costs and how long it has left. Each one has a page with its live browser, the proof screenshots,
-the commands it ran and its pushed branches.
+agentos has a small web app at `http://127.0.0.1:7410/` that lists every computer, what each costs
+and how long it has left. Each one has a page with its live browser, the proofs, a replay of what
+its browser did, the commands it ran and its pushed branches. It is open source like the rest
+(Apache-2.0, in [web/](web/README.md)).
 
 The one-line install includes the web app, as an option: `agentos setup` offers it (yes by default)
 and downloads the copy built for your version, checked against its release's sha256. Running the
 installer again updates it with agentos. To leave it out, answer no, or add it later with
-`agentos web install` (`agentos web remove` takes it away). Without it, every environment still has
+`agentos web install` (`agentos web remove` takes it away). Without it, every computer still has
 its live view link, and `agentos environments list` in the terminal.
 
 <picture>
@@ -217,21 +247,39 @@ The live view link works on its own, without the web app. Here the VM's browser 
 <br>
 
 The agent still runs where it runs now. Only its work moves: the commands, the dev server and the
-browser run on a VM that holds none of your keys or accounts. So it can work without asking you at
-every step, several agents can work at once, and your laptop stays free.
+browser run on a computer of its own that holds none of your keys, and only the logins you bind to
+it. So it can work without asking you at every step, several agents can work at once, and your
+laptop stays free.
 
 </details>
 
 <details>
-<summary><b>How is it different from E2B, Daytona or GitHub Codespaces?</b></summary>
+<summary><b>How is it different from Grok Bot or OpenAI Dots?</b></summary>
 
 <br>
 
-E2B and Daytona are sandbox platforms your own code drives through an SDK; they fit when you build
-a product that runs code for your users. Codespaces is a hosted editor for a person. agentos is for
-the agent in your chat: an MCP server the agent calls itself, with a real browser you can watch and
-take over, git through agentos so the key stays off the machine, and limits on a computer you own.
-No agentos account, and no hosted service in between.
+The idea is the same: an agent gets a computer of its own, with a browser, a terminal and files,
+that stays between conversations. The difference is whose agent and whose machine. Those are hosted
+agents: you use their agent, on computers they run. agentos is for the agent you already use
+(Claude Code, Codex, T3 Code or any MCP client), on machines in your own account (Hetzner, Morph, or
+Docker on your computer). Each agent or chat gets a computer of its own, not one shared box. Logins
+come from your own vault and are typed in without the model seeing them, pushes go through a git
+gateway so no key sits on the machine, and you set the limits on spend. It is open source, with no
+agentos account in between.
+
+</details>
+
+<details>
+<summary><b>How is it different from E2B, Daytona and other sandboxes?</b></summary>
+
+<br>
+
+Those are sandboxes for code your product runs: your code starts one through an SDK, runs
+something in it and throws it away, so the next run starts from nothing. They fit when you build a
+product that runs code for your users. agentos is a computer that stays and is signed in, for the
+agent in your chat: the agent asks for it itself over MCP, and tomorrow it gets the same machine
+back, with its installs, its branch, its dev server and its browser's sign-ins. You can watch that
+browser live and take it over.
 
 </details>
 
@@ -241,8 +289,10 @@ No agentos account, and no hosted service in between.
 <br>
 
 Your code is: the repository is cloned there, or the agent uploads its local checkout, so it can
-work on it. A saved environment keeps that code in a snapshot in your own Hetzner account until you
-forget it. Your keys are not: no token, password or account ever reaches the VM.
+work on it. A saved computer keeps that code in a snapshot in your own provider account until you
+forget it. Your keys are not: no key, token or password reaches the machine unless you bind a login
+to it, and the model never sees one. A login you bind is typed into that computer's browser, so its
+browser holds that session, and a save keeps it.
 
 </details>
 
@@ -251,9 +301,9 @@ forget it. Your keys are not: no token, password or account ever reaches the VM.
 
 <br>
 
-Yes, while an agent works. The agent runs on your laptop and reaches its VM through agentos there.
-When the laptop sleeps, an environment that saves when idle is saved and its VM deleted, so nothing
-bills overnight. A dev server on the VM keeps running while agentos restarts or updates. For
+Yes, while an agent works. The agent runs on your laptop and reaches its computer through agentos
+there. When the laptop sleeps, each computer is saved and its VM deleted (unless you keep one
+running), so nothing bills overnight. A dev server on the VM keeps running while agentos restarts or updates. For
 machines that keep working while you sleep, run agentos on a server (below).
 
 </details>
@@ -298,8 +348,8 @@ Update: run the install command again. Remove: see [docs/LOCAL.md](docs/LOCAL.md
 
 <br>
 
-A server keeps working while your laptop sleeps. It can also run logged-in browser lanes for your
-own accounts and studio's page checks (`ui_check`). A node is a small Linux VPS (Ubuntu 22.04 or
+A server keeps working while your laptop sleeps. It can also keep signed-in browsers for your own
+accounts on the server itself, and run studio's page checks (`ui_check`). A node is a small Linux VPS (Ubuntu 22.04 or
 later, or Debian 12). On the node:
 
 ```sh
@@ -330,15 +380,16 @@ Install, hardening, backups and upgrades: [deploy/README.md](deploy/README.md).
 
 | Tool | What it does |
 |:--|:--|
-| `environment_open(title, repo, keep)` | opens a computer (or resumes the one with that title) with the repo in `/work/<name>` and a browser; returns `on`, which every later call carries |
+| `environment_open(title, repo, keep)` | opens a computer (or resumes the one with that title) with the repo in `/work/<name>` and a browser; it saves when idle unless `keep="none"`; returns `on`, which every later call carries |
 | `environment()` | what is open and saved, the cost so far, ports, git, and the pull request link |
-| `environment_close(note)` | ends it: deleted, or saved with a note for the next agent |
+| `environment_close(note)` | stops for now: saved with a note for the next agent (a single-use one is deleted) |
 | `environment_save(note)` | saves the whole machine now, before a risky step |
 | `environment_upload()`, `environment_download(path)` | one-use links to send a local checkout up, or a file down to you |
-| `lane_file_read`, `lane_file_edit`, `lane_exec` | read and edit code, run a command on the VM |
+| `lane_file_read`, `lane_file_edit`, `lane_exec` | read and edit code, run a command in its terminal |
 | `lane_job_start`, `lane_job_read(until_port=3000)` | dev servers and long jobs; wait until a port listens |
 | `ssh agentos-<id>` (local mode) | the agent's own shell on the machine, with `scp` and `rsync` |
-| `browser_navigate`, `browser_snapshot`, `browser_act` | the VM's browser: read the page as an outline, act by reference |
+| `browser_navigate`, `browser_snapshot`, `browser_act`, `browser_tabs` | its browser and tabs: read the page as an outline, act by reference |
+| `login` | signs in on the page with a login you bound to that computer; the model never sees it |
 | `browser_screenshot(proof=...)` | a screenshot kept as proof, at desktop or phone width |
 
 The other tools load in groups when the agent needs them: [docs/TOOLS.md](docs/TOOLS.md). The
@@ -350,18 +401,17 @@ skill that teaches an agent the loop:
 ## Status
 
 > [!NOTE]
-> **Alpha.** Environments and saved environments are new, and the tools may still change between
+> **Alpha.** Computers that stay and their logins are new, and the tools may still change between
 > minor versions: see the [changelog](CHANGELOG.md) and the
-> [releases](https://github.com/sabalys-ramunas/agentos/releases). On a laptop there are no account
-> browser lanes or `ui_check` yet (both need a server), and the laptop must be awake while a VM
-> works.
+> [releases](https://github.com/sabalys-ramunas/agentos/releases). On a laptop there is no
+> `ui_check` yet (it needs a server), and the laptop must be awake while a VM works.
 
 ## Docs
 
 | | |
 |:--|:--|
 | [docs/LOCAL.md](docs/LOCAL.md) | agentos on your laptop: the service, sleep, costs, where tokens live |
-| [docs/ENVIRONMENTS.md](docs/ENVIRONMENTS.md) | environments in depth: setup, limits, troubleshooting |
+| [docs/ENVIRONMENTS.md](docs/ENVIRONMENTS.md) | the agent's computer in depth: setup, keeping, limits, troubleshooting |
 | [docs/TOOLS.md](docs/TOOLS.md), [docs/ERRORS.md](docs/ERRORS.md) | every MCP tool, every error code and its fix |
 | [docs/GIT.md](docs/GIT.md) | how git works through agentos |
 | [deploy/README.md](deploy/README.md) | running agentos on a server |
