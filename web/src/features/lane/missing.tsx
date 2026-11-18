@@ -10,6 +10,7 @@ import { ConfirmDialog } from '@/components/ui/dialog';
 import { StatusDot } from '@/components/ui/status';
 import { describeError } from '@/lib/errors';
 import { dateTime } from '@/lib/format';
+import { InlineError } from '@/components/ui/states';
 
 export function MissingLane({ org, lane }: { org: string; lane: Lane }) {
   const canRelease = useAccess(org).can('nodes.manage');
@@ -33,9 +34,9 @@ export function MissingLane({ org, lane }: { org: string; lane: Lane }) {
         </Button>
       ) : null}
       {release.isError ? (
-        <p role="alert" className="w-full text-13 text-red">
+        <InlineError className="w-full">
           {describeError(release.error)}
-        </p>
+        </InlineError>
       ) : null}
       <ConfirmDialog
         open={confirming}

@@ -10,6 +10,7 @@ import { Select } from '@/components/ui/select';
 import { dateTime } from '@/lib/format';
 import { laneName } from '@/lib/labels';
 import { dayTitle } from './words';
+import { InlineError } from '@/components/ui/states';
 
 /** An account's name from its id, which is `workspace/name`. */
 export const accountOf = (lane: string) => lane.split('/').pop() ?? lane;
@@ -92,9 +93,9 @@ export function ShareDialog({ org, target, onClose }: { org: string; target: Sha
             </div>
           </div>
           {create.isError ? (
-            <p role="alert" className="text-13 text-red">
+            <InlineError>
               That link was not made. Nothing was shared. {create.error instanceof Error ? create.error.message : ''}
-            </p>
+            </InlineError>
           ) : null}
         </div>
       )}

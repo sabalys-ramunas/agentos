@@ -20,6 +20,7 @@ import { useKeys } from '@/lib/keyboard';
 import { laneName } from '@/lib/labels';
 import { principalName } from '@/lib/principal';
 import { useNow } from '@/lib/use-now';
+import { InlineError } from '@/components/ui/states';
 
 /** The core's default `control_idle_seconds`. Control goes back to agents after this. */
 const IDLE_SECONDS = 600;
@@ -224,9 +225,9 @@ export function ControlFrame({ org, lane, canControl, expanded = false, children
         <Takeback lane={lane} canControl={canControl} pending={pending} onDeny={() => run({ action: 'deny_request' })} onHandBack={(done) => run({ action: 'hand_back', done })} />
       ) : null}
       {mutation.isError ? (
-        <p role="alert" className="border-b border-line px-4 py-2 text-13 text-red">
+        <InlineError className="border-b border-line px-4 py-2">
           {describeError(mutation.error)}
-        </p>
+        </InlineError>
       ) : null}
       {children}
       <ConfirmDialog

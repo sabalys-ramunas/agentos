@@ -15,6 +15,7 @@ import { usd } from '@/lib/format';
 import { useTechnical } from '@/lib/technical';
 import { AccountSection } from './account-section';
 import { isPlainLimit, limitName, limitRule, limitStatus, limitUsed, resetWords, sortedLimits, wholeOrNull } from './account-words';
+import { InlineError } from '@/components/ui/states';
 
 /** The limits a person sees, with the number beside each bar. Shown when a limit is set, or to offer one. */
 export function LimitsSection({ org, lane }: { org: string; lane: Lane }) {
@@ -156,9 +157,9 @@ function LimitsDialog({ org, lane, meter, onClose }: { org: string; lane: Lane; 
         </Field>
         {replaces ? <p className="text-13 text-muted">These replace the limits this business sets for its accounts, for this one only.</p> : null}
         {formError ? (
-          <p role="alert" className="text-13 text-red">
+          <InlineError>
             {formError}
-          </p>
+          </InlineError>
         ) : null}
       </form>
     </Dialog>

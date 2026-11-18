@@ -26,8 +26,7 @@ const variants = {
     'off:border-line off:bg-card off:text-disabled off:shadow-none',
   // For a solid ink surface: a hairline in the secondary ink, and a fill one step toward the bar.
   inverse:
-    'border border-[color-mix(in_srgb,var(--text-inverse)_35%,transparent)] bg-transparent text-on-inverse ' +
-    'hover:bg-[color-mix(in_srgb,var(--text-inverse)_14%,transparent)] active:bg-[color-mix(in_srgb,var(--text-inverse)_22%,transparent)]',
+    'border border-inverse-line bg-transparent text-on-inverse hover:bg-inverse-hover active:bg-inverse-pressed',
 } as const;
 
 /** While working a button keeps its own look. Grey would say "unavailable", not "on it". */
@@ -109,7 +108,7 @@ export function Button({
           className={cn(
             '-mr-1 hidden h-5 min-w-5 items-center justify-center rounded-sm border px-1 font-mono text-micro md:inline-flex',
             variant === 'primary' || variant === 'inverse'
-              ? 'border-[color-mix(in_srgb,var(--text-inverse)_40%,transparent)] text-on-inverse'
+              ? 'border-inverse-line text-on-inverse'
               : 'border-line text-muted',
           )}
         >

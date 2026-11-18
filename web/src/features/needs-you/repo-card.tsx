@@ -19,6 +19,7 @@ import { describeError } from '@/lib/errors';
 import { date } from '@/lib/format';
 import { Requester } from './approval-detail';
 import { untilWords } from './words';
+import { InlineError } from '@/components/ui/states';
 
 const hostName = (card: RepoConnect) => (card.host === 'github.com' ? 'GitHub' : card.host);
 
@@ -141,19 +142,19 @@ function TokenStep({ org, id, card, onDone, onDeclined, onKey }: { org: string; 
         </div>
       ) : null}
       {stage === 'ended' ? (
-        <p role="alert" className="text-13 text-bad">
+        <InlineError>
           That page closed before a token was connected. Nothing was kept. Open a new one.
-        </p>
+        </InlineError>
       ) : null}
       {link.isError ? (
-        <p role="alert" className="text-13 text-bad">
+        <InlineError>
           {describeError(link.error)}
-        </p>
+        </InlineError>
       ) : null}
       {declineError ? (
-        <p role="alert" className="text-13 text-bad">
+        <InlineError>
           {declineError}
-        </p>
+        </InlineError>
       ) : null}
       <div className="flex flex-wrap items-center justify-end gap-2">
         <Button variant="ghost" className="mr-auto" disabled={decline.isPending} onClick={onKey}>
@@ -192,9 +193,9 @@ function DeployKey({ org, id, card, onDone, onToken }: { org: string; id: string
         An admin of {card.repo} adds this key to the repository, with Allow write access ticked so agents can push. Then press check.
       </p>
       {key.isError ? (
-        <p role="alert" className="text-13 text-bad">
+        <InlineError>
           {describeError(key.error)}
-        </p>
+        </InlineError>
       ) : key.data ? (
         <div className="grid gap-2">
           <CodeBlock code={key.data.public_key} label="Copy key" />
@@ -211,9 +212,9 @@ function DeployKey({ org, id, card, onDone, onToken }: { org: string; id: string
         </p>
       ) : null}
       {check.isError ? (
-        <p role="alert" className="text-13 text-bad">
+        <InlineError>
           {describeError(check.error)}
-        </p>
+        </InlineError>
       ) : null}
       <div className="flex flex-wrap items-center justify-end gap-2">
         <Button variant="ghost" className="mr-auto" disabled={check.isPending} onClick={onToken}>

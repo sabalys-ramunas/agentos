@@ -7,6 +7,8 @@ import { ChevronRight, Layers } from 'lucide-react';
 import { useAccess, usePreparedMachines } from '@/api/hooks';
 import { plural } from '@/lib/format';
 import { euro } from './words';
+import { cardLink } from '@/components/ui/card';
+import { cn } from '@/lib/cn';
 
 export function ReadyAhead({ org }: { org: string }) {
   const access = useAccess(org);
@@ -22,7 +24,7 @@ export function ReadyAhead({ org }: { org: string }) {
     <Link
       to="/$org/environments/prepared"
       params={{ org }}
-      className="group flex min-h-14 flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border border-line bg-card px-5 py-3 shadow-lift transition-colors duration-(--duration-fast) hover:border-line-strong"
+      className={cn(cardLink, 'group flex min-h-14 flex-wrap items-center gap-x-4 gap-y-1 px-5 py-3')}
     >
       <Layers aria-hidden="true" className="size-4 text-faint" />
       <span className="text-14 font-medium text-fg">Prepared machines</span>

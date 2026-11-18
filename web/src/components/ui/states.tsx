@@ -108,6 +108,18 @@ export function NoAccess({ action }: { action?: ReactNode }) {
   );
 }
 
+/**
+ * A refusal or failure said in place, beside what it is about: red words, announced once. For a form, a
+ * row action or a switch that did not take. A whole view that could not load is an ErrorState instead.
+ */
+export function InlineError({ children, id, className }: { children: ReactNode; id?: string; className?: string }) {
+  return (
+    <p id={id} role="alert" className={cn('text-13 text-bad', className)}>
+      {children}
+    </p>
+  );
+}
+
 interface QueryViewProps<T> {
   query: UseQueryResult<T>;
   skeleton: ReactNode;

@@ -6,6 +6,7 @@ import { ApiError } from '@/api/http';
 import type { EnvDetail } from '@/api/types';
 import { BranchPill } from '@/components/ui/branch';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Menu, MenuContent, MenuItem, MenuTrigger } from '@/components/ui/menu';
 import { StatStrip, StatTile } from '@/components/ui/stat-tile';
 import { Status, StatusDot } from '@/components/ui/status';
@@ -128,7 +129,7 @@ export function ClosedNotice({ env }: { env: EnvDetail }) {
   const failed = env.state === 'failed';
   const lead = failed ? 'It failed to start.' : env.closed_at ? `Closed ${timeAgo(env.closed_at).toLowerCase()}.` : 'Closed.';
   return (
-    <div role="status" className="flex items-start gap-3 rounded-xl border border-line bg-card px-5 py-4 shadow-lift">
+    <Card role="status" className="flex items-start gap-3 px-5 py-4">
       <StatusDot tone={failed ? 'bad' : 'neutral'} className="mt-2" />
       <p className="min-w-0 text-14">
         <span className="font-medium text-fg">{lead}</span> <span className="text-muted">{closedReason(env.closed_reason, env.state)}</span>
@@ -138,7 +139,7 @@ export function ClosedNotice({ env }: { env: EnvDetail }) {
             : 'Its machine and browser are deleted. What is below is what the node kept.'}
         </span>
       </p>
-    </div>
+    </Card>
   );
 }
 

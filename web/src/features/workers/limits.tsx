@@ -11,6 +11,7 @@ import { Select } from '@/components/ui/select';
 import { usd } from '@/lib/format';
 import { useTechnical } from '@/lib/technical';
 import { limitsTitle } from './words';
+import { InlineError } from '@/components/ui/states';
 
 function Tile({ label, value, of, note }: { label: string; value: number; of: number; note: string }) {
   return (
@@ -50,7 +51,7 @@ function LimitsDialog({ org, data, open, onClose }: { org: string; data: WorkerO
         {pick('steps_per_day', 'Steps in a day', 'At this many it stops until midnight.')}
         {pick('help_per_day', 'Times it can ask for help in a day', 'After this it stops and asks you instead.')}
         {pick('steps_per_thing', 'Steps on any one thing', 'A thing that takes more stops, and tells you.')}
-        {set.isError ? <p role="alert" className="text-13 text-red">That did not save, so the last saved limit is back.</p> : null}
+        {set.isError ? <InlineError>That did not save, so the last saved limit is back.</InlineError> : null}
       </div>
     </Dialog>
   );

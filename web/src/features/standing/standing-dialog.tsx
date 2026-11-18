@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Field, Input, Textarea } from '@/components/ui/field';
 import { Select } from '@/components/ui/select';
-import { Skeleton } from '@/components/ui/states';
+import { InlineError, Skeleton } from '@/components/ui/states';
 import { Checkbox } from '@/components/ui/toggle';
 import { describeError } from '@/lib/errors';
 import { date } from '@/lib/format';
@@ -236,9 +236,9 @@ export function StandingDialog({ org, open, onOpenChange, from = null, onCreated
           </p>
         ) : null}
         {error ? (
-          <p role="alert" className="text-13 text-red">
+          <InlineError>
             {error}
-          </p>
+          </InlineError>
         ) : null}
       </form>
     </Dialog>

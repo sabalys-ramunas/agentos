@@ -11,7 +11,7 @@ import { useProviders, useRemovePushDevice, useTestPush } from '@/api/hooks';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/states';
+import { InlineError, Skeleton } from '@/components/ui/states';
 import { StatusDot } from '@/components/ui/status';
 import { Switch } from '@/components/ui/toggle';
 import { describeError } from '@/lib/errors';
@@ -179,9 +179,9 @@ export function PushCard({ org, enabledInSettings }: { org: string; enabledInSet
         </div>
         {body}
         {failure ? (
-          <p role="alert" className="text-13 text-red">
+          <InlineError>
             {describeError(failure)}
-          </p>
+          </InlineError>
         ) : null}
         {current || others.length ? (
           <div className="border-t border-line pt-2">

@@ -8,7 +8,7 @@ import { useBrandProfiles, useBrandProposals } from '@/api/hooks';
 import type { BrandProfileRow, BrandProposal } from '@/api/types';
 import { AgentMark } from '@/components/brand/identity';
 import { Badge, Chip } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
+import { Card, cardLink } from '@/components/ui/card';
 import { CodeBlock, PageHeader } from '@/components/ui/misc';
 import { KindEyebrow, KindTile } from '@/components/ui/kind';
 import { EmptyState, ErrorState, Skeleton } from '@/components/ui/states';
@@ -19,6 +19,7 @@ import { PLACES } from '@/lib/vocabulary';
 import { useTechnical } from '@/lib/technical';
 import { BrandNotYours, isRefused } from './not-yours';
 import type { BrandSearch } from './search';
+import { cn } from '@/lib/cn';
 
 const LEDE = "Who your work is for: each product's components, colours, type and guidelines, which agents design with and checks measure against.";
 
@@ -59,7 +60,7 @@ function ProfileCard({ org, row }: { org: string; row: BrandProfileRow }) {
     <Link
       to="/$org/brand/$profile"
       params={{ org, profile: row.ref }}
-      className="group grid min-w-0 content-start gap-3 rounded-xl border border-line bg-card p-5 shadow-lift transition-colors duration-(--duration-fast) hover:border-line-strong"
+      className={cn(cardLink, 'group grid min-w-0 content-start gap-3 p-5')}
     >
       <span className="flex items-center gap-3">
         <KindTile kind="brand" size="lg" />

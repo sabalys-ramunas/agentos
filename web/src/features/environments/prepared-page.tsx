@@ -113,7 +113,7 @@ function PreparedBody({ data }: { data: PreparedList }) {
 const FROM = {
   warm: { label: 'Warm machine', mark: 'bg-fg border-fg' },
   prepared: { label: 'Prepared machine', mark: 'border-fg border-2 bg-card' },
-  cold: { label: 'Cold open', mark: 'border-[color:var(--text-faint)] bg-card' },
+  cold: { label: 'Cold open', mark: 'border-faint bg-card' },
 } as const;
 
 /** The last opens, each a dot at its seconds to ready, on a log scale from 1 s to 5 min. */

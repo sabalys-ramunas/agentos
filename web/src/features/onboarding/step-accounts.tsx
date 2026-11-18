@@ -29,6 +29,7 @@ import { StepFooter } from './context';
 import { Ready, SetupLayout } from './layout';
 import type { SetupAsks } from './setup';
 import { DEFAULT_ASKS, remember, useRefreshSetup } from './setup';
+import { InlineError } from '@/components/ui/states';
 
 /** The plain switches, lowest first. Each one on includes the ones above it. */
 const ASKS: { key: keyof SetupAsks; label: string; yes: string }[] = [
@@ -248,9 +249,9 @@ export function AccountsStep({ ctx }: { ctx: StepContext }) {
         </section>
 
         {error ? (
-          <p role="alert" className="text-13 text-red">
+          <InlineError>
             {error}
-          </p>
+          </InlineError>
         ) : null}
       </div>
     </SetupLayout>

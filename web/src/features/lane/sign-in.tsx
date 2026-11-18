@@ -10,6 +10,7 @@ import { useAccess, useLaneLogin, useLaneLoginAction, useStartLaneLogin, useVaul
 import type { LaneLogin, LoginState } from '@/api/types';
 import { Button } from '@/components/ui/button';
 import { StatusDot } from '@/components/ui/status';
+import { InlineError } from '@/components/ui/states';
 
 const WORDS: Record<LoginState, (saved: boolean) => string> = {
   none: (saved) => (saved ? 'Saved in the vault. agentos signs in from it and asks nobody.' : 'Not signed in yet. You type the password on this computer, in a form it serves.'),
@@ -81,7 +82,7 @@ export function SignIn({ org, ws, name, saved, canAct }: { org: string; ws: stri
           <p className="text-14 font-medium">{state === 'signed_in' || state === 'done' ? 'Signed in' : 'Sign in'}</p>
           <p className="text-13 text-muted">{words}</p>
           {current.error ? <p className="mt-2 text-13 text-red">{current.error}</p> : null}
-          {failed ? <p className="mt-2 text-13 text-red" role="alert">That did not start. Nothing was typed.</p> : null}
+          {failed ? <InlineError className="mt-2">That did not start. Nothing was typed.</InlineError> : null}
           {saved && locked && OVER.includes(state) ? (
             <p className="mt-2 text-13 text-muted">
               The vault is locked. <Link to="/$org/settings/vault" params={{ org }} className="underline underline-offset-2">Unlock it in Settings</Link> to sign in from it.

@@ -23,6 +23,12 @@ export function Card({ className, kind, flat = false, ...props }: CardProps) {
   );
 }
 
+/**
+ * A whole card that is a link or a button: the card's look, and its edge firms on hover. Put it on the
+ * <Link> itself (`className={cn(cardLink, 'grid gap-3 p-5')}`), so the card is one target.
+ */
+export const cardLink = 'rounded-xl border border-line bg-card shadow-lift transition-colors duration-(--duration-fast) hover:border-line-strong';
+
 interface CardHeaderProps {
   title: ReactNode;
   /** Quiet words after the title: a count, "the oldest for 2 h". */

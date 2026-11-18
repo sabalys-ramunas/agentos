@@ -14,7 +14,7 @@ import type { Approval } from '@/api/types';
 import { InstallPrompt, markInstallMoment } from '@/components/install-prompt';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { EmptyState, ErrorState, Skeleton } from '@/components/ui/states';
+import { EmptyState, ErrorState, InlineError, Skeleton } from '@/components/ui/states';
 import { needsProof } from '@/lib/confirm';
 import { isContentChanged } from '@/lib/errors';
 import { clock } from '@/lib/format';
@@ -134,9 +134,9 @@ function ReviewCard({ org, approval }: { org: string; approval: Approval }) {
   ) : canDecide ? (
     <div className="grid gap-2">
       {problem ? (
-        <p role="alert" className="text-13 text-red">
+        <InlineError>
           {problem}
-        </p>
+        </InlineError>
       ) : null}
       <DecisionButtons verbs={shown.verbs} armed={armed} who={shown.who} onYes={approve} onNo={() => run('deny')} proof={needsProof(approval)} />
     </div>

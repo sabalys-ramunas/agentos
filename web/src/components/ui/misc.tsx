@@ -104,7 +104,7 @@ export function Logo({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 64 64" aria-hidden="true" className={cn('size-6', className)}>
       <rect width="64" height="64" rx="14" fill="var(--brand)" />
-      <path fill="#fff" d="M28.6 16h6.8l12 32h-6.6l-2.8-7.8H26l-2.8 7.8h-6.6l12-32Zm-.8 19h8.4L32 23.2 27.8 35Z" />
+      <path fill="var(--identity-ink)" d="M28.6 16h6.8l12 32h-6.6l-2.8-7.8H26l-2.8 7.8h-6.6l12-32Zm-.8 19h8.4L32 23.2 27.8 35Z" />
     </svg>
   );
 }

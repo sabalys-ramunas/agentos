@@ -18,6 +18,7 @@ import { timeAgo } from '@/lib/format';
 import { fileBox, fileStatus } from '@/lib/labels';
 import { saveFile } from '@/lib/save-file';
 import { AccountSection, Answer } from './account-section';
+import { InlineError } from '@/components/ui/states';
 
 const BOXES: FileBox[] = ['inbox', 'outbox'];
 
@@ -98,9 +99,9 @@ function FileRow({ file, org, lane, canOperate }: { file: AccountFile; org: stri
       </div>
       {file.error ? <p className="text-13 text-muted">{file.error}</p> : null}
       {failure ? (
-        <p role="alert" className="text-13 text-red">
+        <InlineError>
           {describeError(failure)}
-        </p>
+        </InlineError>
       ) : null}
       <ConfirmDialog
         open={deleting}
@@ -153,9 +154,9 @@ function AddFile({ org, lane, limit }: { org: string; lane: Lane; limit: Account
         }}
       />
       {tooLarge || upload.error ? (
-        <p role="alert" className="max-w-xs text-right text-13 text-red">
+        <InlineError className="max-w-xs text-right">
           {tooLarge ?? describeError(upload.error)}
-        </p>
+        </InlineError>
       ) : null}
     </div>
   );

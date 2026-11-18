@@ -13,7 +13,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/field';
 import { Meter } from '@/components/ui/misc';
 import { Select } from '@/components/ui/select';
-import { EmptyState, ErrorState, NoAccess, QueryView, Skeleton } from '@/components/ui/states';
+import { EmptyState, ErrorState, InlineError, NoAccess, QueryView, Skeleton } from '@/components/ui/states';
 import { StatusDot } from '@/components/ui/status';
 import { Table, Td, Th, Tr, mainCell } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/toggle';
@@ -114,9 +114,9 @@ function MemoryAdmin({ org }: { org: string }) {
                   </div>
                 </div>
                 {exportMemory.isError ? (
-                  <p role="alert" className="text-13 text-red">
+                  <InlineError>
                     {describeError(exportMemory.error)}
-                  </p>
+                  </InlineError>
                 ) : null}
                 <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_200px_240px]">
                   <Input type="search" aria-label="Search memory" placeholder="Search what agents remember" value={search} onChange={(event) => setSearch(event.target.value)} />

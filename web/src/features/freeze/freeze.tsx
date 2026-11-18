@@ -17,6 +17,7 @@ import { cn } from '@/lib/cn';
 import { describeError } from '@/lib/errors';
 import { frozenSentence, NO_REASON, reasonOf, SCOPE_WORDS } from '@/lib/freeze';
 import { FREEZE_WORDS, LIFTING_A_FREEZE } from '@/lib/vocabulary';
+import { InlineError } from '@/components/ui/states';
 
 /** Plain, short lines: what a freeze does, as a person reads it. */
 function Consequences({ what, children }: { what: string; children?: React.ReactNode }) {
@@ -81,9 +82,9 @@ export function FreezeDialog({ org, open, onOpenChange, scope, target, name }: F
           <Input maxLength={300} value={reason} onChange={(event) => setReason(event.target.value)} />
         </Field>
         {freeze.isError ? (
-          <p role="alert" className="text-13 text-red">
+          <InlineError>
             {describeError(freeze.error)}
-          </p>
+          </InlineError>
         ) : null}
       </div>
     </ConfirmDialog>
@@ -135,9 +136,9 @@ export function UnfreezeDialog({ org, open, onOpenChange, scope, target, name }:
         To lift it, confirm it is you first. With a passkey, that is one tap. With no passkey, sign in again with a code, and do it in the last five minutes.
       </p>
       {unfreeze.isError ? (
-        <p role="alert" className="mt-3 text-13 text-red">
+        <InlineError className="mt-3">
           {describeError(unfreeze.error)}
-        </p>
+        </InlineError>
       ) : null}
     </ConfirmDialog>
   );

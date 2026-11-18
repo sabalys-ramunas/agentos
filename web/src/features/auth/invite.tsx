@@ -12,7 +12,7 @@ import { ApiError, isCancelled } from '@/api/http';
 import type { InvitePreview, Role } from '@/api/types';
 import { Button } from '@/components/ui/button';
 import { Field, Input } from '@/components/ui/field';
-import { Skeleton } from '@/components/ui/states';
+import { InlineError, Skeleton } from '@/components/ui/states';
 import { describeError } from '@/lib/errors';
 import { passkeyError } from '@/lib/webauthn';
 import { ApprovalPicture, PhoneFrame } from '../onboarding/pictures';
@@ -147,9 +147,9 @@ export function InviteAccept() {
   return (
     <AuthLayout title={words.title} description={words.intro} aside={picture}>
       {error ? (
-        <p role="alert" className="mb-4 text-13 text-red">
+        <InlineError className="mb-4">
           {error}
-        </p>
+        </InlineError>
       ) : null}
       {byPasskey ? (
         <>

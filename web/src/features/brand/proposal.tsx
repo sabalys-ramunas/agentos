@@ -20,6 +20,7 @@ import type { BrandDecision } from '@/api/types';
 import { drawnButton, guidelineChanges, guidelineRule, paintable, tokenChanges } from './model';
 import { DrawnButtonView } from './sections';
 import type { TokenChange } from './model';
+import { InlineError } from '@/components/ui/states';
 
 function Value({ value, colour }: { value: string | null; colour: boolean }) {
   if (value === null) return <span className="text-faint">none</span>;
@@ -185,9 +186,9 @@ export function Proposal({ org, profile, draft, onDecided }: { org: string; prof
             </div>
           ) : null}
           {error ? (
-            <p role="alert" className="text-14 text-bad">
+            <InlineError>
               {error}
-            </p>
+            </InlineError>
           ) : null}
           <div className="flex flex-wrap justify-end gap-2">
             {rejecting ? (

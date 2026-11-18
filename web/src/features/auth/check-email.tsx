@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { describeError } from '@/lib/errors';
 import { COOLDOWN_SECONDS } from './cooldown';
 import { AuthLayout } from './layout';
+import { InlineError } from '@/components/ui/states';
 
 export function CheckEmail() {
   const { email, next, aup } = useSearch({ from: '/check-email' });
@@ -49,9 +50,9 @@ export function CheckEmail() {
         {wait > 0 ? <span className="tabular">Resend in {wait}s</span> : 'Resend the link'}
       </Button>
       {send.isError ? (
-        <p role="alert" className="mt-2 text-13 text-red">
+        <InlineError className="mt-2">
           {describeError(send.error)}
-        </p>
+        </InlineError>
       ) : null}
     </AuthLayout>
   );

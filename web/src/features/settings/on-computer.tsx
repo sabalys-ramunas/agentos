@@ -6,6 +6,7 @@ import { useFormTrip, useStartForm } from '@/api/hooks';
 import type { FormTrip, StartFormKind } from '@/api/types';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
+import { InlineError } from '@/components/ui/states';
 
 /** Plain words for a form on the computer: it is open, done, or it ran out. Nothing here shows the value. */
 export const FORM_WORDS: Record<FormTrip['stage'], string> = {
@@ -106,7 +107,7 @@ export function FormDialog({
       }
     >
       {form.link ? null : children}
-      {form.failed ? <p className="text-14 text-red" role="alert">That did not start. Nothing was changed.</p> : null}
+      {form.failed ? <InlineError>That did not start. Nothing was changed.</InlineError> : null}
       {form.link ? <p className="text-14 text-muted" role="status">{FORM_WORDS[form.stage ?? 'waiting']}</p> : null}
     </Dialog>
   );

@@ -62,6 +62,11 @@ COLORS = {
     "surface.inset": (n(2), n(2), "Wells: code, pictures waiting to load, card footers. Never a table header."),
     "surface.raised": (n(0), n(3), "Menus, popovers, dialogs, sheets. Always with a shadow."),
     "surface.inverse": (n(12), n(11), "Tooltips and toasts: the one inverted surface."),
+    # web: a control on the inverse surface (the selection bar): text.inverse at 35, 14 and 22 percent.
+    # Were color-mix() in button.tsx; text.inverse is white in light and black in dark.
+    "inverse.line": ("rgba(255,255,255,0.35)", "rgba(0,0,0,0.35)", "A hairline on the inverse surface."),
+    "inverse.hover": ("rgba(255,255,255,0.14)", "rgba(0,0,0,0.14)", "Hover on the inverse surface."),
+    "inverse.pressed": ("rgba(255,255,255,0.22)", "rgba(0,0,0,0.22)", "Pressed on the inverse surface."),
     # translucent fills so they work on any surface
     "fill.hover": ("rgba(0,0,0,0.035)", "rgba(255,255,255,0.05)", "Row and control hover."),
     "fill.pressed": ("rgba(0,0,0,0.06)", "rgba(255,255,255,0.08)", "Pressed, open menu trigger."),
@@ -113,6 +118,8 @@ COLORS = {
     "terminal.bg": ("#0a0a0a", "#050505", "A terminal or log block. Dark in both themes."),
     "terminal.text": ("#e5e5e5", "#e5e5e5", ""),
     "terminal.dim": ("#8a8a8a", "#8a8a8a", "Timestamps, the prompt, faint (ANSI 2) output."),
+    # web: a divider inside a terminal (was `border-white/10`, a class that does not exist here).
+    "terminal.line": ("rgba(255,255,255,0.1)", "rgba(255,255,255,0.1)", "A hairline inside a terminal."),
     "ansi.red": ("#ff7b7f", "#ff7b7f", ""),
     "ansi.green": ("#5fd28b", "#5fd28b", ""),
     "ansi.yellow": ("#f2c14e", "#f2c14e", ""),

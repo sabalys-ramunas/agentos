@@ -15,6 +15,9 @@
   --color-raised: var(--surface-raised);
   --color-inverse: var(--surface-inverse);
   --color-on-inverse: var(--text-inverse);
+  --color-inverse-line: var(--inverse-line);
+  --color-inverse-hover: var(--inverse-hover);
+  --color-inverse-pressed: var(--inverse-pressed);
   --color-overlay: var(--overlay-scrim);
   --color-hover: var(--fill-hover);
   --color-pressed: var(--fill-pressed);
@@ -45,6 +48,7 @@
   --color-terminal: var(--terminal-bg);
   --color-terminal-text: var(--terminal-text);
   --color-terminal-dim: var(--terminal-dim);
+  --color-terminal-line: var(--terminal-line);
   --color-ansi-red: var(--ansi-red);
   --color-ansi-green: var(--ansi-green);
   --color-ansi-yellow: var(--ansi-yellow);

@@ -22,6 +22,9 @@ COLORS = {
     "raised": "surface-raised",
     "inverse": "surface-inverse",
     "on-inverse": "text-inverse",
+    "inverse-line": "inverse-line",
+    "inverse-hover": "inverse-hover",
+    "inverse-pressed": "inverse-pressed",
     "overlay": "overlay-scrim",
     "hover": "fill-hover",
     "pressed": "fill-pressed",
@@ -58,6 +61,7 @@ COLORS = {
     "terminal": "terminal-bg",
     "terminal-text": "terminal-text",
     "terminal-dim": "terminal-dim",
+    "terminal-line": "terminal-line",
     **{f"ansi-{c}": f"ansi-{c}" for c in ("red", "green", "yellow", "blue", "magenta", "cyan")},
     # diff lines
     "diff-add": "diff-add-fill",

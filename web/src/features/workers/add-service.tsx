@@ -14,7 +14,7 @@ import { Card } from '@/components/ui/card';
 import { CodeBlock } from '@/components/ui/misc';
 import { Spinner } from '@/components/ui/spinner';
 import { StateGlyph } from '@/components/ui/state-badge';
-import { EmptyState, QueryView, Skeleton } from '@/components/ui/states';
+import { EmptyState, InlineError, QueryView, Skeleton } from '@/components/ui/states';
 import { cn } from '@/lib/cn';
 import { computerName } from '@/lib/computers';
 import { useTechnical } from '@/lib/technical';
@@ -240,7 +240,7 @@ function HandOver({ org, service, computers, computer, onComputer }: { org: stri
             <Button className="justify-self-start" onClick={begin}>I ran it</Button>
           </div>
         )}
-        {start.isError && here ? <p role="alert" className="text-13 text-red">{computerName(computer)} is offline, so nothing was started. Choose another computer, or wait until it is back.</p> : null}
+        {start.isError && here ? <InlineError>{computerName(computer)} is offline, so nothing was started. Choose another computer, or wait until it is back.</InlineError> : null}
         {screen ? (
           <>
             <Disclosure label={`Not sitting at ${name} right now?`} open={false}>

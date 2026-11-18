@@ -34,6 +34,10 @@
   --surface-raised: var(--neutral-0);
   --surface-inverse: var(--neutral-12);
 
+  --inverse-line: rgb(255 255 255 / 0.35);
+  --inverse-hover: rgb(255 255 255 / 0.14);
+  --inverse-pressed: rgb(255 255 255 / 0.22);
+
   --fill-hover: rgb(0 0 0 / 0.035);
   --fill-pressed: rgb(0 0 0 / 0.06);
 
@@ -78,6 +82,7 @@
   --terminal-bg: #0a0a0a;
   --terminal-text: #e5e5e5;
   --terminal-dim: #8a8a8a;
+  --terminal-line: rgb(255 255 255 / 0.1);
 
   --ansi-red: #ff7b7f;
   --ansi-green: #5fd28b;
@@ -379,6 +384,10 @@
     --surface-raised: var(--neutral-3);
     --surface-inverse: var(--neutral-11);
 
+    --inverse-line: rgb(0 0 0 / 0.35);
+    --inverse-hover: rgb(0 0 0 / 0.14);
+    --inverse-pressed: rgb(0 0 0 / 0.22);
+
     --fill-hover: rgb(255 255 255 / 0.05);
     --fill-pressed: rgb(255 255 255 / 0.08);
 
@@ -423,6 +432,7 @@
     --terminal-bg: #050505;
     --terminal-text: #e5e5e5;
     --terminal-dim: #8a8a8a;
+    --terminal-line: rgb(255 255 255 / 0.1);
 
     --ansi-red: #ff7b7f;
     --ansi-green: #5fd28b;
@@ -510,6 +520,10 @@
   --surface-raised: var(--neutral-3);
   --surface-inverse: var(--neutral-11);
 
+  --inverse-line: rgb(0 0 0 / 0.35);
+  --inverse-hover: rgb(0 0 0 / 0.14);
+  --inverse-pressed: rgb(0 0 0 / 0.22);
+
   --fill-hover: rgb(255 255 255 / 0.05);
   --fill-pressed: rgb(255 255 255 / 0.08);
 
@@ -554,6 +568,7 @@
   --terminal-bg: #050505;
   --terminal-text: #e5e5e5;
   --terminal-dim: #8a8a8a;
+  --terminal-line: rgb(255 255 255 / 0.1);
 
   --ansi-red: #ff7b7f;
   --ansi-green: #5fd28b;

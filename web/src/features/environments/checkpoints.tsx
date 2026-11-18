@@ -68,7 +68,7 @@ function Gutter({ row, first, last, sideTop }: Omit<RowProps, 'now' | 'onOpen'>)
   return (
     <span aria-hidden="true" className="relative w-11 shrink-0 self-stretch">
       <span className={cn('absolute w-px bg-line-strong', MAIN, first ? 'top-5' : 'top-0', last ? 'h-5' : 'bottom-0')} />
-      {side ? <span className={cn('absolute w-0 border-l border-dashed border-[color:var(--text-faint)]', SIDE, sideTop ? 'top-5' : 'top-0', 'bottom-0')} /> : null}
+      {side ? <span className={cn('absolute w-0 border-l border-dashed border-faint', SIDE, sideTop ? 'top-5' : 'top-0', 'bottom-0')} /> : null}
       {forks ? (
         <svg className="absolute top-0 left-[11px] overflow-visible text-faint" width="21" height="22" viewBox="0 0 21 22">
           <path d="M0 22 C 14 22 20 16 20 0" fill="none" stroke="currentColor" strokeWidth="1" strokeDasharray="3 3" />
@@ -92,7 +92,7 @@ function Dot({ row }: { row: CheckpointRow }) {
     <span
       className={cn(
         'absolute top-4 size-3 rounded-full',
-        row.side ? 'left-[26px] border border-[color:var(--text-faint)] bg-card' : 'left-[6px] bg-fg',
+        row.side ? 'left-[26px] border border-faint bg-card' : 'left-[6px] bg-fg',
         row.current && 'outline-2 outline-offset-2 outline-fg',
       )}
     />
