@@ -8,6 +8,14 @@ All notable changes to agentos are recorded here. The format follows
 
 ### Added
 
+- **An environment's page in the web app tells what happened, on the real node.** A closed one leads
+  with its replay (frame by frame, the agent's calls, a person's take-overs and the proofs on one track
+  that fits a phone), then its proofs and pull request; an open one with its live browser. How it opened
+  is one line that unfolds to each step and the work it skipped. Checkpoints are drawn as a line of work
+  with the rollback on a side line, and each opens what changed since it, file by file. The owner resumes
+  a save from the app (a refusal by the node's limits stays in the dialog with the fix) and watches it
+  wake. Prepared machines has a page of its own with the warm pool's worst month. A video proof shows its
+  preview and opens a player.
 - **The app sees how an environment came up, and what the node's own machines cost.** The detail has
   `bringup`: each step of the bring-up with when it began and its seconds (the ones running while it
   starts), and the work it skipped (a prepared machine's setup and the seconds saved, a warm machine's rent
