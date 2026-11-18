@@ -282,9 +282,9 @@ async def test_a_flow_run_posts_once_on_its_own_approval_and_reads_it_back():
 
 async def test_tools_the_grant_lacks_say_what_it_needs_and_the_seeded_lanes_can_be_viewed():
     async with connected() as (_, client):
+        # the agent's secret special covers its environments' bound logins (env/*), never an account lane
         err, text = await call(client, "login", {"on": "biz-a/social"})
-        assert err and text.startswith("not_found: no tool named 'login' for your grant") and \
-            "--special secret" in text, text
+        assert err and text.startswith("denied: special: secret is not granted for biz-a/social"), text
         for lane in ("biz-b/forum", "biz-b/social"):  # a person holds both: the link is there to give them
             err, text = await call(client, "lane_view", {"on": lane})
             assert not err and json.loads(text)["viewer"]["url"], text
