@@ -13,13 +13,12 @@ from types import SimpleNamespace
 import pytest
 from test_environments import node, opened  # noqa: F401  (node is a fixture)
 from test_environments_replay import Shots, settled
-from test_policy_support import make_service  # noqa: F401
-from test_vault_support import FakeCtx, FakeTypist, Page, fld, make_vault, private_home
+from test_vault_support import FakeTypist, Page, fld, make_vault, private_home
 from typer.testing import CliRunner
 
 from agentos.api.bridge import panel_specials
 from agentos.core.errors import AgentosError, InvalidRequest, NotFound
-from agentos.core.models import Effect
+from agentos.core.models import Effect, Signal
 from agentos.environments import logins
 from agentos.environments import replay as replay_mod
 from agentos.environments.models import Environment
@@ -192,7 +191,7 @@ async def agent(node, vault, monkeypatch):  # noqa: F811
         site.current = "login" if url.startswith(LOGIN_URL) else site.current
 
     monkeypatch.setattr(logins, "_open_page", open_page)
-    grant, token = node["policy"].issue(subject={"id": "agent-2"}, workspaces=["*"], ceiling=Effect.COMMIT,
+    _grant, token = node["policy"].issue(subject={"id": "agent-2"}, workspaces=["*"], ceiling=Effect.COMMIT,
                                         specials=panel_specials(["environments"]))
     specs = {s.name: s for s in vault_tools.tool_specs(rt)}
     calls = {name: wrap_tool(spec, rt) for name, spec in specs.items()}
@@ -204,7 +203,8 @@ async def agent(node, vault, monkeypatch):  # noqa: F811
         with bind_request_token(token, session=session):
             return await calls[name](**kw)
 
-    return SimpleNamespace(call=call, site=site, opened_at=opened_at, mgr=mgr, vault=vault, rt=rt, node=node)
+    return SimpleNamespace(call=call, site=site, opened_at=opened_at, mgr=mgr, vault=vault, rt=rt, node=node,
+                           token=token)
 
 
 async def test_the_agents_login_opens_the_page_fills_it_and_signs_in_again_after_a_logout(agent):
@@ -321,7 +321,7 @@ async def test_the_owner_signs_an_environment_in_now_and_hears_when_the_person_i
     assert "links" not in done
 
     agent.site.pages["login"].on_enter = "captcha"
-    agent.site.pages["captcha"] = Page(SITE + "/challenge", [], signal=__import__("agentos").core.models.Signal.CAPTCHA)
+    agent.site.pages["captcha"] = Page(SITE + "/challenge", [], signal=Signal.CAPTCHA)
     agent.site.current = "login"
     stuck = await agent.mgr.sign_in_now(TITLE, "localhost")
     assert stuck["ok"] is False and stuck["needs"] == "captcha" and stuck["links"]["browser"]
@@ -412,17 +412,25 @@ def test_login_title_site_signs_in_now_through_agentosd(cli, monkeypatch):
     assert "Signed in to localhost in \"Shop fix\" (eabc)." in r.output
 
 
-async def test_the_owners_route_signs_in_and_never_answers_a_value(agent, monkeypatch):
-    from agentos.environments.api import routes
+async def test_the_sign_in_route_answers_the_owner_only_and_never_a_value(agent, tmp_path):
+    import httpx
 
-    names = [r.path for r in routes(SimpleNamespace(svc=lambda name: agent.mgr))]
-    assert "/api/environments/login" in names
+    from agentos.api import ApiSettings, build_api
+
+    await logins.add(agent.vault, LOGIN_URL, user=USER, password=PASSWORD, scope={"title": TITLE})
+    await agent.call("environment_open", title=TITLE)
+    api = build_api(agent.rt, ApiSettings(lane_pump_seconds=0, panel_dir=tmp_path / "no-panel"))
+    owner = agent.rt.get("config").mcp_token
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=api), base_url="http://localhost") as c:
+        body = {"title": TITLE, "site": "localhost"}
+        r = await c.post("/api/environments/login", json=body, headers={"Authorization": f"Bearer {agent.token}"})
+        assert r.status_code in (401, 403), r.text  # an agent's grant: never
+        assert agent.site.typed == []
+        r = await c.post("/api/environments/login", json=body, headers={"Authorization": f"Bearer {owner}"})
+    assert r.status_code == 200, r.text
+    assert r.json()["ok"] is True and PASSWORD not in r.text and USER not in r.text
 
 
 def test_an_error_names_its_fix():
     e = NotFound(logins._none_words(SimpleNamespace(title=TITLE), [], None))
     assert isinstance(e, AgentosError) and "--title \"Shop fix\"" in e.message
-
-
-def test_fake_ctx_is_used():
-    assert FakeCtx().traces == []
