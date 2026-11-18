@@ -64,8 +64,10 @@ def _run_install(where: Path, version: str | None) -> None:
         typer.secho(f"error: {e.message}", err=True, fg=typer.colors.RED)
         typer.echo("  The node works without it. Try again later with `agentos web install`.", err=True)
         raise typer.Exit(1) from None
+    from agentos.setup.webstep import app_url
+
     typer.echo(f"Installed the web app {got.version} ({got.files} files, sha256 {got.sha256[:12]}).")
-    typer.echo("Open http://127.0.0.1:7410/ (the port `agentos local status` shows).")
+    typer.echo(f"Open {app_url(where)}")
 
 
 @app.command("install")

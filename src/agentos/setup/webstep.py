@@ -61,7 +61,7 @@ def web(ctx: Ctx) -> None:
         _have(ctx, st, url)
         return
     ui.say(WHAT)
-    if not ui.confirm("Add the web app (a few MB from this release on GitHub)?", default=st.wanted is not False):
+    if not ui.confirm("Add the web app (a small download from this release)?", default=st.wanted is not False):
         from agentos.setup import webapp as installer
 
         installer.decline(ctx.home)

@@ -28,7 +28,8 @@ NOT_BUILT = """<!doctype html>
 <h1>The web app is not built yet</h1>
 <p>The API and MCP are running. Build the web app once with <code>pnpm install &amp;&amp; pnpm build</code>
 in <code>web/</code> (Node.js 22 or later; <code>npx pnpm@10.33.0</code> works without installing pnpm),
-then start agentos again. Or point <code>AGENTOS_PANEL_DIR</code> at a built copy.</p>
+then start agentos again. Or add this release's prebuilt copy with <code>agentos web install</code>, or point
+<code>AGENTOS_PANEL_DIR</code> at a built copy.</p>
 </body></html>"""
 
 # an installation without the app's source (no web/ beside it) and no installed copy (agentos web install)
