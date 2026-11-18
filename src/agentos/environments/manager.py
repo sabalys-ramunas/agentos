@@ -66,6 +66,7 @@ from agentos.environments.ports import ended
 from agentos.environments.preparing import Preparing
 from agentos.environments.prepbuild import PrepBuild
 from agentos.environments.proofs import Proofs
+from agentos.environments.recording import Recording
 from agentos.environments.replay import Replay
 from agentos.environments.saving import Saving
 from agentos.environments.sizing import Sizing
@@ -141,7 +142,7 @@ def check_ref(ref: str | None) -> str | None:
 
 
 class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downloads, Pausing, Saving, Activity,
-                         SshAccess, Updates, Network, Preparing, PrepBuild, WarmPool, Replay):
+                         SshAccess, Updates, Network, Preparing, PrepBuild, WarmPool, Replay, Recording):
     """The environments service. Which environment a call means and attaching by title (Picking), its
     sizing and cost (Sizing), its bring-up (BringUp), its read side (Views), its saves (Saving) and what
     counts as busy (Activity), and in local mode the agent's own ssh (SshAccess) are mixins in their own
@@ -244,7 +245,8 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
     async def shutdown(self) -> None:
         """Stop the reaper, the bring-ups and the tunnels. The VMs stay: a restart of the node must
         not end an agent's work. The next start brings the tunnels back."""
-        tasks = [t for t in (self._reaper, *self._tasks.values(), *self._warming, *self.side_tasks()) if t is not None]
+        tasks = [t for t in (self._reaper, *self._tasks.values(), *self._warming, *self.side_tasks(),
+                                       *self.recording_tasks()) if t is not None]
         for t in tasks:
             t.cancel()
         for t in tasks:
@@ -580,7 +582,7 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
         env = self.store.update(env.id, closing)
         self.ssh_down(env)  # the agent's `ssh agentos-<id>` goes first: its machine is going
         self.drop_downloads(env.id)  # its download links end, and their archives go (agentos.environments.downloads)
-        await self.replay_last(env, "close")  # the browser's last state, before it goes
+        await self.last_looks(env, "close")  # its recording kept, the browser's last frame (recording, replay)
         if env.browser == "vm":  # its browser and screen stop on the machine while the tunnel still reaches it
             await self._remove_browser(env)
         tunnel = self._tunnels.pop(env.id, None)

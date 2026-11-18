@@ -45,9 +45,10 @@ TOOLSETS: tuple[Toolset, ...] = (
         # through shell quoting (heredocs, sed), which breaks on the first quote in the code
         "lane_file_read", "lane_file_write", "lane_file_edit",
     )),
-    Toolset("files", "more for a browser lane: its files (inbox and downloads), switching tabs, scrolling a feed", (
-        "files_get", "files_list", "files_delete", "browser_tab", "browser_scroll",
-    ), ("files",), "files, tabs, scrolling"),
+    Toolset("files", "more for a browser lane: its files (inbox and downloads), switching tabs, scrolling a feed, "
+            "a video proof of an environment's browser (browser_record)", (
+        "files_get", "files_list", "files_delete", "browser_tab", "browser_scroll", "browser_record",
+    ), ("files",), "files, tabs, scroll, video"),
     Toolset("devtools", "why a page broke: its console messages and page errors, its requests and which "
             "failed, and one response's body", (
         "browser_console", "browser_network",

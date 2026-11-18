@@ -134,3 +134,9 @@ class KeepLiveNotAllowed(AgentosError):
     """keep "live" keeps the machine running and billed all month, so the owner opts in first
     (allow_keep_live), and at most max_live_kept are kept live at once."""
     code = "keep_live_not_allowed"
+
+
+class RecordingFailed(AgentosError):
+    """browser_record could not start or keep a recording: the machine has no ffmpeg and cannot install
+    it (its network is none), the node has none (browser = "node"), or ffmpeg failed."""
+    code = "recording_failed"

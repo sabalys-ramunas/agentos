@@ -66,6 +66,7 @@ LOCAL_TOOLS: tuple[str, ...] = (
     "agentos.environments.tools",
     "agentos.environments.uploads",  # environment_upload: a one-use link for a local checkout's tarball
     "agentos.environments.downloads",  # environment_download: a one-use link to a file or folder off the machine
+    "agentos.environments.recording",  # browser_record: a video of an environment's browser as proof
 )
 
 INSTRUCTIONS = """\

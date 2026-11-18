@@ -586,6 +586,8 @@ async def environment(ctx: ToolContext, *, on: str | None = None) -> dict:
     if compare:
         git["compare"] = compare
     out["proofs"] = _proofs(mgr, env)
+    if (recording := mgr.recording_view(env)) is not None:
+        out["recording"] = recording  # agentos.environments.recording: one runs now
     out["replay"] = mgr.replay_summary(env)  # {frames, since, bytes}: the owner watches it, not the agent
     if env.pull_requests:
         git["pull_requests"] = env.pull_requests

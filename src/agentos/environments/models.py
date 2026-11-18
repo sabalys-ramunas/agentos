@@ -96,6 +96,10 @@ class EnvSettings(BaseModel):
     # The replay of each environment's browser (agentos.environments.replay): frames kept on the node.
     replay: bool = True                                   # its browser holds no account and no vault entry
     replay_days: int = Field(default=14, ge=1, le=365)    # kept this long after the environment closed
+    # Proofs (agentos.environments.proofs and recording): a video's longest recording, and whether
+    # environment_pull_request puts the proofs in the pull request (on the repository's agentos-proofs branch).
+    record_max_s: int = Field(default=180, ge=10, le=900)
+    pr_proofs: bool = True
 
     @field_validator("keep_paths")
     @classmethod

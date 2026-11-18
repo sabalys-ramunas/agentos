@@ -94,7 +94,7 @@ STATUS_BY_CODE: dict[str, int] = {
     "connection": 502, "driver_error": 502, "json_empty": 502, "json_invalid": 502, "json_status": 502,
     "json_too_large": 502, "json_unreadable": 502, "mail_not_sent": 502, "output_contract_violation": 502,
     "readback_error": 502, "storage_error": 502, "studio_http_error": 502, "studio_page_not_loaded": 502,
-    "vm_error": 502, "environment_failed": 502, "save_failed": 502, "restore_failed": 502, "pull_request_failed": 502,
+    "vm_error": 502, "environment_failed": 502, "save_failed": 502, "restore_failed": 502, "pull_request_failed": 502, "recording_failed": 502,
     # 503: not set up, not ready, or short of something on this node; a person sets it right
     "audit_unwritable": 503, "brain_unconfined": 503, "xclip_missing": 503, "decision_unavailable": 503, "identity_error": 503,
     "lane_format": 503, "lane_unavailable": 503, "mail_unavailable": 503, "no_sandbox": 503, "plugin_change_not_recorded": 503,

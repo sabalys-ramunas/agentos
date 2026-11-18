@@ -36,6 +36,9 @@ X_SOCKET = f"/tmp/.X11-unix/X{DISPLAY_NUM}"
 START_WAIT_S = 20.0
 BROWSER_WAIT_S = 90.0
 FAMILY_WILD = 65535  # an Xauthority entry for any host: the machine's name does not matter
+# A video proof's recorder (recorder_ctl.py, agentos.environments.recording) records this screen: it
+# ends with the screen, so it finishes its file first
+RECORDER_PID = "/var/lib/agentos-env/recording/ffmpeg.pid"
 
 # The browser server: the options the node sent, with the screen and window as Camoufox wants them.
 SERVE = """
@@ -159,7 +162,26 @@ def _base_env():
     return env
 
 
+def _stop_recorder():
+    try:
+        with open(RECORDER_PID) as f:
+            pid = int(f.read().strip())
+        os.killpg(pid, signal.SIGINT)
+    except (OSError, ValueError):
+        return
+    deadline = time.monotonic() + 10.0
+    while time.monotonic() < deadline:
+        try:
+            with open(f"/proc/{pid}/stat") as f:
+                if f.read().rsplit(")", 1)[-1].split()[0] == "Z":
+                    return  # exited; nobody reaped it yet
+        except OSError:
+            return
+        time.sleep(0.1)
+
+
 def display(req):
+    _stop_recorder()
     _stop("browser")
     _stop("x11vnc")
     _stop("xvfb")
@@ -229,6 +251,7 @@ def clipboard(req):
 
 
 def stop(req):
+    _stop_recorder()
     for name in req.get("what") or ["browser", "display"]:
         if name == "display":
             _stop("x11vnc")
