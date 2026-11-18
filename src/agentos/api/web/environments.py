@@ -11,7 +11,7 @@
     POST /api/orgs/{org}/environments/saves/{save_id}/resume   resume a save, held by no chat
                                                           (agentos.environments.waking) -> EnvSummary with
                                                           opened, resumed and links. The owner in person
-    GET  /api/orgs/{org}/environments/{id}/checkpoints/{n}  one checkpoint against the work now: per
+    GET  /api/orgs/{org}/environments/{id}/checkpoints/{checkpoint}  one checkpoint against the work now: per
                                                           repository its files and patch (capped). The owner
 
 The detail's `checkpoints` (agentos.environments.checkpoints) carry `diff` in each repository: what
@@ -280,7 +280,7 @@ def _owner_routes(api: Api, find: Any) -> list[BaseRoute]:
 
     async def checkpoint_diff(request: Request) -> dict[str, Any]:
         mgr, env = find(request, "environment.checkpoint")
-        raw = request.path_params["n"]
+        raw = request.path_params["checkpoint"]
         if not raw.isdigit() or not 0 < int(raw) < 10**9:
             raise InvalidRequest("a checkpoint is its number, like 3.")
         await access_of(request).authorize(Effect.READ, action="environment.checkpoint", lane_id=env.terminal_lane)
@@ -309,5 +309,5 @@ def _owner_routes(api: Api, find: Any) -> list[BaseRoute]:
     return [
         org_route(api, "/environments/saves/{save_id}/resume", resume_save, ["POST"], owner=True,
                   presence=Presence.PERSON),
-        org_route(api, "/environments/{id}/checkpoints/{n}", checkpoint_diff, ["GET"], owner=True),
+        org_route(api, "/environments/{id}/checkpoints/{checkpoint}", checkpoint_diff, ["GET"], owner=True),
     ]

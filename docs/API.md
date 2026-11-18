@@ -873,7 +873,7 @@ use; the owner resumes a save held by no chat.
   automatic one was made before (`"before rollback to 2"`) or null, and `diff` what changed since, against
   the work tree now (null when the machine did not answer; read at most every 15 s per environment, so
   polling the page is cheap). Polling this route never counts as use of the machine.
-- `GET /api/orgs/{org}/environments/{id}/checkpoints/{n}` -> `{ "checkpoint": 3, "max_bytes": 200000,
+- `GET /api/orgs/{org}/environments/{id}/checkpoints/{checkpoint}` -> `{ "checkpoint": 3, "max_bytes": 200000,
   "max_files": 500, "repos": [{ "dir": "/work/shop", "files_total": 4, "files": [{ "path": "src/cart.ts",
   "status": "M", "lines_added": 12, "lines_removed": 3 }], "patch": "diff --git a/src/cart.ts ...",
   "patch_bytes": 5120, "truncated": false }] }`: one checkpoint against the work tree now, for a diff view.

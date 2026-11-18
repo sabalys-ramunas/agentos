@@ -700,7 +700,7 @@ class ViewerApp:
         if attached:
             getattr(self.lanes, "viewer_attached", lambda _: None)(lane_id)
         getattr(self.lanes, "view_opened", lambda _: None)(lane_id)  # any watcher: no exit IP probe window
-        unwatch = viewer_saved.watch(self, lane_id)  # an environment watched is in use (agentos.environments.watching)
+        watched = viewer_saved.watch(self, lane_id)  # an environment watched is in use (agentos.environments.watching)
         try:
             with self._tracked("viewer", lane_id, link, person=person) as entry:
                 await _race(relay.run(), entry.wait_closed())
@@ -708,8 +708,8 @@ class ViewerApp:
                     with contextlib.suppress(RuntimeError, WebSocketDisconnect):
                         await websocket.close(code=entry.code or CLOSE_DENIED, reason=entry.reason or "")
         finally:
-            if unwatch is not None:
-                unwatch()
+            if watched is not None:
+                watched()
             getattr(self.lanes, "view_closed", lambda _: None)(lane_id)
             if attached:
                 getattr(self.lanes, "viewer_detached", lambda _: None)(lane_id)
