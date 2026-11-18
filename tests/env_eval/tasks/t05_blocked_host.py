@@ -40,7 +40,7 @@ async def check(ctx: Ctx) -> list[Check]:
 
 
 async def perfect(ctx: Ctx, a: Agent, session: int) -> str:
-    env = await a.open(title="Rates script", repo=ctx.repo.slug)
+    env = await a.open(title="Rates script", repo=ctx.repo.slug, keep="none")
     await a.sh("npm install 2>&1 | tail -3", cwd=env["workdir"])
     out = await a.sh("npm run rates 2>&1", cwd=env["workdir"])
     if "403" not in str(out):

@@ -49,7 +49,7 @@ async def check(ctx: Ctx) -> list[Check]:
 
 
 async def perfect(ctx: Ctx, a: Agent, session: int) -> str:
-    env = await a.open(title=f"Storefront price {session + 1}", repo=ctx.repo.slug)
+    env = await a.open(title=f"Storefront price {session + 1}", repo=ctx.repo.slug, keep="none")
     if not (env.get("app") or {}).get("listening"):
         return done(f"the app did not listen: {(env.get('app') or {}).get('why')}", "blocked")
     await a.on_call("browser_navigate", url="http://localhost:3000")

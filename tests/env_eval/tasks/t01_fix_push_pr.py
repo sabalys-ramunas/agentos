@@ -23,7 +23,7 @@ async def check(ctx: Ctx) -> list[Check]:
 
 
 async def perfect(ctx: Ctx, a: Agent, session: int) -> str:
-    env = await a.open(title="Fix the cart discount", repo=ctx.repo.slug)
+    env = await a.open(title="Fix the cart discount", repo=ctx.repo.slug, keep="none")
     wd = env["workdir"]
     await a.sh("npm test 2>&1 | tail -15", cwd=wd)
     await a.on_call("lane_file_read", path="src/price.js")

@@ -391,6 +391,22 @@ What this does not stop:
   work, a test or staging account where one exists.
 - **A link holder.** A control link of that browser types into the signed-in session (above).
 
+## Saves, the default way an environment stays (docs/ENVIRONMENTS.md "Keeping an environment")
+
+An environment saves when idle unless the agent asks for single use (`keep="none"`) or the owner sets
+`default_keep = "none"`. So by default its code and its browser's sign-ins outlive the VM:
+
+| | |
+|---|---|
+| Where a save lives | the disk snapshot (or, on Morph, the paused machine) in the owner's own provider account; the file part on the node, sealed with the saves key the vault holds (`encrypt_saves`) |
+| What it holds | the machine's disk as the agent left it (code, installs, anything the agent wrote, a secret the app printed included), and the browser's storage state: cookies and local storage of the environment's own browser, never an account lane's or the vault's (`signins=false` or `save_signins = false`: none) |
+| What it never holds | the git gateway's token and `~/.git-credentials` (removed before the snapshot; a resume mints a new token), the machine's SSH keys, process memory, swap |
+| Who brings it back | an agent of the same grant family by its title, or the owner (`agentos environments resume`); within the node's limits |
+| How it ends | `environment_forget`, `environment_close(forget=true)`, the owner, or retention (`saved_days`, `keep_last`), which deletes the snapshot or the paused machine too |
+
+A sign-in kept in a save is a session on that site: anyone who can read the owner's provider account can
+read the snapshot. Single use keeps nothing once the work is pushed (a rescue save only for unpushed work).
+
 ## The agent's own ssh to its environment (local mode)
 
 In local mode (docs/LOCAL.md) the agent runs on the same laptop as agentos, and each ready environment

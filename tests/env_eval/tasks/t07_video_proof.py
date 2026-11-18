@@ -40,7 +40,7 @@ async def check(ctx: Ctx) -> list[Check]:
 
 
 async def perfect(ctx: Ctx, a: Agent, session: int) -> str:
-    env = await a.open(title="Winter sale banner", repo=ctx.repo.slug)
+    env = await a.open(title="Winter sale banner", repo=ctx.repo.slug, keep="none")
     wd = env["workdir"]
     await a.on_call("lane_file_edit", path="server.js", old=f"<h1>{OLD}", new=f"<h1>{NEW}")
     job = await a.on_call("lane_job_start", cmd="npm run dev", cwd=wd)

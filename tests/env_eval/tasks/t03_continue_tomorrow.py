@@ -60,9 +60,9 @@ async def perfect(ctx: Ctx, a: Agent, session: int) -> str:
 
 
 async def careless(ctx: Ctx, a: Agent, session: int) -> str:
-    """Day one: no keep, so the close throws the work away. Day two: a new machine, the JSON half only."""
+    """Day one: single use, so the close throws the work away. Day two: a new machine, the JSON half only."""
     if session == 0:
-        env = await a.open(title=TITLE, repo=ctx.repo.slug)
+        env = await a.open(title=TITLE, repo=ctx.repo.slug, keep="none")
         await a.on_call("lane_file_edit", path="src/export.js", old=CSV_OLD, new=CSV_NEW)
         await a.sh("node --test test/csv.test.js 2>&1 | tail -3", cwd=env["workdir"])
         await a.on_call("environment_close", discard=True)

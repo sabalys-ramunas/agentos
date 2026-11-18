@@ -47,7 +47,7 @@ async def check(ctx: Ctx) -> list[Check]:
 
 
 async def perfect(ctx: Ctx, a: Agent, session: int) -> str:
-    env = await a.open(title="Ledger in euros", repo=ctx.repo.slug)
+    env = await a.open(title="Ledger in euros", repo=ctx.repo.slug, keep="none")
     cp = await a.via("environment_checkpoint", note="before amounts in euros")
     await a.on_call("lane_file_edit", path="src/ledger.js", old=OLD, new=NEW)
     broke = await a.sh("npm test 2>&1 | tail -12", cwd=env["workdir"])

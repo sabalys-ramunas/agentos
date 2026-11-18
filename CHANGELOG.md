@@ -167,12 +167,23 @@ All notable changes to agentos are recorded here. The format follows
 
 ### Changed
 
+- **An environment saves when idle by default.** agentos is a computer for your agent that stays, so
+  `default_keep` is now `save`: an `environment_open` that names no `keep` is saved (disk and files, or
+  paused on Morph) when it idles, closes or the laptop sleeps, and its title brings it back in any chat.
+  Single use is one argument away (`keep="none"`, which the skill and the MCP intro teach for a one-off
+  fix only), and `default_keep = "none"` in `environments.toml` makes it the node's default again (an
+  `environments.toml` that already names it keeps it). `agentos setup` offers saves when idle first, as
+  the recommended choice, and `--yes` takes it.
+- **The README and docs/VISION.md say what agentos is**: a computer for your agent, with a browser, a
+  terminal and a disk that stay, on machines in your own account, signed in with logins from your vault
+  that the model never sees. The FAQ compares it with hosted agent computers and with temporary
+  sandboxes. The skill and both MCP intros name the login tool. docs/THREAT-MODEL.md says what a save
+  holds and never holds.
 - **The Docker image downloads instead of building.** Setup pulls the prebuilt
   `ghcr.io/sabalys-ramunas/agentos-env:<version>` (amd64 and arm64, published by each release) in a
   minute or two, and builds it here only when it cannot (10 to 15 minutes). `agentos environments
   setup --pull` does the same; `--build` still builds it here; `docker_pull = ""` in `vms.toml` never
   downloads.
-- The README says the web app is not part of the one-line install.
 
 ## [0.3.0] - 2026-11-16
 
