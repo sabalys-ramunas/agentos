@@ -20,8 +20,10 @@ looks again a few times (its next call, often a snapshot, is on the lane) and gi
 page call, whose frame shows what came of both. It is a screenshot of the viewport only: no
 pointer, focus, scroll or tab changes (caret="initial" injects no style). Measured on a docker machine
 with the browser on it: about 60 ms a shot, a 30 KB JPEG from the browser, 15 KB once shrunk.
-Only an environment's own browser `env/<id>-browser` is ever pictured: it holds no account and no
-vault entry. An account lane never is.
+Only an environment's own browser `env/<id>-browser` is ever pictured, never an account lane. While
+the vault fills a login there (agentos.environments.logins, `filling`) no frame is taken: the lane is
+held by the fill anyway, and a frame must not catch a username half typed. The page after the login
+is pictured as after any page call.
 
 The owner reads the timeline (frames with links signed like the proofs' and revoked with the viewer
 key, the calls interleaved by time) through the web API and `agentos environments replay`; an agent
@@ -63,7 +65,7 @@ REPLAY_PURPOSE = "replay"
 TIMELINE_LIMIT, TIMELINE_MAX = 500, 2000
 # the agent calls on an environment's browser that can change what it shows
 PAGE_TOOLS = frozenset({"browser_navigate", "browser_act", "browser_scroll", "browser_upload",
-                        "browser_dialog_answer", "browser_tab", "browser_wait"})
+                        "browser_dialog_answer", "browser_tab", "browser_wait", "login"})
 
 
 @dataclass
@@ -75,6 +77,7 @@ class _Track:
     still: int = 0              # looks in a row that found no change
     seq: int = 0                # page calls noted: an agent frame gives way to a newer call's
     pending: int = 0            # agent frames still to take: the change and person frames wait for them
+    filling: int = 0            # vault fills running on its browser: no frame while one does
 
 
 def frame_lane(env: Environment) -> str | None:
@@ -219,7 +222,7 @@ class Replay:
         if lane is None or not callable(turn_of) or self.browser_environment(lane) is None:
             return "skipped"  # not an open environment's own browser
         track = self._track(env.id)
-        if track.lock.locked() and cause in ("change", "person"):
+        if track.filling or (track.lock.locked() and cause in ("change", "person")):
             return "busy"
         async with track.lock:
             turn = turn_of(lane)
@@ -228,8 +231,8 @@ class Replay:
             shot = await _shoot(turn.page)
             if shot is None:
                 return "skipped"
-            if not turn.still_quiet():
-                return "busy"  # a call came while it was taken: it could show that call half way
+            if not turn.still_quiet() or track.filling:
+                return "busy"  # a call (or a fill) came while it was taken: it could show it half way
             raw, url, title, ms = shot
             jpeg, width, height, pixels = await asyncio.to_thread(prepare, raw)
             # a change or a person's frame that only goes back to the one before (a caret blinking) is none

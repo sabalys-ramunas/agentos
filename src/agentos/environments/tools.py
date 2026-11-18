@@ -408,7 +408,13 @@ async def environment_open(ctx: ToolContext, *, title: str | None = None, repo: 
     bigger: list[dict] = []
     with contextlib.suppress(Exception):  # a convenience: the environment works without it
         bigger = await mgr.bigger_sizes(env)
-    return _open_result(ctx, mgr, env, handle, bigger, opened=opened, applied=applied, differs=differs)
+    out = _open_result(ctx, mgr, env, handle, bigger, opened=opened, applied=applied, differs=differs)
+    if logins := await mgr.login_names(env):  # the owner's bound logins, by name (agentos.environments.logins)
+        out["logins"] = logins
+        out["next"] = (f"Signed-in accounts: login(on=\"{handle}\") signs this browser in to "
+                       f"{', '.join(repr(x['name']) for x in logins)} (entry=<name> when several), again "
+                       "whenever a site logs it out; it asks nobody. " + out.get("next", ""))
+    return out
 
 
 async def _open_locked(ctx: ToolContext, mgr: EnvironmentManager, binding: str, family: str | None, *, title: str,

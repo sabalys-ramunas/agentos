@@ -40,7 +40,7 @@ LADDER = tuple(e.value for e in Effect if e.rank is not None)
 # memory: a special with no effect of its own (agentos.policy.memory_rules); the panel grants it as
 # read and write over the grant's workspaces, without private or owner-only entries; memory_read is
 # the same without write (agentos.api.bridge.PANEL_SPECIAL_ALIASES)
-# environments: vm and exec on lanes env/* only (agentos.api.bridge.PANEL_SPECIAL_BUNDLES)
+# environments: vm, exec and secret on lanes env/* only (agentos.api.bridge.PANEL_SPECIAL_BUNDLES)
 SPECIALS = (*(e.value for e in Effect if e.rank is None and e not in PENDING_SPECIALS), "memory", "memory_read",
             "environments")
 

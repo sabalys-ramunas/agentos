@@ -19,6 +19,9 @@
     POST /api/environments/resume           {"ref"}: resume a save (its title or save id) held by no chat
                                             (agentos.environments.waking), for `agentos environments resume`. The
                                             owner
+    POST /api/environments/login            {"title", "site"}: sign that environment's browser in now with the
+                                            login the owner bound to it (agentos.environments.logins), for
+                                            `agentos environments login <title> <site>`. The owner
 
 `{id}` is the card's approval id, which the questions list marks with `repo_connect`
 (agentos.environments.connect.annotate). Every route answers only the owner signed in with a person
@@ -57,6 +60,12 @@ class DownloadBody(BaseModel):
 class ResumeBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
     ref: str
+
+
+class LoginBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    title: str
+    site: str
 
 
 class PrepareBody(BaseModel):
@@ -159,6 +168,21 @@ def routes(api: Api) -> list[Route]:
                                  f"\"{env.title}\" was open already ({env.id})")
         return m.owner_view(env, how)
 
+    async def sign_in(request: Request) -> dict:
+        """Sign an environment's browser in now with a bound login (`agentos environments login`). The owner.
+        The answer and the trace carry names and the outcome only, never a value."""
+        body = await read_body(request, LoginBody)
+        try:
+            out = await mgr().sign_in_now(body.title, body.site)
+        except AgentosError as e:
+            access_of(request).trace("environment.login", status="error",
+                                     summary=f"{body.site[:80]} in \"{body.title[:80]}\": {e.code}")
+            raise
+        env = out["environment"]
+        access_of(request).trace("environment.login", lane=f"env/{env['id']}-browser",
+                                 summary=f"signed in to {out['login']['name']}: {'ok' if out.get('ok') else out.get('needs') or out.get('step')}")
+        return out
+
     in_person = {"owner": True, "presence": Presence.PERSON}
     return [
         Route("/api/environments/{id}/download", endpoint(api, download, owner=True, action="environment.download"),
@@ -166,6 +190,8 @@ def routes(api: Api) -> list[Route]:
         Route("/api/environments/prepare", endpoint(api, prepare, owner=True, action="environment.prepare"),
               methods=["POST"]),
         Route("/api/environments/resume", endpoint(api, resume, owner=True, action="environment.resume"),
+              methods=["POST"]),
+        Route("/api/environments/login", endpoint(api, sign_in, owner=True, action="environment.login"),
               methods=["POST"]),
         Route("/api/repo-connect/{id}/form", endpoint(api, token_page, step_up=True, **in_person), methods=["POST"]),
         Route("/api/repo-connect/{id}/deploy-key", endpoint(api, deploy_key, **in_person), methods=["POST"]),

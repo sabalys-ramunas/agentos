@@ -141,7 +141,7 @@ def env_scope_allows(entry: EntryMeta, lane_id: str, facts: Mapping[str, object]
     """For an entry the owner bound to agent environments (config `envs`, agentos.environments.logins):
     on an environment's lane, does one of its scopes cover the lane's environment (`facts`: its title
     and repository)? Any other lane, or an entry with no such binding: True (its lanes decide)."""
-    envs = entry.config.get("envs")
+    envs = (getattr(entry, "config", None) or {}).get("envs")
     if not isinstance(envs, dict) or not str(lane_id).startswith(ENV_WORKSPACE + "/"):
         return True
     if not facts:

@@ -14,7 +14,7 @@ from agentos.core.errors import InvalidRequest
 from agentos.core.models import Effect, LaneKind, parse_lane_id
 from agentos.core.tools import ToolContext, ToolSpec
 from agentos.vault.login import fill_flow, login_flow
-from agentos.vault.policy import lane_bound
+from agentos.vault.policy import env_scope_allows, lane_bound
 
 
 def _browser_lane(ctx: ToolContext, on: str) -> Any:
@@ -37,20 +37,23 @@ def _session(ctx: ToolContext, lanes: Any, on: str) -> Any:
 
 
 async def login(ctx: ToolContext, *, on: str, entry: str | None = None) -> dict:
-    """Log in on the lane's current page with a stored vault login; navigate to the site's
-    login page first. The node finds the form by structure, checks that the entry is bound
-    to this lane and this site, types the username and password with human input and submits. A one-time code comes from
-    the entry's TOTP seed, its email code catcher, or the owner in the panel (the call waits
-    for them, up to a few minutes). You never see the secret or the code. Pass `entry` only
-    when several entries match: the error names them (vault_list, in the vault toolset,
-    lists a lane's logins). It asks nobody: a password in the vault is the owner's
-    permission to use it. Returns ok, step, needs ("totp", "code" when the owner gave no
-    code in time, "captcha", "human" or null) and the page signal. Do not retry a "code"
-    result in a loop; ask the owner."""
+    """Sign the browser in with a login stored in the vault. An environment's browser opens the
+    login page itself when needed; on an account lane, browser_navigate there first. The node finds
+    the form, checks the login is bound to this browser and site, types it with human input and
+    submits, and a code from its TOTP seed or the owner (waits a few minutes). You never see a
+    secret. It asks nobody: call it again whenever a site logs you out. `entry`: a login's name, only
+    when several match (environment(), or vault_list in the vault toolset, names them). Returns ok, step, needs ("totp",
+    "code", "captcha", "human" or null; not null: the human's turn, in the live view) and the signal."""
     vault = ctx.runtime.require("vault")
     lanes = _browser_lane(ctx, on)
     factory = vault.typist_for(ctx.runtime)
+    envs = ctx.runtime.get("environments") if hasattr(ctx.runtime, "get") else None
+    env_login = getattr(envs, "env_login", None)
     async with _session(ctx, lanes, on) as page:
+        if callable(env_login):  # an environment's browser (agentos.environments.logins); None for any other lane
+            result = await env_login(ctx, vault, factory(page), page, lane_id=on, entry=entry)
+            if result is not None:
+                return result
         return await login_flow(ctx, vault, factory(page), lane_id=on, entry=entry)
 
 
@@ -68,16 +71,20 @@ async def vault_fill(ctx: ToolContext, *, on: str, field: str, entry: str) -> di
         return await fill_flow(ctx, vault, factory(page), lane_id=on, field_ref=field, entry=entry)
 
 
-def _reached(ctx: ToolContext, pattern: str, known: list[str]) -> bool:
+def _reached(ctx: ToolContext, pattern: str, known: list[str], entry: Any = None, vault: Any = None) -> bool:
     """Does the caller's grant reach a lane binding: the lane itself, or for `workspace/*` a lane
-    of that workspace on this node that the grant covers. Fails closed."""
+    of that workspace on this node that the grant covers (and, for a login bound to environments,
+    one of the environments it covers). Fails closed."""
     allowed = getattr(ctx, "can_access_lane", None)
     if not callable(allowed):
         return False
+    facts = getattr(vault, "facts_for", None)
     try:
         if not pattern.endswith("/*"):
             return bool(allowed(pattern))
-        return any(lane_bound([pattern], lane) and allowed(lane) for lane in known)
+        return any(lane_bound([pattern], lane) and allowed(lane)
+                   and (entry is None or env_scope_allows(entry, lane, facts(lane) if callable(facts) else None))
+                   for lane in known)
     except Exception:  # noqa: BLE001 - a binding the policy cannot read is outside every scope
         return False
 
@@ -107,7 +114,7 @@ async def vault_list(ctx: ToolContext, *, on: str | None = None) -> dict:
     out = []
     for e in entries:  # an entry bound to no lane the grant reaches is the owner's business, not this agent's
         item = e.listing()
-        item["lanes"] = [p for p in item["lanes"] if _reached(ctx, p, known)]
+        item["lanes"] = [p for p in item["lanes"] if _reached(ctx, p, known, e, vault)]
         if item["lanes"]:
             out.append(item)
     return {"state": vault.state(), "entries": out}

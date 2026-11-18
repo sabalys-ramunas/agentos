@@ -80,8 +80,10 @@ AGENT_SUBJECT = "claude-code@dev"
 AGENT_CEILING = "commit"  # agentos connect's default: posts go, and after untrusted text they ask first
 AGENT_TTL_S = 7 * 86400
 # as agentos connect gives: memory_read (memory_context works, writing does not) and environments
-# (vm and exec on lanes env/* only: the agent may open its own cloud computer and run commands there)
-AGENT_SPECIALS = {"memory": {}, "vm": {"lanes": ["env/*"]}, "exec": {"lanes": ["env/*"]}}
+# (vm, exec and secret on lanes env/* only: the agent may open its own cloud computer, run commands there
+# and sign its browser in with the logins the owner bound to it)
+AGENT_SPECIALS = {"memory": {}, "vm": {"lanes": ["env/*"]}, "exec": {"lanes": ["env/*"]},
+                  "secret": {"lanes": ["env/*"]}}
 
 
 def issue_agent_grant(runtime: Runtime) -> tuple[str, str]:

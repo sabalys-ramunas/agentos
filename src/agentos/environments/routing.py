@@ -42,8 +42,8 @@ BROWSER = frozenset({
     "browser_network", "browser_record", "browser_screenshot", "browser_scroll", "browser_snapshot", "browser_tab", "browser_tabs",
     "browser_upload", "browser_wait", "files_delete", "files_get", "files_list", "files_put", "lane_claim",
     "lane_close", "lane_control", "lane_open", "lane_queue", "lane_release", "lane_request_control", "lane_view",
-    "lane_wait_control",
-})
+    "lane_wait_control", "login", "vault_fill",
+})  # login and vault_fill: the vault types a login the owner bound to the environment (agentos.environments.logins)
 STUDIO = frozenset({"ui_check", "ui_diff", "ui_baseline", "system_check"})
 
 # tools that are not routed without `on` (lane_jobs_list lists every run the caller may see; a job id

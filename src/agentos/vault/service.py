@@ -367,7 +367,7 @@ class VaultService:
             return None
         try:
             return self.lane_facts(lane_id)
-        except Exception:  # noqa: BLE001 - fail closed: no environment known covers nothing
+        except Exception:
             log.warning("vault: could not read the environment of %s", lane_id, exc_info=True)
             return None
 

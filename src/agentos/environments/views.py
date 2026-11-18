@@ -204,6 +204,7 @@ class Views:
         out["checkpoints"] = listed(repos)  # git's own undo points on the machine (agentos.environments.checkpoints)
         out["watched"] = self.watched(env)  # type: ignore[attr-defined]  (Watching, on the same manager)
         out["network"] = self.network_view(env)  # type: ignore[attr-defined]  (Network, on the same manager)
+        out["logins"] = await self.login_names(env) if env.open else []  # type: ignore[attr-defined]  (Logins)
         out.update(self.prepared_view(env))  # type: ignore[attr-defined]  (Preparing, on the same manager)
         from agentos.environments import timings
 

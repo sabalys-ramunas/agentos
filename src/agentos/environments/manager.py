@@ -49,6 +49,7 @@ from agentos.environments.errors import (
     UnsavedWork,
 )
 from agentos.environments.fleet import Fleet
+from agentos.environments.logins import Logins
 from agentos.environments.models import (
     BRANCHES_KEPT,
     CALLS_KEPT,
@@ -147,7 +148,7 @@ def check_ref(ref: str | None) -> str | None:
 
 class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downloads, Pausing, Saving, Activity,
                          SshAccess, Updates, Network, Preparing, PrepBuild, WarmPool, Replay, Checkpoints, Watching,
-                         Waking, Recording, Fleet):
+                         Waking, Recording, Fleet, Logins):
     """The environments service. Which environment a call means and attaching by title (Picking), its
     sizing and cost (Sizing), its bring-up (BringUp), its read side (Views), its saves (Saving) and what
     counts as busy (Activity), and in local mode the agent's own ssh (SshAccess) are mixins in their own
@@ -246,6 +247,7 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
         if self._reaper is None:
             self._reaper = asyncio.create_task(self._reap_loop(), name="environment-reaper")
         self.replay_start()  # frames of a person's take-over and of a changing page (agentos.environments.replay)
+        self.logins_install()  # the vault reads which environments a bound login covers (agentos.environments.logins)
 
     async def shutdown(self) -> None:
         """Stop the reaper, the bring-ups and the tunnels. The VMs stay: a restart of the node must
@@ -384,8 +386,9 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
         its grant family's, or the owner's and the member's outside MCP (over MCP the policy has
         already refused another family's as not found)? The policy reads it as a node fact, and
         nothing aimed at such a lane waits for a person. The VM holds no account and no key, its
-        browser no login and no vault entry, and its one token fetches and pushes the environment's
-        own repository through the git gateway, whose refusals still hold (docs/design/environments.md)."""
+        browser only the logins the owner bound to it (agentos.environments.logins), and its one
+        token fetches and pushes the environment's own repository through the git gateway, whose
+        refusals still hold (docs/design/environments.md)."""
         found = self.lane_env(lane_id)
         return found is not None and self.reaches(found[0], grant, mcp=False)
 

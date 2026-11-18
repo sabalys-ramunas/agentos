@@ -545,10 +545,12 @@ PANEL_SPECIAL_CAPS: dict[str, dict] = {"memory": {"write": True}}   # memory not
 # without write (memory_context, search and get), what `agentos connect` gives an agent by default.
 PANEL_SPECIAL_ALIASES: dict[str, tuple[str, dict]] = {"memory_read": ("memory", {})}
 # Names that stand for several specials at once. environments: rent this chat's cloud computer
-# (agentos.environments) and run commands on it, and only there: lanes env/*, never an account lane.
+# (agentos.environments), run commands on it and sign its browser in with the logins the owner bound to
+# it (agentos.environments.logins), and only there: lanes env/*, never an account lane.
 ENVIRONMENT_LANES = ["env/*"]
 PANEL_SPECIAL_BUNDLES: dict[str, dict[str, dict]] = {
-    "environments": {"vm": {"lanes": ENVIRONMENT_LANES}, "exec": {"lanes": ENVIRONMENT_LANES}},
+    "environments": {"vm": {"lanes": ENVIRONMENT_LANES}, "exec": {"lanes": ENVIRONMENT_LANES},
+                     "secret": {"lanes": ENVIRONMENT_LANES}},
 }
 
 

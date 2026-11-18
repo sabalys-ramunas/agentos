@@ -1,7 +1,7 @@
 """The local node's agent grant and the clients on this computer that use it.
 
 The grant is what `agentos connect` issues an agent by default (agentos.client.choices): every
-workspace, up to commit, with the specials environments (vm and exec on lanes env/* only) and
+workspace, up to commit, with the specials environments (vm, exec and secret on lanes env/* only) and
 memory_read. Its token goes where connect keeps one (the macOS Keychain, or a chmod 600 file on
 Linux) under the connection name `local`, and Claude Code (user scope) and Codex reach the node as
 `agentos-local` through the headers helper, so no token sits in their config. The skills are copied

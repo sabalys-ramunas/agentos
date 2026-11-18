@@ -4,6 +4,8 @@ It is agentos.node.daemon's composition with the environment parts only, named h
 
 - MCP at /mcp and the web app at /, with daemon.serve's signal handling and clean shutdown;
 - grants and policy (and with them the audit log), the freeze, the vault, the git gateway;
+- the vault's login tools (login, vault_fill, vault_list) and its typist: an environment's browser signs
+  in with the logins the owner bound to it (agentos.environments.logins), typed into the VM's browser;
 - terminal lanes (agentos.env: an environment's terminal is a VM lane over SSH), the VMs and the
   environments, each with its reaper and the node's limits;
 - the environment's browser: the node's own lane manager (agentos.local.lanes.LocalLanes) with
@@ -67,6 +69,7 @@ LOCAL_TOOLS: tuple[str, ...] = (
     "agentos.environments.uploads",  # environment_upload: a one-use link for a local checkout's tarball
     "agentos.environments.downloads",  # environment_download: a one-use link to a file or folder off the machine
     "agentos.environments.recording",  # browser_record: a video of an environment's browser as proof
+    "agentos.node.vault_tools",  # login: the environment's browser signs in with a login the owner bound to it
 )
 
 INSTRUCTIONS = """\
@@ -139,6 +142,9 @@ def build_runtime(config: NodeConfig, *, services: tuple[str, ...] = LOCAL_SERVI
     browser = environments_browser(config.home)
     lanes = build_local_lanes(config)
     runtime = node_runtime(config, lanes, lanes.watch(create_interaction()))
+    from agentos.node.typist import typist_factory
+
+    runtime.register("typist", typist_factory(runtime))  # the vault types a bound login into the VM's browser
     build_services(runtime, services)
     vms = runtime.get("vms")
     if vms is not None:
