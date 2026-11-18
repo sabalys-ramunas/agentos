@@ -135,7 +135,8 @@ aside li.frame { cursor: pointer; }
 aside li.frame:hover { background: var(--stage); }
 aside li.on { background: var(--stage); box-shadow: inset 3px 0 0 var(--accent); }
 aside .t { color: var(--muted); font-variant-numeric: tabular-nums; }
-aside .call .s { color: var(--muted); overflow-wrap: anywhere; }
+aside .call .s { color: var(--muted); overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; }
 aside .call.failed .s { color: var(--bad); }
 aside .frame .s { overflow-wrap: anywhere; }
 .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
@@ -219,6 +220,7 @@ aside .frame .s { overflow-wrap: anywhere; }
     at = Math.max(0, Math.min(frames.length - 1, n));
     var f = frames[at], img = el("img");
     img.src = f.file; img.alt = said(f);
+    if (f.width && f.height) shot.style.aspectRatio = f.width + " / " + f.height;
     shot.appendChild(img);
     var l1 = el("div", "line1");
     l1.appendChild(el("span", "pill " + f.cause, WORDS[f.cause]));
