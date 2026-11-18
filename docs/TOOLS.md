@@ -149,7 +149,7 @@ Call any agentos tool by name with its arguments, including tools not in your li
 | [`lane_freeze`](#lane_freeze) | control | read | Freeze a lane (or its whole workspace, or this node) at once: every agent there is stopped, in-flight calls are cancelled, no agent grant (yours too) takes a call there until the owner unfreezes, grants that reach only that are revoked (a node freeze revokes every agent grant), runs are cancelled and schedules and triggers paused |
 | [`lane_install`](#lane_install) | terminals | install_overlay | Install programs into a lane from a pinned source: apt (the node's signed apt sources, as the lane's root inside its overlay), pip (pypi.org) or npm (registry.npmjs.org) |
 | [`lane_job_cancel`](#lane_job_cancel) | core | exec | Stop a running job: SIGTERM to every process it started, SIGKILL a few seconds later |
-| [`lane_job_read`](#lane_job_read) | core | read | Read a job's output after your byte offsets, waiting up to wait_ms (30000) for more while it runs |
+| [`lane_job_read`](#lane_job_read) | core | read | Read a job's output after your byte offsets, max_bytes (6000) characters, waiting up to wait_ms (30000) for more while it runs |
 | [`lane_job_start`](#lane_job_start) | core | exec | Start a shell command in a lane in the background and return its job id at once; read its output with lane_job_read as it runs, stop it with lane_job_cancel |
 | [`lane_jobs_list`](#lane_jobs_list) | terminals | read | Background jobs on this node (of one lane with `on`), newest first, running and finished |
 | [`lane_login_request`](#lane_login_request) | vault | read | Ask the owner to log a lane in, when it is signed out (signal logged_out) or was never signed in and the vault holds no login for it (with one, use login: it asks nobody) |
@@ -456,7 +456,7 @@ Errors, each with its next step: ref_not_found, egress_refused (do not retry or 
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | The on your environment_open gave, or an account lane "workspace/name". |
+| `on` | `str \| None` | no (default None) | Your environment's on, or an account lane "workspace/name". |
 | `ref` | `str` | yes | A ref from your latest snapshot, for example e12. |
 | `action` | `click \| type \| fill \| select \| press \| hover \| scroll` | yes | Required: what to do with the element. |
 | `text` | `str \| None` | no (default None) | Text to type or fill, the option label to select, or the key to press. |
@@ -470,7 +470,7 @@ The lane's console since its browser started: console messages and uncaught page
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | The on your environment_open gave, or an account lane "workspace/name". |
+| `on` | `str \| None` | no (default None) | Your environment's on, or an account lane "workspace/name". |
 | `level` | `'error' \| 'warning' \| 'all'` | no (default 'all') | error (errors and page errors only), warning (warnings and errors) or all. |
 | `since` | `int \| None` | no (default None) | A cursor from an earlier result: only messages after it. |
 | `last` | `int` | no (default 50) | At most this many of the newest matching messages, 1 to 200. |
@@ -484,7 +484,7 @@ The dialog waiting in the lane, if any: type (alert, confirm, prompt, beforeunlo
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | The on your environment_open gave, or an account lane "workspace/name". |
+| `on` | `str \| None` | no (default None) | Your environment's on, or an account lane "workspace/name". |
 
 ## browser_dialog_answer
 
@@ -494,7 +494,7 @@ Answer the waiting dialog (the one browser_dialog shows): accept=true presses OK
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | The on your environment_open gave, or an account lane "workspace/name". |
+| `on` | `str \| None` | no (default None) | Your environment's on, or an account lane "workspace/name". |
 | `accept` | `bool` | yes |  |
 | `text` | `str \| None` | no (default None) |  |
 
@@ -506,7 +506,7 @@ Open a URL in the lane's active tab (http or https; a bare domain gets https). R
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | The on your environment_open gave, or an account lane "workspace/name". |
+| `on` | `str \| None` | no (default None) | Your environment's on, or an account lane "workspace/name". |
 | `url` | `str` | yes | The page to open, for example https://www.reddit.com/ |
 | `snapshot` | `'none' \| 'delta' \| 'full'` | no (default 'none') | "none" (default), "full" (the outline once the page has loaded) or "delta" (what changed since your last snapshot of this tab). |
 | `main_only` | `bool` | no (default False) | With a full outline, fold the page header, menus, side columns and footer to one line each with a count, to read a large page's main content for fewer tokens. |
@@ -519,7 +519,7 @@ The lane's network since its browser started: each request's id, method, url, ty
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | The on your environment_open gave, or an account lane "workspace/name". |
+| `on` | `str \| None` | no (default None) | Your environment's on, or an account lane "workspace/name". |
 | `id` | `str \| None` | no (default None) | One request's id from an earlier result (r12): its headers and response body. |
 | `failed_only` | `bool` | no (default False) | Only requests that got no answer or a status of 400 or more. |
 | `min_status` | `int \| None` | no (default None) | Only responses with at least this status, 100 to 599 (500 for server errors). |
@@ -536,7 +536,7 @@ A PNG of what the lane's active tab shows right now. Use it only when the snapsh
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | The on your environment_open gave, or an account lane "workspace/name". |
+| `on` | `str \| None` | no (default None) | Your environment's on, or an account lane "workspace/name". |
 | `full_page` | `bool` | no (default False) | The whole page, not only the window. |
 | `width` | `int \| None` | no (default None) | Lay the page out this wide for the shot (390: a phone). An environment's browser only. |
 | `proof` | `str \| None` | no (default None) | Keep it as proof of your work, with this title for the human ("cart after the fix"): kept on the node after the environment closes, with a link to give the human (curl -o proof.png <url> saves it). An environment's browser only. |
@@ -549,7 +549,7 @@ Move further down the page with the real wheel: a few notches, at the lane's own
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | The on your environment_open gave, or an account lane "workspace/name". |
+| `on` | `str \| None` | no (default None) | Your environment's on, or an account lane "workspace/name". |
 | `snapshot` | `'none' \| 'delta' \| 'full'` | no (default 'none') | "none" (default), "delta" (only the outline lines that changed) or "full". |
 
 ## browser_snapshot
@@ -560,7 +560,7 @@ Read the lane's active tab as an accessibility outline: roles, names and text, w
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | The on your environment_open gave, or an account lane "workspace/name". |
+| `on` | `str \| None` | no (default None) | Your environment's on, or an account lane "workspace/name". |
 | `main_only` | `bool` | no (default False) | Fold the page header, menus, side columns and footer to one line each with a count, to read a large page's main content for fewer tokens. Off by default. |
 
 ## browser_tab
@@ -571,7 +571,7 @@ Make tab `index` (from browser_tabs) the active one: later snapshots, actions an
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | The on your environment_open gave, or an account lane "workspace/name". |
+| `on` | `str \| None` | no (default None) | Your environment's on, or an account lane "workspace/name". |
 | `index` | `int` | yes |  |
 
 ## browser_tabs
@@ -582,7 +582,7 @@ The lane's open tabs and popups: index, url, title, which one is active (the one
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | The on your environment_open gave, or an account lane "workspace/name". |
+| `on` | `str \| None` | no (default None) | Your environment's on, or an account lane "workspace/name". |
 
 ## browser_upload
 
@@ -592,7 +592,7 @@ Attach inbox files (from files_put) to a file field: `ref` is either the file in
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | The on your environment_open gave, or an account lane "workspace/name". |
+| `on` | `str \| None` | no (default None) | Your environment's on, or an account lane "workspace/name". |
 | `ref` | `str` | yes |  |
 | `file_id` | `str \| list[str]` | yes |  |
 
@@ -604,7 +604,7 @@ Wait for something on the page instead of polling with snapshots: a text appears
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | The on your environment_open gave, or an account lane "workspace/name". |
+| `on` | `str \| None` | no (default None) | Your environment's on, or an account lane "workspace/name". |
 | `for_text` | `str \| list[str] \| None` | no (default None) | A text to wait for, or a list where any one appearing is enough. |
 | `gone_text` | `str \| list[str] \| None` | no (default None) | A text that must go away, or a list that must all go away. |
 | `exact` | `bool` | no (default False) | Match whole names or texts only, so "Post" does not match "Posts". |
@@ -701,7 +701,7 @@ A file or a folder under /work, to your own computer: a one-use .tar.gz link (15
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | The on your environment_open gave, or an account lane "workspace/name". |
+| `on` | `str \| None` | no (default None) | Your environment's on, or an account lane "workspace/name". |
 | `path` | `str` | yes | A file or a folder under /work, like "/work/shop/dist" or "report.pdf" (a relative one starts at the workdir). |
 
 ## environment_forget
@@ -780,7 +780,7 @@ A one-use link (15 minutes) that puts a .tar.gz of your local checkout (uncommit
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | The on your environment_open gave, or an account lane "workspace/name". |
+| `on` | `str \| None` | no (default None) | Your environment's on, or an account lane "workspace/name". |
 | `dest` | `str \| None` | no (default None) | A folder under /work (default: the workdir, /work/<repo> or /work); a relative one starts at the workdir. |
 
 ## events_list
@@ -804,7 +804,7 @@ Delete a file from the lane's inbox or outbox. A download still running is cance
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | The on your environment_open gave, or an account lane "workspace/name". |
+| `on` | `str \| None` | no (default None) | Your environment's on, or an account lane "workspace/name". |
 | `file_id` | `str` | yes |  |
 
 ## files_get
@@ -815,7 +815,7 @@ One file from the lane's inbox or outbox. Small images come back as an image (wh
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | The on your environment_open gave, or an account lane "workspace/name". |
+| `on` | `str \| None` | no (default None) | Your environment's on, or an account lane "workspace/name". |
 | `file_id` | `str` | yes |  |
 
 ## files_list
@@ -826,7 +826,7 @@ The lane's files: the inbox (what you stored with files_put, the only files brow
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | The on your environment_open gave, or an account lane "workspace/name". |
+| `on` | `str \| None` | no (default None) | Your environment's on, or an account lane "workspace/name". |
 
 ## files_put
 
@@ -836,7 +836,7 @@ Store a file in the lane's inbox, ready for browser_upload or a connector tool (
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | The on your environment_open gave, or an account lane "workspace/name". |
+| `on` | `str \| None` | no (default None) | Your environment's on, or an account lane "workspace/name". |
 | `name` | `str` | yes |  |
 | `content_base64` | `str \| None` | no (default None) |  |
 | `url` | `str \| None` | no (default None) |  |
@@ -997,7 +997,7 @@ Claim a lane for a job of several acting calls (a post, a login, a form), so no 
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | The on your environment_open gave, or an account lane "workspace/name". |
+| `on` | `str \| None` | no (default None) | Your environment's on, or an account lane "workspace/name". |
 | `purpose` | `str` | yes | Required. What the job is, in a few words other callers see, for example "posting a reply". |
 | `ttl_s` | `float` | no (default 120.0) | Seconds the claim lasts after your last call on the lane, 5 to 900. |
 | `wait_s` | `float` | no (default 30.0) | Seconds to wait in the queue for the lane, 0 to 120. |
@@ -1010,7 +1010,7 @@ Send a lane to cold: close its browser gracefully (cookies and logins stay on di
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | The on your environment_open gave, or an account lane "workspace/name". |
+| `on` | `str \| None` | no (default None) | Your environment's on, or an account lane "workspace/name". |
 
 ## lane_control
 
@@ -1020,7 +1020,7 @@ Who may act in a lane right now: "agent" (you may act), "human" (a person took o
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | The on your environment_open gave, or an account lane "workspace/name". |
+| `on` | `str \| None` | no (default None) | Your environment's on, or an account lane "workspace/name". |
 
 ## lane_do
 
@@ -1049,16 +1049,16 @@ Effect: draft, under a child grant of yours limited to this lane, the browser to
 
 Toolset: `core`. Effect: `exec`. Needs the `envs` service.
 
-Run one shell command inside a lane and wait for it. Returns exit_code, stdout, stderr, duration_s and timed_out. Past max_bytes the middle of the output is dropped with a marker; stdout_bytes and stderr_bytes are the full sizes. Binary output comes back base64. Processes it starts end with it: use lane_job_start for a dev server. Effect: exec.
+Run one shell command inside a lane and wait for it. Returns exit_code, stdout, stderr, their full sizes and duration_s; other fields only when they apply. Past max_bytes (6000 characters) the middle is cut, and `note` says how to read it. Processes it starts end with it: use lane_job_start for a dev server. Effect: exec.
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | The on your environment_open gave, or an account lane "workspace/name". |
+| `on` | `str \| None` | no (default None) | Your environment's on, or an account lane "workspace/name". |
 | `cmd` | `str` | yes |  |
 | `timeout_s` | `float` | no (default 60) | At most 200. |
 | `stdin` | `str \| None` | no (default None) |  |
 | `cwd` | `str \| None` | no (default None) | The folder to run in (on an environment's machine an absolute path like /work/shop; elsewhere one under the lane's home). |
-| `max_bytes` | `int` | no (default 16000) | stdout and stderr together (default 16000, at most 131072). |
+| `max_bytes` | `int` | no (default 6000) | stdout and stderr together (default 6000, at most 131072). |
 
 ## lane_file_edit
 
@@ -1068,7 +1068,7 @@ Replace exact text in a file (a relative path starts at the repository). `old` m
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | The on your environment_open gave, or an account lane "workspace/name". |
+| `on` | `str \| None` | no (default None) | Your environment's on, or an account lane "workspace/name". |
 | `path` | `str` | yes |  |
 | `old` | `str` | yes |  |
 | `new` | `str` | yes |  |
@@ -1082,7 +1082,7 @@ Read a text file with line numbers (as cat -n); a relative path starts at the re
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | The on your environment_open gave, or an account lane "workspace/name". |
+| `on` | `str \| None` | no (default None) | Your environment's on, or an account lane "workspace/name". |
 | `path` | `str` | yes |  |
 | `offset` | `int` | no (default 1) | The first line (1 is the first). |
 | `limit` | `int` | no (default 2000) | How many lines. |
@@ -1095,7 +1095,7 @@ Write a whole text file (at most 1 MB), replacing it; folders are made. A relati
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | The on your environment_open gave, or an account lane "workspace/name". |
+| `on` | `str \| None` | no (default None) | Your environment's on, or an account lane "workspace/name". |
 | `path` | `str` | yes |  |
 | `content` | `str` | yes |  |
 
@@ -1119,7 +1119,7 @@ Install programs into a lane from a pinned source: apt (the node's signed apt so
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | The on your environment_open gave, or an account lane "workspace/name". |
+| `on` | `str \| None` | no (default None) | Your environment's on, or an account lane "workspace/name". |
 | `packages` | `list[str]` | yes |  |
 | `source` | `str` | no (default 'apt') |  |
 
@@ -1138,7 +1138,7 @@ Stop a running job: SIGTERM to every process it started, SIGKILL a few seconds l
 
 Toolset: `core`. Effect: `read`. Needs the `envs` service.
 
-Read a job's output after your byte offsets, waiting up to wait_ms (30000) for more while it runs. until_exit=true waits for the job to end (then its start and its end, a marker naming any bytes skipped); until_port=3000 for that port to listen or the job to end (then the end of its output); both wait_ms up to 120000. Pass back next_stdout_offset and next_stderr_offset; stdout_bytes is the size so far. `state`: running, exited, cancelled, timed_out or lost; then exit_code (or signal). `oom`: what the kernel killed for memory. Effect: read.
+Read a job's output after your byte offsets, max_bytes (6000) characters, waiting up to wait_ms (30000) for more while it runs. until_exit=true waits for the job to end (then its start and its end); until_port=3000 for that port to listen or the job to end (then its end); both wait_ms up to 120000. Pass back next_stdout_offset and next_stderr_offset; stdout_bytes is the size so far. `state`: running, exited, cancelled, timed_out or lost; then exit_code (or signal). Effect: read.
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
@@ -1147,7 +1147,7 @@ Read a job's output after your byte offsets, waiting up to wait_ms (30000) for m
 | `stdout_offset` | `int` | no (default 0) |  |
 | `stderr_offset` | `int` | no (default 0) |  |
 | `wait_ms` | `int` | no (default 1000) |  |
-| `max_bytes` | `int` | no (default 16000) |  |
+| `max_bytes` | `int` | no (default 6000) | stdout and stderr together (default 6000, at most 1048576). |
 | `base64_output` | `bool` | no (default False) |  |
 | `until_exit` | `bool` | no (default False) |  |
 | `until_port` | `int` | no (default 0) |  |
@@ -1160,7 +1160,7 @@ Start a shell command in a lane in the background and return its job id at once;
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | The on your environment_open gave, or an account lane "workspace/name". |
+| `on` | `str \| None` | no (default None) | Your environment's on, or an account lane "workspace/name". |
 | `cmd` | `str` | yes |  |
 | `cwd` | `str \| None` | no (default None) |  |
 | `env` | `dict[str, str] \| None` | no (default None) |  |
@@ -1197,7 +1197,7 @@ Warm a lane: start its browser, display and live view. Browser tools warm a lane
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | The on your environment_open gave, or an account lane "workspace/name". |
+| `on` | `str \| None` | no (default None) | Your environment's on, or an account lane "workspace/name". |
 
 ## lane_queue
 
@@ -1207,7 +1207,7 @@ Who has a lane and who waits for it: the claim (holder, purpose, since when, whe
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | The on your environment_open gave, or an account lane "workspace/name". |
+| `on` | `str \| None` | no (default None) | Your environment's on, or an account lane "workspace/name". |
 
 ## lane_release
 
@@ -1217,7 +1217,7 @@ End your claim on a lane (from lane_claim), so the callers waiting for it go on.
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | The on your environment_open gave, or an account lane "workspace/name". |
+| `on` | `str \| None` | no (default None) | Your environment's on, or an account lane "workspace/name". |
 
 ## lane_request_control
 
@@ -1227,7 +1227,7 @@ Ask the human who has taken over a lane to hand it back. It only asks: the human
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | The on your environment_open gave, or an account lane "workspace/name". |
+| `on` | `str \| None` | no (default None) | Your environment's on, or an account lane "workspace/name". |
 | `reason` | `str` | yes | One short sentence the human sees, for example "The login is done; I need the lane to post the reply." Never put secrets here. |
 
 ## lane_set_readiness
@@ -1250,7 +1250,7 @@ Store file chunks on the node for a later sync into this lane (lane_job_start's 
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | The on your environment_open gave, or an account lane "workspace/name". |
+| `on` | `str \| None` | no (default None) | Your environment's on, or an account lane "workspace/name". |
 | `chunks` | `dict[str, str]` | yes |  |
 
 ## lane_upload_check
@@ -1261,7 +1261,7 @@ Which of these chunks (sha256 hex of each piece of a file) the node does not hol
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | The on your environment_open gave, or an account lane "workspace/name". |
+| `on` | `str \| None` | no (default None) | Your environment's on, or an account lane "workspace/name". |
 | `chunks` | `list[str]` | yes |  |
 
 ## lane_view
@@ -1272,7 +1272,7 @@ A live-view link for a warm lane, so a human can watch and take over: log in, pa
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | The on your environment_open gave, or an account lane "workspace/name". |
+| `on` | `str \| None` | no (default None) | Your environment's on, or an account lane "workspace/name". |
 
 ## lane_wait_control
 
@@ -1282,7 +1282,7 @@ Wait until agents may act in a lane again (the human handed it back, or it went 
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | The on your environment_open gave, or an account lane "workspace/name". |
+| `on` | `str \| None` | no (default None) | Your environment's on, or an account lane "workspace/name". |
 | `timeout_s` | `float` | no (default 60.0) | How long to wait, in seconds (0 to 300). Call again to keep waiting. |
 
 ## lanes_list
@@ -1720,7 +1720,7 @@ Open an interactive shell (a PTY) in a lane. The session keeps running when you 
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | The on your environment_open gave, or an account lane "workspace/name". |
+| `on` | `str \| None` | no (default None) | Your environment's on, or an account lane "workspace/name". |
 | `cols` | `int` | no (default 120) |  |
 | `rows` | `int` | no (default 32) |  |
 

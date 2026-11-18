@@ -28,6 +28,17 @@ from agentos.environments.routing import env_ref
 
 WAIT_MAX_S = 200.0  # a call never runs past about 240 s: a client gives up at 300 (agentos.core.progress)
 CALLS_SHOWN = 10
+# keys of an open environment's summary that are None until it closes, fails or a save fails: left out of
+# what environment() returns while they are None, since they say nothing then
+NONE_UNTIL_THEN = ("closed_at", "closed_reason", "error", "error_code", "save_error")
+# what environment_open gave and never changes while the machine is open: environment() of an open one
+# leaves it out (of a closed one it keeps it, with closed_at: how long it ran)
+GIVEN_AT_OPEN = ("lanes", "created_at", "ready_at")
+
+
+def _machine_view(machine: dict) -> dict:
+    """The machine as an agent reads it: without the fields it does not have (updates: only keep live)."""
+    return {k: v for k, v in machine.items() if v is not None}
 
 
 def _mgr(ctx: ToolContext) -> EnvironmentManager:
@@ -259,7 +270,8 @@ def _open_result(ctx: ToolContext, mgr: EnvironmentManager, env: Environment, ha
                  bigger: list[dict] | None = None, *, opened: str = "new", applied: dict | None = None,
                  differs: list[str] | None = None) -> dict:
     s = mgr.summary(env)
-    machine = {**env.machine.model_dump(), "price_hourly_eur": env.price_hourly_eur, "bigger": bigger or []}
+    machine = {**_machine_view(env.machine.model_dump()), "price_hourly_eur": env.price_hourly_eur,
+               "bigger": bigger or []}
     if bigger:
         machine["next"] = (f"environment_open(title=<a new title>, size=\"{bigger[0]['size']}\") opens a bigger "
                            "machine")
@@ -279,7 +291,7 @@ def _open_result(ctx: ToolContext, mgr: EnvironmentManager, env: Environment, ha
                        f'and lane_job_start(cmd="npm run dev", cwd="{env.workdir}") a dev server (lane_job_read reads '
                        "its output). They are in your list; " + _on_words(ctx, handle) + " The other "
                        "terminal tools: tools_more(\"terminals\"). "
-                       "http://localhost:<port> in browser_navigate and in ui_check (tools_more(\"studio\")) is the "
+                       "http://localhost:<port> in browser_navigate and in ui_check (tools_more(\"ui_check\")) is the "
                        "machine's own port; browser_screenshot(proof=\"...\") keeps a shot with a link for the human. "
                        "Push a branch, environment_pull_request(title) opens its pull request (give the human the url), then "
                        "environment_close(). environment_port(3000) gives the human a link to a dev server. "
@@ -503,7 +515,9 @@ def _family_lists(ctx: ToolContext, mgr: EnvironmentManager, here: Environment |
     open_, now, binding = [], mgr._clock(), caller.binding(ctx)
     for e in mine:
         row = {"title": e.title, "repo": e.repo, "state": e.shown_state(now), "last_call_at": mgr.summary(e)["last_call_at"]}
-        if (here is not None and e.id == here.id) or (is_session(binding) and e.binding == binding):
+        if here is not None and e.id == here.id:  # environment() shows it in full above: its row only marks it
+            row = {"id": e.id, "title": e.title, "this_chat": True}
+        elif is_session(binding) and e.binding == binding:
             row = {"id": e.id, **row, "this_chat": True}
         else:
             row["use"] = mgr.use_words(e, now, session=is_session(binding))
@@ -560,6 +574,13 @@ async def environment(ctx: ToolContext, *, on: str | None = None) -> dict:
     out = await mgr.detail(env, calls=CALLS_SHOWN)
     out.pop("viewer", None)
     out.pop("commands", None)
+    for key in NONE_UNTIL_THEN:
+        if out.get(key) is None:
+            out.pop(key, None)
+    if env.open:
+        for key in GIVEN_AT_OPEN:
+            out.pop(key, None)
+    out["machine"] = _machine_view(out["machine"])
     out["links"] = _links(ctx, env)
     git = out.get("git") or {}
     git["pushed"], compare = _with_compare(env, git.get("pushed") or [])

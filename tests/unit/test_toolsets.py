@@ -69,8 +69,11 @@ CORE_MAX_TOOLS = 41  # 27, the seven environment tools, the four terminal tools 
 # and one guessed the arguments blind. `on` now also takes an environment's title, which every
 # terminal and browser tool says in a few words. 10,150 when builder I3 merged (2026-11-16): environment_open
 # takes signins and a title found by repo, environment_close a note and forget, and environment() lists the
-# open and saved ones, so an agent stops for the day, finishes and comes back in one call each
-CORE_MAX_TOKENS = 10150
+# open and saved ones, so an agent stops for the day, finishes and comes back in one call each. 10,050 when
+# the `on` of 23 terminal and browser tools said "Your environment's on" instead of "The on your
+# environment_open gave" (2026-11-16, about 70 tokens): environment_open itself says where on comes from
+# 10,045 when lane_exec and lane_job_read named their 6,000-character default and lost a few words
+CORE_MAX_TOKENS = 10045
 
 CORE_TOOLS = {
     "whoami", "howto", "lanes_list", "lane_open", "lane_close", "lane_claim", "lane_release", "lane_view",

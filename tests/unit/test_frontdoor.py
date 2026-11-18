@@ -91,7 +91,7 @@ def test_the_intro_and_the_skill_say_where_the_terminal_tools_are_and_promise_no
     assert "links.browser" in first and "lane_job_start" in first and "ui_check" in first
     assert "`on` for an account lane" in INSTRUCTIONS
     text = skills.source("agentos-environment")
-    for words in ('tools_more("terminals")', 'tools_more("studio")', "lane_job_read", "in your tool list",
+    for words in ('tools_more("terminals")', 'tools_more("ui_check")', "lane_job_read", "in your tool list",
                   "environment_not_ready", "stashes"):
         assert words in text, words
     assert "links.environment" not in text and "a `link` for each port" not in text

@@ -33,9 +33,8 @@ NOT_ASKED = "not asked for"
 
 
 def tokens_of(value: Any) -> int:
-    """About how many tokens a result costs an agent: the characters of the text it reads (the
-    MCP result's JSON, indented by two as agentos.mcp.registry writes it) / 4, as the toolsets'
-    budget test counts."""
+    """About how many tokens a result costs an agent: the characters of its JSON indented by two / 4,
+    as the toolsets' budget test counts. agentos.mcp.registry writes it compact, so this keeps a margin."""
     return len(json.dumps(value, ensure_ascii=False, default=str, indent=2)) // 4
 
 

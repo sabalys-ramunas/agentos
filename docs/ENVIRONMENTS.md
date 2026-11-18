@@ -266,10 +266,10 @@ What the agent does:
 |---|---|
 | `environment_open(title, repo, ref, size, hours, keep, signins)` | rents the VM, clones `repo` into `/work/<name>`, opens the browser; returns the workdir and the browser's live view link for you. With `repo` and no `title` it finds that repository's one open or saved environment (several: `environment_choice`, with each title to pick from; none: a new one named after the repository) |
 | `lane_file_read(path, offset, limit)`, `lane_file_edit(path, old, new)`, `lane_file_write(path, content)` | the repository's files on the VM, with line numbers; an edit replaces exact text that occurs once (a relative path starts in the repository) |
-| `lane_exec(cmd, cwd, max_bytes)`, `lane_job_start`, `lane_job_read(until_exit, until_port)`, `lane_job_cancel` | commands and dev servers on the VM (`on`: the handle your environment_open gave; the job tools take it too and check it names the job's machine, though the job id alone is enough); in every agent's tool list. A command's output comes back within 16 KB by default (the middle is cut, with the full sizes). `shell_open` and the rest are `tools_more("terminals")`. See [Waiting and memory](#waiting-and-memory) |
+| `lane_exec(cmd, cwd, max_bytes)`, `lane_job_start`, `lane_job_read(until_exit, until_port)`, `lane_job_cancel` | commands and dev servers on the VM (`on`: the handle your environment_open gave; the job tools take it too and check it names the job's machine, though the job id alone is enough); in every agent's tool list. A command's output comes back within 6,000 characters by default: its start and its end, with the full sizes and a note on how to read the middle. `shell_open` and the rest are `tools_more("terminals")`. See [Waiting and memory](#waiting-and-memory) |
 | `browser_navigate(url)`, `browser_snapshot`, `browser_act` | the environment's browser, a desktop window; `localhost` is the VM |
 | `browser_screenshot(proof="checkout after the fix", full_page, width)` | keeps the shot as proof (see below); `width=390` shows the phone layout |
-| `ui_check(url="http://localhost:3000")` | studio's page checks (`tools_more("studio")`), on the VM's dev server; while the environment cannot be reached they fail with `environment_not_ready` and never check the node instead |
+| `ui_check(url="http://localhost:3000")` | studio's page checks (`tools_more("ui_check")` loads them), on the VM's dev server; while the environment cannot be reached they fail with `environment_not_ready` and never check the node instead |
 | `environment()` | state, time left, cost so far, listening ports (a shared one with its `link`), git (branch, ahead, dirty, `pushed`: each branch at its commit on the remote now, `deleted`: branches it deleted, `compare`: GitHub's form for the pushed branch, `pull_requests`), proofs, the agent's `note`, the last calls (a command's `exit_code`, a refusal's `error`), and always the agent's `open` and `saved` environments by title |
 | `environment_pull_request(title, body, base, draft)` | opens the pull request for a branch this environment pushed, with the node's GitHub token, and returns its `url` (see below) |
 | `environment_port(port)` | a link on your own computer to a server on the VM (see [Ports](#ports)) |
@@ -369,12 +369,14 @@ your account lanes (a post on `personal/x`, say) asks you as before.
   (`/proc/net/tcp`), not a loop of calls, and the call sends progress while it waits. No `sleep`
   loops in `lane_exec`.
 - **Waiting for a job to end.** `lane_job_read(job, until_exit=true, wait_ms=120000)` returns when
-  the job ends. When more is left after your offset than `max_bytes` (16 KB by default), stdout and
+  the job ends. When more is left after your offset than `max_bytes` (6,000 characters of the result by default, stdout
+  and stderr together, a newline counting two), stdout and
   stderr are each its start and its end, cut at line ends, as `lane_exec` keeps them, with a marker
   between them (`[agentos: 6452946 bytes skipped here, of 6468895 in all; read them with
   stdout_offset=3992]`) and the same words in `note`. `next_stdout_offset` is then the end; a read
   at the offset the marker names pages through what was skipped. A read without `until_exit`, and
-  one with `base64_output`, always gives the bytes right after your offset.
+  one with `base64_output`, always gives the bytes right after your offset; of a job that ended,
+  `note` says how many bytes are left after the offsets it returns.
 - **Out of memory.** When the VM's kernel kills a process for memory, `lane_job_read` and
   `lane_exec` say so: `oom` lists each kill since the job or command started (`pid`, `name`,
   `rss_mb`, `at`, `machine_mb`: the machine's memory, and `in_job`: whether it was one of this job's

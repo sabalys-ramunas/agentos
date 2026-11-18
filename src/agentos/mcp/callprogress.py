@@ -13,7 +13,7 @@ from agentos.policy.redactor import Redactor
 
 
 def _json(value: Any) -> str:
-    return pydantic_core.to_json(value, fallback=str, indent=2).decode()
+    return pydantic_core.to_json(value, fallback=str).decode()  # compact, as agentos.mcp.registry writes a result
 
 
 def start_heartbeat(context: Any, state: progress.CallProgress) -> asyncio.Task | None:

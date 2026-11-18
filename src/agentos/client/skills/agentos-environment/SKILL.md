@@ -58,8 +58,8 @@ the machine.
    - A result with `ssh` (local mode): your own shell reaches the VM: `ssh agentos-<id> 'cd
      /work/shop && pnpm test'`, scp, rsync and git (`ssh.examples`). No `ssh -L` (environment_port
      instead); not in agentos's call log.
-4. Check the page: `tools_more("studio")`, then `ui_check(url="http://localhost:3000", on=...)`, fix what
-   it measured.
+4. Check the page: `tools_more("ui_check")`, then `ui_check(url="http://localhost:3000", on=...)`, fix
+   what it measured.
 5. Show the human the dev server: `environment_port(port=3000)` gives `url`. On a server node they
    run its `tunnel` line first.
 6. Keep proof: `browser_screenshot(proof="checkout page after the fix")`; give the human `proof.url`.

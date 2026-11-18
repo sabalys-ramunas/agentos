@@ -54,15 +54,77 @@ class Capture:
         return out
 
 
+# what a byte costs in the JSON text an agent reads (pydantic_core.to_json): \b \t \n \f \r, a quote and
+# a backslash two characters, another control character six (\u001b), anything else one
+_TWO = tuple(bytes([c]) for c in (0x08, 0x09, 0x0A, 0x0C, 0x0D, 0x22, 0x5C))
+_SIX = tuple(bytes([c]) for c in range(0x20) if bytes([c]) not in _TWO)
+
+
+def escaped_len(data: bytes | bytearray) -> int:
+    """How many characters `data` takes as a JSON string (agentos.mcp.registry writes results as JSON)."""
+    return len(data) + sum(data.count(c) for c in _TWO) + 5 * sum(data.count(c) for c in _SIX)
+
+
+_COST = bytes(2 if bytes([c]) in _TWO else 6 if c < 0x20 else 1 for c in range(256))
+
+
+def prefix_within(data: bytes, room: int) -> int:
+    """How many bytes from the start of `data` fit in `room` characters of JSON text."""
+    if escaped_len(data) <= room:
+        return len(data)
+    total = 0
+    for i, cost in enumerate(data.translate(_COST)):
+        total += cost
+        if total > room:
+            return i
+    return len(data)
+
+
+def suffix_within(data: bytes, room: int) -> int:
+    """Where the end of `data` that fits in `room` characters of JSON text starts."""
+    if escaped_len(data) <= room:
+        return 0
+    costs, total = data.translate(_COST), 0
+    for i in range(len(costs) - 1, -1, -1):
+        total += costs[i]
+        if total > room:
+            return i + 1
+    return 0
+
+
+def rooms(cost_out: int, cost_err: int, budget: int) -> tuple[int, int]:
+    """stdout's and stderr's share of `budget` characters, as fit shares it."""
+    if cost_out + cost_err <= budget:
+        return budget - cost_err, cost_err
+    err_room = min(cost_err, max(budget // 4, budget - cost_out))
+    return max(budget - err_room, 1), max(err_room, 1)
+
+
+def _cost(cap: Capture) -> int:
+    return escaped_len(cap.head) + escaped_len(cap.tail)
+
+
+def _shrunk_to(cap: Capture, room: int) -> Capture:
+    """`cap` kept within `room` characters of JSON text: its start and its end, as Capture.shrunk."""
+    cost, kept = _cost(cap), len(cap.head) + len(cap.tail)
+    out, tries = cap, 0
+    while cost > room and tries < 4:  # escaping is uneven: shrink by the ratio, then check again
+        kept = max(1, kept * room // cost)
+        out, tries = cap.shrunk(kept), tries + 1
+        cost = _cost(out)
+    return out
+
+
 def fit(out: Capture, err: Capture, budget: int) -> tuple[Capture, Capture]:
-    """stdout and stderr within `budget` bytes in all, for a result an agent's client takes inline.
-    stderr (where errors are) keeps what it has up to a quarter of the budget, or more when stdout
-    leaves room; stdout gets the rest."""
-    kept_out, kept_err = len(out.head) + len(out.tail), len(err.head) + len(err.tail)
-    if kept_out + kept_err <= budget:
+    """stdout and stderr within `budget` characters in all, counted as the agent reads them (a JSON
+    string: a newline is two), for a result an agent's client takes inline. stderr (where errors
+    are) keeps what it has up to a quarter of the budget, or more when stdout leaves room; stdout
+    gets the rest."""
+    cost_out, cost_err = _cost(out), _cost(err)
+    if cost_out + cost_err <= budget:
         return out, err
-    err_room = min(kept_err, max(budget // 4, budget - kept_out))
-    return out.shrunk(max(budget - err_room, 1)), err.shrunk(max(err_room, 1))
+    out_room, err_room = rooms(cost_out, cost_err, budget)
+    return _shrunk_to(out, out_room), _shrunk_to(err, err_room)
 
 
 def _trim_utf8_end(b: bytes) -> tuple[bytes, bytes]:
