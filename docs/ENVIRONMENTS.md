@@ -589,7 +589,8 @@ browser_record(action="stop")                    # or stop with the title: proof
 ffmpeg records the real screen of the environment's browser (the X display it runs on: the VM's for
 `browser = "vm"`, the node's display of that lane for `browser = "node"`) in a process of its own, so
 the agent's calls never wait for it, at 10 frames a second, at most 1280 pixels wide, H.264 in an
-MP4 (about 1 to 3 MB a minute for a web page). Stopping makes the MP4 and a short GIF preview (sped
+MP4 (small: on a docker machine, 41 seconds of filling a form and clicking took 73 KB, and its
+GIF 84 KB). Stopping makes the MP4 and a short GIF preview (sped
 up to at most 15 seconds, at most 8 MB), brings both to the node over the environment's SSH
 connection and keeps them as one proof, in the same folder, with the same links, retention and
 node-wide cap (1 GB of proofs, videos counted). A recording stops by itself and keeps what it has
@@ -616,7 +617,7 @@ A video proof as `environment()`, `environment_close` and the web API list it:
 ```
 
 `kind` is `"screenshot"` or `"video"`. `ended` says what stopped it: `stopped` (the agent), `limit`
-(its length, or the browser went away), `save` or `close`. The links serve the MP4 with range
+(its length), `ended` (the browser went away), `save` or `close`. The links serve the MP4 with range
 requests, so a player seeks. In the web API the MP4 is `src` and the preview `gif_src`
 (`/api/orgs/{org}/environments/{id}/proofs/<id>.mp4` and `.gif`, behind the app's sign-in).
 

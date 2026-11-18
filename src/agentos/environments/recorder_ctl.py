@@ -197,13 +197,8 @@ def _gif(req, duration_s):
 
 def stop(req):
     pid = _running(req)
-    state = _state(req)
-    elapsed = time.time() - float(state.get("started") or time.time())
     if pid:
         _end(pid)
-        ended = "stopped"
-    else:
-        ended = "limit" if elapsed >= float(state.get("max_s") or 0) - 2 else "ended"
     _clear(req, (PID,))
     rec = _path(req, REC)
     if not os.path.exists(rec) or os.path.getsize(rec) < MIN_BYTES:
@@ -215,6 +210,8 @@ def stop(req):
         return
     _clear(req, (REC,))
     duration, width, height = _probe(_path(req, MP4))
+    # not running when asked: it reached its length, or its screen went away (the browser closed)
+    ended = "stopped" if pid else ("limit" if duration >= float(_state(req).get("max_s") or 0) - 1 else "ended")
     gif = _gif(req, duration)
     _say(ok=True, ended=ended, duration_s=round(duration, 2), width=width, height=height,
          bytes=os.path.getsize(_path(req, MP4)), gif=gif, files=[MP4] + ([GIF] if gif else []))

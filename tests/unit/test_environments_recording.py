@@ -118,7 +118,7 @@ class Recorder:
         elif action == "status":
             out = {"ok": True, "running": self.running, "elapsed_s": 3.0}
         elif action == "stop":
-            ended = "stopped" if self.running else "limit"
+            ended = "stopped" if self.running else "ended"
             self.running = False
             out = {"ok": True, "ended": ended, "duration_s": 999, "width": 1, "height": 1, "bytes": 1,
                    "files": list(self.files)}
@@ -267,7 +267,7 @@ async def test_a_recording_that_ended_by_itself_is_kept(node, tokens, monkeypatc
             break
         await asyncio.sleep(0.01)
     [kept] = mgr.proofs(env)
-    assert kept["kind"] == "video" and kept["ended"] == "limit" and kept["title"] == "the flow"
+    assert kept["kind"] == "video" and kept["ended"] == "ended" and kept["title"] == "the flow"
     with pytest.raises(ToolCallError, match=f"stopped by itself and is kept as proof {kept['id']}"):
         await tool(node)(action="stop")
 
