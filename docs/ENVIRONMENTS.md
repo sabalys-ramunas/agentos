@@ -246,6 +246,7 @@ money, so the node's limits bound it instead. They hold from the start, without 
 | the longest life, `extend` included | 8 hours | `agentos environments allow --max-hours H` |
 | booked in a month | EUR 50 | `agentos environments allow --monthly-eur E` |
 | the biggest machine (`size`) | `xlarge` (16 CPU, 32 GB) | `agentos environments allow --max-size large` |
+| machines kept warm for the next open | 0 | `agentos environments allow --warm N` |
 
 ```
 agentos environments allow --max-live 2 --max-hours 4 --monthly-eur 20
@@ -625,6 +626,126 @@ agentos environments close e7k2     # --discard to close with unsaved work
 The web app's Environments page shows the same, with each one's live browser, commands and git on
 its own page ([web/README.md](../web/README.md) says how to build and open it). Without a build, the
 live view links, the CLI and the terminal dashboard (`agentos open --terminal`) show the same.
+
+## Prepared machines
+
+A repository can say how its machine is set up, in a small file of its own,
+`.agentos/environment.toml`. With it, an open installs the dependencies and starts the app by
+itself, and from the second open on it starts from a **prepared machine**: an image of a machine on
+which the setup already ran, as Codex cloud, Claude Code's cloud environments, Daytona and E2B do.
+
+```toml
+# .agentos/environment.toml
+setup = "pnpm install --frozen-lockfile"     # once, on a fresh machine: its result is the prepared machine
+refresh = "pnpm install --prefer-offline"    # on each open from a prepared machine, after the checkout
+start = "pnpm dev --host 0.0.0.0"            # the dev server, started as a job on each open
+port = 3000                                  # where it listens (needed with start)
+ready_timeout_s = 120                        # how long the open waits for the port (default 120)
+inputs = ["pnpm-lock.yaml"]                  # what makes a prepared machine stale (default: the lockfiles)
+```
+
+Every key is optional, but `start` needs `port`, and `refresh` needs `setup`. A key agentos does not
+know is an error that names it; the open goes on without the file and says why. Without `inputs`,
+the lockfiles and manifests the repository has are used: `package-lock.json`, `pnpm-lock.yaml`,
+`yarn.lock`, `bun.lock`, `bun.lockb`, `uv.lock`, `poetry.lock`, `requirements*.txt`,
+`Pipfile.lock`, `Gemfile.lock`, `go.sum`, `Cargo.lock` and `composer.lock`. The commands run with
+bash in the repository's folder, as root, with `CI=true`.
+
+**Where it is read.** On the node, before anything is rented: from the node's own copy of a
+connected repository (the git gateway's mirror), else from GitHub's public files for a public one
+(no credential), at the `ref` the agent asked for. When the node cannot read it there, it is read in
+the checkout once the clone is done. No file: nothing changes, the open works as it always did.
+Agents propose the file in their branch when a repository has none; you merge it. An agent never
+needs it merged to use it on its own branch: an open of that branch reads it there.
+
+**What an open does with it.**
+
+1. A ready prepared machine for this repository, its `setup`, `refresh` and input files, and the
+   image the node would boot: the machine boots from it. The checkout it holds is brought to the
+   asked ref (a `git fetch` and a checkout, not a clone), then `refresh` runs.
+2. None yet: the machine boots as before, and `setup` runs on it as part of the open, so the agent
+   gets its dependencies either way. The node then builds the prepared machine for next time in the
+   background, on a machine of its own, **only within the node's limits** (below). A failed setup
+   never fails the open: the result says what failed, with the end of its log, and no build starts.
+3. With `start` and `port`: the command runs as a job, exactly as `lane_job_start` does (it shows in
+   jobs, a save records it as a service, and a resume starts it again), and the open waits until the
+   port listens, up to `ready_timeout_s`. A port that does not listen in time is not a failure
+   either: `app.why` says what happened, with the job's last output and the ports that listen instead.
+
+`environment_open` and `environment()` say what happened:
+
+- `prepared.used`: true when it booted from one, with `from` (the commit it was built at, and its
+  age), `checkout`, `refresh` and `setup_s` (how long setup took on the build, and what it saved).
+  Else `why` (no file, one being built, the last build failed with its log, no room for a build),
+  `setup` (`ok`, `seconds`, the end of its output on a failure) and `build` (started, or why not).
+- `app`: the command, the port, `listening`, its `job_id`, and `link`, the port's link as
+  `environment_port` gives it (and `tunnel` on a server node). When it did not listen: `why`,
+  `log_tail` and `listening_instead`.
+
+On Docker, a first open of a small test repository took 25 s (20 of them its setup) and started
+the build; the second open, from the prepared machine, was ready in under 5 s with the app
+listening; with a warm machine, about 2 s.
+
+**The build.** It never runs on an agent's machine. The node rents a build machine from the base
+image (it counts as a machine against `--max-live` and books an hour or more against the month's
+budget; with no room it is skipped, and the open's `prepared.build` says so), clones the repository
+(through the git gateway for a connected one, straight from the host for a public one), runs
+`setup`, then removes what must never be in an image: the gateway's git config and its token (the
+token is revoked before the snapshot, and the node checks that no byte of it is left on the disk:
+if the setup wrote it somewhere, no snapshot is taken), git credentials, shell history, the login
+and host keys (each new machine gets its own), the machine id and swap. Then it takes the snapshot
+(`docker commit` on Docker) and deletes the build machine. Caches stay: they make `refresh` fast.
+
+**What makes it stale.** The prepared machine's key is a hash of the repository, the base image,
+`setup`, `refresh`, each input file's content (by its git blob id) and agentos's own setup version.
+Change one and the next open runs setup again and builds a new one; `start` and `port` are not part
+of it.
+
+**Keeping few.** A newer build of a repository replaces the older one; one no open used for
+`prepared_days` (default 14) is deleted; at most `prepared_max` (default 5) are kept on the node,
+the least recently used going first. The reaper does it, as it does for saves. A snapshot is billed
+like a save's (`snapshot_eur_per_gb_month`); on Docker it costs nothing. `prepared_builds = false` in
+`environments.toml` turns builds off.
+
+```
+agentos environments prepare github.com/me/shop [--ref main] [--force]   # build it now, with its steps
+agentos environments prepared                                           # each one, its age and cost; the warm pool
+agentos environments prepared forget github.com/me/shop                 # delete them
+```
+
+`prepare` asks agentosd to build it (the build needs its git gateway) and follows the build's steps
+until it is ready or failed; stopping the command leaves the build running.
+
+## Warm pool
+
+A warm machine is booted before anyone asks for it, so an open that matches it skips the rent and
+the boot. It is **off by default**: nothing bills until an agent opens a machine.
+
+```
+agentos environments allow --warm 1
+```
+
+A running node takes it up at once. What is warmed: a machine booted from the image the newest open
+used (a prepared machine's, or the base image), with the default size and location, up to SSH-ready,
+its setup checked, apt ready and swap on. Nothing that belongs to a chat or a repository: no tunnel,
+no token, no clone.
+
+- **When.** When a chat connects (a new MCP session of a grant that may open machines), and after
+  each open, to fill the pool again.
+- **Limits.** A warm machine counts against the machines at once and books one hour against the
+  month's budget. It always yields to an open: when the node is full and the open does not match it,
+  the warm machine is deleted first.
+- **How long.** An unclaimed warm machine is deleted after `warm_minutes` (default 50: Hetzner
+  bills each started hour, so it goes before its first hour ends). On Docker it costs nothing, so a
+  longer time is fine.
+- **The claim.** An open whose image, server type and location match takes the warm machine: its VM
+  record becomes the environment's (lane, purpose, creator, time limit), and the provider's labels
+  follow where the provider can change them. The environment names the machine first, so a crash in
+  between leaves it deleted by the environment's failed bring-up or by its time limit, never billed
+  for ever. `prepared.warm` in the result says it came from the pool.
+
+`agentos environments prepared` and the node's report show the pool: how many are warm, since when,
+and what they cost so far.
 
 ## Keeping an environment
 

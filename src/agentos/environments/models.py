@@ -87,6 +87,12 @@ class EnvSettings(BaseModel):
     # Pausing (agentos.environments.pausing): on a provider that pauses with memory (Morph), a save that
     # ends the machine pauses it instead of a snapshot and a delete (false: as on any other provider).
     pause_saves: bool = True
+    # Prepared machines and the warm pool (agentos.environments.preparing, prepbuild and warmpool).
+    prepared_builds: bool = True                          # build a prepared machine for a repository that says how
+    prepared_days: int = Field(default=14, ge=1, le=3650)  # one no open used for this long is deleted
+    prepared_max: int = Field(default=5, ge=0, le=50)     # prepared machines on this node, at most
+    warm: int = Field(default=0, ge=0, le=10)             # machines kept booted for the next open (each one bills)
+    warm_minutes: int = Field(default=50, ge=5, le=1440)  # an unclaimed warm machine is deleted after this
 
     @field_validator("keep_paths")
     @classmethod
@@ -218,6 +224,11 @@ class Environment(BaseModel):
     network: Literal["full", "limited", "none"] = "full"
     secrets: list[str] = Field(default_factory=list)
     blocked: list[dict] = Field(default_factory=list)
+    # Prepared machines and the app (agentos.environments.preparing): what the open found and did with the
+    # repository's .agentos/environment.toml, and the dev server it started.
+    prepared: dict | None = None
+    app: dict | None = None
+    warm_claimed: bool = False                # its machine came from the warm pool (agentos.environments.warmpool)
 
     @field_validator("id")
     @classmethod

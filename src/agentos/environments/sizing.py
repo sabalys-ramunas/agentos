@@ -205,6 +205,7 @@ class Sizing:
                 hours = max(1, -(-int(max(0.0, (end - env.created_at).total_seconds())) // 3600))
                 spent = max(spent, hours * env.price_hourly_eur)
             total += spent
+        total += self.side_booked_eur(now)  # warm machines and prepared machines' builds (agentos.environments.warmpool)
         return round(total, 4)
 
     def cost_now(self, env: Environment) -> float | None:
@@ -251,13 +252,15 @@ class Sizing:
     def machines(self, *, besides: str | None = None) -> tuple[list[Environment], list[Any]]:
         """What counts against count_cap: the open environments (starting, ready, closing), and the
         node's other VMs that still run (one a closed environment's close still deletes, an image
-        build, the owner's own). `besides`: an environment not to count (the one being brought up)."""
+        build, the owner's own; not a warm machine, which yields). `besides`: an environment not to count (the one being brought up)."""
         open_ = [e for e in self.store.open() if e.id != besides]
         have = {e.vm_id for e in open_ if e.vm_id}
         others = []
         with contextlib.suppress(AgentosError):
-            others = [r for r in self.vms().store.live()
-                      if r.id not in have and not (besides and r.environment == besides)]
+            from agentos.environments.warmpool import is_warm
+
+            others = [r for r in self.vms().store.live()  # a warm machine yields to an open (warmpool.make_room)
+                      if r.id not in have and not (besides and r.environment == besides) and not is_warm(r)]
         return open_, others
 
     def check_count(self, *, waited_s: float | None = None, besides: str | None = None) -> None:

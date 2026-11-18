@@ -57,7 +57,8 @@ STEP_WORDS = {"VM create": "renting the VM", "VM ready": "the VM boots", "setup 
               "apt ready": "the VM's package manager finishes", "tools top-up": "installing tools",
               "tunnels and git": "connecting to the VM", "browser": "starting the browser",
               "clone": "cloning the repository", "restore": "restoring the saved work",
-              "ssh": "setting up ssh", "network": "setting up the network"}
+              "ssh": "setting up ssh", "network": "setting up the network", "checkout": "checking out the ref", "refresh": "running the repository's refresh",
+              "setup": "running the repository's setup", "app": "starting the app and waiting for its port"}
 
 
 def doing(env_id: str) -> str | None:
@@ -159,6 +160,7 @@ class BringUp:
             await steps.run("VM ready", self._wait_vm(env))
             tools = await steps.run("setup check", self._wait_setup(env))
             await self._set_up_work(env, steps, tools=tools)
+            await self.prepare_work(self.store.get(env_id), steps)  # .agentos/environment.toml (agentos.environments.preparing)
 
             def ready(e: Environment) -> bool:
                 if e.state != "starting":
@@ -169,6 +171,7 @@ class BringUp:
             env = self.store.update(env_id, ready)
             if env.state == "ready":
                 log.info("environment %s ready (%s) in %.0f s: %s", env.id, env.workdir, steps.total(), steps.words())
+                await self.after_ready(env)
         except asyncio.CancelledError:
             raise
         except Exception as e:  # noqa: BLE001
@@ -191,9 +194,14 @@ class BringUp:
 
     async def _rent(self, env: Environment, plan: dict) -> Environment:
         """Rent the machine (agentos.vms; its own fallbacks when the provider has no room) and record it."""
+        paused = (plan.get("restore") or {}).get("from") == "paused"  # the same machine (agentos.environments.pausing)
+        claimed = None if paused else await self.claim_warm(env, plan)  # a warm one (agentos.environments.warmpool)
+        if claimed is not None:
+            return self.store.get(env.id)
+        await self.make_room()
         cloud = machine.cloud_config() if plan["image"] == machine.BASE_IMAGE else ""
         try:
-            if (plan.get("restore") or {}).get("from") == "paused":  # the same machine (agentos.environments.pausing)
+            if paused:
                 rec = await self._resume_paused(env, plan)
             else:
                 rec = await self.vms().create(env.terminal_lane, plan=plan, purpose=f"environment {env.id}: {env.title}",

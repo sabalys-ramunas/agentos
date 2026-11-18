@@ -199,6 +199,7 @@ class Views:
         out["viewer"] = self._viewer(env)
         out["unsaved"] = self.unsaved_of(repos)
         out["network"] = self.network_view(env)  # type: ignore[attr-defined]  (Network, on the same manager)
+        out.update(self.prepared_view(env))  # type: ignore[attr-defined]  (Preparing, on the same manager)
         busy = self.in_background(env.id)  # type: ignore[attr-defined]  (Saving, on the same manager)
         if busy:
             out["background"] = f"{busy}: an agent's environment_{'close' if busy == 'closing' else 'save'} goes on"

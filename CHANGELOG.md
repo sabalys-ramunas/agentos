@@ -33,6 +33,25 @@ All notable changes to agentos are recorded here. The format follows
 - Providers declare what they can do (firewall, snapshot, pause, network policy, cloud-init), and a
   machine without cloud-init gets its setup from the node at once.
 - `scripts/morph_live_check.py` checks the Morph provider against a real account for a few cents.
+- **An environment opens in seconds, with the app already running.** A repository says how its
+  machine is set up in `.agentos/environment.toml` (`setup`, `refresh`, `start`, `port`). The node
+  reads it before it rents anything; the first open runs `setup` on the agent's machine and starts
+  the dev server as a job, and the node builds a **prepared machine** (an image with the setup
+  already run) in the background, on a machine of its own and within its limits. The next opens boot
+  from it, fetch the asked ref, run `refresh` and return once the app's port listens.
+  `environment_open` and `environment()` say what happened (`prepared`, `app` with its link); a setup
+  that fails or an app that does not listen never fails the open, and says why with the end of its
+  log. Builds remove every credential before the snapshot and check that no byte of the git
+  gateway's token is left. A newer build replaces the older one, unused ones go after
+  `prepared_days`, and at most `prepared_max` are kept. On Docker a first open of a test repository
+  took 25 s (20 s of setup), a prepared one under 5 s.
+- `agentos environments prepare <repo>` builds one now and shows its steps; `agentos environments
+  prepared` lists them with their monthly cost; `prepared forget <repo>` deletes them.
+- **A warm pool**, off by default: `agentos environments allow --warm 1` keeps a machine booted for
+  the next open (from the image the newest open used), filled when a chat connects and after each
+  open. It counts against the node's limits, always yields to an open, and an unclaimed one is
+  deleted after `warm_minutes` (50, inside Hetzner's first billed hour). An open that matches takes
+  it and is ready in about 2 s on Docker.
 
 ### Fixed
 

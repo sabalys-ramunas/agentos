@@ -271,6 +271,8 @@ def _open_result(ctx: ToolContext, mgr: EnvironmentManager, env: Environment, ha
         out["applied"], out["differs"] = applied or {}, differs
     if env.resumed:
         out["resumed"] = env.resumed
+    out.update(mgr.prepared_view(env))  # prepared and app (agentos.environments.preparing)
+    app = env.app or {}
     if env.state == "ready":
         out["next"] = ("Give the human links.browser, the live view of this environment's browser; if your client "
                        "can open a page beside the chat (T3 Code: preview_open), open it there. "
@@ -292,6 +294,12 @@ def _open_result(ctx: ToolContext, mgr: EnvironmentManager, env: Environment, ha
         if env.resumed:
             out["next"] = ("Resumed: read resumed.note (git, files, services) and resumed.missing first. " + out["next"])
         out["next"] += _keep_next(env)
+        if app.get("listening"):
+            out["next"] = (f"The app runs already: `{app.get('command')}` is job {app.get('job_id')}, listening on port "
+                           f"{app.get('port')}" + (f"; give the human app.link ({app['link']})" if app.get("link") else "")
+                           + ". " + out["next"])
+        elif app:
+            out["next"] = f"The app did not come up: read app.why and app.log_tail and fix it. {out['next']}"
         _with_ssh(mgr, env, out)
     if opened in ("attached", "taken_over"):
         if opened == "taken_over":
@@ -332,7 +340,8 @@ async def environment_open(ctx: ToolContext, *, title: str | None = None, repo: 
 
     Returns on, id, title, opened (new, resumed, attached, taken_over), state (starting: call
     environment(on=...)), workdir, branch, machine (`bigger`: sizes and prices), expires_at, keep,
-    links.browser (its live view, for the human); applied and differs when it is not what you asked.
+    links.browser (its live view, for the human); applied and differs when it is not what you asked;
+    prepared and app when the repo has .agentos/environment.toml (its setup ran, its dev server runs).
     A private repo the node cannot read: approval_pending with review_url for the human. Errors:
     environment_in_use, environment_limit, environment_already_open.
 
@@ -456,6 +465,10 @@ async def _open_locked(ctx: ToolContext, mgr: EnvironmentManager, binding: str, 
             if card is None:
                 raise
             return card
+    prepared = None
+    if repo and saved is None:  # its .agentos/environment.toml, and a prepared machine to boot (agentos.environments.preparing)
+        prepared = await mgr.prepared_for(env_id, repo, ref, grant_id=caller.grant_id(ctx))
+        plan = await mgr.plan_prepared(env_id, plan, prepared, size=size, hours=hours, keep=keep)
     await ctx.authorize(Effect.READ, lane_id=lane, summary=summary,
                         content={"environment_open": title, "repo": repo, "ref": ref,
                                  "server_type": plan["server_type"], "ttl_minutes": plan["ttl_minutes"],
@@ -468,7 +481,8 @@ async def _open_locked(ctx: ToolContext, mgr: EnvironmentManager, binding: str, 
     env = await mgr.create(env_id, plan, binding=binding, title=title, grant_id=caller.grant_id(ctx),
                            lease=lease_of(handle), grant_root=getattr(g, "root_id", None), agent=_agent(ctx), client=_client(),
                            repo=repo, ref=ref, subject=getattr(_subject(ctx), "id", None), member=_member(ctx),
-                           keep=keep, resumed=mgr.resuming(saved, plan) if saved is not None else None)
+                           keep=keep, resumed=mgr.resuming(saved, plan) if saved is not None else None,
+                           prepared=prepared)
     keep_signins = signins if signins is not None else (saved.keep_signins if saved is not None else True)
     if not keep_signins:  # before its bring-up runs: a resume then puts no sign-ins back either
         env = mgr.store.update(env.id, lambda e: setattr(e, "keep_signins", False))

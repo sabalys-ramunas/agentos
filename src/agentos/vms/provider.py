@@ -227,6 +227,11 @@ class FakeProvider:
     async def list_servers(self, labels: dict[str, str]) -> list[Server]:
         return [s for s in self.servers.values() if _match(s.labels, labels)]
 
+    async def update_labels(self, server_id: str, labels: dict[str, str]) -> None:
+        """Optional for a provider (Hetzner has it, docker not): a server's labels, replaced."""
+        if server_id in self.servers:
+            self.servers[server_id].labels = dict(labels)
+
     async def delete_server(self, server_id: str) -> None:
         if self.fail_delete:
             self.fail_delete -= 1

@@ -63,6 +63,8 @@ from agentos.environments.networking import Network
 from agentos.environments.pausing import Pausing
 from agentos.environments.picking import Picking, current_client, is_session, same_title
 from agentos.environments.ports import ended
+from agentos.environments.preparing import Preparing
+from agentos.environments.prepbuild import PrepBuild
 from agentos.environments.proofs import Proofs
 from agentos.environments.saving import Saving
 from agentos.environments.sizing import Sizing
@@ -72,6 +74,7 @@ from agentos.environments.tunnels import Tunnel
 from agentos.environments.updates import Updates
 from agentos.environments.uploads import Uploads
 from agentos.environments.views import Views
+from agentos.environments.warmpool import WarmPool
 
 log = logging.getLogger("agentos.environments")
 
@@ -137,7 +140,7 @@ def check_ref(ref: str | None) -> str | None:
 
 
 class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downloads, Pausing, Saving, Activity,
-                         SshAccess, Updates, Network):
+                         SshAccess, Updates, Network, Preparing, PrepBuild, WarmPool):
     """The environments service. Which environment a call means and attaching by title (Picking), its
     sizing and cost (Sizing), its bring-up (BringUp), its read side (Views), its saves (Saving) and what
     counts as busy (Activity), and in local mode the agent's own ssh (SshAccess) are mixins in their own
@@ -239,7 +242,7 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
     async def shutdown(self) -> None:
         """Stop the reaper, the bring-ups and the tunnels. The VMs stay: a restart of the node must
         not end an agent's work. The next start brings the tunnels back."""
-        tasks = [t for t in (self._reaper, *self._tasks.values(), *self._warming) if t is not None]
+        tasks = [t for t in (self._reaper, *self._tasks.values(), *self._warming, *self.side_tasks()) if t is not None]
         for t in tasks:
             t.cancel()
         for t in tasks:
@@ -319,7 +322,7 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
         """Is this the terminal lane of an open environment? The git gateway reads it: a VM's token
         dies with its environment."""
         found = self.lane_env(lane_id)
-        return found is not None and found[1] == "terminal"
+        return (found is not None and found[1] == "terminal") or self.building_lane(lane_id)  # a prepared machine's build
 
     def branches_created(self, lane_id: str) -> list[str]:
         """The branches the open environment of terminal lane `lane_id` created on its remote (it
@@ -479,7 +482,8 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
     async def create(self, env_id: str, plan: dict, *, binding: str, title: str, grant_id: str,
                      grant_root: str | None, agent: str, client: str | None, repo: str | None,
                      ref: str | None, subject: str | None = None, member: str | None = None,
-                     keep: str = "none", resumed: dict | None = None, lease: str | None = None) -> Environment:
+                     keep: str = "none", resumed: dict | None = None, lease: str | None = None,
+                     prepared: dict | None = None) -> Environment:
         """Record the environment and start bringing it up (after the limits and the grant's check). An open
         one of the family with this title (made meanwhile, by another process) is environment_in_use: never
         a second machine for one title, and never another chat's. `resumed` (Saving.resuming): it resumes
@@ -496,7 +500,7 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
             image=plan["image"], created_at=now,
             browser=self.settings.browser, network=plan.get("network") or "full",
             expires_at=now + timedelta(minutes=plan["ttl_minutes"]), price_hourly_eur=plan.get("price_hourly_eur"),
-            keep=keep, restore_from=(resumed or {}).get("save_id"), resumed=resumed,
+            keep=keep, restore_from=(resumed or {}).get("save_id"), resumed=resumed, prepared=prepared,
             machine=Machine(provider=getattr(self.vms().provider(), "name", ""), server_type=plan["server_type"],
                             cpu=specs.get("cores"), memory_gb=specs.get("memory_gb"), location=plan["location"],
                             size=self.size_of(specs.get("cores"), specs.get("memory_gb"))))
@@ -511,6 +515,8 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
             self.check_limits(plan)
             self.store.put(env)
         self._planned = {k: v for k, v in self._planned.items() if v != env_id}
+        with contextlib.suppress(Exception):  # the warm pool boots the image the newest open used
+            self.prepared_store().set_last_image(plan["image"])
         self._spawn(env_id, self._bring_up(env_id, plan))
         log.info("environment %s (%s) opening for %s", env_id, title, agent)
         return env
@@ -848,6 +854,10 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
             swept = await self.sweep_snapshots(now)
             if swept.get("deleted"):
                 out["snapshots_deleted"] = swept["deleted"]
+        with contextlib.suppress(Exception):  # prepared machines past their retention (agentos.environments.prepbuild)
+            out["prepared"] = await self.prepared_reap(now)
+        with contextlib.suppress(Exception):  # warm machines past warm_minutes (agentos.environments.warmpool)
+            out["warm_deleted"] = await self.pool_reap(now)
         return out
 
     async def _end_of_life(self, env: Environment, now: datetime, out: dict) -> None:
@@ -892,7 +902,8 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
         return {"open": len(self.store.open()), "tunnels": sum(1 for t in self._tunnels.values() if t.alive),
                 "month_spend_eur": self.month_spend(), "last_reap": self.last_reap,
                 "saves": len(self.saves().all()), "snapshots_eur_month": self.snapshots_eur_month(),
-                "settings": self.settings.model_dump()}
+                "prepared": self.prepared_rows(), "prepared_eur_month": self.prepared_eur_month(),
+                "pool": self.pool_view(), "settings": self.settings.model_dump()}
 
     def binding_of(self, session: str | None, grant_id: str | None) -> str:
         return binding_of(session, grant_id)

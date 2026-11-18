@@ -809,6 +809,13 @@ A closed card is 404. They are traced as `panel.repo.token_form`, `panel.repo.de
   of it, missing, over 512 MB packed), 404 (no such environment), 409 `environment_not_ready`. Traced as
   `panel.environment.download`; the fetch itself is an `environment.download` row with `by: "owner"`.
 
+### Prepared machines (the owner builds one now)
+- `POST /api/environments/prepare` `{ "repo", "ref"?, "force"? }` -> `{ "repo", "key", "started", "why" }`: starts
+  the build of the repository's prepared machine (its `.agentos/environment.toml`, docs/ENVIRONMENTS.md
+  "Prepared machines"), for `agentos environments prepare`, which then follows the build's steps in the node's
+  store. The owner only. 400 `invalid` when the repository has no usable file, when one is ready already
+  (without `force`), or when the node has no room for a build now. Traced as `panel.environment.prepare`.
+
 ### Saved environments (keep "save", agentos.environments.saving)
 An environment opened with `keep: "save"` is saved when it idles, at its time limit and on close, and
 `environment_open` with its title resumes it; one with `keep: "none"` gets a rescue save when the reaper
