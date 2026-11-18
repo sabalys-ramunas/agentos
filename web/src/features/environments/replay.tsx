@@ -1,5 +1,5 @@
 /**
- * Replay (concept, the signature of an environment that is gone): the browser as it was, frame by frame,
+ * Replay (the signature of an environment that is gone): the browser as it was, frame by frame,
  * kept on the node after the VM is deleted. The frame large, what led to it under it in words, the track
  * of the whole session below (pages, the agent's calls, a person's take-overs, the proofs), and beside it
  * everything that happened in order, the current moment marked. Play at 1, 2, 4 or 8 times, with quiet
@@ -159,18 +159,60 @@ function personWords(model: ReplayModel, index: number): string | null {
   return `With the person, ${Math.round((frame.t - span.from) / 1000)} s in`;
 }
 
+/** One row of what happened: a frame, a call between frames, or a run of the page changing on its own. */
+export interface LogItem {
+  key: string;
+  t: number;
+  /** The frame it seeks to (the first of a run). */
+  frame: number;
+  /** The frames a run covers, first and last. */
+  last: number;
+  kind: string;
+  title: string;
+  ok: boolean;
+  count: number;
+  /** A call the page changed after (a reload when a file changed): the row seeks to that frame. */
+  changed?: boolean;
+}
+
+/** A frame of the page changing this soon after a call is that call's doing, shown on the call's row. */
+const AFTER_CALL_MS = 15_000;
+
+/**
+ * Everything that happened, in order. A frame of the page changing just after a call goes on that call's
+ * row (an edit the dev server reloaded), and a run of frames the page took on its own (an animation, a
+ * spinner, a clock) is one row with its count, so the agent's and the person's steps stay readable.
+ */
+export function logItems(model: ReplayModel): LogItem[] {
+  const items: LogItem[] = [
+    ...model.frames.map((frame, at) => ({ key: frame.id, t: frame.t, frame: at, last: at, kind: frame.cause, title: personWords(model, at) ?? causeWords(frame), ok: true, count: 1 })),
+    ...model.calls
+      .filter((call) => !model.frames.some((frame) => frame.t === call.t))
+      .map((call, at) => ({ key: `c${at}`, t: call.t, frame: frameAt(model, call.t), last: frameAt(model, call.t), kind: 'call', title: `${toolPlainTitle(call.tool)}: ${call.summary}`, ok: call.ok, count: 1 })),
+  ].sort((a, b) => a.t - b.t);
+  const out: LogItem[] = [];
+  for (const item of items) {
+    const before = out[out.length - 1];
+    if (item.kind === 'change' && before?.kind === 'call' && !before.changed && item.t - before.t <= AFTER_CALL_MS) {
+      Object.assign(before, { changed: true, frame: item.frame, last: item.frame });
+      continue;
+    }
+    if (item.kind === 'change' && before?.kind === 'change') {
+      before.count += 1;
+      before.last = item.frame;
+      before.title = `The page changed on its own, ${before.count} times`;
+      continue;
+    }
+    out.push({ ...item });
+  }
+  return out;
+}
+
 /** Everything that happened, in order, the current moment marked and kept in view. */
 function EventLog({ model, index, onSeek }: { model: ReplayModel; index: number; onSeek: (index: number) => void }) {
-  const items = useMemo(
-    () =>
-      [
-        ...model.frames.map((frame, at) => ({ key: frame.id, t: frame.t, frame: at, kind: frame.cause, title: personWords(model, at) ?? causeWords(frame), ok: true })),
-        ...model.calls.filter((call) => !model.frames.some((frame) => frame.t === call.t)).map((call, at) => ({ key: `c${at}`, t: call.t, frame: frameAt(model, call.t), kind: 'call', title: `${toolPlainTitle(call.tool)}: ${call.summary}`, ok: call.ok })),
-      ].sort((a, b) => a.t - b.t),
-    [model],
-  );
+  const items = useMemo(() => logItems(model), [model]);
   const current = model.frames[index]?.t ?? 0;
-  const currentKey = [...items].reverse().find((item) => item.t <= current && item.frame === index)?.key;
+  const currentKey = [...items].reverse().find((item) => index >= item.frame && index <= item.last && (item.kind !== 'call' || item.changed))?.key;
   const list = useRef<HTMLOListElement>(null);
   useEffect(() => {
     const element = list.current?.querySelector<HTMLElement>('[aria-current="true"]');
@@ -198,6 +240,7 @@ function EventLog({ model, index, onSeek }: { model: ReplayModel; index: number;
                 <span className={cn('min-w-0 truncate text-secondary', !item.ok ? 'text-bad' : item.kind === 'person' ? 'font-medium text-fg' : item.kind === 'call' ? 'text-muted' : past ? 'text-fg' : 'text-muted')} title={item.title}>
                   {item.kind === 'person' ? <Hand aria-hidden="true" className="mr-1 inline size-3.5 align-[-2px]" /> : null}
                   {item.title}
+                  {item.changed ? <span className="text-faint"> · the page changed</span> : null}
                 </span>
               </button>
             </li>

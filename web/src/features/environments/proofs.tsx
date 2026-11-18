@@ -126,7 +126,8 @@ export function ProofsCard({ env, now }: { env: EnvDetail; now: number }) {
         {open ? (
           <div className="overflow-hidden rounded-lg border border-line bg-inset">
             {isVideo(open) ? (
-              // the node serves the MP4 with range requests, so the player seeks without loading all of it
+              // the node serves the MP4 with range requests, so the player seeks without loading all of it;
+              // eslint-disable-next-line jsx-a11y/media-has-caption -- a recording of the browser's screen has no sound to caption
               <video
                 key={open.id}
                 src={open.src}

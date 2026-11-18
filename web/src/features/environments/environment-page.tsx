@@ -1,9 +1,10 @@
 /**
- * One environment (/environments/:id): the browser's live view large, with take over as on an account; the
- * commands its terminal ran, each job linked to its run page; the ports with a link where the node forwards
- * one; git (branch, ahead, changed files, what was pushed); the proofs it kept; the agent's last calls; the machine and its cost;
- * and Extend and Close. A closed one is a read-only summary that says why it closed. Read every few seconds
- * while it has a machine, since no event carries it.
+ * One environment (/environments/:id): the browser's live view large, with take over as on an account; how
+ * it opened, folded to a line once it is up; its checkpoints; the commands its terminal ran, each job
+ * linked to its run page; the ports with a link where the node forwards one; git (branch, ahead, changed
+ * files, what was pushed); the proofs it kept; the agent's last calls; the machine and its cost; and Extend
+ * and Close. A closed one leads with its replay, then its proofs and pull request, and says why it closed.
+ * Read every few seconds while it has a machine, since no event carries it.
  */
 import { Link, useParams } from '@tanstack/react-router';
 import { Lock, SearchX } from 'lucide-react';
@@ -114,12 +115,24 @@ function EnvLoaded({ org, env }: { org: string; env: EnvDetail }) {
       {open ? env.state === 'starting' ? null : <ResumedNotice env={env} /> : <ClosedNotice env={env} />}
       {open ? null : <SavedNotice org={org} env={env} />}
       <Facts env={env} now={now} />
-      {/* a closed one is its replay first: what happened is the page now */}
-      {!open && env.replay ? <ReplayCard org={org} env={env} /> : null}
-      <OpenedCard org={org} env={env} />
+      {open ? <OpenBody org={org} env={env} now={now} /> : <ClosedBody org={org} env={env} now={now} />}
+    </div>
+  );
+}
+
+/**
+ * An open one: the live browser first (while it starts, how it opens, growing, comes before it), then what
+ * the agent kept and did; git, the network, the ports and the machine beside it.
+ */
+function OpenBody({ org, env, now }: { org: string; env: EnvDetail; now: number }) {
+  const starting = env.state === 'starting';
+  return (
+    <>
+      {starting ? <OpenedCard org={org} env={env} /> : null}
       <div className="grid items-start gap-6 lg:grid-cols-12">
         <div className="grid min-w-0 gap-6 lg:col-span-8">
-          {open ? <BrowserCard org={org} env={env} /> : null}
+          <BrowserCard org={org} env={env} />
+          {starting ? null : <OpenedCard org={org} env={env} />}
           <CheckpointsCard org={org} env={env} now={now} />
           <ProofsCard env={env} now={now} />
           <CommandsCard org={org} env={env} now={now} />
@@ -128,10 +141,42 @@ function EnvLoaded({ org, env }: { org: string; env: EnvDetail }) {
         <div className="grid min-w-0 gap-6 lg:col-span-4">
           <GitCard env={env} now={now} />
           {env.network ? <NetworkCard network={env.network} now={now} /> : null}
-          {open ? <PortsCard env={env} /> : null}
+          <PortsCard env={env} />
           <MachineCard env={env} />
         </div>
       </div>
-    </div>
+    </>
+  );
+}
+
+/**
+ * A closed one is what happened (the owner's decision): its replay leads, then the proofs and the pull
+ * request side by side, how it opened as one line, and the record of commands, calls, network and machine.
+ */
+function ClosedBody({ org, env, now }: { org: string; env: EnvDetail; now: number }) {
+  return (
+    <>
+      {env.replay ? <ReplayCard org={org} env={env} /> : null}
+      <div className="grid items-start gap-6 lg:grid-cols-12">
+        <div className="min-w-0 lg:col-span-8">
+          <ProofsCard env={env} now={now} />
+        </div>
+        <div className="min-w-0 lg:col-span-4">
+          <GitCard env={env} now={now} />
+        </div>
+      </div>
+      <OpenedCard org={org} env={env} />
+      <div className="grid items-start gap-6 lg:grid-cols-12">
+        <div className="grid min-w-0 gap-6 lg:col-span-8">
+          <CheckpointsCard org={org} env={env} now={now} />
+          <CommandsCard org={org} env={env} now={now} />
+          <CallsCard env={env} now={now} />
+        </div>
+        <div className="grid min-w-0 gap-6 lg:col-span-4">
+          {env.network ? <NetworkCard network={env.network} now={now} /> : null}
+          <MachineCard env={env} />
+        </div>
+      </div>
+    </>
   );
 }
