@@ -25,6 +25,8 @@ READERS = {"cat", "head", "tail", "less", "more", "nl", "bat"}
 SLEEP_S = 2.0           # a sleep this long inside a command is waiting by hand (until_port waits on the machine)
 POLLS = 3               # this many reads of one job with no until_exit or until_port is a poll loop
 SEGMENT = re.compile(r"\|\||&&|;|\||\n")
+# an environment's lane name (env/<id>, env/<id>-browser, <id>-browser, <id>), never its handle "<id>.<secret>"
+LANE_NAME = re.compile(r"^(env/)?e[a-z0-9]{3,15}(-browser)?$")
 
 
 def unwrap(row: dict[str, Any]) -> dict[str, Any]:
@@ -122,7 +124,11 @@ def wrong_turns(rows: list[dict[str, Any]], *, new_environments: int = 1) -> lis
     prev: dict[str, Any] | None = None
     for r in rows:
         tool, args = r["tool"], r.get("args") or {}
-        if r.get("code") in NO_ON_CODES and tool != "environment_open":
+        on = args.get("on")
+        if isinstance(on, str) and LANE_NAME.match(on.strip()):  # Haiku, 2026-11-18: lanes.browser as on
+            out.append(f"{tool} with a lane's name as on ({on[:40]!r}), not the on its environment_open gave"
+                       + (f" (refused: {r['code']})" if r.get("code") else ""))
+        elif r.get("code") in NO_ON_CODES and tool != "environment_open":
             out.append(f"{tool} without the on its environment_open gave (refused: {r['code']})")
         if tool == "lane_exec":
             cmd = str(args.get("cmd") or "")
@@ -195,6 +201,13 @@ def _seconds_by_tool(rows: list[dict[str, Any]]) -> dict[str, float]:
     return dict(sorted(out.items(), key=lambda kv: -kv[1]))
 
 
+def first_navigate(rows: list[dict[str, Any]]) -> float | None:
+    """Seconds the first browser_navigate took: on a fresh machine it waited for the browser to start."""
+    first = next((r for r in rows if r["tool"] == "browser_navigate" and r.get("ended") is not None
+                  and r.get("started") is not None), None)
+    return round(first["ended"] - first["started"], 2) if first else None
+
+
 def trace_metrics(rows: list[dict[str, Any]], *, new_environments: int = 1) -> dict[str, Any]:
     rows_u = [unwrap(r) for r in rows]
     errors = [r for r in rows_u if not r.get("ok")]
@@ -208,6 +221,7 @@ def trace_metrics(rows: list[dict[str, Any]], *, new_environments: int = 1) -> d
         "tokens_read": tokens(sum(len(str(r.get("text") or "")) for r in rows_u)),
         "images": sum(int(r.get("images") or 0) for r in rows_u),
         "wrong_turns": turns,
+        **({"first_navigate_s": nav} if (nav := first_navigate(rows_u)) is not None else {}),
     }
 
 

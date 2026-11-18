@@ -35,7 +35,7 @@ RULES: dict[str, tuple[float, float]] = {
     "cost_usd": (0.20, 0.02),
 }
 # per task, from each result: the numbers kept in the history
-TASK_METRICS = ("seconds_s", "ready_s", "calls", "tokens_read", "tool_errors", "wrong_turns", "turns",
+TASK_METRICS = ("seconds_s", "ready_s", "first_navigate_s", "calls", "tokens_read", "tool_errors", "wrong_turns", "turns",
                 "input_tokens", "output_tokens", "cache_read_tokens", "cache_write_tokens", "cost_usd")
 
 
@@ -55,7 +55,8 @@ def _median(values: list[float]) -> float | None:
 def flat(result: dict[str, Any]) -> dict[str, float]:
     """One task run's numbers, by TASK_METRICS name."""
     m = result.get("model_metrics") or {}
-    out = {"seconds_s": result.get("seconds"), "ready_s": result.get("ready_s"), "calls": result.get("calls"),
+    out = {"seconds_s": result.get("seconds"), "ready_s": result.get("ready_s"),
+           "first_navigate_s": result.get("first_navigate_s"), "calls": result.get("calls"),
            "tokens_read": result.get("tokens_read"), "tool_errors": result.get("tool_errors"),
            "wrong_turns": len(result.get("wrong_turns") or []), **{k: m.get(k) for k in TASK_METRICS if k in m}}
     return {k: v for k, v in out.items() if isinstance(v, (int, float)) and not isinstance(v, bool)}

@@ -119,6 +119,26 @@ def test_the_wrong_turns_a_careful_agent_does_not_take():
     assert wrong_turns(rows[-1:], new_environments=2) == []
 
 
+def test_a_lane_name_as_on_is_a_wrong_turn_even_when_it_worked():
+    """Haiku passed lanes.browser as on (2026-11-18). Refused or not (a session holder reaches its own
+    machine by it), it is not the on the skill teaches; a handle is never taken for one."""
+    rows = [row("browser_navigate", {"on": "ea4rfkkx9sw-browser", "url": "http://localhost:3000"}, ok=False,
+                code="which_environment"),
+            row("lane_exec", {"on": "env/ea4rfkkx9sw", "cmd": "ls"}),
+            row("lane_exec", {"on": "ea4rfkkx9sw.fexswp5nylnkryff", "cmd": "ls"}),
+            row("browser_navigate", {"on": "personal/reddit", "url": "https://example.com"})]
+    turns = wrong_turns(rows)
+    assert turns == [("browser_navigate with a lane's name as on ('ea4rfkkx9sw-browser'), not the on its "
+                     "environment_open gave (refused: which_environment)"),
+                     "lane_exec with a lane's name as on ('env/ea4rfkkx9sw'), not the on its environment_open gave"]
+
+
+def test_the_first_navigate_is_timed():
+    rows = [row("browser_navigate", {"url": "a"}, started=3, ended=13.5), row("browser_navigate", started=14, ended=15)]
+    assert trace_metrics(rows)["first_navigate_s"] == 10.5
+    assert "first_navigate_s" not in trace_metrics([row("lane_exec", started=0, ended=1)])
+
+
 def test_a_retry_after_a_fix_or_in_another_chat_is_no_repeat():
     fail = row("lane_exec", {"cmd": "npm test"}, text=json.dumps({"exit_code": 1}))
     fixed = row("lane_file_edit", {"path": "a.js", "old": "x", "new": "y"})
