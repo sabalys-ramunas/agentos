@@ -80,6 +80,9 @@ class EnvSettings(BaseModel):
     keep_paths_max_mb: int = Field(default=500, ge=1)     # their size, at most
     encrypt_saves: bool = True                            # a save's files sealed with a key the vault holds
     save_signins: bool = True                             # a save holds the browser's sign-ins (opt out per environment)
+    # The replay of each environment's browser (agentos.environments.replay): frames kept on the node.
+    replay: bool = True                                   # its browser holds no account and no vault entry
+    replay_days: int = Field(default=14, ge=1, le=365)    # kept this long after the environment closed
 
     @field_validator("keep_paths")
     @classmethod

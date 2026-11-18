@@ -566,6 +566,7 @@ async def environment(ctx: ToolContext, *, on: str | None = None) -> dict:
     if compare:
         git["compare"] = compare
     out["proofs"] = _proofs(mgr, env)
+    out["replay"] = mgr.replay_summary(env)  # {frames, since, bytes}: the owner watches it, not the agent
     if env.pull_requests:
         git["pull_requests"] = env.pull_requests
     if env.resumed:
