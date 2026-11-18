@@ -143,11 +143,12 @@ def test_connect_sets_up_tunnel_keychain_and_claude(system, node, home):
     assert {k: v for k, v in grant["subject"].items() if v} == {"kind": "agent", "id": "claude-code@testmac",
                                                                "owner": "owner"}
     assert grant["scope"]["blocks"][0]["workspaces"] == ["*"] and grant["scope"]["ceiling"] == "commit"
-    assert grant["scope"]["admin"] is False and grant["scope"]["specials"] == ["exec", "memory", "vm"]
+    assert grant["scope"]["admin"] is False and grant["scope"]["specials"] == ["exec", "memory", "secret", "vm"]
     _, g = node.runtime.policy.resolve(agent)
     assert g.caps("memory") and not any(c.write for c in g.caps("memory"))  # reads memory, never writes it
-    # environments: its own cloud computer, and commands there only, never on an account lane
+    # environments: its own cloud computer, commands and the owner's bound logins there only, never on an account lane
     assert [c.lanes for c in g.caps("vm")] == [["env/*"]] and [c.lanes for c in g.caps("exec")] == [["env/*"]]
+    assert [c.lanes for c in g.caps("secret")] == [["env/*"]]
 
     assert plist(home) == {
         "Label": LABEL,

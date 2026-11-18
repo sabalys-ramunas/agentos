@@ -276,10 +276,11 @@ async def test_it_serves_mcp_and_the_web_app_and_the_registered_grant_works(tmp_
         ):
             tools = {tool.name for tool in (await mcp.list_tools()).tools}
             assert {"environment_open", "environment", "environment_close", "lane_exec", "lane_file_read"} <= tools
-            # the environment's browser (on its VM), and nothing built on account lanes
+            # the environment's browser (on its VM) and its sign-in with the owner's bound logins, and nothing
+            # built on account lanes
             assert {"browser_navigate", "browser_snapshot", "browser_act", "browser_wait", "browser_screenshot",
-                    "lanes_list", "lane_view"} <= tools
-            assert not tools & {"flow_run", "login", "lane_create", "profile_use"}
+                    "lanes_list", "lane_view", "login"} <= tools
+            assert not tools & {"flow_run", "lane_create", "profile_use"}
             who = await mcp.call_tool("environment", {})
             assert not who.is_error and json.loads(who.content[0].text)["environment"] is None
             up = await mcp.call_tool("tools_call", {"name": "environment_upload", "arguments": {}})
@@ -332,7 +333,7 @@ def test_register_issues_the_connect_grant_stores_its_token_and_registers_agento
     try:
         _, grant = policy.resolve(token_file.read_text().strip())
         record = policy.grant_record(grant.id)
-        assert sorted(record["scope"]["specials"]) == ["exec", "memory", "vm"]
+        assert sorted(record["scope"]["specials"]) == ["exec", "memory", "secret", "vm"]
         assert record["scope"]["ceiling"] == "commit"
         conn = client.records.get(NAME)
         assert conn.agent_grant_id == grant.id and conn.url == "http://127.0.0.1:7410/mcp"
