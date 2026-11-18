@@ -757,7 +757,7 @@ Returns on, id, title, opened (new, resumed, attached, taken_over), state (start
 | `size` | `str \| None` | no (default None) | small (2 CPU, 4 GB), medium (4, 8), large (8, 16), xlarge (16, 32), or a server type like cpx42. Only when the work needs more. |
 | `hours` | `float \| None` | no (default None) | How long it may live (default 2); it closes sooner when idle. |
 | `wait_s` | `float` | no (default 240) | Seconds to wait for ready, 0 to 200. |
-| `keep` | `str \| None` | no (default None) | none (deleted when done), save (saved when idle or closed; its title resumes it) or live (kept running; the owner allows it). |
+| `keep` | `str \| None` | no (default None) | save (default: saved when idle or closed, its title resumes it), none (deleted when done), live (kept running if allowed). |
 | `signins` | `bool \| None` | no (default None) | false: saves keep no sign-ins. |
 | `take_over` | `bool` | no (default False) | Take a machine another chat of yours holds but has not used for 10 minutes. Only when that chat is done with it. |
 | `network` | `str \| None` | no (default None) | limited or none (only narrows the node's). |

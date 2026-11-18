@@ -354,8 +354,8 @@ async def environment_open(ctx: ToolContext, *, title: str | None = None, repo: 
             like cpx42. Only when the work needs more.
         hours: How long it may live (default 2); it closes sooner when idle.
         wait_s: Seconds to wait for ready, 0 to 200.
-        keep: none (deleted when done), save (saved when idle or closed; its title resumes it) or live
-            (kept running; the owner allows it).
+        keep: save (default: saved when idle or closed, its title resumes it), none (deleted when done),
+            live (kept running if allowed).
         signins: false: saves keep no sign-ins.
         take_over: Take a machine another chat of yours holds but has not used for 10 minutes. Only
             when that chat is done with it.
