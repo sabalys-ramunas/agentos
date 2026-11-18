@@ -226,9 +226,9 @@ rather.
 
 When the laptop is about to sleep, agentos acts on each open environment by its mode:
 
-- **Saves when idle** (`keep="save"`, the default): it is saved (the disk snapshot and the files) and its VM
-  deleted. Nothing bills while the laptop sleeps but the save. When you are back, say "continue
-  <title> in agentos" in any chat, and it comes back.
+- **Saves when idle** (`keep="save"`, the default): it is saved (the disk snapshot and the files)
+  and its VM deleted. Nothing bills while the laptop sleeps but the save. When you are back, say
+  "continue <title> in agentos" in any chat, and it comes back.
 - **Single use** (`keep="none"`): one with nothing to lose is closed. One with unsaved work gets a
   rescue save (its files and commits), and you are told; an agent that opens the same title gets
   that work back.
