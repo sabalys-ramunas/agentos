@@ -80,6 +80,10 @@ class EnvSettings(BaseModel):
     keep_paths_max_mb: int = Field(default=500, ge=1)     # their size, at most
     encrypt_saves: bool = True                            # a save's files sealed with a key the vault holds
     save_signins: bool = True                             # a save holds the browser's sign-ins (opt out per environment)
+    # The network (agentos.environments.network): full, limited (registries, code hosts and allow_hosts)
+    # or none. An agent may only narrow it; `agentos environments allow --network/--host` changes it.
+    network: Literal["full", "limited", "none"] = "full"
+    allow_hosts: list[str] = Field(default_factory=list)  # more hosts limited reaches (api.example.com, .example.com)
 
     @field_validator("keep_paths")
     @classmethod
@@ -88,6 +92,13 @@ class EnvSettings(BaseModel):
             if not re.match(r"^/[A-Za-z0-9._/-]+$", p) or ".." in p or p.rstrip("/") in ("", "/work"):
                 raise ValueError(f"keep_paths are absolute folders on the machine, like /root/.cache/ms-playwright: {p!r}")
         return [p.rstrip("/") for p in v]
+
+    @field_validator("allow_hosts")
+    @classmethod
+    def _allow_hosts(cls, v: list[str]) -> list[str]:
+        from agentos.environments.network import check_host
+
+        return list(dict.fromkeys(check_host(h) for h in v))
 
     @model_validator(mode="after")
     def _live_needs_opt_in(self) -> EnvSettings:
@@ -198,6 +209,11 @@ class Environment(BaseModel):
     save_tried_at: datetime | None = None     # the last save, made or failed (a failed one is retried later)
     keep_signins: bool = True                 # a save holds its browser's sign-ins (agentos.environments.signins)
     pull_requests: list[dict] = Field(default_factory=list)  # environment_pull_request opened (url, number, branch)
+    # Its network (agentos.environments.networking), as it opened: the level, the names of the secrets
+    # bound for its app (never a value), and the hosts its network refused (host, count, last).
+    network: Literal["full", "limited", "none"] = "full"
+    secrets: list[str] = Field(default_factory=list)
+    blocked: list[dict] = Field(default_factory=list)
 
     @field_validator("id")
     @classmethod

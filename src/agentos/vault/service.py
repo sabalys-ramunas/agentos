@@ -612,6 +612,22 @@ class VaultService:
         prefix = meta.config.get("prefix", "Bearer " if header.lower() == "authorization" else "")
         return header, Secret(prefix + secret.reveal())
 
+    async def resolve_app_secret(self, ctx: Any, *, ref: str, lane_id: str, url: str) -> Secret:
+        """An api_key entry's value for the node's swap of an agent environment's request to the bound
+        host (agentos.environments.swap): the entry must be bound to the lane and the host one of its
+        own. Never return this to a tool caller."""
+        meta, values = await self._open(ref, ("secret",))
+        d = decide(meta, lane_id=lane_id, sink=Sink.APP_REQUEST, url=url)
+        if not d.allowed:
+            self._denied(ctx, meta, lane_id, Sink.APP_REQUEST, d)
+        secret = values["secret"]
+        if secret is None:
+            self._denied(ctx, meta, lane_id, Sink.APP_REQUEST, Decision(False, Reason.NO_ENTRY, d.host,
+                                                                         "entry has no value"))
+        await self._used(ctx, meta, lane_id, d.host, Sink.APP_REQUEST)
+        assert secret is not None
+        return secret
+
     # ---- redaction --------------------------------------------------------------
 
     def scrub(self, text: str, lane_id: str | None = None, *, codes_lane: str | None = None) -> str:

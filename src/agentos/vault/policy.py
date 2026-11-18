@@ -38,6 +38,7 @@ class Sink(StrEnum):
     AUTH_HEADER = "auth_header"
     COOKIE = "cookie"
     IMAP_LOGIN = "imap_login"   # node-side login to the mailbox of a code catcher
+    APP_REQUEST = "app_request"  # the node's swap: an agent environment's app request to the bound host
 
 
 class FieldRole(StrEnum):
@@ -69,7 +70,7 @@ ROLE_SINK = {FieldRole.USERNAME: Sink.FORM_USERNAME, FieldRole.PASSWORD: Sink.FO
 KIND_SINKS: dict[EntryKind, frozenset[Sink]] = {
     EntryKind.PASSWORD: frozenset({Sink.FORM_USERNAME, Sink.FORM_PASSWORD, Sink.FORM_OTP, Sink.IMAP_LOGIN}),
     EntryKind.TOTP: frozenset({Sink.FORM_OTP}),
-    EntryKind.API_KEY: frozenset({Sink.AUTH_HEADER}),
+    EntryKind.API_KEY: frozenset({Sink.AUTH_HEADER, Sink.APP_REQUEST}),
     EntryKind.COOKIE: frozenset({Sink.COOKIE}),
     EntryKind.NOTE: frozenset(),
 }

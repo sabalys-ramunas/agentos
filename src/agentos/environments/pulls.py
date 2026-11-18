@@ -87,6 +87,15 @@ async def token_for(mgr: Any, repo: str) -> str | None:
         raise PullRequestFailed(f"the vault did not give the GitHub token: {e.message}") from None
 
 
+def _with_blocked(mgr: Any, env: Any, body: str | None) -> str:
+    """The body, with "Blocked during this work" when the environment's network refused hosts."""
+    from agentos.environments.network import blocked_section
+
+    view = getattr(mgr, "network_view", None)
+    blocked = view(env)["blocked"] if callable(view) else list(getattr(env, "blocked", None) or [])
+    return (body or "") + blocked_section(blocked)
+
+
 def _client(mgr: Any) -> Any:
     import httpx
 
@@ -132,7 +141,7 @@ async def open_pull_request(mgr: Any, env: Any, *, title: str, body: str | None 
             if base == head:
                 raise InvalidRequest(f"{head} is the base branch itself; push your work to a new branch first")
             made = await http.post(f"/repos/{repo}/pulls", headers=auth, json={
-                "title": title[:TITLE_MAX], "head": head, "base": base, "body": (body or "")[:BODY_MAX],
+                "title": title[:TITLE_MAX], "head": head, "base": base, "body": _with_blocked(mgr, env, body)[:BODY_MAX],
                 "draft": bool(draft)})
             if made.status_code == 201:
                 pr, created = made.json(), True

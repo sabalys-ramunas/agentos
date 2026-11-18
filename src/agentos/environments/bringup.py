@@ -57,7 +57,7 @@ STEP_WORDS = {"VM create": "renting the VM", "VM ready": "the VM boots", "setup 
               "apt ready": "the VM's package manager finishes", "tools top-up": "installing tools",
               "tunnels and git": "connecting to the VM", "browser": "starting the browser",
               "clone": "cloning the repository", "restore": "restoring the saved work",
-              "ssh": "setting up ssh"}
+              "ssh": "setting up ssh", "network": "setting up the network"}
 
 
 def doing(env_id: str) -> str | None:
@@ -272,6 +272,7 @@ class BringUp:
             early.append(asyncio.ensure_future(steps.run("ssh", self.ssh_up(env))))
         try:
             await steps.run("tunnels and git", self._start_tunnel(env))
+            await steps.run("network", self.net_setup(env))  # its proxy, placeholders and CA (networking)
             if env.restore_from:
                 await together(steps.run("browser", self._make_browser(env)), *early)
                 await steps.run("restore", self._restore(env))
@@ -365,6 +366,7 @@ class BringUp:
                 log.warning("environment %s: no git gateway listener: %s", env.id, e)
         on_vm = {"vm_browser": True, "browser_port": old.browser_port if old else None} if env.browser == "vm" else {}
         tunnel = Tunnel(vms.remote(rec), gateway_port=gateway, socks_port=old.socks_port if old else None, **on_vm)
+        tunnel.net_forwards = await self.net_forwards(env)  # a closed network's proxy, the secret swap
         await tunnel.start()
         self._tunnels[env.id] = tunnel
         self._wrap_proxies_loader()
@@ -402,6 +404,8 @@ class BringUp:
         on the VM, without its git config, so nothing it holds is used. No answer: through the gateway."""
         from agentos.git.wire import parse_remote
 
+        if env.network != "full":
+            return False  # a closed machine reaches no host straight (and its proxy is not set up yet)
         remote = parse_remote(env.repo or "")
         url = shlex.quote(f"https://{remote.host}/{remote.repo}.git")
         try:

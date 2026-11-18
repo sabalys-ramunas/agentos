@@ -167,6 +167,7 @@ class VmRecord(BaseModel):
     port: int = 22                            # SSH port at `host` (the docker provider maps one per machine)
     environment: str | None = None            # the agent environment this VM is the machine of (agentos.environments)
     kept: bool = False                        # an environment kept live (keep "live"): max_ttl_minutes does not bound it
+    network: str = "full"                     # full, or limited / none: its network closed outside it (agentos.vms.netwall)
 
     @property
     def live(self) -> bool:

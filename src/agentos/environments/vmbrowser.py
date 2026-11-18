@@ -418,6 +418,9 @@ class VmBrowsers:
         size = (viewer.width or DESKTOP[0], viewer.height or DESKTOP[1]) if viewer else DESKTOP
         ws_path = "/" + secrets.token_urlsafe(24)
         options = browser_options(spec, identity_os=getattr(engine, "identity_os", None), size=size)
+        from agentos.environments.network import vm_browser_prefs
+
+        options["firefox_user_prefs"].update(vm_browser_prefs(getattr(env, "network", "full")))  # a closed network
         await steps.run("start", self.ctl(env, "browser", options=options, port=_vm_port(), ws_path=ws_path,
                                           timeout_s=STEP_LIMIT_S["start"] - 5))
         profile_dir.mkdir(parents=True, exist_ok=True)

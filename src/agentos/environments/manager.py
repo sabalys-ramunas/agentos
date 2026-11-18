@@ -59,6 +59,7 @@ from agentos.environments.models import (
     Push,
     load_settings,
 )
+from agentos.environments.networking import Network
 from agentos.environments.picking import Picking, current_client, is_session, same_title
 from agentos.environments.ports import ended
 from agentos.environments.proofs import Proofs
@@ -135,7 +136,7 @@ def check_ref(ref: str | None) -> str | None:
 
 
 class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downloads, Saving, Activity, SshAccess,
-                         Updates):
+                         Updates, Network):
     """The environments service. Which environment a call means and attaching by title (Picking), its
     sizing and cost (Sizing), its bring-up (BringUp), its read side (Views), its saves (Saving) and what
     counts as busy (Activity), and in local mode the agent's own ssh (SshAccess) are mixins in their own
@@ -148,6 +149,7 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
         self.store = EnvironmentStore(self.home / "environments.db")
         self._clock = clock
         self._tunnels: dict[str, Tunnel] = {}
+        self._nets: dict = {}  # each environment's network on the node (agentos.environments.networking)
         self._vm_browsers: Any = None  # agentos.environments.vmbrowser.VmBrowsers, once a "vm" browser is made
         self._tasks: dict[str, asyncio.Task] = {}
         self._warming: set[asyncio.Task] = set()  # mirror warm-ups while VMs boot (BringUp._warm_mirror)
@@ -189,7 +191,8 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
 
     def proxies(self) -> dict[str, ProxyConfig]:
         """The SOCKS proxy of each open environment's tunnel, by the label its browser lane names."""
-        return {f"env-{eid}": ProxyConfig(label=f"env-{eid}", host="127.0.0.1", port=t.socks_port, scheme="socks5",
+        return {f"env-{eid}": ProxyConfig(label=f"env-{eid}", host="127.0.0.1", port=self.browser_socks_port(eid, t),
+                                           scheme="socks5",
                                            check_exit=False)
                 for eid, t in self._tunnels.items()}
 
@@ -247,6 +250,7 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
         for tunnel in list(self._tunnels.values()):
             await tunnel.stop()
         self._tunnels.clear()
+        await self.net_shutdown()
 
     async def stop(self) -> None:
         await self.shutdown()
@@ -489,7 +493,7 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
             id=env_id, title=title, grant_id=grant_id, grant_root=grant_root, binding=binding, agent=agent,
             subject=subject, member=member, client=client, bound_at=now, lease=lease, repo=repo, ref=ref,
             image=plan["image"], created_at=now,
-            browser=self.settings.browser,
+            browser=self.settings.browser, network=plan.get("network") or "full",
             expires_at=now + timedelta(minutes=plan["ttl_minutes"]), price_hourly_eur=plan.get("price_hourly_eur"),
             keep=keep, restore_from=(resumed or {}).get("save_id"), resumed=resumed,
             machine=Machine(provider=getattr(self.vms().provider(), "name", ""), server_type=plan["server_type"],
@@ -570,6 +574,7 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
         tunnel = self._tunnels.pop(env.id, None)
         if tunnel is not None:
             await tunnel.stop()
+        await self.net_down(env.id)  # its proxy and swap stop; the CA's key and the placeholders go
         git = self._get("git")
         if git is not None and callable(getattr(git, "vm_down", None)):
             try:  # its gateway token ends here, with the listener its tunnel reached

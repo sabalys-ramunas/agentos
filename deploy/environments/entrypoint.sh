@@ -9,6 +9,12 @@
 # one exception, because Docker's resolver may forward from inside the container. Then sshd starts
 # without NET_ADMIN, NET_RAW and SETPCAP in its bounding set, so nothing on the machine, root
 # included, can take the wall down.
+#
+# With AGENTOS_ENV_NETWORK=closed as well (an environment's network "limited" or "none",
+# agentos.vms.netwall) the wall is tighter: every new outbound connection is refused but loopback,
+# DNS included. The machine then reaches only what the node forwards into it over its SSH connection
+# (the git gateway, the node's allowlist proxy). The docker provider copies this file in and runs it
+# for such a machine, so an image with an older entrypoint still gets this wall.
 set -eu
 SEED=/etc/agentos-env
 if [ ! -f "$SEED/ssh_host_ed25519_key" ] || [ ! -f "$SEED/authorized_keys" ]; then
@@ -44,12 +50,35 @@ wall() {
   fi
 }
 
+# Nothing out but loopback (and the replies of the node's SSH connection in).
+closed() {
+  iptables -F OUTPUT || return 1
+  iptables -A OUTPUT -o lo -j ACCEPT || return 1
+  iptables -A OUTPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT || return 1
+  iptables -A OUTPUT -j REJECT || return 1
+  if ip6tables -F OUTPUT 2>/dev/null; then
+    ip6tables -A OUTPUT -o lo -j ACCEPT || return 1
+    ip6tables -A OUTPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT || return 1
+    ip6tables -A OUTPUT -j REJECT || return 1
+  elif [ -n "$(ip -6 addr show scope global 2>/dev/null)" ]; then
+    echo "agentos-env: the machine has IPv6 but ip6tables does not work" >&2
+    return 1
+  fi
+}
+
 set -- /usr/sbin/sshd -D -e \
   -o HostKey=/etc/ssh/ssh_host_ed25519_key \
   -o PasswordAuthentication=no \
   -o KbdInteractiveAuthentication=no \
   -o PermitRootLogin=prohibit-password \
   -o AllowTcpForwarding=yes
+if [ "${AGENTOS_ENV_NETWORK:-full}" = "closed" ]; then
+  if ! closed; then
+    echo "agentos-env: could not close the machine's network (iptables needs NET_ADMIN); not starting" >&2
+    exit 1
+  fi
+  exec setpriv --inh-caps=-all --bounding-set=-net_admin,-net_raw,-setpcap -- "$@"
+fi
 if [ "${AGENTOS_ENV_WALL:-}" = "1" ]; then
   if ! wall; then
     echo "agentos-env: could not wall the machine off (iptables needs NET_ADMIN); not starting" >&2

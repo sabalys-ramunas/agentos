@@ -110,6 +110,7 @@ carries one of these codes:
 | [`method_unavailable`](#method_unavailable) | That way to confirm cannot be used: it is planned, unknown on this node, or turned off in the confirmation setting. | no |
 | [`misdirected`](#misdirected) | The request named a host this node does not answer on, so it was refused before anything ran. | no |
 | [`missing_param`](#missing_param) | A flow step needs a param that was not given. | no |
+| [`network_not_allowed`](#network_not_allowed) | The network asked for cannot be had: an agent may only narrow the node's (full, limited, none), the provider cannot close it, or none could not clone the repository. Nothing was rented. | no |
 | [`no_environment`](#no_environment) | A terminal or browser call found no machine this chat holds: none is open, the `on` it passed is not the machine's handle any more (it closed, was let go, or another chat took it over), or this chat holds none. | no |
 | [`no_sandbox`](#no_sandbox) | This node cannot run a sandboxed terminal or service lane: agentosd is not root (a hardened node), it is not Linux, or bubblewrap is missing. Nothing was created or run. | no |
 | [`not_a_read`](#not_a_read) | A site_change check stopped because the endpoint it watches does more than read now. A check never acts on a site. | no |
@@ -1141,6 +1142,15 @@ A flow step needs a param that was not given.
 - **You:** Pass the missing param; the message names it.
 - **Retry:** no
 - **Runs fail with it in:** `agentos.runner.connector_steps`, `agentos.runner.execution`, `agentos.runner.executor`
+
+## network_not_allowed
+
+The network asked for cannot be had: an agent may only narrow the node's (full, limited, none), the provider cannot close it, or none could not clone the repository. Nothing was rented.
+
+- **Agent:** Open with the node's network or a narrower one, as the message says, or tell the user the command it names. Never ask for a wider network some other way.
+- **You:** Do what the message names: `agentos environments allow --network limited` (or full), `agentos environments repo add`, or `agentos vm image build dev`.
+- **Retry:** no
+- **Raised by:** `agentos.environments.network.NetworkNotAllowed`
 
 ## no_environment
 

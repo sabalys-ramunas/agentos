@@ -320,7 +320,7 @@ def _open_result(ctx: ToolContext, mgr: EnvironmentManager, env: Environment, ha
 async def environment_open(ctx: ToolContext, *, title: str | None = None, repo: str | None = None,
                            ref: str | None = None, size: str | None = None, hours: float | None = None,
                            wait_s: float = 240, keep: str | None = None, signins: bool | None = None,
-                           take_over: bool = False) -> dict:
+                           take_over: bool = False, network: str | None = None) -> dict:
     """Your own cloud computer: a VM with a terminal, a browser and the repo, to build and test on
     instead of the user's laptop. It returns `on`, this machine's handle: keep it and pass on="<it>"
     on every call, since only calls that carry it reach the machine. A new title opens one; a saved
@@ -348,6 +348,8 @@ async def environment_open(ctx: ToolContext, *, title: str | None = None, repo: 
         signins: false: saves keep no browser sign-ins.
         take_over: Take a machine another chat of yours holds but has not used for 10 minutes (its
             work stays on it). Only when that chat is done with it.
+        network: Only to narrow the node's default: limited (package registries, code hosts and the
+            owner's hosts) or none (the git gateway alone). Never wider than the node allows.
     """
     mgr = _mgr(ctx)
     title = check_title(title if title else title_for_repo(ctx, mgr, repo))
@@ -361,13 +363,14 @@ async def environment_open(ctx: ToolContext, *, title: str | None = None, repo: 
         repo = parse_remote(repo).slug
     # the call's own argument errors first: a size past the limit is never hidden by an attach
     await mgr.check_open_args(size=size, hours=hours, keep=keep)
+    level = mgr.network_for_open(network, repo)  # narrowed only, never widened (agentos.environments.network)
     loop = asyncio.get_running_loop()
     began, last = loop.time(), False
     while True:
         try:
             async with mgr.opening(family, title):  # one open at a time per title: a second one is environment_in_use
                 got = await _open_locked(ctx, mgr, binding, family, title=title, repo=repo, ref=ref, size=size,
-                                         hours=hours, keep=keep, signins=signins, take_over=take_over)
+                                         hours=hours, keep=keep, signins=signins, take_over=take_over, network=level)
             break
         except EnvironmentFull:  # the node runs all the machines it may: wait for one to free, up to wait_s
             waited, slot_wait = loop.time() - began, min(wait, mgr.slot_wait_s)
@@ -400,8 +403,8 @@ async def environment_open(ctx: ToolContext, *, title: str | None = None, repo: 
 
 async def _open_locked(ctx: ToolContext, mgr: EnvironmentManager, binding: str, family: str | None, *, title: str,
                        repo: str | None, ref: str | None, size: str | None, hours: float | None,
-                       keep: str | None = None, signins: bool | None = None, take_over: bool = False
-                       ) -> tuple[Environment, str, str] | dict:
+                       keep: str | None = None, signins: bool | None = None, take_over: bool = False,
+                       network: str = "full") -> tuple[Environment, str, str] | dict:
     # the live one with this title (starting or ready, only with the repository asked for): this chat's
     # own, one let go, or another chat's with take_over once it is quiet; else environment_in_use
     found = mgr.reattach(binding, title, family, repo, take_over=take_over)
@@ -422,6 +425,7 @@ async def _open_locked(ctx: ToolContext, mgr: EnvironmentManager, binding: str, 
     else:
         keep = mgr.check_keep(keep)
         plan = await mgr.plan(env_id, size=size, hours=hours, keep=keep)
+    mgr.check_network_plan(network, plan)
     mgr.check_limits(plan)
     sp = plan.get("specs") or {}
     specs = f" ({sp.get('cores')} vCPU, {sp.get('memory_gb'):g} GB)" if sp.get("cores") and sp.get("memory_gb") else ""

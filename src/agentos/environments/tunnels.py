@@ -16,6 +16,11 @@ same connection carries two more, both from a Unix socket in that folder:
 - `-L <folder>/browser:127.0.0.1:47613`: the browser server on the machine's loopback, which the node
   drives with Playwright through a guard like the SOCKS one (`browser_port`).
 
+An environment with a closed network or app secrets (agentos.environments.networking) gets a third
+connection with the node's ports for it, `-R 127.0.0.1:3130:...` (the allowlist proxy) and
+`-R 127.0.0.1:3131:...` (the secret swap), so the machine's package downloads never wait behind the
+browser or a push (`net_forwards`, set before `start`).
+
 Browsers speak SOCKS over TCP only, so the node relays 127.0.0.1:<port> to that socket (`Guard`).
 Who may use the port:
 
@@ -87,6 +92,17 @@ def git_tunnel_argv(remote: RemoteHost, *, gateway_port: int) -> list[str]:
     base = base[: i - 1] + base[i + 1:]
     return base[:-2] + ["-o", "ExitOnForwardFailure=yes", "-N",
                         "-R", f"127.0.0.1:{GATEWAY_PORT_ON_VM}:127.0.0.1:{gateway_port}"] + base[-2:]
+
+
+def net_tunnel_argv(remote: RemoteHost, forwards: tuple[tuple[int, int], ...]) -> list[str]:
+    """The network's `-R` forwards (port on the machine, port on this computer), on a connection of their own."""
+    base = ssh_base(remote)
+    i = base.index("ClearAllForwardings=yes")
+    base = base[: i - 1] + base[i + 1:]
+    out = base[:-2] + ["-o", "ExitOnForwardFailure=yes", "-N"]
+    for on_vm, here in forwards:
+        out += ["-R", f"127.0.0.1:{int(on_vm)}:127.0.0.1:{int(here)}"]
+    return out + base[-2:]
 
 
 # ---------------------------------------------------------------- who opened a connection
@@ -208,6 +224,8 @@ class Tunnel:
         self.browser_port = (browser_port or free_port()) if vm_browser else None
         self.proc: asyncio.subprocess.Process | None = None
         self.git_proc: asyncio.subprocess.Process | None = None  # the gateway's -R, on its own connection
+        self.net_forwards: tuple[tuple[int, int], ...] = ()  # the network's -R (agentos.environments.networking)
+        self.net_proc: asyncio.subprocess.Process | None = None
         self.split_git = split_git
         self.guard: Guard | None = None
         self.browser_guard: Guard | None = None
@@ -218,7 +236,8 @@ class Tunnel:
     def alive(self) -> bool:
         up = self.proc is not None and self.proc.returncode is None and self.guard is not None and self.guard.serving
         git = not self._git_apart() or (self.git_proc is not None and self.git_proc.returncode is None)
-        return up and git and (not self.vm_browser or (self.browser_guard is not None and self.browser_guard.serving))
+        net = not self.net_forwards or (self.net_proc is not None and self.net_proc.returncode is None)
+        return up and git and net and (not self.vm_browser or (self.browser_guard is not None and self.browser_guard.serving))
 
     def _git_apart(self) -> bool:
         return bool(self.gateway_port) and self.split_git
@@ -252,10 +271,12 @@ class Tunnel:
         if self._git_apart():
             assert self.gateway_port is not None
             self.git_proc = await self._ssh(git_tunnel_argv(self.remote, gateway_port=self.gateway_port))
+        if self.net_forwards:
+            self.net_proc = await self._ssh(net_tunnel_argv(self.remote, self.net_forwards))
         loop = asyncio.get_running_loop()
         deadline = loop.time() + START_WAIT_S
         while loop.time() < deadline:
-            for proc in (self.proc, self.git_proc):
+            for proc in (self.proc, self.git_proc, self.net_proc):
                 if proc is not None and proc.returncode is not None:
                     err = (await proc.stderr.read()).decode(errors="replace").strip() if proc.stderr else ""
                     self.last_error = err[-300:] or f"ssh exited {proc.returncode}"
@@ -290,8 +311,8 @@ class Tunnel:
             if guard is not None:
                 await guard.stop()
         self.guard = self.browser_guard = None
-        procs = [p for p in (self.proc, self.git_proc) if p is not None]
-        self.proc = self.git_proc = None
+        procs = [p for p in (self.proc, self.git_proc, self.net_proc) if p is not None]
+        self.proc = self.git_proc = self.net_proc = None
         for proc in procs:
             if proc.returncode is not None:
                 continue

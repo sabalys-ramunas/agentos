@@ -36,7 +36,7 @@ from agentos.core.aio import maybe_await
 from agentos.core.errors import AgentosError, InvalidRequest, LaneExists, NotFound
 from agentos.core.models import LaneState, parse_lane_id, utcnow
 from agentos.env.models import RemoteHost
-from agentos.vms import capacity, repos, ssh
+from agentos.vms import capacity, netwall, repos, ssh
 from agentos.vms import keys as vmkeys
 from agentos.vms.models import TOKEN_FILE, Size, VmError, VmFull, VmLimit, VmRecord, VmSettings, load_settings
 from agentos.vms.provider import Provider, ServerSpec, boot_error_words, server_state
@@ -350,7 +350,7 @@ class VmManager:
         if not getattr(prov, "firewall", True):
             return None
         nets = await self._current_ips()
-        await prov.ensure_firewall(f"agentos-{self.node}-{self.home_id}", self._labels(), nets)
+        await netwall.refresh(prov, f"agentos-{self.node}-{self.home_id}", self._labels(), nets)
         return nets
 
     async def _types_or_none(self) -> list[dict] | None:
@@ -496,7 +496,8 @@ class VmManager:
                            server_type=plan["server_type"], location=plan["location"], image=plan["image"],
                            created_at=now, expires_at=now + timedelta(minutes=plan["ttl_minutes"]),
                            created_by=created_by, purpose=purpose[:300], price_hourly_eur=price,
-                           fallbacks=list(plan["fallbacks"]), environment=environment, kept=kept)
+                           fallbacks=list(plan["fallbacks"]), environment=environment, kept=kept,
+                           network=plan.get("network") or "full")
             self.store.put(rec)
         try:
             rec = await self._make_server(rec, cloud_config)
@@ -519,11 +520,9 @@ class VmManager:
     async def _make_server(self, rec: VmRecord, cloud_config: str = "") -> VmRecord:
         prov = self.provider()
         k = vmkeys.make(self.dir, rec.id)
-        labels = self._labels(rec.id, rec.lane_id)
-        fw = None
-        if self.settings.firewall and getattr(prov, "firewall", True):
-            fw = await prov.ensure_firewall(f"agentos-{self.node}-{self.home_id}", self._labels(),
-                                            await self._ssh_from())
+        labels = {**self._labels(rec.id, rec.lane_id), **netwall.labels(rec.network)}  # docker reads its wall's mode
+        fw = await netwall.firewall_for(prov, rec.network, f"agentos-{self.node}-{self.home_id}", self._labels(),
+                                        self._ssh_from, on=self.settings.firewall) or None
         image = await prov.resolve_image(rec.image)
         key_id = await prov.create_ssh_key(f"agentos-{rec.id}", k.client_pub, labels)
         tries = capacity.plan_tries((rec.server_type, rec.price_hourly_eur), list(rec.fallbacks), rec.location,

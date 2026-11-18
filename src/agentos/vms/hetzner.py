@@ -46,6 +46,19 @@ def _server(d: dict) -> Server:
                   server_type=((d.get("server_type") or {}).get("name") or ""), created=d.get("created", ""))
 
 
+def _inbound(ssh_from: list[str]) -> list[dict]:
+    return [
+        {"direction": "in", "protocol": "tcp", "port": "22", "source_ips": ssh_from,
+         "description": "SSH from the agentos node"},
+        {"direction": "in", "protocol": "icmp", "source_ips": ssh_from, "description": "ping from the node"},
+    ]
+
+
+def _rule_key(r: dict) -> tuple:
+    return (r.get("direction") or "in", r.get("protocol"), r.get("port"), sorted(r.get("source_ips") or []),
+            sorted(r.get("destination_ips") or []))
+
+
 class HetznerProvider:
     name = "hetzner"
     firewall = True
@@ -234,18 +247,21 @@ class HetznerProvider:
         await self._call("DELETE", f"/servers/{server_id}", ok_404=True)
 
     async def ensure_firewall(self, name: str, labels: dict[str, str], ssh_from: list[str]) -> str:
-        rules = [
-            {"direction": "in", "protocol": "tcp", "port": "22", "source_ips": ssh_from,
-             "description": "SSH from the agentos node"},
-            {"direction": "in", "protocol": "icmp", "source_ips": ssh_from, "description": "ping from the node"},
-        ]
+        return await self._ensure_rules(name, labels, _inbound(ssh_from))
+
+    async def ensure_closed_firewall(self, name: str, labels: dict[str, str], ssh_from: list[str]) -> str:
+        """The firewall of a machine whose network is closed (agentos.vms.netwall): the same way in, and
+        one outbound rule (ping to the node), which makes Hetzner drop every other outbound packet."""
+        out = {"direction": "out", "protocol": "icmp", "destination_ips": ssh_from,
+               "description": "closed network: nothing out but ping to the node"}
+        return await self._ensure_rules(name, labels, [*_inbound(ssh_from), out])
+
+    async def _ensure_rules(self, name: str, labels: dict[str, str], rules: list[dict]) -> str:
         data = await self._call("GET", "/firewalls", params={"name": name}) or {}
         found = data.get("firewalls") or []
         if found:
             fid = str(found[0]["id"])
-            have = found[0].get("rules") or []
-            if [(r.get("protocol"), r.get("port"), sorted(r.get("source_ips") or [])) for r in have] != \
-                    [(r["protocol"], r.get("port"), sorted(r["source_ips"])) for r in rules]:
+            if [_rule_key(r) for r in found[0].get("rules") or []] != [_rule_key(r) for r in rules]:
                 res = await self._call("POST", f"/firewalls/{fid}/actions/set_rules", body={"rules": rules}) or {}
                 for a in res.get("actions") or []:
                     await self._wait_action(a, timeout_s=120)

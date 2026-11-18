@@ -178,7 +178,7 @@ def _check_secret(label: str, value: Secret | None, limit: int, *, single_line: 
 
 def validate_config(kind: EntryKind, config: dict[str, Any] | None) -> dict[str, Any]:
     config = dict(config or {})
-    allowed = {"header", "prefix", "catcher"}
+    allowed = {"header", "prefix", "catcher", "env"}
     unknown = set(config) - allowed
     if unknown:
         raise EntryInvalid(f"unknown entry config keys: {', '.join(sorted(unknown))}")
@@ -194,6 +194,8 @@ def validate_config(kind: EntryKind, config: dict[str, Any] | None) -> dict[str,
         if not isinstance(prefix, str) or len(prefix) > 32 or any(c in prefix for c in "\r\n\x00"):
             raise EntryInvalid("prefix must be a short single-line string")
         config["header"], config["prefix"] = header, prefix
+    if "env" in config:
+        config["env"] = _env_binding(kind, config["env"])
     if "catcher" in config:
         from agentos.vault.catcher import validate_catcher_config
 
@@ -201,6 +203,24 @@ def validate_config(kind: EntryKind, config: dict[str, Any] | None) -> dict[str,
             raise EntryInvalid("a code catcher applies to password entries only")
         config["catcher"] = validate_catcher_config(config["catcher"])
     return config
+
+
+ENV_VAR_RE = re.compile(r"^[A-Z_][A-Z0-9_]{0,63}$")
+
+
+def _env_binding(kind: EntryKind, value: Any) -> dict[str, Any]:
+    """An api key the app in agent environments uses (agentos.environments.appsecrets): the variable that
+    holds its placeholder there, and the one repository it is for (None: every environment)."""
+    if kind is not EntryKind.API_KEY:
+        raise EntryInvalid("an environment variable binding applies to api_key entries only")
+    if not isinstance(value, dict) or set(value) - {"var", "repo"}:
+        raise EntryInvalid("env is {var, repo}")
+    var, repo = value.get("var"), value.get("repo")
+    if not isinstance(var, str) or not ENV_VAR_RE.match(var):
+        raise EntryInvalid("env.var is a variable name in capitals, like STRIPE_SECRET_KEY")
+    if repo is not None and (not isinstance(repo, str) or not re.match(r"^[a-z0-9.-]+/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$", repo)):
+        raise EntryInvalid("env.repo is a repository, like github.com/me/shop")
+    return {"var": var, "repo": repo}
 
 
 def validate_new_entry(entry: NewEntry) -> NewEntry:

@@ -21,6 +21,10 @@ What differs from a cloud VM, said plainly:
   is what keeps it off this computer: Docker Desktop for Mac forwards host.docker.internal to the
   Mac's own loopback, where the node's git gateway and the environments' SOCKS tunnels listen; on
   Linux the docker gateway is this computer. DNS (port 53) stays open, and the internet does.
+- A machine whose environment's network is limited or none (the server label agentos-network,
+  agentos.vms.netwall) gets a tighter wall: nothing out but loopback, DNS included. The entrypoint
+  that sets it is this package's own copy (`entrypoint_text`), copied in with the keys and run in
+  place of the image's, so an image pulled before that mode existed closes the machine too.
 - First-boot cloud-config is not run (there is no cloud-init): the image already has what the
   setup script installs. The keys from the node's cloud-config are copied in before it starts.
 - A snapshot is `docker commit` to `<image repository>:snapshot-<name>`.
@@ -36,8 +40,10 @@ import io
 import json
 import os
 import tarfile
+from pathlib import Path
 from typing import Any
 
+from agentos.vms import netwall
 from agentos.vms.models import VmError
 from agentos.vms.provider import Server, ServerSpec
 
@@ -48,6 +54,7 @@ SERVER_TYPE = "docker"
 SIZE_TYPES = {"docker-small": (2, 4), "docker-medium": (4, 8), "docker-large": (8, 16), "docker-xlarge": (16, 32)}
 TYPE_LABEL = "agentos-server-type"
 SEED_DIR = "etc/agentos-env"   # where the entrypoint reads the keys from (deploy/environments/entrypoint.sh)
+SEED_ENTRYPOINT = f"/{SEED_DIR}/entrypoint.sh"  # a closed machine runs this package's entrypoint from here
 CALL_TIMEOUT_S = 120.0
 START_CHECKS, START_CHECK_S = 3, 0.3
 IMAGE_LABEL = "org.agentos.environment"
@@ -91,12 +98,26 @@ def host_key_of(user_data: str) -> tuple[str, str]:
     return "\n".join(private) + "\n", public + "\n"
 
 
-def seed_tar(host_private: str, host_public: str, authorized: str) -> bytes:
+def entrypoint_text() -> str:
+    """The image's entrypoint as this package has it: inside the wheel (agentos/environments/image), or a
+    checkout's deploy/environments. A closed machine runs this copy (see the module's docstring)."""
+    here = Path(__file__).resolve()
+    for folder in (here.parents[1] / "environments" / "image", here.parents[3] / "deploy" / "environments"):
+        path = folder / "entrypoint.sh"
+        if path.exists():
+            return path.read_text()
+    raise VmError("docker: this installation of agentos has no copy of the machine's entrypoint, so it cannot close "
+                  "a machine's network; install agentos again, or open the environment with network full")
+
+
+def seed_tar(host_private: str, host_public: str, authorized: str, entrypoint: str = "") -> bytes:
     buf = io.BytesIO()
+    files = [("ssh_host_ed25519_key", host_private, 0o600), ("ssh_host_ed25519_key.pub", host_public, 0o644),
+             ("authorized_keys", authorized, 0o600)]
+    if entrypoint:
+        files.append(("entrypoint.sh", entrypoint, 0o755))
     with tarfile.open(fileobj=buf, mode="w") as tar:
-        for name, text, mode in (("ssh_host_ed25519_key", host_private, 0o600),
-                                 ("ssh_host_ed25519_key.pub", host_public, 0o644),
-                                 ("authorized_keys", authorized, 0o600)):
+        for name, text, mode in files:
             data = text.encode()
             info = tarfile.TarInfo(f"{SEED_DIR}/{name}")
             info.size, info.mode = len(data), mode
@@ -107,6 +128,7 @@ def seed_tar(host_private: str, host_public: str, authorized: str) -> bytes:
 class DockerProvider:
     name = "docker"
     firewall = False
+    closes_network = True  # limited and none: the entrypoint's closed wall (agentos.vms.netwall)
 
     def __init__(self, *, image: str = "agentos-env:latest", docker: str = "docker", cpus: float = 2.0,
                  memory_gb: float = 4.0, pids: int = 512):
@@ -229,6 +251,8 @@ class DockerProvider:
         args = ["create", "--name", spec.name, "--hostname", spec.name[:63], "--init", "-p", "127.0.0.1::22",
                 "--network", spec.name, "--cpus", f"{cpus:g}", "--memory", memory, "--memory-swap", memory,
                 "--pids-limit", str(self.pids), "--cap-drop", "ALL", "-e", "AGENTOS_ENV_WALL=1"]
+        if netwall.closed(spec.labels.get(netwall.LABEL)):
+            args += ["-e", "AGENTOS_ENV_NETWORK=closed", "--entrypoint", SEED_ENTRYPOINT]
         for cap in CAPS:
             args += ["--cap-add", cap]
         for k, v in sorted({**spec.labels, TYPE_LABEL: spec.server_type}.items()):
@@ -249,11 +273,12 @@ class DockerProvider:
         key = self._keys.get(spec.ssh_key_id or "")
         if key is None:
             raise VmError("docker: the machine has no login key")
+        entry = entrypoint_text() if netwall.closed(spec.labels.get(netwall.LABEL)) else ""
         await self._network(spec.name, spec.labels)
         cid = ""
         try:
             cid = (await self._run(*self.run_args(spec))).strip()
-            await self._run("cp", "-", f"{cid}:/", stdin=seed_tar(host_private, host_public, key[0] + "\n"))
+            await self._run("cp", "-", f"{cid}:/", stdin=seed_tar(host_private, host_public, key[0] + "\n", entry))
             await self._run("start", cid)
             server = None
             for _ in range(START_CHECKS):  # an entrypoint that refuses (no wall) exits within a moment
