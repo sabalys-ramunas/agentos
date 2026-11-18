@@ -372,7 +372,12 @@ class SwapProxy:
                 ev = await self._next(server, cr)
                 if not isinstance(ev, h11.Request):
                     return  # ConnectionClosed, or the client is done
-                swapped = await swap_request(ev, sni=host, bindings=self.bindings, resolve=self.resolve)
+                try:
+                    swapped = await swap_request(ev, sni=host, bindings=self.bindings, resolve=self.resolve)
+                except Exception as e:  # noqa: BLE001 - the vault did not give it: this request fails, in words
+                    why = getattr(e, "message", None) or type(e).__name__
+                    await self._reply_error(cw, server, 502, f"the node could not read the secret for {host}: {why}")
+                    return
                 if swapped.names:
                     self.swapped += 1
                     self._event("swapped", host, ", ".join(swapped.names))

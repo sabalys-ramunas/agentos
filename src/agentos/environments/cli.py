@@ -21,6 +21,7 @@ from agentos.core import catalog
 from agentos.core.config import home_from_env
 from agentos.core.errors import AgentosError, InvalidRequest, NotFound
 from agentos.environments.models import SIZES, WORKSPACE
+from agentos.environments.secrets_cli import secret_app
 
 app = typer.Typer(no_args_is_help=True, help="Your agents' cloud computers: list, show, download, close, allow, "
                                              "set up, connect repositories.")
@@ -433,6 +434,7 @@ def save_import(file: Annotated[Path, typer.Argument(metavar="FILE", help="A fil
 repo_app = typer.Typer(no_args_is_help=True, help=(
     "Connect private repositories: a key or token in the vault, and the declaration for env."))
 app.add_typer(repo_app, name="repo")
+app.add_typer(secret_app, name="secret")
 
 
 def _remote_or_fail(remote: str) -> Any:
@@ -601,6 +603,10 @@ def allow(max_live: Annotated[int | None, typer.Option("--max-live", help="Open 
                                                          "month).")] = None,
           max_live_kept: Annotated[int | None, typer.Option("--max-live-kept", help="Machines kept live at once, at "
                                                             "most (default 1).")] = None,
+          network: Annotated[str | None, typer.Option("--network", help="What machines reach: full (default), "
+                                                      "limited (registries, code hosts, --host) or none.")] = None,
+          host: Annotated[list[str] | None, typer.Option("--host", help="One more host limited reaches, like "
+                                                         "api.example.com or .example.com (repeat for more).")] = None,
           days: Annotated[int, typer.Option(help="No longer used: opening one never asks, so there is no yes "
                                                  "to last.", hidden=True)] = 30,
           workspace: Annotated[str, typer.Option(help="No longer used.", hidden=True)] = "env") -> None:
@@ -613,13 +619,43 @@ def allow(max_live: Annotated[int | None, typer.Option("--max-live", help="Open 
     if max_size is not None and max_size not in SIZES:
         raise _fail(InvalidRequest(f"--max-size is one of {', '.join(SIZES)}"))
     path = _write_settings({"max_live": max_live, "max_hours": max_hours, "monthly_eur": monthly_eur,
-                            "max_size": max_size, "allow_keep_live": keep_live, "max_live_kept": max_live_kept})
+                            "max_size": max_size, "allow_keep_live": keep_live, "max_live_kept": max_live_kept,
+                            **_network_updates(network, host)})
     typer.echo(f"Environments: {_limit_words(load_settings(_home()))}. Limits in {path}.")
     s = load_settings(_home())
     if s.allow_keep_live:
         typer.echo(f"Agents may keep up to {s.max_live_kept} machine{'s' if s.max_live_kept != 1 else ''} live between "
                    "chats (keep \"live\"). Each bills its full hourly price until it is closed.")
+    typer.echo(_network_words(s))
     typer.echo("Opening one never asks you; the node refuses one past these limits.")
+
+
+def _network_updates(network: str | None, hosts: list[str] | None) -> dict[str, Any]:
+    from agentos.environments.models import load_settings
+    from agentos.environments.network import LEVELS, check_host
+
+    out: dict[str, Any] = {}
+    if network is not None:
+        if network not in LEVELS:
+            raise _fail(InvalidRequest(f"--network is one of {', '.join(LEVELS)}"))
+        out["network"] = network
+    if hosts:
+        try:
+            added = [check_host(h) for h in hosts]
+        except ValueError as e:
+            raise _fail(InvalidRequest(str(e))) from None
+        out["allow_hosts"] = list(dict.fromkeys([*load_settings(_home()).allow_hosts, *added]))
+    return out
+
+
+def _network_words(s: Any) -> str:
+    if s.network == "full":
+        return "Network: full (machines reach the internet)." + (
+            f" With limited they would also reach {', '.join(s.allow_hosts)}." if s.allow_hosts else "")
+    more = f", and {', '.join(s.allow_hosts)}" if s.allow_hosts and s.network == "limited" else ""
+    what = "package registries and code hosts" + more if s.network == "limited" else "the git gateway alone"
+    return (f"Network: {s.network} (new machines reach {what}, and the hosts of bound secrets). Agents may narrow it, "
+            "never widen it. Machines open now keep theirs.")
 
 
 def _limit_words(s: Any) -> str:
