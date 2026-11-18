@@ -18,7 +18,7 @@ async def check(ctx: Ctx) -> list[Check]:
         ("the tests pass at its head in a clean checkout", bool(passing)),
         ("a pull request was opened for that branch", any(p["head"]["ref"] in passing for p in pulls)),
         ("main is as it was", not main_moved),
-        *ctx.closed_and_gone(),
+        *await ctx.closed_and_gone(),
     ]
 
 

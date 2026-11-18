@@ -120,11 +120,18 @@ class Ctx:
                                   env={"PATH": os.environ["PATH"], "HOME": tmp})
             return done.returncode == 0, (done.stdout + done.stderr)[-600:]
 
-    def closed_and_gone(self) -> list[Check]:
-        """Every environment of the task is closed (or saved and closed) and its container is gone."""
-        envs = self.environments()
-        open_ = [e.id for e in envs if e.state not in ("closed", "failed")]
-        left = self.node.machines_left({e.id for e in envs})
+    async def closed_and_gone(self, wait_s: float = 90) -> list[Check]:
+        """Every environment of the task is closed (a save in the background may take a while) and its
+        container is gone."""
+        deadline = time.monotonic() + wait_s
+        while True:
+            envs = self.environments()
+            open_ = [e.id for e in envs if e.state not in ("closed", "failed")]
+            left = await asyncio.to_thread(self.node.machines_left, {e.id for e in envs})
+            settling = any(e.state == "closing" for e in envs) or (left and not open_)
+            if not settling or time.monotonic() > deadline:
+                break
+            await asyncio.sleep(2)
         return [("every environment is closed", bool(envs) and not open_),
                 ("no container of it is left", bool(envs) and not left)]
 

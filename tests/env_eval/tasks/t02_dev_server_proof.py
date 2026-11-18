@@ -19,7 +19,7 @@ async def check(ctx: Ctx) -> list[Check]:
                                               for p in proofs)),
         ("the proof is of the app on port 3000", bool(of_app)),
         ("the app answered in the environment's browser", seen),
-        *ctx.closed_and_gone(),
+        *await ctx.closed_and_gone(),
     ]
 
 
