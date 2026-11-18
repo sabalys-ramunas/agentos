@@ -239,6 +239,13 @@ Since 2026-11-15 the result adds `keep`, and when it resumes a save `resumed`: `
 note, missing: [...]}` (while it still comes up, `state: "restoring"` and zero counts; environment() gives
 the whole of it once it is ready).
 
+Since 2026-11-18, for a repository with `.agentos/environment.toml` (ENVIRONMENTS.md, "Prepared machines"),
+the result and `environment()` add `prepared`: `{used: true, from: {commit, built_at, age}, checkout, refresh,
+setup_s: {build, here, saved}}` when the machine booted from a prepared machine, else `{used: false, why,
+setup: {command, ok, exit_code, seconds, tail?}, build: {started, why?}}`; `prepared.warm` when it came from the
+warm pool. With `start` and `port`, `app`: `{command, port, listening, job_id, seconds, link?, tunnel?}`, and
+when it did not listen `why`, `log_tail`, `listening_instead` and `next`. Neither ever fails the open.
+
 `state` is `starting` (still booting: call `environment()` again) or `ready`. A second call in the
 same chat returns the same environment. `links.browser` is the node's own live view (a signed
 take-over link), null until the browser lane exists; there is no `links.environment` (changed
@@ -406,7 +413,10 @@ limits that bound `environment_open`: `--max-live`, `--max-hours`, `--monthly-eu
 `--keep-live` and `--max-live-kept`; since 2026-11-13 it grants nothing, as opening never asks), `saves`,
 `forget TITLE [--save ID]`, `save-export ID FILE` (the save unsealed, 0600, for another node) and
 `save-import FILE [--family ROOT]`, and
-`setup` (checks the provider token, the image, the git declarations, and says what is missing).
+`setup` (checks the provider token, the image, the git declarations, and says what is missing). Since 2026-11-18:
+`prepare REPO [--ref R] [--force]` (agentosd builds the prepared machine, through `POST
+/api/environments/prepare`; the CLI follows its steps), `prepared` (each one with its cost, and the warm pool),
+`prepared forget REPO`, and `allow --warm N`.
 
 ## Builders and files
 

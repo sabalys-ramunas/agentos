@@ -721,7 +721,7 @@ Toolset: `core`. Effect: `vm`. Needs the `environments` service.
 
 Your own cloud computer: a VM with a terminal, a browser and the repo, to build and test on instead of the user's laptop. It returns `on`, this machine's handle: keep it and pass on="<it>" on every call, since only calls that carry it reach the machine. A new title opens one; a saved one's title resumes it (`resumed`). Another chat's live machine is environment_in_use (pick another title). Without a title, repo finds that repo's environment. localhost there is the VM. Nothing in it waits for a person.
 
-Returns on, id, title, opened (new, resumed, attached, taken_over), state (starting: call environment(on=...)), workdir, branch, machine (`bigger`: sizes and prices), expires_at, keep, links.browser (its live view, for the human); applied and differs when it is not what you asked. A private repo the node cannot read: approval_pending with review_url for the human. Errors: environment_in_use, environment_limit, environment_already_open.
+Returns on, id, title, opened (new, resumed, attached, taken_over), state (starting: call environment(on=...)), workdir, branch, machine (`bigger`: sizes and prices), expires_at, keep, links.browser (its live view, for the human); applied and differs when it is not what you asked; prepared and app when the repo has .agentos/environment.toml (its setup ran, its dev server runs). A private repo the node cannot read: approval_pending with review_url for the human. Errors: environment_in_use, environment_limit, environment_already_open.
 
 | Argument | Type | Required | Description |
 |---|---|---|---|

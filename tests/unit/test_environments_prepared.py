@@ -154,6 +154,17 @@ async def test_a_declared_repository_is_read_from_the_nodes_mirror(tmp_path):
     assert read.state == "found" and read.source == "mirror" and read.commit
     assert read.inputs == {"pnpm-lock.yaml": blob_id(b"lockfileVersion: 9\n")}
     assert (await mgr._read_mirror(git, "env/eabc", "owner", REPO, "no-such-branch")).state == "unreadable"
+    # a mirror not made yet: its first fetch is not waited for (the file is read in the checkout)
+    slow = asyncio.Event()
+
+    async def cold_warm(lane, *, grant_id, repo):
+        await slow.wait()
+
+    cold = SimpleNamespace(warm=cold_warm, gateway=SimpleNamespace(
+        mirror=lambda remote: Mirror(tmp_path / "none.git", hooks_dir=tmp_path / "hooks")))
+    read = await asyncio.wait_for(mgr._read_mirror(cold, "env/eabc", "owner", REPO, None), 2)
+    assert read.state == "unreadable" and "checkout" in read.why
+    slow.set()
 
 
 # ------------------------------------------------------------------ the store

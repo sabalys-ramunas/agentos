@@ -51,7 +51,7 @@ from agentos.environments.repoconfig import (
 
 log = logging.getLogger("agentos.environments")
 
-CONFIG_WARM_S = 20.0           # reading the file waits this long for the node's mirror to catch up
+CONFIG_WARM_S = 10.0           # reading the file waits this long for the node's mirror to catch up
 RAW_TIMEOUT_S = 10.0           # each file read from GitHub
 RAW_MAX_BYTES = 64 * 2**20     # a lockfile bigger than this is not read (its key is then unknown)
 RAW_BASE = "https://raw.githubusercontent.com"
@@ -203,17 +203,21 @@ class Preparing:
 
     async def _read_mirror(self, git: Any, lane: str, grant_id: str, repo: str, ref: str | None) -> ConfigRead:
         """The file in the node's mirror, once it is up to date (a warm-up the bring-up would run anyway,
-        waited for at most CONFIG_WARM_S; it goes on in the background past that)."""
+        waited for at most CONFIG_WARM_S; it goes on in the background past that). A mirror not made yet
+        is not waited for: its first fetch of a big repository takes minutes, which the boot hides, so
+        the file is read in the checkout instead."""
         from agentos.git.wire import parse_remote
 
+        mirror = git.gateway.mirror(parse_remote(repo))
+        made = (mirror.path / "HEAD").is_file()
         warm = asyncio.ensure_future(git.warm(lane, grant_id=grant_id, repo=repo))
         self._warming.add(warm)
         warm.add_done_callback(self._warming.discard)
+        if not made:
+            return ConfigRead("unreadable", source="mirror", why="the node's copy of the repository is not fetched "
+                                                                  "yet, so the file is read in the checkout")
         with contextlib.suppress(Exception):
             await asyncio.wait_for(asyncio.shield(warm), timeout=CONFIG_WARM_S)
-        mirror = git.gateway.mirror(parse_remote(repo))
-        if not (mirror.path / "HEAD").is_file():
-            return ConfigRead("unreadable", source="mirror", why="the node's copy of the repository is not fetched yet")
         commit = None
         for cand in ([ref, f"refs/heads/{ref}", f"refs/tags/{ref}"] if ref else ["HEAD"]):
             rc, out, _ = await mirror.git("rev-parse", "-q", "--verify", f"{cand}^{{commit}}")

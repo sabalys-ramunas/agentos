@@ -338,7 +338,8 @@ async def environment_open(ctx: ToolContext, *, title: str | None = None, repo: 
 
     Returns on, id, title, opened (new, resumed, attached, taken_over), state (starting: call
     environment(on=...)), workdir, branch, machine (`bigger`: sizes and prices), expires_at, keep,
-    links.browser (its live view, for the human); applied and differs when it is not what you asked.
+    links.browser (its live view, for the human); applied and differs when it is not what you asked;
+    prepared and app when the repo has .agentos/environment.toml (its setup ran, its dev server runs).
     A private repo the node cannot read: approval_pending with review_url for the human. Errors:
     environment_in_use, environment_limit, environment_already_open.
 
