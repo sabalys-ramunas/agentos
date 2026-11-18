@@ -84,6 +84,9 @@ class EnvSettings(BaseModel):
     # or none. An agent may only narrow it; `agentos environments allow --network/--host` changes it.
     network: Literal["full", "limited", "none"] = "full"
     allow_hosts: list[str] = Field(default_factory=list)  # more hosts limited reaches (api.example.com, .example.com)
+    # Pausing (agentos.environments.pausing): on a provider that pauses with memory (Morph), a save that
+    # ends the machine pauses it instead of a snapshot and a delete (false: as on any other provider).
+    pause_saves: bool = True
 
     @field_validator("keep_paths")
     @classmethod
@@ -197,7 +200,8 @@ class Environment(BaseModel):
     own_heads: dict[str, str] = Field(default_factory=dict)
     browser: BrowserWhere = "node"            # where its browser runs, as the setting was when it opened
     vm_state: str | None = None               # its machine at close: deleted (the provider says it is gone),
-                                              # deleting (the node still retries), none (none was rented)
+                                              # deleting (the node still retries), none (none was rented),
+                                              # paused (its save keeps it, asleep: agentos.environments.pausing)
     keep: Keep = "none"                       # what happens to it when the work stops (Keep)
     restore_from: str | None = None           # the save it resumes (agentos.environments.saving), until it is ready
     resumed: dict | None = None               # what the resume brought back (environment_open's `resumed`)

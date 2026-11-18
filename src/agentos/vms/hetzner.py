@@ -62,6 +62,7 @@ def _rule_key(r: dict) -> tuple:
 class HetznerProvider:
     name = "hetzner"
     firewall = True
+    capabilities = frozenset({"firewall", "snapshot", "network_policy", "cloud_init"})
 
     def __init__(self, token: str, *, api_url: str = "https://api.hetzner.cloud/v1",
                  transport: httpx.AsyncBaseTransport | None = None):

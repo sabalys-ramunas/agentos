@@ -129,6 +129,8 @@ class DockerProvider:
     name = "docker"
     firewall = False
     closes_network = True  # limited and none: the entrypoint's closed wall (agentos.vms.netwall)
+    # no cloud-init (the image has run the setup) and no provider firewall (SSH is on this computer's loopback)
+    capabilities = frozenset({"snapshot", "network_policy"})
 
     def __init__(self, *, image: str = "agentos-env:latest", docker: str = "docker", cpus: float = 2.0,
                  memory_gb: float = 4.0, pids: int = 512):

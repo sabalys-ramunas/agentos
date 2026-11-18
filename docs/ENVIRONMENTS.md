@@ -121,16 +121,40 @@ The node rents the cheapest server type that fits, unless you or the agent set a
 location, your own profiles and the node's VM limits are in `vms.toml`
 ([design/vms.md](design/vms.md#settings-agentos_homevmstoml)).
 
+**Morph Cloud**: machines that start from a snapshot in about a second, and that a save pauses with
+their memory, so an environment comes back in seconds with its dev server still running. Make an
+API key at cloud.morph.so and give it to the node:
+
+```
+agentos vm setup --provider morph    # asks for the key, keeps it in $AGENTOS_HOME/secrets/morph.token (0600)
+agentos vm image build dev           # the dev snapshot environments start from (a few minutes, once)
+```
+
+Setup also pins the host key of Morph's SSH gateway (it prints its fingerprint) and sets `provider =
+"morph"` in `vms.toml`. What is different, said plainly:
+
+- Prices are Morph's MCUs in USD, turned into EUR at `morph_eur_per_usd`: estimates, marked as such
+  (about EUR 0.09 an hour for a small one). Set the rates in `vms.toml` to your plan.
+- A machine reaches the node over Morph's SSH gateway, with its own key; there is no provider
+  firewall, and no outbound rule can be set on Morph.
+- There is no cloud-init: the node runs the environment's setup over SSH (the `dev` snapshot has it
+  done already).
+- Every machine has a time limit at Morph too (its own limit plus a margin), so one the node forgot
+  stops billing by itself.
+
 An agent asks for a size by name, and the open's `machine` says what it got and what each bigger
 size would rent and cost (`machine.bigger`):
 
-| `size` | At least | On Hetzner | On docker |
-|---|---|---|---|
-| left out | the node's default | the cheapest type that fits (`profile` in `environments.toml`, else vms.toml's default) | `docker_cpus`, `docker_memory_gb` |
-| `small` | 2 CPU, 4 GB | the cheapest type in the location with at least that | 2 CPU, 4 GB |
-| `medium` | 4 CPU, 8 GB | the same | 4 CPU, 8 GB |
-| `large` | 8 CPU, 16 GB | the same | 8 CPU, 16 GB |
-| `xlarge` | 16 CPU, 32 GB | the same | 16 CPU, 32 GB, at most this computer's |
+| `size` | At least | On Hetzner | On docker | On Morph |
+|---|---|---|---|---|
+| left out | the node's default | the cheapest type that fits (`profile` in `environments.toml`, else vms.toml's default) | `docker_cpus`, `docker_memory_gb` | `morph-small` |
+| `small` | 2 CPU, 4 GB | the cheapest type in the location with at least that | 2 CPU, 4 GB | `morph-small`: 2 CPU, 4 GB, 32 GB disk |
+| `medium` | 4 CPU, 8 GB | the same | 4 CPU, 8 GB | `morph-medium`: 4, 8, 64 |
+| `large` | 8 CPU, 16 GB | the same | 8 CPU, 16 GB | `morph-large`: 8, 16, 128 |
+| `xlarge` | 16 CPU, 32 GB | the same | 16 CPU, 32 GB, at most this computer's | `morph-xlarge`: 16, 32, 256 |
+
+On Morph a machine of the `dev` snapshot's size (small, unless you built it bigger) starts warm in
+about a second; another size boots cold from it, in seconds more.
 
 It may also name a server type (`cpx42`) or one of your `vms.toml` profiles. The biggest an agent
 may ask for is `max_size` (default `xlarge`; `agentos environments allow --max-size large`); past
@@ -620,6 +644,21 @@ for an always-on machine. `live` is refused (`keep_live_not_allowed`) until you 
 ```
 agentos environments allow --keep-live
 ```
+
+**On Morph, a save pauses the machine.** Morph can pause a machine with its memory, so there a
+save that ends the machine (idle, close, the time limit, a laptop that slept past it, and the
+rescue save of a single-use one) pauses it instead of taking a snapshot and deleting it. The file
+part is made as always. The save says `paused` (in `environment_close`'s `saved` and in the web
+app's Saved) and what pausing costs a month (Morph bills only the storage: memory and disk, about
+EUR 0.23 a month for a small machine, an estimate). `environment_open` with the title resumes the
+same machine in seconds: the processes never stopped, so the dev server is still serving,
+`resumed.from` is `paused`, and `resumed.services` says each one is running when its port listens
+(nothing is started again). The tunnels, a new gateway token (the old one was revoked when it
+closed) and the browser with its sign-ins are made again. If Morph no longer has the paused machine,
+the resume falls back to the files on a fresh machine, and `resumed.missing` says so. Forget,
+`keep_last` and `saved_days` delete the paused machine with its save. `environment_save` (which
+keeps working) still takes a snapshot, and `pause_saves = false` in `environments.toml` turns
+pausing off.
 
 **Coming back.** `environment_open` with the same title, from any chat, recreates the VM from the
 save, and the job continues: the tools, the Docker volumes, `node_modules`, the browser's sign-ins

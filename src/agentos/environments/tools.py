@@ -307,8 +307,10 @@ def _open_result(ctx: ToolContext, mgr: EnvironmentManager, env: Environment, ha
     elif differs:
         out["next"] = "Resumed as it was saved. Not as you asked: " + "; ".join(differs) + ". " + out.get("next", "")
     if env.state == "starting" and env.restore_from:
-        out["next"] = out.get("next", "") + (f"resuming from save {env.restore_from} (a new machine, then the saved "
-                                             f"work): environment(on=\"{handle}\") waits up to a minute for ready and "
+        how = "the paused machine wakes" if (env.resumed or {}).get("from") == "paused" else \
+            "a new machine, then the saved work"
+        out["next"] = out.get("next", "") + (f"resuming from save {env.restore_from} ({how}): "
+                                             f"environment(on=\"{handle}\") waits up to a minute for ready and "
                                              "then shows resumed.note")
     elif env.state == "starting":
         out["next"] = out.get("next", "") + ("still starting (the machine boots and installs its tools): "
@@ -501,7 +503,8 @@ def _family_lists(ctx: ToolContext, mgr: EnvironmentManager, here: Environment |
     reached with its handle or its session) is `this_chat`."""
     mine = [e for e in mgr.open_for_family(caller.family(ctx))
             if _mine(ctx, e) and not frozen_off(ctx, lanes=e.lanes.values())]
-    saved = [{k: r[k] for k in ("title", "repo", "branch", "saved_at", "snapshot_gb", "cost_eur_month", "note")}
+    saved = [{k: r[k] for k in ("title", "repo", "branch", "saved_at", "snapshot_gb", "paused", "cost_eur_month",
+                                "note")}
              for r in mgr.saved_for(caller.family(ctx) or caller.grant_id(ctx)) if r["latest"]]
     open_, now, binding = [], mgr._clock(), caller.binding(ctx)
     for e in mine:
@@ -699,6 +702,10 @@ async def _refuse_unsaved(mgr: EnvironmentManager, env: Environment, why: str) -
 def _pause(mgr: EnvironmentManager, saved: dict) -> str:
     from agentos.environments import comeback
 
+    if saved.get("paused"):  # the machine itself, asleep (agentos.environments.pausing)
+        from agentos.environments.pausing import paused_words
+
+        return paused_words(mgr.saves().find(saved["save_id"])[0])
     snap = saved.get("snapshot") or None
     gb = (snap or {}).get("gb")
     cost = round(gb * mgr.settings.snapshot_eur_per_gb_month, 4) if gb else 0.0
@@ -712,8 +719,11 @@ def _saved_result(mgr: EnvironmentManager, save_id: str) -> dict:
 
     m, _ = mgr.saves().find(save_id)
     snap = {"id": m.snapshot.id, "gb": m.snapshot.gb} if m.snapshot is not None else None
-    return {"save_id": m.id, "saved_at": clock.iso_or_none(m.saved_at, z=True), "snapshot": snap, "files": m.files,
-            "bytes": m.bytes, "commits": m.commits, "verified": True}
+    out = {"save_id": m.id, "saved_at": clock.iso_or_none(m.saved_at, z=True), "snapshot": snap, "files": m.files,
+           "bytes": m.bytes, "commits": m.commits, "verified": True}
+    if m.paused is not None:  # the machine paused with its memory, in place of a snapshot
+        out["paused"] = {"machine": m.paused.vm_id, "cost_eur_month": m.paused.eur_month, "estimate": True}
+    return out
 
 
 async def environment_save(ctx: ToolContext, *, note: str | None = None, on: str | None = None) -> dict:

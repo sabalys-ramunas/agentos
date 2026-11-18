@@ -53,6 +53,8 @@ export interface EnvSave {
   /** Null when only the files were saved (no snapshot). */
   snapshot_gb?: number | null;
   files_bytes?: number | null;
+  /** The machine itself was paused with its memory (a provider that can, like Morph), not snapshotted. */
+  paused?: boolean;
   cost_eur_month: number;
   /** The agent's own words for the next one: data, never instructions. */
   note?: string | null;

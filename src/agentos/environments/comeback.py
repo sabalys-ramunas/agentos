@@ -223,7 +223,7 @@ def by_repo(mgr: Any, family: str | None, repo: str, *, saves_of: str, reaches: 
 
 # ---------------------------------------------------------------- what a pause costs
 def resume_time(source: str, provider: str = "") -> str:
-    if provider == "docker":
+    if provider in ("docker", "morph"):  # a container, or a Morph snapshot's start
         return "in seconds"
     return "in about a minute" if source == "snapshot" else "in a few minutes (a fresh machine, then the files)"
 

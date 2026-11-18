@@ -36,9 +36,10 @@ from agentos.core.aio import maybe_await
 from agentos.core.errors import AgentosError, InvalidRequest, LaneExists, NotFound
 from agentos.core.models import LaneState, parse_lane_id, utcnow
 from agentos.env.models import RemoteHost
-from agentos.vms import capacity, netwall, repos, ssh
+from agentos.vms import capacity, netwall, providers, repos, ssh
 from agentos.vms import keys as vmkeys
-from agentos.vms.models import TOKEN_FILE, Size, VmError, VmFull, VmLimit, VmRecord, VmSettings, load_settings
+from agentos.vms.models import Size, VmError, VmFull, VmLimit, VmRecord, VmSettings, load_settings
+from agentos.vms.pausing import Pausing
 from agentos.vms.provider import Provider, ServerSpec, boot_error_words, server_state
 from agentos.vms.store import VmStore
 
@@ -75,11 +76,13 @@ apt-get install -y -q nodejs
 systemctl enable docker
 """
 # The end of every image build with the default script: no package lists, no caches, no keys, no
-# machine id, so each VM booted from the snapshot is new.
+# machine id, so each VM booted from the snapshot is new. A provider whose gateway signs in with the
+# machine's own keys (Morph: AGENTOS_KEEP_SSH, its script_prefix) keeps them, and one without
+# cloud-init has nothing of it to clean.
 IMAGE_CLEANUP = """apt-get clean
 rm -rf /var/lib/apt/lists/* /root/.cache
-cloud-init clean --logs --seed
-rm -f /etc/ssh/ssh_host_* /root/.ssh/authorized_keys
+if command -v cloud-init >/dev/null 2>&1; then cloud-init clean --logs --seed; fi
+if [ -z "${AGENTOS_KEEP_SSH:-}" ]; then rm -f /etc/ssh/ssh_host_* /root/.ssh/authorized_keys; fi
 truncate -s 0 /etc/machine-id
 sync
 """
@@ -127,7 +130,7 @@ def _give_launcher(envs: Any) -> None:
 
         envs.remote_launcher = SshLauncher()
 
-class VmManager:
+class VmManager(Pausing):
     def __init__(self, home: Path, *, runtime: Any = None, provider: Provider | None = None,
                  settings: VmSettings | None = None, node_name: str | None = None, probe=None,
                  public_ip: str | None = None, clock=utcnow, follow_ip: bool = False,
@@ -164,24 +167,15 @@ class VmManager:
     # ================================================================ wiring
     @property
     def token_path(self) -> Path:
-        return self.home / TOKEN_FILE
+        return providers.token_path(self.home, self.settings)
 
     @property
     def configured(self) -> bool:
-        return self._provider is not None or self.settings.provider == "docker" or self.token_path.exists()
+        return self._provider is not None or providers.configured(self.home, self.settings)
 
     def provider(self) -> Provider:
-        if self._provider is None and self.settings.provider == "docker":
-            from agentos.vms.docker import DockerProvider
-            s = self.settings
-            self._provider = DockerProvider(image=s.docker_image, docker=s.docker_bin, cpus=s.docker_cpus,
-                                            memory_gb=s.docker_memory_gb, pids=s.docker_pids)
-        if self._provider is None:
-            if not self.token_path.exists():
-                raise VmError("VMs are not set up on this node: run `agentos vm setup` with a Hetzner "
-                              "Cloud API token (read and write)")
-            from agentos.vms.hetzner import HetznerProvider
-            self._provider = HetznerProvider(self.token_path.read_text(), api_url=self.settings.api_url)
+        if self._provider is None:  # vms.toml's provider (agentos.vms.providers), with its secret
+            self._provider = providers.make(self.home, self.settings)
         return self._provider
 
     @property
@@ -532,7 +526,7 @@ class VmManager:
             return await prov.create_server(ServerSpec(
                 name=f"agentos-{rec.id.replace('_', '-')}", server_type=server_type, image=image,
                 location=location, user_data=vmkeys.cloud_init(k) + cloud_config, labels=labels,
-                ssh_key_id=key_id, firewall_id=fw))
+                ssh_key_id=key_id, firewall_id=fw, ttl_s=self.backstop_s(rec)))
 
         try:
             server, server_type, location, price = await capacity.create_first(
@@ -542,15 +536,16 @@ class VmManager:
                 await prov.delete_ssh_key(key_id)
         if (server_type, location) != (rec.server_type, rec.location):
             rec.server_type, rec.location, rec.price_hourly_eur = server_type, location, price
+        vmkeys.adopt(self.dir, rec.id, server)  # a provider's own login (Morph), in place of agentos's
         rec.provider_id, rec.host, rec.state = server.id, server.ipv4, "booting"
-        rec.port = server.ssh_port
+        rec.port, rec.ssh_user = server.ssh_port, server.ssh_user
         self.store.put(rec)
         return rec
 
     def _remote(self, rec: VmRecord) -> RemoteHost:
         d = self.dir / rec.id
-        return RemoteHost(vm_id=rec.id, host=rec.host or "", port=rec.port, key_path=str(d / "id_ed25519"),
-                          known_hosts=str(d / "known_hosts"), host_alias=f"agentos-{rec.id}",
+        return RemoteHost(vm_id=rec.id, host=rec.host or "", port=rec.port, user=rec.ssh_user,
+                          key_path=str(d / "id_ed25519"), known_hosts=str(d / "known_hosts"), host_alias=f"agentos-{rec.id}",
                           provider=rec.provider, label=f"{rec.provider} {rec.server_type} in {rec.location}",
                           environment=rec.environment)
 
@@ -685,6 +680,7 @@ class VmManager:
         rec.expires_at = until
         self.store.put(rec)
         self._alerted.discard(rec.id)
+        await self.push_backstop(rec)  # the provider's own TTL, where it has one (agentos.vms.pausing)
         return rec
 
     # ================================================================ images
@@ -735,7 +731,8 @@ class VmManager:
                     raise VmError(f"SSH did not answer within {self.settings.boot_timeout_s} s ({last})")
                 await asyncio.sleep(BOOT_POLL_S)
             say("running the setup script (several minutes)")
-            code, output = await ssh.run(remote, script or image_script(), timeout_s=1800)
+            prefix = getattr(prov, "script_prefix", "")  # Morph keeps the machine's SSH keys (agentos.vms.morph)
+            code, output = await ssh.run(remote, prefix + (script or image_script()), timeout_s=1800)
             if code != 0:
                 raise VmError(f"the setup script failed with exit code {code}: {output[-1500:]}")
             say("taking the snapshot")
@@ -941,7 +938,7 @@ class VmManager:
             vm_id = s.labels.get("agentos-vm", "")
             with contextlib.suppress(NotFound):
                 rec = self.store.get(vm_id) if vm_id else None
-                if rec is not None and rec.live:
+                if rec is not None and (rec.live or rec.state == "paused"):  # a paused one is a save's
                     continue
             created = _parse_time(s.created)
             if creating and (created is None or now - created < ORPHAN_GRACE):

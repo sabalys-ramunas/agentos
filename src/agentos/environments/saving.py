@@ -472,7 +472,7 @@ class Saving:
             id=sid, kind=kind, reason=reason[:200], family=env.family, title=env.title, env_id=env.id, agent=env.agent,
             member=env.member, grant_id=env.grant_id, repo=env.repo, ref=env.ref,
             branch=(main.branch if main else None) or env.branch, head=main.head if main else None,
-            workdir=env.workdir, keep=env.keep, saved_at=now, snapshot=snap,
+            workdir=env.workdir, keep=env.keep, saved_at=now, snapshot=snap, paused=found.get("paused"),
             server_type=rec.server_type if rec else env.machine.server_type, size=env.machine.size,
             location=rec.location if rec else env.machine.location, browser=env.browser,
             files=found["files"], deleted=sum(len(v) for v in found["deleted_paths"].values()),
@@ -882,8 +882,8 @@ class Saving:
 
     async def rescue_and_close(self, env: Environment, now: datetime, out: dict, *, reason: str) -> bool:
         """keep "none" (or "live") at its time limit with work that is not saved: a file-level rescue
-        save, then the delete, and the owner hears which save holds it. If the save fails the machine
-        stays (the VMs' reaper gives it agentos.vms.manager.ENV_SAVE_GRACE) and the owner is told."""
+        save, then the delete (or a pause, agentos.environments.pausing), and the owner hears which save
+        holds it. If the save fails the machine stays (agentos.vms ENV_SAVE_GRACE); the owner is told."""
         if not self._retry_due(env, now):
             return False
         try:
@@ -896,10 +896,10 @@ class Saving:
         await self._teardown(self.store.get(env.id), reason=f"{reason}, its unsaved work saved as {m.id}")
         out.setdefault("saved", []).append({"id": env.id, "save": m.id})
         out["closed"].append(env.id)
-        await self._notify(f"Environment \"{env.title}\" was saved, then deleted",
+        await self._notify(f"Environment \"{env.title}\" was saved, then {'paused' if m.paused else 'deleted'}",
                            f"{env.agent}'s environment {env.id} reached its {reason} with work that was not pushed. "
-                           f"agentos saved it as {m.id} ({m.files} files, {m.commits} commits) and deleted the machine. "
-                           f"environment_open(title=\"{env.title}\") resumes it; `agentos environments saves` lists it.")
+                           f"agentos saved it as {m.id} ({m.files} files, {m.commits} commits), and its machine is "
+                           f"{'paused' if m.paused else 'deleted'}. environment_open(title=\"{env.title}\") resumes it.")
         return True
 
     async def autosave(self, env: Environment, now: datetime, out: dict) -> None:

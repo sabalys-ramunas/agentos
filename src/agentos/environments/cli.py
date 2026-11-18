@@ -358,12 +358,12 @@ def saves(json_out: Annotated[bool, typer.Option("--json")] = False) -> None:
         return
     for r in rows:
         snap = f"snapshot {_gb(r['snapshot_gb'])}, EUR {r['cost_eur_month']:.2f} a month" if r["snapshot_gb"] else \
-            "files only"
+            f"paused machine, about EUR {r['cost_eur_month']:.2f} a month" if r.get("paused") else "files only"
         typer.echo(f"{r['id']}  \"{r['title']}\"  {r['repo'] or 'no repository'}  {r['branch'] or '-'}  "
                    f"{r['saved_at']}  {r['kind']}  {snap}  {r['files']} files, {r['commits']} commits")
     total = sum(r["cost_eur_month"] for r in rows)
-    typer.echo(f"Snapshots together: EUR {total:.2f} a month (EUR {s.snapshot_eur_per_gb_month:g} per GB, "
-               "snapshot_eur_per_gb_month in environments.toml).")
+    typer.echo(f"Snapshots and paused machines together: EUR {total:.2f} a month (snapshots at EUR "
+               f"{s.snapshot_eur_per_gb_month:g} per GB, snapshot_eur_per_gb_month in environments.toml).")
 
 
 def _forget_now(mgr: Any, title: str | None, save_id: str | None) -> dict:

@@ -20,7 +20,7 @@ from agentos.core import catalog
 from agentos.core.config import home_from_env, write_private
 from agentos.core.errors import AgentosError
 
-app = typer.Typer(no_args_is_help=True, help="Disposable cloud VMs that agents use as lanes (Hetzner).")
+app = typer.Typer(no_args_is_help=True, help="Disposable cloud VMs that agents use as lanes (Hetzner, Morph or Docker).")
 image_app = typer.Typer(no_args_is_help=True, help="Snapshots VMs boot from.")
 app.add_typer(image_app, name="image")
 repo_app = typer.Typer(no_args_is_help=True, help="Read-only git tokens for private repos on VMs (vm_clone).")
@@ -31,7 +31,7 @@ _state: dict = {"home": None}
 
 @app.callback()
 def main(home: Annotated[Path | None, typer.Option(help="AGENTOS_HOME (default: $AGENTOS_HOME)")] = None) -> None:
-    """Disposable cloud VMs that agents use as lanes (Hetzner)."""
+    """Disposable cloud VMs that agents use as lanes (Hetzner, Morph or Docker)."""
     _state["home"] = home
 
 
@@ -60,28 +60,74 @@ def _run(coro):
 
 
 @app.command()
-def setup(token_stdin: Annotated[bool, typer.Option("--token-stdin", help="Read the token from stdin.")] = False
+def setup(token_stdin: Annotated[bool, typer.Option("--token-stdin", help="Read the token from stdin.")] = False,
+          provider: Annotated[str, typer.Option("--provider", help="hetzner (default) or morph.")] = "hetzner",
           ) -> None:
-    """Store a Hetzner Cloud API token (read and write) for this node and check it.
+    """Store a cloud API token for this node and check it: a Hetzner Cloud token (read and write), or
+    with --provider morph a Morph Cloud API key.
 
-    Make the token in the Hetzner Cloud console: your project, Security, API tokens. Use a project
-    that holds nothing but these VMs: the token can delete any server in its project."""
+    Hetzner: make the token in the Hetzner Cloud console (your project, Security, API tokens). Use a
+    project that holds nothing but these VMs: the token can delete any server in its project.
+    Morph: make an API key at cloud.morph.so (API keys). agentos rents instances in that account."""
     from agentos.vms.hetzner import HetznerProvider
     from agentos.vms.models import TOKEN_FILE, load_settings
 
+    if provider not in ("hetzner", "morph"):
+        raise typer.BadParameter("the provider is hetzner or morph (docker needs no token: set provider = "
+                                 '"docker" in vms.toml)')
+    name = "Morph API key" if provider == "morph" else "Hetzner Cloud API token"
     if token_stdin:
         token = sys.stdin.readline().strip()
     else:
-        token = typer.prompt("Hetzner Cloud API token", hide_input=True).strip()
+        token = typer.prompt(name, hide_input=True).strip()
     if not token:
         raise typer.BadParameter("no token given")
     settings = load_settings(_home())
+    if provider == "morph":
+        _setup_morph(token, settings)
+        return
     _run(HetznerProvider(token, api_url=settings.api_url).check())
     path = _home() / TOKEN_FILE
     write_private(path, token + "\n")
     typer.echo(f"Saved to {path} (mode 600). The token works.")
     typer.echo("Next: `agentos vm types` to check the profiles in vms.toml, then restart agentosd so its "
                "reaper picks the provider up.")
+
+
+def _setup_morph(token: str, settings) -> None:
+    """Check the key, keep it, pin the SSH gateway's host key, and make morph vms.toml's provider."""
+    from agentos.vms.models import MORPH_TOKEN_FILE
+    from agentos.vms.morph import MorphProvider, pin_gateway
+
+    _run(MorphProvider(token, api_url=settings.morph_api_url).check())
+    path = _home() / MORPH_TOKEN_FILE
+    write_private(path, token + "\n")
+    typer.echo(f"Saved to {path} (mode 600). The key works.")
+    fingerprints = _run(asyncio.to_thread(pin_gateway, _home(), settings.morph_ssh_host))
+    typer.echo(f"Pinned the host key of {settings.morph_ssh_host}, Morph's SSH gateway (compare it with Morph's "
+               "if you can):")
+    for fp in fingerprints:
+        typer.echo(f"  {fp}")
+    use_provider(_home(), "morph")
+    typer.echo('vms.toml now says provider = "morph". Prices are estimates from Morph\'s MCU rates '
+               "(morph_usd_per_mcu, morph_eur_per_usd in vms.toml).")
+    typer.echo("Next: `agentos vm image build dev` (a snapshot environments start from in seconds), then restart "
+               "agentosd so its reaper picks the provider up.")
+
+
+def use_provider(home: Path, provider: str) -> None:
+    """Set vms.toml's provider, keeping the rest of the file (checked as the service would load it)."""
+    import tomllib
+
+    import tomli_w
+
+    from agentos.vms.models import SETTINGS_FILE, VmSettings
+
+    path = home / SETTINGS_FILE
+    data = tomllib.loads(path.read_text()) if path.exists() else {}
+    data["provider"] = provider
+    VmSettings(**data)
+    write_private(path, tomli_w.dumps(data))
 
 
 @app.command()

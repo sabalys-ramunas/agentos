@@ -238,7 +238,8 @@ export function size(bytes: number): string {
 }
 
 /** "12 GB snapshot" or "Files only, 412 MB": what a save holds. */
-export function saveHolds(save: Pick<EnvSave, 'snapshot_gb' | 'files_bytes'>): string {
+export function saveHolds(save: Pick<EnvSave, 'snapshot_gb' | 'files_bytes' | 'paused'>): string {
+  if (save.paused) return 'Paused machine';
   if (save.snapshot_gb) return `${Number.isInteger(save.snapshot_gb) ? save.snapshot_gb : save.snapshot_gb.toFixed(1)} GB snapshot`;
   return save.files_bytes ? `Files only, ${size(save.files_bytes)}` : 'Files only';
 }
