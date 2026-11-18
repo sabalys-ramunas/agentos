@@ -52,9 +52,20 @@ All notable changes to agentos are recorded here. The format follows
   open. It counts against the node's limits, always yields to an open, and an unclaimed one is
   deleted after `warm_minutes` (50, inside Hetzner's first billed hour). An open that matches takes
   it and is ready in about 2 s on Docker.
+- **A replay of each environment's browser, kept after the VM is gone.** The node keeps small JPEG
+  frames of the environment's own browser: after each agent call that can change the page (with the
+  call and its summary), every 3 seconds while you have control or the page keeps changing, and at
+  save and close. It never waits for or acts on the browser while a call uses it, and never pictures
+  an account lane. `agentos environments replay <id> --out DIR` writes the frames and an
+  `index.html` that steps through them with their captions; `GET /api/orgs/{org}/environments/{id}/replay`
+  gives the owner the frames (with signed links) and the calls by time. Kept 14 days after the close
+  (`replay_days`), within a cap per environment and on the node; `replay = false` in
+  `environments.toml` turns it off. An agent sees only `environment()`'s `replay` count.
 
 ### Fixed
 
+- **A call's log lines no longer carry an environment's handle.** The `on` an agent passes is a
+  secret its chat holds; the node's log context now names the environment's lane (`env/<id>`) instead.
 - **`agentos setup --docker` works from the one-line install.** The machine image's Dockerfile and
   entrypoint now ship inside the package, so the image builds without a checkout of agentos.
 

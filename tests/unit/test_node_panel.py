@@ -38,7 +38,7 @@ LANES = ["personal/reddit", "biz-a/instagram", "biz-b/facebook"]
 PARAMS = {"org": "local", "node": "x1", "job": "decide", "uid": "x1", "ws": "biz-a", "workspace": "biz-a", "name": "instagram", "id": "x1", "action": "enable", "path": "x",
           "device": "x1", "token": "x1", "operation": "instagram_post", "param": "image", "run": "x1", "account": "x1",
           "api": "x1", "list": "x1", "batch": "x1", "program": "biz-b-ig-bakery", "item": "it_x1", "kind": "like", "fid": "f_0000000000", "screen": "default@1280-light",
-          "save_id": "sabcdefghjk"}
+          "save_id": "sabcdefghjk", "frame": "fabcdefghjk"}
 
 # (method, path) that only the owner (or an admin grant) may call; the docs/API.md table
 OWNER_ONLY = [

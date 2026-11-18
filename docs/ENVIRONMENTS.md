@@ -578,6 +578,66 @@ agent gets a link to it on the node's own address, good for 15 minutes (`environ
 `curl -o proof.png "<url>"`. The web app's environment page shows them too
 (`GET /api/orgs/{org}/environments/{id}` lists `proofs`, and each `src` is its PNG).
 
+### Replay
+
+Proofs are what the agent chose to keep. The **replay** is what happened in the environment's
+browser between them, and it stays after the VM is gone: the node keeps a timeline of small frames
+(JPEG pictures of the browser's window, 1280 pixels wide when Pillow is installed, about 15 KB each)
+with what led to each one:
+
+- after each agent call that can change the page (`browser_navigate`, `browser_act`,
+  `browser_scroll`, `browser_upload`, `browser_dialog_answer`, `browser_tab`, `browser_wait`), with
+  the call and the same short summary environment() lists for it (`click e12`, the url), scrubbed
+  as the audit log is (`cause: agent`);
+- every 3 seconds while you have control in the live view (`person`), and while the page goes on
+  changing after an agent call (`change`: an animation, a dev server rebuilding), until two looks in
+  a row find no change (at most 20 after one call);
+- when the environment is saved (`save`) and when it closes (`close`), its last state.
+
+A frame that shows nothing new is not kept. Taking one never gets in the agent's way: the node takes
+it only while no call is on the browser and none waits for it, takes no place on it (no call waits
+behind a frame), and drops it when a call starts while it is taken. It is a screenshot only: the
+pointer, the focus, the scroll and the tabs stay as they are. On a docker machine with the browser on
+the VM a frame took about 60 ms (the browser's JPEG is about 30 KB at 1920 pixels; shrinking it on
+the node about 15 ms).
+
+The frames, an index and the calls made on the environment are in
+`$AGENTOS_HOME/environments/<id>/replay/`. One environment keeps at most 1,500 frames and 150 MB
+(past that its oldest `change` frames go first, then its oldest others, never the save and close
+ones), every replay on the node together at most 1 GB (the oldest frames of closed environments go
+first; while only open ones hold it, new frames are skipped). The reaper removes a replay
+`replay_days` after its environment closed. In `environments.toml`:
+
+| Setting | Default | |
+|---|---|---|
+| `replay` | `true` | keep a replay of each environment's browser |
+| `replay_days` | `14` | days a closed environment's replay is kept |
+
+It is on by default because an environment's browser holds no account, no saved login and no vault
+entry: nothing of yours is in it. A frame still shows whatever the page showed, a secret your app
+printed for example, so it is treated like a proof ([THREAT-MODEL.md](THREAT-MODEL.md#viewer-links)):
+only you read it, an account lane is never pictured, and the agent sees only a count
+(`environment()` gives `replay: {frames, since, bytes}`).
+
+To look at one after the VM is gone:
+
+```sh
+agentos environments replay e7k2m9p3x4q --out ./replay    # frames/, timeline.json and index.html
+```
+
+`index.html` is a page that steps through the frames (left and right arrows, space plays them), with
+each caption and the calls in between. It needs no network. The web API gives the same timeline,
+to you only (a member's role and an agent's grant get `denied`):
+
+- `GET /api/orgs/{org}/environments/{id}/replay?after=<at>&limit=500` answers `environment` (id,
+  title, state, browser, created_at, closed_at), `replay` (enabled, frames, since, until, bytes,
+  kept_until), `links_expire_at`, `timeline` and `next`. `timeline` is the frames and the calls by
+  time: a frame is `{kind: "frame", id, at, cause, tool, summary, page_url, page_title, width, height,
+  bytes, url, src}`, a call `{kind: "call", at, tool, summary, ok, error, exit_code, lane}`. `url` is
+  the frame on the node's viewer, signed like a proof's link (15 minutes; replacing the viewer key
+  revokes it), `src` the app's own route for it. Pass `next` as `after` for the next page.
+- `GET /api/orgs/{org}/environments/{id}/replay/{frame}.jpg` is a frame (its `src`).
+
 ### Who the commits are by
 
 With a GitHub login saved (`agentos setup github`), an environment's git commits as you: your GitHub

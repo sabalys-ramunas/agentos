@@ -503,6 +503,10 @@ A save answers `{ "profile", "version", "state", "created", "changes": { surface
 - `GET /view/env/{id}-browser/proof/{proof}.png?t=<token>` -> the PNG of a proof an agent kept in that
   environment (`browser_screenshot(proof=...)`), `Cache-Control: private, no-store`. The token is the proof's
   own signed link (15 minutes, from `environment()`), not a viewer token; any other answers 403 `denied`.
+- `GET /view/env/{id}-browser/replay/{frame}.jpg?t=<token>` -> the JPEG of one frame of that environment's
+  replay (docs/ENVIRONMENTS.md, "Replay"), `Cache-Control: private, no-store`. The token is the replay link
+  the owner's `GET /api/orgs/{org}/environments/{id}/replay` signed (15 minutes, that one environment's frames);
+  any other answers 403 `denied`.
 - `PUT /view/env/{id}/upload?t=<token>` (or `POST`) with a `.tar.gz` or `.tar` body -> `{dest, files, bytes,
   unpacked_bytes, paths, more?, sha256, next}`: the archive extracted into `dest` on the environment's machine
   (an overlay, nothing deleted). The token is a one-use link from `environment_upload` (15 minutes); a changed,

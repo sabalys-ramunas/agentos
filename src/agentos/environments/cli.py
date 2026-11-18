@@ -2,8 +2,8 @@
 
 Agents open environments with environment_open (agentosd keeps them, and closes them when they are
 done, idle or out of time). Opening one never asks a person; the node's limits bound it. These
-commands list them, show one, copy a file or a folder off one, close one by hand, set those limits, and
-check what the node needs.
+commands list them, show one, copy a file or a folder off one, write one's browser replay to a folder,
+close one by hand, set those limits, and check what the node needs.
 They work while agentosd runs: a close marks the environment, and agentosd's reaper deletes its
 machine, browser and tunnels within a minute.
 """
@@ -169,6 +169,29 @@ def show(env_id: Annotated[str, typer.Argument(metavar="ID", help="An environmen
         typer.echo(f"  deleted {p['branch']} at {p['at']}")
     for c in out["calls"][:10]:
         typer.echo(f"  {c['at'][:19]} {c['tool']:<18} {_outcome(c):<10} {c['summary'][:80]}")
+
+
+@app.command()
+def replay(env_id: Annotated[str, typer.Argument(metavar="ID", help="An environment id, like e7k2.")],
+           out: Annotated[Path | None, typer.Option("--out", metavar="DIR", help="The folder it goes into "
+                                                    "(default: replay-<id> here).")] = None,
+           json_out: Annotated[bool, typer.Option("--json")] = False) -> None:
+    """Write the replay of an environment's browser to a folder, also after its VM is gone.
+
+    The folder gets its frames, timeline.json and index.html: a page that steps through the frames
+    with their captions and the calls between them. It reads the node's files, so agentosd may be
+    stopped."""
+    from agentos.environments.replay_cli import export
+
+    try:
+        done = export(_home(), env_id, (out or Path(f"replay-{env_id}")).expanduser().resolve())
+    except NotFound as e:
+        raise _fail(e) from None
+    if json_out:
+        typer.echo(json.dumps(done, indent=2))
+        return
+    typer.echo(f"Wrote {_count(done['frames'], 'frame', 'frames')} and {_count(done['calls'], 'call', 'calls')} "
+               f"of {env_id} into {done['folder']}. Open {done['page']} to step through them.")
 
 
 def _outcome(c: dict) -> str:

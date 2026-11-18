@@ -16,6 +16,7 @@ Two pieces for the daemon's HTTP server (docs/API.md, "Lane control"):
       POST /view/{ws}/{name}/login?t=...     {"action": start|step|refresh|take|resume|cancel|save, ...}
       GET  /view/{ws}/{name}/login.png?t=... the login step's redacted screenshot
       GET  /view/env/{id}-browser/proof/{proof}.png?t=...  an environment's proof image (its own signed link)
+      GET  /view/env/{id}-browser/replay/{frame}.jpg?t=... a frame of an environment's replay (the owner's signed link)
       PUT  /view/env/{id}/upload?t=...       a .tar.gz into an environment's machine (a one-use signed link; POST too)
       GET  /view/env/{id}/download?t=...     a .tar.gz off an environment's machine (a one-use signed link)
       GET  /viewer-assets/...                the page's JS, CSS and vendored noVNC
@@ -799,19 +800,30 @@ class ViewerApp:
     async def proof(self, request: Request) -> Response:
         """An environment's proof image (agentos.environments.proofs), for its own signed link: the
         environments service checks the link, and it opens that one image and nothing of the lane."""
+        return self._signed_image(request, "signed_proof", "proof", "image/png",
+                                  "This proof link is not valid or has expired. Ask the agent for a fresh one "
+                                  "(environment() lists them).")
+
+    async def replay_frame(self, request: Request) -> Response:
+        """A frame of an environment's replay (agentos.environments.replay), for the owner's signed link:
+        it opens that environment's frames and nothing of the lane."""
+        return self._signed_image(request, "signed_frame", "frame", "image/jpeg",
+                                  "This replay link is not valid or has expired. Load the replay again for fresh "
+                                  "links.")
+
+    def _signed_image(self, request: Request, reader: str, key: str, media: str, refused: str) -> Response:
         svc = self.environments() if self.environments is not None else None
-        read = getattr(svc, "signed_proof", None)
+        read = getattr(svc, reader, None)
         params = request.path_params
         data = None
         if callable(read):
             try:
-                data = read(params["workspace"], params["name"], params["proof"], request.query_params.get("t"))
+                data = read(params["workspace"], params["name"], params[key], request.query_params.get("t"))
             except Exception:
-                log.warning("could not read a proof", exc_info=True)
+                log.warning("could not read an environment's %s", key, exc_info=True)
         if not data:
-            return _error(403, "denied", "This proof link is not valid or has expired. Ask the agent for a fresh one "
-                                         "(environment() lists them).")
-        return Response(data, media_type="image/png", headers={
+            return _error(403, "denied", refused)
+        return Response(data, media_type=media, headers={
             "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff",
             "Content-Security-Policy": "default-src 'none'", "Referrer-Policy": "no-referrer"})
 
@@ -872,6 +884,7 @@ class ViewerApp:
     def routes(self) -> list:
         return [
             Route("/view/{workspace}/{name}/proof/{proof}.png", self.proof, methods=["GET"]),
+            Route("/view/{workspace}/{name}/replay/{frame}.jpg", self.replay_frame, methods=["GET"]),
             Route("/view/{workspace}/{name}/download", self.download, methods=["GET"]),
             Route("/view/{workspace}/{name}/upload", self.upload, methods=["PUT", "POST"]),
             Route("/view/{workspace}/{name}/login", self.login_get, methods=["GET"]),

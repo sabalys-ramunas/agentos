@@ -173,6 +173,11 @@ def not_yet(env: Any, now: Any = None) -> None:
 
 
 def _summary(tool: str, kwargs: dict[str, Any]) -> str:
+    action, ref = kwargs.get("action"), kwargs.get("ref")
+    if isinstance(action, str) and action and isinstance(ref, str) and ref:  # browser_act: "click e12"
+        return f"{action} {ref}"
+    if tool == "browser_tab" and isinstance(kwargs.get("index"), int):
+        return f"tab {kwargs['index']}"
     for key in ("cmd", "url", "action", "text", "path", "name", "packages"):
         value = kwargs.get(key)
         if isinstance(value, str) and value:
