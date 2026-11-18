@@ -150,6 +150,7 @@ carries one of these codes:
 | [`rate_limited`](#rate_limited) | Too many requests or writes in a short time. | yes, once the cause is fixed |
 | [`readback_error`](#readback_error) | The action ran, but its readback (the check of the target's own state) could not run, so the result is unknown. | no |
 | [`readback_failed`](#readback_failed) | The target's own state does not show the effect (the post, the like, the edit), right after the action or at a later re-check. | no |
+| [`recording_failed`](#recording_failed) | A video proof of the environment's browser did not start or was not kept: the machine has no recorder (ffmpeg) and cannot install it, the node has none, or the recorder failed. The browser and the work are untouched. | no |
 | [`ref_not_found`](#ref_not_found) | A snapshot ref no longer matches anything, because the page changed. | yes, once the cause is fixed |
 | [`refused`](#refused) | The backup or restore cannot go ahead as asked. Nothing was changed. | no |
 | [`repo_connect_failed`](#repo_connect_failed) | A token or deploy key given on a repository card did not work, so nothing was kept: the host refused it, it cannot see or read the repository, it waits for SSO or an approval, or the key is not added. | no |
@@ -1506,6 +1507,15 @@ The target's own state does not show the effect (the post, the like, the edit), 
 - **You:** Check the target in the lane's live view. If the site changed, fix the flow's readback or locator (flow_save makes a new version).
 - **Retry:** no
 - **Runs fail with it in:** `agentos.runner.executor`, `agentos.runner.runner`
+
+## recording_failed
+
+A video proof of the environment's browser did not start or was not kept: the machine has no recorder (ffmpeg) and cannot install it, the node has none, or the recorder failed. The browser and the work are untouched.
+
+- **Agent:** Do not retry in a loop. Keep a screenshot instead: browser_screenshot(proof="..."). Tell the user what the message says when it names a fix for them.
+- **You:** Network none: open it with network limited, or build the dev image (`agentos vm image build dev`), which has ffmpeg. A server node with browser = "node": install the ffmpeg package.
+- **Retry:** no
+- **Raised by:** `agentos.environments.errors.RecordingFailed`
 
 ## ref_not_found
 

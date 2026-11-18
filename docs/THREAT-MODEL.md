@@ -131,7 +131,22 @@ the assisted login stay a person's (an environment's browser has no login).
 A **proof link** (`/view/env/<id>-browser/proof/<proof>.png?t=...`) opens one screenshot an agent kept as
 proof of its work in an environment, and nothing else: no live view, no control. It is signed with the viewer
 key for that one image (purpose `proof`, 15 minutes), so replacing the key revokes it, and a live-view token
-does not open it. The image is the agent's own work, which the agent may already pass on.
+does not open it. The image is the agent's own work, which the agent may already pass on. A **video proof**
+(`browser_record`, docs/ENVIRONMENTS.md "Proof of the work") is the same kind of thing, at `.mp4` and `.gif` under
+the same link and token: ffmpeg records the screen of the environment's own browser only (an account lane has
+none to record: `browser_record` refuses any lane that is not an open environment's browser), as a process of its
+own on the machine (or, with `browser = "node"`, on that lane's display of the node), with the display's cookie
+in its XAUTHORITY file, never on its command line. The node reads the MP4's length and size itself and keeps
+only files of the right kind and size from the machine's archive (the agent is root there). A recording shows
+whatever the page showed while it ran: a secret the app printed, what was typed.
+
+**Proofs in a pull request.** `environment_pull_request` puts the environment's proofs in the repository, on
+the `agentos-proofs` branch (an orphan branch, never in the pull request's diff), with the token that opens the
+pull request, and links them from the body. A proof pushed there is visible to everyone who can see the
+repository: for a public repository, the world. It shows whatever the page showed. Only an environment's own
+proofs are ever sent (there are none of an account lane), and `environment_pull_request(proofs=false)` or
+`pr_proofs = false` in `environments.toml` sends none. The branch is the repository's: deleting it removes the
+files from the repository (forks and clones made meanwhile keep theirs). With no token, nothing leaves the node.
 
 A **replay frame** (`/view/env/<id>-browser/replay/<frame>.jpg?t=...`, docs/ENVIRONMENTS.md "Replay") counts as
 a proof-like artefact: the node took it of the environment's browser on its own, after the agent's page calls,

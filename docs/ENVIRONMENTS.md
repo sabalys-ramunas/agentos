@@ -579,6 +579,49 @@ agent gets a link to it on the node's own address, good for 15 minutes (`environ
 `curl -o proof.png "<url>"`. The web app's environment page shows them too
 (`GET /api/orgs/{org}/environments/{id}` lists `proofs`, and each `src` is its PNG).
 
+A proof can also be a **video**. The agent loads the tool with `tools_more("browser_record")`, then:
+
+```
+browser_record(action="start", proof="guest checkout, end to end")
+browser_navigate(...), browser_act(...)          # the flow, as it would do it anyway
+browser_record(action="stop")                    # or stop with the title: proof="..."
+```
+
+ffmpeg records the real screen of the environment's browser (the X display it runs on: the VM's for
+`browser = "vm"`, the node's display of that lane for `browser = "node"`) in a process of its own, so
+the agent's calls never wait for it, at 10 frames a second, at most 1280 pixels wide, H.264 in an
+MP4 (small: on a docker machine, 41 seconds of filling a form and clicking took 73 KB, and its
+GIF 84 KB). Stopping makes the MP4 and a short GIF preview (sped
+up to at most 15 seconds, at most 8 MB), brings both to the node over the environment's SSH
+connection and keeps them as one proof, in the same folder, with the same links, retention and
+node-wide cap (1 GB of proofs, videos counted). A recording stops by itself and keeps what it has
+after `record_max_s` (default 180 seconds), when the environment is saved or closes, and when the
+browser goes away. One runs at a time; while it runs, `environment()` shows `recording` (its title,
+`started_at`, `stops_at`).
+
+The docker image and the `dev` image have ffmpeg. A machine from an older image installs it on its
+first recording (apt, through the network's proxy when it is `limited`: about a minute), and the
+result says so (`installed`); a machine whose network is `none` cannot, and the call fails with
+`recording_failed` and the fix. With `browser = "node"`, the node needs ffmpeg
+(`deploy/install-node.sh` installs it; `agentos doctor` warns when it is missing).
+
+A video proof as `environment()`, `environment_close` and the web API list it:
+
+```json
+{"id": "p7k2m9qx4ta", "kind": "video", "title": "guest checkout, end to end",
+ "taken_at": "2026-11-18T10:02:11Z", "page_url": null, "width": 1280, "height": 720,
+ "duration_s": 27.4, "bytes": 1843210, "ended": "stopped",
+ "gif": {"width": 640, "height": 360, "bytes": 2210447},
+ "url": "http://localhost:7400/view/env/e8x2k4m9q-browser/proof/p7k2m9qx4ta.mp4?t=...",
+ "gif_url": "http://localhost:7400/view/env/e8x2k4m9q-browser/proof/p7k2m9qx4ta.gif?t=...",
+ "expires_at": "2026-11-18T10:17:11Z"}
+```
+
+`kind` is `"screenshot"` or `"video"`. `ended` says what stopped it: `stopped` (the agent), `limit`
+(its length), `ended` (the browser went away), `save` or `close`. The links serve the MP4 with range
+requests, so a player seeks. In the web API the MP4 is `src` and the preview `gif_src`
+(`/api/orgs/{org}/environments/{id}/proofs/<id>.mp4` and `.gif`, behind the app's sign-in).
+
 ### Replay
 
 Proofs are what the agent chose to keep. The **replay** is what happened in the environment's
@@ -659,7 +702,29 @@ a branch this environment created on the remote, into `base` or the repository's
 if one is open for that branch already, it returns that one. It never merges, closes or changes
 anything else, and the token never leaves the node. With no token it fails with
 `pull_request_failed`, and the agent gives you `git.compare` instead: GitHub's own form for the
-branch.
+branch. The proofs then stay on the node with their links.
+
+The pull request shows the proof. Every proof of the environment (or the ones named with
+`proofs=["<id or title>", ...]`) goes on the repository's `agentos-proofs` branch, an orphan branch
+the node makes and adds to through GitHub's API with the same token (files at `<environment
+id>/<proof id>.png`, `.mp4`, `.gif`), so it is never in the pull request's diff and shares no history
+with your code. The body gets a **Proof** section: each title, a screenshot or a recording's GIF
+shown inline, and the recording's MP4 as a link (GitHub plays a video in a body only when a person
+uploaded it by hand). The links are `https://github.com/<owner>/<repo>/blob/agentos-proofs/<path>?raw=true`,
+which open for anyone who can see the repository. GitHub's limits hold: a file of 100 MB or more stays
+on the node (the result lists it in `proofs.too_large`), and an image over 10 MB is a link. If GitHub
+refuses the files (a protected branch, a token that may not write), the pull request still opens and
+`proofs.why` says why.
+
+Calling `environment_pull_request` again for an open pull request (more proof since) updates only
+agentos's own sections of its body, between their markers (`<!-- agentos:proofs:begin -->` and
+`<!-- agentos:proofs:end -->`; the network's "Blocked during this work" the same way): the agent's
+text and anyone else's stay as they are. `environment_pull_request(proofs=false)` leaves the proofs
+out, and `pr_proofs = false` in `environments.toml` does so by default.
+
+A proof pushed to the repository is visible to everyone who can see the repository (for a public
+one, the world), and it shows whatever the page showed. Never keep a proof of a page with a secret
+on it. See [THREAT-MODEL.md](THREAT-MODEL.md).
 
 ### Ports
 

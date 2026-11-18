@@ -54,7 +54,8 @@ AGENTOS_INIT_ARGS="${AGENTOS_INIT_ARGS:-}"
 BRAIN_USER="${AGENTOS_BRAIN_USER:-agentos-brain}"
 export UV_PYTHON="${UV_PYTHON:-3.12}"
 APT_PACKAGES=(xvfb x11vnc xdotool x11-xkb-utils xclip fonts-liberation fonts-noto-color-emoji imagemagick rsync curl
-              bubblewrap e2fsprogs iproute2 util-linux logrotate)  # bubblewrap to util-linux: env lanes
+              bubblewrap e2fsprogs iproute2 util-linux logrotate  # bubblewrap to util-linux: env lanes
+              ffmpeg)  # video proofs of an environment's browser on this node (browser = "node")
 
 WITH_SYSTEMD=0
 WITH_DEV=0

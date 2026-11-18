@@ -299,9 +299,9 @@ async def browser_screenshot(ctx: ToolContext, *, on: str, full_page: bool = Fal
     Args:
         full_page: The whole page, not only the window.
         width: Lay the page out this wide for the shot (390: a phone). An environment's browser only.
-        proof: Keep it as proof of your work, with this title for the human ("cart after the fix"):
-            kept on the node after the environment closes, with a link to give the human
-            (curl -o proof.png <url> saves it). An environment's browser only.
+        proof: Keep it as proof, titled for the human ("cart after the fix"): kept after the
+            environment closes, with a link for the human (curl -o proof.png <url>);
+            browser_record (files toolset) keeps a video. An environment's browser only.
     """
     from agentos.node.tools import shots
 

@@ -236,7 +236,7 @@ def test_the_app_lists_proofs_and_serves_their_png(panel, tmp_path):  # noqa: F8
     detail = boss.get(base)
     assert detail.status_code == 200, detail.text
     [listed] = detail.json()["proofs"]
-    assert listed == {"id": kept["id"], "title": "home page", "taken_at": kept["taken_at"],
+    assert listed == {"id": kept["id"], "kind": "screenshot", "title": "home page", "taken_at": kept["taken_at"],
                       "page_url": "http://localhost:3000/", "width": 1, "height": 1,
                       "src": f"{base}/proofs/{kept['id']}.png"}
     png = boss.get(listed["src"])

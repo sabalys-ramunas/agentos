@@ -87,13 +87,20 @@ async def token_for(mgr: Any, repo: str) -> str | None:
         raise PullRequestFailed(f"the vault did not give the GitHub token: {e.message}") from None
 
 
-def _with_blocked(mgr: Any, env: Any, body: str | None) -> str:
-    """The body, with "Blocked during this work" when the environment's network refused hosts."""
+def _blocked(mgr: Any, env: Any) -> str:
+    """The "Blocked during this work" section, or "" when the environment's network refused no host."""
     from agentos.environments.network import blocked_section
 
     view = getattr(mgr, "network_view", None)
     blocked = view(env)["blocked"] if callable(view) else list(getattr(env, "blocked", None) or [])
-    return (body or "") + blocked_section(blocked)
+    return blocked_section(blocked)
+
+
+def _with_blocked(mgr: Any, env: Any, body: str | None) -> str:
+    """The body, with "Blocked during this work" (between its markers) when the network refused hosts."""
+    from agentos.environments import prproofs
+
+    return prproofs.set_section(body, prproofs.NET_BEGIN, prproofs.NET_END, _blocked(mgr, env))
 
 
 def _client(mgr: Any) -> Any:
@@ -118,19 +125,21 @@ def _why(resp: Any, token: str) -> str:
 
 
 async def open_pull_request(mgr: Any, env: Any, *, title: str, body: str | None = None, base: str | None = None,
-                            draft: bool = False, branch: str | None = None) -> dict:
-    """Open (or find the open) pull request for the environment's branch. Returns url, number, branch,
-    base, draft, state, created (False when one was open already)."""
+                            draft: bool = False, branch: str | None = None, proofs: Any = None) -> dict:
+    """Open (or find the open) pull request for the environment's branch, with its proofs on the
+    repository's agentos-proofs branch and a Proof section in the body (agentos.environments.prproofs).
+    An open one gets only agentos's own sections replaced. Returns url, number, branch, base, draft,
+    state, created (False when one was open already), repo and proofs."""
     title = " ".join(str(title or "").split())
     if not title:
         raise InvalidRequest("title is the pull request's title, like \"Fix the typo in the docs\"")
     repo = github_repo(env)
     head = pick_branch(mgr, env, branch)
+    chosen = _chosen(mgr, env, proofs)
     token = await token_for(mgr, repo)
     if not token:
-        raise PullRequestFailed(NO_TOKEN.format(repo=repo))
+        raise PullRequestFailed(NO_TOKEN.format(repo=repo) + (KEPT_ON_NODE if chosen else ""))
     auth = {"Authorization": f"Bearer {token}"}
-    owner = repo.split("/")[0]
     async with _client(mgr) as http:
         try:
             if not base:
@@ -140,21 +149,10 @@ async def open_pull_request(mgr: Any, env: Any, *, title: str, body: str | None 
                 base = str(got.json().get("default_branch") or "main")
             if base == head:
                 raise InvalidRequest(f"{head} is the base branch itself; push your work to a new branch first")
-            made = await http.post(f"/repos/{repo}/pulls", headers=auth, json={
-                "title": title[:TITLE_MAX], "head": head, "base": base, "body": _with_blocked(mgr, env, body)[:BODY_MAX],
-                "draft": bool(draft)})
-            if made.status_code == 201:
-                pr, created = made.json(), True
-            elif made.status_code == 422 and "already exists" in made.text:
-                found = await http.get(f"/repos/{repo}/pulls", headers=auth,
-                                       params={"head": f"{owner}:{head}", "state": "open"})
-                rows = found.json() if found.status_code == 200 else []
-                if not rows:
-                    raise PullRequestFailed(f"GitHub says a pull request for {head} exists, and lists none open")
-                pr, created = rows[0], False
-            else:
-                raise PullRequestFailed(f"GitHub did not open the pull request ({made.status_code}: "
-                                        f"{_why(made, token)})")
+            shown, sections = await _proof_sections(mgr, http, env, repo, auth, token, chosen)
+            pr, created = await _open_or_update(http, repo, auth, token, head, base, sections, {
+                "title": title[:TITLE_MAX], "head": head, "base": base, "draft": bool(draft),
+                "body": _compose(body, sections)})
         except AgentosError:
             raise
         except Exception as e:  # noqa: BLE001 - a network failure is the call's failure, in words
@@ -162,4 +160,80 @@ async def open_pull_request(mgr: Any, env: Any, *, title: str, body: str | None 
                                     "in a minute") from None
     return {"url": pr.get("html_url"), "number": pr.get("number"), "branch": head, "base": base,
             "draft": bool(pr.get("draft", draft)), "state": pr.get("state", "open"), "created": created,
-            "repo": f"github.com/{repo}"}
+            "repo": f"github.com/{repo}", **({"proofs": shown} if shown else {})}
+
+
+KEPT_ON_NODE = ". The proofs stayed on the node: environment() lists them with their links, to give the human"
+
+
+def _chosen(mgr: Any, env: Any, proofs: Any) -> list[dict]:
+    """The proofs this pull request shows: none with pr_proofs = false (unless the call names some)."""
+    from agentos.environments import prproofs
+
+    listed = getattr(mgr, "proofs", None)
+    if not callable(listed):
+        return []
+    settings = getattr(mgr, "settings", None)
+    if proofs is None and not getattr(settings, "pr_proofs", True):
+        return []
+    return prproofs.choose(listed(env, links=False), proofs)
+
+
+async def _proof_sections(mgr: Any, http: Any, env: Any, repo: str, auth: dict, token: str,
+                          chosen: list[dict]) -> tuple[dict | None, dict[tuple[str, str], str | None]]:
+    """The proofs sent to the repository, as the result says them, and agentos's body sections
+    (markers -> text; None: leave that section as it is)."""
+    from agentos.environments import prproofs
+
+    sections: dict[tuple[str, str], str | None] = {(prproofs.NET_BEGIN, prproofs.NET_END): _blocked(mgr, env)}
+    if not chosen:
+        sections[(prproofs.PROOF_BEGIN, prproofs.PROOF_END)] = None
+        return None, sections
+    try:
+        sent, skipped = await prproofs.send(mgr, http, repo, auth, token, env.id, chosen)
+    except prproofs.ProofsNotSent as e:
+        sections[(prproofs.PROOF_BEGIN, prproofs.PROOF_END)] = None
+        log.warning("environment %s: its proofs did not go to %s: %s", env.id, repo, e.message)
+        return {"in_pull_request": 0, "why": e.message + KEPT_ON_NODE}, sections
+    sections[(prproofs.PROOF_BEGIN, prproofs.PROOF_END)] = prproofs.section(repo, env.id, chosen, sent)
+    return {"in_pull_request": len(sent), "branch": prproofs.BRANCH,
+            **({"too_large": skipped, "why": "GitHub takes no file of 100 MB or more" + KEPT_ON_NODE}
+               if skipped else {})}, sections
+
+
+def _compose(body: str | None, sections: dict[tuple[str, str], str | None]) -> str:
+    """A new pull request's body: the agent's text (cut to fit), then agentos's sections in their markers."""
+    tail = "\n\n".join(f"{begin}\n{text.strip()}\n{end}" for (begin, end), text in sections.items() if text)
+    text = (body or "").rstrip()[:max(BODY_MAX - len(tail) - 2, 0)]
+    return "\n\n".join(p for p in (text, tail) if p)
+
+
+async def _open_or_update(http: Any, repo: str, auth: dict, token: str, head: str, base: str,
+                          sections: dict[tuple[str, str], str | None], new: dict) -> tuple[dict, bool]:
+    """Open the pull request; when one is open for the branch, replace agentos's sections of its body
+    (never the text around them). Returns (the pull request, created)."""
+    from agentos.environments import prproofs
+
+    made = await http.post(f"/repos/{repo}/pulls", headers=auth, json=new)
+    if made.status_code == 201:
+        return made.json(), True
+    if not (made.status_code == 422 and "already exists" in made.text):
+        raise PullRequestFailed(f"GitHub did not open the pull request ({made.status_code}: {_why(made, token)})")
+    found = await http.get(f"/repos/{repo}/pulls", headers=auth,
+                           params={"head": f"{repo.split('/')[0]}:{head}", "state": "open"})
+    rows = found.json() if found.status_code == 200 else []
+    if not rows:
+        raise PullRequestFailed(f"GitHub says a pull request for {head} exists, and lists none open")
+    pr = rows[0]
+    old = str(pr.get("body") or "")
+    body = old
+    for (begin, end), text in sections.items():
+        if text is not None and (text or begin in body):
+            body = prproofs.set_section(body, begin, end, text)
+    if body != old and len(body) <= BODY_MAX:
+        changed = await http.patch(f"/repos/{repo}/pulls/{pr.get('number')}", headers=auth, json={"body": body})
+        if changed.status_code != 200:
+            raise PullRequestFailed(f"GitHub did not update the pull request's proof ({changed.status_code}: "
+                                    f"{_why(changed, token)})")
+        pr = {**pr, **changed.json()}
+    return pr, False

@@ -39,7 +39,7 @@ TERMINAL = frozenset({
 })  # not lane_jobs_list: without `on` it already lists every run the caller may see (`agentos run --list`)
 BROWSER = frozenset({
     "browser_act", "browser_console", "browser_dialog", "browser_dialog_answer", "browser_navigate",
-    "browser_network", "browser_screenshot", "browser_scroll", "browser_snapshot", "browser_tab", "browser_tabs",
+    "browser_network", "browser_record", "browser_screenshot", "browser_scroll", "browser_snapshot", "browser_tab", "browser_tabs",
     "browser_upload", "browser_wait", "files_delete", "files_get", "files_list", "files_put", "lane_claim",
     "lane_close", "lane_control", "lane_open", "lane_queue", "lane_release", "lane_request_control", "lane_view",
     "lane_wait_control",

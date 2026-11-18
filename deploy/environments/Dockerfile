@@ -19,8 +19,9 @@ RUN apt-get update -q && apt-get install -y -q --no-install-recommends openssh-s
     && rm -rf /var/lib/apt/lists/* && rm -f /etc/ssh/ssh_host_*
 COPY setup.sh /usr/local/lib/agentos-env/setup.sh
 RUN sh /usr/local/lib/agentos-env/setup.sh
-# The environment's browser on the machine (environments.toml browser = "vm"): Xvfb, x11vnc, fonts and
-# Camoufox pinned to the node's versions (browser.sh). About 1 GB and a few minutes on top; its own layer.
+# The environment's browser on the machine (environments.toml browser = "vm"): Xvfb, x11vnc, ffmpeg (video
+# proofs record the screen with it), fonts and Camoufox pinned to the node's versions (browser.sh). About
+# 1 GB and a few minutes on top; its own layer.
 COPY browser.sh browser-requirements.txt /usr/local/lib/agentos-env/
 RUN sh /usr/local/lib/agentos-env/browser.sh
 COPY entrypoint.sh /usr/local/lib/agentos-env/entrypoint.sh

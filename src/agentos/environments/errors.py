@@ -154,3 +154,9 @@ class RollbackRefused(AgentosError):
     """environment_rollback found a repository in the middle of a merge, a rebase, a cherry-pick or a
     revert. Nothing changed: the agent finishes or aborts that first."""
     code = "rollback_refused"
+
+
+class RecordingFailed(AgentosError):
+    """browser_record could not start or keep a recording: the machine has no ffmpeg and cannot install
+    it (its network is none), the node has none (browser = "node"), or ffmpeg failed."""
+    code = "recording_failed"

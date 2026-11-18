@@ -513,3 +513,14 @@ def test_workspace_memory_files_are_checked(tmp_path):
     (tmp_path / "memory" / "biz-b.db").write_bytes(b"not a database" * 100)
     [bad] = check_workspace_memory(ctx)
     assert bad.status == "fail" and "biz-b.db" in bad.detail and "—" not in bad.detail
+
+
+def test_ffmpeg_missing_is_a_warning_for_video_proofs(tmp_path):
+    """A server node records an environment's browser (browser = "node") with ffmpeg: an older node
+    without it warns, names the command, and still passes."""
+    ctx = ctx_for(tmp_path)
+    ctx.host.packages = {"ffmpeg": False}
+    results = doctor.check_packages(ctx)
+    assert by_id(results, "packages").status == PASS
+    ffmpeg = by_id(results, "packages.ffmpeg")
+    assert ffmpeg.status == WARN and ffmpeg.fix == "sudo apt-get install -y ffmpeg" and "video proofs" in ffmpeg.detail
