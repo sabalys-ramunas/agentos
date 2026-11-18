@@ -166,7 +166,8 @@ class ReplayStore:
         self._call_lines[env_id] = count
 
     def add_frame(self, env_id: str, jpeg: bytes, record: dict, *, closed: Callable[[str], bool]) -> dict | None:
-        """Keep a frame (record: at, cause, tool, summary, page_url, page_title, width, height, fp, ms).
+        """Keep a frame (record: at, cause, tool, summary, page_url, page_title, width, height, and the
+        private fp: a coarse print, ms: how long the shot took, raw_bytes: the browser's JPEG before shrinking).
         Returns its record with its id, or None when the limits leave no room for it. `closed(env_id)`:
         is that environment closed (its frames may go to make room on the node)?"""
         if not jpeg.startswith(b"\xff\xd8") or len(jpeg) > FRAME_BYTES_MAX:
@@ -275,7 +276,7 @@ def _over_env(frames: list[dict], need: int, cause: str) -> list[dict] | None:
 
 def _clean(record: dict) -> dict:
     out: dict[str, Any] = {}
-    for key in ("at", "cause", "tool", "summary", "page_url", "page_title", "width", "height", "fp", "ms"):
+    for key in ("at", "cause", "tool", "summary", "page_url", "page_title", "width", "height", "fp", "ms", "raw_bytes"):
         value = record.get(key)
         if isinstance(value, str):
             value = " ".join(value.split())[: SUMMARY_MAX if key == "summary" else TEXT_MAX]

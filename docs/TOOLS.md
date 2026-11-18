@@ -110,7 +110,7 @@ Call any agentos tool by name with its arguments, including tools not in your li
 | [`env_create`](#env_create) | terminals | exec | Create a terminal lane `workspace/name` |
 | [`env_lanes_list`](#env_lanes_list) | terminals | read | List terminal and service lanes on this node: preset, state, and an honest one-line description of the isolation each really gets |
 | [`env_remove`](#env_remove) | terminals | irreversible | Delete a terminal or service lane and its files (its writable layer, logs and home) |
-| [`environment`](#environment) | core | read | Your environment now: state, minutes_left, cost_eur, ports listening on the VM, git (branch, ahead, dirty, pushed, pull_requests), proofs (fresh links), unsaved work, your note and the last 10 calls (with the client that made each) |
+| [`environment`](#environment) | core | read | Your environment now: state, minutes_left, cost_eur, ports listening on the VM, git (branch, ahead, dirty, pushed, pull_requests), proofs (fresh links), replay (how many frames of your browser the human can replay), unsaved work, your note and the last 10 calls (with the client that made each) |
 | [`environment_close`](#environment_close) | core | read | Stop or finish your environment |
 | [`environment_download`](#environment_download) | core | exec | A file or a folder under /work, to your own computer: a one-use .tar.gz link (15 minutes); the bytes never go through tool calls |
 | [`environment_forget`](#environment_forget) | core | read | Delete saves and their disk snapshots (they bill each month): every save of `title`, or one save_id |
@@ -673,7 +673,7 @@ Delete a terminal or service lane and its files (its writable layer, logs and ho
 
 Toolset: `core`. Effect: `read`. Needs the `environments` service.
 
-Your environment now: state, minutes_left, cost_eur, ports listening on the VM, git (branch, ahead, dirty, pushed, pull_requests), proofs (fresh links), unsaved work, your note and the last 10 calls (with the client that made each). Cheap: call it to see if it is ready or what is left to push. It always lists your agent's open and saved ones (`open`, `saved`), never another chat's handle. Effect: read.
+Your environment now: state, minutes_left, cost_eur, ports listening on the VM, git (branch, ahead, dirty, pushed, pull_requests), proofs (fresh links), replay (how many frames of your browser the human can replay), unsaved work, your note and the last 10 calls (with the client that made each). Cheap: call it to see if it is ready or what is left to push. It always lists your agent's open and saved ones (`open`, `saved`), never another chat's handle. Effect: read.
 
 | Argument | Type | Required | Description |
 |---|---|---|---|

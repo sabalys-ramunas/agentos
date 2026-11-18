@@ -6,6 +6,18 @@ All notable changes to agentos are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **A replay of each environment's browser, kept after the VM is gone.** The node keeps small JPEG
+  frames of the environment's own browser: after each agent call that can change the page (with the
+  call and its summary), every 3 seconds while you have control or the page keeps changing, and at
+  save and close. It never waits for or acts on the browser while a call uses it, and never pictures
+  an account lane. `agentos environments replay <id> --out DIR` writes the frames and an
+  `index.html` that steps through them with their captions; `GET /api/orgs/{org}/environments/{id}/replay`
+  gives the owner the frames (with signed links) and the calls by time. Kept 14 days after the close
+  (`replay_days`), within a cap per environment and on the node; `replay = false` in
+  `environments.toml` turns it off. An agent sees only `environment()`'s `replay` count.
+
 ### Fixed
 
 - **`agentos setup --docker` works from the one-line install.** The machine image's Dockerfile and

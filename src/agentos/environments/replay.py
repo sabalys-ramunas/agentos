@@ -8,14 +8,18 @@ JPEG quality FRAME_QUALITY), taken by the node:
   with the tool and the summary record_call keeps for it (scrubbed as the audit log's are);
 - every EVERY_S while a person has taken the browser over in the live view (`person`), and while the
   page keeps changing after an agent call (`change`: an animation, a dev server rebuilding), at most
-  CHANGE_FRAMES_MAX in a row, stopping at the first one that shows no change;
+  CHANGE_FRAMES_MAX in a row, stopping once STILL_LOOKS looks in a row find no change;
 - when the environment is saved and when it closes (`save`, `close`: its last state).
 
-A frame identical to the one before is dropped. Taking one never gets in the agent's way: the lane
-manager hands out the page only while nobody is on the lane or waits for it (frame_turn), the frame
-takes no place on the lane, so no call waits behind it, and a call that comes while it is taken makes
-the frame go (it could show that call half way). It is skipped, never waited for. It is a screenshot
-of the viewport only: no pointer, focus, scroll or tab changes (caret="initial" injects no style).
+A frame identical to the one before is dropped (and a change or person frame that only goes back to
+the one before that: a caret blinking). Taking one never gets in the agent's way: the lane manager
+hands out the page only while nobody is on the lane or waits for it (frame_turn), the frame takes no
+place on the lane, so no call waits behind it, and a call that comes while it is taken makes the frame
+go (it could show that call half way). A busy lane is skipped, never waited on: an agent call's frame
+looks again a few times (its next call, often a snapshot, is on the lane) and gives way to a newer
+page call, whose frame shows what came of both. It is a screenshot of the viewport only: no
+pointer, focus, scroll or tab changes (caret="initial" injects no style). Measured on a docker machine
+with the browser on it: about 60 ms a shot, a 30 KB JPEG from the browser, 15 KB once shrunk.
 Only an environment's own browser `env/<id>-browser` is ever pictured: it holds no account and no
 vault entry. An account lane never is.
 
@@ -49,7 +53,10 @@ FRAME_WIDTH = 1280        # a frame's width when Pillow can shrink the browser's
 FRAME_QUALITY = 60        # JPEG quality
 EVERY_S = 3.0             # how often a person's take-over and a changing page are pictured
 SETTLE_S = 0.4            # after an agent's call, before its frame: let the page paint
+RETRY_S = 0.25            # an agent frame whose lane is busy looks again this often
+AGENT_WAIT_S = 15.0       # and for this long at most (the agent's next call, a snapshot, is on the lane)
 CHANGE_FRAMES_MAX = 20    # change frames after one agent call (an animation that never settles)
+STILL_LOOKS = 2           # looks in a row that find no change end it (the first can come before a rebuild)
 SHOT_TIMEOUT_S = 5.0
 REPLAY_LINK_S = 900       # a signed link to a frame lives this long (the timeline gives fresh ones)
 REPLAY_PURPOSE = "replay"
@@ -61,11 +68,13 @@ PAGE_TOOLS = frozenset({"browser_navigate", "browser_act", "browser_scroll", "br
 
 @dataclass
 class _Track:
-    """One environment's replay while it is open: the last kept frame and the change it follows."""
+    """One environment's replay while it is open: its last frames and the change it follows."""
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
-    exact: str | None = None    # the last kept frame's pixels, hashed
-    coarse: str | None = None   # and a coarse print of it (a blinking caret is no change)
+    last: list[str] = field(default_factory=list)  # the pixels of the last two kept frames, hashed
     follow: int = 0             # change frames still to look for after an agent call
+    still: int = 0              # looks in a row that found no change
+    seq: int = 0                # page calls noted: an agent frame gives way to a newer call's
+    pending: int = 0            # agent frames still to take: the change and person frames wait for them
 
 
 def frame_lane(env: Environment) -> str | None:
@@ -134,17 +143,31 @@ class Replay:
         except (OSError, ValueError):
             log.warning("replay: could not log a call of environment %s", env.id, exc_info=True)
         if browser and call.tool in PAGE_TOOLS:
-            self._spawn_replay(self._frame_after(env.id, call.tool, call.summary))
+            track = self._track(env.id)
+            track.seq += 1
+            track.pending += 1
+            self._spawn_replay(self._frame_after(env.id, call.tool, call.summary, track.seq))
 
-    async def _frame_after(self, env_id: str, tool: str, summary: str) -> None:
-        await asyncio.sleep(SETTLE_S)
+    async def _frame_after(self, env_id: str, tool: str, summary: str, seq: int) -> None:
+        """The frame of an agent's page call. While the lane is busy (its next call, a snapshot most
+        often) it looks again every RETRY_S, up to AGENT_WAIT_S, and gives way to a newer page call."""
+        track = self._track(env_id)
         try:
-            env = self.store.get(env_id)
-        except (NotFound, ValueError, KeyError):
-            return
-        if env.open:
-            await self.take_frame(env, "agent", tool=tool, summary=summary)
-            self._track(env_id).follow = CHANGE_FRAMES_MAX
+            await asyncio.sleep(SETTLE_S)
+            loop = asyncio.get_running_loop()
+            until = loop.time() + AGENT_WAIT_S
+            while track.seq == seq:
+                try:
+                    env = self.store.get(env_id)
+                except (NotFound, ValueError, KeyError):
+                    return
+                if not env.open or await self.take_frame(env, "agent", tool=tool, summary=summary) != "busy" \
+                        or loop.time() >= until:
+                    break
+                await asyncio.sleep(RETRY_S)
+            track.follow, track.still = CHANGE_FRAMES_MAX, 0
+        finally:
+            track.pending -= 1
 
     async def _replay_loop(self) -> None:
         while True:
@@ -164,13 +187,16 @@ class Replay:
         for env in self.store.open():
             if env.state != "ready":
                 continue
+            track = tracks.get(env.id)
+            if track is not None and track.pending:
+                continue  # an agent frame comes first: it carries the call's caption
             if callable(person) and person(env.browser_lane):
                 await self.take_frame(env, "person")
                 continue
-            track = tracks.get(env.id)
             if track is not None and track.follow > 0:
                 got = await self.take_frame(env, "change")
-                track.follow = 0 if got == "same" else track.follow - 1
+                track.still = track.still + 1 if got == "same" else 0
+                track.follow = 0 if track.still >= STILL_LOOKS else track.follow - (got != "same")
 
     async def replay_last(self, env: Environment, cause: str) -> None:
         """The browser's last state before a save or a close. Never raises, never waits long."""
@@ -184,8 +210,8 @@ class Replay:
     # ================================================================ a frame
     async def take_frame(self, env: Environment, cause: str, *, tool: str | None = None,
                          summary: str | None = None) -> str:
-        """Picture the environment's browser now: "kept", "same" (no change: dropped), "skipped" (the
-        lane is busy, closed or not there) or "off"."""
+        """Picture the environment's browser now: "kept", "same" (no change: dropped), "busy" (someone is
+        on the lane, or came while the shot was taken), "skipped" (no browser, no page, no room) or "off"."""
         if not self.settings.replay:
             return "off"
         lane = frame_lane(env)
@@ -194,26 +220,30 @@ class Replay:
             return "skipped"  # not an open environment's own browser
         track = self._track(env.id)
         if track.lock.locked() and cause in ("change", "person"):
-            return "skipped"
+            return "busy"
         async with track.lock:
             turn = turn_of(lane)
             if turn is None:
-                return "skipped"
+                return "busy"
             shot = await _shoot(turn.page)
-            if shot is None or not turn.still_quiet():
-                return "skipped"  # a call came while it was taken: it could show that call half way
+            if shot is None:
+                return "skipped"
+            if not turn.still_quiet():
+                return "busy"  # a call came while it was taken: it could show that call half way
             raw, url, title, ms = shot
-            jpeg, width, height, exact, coarse = await asyncio.to_thread(prepare, raw)
-            if exact == track.exact or (cause in ("change", "person") and coarse == track.coarse):
+            jpeg, width, height, pixels = await asyncio.to_thread(prepare, raw)
+            # a change or a person's frame that only goes back to the one before (a caret blinking) is none
+            if pixels in (track.last[-1:] if cause not in ("change", "person") else track.last):
                 return "same"
             rec = self.replay_store().add_frame(env.id, jpeg, {
                 "at": iso_ms(self._clock()), "cause": cause, "tool": tool, "summary": summary,
                 "page_url": self._scrub(url, max_len=300) or None, "page_title": self._scrub(title, max_len=300) or None,
-                "width": width, "height": height, "fp": coarse, "ms": ms}, closed=self._closed)
+                "width": width, "height": height, "fp": pixels, "ms": ms, "raw_bytes": len(raw)}, closed=self._closed)
             if rec is None:
                 return "skipped"
-            track.exact, track.coarse = exact, coarse
-            log.debug("replay: %s frame of %s, %d bytes, %d ms", cause, env.id, len(jpeg), ms)
+            track.last = [*track.last[-1:], pixels]
+            log.debug("replay: %s frame of %s, %d bytes (%d from the browser), %d ms", cause, env.id, len(jpeg),
+                      len(raw), ms)
             return "kept"
 
     # ================================================================ reads
@@ -324,32 +354,29 @@ async def _shoot(page: Any) -> tuple[bytes, str, str, int] | None:
     return bytes(raw), str(getattr(page, "url", "") or ""), str(title or ""), ms
 
 
-def prepare(raw: bytes) -> tuple[bytes, int | None, int | None, str, str]:
-    """(the frame's JPEG, its width, its height, a hash of its pixels, a coarse print of them). Shrunk to
-    FRAME_WIDTH with Pillow when it is installed; the browser's own JPEG as it is without it."""
+def prepare(raw: bytes) -> tuple[bytes, int | None, int | None, str]:
+    """(the frame's JPEG, its width, its height, a hash of its pixels). Shrunk to FRAME_WIDTH with Pillow
+    when it is installed; the browser's own JPEG as it is without it (its encoder gives the same bytes for
+    the same pixels, so the hash still finds a frame that did not change)."""
     try:
         from PIL import Image
     except ImportError:
         width, height = jpeg_size(raw)
-        digest = hashlib.sha256(raw).hexdigest()[:24]
-        return raw, width, height, digest, digest
+        return raw, width, height, hashlib.sha256(raw).hexdigest()[:24]
     try:
         with Image.open(io.BytesIO(raw)) as im:
             rgb = im.convert("RGB")
     except Exception:  # noqa: BLE001 - not an image Pillow reads: keep it as it came
         width, height = jpeg_size(raw)
-        digest = hashlib.sha256(raw).hexdigest()[:24]
-        return raw, width, height, digest, digest
-    exact = hashlib.sha256(rgb.tobytes()).hexdigest()[:24]
-    small = rgb.convert("L").resize((48, 27), Image.Resampling.BOX)
-    coarse = hashlib.sha256(bytes(v >> 4 for v in small.tobytes())).hexdigest()[:24]
+        return raw, width, height, hashlib.sha256(raw).hexdigest()[:24]
+    pixels = hashlib.sha256(rgb.tobytes()).hexdigest()[:24]
     width, height = rgb.size
     if width <= FRAME_WIDTH:
-        return raw, width, height, exact, coarse
+        return raw, width, height, pixels
     height = max(1, round(height * FRAME_WIDTH / width))
     out = io.BytesIO()
     rgb.resize((FRAME_WIDTH, height), Image.Resampling.BILINEAR).save(out, "JPEG", quality=FRAME_QUALITY)
-    return out.getvalue(), FRAME_WIDTH, height, exact, coarse
+    return out.getvalue(), FRAME_WIDTH, height, pixels
 
 
 def jpeg_size(data: bytes) -> tuple[int | None, int | None]:

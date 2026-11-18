@@ -80,6 +80,8 @@ def shots(node, monkeypatch):  # noqa: F811
     monkeypatch.setattr(node["lanes"], "frame_turn", s.frame_turn, raising=False)
     monkeypatch.setattr(node["lanes"], "person_in_control", s.person_in_control, raising=False)
     monkeypatch.setattr(replay_mod, "SETTLE_S", 0)
+    monkeypatch.setattr(replay_mod, "RETRY_S", 0.01)
+    monkeypatch.setattr(replay_mod, "AGENT_WAIT_S", 0.3)
     return s
 
 
@@ -148,7 +150,27 @@ async def test_a_busy_lane_is_skipped_never_waited_for(node, shots):  # noqa: F8
     shots.quiet_after = False  # a call came while the shot was taken: it could show that call half way
     mgr.record_call(env.browser_lane, "browser_navigate", ok=True, summary="http://localhost:3000/")
     await settled(mgr)
-    assert frames(mgr, env) == [] and len(shots.page.shots) == 1
+    assert frames(mgr, env) == [] and shots.page.shots  # taken, then dropped (each time it looked again)
+
+
+async def test_an_agent_frame_looks_again_while_the_next_call_reads_and_gives_way_to_a_newer_one(node, shots):  # noqa: F811
+    mgr = node["mgr"]
+    env = mgr.get((await opened(node))["id"])
+    shots.busy = True  # the agent's snapshot right after its navigate
+    mgr.record_call(env.browser_lane, "browser_navigate", ok=True, summary="http://localhost:3000/")
+    await asyncio.sleep(0.05)
+    shots.busy = False
+    await settled(mgr)
+    assert [f["summary"] for f in frames(mgr, env)] == ["http://localhost:3000/"]
+    shots.busy = True
+    mgr.record_call(env.browser_lane, "browser_act", ok=True, summary="click e7")
+    shots.page.color = (90, 90, 90)
+    mgr.record_call(env.browser_lane, "browser_act", ok=True, summary="click e8")  # before e7's frame was taken
+    await asyncio.sleep(0.05)
+    shots.busy = False
+    await settled(mgr)
+    assert [f["summary"] for f in frames(mgr, env)] == ["http://localhost:3000/", "click e8"]
+    assert mgr._track(env.id).pending == 0
 
 
 async def test_only_the_environments_own_browser_is_ever_pictured(node, shots):  # noqa: F811
@@ -171,15 +193,20 @@ async def test_a_person_in_control_and_a_changing_page_are_pictured_every_few_se
     await mgr._replay_tick()  # nothing changed: dropped
     shots.page.color = (200, 30, 30)
     await mgr._replay_tick()
+    shots.page.color = (255, 255, 255)  # back to the frame before: a caret blinking is no change
+    await mgr._replay_tick()
     assert [f["cause"] for f in frames(mgr, env)] == ["person", "person"]
     shots.person = False
     shots.page.color = (30, 200, 30)
     mgr.record_call(env.browser_lane, "browser_act", ok=True, summary="click e4")
     await settled(mgr)
     assert mgr._track(env.id).follow == replay_mod.CHANGE_FRAMES_MAX
-    shots.page.color = (30, 30, 200)  # the page goes on changing after the call (a dev server rebuilt)
+    await mgr._replay_tick()  # no change yet: it looks again (a rebuild takes a moment)
+    shots.page.color = (30, 30, 200)  # the page changes after the call (a dev server rebuilt)
     await mgr._replay_tick()
-    await mgr._replay_tick()  # and then it stops: the change frames stop with it
+    await mgr._replay_tick()
+    assert mgr._track(env.id).follow > 0
+    await mgr._replay_tick()  # and then it stays still: the change frames stop
     assert mgr._track(env.id).follow == 0
     await mgr._replay_tick()
     assert [f["cause"] for f in frames(mgr, env)] == ["person", "person", "agent", "change"]

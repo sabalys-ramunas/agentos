@@ -175,8 +175,11 @@ def replay(env_id: Annotated[str, typer.Argument(metavar="ID", help="An environm
            out: Annotated[Path | None, typer.Option("--out", metavar="DIR", help="The folder it goes into "
                                                     "(default: replay-<id> here).")] = None,
            json_out: Annotated[bool, typer.Option("--json")] = False) -> None:
-    """Write what happened in an environment's browser to a folder: its frames, timeline.json and
-    index.html, a page that steps through the frames with their captions. Works after the VM is gone."""
+    """Write the replay of an environment's browser to a folder, also after its VM is gone.
+
+    The folder gets its frames, timeline.json and index.html: a page that steps through the frames
+    with their captions and the calls between them. It reads the node's files, so agentosd may be
+    stopped."""
     from agentos.environments.replay_cli import export
 
     try:

@@ -307,6 +307,8 @@ machine (its machine is deleted then).
 GET  /api/orgs/{org}/environments?state=open|all       {"environments": [EnvSummary]}
 GET  /api/orgs/{org}/environments/{id}                 EnvDetail
 GET  /api/orgs/{org}/environments/{id}/proofs/{proof}.png   a proof's PNG (cap see; added 2026-11-15)
+GET  /api/orgs/{org}/environments/{id}/replay?after=&limit=  the browser's replay: frames and calls by time (owner)
+GET  /api/orgs/{org}/environments/{id}/replay/{frame}.jpg    a replay frame's JPEG (owner; added 2026-11-18)
 POST /api/orgs/{org}/environments/{id}/close {"discard": false}   EnvSummary  (409 unsaved_work)
 POST /api/orgs/{org}/environments/{id}/extend {"minutes": 60}     EnvSummary
 DELETE /api/orgs/{org}/environments/saves/{save_id}               {forgot, snapshots_deleted} (owner, in person)

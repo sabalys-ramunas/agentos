@@ -534,8 +534,8 @@ async def _wait_ready(mgr: EnvironmentManager, env: Environment) -> Environment:
 
 async def environment(ctx: ToolContext, *, on: str | None = None) -> dict:
     """Your environment now: state, minutes_left, cost_eur, ports listening on the VM, git (branch,
-    ahead, dirty, pushed, pull_requests), proofs (fresh links), unsaved work, your note and the last
-    10 calls (with the client that made each). Cheap: call it to see if it is ready or what is left to
+    ahead, dirty, pushed, pull_requests), proofs (fresh links), replay (how many frames of your browser
+    the human can replay), unsaved work, your note and the last 10 calls (with the client that made each). Cheap: call it to see if it is ready or what is left to
     push. It always lists your agent's open and saved ones (`open`, `saved`), never another chat's
     handle. Effect: read.
 
