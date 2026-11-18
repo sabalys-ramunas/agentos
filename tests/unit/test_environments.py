@@ -195,7 +195,7 @@ async def test_open_never_asks_then_rents_clones_and_is_ready(node):
     [end] = [e for e in node["policy"].traces.query(kind="tool_end", limit=50)[0] if e.tool == "environment_open"]
     assert end.effect == "vm" and end.status == "ok"
     assert out["workdir"] == "/work/shop" and out["branch"] == "main" and out["repo"] == "example.test/me/shop"
-    assert out["lanes"] == {"terminal": f"env/{out['id']}", "browser": f"env/{out['id']}-browser"}
+    assert "lanes" not in out  # `on` reaches it: a lane's name in the result was taken for one (round 4)
     assert out["machine"]["provider"] == "fake"
     # the node's own live view, never a page of the web app (the public repository has none)
     assert set(out["links"]) == {"browser"} and "/environments/" not in str(out["links"]["browser"])
@@ -215,6 +215,45 @@ async def test_open_never_asks_then_rents_clones_and_is_ready(node):
     # a public repo that is not declared is cloned straight from the VM, with no gateway token
     [(clone, grant)] = [r for r in node["machine"].ran if "git clone" in r[0]]
     assert "https://example.test/me/shop.git" in clone and "/work/shop" in clone and grant is None
+
+
+async def test_the_browser_starts_beside_the_clone_and_the_open_never_waits_for_it(node, monkeypatch):
+    """The first browser_navigate waited 10 to 14 s for the machine's browser (evals, 2026-11-18): it
+    starts during the bring-up now, in the background. A start that fails is only logged; the first
+    browser call starts it again, as before."""
+    from agentos.core.models import LaneState
+
+    lanes, mgr = node["lanes"], node["mgr"]
+    gate = asyncio.Event()
+    real_open = lanes.open
+
+    async def slow_open(lane_id, **kw):
+        await gate.wait()
+        return await real_open(lane_id, **kw)
+
+    monkeypatch.setattr(lanes, "open", slow_open)
+    out = await opened(node)
+    assert out["state"] == "ready"  # ready while the browser still starts
+    lane = f"env/{out['id']}-browser"
+    assert lanes.get(lane).state != LaneState.WARM and mgr._warming
+    gate.set()
+    await asyncio.gather(*mgr._warming)
+    assert lanes.get(lane).state == LaneState.WARM
+
+    # a close while it still starts does not wait for it: the start is cancelled
+    gate.clear()
+    third = await opened(node, title="Third one", session="chat-3")
+    starting = mgr.__dict__["_browser_starts"][third["id"]]
+    await asyncio.wait_for(node["call"]("environment_close", on=third["on"], session="chat-3"), 5)
+    assert starting.cancelled() and mgr.get(third["id"]).state == "closed"
+
+    async def broken(lane_id, **kw):
+        raise RuntimeError("no display")
+
+    monkeypatch.setattr(lanes, "open", broken)
+    again = await opened(node, title="Second one", session="chat-2")
+    await asyncio.gather(*mgr._warming)
+    assert again["state"] == "ready" and mgr.get(again["id"]).open
 
 
 async def test_the_live_view_link_stays_the_same_and_says_how_long_it_and_older_ones_work(node):
@@ -344,9 +383,9 @@ async def test_the_browser_and_the_clone_come_up_at_once_and_each_step_is_logged
     began = asyncio.Event()
     browser, clone = mgr._make_browser, mgr._clone
 
-    async def slow_browser(env):
+    async def slow_browser(env, **kw):
         await asyncio.wait_for(began.wait(), 5)  # only ends once the clone runs beside it
-        await browser(env)
+        await browser(env, **kw)
 
     async def cloning(env):
         began.set()
@@ -633,7 +672,7 @@ async def test_a_person_working_in_the_live_view_keeps_the_environment_open(node
     mgr, lanes = node["mgr"], node["lanes"]
     idle = timedelta(minutes=mgr.settings.idle_minutes)
     later = utcnow() + idle + timedelta(minutes=1)
-    browser = lanes.lanes[out["lanes"]["browser"]]
+    browser = lanes.lanes[f"env/{out['id']}-browser"]
     browser.control = browser.control.model_copy(update={"last_human_input": later - timedelta(minutes=2)})
     got = await mgr.reap_once(later)
     assert got["closed"] == [] and mgr.get(out["id"]).open
@@ -811,7 +850,7 @@ async def test_a_job_on_the_environment_is_cancelled_with_the_connect_grant(node
     _g, tok = node["policy"].issue(subject={"id": "claude-code"}, workspaces=["*"], ceiling=Effect.COMMIT,
                                    specials=panel_specials(["environments"]))
     out = await opened(node, tok=tok, session="chat-j")
-    info = JobInfo(id="job-1", lane=out["lanes"]["terminal"], cmd="npm run dev", timeout_s=60)
+    info = JobInfo(id="job-1", lane=f"env/{out['id']}", cmd="npm run dev", timeout_s=60)
     cancelled = info.model_copy(update={"state": "cancelled"})
     monkeypatch.setattr(node["envs"], "job", lambda _id: SimpleNamespace(info=info))
 
@@ -823,7 +862,7 @@ async def test_a_job_on_the_environment_is_cancelled_with_the_connect_grant(node
     assert done["state"] == "cancelled"
     # a job on an account lane stays out of reach: the handler's own check refuses it
     info = JobInfo(id="job-2", lane="personal/code", cmd="ls", timeout_s=60)
-    lane = node["envs"].get(out["lanes"]["terminal"])
+    lane = node["envs"].get(f"env/{out['id']}")
     monkeypatch.setattr(node["envs"], "get", lambda _id: lane)
     with pytest.raises((ToolCallError, PolicyDenied), match="exec is not granted for personal/code"):
         await node["call"]("lane_job_cancel", tok=tok, session="chat-j", job="job-2")

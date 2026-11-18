@@ -276,7 +276,9 @@ class EvalNode:
         out = []
         for f in sorted(folder.glob("*.json")) if folder.exists() else []:
             with contextlib.suppress(ValueError, OSError):
-                out.append({**json.loads(f.read_text()), "png_bytes": f.with_suffix(".png").stat().st_size})
+                png, mp4 = f.with_suffix(".png"), f.with_suffix(".mp4")  # a screenshot; a recording
+                out.append({**json.loads(f.read_text()), "png_bytes": png.stat().st_size if png.exists() else 0,
+                            "mp4_bytes": mp4.stat().st_size if mp4.exists() else 0})
         return out
 
     # ---- the way out ----

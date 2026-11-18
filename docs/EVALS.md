@@ -89,9 +89,10 @@ scripts.
 | `t04_prepared_warm` | three times: open the storefront (it has `.agentos/environment.toml`) and say its first price | the app listened at each open; the second booted from the prepared machine (the harness waits for the build); the third took the warm machine (the harness turns `warm = 1` on and waits for one); every answer names the price; closed and gone. The three open times are the point: `open1_s`, `open2_s`, `open3_s` |
 | `t05_blocked_host` | on a `limited` network: install the dependencies (npm is allowed) and run a script that calls a host that is not | the script got past its dependency; the node refused the host; the script ran at most twice (no retry loop); the answer names the host and the owner's command (`agentos environments allow --host ...`); closed and gone |
 | `t06_checkpoint_rollback` | a risky change: checkpoint first, roll back if the tests fail | a checkpoint before the first edit; a rollback; the tests ran and passed after it; nothing broken pushed; the answer says the tests failed. Needs `environment_checkpoint`: skipped on an agentos without it |
+| `t07_video_proof` | on a `limited` network: change the heading, record the page in the browser, push and open the pull request with the recording | a recording kept as proof with a title; the browser showed the new heading; a branch with it; a pull request for it; the recording's files reached the stand-in's `agentos-proofs` branch and the body shows its GIF; closed and gone. Needs `browser_record`. A machine from an image without ffmpeg installs it on the first recording, through the proxy |
 
-A task can name tools it needs (`requires`); on a node without them it is skipped and says so. Video
-proofs will be added the same way once that tool exists.
+A task can name tools it needs (`requires`); on a node without them it is skipped and says so. The
+stand-in answers the Git Data API calls the proofs make (blobs, trees, commits, the ref) in memory.
 
 To add a task: a fixture under `repos/` if none fits, then one file in `tasks/`. Run the scripts
 (`--task tNN`) and see `perfect` finish it and `careless` fail it before a model runs it. Every wrong
@@ -106,6 +107,7 @@ Per task run (`results.json`), and per task in the history as the median over th
 | `finished` | the checker passed and no session errored (in the history: the rate over the repeats) |
 | `seconds` | the task's wall time, every session, from the first prompt to the checker (the harness's own waits between sessions in t04 are inside it) |
 | `ready_s` | from the agent's start to the first result that said its environment is `ready` |
+| `first_navigate_s` | the first `browser_navigate`'s own time: on a fresh machine it waited for the browser to start |
 | `opens` | each `environment_open`: the time until ready, `new` or `resumed`, the app listening, prepared, warm |
 | `calls`, `calls_by_tool`, `seconds_by_tool` | the agent's tool calls (a `tools_call` counts as the tool it ran), and where the time went |
 | `tool_errors`, `errors_by_code` | calls that came back as errors, by their code |
@@ -118,7 +120,9 @@ Per task run (`results.json`), and per task in the history as the median over th
 The wrong turns (`metrics.wrong_turns`), each one a rule the skill states:
 
 - a call refused for want of the `on` its `environment_open` gave (`which_environment`,
-  `no_environment`), whether it passed none or another value (Haiku once passed `lanes.browser`);
+  `no_environment`), whether it passed none or another value;
+- a lane's name as `on` (`env/<id>`, `env/<id>-browser`, `<id>-browser`), refused or not (Haiku passed
+  the open's `lanes.browser` once; a chat whose session holds the machine now reaches it so);
 - a file read or written through `lane_exec` (`cat`, `head`, `sed -n`, `sed -i`, a heredoc, `echo >`)
   instead of `lane_file_read`, `lane_file_edit` or `lane_file_write` (a `tail` at the end of a pipe
   reads no file and is fine);
@@ -209,3 +213,12 @@ Each session starts with 38 tools of about 9,480 tokens and instructions of abou
 after a cold open. `--agent claude --model haiku` (Haiku 5.5) finished t01 and t02 in 32 s and 47 s
 for $0.015, with 5 wrong turns between them: files read with `cat` through `lane_exec`, and a
 `browser_navigate` with `on` set to the environment's `lanes.browser` instead of its `on`.
+
+After the fixes for those (2026-11-18, `envs/axfixes`): `perfect` and `careless` still finish all and
+none; t05 reads 1,668 tokens instead of 2,992 and makes 4 calls instead of 5 (the refused host is in
+the command's own result, no `environment()` needed); every other metric within its noise. The
+browser starts during the open, so it is ready by the time an agent that thinks between calls
+navigates: Haiku's first `browser_navigate` took 3.3 s instead of 15.6 s, and t01 and t02 took 30 s
+and 30 s for the same $0.015, with 3 wrong turns (the `cat`s, before the hint) and no tool error. A
+script that navigates a second after the open still waits for most of the start (t02: 6.8 s, was
+7.7 s). `t07_video_proof` finishes in 45 s, 25 of them installing ffmpeg on this image.

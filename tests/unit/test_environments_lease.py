@@ -54,10 +54,11 @@ async def test_two_stateless_chats_each_hold_their_own_and_never_reach_the_other
     ran = await node["call"]("lane_exec", on=b["on"], cmd="pwd", session=NONE)
     assert ran["environment"]["id"] == b["id"]
     # the other chat's machine by its title, its id or its lane: refused, and nothing ran there
-    for on in ("Shop page", a["id"], f"env/{a['id']}", f"env/{a['id']}-browser"):
+    for on in ("Shop page", a["id"], f"env/{a['id']}", f"env/{a['id']}-browser", f"{a['id']}-browser"):
         with pytest.raises(ToolCallError, match="^which_environment") as err:
             await node["call"]("lane_exec", on=on, cmd="rm -rf /work", session=NONE)
-        assert "pass the on from your environment_open" in str(err.value) and a["on"] not in str(err.value)
+        words = "lane's name, not an on" if on.endswith(("-browser", f"/{a['id']}")) else "pass the on from your"
+        assert words in str(err.value) and a["on"] not in str(err.value)
     # a handle with the right id and a made-up secret is nobody's
     with pytest.raises(ToolCallError, match="^no_environment"):
         await node["call"]("lane_exec", on=a["id"] + ".aaaaaaaaaaaaaaaa", cmd="pwd", session=NONE)
@@ -298,6 +299,27 @@ async def test_an_attach_says_what_differs_from_what_was_asked(node):  # noqa: F
     assert again["next"].startswith("Attached: this machine was already open")
     assert "Not as you asked: " in again["next"] and "another title" in again["next"]
     assert len(node["mgr"].store.open()) == 1 and "—" not in again["next"]
+
+
+async def test_a_lane_name_as_on_reaches_the_sessions_own_machine_and_names_the_mix_up_else(node):  # noqa: F811
+    """Haiku, 2026-11-18: browser_navigate(on="<id>-browser"), the open's lane name without env/. The chat
+    whose session holds the machine reaches it, as with env/<id>; any other caller hears it is a lane's
+    name, and a lane name of no machine of its own is no_environment with the same words."""
+    a = await opened(node, session="s-a")
+    ran = await node["call"]("lane_exec", on=f"{a['id']}-browser", cmd="pwd", session="s-a")
+    assert ran["exit_code"] == 0 and ran["environment"]["id"] == a["id"]
+    with pytest.raises(ToolCallError, match="^which_environment") as err:
+        await node["call"]("lane_exec", on=f"{a['id']}-browser", cmd="pwd", session="s-b")
+    assert "is the browser lane's name, not an on" in str(err.value) and a["on"] not in str(err.value)
+    with pytest.raises(ToolCallError, match="^no_environment") as err:
+        await node["call"]("lane_exec", on="eaaaaaaaaaa-browser", cmd="pwd", session="s-a")
+    assert "looks like a lane's name" in str(err.value) and "—" not in str(err.value)
+
+
+async def test_the_open_result_names_no_lane(node):  # noqa: F811
+    """An open's result carries `on` and no lane names, so nothing in it looks like another `on`."""
+    a = await opened(node, session=NONE)
+    assert "lanes" not in a and "-browser" not in str(a.get("next"))
 
 
 async def test_on_leaves_account_lanes_alone_and_maps_a_browser_tool(node):  # noqa: F811

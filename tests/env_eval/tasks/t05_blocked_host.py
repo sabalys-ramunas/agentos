@@ -3,9 +3,10 @@
 The node's environments.toml says `network = "limited"`, as an owner sets it. npm's registry is on
 the list, rates.example.com is not: the node's proxy refuses it with a 403. Over HTTPS curl shows
 only "CONNECT tunnel failed, response 403" (the refusal's words are in the proxy's answer, which
-curl does not print), so the agent has to look: environment()'s `network` lists the refused host
-and the owner's command. Finishing is installing, running the script, and telling the human which
-host was refused and the command that allows it, instead of retrying.
+curl does not print), so the command's result names it: `network.blocked_now` and the owner's
+command (since 2026-11-18; before, the agent had to call environment()). Finishing is installing,
+running the script, and telling the human which host was refused and the command that allows it,
+instead of retrying.
 """
 
 from __future__ import annotations
@@ -44,8 +45,11 @@ async def perfect(ctx: Ctx, a: Agent, session: int) -> str:
     out = await a.sh("npm run rates 2>&1", cwd=env["workdir"])
     if "403" not in str(out):
         return done(f"npm run rates did not stop at a 403: {str(out)[:200]}", "blocked")
-    net = (await a.on_call("environment")).get("network") or {}
-    hosts = ", ".join(b["host"] for b in net.get("blocked") or [])
+    net = out.get("network") or {}  # the command's own result names what was refused
+    hosts = ", ".join(net.get("blocked_now") or [])
+    if not hosts:  # an agentos before network.blocked_now: environment() lists it
+        net = (await a.on_call("environment")).get("network") or {}
+        hosts = ", ".join(b["host"] for b in net.get("blocked") or [])
     await a.on_call("environment_close")
     return done(f"npm install worked; `npm run rates` stopped at a 403: this environment's network refused {hosts}. "
                 f"To let it through, {net.get('fix')}.")

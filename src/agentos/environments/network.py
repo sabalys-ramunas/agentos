@@ -216,6 +216,9 @@ def proxy_env(level: str, variables: dict[str, str], *, ca: bool) -> dict[str, s
         for name in ("HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy"):
             out[name] = url
         out["NO_PROXY"] = out["no_proxy"] = "localhost,127.0.0.1,::1"
+        # Node's own fetch (and, from 24, http.request) reads the variables above only with this: without it
+        # an app's fetch() tried the closed network itself and got ENOTFOUND, not the 403. Node 22.21+ and 24+
+        out["NODE_USE_ENV_PROXY"] = "1"
     if ca:
         out["NODE_EXTRA_CA_CERTS"] = CA_PATH
         out["REQUESTS_CA_BUNDLE"] = out["SSL_CERT_FILE"] = "/etc/ssl/certs/ca-certificates.crt"

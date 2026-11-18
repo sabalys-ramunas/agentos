@@ -349,7 +349,7 @@ async def test_first_open_runs_setup_starts_the_app_and_builds_for_next_time(nod
     assert p["used"] is False and p["setup"]["ok"] is True and p["build"] == {"started": True, "key": p["build"]["key"]}
     assert "no prepared machine" in p["why"]
     # setup ran in the repository's folder on the agent's own machine
-    env_lane = out["lanes"]["terminal"]
+    env_lane = f"env/{out['id']}"
     assert any("cd /work/shop && CI=true" in c and "pnpm install --frozen-lockfile" in c for c in node.machine.cmds(env_lane))
     # the app is a job of the environment's lane, listening, with its link
     app = out["app"]
@@ -378,7 +378,7 @@ async def test_second_open_boots_the_prepared_machine_skips_setup_and_refreshes(
     assert p["used"] is True and p["from"]["commit"] == rec.commit[:12] and "age" in p["from"]
     assert p["checkout"]["ok"] is True and p["refresh"]["ok"] is True
     assert p["setup_s"]["build"] == rec.setup_s
-    lane = out["lanes"]["terminal"]
+    lane = f"env/{out['id']}"
     cmds = node.machine.cmds(lane)
     assert not any("--frozen-lockfile" in c for c in cmds)            # no setup
     assert any("--prefer-offline" in c for c in cmds)                 # refresh

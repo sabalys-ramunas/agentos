@@ -119,6 +119,26 @@ def test_the_wrong_turns_a_careful_agent_does_not_take():
     assert wrong_turns(rows[-1:], new_environments=2) == []
 
 
+def test_a_lane_name_as_on_is_a_wrong_turn_even_when_it_worked():
+    """Haiku passed lanes.browser as on (2026-11-18). Refused or not (a session holder reaches its own
+    machine by it), it is not the on the skill teaches; a handle is never taken for one."""
+    rows = [row("browser_navigate", {"on": "ea4rfkkx9sw-browser", "url": "http://localhost:3000"}, ok=False,
+                code="which_environment"),
+            row("lane_exec", {"on": "env/ea4rfkkx9sw", "cmd": "ls"}),
+            row("lane_exec", {"on": "ea4rfkkx9sw.fexswp5nylnkryff", "cmd": "ls"}),
+            row("browser_navigate", {"on": "personal/reddit", "url": "https://example.com"})]
+    turns = wrong_turns(rows)
+    assert turns == [("browser_navigate with a lane's name as on ('ea4rfkkx9sw-browser'), not the on its "
+                     "environment_open gave (refused: which_environment)"),
+                     "lane_exec with a lane's name as on ('env/ea4rfkkx9sw'), not the on its environment_open gave"]
+
+
+def test_the_first_navigate_is_timed():
+    rows = [row("browser_navigate", {"url": "a"}, started=3, ended=13.5), row("browser_navigate", started=14, ended=15)]
+    assert trace_metrics(rows)["first_navigate_s"] == 10.5
+    assert "first_navigate_s" not in trace_metrics([row("lane_exec", started=0, ended=1)])
+
+
 def test_a_retry_after_a_fix_or_in_another_chat_is_no_repeat():
     fail = row("lane_exec", {"cmd": "npm test"}, text=json.dumps({"exit_code": 1}))
     fixed = row("lane_file_edit", {"path": "a.js", "old": "x", "new": "y"})
@@ -316,3 +336,33 @@ def test_the_guard_refuses_past_max_usd_and_an_unknown_price():
     with pytest.raises(budget.OverBudget, match="no price known"):
         budget.guard("codex", "gpt-something", 1, 5.0)
     assert budget.guard("careless", "anything", 99, 0.0) == (0.0, 0.0)
+
+
+async def test_the_github_stand_in_keeps_the_proofs_agentos_sends_it(tmp_path):
+    """agentos.environments.prproofs.send against the stand-in: the files land on agentos-proofs, a second
+    send adds only what is new, and the stand-in lists them for a checker."""
+    import httpx
+    from env_eval.ghstub import GitHubStub
+
+    from agentos.environments import prproofs
+
+    files = {"p1.mp4": b"mp4" * 100, "p1.gif": b"gif" * 50}
+    for name, data in files.items():
+        (tmp_path / name).write_bytes(data)
+
+    class Mgr:
+        def proof_path(self, env_id, proof_id, ext):
+            return tmp_path / f"{proof_id}.{ext}"
+
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        port = s.getsockname()[1]
+    with GitHubStub(port, repos={"evals/shop": tmp_path}) as gh:
+        async with httpx.AsyncClient(base_url=gh.url) as http:
+            auth = {"Authorization": "Bearer t"}
+            sent, skipped = await prproofs.send(Mgr(), http, "evals/shop", auth, "t", "e1",
+                                                [{"id": "p1", "kind": "video"}])
+            assert sent == {"p1": {"mp4": 300, "gif": 150}} and skipped == []
+            assert gh.files("evals/shop") == {"e1/p1.mp4": files["p1.mp4"], "e1/p1.gif": files["p1.gif"]}
+            again, _ = await prproofs.send(Mgr(), http, "evals/shop", auth, "t", "e1", [{"id": "p1", "kind": "video"}])
+            assert again == sent and len(gh.commits) == 1  # nothing new: no second commit

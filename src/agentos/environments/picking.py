@@ -53,6 +53,15 @@ _SECRET_CHARS = string.ascii_lowercase + string.digits
 ON_FIX = "pass the on from your environment_open"
 
 
+def lane_ref(ref: str) -> tuple[str, str | None]:
+    """(the environment id, "terminal" or "browser") of a lane's name: env/<id>, env/<id>-browser, or
+    <id>-browser without its workspace; anything else is (ref, None)."""
+    body = ref.split("/", 1)[1] if ref.startswith(WORKSPACE + "/") else ref
+    if body.endswith("-browser"):
+        return body.removesuffix("-browser"), "browser"
+    return body, ("terminal" if body != ref else None)
+
+
 def _when(dt: datetime) -> str:
     """A time in a message for an agent: 2026-11-13 16:47 UTC."""
     return dt.astimezone(UTC).strftime("%Y-%m-%d %H:%M UTC")
@@ -141,17 +150,23 @@ class Picking:
         if (eid := handle_env(ref)) is not None:
             return self._by_handle(eid, ref, family)
         mine = self.open_for_family(family)
-        eid = ref.split("/", 1)[1].removesuffix("-browser") if ref.startswith(WORKSPACE + "/") else ref
+        eid, lane = lane_ref(ref)
         if ID_RE.match(eid):
             hit = [e for e in mine if e.id == eid]
             if hit:
                 if self.holds(hit[0], binding):
                     return hit[0]
+                if lane:  # Haiku, 2026-11-18: lanes.browser from the open, passed as `on`
+                    raise WhichEnvironment(f"{ref} is the {lane} lane's name, not an on: pass the on your "
+                                           f"environment_open returned (\"{eid}.\" and 16 letters and digits)")
                 raise WhichEnvironment(f"{ref} names environment {eid} by its id, and only the on its "
                                        f"environment_open gave reaches it: {ON_FIX}. "
                                        + self._own_words(hit[0]))
         if "/" in ref:
             return None
+        if lane and ID_RE.match(eid):
+            raise NoEnvironment(f"{ref} looks like a lane's name, and no open environment of yours has it. Pass "
+                                "the on your environment_open returned; environment() lists your machines")
         titled = [e for e in mine if same_title(e.title, ref)]
         if titled:
             raise WhichEnvironment(f"\"{ref}\" is the title of a live machine, and a title does not reach one: "

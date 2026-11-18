@@ -562,13 +562,15 @@ async def test_an_environment_tunnel_exits_from_its_vm_and_is_never_quarantined_
         return NODE_IP
 
     tunnel = ProxyConfig(label="env-e1", host="127.0.0.1", port=1080, scheme="socks5", check_exit=False)
-    for exit_ip in ("203.0.113.66", NODE_IP):  # a cloud VM; a docker machine on the node itself
-        t = build(tmp_path / exit_ip, self_check=True, engine=FakeEngine(exit_ip=exit_ip),
+    # a cloud VM; a docker machine on the node itself; a closed network, where the read is refused (2026-11-18)
+    for i, exit_ip in enumerate(("203.0.113.66", NODE_IP, OSError("NetworkError when attempting to fetch"))):
+        t = build(tmp_path / str(i), self_check=True, engine=FakeEngine(exit_ip=exit_ip),
                   proxies={"env-e1": tunnel}, node_ip_probe=node_ip)
         await t.mgr.create(LaneSpec(id="env/e1-browser", proxy_label="env-e1"))
         info = await t.mgr.open("env/e1-browser")
         assert info.state == LaneState.WARM, info.quarantine_reason
         assert t.mgr.store.proxy_exit("env-e1") is None  # nothing pinned
+        assert t.mgr._lanes["env/e1-browser"].exit_ip is None  # and nothing read: the exit is not judged
 
 
 async def test_a_proxied_lane_leaving_from_the_node_ip_is_quarantined_until_a_human_looks(tmp_path, no_dns):

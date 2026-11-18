@@ -6,6 +6,7 @@ manager (agentos.local.lanes, routed to the VM as agentos.local.node does it) an
 
 from __future__ import annotations
 
+import asyncio
 import json
 from datetime import timedelta
 
@@ -140,10 +141,13 @@ async def test_the_browser_opens_on_the_vm_through_the_routed_engine(local):
     env = await opened(local)
     assert env.state == "ready", env.error
     lanes, machine = local["lanes"], local["machine"]
+    await asyncio.gather(*local["mgr"]._warming)  # it started during the open (bringup.start_browser)
+    assert [a["action"] for a in machine.asked] == ["display", "browser"]  # the VM's screen, then its browser
     out = await local["call"]("lane_open")  # no `on`: the environment's browser
     assert out["state"] == "warm"
-    assert [a["action"] for a in machine.asked] == ["display", "browser"]  # the VM's screen, then its browser
-    assert local["pw"].connected_to == [f"ws://127.0.0.1:45999{machine.asked[1]['ws_path']}"]
+    # (this fake's live-view socket is no file, so the lane manager starts the screen again: the same steps)
+    assert [a["action"] for a in machine.asked][-2:] == ["display", "browser"]
+    assert local["pw"].connected_to[-1] == f"ws://127.0.0.1:45999{machine.asked[-1]['ws_path']}"
     assert lanes.view(env.browser_lane).vnc_socket == "/tmp/agentos-env-fake/vnc"  # the live view: the tunnel
     session = lanes.live_session(env.browser_lane)
     assert session.alive and session.pids == []  # no process on this computer

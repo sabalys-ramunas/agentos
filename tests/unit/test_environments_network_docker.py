@@ -93,6 +93,15 @@ async def test_a_limited_machine_with_a_bound_secret(node, tmp_path):  # noqa: F
         assert (await sh("curl -s -m 30 -o /dev/null -w '%{http_code}' https://registry.npmjs.org/")).strip() == "200"
         refused = await sh("curl -s -m 10 http://example.com/; echo; curl -sS -m 10 https://example.com/ 2>&1; true")
         assert "example.com is not on this environment's network list" in refused and "403" in refused
+        # Node's fetch takes the proxy too (NODE_USE_ENV_PROXY): the 403, not ENOTFOUND; Python prints the words
+        fetched = await sh("node -e 'fetch(\"https://example.com/\").then(r => console.log(r.status), e => { "
+                           "for (let c = e; c; c = c.cause) console.log(c.code, c.message) })' 2>&1")
+        assert "Proxy response (403)" in fetched and "ENOTFOUND" not in fetched, fetched
+        got_https = await sh("node -e 'require(\"https\").get(\"https://example.com/\").on(\"error\", e => "
+                             "console.log(e.message))' 2>&1")
+        assert "403 Forbidden: example.com is not on this environment's network list" in got_https, got_https
+        py = await sh("python3 -c 'import urllib.request as u; u.urlopen(\"https://example.com/\", timeout=10)' 2>&1")
+        assert "403" in py and "agentos environments allow --host example.com" in py, py
         view = (await mgr.detail(mgr.get(env.id)))["network"]
         assert view["policy"] == "limited" and view["blocked"][0]["host"] == "example.com"
         assert view["blocked"][0]["count"] >= 2 and view["secrets"] == ["SHOP_API_KEY"]

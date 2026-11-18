@@ -208,6 +208,7 @@ def wrap_tool(spec: ToolSpec, runtime: Any, *,
                     routing.studio_proxy(runtime, spec.name, kwargs, session=meta.session,
                                          grant_id=grant.id, family=grant.root_id) as studio_lane:
                 env_lane[0] = env_lane[0] or studio_lane
+                since = routing.now(runtime) if spec.name in routing.NETWORK_TOOLS else None
                 result = await _frozen_aware(runtime, ctx, spec.handler(ctx, **kwargs))
         except ApprovalPending as e:
             summary = e.message.removeprefix("waiting for the owner to approve: ")
@@ -239,7 +240,7 @@ def wrap_tool(spec: ToolSpec, runtime: Any, *,
             except AgentosError:
                 log.warning("bad taint_tags config for %s", spec.name)
         end("ok", result=result)
-        return _scrub_result(routing.with_env(result, picked), token)
+        return _scrub_result(routing.finish(runtime, spec.name, result, picked, since), token)
 
     call.__signature__ = public_sig  # type: ignore[attr-defined]
     call.__name__ = spec.name
