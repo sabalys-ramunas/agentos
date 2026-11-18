@@ -374,12 +374,15 @@ class Saving:
         archive = tmp / ".payload.tar"
         await get_archive(envs, env.terminal_lane, posixpath.join(root, stage), archive, gzip=False,
                           timeout_s=SAVE_TIMEOUT_S, max_bytes=room + (64 << 20))
-        await asyncio.to_thread(_unpack, archive, tmp)
-        with contextlib.suppress(AgentosError):
-            await envs.exec(env.terminal_lane, shlex.join(["rm", "-rf", posixpath.join(root, stage)]),
-                            timeout_s=STEP_TIMEOUT_S)
-        found["files"] = await asyncio.to_thread(_verify, tmp, found, ["work", *keep])
-        found["deleted_paths"] = await asyncio.to_thread(_deleted, tmp, found)
+        drop = asyncio.ensure_future(envs.exec(env.terminal_lane, shlex.join(["rm", "-rf", posixpath.join(root, stage)]),
+                                               timeout_s=STEP_TIMEOUT_S))  # on the machine while it unpacks here
+        try:
+            await asyncio.to_thread(_unpack, archive, tmp)
+            found["files"] = await asyncio.to_thread(_verify, tmp, found, ["work", *keep])
+            found["deleted_paths"] = await asyncio.to_thread(_deleted, tmp, found)
+        finally:
+            with contextlib.suppress(AgentosError):  # gone before a snapshot, so no snapshot holds the stage
+                await drop
         jobs = []
         with contextlib.suppress(Exception):
             jobs = [j for j in envs.job_list(env.terminal_lane) if j.state == "running"]
@@ -751,7 +754,8 @@ class Saving:
             if env.repo:
                 await self._clone(env)
             missing, commits = await self._restore_repos(env, m, files, extra)
-            await self._put_files(env, files.get("files.tgz"))
+            # the commits' staging folder goes while the files go back (one SSH round trip less in a row)
+            await asyncio.gather(self._put_files(env, files.get("files.tgz")), self._drop_stage(env, m))
             from agentos.environments import signins
 
             files_signins = signins.read_saved(files.get(signins.PAYLOAD))
@@ -822,10 +826,13 @@ class Saving:
                 raise RestoreFailed(f"{r.dir} could not be restored: {got['error'] or (out.stderr or '').strip()[-200:]}")
             missing += got["missing"]
             commits += r.commits if r.bundle else 0
-        with contextlib.suppress(AgentosError):
-            await envs.exec(env.terminal_lane, shlex.join(["rm", "-rf", posixpath.join(root, stage)]),
-                            timeout_s=STEP_TIMEOUT_S)
         return missing, commits
+
+    async def _drop_stage(self, env: Environment, m: SaveManifest) -> None:
+        """Remove the folder _restore_repos staged the save's commits in, once they are restored."""
+        stage = posixpath.join(self._machine_root(env), f"var/tmp/agentos-restore-{m.id}")
+        with contextlib.suppress(AgentosError):
+            await self.envs().exec(env.terminal_lane, shlex.join(["rm", "-rf", stage]), timeout_s=STEP_TIMEOUT_S)
 
     async def _put_files(self, env: Environment, tgz: Path | None) -> None:
         if tgz is None:

@@ -413,14 +413,33 @@ async def _open_locked(ctx: ToolContext, mgr: EnvironmentManager, binding: str, 
         env, handle = mgr.give(env, binding, take=how == "taken_over")
         ctx.trace("environment_open", lane=env.terminal_lane, environment=env.id, opened=how)
         return env, how, handle
-    env_id = mgr.planned_id(binding, title)
     saved = mgr.save_to_resume(family or caller.grant_id(ctx), title, repo)
     if saved is not None:  # this family saved this title: resume it (its repository, branch and machine)
         keep = mgr.check_keep(keep if keep is not None else saved.keep)
         repo, ref = saved.repo, saved.ref
-        plan = await mgr.plan_restore(env_id, saved, hours=hours, keep=keep)
     else:
         keep = mgr.check_keep(keep)
+    env_id = mgr.planned_id(binding, title)
+    check = getattr(ctx, "precheck", None)
+    if callable(check):  # the grant may open a machine on this lane (its profile is checked once planned)
+        check(Effect.VM, lane_id=f"env/{env_id}")
+    reach = mgr.reach_soon(repo) if repo else None  # only then the repository's check, beside the plan
+    try:
+        return await _open_new(ctx, mgr, binding, env_id, saved, reach, title=title, repo=repo, ref=ref, size=size,
+                               hours=hours, keep=keep, signins=signins)
+    finally:
+        if reach is not None and not reach.done():
+            reach.cancel()
+
+
+async def _open_new(ctx: ToolContext, mgr: EnvironmentManager, binding: str, env_id: str, saved: Any,
+                    reach: asyncio.Task | None, *, title: str, repo: str | None, ref: str | None, size: str | None,
+                    hours: float | None, keep: str, signins: bool | None) -> tuple[Environment, str, str] | dict:
+    """A new machine for this title, or a saved one's resumed: planned, checked against the limits, the
+    grant and the repository (`reach`: its check, already running), then created."""
+    if saved is not None:
+        plan = await mgr.plan_restore(env_id, saved, hours=hours, keep=keep)
+    else:
         plan = await mgr.plan(env_id, size=size, hours=hours, keep=keep)
     mgr.check_limits(plan)
     sp = plan.get("specs") or {}
@@ -443,7 +462,7 @@ async def _open_locked(ctx: ToolContext, mgr: EnvironmentManager, binding: str, 
         with contextlib.suppress(Exception):  # a card this agent raised for another repo: a name it got wrong
             connect.withdraw(mgr.store, ctx.runtime.get("approvals"), caller.grant_id(ctx), instead=repo)
         try:
-            await mgr.check_repo(repo)
+            await mgr.check_repo(repo, reached=reach)
         except RepoNotConnected as e:  # a card the human answers in the panel (agentos.environments.connect)
             from agentos.environments.connect import card_result
 

@@ -38,6 +38,8 @@ from agentos.core.models import LaneState, parse_lane_id, utcnow
 from agentos.env.models import RemoteHost
 from agentos.vms import capacity, repos, ssh
 from agentos.vms import keys as vmkeys
+from agentos.vms.addresses import EXIT_IP_URLS, lookup_public_ips
+from agentos.vms.images import image_script
 from agentos.vms.models import TOKEN_FILE, Size, VmError, VmFull, VmLimit, VmRecord, VmSettings, load_settings
 from agentos.vms.provider import Provider, ServerSpec, boot_error_words, server_state
 from agentos.vms.store import VmStore
@@ -49,10 +51,8 @@ ENV_SAVE_GRACE = timedelta(minutes=15)    # an environment's VM past its limit: 
 SNAPSHOT_WAIT_S = 1200.0  # how long a snapshot the provider still makes is waited for
 SNAPSHOT_POLL_S = 5.0
 ORPHAN_GRACE = timedelta(minutes=10)      # an unknown server younger than this may still be ours, being made
-EXIT_IP_URLS = ("https://api.ipify.org", "https://ipinfo.io/ip")
-EXIT_IP6_URLS = ("https://api6.ipify.org", "https://v6.ipinfo.io/ip")
 MAX_DELETE_BACKOFF_S = 600
-BOOT_POLL_S = 3.0                         # between SSH probes while a VM boots
+BOOT_POLL_S = 1.0                         # between SSH probes while a VM boots (a refused one fails at once)
 IMAGE_BUILD_MAX = timedelta(hours=2)      # a build VM older than this is deleted by any reaper
 OFFERS_TTL = timedelta(minutes=30)        # server types and prices are read again after this
 LISTED_FRESH = timedelta(minutes=1)       # what has room now (listed_now) is read again after this
@@ -62,34 +62,6 @@ FALLBACK_PRICE_FACTOR = 2.0               # never a fallback more than twice the
 SPEC_KEYS = ("cores", "memory_gb", "disk_gb", "architecture", "cpu_type")  # a plan's `specs`
 HOME_ID_FILE = "home-id"                  # in vms/: this AGENTOS_HOME's own id in the provider's labels
 
-# What `agentos vm image build` installs by default: enough to clone, build and test most projects.
-DEFAULT_IMAGE_SCRIPT = """set -eu
-export DEBIAN_FRONTEND=noninteractive
-cloud-init status --wait >/dev/null 2>&1 || true
-apt-get update -q
-apt-get install -y -q --no-install-recommends ca-certificates curl git build-essential pkg-config \\
-  python3 python3-venv python3-pip docker.io docker-compose-v2 jq unzip zip rsync
-curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh
-curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
-apt-get install -y -q nodejs
-systemctl enable docker
-"""
-# The end of every image build with the default script: no package lists, no caches, no keys, no
-# machine id, so each VM booted from the snapshot is new.
-IMAGE_CLEANUP = """apt-get clean
-rm -rf /var/lib/apt/lists/* /root/.cache
-cloud-init clean --logs --seed
-rm -f /etc/ssh/ssh_host_* /root/.ssh/authorized_keys
-truncate -s 0 /etc/machine-id
-sync
-"""
-
-
-def image_script(extra: str = "") -> str:
-    """The default image script, with `extra` (more to install) run before the cleanup."""
-    return DEFAULT_IMAGE_SCRIPT + (extra.rstrip() + "\n" if extra else "") + IMAGE_CLEANUP
-
-
 def _label_value(text: str) -> str:
     """Hetzner label values: letters, digits, -, _ and ., at most 63, alphanumeric at both ends."""
     v = re.sub(r"[^A-Za-z0-9_.-]", ".", text)[:63].strip("-_.")
@@ -98,26 +70,6 @@ def _label_value(text: str) -> str:
 
 def _iso(dt: datetime | None) -> str | None:
     return dt.isoformat() if dt else None
-
-
-
-
-
-async def lookup_public_ips() -> list[str]:
-    """This computer's public IPv4 address and, when it has one, its IPv6 address, as the internet
-    sees them: each asked over its own address family. [] when nothing answered."""
-    out: list[str] = []
-    for local, urls in (("0.0.0.0", EXIT_IP_URLS), ("::", EXIT_IP6_URLS)):
-        for url in urls:
-            try:
-                transport = httpx.AsyncHTTPTransport(local_address=local)
-                async with httpx.AsyncClient(timeout=10, transport=transport) as c:
-                    r = await c.get(url, headers={"User-Agent": "agentos-vms", "Accept": "text/plain"})
-                out.append(str(ipaddress.ip_address(r.text.strip())))
-                break
-            except (httpx.HTTPError, ValueError, OSError):
-                continue
-    return out
 
 
 def _give_launcher(envs: Any) -> None:
@@ -258,17 +210,32 @@ class VmManager:
                 await t
         self._reaper = None
         self._boots.clear()
+        close = getattr(self._provider, "aclose", None)  # Hetzner's kept connection to its API
+        if callable(close):
+            with contextlib.suppress(Exception):
+                await close()
 
     async def _reap_loop(self) -> None:
         await asyncio.sleep(1)
         while True:
             if self.configured:
+                await self.fresh_offers()
                 try:
                     self.last_reap = await self.reap_once()
                 except Exception as e:  # noqa: BLE001
                     log.warning("vm reaper: %s", getattr(e, "message", e))
                     self.last_reap = {"at": _iso(self._clock()), "error": str(getattr(e, "message", e))}
             await asyncio.sleep(self.settings.reap_interval_s)
+
+    async def fresh_offers(self) -> None:
+        """Read the provider's server types again before they go stale (OFFERS_TTL), so no open waits
+        for them (Hetzner: types and datacenters; docker: `docker info`, 0.8 s). The reaper calls it, the
+        first time a second after the node starts. A failure leaves it to the next open or round."""
+        early = OFFERS_TTL - timedelta(seconds=2 * self.settings.reap_interval_s)
+        if self._offers is not None and self._clock() - self._offers[0] < early:
+            return
+        with contextlib.suppress(Exception):
+            self._offers = (self._clock(), await self.provider().server_types())
 
     # ================================================================ create
     def _ttl(self, minutes: int | None, *, kept: bool = False) -> int:
@@ -520,14 +487,9 @@ class VmManager:
         prov = self.provider()
         k = vmkeys.make(self.dir, rec.id)
         labels = self._labels(rec.id, rec.lane_id)
-        fw = None
-        if self.settings.firewall and getattr(prov, "firewall", True):
-            fw = await prov.ensure_firewall(f"agentos-{self.node}-{self.home_id}", self._labels(),
-                                            await self._ssh_from())
-        image = await prov.resolve_image(rec.image)
-        key_id = await prov.create_ssh_key(f"agentos-{rec.id}", k.client_pub, labels)
+        fw, image, key_id, zones, types = await self._before_create(rec, k.client_pub, labels)
         tries = capacity.plan_tries((rec.server_type, rec.price_hourly_eur), list(rec.fallbacks), rec.location,
-                                    await self._zones(), await self._types_or_none())
+                                    zones, types)
 
         async def make(server_type: str, location: str) -> Any:
             return await prov.create_server(ServerSpec(
@@ -548,6 +510,28 @@ class VmManager:
         self.store.put(rec)
         return rec
 
+    async def _before_create(self, rec: VmRecord, client_pub: str, labels: dict[str, str]) -> tuple:
+        """What a server is made with. The firewall, the image, the locations and the types are asked of
+        the provider at once (each is an API call on Hetzner, and none depends on another); the first
+        failure in that order is raised. The throwaway SSH key, the one call that leaves something behind,
+        is made only once they all answered, so a failure or a cancel among them leaves no key."""
+        prov = self.provider()
+
+        async def firewall() -> str | None:
+            if not (self.settings.firewall and getattr(prov, "firewall", True)):
+                return None
+            return await prov.ensure_firewall(f"agentos-{self.node}-{self.home_id}", self._labels(),
+                                              await self._ssh_from())
+
+        got = await asyncio.gather(firewall(), prov.resolve_image(rec.image), self._zones(), self._types_or_none(),
+                                   return_exceptions=True)
+        failed = next((g for g in got if isinstance(g, BaseException)), None)
+        if failed is not None:
+            raise failed
+        fw, image, zones, types = got
+        key_id = await prov.create_ssh_key(f"agentos-{rec.id}", client_pub, labels)
+        return fw, image, key_id, zones, types
+
     def _remote(self, rec: VmRecord) -> RemoteHost:
         d = self.dir / rec.id
         return RemoteHost(vm_id=rec.id, host=rec.host or "", port=rec.port, key_path=str(d / "id_ed25519"),
@@ -559,6 +543,16 @@ class VmManager:
         """How to reach the VM over SSH (its pinned key and host key), for a node service that holds
         a connection of its own to it (the tunnels of an agent environment)."""
         return self._remote(rec)
+
+    async def wait_booted(self, vm_id: str, timeout_s: float) -> bool:
+        """Wait up to timeout_s for the boot of `vm_id` (its SSH probe) to end, so a caller that waits
+        for the VM wakes the moment it is ready instead of at its next poll. False when no boot of it
+        runs (nothing was waited for)."""
+        task = self._boots.get(vm_id)
+        if task is None or task.done():
+            return False
+        await asyncio.wait({task}, timeout=timeout_s)
+        return True
 
     async def _boot(self, vm_id: str) -> None:
         loop = asyncio.get_running_loop()

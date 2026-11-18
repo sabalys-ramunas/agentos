@@ -29,6 +29,11 @@ BUSY_CODES = frozenset({"locked", "rate_limit_exceeded", "conflict"})
 NOT_SENT = (httpx.ConnectError, httpx.ConnectTimeout, httpx.PoolTimeout)
 SAFE_METHODS = frozenset({"GET", "DELETE"})
 UNREACHABLE = "unreachable"  # VmError.provider_code when the API did not answer
+# An action (firewall rules, a snapshot) is asked after every second for its first ACTION_FAST_POLLS
+# polls (most end within seconds), then every 3 s (a snapshot takes minutes; the API allows 3600 calls
+# an hour).
+ACTION_POLL_S = (1.0, 3.0)
+ACTION_FAST_POLLS = 10
 
 
 def _selector(labels: dict[str, str]) -> str:
@@ -57,11 +62,29 @@ class HetznerProvider:
         self._token = token.strip()
         self._api = api_url.rstrip("/")
         self._transport = transport
+        self._http: httpx.AsyncClient | None = None
+        self._http_loop: asyncio.AbstractEventLoop | None = None
 
     def __repr__(self) -> str:  # never the token
         return f"HetznerProvider({self._api})"
 
     # ------------------------------------------------------------------ http
+    def _client(self) -> httpx.AsyncClient:
+        """One client for this event loop, kept between calls: its connection to the API stays open. A
+        client per call made a new TCP and TLS handshake for each, and an open makes several calls (the
+        firewall, the snapshot, the SSH key, the locations, the server, its boot)."""
+        loop = asyncio.get_running_loop()
+        if self._http is None or self._http.is_closed or self._http_loop is not loop:
+            self._http = httpx.AsyncClient(timeout=TIMEOUT_S, transport=self._transport)
+            self._http_loop = loop
+        return self._http
+
+    async def aclose(self) -> None:
+        """Close the kept connection (the node's shutdown); the next call opens a new one."""
+        http, self._http = self._http, None
+        if http is not None and self._http_loop is asyncio.get_running_loop():
+            await http.aclose()
+
     async def _call(self, method: str, path: str, *, params: dict | None = None, body: Any = None,
                     ok_404: bool = False) -> dict | None:
         """One API call, tried again with backoff (RETRY_DELAYS_S) while Hetzner is busy or out of reach."""
@@ -93,8 +116,7 @@ class HetznerProvider:
                          ok_404: bool = False) -> dict | None:
         headers = {"Authorization": f"Bearer {self._token}", "User-Agent": "agentos-vms"}
         try:
-            async with httpx.AsyncClient(timeout=TIMEOUT_S, transport=self._transport) as c:
-                r = await c.request(method, self._api + path, params=params, json=body, headers=headers)
+            r = await self._client().request(method, self._api + path, params=params, json=body, headers=headers)
         except httpx.HTTPError as e:
             err = VmError(f"Hetzner API unreachable ({type(e).__name__})", provider_code=UNREACHABLE)
             err.retry = "not_sent" if isinstance(e, NOT_SENT) else "no_answer"  # type: ignore[attr-defined]
@@ -139,6 +161,7 @@ class HetznerProvider:
         aid = action["id"]
         loop = asyncio.get_running_loop()
         deadline = loop.time() + timeout_s
+        polls = 0
         while loop.time() < deadline:
             data = await self._call("GET", f"/actions/{aid}") or {}
             a = data.get("action") or {}
@@ -148,7 +171,8 @@ class HetznerProvider:
                 e = a.get("error") or {}
                 raise VmError(f"Hetzner: {e.get('code', 'action_failed')}: {e.get('message', 'the action failed')}",
                               provider_code=e.get("code"))
-            await asyncio.sleep(3)
+            polls += 1
+            await asyncio.sleep(ACTION_POLL_S[0] if polls <= ACTION_FAST_POLLS else ACTION_POLL_S[1])
         raise VmError(f"Hetzner: action {aid} did not finish in {int(timeout_s)} s")
 
     # ------------------------------------------------------------------ provider
