@@ -78,6 +78,8 @@ async def scripted_session(task: Task, kind: str, ctx: Ctx, i: int, url: str, to
     except Exception as e:  # noqa: BLE001 - a script that stopped is a result (careless often does)
         if kind == "perfect":
             traceback.print_exc()
+        while isinstance(e, BaseExceptionGroup) and len(e.exceptions) == 1:
+            e = e.exceptions[0]  # the MCP client's task group wraps what the script raised
         return "", f"the {kind} script stopped: {type(e).__name__}: {str(e)[:300]}"
 
 
@@ -163,6 +165,10 @@ async def run_task(args: argparse.Namespace, task: Task, kind: str, rep: int, *,
         except Exception as e:  # noqa: BLE001 - a checker that breaks is the eval's fault: said, never hidden
             checks = [(f"the checker failed: {type(e).__name__}: {e}", False)]
         calls, listings = rec.since(mark0)
+        with (where / "calls.jsonl").open("w") as f:  # every call with its whole result, to read a run back
+            for c in calls:
+                f.write(json.dumps({**c.brief(t0s[0] if t0s else 0.0), "args": c.args, "text": c.text},
+                                   default=str) + "\n")
         seconds = round(time.monotonic() - started, 1)
         tm = trace_metrics(ctx.rows, new_environments=task.new_environments)
     leftover = node.containers()
