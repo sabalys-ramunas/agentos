@@ -126,6 +126,29 @@ async def test_no_repository_says_how(node):
     assert str(e.value).startswith("checkpoint_failed") and "git init" in str(e.value)
 
 
+async def test_a_snapshot_keeps_the_checkpoints_and_a_files_only_resume_does_not(node):
+    """The save's file part reads branches and stashes only: checkpoints neither confuse it nor ride in its
+    bundle. A snapshot holds the whole disk, so its resume has them; a resume from the files has none."""
+    from test_environments_saves import work_on_it
+
+    out = await opened(node, keep="save")
+    w = work(node, out)
+    head = work_on_it(w)
+    await node["call"]("environment_checkpoint", on=out["on"], note="kept on the disk")
+    closed = await node["call"]("environment_close", on=out["on"])
+    assert closed["saved"]["verified"] is True and closed["saved"]["commits"] == 2  # the branch's, not a checkpoint
+    again = await node["call"]("environment_open", title=TITLE, session="chat-2")
+    w2 = work(node, again)
+    assert again["resumed"]["from"] == "snapshot"
+    assert git(w2, "for-each-ref", "--format=%(refname)", "refs/agentos") == "refs/agentos/checkpoints/1"
+    closed = await node["call"]("environment_close", on=again["on"], session="chat-2")
+    await node["cloud"].delete_image(closed["saved"]["snapshot"]["id"])
+    third = await node["call"]("environment_open", title=TITLE, session="chat-3")
+    w3 = work(node, third)
+    assert third["resumed"]["from"] == "files" and git(w3, "rev-parse", "HEAD") == head
+    assert git(w3, "for-each-ref", "refs/agentos") == ""
+
+
 async def test_the_owner_sees_what_changed_since_and_the_patch(node):
     out = await opened(node)
     w = work(node, out)
