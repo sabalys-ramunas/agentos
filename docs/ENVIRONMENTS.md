@@ -924,7 +924,7 @@ like a save's (`snapshot_eur_per_gb_month`); on Docker it costs nothing. `prepar
 `environments.toml` turns builds off.
 
 ```
-agentos environments prepare github.com/me/shop [--ref main] [--force]   # build it now, with its steps
+agentos environments prepare github.com/me/shop [--ref <ref>] [--force]  # build it now, with its steps
 agentos environments prepared                                           # each one, its age and cost; the warm pool
 agentos environments prepared forget github.com/me/shop                 # delete them
 ```
