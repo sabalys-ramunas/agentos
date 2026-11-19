@@ -7,7 +7,8 @@ Where the files go. In the repository itself, never in the pull request's diff: 
 history with the code and nothing of it is ever merged. Each file is at `<environment id>/<proof
 id>.<ext>`, and the body links to `https://github.com/<owner>/<repo>/blob/agentos-proofs/<path>?raw=true`,
 which GitHub serves to whoever can see the repository (a private one's viewers, signed in; a public
-one's, the world). A file already there is not sent again.
+one's, the world). A file already there with the same content (its git blob id) is not sent again; one
+with that name and other content (put there by something else, say the agent's own push) is replaced.
 
 What GitHub shows. A Markdown image of a PNG or a GIF is shown in the body; GitHub plays a video only
 when it was uploaded as an attachment by hand, which its API does not offer, so a recording shows as
@@ -26,6 +27,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import hashlib
 import re
 from pathlib import Path
 from typing import Any
@@ -163,9 +165,18 @@ async def _blob(http: Any, repo: str, auth: dict, token: str, path: Path) -> str
     return str((await _json(resp, "take a proof's file", token))["sha"])
 
 
-async def _on_branch(http: Any, repo: str, auth: dict, token: str, env_id: str) -> tuple[str | None, dict[str, int]]:
+def _git_blob_id(path: Path) -> str:
+    """git's id of the file (`git hash-object`), read in pieces: what GitHub's listing gives as its sha."""
+    h = hashlib.sha1(b"blob %d\x00" % path.stat().st_size)  # git's own id, not a security hash
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+async def _on_branch(http: Any, repo: str, auth: dict, token: str, env_id: str) -> tuple[str | None, dict[str, str]]:
     """The branch's head commit (None when there is no branch yet) and the files of this environment
-    already on it (name -> bytes)."""
+    already on it (name -> git blob id)."""
     got = await http.get(f"/repos/{repo}/git/ref/heads/{BRANCH}", headers=auth)
     if got.status_code == 404:
         return None, {}
@@ -174,7 +185,7 @@ async def _on_branch(http: Any, repo: str, auth: dict, token: str, env_id: str) 
     if listed.status_code == 404:
         return head, {}
     rows = await _json(listed, f"list the {BRANCH} branch", token)
-    return head, {str(r.get("name")): int(r.get("size") or 0) for r in rows if isinstance(r, dict)} \
+    return head, {str(r.get("name")): str(r.get("sha") or "") for r in rows if isinstance(r, dict)} \
         if isinstance(rows, list) else {}
 
 
@@ -217,7 +228,7 @@ async def send(mgr: Any, http: Any, repo: str, auth: dict, token: str, env_id: s
                 if size > FILE_MAX:
                     skipped.append(name)  # GitHub takes no file this large: the link on the node stays
                     continue
-                if name not in there:
+                if there.get(name) != await asyncio.to_thread(_git_blob_id, path):  # missing, or not this file
                     tree.append({"path": f"{env_id}/{name}", "mode": "100644", "type": "blob",
                                  "sha": await _blob(http, repo, auth, token, path)})
                 sent.setdefault(r["id"], {})[ext] = size

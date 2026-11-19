@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 
-import pytest
 from test_environments_prepared import REPO, FakeGit, builds_done, node  # noqa: F401  (node is a fixture)
 from test_environments_prproofs import ENV, PNG, GitHub, setup
 
@@ -114,7 +113,6 @@ async def test_review_G3_the_build_runs_the_scrub_with_the_providers_prefix(node
     assert node.mgr.prepared_store().all()[0].state == "ready"
 
 
-@pytest.mark.xfail(strict=True, reason="G4: a file already on agentos-proofs is trusted by name, not content")
 async def test_review_G4_a_planted_proof_is_not_shown_as_the_proof(tmp_path):
     gh = GitHub()
     mgr, env, _ = setup(tmp_path, gh)
