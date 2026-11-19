@@ -330,7 +330,7 @@ function overlay(title, text = '', spinner = false) {
 
 function renderOverlay() {
   if (state.ended === 'expired') {
-    return overlay('This link has expired', 'Ask the agent for a new one with lane_view.');
+    return overlay('This link has expired', 'Ask the agent for a new one with browser_view.');
   }
   if (state.ended === 'gone') {
     return overlay('This lane was removed', 'There is nothing left to show here.');
@@ -339,7 +339,7 @@ function renderOverlay() {
     return overlay('This lane is frozen', 'Agents and their links are stopped here. To watch or take over, open the lane in your panel.');
   }
   if (state.ended === 'revoked') {
-    return overlay('This link was revoked', 'Ask the agent for a new one with lane_view.');
+    return overlay('This link was revoked', 'Ask the agent for a new one with browser_view.');
   }
   if (state.lane.state === 'quarantined') {
     return overlay('The lane is quarantined', state.lane.quarantine_reason || 'It failed its network self-check.');
