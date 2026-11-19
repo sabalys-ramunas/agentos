@@ -11,6 +11,7 @@ import functools
 import hashlib
 import importlib.util
 import io
+import json
 import tarfile
 import threading
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -46,10 +47,12 @@ def _dist(where: Path, marker: str = "first") -> Path:
 
 
 class Release:
-    """A fake GitHub release download server on 127.0.0.1."""
+    """A fake release download server on 127.0.0.1. It is not GitHub, so each publish also pins what it
+    published (AGENTOS_WEB_SHA256), as an owner installing from a mirror does."""
 
-    def __init__(self, root: Path):
+    def __init__(self, root: Path, monkeypatch=None):
         self.root = root
+        self.monkeypatch = monkeypatch
         handler = functools.partial(_Quiet, directory=str(root))
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
@@ -58,7 +61,12 @@ class Release:
 
     def publish(self, dist: Path, version: str = __version__) -> str:
         _path, digest = web_asset.write_asset(dist, version, self.root / "download" / f"v{version}")
+        self.pin(digest)
         return digest
+
+    def pin(self, digest: str) -> None:
+        if self.monkeypatch is not None:
+            self.monkeypatch.setenv("AGENTOS_WEB_SHA256", digest)
 
     def close(self) -> None:
         self.server.shutdown()
@@ -73,7 +81,7 @@ class _Quiet(SimpleHTTPRequestHandler):
 
 @pytest.fixture
 def release(tmp_path, monkeypatch):
-    r = Release(tmp_path / "release")
+    r = Release(tmp_path / "release", monkeypatch)
     (tmp_path / "release" / "download").mkdir(parents=True)
     monkeypatch.setenv("AGENTOS_WEB_RELEASE_URL", r.base)
     monkeypatch.delenv("AGENTOS_PANEL_DIR", raising=False)
@@ -117,6 +125,7 @@ def _serve(release: Release, data: bytes, version: str = __version__, digest: st
     name = installer.asset_name(version)
     (folder / name).write_bytes(data)
     (folder / f"{name}.sha256").write_text(f"{digest or hashlib.sha256(data).hexdigest()}  {name}\n")
+    release.pin(digest or hashlib.sha256(data).hexdigest())
 
 
 # ---- the packer (scripts/web_asset.py, as the release workflow runs it)
@@ -179,6 +188,50 @@ def test_no_release_asset_is_missing_not_a_crash(release, home):
     with pytest.raises(installer.WebAppMissing, match="404"):
         installer.install(home)
     assert not webapp.installed_dir(home).exists() and webapp.read_state(home) is None
+
+
+def _github(release: dict | None, data: bytes = b"archive"):
+    """A fake fetch for a GitHub release: the API's release (None: 404), the .sha256 and the archive."""
+    def get(url: str, limit: int) -> bytes:
+        if url.startswith(installer.GITHUB_API):
+            assert url.endswith(f"/repos/me/agentos/releases/tags/v{VERSION}")
+            if release is None:
+                raise installer.WebAppMissing(f"{url} answered 404")
+            return json.dumps(release).encode()
+        if url.endswith(".sha256"):
+            return f"{hashlib.sha256(data).hexdigest()}  {installer.asset_name(VERSION)}\n".encode()
+        return data
+    return get
+
+
+VERSION = "9.8.7"
+GH = "https://github.com/me/agentos/releases/download"
+
+
+def test_only_an_immutable_github_releases_own_digest_is_trusted(home, monkeypatch):
+    monkeypatch.delenv("AGENTOS_WEB_SHA256", raising=False)
+    data = _tar([_file("index.html", b"<!doctype html>")])
+    name = installer.asset_name(VERSION)
+    good = {"immutable": True, "assets": [{"name": name, "digest": "sha256:" + hashlib.sha256(data).hexdigest()}]}
+    assert installer.install(home, VERSION, base=GH, get=_github(good, data)).sha256 == hashlib.sha256(data).hexdigest()
+    with pytest.raises(installer.WebAppRefused, match="not immutable"):  # its files could be replaced: refused
+        installer.install(home, VERSION, base=GH, get=_github({**good, "immutable": False}, data))
+    other = {**good, "assets": [{"name": name, "digest": "sha256:" + "1" * 64}]}
+    with pytest.raises(installer.WebAppRefused, match="not the sha256 it was published with"):
+        installer.install(home, VERSION, base=GH, get=_github(other, data))  # archive and .sha256 replaced together
+    with pytest.raises(installer.WebAppRefused, match="AGENTOS_WEB_SHA256"):
+        installer.install(home, VERSION, base="https://mirror.example/download", get=_github(good, data))
+    monkeypatch.setenv("AGENTOS_WEB_SHA256", hashlib.sha256(data).hexdigest())  # the owner's own pin, for a mirror
+    assert installer.install(home, VERSION, base="https://mirror.example/download", get=_github(None, data))
+    monkeypatch.setenv("AGENTOS_WEB_SHA256", "not-a-sha")
+    with pytest.raises(installer.WebAppRefused, match="64 hex"):
+        installer.install(home, VERSION, base=GH, get=_github(good, data))
+
+
+def test_the_release_workflow_never_replaces_a_file_on_a_release():
+    text = (ROOT / ".github" / "workflows" / "web-release.yml").read_text()
+    [upload] = [line for line in text.splitlines() if "run: gh release upload" in line]
+    assert "--clobber" not in upload and "types: [created]" in text  # attached to the draft, before it is published
 
 
 def test_no_network_is_missing(home, monkeypatch):

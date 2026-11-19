@@ -755,15 +755,22 @@ another ref, so people get a release, never whatever `main` is today. To cut one
 1. Set the version in `pyproject.toml` and `src/agentos/__init__.py` (and `uv lock`).
 2. In `CHANGELOG.md`, rename `[Unreleased]` to `[X.Y.Z] - YYYY-MM-DD` and open a new empty
    `[Unreleased]` above it.
-3. Push to `main`, wait for CI to pass there, then tag and publish:
-   `gh release create vX.Y.Z --target main --title "agentos X.Y.Z" --notes-file NOTES.md`, with the
+3. Push to `main`, wait for CI to pass there, then tag it and make the release as a **draft**:
+   `git tag vX.Y.Z && git push origin vX.Y.Z`, then
+   `gh release create vX.Y.Z --draft --verify-tag --title "agentos X.Y.Z" --notes-file NOTES.md`, with the
    notes taken from that version's changelog section.
-4. Publishing starts two workflows: `env-image` pushes the docker provider's machine image
-   (`ghcr.io/<owner>/agentos-env:X.Y.Z`), and `web-release` builds the web app in live mode and
-   attaches `agentos-web-X.Y.Z.tar.gz` and its `.sha256` to the release (`scripts/web_asset.py`;
-   `make web-asset` makes the same archive locally). `agentos web install` and setup's web step
-   download exactly that version's pair, so check both files are on the release before you announce
-   it. If the workflow failed, run it again from Actions > web-release > Run workflow with the tag.
+4. The draft starts `web-release`: it builds the web app in live mode and attaches
+   `agentos-web-X.Y.Z.tar.gz` and its `.sha256` to the draft (`scripts/web_asset.py`; `make web-asset`
+   makes the same archive locally). It never replaces a file: if it failed halfway, delete the asset from
+   the draft (`gh release delete-asset vX.Y.Z <file>`) and run it again from Actions > web-release > Run
+   workflow with the tag.
+5. Check both files are on the draft, then publish it: `gh release edit vX.Y.Z --draft=false`. The
+   repository has **release immutability** on (Settings > General > Releases), so once published no file
+   or tag of the release can change. `agentos web install` and setup's web step trust only GitHub's own
+   digest of the archive on an immutable release (docs/THREAT-MODEL.md, "The web app's download"), so a
+   release published before its web app was attached, or with immutability off, has no installable web app.
+   Publishing also starts `env-image`, which pushes the docker provider's machine image
+   (`ghcr.io/<owner>/agentos-env:X.Y.Z`).
 
 Before 1.0, a minor version may change tools or settings; say so in the release notes.
 

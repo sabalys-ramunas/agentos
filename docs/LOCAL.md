@@ -132,7 +132,7 @@ The web app is optional. Setup offers it, and `agentos web` changes it later:
 
 | Command | What it does |
 |---|---|
-| `agentos web install` | downloads `agentos-web-<version>.tar.gz` from the GitHub release of the agentos you have, checks it against that release's `.sha256`, and unpacks it into `~/.agentos/web/app` (no sudo) |
+| `agentos web install` | downloads `agentos-web-<version>.tar.gz` from the GitHub release of the agentos you have, checks it against GitHub's own digest of it on that release (which must be immutable; `AGENTOS_WEB_SHA256` pins one for a mirror), and unpacks it into `~/.agentos/web/app` (no sudo) |
 | `agentos web update` | the same, only when it is out of date, and never after a no or a `remove` |
 | `agentos web remove` | takes it away; updates leave it away until `agentos web install` |
 | `agentos web status` | what `/` serves now, and whether it matches your agentos |

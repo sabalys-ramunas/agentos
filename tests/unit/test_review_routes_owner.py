@@ -49,11 +49,10 @@ def _archive(files: dict[str, bytes]) -> bytes:
     return gzip.compress(raw.getvalue())
 
 
-@pytest.mark.xfail(strict=True, reason="R2: the sha256 comes from the same release as the archive, so a "
-                   "replaced asset (gh release upload --clobber) installs; nothing pinned in the package")
-def test_r2_an_archive_replaced_together_with_its_sha256_is_refused(tmp_path):
+def test_r2_an_archive_replaced_together_with_its_sha256_is_refused(tmp_path, monkeypatch):
     from agentos.setup import webapp
 
+    monkeypatch.delenv("AGENTOS_WEB_SHA256", raising=False)
     evil = _archive({"index.html": b"<script>fetch('/api/...')</script>"})
     served = {}
 

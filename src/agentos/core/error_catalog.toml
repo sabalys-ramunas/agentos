@@ -1133,9 +1133,9 @@ fix = "Run `agentos web install` again when you are online. A release made befor
 retryable = true
 
 [web_app_refused]
-meaning = "The downloaded web app was refused: its sha256 differs from the one its release publishes, or the archive holds a link, an absolute path or a path that leads out of its folder. Nothing was installed."
+meaning = "The downloaded web app was refused: its sha256 differs from GitHub's own digest of it, its release is not immutable on GitHub (its files could be replaced), it came from another source with no AGENTOS_WEB_SHA256 pin, or the archive holds a link, an absolute path or a path that leads out of its folder. Nothing was installed."
 agent = "Nothing for an agent to do. Tell the user the web app download was refused, and why."
-fix = "Run `agentos web install` again. If it is refused again, the download is not the release's file: report it, and use the node without the web app until then."
+fix = "Read the message: it names the fix. A mirror's copy needs AGENTOS_WEB_SHA256 set to the sha256 you checked. If a GitHub release is refused again, the download is not the release's file: report it, and use the node without the web app until then."
 
 [workflow_missing]
 meaning = "The version of the workflow this run was started on is no longer on this computer."

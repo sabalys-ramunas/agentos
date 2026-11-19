@@ -7,7 +7,13 @@ built by scripts/web_asset.py). `install` takes both from the release tag of the
 links, within a size cap. It swaps the folder in whole, so the node never serves half an app.
 The app holds no secret: it is static files that call the node's API with the browser's session.
 
-AGENTOS_WEB_RELEASE_URL points at another release download URL (a fork, a mirror, a test server).
+Which sha256 it trusts (`trusted_sha256`). The `.sha256` beside the archive comes from the same release,
+so whoever could replace the archive could replace it too. So the sha256 must come from somewhere the
+uploader cannot change afterwards: GitHub's own digest of the asset on a release GitHub keeps immutable
+(its API's `immutable` and the asset's `digest`: once published, no file or tag of it can change). A
+release that is not immutable is refused, and so is any other source (AGENTOS_WEB_RELEASE_URL: a fork, a
+mirror, a test server) unless the owner pins the archive's sha256 with AGENTOS_WEB_SHA256. The trust left
+is the same as the code's: the repository's release, as GitHub serves it (docs/THREAT-MODEL.md).
 """
 
 from __future__ import annotations
@@ -35,6 +41,9 @@ MAX_UNPACKED = 256 * 1024**2
 MAX_FILES = 5000
 TIMEOUT = 60.0
 SHA256 = re.compile(r"^([0-9a-f]{64})(?:\s+\*?(\S+))?\s*$")
+GITHUB_RELEASES = re.compile(r"^https://github\.com/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)/releases/download$")
+GITHUB_API = "https://api.github.com"
+MAX_RELEASE_JSON = 1024**2
 
 
 class WebAppMissing(AgentosError):
@@ -96,6 +105,38 @@ def parse_sha256(text: str, name: str) -> str:
     raise WebAppRefused(f"The release's {name}.sha256 does not hold a sha256 for {name}.")
 
 
+def trusted_sha256(version: str, base: str, get: Fetch) -> str:
+    """The sha256 the archive must have, from a source its uploader cannot change after the release: the
+    owner's own pin (AGENTOS_WEB_SHA256), else GitHub's digest of the asset on an immutable GitHub release.
+    WebAppRefused, with the fix, for anything else."""
+    name = asset_name(version)
+    pin = os.environ.get("AGENTOS_WEB_SHA256", "").strip().lower()
+    if pin:
+        if not re.fullmatch(r"[0-9a-f]{64}", pin):
+            raise WebAppRefused("AGENTOS_WEB_SHA256 is not a sha256 (64 hex digits), so nothing was installed.")
+        return pin
+    m = GITHUB_RELEASES.match(base)
+    if m is None:
+        raise WebAppRefused(f"{base} is not a GitHub release, so nothing but its own .sha256 says {name} is the "
+                            "released one, and nothing was installed. Set AGENTOS_WEB_SHA256 to the archive's sha256 "
+                            "you checked, or unset AGENTOS_WEB_RELEASE_URL to install from GitHub.")
+    raw = get(f"{GITHUB_API}/repos/{m[1]}/{m[2]}/releases/tags/v{version}", MAX_RELEASE_JSON)
+    try:
+        release = json.loads(raw)
+    except ValueError:
+        raise WebAppRefused(f"GitHub's answer about release v{version} is not readable, so nothing was installed.") \
+            from None
+    if not isinstance(release, dict) or release.get("immutable") is not True:
+        raise WebAppRefused(f"Release v{version} of {m[1]}/{m[2]} is not immutable on GitHub, so its files could be "
+                            "replaced after it was published, and nothing was installed. Set AGENTOS_WEB_SHA256 to "
+                            "the archive's sha256 you checked, or build the web app from a checkout.")
+    asset = next((a for a in release.get("assets") or [] if isinstance(a, dict) and a.get("name") == name), None)
+    digest = str((asset or {}).get("digest") or "").lower()
+    if not re.fullmatch(r"sha256:[0-9a-f]{64}", digest):
+        raise WebAppMissing(f"release v{version} on GitHub lists no {name} with a digest")
+    return digest.removeprefix("sha256:")
+
+
 def _member_problem(m: tarfile.TarInfo) -> str | None:
     name = m.name
     parts = PurePosixPath(name).parts
@@ -153,7 +194,11 @@ def install(home: Path, version: str | None = None, *, base: str | None = None,
     get = get or fetch
     name = asset_name(version)
     url = asset_url(version, base)
-    expected = parse_sha256(get(url + ".sha256", 4096).decode("utf-8", "replace"), name)
+    listed = parse_sha256(get(url + ".sha256", 4096).decode("utf-8", "replace"), name)
+    expected = trusted_sha256(version, (base or release_base()).rstrip("/"), get)
+    if listed != expected:
+        raise WebAppRefused(f"The release's {name}.sha256 ({listed[:12]}) is not the sha256 it was published with "
+                            f"({expected[:12]}), so nothing was installed.")
     data = get(url, MAX_DOWNLOAD)
     actual = hashlib.sha256(data).hexdigest()
     if actual != expected:

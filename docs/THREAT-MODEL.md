@@ -430,6 +430,22 @@ agent's own shell reaches the VM: `ssh`, `scp`, `rsync`, git.
 What this gives up: a person who reads the call log to see what an agent did on its machine sees the ssh
 sessions' times, not their commands. Pushes and pull requests are still recorded by the gateway.
 
+## The web app's download (docs/LOCAL.md, `agentos web install`)
+
+The prebuilt web app is JavaScript the owner's browser runs against the node's API with the owner's
+session, so whoever can change the archive can act as the owner in the panel. Where its trust comes from:
+
+| Question | Answer |
+|---|---|
+| Where it comes from | the GitHub release of the agentos version installed (`v<version>`, never "latest"), the same repository the installer takes the code from |
+| What it is checked against | GitHub's own digest of the archive on that release, read from GitHub's API, and only when GitHub keeps the release immutable (once published, no file or tag of it can change). The `.sha256` beside the archive must agree, but alone it proves nothing: the same release serves it |
+| What is refused | a release that is not immutable, a digest that differs, any other source (`AGENTOS_WEB_RELEASE_URL`: a fork, a mirror) unless the owner pins the archive's sha256 with `AGENTOS_WEB_SHA256`, and an archive with a link, an absolute path or a `..` |
+| How a release gets it | the `web-release` workflow builds it on the release's draft and attaches it, never replacing a file that is there (no `--clobber`); the release is published after, immutable (docs/DEVELOPING.md, "Releases") |
+
+What this does not stop: whoever can publish a release of the repository (its maintainers, a stolen token
+with write access, a poisoned build dependency) ships both the code and the web app, and the installer
+trusts them as it trusts the code. The check stops a file swapped on a published release, not a bad release.
+
 ## What this does not stop
 
 - **An agent with the node's root.** It can read `node.toml` and write `panel.db`, so it is the owner. Keep agents

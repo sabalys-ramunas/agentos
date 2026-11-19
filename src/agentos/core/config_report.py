@@ -22,6 +22,7 @@ ENV_OVERRIDES = {"home": "AGENTOS_HOME", "ssh_host": "AGENTOS_SSH_HOST"}
 EXTRA_ENV = {"AGENTOS_PANEL_DIR": "where the built web app is served from (default: <install>/web/dist, then "
                                   "<home>/web/app from agentos web install)",
              "AGENTOS_WEB_RELEASE_URL": "where agentos web install downloads from (default: the GitHub releases)",
+             "AGENTOS_WEB_SHA256": "the web app archive's sha256 you checked, for a release URL that is not GitHub's",
              "AGENTOS_NO_WEB": "1: agentos web update (the installer) leaves the web app out"}
 
 # What each setting means, in the order `config example` prints them, grouped.
