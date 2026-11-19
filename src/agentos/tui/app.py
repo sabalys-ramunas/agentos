@@ -240,13 +240,16 @@ class DashApp(App):
     def _redraw_now(self) -> None:
         self._flush_pending = False
         topics, self._dirty = self._dirty, set()
+        if not self.is_running:  # shutting down: the screens are being taken apart, children first
+            return
         for screen in self.screen_stack:
             for bar in screen.query(TopBar):
                 bar.redraw()
             for banner in screen.query(Banner):
                 banner.redraw()
             for view in screen.query(View):
-                if view.wants(topics):
+                # a view still composing has no children to update yet; its mount draws it in full
+                if view.is_mounted and view.wants(topics):
                     view.refresh_view(topics)
         n = self.state.needs_you_count()
         with contextlib.suppress(NoMatches):
