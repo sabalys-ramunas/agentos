@@ -94,7 +94,7 @@ export function NewRoutine() {
         </Link>
         <header className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
           <div className="max-w-2xl">
-            <h1 className="text-headline text-balance sm:text-[40px] sm:leading-[44px] sm:tracking-[-0.045em]">
+            <h1 className="text-headline text-balance sm:text-display">
               What should happen <span className="text-faint">on its own?</span>
             </h1>
             <p className="mt-3 text-lede text-pretty text-muted">Pick a job you already do. It opens ready to go, and you can change any part of it.</p>

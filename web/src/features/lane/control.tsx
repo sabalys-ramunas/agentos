@@ -168,7 +168,7 @@ export function ControlFrame({ org, lane, canControl, expanded = false, children
         'overflow-hidden rounded-xl border bg-card outline outline-transparent transition-[outline-color,border-color] duration-(--duration-slow) ease-standard',
         person ? 'border-fg outline-1 outline-fg' : 'border-line',
         // Above the top bar and the tab bar, below dialogs, so Stop agent still confirms.
-        expanded && 'safe-bottom fixed inset-0 z-[35] flex flex-col rounded-none outline-offset-[-2px]',
+        expanded && 'safe-bottom fixed inset-0 z-[35] flex flex-col rounded-none -outline-offset-2',
       )}
     >
       <div

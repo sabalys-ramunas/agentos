@@ -60,7 +60,7 @@ function Hero({ flows, ran, checked, soonest }: { flows: Flow[]; ran: number | n
   const rest = stuck || waiting ? `The other ${flows.length - stuck - waiting} are fine.` : 'Nothing needs you.';
   return (
     <div className="max-w-3xl">
-      <h1 className="text-headline text-balance sm:text-[40px] sm:leading-[44px] sm:tracking-[-0.045em]">
+      <h1 className="text-headline text-balance sm:text-display">
         {lead} <span className="text-faint">{rest}</span>
       </h1>
       <p className="mt-3 max-w-2xl text-lede text-pretty text-muted">

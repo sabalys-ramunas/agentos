@@ -330,7 +330,7 @@ export default function VncScreen({ org, lane, interactive, holder, canTake, exp
               {panning ? (
                 <div
                   aria-hidden="true"
-                  className={cn('absolute inset-0 z-[1] touch-none', zoom > 1 ? 'cursor-grab active:cursor-grabbing' : 'cursor-default')}
+                  className={cn('absolute inset-0 z-1 touch-none', zoom > 1 ? 'cursor-grab active:cursor-grabbing' : 'cursor-default')}
                   {...gestures}
                 />
               ) : null}
