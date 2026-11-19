@@ -2155,7 +2155,7 @@ The web app for this agentos release could not be downloaded: the release has no
 The web app download was refused: its sha256 is not GitHub's digest of it, its release is not immutable, another source had no AGENTOS_WEB_SHA256 pin, or the archive holds a link or a path out of its folder. Nothing was installed.
 
 - **Agent:** Nothing for an agent to do. Tell the user the web app download was refused, and why.
-- **You:** Read the message: it names the fix. A mirror's copy needs AGENTOS_WEB_SHA256 set to the sha256 you checked. If a GitHub release is refused again, the download is not the release's file: report it, and use the node without the web app until then.
+- **You:** Do what the message says. A mirror's copy needs AGENTOS_WEB_SHA256 set to the sha256 you checked. A GitHub release refused again is not the released file: report it, and use the node without the web app.
 - **Retry:** no
 - **Raised by:** `agentos.setup.webapp.WebAppRefused`
 
