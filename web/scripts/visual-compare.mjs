@@ -17,7 +17,7 @@
  * changed page with the changed pixels in red, and exits 1 when any pixel differs.
  * Uses system Chrome and Playwright only: the comparison runs on a canvas in the browser.
  */
-/* global document, window, Image, sessionStorage, localStorage -- used inside page.evaluate */
+/* global document, Image -- used inside page.evaluate */
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { chromium } from '@playwright/test';
