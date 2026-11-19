@@ -207,7 +207,7 @@ async def test_control_direct_link_to_a_foreign_host_is_refused(browser, site):
     ctx, page, guard = await open_lane(browser, serve(site, "control_link", CONTROL_LINK))
     try:
         reason = await refused(guard, page, lambda p: p.locator("#lk"), ActionKind.CLICK, None)
-        assert reason is not None and "not on this lane's site list" in reason
+        assert reason is not None and "not on this browser's site list" in reason
     finally:
         await ctx.close()
 
@@ -216,7 +216,7 @@ async def test_control_formaction_on_the_clicked_button_is_refused(browser, site
     ctx, page, guard = await open_lane(browser, serve(site, "control_formaction", CONTROL_FORMACTION))
     try:
         reason = await refused(guard, page, lambda p: p.locator("#go"), ActionKind.CLICK, None)
-        assert reason is not None and "not on this lane's site list" in reason
+        assert reason is not None and "not on this browser's site list" in reason
     finally:
         await ctx.close()
 

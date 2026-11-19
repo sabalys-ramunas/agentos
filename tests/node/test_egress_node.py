@@ -259,7 +259,7 @@ async def test_a_click_on_a_refused_link_or_form_sends_nothing(rig, rec):
         for m in re.finditer(r'- (\w+)(?: "([^"]*)")?[^\n]*?\[ref=(\w+)\]', snap.text):
             refs.setdefault(m.group(2) or m.group(1), m.group(3))
         rec.take()
-        with pytest.raises(EgressRefused, match="127.0.0.2 is not on this lane's site list"):
+        with pytest.raises(EgressRefused, match="127.0.0.2 is not on this browser's site list"):
             await guard.check_action(page, refs["off"], ActionKind.CLICK, None)
         with pytest.raises(EgressRefused):
             await guard.check_action(page, refs["Send"], ActionKind.CLICK, None)
