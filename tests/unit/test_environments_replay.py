@@ -391,6 +391,7 @@ async def test_a_timeline_interleaves_calls_and_frames_with_signed_links(node, s
     env = mgr.get((await opened(node))["id"])
     mgr.record_call(env.browser_lane, "browser_navigate", ok=True, summary="http://localhost:3000/")
     await settled(mgr)
+    await asyncio.sleep(0.01)  # times are kept to the millisecond, and at one millisecond a call sorts before a frame
     mgr.record_call(env.terminal_lane, "lane_exec", ok=True, summary="npm run build", exit_code=0)
     out = mgr.replay_timeline(env, src="/api/orgs/local/environments/x/replay")
     kinds = [(i["kind"], i["tool"]) for i in out["timeline"]]
