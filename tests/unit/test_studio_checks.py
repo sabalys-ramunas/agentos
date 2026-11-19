@@ -159,9 +159,11 @@ FAULTS = {
 @pytest.mark.parametrize("name", sorted(FAULTS))
 async def test_a_planted_fault_is_found_and_nothing_else(opened, name):
     out = await check(opened, f"faults/{name}")
-    found = by_check(out)
-    assert set(found) == FAULTS[name], [(f.check, f.where.selector, f.measured) for f in out.findings]
-    for f in out.findings:
+    # long tasks depend on how fast this machine is (a busy CI runner has them on any page): not a planted fault
+    findings = [f for f in out.findings if f.check != "health.long_tasks" or f.check in FAULTS[name]]
+    found = {f.check for f in findings}
+    assert found == FAULTS[name], [(f.check, f.where.selector, f.measured) for f in out.findings]
+    for f in findings:
         assert f.fix and EM_DASH not in f.fix
         assert f.seen_at[0].screen == "default@360-light"
 
