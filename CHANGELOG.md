@@ -6,6 +6,8 @@ All notable changes to agentos are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-19
+
 ### Added
 
 - `web/scripts/codemod-legacy-tokens.mjs` moves the web app's pre-Mono class names (`bg-bg`, `text-13`) to
