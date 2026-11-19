@@ -52,7 +52,17 @@ STUDIO = frozenset({"ui_check", "ui_diff", "ui_baseline", "system_check"})
 # (round 3, T2: "terminal_job_read has no argument 'on'"); the handler checks it is the job's lane.
 ON_ONLY = frozenset({"terminal_jobs", "terminal_job_read", "terminal_job_cancel"})
 
-LANE_ARG_TEXT = "The on your environment_open gave, or an account lane \"workspace/name\"."
+# what `on` says on a routed tool: short, since it is on about 25 tools an agent reads every turn
+ON_TEXT = {"terminal": "The on environment_open gave (or a terminal \"workspace/name\").",
+           "browser": "The on environment_open gave, or an account browser \"workspace/name\"."}
+ON_TEXT_ENV = "The on environment_open gave."
+
+
+def on_text(tool: str) -> str:
+    """The description of a routed tool's `on`: an environment's own tools never offer an account browser."""
+    if tool.startswith("environment_") or tool in STUDIO:
+        return ON_TEXT_ENV
+    return ON_TEXT.get(kind_of(tool) or "terminal", ON_TEXT["terminal"])
 
 
 def kind_of(tool: str) -> str | None:

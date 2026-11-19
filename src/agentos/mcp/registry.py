@@ -120,7 +120,7 @@ MAX_ERROR_CHARS = 600
 TRACE_VALUE_CHARS = 200
 CODE_RE = re.compile(r"^[a-z][a-z0-9_]{0,40}$")
 SECRETISH_RE = re.compile(r"pass|secret|token|cookie|credential|auth|otp|seed|key", re.IGNORECASE)
-LANE_ARG_DESCRIPTION = 'Lane id: "workspace/name".'
+LANE_ARG_DESCRIPTION = 'The browser or terminal: "workspace/name".'
 APPROVAL_NEXT = ("A human must approve this call first. Tell the user what is waiting, then call this tool "
                  "again with the same arguments once they approve. Do not retry it in a loop.")
 
@@ -348,7 +348,7 @@ def tool_params(spec: ToolSpec) -> list[ToolParam]:
         if p.name == spec.lane_arg and p.name == "on" and env_routing.routes(spec.name):
             # leave `on` out and the call goes to the caller's environment (agentos.environments.routing)
             annotation, default = annotation | None, None
-            description = env_routing.LANE_ARG_TEXT
+            description = env_routing.on_text(spec.name)
         if description is None and p.name == spec.lane_arg:
             description = LANE_ARG_DESCRIPTION
         out.append(ToolParam(p.name, annotation, default, description))

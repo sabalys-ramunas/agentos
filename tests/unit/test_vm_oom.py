@@ -138,7 +138,7 @@ async def test_a_job_whose_pkill_f_killed_its_shell_says_so(env):
     t, ctx = tools(env), Ctx(env)
     # the shell's death is played by `exit 143` (a real pkill -f here would run on this computer)
     job = await t["terminal_job_start"](ctx, on="dev/run", cmd="echo started; true || pkill -f nothing-here; exit 143")
-    r = await t["terminal_job_read"](ctx, job=job["id"], until_exit=True, wait_ms=10000)
+    r = await t["terminal_job_read"](ctx, job=job["id"], until_exit=True, wait_s=10)
     assert r["state"] == "exited" and r["exit_code"] == 143 and r["stdout"] == "started\n"
     assert "The shell running this job was killed (" in r["note"]
 
@@ -175,7 +175,7 @@ async def test_until_port_returns_when_the_port_listens(env, monkeypatch):
     monkeypatch.setattr(lane_jobs, "port_wait_script", lambda port, secs: "sleep 0.2; echo listening")
     t, ctx = tools(env), Ctx(env)
     job = await t["terminal_job_start"](ctx, on="dev/run", cmd="echo up; sleep 20")
-    r = await t["terminal_job_read"](ctx, job=job["id"], until_port=3000, wait_ms=10000)
+    r = await t["terminal_job_read"](ctx, job=job["id"], until_port=3000, wait_s=10)
     assert r["listening"] is True and r["state"] == "running"
     await t["terminal_job_cancel"](ctx, job=job["id"])
 
@@ -184,7 +184,7 @@ async def test_until_port_gives_the_end_of_the_output_when_the_job_ends_first(en
     monkeypatch.setattr(lane_jobs, "port_wait_script", lambda port, secs: f"sleep {secs}; echo waited")
     t, ctx = tools(env), Ctx(env)
     job = await t["terminal_job_start"](ctx, on="dev/run", cmd="seq 1 5000; echo boom >&2; exit 3")
-    r = await t["terminal_job_read"](ctx, job=job["id"], until_port=3000, wait_ms=10000, max_bytes=100)
+    r = await t["terminal_job_read"](ctx, job=job["id"], until_port=3000, wait_s=10, max_bytes=100)
     assert r["listening"] is False and r["state"] == "exited" and r["exit_code"] == 3
     assert r["stdout"].endswith("5000\n") and "boom" in r["stderr"]
     assert r["next_stdout_offset"] == r["stdout_bytes"]
@@ -206,7 +206,7 @@ async def test_a_read_returns_early_when_the_kernel_killed_one_of_the_jobs_proce
     job = await t["terminal_job_start"](ctx, on="dev/run", cmd="sleep 20")
     loop = asyncio.get_running_loop()
     start = loop.time()
-    r = await t["terminal_job_read"](ctx, job=job["id"], until_exit=True, wait_ms=60000)
+    r = await t["terminal_job_read"](ctx, job=job["id"], until_exit=True, wait_s=60)
     assert loop.time() - start < 5
     assert r["state"] == "running" and r["oom_killed"] is True and r["oom"][0]["pid"] == 4242
     assert "of this job" in r["note"] and "terminal_job_cancel" in r["note"]
@@ -227,7 +227,7 @@ async def test_the_read_that_shows_a_killed_line_also_says_what_killed_it(env, m
     monkeypatch.setattr(LaneRuntime, "oom_kills", fake)
     t, ctx = tools(env), Ctx(env)
     job = await t["terminal_job_start"](ctx, on="dev/run", cmd="sleep 0.3; echo Killed >&2; sleep 20")
-    r = await t["terminal_job_read"](ctx, job=job["id"], wait_ms=10000)
+    r = await t["terminal_job_read"](ctx, job=job["id"], wait_s=10)
     assert "Killed" in r["stderr"] and r["oom_killed"] is True and r["oom"][0]["pid"] == 4242
     assert "of this job" in r["note"]
     await t["terminal_job_cancel"](ctx, job=job["id"])
@@ -247,13 +247,13 @@ async def test_a_job_that_printed_a_kill_and_exited_0_says_what_killed_it(env, m
     monkeypatch.setattr(LaneRuntime, "oom_kills", fake)
     t, ctx = tools(env), Ctx(env)
     job = await t["terminal_job_start"](ctx, on="dev/run", cmd="sleep 0.2; echo child exit=137")
-    r = await t["terminal_job_read"](ctx, job=job["id"], until_exit=True, wait_ms=10000)
+    r = await t["terminal_job_read"](ctx, job=job["id"], until_exit=True, wait_s=10)
     assert r["state"] == "exited" and r["exit_code"] == 0
     assert r["oom_killed"] is True and r["oom"][0]["pid"] == 4242 and "of this job" in r["note"]
     assert asked[-1] is True
     asked.clear()
     quiet = await t["terminal_job_start"](ctx, on="dev/run", cmd="echo all fine")
-    r = await t["terminal_job_read"](ctx, job=quiet["id"], until_exit=True, wait_ms=10000)
+    r = await t["terminal_job_read"](ctx, job=quiet["id"], until_exit=True, wait_s=10)
     assert r["oom_killed"] is False and True not in asked     # a clean end costs no ssh call
 
 

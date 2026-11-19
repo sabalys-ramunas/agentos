@@ -114,6 +114,36 @@ async def test_a_long_line_is_cut_and_a_large_file_stops_at_a_whole_line(lane):
     assert shown[-1].split("\t")[1].startswith(f"{len(shown) - 1:05d} ")  # whole lines, in order
 
 
+async def test_paths_reads_several_files_and_a_pattern_in_one_call(lane):
+    """An agent that wants a small repository reads it in one call, not with a cat loop in the terminal
+    (the evals, 2026-11-18: Haiku did `for f in src/* test/*; do cat "$f"; done` with file_read listed)."""
+    ctx, repo = lane
+    (repo / "src").mkdir()
+    (repo / "src/a.js").write_text("const a = 1;\n")
+    (repo / "src/b.js").write_text("const b = 2;\n")
+    (repo / "src/notes.md").write_text("# notes\n")
+    (repo / "package.json").write_text('{"name": "shop"}\n')
+    out = await tool("file_read")(ctx, on="ws/bench", paths=["package.json", "src/*.js", "nope.txt", "test/*"])
+    got = {f["path"].removeprefix(f"{repo}/"): f for f in out["files"]}
+    assert list(got) == ["package.json", "src/a.js", "src/b.js", "nope.txt"]
+    assert got["src/b.js"]["content"] == "     1\tconst b = 2;" and got["package.json"]["total_lines"] == 1
+    assert got["nope.txt"]["error"].startswith("not_found: no file")
+    assert out["no_match"] == [f"{repo}/test/*"] and "not_read" not in out
+    assert len(ctx.calls) == 1 and ctx.calls[0]["effect"] is Effect.EXEC  # one approval for the call
+    with pytest.raises(InvalidRequest, match="give path"):
+        await tool("file_read")(ctx, on="ws/bench")
+
+
+async def test_paths_stops_at_the_reply_budget_and_names_what_is_left(lane):
+    ctx, repo = lane
+    for i in range(3):
+        (repo / f"big{i}.txt").write_text("".join("z" * 90 + "\n" for _ in range(300)))
+    out = await tool("file_read")(ctx, on="ws/bench", paths=[f"big{i}.txt" for i in range(3)])
+    assert len(out["files"]) == 2 and out["not_read"] == [f"{repo}/big2.txt"]
+    assert "next_offset" not in out["files"][0]
+    assert "next_offset" in out["files"][-1] and "file_read(paths=" in out["note"]
+
+
 async def test_binary_missing_and_folders_are_refused_with_what_they_are(lane):
     ctx, repo = lane
     (repo / "img.png").write_bytes(b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR")
@@ -233,12 +263,12 @@ async def test_lane_job_read_until_exit_is_one_read_for_a_short_job(tmp_path):
         by = {s.name: s.handler for s in term_specs(ctx.runtime)}
         job = await by["terminal_job_start"](ctx, on="ws/bench", cmd="for i in 1 2 3; do echo tick $i; sleep 0.3; done; exit 3")
         started = time.monotonic()
-        out = await by["terminal_job_read"](ctx, job=job["id"], wait_ms=10_000, until_exit=True)
+        out = await by["terminal_job_read"](ctx, job=job["id"], wait_s=10, until_exit=True)
         assert out["state"] == "exited" and out["exit_code"] == 3 and out["stdout"].count("tick") == 3
         assert time.monotonic() - started < 5
         job2 = await by["terminal_job_start"](ctx, on="ws/bench", cmd="echo first; sleep 2; echo second")
         await asyncio.sleep(0.3)
-        early = await by["terminal_job_read"](ctx, job=job2["id"], wait_ms=5000)  # without it: the first output
+        early = await by["terminal_job_read"](ctx, job=job2["id"], wait_s=5)  # without it: the first output
         assert early["state"] == "running" and "second" not in early["stdout"]
         await by["terminal_job_cancel"](ctx, job=job2["id"])
     finally:

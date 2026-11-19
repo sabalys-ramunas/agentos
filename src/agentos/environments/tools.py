@@ -563,7 +563,7 @@ async def environment(ctx: ToolContext, *, on: str | None = None) -> dict:
     ahead, dirty, pushed, pull_requests), proofs (fresh links), replay (frames for the human),
     unsaved work, your note and the last 10 calls. Cheap: call it to see if it is ready or what is
     left to push. It always lists your agent's open and saved ones (`open`, `saved`), never another
-    chat's handle. Effect: read.
+    chat's handle.
 
     Args:
         on: The on your environment_open gave. Without it, only a client with a session id sees its own.
@@ -624,18 +624,18 @@ async def environment(ctx: ToolContext, *, on: str | None = None) -> dict:
 
 async def environment_close(ctx: ToolContext, *, on: str | None = None, discard: bool = False,
                             final: bool = False, note: str | None = None, forget: bool = False) -> dict:
-    """Stop or finish your environment. keep save: saved (`saved`; `pause` says what it costs and how
-    fast it resumes), then the VM is deleted; its title resumes it. keep live: only lets it go. keep
-    none: deletes the VM, refused with unsaved_work while work is not pushed (push, or discard=true if
-    the user agreed). Returns id, title, state, machine (deleted, or deleting), cost_eur, pushed, proofs
-    and `saves` (what became of them). A long save goes on in the background (state closing).
-    Effect: read. Errors: no_environment, unsaved_work, save_failed.
+    """Stop or finish your environment, as the `keep` it was opened with says. Saved: it is saved
+    (`saved`; `pause` says what it costs and how fast it resumes), then the VM is deleted; its title
+    resumes it. Live: only let go (final=true deletes it). Single use: the VM is deleted, refused with
+    unsaved_work while work is not pushed (push, or discard=true if the user agreed). Returns id, title,
+    state, machine (deleted, or deleting), cost_eur, pushed, proofs and `saves` (what became of them). A
+    long save goes on in the background (state closing). Errors: no_environment, unsaved_work, save_failed.
 
     Args:
         on: The on your environment_open gave (a client with a session id may leave it out).
         discard: Delete it even with work that is not pushed (no save).
-        final: keep live: delete it too.
-        note: keep save: what you did and what is next, for the next chat (resumed.note).
+        final: A live one: delete it too.
+        note: A saved one: what you did and what is next, for the next chat (resumed.note).
         forget: Done for good: the VM and every save of its title go.
     """
     mgr = _mgr(ctx)
@@ -753,7 +753,7 @@ async def environment_save(ctx: ToolContext, *, note: str | None = None, on: str
     """Save the environment now, without closing it: commits and stashes no remote has, changed and
     new files git does not ignore, running services, and with keep "save" a disk snapshot (services
     pause for it). environment_open with its title resumes the newest save in any chat. Returns
-    save_id, saved_at, snapshot, files, bytes, verified. Effect: read. Errors: save_failed (nothing
+    save_id, saved_at, snapshot, files, bytes, verified. Errors: save_failed (nothing
     was lost: the machine works on), save_limit.
 
     Args:
@@ -784,7 +784,7 @@ async def environment_save(ctx: ToolContext, *, note: str | None = None, on: str
 
 async def environment_forget(ctx: ToolContext, *, title: str, save_id: str | None = None) -> dict:
     """Delete saves and their disk snapshots (they bill each month): every save of `title`, or one
-    save_id. Its title then opens a new environment. Returns forgot and snapshots_deleted. Effect: read.
+    save_id. Its title then opens a new environment. Returns forgot and snapshots_deleted.
 
     Args:
         title: The environment's title, as environment() lists it under saved.
@@ -808,7 +808,7 @@ async def environment_port(ctx: ToolContext, *, port: int, on: str | None = None
     VM's port is forwarded over the environment's own SSH connection to a free 127.0.0.1 port; it
     closes with the environment. Returns port, local_port and url (on agentos local the human opens it
     as is; on a server node they first run `tunnel`, the ssh -L line). environment()'s ports show it
-    as `link`. Effect: read. Errors: no_environment, environment_not_ready.
+    as `link`. Errors: no_environment, environment_not_ready.
 
     Args:
         port: The port your server listens on in the VM, like 3000 or 5173 (environment() lists them).
@@ -842,8 +842,8 @@ async def environment_pull_request(ctx: ToolContext, *, title: str, body: str | 
     never merges. Your proofs (screenshots, recordings) go in its Proof section, stored on the
     repository's agentos-proofs branch, never in the diff. If one is open for that branch already,
     it returns that one with its Proof section brought up to date (your text and others' stay).
-    Returns url (give it to the human), number, branch, base, draft, created and proofs. Effect:
-    read. Errors: no_environment, denied (not a branch it pushed), pull_request_failed (no token on
+    Returns url (give it to the human), number, branch, base, draft, created and proofs. Errors:
+    no_environment, denied (not a branch it pushed), pull_request_failed (no token on
     the node, or GitHub refused).
 
     Args:

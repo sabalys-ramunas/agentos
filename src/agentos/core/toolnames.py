@@ -1,4 +1,4 @@
-"""The tools' names as an agent reads them, and the old names they had until 0.3 (aliases for one release).
+"""The tools' names as an agent reads them, and the names they had before (aliases for one release).
 
 The 2026-11-19 surface (docs/design/tool-surface-review.md): agents think in a terminal, files and a
 browser, not in lanes, so no tool name says "lane" any more. The node registers every tool under its new
@@ -104,6 +104,20 @@ def rename_arguments(tool: str, arguments: dict[str, Any]) -> tuple[dict[str, An
         notes.append(f"{old} is now {new}" + (" (in seconds)" if convert is _ms_to_s else ""))
         out.setdefault(new, convert(value) if convert else value)
     return out, notes
+
+
+def for_older_node(tool: str, arguments: dict[str, Any]) -> tuple[str, dict[str, Any]] | None:
+    """The same call as a node from before the rename takes it (its old name and argument names), or None
+    when `tool` was not renamed. The CLI's client tries it when such a node says it has no `tool`."""
+    old = _OLD.get(tool)
+    if old is None:
+        return None
+    out = dict(arguments)
+    for old_arg, (new_arg, convert) in RENAMED_ARGS.get(tool, {}).items():
+        if new_arg in out:
+            value = out.pop(new_arg)
+            out[old_arg] = int(value * 1000) if convert is _ms_to_s and isinstance(value, int | float) else value
+    return old, out
 
 
 def renamed_note(called: str, tool: str, arg_notes: list[str]) -> str | None:

@@ -6,6 +6,7 @@ from __future__ import annotations
 import base64
 import binascii
 import hashlib
+import math
 import re
 from typing import Any
 
@@ -371,8 +372,8 @@ async def lane_job_start(ctx: ToolContext, *, on: str, cmd: str, cwd: str | None
 
 
 JOB_READ_BYTES = 16000
-JOB_WAIT_MS = 30000
-JOB_WAIT_EXIT_MS = 120000
+JOB_WAIT_S = 30
+JOB_WAIT_EXIT_S = 120
 
 
 def _job_on(on: str | None, j: Any) -> None:
@@ -384,21 +385,21 @@ def _job_on(on: str | None, j: Any) -> None:
 
 
 async def lane_job_read(ctx: ToolContext, *, job: str, on: str | None = None, stdout_offset: int = 0,
-                        stderr_offset: int = 0, wait_ms: int = 1000, max_bytes: int = JOB_READ_BYTES,
+                        stderr_offset: int = 0, wait_s: float = 1, max_bytes: int = JOB_READ_BYTES,
                         base64_output: bool = False, until_exit: bool = False, until_port: int = 0) -> dict:
-    """Read a job's output after your byte offsets, waiting up to wait_ms (30000) for more while it
-    runs. until_exit=true waits for the job to end (then its start and its end, a marker naming any
-    bytes skipped); until_port=3000 for that port to listen or the job to end (then the end of its
-    output); both wait_ms up to 120000. Pass back next_stdout_offset and next_stderr_offset;
-    stdout_bytes is the size so far. `state`: running, exited, cancelled, timed_out or lost; then
-    exit_code (or signal). `oom`: what the kernel killed for memory. Effect: read."""
+    """Read a job's output after your byte offsets, waiting up to wait_s seconds (default 1, at most 30)
+    for more while it runs. until_exit=true waits for the job to end (then its start and its end, a
+    marker naming any bytes skipped); until_port=3000 for that port to listen or the job to end (then
+    the end of its output); with either, wait_s goes up to 120. Pass back next_stdout_offset and
+    next_stderr_offset; stdout_bytes is the size so far. `state`: running, exited, cancelled, timed_out
+    or lost; then exit_code (or signal). `oom`: what the kernel killed for memory. Effect: read."""
     mgr = _mgr(ctx)
     j = mgr.job(job)
     await ctx.authorize(Effect.READ, lane_id=j.info.lane)
     _job_on(on, j)
     port = _port(until_port)
-    most = JOB_WAIT_EXIT_MS if until_exit or port else JOB_WAIT_MS
-    wait_s = max(0, min(_int(wait_ms, "wait_ms"), most)) / 1000
+    most = JOB_WAIT_EXIT_S if until_exit or port else JOB_WAIT_S
+    wait_s = max(0.0, min(_wait_seconds(wait_s), most))
     max_bytes = max(1, min(_int(max_bytes, "max_bytes"), 1 << 20))
     stdout_offset, stderr_offset = max(0, _int(stdout_offset, "stdout_offset")), max(0, _int(stderr_offset, "stderr_offset"))
     listening = None
@@ -463,6 +464,16 @@ async def _start_and_end(mgr: Any, j: Any, stream: str, offset: int, data: bytes
     ) + tail.decode("utf-8", "replace")
     return text, kept, (f"The job ended with more {stream} than max_bytes: {stream} is its start and its end, "
                         f"{skipped} bytes skipped between them (read them with {stream}_offset={skip_from}).")
+
+
+def _wait_seconds(value: Any) -> float:
+    try:
+        seconds = float(value)
+    except (TypeError, ValueError):
+        raise InvalidRequest("wait_s is a number of seconds, like 30") from None
+    if math.isnan(seconds):
+        raise InvalidRequest("wait_s is a number of seconds, like 30")
+    return seconds
 
 
 def _int(value: Any, name: str) -> int:

@@ -53,7 +53,7 @@ async def wait_done(t, ctx, job, timeout=10.0):
     loop = asyncio.get_running_loop()
     end = loop.time() + timeout
     while True:
-        r = await t["terminal_job_read"](ctx, job=job, stdout_offset=so, stderr_offset=se, wait_ms=500,
+        r = await t["terminal_job_read"](ctx, job=job, stdout_offset=so, stderr_offset=se, wait_s=0.5,
                                       base64_output=True)
         out += base64.b64decode(r["stdout"])
         err += base64.b64decode(r["stderr"])
@@ -119,7 +119,7 @@ async def test_a_job_streams_its_output_and_keeps_the_exit_code(env):
     call = ctx.calls[0]
     assert call["effect"] == Effect.EXEC and call["lane_id"] == "dev/run"
     assert "echo one" in call["summary"] and "in the background" in call["summary"]
-    first = await t["terminal_job_read"](ctx, job=job["id"], wait_ms=2000)
+    first = await t["terminal_job_read"](ctx, job=job["id"], wait_s=2)
     assert first["stdout"].startswith("one") and ctx.calls[-1]["effect"] == Effect.READ
     r, out, err = await wait_done(t, ctx, job["id"])
     assert out == b"one\nthree\n" and err == b"two\n"
@@ -142,7 +142,7 @@ async def test_waiting_for_the_end_of_a_long_job_gives_its_start_and_its_end(env
     t, ctx = tools(env), Ctx(env)
     job = await t["terminal_job_start"](ctx, on="dev/run",
                                     cmd="echo START; seq 1 100000; echo boom >&2; echo DONE; exit 2")
-    r = await t["terminal_job_read"](ctx, job=job["id"], until_exit=True, wait_ms=30000)
+    r = await t["terminal_job_read"](ctx, job=job["id"], until_exit=True, wait_s=30)
     out = r["stdout"]
     assert r["state"] == "exited" and r["exit_code"] == 2 and "boom" in r["stderr"]
     assert out.startswith("START\n1\n") and out.endswith("100000\nDONE\n") and len(out) < 16_400
@@ -158,14 +158,14 @@ async def test_waiting_for_the_end_of_a_long_job_gives_its_start_and_its_end(env
         ["START", *map(str, range(1, 100001)), "DONE"]
 
     small = await t["terminal_job_start"](ctx, on="dev/run", cmd="seq 1 50; exit 1")
-    r = await t["terminal_job_read"](ctx, job=small["id"], until_exit=True, wait_ms=30000)
+    r = await t["terminal_job_read"](ctx, job=small["id"], until_exit=True, wait_s=30)
     assert r["stdout"] == "".join(f"{i}\n" for i in range(1, 51)) and "note" not in r or not r["note"]
 
 
 async def test_cancel_stops_the_job_and_says_so(env):
     t, ctx = tools(env), Ctx(env)
     job = await t["terminal_job_start"](ctx, on="dev/run", cmd="echo started; sleep 30")
-    await t["terminal_job_read"](ctx, job=job["id"], wait_ms=2000)
+    await t["terminal_job_read"](ctx, job=job["id"], wait_s=2)
     done = await t["terminal_job_cancel"](ctx, job=job["id"])
     assert done["state"] == "cancelled" and done["exit_code"] is None or done["signal"]
     assert ctx.calls[-1]["effect"] == Effect.EXEC and "Cancel job" in ctx.calls[-1]["summary"]

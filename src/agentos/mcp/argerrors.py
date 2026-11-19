@@ -28,6 +28,14 @@ ARG_SYNONYMS: dict[str, tuple[str, ...]] = {
 }
 
 
+# an argument agents pass to the wrong tool, with what to do instead (the evals, 2026-11-18: Haiku closed
+# with keep="save" twice, since keep is environment_open's)
+ARG_ELSEWHERE: dict[tuple[str, str], str] = {
+    ("environment_close", "keep"): ("keep is chosen at environment_open, not at the close. To keep this one's "
+                                    "work now: push it, or environment_save, then close"),
+}
+
+
 def _closest(key: str, known: frozenset[str]) -> str | None:
     """The argument an agent most likely meant: a known synonym, a close spelling, or one that starts
     the other (`repository` -> `repo`)."""
@@ -55,6 +63,9 @@ def unknown_arguments(spec: ToolSpec, known: frozenset[str] | None, arguments: A
     extra = [k for k in arguments if k not in allowed]
     if not extra:
         return None
+    misplaced = next((k for k in extra if (spec.name, k) in ARG_ELSEWHERE), None)
+    if misplaced is not None:
+        return _cut(f"invalid: {spec.name} has no argument {misplaced!r}: {ARG_ELSEWHERE[(spec.name, misplaced)]}.")
     parts = []
     for key in extra[:MAX_UNKNOWN_SHOWN]:
         shown = str(key) if len(str(key)) <= 40 else str(key)[:37] + "..."

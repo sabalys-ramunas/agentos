@@ -44,7 +44,7 @@ async def perfect(ctx: Ctx, a: Agent, session: int) -> str:
     wd = env["workdir"]
     await a.on_call("file_edit", path="server.js", old=f"<h1>{OLD}", new=f"<h1>{NEW}")
     job = await a.on_call("terminal_job_start", cmd="npm run dev", cwd=wd)
-    await a.on_call("terminal_job_read", job=job["id"], until_port=3000, wait_ms=60000)
+    await a.on_call("terminal_job_read", job=job["id"], until_port=3000, wait_s=60)
     await a.via("browser_record", action="start", proof="the shop's home page with the winter sale")
     await a.on_call("browser_navigate", url="http://localhost:3000")
     await a.via("browser_scroll")
@@ -65,7 +65,7 @@ async def careless(ctx: Ctx, a: Agent, session: int) -> str:
     wd = env["workdir"]
     await a.on_call("file_edit", path="server.js", old=f"<h1>{OLD}", new=f"<h1>{NEW}")
     job = await a.on_call("terminal_job_start", cmd="npm run dev", cwd=wd)
-    await a.on_call("terminal_job_read", job=job["id"], until_port=3000, wait_ms=60000)
+    await a.on_call("terminal_job_read", job=job["id"], until_port=3000, wait_s=60)
     await a.on_call("browser_navigate", url="http://localhost:3000")
     await a.on_call("browser_screenshot", proof="home page")
     await a.sh("git checkout -q -b winter && git commit -qam winter && git push -q origin winter 2>&1", cwd=wd)

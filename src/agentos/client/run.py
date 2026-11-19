@@ -462,7 +462,7 @@ class Run:
 
     def read(self, job: str, out: int, err: int, wait_ms: int) -> dict:
         return self.raw("terminal_job_read", {"job": job, "stdout_offset": out, "stderr_offset": err,
-                                          "wait_ms": wait_ms, "max_bytes": READ_MAX_BYTES, "base64_output": True})
+                                          "wait_s": wait_ms / 1000, "max_bytes": READ_MAX_BYTES, "base64_output": True})
 
     def follow(self, job: str, *, wait_ms: int = READ_WAIT_MS, until_done: bool = True) -> dict:
         """Write the job's output here as it comes, until it ended and everything was read (or, with

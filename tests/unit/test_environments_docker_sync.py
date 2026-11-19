@@ -51,7 +51,7 @@ async def test_local_changes_reach_the_environment_by_upload_and_sync(node):  # 
     assert job.get("status") != "approval_pending", job
     text, offset = "", 0
     for _ in range(30):
-        out = await call("terminal_job_read", job=job["id"], stdout_offset=offset, wait_ms=2000)
+        out = await call("terminal_job_read", job=job["id"], stdout_offset=offset, wait_s=2)
         text, offset = text + out["stdout"], out["next_stdout_offset"]
         if out["state"] != "running":
             break

@@ -26,7 +26,7 @@ async def check(ctx: Ctx) -> list[Check]:
 async def perfect(ctx: Ctx, a: Agent, session: int) -> str:
     env = await a.open(title="Shop home page", repo=ctx.repo.slug, keep="none")
     job = await a.on_call("terminal_job_start", cmd="npm run dev", cwd=env["workdir"])
-    await a.on_call("terminal_job_read", job=job["id"], until_port=3000, wait_ms=60000)
+    await a.on_call("terminal_job_read", job=job["id"], until_port=3000, wait_s=60)
     await a.on_call("browser_navigate", url="http://localhost:3000")
     await a.on_call("browser_snapshot")
     shot = await a.on_call("browser_screenshot", proof="shop home page with the autumn sale")

@@ -14,6 +14,7 @@ from enum import StrEnum
 from typing import Any, Self
 
 from agentos import __version__
+from agentos.core import toolnames
 
 PROTOCOL_VERSION = "2025-06-18"
 MCP_PATH = "/mcp"
@@ -182,6 +183,9 @@ class McpSession:
         result = self._rpc("tools/call", {"name": tool, "arguments": arguments or {}})
         texts = [c.get("text", "") for c in result.get("content") or [] if c.get("type") == "text"]
         if result.get("isError"):
+            older = toolnames.for_older_node(tool, arguments or {})
+            if older is not None and texts and texts[0].startswith(f"not_found: no tool named {tool!r}"):
+                return self.call(*older)  # a node from before the tools were renamed
             raise ToolError("\n".join(texts) or f"{tool} failed")
         structured = result.get("structuredContent")
         if isinstance(structured, dict) and set(structured) != {"result"}:

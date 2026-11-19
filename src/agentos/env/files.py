@@ -200,24 +200,37 @@ async def _run(ctx: ToolContext, mgr: Any, on: str, script: str, *, stdin: str |
 
 
 # ------------------------------------------------------------------ tools
-async def lane_file_read(ctx: ToolContext, *, on: str, path: str, offset: int = 1,
-                         limit: int = READ_LINES) -> dict:
+async def lane_file_read(ctx: ToolContext, *, on: str, path: str | None = None, paths: list[str] | None = None,
+                         offset: int = 1, limit: int = READ_LINES) -> dict:
     """Read a text file with line numbers (as cat -n); a relative path starts at the repository.
     Returns content, lines, total_lines and next_offset when there is more (at most 2000 lines or
-    40000 characters a call). Binary files are refused. Effect: exec. Errors: not_found, invalid.
+    40000 characters a call). `paths` reads several files in one call (up to 20; a * in the last part,
+    like "src/*.js", reads each match), each with its lines, within the same 40000 characters. Binary
+    files are refused. Effect: exec. Errors: not_found, invalid.
 
     Args:
+        path: One file, like "src/app.py".
+        paths: Several files, like ["package.json", "src/*.js"], instead of path.
         offset: The first line (1 is the first).
         limit: How many lines.
     """
-    workdir = _workdir(ctx, on)
-    target = resolve_path(path, workdir)
     try:
         first, count = max(1, int(offset)), max(1, min(int(limit), 100000))
     except (TypeError, ValueError):
         raise InvalidRequest("offset and limit are line counts, like offset=1, limit=200") from None
+    workdir = _workdir(ctx, on)
+    if paths is not None:
+        return await _read_many(ctx, on, workdir, paths if path is None else [path, *paths], first, count)
+    if path is None:
+        raise InvalidRequest('give path (one file) or paths (several), like path="src/app.py"')
+    target = resolve_path(path, workdir)
     mgr = await _authorize(ctx, on, f"Read {target}", {"read": target, "offset": first, "limit": count})
-    cap = READ_CHARS * 4 + 4096  # bytes; the characters are counted below
+    return await _read_one(ctx, mgr, on, target, first, count, READ_CHARS)
+
+
+async def _read_one(ctx: ToolContext, mgr: Any, on: str, target: str, first: int, count: int, budget: int) -> dict:
+    """One file's lines from `first`, at most `count` of them and about `budget` characters."""
+    cap = budget * 4 + 4096  # bytes; the characters are counted below
     res = await _run(ctx, mgr, on, _read_script(target, first, first + count - 1, cap), max_bytes=cap + 512)
     words, body = _header(res, target)
     size, nul, newlines, ends = _numbers(words)
@@ -231,7 +244,7 @@ async def lane_file_read(ctx: ToolContext, *, on: str, path: str, offset: int = 
     shown, chars = [], 0
     for line in lines:
         cost = min(len(line), LINE_CHARS) + 8
-        if shown and chars + cost > READ_CHARS:
+        if shown and chars + cost > budget:
             break
         shown.append(line)
         chars += cost
@@ -244,6 +257,59 @@ async def lane_file_read(ctx: ToolContext, *, on: str, path: str, offset: int = 
         out["note"] = "empty file" if size == 0 else f"the file has {total} lines; offset {first} is past its end"
     if shown and last < total:
         out["next_offset"] = last + 1
+    return out
+
+
+MANY_MAX = 20     # files one read of several returns
+GLOB_CHARS = "*?["
+
+
+def _glob_script(patterns: list[str]) -> str:
+    """The files each pattern's last part matches (find -name, so no shell expands anything), one a line."""
+    parts = [f"find {shlex.quote(posixpath.dirname(p) or '.')} -maxdepth 1 -type f "
+             f"-name {shlex.quote(posixpath.basename(p))} 2>/dev/null | LC_ALL=C sort | head -n {MANY_MAX + 1}"
+             for p in patterns]
+    return f'echo "{MARK} ok"; ' + "; ".join(parts)
+
+
+async def _read_many(ctx: ToolContext, on: str, workdir: str | None, paths: Any, first: int, count: int) -> dict:
+    """file_read(paths=[...]): each file in turn within one READ_CHARS budget; a file that cannot be read
+    says why in its own entry, and files past the budget are named so the agent reads them next."""
+    if not isinstance(paths, list) or not paths or not all(isinstance(p, str) for p in paths):
+        raise InvalidRequest('paths is a list of files, like ["package.json", "src/*.js"]')
+    targets = [resolve_path(p, workdir) for p in paths[:MANY_MAX]]
+    mgr = await _authorize(ctx, on, f"Read {', '.join(targets)}"[:300],
+                           {"read": targets, "offset": first, "limit": count})
+    globs = [t for t in targets if any(c in posixpath.basename(t) for c in GLOB_CHARS)]
+    found: dict[str, list[str]] = {}
+    if globs:
+        res = await _run(ctx, mgr, on, _glob_script(globs), max_bytes=64 * 1024)
+        _, body = _header(res, "the patterns")
+        matched = body.decode("utf-8", "replace").splitlines()
+        found = {g: [m for m in matched if posixpath.dirname(m) == (posixpath.dirname(g) or ".")] for g in globs}
+    files: list[str] = []
+    for t in targets:
+        files += found.get(t, []) if t in found else [t]
+    files = list(dict.fromkeys(files))
+    out: dict[str, Any] = {"files": []}
+    left = READ_CHARS
+    for i, target in enumerate(files[:MANY_MAX]):
+        if left < LINE_CHARS:
+            out["not_read"] = files[i:MANY_MAX]
+            out["note"] = "The reply is full: read these with file_read(paths=[...]) next."
+            break
+        try:
+            one = await _read_one(ctx, mgr, on, target, first, count, left)
+        except (InvalidRequest, NotFound) as exc:
+            out["files"].append({"path": target, "error": f"{exc.code}: {exc.message}"})
+            continue
+        left -= len(one["content"]) + 64
+        out["files"].append(one)
+    empty = [g for g in globs if not found.get(g)]
+    if empty:
+        out["no_match"] = empty
+    if len(files) > MANY_MAX or len(paths) > MANY_MAX:
+        out["note"] = (out.get("note", "") + f" At most {MANY_MAX} files a call.").strip()
     return out
 
 
