@@ -71,7 +71,6 @@ async def test_review_G1_a_revoked_grant_stops_its_build(node, monkeypatch):  # 
     assert not [r for r in node.vms.store.live() if r.lane_id.startswith("env/prep-")]  # its machine is gone
 
 
-@pytest.mark.xfail(strict=True, reason="G2: a prepared machine built from one ref is booted for another")
 async def test_review_G2_prepared_key_is_per_commit(node):  # noqa: F811
     # The agent's branch has the same .agentos/environment.toml and lockfile as main (config_probe answers
     # the same for every ref), but its setup may run any script of that branch. The key ignores the commit.
@@ -83,6 +82,15 @@ async def test_review_G2_prepared_key_is_per_commit(node):  # noqa: F811
     await node.call("environment_close", on=first["on"], discard=True)
     other = await node.call("environment_open", title="Main work", repo=REPO, session="chat-2")
     assert other["prepared"]["used"] is False, "an open of the default branch booted the agent branch's image"
+    await node.call("environment_close", on=other["on"], discard=True)
+    await builds_done(node.mgr)
+    # the default branch's own build is shared; the branch's build stays the branch's (newest per ref)
+    assert {r.ref for r in node.mgr.prepared_store().all() if r.state == "ready"} == {None, "agent/tampered"}
+    again = await node.call("environment_open", title="Branch again", repo=REPO, ref="agent/tampered", session="chat-3")
+    assert again["prepared"]["used"] is True  # the same ref keeps its speedup
+    await node.call("environment_close", on=again["on"], discard=True)
+    main = await node.call("environment_open", title="Main again", repo=REPO, session="chat-4")
+    assert main["prepared"]["used"] is True
 
 
 @pytest.mark.xfail(strict=True, reason="G3: the prepared build's scrub removes the SSH keys Morph's gateway needs")

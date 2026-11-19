@@ -903,12 +903,21 @@ if the setup wrote it somewhere, no snapshot is taken), git credentials, shell h
 and host keys (each new machine gets its own), the machine id and swap. Then it takes the snapshot
 (`docker commit` on Docker) and deletes the build machine. Caches stay: they make `refresh` fast.
 
-**What makes it stale.** The prepared machine's key is a hash of the repository, the base image,
-`setup`, `refresh`, each input file's content (by its git blob id) and agentos's own setup version.
-Change one and the next open runs setup again and builds a new one; `start` and `port` are not part
-of it.
+A build is the grant's that started it: an agent's open builds under that agent's own grant, and
+`agentos environments prepare` under the owner's. Its gateway token is that grant's and only fetches
+(no push, whatever the repository's declaration allows). If the grant is revoked or frozen while the
+build runs, the build stops within seconds: its machine is deleted and no snapshot is taken.
 
-**Keeping few.** A newer build of a repository replaces the older one; one no open used for
+**What makes it stale.** The prepared machine's key is a hash of the repository, the base image,
+`setup`, `refresh`, each input file's content (by its git blob id), agentos's own setup version and
+the ref. Change one and the next open runs setup again and builds a new one; `start` and `port` are
+not part of it. The ref: an open with no `ref` (the default branch) boots the repository's one
+shared build, from the default branch. An open of any other branch, tag or commit boots only a build
+of that same ref, because that build ran that ref's scripts (whoever pushed the branch chose them).
+So an agent's branch never ends up in the machine of an open of `main`, and reopening a branch keeps
+its speedup.
+
+**Keeping few.** A newer build of a repository and ref replaces the older one; one no open used for
 `prepared_days` (default 14) is deleted; at most `prepared_max` (default 5) are kept on the node,
 the least recently used going first. The reaper does it, as it does for saves. A snapshot is billed
 like a save's (`snapshot_eur_per_gb_month`); on Docker it costs nothing. `prepared_builds = false` in

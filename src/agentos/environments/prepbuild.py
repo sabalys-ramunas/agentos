@@ -19,8 +19,8 @@ and fetches only (no push, whatever the declaration allows), and the build stops
 no snapshot) within GRANT_CHECK_S once that grant is revoked, a freeze included, or the environments
 are frozen.
 
-Retention (prepared_reap, from the environments' reaper): a newer build of a repository replaces the
-older one; one no open used for prepared_days goes; at most prepared_max on the node (the least
+Retention (prepared_reap, from the environments' reaper): a newer build of a repository and ref (the
+default branch, or one other ref: repoconfig.prepared_key) replaces the older one; one no open used for prepared_days goes; at most prepared_max on the node (the least
 recently used go first); a build the node lost (a restart) is marked failed and its machine deleted.
 """
 
@@ -218,7 +218,7 @@ class PrepBuild:
                 return
             log.info("prepared machine of %s ready: %s (%.0f s, setup %.0f s)", rec.repo, made["id"],
                      time.monotonic() - began, setup_s)
-            await self._retire_older(rec.repo, rec.key)
+            await self._retire_older(rec)
         except BaseException as e:
             words = (str(e) if isinstance(e, BuildFailed) else e.message if isinstance(e, AgentosError)
                      else f"{type(e).__name__}: {e}")
@@ -373,9 +373,9 @@ class PrepBuild:
         log.info("prepared machine of %s (%s) deleted: %s", rec.repo, rec.image or "no image", why)
         return True
 
-    async def _retire_older(self, repo: str, key: str) -> None:
-        for rec in self.prepared_store().of_repo(repo):
-            if rec.key != key and rec.state == "ready":
+    async def _retire_older(self, new: Prepared) -> None:
+        for rec in self.prepared_store().of_repo(new.repo):
+            if rec.key != new.key and rec.ref == new.ref and rec.state == "ready":
                 await self._drop_prepared(rec, "a newer build replaced it")
 
     async def prepared_reap(self, now: Any = None) -> dict:
@@ -389,12 +389,12 @@ class PrepBuild:
             elif rec.state == "failed" and now - rec.started_at > FAILED_KEEP:
                 store.remove(rec.key)
         ready = sorted((r for r in store.all() if r.state == "ready"), key=lambda r: r.last_used(), reverse=True)
-        newest: dict[str, Prepared] = {}
+        newest: dict[tuple[str, str], Prepared] = {}
         for rec in sorted(ready, key=lambda r: r.built_at or r.started_at, reverse=True):
-            newest.setdefault(rec.repo, rec)
+            newest.setdefault((rec.repo, rec.ref or ""), rec)
         keep = 0
         for rec in ready:
-            if newest.get(rec.repo) is not rec:
+            if newest.get((rec.repo, rec.ref or "")) is not rec:
                 why = "a newer build replaced it"
             elif now - rec.last_used() > timedelta(days=self.settings.prepared_days):
                 why = f"no open used it for {self.settings.prepared_days} days"
