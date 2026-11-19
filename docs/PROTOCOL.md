@@ -356,7 +356,7 @@ rewrites this section, and CI fails when the code's messages change shape or thi
           ]
         },
         {
-          "name": "lanes_list",
+          "name": "browsers_list",
           "description": "Every lane you may use on this node: id, kind, engine, state (cold, warming, warm, active, quarantined), proxy label, device (lanes on one device share one comp...",
           "input_schema": {
             "properties": {},
@@ -1020,7 +1020,7 @@ rewrites this section, and CI fails when the code's messages change shape or thi
           {
             "name": "post_image",
             "title": "Post an image with a caption",
-            "description": "agentos: post on a site with an image: files_put, browser_upload, the approval, the readback.",
+            "description": "agentos: post on a site with an image: browser_file_put, browser_upload, the approval, the readback.",
             "arguments": [
               {
                 "name": "on",
@@ -1033,7 +1033,7 @@ rewrites this section, and CI fails when the code's messages change shape or thi
                 "required": false
               }
             ],
-            "text": "Use the agentos MCP tools for this job.\nPost an image with a caption on lane <lane>.\nFirst lane_claim(on=\"<lane>\", purpose=\"posting an image\") so no other agent..."
+            "text": "Use the agentos MCP tools for this job.\nPost an image with a caption on lane <lane>.\nFirst browser_claim(on=\"<lane>\", purpose=\"posting an image\") so no other agent..."
           },
           {
             "name": "hand_to_human",
@@ -1051,7 +1051,7 @@ rewrites this section, and CI fails when the code's messages change shape or thi
                 "required": false
               }
             ],
-            "text": "Use the agentos MCP tools for this job.\nHand lane <lane> to the human, then carry on.\n1. lane_view(on=\"<lane>\"): it returns a url and an ssh tunnel command. Giv..."
+            "text": "Use the agentos MCP tools for this job.\nHand lane <lane> to the human, then carry on.\n1. browser_view(on=\"<lane>\"): it returns a url and an ssh tunnel command. Giv..."
           }
         ]
       }

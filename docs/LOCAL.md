@@ -102,7 +102,7 @@ git over ssh, the way it works on the laptop. `environment_open` and `environmen
   agent's own ssh is not in that log: agentos sees that a session ran, not what it ran. This does
   not widen what the agent can reach. The VM holds no key or token of yours: its one credential is
   the git gateway token for its own repository, which works only through that VM's own tunnel and
-  ends when the environment closes. The agent could already read it with `lane_exec`.
+  ends when the environment closes. The agent could already read it with `terminal_exec`.
 
 A server node (`agentos connect`) gives no `ssh`: its agent runs on another computer and works
 through the tools only.

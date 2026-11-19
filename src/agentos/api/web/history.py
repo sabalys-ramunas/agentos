@@ -22,6 +22,7 @@ from agentos.api.app import Api
 from agentos.api.web import environments as envs_web
 from agentos.api.web import telling
 from agentos.api.web.base import call, org_route, read, write
+from agentos.core import toolnames
 from agentos.core.errors import InvalidRequest
 
 PRINCIPAL_KINDS = {"agent", "human", "flow", "brain", "worker"}
@@ -532,8 +533,8 @@ def _call_story(row: dict[str, Any], ctx: _Ctx, about: list[dict[str, Any]] | No
 
 
 # What a call in an environment did, in a person's words: the tool's family, then the step's own label.
-ENV_KINDS = (("command", ("terminal_exec", "terminal_job_start", "terminal")), ("browser", ("browser_", "ui_", "browser_view")),
-             ("files", ("files_",)), ("git", ("git_", "environment_push")))
+ENV_COMMANDS = frozenset({"terminal_exec", "terminal_job_start"})
+ENV_KINDS = (("files", ("browser_file",)), ("browser", ("browser_", "ui_")), ("git", ("git_", "environment_push")))
 ENV_STEP = {"command": "Ran a command in the terminal", "browser": "Used the browser",
             "files": "Moved files", "git": "Worked with git", "other": "Took a step"}
 ENV_COUNTS = {"command": ("ran {n} command", "ran {n} commands"), "browser": ("used the browser once", "used the browser {n} times"),
@@ -543,6 +544,9 @@ SESSION_GAP = timedelta(minutes=30)  # calls further apart than this are another
 
 
 def _env_kind(tool: str) -> str:
+    tool = toolnames.current(tool)  # a call from before the rename keeps the old name (lane_exec)
+    if tool in ENV_COMMANDS or (tool.startswith("terminal") and tool not in toolnames.NEW_NAMES):
+        return "command"
     for kind, prefixes in ENV_KINDS:
         if tool.startswith(prefixes):
             return kind

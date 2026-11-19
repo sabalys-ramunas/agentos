@@ -461,3 +461,11 @@ def test_cli_turns_capture_on_and_off(tmp_path, monkeypatch):
     assert runner.invoke(app, ["capture", "biz-a/*", "--off"]).exit_code == 0
     assert not captures.settings_for(tmp_path).enabled("biz-a/social")
     assert runner.invoke(app, ["capture", "nope", "--on"]).exit_code == 1
+
+
+def test_a_step_reads_the_same_by_a_tool_old_name_or_its_new_one():
+    """A trace from before the 2026-11-19 rename keeps the old name (lane_claim): it reads as the tool does now."""
+    from agentos.audit.replay_page import describe
+
+    assert describe({"tool": "lane_claim"}) == describe({"tool": "browser_claim"}) == "Took the browser for a few acts"
+    assert describe({"tool": "lane_exec"}) == "Used terminal_exec"

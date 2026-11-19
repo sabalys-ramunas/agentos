@@ -251,16 +251,16 @@ export function seedEnvironments(now = Date.now()): MockEnv[] {
         ],
         calls: [
           call(now, 25, 'ui_check', 'http://localhost:3000/offer at 360, 768 and 1280: 1 minor'),
-          call(now, 70, 'lane_exec', 'git push origin feat/black-friday-offer'),
-          call(now, 95, 'lane_exec', 'git commit -m "Offer: the yearly plans show the old price struck through"'),
+          call(now, 70, 'terminal_exec', 'git push origin feat/black-friday-offer'),
+          call(now, 95, 'terminal_exec', 'git commit -m "Offer: the yearly plans show the old price struck through"'),
           call(now, 160, 'browser_act', 'click "Claim the deal"'),
           call(now, 190, 'browser_snapshot', 'localhost:3000/offer, 42 refs'),
           call(now, 230, 'ui_check', 'http://localhost:3000/offer at 360: 1 major, the price wraps under the badge', false),
           call(now, 300, 'browser_navigate', 'http://localhost:3000/offer'),
-          call(now, 420, 'lane_exec', 'git push origin feat/black-friday-offer'),
-          call(now, 660, 'lane_job_start', 'pnpm dev'),
-          call(now, 780, 'lane_job_start', 'pnpm install'),
-          call(now, 800, 'lane_exec', 'git switch -c feat/black-friday-offer'),
+          call(now, 420, 'terminal_exec', 'git push origin feat/black-friday-offer'),
+          call(now, 660, 'terminal_job_start', 'pnpm dev'),
+          call(now, 780, 'terminal_job_start', 'pnpm install'),
+          call(now, 800, 'terminal_exec', 'git switch -c feat/black-friday-offer'),
           call(now, 830, 'environment_open', 'Black Friday offer page, github.com/harbor-supply/shop'),
         ],
         commands: [
@@ -297,12 +297,12 @@ export function seedEnvironments(now = Date.now()): MockEnv[] {
         ports: [{ port: 5173, process: 'vite', link: '/api/orgs/northwind-group/environments/w8tp/ports/5173/' }],
         git: { branch: 'fix/invoice-csv-export', ahead: 2, dirty: 3, pushed: [] },
         calls: [
-          call(now, 23 * 60, 'lane_exec', 'git commit -m "Invoices: quote fields that hold a comma"'),
-          call(now, 24 * 60, 'lane_exec', 'git commit -m "Invoices: one row per line item, with the VAT rate"'),
+          call(now, 23 * 60, 'terminal_exec', 'git commit -m "Invoices: quote fields that hold a comma"'),
+          call(now, 24 * 60, 'terminal_exec', 'git commit -m "Invoices: one row per line item, with the VAT rate"'),
           call(now, 26 * 60, 'browser_snapshot', 'localhost:5173/invoices, 88 refs'),
-          call(now, 29 * 60, 'lane_job_start', 'pnpm vitest run src/invoices'),
+          call(now, 29 * 60, 'terminal_job_start', 'pnpm vitest run src/invoices'),
           call(now, 41 * 60, 'browser_navigate', 'http://localhost:5173/invoices'),
-          call(now, 44 * 60, 'lane_job_start', 'pnpm dev --port 5173'),
+          call(now, 44 * 60, 'terminal_job_start', 'pnpm dev --port 5173'),
           call(now, 70 * 60, 'environment_open', 'Invoice export to CSV, github.com/meridian-travel/back-office'),
         ],
         commands: [
@@ -344,7 +344,7 @@ export function seedEnvironments(now = Date.now()): MockEnv[] {
             ? [call(end, 0, 'environment_open', `${seed.title}: the machine did not boot`, false)]
             : [
                 call(end, 30, 'environment_close', reason === 'agent' ? 'closed, the work is pushed' : 'closed'),
-                call(end, 120, 'lane_exec', `git push origin ${seed.branch}`),
+                call(end, 120, 'terminal_exec', `git push origin ${seed.branch}`),
                 call(end, 600, 'ui_check', 'http://localhost:3000 at 360 and 1280: clean'),
               ],
         commands: seed.state === 'failed' ? [] : [command(end, `exec-${seed.id}`, `git push origin ${seed.branch}`, 'passed', 2, 0)],

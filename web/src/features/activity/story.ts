@@ -355,7 +355,7 @@ export function stepWords(step: Pick<RunStep, 'tool' | 'summary' | 'status'>, st
   const tool = step.tool.toLowerCase().replace(/[.:]/g, '_');
   const site = story.named;
   const as = story.business && story.business.toLowerCase() !== 'personal' ? ` as ${story.business}` : '';
-  if (/open_lane|lane_open|^open$/.test(tool)) return `Opened ${site}${as}`;
+  if (/open_lane|lane_open|browser_open|^open$/.test(tool)) return `Opened ${site}${as}`;
   if (/readback|verify|proof/.test(tool)) {
     if (story.result === 'checked') return 'Looked it up from outside and found it';
     return last && story.result === 'failed' ? 'Looked it up from outside' : 'Looked it up from outside, and could not find it yet';

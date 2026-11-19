@@ -120,7 +120,7 @@ export interface EnvCall {
   ok: boolean;
 }
 
-/** A command on the environment's terminal: a job (`lane_job_start`, it has a run page) or an exec. */
+/** A command on the environment's terminal: a job (`terminal_job_start`, it has a run page) or an exec. */
 export interface EnvCommand {
   id: string;
   cmd: string;

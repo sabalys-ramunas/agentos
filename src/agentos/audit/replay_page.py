@@ -22,6 +22,8 @@ from html import escape
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from agentos.core import toolnames
+
 CSP = "default-src 'none'; img-src data:; style-src 'unsafe-inline'"
 ARGS_CHARS = 4000      # past this, a step's arguments are cut (and the cut says so)
 PREVIEW_CHARS = 2000   # the approval card's preview, as the approver saw it (the card cut it at the same size)
@@ -52,8 +54,8 @@ TOOL_WORDS = {"browser_snapshot": "Read the page", "browser_screenshot": "Took a
               "browser_scroll": "Scrolled down the page", "browser_wait": "Waited for the page",
               "browser_tabs": "Looked at the open tabs", "browser_upload": "Uploaded a file",
               "browser_dialog": "Looked at an open dialog", "browser_dialog_answer": "Answered a dialog",
-              "browser_claim": "Took the lane for a few acts", "browser_release": "Let go of the lane",
-              "browser_open": "Opened the lane", "browser_close": "Closed the lane", "browser_view": "Asked for the live view",
+              "browser_claim": "Took the browser for a few acts", "browser_release": "Let go of the browser",
+              "browser_open": "Opened the browser", "browser_close": "Closed the browser", "browser_view": "Asked for the live view",
               "vault_login": "Logged in with a login from the vault (the password never left the node)",
               "login": "Logged in with a login from the vault (the password never left the node)"}
 # events shown as their own line inside a step (the rest are kept in the log, not on the page)
@@ -90,7 +92,7 @@ def _local(at: str | None, tz: ZoneInfo, fmt: str = "%H:%M:%S") -> str:
 def describe(step: dict, *, include_args: bool = False) -> str:
     """What the step did, in plain words, from its tool and arguments (as text, never markup). What
     was typed, and an address's query, only with `include_args`."""
-    tool = step.get("tool") or ""
+    tool = toolnames.current(step.get("tool") or "")  # a trace from before the rename keeps the old name
     args = step.get("args") if isinstance(step.get("args"), dict) else {}
     if tool == "browser_navigate" and isinstance(args.get("url"), str):
         url = args["url"] if include_args else plain_url(args["url"])

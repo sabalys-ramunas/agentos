@@ -228,7 +228,7 @@ new branch and opens a pull request): a force push or a delete of the default br
 branch you protect with `--protect`), a force push or a delete of any branch the environment did
 not create itself (a colleague's branch that was there before), and moving or deleting a tag. Its
 own branches (the ones it pushed first) it may rewrite and delete. A push from anywhere else, an account
-lane or a brain, still asks you for the default branch (`--allow-default-branch` on `remote allow`
+browser or a brain, still asks you for the default branch (`--allow-default-branch` on `remote allow`
 turns that off for a repository). A public repository that is not declared is cloned directly on
 the VM, read only.
 
@@ -324,7 +324,7 @@ when it runs). A program that ignores the proxy variables reaches nothing.
 What it refuses, it says and keeps. A request to a host that is not on the list gets a 403 whose body
 says `<host> is not on this environment's network list. The owner can allow it: agentos environments
 allow --host <host>`, and a refused CONNECT says it in its status line too (Python and Node's `https`
-print it; curl shows only "response 403"). The result of the `lane_exec` or `lane_job_read` whose command
+print it; curl shows only "response 403"). The result of the `terminal_exec` or `terminal_job_read` whose command
 was refused names it: `network: {blocked_now: [hosts], fix}`. Nobody is asked. `environment()` and the
 web app's environment page list each
 refused host with a count and when it was last refused (`network.blocked`), and
@@ -437,7 +437,7 @@ agentos environments login "Shop fix" github.com                                
   that machine could read what the browser holds: bind only what the computer's work needs
   ([THREAT-MODEL.md](THREAT-MODEL.md#logins-in-an-environments-browser)).
 - **The grant.** The `environments` special of `agentos connect` includes typing a bound login on
-  `env/*` lanes. An agent connected before this change gets `special: this grant does not include
+  environments. An agent connected before this change gets `special: this grant does not include
   secret`: run `agentos connect` again.
 
 ### 5. Check it
@@ -466,22 +466,35 @@ What the agent does:
 | Call | What it does |
 |---|---|
 | `environment_open(title, repo, ref, size, hours, keep, signins, network)` | rents the VM, clones `repo` into `/work/<name>`, opens the browser; returns the workdir and the browser's live view link for you. With `repo` and no `title` it finds that repository's one open or saved environment (several: `environment_choice`, with each title to pick from; none: a new one named after the repository) |
-| `lane_file_read(path, offset, limit)`, `lane_file_edit(path, old, new)`, `lane_file_write(path, content)` | the repository's files on the VM, with line numbers; an edit replaces exact text that occurs once (a relative path starts in the repository) |
-| `lane_exec(cmd, cwd, max_bytes)`, `lane_job_start`, `lane_job_read(until_exit, until_port)`, `lane_job_cancel` | commands and dev servers on the VM (`on`: the handle your environment_open gave; the job tools take it too and check it names the job's machine, though the job id alone is enough); in every agent's tool list. A command's output comes back within 16 KB by default (the middle is cut, with the full sizes). `shell_open` and the rest are `tools_more("terminals")`. See [Waiting and memory](#waiting-and-memory) |
+| `file_read(path, offset, limit)`, `file_edit(path, old, new)`, `file_write(path, content)` | the repository's files on the VM, with line numbers (`file_read(paths=[...])` reads several in one call); an edit replaces exact text that occurs once (a relative path starts in the repository) |
+| `terminal_exec(cmd, cwd, max_bytes)`, `terminal_job_start`, `terminal_job_read(until_exit, until_port)`, `terminal_job_cancel` | commands and dev servers on the VM (`on`: the handle your environment_open gave; the job tools take it too and check it names the job's machine, though the job id alone is enough); in every agent's tool list. A command's output comes back within 16 KB by default (the middle is cut, with the full sizes). `shell_open` and the rest are `tools_more("terminals")`. See [Waiting and memory](#waiting-and-memory) |
 | `browser_navigate(url)`, `browser_snapshot`, `browser_act` | the environment's browser, a desktop window; `localhost` is the VM |
 | `browser_screenshot(proof="checkout after the fix", full_page, width)` | keeps the shot as proof (see below); `width=390` shows the phone layout |
 | `ui_check(url="http://localhost:3000")` | studio's page checks (`tools_more("studio")`), on the VM's dev server; while the environment cannot be reached they fail with `environment_not_ready` and never check the node instead |
 | `environment()` | state, time left, cost so far, listening ports (a shared one with its `link`), git (branch, ahead, dirty, `pushed`: each branch at its commit on the remote now, `deleted`: branches it deleted, `compare`: GitHub's form for the pushed branch, `pull_requests`), proofs, the agent's `note`, the last calls (a command's `exit_code`, a refusal's `error`), and always the agent's `open` and `saved` environments by title |
 | `environment_pull_request(title, body, base, draft)` | opens the pull request for a branch this environment pushed, with the node's GitHub token, and returns its `url` (see below) |
 | `environment_port(port)` | a link on your own computer to a server on the VM (see [Ports](#ports)) |
-| `environment_checkpoint(note)`, `environment_rollback(checkpoint)` | a cheap undo with git, in `tools_more("terminals")` (see [Checkpoints](#checkpoints)) |
-| `environment_close(discard, final, note, forget)` | refuses with `unsaved_work` while any repository under `/work` has work that is not on a remote (changed or new files, commits on any branch, stashes); then deletes the VM, the browser and both lanes; `machine` says `deleted` only once the provider has no such server (`deleting` while the node still deletes it). `saves` says what became of the saves; `note` and `forget` are in [Keeping an environment](#keeping-an-environment) |
+| `environment_checkpoint(note)`, `environment_rollback(checkpoint)` | a cheap undo with git (see [Checkpoints](#checkpoints)) |
+| `environment_close(discard, final, note, forget)` | refuses with `unsaved_work` while any repository under `/work` has work that is not on a remote (changed or new files, commits on any branch, stashes); then deletes the VM, its terminal and its browser; `machine` says `deleted` only once the provider has no such server (`deleting` while the node still deletes it). `saves` says what became of the saves; `note` and `forget` are in [Keeping an environment](#keeping-an-environment) |
+
+The agent's default tool list is this loop and nothing else: `environment_open`, `environment`,
+`environment_save`, `environment_close`, `environment_upload`, `environment_download`, the terminal
+(`terminal_exec`, `terminal_job_start`, `terminal_job_read`, `terminal_job_cancel`), the files (`file_read`,
+`file_write`, `file_edit`), the browser (`browser_navigate`, `browser_snapshot`, `browser_act`,
+`browser_wait`, `browser_screenshot`, `browser_tabs`, `browser_dialog_answer`, `browser_wait_handback`,
+`browser_record`), `environment_pull_request`, `environment_checkpoint`, `environment_rollback`,
+`environment_port`, `login` and `approval_wait`, plus `tools_more` and `tools_call`. The rest come in
+groups the agent loads with `tools_more(group)`: `accounts` (your own signed-in account browsers on a server
+node), `browser` (a browser's downloads, switching tabs, scrolling), `terminals` (terminals and services the
+node keeps, raw VMs, and `environment_forget`), `studio` and more ([TOOLS.md](TOOLS.md)). Tools renamed on
+2026-11-19 (`lane_exec` is `terminal_exec`, `lane_file_read` is `file_read`, and so on) still answer to their
+old names until the next minor release; the result then says the new name.
 
 Work that is only on your computer (changes not committed yet, or a project with no repository the
 node can clone) gets there two ways. The agent commits it to a branch, pushes it, and opens with
 `ref=<branch>`; or, without a commit, it uploads its checkout:
 
-1. `environment_upload(dest)` (in `tools_more("terminals")`, or `tools_call`) gives a signed link on
+1. `environment_upload(dest)` gives a signed link on
    the node's own address (for an agent on your Mac, `http://localhost:7400` through its tunnel),
    good once and for 15 minutes, and two commands.
 2. The agent runs them in its own shell, in the folder with its code. In a git checkout `pack`
@@ -506,7 +519,7 @@ The checks: at most 512 MB sent and 4 GB unpacked, 200,000 files, and no absolut
 no link that leaves the folder, no device or fifo (Python's tarfile data filter, and more). One bad
 file refuses the whole archive before the VM sees any of it. The link ends when the environment
 closes or the node restarts, and a used, expired or changed one gets a 403. For a few small files
-without a shell of its own, the agent still has `lane_upload` and a job's sync.
+without a shell of its own, the agent still has `terminal_upload` and a job's sync.
 
 One chat holds a live machine (the owner's rule of 2026-11-16: "only one agent chat should have
 access to the same machine at the same time, even if it is the same project"). `environment_open`
@@ -540,11 +553,11 @@ an attach could not give as asked (keep, hours, size, ref) is in `differs`, with
 
 `environment()` and every listing show a live machine the caller does not hold without its handle
 or id: its title, state and `use` ("in use by another chat", "quiet for N min" with the take-over
-call, or "let go"). `environment(on=<handle>)` shows that machine in full. `lane_jobs_list` without
+call, or "let go"). `environment(on=<handle>)` shows that machine in full. `terminal_jobs` without
 `on` lists no environment's jobs over MCP. Studio's checks take `on` for a page on the machine
 (`ui_check(url="http://localhost:3000", on=...)`). Every result of a call that went to an
 environment carries `environment: {id, title}`. Calls with `on="workspace/name"` go to that account
-lane, as before: account lanes and environments live side by side.
+browser, as before: account browsers and environments live side by side.
 
 An environment belongs to the agent that opened it: its grant, and the grants narrowed from it.
 Other people's agents cannot
@@ -559,26 +572,26 @@ its one token pushes only its own repository. What stays are refusals, never que
 rewrite or delete the default branch or a branch the environment did not create, a repository the
 token does not reach. Reading a page in the
 environment's browser still marks the agent as having read untrusted text, so what it does next on
-your account lanes (a post on `personal/x`, say) asks you as before.
+your account browsers (a post on `personal/x`, say) asks you as before.
 
 ### Waiting and memory
 
-- **Waiting for a dev server.** `lane_job_read(job, until_port=3000, wait_ms=120000)` returns as soon
+- **Waiting for a dev server.** `terminal_job_read(job, until_port=3000, wait_s=120)` returns as soon
   as something listens on port 3000 on the VM (`listening: true`; a server on `0.0.0.0`,
   `127.0.0.1` or `::1` counts), or when the job ends first (`listening: false`, its exit code, and
-  stdout and stderr are the end of its output), or at `wait_ms` (at most 120000; call again to wait
+  stdout and stderr are the end of its output), or at `wait_s` (at most 120; call again to wait
   longer). The waiting is one command on the VM that reads its listening sockets
   (`/proc/net/tcp`), not a loop of calls, and the call sends progress while it waits. No `sleep`
-  loops in `lane_exec`.
-- **Waiting for a job to end.** `lane_job_read(job, until_exit=true, wait_ms=120000)` returns when
+  loops in `terminal_exec`.
+- **Waiting for a job to end.** `terminal_job_read(job, until_exit=true, wait_s=120)` returns when
   the job ends. When more is left after your offset than `max_bytes` (16 KB by default), stdout and
-  stderr are each its start and its end, cut at line ends, as `lane_exec` keeps them, with a marker
+  stderr are each its start and its end, cut at line ends, as `terminal_exec` keeps them, with a marker
   between them (`[agentos: 6452946 bytes skipped here, of 6468895 in all; read them with
   stdout_offset=3992]`) and the same words in `note`. `next_stdout_offset` is then the end; a read
   at the offset the marker names pages through what was skipped. A read without `until_exit`, and
   one with `base64_output`, always gives the bytes right after your offset.
-- **Out of memory.** When the VM's kernel kills a process for memory, `lane_job_read` and
-  `lane_exec` say so: `oom` lists each kill since the job or command started (`pid`, `name`,
+- **Out of memory.** When the VM's kernel kills a process for memory, `terminal_job_read` and
+  `terminal_exec` say so: `oom` lists each kill since the job or command started (`pid`, `name`,
   `rss_mb`, `at`, `machine_mb`: the machine's memory, and `in_job`: whether it was one of this job's
   processes, known from the job's own login session on the VM; `null` when the VM cannot tell),
   `oom_killed` is true for a kill of its own, and `note` says it in words ("The kernel killed pid
@@ -596,28 +609,28 @@ your account lanes (a post on `personal/x`, say) asks you as before.
   parent that printed its child's 137 and exited 0. For an ended job this happens before the read
   that reports the end returns. A clean end costs no call. Every machine has swap (see [What is on
   the VM](#what-is-on-the-vm-and-what-is-not)), so a heavy build slows down before it runs out.
-- **Jobs outlive a restart of agentos.** A `lane_job_start` job runs on the VM on its own (its own
+- **Jobs outlive a restart of agentos.** A `terminal_job_start` job runs on the VM on its own (its own
   session, `setsid`), with its stdout and stderr in files there (`/tmp/agentos-wl/<id>.out` and
   `.err`), and the node follows those files over SSH. A restart or an upgrade of the agentos service,
   a laptop that sleeps, or a dropped connection no longer ends a dev server: when the service starts
-  again it finds each job still running on its machine and follows it again, and `lane_job_read` goes
-  on with the same job id and offsets. `lane_job_cancel`, the job's timeout (also one that passed
+  again it finds each job still running on its machine and follows it again, and `terminal_job_read` goes
+  on with the same job id and offsets. `terminal_job_cancel`, the job's timeout (also one that passed
   while the service was down) and closing the environment still end its whole process tree. If the
   machine restarted meanwhile, the job is `lost` and its `note` says so. A job whose node never comes
   back ends a minute past its timeout by itself.
 - **`pkill -f` killed its own shell.** `pkill -f vite` matches the shell that runs it, whose
   command line holds the pattern too, so the shell dies before the rest of the command runs (exit
-  255 over SSH, or 143, 137, a signal), even after it printed something. When a `lane_exec` or an
+  255 over SSH, or 143, 137, a signal), even after it printed something. When a `terminal_exec` or an
   ended job exits that way and its command holds `pkill`, `pgrep` or `killall` with `-f` or
   `--full`, its `note` says the shell running it was killed and why: use `pkill -f '[v]ite'` (the
-  brackets keep the pattern from matching itself), kill a pid, or `lane_job_cancel` for a job.
+  brackets keep the pattern from matching itself), kill a pid, or `terminal_job_cancel` for a job.
 
 ## Watch and take over
 
 `environment_open` returns `links.browser`, and agents are told to give it to you: **the
 browser's live view**, served by the node itself, the environment's browser as it is now. Take
 control to click or type yourself, then hand it back, from that link alone: the environment's
-browser holds no account, so no sign-in is needed (an account lane's link still needs your panel
+browser holds no account, so no sign-in is needed (an account browser's link still needs your panel
 sign-in for that, [THREAT-MODEL.md](THREAT-MODEL.md#viewer-links)). The agent waits until you hand
 it back, watching it and your input count as use, so the reaper does not close it under you, and the trail records
 what you did as `link holder`. The link is on the node's own address as the agent reaches it (for an
@@ -640,7 +653,7 @@ agent gets a link to it on the node's own address, good for 15 minutes (`environ
 `curl -o proof.png "<url>"`. The web app's environment page shows them too
 (`GET /api/orgs/{org}/environments/{id}` lists `proofs`, and each `src` is its PNG).
 
-A proof can also be a **video**. The agent loads the tool with `tools_more("browser_record")`, then:
+A proof can also be a **video**. The agent calls `browser_record` (in its list):
 
 ```
 browser_record(action="start", proof="guest checkout, end to end")
@@ -649,7 +662,7 @@ browser_record(action="stop")                    # or stop with the title: proof
 ```
 
 ffmpeg records the real screen of the environment's browser (the X display it runs on: the VM's for
-`browser = "vm"`, the node's display of that lane for `browser = "node"`) in a process of its own, so
+`browser = "vm"`, the node's display of that browser for `browser = "node"`) in a process of its own, so
 the agent's calls never wait for it, at 10 frames a second, at most 1280 pixels wide, H.264 in an
 MP4 (small: on a docker machine, 41 seconds of filling a form and clicking took 73 KB, and its
 GIF 84 KB). Stopping makes the MP4 and a short GIF preview (sped
@@ -721,7 +734,7 @@ first; while only open ones hold it, new frames are skipped). The reaper removes
 It is on by default because an environment's browser holds no account of yours but the logins you
 bound to it ([Signing in](#signing-in)), and no frame is taken while one is typed. A frame still shows
 whatever the page showed, a secret your app printed or a signed-in page for example, so it is treated like a proof ([THREAT-MODEL.md](THREAT-MODEL.md#viewer-links)):
-only you read it, an account lane is never pictured, and the agent sees only a count
+only you read it, an account browser is never pictured, and the agent sees only a count
 (`environment()` gives `replay: {frames, since, bytes}`).
 
 To look at one after the VM is gone:
@@ -855,7 +868,7 @@ needs it merged to use it on its own branch: an open of that branch reads it the
    gets its dependencies either way. The node then builds the prepared machine for next time in the
    background, on a machine of its own, **only within the node's limits** (below). A failed setup
    never fails the open: the result says what failed, with the end of its log, and no build starts.
-3. With `start` and `port`: the command runs as a job, exactly as `lane_job_start` does (it shows in
+3. With `start` and `port`: the command runs as a job, exactly as `terminal_job_start` does (it shows in
    jobs, a save records it as a service, and a resume starts it again), and the open waits until the
    port listens, up to `ready_timeout_s`. A port that does not listen in time is not a failure
    either: `app.why` says what happened, with the job's last output and the ports that listen instead.
@@ -939,7 +952,7 @@ and what they cost so far.
 
 `environment_save` saves the whole machine, which takes minutes on Hetzner. For a cheap undo inside
 an environment ("checkpoint, try the big refactor, roll back if the tests explode") the agent has two
-tools in `tools_more("terminals")`:
+tools in its list:
 
 | Call | What it does |
 |---|---|
@@ -1009,7 +1022,7 @@ fresh `expires_at`, `signins`, what is `missing`, and the note the last agent le
 agent's own text: the next agent reads it as data, never as instructions. To bring one back, say
 to your agent: "continue the shop in agentos".
 
-**The services.** Each `lane_job_start` command that ran at the save (with the port its command
+**The services.** Each `terminal_job_start` command that ran at the save (with the port its command
 names) is started again, and so is each server that listened on the machine at the save from a
 folder under `/work`, though the node no longer knew it as a job (a node that restarted while a dev
 server ran has lost its job; a server started over your own ssh). The save reads those from the
@@ -1018,7 +1031,7 @@ from `/proc`): the command is the one that was started (`npm run dev` in `/work/
 `node .../vite` it runs), and nothing that was not listening is recorded. The node waits up to 45
 seconds in all for those ports to listen.
 `resumed.services` says for each one `running` and `listening`; one that did not come back has
-`why` and a ready `restart` call (`lane_job_start(cmd="pnpm dev --port 5321", cwd="/work/shop")`),
+`why` and a ready `restart` call (`terminal_job_start(cmd="pnpm dev --port 5321", cwd="/work/shop")`),
 and when none came back `running_jobs_lost` lists them, so the agent never trips over a dev server
 that quietly vanished.
 
@@ -1029,7 +1042,7 @@ save holds neither what was swapped out nor gigabytes of swap. A machine from a 
 at boot like a new one.
 
 **Sign-ins.** A save of a kept environment holds its browser's storage state (cookies and each
-site's local storage), read from the environment's own browser lane only, never an account lane
+site's local storage), read from the environment's own browser only, never an account browser
 or the vault. It is `browser.json` in the save's files, sealed with the saves key like the rest;
 the manifest has only the cookie count. On resume the browser opens with it: on the VM its new
 context starts with that state (and every later start of that browser gets the newest one, so a
@@ -1153,7 +1166,7 @@ Not on it:
   VM's address. With `browser = "vm"` it runs on the VM (above). Either way it has no account and no
   saved login but the logins you bound to it ([Signing in](#signing-in)), whose sessions stay in it and
   its saves; it is deleted with the environment. Its window fills a
-  1920x1080 screen, so pages show their desktop layout (an account lane's window is the size its
+  1920x1080 screen, so pages show their desktop layout (an account browser's window is the size its
   identity drew).
 
 ## Limits
@@ -1166,11 +1179,11 @@ Not on it:
   titles its chats use: two chats that use one title share that computer, and with several open
   their calls name one with `on`. `environment()`'s calls show which client made each.
 - Files go in through git, `environment_upload` (a tarball of a local checkout, at most 512 MB), or
-  `lane_upload` and a job's `sync` (above); they come out through git, or
+  `terminal_upload` and a job's `sync` (above); they come out through git, or
   `environment_download(path)` (a one-use link to a file or folder in `/work`).
 - The node checks where a push goes (declared repository, protected branch), not what the commits
   contain. Review a branch before you merge it.
-- On the dev node (`agentos dev up`), account lanes are simulated. The environment's machine,
+- On the dev node (`agentos dev up`), account browsers are simulated. The environment's machine,
   terminal, git and studio's checks are real.
 
 ## Troubleshooting
@@ -1183,7 +1196,7 @@ Not on it:
 | a bound secret's API answers 401 | the request carried the placeholder: a body, plain HTTP, or another host than the bound one (`network.blocked` says which) | send the key in a header or the query, over HTTPS, to the bound host |
 | `environment_failed` | the VM did not boot or answer SSH in time; it was deleted | `agentos environments setup`; on Hetzner, `agentos vm types` (sold out in the location?) |
 | `state: "starting"` for minutes | first boot without the `dev` image installs the tools | wait, or build the image (step 2) |
-| `no_environment` | a call without `on` in a chat with no environment | the agent calls `environment_open(title=...)` first, or names an account lane with `on` |
+| `no_environment` | a call without `on` in a chat with no environment | the agent calls `environment_open(title=...)` first, or names an account browser with `on` |
 | `which_environment` | a call without the machine's handle: no `on` from a client with no session id, or a title or an id in `on` | the agent passes the `on` its environment_open gave, or opens its own |
 | `environment_already_open` | the title names an open environment with another repository | the agent picks another title |
 | `environment_in_use` | another chat of the agent holds the live machine with this title | the agent opens its own with another title; `take_over=true` once the holder has been quiet for `take_over_minutes` |
@@ -1194,7 +1207,7 @@ Not on it:
 | `repo_not_connected` | a node without approvals, or the clone on the machine still failed (its machine was deleted) | `agentos environments repo add github.com/me/shop` (the message names the repository) |
 | a push is refused | the repository is not declared for `env`, or it is fetch only | `agentos environments repo add github.com/me/shop` |
 | a push is refused with `push_refused` | it would force-push or delete the default branch (or a protected one), force-push or delete a branch the environment did not create, or move a tag | push a new branch and open a pull request |
-| `localhost:3000` does not load in the browser | nothing listens on that port on the VM | `environment()` lists the ports that listen; start the dev server with `lane_job_start` |
+| `localhost:3000` does not load in the browser | nothing listens on that port on the VM | `environment()` lists the ports that listen; start the dev server with `terminal_job_start` |
 | `studio_blank_page` on a dev server | nothing rendered within the wait (15 s on a dev server) | a slow app: `ui_check(..., wait_for="main h1")`; else the app failed to render (the message quotes its console) |
 | a proof link answers "not valid or has expired" | the link is 15 minutes old | `environment()` lists the proof with a fresh link; the web app's page shows it too |
 

@@ -467,18 +467,18 @@ export function nodeServices(_data: OrgData, node: NodeRecord): NodeService[] {
 
 export function nodeTools(): ToolDef[] {
   return [
-    { name: 'browser_open', description: 'Open or focus a page in a lane', effect: 'read' },
+    { name: 'browser_open', description: 'Open or focus a page in a browser', effect: 'read' },
     { name: 'browser_read', description: 'Read the page as text', effect: 'read' },
-    { name: 'browser_screenshot', description: 'Capture the lane', effect: 'read' },
+    { name: 'browser_screenshot', description: 'Capture the page', effect: 'read' },
     { name: 'browser_act', description: 'Click, type and scroll', effect: 'draft' },
     { name: 'browser_post', description: 'Submit something public', effect: 'commit' },
     { name: 'vault_fill', description: 'Fill a login the model never sees', effect: 'secret' },
-    { name: 'terminal_exec', description: 'Run a command in a terminal lane', effect: 'exec' },
-    { name: 'files_put', description: 'Place a file in a lane', effect: 'draft' },
+    { name: 'terminal_exec', description: 'Run a command in a terminal', effect: 'exec' },
+    { name: 'browser_file_put', description: 'Place a file in a browser', effect: 'draft' },
     { name: 'human_ask', description: 'Ask a person and wait', effect: 'read' },
     { name: 'flow_run', description: 'Run a saved flow', effect: 'commit' },
-    { name: 'program_install', description: 'Install into a lane overlay', effect: 'install_overlay' },
-    { name: 'lane_request_control', description: 'Ask for control back', effect: 'read' },
+    { name: 'program_install', description: 'Install into a terminal', effect: 'install_overlay' },
+    { name: 'browser_request_control', description: 'Ask for control back', effect: 'read' },
   ];
 }
 

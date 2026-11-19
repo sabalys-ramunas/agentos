@@ -381,19 +381,32 @@ Install, hardening, backups and upgrades: [deploy/README.md](deploy/README.md).
 
 <br>
 
+The default list is the loop of an agent on its own computer:
+
 | Tool | What it does |
 |:--|:--|
 | `environment_open(title, repo, keep)` | opens a computer (or resumes the one with that title) with the repo in `/work/<name>` and a browser; it saves when idle unless `keep="none"`; returns `on`, which every later call carries |
 | `environment()` | what is open and saved, the cost so far, ports, git, and the pull request link |
 | `environment_close(note)` | stops for now: saved with a note for the next agent (a single-use one is deleted) |
-| `environment_save(note)` | saves the whole machine now, before a risky step |
+| `environment_save(note)` | saves the whole machine now |
 | `environment_upload()`, `environment_download(path)` | one-use links to send a local checkout up, or a file down to you |
-| `lane_file_read`, `lane_file_edit`, `lane_exec` | read and edit code, run a command in its terminal |
-| `lane_job_start`, `lane_job_read(until_port=3000)` | dev servers and long jobs; wait until a port listens |
+| `terminal_exec`, `terminal_job_start`, `terminal_job_read(until_port=3000)`, `terminal_job_cancel` | run a command in its terminal; dev servers and long jobs, waiting until a port listens |
+| `file_read`, `file_write`, `file_edit` | read (several files in one call), write and edit code |
 | `ssh agentos-<id>` (local mode) | the agent's own shell on the machine, with `scp` and `rsync` |
-| `browser_navigate`, `browser_snapshot`, `browser_act`, `browser_tabs` | its browser and tabs: read the page as an outline, act by reference |
-| `login` | signs in on the page with a login you bound to that computer; the model never sees it |
-| `browser_screenshot(proof=...)` | a screenshot kept as proof, at desktop or phone width |
+| `browser_navigate`, `browser_snapshot`, `browser_act`, `browser_wait`, `browser_tabs`, `browser_dialog_answer` | its browser and tabs: read the page as an outline, act by reference |
+| `browser_wait_handback` | waits while you have taken the browser over |
+| `browser_screenshot(proof=...)`, `browser_record` | a screenshot or a video kept as proof, at desktop or phone width |
+| `environment_pull_request(title)` | opens the pull request for the pushed branch, with its proofs |
+| `environment_checkpoint(note)`, `environment_rollback` | an undo point before a risky step, and going back to it |
+| `environment_port(port)` | a link for you to a dev server on the machine |
+| `login`, `approval_wait` | signs in on the page with a login you bound to that computer (the model never sees it); waits for your answer to an approval |
+| `tools_more`, `tools_call` | the other groups, loaded when the agent needs them |
+
+The groups: `accounts` (driving your own signed-in account browsers on a server node: list, open,
+claim, live view, uploads), `browser` (a browser's downloads, switching tabs, scrolling a feed),
+`terminals` (terminals and services the node keeps, raw VMs, forgetting saves), `studio` (checking
+a page you build), `devtools`, `control`, `vault`, `flows`, `workflows`, `mail`, `memory`,
+`profiles` and more.
 
 The other tools load in groups when the agent needs them: [docs/TOOLS.md](docs/TOOLS.md). The
 skill that teaches an agent the loop:

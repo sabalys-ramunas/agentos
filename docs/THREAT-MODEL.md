@@ -74,7 +74,7 @@ network or a protection, and why it is gated or safe (2026-11-07):
 | `POST /api/workspaces/import` (apply; also `enable_schedules`, `reissue_grants`) | gated: it brings copies of logged-in browsers. A dry run is open |
 | `PATCH /api/workspaces/{id}` `default_proxy` | open: only later plans use it, existing lanes are never moved, and a lane it puts behind a used exit is gated above |
 | MCP `workspace_apply` (also `override_proxy_rules`) | an approval a person answers: a commit on no one account always asks, and the card shows every lane and proxy |
-| MCP `env_create` | no exit proxy argument; a shared network is `exec` off an isolated lane, which asks |
+| MCP `terminal_create` | no exit proxy argument; a shared network is `exec` off an isolated lane, which asks |
 | `POST /api/schedules` under the owner's grant, turning one on | gated: it would run as the owner and never end |
 | a schedule under any other grant | bound to it: its lanes and effect are checked when it is made and at every fire, it turns off at the first tick after the grant is revoked, expires or is unknown, and it runs only the version it was made with or one the owner saved in person |
 | `POST /api/flows` with the device credential | saved as an agent's: `publishes: false` counts for nothing and Ask me first is inherited |
@@ -99,13 +99,13 @@ Still open, for the owner to decide:
 
 ## Viewer links
 
-`lane_view` gives the agent a live-view link for a person, and an agent with a shell can open that link
+`browser_view` gives the agent a live-view link for a person, and an agent with a shell can open that link
 itself. So a link is never a person on its own. What only a person may do (hand back, which clears a hold, a
 quarantine and a person's stop; take over a lane that is held, stopped or quarantined; the assisted login;
 adding a site) needs one of two things on top of the link, the same two the rest of the node trusts:
 
 - an **owner link**, made in person (the view-link route from the owner's panel session, or
-  `agentos lane view --control` on the node with its one-time code). `lane_view`, grants, the node token and
+  `agentos lane view --control` on the node with its one-time code). `browser_view`, grants, the node token and
   the device credential never get one;
 - the **owner's panel session in the same browser**. The viewer is served at the panel's own address, so the
   session cookie (SameSite strict) comes with the page's requests, and an agent's `curl` has no such cookie.
@@ -165,7 +165,7 @@ replacing the key revokes them, a live-view or proof token does not open them). 
 `environments.toml` takes none.
 
 An **upload link** (`/view/env/<id>/upload?t=...`, from `environment_upload`) puts one archive into an
-environment's machine, a machine the agent can already write to with `lane_exec`. It is signed with the viewer
+environment's machine, a machine the agent can already write to with `terminal_exec`. It is signed with the viewer
 key (purpose `upload`, 15 minutes), spent on its first use, kept only in the node's memory and dead once the
 environment closes, so a link that leaks into a log is good for one upload into that one VM at most. The node
 takes at most 512 MB, removes the temp file in every case, and checks every member before the VM sees any:
@@ -174,7 +174,7 @@ empty folder so it never reads the node's own files). It never extracts anything
 
 A **download link** (`/view/env/<id>/download?t=...`, from `environment_download` or the owner's `agentos
 environments download`) gives one archive of a file or a folder under the environment's `/work`, off a
-machine the agent can already read with `lane_exec`. It is signed with the viewer key under its own purpose
+machine the agent can already read with `terminal_exec`. It is signed with the viewer key under its own purpose
 (`download`, 15 minutes), so it never opens an upload and an upload link never opens it; it is spent on its
 first use (a `HEAD` spends nothing), kept only in the node's memory and dead once the environment closes. A
 link that leaks is good for one copy of what the agent already packed. What leaves is only what the VM's own
@@ -211,7 +211,7 @@ really do (routing, Ask me first, approvals, budget) before it acts. What each t
 
 | Toolset | Scope checks beyond the wrapper |
 |---|---|
-| `core`, `files` | lane tools authorize on the lane before acting and run inside the lane's control gate; `lanes_list` shows only lanes the grant covers; `login` needs the grant's `secret` special for that lane and an entry bound to the lane and the page's site; approval tools show only the caller's own family's approvals (all of them to an admin grant) |
+| `core`, `accounts`, `browser` | browser and terminal tools authorize on the lane before acting and run inside the lane's control gate; `browsers_list` shows only lanes the grant covers; `login` needs the grant's `secret` special for that lane and an entry bound to the lane and the page's site; approval tools show only the caller's own family's approvals (all of them to an admin grant) |
 | `control` | authorized on the lane named; a freeze stops agents, and only a person in the panel unfreezes |
 | `vault` | `vault_list` shows only entries bound to lanes the grant reaches (all to an admin grant); `vault_fill` as `login` |
 | `flows` | `flow_run` and `flow_save` authorize the flow's lane; a lane pattern must be inside the grant as a pattern (`biz-a/insta*` within `biz-a/*`, never `*`), and a new version of a flow bound outside the grant is refused; `flows_list`, `flow_run` and `ask_first_on` see only flows bound where the grant reaches (a pattern: where it can match a lane of the grant), and a flow outside is not_found; `run_status` and `run_cancel` on a run with no lane need its workflow's whole workspace (or an admin grant) |
@@ -291,7 +291,7 @@ read the answer (same-origin policy) or fetch from it. The lane's own cookies fo
 there (another origin). It ends on Ctrl-C, on `--for` (at most 12 hours), when the SSH session ends,
 or 30 seconds after the laptop last renewed it through the tunnel; the node checks the end on every
 request, so a request after it is refused before the route is even removed. agentosd keeps none across a
-restart. Each start and end (with its reason) is in the action log and the lane's events, and `lanes_list`
+restart. Each start and end (with its reason) is in the action log and the lane's events, and `browsers_list`
 shows agents the address while it lasts.
 
 **Costs it brings.** Any route turns the HTTP cache off for that browser while it exists
@@ -419,7 +419,7 @@ agent's own shell reaches the VM: `ssh`, `scp`, `rsync`, git.
 | Which host | the VM's host key that agentos made and gave the VM, pinned (`StrictHostKeyChecking yes`, a known_hosts file of one line under the entry's own alias): a reused IP after the VM is deleted is refused, and the entry is removed first anyway |
 | What the key may do on the VM | `restrict,pty` and a forced command (`/usr/local/lib/agentos-env/agent-ssh`) in root's authorized_keys: a terminal and the asked command, sftp for scp; no port forwarding either way (a `-R` would let code on the VM reach the laptop's loopback, where agentos and the git gateway listen), no ssh agent (the person's keys never reach the VM), no X11. The entry also sets `ForwardAgent no` and `IdentityAgent none` |
 | What is logged | only that a session ran (its start, and whether it is running, for the idle rule, read over the node's own connection). The commands are **not** in agentos's call log, and policy (effects, Ask me first, taint) does not see them. The VM's git gateway still applies the push rules to every push, ssh or not |
-| Does it widen what the agent reaches | no. The agent already runs as the person on the laptop, and `lane_exec` already runs any command as root on the VM. The VM holds no key or token of the person: its one credential is the gateway token for the environment's own repository (`agentos.git.service.vm_token`: bound to that VM's lane and its listener, `repos=(that repo,)`, revoked by `vm_down` at close), in `~/.config/agentos/gitconfig` on the VM. The person's GitHub token stays sealed in the vault on the laptop |
+| Does it widen what the agent reaches | no. The agent already runs as the person on the laptop, and `terminal_exec` already runs any command as root on the VM. The VM holds no key or token of the person: its one credential is the gateway token for the environment's own repository (`agentos.git.service.vm_token`: bound to that VM's lane and its listener, `repos=(that repo,)`, revoked by `vm_down` at close), in `~/.config/agentos/gitconfig` on the VM. The person's GitHub token stays sealed in the vault on the laptop |
 | Server nodes | no entry and no `ssh` field: the agent is on another computer, and works through the tools only |
 
 What this gives up: a person who reads the call log to see what an agent did on its machine sees the ssh

@@ -53,7 +53,7 @@ Flags:
   creates the seed lanes again; the workspaces, flow and approvals are added only when missing.
 - `--port N` (default 7450) for the MCP and the panel.
 
-Try it from Claude Code: `lanes_list`, `lane_open` on `biz-a/social`, `browser_snapshot`,
+Try it from Claude Code: `browsers_list`, `browser_open` on `biz-a/social`, `browser_snapshot`,
 then `browser_act` on the "New post" ref. Open `biz-b/social` in the panel to see the captcha
 and the live view; hand it back from the panel once you have looked.
 For the devtools tools, `browser_navigate` to `https://social.example/u/biz-a`, then
@@ -370,8 +370,8 @@ bubblewrap's namespaces, and the rest is done outside bwrap as root (the overlay
 image and the lane's kept files, the loop-mounted disk cap, the network namespace whose only route out
 is the egress forwarder, and the cgroup that caps and kills its programs). Unprivileged bubblewrap with
 user namespaces would need each of those reworked, and Ubuntu 24.04 and later restrict unprivileged user
-namespaces by default, so this is not done. On a hardened node `agentos env create` and `env_create`
-refuse such a lane (`no_sandbox`, nothing is created), `lane_exec`, `lane_job_start`, `shell_open` and
+namespaces by default, so this is not done. On a hardened node `agentos env create` and `terminal_create`
+refuse such a lane (`no_sandbox`, nothing is created), `terminal_exec`, `terminal_job_start`, `shell_open` and
 `service_start` on one made earlier fail before anyone is asked to approve, and `service_status` says
 why in `detail`. The choice is the owner's: go back to root (below), or a workbench lane.
 
@@ -380,7 +380,7 @@ node that is `agentos`, which owns the vault, the node token (node.toml) and eve
 profile, and can reach the node's own MCP, which is what brains are kept off it for. So a workbench
 lane is made only by the owner, only with `agentos env create WS/NAME --preset workbench
 --can-read-node-secrets`; its isolation line says which user it runs as and what that can read; every
-command an agent sends to it (`lane_exec`, jobs, shells, the panel's terminal for a grant) waits for a
+command an agent sends to it (`terminal_exec`, jobs, shells, the panel's terminal for a grant) waits for a
 person, never a standing approval and whatever the routing table says; and `agentos doctor` warns
 (`env.workbench`) while one exists. Remove it when the work is done (`agentos env remove WS/NAME`,
 which goes through the running agentosd, as `agentos env doctor` does).
@@ -389,7 +389,7 @@ The same holds for any lane whose filesystem or processes are shared, whatever i
 sandbox with `--filesystem shared` binds the node's `/`, and one with `--processes shared` can reach
 the node's files through other processes, so `--preset workbench --network off` or `--preset sandbox
 --filesystem shared` needs the flag too, says so in its isolation line, and every agent command in it
-(also `lane_install`, `lane_upload` and `service_start`) waits for a person. A shared network alone
+(also `terminal_install`, `terminal_upload` and `service_start`) waits for a person. A shared network alone
 does not count: every service on the node's loopback asks for a secret the lane cannot read. A lane
 made before this rule is treated the same way, with no migration (`agentos.env.exposure`).
 
@@ -424,9 +424,9 @@ claude mcp add --transport http agentos http://localhost:7400/mcp --header "Auth
 
 For a dev daemon, use its port (7430 for mcp-cli) in both lines.
 
-Then, from Claude Code, the loop is `lanes_list`, `browser_navigate`,
-`browser_snapshot`, `browser_act` with a ref, and `lane_view` when a human has to log
-in or pass a CAPTCHA. `lane_view` returns the tunnel command for the live viewer.
+Then, from Claude Code, the loop is `browsers_list`, `browser_navigate`,
+`browser_snapshot`, `browser_act` with a ref, and `browser_view` when a human has to log
+in or pass a CAPTCHA. `browser_view` returns the tunnel command for the live viewer.
 
 What your agents ask for, you approve from the Mac (`agentos dash`, or `agentos approvals
 list` and `agentos approvals approve <id>`), with the owner credential: a token never
@@ -463,20 +463,20 @@ has, so the node's policy, approvals and audit trail apply as they do to an agen
 
 1. **The lane**: `dev/run-<repo>` (`--workspace`, or `--lane ws/name`), a sandbox terminal lane with
    a kept (overlay) filesystem, 4 GB of memory, 2 CPUs and 8 GB of disk (`--memory`, `--cpus`,
-   `--disk`, up to the node's `agent_max_*` caps in `env.toml`). It is made with `env_create` on the
+   `--disk`, up to the node's `agent_max_*` caps in `env.toml`). It is made with `terminal_create` on the
    first run; making it is the first command in that lane, so a person approves it once.
 2. **The files**: what `git ls-files --cached --others --exclude-standard` lists (tracked files,
    and untracked ones `.gitignore` does not exclude), cut into 1 MB chunks named by their sha256.
-   `lane_upload_check` says which chunks the node lacks and `lane_upload` sends only those, so the
+   `terminal_upload_check` says which chunks the node lacks and `terminal_upload` sends only those, so the
    second run sends only what changed. The tree lands in `~/src/<repo>` in the lane, written by the
    lane's own `tar` inside its sandbox. Files deleted here are deleted there; what commands made
    there (`.venv`, `node_modules`, caches in `~/.cache`) stays for the next run. `--fresh` wipes the
    directory first.
-3. **The run**: `lane_job_start` applies the sync and starts the command in the same directory
+3. **The run**: `terminal_job_start` applies the sync and starts the command in the same directory
    relative to the repo as here, in the background, with its output logged on the node. stdout
-   and stderr come back as they are written (`lane_job_read`, a long poll from byte offsets),
+   and stderr come back as they are written (`terminal_job_read`, a long poll from byte offsets),
    `agentos run` exits with the command's exit code (124 after `--timeout`, 130 when cancelled),
-   and Ctrl-C cancels the command on the node (`lane_job_cancel`). Status lines go to stderr.
+   and Ctrl-C cancels the command on the node (`terminal_job_cancel`). Status lines go to stderr.
    `PYTHONUNBUFFERED=1` is set, so Python's output arrives line by line through the pipe.
 
 **The grant.** The connection's grant needs the `exec` special, which `agentos connect` does not
@@ -537,7 +537,7 @@ Ended.
 ```
 
 Open `https://myapp.expose.agentos.invalid/` in the lane (`agentos open personal/linkedin`, or an
-agent's `browser_navigate`: `lanes_list` shows the address under `exposed` while it lasts). In your
+agent's `browser_navigate`: `browsers_list` shows the address under `exposed` while it lasts). In your
 OAuth app's settings, add `https://myapp.expose.agentos.invalid/<your callback path>` as a redirect
 URI. Your app sees `Host: myapp.expose.agentos.invalid` and `X-Forwarded-Proto: https`, so redirect
 URIs it builds from the request come out right. Vite refuses a Host it does not know: add

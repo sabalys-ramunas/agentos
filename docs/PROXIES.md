@@ -113,7 +113,7 @@ by the audit until you remove it.
   device and a lane of its own) on one proxy or one exit IP, a device's lane on another proxy than
   the device's, lanes of two workspaces on one device, and a pin whose timezone, country or locale
   is not where its proxy now exits (from the lane check's daily lookup).
-- `lanes_list` (MCP) and the panel's lane view show each lane's device.
+- `browsers_list` (MCP) and the panel's lane view show each lane's device.
 
 ## Later
 

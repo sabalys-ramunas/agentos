@@ -77,7 +77,7 @@ holds the lane for them while it runs; they never get input in the live view.
 | `GET /api/lanes/{ws}/{name}` | yes | `see` in `ws` | inside the grant's lanes only (403 outside, checked before any lookup) |
 | `POST .../open`, `POST .../close` | yes | `operate` in `ws` | inside the grant's lanes; traced, effect read |
 | `GET .../screenshot` | yes | `watch` on the lane | inside the grant's lanes |
-| `GET`, `POST /api/lanes/{ws}/{name}/login`, `POST .../login/step`, `.../refresh`, `.../take`, `.../resume`, `.../cancel`, `GET .../login/screenshot` (assisted login) | yes, in person (a session or the node token) | a grant that may take control of the lane (`operate`: operator and admin; watch-only is 403) | no (403, an admin grant too): agents ask with `lane_login_request` |
+| `GET`, `POST /api/lanes/{ws}/{name}/login`, `POST .../login/step`, `.../refresh`, `.../take`, `.../resume`, `.../cancel`, `GET .../login/screenshot` (assisted login) | yes, in person (a session or the node token) | a grant that may take control of the lane (`operate`: operator and admin; watch-only is 403) | no (403, an admin grant too): agents ask with `browser_login_request` |
 | `POST /api/lanes/{ws}/{name}/login/save` | yes, in person | `vault` in `ws` (admin), and control of the lane | no (403, an admin grant too) |
 | `GET /api/lanes/{ws}/{name}/check` | yes | `see` in `ws` | inside the grant's lanes only (403 outside, checked before any lookup); traced, effect read |
 | `GET /api/lanes/{ws}/{name}/health` | yes | `see` in `ws` | inside the grant's lanes only (403 outside, checked before any lookup); traced, effect read |
@@ -263,7 +263,7 @@ human.
   ends.
 
 ### Lane check (is this lane safe to use right now?)
-The same checklist as `agentos lane check` and the `lane_check` MCP tool (agentos.stealth.lanecheck). A check
+The same checklist as `agentos lane check` and the `browser_check` MCP tool (agentos.stealth.lanecheck). A check
 never warms the lane, opens a page or contacts the account's site.
 
 - `GET /api/lanes/{ws}/{name}/check` -> LaneCheck, run now (a proxy probe is reused for 60 s).
@@ -425,9 +425,9 @@ A save answers `{ "profile", "version", "state", "created", "changes": { surface
   short-lived link for one lane (default 15 minutes), usable without a session (it is what the agent
   hands to a human for a CAPTCHA or a first login). A control link asked for by the owner in person (the
   panel, or `agentos lane view --control` on the node) is an owner link (`owner: true`): from it, the
-  owner can allow a refused host in one click (below). `lane_view` and grants (even admin grants) never
+  owner can allow a refused host in one click (below). `browser_view` and grants (even admin grants) never
   get one. Every link has a hard end from when it was made that renewing never moves: 30 minutes for a
-  link anyone but a person made (`lane_view`, a grant, the node token, the device credential), 8 hours for
+  link anyone but a person made (`browser_view`, a grant, the node token, the device credential), 8 hours for
   an owner link. On a link that is not an owner link, a hand-back, a take over of a held or stopped lane,
   the assisted login and adding a site need the owner's panel session in the same browser (the viewer is
   served on the panel's own address, so the cookie goes with it): the page then works on an owner link of
@@ -468,7 +468,7 @@ A save answers `{ "profile", "version", "state", "created", "changes": { surface
   asks for control back, and the agent's recent actions on this lane). The page's own
   `POST /view/{ws}/{name}/control?t=`, `/renew?t=` and `/sites?t=` need an `Origin` of
   this host: a request with a foreign Origin or none is refused (403 `denied`), so a link alone
-  cannot take a lane or change its site list from a script. `lane_view` called with a grant from a controller's org
+  cannot take a lane or change its site list from a script. `browser_view` called with a grant from a controller's org
   returns a link to watch only, unless the node's controller ceiling has `control`.
 - `POST /view/{ws}/{name}/sites?t=<token>` `{ "add": "<entry>" }` -> the same answer as `/api/.../sites`.
   The one-click allow of a block notice; an owner link only (403 for any other link).
@@ -570,7 +570,7 @@ the record also has `handback_note` (the human's note, or null).
 
 The hand-back note (agentos.node.handback): when agents get a lane back (a hand back, the idle hand back,
 a resume, the end of a hold), the next thing each agent session sees on that lane carries `handback`: the
-`lane_wait_control` or `lane_control` result, or the first `browser_navigate`, `browser_snapshot`,
+`browser_wait_handback` or `browser_control` result, or the first `browser_navigate`, `browser_snapshot`,
 `browser_act` or `browser_wait` result. It says what changed while agents did not have the lane:
 ```json
 { "what": "A human had test/handback from 08:01:48 to 08:01:54 UTC; handed back by owner.",
@@ -622,7 +622,7 @@ another call by its holder, and `renewable_until_s` how long it can still be ren
 wait (`claim_max_seconds`). `queue_length` counts the callers waiting for the lane (reads, acts,
 claims and runs). The lane's page shows both, with who waits and since when
 (`GET /api/lanes/{ws}/{name}/queue`, "Meters, queues and taint" below); agents see the same through
-`lane_queue`.
+`browser_queue`.
 
 ### Needs you (approvals and questions)
 - `GET /api/approvals?state=pending|approved|denied|expired&limit=50`
@@ -880,7 +880,7 @@ What an agent gets back, beside the web contract above:
   one named after the repository). `signins: false` keeps no browser sign-ins in its saves. `resumed` adds
   `expires_at`, `signins` (in words, or null), `running_jobs_lost` (when no saved service came back) and, in
   each of `services`, `{ "cmd", "cwd", "port", "running", "listening"?, "job_id"?, "why"?, "restart"? }`
-  (`restart`: a ready `lane_job_start(...)` call).
+  (`restart`: a ready `terminal_job_start(...)` call).
 - `environment(id?)` always adds `open` (`this_chat: true` on the one bound here) and `saved`, the agent's
   `note`, and `git.pull_requests` (`{ "url", "number", "branch", "base" }`).
 - `environment_close(id?, discard?, final?, note?, forget?)` -> as before, plus `saves`: `{ "made": save id or
@@ -983,7 +983,7 @@ it cannot read: take control), `paused` (the owner has the live view), `signed_i
 "secret", "length", "autocomplete" }], "choices": [{ "id", "label", "kind" }], "submit", "reason" }`,
 with `kind` one of `sign_in`, `code`, `approve`, `choose`, `confirm`, `captcha`, `stuck`, `signed_in`
 (agentos.vault.steps). Heading, message, labels and the number are the page's own words, for the
-owner only; they never decide anything. `requested` is an agent's `lane_login_request` (`why`, `by`,
+owner only; they never decide anything. `requested` is an agent's `browser_login_request` (`why`, `by`,
 `at`). `signed_in` is the site's session cookie plus an `ok` signal.
 
 The path of a value: the panel session, the node token (CLI) or a live-view control link carries it
@@ -1267,7 +1267,7 @@ A mailbox id goes in a path as `biz-a~mail` for `biz-a/mail`. Owner only.
   agent by default
 - `POST /api/grants/{id}/revoke` (cascades to children)
 - `POST /api/grants/{id}/route` `{ "ssh_host", "local_port" }` (the owner): how the computer that holds this
-  grant reaches the node. `agentos connect` records it for the grant it issued or kept, and `lane_view` then
+  grant reaches the node. `agentos connect` records it for the grant it issued or kept, and `browser_view` then
   gives that grant (and those narrowed from it) a link on that local port and a tunnel command for that SSH
   host, instead of this node's own port and hostname. Kept in `AGENTOS_HOME/connect-routes.json`.
 

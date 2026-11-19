@@ -28,7 +28,7 @@ brand, logged-in browser lanes for your own accounts and routines.
    through the VM. It returns the environment, its workdir, and a link for the human: the
    browser's live view, served by the node (no web app page: the public repository has none).
 3. Every terminal and browser call **without `on`** goes to the environment of this chat:
-   `lane_exec(cmd="npm run dev", cwd=...)`, `lane_job_start`, `shell_open`, `browser_navigate(url=
+   `terminal_exec(cmd="npm run dev", cwd=...)`, `terminal_job_start`, `shell_open`, `browser_navigate(url=
    "http://localhost:3000")`, `browser_snapshot`, `ui_check(url="http://localhost:3000")`.
    `localhost` in the browser is the VM's localhost.
 4. The agent commits and runs `git push origin <branch>` on the VM. The push goes through the
@@ -99,7 +99,7 @@ brand, logged-in browser lanes for your own accounts and routines.
 ## How it is built
 
 - **Machine**: a VM from `agentos.vms` (`VmManager.plan/create/destroy`), lane `env/<id>` (an SSH
-  terminal lane, so `lane_exec`, `lane_job_*`, `shell_*`, services work unchanged). Image: the
+  terminal lane, so `terminal_exec`, `terminal_job_*`, `shell_*`, services work unchanged). Image: the
   `dev` snapshot when the node has one, else Ubuntu 24.04 with git, curl, build tools, Node 22 and
   Python with uv installed by cloud-init. Working folder `/work`.
 - **Git**: the VM's SSH connection carries a reverse tunnel to a gateway listener of its own on the
@@ -167,7 +167,7 @@ that is always made:
 
 - the snapshot: Hetzner `create_image` of type snapshot (labels: the node's, `agentos-save`,
   `agentos-env`, `agentos-family`, `agentos-title`), docker `commit` to `<image>:save-<id>`. Before it the
-  node stops the lane_job_start services and the docker containers, removes the gateway token's git config
+  node stops the terminal_job_start services and the docker containers, removes the gateway token's git config
   (`~/.config/agentos/gitconfig`) and `~/.git-credentials`, and syncs the disk. The machine's SSH keys are
   per machine: the node forgets the old one's key pair when it is deleted, and a machine booted from the
   snapshot gets new ones at its first boot. After the snapshot the node checks the provider lists it, and
@@ -231,7 +231,7 @@ Returns:
              "location": "nbg1", "price_hourly_eur": 0.012},
  "expires_at": "2026-11-13T18:00:00Z",
  "links": {"browser": "http://localhost:7450/...the node's live view, signed..."},
- "next": "Give the human links.browser. Then lane_exec(cmd=\"ls\", cwd=\"/work/shop\") ..."}
+ "next": "Give the human links.browser. Then terminal_exec(cmd=\"ls\", cwd=\"/work/shop\") ..."}
 ```
 
 Since 2026-11-18 it has no `lanes`: an agent took `lanes.browser` for an `on`. A lane's name as `on`
@@ -254,8 +254,8 @@ when it did not listen `why`, `log_tail`, `listening_instead` and `next`. Neithe
 same chat returns the same environment. `links.browser` is the node's own live view (a signed
 take-over link), null until the browser lane exists; there is no `links.environment` (changed
 2026-11-13 by F2: it pointed at a web app page the public repository does not have).
-`lane_exec`, `lane_job_start`, `lane_job_read` and `lane_job_cancel` are in the everyday list with
-the three environment tools; the rest of the terminal tools are `tools_more("terminals")`.
+`terminal_exec`, `terminal_job_start`, `terminal_job_read` and `terminal_job_cancel` are in the everyday list with
+the environment tools; the rest of the terminal tools are `tools_more("terminals")`.
 
 `environment(id: str | None = None) -> dict`: the bound (or named) environment: state, machine, time
 left, cost so far, `ports` (`[{"port": 3000, "process": "node", "link": "..."}]`), `git` (`{"branch",
@@ -346,8 +346,8 @@ For the agent (2026-11-15): `environment()` and `environment_close` list `proofs
 on the node's own address (`/view/env/<id>-browser/proof/<proof>.png?t=...`, 15 minutes) and its
 `expires_at`; each `git.pushed` entry of a branch on GitHub other than the default carries `compare`
 (`https://github.com/<owner>/<repo>/compare/<branch>?expand=1`), and `git.compare` is the newest. The
-file tools `lane_file_read`, `lane_file_write` and `lane_file_edit` are in the everyday list with
-lane_exec and route without `on` to the terminal lane.
+file tools `file_read`, `file_write` and `file_edit` are in the everyday list with
+terminal_exec and route without `on` to the terminal lane.
 
 Uploads (added 2026-11-15, agentos.environments.uploads): `environment_upload(dest: str | None = None)`
 (the terminals toolset, routed without `on` to the terminal lane; authorized as `exec` on it, so it

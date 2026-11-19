@@ -498,7 +498,7 @@ def test_studio_up_has_no_lanes_and_says_unavailable():
 
     lanes = NoLanes(NodeConfig())
     assert lanes.list() == []
-    with pytest.raises(ServiceUnavailable, match="no browser lanes"):
+    with pytest.raises(ServiceUnavailable, match="no account browsers"):
         lanes.get("personal/reddit")
     runtime = Runtime(lanes=lanes)
     assert where_of(runtime) == "local"

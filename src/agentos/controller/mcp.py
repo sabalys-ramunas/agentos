@@ -63,9 +63,9 @@ current_thread: contextvars.ContextVar[str | None] = contextvars.ContextVar("age
 INSTRUCTIONS = guide.instructions([])  # before any node has sent its own (agentos.controller.guide)
 NODES_LIST = Tool(
     name="nodes_list",
-    description="The nodes connected to this controller, with their lanes. Use a node's name as the `node` "
-                "argument of any tool, and the lane ids exactly as shown (\"node/workspace/name\" only appears "
-                "when two nodes have the same lane).",
+    description="The nodes connected to this controller, with their account browsers (`lanes`). Use a node's "
+                "name as the `node` argument of any tool, and the browser ids exactly as shown "
+                "(\"node/workspace/name\" only appears when two nodes have the same one).",
     input_schema={"type": "object", "properties": {}},
     annotations=ToolAnnotations(read_only_hint=True),
 )

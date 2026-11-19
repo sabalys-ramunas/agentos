@@ -7,9 +7,9 @@ description: How to check the UI you build with agentos studio over MCP. ui_chec
 
 Studio opens your page in a review browser (headless Chromium on this computer with
 `agentos studio up`, or on a node), at several widths in light and dark, and measures it.
-It takes a URL, never a lane. In an agentos environment, `localhost` is the environment's VM:
-`ui_check(url="http://localhost:3000")` checks the dev server running there. Lane tools on a
-laptop studio answer `unavailable`: ignore them.
+It takes a URL, never an account browser. In an agentos environment, `localhost` is the
+environment's VM: `ui_check(url="http://localhost:3000")` checks the dev server there.
+Account browser tools here answer `unavailable`: ignore them.
 
 ## Your tools
 

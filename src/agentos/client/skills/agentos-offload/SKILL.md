@@ -63,8 +63,8 @@ same `brains` toolset) with the workspace and `remote`. It never returns a secre
   fast-forward is a commit, a force-push, a deleted branch or a push to the default
   branch always waits for a person. So have the node work on a branch of its own, never
   the default branch.
-- `declared_for` names a lane (`personal/code`) when the owner declared the remote on one.
-  Put that lane in `lanes` below, so the node's pushes are commits on it and run on their
+- `declared_for` names an id (`personal/code`) when the owner declared the remote on one.
+  Put that id in `lanes` below, so the node's pushes are commits on it and run on their
   own (its "Ask me first" decides). Without it every push waits for a person, which is
   safe but slow overnight; say so to the user.
 
@@ -88,7 +88,7 @@ Call `brain_run` on that node:
 {
   "prompt": "<goal>\n\nYou are continuing work handed off from a laptop session. Read AGENTOS_HANDOFF.md in your work dir first. Work on branch <ref> of <remote>, commit as you go, push the branch when done, and finish with a short report of what changed and what is left.",
   "workspace": "<agentos workspace, for example personal>",
-  "lanes": ["<workspace>/<lane>"],
+  "lanes": ["<workspace>/<name>"],
   "context_bundle": {
     "summary": "<summary>",
     "files": ["src/app.py", "docs/notes.md"],
@@ -99,10 +99,10 @@ Call `brain_run` on that node:
 ```
 
 - `workspace`: the agentos workspace the work belongs to; it sets the privacy rules.
-  `lanes_list` shows the workspaces. Ask if it is not clear.
-- `lanes`: only the browser lanes the work needs, all in that workspace, plus the lane
-  `git_remotes` named in `declared_for` (if any). Leave it out for code-only work with no
-  such lane.
+  `browsers_list` shows the workspaces. Ask if it is not clear.
+- `lanes`: the ids of only the account browsers the work needs, all in that workspace, plus
+  the id `git_remotes` named in `declared_for` (if any). Leave it out for code-only work with
+  no such id.
 - `budget` (optional): `{"max_turns", "max_minutes", "max_usd"}`. Set `max_usd` only if
   the user agreed to metered spending.
 - If the answer is an approval request, tell the user to approve it on their phone or in

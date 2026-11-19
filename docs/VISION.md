@@ -96,7 +96,7 @@ The full technical model is in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ```
 environment_open(title, repo, keep) -> its computer, or the saved one with that title back (resumed)
-lane_exec(cmd, cwd, on), shell_open -> commands in its terminal (`on`: the handle the open gave)
+terminal_exec(cmd, cwd, on), shell_open -> commands in its terminal (`on`: the handle the open gave)
 browser_navigate(url), browser_tabs -> its browser; localhost is the VM
 login                               -> signed in with a login the owner bound; the model never sees it
 ui_check(url), ui_diff(url)         -> is the page it built any good? measured, not guessed

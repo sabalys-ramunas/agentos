@@ -593,7 +593,7 @@ const APPROVALS: ApprovalSeed[] = [
 ];
 
 const TOOLS: Partial<Record<Effect, string>> = {
-  exec: 'lane_job_start',
+  exec: 'terminal_job_start',
   vm: 'vm_create',
   pay: 'browser_act',
   irreversible: 'browser_act',
