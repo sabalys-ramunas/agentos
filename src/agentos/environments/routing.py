@@ -55,9 +55,9 @@ ON_ONLY = frozenset({"terminal_jobs", "terminal_job_read", "terminal_job_cancel"
 # what `on` says on a routed tool: short, since it is on about 25 tools an agent reads every turn. The default
 # list's own tools say only where it comes from (the intro and the agentos-lanes skill say an account browser's
 # `on` is its workspace/name); the account browsers' tools, outside it, name both
-ON_TEXT = {"terminal": "From environment_open, or a terminal's workspace/name.",
-           "browser": "From environment_open, or an account browser's workspace/name."}
-ON_TEXT_ENV = "From environment_open."
+ON_TEXT = {"terminal": "The on environment_open gave, or a terminal's workspace/name.",
+           "browser": "The on environment_open gave, or an account browser's workspace/name."}
+ON_TEXT_ENV = "The on environment_open gave."
 
 
 def on_text(tool: str) -> str:

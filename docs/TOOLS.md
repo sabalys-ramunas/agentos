@@ -493,7 +493,7 @@ Act on an element by its ref from your latest snapshot, with human input. Action
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | From environment_open. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave. |
 | `ref` | `str` | yes | From your latest snapshot, like e12. |
 | `action` | `click \| type \| fill \| select \| press \| hover \| scroll` | yes | What to do with the element. |
 | `text` | `str \| None` | no (default None) | What to type or fill, the option to select, or the key to press. |
@@ -517,7 +517,7 @@ Claim an account browser for a job of several acting calls (a post, a login, a f
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | From environment_open, or an account browser's workspace/name. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave, or an account browser's workspace/name. |
 | `purpose` | `str` | yes | Required. What the job is, in a few words other callers see, for example "posting a reply". |
 | `ttl_s` | `float` | no (default 120.0) | Seconds the claim lasts after your last call on the browser, 5 to 900. |
 | `wait_s` | `float` | no (default 30.0) | Seconds to wait in the queue for the browser, 0 to 120. |
@@ -530,7 +530,7 @@ Send an account browser to cold: close it gracefully (cookies and logins stay on
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | From environment_open, or an account browser's workspace/name. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave, or an account browser's workspace/name. |
 
 ## browser_console
 
@@ -540,7 +540,7 @@ The browser's console since its browser started: console messages and uncaught p
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | From environment_open, or an account browser's workspace/name. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave, or an account browser's workspace/name. |
 | `level` | `'error' \| 'warning' \| 'all'` | no (default 'all') | error (errors and page errors only), warning (warnings and errors) or all. |
 | `since` | `int \| None` | no (default None) | A cursor from an earlier result: only messages after it. |
 | `last` | `int` | no (default 50) | At most this many of the newest matching messages, 1 to 200. |
@@ -554,7 +554,7 @@ Who may act in a browser right now: "agent" (you may act), "human" (a person too
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | From environment_open, or an account browser's workspace/name. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave, or an account browser's workspace/name. |
 
 ## browser_dialog
 
@@ -564,7 +564,7 @@ The dialog waiting in the browser (alert, confirm, prompt, beforeunload; browser
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | From environment_open. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave. |
 | `accept` | `bool \| None` | no (default None) |  |
 | `text` | `str \| None` | no (default None) |  |
 
@@ -576,7 +576,7 @@ Delete a file from the browser's inbox or outbox. A download still running is ca
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | From environment_open, or an account browser's workspace/name. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave, or an account browser's workspace/name. |
 | `file_id` | `str` | yes |  |
 
 ## browser_file_get
@@ -587,7 +587,7 @@ One file from the browser's inbox or outbox. Small images come back as an image 
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | From environment_open, or an account browser's workspace/name. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave, or an account browser's workspace/name. |
 | `file_id` | `str` | yes |  |
 
 ## browser_file_put
@@ -598,7 +598,7 @@ Store a file in the browser's inbox, ready for browser_upload or a connector too
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | From environment_open, or an account browser's workspace/name. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave, or an account browser's workspace/name. |
 | `name` | `str` | yes |  |
 | `content_base64` | `str \| None` | no (default None) |  |
 | `url` | `str \| None` | no (default None) |  |
@@ -611,7 +611,7 @@ The browser's files: the inbox (what you stored with browser_file_put, the only 
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | From environment_open, or an account browser's workspace/name. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave, or an account browser's workspace/name. |
 
 ## browser_freeze
 
@@ -644,7 +644,7 @@ Open a URL in the browser's active tab (a bare domain gets https). If the result
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | From environment_open. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave. |
 | `url` | `str` | yes | The page to open, like https://example.com/ |
 | `snapshot` | `'none' \| 'delta' \| 'full'` | no (default 'none') | "full" (the outline once the page has loaded) or "delta" (what changed since your last snapshot of this tab). |
 | `main_only` | `bool` | no (default False) | With a full outline, fold the header, menus, side columns and footer to a line each, to read a large page's main content. |
@@ -657,7 +657,7 @@ The browser's network since its browser started: each request's id, method, url,
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | From environment_open, or an account browser's workspace/name. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave, or an account browser's workspace/name. |
 | `id` | `str \| None` | no (default None) | One request's id from an earlier result (r12): its headers and response body. |
 | `failed_only` | `bool` | no (default False) | Only requests that got no answer or a status of 400 or more. |
 | `min_status` | `int \| None` | no (default None) | Only responses with at least this status, 100 to 599 (500 for server errors). |
@@ -674,7 +674,7 @@ Warm an account browser: start it, its display and live view. Browser tools warm
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | From environment_open, or an account browser's workspace/name. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave, or an account browser's workspace/name. |
 
 ## browser_queue
 
@@ -684,7 +684,7 @@ Who has an account browser and who waits for it: the claim (holder, purpose, sin
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | From environment_open, or an account browser's workspace/name. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave, or an account browser's workspace/name. |
 
 ## browser_record
 
@@ -694,7 +694,7 @@ A video of your environment's browser as proof: start, do the flow, then stop wi
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | From environment_open. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave. |
 | `action` | `str` | yes | "start", or "stop" to keep it. |
 | `proof` | `str \| None` | no (default None) | Its title for the human ("guest checkout, end to end"), at start or stop. |
 
@@ -706,7 +706,7 @@ End your claim on an account browser (from browser_claim), so the callers waitin
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | From environment_open, or an account browser's workspace/name. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave, or an account browser's workspace/name. |
 
 ## browser_request_control
 
@@ -716,7 +716,7 @@ Ask the human who has taken over a browser to hand it back. It only asks: the hu
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | From environment_open, or an account browser's workspace/name. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave, or an account browser's workspace/name. |
 | `reason` | `str` | yes | One short sentence the human sees, for example "The login is done; I need the browser to post the reply." Never put secrets here. |
 
 ## browser_screenshot
@@ -727,7 +727,7 @@ A PNG of what the browser's active tab shows now. Only when the outline is not e
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | From environment_open. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave. |
 | `full_page` | `bool` | no (default False) | The whole page, not only the window. |
 | `width` | `int \| None` | no (default None) | Lay the page out this wide (390: a phone). An environment's browser only. |
 | `proof` | `str \| None` | no (default None) | A title to keep it as proof for the human ("cart after the fix"), with a link, also after the environment closes (browser_record keeps a video). An environment's browser only. |
@@ -740,7 +740,7 @@ Move further down the page with the real wheel: a few notches, at the browser's 
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | From environment_open, or an account browser's workspace/name. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave, or an account browser's workspace/name. |
 | `snapshot` | `'none' \| 'delta' \| 'full'` | no (default 'none') | "none" (default), "delta" (only the outline lines that changed) or "full". |
 
 ## browser_set_readiness
@@ -763,7 +763,7 @@ Read the browser's active tab as an accessibility outline: roles, names and text
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | From environment_open. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave. |
 | `main_only` | `bool` | no (default False) | Fold the header, menus, side columns and footer to a line each, to read a large page's main content. |
 
 ## browser_tabs
@@ -774,7 +774,7 @@ The browser's open tabs and popups: which one is active (every browser tool acts
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | From environment_open. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave. |
 | `select` | `int \| None` | no (default None) |  |
 
 ## browser_task
@@ -808,7 +808,7 @@ Attach inbox files (from browser_file_put) to a file field: `ref` is either the 
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | From environment_open, or an account browser's workspace/name. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave, or an account browser's workspace/name. |
 | `ref` | `str` | yes |  |
 | `file_id` | `str \| list[str]` | yes |  |
 
@@ -820,7 +820,7 @@ A live-view link for a warm browser, so a human can watch and take over: log in,
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | From environment_open, or an account browser's workspace/name. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave, or an account browser's workspace/name. |
 
 ## browser_wait
 
@@ -830,7 +830,7 @@ Wait for the page instead of polling with snapshots: a text appears (for_text) o
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | From environment_open. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave. |
 | `for_text` | `str \| list[str] \| None` | no (default None) | A text, or a list where any one is enough. |
 | `gone_text` | `str \| list[str] \| None` | no (default None) | A text, or a list that must all go away. |
 | `exact` | `bool` | no (default False) | Whole names or texts only ("Post" does not match "Posts"). |
@@ -848,7 +848,7 @@ Wait until the human hands the browser back (or it goes back after a while witho
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | From environment_open. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave. |
 | `wait_s` | `float` | no (default 60.0) | Seconds, 0 to 300. |
 
 ## browsers_list
@@ -886,7 +886,7 @@ Your environment now: state, minutes_left, cost_eur, ports listening on the VM, 
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | From environment_open. Without it, a client with a session id sees its own. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave. Without it, a client with a session id sees its own. |
 
 ## environment_checkpoint
 
@@ -897,7 +897,7 @@ A cheap undo point before a risky step, in seconds and at no cost: every reposit
 | Argument | Type | Required | Description |
 |---|---|---|---|
 | `note` | `str \| None` | no (default None) | What you are about to try, like "before the big refactor". |
-| `on` | `str \| None` | no (default None) | From environment_open. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave. |
 
 ## environment_close
 
@@ -907,7 +907,7 @@ Stop or finish your environment, as the `keep` it was opened with says. Saved: i
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | From environment_open. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave. |
 | `discard` | `bool` | no (default False) | Delete it even with work that is not pushed (no save). |
 | `final` | `bool` | no (default False) | A live one: delete it too. |
 | `note` | `str \| None` | no (default None) | A saved one: what you did and what is next, for the next chat (resumed.note). |
@@ -921,7 +921,7 @@ A file or a folder under /work, to your own computer: a one-use .tar.gz link (15
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | From environment_open. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave. |
 | `path` | `str` | yes | A file or a folder under /work, like "/work/shop/dist" or "report.pdf" (a relative one starts at the workdir). |
 
 ## environment_forget
@@ -939,7 +939,7 @@ Delete saves and their disk snapshots (they bill each month): every save of `tit
 
 Toolset: `core`. Effect: `vm`. Needs the `environments` service.
 
-Your own cloud computer: a VM with a terminal, a browser and the repo, to build and test on instead of the user's laptop. It returns `on`, its handle: pass on="<it>" on every call, since only calls that carry it reach the machine. A new title opens one; a saved one's title resumes it (`resumed`). localhost there is the VM. Nothing in it waits for a person. State starting: environment(on=...) waits for ready. links.browser is its live view, for the human; machine.bigger lists sizes and prices; `differs` says what is not as you asked. A private repo the node cannot read: approval_pending with a review_url for the human.
+Your own cloud computer: a VM with a terminal, a browser and the repo, to build and test on instead of the user's laptop. It returns `on`, this machine's whole handle: keep it and pass on="<it>" on every call (not its id), since only calls that carry it reach the machine. A new title opens one; a saved one's title resumes it (`resumed`). localhost there is the VM. Nothing in it waits for a person. State starting: environment(on=...) waits for ready. links.browser is its live view, for the human; machine.bigger lists sizes and prices; `differs` says what is not as you asked. A private repo the node cannot read: approval_pending with a review_url for the human.
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
@@ -963,7 +963,7 @@ Open a dev server of your environment on the human's own computer, as a preview 
 | Argument | Type | Required | Description |
 |---|---|---|---|
 | `port` | `int` | yes | The port your server listens on in the VM, like 3000 or 5173 (environment() lists them). |
-| `on` | `str \| None` | no (default None) | From environment_open. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave. |
 
 ## environment_pull_request
 
@@ -979,7 +979,7 @@ Open a pull request on GitHub for a branch your environment pushed, with the nod
 | `draft` | `bool` | no (default False) | Open it as a draft. |
 | `branch` | `str \| None` | no (default None) | Which pushed branch (default: the newest one this environment pushed). |
 | `proofs` | `bool \| list[str] \| None` | no (default None) | false leaves the proofs out; a list of proof ids or titles shows only those. |
-| `on` | `str \| None` | no (default None) | From environment_open. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave. |
 
 ## environment_rollback
 
@@ -990,7 +990,7 @@ Put every repository under /work back to a checkpoint: its branch at the checkpo
 | Argument | Type | Required | Description |
 |---|---|---|---|
 | `checkpoint` | `int` | yes | Its number, from environment_checkpoint or environment()'s checkpoints. |
-| `on` | `str \| None` | no (default None) | From environment_open. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave. |
 
 ## environment_save
 
@@ -1001,7 +1001,7 @@ Save the environment now, without closing it: commits and stashes no remote has,
 | Argument | Type | Required | Description |
 |---|---|---|---|
 | `note` | `str \| None` | no (default None) | For the next chat that resumes it: what you were doing and what is next. |
-| `on` | `str \| None` | no (default None) | From environment_open. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave. |
 
 ## environment_upload
 
@@ -1011,7 +1011,7 @@ A one-use link (15 minutes) that puts a .tar.gz of your local checkout (uncommit
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | From environment_open. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave. |
 | `dest` | `str \| None` | no (default None) | A folder under /work (default: the workdir); a relative one starts at the workdir. |
 
 ## events_list
@@ -1035,7 +1035,7 @@ Replace exact text in a file (a relative path starts at the repository). `old` m
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | From environment_open. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave. |
 | `path` | `str` | yes |  |
 | `old` | `str` | yes |  |
 | `new` | `str` | yes |  |
@@ -1049,7 +1049,7 @@ Read a text file with line numbers (as cat -n); a relative path starts at the re
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | From environment_open. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave. |
 | `path` | `str \| None` | no (default None) | One file, like "src/app.py". |
 | `paths` | `list[str] \| None` | no (default None) | Several, like ["package.json", "src/*.js"], instead of path. |
 | `offset` | `int` | no (default 1) | The first line (1 is the first). |
@@ -1063,7 +1063,7 @@ Write a whole text file (at most 1 MB), replacing it; folders are made. A relati
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | From environment_open. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave. |
 | `path` | `str` | yes |  |
 | `content` | `str` | yes |  |
 
@@ -1224,7 +1224,7 @@ Sign the browser in with a login from the vault. An environment's browser opens 
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | From environment_open. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave. |
 | `entry` | `str \| None` | no (default None) | A login's name, only when several match (environment(), or vault_list in the vault toolset, names them). |
 
 ## mail_connect
@@ -1634,7 +1634,7 @@ Open an interactive shell (a PTY) in a terminal. The session keeps running when 
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | From environment_open, or a terminal's workspace/name. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave, or a terminal's workspace/name. |
 | `cols` | `int` | no (default 120) |  |
 | `rows` | `int` | no (default 32) |  |
 
@@ -1754,7 +1754,7 @@ Run one shell command on your environment's machine (or a terminal) and wait for
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | From environment_open. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave. |
 | `cmd` | `str` | yes |  |
 | `timeout_s` | `float` | no (default 60) | At most 200. |
 | `stdin` | `str \| None` | no (default None) |  |
@@ -1769,7 +1769,7 @@ Install programs into a terminal from a pinned source: apt (the node's signed ap
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | From environment_open, or a terminal's workspace/name. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave, or a terminal's workspace/name. |
 | `packages` | `list[str]` | yes |  |
 | `source` | `str` | no (default 'apt') |  |
 
@@ -1810,7 +1810,7 @@ Start a shell command on your environment's machine (or a terminal) in the backg
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | From environment_open. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave. |
 | `cmd` | `str` | yes |  |
 | `cwd` | `str \| None` | no (default None) | A folder such as /work/shop. |
 | `env` | `dict[str, str] \| None` | no (default None) | Variables to add. |
@@ -1846,7 +1846,7 @@ Store file chunks on the node for a later sync into this terminal (terminal_job_
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | From environment_open, or a terminal's workspace/name. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave, or a terminal's workspace/name. |
 | `chunks` | `dict[str, str]` | yes |  |
 
 ## terminal_upload_check
@@ -1857,7 +1857,7 @@ Which of these chunks (sha256 hex of each piece of a file) the node does not hol
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | From environment_open, or a terminal's workspace/name. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave, or a terminal's workspace/name. |
 | `chunks` | `list[str]` | yes |  |
 
 ## terminals_list
@@ -1974,7 +1974,7 @@ Fill one login field from a vault entry. `field` is a snapshot ref (for example 
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
-| `on` | `str \| None` | no (default None) | From environment_open, or an account browser's workspace/name. |
+| `on` | `str \| None` | no (default None) | The on environment_open gave, or an account browser's workspace/name. |
 | `field` | `str` | yes |  |
 | `entry` | `str` | yes |  |
 

@@ -332,10 +332,10 @@ async def environment_open(ctx: ToolContext, *, title: str | None = None, repo: 
                            wait_s: float = 240, keep: str | None = None, signins: bool | None = None,
                            take_over: bool = False, network: str | None = None) -> dict:
     """Your own cloud computer: a VM with a terminal, a browser and the repo, to build and test on
-    instead of the user's laptop. It returns `on`, its handle: pass on="<it>" on every call, since only
-    calls that carry it reach the machine. A new title opens one; a saved one's title resumes it
-    (`resumed`). localhost there is the VM.
-    Nothing in it waits for a person. State starting: environment(on=...) waits for ready.
+    instead of the user's laptop. It returns `on`, this machine's whole handle: keep it and pass
+    on="<it>" on every call (not its id), since only calls that carry it reach the machine. A new
+    title opens one; a saved one's title resumes it (`resumed`). localhost there is the VM. Nothing
+    in it waits for a person. State starting: environment(on=...) waits for ready.
     links.browser is its live view, for the human; machine.bigger lists sizes and prices; `differs`
     says what is not as you asked. A private repo the node cannot read: approval_pending with a
     review_url for the human.
@@ -560,7 +560,7 @@ async def environment(ctx: ToolContext, *, on: str | None = None) -> dict:
     your agent's open and saved ones (`open`, `saved`).
 
     Args:
-        on: From environment_open. Without it, a client with a session id sees its own.
+        on: The on environment_open gave. Without it, a client with a session id sees its own.
     """
     await ctx.authorize(Effect.READ, summary="read the state of an environment")
     mgr = _mgr(ctx)
@@ -625,7 +625,7 @@ async def environment_close(ctx: ToolContext, *, on: str | None = None, discard:
     on in the background (state closing).
 
     Args:
-        on: From environment_open.
+        on: The on environment_open gave.
         discard: Delete it even with work that is not pushed (no save).
         final: A live one: delete it too.
         note: A saved one: what you did and what is next, for the next chat (resumed.note).
@@ -750,7 +750,7 @@ async def environment_save(ctx: ToolContext, *, note: str | None = None, on: str
 
     Args:
         note: For the next chat that resumes it: what you were doing and what is next.
-        on: From environment_open.
+        on: The on environment_open gave.
     """
     mgr = _mgr(ctx)
     env = _find(ctx, on)
@@ -803,7 +803,7 @@ async def environment_port(ctx: ToolContext, *, port: int, on: str | None = None
 
     Args:
         port: The port your server listens on in the VM, like 3000 or 5173 (environment() lists them).
-        on: From environment_open.
+        on: The on environment_open gave.
     """
     from agentos.environments import ports as env_ports
 
@@ -842,7 +842,7 @@ async def environment_pull_request(ctx: ToolContext, *, title: str, body: str | 
         draft: Open it as a draft.
         branch: Which pushed branch (default: the newest one this environment pushed).
         proofs: false leaves the proofs out; a list of proof ids or titles shows only those.
-        on: From environment_open.
+        on: The on environment_open gave.
     """
     from agentos.environments import pulls
 

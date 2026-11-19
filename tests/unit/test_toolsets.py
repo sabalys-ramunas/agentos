@@ -75,10 +75,12 @@ CORE_MAX_TOOLS = 30  # the environment loop (28) and the two meta tools: docs/de
 # checkpoints, the port and browser_record are in it, and the shared browser tools lost the account
 # rules. Measured 8,201 for 30 tools, plus about 2%.
 # 7,100 since the review's phase 2 the same day (2026-11-19): three merges (browser_tabs selects,
-# browser_dialog answers, approval_wait reads without waiting), a short `on` ("From environment_open."),
-# no "Effect:" lines (the annotations carry it), no "Errors:" lists (each error's own fix line says it) and
-# no lists of returned fields the result shows anyway. Measured 6,964 for 30 tools, plus about 2%.
-CORE_MAX_TOKENS = 7100
+# browser_dialog answers, approval_wait reads without waiting), a short `on` with no account browser in
+# it, no "Effect:" lines (the annotations carry it), no "Errors:" lists (each error's own fix line says it)
+# and no lists of returned fields the result shows anyway. `on` stays "The on environment_open gave":
+# "From environment_open." saved 50 tokens and a live Haiku run then left `on` out three times and passed
+# the open's id once. Measured 7,013 for 30 tools, plus about 2%.
+CORE_MAX_TOKENS = 7150
 
 CORE_TOOLS = {
     "environment_open", "environment", "environment_save", "environment_close", "environment_upload",

@@ -37,7 +37,7 @@ async def environment_checkpoint(ctx: ToolContext, *, note: str | None = None, o
 
     Args:
         note: What you are about to try, like "before the big refactor".
-        on: From environment_open.
+        on: The on environment_open gave.
     """
     mgr, env = _open_env(ctx, on, "checkpoint")
     await ctx.authorize(Effect.READ, lane_id=None, summary=f"checkpoint environment {env.id} ({env.title})")
@@ -66,7 +66,7 @@ async def environment_rollback(ctx: ToolContext, *, checkpoint: int, on: str | N
 
     Args:
         checkpoint: Its number, from environment_checkpoint or environment()'s checkpoints.
-        on: From environment_open.
+        on: The on environment_open gave.
     """
     mgr, env = _open_env(ctx, on, "roll back")
     await ctx.authorize(Effect.READ, lane_id=None,
