@@ -414,7 +414,7 @@ async def test_a_timeline_interleaves_calls_and_frames_with_signed_links(node, s
     fresh = token_of(mgr.replay_timeline(env)["timeline"][-2]["url"])
     assert mgr.signed_frame("env", f"{env.id}-browser", frame["id"], fresh) == jpg
     page = mgr.replay_timeline(env, limit=1)
-    assert len(page["timeline"]) == 1 and page["next"] == page["timeline"][0]["at"]
+    assert len(page["timeline"]) == 1 and page["next"] == page["timeline"][0]["at"] + "|1"
     rest = mgr.replay_timeline(env, after=page["next"])["timeline"]
     assert [i["at"] for i in rest] == [i["at"] for i in out["timeline"][1:]]
 

@@ -759,7 +759,7 @@ to you only (a member's role and an agent's grant get `denied`):
   time: a frame is `{kind: "frame", id, at, cause, tool, summary, page_url, page_title, width, height,
   bytes, url, src}`, a call `{kind: "call", at, tool, summary, ok, error, exit_code, lane}`. `url` is
   the frame on the node's viewer, signed like a proof's link (15 minutes; replacing the viewer key
-  revokes it), `src` the app's own route for it. Pass `next` as `after` for the next page.
+  revokes it), `src` the app's own route for it. Pass `next` as `after` for the next page (it is the last item's time and a count, `<at>|<n>`, so no item that shares a millisecond with a page's edge is lost).
 - `GET /api/orgs/{org}/environments/{id}/replay/{frame}.jpg` is a frame (its `src`).
 
 ### Who the commits are by

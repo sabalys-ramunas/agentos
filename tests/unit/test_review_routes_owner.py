@@ -73,8 +73,6 @@ def test_r2_an_archive_replaced_together_with_its_sha256_is_refused(tmp_path):
 # ------------------------------------------------------------------ R3
 
 
-@pytest.mark.xfail(strict=True, reason="R3: the replay's `next` is the last item's time and the next page "
-                   "keeps only items strictly after it, so an item at the same millisecond is skipped")
 def test_r3_paging_the_replay_loses_no_item_at_a_page_edge():
     from agentos.environments.replay import Replay
 
@@ -94,3 +92,25 @@ def test_r3_paging_the_replay_loses_no_item_at_a_page_edge():
         if after is None:
             break
     assert len(seen) == 3, seen  # two calls and one frame
+
+
+def test_r3_many_items_of_one_millisecond_page_through_once_each():
+    from agentos.environments.replay import Replay
+
+    at = "2026-11-19T10:00:00.123Z"
+    calls = [{"at": at, "tool": f"t{i}"} for i in range(7)] + [{"at": "2026-11-19T10:00:01.000Z", "tool": "last"}]
+    store = SimpleNamespace(frames=lambda _e: [], calls=lambda _e: calls)
+    fake = SimpleNamespace(replay_store=lambda: store, _replay_link=lambda _e: None,
+                           replay_kept_until=lambda _e: None, settings=SimpleNamespace(replay=True))
+    env = SimpleNamespace(id="eabc123", title="t", state="ready", browser="node", created_at=None,
+                          closed_at=None, calls=[])
+    seen, after = [], None
+    for _ in range(10):
+        page = Replay.replay_timeline(fake, env, after=after, limit=3)
+        seen += [i["tool"] for i in page["timeline"]]
+        after = page["next"]
+        if after is None:
+            break
+    assert seen == [f"t{i}" for i in range(7)] + ["last"]
+    # a bare time, as the old cursor was, is still read: strictly after it
+    assert [i["tool"] for i in Replay.replay_timeline(fake, env, after=at, limit=5)["timeline"]] == ["last"]
