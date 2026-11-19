@@ -14,7 +14,7 @@ run in the background (a control listener must not slow down a take over); a rea
 note at most CLAIM_WAIT_S.
 
 Delivery: the next thing each agent session sees on the lane carries the note once, as
-`handback`: the lane_wait_control (or lane_control) result, or the first browser tool result. A
+`handback`: the browser_wait_handback (or browser_control) result, or the first browser tool result. A
 note lives NOTE_TTL_S; a new loss of control replaces it.
 """
 

@@ -694,7 +694,7 @@ class Client(Credentials):
                               connect_again(conn))
         try:
             with McpSession(conn.local_port, token, timeout=15) as session:
-                return {"whoami": session.call("whoami"), "lanes": session.call("lanes_list").get("lanes", [])}
+                return {"whoami": session.call("whoami"), "lanes": session.call("browsers_list").get("lanes", [])}
         except McpError as exc:
             raise ClientError(f"{conn.name}: {explain(exc, conn)}", reconnect_hint(exc, conn)) from None
 
@@ -734,10 +734,10 @@ class Client(Credentials):
                               connect_again(conn))
         try:
             with McpSession(conn.local_port, token, timeout=60) as session:
-                view = session.call("lane_view", {"on": lane})
+                view = session.call("browser_view", {"on": lane})
                 if view.get("viewer") is None and wake:
-                    session.call("lane_open", {"on": lane})
-                    view = session.call("lane_view", {"on": lane})
+                    session.call("browser_open", {"on": lane})
+                    view = session.call("browser_view", {"on": lane})
         except McpError as exc:
             raise ClientError(f"{conn.name}: {explain(exc, conn)}", reconnect_hint(exc, conn)) from None
         except ToolError as exc:

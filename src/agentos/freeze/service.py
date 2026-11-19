@@ -37,7 +37,7 @@ Where agents stop: `gate` is a LaneManager gate (every non-human caller of open,
 `check_call` runs inside PolicyService.authorize_call for every non-person call that names a lane,
 and refuses everything during a node or mesh freeze. A call that names a workspace (its `workspace`
 argument, a memory call) is refused during a freeze of that workspace. These checks do not look at
-the grant: every agent grant, wide or narrow, is stopped inside a frozen scope. lane_freeze, lane_control and whoami stay
+the grant: every agent grant, wide or narrow, is stopped inside a frozen scope. browser_freeze, browser_control and whoami stay
 callable, so an agent can still freeze more and see why it is stopped.
 
 Unfreeze is owner only and never restores a grant. The CLI on the node (`agentos unfreeze`), a

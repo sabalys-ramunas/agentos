@@ -532,7 +532,7 @@ def _call_story(row: dict[str, Any], ctx: _Ctx, about: list[dict[str, Any]] | No
 
 
 # What a call in an environment did, in a person's words: the tool's family, then the step's own label.
-ENV_KINDS = (("command", ("lane_exec", "lane_job_start", "terminal")), ("browser", ("browser_", "ui_", "lane_view")),
+ENV_KINDS = (("command", ("terminal_exec", "terminal_job_start", "terminal")), ("browser", ("browser_", "ui_", "browser_view")),
              ("files", ("files_",)), ("git", ("git_", "environment_push")))
 ENV_STEP = {"command": "Ran a command in the terminal", "browser": "Used the browser",
             "files": "Moved files", "git": "Worked with git", "other": "Took a step"}

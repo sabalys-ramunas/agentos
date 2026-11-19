@@ -1,5 +1,5 @@
 """The lane check (agentos.stealth.lanecheck): its rules, the cookie reader, the checker end to end against a
-fake host, the health monitor's use of it, the lane_check tool, the panel routes and the CLI."""
+fake host, the health monitor's use of it, the browser_check tool, the panel routes and the CLI."""
 
 from __future__ import annotations
 

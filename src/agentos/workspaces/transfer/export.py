@@ -472,7 +472,7 @@ def _precheck_lanes(src: Sources, lanes: list[tuple[str, LaneDir]]) -> set[str]:
     for _, lane in lanes:
         if (lane.id in warm or src.host.browser_pids(lane.profile)) and not available:
             raise ExportRefused(f"lane {lane.id} is warm and no daemon answers on the ops socket to pause it. Close "
-                                "it (lane_close), or stop agentosd, then export again")
+                                "it (browser_close), or stop agentosd, then export again")
     return warm
 
 

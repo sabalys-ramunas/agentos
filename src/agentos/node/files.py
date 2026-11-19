@@ -1,7 +1,7 @@
 """Per-lane files: the inbox agents fill and the outbox the lane's downloads land in.
 
     AGENTOS_HOME/lanes/<ws>/<name>/files/
-      inbox/<id>/<name>        files_put; the only files browser_upload may attach
+      inbox/<id>/<name>        browser_file_put; the only files browser_upload may attach
       outbox/<id>/<name>       every download the lane's browser makes
       <box>/<id>/.meta.json    type (sniffed from the bytes), size, sha256, status
 
@@ -64,17 +64,17 @@ EARLY_SNIFF_BYTES = 8 * 1024
 ID_RE = re.compile(r"^(in|out)_[0-9a-f]{12}$")
 MAX_NAME_BYTES = 150
 STALE_TMP_SECONDS = 3600
-USER_AGENT = f"agentos/{__version__} (files_put)"
+USER_AGENT = f"agentos/{__version__} (browser_file_put)"
 
 
 @dataclass(frozen=True)
 class FilesConfig:
-    max_bytes: int = 200 * MB            # one files_put
+    max_bytes: int = 200 * MB            # one browser_file_put
     download_max_bytes: int = 200 * MB   # one download
     download_stall_seconds: float = 60.0  # a download that stops growing this long is cancelled as partial
-    inline_image_bytes: int = 3_500_000  # files_get returns smaller png/jpeg/gif/webp inline
+    inline_image_bytes: int = 3_500_000  # browser_file_get returns smaller png/jpeg/gif/webp inline
     inline_text_bytes: int = 256 * 1024  # and smaller txt/csv as text
-    fetch_timeout: float = 300.0         # a whole files_put url fetch
+    fetch_timeout: float = 300.0         # a whole browser_file_put url fetch
     allowed_kinds: frozenset[str] = frozenset({"image", "video", "pdf", "csv", "txt"})
 
     @classmethod
@@ -419,7 +419,7 @@ class LaneFiles:
     @staticmethod
     def box_of(file_id: str) -> str:
         if not isinstance(file_id, str) or not ID_RE.match(file_id):
-            raise InvalidRequest(f"not a file id: {str(file_id)[:40]!r} (ids look like in_3f9a0c1b2d4e; see files_list)")
+            raise InvalidRequest(f"not a file id: {str(file_id)[:40]!r} (ids look like in_3f9a0c1b2d4e; see browser_files)")
         return INBOX if file_id.startswith("in_") else OUTBOX
 
     # ---- metadata ------------------------------------------------------------------------
@@ -488,7 +488,7 @@ class LaneFiles:
         if not entry.is_symlink() and entry.is_dir():
             meta = self._read_meta(box, file_id)
         if meta is None:
-            raise NotFound(f"no file {file_id} in this lane; see files_list")
+            raise NotFound(f"no file {file_id} in this lane; see browser_files")
         return self._live(meta)
 
     def path(self, file_id: str, *, box: str | None = None) -> Path:
@@ -497,7 +497,7 @@ class LaneFiles:
         meta = self.get(file_id)
         if box is not None and meta.box != box:
             raise InvalidRequest(f"{file_id} is in the {meta.box}; only files in the lane's {box} can be used "
-                                 "here. Put it with files_put first.")
+                                 "here. Put it with browser_file_put first.")
         if meta.status is not FileStatus.COMPLETE:
             raise InvalidRequest(f"{file_id} is {meta.status.value}"
                                  + (f" ({meta.error})" if meta.error else "") + "; only complete files can be used")
@@ -811,7 +811,7 @@ def check_fetch_url(url: str, policy: FetchPolicy | None = None) -> str:
         raise InvalidRequest(f"malformed URL {value[:200]!r}") from None
     schemes = ("https",) if policy.https_only else ("https", "http")
     if parts.scheme.lower() not in schemes or not parts.hostname:
-        raise InvalidRequest(f"files_put fetches only {' or '.join(schemes)} URLs, not {value[:120]!r}")
+        raise InvalidRequest(f"browser_file_put fetches only {' or '.join(schemes)} URLs, not {value[:120]!r}")
     if parts.username is not None or parts.password is not None:
         raise InvalidRequest("URLs with a user name or password are not allowed")
     if not policy.allow_private and is_private_host(parts.hostname):
@@ -958,7 +958,7 @@ async def fetch_url(url: str, sink: Any, *, proxy: ProxyConfig | None = None,
 
 class NodeFiles:
     """The runtime's `files` service: resolves a file id from a lane's inbox to its content path
-    (for flows that upload a file an agent put with files_put). Every check of LaneFiles.path
+    (for flows that upload a file an agent put with browser_file_put). Every check of LaneFiles.path
     applies: complete files only, no symlinks or hard links, nothing outside the inbox."""
 
     def __init__(self, config: Any):

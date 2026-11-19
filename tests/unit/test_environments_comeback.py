@@ -67,7 +67,7 @@ async def test_a_service_that_does_not_come_back_gets_a_ready_restart_call(node,
     assert slow["running"] and slow["listening"] is False and "did not listen" in slow["why"]
     dead = by_cmd["./worker --port 5000"]
     assert dead["running"] is False and "not found" in dead["why"]
-    assert dead["restart"] == 'lane_job_start(cmd="./worker --port 5000", cwd="/work/shop")'
+    assert dead["restart"] == 'terminal_job_start(cmd="./worker --port 5000", cwd="/work/shop")'
     assert "running_jobs_lost" not in again["resumed"]  # two came back
     assert any("./worker" in m for m in again["resumed"]["missing"])
     assert again["resumed"]["expires_at"] == again["expires_at"]
@@ -84,7 +84,7 @@ async def test_nothing_restarts_lists_the_lost_jobs(node, monkeypatch):
     monkeypatch.setattr(node["envs"], "job_start", broken)
     again = await node["call"]("environment_open", title=TITLE, session="chat-2")
     assert again["resumed"]["running_jobs_lost"] == ["pnpm dev --port 5321 (port 5321)"]
-    assert again["resumed"]["services"][0]["restart"].startswith('lane_job_start(cmd="pnpm dev --port 5321"')
+    assert again["resumed"]["services"][0]["restart"].startswith('terminal_job_start(cmd="pnpm dev --port 5321"')
 
 
 # scripts.LISTENING's lines from ubuntu:24.04 in docker (2026-11-16): a job started the way agentos
@@ -152,7 +152,7 @@ async def test_a_dev_server_the_node_lost_track_of_comes_back_on_resume(node, mo
 
 
 def test_restart_call_quotes_the_command():
-    assert comeback.restart_call('echo "hi"', None) == 'lane_job_start(cmd="echo \\"hi\\"")'
+    assert comeback.restart_call('echo "hi"', None) == 'terminal_job_start(cmd="echo \\"hi\\"")'
 
 
 # ------------------------------------------------------------------ 2. stop with a note, finish for good

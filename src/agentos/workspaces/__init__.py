@@ -2,7 +2,7 @@
 
     service.build(runtime)     -> WorkspaceService (registers "workspaces")
     tools.tool_specs(runtime)  -> workspace_list, workspace_queue, workspace_plan, workspace_apply,
-                                  lane_set_readiness
+                                  browser_set_readiness
     cli.app                    -> `agentos workspace ...`
     api.routes(runtime)        -> /api/workspaces*, /api/templates*, /api/lanes/{ws}/{name}/readiness
 """

@@ -276,9 +276,9 @@ def _open_result(ctx: ToolContext, mgr: EnvironmentManager, env: Environment, ha
     if env.state == "ready":
         out["next"] = ("Give the human links.browser, the live view of this environment's browser; if your client "
                        "can open a page beside the chat (T3 Code: preview_open), open it there. "
-                       "lane_file_read, lane_file_edit and lane_file_write work on files (a relative path starts in "
-                       f'{env.workdir}); lane_exec(cmd="npm test", cwd="{env.workdir}") runs a command '
-                       f'and lane_job_start(cmd="npm run dev", cwd="{env.workdir}") a dev server (lane_job_read reads '
+                       "file_read, file_edit and file_write work on files (a relative path starts in "
+                       f'{env.workdir}); terminal_exec(cmd="npm test", cwd="{env.workdir}") runs a command '
+                       f'and terminal_job_start(cmd="npm run dev", cwd="{env.workdir}") a dev server (terminal_job_read reads '
                        "its output). They are in your list; " + _on_words(ctx, handle) + " The other "
                        "terminal tools: tools_more(\"terminals\"). "
                        "http://localhost:<port> in browser_navigate and in ui_check (tools_more(\"studio\")) is the "
@@ -829,7 +829,7 @@ async def environment_port(ctx: ToolContext, *, port: int, on: str | None = None
     out["listening"] = port in listening
     out["next"] = (f"give the human the url: they {first}open {out['url']} in their own browser"
                    + ("" if out["listening"] else f". Nothing listens on port {port} yet: start the server "
-                      "(lane_job_start, with --host 0.0.0.0 or 127.0.0.1) and the link works once it does"))
+                      "(terminal_job_start, with --host 0.0.0.0 or 127.0.0.1) and the link works once it does"))
     return out
 
 

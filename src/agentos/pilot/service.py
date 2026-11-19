@@ -1,4 +1,4 @@
-"""The pilot as a durable run: `lane_do` submits one, the runner runs it, `run_status` reads it.
+"""The pilot as a durable run: `browser_task` submits one, the runner runs it, `run_status` reads it.
 
 A pilot run is a runner `Run` of kind `pilot`, so it has an id, `run_status`, `run_cancel` and an
 idempotency key like any flow. This service is its executor: it mints the child grant, claims the
@@ -10,7 +10,7 @@ runner queues the run again and the same click goes, which the commit gate lets 
 sends what was approved. A node restart loses that state on purpose: a run with steps behind it ends
 `pilot_interrupted` instead of starting the goal again, which could post twice.
 
-A person can turn the worker off on one lane (`agentos plugins lane`). `lane_do` refuses then, a
+A person can turn the worker off on one lane (`agentos plugins lane`). `browser_task` refuses then, a
 queued run ends when it comes up, and a run that is going stops at its next step, because the switch
 is read again at each one. Whether a publish asks is the lane's Ask me first, read by the policy.
 """
@@ -142,7 +142,7 @@ def looks_secret(name: str) -> bool:
 
 
 def parse_values(values: dict[str, Any] | None) -> list[dict[str, str]]:
-    """`lane_do`'s values as stored rows. A string is plain text a model may read. A password has
+    """`browser_task`'s values as stored rows. A string is plain text a model may read. A password has
     no business here: it is named by its vault entry, {"vault": "entry"}, and only a label is shown."""
     rows: list[dict[str, str]] = []
     for name, given in (values or {}).items():
@@ -319,7 +319,7 @@ class PilotService:
     def _authorizer(self, run: Any, principal: Principal, brain: str) -> Callable[[str], Awaitable[None]]:
         """A model that writes needs the caller's own `brain` right, as brain_run does."""
         async def authorize(text: str) -> None:
-            ctx = self.runtime.require("policy").context_for_grant(run.grant_id, principal=principal, tool="lane_do",
+            ctx = self.runtime.require("policy").context_for_grant(run.grant_id, principal=principal, tool="browser_task",
                                                                    lane_id=run.lane)
             await ctx.authorize(Effect.BRAIN, summary=f"Ask {brain} one question for pilot run {run.id}",
                                 content={"run": run.id, "brain": brain,
@@ -399,7 +399,7 @@ class PilotService:
             except AgentosError as e:
                 return Outcome("finish", RunStatus.FAILED, error={"code": e.code, "message": e.message})
         try:
-            await session.tools.call("lane_claim", on=run.lane, purpose=f"pilot run {run.id}", ttl_s=CLAIM_TTL_S,
+            await session.tools.call("browser_claim", on=run.lane, purpose=f"pilot run {run.id}", ttl_s=CLAIM_TTL_S,
                                      wait_s=CLAIM_WAIT_S)
         except ToolFailed as e:
             if e.code == "busy":
@@ -444,7 +444,7 @@ class PilotService:
                                                     "check the lane before anything is tried again"})
         finally:
             with contextlib.suppress(ToolFailed):
-                await session.tools.call("lane_release", on=run.lane)
+                await session.tools.call("browser_release", on=run.lane)
         if result.status is Status.WAITING_APPROVAL:
             session.approval_summary = result.approval_summary
             return Outcome("park", approval_id=result.approval_id, reason=result.approval_summary)

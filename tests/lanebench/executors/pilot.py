@@ -36,7 +36,7 @@ from lanebench.executors.jev import API_URL, MODEL, Hands, JevClient, JevRefused
 from lanebench.executors.mcp_agent import agent_specs, bench_wrap
 from lanebench.tasks import Task
 
-WANTED = ("browser_snapshot", "browser_act", "browser_scroll", "browser_wait", "browser_upload", "files_list",
+WANTED = ("browser_snapshot", "browser_act", "browser_scroll", "browser_wait", "browser_upload", "browser_files",
           "vault_fill")
 RESCUE_TIMEOUT_S = 120.0
 STATUSES = {Status.DONE_VERIFIED: "done", Status.HELD: "held", Status.WAITING_APPROVAL: "held",
@@ -150,7 +150,7 @@ class PilotExecutor:
             return ExecResult(status="gave_up", reason="a repair writes a locator; the pilot only picks",
                               metrics=metrics.public())
         tools = self.tools(task, ctx)
-        listed = await tools.call("files_list", on=ctx.lane_id)
+        listed = await tools.call("browser_files", on=ctx.lane_id)
         files = [f["name"] for f in listed.get("inbox", []) if f.get("name") and f["name"] in task.goal]
         pilot = Pilot(tools, BenchDecider(self.client, metrics), rescue=self.rescue)
         return exec_result(await pilot.run(request_for(task, ctx, files)), metrics)

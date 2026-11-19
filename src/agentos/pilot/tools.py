@@ -1,4 +1,4 @@
-"""MCP tools of the pilot: lane_do."""
+"""MCP tools of the pilot: browser_task."""
 
 from __future__ import annotations
 
@@ -24,14 +24,14 @@ def _waiting(service: PilotService, out: dict[str, Any], run_id: str) -> dict[st
     what = session.approval_summary if session is not None else None
     return {**out, "approval_summary": what, "check_with": "approval_wait",
             "message": "A person must approve this first; nothing was sent. The run carries on by itself after that, "
-                       "so wait with approval_wait, then check it with run_status. Do not call lane_do again."}
+                       "so wait with approval_wait, then check it with run_status. Do not call browser_task again."}
 
 
 def _label(ctx: ToolContext, run: Any) -> None:
     """A run's output holds page text, so whoever reads it has read that page."""
     from agentos.runner.connectors.taint import label_context
 
-    label_context(ctx, run.output, source=f"lane_do:{run.id}", kind="web_page")
+    label_context(ctx, run.output, source=f"browser_task:{run.id}", kind="web_page")
 
 
 async def lane_do(ctx: ToolContext, *, on: str, goal: str, values: dict[str, Any] | None = None,
@@ -74,7 +74,7 @@ async def lane_do(ctx: ToolContext, *, on: str, goal: str, values: dict[str, Any
             its vault entry instead, {"password": {"vault": "reddit-login"}}, and only a label
             reaches the model. With no values, a step that needs words asks a writing model if one
             is assigned, and ends needs_help if not.
-        files: Inbox file names or ids to attach (files_put stores them).
+        files: Inbox file names or ids to attach (browser_file_put stores them).
         max_steps: Most steps to take. The default and the upper limit come from the node's settings.
         wait_s: Seconds to wait for the result, up to 120. It keeps running after that.
         read: Read one answer off the page under this name and act on nothing, for example
@@ -127,12 +127,12 @@ async def lane_do(ctx: ToolContext, *, on: str, goal: str, values: dict[str, Any
                 _label(ctx, existing)
             return {**runner.describe(existing), "duplicate": True}
     await ctx.authorize(Effect.DRAFT, lane_id=on, summary=f"Hand {on} to the pilot: {text[:120]}",
-                        content={"tool": "lane_do", "lane": on, **params})
+                        content={"tool": "browser_task", "lane": on, **params})
     service.check_worker(on)
     service.check_lane(on)
     run, created = runner.submit(kind=RunKind.PILOT, lane=on, params=params, idempotency_key=idempotency_key,
                                  principal=ctx.principal, source="tool", authorized=True, grant_id=grant_of(ctx))
-    ctx.trace("lane_do", run_id=run.id, lane=on, status=str(run.status))
+    ctx.trace("browser_task", run_id=run.id, lane=on, status=str(run.status))
     if created and wait_s > 0:
         run = await runner.wait(run.id, min(float(wait_s), MAX_WAIT_S))
     out = runner.describe(run, steps=run.terminal and run.status != RunStatus.SUCCEEDED_VERIFIED)
@@ -148,4 +148,4 @@ async def lane_do(ctx: ToolContext, *, on: str, goal: str, values: dict[str, Any
 
 
 def tool_specs(runtime: Any) -> list[ToolSpec]:
-    return [ToolSpec(name="lane_do", handler=lane_do, effect=Effect.DRAFT, tags=("browser",), hidden_without="pilot")]
+    return [ToolSpec(name="browser_task", handler=lane_do, effect=Effect.DRAFT, tags=("browser",), hidden_without="pilot")]

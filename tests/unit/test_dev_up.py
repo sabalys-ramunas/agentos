@@ -82,13 +82,13 @@ async def test_dev_node_serves_mcp_and_the_panel_on_one_port():
             Client(streamable_http_client(node.mcp_url, http_client=http), mode="legacy") as client,
         ):
             tools = {tool.name for tool in (await client.list_tools()).tools}
-            assert {"lanes_list", "lane_open", "browser_snapshot", "browser_act"} <= tools
+            assert {"browsers_list", "browser_open", "browser_snapshot", "browser_act"} <= tools
 
-            listed = await client.call_tool("lanes_list", {})
+            listed = await client.call_tool("browsers_list", {})
             assert not listed.is_error
             assert {lane["id"] for lane in json.loads(listed.content[0].text)["lanes"]} == set(LANES)
 
-            opened = await client.call_tool("lane_open", {"on": "biz-a/social"})
+            opened = await client.call_tool("browser_open", {"on": "biz-a/social"})
             assert not opened.is_error, opened.content[0].text
             snap = (await client.call_tool("browser_snapshot", {"on": "biz-a/social"})).content[0].text
             assert "[ref=" in snap and 'heading "Feed"' in snap

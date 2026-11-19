@@ -134,7 +134,7 @@ class Call(BaseModel):
     tool: str
     summary: str = ""
     ok: bool = True
-    exit_code: int | None = None              # a command's exit code (lane_exec): ok is the tool's own answer
+    exit_code: int | None = None              # a command's exit code (terminal_exec): ok is the tool's own answer
     error: str | None = None                  # the error's code when the call was refused or failed
     client: str | None = None                 # the MCP client that made it ("claude-code 2.1.3"), when it said
 

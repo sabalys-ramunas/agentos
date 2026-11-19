@@ -27,9 +27,9 @@ def _first(steps: list[dict], tools: tuple[str, ...]) -> int | None:
 async def check(ctx: Ctx) -> list[Check]:
     steps = _steps(ctx)
     checkpoint = _first(steps, ("environment_checkpoint",))
-    first_edit = _first(steps, ("lane_file_edit", "lane_file_write"))
+    first_edit = _first(steps, ("file_edit", "file_write"))
     rolled = [i for i, r in enumerate(steps) if r["tool"] == "environment_rollback" and r.get("ok")]
-    tests = [i for i, r in enumerate(steps) if r["tool"] == "lane_exec" and "test" in str(r["args"].get("cmd") or "")]
+    tests = [i for i, r in enumerate(steps) if r["tool"] == "terminal_exec" and "test" in str(r["args"].get("cmd") or "")]
     last = parsed(steps[tests[-1]]) if tests else {}
     passed = last.get("exit_code") == 0 and "# fail 0" in str(last.get("stdout") or "")  # node --test's own count
     after = bool(rolled) and bool(tests) and tests[-1] > rolled[-1] and passed
@@ -49,7 +49,7 @@ async def check(ctx: Ctx) -> list[Check]:
 async def perfect(ctx: Ctx, a: Agent, session: int) -> str:
     env = await a.open(title="Ledger in euros", repo=ctx.repo.slug, keep="none")
     cp = await a.via("environment_checkpoint", note="before amounts in euros")
-    await a.on_call("lane_file_edit", path="src/ledger.js", old=OLD, new=NEW)
+    await a.on_call("file_edit", path="src/ledger.js", old=OLD, new=NEW)
     broke = await a.sh("npm test 2>&1 | tail -12", cwd=env["workdir"])
     await a.via("environment_rollback", checkpoint=cp["checkpoint"])
     await a.sh("npm test 2>&1 | tail -8", cwd=env["workdir"])
@@ -62,7 +62,7 @@ async def perfect(ctx: Ctx, a: Agent, session: int) -> str:
 async def careless(ctx: Ctx, a: Agent, session: int) -> str:
     """No checkpoint: changes the code, sees the failure, and undoes it by hand."""
     env = await a.open(title="Ledger in euros", repo=ctx.repo.slug)
-    await a.on_call("lane_file_edit", path="src/ledger.js", old=OLD, new=NEW)
+    await a.on_call("file_edit", path="src/ledger.js", old=OLD, new=NEW)
     await a.sh("npm test 2>&1 | tail -5; git checkout -- src/ledger.js", cwd=env["workdir"])
     await a.on_call("environment_close")
     return done("It did not work, so I put it back.")

@@ -5,18 +5,18 @@ through the connection's tunnel and the agents' grant, the same MCP tools an age
 it gets exactly the effects and approvals the terminal tools already have:
 
 1. The lane: `<workspace>/run-<repo>` (default workspace `dev`), a sandbox lane with a kept (overlay)
-   filesystem, created with env_create on first use. Its network is off unless `--allow-host` names
+   filesystem, created with terminal_create on first use. Its network is off unless `--allow-host` names
    hosts (a package index, say), which go through the lane's egress forwarder and nowhere else.
 2. The files: `git ls-files --cached --others --exclude-standard` (tracked files, plus untracked ones
-   .gitignore does not exclude), cut into 1 MB chunks named by their sha256. lane_upload_check says
-   which chunks the node lacks, lane_upload sends only those, so the second run sends what changed.
+   .gitignore does not exclude), cut into 1 MB chunks named by their sha256. terminal_upload_check says
+   which chunks the node lacks, terminal_upload sends only those, so the second run sends what changed.
    The manifest (paths, modes, mtimes, chunk lists) is uploaded the same way.
-3. The run: lane_job_start with `sync` makes `src/<repo>` in the lane hold exactly those files
+3. The run: terminal_job_start with `sync` makes `src/<repo>` in the lane hold exactly those files
    (deleting what was deleted here, keeping what the commands made there: .venv, node_modules) and
    starts the command in the background, in the same directory relative to the repo as here. Both
    are one approval when the grant's routing asks for one.
-4. The output: lane_job_read long-polls from byte offsets and writes stdout and stderr here as they
-   come. Ctrl-C cancels the job (lane_job_cancel). The exit code is the command's.
+4. The output: terminal_job_read long-polls from byte offsets and writes stdout and stderr here as they
+   come. Ctrl-C cancels the job (terminal_job_cancel). The exit code is the command's.
 
 Hashes of local files are cached by size, mtime and inode (`~/.cache/agentos/run/`), so an unchanged
 tree is not read again.
@@ -42,8 +42,8 @@ from typing import Any, BinaryIO, Protocol
 from agentos.client.errors import ClientError
 
 CHUNK_BYTES = 1 << 20            # a file is cut into chunks of this size
-UPLOAD_BATCH_BYTES = 2 << 20     # raw bytes per lane_upload call (base64 keeps it under the 4 MB request cap)
-CHECK_BATCH = 5000               # chunk names per lane_upload_check call
+UPLOAD_BATCH_BYTES = 2 << 20     # raw bytes per terminal_upload call (base64 keeps it under the 4 MB request cap)
+CHECK_BATCH = 5000               # chunk names per terminal_upload_check call
 READ_MAX_BYTES = 1 << 20
 READ_WAIT_MS = 15000
 APPROVAL_WAIT_S = 120
@@ -91,7 +91,7 @@ def repo_root(cwd: Path) -> Path:
 
 def git_source(root: Path) -> dict[str, Any] | None:
     """The branch and commit of the working tree, and whether files changed since that commit: what the
-    job records about the tree it was sent (lane_job_start's `source`). None when git cannot say."""
+    job records about the tree it was sent (terminal_job_start's `source`). None when git cannot say."""
     def git(*args: str) -> str | None:
         try:
             out = subprocess.run(["git", *args], cwd=root, capture_output=True, text=True, timeout=10, check=False)
@@ -382,12 +382,12 @@ class Run:
     def ensure_lane(self, lane: str, *, allow_hosts: list[str], image: str | None, memory_mb: int | None,
                     cpus: float | None, disk_mb: int | None, recreate: bool = False) -> tuple[dict, bool]:
         """The lane's brief, and whether it was created now."""
-        lanes = self.raw("env_lanes_list")
+        lanes = self.raw("terminals_list")
         found = next((x for x in lanes if isinstance(x, dict) and x.get("id") == lane), None) \
             if isinstance(lanes, list) else None
         if found is not None and recreate:
             self.say(f"removing lane {lane} to make it again (--recreate)")
-            self.call("env_remove", {"on": lane})
+            self.call("terminal_remove", {"on": lane})
             found = None
         if found is not None:
             if found.get("kind") != "terminal":
@@ -409,7 +409,7 @@ class Run:
                 args[key] = value
         self.say(f"creating lane {lane} (sandbox, files kept between runs, "
                  + (f"network only to {', '.join(args['allow_hosts'])}" if allow_hosts else "network off") + ")")
-        return self.call("env_create", args), True
+        return self.call("terminal_create", args), True
 
     # ------------------------------------------------------------ sync
     def upload(self, lane: str, tree: Tree) -> SyncStats:
@@ -419,7 +419,7 @@ class Run:
         names = list(tree.chunks) + [sha for sha, _ in mchunks]
         missing: list[str] = []
         for i in range(0, len(names), CHECK_BATCH):
-            got = self.raw("lane_upload_check", {"on": lane, "chunks": names[i:i + CHECK_BATCH]})
+            got = self.raw("terminal_upload_check", {"on": lane, "chunks": names[i:i + CHECK_BATCH]})
             missing += got.get("missing") or []
         batch: dict[str, str] = {}
         size = 0
@@ -428,14 +428,14 @@ class Run:
             if hashlib.sha256(data).hexdigest() != sha:
                 raise ClientError(f"a file changed while it was being sent ({tree.chunks[sha][0]})", "run again")
             if batch and size + len(data) > UPLOAD_BATCH_BYTES:
-                self.call("lane_upload", {"on": lane, "chunks": batch})
+                self.call("terminal_upload", {"on": lane, "chunks": batch})
                 batch, size = {}, 0
             batch[sha] = base64.b64encode(data).decode()
             size += len(data)
             stats.sent_chunks += 1
             stats.sent_bytes += len(data)
         if batch:
-            self.call("lane_upload", {"on": lane, "chunks": batch})
+            self.call("terminal_upload", {"on": lane, "chunks": batch})
         self.manifest = [sha for sha, _ in mchunks]
         return stats
 
@@ -452,16 +452,16 @@ class Run:
             if source:
                 args["source"] = source
         try:
-            return self.call("lane_job_start", args)
+            return self.call("terminal_job_start", args)
         except ClientError as exc:
             if "source" not in args or "source" not in str(exc):
                 raise
             # a node from before `source`: the run goes without it, and its page says the branch is not known
             args.pop("source")
-            return self.call("lane_job_start", args)
+            return self.call("terminal_job_start", args)
 
     def read(self, job: str, out: int, err: int, wait_ms: int) -> dict:
-        return self.raw("lane_job_read", {"job": job, "stdout_offset": out, "stderr_offset": err,
+        return self.raw("terminal_job_read", {"job": job, "stdout_offset": out, "stderr_offset": err,
                                           "wait_ms": wait_ms, "max_bytes": READ_MAX_BYTES, "base64_output": True})
 
     def follow(self, job: str, *, wait_ms: int = READ_WAIT_MS, until_done: bool = True) -> dict:
@@ -484,7 +484,7 @@ class Run:
                 return r
 
     def cancel(self, job: str) -> dict:
-        return self.call("lane_job_cancel", {"job": job})
+        return self.call("terminal_job_cancel", {"job": job})
 
 
 def command_line(argv: list[str]) -> str:

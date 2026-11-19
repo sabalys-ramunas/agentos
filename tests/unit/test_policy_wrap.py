@@ -243,7 +243,7 @@ def test_visible_tools_follow_the_grant(env):
     _, empty = svc.issue(subject={"id": "x"}, ceiling=Effect.COMMIT)
     names = lambda tok: {s.name for s in visible_tools(tok, SPECS, rt)}
     assert names(read_only) == {"lane_read", "node_info"}
-    assert names(drafter) == {"lane_read", "lane_post", "lane_exec", "node_info"}
+    assert names(drafter) == {"lane_read", "lane_post", "terminal_exec", "node_info"}
     assert names(empty) == {"node_info"}  # no lanes: lane tools hidden
     assert names(OWNER) == {s.name for s in SPECS}
     assert visible_tools(None, SPECS, rt) == [] and visible_tools("garbage", SPECS, rt) == []

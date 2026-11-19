@@ -32,7 +32,7 @@ BLOB_CONTEXT = b"agentos-blob-v1\n"  # a signed link to one thing that is not a 
 MIN_TTL = 30
 MAX_TTL = 24 * 3600
 # The hard end of a link, from when it was first made: renewing moves its expiry, never this. A link
-# anything but a person made (lane_view, a grant, the node token, the device credential) may be an
+# anything but a person made (browser_view, a grant, the node token, the device credential) may be an
 # agent's, so it is short; an owner link is made in person.
 AGENT_LINK_MAX = 30 * 60
 OWNER_LINK_MAX = 8 * 3600
@@ -240,7 +240,7 @@ class ViewTokens:
         """Raise TokenError unless `token` is a valid, unexpired link for `lane_id`. The
         signature is checked first, so a tampered token is always "invalid"."""
         if not token:
-            raise TokenError("missing", "This page needs a viewer link. Ask the agent for one with lane_view.")
+            raise TokenError("missing", "This page needs a viewer link. Ask the agent for one with browser_view.")
         invalid = TokenError("invalid", "This viewer link is not valid. Ask the agent for a new one.")
         if len(token) > MAX_TOKEN_CHARS or token.count(".") != 1:
             raise invalid
@@ -265,7 +265,7 @@ class ViewTokens:
         if link.lane_id != lane_id:
             raise TokenError("wrong_lane", "This viewer link is for a different lane.")
         if min(link.expires_at, link.hard_until) <= self.clock():
-            raise TokenError("expired", "This viewer link has expired. Ask the agent for a new one with lane_view.")
+            raise TokenError("expired", "This viewer link has expired. Ask the agent for a new one with browser_view.")
         return link
 
 

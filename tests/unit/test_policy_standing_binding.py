@@ -69,7 +69,7 @@ async def test_content_free_standing_approvals_stay_for_effects_that_publish_not
     ctx, _ = agent(svc, specials=Specials(exec=LaneCap()))
     standing(svc, effects=["exec"])
     assert svc.approvals.binding_problem(["exec"], []) is None
-    ctx_exec = svc.context(ctx.grant, principal=ctx.principal, tool="lane_exec")
+    ctx_exec = svc.context(ctx.grant, principal=ctx.principal, tool="terminal_exec")
     # a command on a shared lane asks; the standing approval answers it
     assert await route(ctx_exec, None, Effect.EXEC) == "standing"
 

@@ -26,8 +26,8 @@ async def perfect(ctx: Ctx, a: Agent, session: int) -> str:
     env = await a.open(title="Fix the cart discount", repo=ctx.repo.slug, keep="none")
     wd = env["workdir"]
     await a.sh("npm test 2>&1 | tail -15", cwd=wd)
-    await a.on_call("lane_file_read", path="src/price.js")
-    await a.on_call("lane_file_edit", path="src/price.js", old=FIX_OLD, new=FIX_NEW)
+    await a.on_call("file_read", path="src/price.js")
+    await a.on_call("file_edit", path="src/price.js", old=FIX_OLD, new=FIX_NEW)
     await a.sh("npm test 2>&1 | tail -8", cwd=wd)
     await a.sh("git checkout -q -b fix-cart-discount && git commit -qam 'Take the discount off the total' && "
                "git push -q origin fix-cart-discount 2>&1", cwd=wd)

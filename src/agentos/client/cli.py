@@ -364,7 +364,7 @@ def node_status() -> dict[str, Any] | None:
     try:
         with McpSession(cfg.mcp_port, cfg.mcp_token, timeout=10, host="127.0.0.1") as session:
             out["whoami"] = session.call("whoami")
-            out["lanes"] = session.call("lanes_list").get("lanes", [])
+            out["lanes"] = session.call("browsers_list").get("lanes", [])
     except McpError as exc:
         out["error"] = (f"agentosd does not answer on port {cfg.mcp_port}" if exc.failure.value == "unreachable"
                         else f"agentosd on port {cfg.mcp_port}: {exc.detail}")
@@ -486,7 +486,7 @@ def expose_command(
     """Open your dev server (localhost:PORT here) in one browser lane, so you can try your app with the
     lane's real, logged-in accounts: "Sign in with LinkedIn" and the redirect back, embeds, cookies.
 
-    The lane opens it at https://NAME.expose.agentos.invalid, and agents driving the lane see it in lanes_list.
+    The lane opens it at https://NAME.expose.agentos.invalid, and agents driving the lane see it in browsers_list.
 
     Only that lane, only while this command runs: Ctrl-C, --for or a dropped SSH session ends it.
 

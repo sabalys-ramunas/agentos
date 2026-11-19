@@ -187,7 +187,7 @@ class Credentials:
         conn, previous, panel = c.conn, c.previous, c.panel
         conn.credential = "agent_grant"
         if conn.agent_grant_id:
-            # lane_view then gives this computer's agents a link and tunnel that work here (best effort:
+            # browser_view then gives this computer's agents a link and tunnel that work here (best effort:
             # a node older than this answers 404 and keeps its own words)
             with _quiet():
                 panel.record_route(c.node.token, conn.agent_grant_id, ssh_host=conn.ssh_host,

@@ -52,8 +52,8 @@ TOOL_WORDS = {"browser_snapshot": "Read the page", "browser_screenshot": "Took a
               "browser_scroll": "Scrolled down the page", "browser_wait": "Waited for the page",
               "browser_tabs": "Looked at the open tabs", "browser_upload": "Uploaded a file",
               "browser_dialog": "Looked at an open dialog", "browser_dialog_answer": "Answered a dialog",
-              "lane_claim": "Took the lane for a few acts", "lane_release": "Let go of the lane",
-              "lane_open": "Opened the lane", "lane_close": "Closed the lane", "lane_view": "Asked for the live view",
+              "browser_claim": "Took the lane for a few acts", "browser_release": "Let go of the lane",
+              "browser_open": "Opened the lane", "browser_close": "Closed the lane", "browser_view": "Asked for the live view",
               "vault_login": "Logged in with a login from the vault (the password never left the node)",
               "login": "Logged in with a login from the vault (the password never left the node)"}
 # events shown as their own line inside a step (the rest are kept in the log, not on the page)

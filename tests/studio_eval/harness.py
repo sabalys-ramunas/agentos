@@ -38,7 +38,7 @@ from typing import Any, Self
 REPO = Path(__file__).resolve().parents[2]
 SKILL = REPO / "src/agentos/client/skills/agentos-studio/SKILL.md"
 AGENTOS = str(Path(sys.executable).parent / "agentos")   # the console script of this environment
-LANE_TOOLS = {"lanes_list", "lane_open", "lane_close", "lane_view", "lane_claim", "lane_release", "browser_navigate",
+LANE_TOOLS = {"browsers_list", "browser_open", "browser_close", "browser_view", "browser_claim", "browser_release", "browser_navigate",
               "browser_snapshot", "browser_act", "browser_screenshot", "browser_wait", "browser_tabs"}
 # A page that did not load or render is news about the page, not a wrong call.
 PAGE_ERRORS = ("studio_page_not_loaded", "studio_http_error", "studio_blank_page", "studio_dev_error")

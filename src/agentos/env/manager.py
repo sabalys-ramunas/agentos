@@ -306,7 +306,7 @@ class EnvManager(Jobs, Sync):
                      overrides: dict[str, Any] | None = None, service: ServiceConfig | dict | None = None,
                      exit_proxy: str | None = None, allowed_programs: list[str] | None = None,
                      by_agent: bool = False, node_secrets_ok: bool = False) -> EnvLane:
-        """The lane `create` would add, or the error it would raise, with nothing stored: env_create asks
+        """The lane `create` would add, or the error it would raise, with nothing stored: terminal_create asks
         a person only for a lane that can be made (QA-2 #13). An agent's isolated lane also needs a node
         that can isolate, so the approval is not spent on a lane whose first command fails."""
         try:

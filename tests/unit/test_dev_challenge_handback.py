@@ -36,10 +36,10 @@ async def test_a_hand_back_with_the_captcha_still_showing_holds_the_lane_again()
         Client(streamable_http_client(node.mcp_url, http_client=http), mode="legacy") as agent,
         owner(node) as panel,
     ):
-        assert not (await agent.call_tool("lane_open", ON)).is_error
+        assert not (await agent.call_tool("browser_open", ON)).is_error
         went = json.loads((await agent.call_tool("browser_navigate", {**ON, "url": CHALLENGE_URL})).content[0].text)
         assert went["signal"] == "captcha"
-        control = json.loads((await agent.call_tool("lane_control", ON)).content[0].text)
+        control = json.loads((await agent.call_tool("browser_control", ON)).content[0].text)
         assert control["agent_may_act"] is False and "needs_human:captcha" in json.dumps(control)
 
         back = await panel.post("/api/lanes/biz-a/shop/control", json={"action": "hand_back"})
@@ -50,7 +50,7 @@ async def test_a_hand_back_with_the_captcha_still_showing_holds_the_lane_again()
 
         snap = await agent.call_tool("browser_snapshot", ON)
         assert snap.is_error and "agent_paused" in snap.content[0].text, snap.content[0].text
-        control = json.loads((await agent.call_tool("lane_control", ON)).content[0].text)
+        control = json.loads((await agent.call_tool("browser_control", ON)).content[0].text)
         assert control["agent_may_act"] is False
         clicked = await agent.call_tool("browser_act", {**ON, "ref": "e1", "action": "click"})
         assert clicked.is_error and "agent_paused" in clicked.content[0].text
@@ -63,7 +63,7 @@ async def test_after_the_person_leaves_the_challenge_the_hand_back_gives_the_lan
         Client(streamable_http_client(node.mcp_url, http_client=http), mode="legacy") as agent,
         owner(node) as panel,
     ):
-        await agent.call_tool("lane_open", ON)
+        await agent.call_tool("browser_open", ON)
         await agent.call_tool("browser_navigate", {**ON, "url": CHALLENGE_URL})
         node.lanes._page_for("biz-a/shop").url = "https://social.example/"  # the person solved it
         back = (await panel.post("/api/lanes/biz-a/shop/control", json={"action": "hand_back"})).json()
@@ -83,13 +83,13 @@ async def test_every_page_read_of_a_challenge_holds_the_lane():
             Client(streamable_http_client(node.mcp_url, http_client=http), mode="legacy") as agent,
         ):
             lanes = node.lanes
-            await agent.call_tool("lane_open", ON)
+            await agent.call_tool("browser_open", ON)
             lanes._page_for("biz-a/shop").url = CHALLENGE_URL  # on screen, never read by a watched call
             read = await agent.call_tool(tool, {**ON, **args})
             # the dev engine tracks no tabs and queues no dialogs: those two answer unavailable,
             # after the read of the page they still made
             assert not read.is_error or "unavailable" in read.content[0].text, (tool, read.content[0].text)
-            control = json.loads((await agent.call_tool("lane_control", ON)).content[0].text)
+            control = json.loads((await agent.call_tool("browser_control", ON)).content[0].text)
             assert control["agent_may_act"] is False, tool
             snap = await agent.call_tool("browser_snapshot", ON)
             assert snap.is_error and "agent_paused" in snap.content[0].text, tool

@@ -137,7 +137,7 @@ def build_runtime(config: NodeConfig, *, lane_manager: type[DevLaneManager] = De
     runtime = node_runtime(config, lanes, lanes.watch(interaction))
     runtime.register("flow_driver", flow_driver_factory(lanes))
     build_services(runtime, FEATURE_SERVICES)
-    build_plugins(runtime)  # the browser worker (lane_do), as on a node
+    build_plugins(runtime)  # the browser worker (browser_task), as on a node
     runner = runtime.get("runner")
     if runner is not None:
         install_take_over_pause(runner)

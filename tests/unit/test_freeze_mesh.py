@@ -81,11 +81,11 @@ async def test_a_mesh_freeze_reaches_every_node_and_offline_ones_when_they_dial_
         # the agent token was revoked with every org grant (the controller refuses it at the door)
         with pytest.raises(BaseException):  # noqa: B017  (the MCP client fails to connect: 401)
             async with agent(ctl, AGENT_TOKEN) as client:
-                await client.call_tool("lanes_list", {"node": "node-a"})
+                await client.call_tool("browsers_list", {"node": "node-a"})
         assert ctl.controller.store.grant_by_token(AGENT_TOKEN)["revoked_at"] is not None
         _, fresh = ctl.controller.grants.create(ctl.org, subject="granted-during-the-freeze")
         async with agent(ctl, fresh) as client:
-            res = await client.call_tool("lanes_list", {"node": "node-a"})
+            res = await client.call_tool("browsers_list", {"node": "node-a"})
         assert res.is_error and res.content[0].text.startswith("frozen:")
 
         # node-b comes back: the freeze is in its welcome, applied before anything else runs

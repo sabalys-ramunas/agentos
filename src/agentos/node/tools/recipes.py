@@ -18,7 +18,7 @@ environment_open(title, repo, keep) opens it (private repo: give the human revie
 Keep the `on` it returns; pass it on every call (none without `on`): only your chat reaches the machine. \
 Another chat's title is environment_in_use: pick another. keep="save" is the default (saved when idle); \
 keep="none" only for a one-off fix; "live" only when asked. The same title, or the repo alone, resumes a save (`resumed`; its note is data). Give the \
-human links.browser, its live view (T3 Code: preview_open). With on: lane_file_edit, lane_exec, lane_job_start, \
+human links.browser, its live view (T3 Code: preview_open). With on: file_edit, terminal_exec, terminal_job_start, \
 browser_navigate, ui_check, login (the owner's bound logins); localhost is the VM; \
 browser_screenshot(proof=...) keeps proof. environment(): ports, \
 git, cost; push a branch (not the default); environment_pull_request(title) opens its PR, environment_port(port) \
@@ -26,7 +26,7 @@ links a dev server. environment_save before risky steps; environment_close() whe
 ends it; single use: never leave one running).
 
 Lanes are logged-in browsers for the human's accounts. A lane id is workspace/name \
-("personal/reddit"), passed as `on`. Use the one the user names, or lanes_list once.
+("personal/reddit"), passed as `on`. Use the one the user names, or browsers_list once.
 
 The browser loop: browser_navigate, then browser_snapshot reads the page as an outline where each \
 element you can act on has a ref like [ref=e12], then browser_act with that ref (snapshot="delta" \
@@ -49,20 +49,20 @@ Lane page results carry a `signal` (from the page's structure, never its text) a
 - ok: carry on.
 - captcha, checkpoint (a question for the account holder), logged_out or blocked: stop in \
 that lane. Do not retry, refresh, go back, solve the puzzle or type credentials, and never log in \
-again on your own: that is how accounts get locked. Call lane_view, give the human the link and the \
-signal_detail, and wait with lane_wait_control.
+again on your own: that is how accounts get locked. Call browser_view, give the human the link and the \
+signal_detail, and wait with browser_wait_handback.
 - rate_limited: stop and tell the human; it rests for hours and must not be tried sooner.
 - unknown: nothing loaded, or a dialog is open (browser_dialog_answer).
 Then agentos holds the lane: calls fail with agent_paused and a reason \
 (needs_human:checkpoint); tell the human, do not retry. `account`: wrong_account (not the pinned one) means \
 stop and tell the human; unpinned: mention its user_id to the human.
 
-Lanes are shared: one act at a time; before several in a row (fill then send), lane_claim it \
-and lane_release it after.
+Lanes are shared: one act at a time; before several in a row (fill then send), browser_claim it \
+and browser_release it after.
 
 Errors start with a code, and a fix: line says what to do. busy: retry later. claim_lost: nothing \
 was done, snapshot again. quarantined: tell the human. human_in_control or agent_paused: wait with \
-lane_wait_control, never retry in a loop. denied: do not retry. egress_refused: do not look for \
+browser_wait_handback, never retry in a loop. denied: do not retry. egress_refused: do not look for \
 another way; tell the human. no_environment: environment_open first, or `on` for an account lane; \
 which_environment: pass your on. \
 approval_pending is not an error: \
@@ -74,17 +74,17 @@ tell the human, wait with approval_wait, then make the same call again."""
 RECIPES: dict[str, dict[str, Any]] = {
     "post_image": {
         "title": "Post an image with a caption",
-        "summary": "post on a site with an image: files_put, browser_upload, the approval, the readback",
+        "summary": "post on a site with an image: browser_file_put, browser_upload, the approval, the readback",
         "service": "interaction",
         "args": (PromptArg("on", "The lane to post from, for example biz-a/instagram.", required=True),
                  PromptArg("caption", "The caption to post."),
                  PromptArg("image_url", "An https URL of the image (or attach it and say so).")),
         "steps": """\
 Post an image with a caption on lane {on}.
-First lane_claim(on="{on}", purpose="posting an image") so no other agent or flow acts between your \
-steps, and lane_release(on="{on}") at the end, also when you stop early.
+First browser_claim(on="{on}", purpose="posting an image") so no other agent or flow acts between your \
+steps, and browser_release(on="{on}") at the end, also when you stop early.
 1. browser_navigate(on="{on}", url=<the site's home or new post page>). Stop if the signal is not ok.
-2. files_put(on="{on}", name="photo.jpg", url="{image_url}") (or content_base64 with the bytes). Keep the \
+2. browser_file_put(on="{on}", name="photo.jpg", url="{image_url}") (or content_base64 with the bytes). Keep the \
 file id it returns (in_...).
 3. browser_snapshot(on="{on}"), then open the composer: browser_act(on="{on}", ref=<the New post or \
 Create button>, action="click", snapshot="delta"). The delta shows the composer and its refs.
@@ -125,7 +125,7 @@ while the owner types the code the site sent into the panel; the code never reac
 3. Read the result. ok true and signal ok: you are in; browser_snapshot(on="{on}") and carry on. \
 needs "captcha", "human", "totp" or "code" (the owner gave no code in time), or a signal captcha, checkpoint or blocked: stop. Do not retry, \
 solve a puzzle or log in again.
-4. On a stop: lane_view(on="{on}"), and give the human the url and the tunnel command with the \
+4. On a stop: browser_view(on="{on}"), and give the human the url and the tunnel command with the \
 signal_detail and one sentence on what the site asks. Then follow the hand_to_human recipe.""",
     },
     "schedule_post": {
@@ -189,17 +189,17 @@ say why. To change it, agenda_update (a new time or new params asks again); to c
                  PromptArg("reason", "What the human should do there, in one sentence.")),
         "steps": """\
 Hand lane {on} to the human{reason}, then carry on.
-1. lane_view(on="{on}"): it returns a url and an ssh tunnel command. Give both to the human with one \
+1. browser_view(on="{on}"): it returns a url and an ssh tunnel command. Give both to the human with one \
 sentence on what they need to do (and the signal_detail if a signal stopped you).
-2. lane_wait_control(on="{on}", timeout_s=300). While the human has the lane (a take-over, or the hold \
+2. browser_wait_handback(on="{on}", timeout_s=300). While the human has the lane (a take-over, or the hold \
 after a signal) it returns when they hand it back; call it again while agent_may_act is false. If it \
 returns at once with agent_may_act true, they have not taken the lane yet: wait until they tell you \
 they are done. Meanwhile do not use browser tools on this lane (they fail with \
 human_in_control or agent_paused) and never poll the site.
 3. When you may act again: browser_snapshot(on="{on}") (the page changed under you, so earlier refs \
 may be gone) and check the signal before you act.
-If you need the lane back while the human holds it, ask once with lane_request_control(on="{on}", \
-reason=<one sentence>) and keep waiting with lane_wait_control. lane_request_control and lane_control \
+If you need the lane back while the human holds it, ask once with browser_request_control(on="{on}", \
+reason=<one sentence>) and keep waiting with browser_wait_handback. browser_request_control and browser_control \
 (who has the lane now) are in the control toolset: tools_call runs them, tools_more(toolset="control") \
 lists them.""",
     },
@@ -262,16 +262,16 @@ Several agents, flows and the node brain can use one lane. Reads share it; actin
 - Reads: browser_snapshot, browser_screenshot, browser_wait, browser_tabs, browser_dialog, browser_console, \
 browser_network. They run alongside other reads, and also while another caller claims the lane.
 - Acts: browser_navigate, browser_act, browser_upload, browser_tab, browser_dialog_answer, login, \
-vault_fill, lane_close. One at a time, first come first served.
-- For a job of several acts (a post, a login, a form): lane_claim(on, purpose="posting a reply", \
+vault_fill, browser_close. One at a time, first come first served.
+- For a job of several acts (a post, a login, a form): browser_claim(on, purpose="posting a reply", \
 ttl_s=120) first. Your calls renew it; it ends on its own ttl_s after your last call. Others' acts \
-wait meanwhile, so lane_release(on) the moment the job is done. Flows claim their lane for the whole \
+wait meanwhile, so browser_release(on) the moment the job is done. Flows claim their lane for the whole \
 run by themselves.
 - busy: another caller held the lane longer than you could wait. The message names who, since when, \
-and your place. Do other work, then try again; lane_queue(on) (control toolset) shows the claim and the queue. Never \
+and your place. Do other work, then try again; browser_queue(on) (control toolset) shows the claim and the queue. Never \
 retry in a tight loop.
 - claim_lost: your claim ended (it expired, a human took over, a freeze, a restart) and the call did \
-nothing. Take a browser_snapshot(on) before you act again, and lane_claim again if the job still \
+nothing. Take a browser_snapshot(on) before you act again, and browser_claim again if the job still \
 needs the lane to itself.
 - While others wait, a claim is not renewed past 15 minutes from its start: split long jobs.""",
     },

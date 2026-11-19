@@ -33,7 +33,7 @@ What the owner types:
 - stays in memory (username and password only, never a code) until the session ends, so the owner
   can pick "Save to the vault" at the end; then it is dropped.
 
-Agents never see or type the values. They can only ask: `lane_login_request(on, why)` pushes the
+Agents never see or type the values. They can only ask: `browser_login_request(on, why)` pushes the
 owner and returns at once.
 """
 

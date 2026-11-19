@@ -238,7 +238,7 @@ class Picking:
         """which_environment for a call without `on` from a client with no session id. `titles`: the
         agent's open machines (titles only, never a handle: agentos cannot tell which is this chat's)."""
         lanes = (" A logged-in account lane the human made always needs `on` too (on=\"personal/reddit\"; "
-                 "lanes_list lists them).") if kind == "browser" else ""
+                 "browsers_list lists them).") if kind == "browser" else ""
         shown = titles[:OPENS_LISTED] if titles else []
         names = ", ".join(f"\"{t}\"" for t in shown) + (" and more" if titles and len(titles) > len(shown) else "")
         mine = (f" Your agent has {len(titles)} machine{'s' if len(titles) != 1 else ''} open: {names}; if one is "
@@ -256,7 +256,7 @@ class Picking:
         call also hears that an account lane needs `on`."""
         mine = self.open_for_family(family)
         lanes = (" A browser call meant for a logged-in account lane the human made needs `on` "
-                 "(on=\"personal/reddit\"; lanes_list lists them).") if kind == "browser" else ""
+                 "(on=\"personal/reddit\"; browsers_list lists them).") if kind == "browser" else ""
         for env in mine:
             gone = [h for h in env.handoffs if h.binding == binding]
             if gone and env.binding != binding:

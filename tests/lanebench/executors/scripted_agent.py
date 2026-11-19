@@ -9,7 +9,7 @@ It reads the MCP config the harness wrote and does one of a few tasks (named by 
 - login-*: refuses optional cookies when a cookie wall shows, signs in with the vault (`login`), then
   answers what the site shows next: "Not now" to saving the login, the terms accepted with
   sharing left off, and a stop (`held`) at a device approval it cannot do.
-- compose-publish: types the post, finds photo.png with files_list, attaches it with browser_upload
+- compose-publish: types the post, finds photo.png with browser_files, attaches it with browser_upload
   and publishes.
 
 With `--type-password PW` it signs in by typing the password itself instead (what the bench must
@@ -130,7 +130,7 @@ class Agent:
         if ref is None:
             raise RuntimeError("no Post text field")
         await self.call("browser_act", ref=ref, action="type", text="Fresh bread on Saturday")
-        inbox = json.loads(await self.call("files_list"))["inbox"]
+        inbox = json.loads(await self.call("browser_files"))["inbox"]
         photo = next((f for f in inbox if f.get("name") == "photo.png"), None)
         if photo is None:
             return {"status": "failed", "reason": f"photo.png is not in the inbox: {inbox}"}

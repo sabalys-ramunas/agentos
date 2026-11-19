@@ -84,8 +84,8 @@ async def test_quarantine_is_reported_through_mcp_and_cleared_by_reopening(tmp_p
         assert blocked.is_error and text_of(blocked).startswith("quarantined: lane personal/reddit")
         assert "does not match proxy lt1" in text_of(blocked)
 
-        engine.exit_ip = "198.51.100.10"  # the cause is fixed; lane_open tries again
-        reopened = await client.call_tool("lane_open", {"on": "personal/reddit"})
+        engine.exit_ip = "198.51.100.10"  # the cause is fixed; browser_open tries again
+        reopened = await client.call_tool("browser_open", {"on": "personal/reddit"})
     assert not reopened.is_error
     assert (reopened.structured_content or json.loads(text_of(reopened)))["state"] == "warm"
     await mgr.shutdown()

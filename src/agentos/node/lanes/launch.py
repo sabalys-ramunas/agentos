@@ -405,7 +405,7 @@ class LaunchMixin:
                 lane.close_note = {"stuck_calls": [{"tool": c.tool, "ran_s": round(self._ran_s(c), 1)} for c in stuck],
                                    "detail": "a call was stuck on the lane, so it was stopped and the browser was "
                                              "closed; the next call opens it again"}
-                await self.close_stuck(lane_id, stuck, "lane_close found the lane held by a stuck call")
+                await self.close_stuck(lane_id, stuck, "browser_close found the lane held by a stuck call")
                 lane.quarantine_reason = None
                 await self._notify()
                 return self.get(lane_id)
@@ -421,7 +421,7 @@ class LaunchMixin:
         return self.get(lane_id)
 
     def take_close_note(self, lane_id: str) -> dict[str, Any] | None:
-        """What the last close() of this lane had to do about a stuck call, once (lane_close reports it)."""
+        """What the last close() of this lane had to do about a stuck call, once (browser_close reports it)."""
         lane = self._lanes.get(lane_id)
         if lane is None:
             return None

@@ -81,7 +81,7 @@ class Tools:
         self.calls.append((name, arguments))
         if name == "browser_snapshot":
             return self.pages.pop(0) if len(self.pages) > 1 else self.pages[0]
-        if name == "files_list":
+        if name == "browser_files":
             return {"inbox": []}
         return {"ok": True, "changed": True}
 

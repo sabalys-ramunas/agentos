@@ -285,14 +285,14 @@ async def test_a_stale_handle_says_it_was_saved_and_how_to_come_back(node):
     out, _ = await _saved(node)
     rt, grant = node["rt"], node["grant"]
     with pytest.raises(NoEnvironment) as e:
-        routing.route(rt, "lane_exec", {"on": out["on"], "cmd": "ls"}, session=None, grant_id=grant.id,
+        routing.route(rt, "terminal_exec", {"on": out["on"], "cmd": "ls"}, session=None, grant_id=grant.id,
                       family=grant.root_id)
     words = e.value.message
     assert "was saved at" in words and f'environment_open(title="{TITLE}") resumes it' in words
     assert "never resumed for you" in words and node["mgr"].store.open() == []  # and nothing was resumed
     env, _ = await node["mgr"].resume_saved(TITLE)
     with pytest.raises(NoEnvironment) as e:
-        routing.route(rt, "lane_exec", {"on": out["on"]}, session=None, grant_id=grant.id, family=grant.root_id)
+        routing.route(rt, "terminal_exec", {"on": out["on"]}, session=None, grant_id=grant.id, family=grant.root_id)
     assert f"open again as {env.id}" in e.value.message and "no chat holds it" in e.value.message
 
 

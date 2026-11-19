@@ -10,8 +10,8 @@ Shared lanes (agentos.node.claims): `holder` is the caller (its principal, grant
 and `mode` says whether the tool reads or acts. Reads change nothing another caller would notice
 and share the lane, also while someone else claims it: browser_snapshot, browser_screenshot,
 browser_wait, browser_tabs, browser_dialog. Everything else acts and goes one at a time: navigate,
-act, scroll, upload, a tab switch, a dialog answer, vault login and fill, lane_close. lane_open only warms
-the lane and never waits in the queue. lane_claim, lane_release and lane_queue are the claim tools.
+act, scroll, upload, a tab switch, a dialog answer, vault login and fill, browser_close. browser_open only warms
+the lane and never waits in the queue. browser_claim, browser_release and browser_queue are the claim tools.
 
 Egress (agentos.node.egress): every browser tool tells the lane's egress guard who drives the
 lane (driven_session). browser_navigate checks the URL and browser_act checks the link or form its
@@ -189,13 +189,13 @@ def tool_specs(runtime: Runtime) -> list[ToolSpec | PromptSpec]:
     lanes, browser = ("lanes",), ("browser",)
     return [
         ToolSpec(name="whoami", handler=whoami, lane_arg=None, tags=("node",), hidden_without="lanes"),
-        ToolSpec(name="lanes_list", handler=lanes_list, lane_arg=None, tags=lanes, hidden_without="lanes"),
-        ToolSpec(name="lane_open", handler=lane_open, tags=(*lanes, "idempotent", "changes_state"), hidden_without="lanes"),
-        ToolSpec(name="lane_close", handler=lane_close, tags=(*lanes, "idempotent", "changes_state"), hidden_without="lanes"),
-        ToolSpec(name="lane_view", handler=lane_view, tags=lanes, hidden_without="lanes"),
-        ToolSpec(name="lane_claim", handler=lane_claim, tags=(*lanes, "changes_state"), hidden_without="lanes"),
-        ToolSpec(name="lane_release", handler=lane_release, tags=(*lanes, "idempotent", "changes_state"), hidden_without="lanes"),
-        ToolSpec(name="lane_queue", handler=lane_queue, tags=lanes, hidden_without="lanes"),
+        ToolSpec(name="browsers_list", handler=lanes_list, lane_arg=None, tags=lanes, hidden_without="lanes"),
+        ToolSpec(name="browser_open", handler=lane_open, tags=(*lanes, "idempotent", "changes_state"), hidden_without="lanes"),
+        ToolSpec(name="browser_close", handler=lane_close, tags=(*lanes, "idempotent", "changes_state"), hidden_without="lanes"),
+        ToolSpec(name="browser_view", handler=lane_view, tags=lanes, hidden_without="lanes"),
+        ToolSpec(name="browser_claim", handler=lane_claim, tags=(*lanes, "changes_state"), hidden_without="lanes"),
+        ToolSpec(name="browser_release", handler=lane_release, tags=(*lanes, "idempotent", "changes_state"), hidden_without="lanes"),
+        ToolSpec(name="browser_queue", handler=lane_queue, tags=lanes, hidden_without="lanes"),
         ToolSpec(name="browser_navigate", handler=with_handback(browser_navigate), tags=(*browser, "changes_state"),
                  hidden_without="interaction"),
         ToolSpec(name="browser_snapshot", handler=with_handback(browser_snapshot), tags=browser,

@@ -11,7 +11,7 @@ session carries its guard as `session.guard`, and egress.guard_for(session.conte
 other session. A cold lane has no guard, so no window (open the lane first).
 
 The pinned account is read from the lane's spec (`lanes.get(lane_id).spec.account`) when the request
-comes, so a lane re-pinned during the window is judged by its new pin. A lane a pilot run (lane_do)
+comes, so a lane re-pinned during the window is judged by its new pin. A lane a pilot run (browser_task)
 is driving gets no window, and a window refuses while one is.
 """
 
@@ -44,7 +44,7 @@ def lane_guard(runtime: Any, lane_id: str) -> LaneGuard:
 
 
 def _pilot_on(runtime: Any, lane_id: str) -> str | None:
-    """Why the lane may not learn now: a pilot run (lane_do) drives it. Read fresh each time."""
+    """Why the lane may not learn now: a pilot run (browser_task) drives it. Read fresh each time."""
     pilot = runtime.get("pilot") if runtime is not None else None
     sessions = getattr(pilot, "sessions", None) if pilot is not None else None
     try:

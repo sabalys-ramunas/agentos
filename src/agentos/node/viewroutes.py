@@ -1,10 +1,10 @@
 """How a connected computer reaches this node: its SSH host and its local port, per grant.
 
 `agentos connect` knows both (the host it tunnels through, the port the tunnel listens on there)
-and records them with the agent grant it issued or kept (`POST /api/grants/{id}/route`). lane_view
+and records them with the agent grant it issued or kept (`POST /api/grants/{id}/route`). browser_view
 then gives an agent holding that grant (or one narrowed from it) a take-over link and a tunnel
 command that are right for its own computer, instead of this node's port and hostname, which on a
-second node point at the wrong machine. Without a record, lane_view says what it said before.
+second node point at the wrong machine. Without a record, browser_view says what it said before.
 
     $AGENTOS_HOME/connect-routes.json   {grant_id: {ssh_host, local_port, at}}  (600)
 

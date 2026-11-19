@@ -10,8 +10,8 @@ Modes of a waiter:
           browser_dialog, browser_wait, browser_console, browser_network). Reads share the lane
           with each other.
   act     anything that changes the page, the active tab or the lane: navigate, act, upload,
-          tab switch, dialog answers, vault login and fill, lane_close. One at a time.
-  claim   lane_claim: becomes the lane's claim when it reaches the front of the queue.
+          tab switch, dialog answers, vault login and fill, browser_close. One at a time.
+  claim   browser_claim: becomes the lane's claim when it reaches the front of the queue.
   run     a flow or connector run: an implicit claim for the whole run. Other callers' reads
           still pass (they cannot disturb the run); every other act and claim waits.
   system  the node's own work (quarantine, shutdown, the exit IP probe): waits for the calls in
@@ -380,7 +380,7 @@ class LaneAccess:
         return round(wait, 1)
 
     def snapshot(self, now: float, max_total_s: float, *, viewer: Holder | None = None) -> dict[str, Any]:
-        """The lane's claim and queue, as lane_queue and the panel show them."""
+        """The lane's claim and queue, as browser_queue and the panel show them."""
         claim = self.claim.public(now, max_total_s) if self.claim else None
         if claim is not None and viewer is not None:
             claim["yours"] = self.claim is not None and self.claim.holder.owner == viewer.owner

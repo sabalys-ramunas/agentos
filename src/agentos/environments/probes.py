@@ -151,7 +151,7 @@ def load_words(stdout: str, size: str | None, bigger: str | None) -> str | None:
     over = load1 / cpus >= OVERLOADED_PER_CPU or (total_kb and avail_kb / total_kb < LOW_MEMORY)
     if not over:
         return f"The machine is not overloaded ({facts})."
-    fix = ("Stop what you do not need (lane_exec \"ps aux --sort=-%cpu | head\" shows it; lane_job_cancel ends a job)")
+    fix = ("Stop what you do not need (terminal_exec \"ps aux --sort=-%cpu | head\" shows it; terminal_job_cancel ends a job)")
     if bigger:
         fix += (f", or move to a bigger machine: push your work, environment_close(), then environment_open with "
                 f"the same title and size=\"{bigger}\"")

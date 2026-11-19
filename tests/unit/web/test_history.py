@@ -393,8 +393,8 @@ def test_an_environment_session_is_one_done_story_named_by_its_title(client, nod
 
     monkeypatch.setattr(history.envs_web, "titles", lambda api: {"esrkyfqerme": "qa-env-2026-11-15"})
     for index in range(3):
-        _call(node, "lane_exec", "ok", lane="env/esrkyfqerme", effect="exec", summary=f"pnpm test {index}")
-    _call(node, "lane_exec", "error", lane="env/esrkyfqerme", effect="exec", summary="pnpm lint")
+        _call(node, "terminal_exec", "ok", lane="env/esrkyfqerme", effect="exec", summary=f"pnpm test {index}")
+    _call(node, "terminal_exec", "error", lane="env/esrkyfqerme", effect="exec", summary="pnpm lint")
     _call(node, "browser_navigate", "ok", lane="env/esrkyfqerme-browser", summary="http://localhost:5173")
     stories = [s for day in client.get(f"{ORG}/history").json()["days"] for s in day["stories"]]
     mine = [s for s in stories if s["lane"].startswith("env/")]

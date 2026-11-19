@@ -191,7 +191,7 @@ class GitGateway:
     def caller(self, token: str | None, *, listener_lane: str | None) -> Caller:
         if not token or not token.startswith(TOKEN_PREFIX):
             raise Refused("this git request has no agentos gateway token; run git from a command the node "
-                          "started (lane_exec, lane_job_start, agentos run, a brain task), not with a copied "
+                          "started (terminal_exec, terminal_job_start, agentos run, a brain task), not with a copied "
                           "config", code="unauthenticated")
         c = self._callers.get(token_digest(token))
         if c is None or (c.expires is not None and c.expires < self.clock()):

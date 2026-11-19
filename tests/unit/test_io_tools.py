@@ -154,7 +154,7 @@ async def test_files_put_list_get_delete(env):
     assert deleted["deleted"]["id"] == file["id"] and not stored.exists()
     with pytest.raises(NotFound):
         await io_tools.files_get(ctx, on=LANE, file_id=file["id"])
-    assert [k for k, _ in ctx.traces] == ["files_put", "files_delete"]
+    assert [k for k, _ in ctx.traces] == ["browser_file_put", "browser_file_delete"]
 
 
 async def test_files_put_accepts_a_data_url_and_fixes_the_extension(env):
@@ -241,12 +241,12 @@ async def test_files_get_of_an_unfinished_download_has_no_content(env):
     assert got["file"]["status"] == "partial"
 
 
-@pytest.mark.parametrize("tool", ["files_put", "files_list", "files_get", "files_delete"])
+@pytest.mark.parametrize("tool", ["files_put", "files_list", "files_get", "files_delete"])  # the handlers
 async def test_file_tools_check_the_lane(env, tool):
     runtime, lanes, _ = env
     lanes.add("acme/shell", kind=LaneKind.TERMINAL)
-    args = {"files_put": {"name": "a.png", "content_base64": b64(PNG)}, "files_list": {},
-            "files_get": {"file_id": "in_0123456789ab"}, "files_delete": {"file_id": "in_0123456789ab"}}[tool]
+    args = {"browser_file_put": {"name": "a.png", "content_base64": b64(PNG)}, "browser_files": {},
+            "browser_file_get": {"file_id": "in_0123456789ab"}, "browser_file_delete": {"file_id": "in_0123456789ab"}}[tool]
     handler = getattr(io_tools, tool)
     with pytest.raises(InvalidRequest, match="workspace/name"):
         await handler(Ctx(runtime), on="../etc", **args)
@@ -423,7 +423,7 @@ def test_tool_specs_follow_the_contract(env):
     specs = io_tools.tool_specs(runtime)
     effects = {s.name: s.effect for s in specs}
     assert effects == {
-        "files_put": Effect.DRAFT, "files_list": Effect.READ, "files_get": Effect.READ, "files_delete": Effect.DRAFT,
+        "browser_file_put": Effect.DRAFT, "browser_files": Effect.READ, "browser_file_get": Effect.READ, "browser_file_delete": Effect.DRAFT,
         "browser_upload": Effect.DRAFT, "browser_tabs": Effect.READ, "browser_tab": Effect.READ,
         "browser_dialog": Effect.READ, "browser_dialog_answer": Effect.DRAFT,
     }

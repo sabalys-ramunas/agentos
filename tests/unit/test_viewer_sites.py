@@ -116,7 +116,7 @@ async def test_an_owner_link_allows_a_refused_host_in_one_click(node):  # noqa: 
         page = await client.get(node.url("/view/personal/reddit", owner))
         assert '"owner":true' in page.text and "/view/personal/reddit/sites" in page.text
         url = "/view/personal/reddit/sites"
-        for token in (node.token("control"), node.token("view")):  # lane_view's links never change the list
+        for token in (node.token("control"), node.token("view")):  # browser_view's links never change the list
             r = await client.post(node.url(url, token), json={"add": "frame:www.google.com"})
             assert r.status_code == 403 and r.json()["error"]["code"] in ("denied", "presence_required")
             assert EM_DASH not in r.text

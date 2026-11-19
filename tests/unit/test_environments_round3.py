@@ -106,7 +106,7 @@ async def test_environment_on_waits_for_ready_and_the_not_ready_words_name_on(no
     assert a["state"] == "starting" and f'environment(on="{a["on"]}") waits up to a minute' in a["next"]
     await asyncio.sleep(0.2)  # the bring-up is at its setup check
     with pytest.raises(ToolCallError, match="^environment_not_ready") as err:
-        await node["call"]("lane_exec", on=a["on"], cmd="git status", session=NONE)
+        await node["call"]("terminal_exec", on=a["on"], cmd="git status", session=NONE)
     words = str(err.value)
     assert "is starting for " in words and "so far)" in words and 'environment(on="<your on>")' in words
     assert 'environment(on="<your on>")' in catalog.entry("environment_not_ready").agent
@@ -164,7 +164,7 @@ async def test_a_call_without_on_names_the_titles_of_the_open_machines(node):  #
     a = await opened(node, title="Shop page", session=NONE)
     await opened(node, title="Docs fix", session=NONE)
     with pytest.raises(ToolCallError, match="^which_environment") as err:
-        await node["call"]("lane_exec", cmd="pwd", session=NONE)
+        await node["call"]("terminal_exec", cmd="pwd", session=NONE)
     words = str(err.value)
     assert 'Your agent has 2 machines open: "Shop page", "Docs fix"' in words and "lost it" not in words
     assert a["on"] not in words and a["id"] not in words

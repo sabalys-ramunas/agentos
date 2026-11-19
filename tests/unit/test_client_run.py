@@ -47,7 +47,7 @@ class FakeNode:
         self.decision = "approved"
         self.approvals: dict[str, str] = {}
         self.calls: list[tuple[str, dict]] = []
-        self.interrupt_reads_after: int | None = None  # raise KeyboardInterrupt on this lane_job_read
+        self.interrupt_reads_after: int | None = None  # raise KeyboardInterrupt on this terminal_job_read
         self.timeout = 60.0
 
     def close(self) -> None:
@@ -61,7 +61,7 @@ class FakeNode:
         if tool == "approval_wait":
             self.approvals[args["approval_id"]] = self.decision
             return {"approval_id": args["approval_id"], "state": self.decision}
-        if tool == "lane_job_read" and self.interrupt_reads_after is not None:
+        if tool == "terminal_job_read" and self.interrupt_reads_after is not None:
             self.interrupt_reads_after -= 1
             if self.interrupt_reads_after < 0:
                 self.interrupt_reads_after = None
@@ -209,10 +209,10 @@ def test_run_syncs_streams_and_passes_the_exit_code(cli, node, repo):
     assert "to-stderr" in err and "agentos run: exit 3 in" in err
     dest = lane_dest(node)
     assert sorted(p.name for p in dest.iterdir()) == [".gitignore", "Makefile", "notes.txt", "tests"]
-    created = next(a for t, a in node.calls if t == "env_create")
+    created = next(a for t, a in node.calls if t == "terminal_create")
     assert created == {"on": "dev/run-my-repo", "preset": "sandbox", "filesystem": "overlay", "memory_mb": 4096,
                        "cpus": 2.0, "disk_mb": 8192}
-    start = next(a for t, a in node.calls if t == "lane_job_start")
+    start = next(a for t, a in node.calls if t == "terminal_job_start")
     assert start["env"] == {"PYTHONUNBUFFERED": "1"} and start["cwd"] == "src/My-Repo"
 
 
@@ -248,7 +248,7 @@ def test_ctrl_c_cancels_the_job(cli, node, repo):
     assert "cancelling job" in r.stderr and "agentos run: cancelled" in r.stderr
     job = node.mgr.job_list()[0]
     assert job.state == "cancelled"
-    assert ("lane_job_cancel", {"job": job.id}) in node.calls
+    assert ("terminal_job_cancel", {"job": job.id}) in node.calls
 
 
 def test_detach_follow_logs_list_and_cancel(cli, node, repo):
@@ -272,7 +272,7 @@ def test_detach_follow_logs_list_and_cancel(cli, node, repo):
 
 
 def test_an_approval_is_waited_for_and_named(cli, node, repo):
-    node.ask = {"env_create", "lane_job_start"}
+    node.ask = {"terminal_create", "terminal_job_start"}
     r = invoke("--", "true")
     assert r.exit_code == 0, r.output
     assert "waiting for approval: Create sandbox terminal lane dev/run-my-repo" in r.stderr
@@ -281,7 +281,7 @@ def test_an_approval_is_waited_for_and_named(cli, node, repo):
 
 
 def test_a_denied_approval_runs_nothing(cli, node, repo):
-    node.ask = {"lane_job_start"}
+    node.ask = {"terminal_job_start"}
     node.decision = "denied"
     r = invoke("--", "touch", "ran")
     assert r.exit_code == 1 and "the approval was denied, so nothing ran" in r.stderr

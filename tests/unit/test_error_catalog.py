@@ -173,7 +173,7 @@ def test_the_generated_files_are_current(scanned):
 
 def test_mcp_lines_give_the_agent_step_and_the_wait():
     assert catalog.mcp_lines("busy", "all slots") == [f"fix: {catalog.entry('busy').agent}", "retry_after: 30"]
-    assert catalog.mcp_lines("lane_not_found", "x")[0].startswith("fix: Call lanes_list")
+    assert catalog.mcp_lines("lane_not_found", "x")[0].startswith("fix: Call browsers_list")
     assert len(catalog.mcp_lines("lane_not_found", "x")) == 1  # no wait to suggest
     assert catalog.mcp_lines("no_such_code", "x") == []
 

@@ -66,7 +66,7 @@ async def test_take_blocks_agents_but_not_humans(tmp_path):
     assert info.control.by == "owner" and info.control.since == wall.now
     assert events == [(LANE, ControlState.AGENT, ControlState.HUMAN)]
     for kind in ("agent", "flow", "brain"):
-        with pytest.raises(HumanInControl, match="lane_wait_control"):
+        with pytest.raises(HumanInControl, match="browser_wait_handback"):
             async with mgr.using(LANE, principal_kind=kind):
                 pass
     with pytest.raises(HumanInControl):

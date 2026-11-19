@@ -460,7 +460,7 @@ class ViewerInfo(BaseModel):
 
     def tunnel_hint(self, ssh_host: str = "your-node", local_port: int | None = None) -> str:
         if self.viewer_port is None:
-            return "the live view is served by agentosd through a signed link: ask for one with lane_view"
+            return "the live view is served by agentosd through a signed link: ask for one with browser_view"
         local = local_port or self.viewer_port
         return (f"ssh -N -L {local}:localhost:{self.viewer_port} {ssh_host}  "
                 f"then open http://localhost:{local}{self.url_path}")
@@ -542,4 +542,4 @@ class RunKind(StrEnum):
     BRAIN = "brain"
     SCRIPT = "script"
     WORKFLOW = "workflow"
-    PILOT = "pilot"  # agentos.pilot: lane_do's cheap worker on one lane
+    PILOT = "pilot"  # agentos.pilot: browser_task's cheap worker on one lane

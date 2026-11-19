@@ -162,7 +162,7 @@ def frozen_of(api: Api, lane_id: str) -> bool | None:
 
 
 def login_requests(api: Api) -> dict[str, dict]:
-    """Agents' open requests for a login (lane_login_request), by lane: {lane, why, by, at}. Empty when no
+    """Agents' open requests for a login (browser_login_request), by lane: {lane, why, by, at}. Empty when no
     agent has asked since the node started (the login service is made on first use)."""
     svc = api.runtime.get("login_assist") if callable(getattr(api.runtime, "get", None)) else None
     listing = getattr(svc, "requests", None)

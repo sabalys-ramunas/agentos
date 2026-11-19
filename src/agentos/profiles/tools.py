@@ -261,7 +261,7 @@ async def profile_propose(ctx: ToolContext, *, profile: str, change: str, reason
 
 
 async def profile_photo_put(ctx: ToolContext, *, workspace: str, on: str, file_id: str) -> dict:
-    """Keep a photo for a workspace's profiles, from a lane's inbox (put it there with files_put
+    """Keep a photo for a workspace's profiles, from a lane's inbox (put it there with browser_file_put
     first). Returns its id (sha256:...): set it as photos.avatar or photos.cover with
     profile_update. JPEG, PNG, WebP or GIF, at most 10 MB. A brand's logo, assets and fonts are
     kept the same way (also SVG, WOFF2, WOFF, TTF, OTF): name them in brand.logo, brand.assets

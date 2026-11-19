@@ -87,7 +87,7 @@ class FakeTools:
 
     @property
     def acts(self) -> list[str]:
-        return [tool for tool, _ in self.calls if tool not in ("browser_snapshot", "browser_wait", "files_list")]
+        return [tool for tool, _ in self.calls if tool not in ("browser_snapshot", "browser_wait", "browser_files")]
 
     async def look(self) -> None:
         self.looks += 1

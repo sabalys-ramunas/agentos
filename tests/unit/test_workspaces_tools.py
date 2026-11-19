@@ -55,13 +55,13 @@ class DeniedCtx(FakeCtx):
 def test_the_five_tools_have_the_right_effects_and_names(h):
     specs = {s.name: s for s in tool_specs(h.runtime)}
     assert set(specs) == {"workspace_list", "workspace_queue", "workspace_plan", "workspace_apply",
-                          "lane_set_readiness"}
+                          "browser_set_readiness"}
     assert specs["workspace_list"].effect == Effect.READ and specs["workspace_queue"].effect == Effect.READ
     assert specs["workspace_plan"].effect == Effect.READ
     assert specs["workspace_apply"].effect == Effect.COMMIT
-    assert specs["lane_set_readiness"].effect == Effect.DRAFT and specs["lane_set_readiness"].lane_arg == "on"
+    assert specs["browser_set_readiness"].effect == Effect.DRAFT and specs["browser_set_readiness"].lane_arg == "on"
     assert all(TOOL_NAME_RE.match(name) for name in specs)
-    assert all(s.lane_arg is None for name, s in specs.items() if name != "lane_set_readiness")
+    assert all(s.lane_arg is None for name, s in specs.items() if name != "browser_set_readiness")
     assert all(s.hidden_without == "workspaces" and s.tags == ("workspaces",) for s in specs.values())
 
 
@@ -70,7 +70,7 @@ def test_descriptions_are_written_for_agents_and_have_no_em_dashes(h):
         assert s.description and len(s.description) > 80, s.name
         assert "\u2014" not in s.description, s.name
     assert "approves first" in spec(h, "workspace_apply").description
-    assert "Do not mark a lane ready on a guess" in spec(h, "lane_set_readiness").description
+    assert "Do not mark a lane ready on a guess" in spec(h, "browser_set_readiness").description
 
 
 def test_every_parameter_has_a_schema_the_mcp_layer_can_derive(h):
@@ -203,7 +203,7 @@ async def test_an_override_says_so_in_the_approval_and_is_recorded(h):
 async def test_lane_set_readiness_is_a_draft_on_the_lane(h):
     h.lanes.add("acme/instagram")
     ctx = FakeCtx(h.runtime)
-    out = await spec(h, "lane_set_readiness").handler(ctx, on="acme/instagram", state="ready")
+    out = await spec(h, "browser_set_readiness").handler(ctx, on="acme/instagram", state="ready")
     assert out["readiness"] == "ready" and out["updated_by"] == "claude-code"
     auth = ctx.authorized[0]
     assert auth["effect"] == Effect.DRAFT and auth["lane_id"] == "acme/instagram"
@@ -213,16 +213,16 @@ async def test_lane_set_readiness_is_a_draft_on_the_lane(h):
 async def test_lane_set_readiness_checks_the_lane_id_and_the_lane(h):
     ctx = FakeCtx(h.runtime)
     with pytest.raises(InvalidRequest, match="lane id must look like"):
-        await spec(h, "lane_set_readiness").handler(ctx, on="Acme", state="ready")
+        await spec(h, "browser_set_readiness").handler(ctx, on="Acme", state="ready")
     assert ctx.authorized == []
     with pytest.raises(LaneNotFound):
-        await spec(h, "lane_set_readiness").handler(ctx, on="acme/ghost", state="ready")
+        await spec(h, "browser_set_readiness").handler(ctx, on="acme/ghost", state="ready")
 
 
 async def test_needs_attention_through_the_tool_needs_a_note(h):
     h.lanes.add("acme/reddit")
     with pytest.raises(InvalidRequest, match="needs_attention needs a note"):
-        await spec(h, "lane_set_readiness").handler(FakeCtx(h.runtime), on="acme/reddit", state="needs_attention")
-    out = await spec(h, "lane_set_readiness").handler(FakeCtx(h.runtime), on="acme/reddit",
+        await spec(h, "browser_set_readiness").handler(FakeCtx(h.runtime), on="acme/reddit", state="needs_attention")
+    out = await spec(h, "browser_set_readiness").handler(FakeCtx(h.runtime), on="acme/reddit",
                                                       state="needs_attention", note="a phone code was asked")
     assert out["readiness"] == "needs_attention" and out["note"] == "a phone code was asked"

@@ -67,7 +67,7 @@ def envs(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> Any:
                           machine=Machine(provider="hetzner", server_type="cpx22", cpu=2, memory_gb=4.0,
                                           location="nbg1"),
                           price_hourly_eur=0.0095,
-                          calls=[Call(at=now - timedelta(seconds=30), tool="lane_exec", summary="npm test", ok=True)])
+                          calls=[Call(at=now - timedelta(seconds=30), tool="terminal_exec", summary="npm test", ok=True)])
         if state == "closed":
             env.closed_at, env.closed_reason, env.cost_eur = now - timedelta(days=6), "closed by the agent", 0.019
         mgr.store.put(env)
@@ -113,7 +113,7 @@ def test_one_environment_in_detail(client: TestClient, envs: Any) -> None:
     body = client.get(f"{ENVS}/e7k2").json()
     assert body["ports"] == [{"port": 3000, "process": "node", "link": None}]
     assert body["git"] == {"branch": "main", "ahead": 0, "dirty": 0, "pushed": [], "deleted": []}
-    assert body["calls"][0] == {"at": body["calls"][0]["at"], "tool": "lane_exec", "summary": "npm test", "ok": True}
+    assert body["calls"][0] == {"at": body["calls"][0]["at"], "tool": "terminal_exec", "summary": "npm test", "ok": True}
     assert body["commands"][0]["cmd"] == "npm test" and body["unsaved"] is None
     assert body["viewer"] is None  # the browser lane is not warm
     assert client.get(f"{ENVS}/enope").status_code == 404
@@ -123,7 +123,7 @@ def test_one_environment_in_detail(client: TestClient, envs: Any) -> None:
 def test_a_closed_environment_still_lists_the_jobs_it_started(client: TestClient, envs: Any) -> None:
     # a job's record goes with its lane when the machine is deleted: the call that started it stays
     env = envs.get("eold")
-    env.calls.append(Call(at=utcnow() - timedelta(days=6), tool="lane_job_start", summary="npm run dev", ok=True))
+    env.calls.append(Call(at=utcnow() - timedelta(days=6), tool="terminal_job_start", summary="npm run dev", ok=True))
     envs.store.put(env)
     commands = client.get(f"{ENVS}/eold").json()["commands"]
     assert [(c["cmd"], c["state"]) for c in commands] == [("npm test", "exited"), ("npm run dev", "ended")]

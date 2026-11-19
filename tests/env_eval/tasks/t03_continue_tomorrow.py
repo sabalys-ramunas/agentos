@@ -40,8 +40,8 @@ async def check(ctx: Ctx) -> list[Check]:
 async def perfect(ctx: Ctx, a: Agent, session: int) -> str:
     if session == 0:
         env = await a.open(title=TITLE, repo=ctx.repo.slug, keep="save")
-        await a.on_call("lane_file_read", path="src/export.js")
-        await a.on_call("lane_file_edit", path="src/export.js", old=CSV_OLD, new=CSV_NEW)
+        await a.on_call("file_read", path="src/export.js")
+        await a.on_call("file_edit", path="src/export.js", old=CSV_OLD, new=CSV_NEW)
         await a.sh("node --test test/csv.test.js 2>&1 | tail -8", cwd=env["workdir"])
         await a.on_call("environment_close", note=NOTE)
         return done(f'CSV export done; saved. Say "continue {TITLE} in agentos" tomorrow.')
@@ -49,7 +49,7 @@ async def perfect(ctx: Ctx, a: Agent, session: int) -> str:
     note = str((env.get("resumed") or {}).get("note") or "")
     if "toJson" not in note:
         return done(f"the note did not say what is next: {note[:100]}", "blocked")
-    await a.on_call("lane_file_edit", path="src/export.js", old=JSON_OLD, new=JSON_NEW)
+    await a.on_call("file_edit", path="src/export.js", old=JSON_OLD, new=JSON_NEW)
     await a.sh("npm test 2>&1 | tail -8", cwd=env["workdir"])
     await a.sh("git checkout -q -b todo-export && git add -A && git commit -qm 'Export the task list as CSV and "
                "JSON' && git push -q origin todo-export 2>&1", cwd=env["workdir"])
@@ -63,12 +63,12 @@ async def careless(ctx: Ctx, a: Agent, session: int) -> str:
     """Day one: single use, so the close throws the work away. Day two: a new machine, the JSON half only."""
     if session == 0:
         env = await a.open(title=TITLE, repo=ctx.repo.slug, keep="none")
-        await a.on_call("lane_file_edit", path="src/export.js", old=CSV_OLD, new=CSV_NEW)
+        await a.on_call("file_edit", path="src/export.js", old=CSV_OLD, new=CSV_NEW)
         await a.sh("node --test test/csv.test.js 2>&1 | tail -3", cwd=env["workdir"])
         await a.on_call("environment_close", discard=True)
         return done("CSV export done.")
     env = await a.open(title=TITLE, repo=ctx.repo.slug)
-    await a.on_call("lane_file_edit", path="src/export.js", old=JSON_OLD, new=JSON_NEW)
+    await a.on_call("file_edit", path="src/export.js", old=JSON_OLD, new=JSON_NEW)
     await a.sh("git checkout -q -b todo-export && git commit -qam 'JSON export' && git push -q origin todo-export "
                "2>&1", cwd=env["workdir"])
     pr = await a.via("environment_pull_request", title="JSON export")

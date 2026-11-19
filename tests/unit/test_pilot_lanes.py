@@ -244,8 +244,8 @@ async def test_a_queued_run_ends_when_it_comes_up(tmp_path, quick, monkeypatch):
         await node_tools.browser_navigate(node.ctx(), on=LANE, url=f"{BASE}/compose")
         out = await lane_do(node.ctx(), on=LANE, goal="Post it", wait_s=0)
         admin.set_lane(plugins, LANE, False)
-        claim = node.specs["lane_claim"]
-        node.specs["lane_claim"] = dataclasses.replace(claim, handler=None)  # a run that got this far would crash
+        claim = node.specs["browser_claim"]
+        node.specs["browser_claim"] = dataclasses.replace(claim, handler=None)  # a run that got this far would crash
         await node.runner.run_until_idle()
         status = await runner_tools.run_status(node.ctx(), id=out["id"])
         assert status["status"] == "failed" and status["error"]["code"] == "pilot_lane_off"
@@ -390,13 +390,13 @@ async def test_a_queued_run_waits_for_the_person_and_goes_after_the_hand_back(tm
 async def test_a_take_over_just_before_the_claim_says_held(tmp_path, quick):
     """The runner saw a free lane, and a person took it before the run claimed it."""
     node = await node_with(tmp_path, FINISHED)
-    claim = node.specs["lane_claim"]
+    claim = node.specs["browser_claim"]
 
     async def taken_first(*args: Any, **kw: Any) -> Any:
         await node.lanes.take_control(LANE, by="owner")
         return await claim.handler(*args, **kw)
 
-    node.specs["lane_claim"] = dataclasses.replace(claim, handler=taken_first)
+    node.specs["browser_claim"] = dataclasses.replace(claim, handler=taken_first)
     try:
         run = await node.start()
         assert run["status"] == "failed" and run["error"]["code"] == "pilot_held"

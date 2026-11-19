@@ -128,7 +128,7 @@ async def test_an_environment_opens_with_a_terminal_and_a_browser_on_its_vm(loca
     assert env.state == "ready", env.error
     assert env.browser == "vm" and VmTunnel.made == [{"vm_browser": True, "browser_port": None}]
     assert [i.spec.id for i in local["lanes"].list()] == [env.browser_lane]  # the lane, routed to the VM
-    out = await local["call"]("lane_exec", cmd="uname -a")
+    out = await local["call"]("terminal_exec", cmd="uname -a")
     assert out["exit_code"] == 0
     st = await local["call"]("environment")
     assert st["links"]["browser"].startswith("http://localhost:") and f"/view/env/{env.id}-browser" in \
@@ -144,7 +144,7 @@ async def test_the_browser_opens_on_the_vm_through_the_routed_engine(local):
     lanes, machine = local["lanes"], local["machine"]
     await asyncio.gather(*local["mgr"]._warming)  # it started during the open (bringup.start_browser)
     assert [a["action"] for a in machine.asked] == ["display", "browser"]  # the VM's screen, then its browser
-    out = await local["call"]("lane_open")  # no `on`: the environment's browser
+    out = await local["call"]("browser_open")  # no `on`: the environment's browser
     assert out["state"] == "warm"
     # (this fake's live-view socket is no file, so the lane manager starts the screen again: the same steps)
     assert [a["action"] for a in machine.asked][-2:] == ["display", "browser"]
@@ -152,14 +152,14 @@ async def test_the_browser_opens_on_the_vm_through_the_routed_engine(local):
     assert lanes.view(env.browser_lane).vnc_socket == "/tmp/agentos-env-fake/vnc"  # the live view: the tunnel
     session = lanes.live_session(env.browser_lane)
     assert session.alive and session.pids == []  # no process on this computer
-    view = await local["call"]("lane_view")
+    view = await local["call"]("browser_view")
     assert view["viewer"]["url"].startswith("http://localhost:")
 
 
 async def test_the_browser_tools_are_served_on_a_local_node(local):
     names = set(local["specs"])
     assert {"browser_navigate", "browser_snapshot", "browser_act", "browser_wait", "browser_screenshot",
-            "browser_tabs", "browser_dialog", "lane_view", "lane_wait_control"} <= names
+            "browser_tabs", "browser_dialog", "browser_view", "browser_wait_handback"} <= names
     assert local["rt"].get("interaction") is not None
 
 

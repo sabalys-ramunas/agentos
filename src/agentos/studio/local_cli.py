@@ -115,7 +115,7 @@ def remove_instance(home: Path | None = None) -> None:
 
 
 class NoLanes(DevLaneManager):
-    """A lane manager with no lanes: lanes_list is empty and every call on a lane fails with
+    """A lane manager with no lanes: browsers_list is empty and every call on a lane fails with
     `unavailable` (never a fake page). Nothing can create one."""
 
     def _require(self, lane_id: str) -> Any:

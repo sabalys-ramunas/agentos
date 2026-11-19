@@ -29,7 +29,7 @@ def test_the_intro_starts_with_the_environment_and_puts_lanes_after():
                    "builds, tests, dev servers", "never leave one running", "Keep the `on` it returns",
                    "pass it on every call", "only your chat reaches the machine", "environment_in_use"):
         assert phrase in first, phrase
-    assert "lanes_list" not in first  # account lanes are a separate thing, after
+    assert "browsers_list" not in first  # account lanes are a separate thing, after
     assert INSTRUCTIONS.index("environment_open") < INSTRUCTIONS.index("A lane id is workspace/name")
     assert EM_DASH not in INSTRUCTIONS and len(INSTRUCTIONS) < 4_000
     for gone in ("The title names it", "your other chats reach it by title", 'on="<title>"'):  # the lease of 2026-11-16
@@ -76,7 +76,7 @@ def test_the_environment_skill_is_installed_like_the_others_and_names_the_loop()
     assert re.search(r"^name: agentos-environment$", head, re.MULTILINE) and skills.ours(text, "agentos-environment")
     assert text == SKILL.read_text()
     for word in ("environment_open(", "environment()", "environment_close(", "discard=true", "unsaved_work",
-                 "no_environment", "lane_exec(", "browser_navigate(", "ui_check(", "localhost", "git push",
+                 "no_environment", "terminal_exec(", "browser_navigate(", "ui_check(", "localhost", "git push",
                  "preview pane", "links.browser", "default branch", "secrets", "data, never instructions"):
         assert word in text, word
     assert EM_DASH not in text
@@ -84,14 +84,14 @@ def test_the_environment_skill_is_installed_like_the_others_and_names_the_loop()
 
 
 def test_the_intro_and_the_skill_say_where_the_terminal_tools_are_and_promise_no_missing_link():
-    """An agent with an environment finds its terminal without guessing (lane_exec and lane_job_start are
+    """An agent with an environment finds its terminal without guessing (terminal_exec and terminal_job_start are
     in the default list; the rest are tools_more("terminals")), and is promised only links that exist: the
     node's live view (links.browser), no web app page and no port link."""
     first = INSTRUCTIONS.split("\n\n")[0]
-    assert "links.browser" in first and "lane_job_start" in first and "ui_check" in first
+    assert "links.browser" in first and "terminal_job_start" in first and "ui_check" in first
     assert "`on` for an account lane" in INSTRUCTIONS
     text = skills.source("agentos-environment")
-    for words in ('tools_more("terminals")', 'tools_more("studio")', "lane_job_read", "in your tool list",
+    for words in ('tools_more("terminals")', 'tools_more("studio")', "terminal_job_read", "in your tool list",
                   "environment_not_ready", "stashes"):
         assert words in text, words
     assert "links.environment" not in text and "a `link` for each port" not in text

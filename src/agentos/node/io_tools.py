@@ -1,6 +1,6 @@
 """MCP tools for what goes into and out of a browser lane: files, uploads, tabs and dialogs.
 
-    files_put, files_list, files_get, files_delete    the lane's inbox and outbox (node/files.py)
+    browser_file_put, browser_files, browser_file_get, browser_file_delete    the lane's inbox and outbox (node/files.py)
     browser_upload                                     attach inbox files to a file input
     browser_tabs, browser_tab                          popups and tabs of the lane (PageTracker)
     browser_dialog, browser_dialog_answer              alert, confirm, prompt, beforeunload
@@ -149,7 +149,7 @@ async def files_put(ctx: ToolContext, *, on: str, name: str, content_base64: str
     bytes. Returns the file id, name, type and size. Does not start the
     browser. Effect: draft. Errors: invalid (both or neither of content_base64 and url, a type the
     inbox does not take, too large, bad base64), agent_paused (agents are held off the lane:
-    wait with lane_wait_control), engine_error (the URL could not be fetched: check it, or send the
+    wait with browser_wait_handback), engine_error (the URL could not be fetched: check it, or send the
     bytes)."""
     info, surface = _put_lane(ctx, on)
     _not_paused(ctx, info)
@@ -166,7 +166,7 @@ async def files_put(ctx: ToolContext, *, on: str, name: str, content_base64: str
                             summary=f"Store a file named {name!r} ({human_size(len(data))}) in the inbox of {on}",
                             content={"name": name, "sha256": hashlib.sha256(data).hexdigest()})
         stored = await asyncio.to_thread(files.put_bytes, name, data)
-    ctx.trace("files_put", lane=on, file_id=stored.id, mime=stored.mime, size=stored.size, source=stored.source)
+    ctx.trace("browser_file_put", lane=on, file_id=stored.id, mime=stored.mime, size=stored.size, source=stored.source)
     if surface is not None:
         return {"on": on, "file": stored.public(),
                 "next": f"pass {stored.id!r} as the file param of a connector tool with on={on!r}"}
@@ -175,7 +175,7 @@ async def files_put(ctx: ToolContext, *, on: str, name: str, content_base64: str
 
 
 async def files_list(ctx: ToolContext, *, on: str) -> dict:
-    """The lane's files: the inbox (what you stored with files_put, the only files
+    """The lane's files: the inbox (what you stored with browser_file_put, the only files
     browser_upload can attach) and the outbox (everything the lane's browser downloaded, with a
     status: complete, downloading, partial or failed), and the size limits. Does not start the
     browser. Cheap. Effect: read. Errors: invalid (not a browser lane)."""
@@ -194,7 +194,7 @@ async def files_get(ctx: ToolContext, *, on: str, file_id: str) -> Any:
     """One file from the lane's inbox or outbox. Small images come back as an image (which costs
     context like a screenshot) and small text or CSV files as text; anything larger (or a video, a
     PDF, an archive) comes back as details plus the path on the node and a command the owner can
-    run to copy it. Effect: read. Errors: not_found (no such file: see files_list), invalid (not a
+    run to copy it. Effect: read. Errors: not_found (no such file: see browser_files), invalid (not a
     file id)."""
     _lane(ctx, on)
     await ctx.authorize(Effect.READ, lane_id=on)
@@ -219,7 +219,7 @@ async def files_get(ctx: ToolContext, *, on: str, file_id: str) -> Any:
 
 async def files_delete(ctx: ToolContext, *, on: str, file_id: str) -> dict:
     """Delete a file from the lane's inbox or outbox. A download still running is cancelled first.
-    Effect: draft. Errors: not_found (see files_list), agent_paused (wait with lane_wait_control)."""
+    Effect: draft. Errors: not_found (see browser_files), agent_paused (wait with browser_wait_handback)."""
     info = _lane(ctx, on)
     _not_paused(ctx, info)
     files = lane_files(ctx.runtime, on)
@@ -227,27 +227,27 @@ async def files_delete(ctx: ToolContext, *, on: str, file_id: str) -> dict:
     await ctx.authorize(Effect.DRAFT, lane_id=on, summary=f"Delete {stored.name} ({file_id}) from the {stored.box} "
                         f"of {on}")
     deleted = await files.delete(file_id)
-    ctx.trace("files_delete", lane=on, file_id=file_id)
+    ctx.trace("browser_file_delete", lane=on, file_id=file_id)
     return {"on": on, "deleted": deleted.public()}
 
 
 # ---- upload -------------------------------------------------------------------------------
 
 async def browser_upload(ctx: ToolContext, *, on: str, ref: str, file_id: str | list[str]) -> dict:
-    """Attach inbox files (from files_put) to a file field: `ref` is either the file input or the
+    """Attach inbox files (from browser_file_put) to a file field: `ref` is either the file input or the
     button that opens the file chooser ("Add photo", "Select from computer"); the node clicks it
     like a person and answers the chooser. Pass one file id, or a list for a field that takes
     several. Reads the field back and reports ok only if it holds exactly these files (or the page
     read them and cleared the field, as upload widgets do).
     Then wait for the site's preview with browser_wait (snapshot="delta" shows it). Effect: draft.
-    Errors: not_found (no such file: files_list in the files toolset shows the inbox), invalid (the
+    Errors: not_found (no such file: browser_files in the files toolset shows the inbox), invalid (the
     file is not in the inbox, the field takes another type or one file only, or the button
     opened no chooser), ref_not_found (take a new snapshot), dialog_pending (answer it with
     browser_dialog_answer), engine_error (retry once)."""
     _lane(ctx, on)
     ids = [file_id] if isinstance(file_id, str) else list(file_id or [])
     if not ids:
-        raise InvalidRequest("give at least one file id from files_list")
+        raise InvalidRequest("give at least one file id from browser_files")
     if len(ids) > MAX_FILES_PER_UPLOAD:
         raise InvalidRequest(f"at most {MAX_FILES_PER_UPLOAD} files per upload")
     files = lane_files(ctx.runtime, on)
@@ -389,10 +389,10 @@ async def browser_dialog_answer(ctx: ToolContext, *, on: str, accept: bool, text
 
 def tool_specs(runtime: Any) -> list[ToolSpec]:
     return [
-        ToolSpec(name="files_put", handler=files_put, effect=Effect.DRAFT, tags=("files",), hidden_without="lanes"),
-        ToolSpec(name="files_list", handler=files_list, effect=Effect.READ, tags=("files",), hidden_without="lanes"),
-        ToolSpec(name="files_get", handler=files_get, effect=Effect.READ, tags=("files",), hidden_without="lanes"),
-        ToolSpec(name="files_delete", handler=files_delete, effect=Effect.DRAFT, tags=("files",),
+        ToolSpec(name="browser_file_put", handler=files_put, effect=Effect.DRAFT, tags=("files",), hidden_without="lanes"),
+        ToolSpec(name="browser_files", handler=files_list, effect=Effect.READ, tags=("files",), hidden_without="lanes"),
+        ToolSpec(name="browser_file_get", handler=files_get, effect=Effect.READ, tags=("files",), hidden_without="lanes"),
+        ToolSpec(name="browser_file_delete", handler=files_delete, effect=Effect.DRAFT, tags=("files",),
                  hidden_without="lanes"),
         ToolSpec(name="browser_upload", handler=browser_upload, effect=Effect.DRAFT, tags=("browser", "files"),
                  hidden_without="interaction"),

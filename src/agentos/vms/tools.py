@@ -1,5 +1,5 @@
 """MCP tools for disposable cloud VMs. A VM comes back as a lane: run commands on it with
-lane_exec, shell_open/shell_write/shell_read, or lane_install, exactly as on a terminal lane."""
+terminal_exec, shell_open/shell_write/shell_read, or terminal_install, exactly as on a terminal lane."""
 
 from __future__ import annotations
 
@@ -62,7 +62,7 @@ async def vm_create(ctx: ToolContext, *, on: str, profile: str | None = None, tt
     set up (vms_list shows them); `server_type` (e.g. cpx42) pins an exact type; cpu, memory_gb,
     disk_gb and arch (x86, arm, any) are minimums. `ttl_minutes` is how long it may live (the node
     deletes it then, or sooner when it sits idle at the end of a paid hour). Waits up to wait_s for
-    SSH; state "ready" means lane_exec and shell_open work on `on`. Call vm_destroy when you are
+    SSH; state "ready" means terminal_exec and shell_open work on `on`. Call vm_destroy when you are
     done: it bills by the hour until deleted."""
     mgr = _mgr(ctx)
     size = {"server_type": server_type, "min_cpu": cpu, "min_memory_gb": memory_gb, "min_disk_gb": disk_gb,
@@ -81,7 +81,7 @@ async def vm_create(ctx: ToolContext, *, on: str, profile: str | None = None, tt
     ctx.trace("vm_create", lane=on, vm=rec.id, state=rec.state, server_type=rec.server_type)
     out = mgr.brief(rec)
     if rec.state == "ready":
-        out["next"] = (f"run commands with lane_exec(on={on!r}, cmd=...) or shell_open(on={on!r}); "
+        out["next"] = (f"run commands with terminal_exec(on={on!r}, cmd=...) or shell_open(on={on!r}); "
                        f"vm_clone(on={on!r}, repo=...) puts a private repo on it")
     elif rec.state == "booting":
         out["next"] = "still booting: call vms_list in a minute, then use the lane"
@@ -95,7 +95,7 @@ async def vm_clone(ctx: ToolContext, *, on: str, repo: str, ref: str | None = No
     checkout over; the token never reaches the VM. `repo` is github.com/org/repo (or its https or
     git@ address); `ref` a branch, tag or commit (default: the default branch); `depth` 1 for a
     shallow copy. `origin` on the VM has no credentials, so push from there does not work. A public
-    repo needs none of this: run git clone with lane_exec."""
+    repo needs none of this: run git clone with terminal_exec."""
     from agentos.vms import repos
     mgr = _mgr(ctx)
     rec = mgr.find(on)
@@ -104,7 +104,7 @@ async def vm_clone(ctx: ToolContext, *, on: str, repo: str, ref: str | None = No
     if pattern is None:
         from agentos.core.errors import NotFound
         raise NotFound(f"no token for {name.name} on this node; the owner adds one with "
-                       f"`agentos vm repo add {name.name}`. A public repo needs none: run git clone with lane_exec")
+                       f"`agentos vm repo add {name.name}`. A public repo needs none: run git clone with terminal_exec")
     where = dest or f"/root/src/{name.short}"
     await ctx.authorize(Effect.VM, lane_id=rec.lane_id,
                         summary=(f"Copy private repo {name.name}" + (f" at {ref}" if ref else "")
@@ -114,7 +114,7 @@ async def vm_clone(ctx: ToolContext, *, on: str, repo: str, ref: str | None = No
                         facts={"repo": name.name})
     out = await mgr.clone(rec.lane_id, name.name, git_ref=ref, dest=dest, depth=depth)
     ctx.trace("vm_clone", lane=rec.lane_id, vm=rec.id, repo=name.name, commit=out["commit"])
-    out["next"] = f"lane_exec(on={rec.lane_id!r}, cmd=..., cwd={out['dest']!r})"
+    out["next"] = f"terminal_exec(on={rec.lane_id!r}, cmd=..., cwd={out['dest']!r})"
     return out
 
 

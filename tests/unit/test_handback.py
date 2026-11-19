@@ -137,10 +137,10 @@ async def test_wait_control_carries_the_note_once(env):
     specs = {s.name: s for s in control_specs(runtime)}
     await human_session(mgr, page)
     ctx = Ctx(runtime)
-    out = await specs["lane_wait_control"].handler(ctx, on=LANE, timeout_s=1)
+    out = await specs["browser_wait_handback"].handler(ctx, on=LANE, timeout_s=1)
     assert out["agent_may_act"] and out["handback"]["fields"]
     assert "new browser_snapshot" in out["next"] and ctx.labels == ["handback"]
-    again = await specs["lane_wait_control"].handler(ctx, on=LANE, timeout_s=1)
+    again = await specs["browser_wait_handback"].handler(ctx, on=LANE, timeout_s=1)
     assert "handback" not in again
 
 

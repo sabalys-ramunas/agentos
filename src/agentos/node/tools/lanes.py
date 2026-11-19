@@ -1,5 +1,5 @@
-"""The lane tools: whoami, lanes_list, lane_open, lane_close, lane_view and the claim tools
-(lane_claim, lane_release, lane_queue).
+"""The lane tools: whoami, browsers_list, browser_open, browser_close, browser_view and the claim tools
+(browser_claim, browser_release, browser_queue).
 """
 
 from __future__ import annotations
@@ -90,7 +90,7 @@ async def _bound_environment(ctx: ToolContext) -> dict[str, Any] | None:
 async def whoami(ctx: ToolContext) -> dict[str, Any]:
     """Which agentos node this is and which environment (your cloud computer) calls without `on` go
     to, or how to open one: name, version, lane counts by state, and limits (max warm lanes, idle and
-    busy timeouts). No lane ids (see lanes_list). Call it once. Cheap: reads no page. Effect: read."""
+    busy timeouts). No lane ids (see browsers_list). Call it once. Cheap: reads no page. Effect: read."""
     await ctx.authorize(Effect.READ, summary="read the node's name, version, lane counts and limits")
     config = ctx.runtime.config
     lanes = ctx.runtime.lanes.list()
@@ -185,15 +185,15 @@ def _caller_route(ctx: ToolContext) -> dict[str, Any] | None:
 
 ENV_TAKE_OVER = ("This is your environment's browser, with no account behind it: the human can take control, "
                  "use it and hand it back from this link alone, no sign-in. While they have control, wait with "
-                 "lane_wait_control.")
+                 "browser_wait_handback.")
 
 
 async def lane_view(ctx: ToolContext, *, on: str) -> dict[str, Any]:
     """A live-view link for a warm lane, so a human can watch and take over: log in, pass a CAPTCHA
     or a security check. Returns the URL, the SSH tunnel command and what to tell the human. Never
-    type credentials yourself: give the human the link, then wait with lane_wait_control. The link
+    type credentials yourself: give the human the link, then wait with browser_wait_handback. The link
     only watches until the human signs in to the panel, and it ends within 30 minutes. Call it only
-    to hand the lane to a human. A cold lane has no view: call lane_open first. Effect: read."""
+    to hand the lane to a human. A cold lane has no view: call browser_open first. Effect: read."""
     on = lane_id(on)
     await ctx.authorize(Effect.READ, lane_id=on, summary=f"live-view link for {on}")
     lanes = ctx.runtime.lanes
@@ -202,7 +202,7 @@ async def lane_view(ctx: ToolContext, *, on: str) -> dict[str, Any]:
     out: dict[str, Any] = {"id": info.spec.id, "state": info.state.value}
     if viewer is None:
         out["viewer"] = None
-        out["note"] = "The lane is not warm, so there is no live view. Call lane_open first."
+        out["note"] = "The lane is not warm, so there is no live view. Call browser_open first."
     elif callable(getattr(lanes, "take_control", None)):
         # A signed link through the node's own port: the relay passes input only while the human
         # holds control, and checks the link, its lifetime and the page origin (no raw websockify).
@@ -230,7 +230,7 @@ async def lane_view(ctx: ToolContext, *, on: str) -> dict[str, Any]:
 # ---- shared lanes: claims and the queue ----
 
 CLAIM_WAIT_MAX_S = 120.0
-CLAIM_NEXT = ("Do the job now: every call you make on the lane renews the claim. Call lane_release as soon as "
+CLAIM_NEXT = ("Do the job now: every call you make on the lane renews the claim. Call browser_release as soon as "
               "it is done, so the callers waiting can go on.")
 
 
@@ -254,7 +254,7 @@ async def lane_claim(ctx: ToolContext, *, on: str, purpose: str, ttl_s: float = 
                      wait_s: float = 30.0) -> dict[str, Any]:
     """Claim a lane for a job of several acting calls (a post, a login, a form), so no other agent,
     flow or brain acts on it in between. One act alone needs no claim. Returns a lease with ttl_s: each of your calls on the lane
-    renews it; ttl_s without one ends it. Call lane_release as soon as the job is
+    renews it; ttl_s without one ends it. Call browser_release as soon as the job is
     done. Other callers' reads still run between your calls; their acting calls wait in the lane's
     queue. While others wait it is not renewed past claim_max_seconds (15 minutes by default). A
     human taking control, a hold, a freeze or a revoked grant ends it, and your next call on the
@@ -285,7 +285,7 @@ async def lane_claim(ctx: ToolContext, *, on: str, purpose: str, ttl_s: float = 
 
 
 async def lane_release(ctx: ToolContext, *, on: str) -> dict[str, Any]:
-    """End your claim on a lane (from lane_claim), so the callers waiting for it go on. Having no
+    """End your claim on a lane (from browser_claim), so the callers waiting for it go on. Having no
     claim is not an error: released is false. Effect: read. Errors: lane_not_found."""
     on = lane_id(on)
     await ctx.authorize(Effect.READ, lane_id=on, summary=f"release the claim on lane {on}")
@@ -305,8 +305,8 @@ async def lane_queue(ctx: ToolContext, *, on: str) -> dict[str, Any]:
     if claim is None:
         out["next"] = "Nobody claims the lane: acting calls take turns, reads share it."
     elif claim.get("yours"):
-        out["next"] = "You hold the claim. Release it with lane_release when the job is done."
+        out["next"] = "You hold the claim. Release it with browser_release when the job is done."
     else:
         out["next"] = ("Another caller holds the claim: your reads still run, your acting calls wait. Do other work "
-                       "and come back, or claim it with lane_claim to be next in line.")
+                       "and come back, or claim it with browser_claim to be next in line.")
     return out

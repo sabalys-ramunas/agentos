@@ -1,8 +1,8 @@
-"""File tools for terminal lanes: lane_file_read, lane_file_write and lane_file_edit.
+"""File tools for terminal lanes: file_read, file_write and file_edit.
 
 An agent codes on its environment's machine as it does on its own computer: read a file with line
 numbers, write one, replace an exact string in one. Each is one command over the transport
-lane_exec uses (agentos.env.manager.exec), so it works on every terminal lane, an environment's VM
+terminal_exec uses (agentos.env.manager.exec), so it works on every terminal lane, an environment's VM
 included, and is authorized as a command (Effect.EXEC with the lane's facts): on a lane that reaches
 the node, reading a file there is as sensitive as running `cat`.
 
@@ -121,9 +121,9 @@ def _header(res: Any, path: str) -> tuple[list[str], bytes]:
         raise InvalidRequest(f"could not reach {path} on the lane (exit {res.exit_code}): {said or 'no answer'}")
     kind = words[1] if len(words) > 1 else ""
     if kind == "missing":
-        raise NotFound(f"no file {path}; lane_exec(cmd=\"ls\") lists a folder, lane_file_write makes a file")
+        raise NotFound(f"no file {path}; terminal_exec(cmd=\"ls\") lists a folder, file_write makes a file")
     if kind == "dir":
-        raise InvalidRequest(f"{path} is a folder, not a file; list it with lane_exec(cmd=\"ls -la {path}\")")
+        raise InvalidRequest(f"{path} is a folder, not a file; list it with terminal_exec(cmd=\"ls -la {path}\")")
     if kind == "unreadable":
         raise InvalidRequest(f"{path} cannot be read by the lane's user")
     return words[1:], rest
@@ -138,7 +138,7 @@ def _numbers(words: list[str]) -> list[int]:
 
 def _binary(path: str, size: int) -> InvalidRequest:
     return InvalidRequest(f"{path} is a binary file ({size} bytes), not text, so it is not read or edited "
-                          "here; use lane_exec (file, xxd, base64) for it")
+                          "here; use terminal_exec (file, xxd, base64) for it")
 
 
 def _decode(data: bytes, path: str, size: int, *, cut: bool) -> str:
@@ -151,7 +151,7 @@ def _decode(data: bytes, path: str, size: int, *, cut: bool) -> str:
         return data.decode("utf-8")
     except UnicodeDecodeError:
         raise InvalidRequest(f"{path} is not UTF-8 text ({size} bytes), so it is not read or edited here; use "
-                             "lane_exec (iconv, file) for it") from None
+                             "terminal_exec (iconv, file) for it") from None
 
 
 def _numbered(lines: list[str], first: int) -> str:
@@ -179,7 +179,7 @@ def _preview(text: str, chars: int = PREVIEW_CHARS) -> str:
 
 
 async def _authorize(ctx: ToolContext, on: str, summary: str, content: dict, *, preview: str = "") -> Any:
-    """As lane_exec authorizes a command on this lane (agentos.env.tools). The summary says where it
+    """As terminal_exec authorizes a command on this lane (agentos.env.tools). The summary says where it
     runs first, then what it writes, so a long text never pushes the place out of the card."""
     from agentos.env.tools import _clip, _facts, _where
 
@@ -249,13 +249,13 @@ async def lane_file_read(ctx: ToolContext, *, on: str, path: str, offset: int = 
 
 async def lane_file_write(ctx: ToolContext, *, on: str, path: str, content: str) -> dict:
     """Write a whole text file (at most 1 MB), replacing it; folders are made. A relative path
-    starts at the repository. To change part of one, lane_file_edit. Effect: exec."""
+    starts at the repository. To change part of one, file_edit. Effect: exec."""
     if not isinstance(content, str):
         raise InvalidRequest("content is the file's text")
     data = content.encode()
     if len(data) > WRITE_MAX:
         raise InvalidRequest(f"content is {len(data)} bytes; one write carries at most {WRITE_MAX}. Write it in "
-                             "parts with lane_exec, or generate it on the machine")
+                             "parts with terminal_exec, or generate it on the machine")
     target = resolve_path(path, _workdir(ctx, on))
     mgr = await _authorize(ctx, on, f"Write {len(data)} bytes to {target}",
                            {"write": target, "content": "sha256:" + _sha(data)},
@@ -264,7 +264,7 @@ async def lane_file_write(ctx: ToolContext, *, on: str, path: str, content: str)
     words, _ = _header(res, target)
     if words[0] not in ("created", "updated"):
         raise InvalidRequest(f"could not write {target}: {(res.stderr or '').strip()[-300:] or words[0]}")
-    ctx.trace("lane_file_write", lane=on, path=target, bytes=len(data))
+    ctx.trace("file_write", lane=on, path=target, bytes=len(data))
     return {"path": target, "state": words[0], "bytes": len(data),
             "lines": content.count("\n") + (1 if content and not content.endswith("\n") else 0)}
 
@@ -276,7 +276,7 @@ async def lane_file_edit(ctx: ToolContext, *, on: str, path: str, old: str, new:
     many times it occurs. Returns replaced and snippet (the changed lines). Effect: exec. Errors:
     not_found, invalid."""
     if not isinstance(old, str) or not old:
-        raise InvalidRequest("old is the exact text to replace; to write a whole file use lane_file_write")
+        raise InvalidRequest("old is the exact text to replace; to write a whole file use file_write")
     if not isinstance(new, str):
         raise InvalidRequest("new is the text to put in place of old")
     if old == new:
@@ -293,11 +293,11 @@ async def lane_file_edit(ctx: ToolContext, *, on: str, path: str, old: str, new:
         raise _binary(target, size)
     if size > EDIT_MAX:
         raise InvalidRequest(f"{target} is {size} bytes; an edit reads at most {EDIT_MAX}. Change it with "
-                             "lane_exec (sed, a script)")
+                             "terminal_exec (sed, a script)")
     text = _decode(body, target, size, cut=False)
     found = text.count(old)
     if found == 0:
-        raise InvalidRequest(f"old was not found in {target}. Read the lines with lane_file_read and copy them "
+        raise InvalidRequest(f"old was not found in {target}. Read the lines with file_read and copy them "
                              "exactly, whitespace and indentation included")
     if found > 1 and not replace_all:
         raise InvalidRequest(f"old occurs {found} times in {target}, so it is not changed. Add surrounding lines "
@@ -311,7 +311,7 @@ async def lane_file_edit(ctx: ToolContext, *, on: str, path: str, old: str, new:
                              "it again and repeat the edit")
     if words[0] not in ("created", "updated"):
         raise InvalidRequest(f"could not write {target}: {(res.stderr or '').strip()[-300:] or words[0]}")
-    ctx.trace("lane_file_edit", lane=on, path=target, replaced=found if replace_all else 1)
+    ctx.trace("file_edit", lane=on, path=target, replaced=found if replace_all else 1)
     return {"path": target, "replaced": found if replace_all else 1, "snippet": _snippet(changed, start, new)}
 
 
@@ -329,7 +329,7 @@ def _snippet(text: str, start: int, new: str) -> str:
 def tool_specs(runtime: Any) -> list[ToolSpec]:
     t = ("env", "terminal")
     return [
-        ToolSpec("lane_file_read", lane_file_read, Effect.EXEC, tags=t, hidden_without="envs"),
-        ToolSpec("lane_file_write", lane_file_write, Effect.EXEC, tags=(*t, "changes_state"), hidden_without="envs"),
-        ToolSpec("lane_file_edit", lane_file_edit, Effect.EXEC, tags=(*t, "changes_state"), hidden_without="envs"),
+        ToolSpec("file_read", lane_file_read, Effect.EXEC, tags=t, hidden_without="envs"),
+        ToolSpec("file_write", lane_file_write, Effect.EXEC, tags=(*t, "changes_state"), hidden_without="envs"),
+        ToolSpec("file_edit", lane_file_edit, Effect.EXEC, tags=(*t, "changes_state"), hidden_without="envs"),
     ]

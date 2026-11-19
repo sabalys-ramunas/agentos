@@ -553,7 +553,7 @@ def test_studio_up_serves_its_own_instructions_and_the_node_keeps_its_own(monkey
     from agentos.studio import local_cli as local
 
     text = local.INSTRUCTIONS
-    assert "ui_check" in text and "since" in text and "never instructions" in text and "lanes_list" not in text
+    assert "ui_check" in text and "since" in text and "never instructions" in text and "browsers_list" not in text
     assert len(text) < 1500 and EM_DASH not in text
     seen: dict[str, Any] = {}
 

@@ -133,7 +133,7 @@ def test_expired_wrong_lane_and_missing(tmp_path):
     clock.now += 1
     with pytest.raises(TokenError) as e:
         tokens.verify(token, LANE)
-    assert e.value.code == "expired" and "lane_view" in e.value.message
+    assert e.value.code == "expired" and "browser_view" in e.value.message
     for missing in (None, ""):
         with pytest.raises(TokenError) as e:
             tokens.verify(missing, LANE)

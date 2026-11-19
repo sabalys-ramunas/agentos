@@ -30,27 +30,27 @@ SERVICE = "environments"
 # tools with no `on` whose handler finds the lane (a new environment's env/<id>, a job's or a shell's
 # lane) and authorizes on it: a special held for some lanes only (the `environments` special agentos
 # connect gives: env/*) is checked there, not before the handler runs
-PICKS_LANE = frozenset({"environment_open", "lane_job_cancel", "shell_write", "shell_close"})
+PICKS_LANE = frozenset({"environment_open", "terminal_job_cancel", "shell_write", "shell_close"})
 
 TERMINAL = frozenset({
-    "lane_exec", "lane_file_edit", "lane_file_read", "lane_file_write", "lane_install", "lane_job_start",
-    "lane_upload", "lane_upload_check", "shell_open", "environment_upload",
+    "terminal_exec", "file_edit", "file_read", "file_write", "terminal_install", "terminal_job_start",
+    "terminal_upload", "terminal_upload_check", "shell_open", "environment_upload",
     "environment_download",
-})  # not lane_jobs_list: without `on` it already lists every run the caller may see (`agentos run --list`)
+})  # not terminal_jobs: without `on` it already lists every run the caller may see (`agentos run --list`)
 BROWSER = frozenset({
     "browser_act", "browser_console", "browser_dialog", "browser_dialog_answer", "browser_navigate",
     "browser_network", "browser_record", "browser_screenshot", "browser_scroll", "browser_snapshot", "browser_tab", "browser_tabs",
-    "browser_upload", "browser_wait", "files_delete", "files_get", "files_list", "files_put", "lane_claim",
-    "lane_close", "lane_control", "lane_open", "lane_queue", "lane_release", "lane_request_control", "lane_view",
-    "lane_wait_control", "login", "vault_fill",
+    "browser_upload", "browser_wait", "browser_file_delete", "browser_file_get", "browser_files", "browser_file_put", "browser_claim",
+    "browser_close", "browser_control", "browser_open", "browser_queue", "browser_release", "browser_request_control", "browser_view",
+    "browser_wait_handback", "login", "vault_fill",
 })  # login and vault_fill: the vault types a login the owner bound to the environment (agentos.environments.logins)
 STUDIO = frozenset({"ui_check", "ui_diff", "ui_baseline", "system_check"})
 
-# tools that are not routed without `on` (lane_jobs_list lists every run the caller may see; a job id
+# tools that are not routed without `on` (terminal_jobs lists every run the caller may see; a job id
 # finds its own lane), whose `on` may still name an environment: its handle becomes its terminal lane,
 # and the lease is checked. The job tools take `on` because agents are told to pass it on every call
-# (round 3, T2: "lane_job_read has no argument 'on'"); the handler checks it is the job's lane.
-ON_ONLY = frozenset({"lane_jobs_list", "lane_job_read", "lane_job_cancel"})
+# (round 3, T2: "terminal_job_read has no argument 'on'"); the handler checks it is the job's lane.
+ON_ONLY = frozenset({"terminal_jobs", "terminal_job_read", "terminal_job_cancel"})
 
 LANE_ARG_TEXT = "The on your environment_open gave, or an account lane \"workspace/name\"."
 
@@ -102,8 +102,8 @@ def with_env(result: Any, env: Any) -> Any:
     return {**result, "environment": env_ref(env)}
 
 
-# a command's result: the hosts the environment's network refused while it ran (lane_job_read: since its job began)
-NETWORK_TOOLS = frozenset({"lane_exec", "lane_job_read"})
+# a command's result: the hosts the environment's network refused while it ran (terminal_job_read: since its job began)
+NETWORK_TOOLS = frozenset({"terminal_exec", "terminal_job_read"})
 
 
 def now(runtime: Any) -> Any:
@@ -127,7 +127,7 @@ def finish(runtime: Any, tool: str, result: Any, env: Any, since: Any = None) ->
         if env is None:  # a job read without `on`: the job's own lane
             found = svc.env_of_lane(result.get("lane"))
             env = found[0] if found else None
-        if tool == "lane_job_read":
+        if tool == "terminal_job_read":
             from datetime import datetime
 
             since = datetime.fromisoformat(str(result.get("started_at")))
@@ -232,7 +232,7 @@ def after(runtime: Any, tool: str, lane_id: str | None, kwargs: dict[str, Any], 
           scrub: list[str] | tuple[str, ...] = (), result: Any = None, error: str | None = None) -> None:
     """Count a call on an environment's lane (any tool, with or without `on`). Its summary is kept
     scrubbed as the audit log's are (`scrub`: exact values to take out too, like the call's token).
-    A command's exit code (`result`'s, lane_exec) and a failed call's error code are kept with it."""
+    A command's exit code (`result`'s, terminal_exec) and a failed call's error code are kept with it."""
     if not isinstance(lane_id, str) or not lane_id.startswith("env/"):
         return
     svc = _service(runtime)

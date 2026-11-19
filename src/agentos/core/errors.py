@@ -95,8 +95,8 @@ class NotFound(AgentosError):
 
 
 class HumanInControl(AgentosError):
-    """A human has taken control of this lane. The agent waits (lane_wait_control) or asks
-    for it back (lane_request_control); it must not retry the action in a loop."""
+    """A human has taken control of this lane. The agent waits (browser_wait_handback) or asks
+    for it back (browser_request_control); it must not retry the action in a loop."""
     code = "human_in_control"
 
 

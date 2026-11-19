@@ -212,7 +212,7 @@ async def test_lane_control_on_a_frozen_lane_does_not_say_you_may_act(node):
     fns = {s.name: wrap_tool(s, node.runtime) for s in control_specs(node.runtime)}
     await node.freeze.freeze("lane", "biz-a/one", reason="stop", by="owner")
     with bind_request_token(node.config.mcp_token):  # the node token Claude Code drives lanes with
-        out = await fns["lane_control"](on="biz-a/one")
+        out = await fns["browser_control"](on="biz-a/one")
     assert out["agent_may_act"] is False, out["next"]
     assert "frozen" in out["next"]
 

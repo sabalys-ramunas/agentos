@@ -281,13 +281,13 @@ class Pilot:
         if not req.files:
             return {}
         try:
-            listed = await self.tools.call("files_list", on=req.lane)
+            listed = await self.tools.call("browser_files", on=req.lane)
         except ToolFailed as e:
             raise self._cannot_go_on(e) from None
         inbox = {key: f["id"] for f in listed.get("inbox", []) for key in (f.get("name"), f.get("id")) if key}
         missing = [name for name in req.files if name not in inbox]
         if missing:
-            raise Stop(Status.REFUSED, "file_not_in_inbox", needs="the file in the lane's inbox (files_put)",
+            raise Stop(Status.REFUSED, "file_not_in_inbox", needs="the file in the lane's inbox (browser_file_put)",
                        message=f"not in the lane's inbox: {', '.join(missing)}")
         return {name: inbox[name] for name in req.files}
 

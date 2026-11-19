@@ -1,4 +1,4 @@
-"""agentos.pilot: a cheap worker drives one lane toward one goal (lane_do).
+"""agentos.pilot: a cheap worker drives one lane toward one goal (browser_task).
 
 A frontier model should not pay for every step of browser work. So it hands the node a goal and the
 strings to type, and gets back one honest result. Code owns the loop, a cheap decider picks from

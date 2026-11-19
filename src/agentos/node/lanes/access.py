@@ -357,7 +357,7 @@ class AccessMixin:
         return [] if await self._page_answers(lane, calls[0].page) else calls
 
     async def close_stuck(self, lane_id: str, calls: list[_Call], why: str) -> None:
-        """Stop stuck calls and close the lane's browser (lane_close, the memory watchdog)."""
+        """Stop stuck calls and close the lane's browser (browser_close, the memory watchdog)."""
         lane = self._lane(lane_id)
         for c in calls:
             interrupts.interrupt(c.task, interrupts.CLOSED)  # a call already interrupted keeps its first reason
@@ -388,7 +388,7 @@ class AccessMixin:
     @staticmethod
     def _lost_message(lane_id: str, note: ClaimEnd) -> str:
         return (f"your claim on {lane_id} ended ({note.message}), so this call did nothing. Someone else may "
-                "have changed the page: take a new snapshot, and claim the lane again with lane_claim if the "
+                "have changed the page: take a new snapshot, and claim the lane again with browser_claim if the "
                 "job still needs it to itself.")
 
     async def _enter(self, lane_id: str, lane: _Lane, holder: Holder, mode: str, principal_kind: str, *,
@@ -479,7 +479,7 @@ class AccessMixin:
         else:
             e = LaneBusy(f"lane {lane_id} is busy: {text}. You were number {position} in its queue, about "
                          f"{estimate:g} s from your turn, after {waited:.0f} s of waiting. Call again later; "
-                         f"lane_queue(on=\"{lane_id}\") shows the queue.")
+                         f"browser_queue(on=\"{lane_id}\") shows the queue.")
         e.details = {"lane": lane_id, "position": position, "estimate_s": estimate, "waited_s": round(waited, 1),
                      "queue_length": len(access.queue), "holder": who}
         return e
@@ -607,7 +607,7 @@ class AccessMixin:
         return out
 
     def claimed_by(self, lane_id: str, key: str) -> bool:
-        """Whether the holder with this key holds an explicit (lane_claim) claim on the lane now."""
+        """Whether the holder with this key holds an explicit (browser_claim) claim on the lane now."""
         lane = self._lanes.get(lane_id)
         if lane is None or not key:
             return False
@@ -617,7 +617,7 @@ class AccessMixin:
 
     def queue_info(self, lane_id: str, *, viewer: Holder | None = None) -> dict[str, Any]:
         """The lane's claim and queue: who holds it and since when, who waits, in which order,
-        with an estimate each (lane_queue, and `claim` / `queue_length` in the panel's lane JSON)."""
+        with an estimate each (browser_queue, and `claim` / `queue_length` in the panel's lane JSON)."""
         self.store.require(lane_id)
         lane = self._lanes.get(lane_id)
         if lane is None:
@@ -655,4 +655,4 @@ class AccessMixin:
             except LaneQuarantined as e:
                 return e.message
         return (f"lane {lane_id} is quarantined ({lane.quarantine_reason or 'failed self-check'}). "
-                "Fix the cause, then open it again with lane_open.")
+                "Fix the cause, then open it again with browser_open.")

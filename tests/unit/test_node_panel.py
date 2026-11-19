@@ -327,7 +327,7 @@ def test_only_the_owner_in_person_runs_an_assisted_login(node):
         for method, path in LOGIN_ROUTES:
             r = client.request(method, path, json={}, headers=bearer(admin))
             assert r.status_code == 403 and r.json()["error"]["code"] == "denied" and "—" not in r.text, path
-            assert "lane_login_request" in r.json()["error"]["message"]
+            assert "browser_login_request" in r.json()["error"]["message"]
         # the node token alone is not a person (an agent may hold it): a login hands a held lane back
         r = client.get("/api/lanes/biz-a/instagram/login", headers=bearer(TOKEN))
         assert r.status_code == 403 and r.json()["error"]["code"] == "presence_required", r.text

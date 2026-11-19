@@ -84,7 +84,7 @@ def busy_week(n=50):
     rows = []
     for i in range(n // 5):
         g = f"gr_{i % 3}"
-        rows += [row("lanes_list", grant=g, lane=None),
+        rows += [row("browsers_list", grant=g, lane=None),
                  row("browser_snapshot", grant=g, summary=PAGE_TEXT),
                  row("browser_act", grant=g, status="error", error="invalid: action fill needs `text`",
                      args={"on": "personal/reddit", "ref": "e12", "action": "fill", "text": PAGE_TEXT}),
@@ -186,7 +186,7 @@ def test_the_nodes_own_checks_people_and_flows_are_left_out():
 
 
 def test_sessions_are_runs_or_grants_and_say_who_was_behind_them():
-    rows = [row("lanes_list", grant="gr_a"), row("lanes_list", grant="gr_b"),
+    rows = [row("browsers_list", grant="gr_a"), row("browsers_list", grant="gr_b"),
             row("browser_act", grant="gr_w", run_id="run_1", principal="pilot-run-run_1", kind="brain"),
             row("browser_act", grant="gr_t", principal="brain-task-bt_9", kind="brain"),
             row("whoami", grant="gr_a")]

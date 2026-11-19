@@ -171,7 +171,7 @@ async def test_a_job_survives_a_restart_and_reads_on_from_the_same_offsets(vm):
     assert r.state == "running"
     cancelled = await again.job_cancel(info.id)
     assert cancelled.state == "cancelled"
-    assert await gone(vite), "lane_job_cancel ends the whole process tree after a reattach too"
+    assert await gone(vite), "terminal_job_cancel ends the whole process tree after a reattach too"
     await again.shutdown()
 
 
@@ -279,7 +279,7 @@ def test_the_follower_is_quiet_and_only_a_job_detaches(vm):
 async def test_a_read_waiting_for_the_end_says_exited_not_running_with_an_exit_code(vm, monkeypatch):
     """Live on Hetzner (2026-11-16): an exit-0 job whose child was killed for memory. The background
     probe found the kill while the job's end was under way (its exit code set, the machine's files
-    still going), which woke lane_job_read(until_exit=true): the read said state running with
+    still going), which woke terminal_job_read(until_exit=true): the read said state running with
     exit_code 0 and "the job runs on". The read now lets an ending job finish first."""
     from agentos.env import jobs as jobs_mod
     from agentos.env.lanes import LaneRuntime

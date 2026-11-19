@@ -101,7 +101,7 @@ def resolve(
 
     _check_profile(profile, kind)
     _settle_limits(profile, limits, preset)
-    # programs dial: base -> installs refused, overlay -> lane_install allowed
+    # programs dial: base -> installs refused, overlay -> terminal_install allowed
     policy.install = profile.programs == "overlay" and preset != Preset.ACCOUNT
     _tier(profile, policy)
     return profile, limits, policy

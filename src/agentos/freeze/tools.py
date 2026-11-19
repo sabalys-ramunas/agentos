@@ -1,4 +1,4 @@
-"""lane_freeze: an agent pulls the off switch on its own lane, or on anything its grant covers.
+"""browser_freeze: an agent pulls the off switch on its own lane, or on anything its grant covers.
 
 It can never unfreeze; no tool does. It is a read-effect call, so no approval routing ever holds
 it up, and it stays callable on a frozen lane (agentos.policy.freeze.EXEMPT_TOOLS).
@@ -74,5 +74,5 @@ def tool_specs(runtime: Any) -> list[ToolSpec]:
                      "If your grant is listed under revoked_grants, you will need a new one afterwards."),
         }
 
-    return [ToolSpec("lane_freeze", lane_freeze, Effect.READ, tags=("lanes", "control", "freeze", "changes_state"),
+    return [ToolSpec("browser_freeze", lane_freeze, Effect.READ, tags=("lanes", "control", "freeze", "changes_state"),
                      hidden_without="freeze")]

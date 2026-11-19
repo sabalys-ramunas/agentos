@@ -1006,11 +1006,11 @@ def test_a_missing_worker_tool_names_the_first_step_that_works(service, runtime)
     "restarts it" said nothing, and the name read "Browser worker worker"."""
     from agentos.plugins.service import missing_tool
     runtime.register("plugins", service)
-    text = missing_tool(runtime, "lane_do")
+    text = missing_tool(runtime, "browser_task")
     assert "worker worker" not in text and "Browser worker (browser-worker)" in text
     assert "agentos plugins assign browser-worker decide BRAIN" in text and "a decision brain" in text
     assert text.index("plugins assign") < text.index("plugins enable") < text.index("restart agentosd")
     assert "—" not in text
     assign_all(service)
-    text = missing_tool(runtime, "lane_do")
+    text = missing_tool(runtime, "browser_task")
     assert "plugins assign" not in text and "agentos plugins enable browser-worker" in text

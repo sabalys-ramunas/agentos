@@ -425,7 +425,7 @@ async def test_tools_authorize_vm_with_the_price_and_profile_then_exec_works_lik
     assert call["effect"] == Effect.VM and call["lane_id"] == "dev/a" and call["facts"] == {"profile": "small"}
     assert "cx23" in call["summary"] and "EUR 0.0060 an hour" in call["summary"] and "EUR 0.02 for 90 min" in call["summary"]
     assert "sold out: cpx22" in call["summary"]
-    assert out["state"] == "ready" and "lane_exec" in out["next"]
+    assert out["state"] == "ready" and "terminal_exec" in out["next"]
     listed = await specs["vms_list"].handler(ctx)
     assert [v["lane"] for v in listed["vms"]] == ["dev/a"] and "small" in listed["profiles"]
     denied = Ctx(vms.runtime, deny=True)
@@ -449,7 +449,7 @@ async def test_exec_on_a_vm_lane_is_routed_as_isolated_and_runs_over_ssh(env):
                               workdir=envs.paths.workdir("dev/a"))
     assert cmd.argv[0] == "ssh" and cmd.argv[-1].endswith(" sh uname -a") and "setsid -w" in cmd.argv[-1] and f"root@{lane.remote.host}" in cmd.argv
     assert "AGENTOS" not in json.dumps(cmd.env)
-    assert {s.name for s in env_specs(vms.runtime)} >= {"lane_exec", "shell_open"}
+    assert {s.name for s in env_specs(vms.runtime)} >= {"terminal_exec", "shell_open"}
 
 
 def test_policy_routes_vm_to_a_person_and_grants_limit_profiles():

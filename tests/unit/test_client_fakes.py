@@ -551,7 +551,7 @@ class NodeServer:
                  policy: bool = True, setup=None):
         self.setup = setup  # setup(runtime): more services before it serves (the env manager, say)
         self.home = home
-        self.control = control  # a manager with take over, so lane_view returns signed links
+        self.control = control  # a manager with take over, so browser_view returns signed links
         self.policy = policy
         self.runtime = None
         self.token = token

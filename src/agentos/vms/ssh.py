@@ -55,7 +55,7 @@ def ssh_base(remote: RemoteHost, *, tty: bool = False, quiet: bool = False) -> l
 
 
 # Where a workload on the VM writes its process group id, so the node can end every process it started
-# (lane_job_cancel left a dev server's vite running: killing the local ssh never reached the VM's processes).
+# (terminal_job_cancel left a dev server's vite running: killing the local ssh never reached the VM's processes).
 # `kill -s SIG -- -PGID`, not `kill -SIG -- -PGID`: Ubuntu's /bin/sh is dash, whose kill refuses the latter
 # ("Illegal number: -") and signals nothing, so the group lived on (checked in ubuntu:24.04, 2026-11-16).
 PGID_DIR = "/tmp/agentos-wl"
@@ -91,7 +91,7 @@ def remote_command(wl: Workload) -> str:
     return f"mkdir -p {PGID_DIR} && {cd} && exec setsid -w sh -c {group} sh {run}"
 
 
-# A job (lane_job_start) on a VM does not live in the node's ssh connection (field report 2026-11-16: the
+# A job (terminal_job_start) on a VM does not live in the node's ssh connection (field report 2026-11-16: the
 # service restarted for an upgrade, its ssh sessions logged out, and every dev server on the VM died with
 # them). It runs detached: a session of its own (setsid), its stdout and stderr in files beside its pgid
 # file, so a restart, an upgrade or a dropped connection of the node leaves it running. The node follows

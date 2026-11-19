@@ -17,7 +17,7 @@ scope with memory accounting of its own; a kill in that cgroup is `in_job`. With
 machine, where dmesg is refused anyway) kills since the start are still listed, `in_job` unknown.
 
 When the node asks (one ssh call, `probe_script`): every 10 s while a job runs, and when a job or a
-lane_exec ends with a sign of a kill: an exit code that is not 0, a shell's "Killed" line, or an exit
+terminal_exec ends with a sign of a kill: an exit code that is not 0, a shell's "Killed" line, or an exit
 code 137 in what it printed (`Signs`). The common case is the second and third: a parent that
 printed its child's 137 and exited 0 (field report 2026-11-16, round 3). The start record stays on
 the VM after a run that failed or during which the kernel's own oom count (/proc/vmstat oom_kill)
@@ -195,7 +195,7 @@ def note(kills: list[dict] | None, *, running: bool, what: str = "job") -> str |
     text = text[0].upper() + text[1:] + "."
     fix = bigger_words(kills)
     if running and any(k.get("in_job") is not False for k in kills):
-        text += " The job runs on without it and may hang: lane_job_cancel it" + (
+        text += " The job runs on without it and may hang: terminal_job_cancel it" + (
             ". " + fix if fix else ", then run less at once or open a bigger size.")
     else:
         text += " " + (fix or "Run less at once, or open a bigger size.")

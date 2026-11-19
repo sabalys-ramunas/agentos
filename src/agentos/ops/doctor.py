@@ -568,7 +568,7 @@ def check_memory(ctx: DoctorContext) -> list[CheckResult]:
                                f"about {_size(LANE_RAM)}), then restart agentosd", data=data))
     elif avail < total * 0.10:
         out.append(CheckResult("memory", "RAM and swap", WARN, detail + "; less than 10% is available now",
-                               "close lanes (lane_close) or lower max_warm_lanes", data=data))
+                               "close lanes (browser_close) or lower max_warm_lanes", data=data))
     else:
         out.append(CheckResult("memory", "RAM and swap", PASS, detail, data=data))
     if swap and swap_free < swap * 0.5:

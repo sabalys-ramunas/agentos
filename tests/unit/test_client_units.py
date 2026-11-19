@@ -139,10 +139,10 @@ def test_session_reads_whoami_and_lanes(server):
         assert session.session_id
         who = session.call("whoami")
         assert who["node"] == "units" and who["lanes"]["total"] == 2
-        lanes = session.call("lanes_list")["lanes"]
+        lanes = session.call("browsers_list")["lanes"]
         assert {lane["id"] for lane in lanes} == {"personal/reddit", "biz-a/instagram"}
         with pytest.raises(ToolError, match="lane_not_found"):
-            session.call("lane_view", {"on": "nobody/nothing"})
+            session.call("browser_view", {"on": "nobody/nothing"})
 
 
 def test_wrong_token_is_unauthorized(server):
@@ -290,7 +290,7 @@ def test_skills_name_the_tools_they_rely_on():
                  '"ref"', '"files"', '"summary"', "brain_status", "brain_tail", "brain_tasks", "agentos connect"):
         assert word in text
     text = lanes.read_text()
-    for word in ("browser_snapshot", "browser_act", "lane_view", "lane_request_control", "lane_wait_control",
+    for word in ("browser_snapshot", "browser_act", "browser_view", "browser_request_control", "browser_wait_handback",
                  "human_in_control", "agent_paused", "Read back"):
         assert word in text
     for path in [*INTEGRATION.rglob("*"), *SKILLS.rglob("*")]:

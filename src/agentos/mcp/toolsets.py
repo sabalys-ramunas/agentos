@@ -39,7 +39,8 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs
 
-from agentos.core.toolsets import CORE, FULL_ALIASES, NAMES, OTHER, TOOLSETS
+from agentos.core import toolnames
+from agentos.core.toolsets import CORE, FULL_ALIASES, NAMES, OTHER, TOOLSET_ALIASES, TOOLSETS
 
 if TYPE_CHECKING:  # kept out of the import: `agentos connect` reads the names and stays light
     from mcp.types import Tool
@@ -84,6 +85,7 @@ def parse_toolsets(value: str | Iterable[str] | None) -> frozenset[str] | None:
             continue
         if word in FULL_ALIASES:
             return None
+        word = TOOLSET_ALIASES.get(word, word)
         if word in NAMES or word == OTHER:
             chosen.add(word)
         else:
@@ -185,7 +187,7 @@ def meta_tools() -> list[Tool]:
         Tool(name=TOOLS_CALL, description=CALL_DESCRIPTION,
              annotations=ToolAnnotations(read_only_hint=False),
              input_schema={"type": "object", "required": ["name"], "properties": {
-                 "name": {"type": "string", "description": "The tool to call, for example files_put."},
+                 "name": {"type": "string", "description": "The tool to call, for example browser_file_put."},
                  "arguments": {"type": "object", "description": "The tool's arguments, as you would pass them."}}}),
     ]
 
@@ -225,7 +227,7 @@ def more(groups: dict[str, list[Any]], shown: frozenset[str] | None, wanted: Any
         return overview(groups, everything), None, False
     if not isinstance(wanted, str):
         return None, "invalid: toolset: must be a string", False
-    key = wanted.strip().lower()
+    key = toolnames.current(TOOLSET_ALIASES.get(wanted.strip().lower(), wanted.strip().lower()))
     tool = None  # a tool's name: only that tool's description and arguments (its toolset is loaded)
     if key not in groups:
         owner = next((name for name, tools in groups.items() if any(t.name == key for t in tools)), None)
@@ -247,7 +249,7 @@ def call_target(arguments: dict[str, Any]) -> tuple[str, dict[str, Any]] | str:
     name, args = arguments.get("name"), arguments.get("arguments")
     args = {} if args is None else args
     if not isinstance(name, str) or not name:
-        return "invalid: name: give the tool to call, for example files_put"
+        return "invalid: name: give the tool to call, for example browser_file_put"
     if not isinstance(args, dict):
         return "invalid: arguments: must be an object of the tool's arguments"
     if name in META_TOOLS:

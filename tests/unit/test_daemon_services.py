@@ -136,11 +136,11 @@ async def test_real_features_are_served_through_the_policy_wrapper(config):
             Client(streamable_http_client(url, http_client=http), mode="legacy") as client,
         ):
             names = {t.name for t in (await client.list_tools()).tools}
-            assert {"lanes_list", "tools_more", "tools_call"} <= names and "vault_list" not in names  # core
+            assert {"browsers_list", "tools_more", "tools_call"} <= names and "vault_list" not in names  # core
             more = await client.call_tool("tools_more", {})
             reachable = {name for row in more.structured_content["toolsets"] for name in row["tools"]}
-            assert {"lanes_list", "vault_list", "grant_info", "flows_list"} <= reachable
-            lanes = await client.call_tool("lanes_list", {})
+            assert {"browsers_list", "vault_list", "grant_info", "flows_list"} <= reachable
+            lanes = await client.call_tool("browsers_list", {})
             assert not lanes.is_error and "personal/reddit" in lanes.content[0].text
             info = await client.call_tool("grant_info", {})  # not listed by default, still callable
             assert not info.is_error, info.content[0].text
@@ -186,12 +186,12 @@ async def test_services_named_by_module_are_registered_and_shutdown_is_a_stop(co
 def test_lane_io_tools_are_served_by_default():
     names = {spec.name for provider in mcp_providers.tool_providers()
              for spec in provider(node_runtime(NodeConfig(), FakeLaneManager(), FakeInteraction()))}
-    assert {"files_put", "browser_upload", "browser_tabs", "browser_dialog_answer"} <= names
+    assert {"browser_file_put", "browser_upload", "browser_tabs", "browser_dialog_answer"} <= names
 
 
 async def test_viewer_and_control_api_are_served_with_their_own_auth(tmp_path):
     """SEC-1: live views go only through signed links on the node port; the control API needs
-    the node token. A lane_view link opens the viewer page; a forged one does not."""
+    the node token. A browser_view link opens the viewer page; a forged one does not."""
     from edge_lanes import make_manager
     from starlette.testclient import TestClient
 
@@ -272,7 +272,7 @@ def test_policy_build_attaches_the_notifier_to_lane_holds(tmp_path):
 
 
 def test_a_flow_upload_resolves_a_files_put_id_through_the_files_service(config, monkeypatch):
-    """files_put stores inbox/<id>/<name>; without a files service the driver could not find an id."""
+    """browser_file_put stores inbox/<id>/<name>; without a files service the driver could not find an id."""
     from agentos.node.files import INBOX, FilesConfig, LaneFiles
     from agentos.node.flow_driver import resolve_inbox_file
 

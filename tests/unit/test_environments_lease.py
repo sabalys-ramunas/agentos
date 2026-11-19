@@ -49,25 +49,25 @@ async def test_two_stateless_chats_each_hold_their_own_and_never_reach_the_other
     # the node keeps only the hash: no record holds the handle itself
     env = node["mgr"].get(a["id"])
     assert env.lease == lease_of(a["on"]) and a["on"] not in env.model_dump_json()
-    ran = await node["call"]("lane_exec", on=a["on"], cmd="pwd", session=NONE)
+    ran = await node["call"]("terminal_exec", on=a["on"], cmd="pwd", session=NONE)
     assert ran["exit_code"] == 0 and ran["environment"] == {"id": a["id"], "title": "Shop page"}
-    ran = await node["call"]("lane_exec", on=b["on"], cmd="pwd", session=NONE)
+    ran = await node["call"]("terminal_exec", on=b["on"], cmd="pwd", session=NONE)
     assert ran["environment"]["id"] == b["id"]
     # the other chat's machine by its title, its id or its lane: refused, and nothing ran there
     for on in ("Shop page", a["id"], f"env/{a['id']}", f"env/{a['id']}-browser", f"{a['id']}-browser"):
         with pytest.raises(ToolCallError, match="^which_environment") as err:
-            await node["call"]("lane_exec", on=on, cmd="rm -rf /work", session=NONE)
+            await node["call"]("terminal_exec", on=on, cmd="rm -rf /work", session=NONE)
         words = "lane's name, not an on" if on.endswith(("-browser", f"/{a['id']}")) else "pass the on from your"
         assert words in str(err.value) and a["on"] not in str(err.value)
     # a handle with the right id and a made-up secret is nobody's
     with pytest.raises(ToolCallError, match="^no_environment"):
-        await node["call"]("lane_exec", on=a["id"] + ".aaaaaaaaaaaaaaaa", cmd="pwd", session=NONE)
-    assert [c.summary for c in node["mgr"].get(a["id"]).calls if c.tool == "lane_exec"] == ["pwd"]
+        await node["call"]("terminal_exec", on=a["id"] + ".aaaaaaaaaaaaaaaa", cmd="pwd", session=NONE)
+    assert [c.summary for c in node["mgr"].get(a["id"]).calls if c.tool == "terminal_exec"] == ["pwd"]
 
 
 async def test_a_call_without_on_is_refused_even_with_one_machine_open(node):  # noqa: F811
     a = await opened(node, session=NONE)
-    for tool, kw in (("lane_exec", {"cmd": "ls"}), ("lane_job_start", {"cmd": "npm run dev"}),
+    for tool, kw in (("terminal_exec", {"cmd": "ls"}), ("terminal_job_start", {"cmd": "npm run dev"}),
                      ("environment_save", {}), ("environment_close", {"discard": True}),
                      ("environment_port", {"port": 3000})):
         with pytest.raises(ToolCallError, match="^which_environment") as err:
@@ -82,7 +82,7 @@ async def test_a_call_without_on_is_refused_even_with_one_machine_open(node):  #
     # with nothing open, the same call hears no_environment: open one first
     await node["call"]("environment_close", on=a["on"], session=NONE)
     with pytest.raises(ToolCallError, match="^no_environment"):
-        await node["call"]("lane_exec", cmd="ls", session=NONE)
+        await node["call"]("terminal_exec", cmd="ls", session=NONE)
 
 
 async def test_whoami_and_studio_name_no_machine_without_its_handle(node):  # noqa: F811
@@ -128,30 +128,30 @@ async def test_whoami_names_the_machine_its_session_holds_through_the_service(no
 async def test_jobs_of_a_machine_list_only_with_its_handle(node):  # noqa: F811
     a = await opened(node, session=NONE)
     await node["envs"].job_start(f"env/{a['id']}", "npm run dev", cwd="/work")
-    assert [j for j in await node["call"]("lane_jobs_list", session=NONE) if j["lane"].startswith("env/")] == []
-    mine = await node["call"]("lane_jobs_list", on=a["on"], session=NONE)
+    assert [j for j in await node["call"]("terminal_jobs", session=NONE) if j["lane"].startswith("env/")] == []
+    mine = await node["call"]("terminal_jobs", on=a["on"], session=NONE)
     assert [j["lane"] for j in mine] == [f"env/{a['id']}"]
     with pytest.raises(ToolCallError, match="^which_environment"):
-        await node["call"]("lane_jobs_list", on=f"env/{a['id']}", session=NONE)
+        await node["call"]("terminal_jobs", on=f"env/{a['id']}", session=NONE)
 
 
 async def test_the_job_tools_take_on_and_check_it_is_the_jobs_machine(node):  # noqa: F811
-    """Round 3 (T2): told to pass `on` on every call, lane_job_read refused it ("has no argument 'on'")."""
+    """Round 3 (T2): told to pass `on` on every call, terminal_job_read refused it ("has no argument 'on'")."""
     a = await opened(node, title="Shop page", session=NONE)
     b = await opened(node, title="Docs fix", session=NONE)
     job = await node["envs"].job_start(f"env/{a['id']}", "sleep 30", cwd="/work")
-    read = await node["call"]("lane_job_read", job=job.id, on=a["on"], session=NONE)
+    read = await node["call"]("terminal_job_read", job=job.id, on=a["on"], session=NONE)
     assert read["state"] == "running" and read["environment"]["id"] == a["id"]
-    assert (await node["call"]("lane_job_read", job=job.id, session=NONE))["state"] == "running"  # without: as before
+    assert (await node["call"]("terminal_job_read", job=job.id, session=NONE))["state"] == "running"  # without: as before
     with pytest.raises(ToolCallError, match="^invalid: job .* is not on the machine that on names") as err:
-        await node["call"]("lane_job_read", job=job.id, on=b["on"], session=NONE)
+        await node["call"]("terminal_job_read", job=job.id, on=b["on"], session=NONE)
     assert a["on"] not in str(err.value) and b["on"] not in str(err.value)
     with pytest.raises(ToolCallError, match="^which_environment"):  # a title never reaches a machine
-        await node["call"]("lane_job_cancel", job=job.id, on="Shop page", session=NONE)
+        await node["call"]("terminal_job_cancel", job=job.id, on="Shop page", session=NONE)
     with pytest.raises(ToolCallError, match="^invalid: job"):
-        await node["call"]("lane_job_cancel", job=job.id, on=b["on"], session=NONE)
+        await node["call"]("terminal_job_cancel", job=job.id, on=b["on"], session=NONE)
     assert node["envs"].job(job.id).running                          # nothing was cancelled by a wrong on
-    done = await node["call"]("lane_job_cancel", job=job.id, on=a["on"], session=NONE)
+    done = await node["call"]("terminal_job_cancel", job=job.id, on=a["on"], session=NONE)
     assert done["state"] == "cancelled"
 
 
@@ -171,7 +171,7 @@ async def test_the_title_of_a_held_machine_is_in_use_and_take_over_waits_for_qui
     with pytest.raises(ToolCallError, match="^environment_in_use") as err:
         await node["call"]("environment_open", title=TITLE, take_over=True, session=NONE)
     assert "(5 min from now)" in str(err.value)
-    ok = await node["call"]("lane_exec", on=a["on"], cmd="echo still mine", session=NONE)  # the holder works on
+    ok = await node["call"]("terminal_exec", on=a["on"], cmd="echo still mine", session=NONE)  # the holder works on
     assert ok["exit_code"] == 0
     assert node["mgr"].get(a["id"]).lease == lease_of(a["on"]) and len(node["mgr"].store.open()) == 1
 
@@ -187,9 +187,9 @@ async def test_take_over_after_the_quiet_time_gives_a_fresh_handle_and_the_old_o
     assert b["id"] == a["id"] and b["opened"] == "taken_over" and b["on"] != a["on"]
     assert "Taken over" in b["next"] and "work is on it" in b["next"] and "on no longer works" in b["next"]
     with pytest.raises(ToolCallError, match="^no_environment") as err:
-        await node["call"]("lane_exec", on=a["on"], cmd="ls", session=NONE)
+        await node["call"]("terminal_exec", on=a["on"], cmd="ls", session=NONE)
     assert "took environment" in str(err.value) and "over at" in str(err.value)
-    assert (await node["call"]("lane_exec", on=b["on"], cmd="ls", session=NONE))["exit_code"] == 0
+    assert (await node["call"]("terminal_exec", on=b["on"], cmd="ls", session=NONE))["exit_code"] == 0
     env = node["mgr"].get(a["id"])
     assert env.handoffs[-1].lease == lease_of(a["on"]) and env.lease == lease_of(b["on"])
     # the move counts as a call: the chat that lost it cannot take it straight back
@@ -214,12 +214,12 @@ async def test_a_kept_machine_let_go_is_nobodys_until_its_title_takes_it(node): 
     out = await node["call"]("environment_close", on=a["on"], session=NONE)
     assert out["machine"] == "kept" and "on no longer works" in out["next"]
     with pytest.raises(ToolCallError, match="^no_environment.*let go"):
-        await node["call"]("lane_exec", on=a["on"], cmd="ls", session=NONE)
+        await node["call"]("terminal_exec", on=a["on"], cmd="ls", session=NONE)
     with pytest.raises(ToolCallError, match="^no_environment"):  # nobody holds it: never "the one open"
-        await node["call"]("lane_exec", cmd="ls", session=NONE)
+        await node["call"]("terminal_exec", cmd="ls", session=NONE)
     back = await node["call"]("environment_open", title=TITLE, session=NONE)  # no take_over needed
     assert back["id"] == a["id"] and back["opened"] == "attached" and back["on"] != a["on"]
-    assert (await node["call"]("lane_exec", on=back["on"], cmd="ls", session=NONE))["environment"]["id"] == a["id"]
+    assert (await node["call"]("terminal_exec", on=back["on"], cmd="ls", session=NONE))["environment"]["id"] == a["id"]
     await node["call"]("environment_close", on=back["on"], final=True, session=NONE)
 
 
@@ -254,11 +254,11 @@ async def test_no_handle_reaches_a_file_on_the_node(node, tmp_path):  # noqa: F8
     """The node keeps only a handle's hash: the traces, the audit log and the store never hold it, used,
     stale or wrong."""
     a = await opened(node, session=NONE)
-    await node["call"]("lane_exec", on=a["on"], cmd="pwd", session=NONE)
+    await node["call"]("terminal_exec", on=a["on"], cmd="pwd", session=NONE)
     await node["call"]("environment", on=a["on"], session=NONE)
     wrong = a["id"] + ".zzzzzzzzzzzzzzzz"
     with pytest.raises(ToolCallError):
-        await node["call"]("lane_exec", on=wrong, cmd="pwd", session=NONE)
+        await node["call"]("terminal_exec", on=wrong, cmd="pwd", session=NONE)
     secret, bad = a["on"].split(".")[1].encode(), wrong.split(".")[1].encode()
     files = [p for p in tmp_path.rglob("*") if p.is_file()]
     assert files and not [p for p in files if secret in p.read_bytes() or bad in p.read_bytes()]
@@ -268,19 +268,19 @@ async def test_the_session_binding_of_a_legacy_client_is_unchanged(node):  # noq
     a = await opened(node, title="Shop page", session="chat-1")
     b = await opened(node, title="Docs fix", session="chat-2")
     assert HANDLE_RE.match(a["on"]) and "calls without `on` go here" in a["next"]
-    one = await node["call"]("lane_exec", cmd="pwd", session="chat-1")
-    two = await node["call"]("lane_exec", cmd="pwd", session="chat-2")
+    one = await node["call"]("terminal_exec", cmd="pwd", session="chat-1")
+    two = await node["call"]("terminal_exec", cmd="pwd", session="chat-2")
     assert one["environment"]["id"] == a["id"] and two["environment"]["id"] == b["id"]
     assert (await node["call"]("environment", session="chat-2"))["id"] == b["id"]
     # its own by id or lane works; the other session's does not, nor any title
-    assert (await node["call"]("lane_exec", on=f"env/{a['id']}", cmd="pwd", session="chat-1"))["exit_code"] == 0
+    assert (await node["call"]("terminal_exec", on=f"env/{a['id']}", cmd="pwd", session="chat-1"))["exit_code"] == 0
     with pytest.raises(ToolCallError, match="^which_environment"):
-        await node["call"]("lane_exec", on=a["id"], cmd="pwd", session="chat-2")
+        await node["call"]("terminal_exec", on=a["id"], cmd="pwd", session="chat-2")
     with pytest.raises(ToolCallError, match="^which_environment"):
-        await node["call"]("lane_exec", on="Docs fix", cmd="pwd", session="chat-2")
+        await node["call"]("terminal_exec", on="Docs fix", cmd="pwd", session="chat-2")
     # a session that holds none hears no_environment, never another chat's computer
     with pytest.raises(ToolCallError, match="^no_environment"):
-        await node["call"]("lane_exec", cmd="pwd", session="chat-3")
+        await node["call"]("terminal_exec", cmd="pwd", session="chat-3")
     # its own title gives it back to the same session
     again = await node["call"]("environment_open", title="Shop page", session="chat-1")
     assert again["opened"] == "attached" and again["id"] == a["id"]
@@ -306,13 +306,13 @@ async def test_a_lane_name_as_on_reaches_the_sessions_own_machine_and_names_the_
     whose session holds the machine reaches it, as with env/<id>; any other caller hears it is a lane's
     name, and a lane name of no machine of its own is no_environment with the same words."""
     a = await opened(node, session="s-a")
-    ran = await node["call"]("lane_exec", on=f"{a['id']}-browser", cmd="pwd", session="s-a")
+    ran = await node["call"]("terminal_exec", on=f"{a['id']}-browser", cmd="pwd", session="s-a")
     assert ran["exit_code"] == 0 and ran["environment"]["id"] == a["id"]
     with pytest.raises(ToolCallError, match="^which_environment") as err:
-        await node["call"]("lane_exec", on=f"{a['id']}-browser", cmd="pwd", session="s-b")
+        await node["call"]("terminal_exec", on=f"{a['id']}-browser", cmd="pwd", session="s-b")
     assert "is the browser lane's name, not an on" in str(err.value) and a["on"] not in str(err.value)
     with pytest.raises(ToolCallError, match="^no_environment") as err:
-        await node["call"]("lane_exec", on="eaaaaaaaaaa-browser", cmd="pwd", session="s-a")
+        await node["call"]("terminal_exec", on="eaaaaaaaaaa-browser", cmd="pwd", session="s-a")
     assert "looks like a lane's name" in str(err.value) and "—" not in str(err.value)
 
 
@@ -334,9 +334,9 @@ async def test_on_leaves_account_lanes_alone_and_maps_a_browser_tool(node):  # n
     assert env.id == a["id"] and kw["on"] == f"env/{a['id']}-browser"
     other = {"on": a["on"]}  # another family's caller with this family's handle: nobody's
     with pytest.raises(Exception, match="not the handle of a machine of yours"):
-        routing.route(rt, "lane_exec", other, session=None, grant_id="g2", family="g2")
+        routing.route(rt, "terminal_exec", other, session=None, grant_id="g2", family="g2")
     lane = {"on": f"env/{a['id']}"}  # another family by lane: left as it was (the policy refuses it)
-    assert routing.route(rt, "lane_exec", lane, session=None, grant_id="g2", family="g2") is None
+    assert routing.route(rt, "terminal_exec", lane, session=None, grant_id="g2", family="g2") is None
 
 
 async def test_the_most_useful_error_wins(node):  # noqa: F811
@@ -361,11 +361,11 @@ async def test_the_call_log_names_the_client(node):  # noqa: F811
     a = await opened(node, session=NONE)
     token = elicitor_var.set(SimpleNamespace(client="claude-code 2.1.3"))
     try:
-        await node["call"]("lane_exec", on=a["on"], cmd="git status", session=NONE)
+        await node["call"]("terminal_exec", on=a["on"], cmd="git status", session=NONE)
     finally:
         elicitor_var.reset(token)
     seen = await node["call"]("environment", on=a["on"], session=NONE)
-    [call] = [c for c in seen["calls"] if c["tool"] == "lane_exec"]
+    [call] = [c for c in seen["calls"] if c["tool"] == "terminal_exec"]
     assert call["client"] == "claude-code 2.1.3"
 
 
@@ -385,7 +385,7 @@ def test_an_unknown_argument_names_the_real_ones_with_a_did_you_mean(node):  # n
 
 
 def test_tools_more_with_a_tool_name_returns_that_tool_only():
-    tools = [SimpleNamespace(name=n, description=n, input_schema={}) for n in ("environment_open", "lane_exec")]
+    tools = [SimpleNamespace(name=n, description=n, input_schema={}) for n in ("environment_open", "terminal_exec")]
     out, error, _ = ts.more({"core": tools}, frozenset({"core"}), "environment_open", lambda _k: False)
     assert error is None and [t["name"] for t in out["tools"]] == ["environment_open"]
     whole, _, _ = ts.more({"core": tools}, frozenset({"core"}), "core", lambda _k: False)

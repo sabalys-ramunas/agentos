@@ -1,4 +1,4 @@
-"""Runs: commands started with `agentos run` (lane_job_start), as the app's Runs pages read them.
+"""Runs: commands started with `agentos run` (terminal_job_start), as the app's Runs pages read them.
 
     GET  /api/orgs/{org}/jobs?lane=&state=&limit=        every run the caller may see, newest first
     GET  /api/orgs/{org}/jobs/{id}?stdout_offset=&stderr_offset=&wait_ms=
@@ -8,7 +8,7 @@
 Named `/jobs` so they never meet `/runs`, which are routine runs. The node has no HTTP route for jobs, so
 these read the env manager (agentos.env) themselves and decide who may: reading needs `see` and a cancel
 `operate` (a member, in the lane's workspace), and every run is checked against the caller's grant, as
-lane_jobs_list and lane_job_read check it. A cancel is authorized as lane_job_cancel authorizes it.
+terminal_jobs and terminal_job_read check it. A cancel is authorized as terminal_job_cancel authorizes it.
 
 What a command printed is data: it is returned as text, capped per call. The test totals are read from
 the runner's own summary line (agentos.env.testsummary) and marked as read from the output; the git branch

@@ -243,7 +243,7 @@ LANE_SETTINGS = (("network", "Network"), ("allow_hosts", "Can reach"), ("egress_
 
 
 def _lane(record: dict[str, Any], lane: str | None) -> dict[str, Any]:
-    """A new terminal lane (env_create), or a command in one (lane_exec, lane_job_start)."""
+    """A new terminal lane (terminal_create), or a command in one (terminal_exec, terminal_job_start)."""
     data: dict[str, Any] = {"computer": (str(record["on"]) if isinstance(record.get("on"), str) else lane or "")[:200]}
     if isinstance(record.get("preset"), str):
         data["lane_preset"] = record["preset"][:60]

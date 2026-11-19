@@ -1,6 +1,6 @@
-"""Background commands in a lane (lane_job_start): start, read the output from any offset, cancel.
+"""Background commands in a lane (terminal_job_start): start, read the output from any offset, cancel.
 
-lane_exec waits for its command and keeps 64 KB of output; a test suite runs for half an hour and
+terminal_exec waits for its command and keeps 64 KB of output; a test suite runs for half an hour and
 prints megabytes, and the person who started it wants to see it as it goes, or to close the laptop
 and come back. A job is a workload like an exec, but its stdout and stderr go to two log files on
 the node (`<lane dir>/logs/jobs/<id>.out` and `.err`, outside the lane), and a reader asks for what
@@ -244,7 +244,7 @@ class JobTable:
         job = self.jobs.get(job_id) if valid_job_id(job_id) else None
         if job is None:
             raise NotFound(f"no job {job_id} on this node (finished jobs are kept {self.settings.jobs_keep_per_lane} "
-                           "per lane; lane_jobs_list shows them)")
+                           "per lane; terminal_jobs shows them)")
         return job
 
     def running_in(self, lane_id: str) -> list[Job]:
@@ -257,7 +257,7 @@ class JobTable:
     def check_room(self, lane_id: str) -> None:
         if len(self.running_in(lane_id)) >= self.settings.max_jobs_per_lane:
             raise LaneBusy(f"lane {lane_id} already runs {self.settings.max_jobs_per_lane} jobs; wait for one, or "
-                           "cancel it with lane_job_cancel")
+                           "cancel it with terminal_job_cancel")
         if sum(1 for j in self.jobs.values() if j.running) >= self.settings.max_jobs:
             raise LaneBusy(f"this node already runs {self.settings.max_jobs} jobs; wait for one to finish")
 
@@ -481,7 +481,7 @@ class JobTable:
         if lost:
             info.state, info.note = "lost", lost
         elif job.cancel_requested:
-            info.state, info.note = "cancelled", "cancelled with lane_job_cancel"
+            info.state, info.note = "cancelled", "cancelled with terminal_job_cancel"
         elif timed_out:
             info.state, info.note = "timed_out", f"stopped after its timeout of {int(info.timeout_s)}s"
         else:
@@ -555,7 +555,7 @@ class JobTable:
             info.stdout_bytes, info.stderr_bytes = job.out.total, job.err.total
             info.stdout_dropped, info.stderr_dropped = job.out.dropped, job.err.dropped
             if job.cancel_requested:
-                info.state, info.note = "cancelled", "cancelled with lane_job_cancel"
+                info.state, info.note = "cancelled", "cancelled with terminal_job_cancel"
             elif timed_out:
                 info.state, info.note = "timed_out", f"stopped after its timeout of {int(info.timeout_s)}s"
             else:

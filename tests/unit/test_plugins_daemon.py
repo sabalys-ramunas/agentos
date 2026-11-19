@@ -259,16 +259,16 @@ async def test_a_required_service_still_refuses_to_start(runtime, registry, monk
 
 
 def test_a_tool_name_that_clashes_fails_the_plugin_not_the_server(runtime, registry, worker, config, monkeypatch):
-    module(monkeypatch, TOOLS, tool_specs=lambda runtime: [ToolSpec(name="lane_open", handler=worker_do, lane_arg=None)])
+    module(monkeypatch, TOOLS, tool_specs=lambda runtime: [ToolSpec(name="browser_open", handler=worker_do, lane_arg=None)])
     turn_on(config)
     build_plugins(runtime)
     collect_specs(runtime, mcp_providers.tool_providers())  # would raise on a duplicate
     view = runtime.get("plugins").view(WORKER.id)
-    assert view.status == "failed" and "lane_open" in view.failure
+    assert view.status == "failed" and "browser_open" in view.failure
 
 
 async def test_a_clashing_plugin_starts_nothing(runtime, registry, worker, config, monkeypatch):
-    module(monkeypatch, TOOLS, tool_specs=lambda runtime: [ToolSpec(name="lane_open", handler=worker_do, lane_arg=None)])
+    module(monkeypatch, TOOLS, tool_specs=lambda runtime: [ToolSpec(name="browser_open", handler=worker_do, lane_arg=None)])
     turn_on(config)
     build_plugins(runtime)
     served(runtime)

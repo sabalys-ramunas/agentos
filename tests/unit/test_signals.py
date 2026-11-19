@@ -339,7 +339,7 @@ async def test_a_page_double_without_a_cookie_jar_still_gets_a_signal():
 # ---- what agents see ----------------------------------------------------------------------------
 
 def test_instructions_say_what_to_do_on_every_signal():
-    for value in [s.value for s in Signal] + ["signal_detail", "wrong_account", "unpinned", "lane_view",
+    for value in [s.value for s in Signal] + ["signal_detail", "wrong_account", "unpinned", "browser_view",
                                                 "needs_human:checkpoint", "agent_paused"]:
         assert value in INSTRUCTIONS, value
     for rule in ("do not retry", "refresh", "never log in again on your own", "must not be tried sooner"):

@@ -67,7 +67,7 @@ def _segments(cmd: str) -> list[list[str]]:
 
 def shell_file_io(cmd: str) -> str | None:
     """'read' or 'write' when the command reads or writes a file by hand (cat, sed -n, a heredoc,
-    echo > file) instead of lane_file_read / lane_file_edit / lane_file_write; else None. A reader
+    echo > file) instead of file_read / file_edit / file_write; else None. A reader
     at the end of a pipe (`npm test | tail -5`) reads no file and is fine."""
     if "<<" in cmd:
         return "write"
@@ -104,7 +104,7 @@ def sleeps(cmd: str) -> float:
 def _failed(row: dict[str, Any]) -> bool:
     if not row.get("ok"):
         return True
-    if row.get("tool") == "lane_exec":
+    if row.get("tool") == "terminal_exec":
         code = parsed(row).get("exit_code")
         return isinstance(code, int) and code != 0
     return False
@@ -130,16 +130,16 @@ def wrong_turns(rows: list[dict[str, Any]], *, new_environments: int = 1) -> lis
                        + (f" (refused: {r['code']})" if r.get("code") else ""))
         elif r.get("code") in NO_ON_CODES and tool != "environment_open":
             out.append(f"{tool} without the on its environment_open gave (refused: {r['code']})")
-        if tool == "lane_exec":
+        if tool == "terminal_exec":
             cmd = str(args.get("cmd") or "")
             how = shell_file_io(cmd)
             if how:
-                out.append(f"{'read' if how == 'read' else 'wrote'} a file through lane_exec "
+                out.append(f"{'read' if how == 'read' else 'wrote'} a file through terminal_exec "
                            f"({cmd[:50]!r}), not lane_file_{'read' if how == 'read' else 'edit'}")
             if sleeps(cmd) >= SLEEP_S:
-                out.append(f"waited with sleep in lane_exec ({cmd[:50]!r}); lane_job_read's until_port or "
+                out.append(f"waited with sleep in terminal_exec ({cmd[:50]!r}); terminal_job_read's until_port or "
                            "until_exit waits on the machine")
-        if tool == "lane_job_read" and not args.get("until_exit") and not args.get("until_port"):
+        if tool == "terminal_job_read" and not args.get("until_exit") and not args.get("until_port"):
             job = str(args.get("job"))
             polls[job] += 1
             if polls[job] == POLLS:

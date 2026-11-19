@@ -1,6 +1,6 @@
 """What a viewer link an agent can hold may do (docs/THREAT-MODEL.md, "Viewer links").
 
-An agent gets its link from lane_view and has a shell, so it can open the link itself. Whatever only a
+An agent gets its link from browser_view and has a shell, so it can open the link itself. Whatever only a
 person may do (hand back, clear a hold or a quarantine, take a held lane, add a site, log in) needs a
 person on top of the link: an owner link (made in person) or the owner's panel session in the same
 browser. Every link also has a hard end that renewing cannot move.
@@ -81,7 +81,7 @@ async def held(node) -> None:
 
 async def test_an_agents_link_cannot_hand_back_a_held_lane(node):
     await held(node)
-    token = node.token("control")  # what lane_view gives the agent
+    token = node.token("control")  # what browser_view gives the agent
     async with client(node) as c:
         for action in ("hand_back", "take"):
             r = await c.post(node.url(CONTROL, token), json={"action": action})

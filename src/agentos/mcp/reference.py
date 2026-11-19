@@ -124,7 +124,7 @@ def toolsets_markdown(rows: list[dict[str, Any]]) -> list[str]:
         "",
         "| Argument | Type | Required | Description |",
         "|---|---|---|---|",
-        "| `name` | `str` | yes | The tool to call, for example files_put. |",
+        "| `name` | `str` | yes | The tool to call, for example browser_file_put. |",
         "| `arguments` | `dict` | no | The tool's arguments, as you would pass them. |",
     ]
     return out

@@ -35,8 +35,8 @@ FALLBACK = (
     "wait for a person (approval_pending with a `why`): tell the human, never rephrase to get past it.\n\n"
     "When a page result's `signal` is captcha, checkpoint, logged_out or blocked: stop working in that lane. "
     "Do not retry, refresh, go back, solve the puzzle or type credentials, and never log in again on your own: "
-    "retrying on a challenged account is how accounts get locked. Call lane_view, give the human the link, and "
-    "wait with lane_wait_control. On rate_limited, stop using the lane and tell the human. Calls that fail with "
+    "retrying on a challenged account is how accounts get locked. Call browser_view, give the human the link, and "
+    "wait with browser_wait_handback. On rate_limited, stop using the lane and tell the human. Calls that fail with "
     "agent_paused or human_in_control are expected: tell the human, do not retry.")
 
 # What the node's own rules say in words; when the merged text lacks any of them, FALLBACK is added.

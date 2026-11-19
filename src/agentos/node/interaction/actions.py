@@ -138,7 +138,7 @@ class ActMixin:
                              "take a snapshot to see it")
         if guard is not None and guard.chooser_count(page) > choosers_before:
             notes.append(f"it opened a file chooser (not shown on screen): attach files with "
-                         f"browser_upload on ref {ref} and file ids from files_list")
+                         f"browser_upload on ref {ref} and file ids from browser_files")
         return notes
 
     # ---- act internals -----------------------------------------------------------------

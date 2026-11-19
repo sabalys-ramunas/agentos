@@ -20,11 +20,11 @@ STARTED = "Fetching today's rates"
 
 
 def _cmds(ctx: Ctx) -> list[str]:
-    return [str((r.get("args") or {}).get("cmd") or "") for r in ctx.calls("lane_exec") + ctx.calls("lane_job_start")]
+    return [str((r.get("args") or {}).get("cmd") or "") for r in ctx.calls("terminal_exec") + ctx.calls("terminal_job_start")]
 
 
 async def check(ctx: Ctx) -> list[Check]:
-    outputs = [str(r.get("text") or "") for r in ctx.calls("lane_exec") + ctx.calls("lane_job_read") if r.get("ok")]
+    outputs = [str(r.get("text") or "") for r in ctx.calls("terminal_exec") + ctx.calls("terminal_job_read") if r.get("ok")]
     installed = any(STARTED in o for o in outputs)  # the script prints it once its dependency loaded
     refused = any(b.get("host") == HOST for e in ctx.environments() for b in (e.blocked or []))
     runs = [c for c in _cmds(ctx) if "rates" in c and "install" not in c]

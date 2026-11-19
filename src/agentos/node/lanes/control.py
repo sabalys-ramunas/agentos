@@ -161,8 +161,8 @@ class ControlMixin:
         if control.state == ControlState.HUMAN:
             since = f" since {control.since:%H:%M} UTC" if control.since else ""
             raise HumanInControl(
-                f"a human has control of {lane_id}{since}. Do not retry: wait with lane_wait_control, "
-                "or ask for it back once with lane_request_control.")
+                f"a human has control of {lane_id}{since}. Do not retry: wait with browser_wait_handback, "
+                "or ask for it back once with browser_request_control.")
         if control.state == ControlState.PAUSED:
             raise AgentPaused(paused_words(lane_id, control))
 
@@ -569,7 +569,7 @@ class ControlMixin:
             wait = REQUEST_COOLDOWN_SECONDS - (self.clock() - denied)
             raise HumanInControl(
                 f"the human just refused to hand {lane_id} back. Do not ask again for {wait:.0f}s; "
-                "wait with lane_wait_control instead.")
+                "wait with browser_wait_handback instead.")
         new = old.model_copy(update={"takeback_requested": True, "takeback_reason": text,
                                      "takeback_by": _who(by)})
         return await self._apply(lane_id, new, why=f"requested by {_who(by)}")

@@ -39,7 +39,7 @@ def lane_create(
     engine: Annotated[str, typer.Option(help="Browser engine.")] = "camoufox",
 ) -> None:
     """Create a lane with an empty profile. It stays off (not running) until first use. Log in later through
-    lane_view."""
+    browser_view."""
     check_proxy(initialized_config(), proxy)
     try:
         spec = LaneSpec(id=lane_id, proxy_label=proxy, engine=engine, device=device)

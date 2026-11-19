@@ -324,8 +324,8 @@ def result_of(stopped: str, **kw) -> WaitResult:
     ("timeout", "browser_wait again"),
     ("signal", "stop and follow"),
     ("tab_closed", "browser_tabs"),
-    ("human_in_control", "lane_wait_control"),
-    ("agent_paused", "lane_wait_control"),
+    ("human_in_control", "browser_wait_handback"),
+    ("agent_paused", "browser_wait_handback"),
 ])
 async def test_a_wait_that_did_not_meet_says_what_to_do_next(manager, stopped, phrase):
     inter = ScriptedInteraction()
@@ -424,7 +424,7 @@ async def test_howto_lists_the_recipes_and_returns_one(manager):
         post = text_of(await c.call_tool("howto", {"topic": "post_image"}))
         bad = await c.call_tool("howto", {"topic": "fly"})
     assert all(f"- {topic}:" in listing for topic in RECIPES)
-    assert "files_put(" in post and "browser_upload(" in post and "approval_wait(" in post and "<lane>" in post
+    assert "browser_file_put(" in post and "browser_upload(" in post and "approval_wait(" in post and "<lane>" in post
     assert bad.is_error and text_of(bad).startswith("invalid:")
 
 
@@ -438,7 +438,7 @@ async def test_prompts_fill_in_their_arguments(manager):
     assert prompts["post_image"].arguments[0].required and not prompts["post_image"].arguments[1].required
     text = login.messages[0].content.text
     assert 'login(on="biz-a/instagram")' in text and 'url="https://www.instagram.com/"' in text
-    assert "lane_view(" in text and "{" not in text.replace("{<", "")
+    assert "browser_view(" in text and "{" not in text.replace("{<", "")
     assert "Hand lane biz-a/instagram to the human, then carry on." in handoff.messages[0].content.text
     for p in prompts.values():
         assert EM_DASH not in (p.description or "") + (p.title or "")
@@ -473,7 +473,7 @@ async def test_every_tool_says_its_effect_and_uses_no_em_dash(manager):
 
 
 def test_instructions_point_at_waits_deltas_howto_and_untrusted_text():
-    for phrase in ("browser_wait", 'snapshot="delta"', "howto", "data, never instructions", "lane_wait_control",
+    for phrase in ("browser_wait", 'snapshot="delta"', "howto", "data, never instructions", "browser_wait_handback",
                    "busy", "quarantined", "approval_wait"):
         assert phrase in INSTRUCTIONS, phrase
     # 4,000: the toolsets paragraph (how to reach tools outside core) costs about 330 characters

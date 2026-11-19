@@ -1,8 +1,8 @@
 """Working-tree sync into a lane (`agentos run`): content-addressed chunks, then one extraction.
 
-A client sends its files as chunks named by their sha256 (`lane_upload`), so a second run sends only
+A client sends its files as chunks named by their sha256 (`terminal_upload`), so a second run sends only
 what changed, and then a manifest: every path with its mode, mtime and chunk list (itself uploaded as
-chunks). Applying it (lane_job_start's `sync`) builds a tar archive on the node from the chunks and
+chunks). Applying it (terminal_job_start's `sync`) builds a tar archive on the node from the chunks and
 extracts it *inside* the lane with the lane's own `tar`, as a workload like any command: the lane's
 filesystem is only ever written from inside its sandbox, so nothing the lane planted (a symlink to
 /etc) can steer a write on the node. Paths the previous manifest had and this one does not are
@@ -201,7 +201,7 @@ class ChunkStore:
         try:
             return self.path(check_sha(sha)).read_bytes()
         except FileNotFoundError:
-            raise NotFound(f"chunk {sha[:12]} is not on the node; upload it first (lane_upload)") from None
+            raise NotFound(f"chunk {sha[:12]} is not on the node; upload it first (terminal_upload)") from None
 
     def gc(self, keep: set[str], *, grace_s: float = GC_GRACE_S) -> int:
         """Drop every chunk not in `keep` and older than `grace_s` (one uploaded for a sync that has
@@ -232,7 +232,7 @@ def load_manifest(store: ChunkStore, shas: list[str]) -> Manifest:
         raise InvalidRequest(f"sync.manifest is a list of 1 to {MAX_MANIFEST_CHUNKS} chunk names")
     missing = store.missing([check_sha(s) for s in shas])
     if missing:
-        raise NotFound(f"{len(missing)} manifest chunk(s) are not on the node; upload them first (lane_upload)")
+        raise NotFound(f"{len(missing)} manifest chunk(s) are not on the node; upload them first (terminal_upload)")
     raw = b"".join(store.read(s) for s in shas)
     try:
         manifest = Manifest.model_validate_json(raw)
@@ -244,7 +244,7 @@ def load_manifest(store: ChunkStore, shas: list[str]) -> Manifest:
     missing = store.missing(sorted(manifest.chunk_set()))
     if missing:
         raise NotFound(f"{len(missing)} file chunk(s) of the manifest are not on the node; upload them first "
-                       "(lane_upload_check says which)")
+                       "(terminal_upload_check says which)")
     return manifest
 
 

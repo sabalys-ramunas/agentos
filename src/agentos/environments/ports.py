@@ -11,7 +11,7 @@ Where the person is:
 
 - a laptop node (agentos local): the node is the person's computer, so `url` is http://127.0.0.1:<p>/;
 - a server node: the forward is on the server, and the person reaches it with the same `ssh -N -L`
-  line lane_view gives (`tunnel`), then opens `url` on their own computer.
+  line browser_view gives (`tunnel`), then opens `url` on their own computer.
 """
 
 from __future__ import annotations

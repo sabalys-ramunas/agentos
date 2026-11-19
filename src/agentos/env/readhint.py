@@ -1,8 +1,8 @@
-"""A one-line nudge in lane_exec's result when the command only read a file: lane_file_read does that.
+"""A one-line nudge in terminal_exec's result when the command only read a file: file_read does that.
 
-Agents read files through lane_exec (`cat src/price.js`, `head -50 README.md`, `sed -n '1,40p' f`) even
-with lane_file_read in their list (the evals, 2026-11-18: Claude Haiku did it in both its tasks). The
-file tools number the lines, page long files and are what lane_file_edit expects. The command still
+Agents read files through terminal_exec (`cat src/price.js`, `head -50 README.md`, `sed -n '1,40p' f`) even
+with file_read in their list (the evals, 2026-11-18: Claude Haiku did it in both its tasks). The
+file tools number the lines, page long files and are what file_edit expects. The command still
 runs as it is; its result only adds `hint`. A command that does anything else (a pipe into grep, a
 redirect, a heredoc, a test run) gets nothing, so an ordinary command costs no token.
 """
@@ -88,11 +88,11 @@ def _files(tool: str, args: list[str]) -> list[str]:
 
 
 def file_read_hint(cmd: str, cwd: str | None = None) -> str | None:
-    """`hint` for lane_exec's result, or None."""
+    """`hint` for terminal_exec's result, or None."""
     path = read_path(cmd)
     if path is None:
         return None
     if path and cwd and not path.startswith("/"):
         path = f"{cwd.rstrip('/')}/{path}"
     arg = f'path="{path}"' if path else "path=..."
-    return f"lane_file_read({arg}) reads a file with line numbers, as lane_file_edit expects."
+    return f"file_read({arg}) reads a file with line numbers, as file_edit expects."

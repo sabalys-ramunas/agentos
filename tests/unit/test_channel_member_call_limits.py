@@ -101,12 +101,12 @@ async def test_stop_agent_holds_a_member_call_off_the_lane(wired):
     await runtime.lanes.stop_agent(LANE, by="owner")
     runtime.config.lane_dir(LANE).mkdir(parents=True, exist_ok=True)
     token = member_call(fake, ceiling="draft")
-    put = await invoke(fake, peer, "files_put", {"on": LANE, "name": "note.txt", "content_base64": "aGk="}, token)
+    put = await invoke(fake, peer, "browser_file_put", {"on": LANE, "name": "note.txt", "content_base64": "aGk="}, token)
     assert put["error"]["code"] == "agent_paused", put  # io_tools: the paused gate
     snap = await invoke(fake, peer, "browser_snapshot", {"on": LANE}, member_call(fake))
     assert snap["error"]["code"] == "agent_paused", snap  # the lane's own control gate
     with pytest.raises(AgentPaused):
-        check_control(runtime.lanes.get(LANE), gate_kind(member_ctx(runtime, member_call(fake))))  # lane_close
+        check_control(runtime.lanes.get(LANE), gate_kind(member_ctx(runtime, member_call(fake))))  # browser_close
 
 
 async def test_a_human_take_over_holds_a_member_call_off_the_lane(wired):

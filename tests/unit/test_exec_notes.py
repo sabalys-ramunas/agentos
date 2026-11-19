@@ -1,4 +1,4 @@
-"""lane_exec's notes: a git push that timed out may have landed (T1 nearly pushed again), and one call
+"""terminal_exec's notes: a git push that timed out may have landed (T1 nearly pushed again), and one call
 never runs past what an MCP client waits for."""
 
 from __future__ import annotations
@@ -15,5 +15,5 @@ def test_a_timed_out_push_says_it_may_have_landed_and_how_to_check():
 
 def test_a_long_timeout_is_cut_and_says_what_to_use_instead():
     note = exec_note("pnpm build", True, 600, 200)
-    assert "cut to 200 s" in note and "lane_job_start" in note
+    assert "cut to 200 s" in note and "terminal_job_start" in note
     assert "—" not in note

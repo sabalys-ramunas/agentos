@@ -138,10 +138,10 @@ async def test_a_command_that_failed_shows_its_exit_code(node, monkeypatch):  # 
         return await real(lane_id, cmd, **kw)
 
     monkeypatch.setattr(node["envs"], "exec", exec_)
-    res = await node["call"]("lane_exec", cmd="exit 7")
+    res = await node["call"]("terminal_exec", cmd="exit 7")
     assert res["exit_code"] == 7
     st = await node["call"]("environment")
-    assert st["calls"][0]["tool"] == "lane_exec" and st["calls"][0]["exit_code"] == 7
+    assert st["calls"][0]["tool"] == "terminal_exec" and st["calls"][0]["exit_code"] == 7
 
 
 async def test_a_refused_close_is_one_of_the_last_calls(node):  # noqa: F811

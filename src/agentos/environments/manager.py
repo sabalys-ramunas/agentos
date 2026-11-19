@@ -411,7 +411,7 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
                     scrub: list[str] | tuple[str, ...] = (), exit_code: int | None = None,
                     error: str | None = None) -> None:
         """One call on an environment's lane, for environment()'s last calls: `ok` is the tool's own
-        answer, `exit_code` a command's (lane_exec), `error` the code of a refusal or a failure."""
+        answer, `exit_code` a command's (terminal_exec), `error` the code of a refusal or a failure."""
         found = self.lane_env(lane_id)
         if found is None:
             return

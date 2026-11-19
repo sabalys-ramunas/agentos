@@ -41,7 +41,7 @@ async def test_another_agent_cannot_run_on_drive_or_list_an_environment(node):  
     terminal, browser = f"env/{a['id']}", f"env/{a['id']}-browser"
     g2, tok2 = default_grant(node, "stranger")
     before = list(node["machine"].ran)
-    for tool, kw in (("lane_exec", {"cmd": "cat ~/.bash_history"}), ("lane_job_start", {"cmd": "sleep 1"}),
+    for tool, kw in (("terminal_exec", {"cmd": "cat ~/.bash_history"}), ("terminal_job_start", {"cmd": "sleep 1"}),
                      ("shell_open", {})):
         with pytest.raises(ToolCallError, match="lane_not_found"):
             await node["call"](tool, on=terminal, session="chat-x", tok=tok2, **kw)
@@ -64,15 +64,15 @@ async def test_the_family_reaches_it_and_the_owner_only_outside_mcp(node):  # no
     # a grant narrowed from the opener's (a brain or a routine of the same agent) is the same family: with
     # the handle the opener hands it, it works there; by the lane's id alone it does not (one holder)
     _child, child_tok = policy.attenuate(node["token"], ttl_s=600)
-    out = await node["call"]("lane_exec", on=a["on"], cmd="echo child", session="chat-c", tok=child_tok)
+    out = await node["call"]("terminal_exec", on=a["on"], cmd="echo child", session="chat-c", tok=child_tok)
     assert out["exit_code"] == 0
     with pytest.raises(ToolCallError, match="^which_environment"):
-        await node["call"]("lane_exec", on=terminal, cmd="echo child", session="chat-c", tok=child_tok)
+        await node["call"]("terminal_exec", on=terminal, cmd="echo child", session="chat-c", tok=child_tok)
     # the node's token over MCP is an agent's call like any other
     from test_policy_support import OWNER
 
     with pytest.raises(ToolCallError, match="lane_not_found"):
-        await node["call"]("lane_exec", on=terminal, cmd="echo owner", session="chat-o", tok=OWNER)
+        await node["call"]("terminal_exec", on=terminal, cmd="echo owner", session="chat-o", tok=OWNER)
     # the owner outside MCP (the web app, the CLI): reaches every one
     owner_ctx = policy.context(policy.owner_grant(), tool="panel.environment.read")
     assert owner_ctx.can_access_lane(terminal)
@@ -84,10 +84,10 @@ async def test_the_default_grant_opens_its_own_and_works_there(node):  # noqa: F
     _g, tok = default_grant(node, "claude-code")
     out = await node["call"]("environment_open", title="Mine", session="chat-d", tok=tok)
     assert out["state"] == "ready", out
-    ran = await node["call"]("lane_exec", cmd="npm test", session="chat-d", tok=tok)
+    ran = await node["call"]("terminal_exec", cmd="npm test", session="chat-d", tok=tok)
     assert ran["exit_code"] == 0 and ran.get("status") != "approval_pending"
     with pytest.raises(ToolCallError):
-        await node["call"]("lane_exec", on="personal/code", cmd="ls", session="chat-d", tok=tok)
+        await node["call"]("terminal_exec", on="personal/code", cmd="ls", session="chat-d", tok=tok)
 
 
 def test_ids_are_long_and_readable():
@@ -104,7 +104,7 @@ async def test_a_session_id_of_another_agent_finds_nothing(node):  # noqa: F811
     a = await opened(node)  # chat-1
     _g2, tok2 = default_grant(node, "stranger")
     with pytest.raises(ToolCallError, match="no_environment") as err:
-        await node["call"]("lane_exec", cmd="id", session="chat-1", tok=tok2)
+        await node["call"]("terminal_exec", cmd="id", session="chat-1", tok=tok2)
     assert a["id"] not in str(err.value)
     seen = await node["call"]("environment", session="chat-1", tok=tok2)
     assert seen["environment"] is None and seen["open"] == []
@@ -206,12 +206,12 @@ async def test_a_token_of_a_closed_environment_is_refused_even_before_teardown(n
 async def test_another_chat_does_not_take_an_environment_in_use(node):  # noqa: F811
     a = await opened(node)
     mgr = node["mgr"]
-    await node["call"]("lane_exec", cmd="echo working")
+    await node["call"]("terminal_exec", cmd="echo working")
     with pytest.raises(ToolCallError, match="environment_in_use") as err:
         await node["call"]("environment_open", title=TITLE, session="chat-2")
     assert "last call" in str(err.value) and "UTC" in str(err.value)
     assert mgr.get(a["id"]).binding == "session:chat-1"
-    ok = await node["call"]("lane_exec", cmd="echo still mine")  # chat-1 keeps working
+    ok = await node["call"]("terminal_exec", cmd="echo still mine")  # chat-1 keeps working
     assert ok["exit_code"] == 0
 
 
@@ -222,17 +222,17 @@ async def test_a_quiet_environment_moves_and_the_chat_that_lost_it_is_told(node)
     other = await node["call"]("environment_open", title=TITLE, session="chat-2", take_over=True)
     assert other["id"] == a["id"] and mgr.get(a["id"]).binding == "session:chat-2"
     with pytest.raises(ToolCallError, match="no_environment") as err:
-        await node["call"]("lane_exec", cmd="echo hi")  # chat-1
+        await node["call"]("terminal_exec", cmd="echo hi")  # chat-1
     assert "another chat of this agent took environment" in str(err.value) and a["id"] in str(err.value)
     with pytest.raises(ToolCallError, match="no_environment.*took environment"):  # and its handle with it
-        await node["call"]("lane_exec", on=a["on"], cmd="echo hi")
-    assert (await node["call"]("lane_exec", on=other["on"], cmd="echo hi", session="chat-2"))["exit_code"] == 0
+        await node["call"]("terminal_exec", on=a["on"], cmd="echo hi")
+    assert (await node["call"]("terminal_exec", on=other["on"], cmd="echo hi", session="chat-2"))["exit_code"] == 0
 
 
 async def test_a_reconnected_chat_hears_its_open_environments(node):  # noqa: F811
     a = await opened(node)
     with pytest.raises(ToolCallError, match="no_environment") as err:
-        await node["call"]("lane_exec", cmd="echo hi", session="chat-1-reconnected")
+        await node["call"]("terminal_exec", cmd="echo hi", session="chat-1-reconnected")
     msg = str(err.value)
     assert TITLE in msg and "environment_open(title=...)" in msg and a["on"] not in msg
     seen = await node["call"]("environment", session="chat-1-reconnected")
@@ -260,7 +260,7 @@ async def test_a_close_from_the_cli_survives_agentosd_recording_a_call(node):  #
     mgr = node["mgr"]
     stale = mgr.get(a["id"])
     mgr.store.update(a["id"], lambda e: setattr(e, "state", "closing"))  # the CLI, in its own process
-    mgr.record_call(stale.terminal_lane, "lane_exec", ok=True, summary="late")  # agentosd, from before
+    mgr.record_call(stale.terminal_lane, "terminal_exec", ok=True, summary="late")  # agentosd, from before
     assert mgr.get(a["id"]).state == "closing"
 
 
@@ -270,7 +270,7 @@ async def test_a_close_from_the_cli_survives_agentosd_recording_a_call(node):  #
 async def test_call_summaries_are_scrubbed_as_traces_are(node):  # noqa: F811
     a = await opened(node)
     secret = "github_pat_" + "A1b2C3d4" * 6
-    await node["call"]("lane_exec", cmd=f"git push https://x:{secret}@example.test/me/shop")
+    await node["call"]("terminal_exec", cmd=f"git push https://x:{secret}@example.test/me/shop")
     env = node["mgr"].get(a["id"])
     assert secret not in env.calls[-1].summary and "redacted" in env.calls[-1].summary
     detail = await node["mgr"].detail(env)

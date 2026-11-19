@@ -30,7 +30,7 @@ def _seen(view: Any, ctx: ToolContext) -> dict[str, Any]:
 def tool_specs(runtime: Any) -> list[ToolSpec]:
     async def plugins_list(ctx: ToolContext, *, plugin: PluginArg = None) -> dict:
         """The workers on this node: whether each is on, why one cannot run, and which brain does each of
-        its jobs. `lanes_off` names the lanes you can reach where a person turned the worker off: lane_do is
+        its jobs. `lanes_off` names the lanes you can reach where a person turned the worker off: browser_task is
         refused there, and the browser tools still work. Name one with `plugin` when you need it: you get it
         back when it can run, and otherwise an error that says why. You cannot turn a worker on, on a lane
         or anywhere, or change its brain; only a person can.

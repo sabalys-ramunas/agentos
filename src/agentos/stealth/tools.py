@@ -1,4 +1,4 @@
-"""MCP tools of the stealth package: `lane_check`, the per-lane safety checklist (agentos.stealth.lanecheck).
+"""MCP tools of the stealth package: `browser_check`, the per-lane safety checklist (agentos.stealth.lanecheck).
 
 Effect read. It never warms a lane, opens a page or contacts an account's site, so an agent can call
 it before it starts on a lane. A grant sees only the lanes it covers.
@@ -42,7 +42,7 @@ def tool_specs(runtime: Any) -> list[ToolSpec]:
         fix. It never warms the lane, opens a page or contacts the account's site, so call it before you
         start work on a lane. On a fail, stop: do not use the lane, do not retry, and tell the human which
         check failed and its fix. "unknown" alone does not make a lane unsafe. Effect: read. Errors:
-        lane_not_found (see lanes_list)."""
+        lane_not_found (see browsers_list)."""
         checker = ctx.runtime.require("lane_check")
         if on is not None:
             try:
@@ -60,4 +60,4 @@ def tool_specs(runtime: Any) -> list[ToolSpec]:
                 "next": NEXT["fail"] if failing else NEXT["ok"] if all(r["level"] == "ok" for r in reports)
                 else NEXT["warn"]}
 
-    return [ToolSpec("lane_check", lane_check, Effect.READ, lane_arg="on", hidden_without="lane_check")]
+    return [ToolSpec("browser_check", lane_check, Effect.READ, lane_arg="on", hidden_without="lane_check")]

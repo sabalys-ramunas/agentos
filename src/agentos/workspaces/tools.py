@@ -118,7 +118,7 @@ async def workspace_apply(ctx: ToolContext, *, template: str, workspaces: list[s
     """Create the lanes of a template in workspaces. The owner approves first: the approval shows the exact
     lanes and their proxies, and it binds to that plan. Refused, with nothing created, when the plan has
     conflicts: fix them, or ask the owner whether to override the proxy rules. New lanes start as needs_login,
-    so the owner logs in through the live view and then lane_set_readiness marks them ready. Safe to run again:
+    so the owner logs in through the live view and then browser_set_readiness marks them ready. Safe to run again:
     it only creates what is missing."""
     svc = _svc(ctx)
     plan = _plan(ctx, template, workspaces, proxy_per_workspace=proxy_per_workspace,
@@ -160,6 +160,6 @@ def tool_specs(runtime: Any) -> list[ToolSpec]:
                  tags=(TAG,), hidden_without=SERVICE_NAME),
         ToolSpec(name="workspace_apply", handler=workspace_apply, effect=Effect.COMMIT, lane_arg=None,
                  tags=(TAG,), hidden_without=SERVICE_NAME),
-        ToolSpec(name="lane_set_readiness", handler=lane_set_readiness, effect=Effect.DRAFT, lane_arg="on",
+        ToolSpec(name="browser_set_readiness", handler=lane_set_readiness, effect=Effect.DRAFT, lane_arg="on",
                  tags=(TAG,), hidden_without=SERVICE_NAME),
     ]

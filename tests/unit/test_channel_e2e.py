@@ -26,7 +26,7 @@ async def test_one_mcp_url_spans_both_nodes(fleet):
     ctl, a, b = fleet
     async with agent(ctl) as client:
         names = {t.name for t in (await client.list_tools()).tools}
-        assert {"nodes_list", "lanes_list", "browser_snapshot", "browser_screenshot", "tools_more"} <= names
+        assert {"nodes_list", "browsers_list", "browser_snapshot", "browser_screenshot", "tools_more"} <= names
         assert "post_note" not in names  # outside core: tools_more loads it, and a direct call still works
         other = (await client.call_tool("tools_more", {"toolset": "post_note"})).structured_content
         assert other["toolset"] == "other" and "post_note" in {t.name for t in (await client.list_tools()).tools}
@@ -52,8 +52,8 @@ async def test_one_mcp_url_spans_both_nodes(fleet):
         assert ("using", "shared/blog") in b.lanes.calls
 
         # a tool without a lane needs `node` when both nodes offer it
-        assert (await client.call_tool("lanes_list", {})).is_error
-        listed_b = await client.call_tool("lanes_list", {"node": "node-b"})
+        assert (await client.call_tool("browsers_list", {})).is_error
+        listed_b = await client.call_tool("browsers_list", {"node": "node-b"})
         assert not listed_b.is_error and "work/linkedin" in listed_b.content[0].text
         assert "personal/reddit" not in listed_b.content[0].text
 

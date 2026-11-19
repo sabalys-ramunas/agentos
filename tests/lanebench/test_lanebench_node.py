@@ -128,7 +128,7 @@ SCRIPTED_TASKS = ["login-save-login", "login-cookie-wall", "login-consent", "log
 @pytest.mark.parametrize("task", SCRIPTED_TASKS)
 async def test_mcp_agent_signs_in_with_the_vault_and_uploads_from_the_inbox(bench, task, tmp_path):
     """The login tasks through the vault's login window (no rule names the login POST), and the
-    composer's photo through files_list and browser_upload, under the task's stand-in grant."""
+    composer's photo through browser_files and browser_upload, under the task's stand-in grant."""
     agent = executors.get("mcp-agent", agent_cmd=f"{sys.executable} {SCRIPTED} --config {{config}} --lane {{lane}}")
     bench.transcripts = tmp_path
     try:
@@ -144,7 +144,7 @@ async def test_mcp_agent_signs_in_with_the_vault_and_uploads_from_the_inbox(benc
         if task == "login-cookie-wall":  # the cookie click drove the lane first: the window let the POST go
             assert any(r.get("path") == "/api/login" and r.get("decision") == "login" for r in rec["egress"])
     else:
-        assert {"files_list", "browser_upload"} <= tools, rec["tool_trace"]
+        assert {"browser_files", "browser_upload"} <= tools, rec["tool_trace"]
     assert rec["result"]["metrics"]["calls"] == len(rec["tool_trace"])
     assert (tmp_path / f"{task}.log").read_text().strip().startswith("{")
 

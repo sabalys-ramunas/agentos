@@ -180,7 +180,7 @@ def make_operation_handler(fv: FlowVersion, name: str):
     for pname, prop in props.items():
         prop = prop if isinstance(prop, dict) else {}
         py = _py_type(prop)
-        desc = prop.get("description") or ("a file id or name in the surface lane's inbox (files_put)"
+        desc = prop.get("description") or ("a file id or name in the surface lane's inbox (browser_file_put)"
                                             if prop.get("format") == "agentos-file" else None)
         if pname in required and "default" not in prop:
             ann, default = py, inspect.Parameter.empty

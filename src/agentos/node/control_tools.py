@@ -2,12 +2,12 @@
 
 `tool_specs(runtime)` gives agents four tools, all READ effect (they never act on a page):
 
-  lane_control(on)                    who may act in the lane right now
-  lane_request_control(on, reason)    ask the human for control back (it only asks)
-  lane_wait_control(on, timeout_s)    long-poll until agents may act again (at most 300 s)
-  lane_login_request(on, why)         ask the owner to log the lane in (agentos.node.login_assist; it only asks)
+  browser_control(on)                    who may act in the lane right now
+  browser_request_control(on, reason)    ask the human for control back (it only asks)
+  browser_wait_handback(on, timeout_s)    long-poll until agents may act again (at most 300 s)
+  browser_login_request(on, why)         ask the owner to log the lane in (agentos.node.login_assist; it only asks)
 
-`take_over_link(runtime, on)` is what lane_view returns when a human has to take over: a
+`take_over_link(runtime, on)` is what browser_view returns when a human has to take over: a
 signed control-mode viewer link plus the SSH tunnel that reaches it.
 """
 
@@ -44,11 +44,11 @@ TimeoutArg = Annotated[float, Field(
 NEXT = {
     ControlState.AGENT: "Agents have control. You may act on this lane.",
     ControlState.HUMAN: ("A human has control. Do not act on this lane and do not retry in a loop. Wait with "
-                         "lane_wait_control, or ask for it back once with lane_request_control."),
+                         "browser_wait_handback, or ask for it back once with browser_request_control."),
 }  # PAUSED: agentos.core.pauses words who paused it and why
 NEXT_AFTER_HANDBACK = ("Agents have control again. A human had the lane: read `handback` for what changed, then "
                        "take a new browser_snapshot before you act (your old refs are stale).")
-NEXT_REQUESTED = ("You asked for control back; the human has not answered yet. Wait with lane_wait_control "
+NEXT_REQUESTED = ("You asked for control back; the human has not answered yet. Wait with browser_wait_handback "
                   "instead of asking again.")
 
 
@@ -97,7 +97,7 @@ def tool_specs(runtime: Any) -> list[ToolSpec]:
         "paused" (a person stopped agents, or agentos holds the lane after a challenge: `next` says which; wait).
         Browser tools on a lane you do not control fail with human_in_control or agent_paused; call this
         to see who has it, since when, and whether your request for control back is still pending.
-        Cheap: it does not use the browser. Effect: read. Errors: lane_not_found (see lanes_list)."""
+        Cheap: it does not use the browser. Effect: read. Errors: lane_not_found (see browsers_list)."""
         lane_id = _lane(on)
         await ctx.authorize(Effect.READ, lane_id=lane_id)
         return await with_note(ctx, lane_id, control_result(lane_id, lanes().get(lane_id).control,
@@ -106,7 +106,7 @@ def tool_specs(runtime: Any) -> list[ToolSpec]:
     async def lane_request_control(ctx: ToolContext, *, on: OnArg, reason: ReasonArg) -> dict[str, Any]:
         """Ask the human who has taken over a lane to hand it back. It only asks: the human sees your reason
         and hands back or refuses, and control also returns on its own after a while without human input.
-        Ask once, then wait with lane_wait_control. Effect: read. Errors: invalid (give a short reason),
+        Ask once, then wait with browser_wait_handback. Effect: read. Errors: invalid (give a short reason),
         human_in_control (you asked again right after a refusal: wait instead), lane_not_found."""
         lane_id = _lane(on)
         await ctx.authorize(Effect.READ, lane_id=lane_id)
@@ -143,7 +143,7 @@ def tool_specs(runtime: Any) -> list[ToolSpec]:
         and the vault holds no login for it (with one, use login: it asks nobody). It only notifies: the owner gets a push and logs in through agentos's login form, typing into a form
         that agentos types into the site. You never see or type the values, and you cannot start the login
         yourself. Ask once; asking again within two minutes does nothing. The owner's login takes the lane
-        from agents while it runs, so then wait with lane_wait_control and take a new browser_snapshot after.
+        from agents while it runs, so then wait with browser_wait_handback and take a new browser_snapshot after.
         Effect: read. Errors: invalid (give a short reason; a terminal lane), lane_not_found."""
         from agentos.node.login_assist import service_for
 
@@ -151,28 +151,28 @@ def tool_specs(runtime: Any) -> list[ToolSpec]:
         await ctx.authorize(Effect.READ, lane_id=lane_id)
         out = service_for(runtime).request(lane_id, why=why, by=ctx.principal.id)
         if out.get("running"):
-            out["next"] = ("The owner is logging this lane in right now. Wait with lane_wait_control, then take a "
+            out["next"] = ("The owner is logging this lane in right now. Wait with browser_wait_handback, then take a "
                            "new browser_snapshot.")
         elif out.get("already_asked"):
-            out["next"] = "You already asked a moment ago. Wait with lane_wait_control instead of asking again."
+            out["next"] = "You already asked a moment ago. Wait with browser_wait_handback instead of asking again."
         else:
             out["next"] = ("The owner was asked to log in. They have the lane while they do it: wait with "
-                           "lane_wait_control, then take a new browser_snapshot. Do not type a password yourself.")
+                           "browser_wait_handback, then take a new browser_snapshot. Do not type a password yourself.")
         return out
 
     tags = ("lanes", "control")
     return [
-        ToolSpec("lane_control", lane_control, Effect.READ, tags=tags),
-        ToolSpec("lane_request_control", lane_request_control, Effect.READ, tags=(*tags, "changes_state")),
-        ToolSpec("lane_wait_control", lane_wait_control, Effect.READ, tags=tags),
-        ToolSpec("lane_login_request", lane_login_request, Effect.READ, tags=(*tags, "changes_state")),
+        ToolSpec("browser_control", lane_control, Effect.READ, tags=tags),
+        ToolSpec("browser_request_control", lane_request_control, Effect.READ, tags=(*tags, "changes_state")),
+        ToolSpec("browser_wait_handback", lane_wait_control, Effect.READ, tags=tags),
+        ToolSpec("browser_login_request", lane_login_request, Effect.READ, tags=(*tags, "changes_state")),
     ]
 
 
 def take_over_link(runtime: Any, on: str, *, ttl_s: float | None = None, ssh_host: str | None = None,
                    port: int | None = None, base: str = "", control: bool = True,
                    local_port: int | None = None, link: ViewLink | None = None) -> dict[str, Any]:
-    """A control-mode viewer link for lane_view: the human opens it (through the SSH tunnel in M1) to watch,
+    """A control-mode viewer link for browser_view: the human opens it (through the SSH tunnel in M1) to watch,
     take control, and hand back. Uses the runtime's `viewer_links` (a ViewTokens) when registered.
     `control=False` issues a link to watch only (a controller's caller whose ceiling has no control).
     `ssh_host` and `local_port`: how the caller's computer reaches this node (agentos.node.viewroutes), so
@@ -197,7 +197,7 @@ def take_over_link(runtime: Any, on: str, *, ttl_s: float | None = None, ssh_hos
         "take_over": ("Give the human the tunnel command and the url. In the viewer they watch, and, signed in "
                       "to this node's panel in that browser, take control, clear the challenge and hand it back. "
                       "The link alone cannot hand back or clear a hold, so do not try it yourself. While they "
-                      "have control, wait with lane_wait_control.")
+                      "have control, wait with browser_wait_handback.")
         if control else
         ("This link can only watch: this node's owner does not let a controller take a lane over. A person "
          "at the node takes it over from the node's own panel."),

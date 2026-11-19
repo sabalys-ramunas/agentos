@@ -219,7 +219,7 @@ class ResourcesMixin:
         return ResourcesLow(
             f"only {max(effective, 0)} MB of memory is free on this node (agentos keeps {floor} MB free{note}) and "
             f"no idle lane can be closed to make room, so {lane_id} was not opened. Close a lane you do not "
-            "need (lane_close), or try again once running work finishes.")
+            "need (browser_close), or try again once running work finishes.")
 
     def _check_disk(self, lane_id: str) -> None:
         floor = self.disk_floor_bytes

@@ -54,7 +54,7 @@ class Ref:
 
 # What the agent does: look around, like a post, write a caption, look at the page, hit a captcha.
 SESSION: list[tuple[str, dict[str, Any]]] = [
-    ("lanes_list", {}),
+    ("browsers_list", {}),
     ("browser_navigate", {"on": LANE, "url": f"{BASE}/"}),
     ("browser_snapshot", {"on": LANE}),
     ("browser_act", {"on": LANE, "ref": Ref("New post"), "action": "click", "snapshot": "full"}),

@@ -1,6 +1,6 @@
-"""What the dev node must run of today's features: files_put into the lane's inbox, browser_upload
+"""What the dev node must run of today's features: browser_file_put into the lane's inbox, browser_upload
 and browser_wait on the composer (the post_image recipe), the action ledger fed by the dev site's
-publish, and lane_do served or refused with a plain reason. Over MCP with the printed agent grant."""
+publish, and browser_task served or refused with a plain reason. Over MCP with the printed agent grant."""
 
 from __future__ import annotations
 
@@ -54,7 +54,7 @@ async def call(client, name: str, args: dict) -> tuple[bool, str]:
 async def test_an_image_post_follows_the_recipe_on_the_dev_node():
     async with connected() as (node, client):
         on = {"on": "biz-a/social"}
-        err, text = await call(client, "files_put", {**on, "name": "photo.png", "content_base64": PNG})
+        err, text = await call(client, "browser_file_put", {**on, "name": "photo.png", "content_base64": PNG})
         assert not err, text
         assert str(node.home) not in text
         file_id = json.loads(text)["file"]["id"]
@@ -103,7 +103,7 @@ async def test_an_image_post_follows_the_recipe_on_the_dev_node():
 
 async def test_lane_do_says_what_it_needs():
     async with connected() as (_, client):
-        err, text = await call(client, "lane_do", {"on": "biz-a/social", "goal": "like the first post"})
+        err, text = await call(client, "browser_task", {"on": "biz-a/social", "goal": "like the first post"})
         assert err and text.startswith("unavailable:"), text  # not a bare not_found
         assert "browser-worker" in text and "decide job" in text and "browser_act" in text
         err, text = await call(client, "no_such_tool", {})
@@ -286,7 +286,7 @@ async def test_tools_the_grant_lacks_say_what_it_needs_and_the_seeded_lanes_can_
         err, text = await call(client, "login", {"on": "biz-a/social"})
         assert err and text.startswith("denied: special: secret is not granted for biz-a/social"), text
         for lane in ("biz-b/forum", "biz-b/social"):  # a person holds both: the link is there to give them
-            err, text = await call(client, "lane_view", {"on": lane})
+            err, text = await call(client, "browser_view", {"on": lane})
             assert not err and json.loads(text)["viewer"]["url"], text
         await call(client, "browser_navigate", {"on": "biz-a/social", "url": f"{BASE}/p/1"})
         _, snap = await call(client, "browser_snapshot", {"on": "biz-a/social"})

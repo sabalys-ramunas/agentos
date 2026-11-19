@@ -32,7 +32,7 @@ from agentos.core import globs
 from agentos.policy.errors import Conflict
 from agentos.policy.grants import GrantBlock
 
-EXEMPT_TOOLS = frozenset({"lane_freeze", "lane_control", "whoami"})  # callable on a frozen lane
+EXEMPT_TOOLS = frozenset({"browser_freeze", "browser_control", "whoami"})  # callable on a frozen lane
 
 log = logging.getLogger("agentos.policy")
 

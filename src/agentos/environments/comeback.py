@@ -1,14 +1,14 @@
 """Coming back to an environment: the saved services started again and checked listening, the
 environment found by its repository alone, and what a pause costs in words.
 
-- `start_services`: on a resume (and after a snapshot) each service a save holds (a lane_job_start
+- `start_services`: on a resume (and after a snapshot) each service a save holds (a terminal_job_start
   command that ran, with the port it served) is started again, and the node waits up to
   SERVICE_WAIT_S in all for those ports to listen. `resumed.services` says for each one whether it
   runs and listens, and gives a ready `restart` call for one that did not come back.
 - `listening`: a save also records what really listens on the machine (scripts.LISTENING), not only
   the jobs the node knows: a node that restarted while a dev server ran has lost its job (round 3,
   T2: `resumed.services: []`). Each port's process chain gives the command that was started: the
-  child of agentos's own workload shell (a lane_job_start), else the topmost process in /work.
+  child of agentos's own workload shell (a terminal_job_start), else the topmost process in /work.
   Only what listened at save time is recorded, so a resume starts nothing that was not serving.
 - `by_repo`: environment_open(repo=X) with no title. The newest open or saved environment of the
   family for that repository, when there is exactly one; several are a choice the agent makes (each
@@ -43,9 +43,9 @@ class EnvironmentChoice(InvalidRequest):
 
 
 def restart_call(cmd: str, cwd: str | None) -> str:
-    """The lane_job_start call that starts a service again, ready to send."""
+    """The terminal_job_start call that starts a service again, ready to send."""
     args = f"cmd={json.dumps(cmd)}" + (f", cwd={json.dumps(cwd)}" if cwd else "")
-    return f"lane_job_start({args})"
+    return f"terminal_job_start({args})"
 
 
 async def start_services(mgr: Any, env: Any, services: list[dict], *, wait_s: float = 0.0) -> list[dict]:
@@ -84,7 +84,7 @@ async def start_services(mgr: Any, env: Any, services: list[dict], *, wait_s: fl
             r["listening"] = r["port"] in listening
             if not r["listening"]:
                 r["why"] = (f"it runs, but port {r['port']} did not listen within {int(wait_s)} s; "
-                            "lane_job_read(id) shows its output")
+                            "terminal_job_read(id) shows its output")
         if not r["running"]:
             r["restart"] = restart_call(r["cmd"], r.get("cwd"))
     return out
@@ -97,13 +97,13 @@ def _still_running(envs: Any, lane: str, rows: list[dict]) -> None:
         for r in rows:
             j = jobs.get(r.get("job_id") or "")
             if r["running"] and j is not None and j.state != "running":
-                r["running"], r["why"] = False, f"it {j.state} while starting; lane_job_read(\"{j.id}\") shows why"
+                r["running"], r["why"] = False, f"it {j.state} while starting; terminal_job_read(\"{j.id}\") shows why"
 
 
 WRAPPER_MARK = "/tmp/agentos-wl/"   # agentos.vms.ssh's workload shell names its pgid file under it
 SHELLS = frozenset({"sh", "bash", "dash", "zsh", "ash", "fish"})
 STOPS = frozenset({"sshd", "sshd-session", "systemd", "init", "tmux", "screen", "setsid", "su", "sudo", "login"})
-CD_RE = re.compile(r"^cd '([^']+)' && (.+)$", re.DOTALL)   # how lane_job_start runs a job with a cwd
+CD_RE = re.compile(r"^cd '([^']+)' && (.+)$", re.DOTALL)   # how terminal_job_start runs a job with a cwd
 MAX_LISTENING = 8
 
 

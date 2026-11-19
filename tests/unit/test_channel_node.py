@@ -64,7 +64,7 @@ async def test_hello_is_signed_with_the_exact_string_and_welcome_starts_the_sess
                                    "last_used": None}]
     tools = await peer.recv("event", where=lambda e: e.body["kind"] == "node" and "tools" in e.body["payload"])
     names = {t["name"] for t in tools.body["payload"]["tools"]}
-    assert {"browser_snapshot", "post_note", "lanes_list"} <= names
+    assert {"browser_snapshot", "post_note", "browsers_list"} <= names
     snapshot = next(t for t in tools.body["payload"]["tools"] if t["name"] == "browser_snapshot")
     assert snapshot["lane_arg"] == "on" and snapshot["effect"] == "read"
     assert tools.seq is not None and tools.id.startswith("m_")
@@ -121,7 +121,7 @@ async def test_invoke_runs_through_the_policy_wrapper_with_the_grant_bound(wired
                                                 token=grant(fake, workspaces=("work",))[0]))
     scoped = await peer.reply_to(out.id)
     assert not scoped.body["ok"] and "out_of_scope" in scoped.body["error"]["message"]
-    admin = await peer.send("invoke", invoke_body(fake, "lanes_list", {}, token=grant(fake, admin=True)[0]))
+    admin = await peer.send("invoke", invoke_body(fake, "browsers_list", {}, token=grant(fake, admin=True)[0]))
     assert "foreign_admin" in (await peer.reply_to(admin.id)).body["error"]["message"]
 
 
@@ -191,7 +191,7 @@ async def test_signed_revoke_cascades_and_a_bad_signature_changes_nothing(wired)
     stopped = await peer.reply_to(call.id)
     assert stopped.body["error"]["code"] == "cancelled" and "revoked" in stopped.body["error"]["message"]
     assert issuers.is_revoked([rid])
-    after = await peer.send("invoke", invoke_body(fake, "lanes_list", {}, token=child))
+    after = await peer.send("invoke", invoke_body(fake, "browsers_list", {}, token=child))
     assert "revoked" in (await peer.reply_to(after.id)).body["error"]["message"]
     # tampering with a signed body breaks the signature
     body = fake.fresh("revoke", {"revocation_ids": ["rv_other00000"]})

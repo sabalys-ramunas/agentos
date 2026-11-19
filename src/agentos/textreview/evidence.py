@@ -32,7 +32,7 @@ from typing import Any
 log = logging.getLogger("agentos.textreview")
 
 AGENT_KINDS = ("agent", "brain")  # a model chose these calls; people and flows are not reviewed
-START_TOOLS = ("whoami", "lanes_list", "grant_info", "howto")
+START_TOOLS = ("whoami", "browsers_list", "grant_info", "howto")
 CODE_RE = re.compile(r"^[a-z][a-z0-9_]{1,48}$")
 LANE_RE = re.compile(r"^[a-z0-9][a-z0-9_-]*/[a-z0-9][a-z0-9_.-]*$")
 BRAIN_TASK_RE = re.compile(r"\bbt_[A-Za-z0-9]+")

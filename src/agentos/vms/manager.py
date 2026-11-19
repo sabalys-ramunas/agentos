@@ -2,7 +2,7 @@
 
 An agent asks for a VM by profile and time limit; the node makes it (its own SSH key, a host key
 it pins before the first connection, a firewall that lets in SSH from this node only), waits for
-SSH, and registers a VM lane in the env manager, so `lane_exec`, `shell_*` and service lanes work
+SSH, and registers a VM lane in the env manager, so `terminal_exec`, `shell_*` and service lanes work
 on it unchanged. The node deletes it again:
 
 - when its time limit passes (never longer than `max_ttl_minutes`);
@@ -771,7 +771,7 @@ class VmManager(Pausing):
         if found is None:
             raise NotFound(f"no token for {name.name} on this node; the owner adds one with "
                            f"`agentos vm repo add {name.host}/{name.path.split('/')[0]}/*`. A public repo needs "
-                           "none: run git clone on the VM with lane_exec")
+                           "none: run git clone on the VM with terminal_exec")
         pattern, user, token = found
         work = self.dir / "clones" / secrets.token_hex(6)
         try:

@@ -133,7 +133,7 @@ def test_connect_sets_up_tunnel_keychain_and_claude(system, node, home):
     assert TOKEN not in system.security_stdin()
     record = json.loads((home / ".config/agentos/connections/mynode.json").read_text())
     assert record["credential"] == "agent_grant" and record["agent_subject"] == "claude-code@testmac"
-    # the node knows how this computer reaches it for that grant, for lane_view's link and tunnel
+    # the node knows how this computer reaches it for that grant, for browser_view's link and tunnel
     routes = json.loads((node.home / "run" / "connect-routes.json").read_text())  # the daemon's home
     assert {k: routes[record["agent_grant_id"]][k] for k in ("ssh_host", "local_port")} == {
         "ssh_host": "mynode", "local_port": port}

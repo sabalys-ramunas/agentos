@@ -21,7 +21,7 @@ BROWSER_WORKER = Plugin(
     lane_kinds=("browser",),
     services=("agentos.pilot.service",),
     tools=("agentos.pilot.tools",),
-    tool_names=("lane_do",),
+    tool_names=("browser_task",),
     needs=(ServicePresent("pilot", "agentos.pilot.service"),
            ServicePresent("brains", "agentos.brains.service")),
     jobs=WORKER_JOBS,

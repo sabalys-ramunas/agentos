@@ -15,7 +15,7 @@ An environment's `keep` says what happens when the work stops:
 A save is a provider disk snapshot (keep "save", unless `snapshots = false`) plus a file-level part
 that is always made (agentos.environments.saves holds it): the commits and stashes no remote has (git
 bundles), the changed and new files git does not ignore, the deleted paths, the keep_paths folders,
-the services that ran (lane_job_start: command, folder, port, and what listened in /work, which a
+the services that ran (terminal_job_start: command, folder, port, and what listened in /work, which a
 restarted node no longer knows as a job: comeback.listening) and a resume note. Never saved: process
 memory, the gateway token (a restore mints a new one), the SSH keys, and in the file part anything
 gitignored, .env files, node_modules and anything outside /work and keep_paths.
@@ -114,7 +114,7 @@ def snapshot_reason(e: AgentosError) -> str:
 
 
 def services_of(jobs: list[Any], ports: list[dict]) -> list[Service]:
-    """The lane_job_start commands that run, each with the port it serves when the command names one
+    """The terminal_job_start commands that run, each with the port it serves when the command names one
     (or when it is the only command and one port listens)."""
     listening = [p["port"] for p in ports if p.get("port")]
     out = []

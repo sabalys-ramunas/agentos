@@ -1,5 +1,5 @@
-"""What the kernel killed for memory on a VM, and the other field-report fixes of lane_exec and
-lane_job_read (2026-11-16): a job kept saying `running` after the kernel OOM-killed its 4.1 GB child,
+"""What the kernel killed for memory on a VM, and the other field-report fixes of terminal_exec and
+terminal_job_read (2026-11-16): a job kept saying `running` after the kernel OOM-killed its 4.1 GB child,
 `pkill -f` killed its own shell with no word why, and waiting for a dev server took sleep loops.
 
 The kernel lines below are real ones (ubuntu:24.04 in docker, `head -c 2000m /dev/zero | tail` under a
@@ -61,9 +61,9 @@ def test_the_note_names_the_victim_and_what_to_do():
     running = oom.note(kills, running=True)
     assert running.startswith("The kernel killed pid 4242 (node, 4.0 GB) of this job at 07:37:17 UTC: out of memory")
     assert "pid 901 (postgres, 300 MB), not of this job" in running
-    assert "lane_job_cancel" in running and "bigger size" in running
+    assert "terminal_job_cancel" in running and "bigger size" in running
     done = oom.note(kills[:1], running=False, what="command")
-    assert "of this command" in done and "lane_job_cancel" not in done
+    assert "of this command" in done and "terminal_job_cancel" not in done
     assert oom.note(None, running=True) is None
     for text in (running, done):
         assert "—" not in text
@@ -77,7 +77,7 @@ def test_a_kill_near_the_machines_memory_names_its_memory_and_the_next_size():
     assert "This machine has 3.7 GB of memory, and node used 4.0 GB" in done
     assert 'size="medium") (8 GB' in done and "keeps its size" in done
     running = oom.note(kills, running=True)
-    assert "lane_job_cancel it. This machine has 3.7 GB" in running
+    assert "terminal_job_cancel it. This machine has 3.7 GB" in running
     small = [{**kills[1], "in_job": True}]                     # 300 MB of 3.7 GB: not the machine's size
     assert "size=" not in oom.note(small, running=False) and "bigger size" in oom.note(small, running=False)
     top = [{**kills[0], "machine_mb": 32000, "rss_mb": 30000}]
@@ -121,7 +121,7 @@ def test_the_workload_shell_writes_its_start_record_only_when_asked():
 def test_pkill_f_that_killed_its_own_shell_says_so():
     note = self_kill_note("pkill -f vite; pnpm dev", 255, None)
     assert "The shell running this command was killed (exit 255)" in note
-    assert "pkill -f '[v]ite'" in note and "lane_job_cancel" in note
+    assert "pkill -f '[v]ite'" in note and "terminal_job_cancel" in note
     assert self_kill_note("pkill --full 'next dev'", None, "SIGTERM")
     assert self_kill_note("kill $(pgrep -f vite)", 143, None)
     assert self_kill_note("killall -f node", 137, None)
@@ -137,8 +137,8 @@ def test_pkill_f_that_killed_its_own_shell_says_so():
 async def test_a_job_whose_pkill_f_killed_its_shell_says_so(env):
     t, ctx = tools(env), Ctx(env)
     # the shell's death is played by `exit 143` (a real pkill -f here would run on this computer)
-    job = await t["lane_job_start"](ctx, on="dev/run", cmd="echo started; true || pkill -f nothing-here; exit 143")
-    r = await t["lane_job_read"](ctx, job=job["id"], until_exit=True, wait_ms=10000)
+    job = await t["terminal_job_start"](ctx, on="dev/run", cmd="echo started; true || pkill -f nothing-here; exit 143")
+    r = await t["terminal_job_read"](ctx, job=job["id"], until_exit=True, wait_ms=10000)
     assert r["state"] == "exited" and r["exit_code"] == 143 and r["stdout"] == "started\n"
     assert "The shell running this job was killed (" in r["note"]
 
@@ -174,23 +174,23 @@ async def env(tmp_path):
 async def test_until_port_returns_when_the_port_listens(env, monkeypatch):
     monkeypatch.setattr(lane_jobs, "port_wait_script", lambda port, secs: "sleep 0.2; echo listening")
     t, ctx = tools(env), Ctx(env)
-    job = await t["lane_job_start"](ctx, on="dev/run", cmd="echo up; sleep 20")
-    r = await t["lane_job_read"](ctx, job=job["id"], until_port=3000, wait_ms=10000)
+    job = await t["terminal_job_start"](ctx, on="dev/run", cmd="echo up; sleep 20")
+    r = await t["terminal_job_read"](ctx, job=job["id"], until_port=3000, wait_ms=10000)
     assert r["listening"] is True and r["state"] == "running"
-    await t["lane_job_cancel"](ctx, job=job["id"])
+    await t["terminal_job_cancel"](ctx, job=job["id"])
 
 
 async def test_until_port_gives_the_end_of_the_output_when_the_job_ends_first(env, monkeypatch):
     monkeypatch.setattr(lane_jobs, "port_wait_script", lambda port, secs: f"sleep {secs}; echo waited")
     t, ctx = tools(env), Ctx(env)
-    job = await t["lane_job_start"](ctx, on="dev/run", cmd="seq 1 5000; echo boom >&2; exit 3")
-    r = await t["lane_job_read"](ctx, job=job["id"], until_port=3000, wait_ms=10000, max_bytes=100)
+    job = await t["terminal_job_start"](ctx, on="dev/run", cmd="seq 1 5000; echo boom >&2; exit 3")
+    r = await t["terminal_job_read"](ctx, job=job["id"], until_port=3000, wait_ms=10000, max_bytes=100)
     assert r["listening"] is False and r["state"] == "exited" and r["exit_code"] == 3
     assert r["stdout"].endswith("5000\n") and "boom" in r["stderr"]
     assert r["next_stdout_offset"] == r["stdout_bytes"]
     assert "ended before port 3000 listened" in r["note"]
     with pytest.raises(InvalidRequest):
-        await t["lane_job_read"](ctx, job=job["id"], until_port=70000)
+        await t["terminal_job_read"](ctx, job=job["id"], until_port=70000)
 
 
 async def test_a_read_returns_early_when_the_kernel_killed_one_of_the_jobs_processes(env, monkeypatch):
@@ -203,14 +203,14 @@ async def test_a_read_returns_early_when_the_kernel_killed_one_of_the_jobs_proce
     monkeypatch.setattr(Job, "on_vm", property(lambda self: self.rt is not None))
     monkeypatch.setattr(LaneRuntime, "oom_kills", fake)
     t, ctx = tools(env), Ctx(env)
-    job = await t["lane_job_start"](ctx, on="dev/run", cmd="sleep 20")
+    job = await t["terminal_job_start"](ctx, on="dev/run", cmd="sleep 20")
     loop = asyncio.get_running_loop()
     start = loop.time()
-    r = await t["lane_job_read"](ctx, job=job["id"], until_exit=True, wait_ms=60000)
+    r = await t["terminal_job_read"](ctx, job=job["id"], until_exit=True, wait_ms=60000)
     assert loop.time() - start < 5
     assert r["state"] == "running" and r["oom_killed"] is True and r["oom"][0]["pid"] == 4242
-    assert "of this job" in r["note"] and "lane_job_cancel" in r["note"]
-    await t["lane_job_cancel"](ctx, job=job["id"])
+    assert "of this job" in r["note"] and "terminal_job_cancel" in r["note"]
+    await t["terminal_job_cancel"](ctx, job=job["id"])
 
 
 async def test_the_read_that_shows_a_killed_line_also_says_what_killed_it(env, monkeypatch):
@@ -226,11 +226,11 @@ async def test_the_read_that_shows_a_killed_line_also_says_what_killed_it(env, m
     monkeypatch.setattr(Job, "on_vm", property(lambda self: self.rt is not None))
     monkeypatch.setattr(LaneRuntime, "oom_kills", fake)
     t, ctx = tools(env), Ctx(env)
-    job = await t["lane_job_start"](ctx, on="dev/run", cmd="sleep 0.3; echo Killed >&2; sleep 20")
-    r = await t["lane_job_read"](ctx, job=job["id"], wait_ms=10000)
+    job = await t["terminal_job_start"](ctx, on="dev/run", cmd="sleep 0.3; echo Killed >&2; sleep 20")
+    r = await t["terminal_job_read"](ctx, job=job["id"], wait_ms=10000)
     assert "Killed" in r["stderr"] and r["oom_killed"] is True and r["oom"][0]["pid"] == 4242
     assert "of this job" in r["note"]
-    await t["lane_job_cancel"](ctx, job=job["id"])
+    await t["terminal_job_cancel"](ctx, job=job["id"])
 
 
 async def test_a_job_that_printed_a_kill_and_exited_0_says_what_killed_it(env, monkeypatch):
@@ -246,14 +246,14 @@ async def test_a_job_that_printed_a_kill_and_exited_0_says_what_killed_it(env, m
     monkeypatch.setattr(Job, "on_vm", property(lambda self: self.rt is not None))
     monkeypatch.setattr(LaneRuntime, "oom_kills", fake)
     t, ctx = tools(env), Ctx(env)
-    job = await t["lane_job_start"](ctx, on="dev/run", cmd="sleep 0.2; echo child exit=137")
-    r = await t["lane_job_read"](ctx, job=job["id"], until_exit=True, wait_ms=10000)
+    job = await t["terminal_job_start"](ctx, on="dev/run", cmd="sleep 0.2; echo child exit=137")
+    r = await t["terminal_job_read"](ctx, job=job["id"], until_exit=True, wait_ms=10000)
     assert r["state"] == "exited" and r["exit_code"] == 0
     assert r["oom_killed"] is True and r["oom"][0]["pid"] == 4242 and "of this job" in r["note"]
     assert asked[-1] is True
     asked.clear()
-    quiet = await t["lane_job_start"](ctx, on="dev/run", cmd="echo all fine")
-    r = await t["lane_job_read"](ctx, job=quiet["id"], until_exit=True, wait_ms=10000)
+    quiet = await t["terminal_job_start"](ctx, on="dev/run", cmd="echo all fine")
+    r = await t["terminal_job_read"](ctx, job=quiet["id"], until_exit=True, wait_ms=10000)
     assert r["oom_killed"] is False and True not in asked     # a clean end costs no ssh call
 
 
@@ -267,7 +267,7 @@ async def test_a_command_that_printed_killed_and_exited_0_says_what_killed_it(en
 
     monkeypatch.setattr(LaneRuntime, "oom_kills", fake)
     t, ctx = tools(env), Ctx(env)
-    r = await t["lane_exec"](ctx, on="dev/run", cmd="echo Killed >&2; echo done")
+    r = await t["terminal_exec"](ctx, on="dev/run", cmd="echo Killed >&2; echo done")
     assert r["exit_code"] == 0 and r["oom_killed"] is True and "of this command" in r["note"]
-    r = await t["lane_exec"](ctx, on="dev/run", cmd="echo fine")
+    r = await t["terminal_exec"](ctx, on="dev/run", cmd="echo fine")
     assert asked == [True] and "oom" not in r

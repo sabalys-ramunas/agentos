@@ -30,7 +30,7 @@ async def mcp_lanes(url: str, token: str) -> tuple[set[str], set[str]]:
         Client(streamable_http_client(url, http_client=http), mode="legacy") as client,
     ):
         tools = {t.name for t in (await client.list_tools()).tools}
-        result = await client.call_tool("lanes_list", {})
+        result = await client.call_tool("browsers_list", {})
         assert not result.is_error, result.content[0].text
         return tools, {lane["id"] for lane in json.loads(result.content[0].text)["lanes"]}
 
@@ -85,9 +85,9 @@ async def test_panel_and_mcp_on_one_node(tmp_path):
 
             # the owner's agent on MCP with the node token sees every lane, and every tool when it asks
             tools, lanes = await mcp_lanes(f"{base}/mcp", TOKEN)
-            assert lanes == set(LANES) and {"lanes_list", "tools_more"} <= tools and "vault_list" not in tools
+            assert lanes == set(LANES) and {"browsers_list", "tools_more"} <= tools and "vault_list" not in tools
             tools, _ = await mcp_lanes(f"{base}/mcp?toolsets=full", TOKEN)
-            assert {"lanes_list", "grant_info", "vault_list"} <= tools and "tools_more" not in tools
+            assert {"browsers_list", "grant_info", "vault_list"} <= tools and "tools_more" not in tools
 
             # the owner gives an agent biz-a, read only; the token is shown once
             issued = await panel.post("/api/grants", json={"subject": "worker", "workspaces": ["biz-a"],
@@ -99,7 +99,7 @@ async def test_panel_and_mcp_on_one_node(tmp_path):
 
         # the agent: only its lanes, in MCP and in /api
         tools, lanes = await mcp_lanes(f"{base}/mcp", grant)
-        assert lanes == {"biz-a/instagram"} and "lanes_list" in tools and "lane_exec" not in tools  # no exec special
+        assert lanes == {"biz-a/instagram"} and "browsers_list" in tools and "terminal_exec" not in tools  # no exec special
         async with httpx2.AsyncClient(base_url=base, headers={"Authorization": f"Bearer {grant}"}) as agent:
             assert [lane["id"] for lane in (await agent.get("/api/lanes")).json()] == ["biz-a/instagram"]
             assert (await agent.get("/api/lanes/personal/reddit")).status_code == 403

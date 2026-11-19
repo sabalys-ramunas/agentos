@@ -48,7 +48,7 @@ from agentos.runner.util import Clock, clip_text
 log = logging.getLogger("agentos.runner")
 
 FILE_FORMAT = "agentos-file"
-FILE_ID_RE = re.compile(r"^in_[0-9a-f]{6,40}$")  # a files_put id (agentos.node.files)
+FILE_ID_RE = re.compile(r"^in_[0-9a-f]{6,40}$")  # a browser_file_put id (agentos.node.files)
 FileDigest = Callable[[str, str], str]  # (lane, file ref) -> "sha256:<hex>" of the bytes on the node
 APPROVAL_KEYS = frozenset({"operation", "contract", "surface", "acts_as", "params"})
 
@@ -121,7 +121,7 @@ def file_params(fv: FlowVersion) -> list[str]:
 
 def inbox_digest(runtime: Any) -> FileDigest:
     """The default FileDigest: the file in the lane's inbox, hashed from its bytes. A file id
-    from files_put (`in_...`) is read through agentos.node.files.LaneFiles.path (which refuses
+    from browser_file_put (`in_...`) is read through agentos.node.files.LaneFiles.path (which refuses
     links and anything outside the inbox); a name or path through the flow driver's inbox lookup."""
 
     def digest(lane: str, ref: str) -> str:
@@ -139,7 +139,7 @@ def inbox_digest(runtime: Any) -> FileDigest:
                 path = resolve_inbox_file(inbox_dir(runtime, lane), ref, files=files, lane_id=lane)
         except (FileNotInInbox, FileOutsideInbox, NotFound) as e:
             message = getattr(e, "message", str(e))
-            raise InvalidRequest(f"{message} (put it in the inbox of {lane} with files_put first)") from None
+            raise InvalidRequest(f"{message} (put it in the inbox of {lane} with browser_file_put first)") from None
         return "sha256:" + _sha256(Path(path))
 
     return digest

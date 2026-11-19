@@ -30,7 +30,7 @@ from pathlib import Path
 from agentos.client.errors import ClientError
 from agentos.core import fs
 
-# A tool call can wait on a person (approval_wait, lane_wait_control): Codex's default of 60
+# A tool call can wait on a person (approval_wait, browser_wait_handback): Codex's default of 60
 # seconds would cut those off. The bridge's own timeout is a little shorter, so the agent sees
 # the node's answer (or the bridge's own clear error) instead of Codex's generic one.
 TOOL_TIMEOUT_SEC = 600

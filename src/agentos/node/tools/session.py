@@ -183,7 +183,7 @@ def tell_ask_first(ctx: Any, on: str, block: egress.Block) -> None:
 
 
 def check_control(info: LaneInfo, principal_kind: str) -> None:
-    """The using() gate, for tools that act on a lane without entering it (lane_close)."""
+    """The using() gate, for tools that act on a lane without entering it (browser_close)."""
     if principal_kind == "human":
         return
     if info.control.state is ControlState.HUMAN:

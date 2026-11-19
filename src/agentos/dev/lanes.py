@@ -66,7 +66,7 @@ from agentos.node.claims import (
 from agentos.node.holds import hold_for
 
 log = logging.getLogger(__name__)
-CONTROL_POLL_S = 0.2  # lane_wait_control looks at the lane this often
+CONTROL_POLL_S = 0.2  # browser_wait_handback looks at the lane this often
 
 
 class _FormlessLocator:
@@ -151,7 +151,7 @@ class FakeLaneManager:
 
     def _require(self, lane_id: str) -> LaneInfo:
         if lane_id not in self.lanes:
-            raise LaneNotFound(f"no lane {lane_id!r}; see lanes_list")
+            raise LaneNotFound(f"no lane {lane_id!r}; see browsers_list")
         return self.lanes[lane_id]
 
     def _warm(self, info: LaneInfo) -> None:
@@ -756,7 +756,7 @@ class DevLaneManager(ControlFakeLaneManager):
         if note is not None:
             raise ClaimLost(f"your claim on {lane_id} ended ({note.message}), so this call did nothing. Someone "
                             "else may have changed the page: take a new snapshot, and claim the lane again with "
-                            "lane_claim if the job still needs it to itself.")
+                            "browser_claim if the job still needs it to itself.")
 
     async def _enter(self, lane_id: str, holder: Holder, mode: str, principal_kind: str, *,
                      timeout: float | None = None, purpose: str | None = None, ttl_s: float = 0.0) -> Waiter:
@@ -796,7 +796,7 @@ class DevLaneManager(ControlFakeLaneManager):
         else:
             text = "other callers are ahead of you"
         e = LaneBusy(f"lane {lane_id} is busy: {text}. You were number {position} in its queue, about {estimate:g} s "
-                     f"from your turn, after {waited:.0f} s of waiting. Call again later; lane_queue(on=\"{lane_id}\") "
+                     f"from your turn, after {waited:.0f} s of waiting. Call again later; browser_queue(on=\"{lane_id}\") "
                      "shows the queue.")
         e.details = {"lane": lane_id, "position": position, "estimate_s": estimate, "waited_s": round(waited, 1),
                      "queue_length": len(access.queue)}
@@ -947,7 +947,7 @@ class DevLaneManager(ControlFakeLaneManager):
 
     async def create(self, spec: LaneSpec) -> LaneInfo:
         info = await super().create(spec)
-        try:  # files_put keeps the lane's inbox in it, as on a node
+        try:  # browser_file_put keeps the lane's inbox in it, as on a node
             self.config.lane_dir(spec.id).mkdir(mode=0o700, parents=True, exist_ok=True)
         except OSError:  # a manager without a home of its own (a test's default config): no files here
             log.debug("%s: no lane folder under %s", spec.id, self.config.home)

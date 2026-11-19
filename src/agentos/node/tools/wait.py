@@ -44,7 +44,7 @@ WAIT_NEXT = {
     "dialog": "A dialog opened (see `dialog`): answer it with browser_dialog_answer, then wait again if needed.",
     "signal": "The page signal is no longer ok: stop and follow the instructions for it.",
     "tab_closed": "The tab closed: browser_tabs lists what is open; take a snapshot of the tab the lane acts in now.",
-    "human_in_control": "A human took the lane: do not act on it; wait with lane_wait_control.",
+    "human_in_control": "A human took the lane: do not act on it; wait with browser_wait_handback.",
 }
 WAIT_REFS = ("The page was re-read like a snapshot: refs of elements that changed are replaced. Take a "
              "snapshot (or wait with snapshot=\"delta\") before acting on them.")

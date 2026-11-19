@@ -95,7 +95,7 @@ def refresh_fingerprint_cmd(
     if result.backup:
         typer.echo(f"  the old fingerprint is kept at {result.backup}")
     if running and not dry_run:
-        typer.echo("  the lane is warm: the change takes effect the next time it warms (lane_close, then open it).")
+        typer.echo("  the lane is warm: the change takes effect the next time it warms (browser_close, then open it).")
 
 
 def lane_check_cmd(
