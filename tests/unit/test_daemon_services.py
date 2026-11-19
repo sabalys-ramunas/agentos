@@ -136,7 +136,7 @@ async def test_real_features_are_served_through_the_policy_wrapper(config):
             Client(streamable_http_client(url, http_client=http), mode="legacy") as client,
         ):
             names = {t.name for t in (await client.list_tools()).tools}
-            assert {"browsers_list", "tools_more", "tools_call"} <= names and "vault_list" not in names  # core
+            assert {"browser_snapshot", "tools_more", "tools_call"} <= names and "browsers_list" not in names  # core
             more = await client.call_tool("tools_more", {})
             reachable = {name for row in more.structured_content["toolsets"] for name in row["tools"]}
             assert {"browsers_list", "vault_list", "grant_info", "flows_list"} <= reachable

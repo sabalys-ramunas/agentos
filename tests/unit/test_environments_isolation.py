@@ -49,7 +49,7 @@ async def test_another_agent_cannot_run_on_drive_or_list_an_environment(node):  
     # the browser lane: every check the browser tools go through refuses it, as a lane that does not exist
     ctx = node["policy"].context(g2, tool="browser_navigate")
     ctx.mcp = True
-    with pytest.raises(LaneNotFound, match="no lane named"):
+    with pytest.raises(LaneNotFound, match="no browser named"):
         ctx.precheck(Effect.READ, lane_id=browser)
     with pytest.raises(LaneNotFound):
         await ctx.authorize(Effect.READ, lane_id=browser)

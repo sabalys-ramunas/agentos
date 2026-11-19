@@ -163,7 +163,7 @@ async def test_the_close_says_the_machine_is_deleted_once_the_provider_has_none(
     closed = await node["call"]("environment_close")
     assert closed["machine"] == "deleted" and rec.provider_id in node["prov"].deleted
     # its lanes are gone too, not left as cold lanes (F7)
-    with pytest.raises(Exception, match="no lane|not found|unknown"):
+    with pytest.raises(Exception, match="no browser|not found|unknown"):
         node["lanes"].get(f"env/{out['id']}-browser")
     assert not node["envs"].has(f"env/{out['id']}")
     # closed again: the same answer from the record
