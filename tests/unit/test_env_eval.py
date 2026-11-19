@@ -9,7 +9,7 @@ import json
 import socket
 
 import pytest
-from env_eval import budget, history
+from env_eval import budget, history, metrics
 from env_eval.metrics import (
     claude_metrics,
     codex_metrics,
@@ -128,9 +128,10 @@ def test_a_lane_name_as_on_is_a_wrong_turn_even_when_it_worked():
             row("terminal_exec", {"on": "ea4rfkkx9sw.fexswp5nylnkryff", "cmd": "ls"}),
             row("browser_navigate", {"on": "personal/reddit", "url": "https://example.com"})]
     turns = wrong_turns(rows)
-    assert turns == [("browser_navigate with a lane's name as on ('ea4rfkkx9sw-browser'), not the on its "
-                     "environment_open gave (refused: which_environment)"),
-                     "terminal_exec with a lane's name as on ('env/ea4rfkkx9sw'), not the on its environment_open gave"]
+    assert turns == [("browser_navigate with its terminal's or browser's name as on ('ea4rfkkx9sw-browser'), not "
+                      "the on its environment_open gave (refused: which_environment)"),
+                     ("terminal_exec with its terminal's or browser's name as on ('env/ea4rfkkx9sw'), not the on its "
+                      "environment_open gave")]
 
 
 def test_the_first_navigate_is_timed():
@@ -366,3 +367,11 @@ async def test_the_github_stand_in_keeps_the_proofs_agentos_sends_it(tmp_path):
             assert gh.files("evals/shop") == {"e1/p1.mp4": files["p1.mp4"], "e1/p1.gif": files["p1.gif"]}
             again, _ = await prproofs.send(Mgr(), http, "evals/shop", auth, "t", "e1", [{"id": "p1", "kind": "video"}])
             assert again == sent and len(gh.commits) == 1  # nothing new: no second commit
+
+
+def test_an_old_tool_name_counts_as_its_new_one():
+    """Runs from before 2026-11-19 (and agents that still call lane_exec) stay comparable."""
+    rows = [{"tool": "lane_exec", "args": {"cmd": "cat package.json"}, "ok": True, "text": "{}"},
+            {"tool": "tools_call", "args": {"name": "lane_file_read", "arguments": {"path": "a"}}, "ok": True}]
+    assert [metrics.unwrap(r)["tool"] for r in rows] == ["terminal_exec", "file_read"]
+    assert metrics.wrong_turns(rows) == ["read a file through terminal_exec ('cat package.json'), not file_read"]

@@ -53,7 +53,7 @@ async def perfect(ctx: Ctx, a: Agent, session: int) -> str:
     await a.sh("npm test 2>&1 | tail -8", cwd=env["workdir"])
     await a.sh("git checkout -q -b todo-export && git add -A && git commit -qm 'Export the task list as CSV and "
                "JSON' && git push -q origin todo-export 2>&1", cwd=env["workdir"])
-    pr = await a.via("environment_pull_request", title="Export the task list as CSV and JSON",
+    pr = await a.on_call("environment_pull_request", title="Export the task list as CSV and JSON",
                      body="toCsv and toJson, with their tests passing.")
     await a.on_call("environment_close", forget=True)
     return done(f"Resumed, wrote toJson, pushed todo-export and opened {pr['url']}. The machine and its saves are gone.")
@@ -71,7 +71,7 @@ async def careless(ctx: Ctx, a: Agent, session: int) -> str:
     await a.on_call("file_edit", path="src/export.js", old=JSON_OLD, new=JSON_NEW)
     await a.sh("git checkout -q -b todo-export && git commit -qam 'JSON export' && git push -q origin todo-export "
                "2>&1", cwd=env["workdir"])
-    pr = await a.via("environment_pull_request", title="JSON export")
+    pr = await a.on_call("environment_pull_request", title="JSON export")
     await a.on_call("environment_close")
     return done(f"Opened {pr['url']}.")
 

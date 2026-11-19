@@ -45,13 +45,13 @@ async def perfect(ctx: Ctx, a: Agent, session: int) -> str:
     await a.on_call("file_edit", path="server.js", old=f"<h1>{OLD}", new=f"<h1>{NEW}")
     job = await a.on_call("terminal_job_start", cmd="npm run dev", cwd=wd)
     await a.on_call("terminal_job_read", job=job["id"], until_port=3000, wait_s=60)
-    await a.via("browser_record", action="start", proof="the shop's home page with the winter sale")
+    await a.on_call("browser_record", action="start", proof="the shop's home page with the winter sale")
     await a.on_call("browser_navigate", url="http://localhost:3000")
     await a.via("browser_scroll")
-    await a.via("browser_record", action="stop")
+    await a.on_call("browser_record", action="stop")
     await a.sh(f"git checkout -q -b winter-sale && git commit -qam 'Say {NEW}' && git push -q origin winter-sale 2>&1",
                cwd=wd)
-    pr = await a.via("environment_pull_request", title=f"Say {NEW} on the home page",
+    pr = await a.on_call("environment_pull_request", title=f"Say {NEW} on the home page",
                      body=f"The home page's heading now says {NEW}. The recording shows it.")
     await a.on_call("terminal_job_cancel", job=job["id"])
     await a.on_call("environment_close")
@@ -69,7 +69,7 @@ async def careless(ctx: Ctx, a: Agent, session: int) -> str:
     await a.on_call("browser_navigate", url="http://localhost:3000")
     await a.on_call("browser_screenshot", proof="home page")
     await a.sh("git checkout -q -b winter && git commit -qam winter && git push -q origin winter 2>&1", cwd=wd)
-    pr = await a.via("environment_pull_request", title="winter")
+    pr = await a.on_call("environment_pull_request", title="winter")
     await a.on_call("environment_close")
     return done(f"Opened {pr['url']} with a screenshot.")
 
