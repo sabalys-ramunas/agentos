@@ -93,9 +93,25 @@ async def test_review_G2_prepared_key_is_per_commit(node):  # noqa: F811
     assert main["prepared"]["used"] is True
 
 
-@pytest.mark.xfail(strict=True, reason="G3: the prepared build's scrub removes the SSH keys Morph's gateway needs")
 def test_review_G3_scrub_keeps_ssh_where_the_provider_keeps_it():
     assert "AGENTOS_KEEP_SSH" in prepbuild.SCRUB
+
+
+async def test_review_G3_the_build_runs_the_scrub_with_the_providers_prefix(node, monkeypatch):  # noqa: F811
+    monkeypatch.setattr(type(node.prov), "script_prefix", "export AGENTOS_KEEP_SSH=1\n", raising=False)
+    real_exec, ran = node.machine.exec, []
+
+    async def exec_(lane_id, cmd, **kw):
+        if cmd.endswith(prepbuild.SCRUB):
+            ran.append(cmd)
+            cmd = prepbuild.SCRUB  # the fake machine answers the scrub itself
+        return await real_exec(lane_id, cmd, **kw)
+
+    monkeypatch.setattr(node.envs, "exec", exec_)
+    assert (await node.mgr.prepare_now(REPO))["started"]
+    await builds_done(node.mgr)
+    assert ran == ["export AGENTOS_KEEP_SSH=1\n" + prepbuild.SCRUB]
+    assert node.mgr.prepared_store().all()[0].state == "ready"
 
 
 @pytest.mark.xfail(strict=True, reason="G4: a file already on agentos-proofs is trusted by name, not content")

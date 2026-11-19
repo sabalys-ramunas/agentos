@@ -56,15 +56,17 @@ GRANT_CHECK_S = 5.0                # how often a running step checks the build's
 
 # What must never be in a snapshot. The node writes each new machine's login key and host key itself
 # (cloud-init's ssh_keys with ssh_deletekeys on a VM, the docker entrypoint in a container), so the old
-# ones go too; machine-id is made again at boot. No browser profile is ever on a machine (a "vm" browser's
-# lives on the node), and caches stay: they are what makes the next refresh fast. Swap goes so no
-# process memory is kept (machine.SWAP_OFF).
+# ones go too, unless the provider signs in with the machine's own keys (Morph: its script_prefix sets
+# AGENTOS_KEEP_SSH, as for an image build, agentos.vms.manager.IMAGE_CLEANUP); machine-id is made again
+# at boot. No browser profile is ever on a machine (a "vm" browser's lives on the node), and caches stay:
+# they are what makes the next refresh fast. Swap goes so no process memory is kept (machine.SWAP_OFF).
 SCRUB = f"""set -u
 git config --global --unset-all include.path '~/.config/agentos/gitconfig' 2>/dev/null || true
 rm -rf ~/.config/agentos ~/.git-credentials ~/.config/gh ~/.netrc ~/.docker/config.json
 rm -f ~/.bash_history ~/.zsh_history ~/.python_history ~/.node_repl_history ~/.lesshst ~/.wget-hsts ~/.viminfo
 rm -rf /tmp/agentos-* /run/agentos-* /var/tmp/agentos-*
-rm -f /root/.ssh/authorized_keys /etc/ssh/ssh_host_* /etc/agentos-env/*
+if [ -z "${{AGENTOS_KEEP_SSH:-}}" ]; then rm -f /root/.ssh/authorized_keys /etc/ssh/ssh_host_*; fi
+rm -f /etc/agentos-env/*
 truncate -s 0 /etc/machine-id 2>/dev/null || true
 {machine.UPGRADE_WAIT}; {machine.SWAP_OFF}
 sync
@@ -350,7 +352,8 @@ class PrepBuild:
 
     async def _scrub_for_snapshot(self, lane: str, token: str | None) -> None:
         envs = self.envs()
-        res = await envs.exec(lane, SCRUB, timeout_s=STEP_TIMEOUT_S)
+        prefix = getattr(self.vms().provider(), "script_prefix", "")  # Morph keeps the machine's SSH keys
+        res = await envs.exec(lane, (prefix if isinstance(prefix, str) else "") + SCRUB, timeout_s=STEP_TIMEOUT_S)
         if "ok=1" not in (res.stdout or ""):
             raise BuildFailed(f"the build machine could not be cleaned for its snapshot: {_tail(res.stderr or '', 300)}")
         if token:
