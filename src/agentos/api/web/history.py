@@ -98,7 +98,7 @@ for _hand in DONE:
 RULE_ACTIONS = {"post": POST, "comment": REPLY, "like": LIKE, "follow": FOLLOW, "join": JOIN, "profile": PROFILE}
 ACT_ACTIONS = {"click": CLICK, "type": TYPE, "fill": TYPE, "select": PICK, "press": PRESS, "hover": POINT, "scroll": SCROLL}
 # Browser tools whose effect is not known before they run: told from their own trace rows, never from the effect.
-HAND_TOOLS = {"browser_act": None, "browser_upload": UPLOAD, "browser_dialog_answer": ANSWER}
+HAND_TOOLS = {"browser_act": None, "browser_upload": UPLOAD, "browser_dialog": ANSWER}  # browser_dialog: when it answers
 # Rows a call writes about itself (same parent as its tool_end): what the commit gate let go, and the read-back.
 SENT_KINDS = ("commit_gate", "commit_observed")
 READ_BACK = "act_read_back"
@@ -492,10 +492,16 @@ def _hand_action(row: dict[str, Any], about: list[dict[str, Any]]) -> str:
     rules = sent_rules(about)
     if rules:
         return RULE_ACTIONS[rules[0].split(".")[1]]
-    fixed = HAND_TOOLS.get(row.get("tool") or "")
+    fixed = HAND_TOOLS.get(toolnames.current(row.get("tool") or ""))
     if fixed is not None:
         return fixed
     return ACT_ACTIONS.get(str(_args(row).get("action") or ""), CLICK)
+
+
+def _by_hand(row: dict[str, Any]) -> bool:
+    """A browser act told from its own rows: browser_dialog only when it answered (a read is read)."""
+    tool = toolnames.current(row.get("tool") or "")  # browser_dialog_answer before 2026-11-19
+    return tool in HAND_TOOLS and not (tool == "browser_dialog" and row.get("effect") == "read")
 
 
 def _call_story(row: dict[str, Any], ctx: _Ctx, about: list[dict[str, Any]] | None = None) -> dict[str, Any]:
@@ -505,7 +511,7 @@ def _call_story(row: dict[str, Any], ctx: _Ctx, about: list[dict[str, Any]] | No
     place = telling.place_of(lane, ctx.workspaces)
     status = TRACE_STATUS.get(row["status"], "failed")
     verdict = {"failed": FAILED, "cancelled": NOT_RUN}.get(status, NOT_CHECKED)
-    hand = (row.get("tool") or "") in HAND_TOOLS
+    hand = _by_hand(row)
     if verdict == NOT_CHECKED and hand and read_back_changed(about):
         verdict = CHECKED
     detail = (row.get("summary") or row.get("error")) if verdict != NOT_CHECKED and verdict != CHECKED else None

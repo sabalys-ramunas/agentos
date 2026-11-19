@@ -286,7 +286,7 @@ approval_denied = "The owner denied this exact action. Do not ask again, and do 
 
 [dialog_pending]
 meaning = "A page dialog (alert, confirm, prompt) waits for an answer, and the page is frozen until it gets one."
-agent = "Answer it with browser_dialog_answer, then go on."
+agent = "Answer it with browser_dialog(accept=true or false), then go on."
 fix = "Answer the dialog in the browser's live view, or let the agent answer it."
 
 [driver_error]

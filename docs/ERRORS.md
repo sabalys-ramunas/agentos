@@ -585,7 +585,7 @@ Your grant does not allow this call (scope, effect, budget, expiry or a revoked 
 
 A page dialog (alert, confirm, prompt) waits for an answer, and the page is frozen until it gets one.
 
-- **Agent:** Answer it with browser_dialog_answer, then go on.
+- **Agent:** Answer it with browser_dialog(accept=true or false), then go on.
 - **You:** Answer the dialog in the browser's live view, or let the agent answer it.
 - **Retry:** no
 - **Raised by:** `agentos.node.interaction.dialogs.DialogPending`

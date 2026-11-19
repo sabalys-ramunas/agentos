@@ -329,7 +329,7 @@ async def test_snapshot_shows_the_dialog_instead_of_hanging():
     snap = await asyncio.wait_for(PlaywrightInteraction().snapshot(page), 1)
     lines = snap.text.splitlines()
     assert lines[0].startswith('- confirm dialog is open on this tab: "Delete this draft?"')
-    assert "browser_dialog_answer" in lines[0] and "dismissed automatically in 60 s" in lines[0]
+    assert "browser_dialog(accept=...)" in lines[0] and "dismissed automatically in 60 s" in lines[0]
     assert lines[1].startswith("- tabs: 2 open, this is tab 0")
     assert "frozen" in lines[2] and snap.ref_count == 0
     assert guard.pending_on(other) is None

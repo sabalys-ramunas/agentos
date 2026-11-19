@@ -79,14 +79,14 @@ async def test_status_is_hidden_from_other_grants(env):
     ap, tok = await make_pending(svc)
     _, stranger = svc.issue(subject={"id": "other"}, workspaces=["biz-a"])
     with bind_request_token(stranger), pytest.raises(Exception, match="not_found"):
-        await tools(rt)["approval_status"](approval_id=ap)
+        await tools(rt)["approval_wait"](approval_id=ap, timeout_s=0)
     # a parent sees what its children asked
     _, child = svc.attenuate(tok, ceiling=Effect.COMMIT)
     ctx = svc.context(svc.resolve(child)[1], tool="t")
     with pytest.raises(ApprovalPending) as e:
         await ctx.authorize(Effect.COMMIT, lane_id="biz-a/x", content="c")
     with bind_request_token(tok):
-        assert (await tools(rt)["approval_status"](approval_id=e.value.approval_id))["state"] == "pending"
+        assert (await tools(rt)["approval_wait"](approval_id=e.value.approval_id, timeout_s=0))["state"] == "pending"
 
 
 async def test_status_without_an_id_lists_only_your_own_pending(env):
@@ -98,7 +98,7 @@ async def test_status_without_an_id_lists_only_your_own_pending(env):
     with bind_request_token(tok_b):
         await tools(rt)["human_ask"](question="Post at 9?")
     with bind_request_token(tok_a):
-        out = await tools(rt)["approval_status"]()
+        out = await tools(rt)["approval_wait"]()
     assert {p["approval_id"] for p in out["pending"]} == {ap_a, q_a}
     assert "next" in out
 

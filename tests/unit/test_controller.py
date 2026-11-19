@@ -340,7 +340,7 @@ def tool(name, lane_arg="on", effect=Effect.READ):
 
 
 def nodes():
-    tools = {t.name: t for t in (tool("browser_snapshot"), tool("browsers_list", None), tool("approval_status", None))}
+    tools = {t.name: t for t in (tool("browser_snapshot"), tool("browsers_list", None), tool("approval_wait", None))}
     return [NodeView("node_a", "a", tools, {"personal/reddit", "shared/blog"}),
             NodeView("node_b", "b", dict(tools), {"work/x", "shared/blog"})]
 
@@ -366,7 +366,7 @@ def test_tools_without_a_lane_route_by_node_or_approval():
     with pytest.raises(RouteError):
         routing.route("browsers_list", {}, nodes())
     assert routing.route("browsers_list", {"node": "a"}, nodes())[0].name == "a"
-    target, _ = routing.route("approval_status", {"approval_id": "ap_1"}, nodes(),
+    target, _ = routing.route("approval_wait", {"approval_id": "ap_1"}, nodes(),
                               approval_node=lambda aid: "node_b" if aid == "ap_1" else None)
     assert target.name == "b"
     with pytest.raises(RouteError):

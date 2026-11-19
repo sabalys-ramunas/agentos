@@ -54,7 +54,7 @@ that browser. Do not retry, refresh, go back, solve the puzzle or type credentia
 again on your own: that is how accounts get locked. Call browser_view, give the human the link and the \
 signal_detail, and wait with browser_wait_handback.
 - rate_limited: stop and tell the human; it rests for hours and must not be tried sooner.
-- unknown: nothing loaded, or a dialog is open (browser_dialog_answer).
+- unknown: nothing loaded, or a dialog is open (browser_dialog).
 Then agentos holds the browser (agent_paused, reason needs_human:checkpoint): tell the human, do not retry. `account`: \
 wrong_account (not the pinned one) means stop and tell the human; unpinned: tell the human its user_id.
 
@@ -218,7 +218,7 @@ gone_text="Uploading", for_ref_state={"ref": "e12", "state": "enabled"}, network
 url_matches="/comments/"; timeout_s up to 60, and snapshot="delta" to see the page when it ends. \
 Give at least one condition: browser_wait with none is refused.
 - met false means it timed out: `conditions` shows what each one saw last. Wait again or take a \
-snapshot. `stopped` says why a wait ended early: dialog (answer it with browser_dialog_answer), \
+snapshot. `stopped` says why a wait ended early: dialog (answer it with browser_dialog), \
 signal, human_in_control, tab_closed.
 - A list or feed that loads more as you scroll (it shows "Loading more" or ends before what you need): \
 browser_act(on, ref=<the last item loaded, or something in it>, action="scroll", snapshot="delta"). If \
@@ -260,7 +260,7 @@ name, a photo): change it by hand and call profile_mark_synced(surface, fields=[
 Several agents, flows and the node brain can use one browser. Reads share it; acting calls take turns.
 - Reads: browser_snapshot, browser_screenshot, browser_wait, browser_tabs, browser_dialog, browser_console, \
 browser_network. They run alongside other reads, and also while another caller claims the browser.
-- Acts: browser_navigate, browser_act, browser_upload, browser_tab, browser_dialog_answer, login, \
+- Acts: browser_navigate, browser_act, browser_upload, browser_tabs(select), browser_dialog(accept), login, \
 vault_fill, browser_close. One at a time, first come first served.
 - For a job of several acts (a post, a login, a form): browser_claim(on, purpose="posting a reply", \
 ttl_s=120) first. Your calls renew it; it ends on its own ttl_s after your last call. Others' acts \

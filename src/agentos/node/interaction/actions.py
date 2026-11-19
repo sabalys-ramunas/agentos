@@ -108,7 +108,7 @@ class ActMixin:
         if opened is not None:
             detail = (f"the {kind.value} opened {_a(opened.type)} {opened.type} dialog: "
                       f"{json.dumps(opened.message[:300], ensure_ascii=False)}. The page is frozen until it is "
-                      f"answered: call browser_dialog_answer. Unanswered, it is {opened.automatic} automatically "
+                      f"answered: call browser_dialog(accept=...). Unanswered, it is {opened.automatic} automatically "
                       f"in {opened.seconds_left()} s")
         else:
             if not _open_pages(page):

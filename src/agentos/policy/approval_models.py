@@ -176,7 +176,7 @@ class Approval(BaseModel):
                 "at": iso(self.edit.get("at"))}
 
     def status(self) -> dict:
-        """What an agent sees from approval_status / approval_wait."""
+        """What an agent sees from approval_wait."""
         out = {"approval_id": self.id, "kind": self.kind, "state": self.state, "summary": self.summary,
                "created_at": iso(self.created_at), "expires_at": iso(self.expires_at),
                "decided_at": iso(self.decided_at)}

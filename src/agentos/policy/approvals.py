@@ -22,7 +22,7 @@ States: pending -> approved | denied | expired; approved -> consumed | expired.
   `publish_approval_max_age_s` (consume_approved `max_age_s`, AUD-20); the gate retires one whose
   click now sends other content (retire).
 - A question (`human_ask`) is an approval of kind "question"; approving it records the
-  answer, which `approval_status` returns.
+  answer, which `approval_wait` returns.
 - Who may decide: the owner, an admin grant (the
   owner's own delegate, as before), or a person's grant (`sub.kind = "human"`, a member) whose
   `approve` special covers the approval's effect and lane, for pay up to its `max_usd`. A grant

@@ -38,8 +38,8 @@ TERMINAL = frozenset({
     "environment_download",
 })  # not terminal_jobs: without `on` it already lists every run the caller may see (`agentos run --list`)
 BROWSER = frozenset({
-    "browser_act", "browser_console", "browser_dialog", "browser_dialog_answer", "browser_navigate",
-    "browser_network", "browser_record", "browser_screenshot", "browser_scroll", "browser_snapshot", "browser_tab", "browser_tabs",
+    "browser_act", "browser_console", "browser_dialog", "browser_navigate",
+    "browser_network", "browser_record", "browser_screenshot", "browser_scroll", "browser_snapshot", "browser_tabs",
     "browser_upload", "browser_wait", "browser_file_delete", "browser_file_get", "browser_files", "browser_file_put", "browser_claim",
     "browser_close", "browser_control", "browser_open", "browser_queue", "browser_release", "browser_request_control", "browser_view",
     "browser_wait_handback", "login", "vault_fill",
@@ -226,8 +226,10 @@ def _summary(tool: str, kwargs: dict[str, Any]) -> str:
     action, ref = kwargs.get("action"), kwargs.get("ref")
     if isinstance(action, str) and action and isinstance(ref, str) and ref:  # browser_act: "click e12"
         return f"{action} {ref}"
-    if tool == "browser_tab" and isinstance(kwargs.get("index"), int):
-        return f"tab {kwargs['index']}"
+    if tool == "browser_tabs" and isinstance(kwargs.get("select"), int):
+        return f"tab {kwargs['select']}"
+    if tool == "browser_dialog" and isinstance(kwargs.get("accept"), bool):
+        return "accept" if kwargs["accept"] else "dismiss"
     for key in ("cmd", "url", "action", "text", "path", "name", "packages"):
         value = kwargs.get(key)
         if isinstance(value, str) and value:

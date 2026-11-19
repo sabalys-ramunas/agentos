@@ -255,9 +255,9 @@ class ControllerMcp(MCPServer):
             return error_result(f"frozen: every node is frozen ({mesh['reason']}). Every agent is stopped and its "
                                 "grants were revoked. Do not retry; tell your user. Only the owner can unfreeze.")
         tools = self._tools(grant)
-        called = name
+        note = None
         if name not in tools and toolnames.current(name) in tools:  # a name from before 2026-11-19
-            name = toolnames.current(name)
+            name, arguments, note = toolnames.resolve(name, arguments or {}, tools)
         if name not in tools:  # its own fix line: tools_more lists them all, tools/list only the loaded ones
             return CallToolResult(content=[TextContent(type="text", text=unknown_tool(name, tools))], is_error=True)
         hub = self.controller.hub
@@ -278,8 +278,7 @@ class ControllerMcp(MCPServer):
             code = getattr(exc, "code", "unavailable")
             message = getattr(exc, "message", None) or f"{type(exc).__name__}"
             return error_result(f"{code}: {message}")
-        return with_renamed(to_result(name, body, images, f"{self.controller.config.local_url}/#approvals"),
-                            toolnames.renamed_note(called, name, []))
+        return with_renamed(to_result(name, body, images, f"{self.controller.config.local_url}/#approvals"), note)
 
 
 class AgentAuth:

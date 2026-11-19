@@ -219,7 +219,7 @@ async def test_a_dialog_that_opens_while_waiting_is_reported_not_swallowed(inter
     assert result.dialog["type"] == "confirm" and result.dialog["message"] == "Leave this page?"
     assert "auto_answer" in result.dialog  # still open: the agent answers it
     assert dialog.answers == [] and guard.pending_on(page) is not None
-    assert result.signal is Signal.UNKNOWN and "browser_dialog_answer" in result.detail
+    assert result.signal is Signal.UNKNOWN and "browser_dialog(accept=...)" in result.detail
     await guard.close()
 
 

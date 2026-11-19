@@ -144,7 +144,7 @@ async def test_an_unfreeze_gives_the_workspace_back(frozen):
 FREEZE_REACH = {
     "agenda_cancel": "id", "agenda_get": "id", "agenda_propose": "id", "agenda_update": "id",
     "agenda_draft": "check", "agenda_list": "filter",
-    "approval_confirm": "id", "approval_status": "filter", "approval_wait": "id",
+    "approval_confirm": "id", "approval_wait": "id",  # without an id it lists (frozen_off)
     "ask_first_on": "id",
     "brain_cancel": "id", "brain_resume": "id", "brain_status": "id", "brain_tail": "id",
     "brain_tasks": "filter", "brain_use": "check", "brains_list": "none",

@@ -101,7 +101,7 @@ SELF_AUTHORIZED_INDIRECT = {
 # Tools with lane_arg=None that touch no lane: approvals, brains, memory, runs, catalogs and
 # the caller's own grant. Workspace-scoped ones check the workspace in the handler.
 NO_LANE = frozenset({
-    "approval_confirm", "approval_status", "approval_wait",
+    "approval_confirm", "approval_wait",
     "brain_cancel", "brain_resume", "brain_status", "brain_tail", "brain_tasks", "brain_use", "brains_list",
     "terminals_list", "grant_info", "howto", "human_ask", "image_build", "images_list",
     "browsers_list", "leads_propose", "memory_context", "memory_forget", "memory_get", "memory_search",

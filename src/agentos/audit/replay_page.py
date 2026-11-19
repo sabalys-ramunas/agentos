@@ -53,7 +53,7 @@ ACT_WORDS = {"click": "Clicked", "hover": "Pointed at", "scroll": "Scrolled to",
 TOOL_WORDS = {"browser_snapshot": "Read the page", "browser_screenshot": "Took a screenshot of the page",
               "browser_scroll": "Scrolled down the page", "browser_wait": "Waited for the page",
               "browser_tabs": "Looked at the open tabs", "browser_upload": "Uploaded a file",
-              "browser_dialog": "Looked at an open dialog", "browser_dialog_answer": "Answered a dialog",
+              "browser_dialog": "Looked at an open dialog",
               "browser_claim": "Took the browser for a few acts", "browser_release": "Let go of the browser",
               "browser_open": "Opened the browser", "browser_close": "Closed the browser", "browser_view": "Asked for the live view",
               "vault_login": "Logged in with a login from the vault (the password never left the node)",
@@ -110,6 +110,10 @@ def describe(step: dict, *, include_args: bool = False) -> str:
         if args.get("action") == "press" and text:
             return f"{verb} {_cut(str(text), 40)}"
         return f"{verb} element {ref}"
+    if tool == "browser_dialog" and isinstance(args.get("accept"), bool):
+        return "Answered a dialog"
+    if tool == "browser_tabs" and isinstance(args.get("select"), int):
+        return f"Switched to tab {args['select']}"
     if tool == "flow_run":
         return f"Ran the saved flow {args.get('flow') or args.get('id') or ''}".rstrip()
     if tool in TOOL_WORDS:

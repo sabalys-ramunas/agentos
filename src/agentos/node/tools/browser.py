@@ -247,7 +247,7 @@ async def browser_scroll(ctx: ToolContext, *, on: str, snapshot: SnapshotMode = 
     outline ("delta" shows what the wheel brought in). If the signal is not ok, stop and follow the
     instructions for it. A list can load new content, and the browser's guard judges what that sends.
     Effect: read. It acts on the browser, so it takes its turn with other acting calls. Errors:
-    dialog_pending (answer it with browser_dialog_answer), engine_error (retry once).
+    dialog_pending (answer it with browser_dialog), engine_error (retry once).
 
     Args:
         snapshot: "none" (default), "delta" (only the outline lines that changed) or "full".

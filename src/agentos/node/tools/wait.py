@@ -41,7 +41,7 @@ class RefState(BaseModel):
 WAIT_NEXT = {
     "timeout": ("Not met yet: `conditions` shows what each one saw last. Call browser_wait again to keep "
                 "waiting, or take a snapshot to look."),
-    "dialog": "A dialog opened (see `dialog`): answer it with browser_dialog_answer, then wait again if needed.",
+    "dialog": "A dialog opened (see `dialog`): answer it with browser_dialog(accept=...), then wait again if needed.",
     "signal": "The page signal is no longer ok: stop and follow the instructions for it.",
     "tab_closed": "The tab closed: browser_tabs lists what is open; take a snapshot of the tab the browser acts in now.",
     "human_in_control": "A human took the browser: do not act on it; wait with browser_wait_handback.",

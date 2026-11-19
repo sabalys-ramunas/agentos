@@ -39,7 +39,7 @@ TOOLSETS: tuple[Toolset, ...] = (
         # on the first quote in the code
         "file_read", "file_write", "file_edit",
         "browser_navigate", "browser_snapshot", "browser_act", "browser_wait", "browser_screenshot",
-        "browser_tabs", "browser_dialog_answer", "browser_wait_handback", "browser_record",
+        "browser_tabs", "browser_dialog", "browser_wait_handback", "browser_record",
         # the end of nearly every coding task, and the undo before a risky step: testers went through
         # tools_more and guessed arguments blind when these were a toolset away (2026-11-18)
         "environment_pull_request", "environment_checkpoint", "environment_rollback", "environment_port",
@@ -48,14 +48,14 @@ TOOLSETS: tuple[Toolset, ...] = (
     # the owner's account browsers (signed in to real accounts on the node), which `core` held until
     # 2026-11-19: an agent driving them loads this first (the agentos-lanes skill says so)
     Toolset("accounts", "the owner's account browsers: list, open, claim and release one, its live view, "
-            "files to upload, a dialog, asking a person, workspace memory, a run's status", (
+            "files to upload, asking a person, workspace memory, a run's status", (
         "whoami", "howto", "browsers_list", "browser_open", "browser_close", "browser_claim", "browser_release",
-        "browser_view", "browser_file_put", "browser_upload", "browser_dialog", "approval_confirm", "human_ask",
+        "browser_view", "browser_file_put", "browser_upload", "approval_confirm", "human_ask",
         "memory_context", "run_status",
     ), (), "the owner's signed-in browsers"),
-    Toolset("browser", "more for a browser: its inbox and downloads, switching tabs, scrolling a feed", (
-        "browser_files", "browser_file_get", "browser_file_delete", "browser_tab", "browser_scroll",
-    ), ("files",), "files, tabs, scroll"),
+    Toolset("browser", "more for a browser: its inbox and downloads, scrolling a feed", (
+        "browser_files", "browser_file_get", "browser_file_delete", "browser_scroll",
+    ), ("files",), "files, scroll"),
     Toolset("devtools", "why a page broke: its console messages and page errors, its requests and which "
             "failed, and one response's body", (
         "browser_console", "browser_network",
@@ -108,9 +108,9 @@ TOOLSETS: tuple[Toolset, ...] = (
             "and which workers are on", (
         "browser_task", "plugins_list",
     ), ("plugins",), "hand a browser job to the node"),
-    Toolset("admin", "your grant, an approval's status without waiting (or all yours still waiting), and the call trail", (
-        "grant_info", "approval_status", "traces_query",
-    ), ("policy", "approvals", "traces"), "grant, approvals, call trail"),
+    Toolset("admin", "your grant and the call trail", (
+        "grant_info", "traces_query",
+    ), ("policy", "approvals", "traces"), "grant, call trail"),
     Toolset("terminals", "terminals and services the node keeps: shells, background jobs, synced files, installs, "
             "images, disposable cloud VMs; forgetting an environment's saves", (
         "terminal_create", "terminals_list", "terminal_remove", "terminal_install", "terminal_upload_check",

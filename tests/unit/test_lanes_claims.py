@@ -520,8 +520,9 @@ async def test_which_browser_tools_read_and_which_act(tool, args, mode):
 @pytest.mark.parametrize(("tool", "args", "mode"), [
     ("browser_tabs", {}, "read"),
     ("browser_dialog", {}, "read"),
-    ("browser_tab", {"index": 1}, "act"),
-    ("browser_dialog_answer", {"accept": True}, "act"),
+    ("browser_tabs", {"select": 1}, "act"),
+    ("browser_dialog", {"accept": True}, "act"),
+    ("browser_dialog", {"accept": False}, "act"),
 ])
 async def test_which_io_tools_read_and_which_act(tool, args, mode):
     from agentos.core.models import LaneInfo, LaneKind

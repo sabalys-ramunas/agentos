@@ -669,10 +669,9 @@ class ToolServer(MCPServer):
         if name == ts.TOOLS_CALL:
             return await self.tools_call(arguments or {}, context)
         # a name a tool had before 0.4 (and its old argument names) reach the tool, with a note that says so
-        tool = name if name in self.specs else toolnames.current(name)
-        arguments, arg_notes = toolnames.rename_arguments(tool, arguments)
+        tool, arguments, note = toolnames.resolve(name, arguments, self.specs)
         result = await self._call(tool, arguments, context)
-        return with_renamed(result, toolnames.renamed_note(name, tool, arg_notes))
+        return with_renamed(result, note)
 
     async def _call(self, name: str, arguments: dict[str, Any], context: Any) -> Any:
         names = self.visible_names()

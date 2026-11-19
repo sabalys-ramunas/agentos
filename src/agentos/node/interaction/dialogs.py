@@ -33,7 +33,7 @@ _DIALOG_OPEN = "a dialog is open, so the page cannot be read until it is answere
 
 class DialogPending(AgentosError):
     """A page dialog (alert, confirm, prompt, beforeunload) waits for an answer and the page is
-    frozen until it gets one. Answer it with browser_dialog_answer."""
+    frozen until it gets one. Answer it with browser_dialog(accept=...)."""
     code = "dialog_pending"
 
 
@@ -95,7 +95,7 @@ def dialog_notice(d: PageDialog, where: str = "on this tab") -> str:
     """The one line agents see in a snapshot or an error while a dialog is open."""
     what = "asks to confirm leaving the page" if d.type == "beforeunload" else "is open"
     return (f"- {d.type} dialog {what} {where}: {json.dumps(d.message[:300], ensure_ascii=False)} "
-            f"(answer with browser_dialog_answer; {d.automatic} automatically in {d.seconds_left()} s)")
+            f"(answer with browser_dialog(accept=...); {d.automatic} automatically in {d.seconds_left()} s)")
 
 
 def _pending_error(d: PageDialog, doing: str) -> DialogPending:
@@ -110,7 +110,7 @@ def _pending_error(d: PageDialog, doing: str) -> DialogPending:
         how = "accept=true acknowledges it"
     return DialogPending(f"cannot {doing}: {_a(d.type)} {d.type} dialog is open on this tab "
                          f"({json.dumps(d.message[:300], ensure_ascii=False)}) and the page is frozen until it is "
-                         f"answered. Call browser_dialog_answer: {how}. Unanswered, it is {d.automatic} "
+                         f"answered. Call browser_dialog: {how}. Unanswered, it is {d.automatic} "
                          f"automatically in {d.seconds_left()} s.")
 
 
@@ -245,7 +245,7 @@ class DialogGuard:
         return found[0] if found else None
 
     def current(self, page: Any = None) -> PageDialog | None:
-        """The dialog browser_dialog_answer acts on: the active tab's first, else the oldest."""
+        """The dialog browser_dialog answers: the active tab's first, else the oldest."""
         return (self.pending_on(page) if page is not None else None) or (self._pending[0] if self._pending else None)
 
     def history(self, limit: int = 5) -> list[PageDialog]:

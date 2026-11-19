@@ -21,7 +21,7 @@ Implements `agentos.node.interfaces.Interaction` on the Playwright async API (Ca
   isolated world the page cannot see.
 - Dialogs never freeze a lane. A `DialogGuard` attached to the lane's context owns every
   alert, confirm, prompt and beforeunload: it queues them per page, the agent answers with
-  browser_dialog_answer, and one left unanswered for `timeout` seconds is answered for it
+  browser_dialog, and one left unanswered for `timeout` seconds is answered for it
   (alert accepted; confirm, prompt and beforeunload dismissed) and recorded. While a dialog is
   open the page's scripts are blocked (evaluate, snapshot, screenshot and input all hang), so
   every page call here races "a dialog opened": an action that opens one returns at once and
@@ -222,7 +222,7 @@ class PlaywrightInteraction(NavigateMixin, ActMixin, UploadMixin, WaitMixin):
                 lines.append(dialog_notice(d, where))
         if len(pages) > 1 and page in pages:
             lines.append(f"- tabs: {len(pages)} open, this is tab {pages.index(page)} (browser_tabs lists them, "
-                         "browser_tab switches)")
+                         "select=<index> switches)")
         return lines
 
     def _frozen_snapshot(self, page: Page, header: list[str]) -> SnapshotResult:

@@ -256,7 +256,8 @@ async def test_environment_gives_the_agent_only_a_short_summary(node, shots):  #
 
 def test_an_acts_summary_names_the_action_and_its_ref():
     assert routing._summary("browser_act", {"ref": "e12", "action": "click", "text": "secret"}) == "click e12"
-    assert routing._summary("browser_tab", {"index": 2}) == "tab 2"
+    assert routing._summary("browser_tabs", {"select": 2}) == "tab 2" and routing._summary("browser_tabs", {}) == ""
+    assert routing._summary("browser_dialog", {"accept": False}) == "dismiss" and routing._summary("browser_dialog", {}) == ""
     assert routing._summary("browser_navigate", {"url": "http://x.test/"}) == "http://x.test/"
 
 

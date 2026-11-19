@@ -23,6 +23,22 @@ def test_no_tool_says_lane_and_every_new_name_is_served():
     assert not {t for ts in TOOLSETS for t in ts.tools} & set(toolnames.RENAMED)
     assert len(toolnames.NEW_NAMES) == len(toolnames.RENAMED)  # one to one
     assert toolnames.current("lane_exec") == "terminal_exec" and toolnames.current("browser_act") == "browser_act"
+    merged = set(toolnames.MERGED)
+    assert not merged & names and not {t for ts in TOOLSETS for t in ts.tools} & merged
+    assert {new for new, _ in toolnames.MERGED.values()} <= names
+    assert toolnames.current("approval_status") == "approval_wait" and toolnames.current("browser_tab") == "browser_tabs"
+
+
+def test_a_merged_tool_s_old_name_means_the_same_call():
+    served = {"approval_wait", "browser_tabs", "browser_dialog"}
+    assert toolnames.resolve("approval_status", {"approval_id": "ap_1"}, served) == (
+        "approval_wait", {"approval_id": "ap_1", "timeout_s": 0},
+        "approval_status is now approval_wait with timeout_s=0. The old name works until the next minor release.")
+    tool, args, note = toolnames.resolve("browser_tab", {"on": "x", "index": 1}, served)
+    assert (tool, args) == ("browser_tabs", {"on": "x", "select": 1})
+    assert note.startswith("browser_tab is now browser_tabs; index is now select")
+    assert toolnames.resolve("browser_dialog_answer", {"accept": True}, served)[:2] == ("browser_dialog", {"accept": True})
+    assert toolnames.resolve("approval_wait", {"approval_id": "a"}, served) == ("approval_wait", {"approval_id": "a"}, None)
 
 
 def test_old_arguments_become_new_ones_and_say_so():

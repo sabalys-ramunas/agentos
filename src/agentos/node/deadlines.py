@@ -20,8 +20,8 @@ The table, in seconds (what each tool legitimately needs, with room to spare):
   browser_scroll           60
   browser_screenshot       60   the screenshot (15) + scaling
   browser_wait             60   + its own timeout_s (at most 60)
-  browser_tab(s)           60
-  browser_dialog(_answer)  60
+  browser_tabs             60
+  browser_dialog           60
   browser_console          60
   browser_network          60
   browser_upload          600   large files go through the file chooser
@@ -53,10 +53,8 @@ TOOL_DEADLINES_S: dict[str, float] = {
     "browser_scroll": 60.0,
     "browser_screenshot": 60.0,
     "browser_wait": 60.0,
-    "browser_tab": 60.0,
     "browser_tabs": 60.0,
     "browser_dialog": 60.0,
-    "browser_dialog_answer": 60.0,
     "browser_console": 60.0,
     "browser_network": 60.0,
     "browser_upload": 600.0,

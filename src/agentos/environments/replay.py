@@ -65,7 +65,9 @@ REPLAY_PURPOSE = "replay"
 TIMELINE_LIMIT, TIMELINE_MAX = 500, 2000
 # the agent calls on an environment's browser that can change what it shows
 PAGE_TOOLS = frozenset({"browser_navigate", "browser_act", "browser_scroll", "browser_upload",
-                        "browser_dialog_answer", "browser_tab", "browser_wait", "login"})
+                        "browser_dialog", "browser_tabs", "browser_wait", "login"})
+# of those, the ones that only read unless asked to act (select a tab, answer a dialog: their summary says so)
+ACT_WHEN_ASKED = frozenset({"browser_dialog", "browser_tabs"})
 
 
 @dataclass
@@ -145,7 +147,7 @@ class Replay:
                 "error": call.error, "exit_code": call.exit_code, "lane": "browser" if browser else "terminal"})
         except (OSError, ValueError):
             log.warning("replay: could not log a call of environment %s", env.id, exc_info=True)
-        if browser and call.tool in PAGE_TOOLS:
+        if browser and call.tool in PAGE_TOOLS and (call.tool not in ACT_WHEN_ASKED or call.summary):
             track = self._track(env.id)
             track.seq += 1
             track.pending += 1

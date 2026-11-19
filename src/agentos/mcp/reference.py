@@ -136,13 +136,17 @@ def toolsets_markdown(rows: list[dict[str, Any]]) -> list[str]:
 def renamed_markdown() -> list[str]:
     """The names tools had before 2026-11-19, which still work for one release (agentos.core.toolnames)."""
     out = ["", "## Renamed tools", "",
-           f"These tools were renamed on 2026-11-19. An old name still works until {toolnames.REMOVED_IN}: it is",
-           "not listed, and its result carries a `renamed` line with the new name. The same holds for an",
-           "argument a renamed tool took under another name.", "",
+           "These tools were renamed on 2026-11-19, and three merged into another (one tool with an argument",
+           f"where two competed). An old name still works until {toolnames.REMOVED_IN}: it is not listed, and its",
+           "result carries a `renamed` line with the new name. The same holds for an argument a renamed tool",
+           "took under another name.", "",
            "| Old name | New name | Old argument |", "|---|---|---|"]
-    for old, new in sorted(toolnames.RENAMED.items(), key=lambda kv: kv[1]):
+    rows = [(old, new, "") for old, new in toolnames.RENAMED.items()]
+    rows += [(old, new, ", ".join(f"called with `{k}={v}`" for k, v in fixed.items()))
+             for old, (new, fixed) in toolnames.MERGED.items()]
+    for old, new, how in sorted(rows, key=lambda row: (row[1], row[0])):
         args = ", ".join(f"`{a}` is `{n}`" for a, (n, _) in toolnames.RENAMED_ARGS.get(new, {}).items())
-        out.append(f"| `{old}` | [`{new}`](#{new}) | {args} |")
+        out.append(f"| `{old}` | [`{new}`](#{new}) | {', '.join(x for x in (args, how) if x)} |")
     return out
 
 

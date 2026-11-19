@@ -339,7 +339,7 @@ async def test_browser_upload_needs_an_interaction_that_uploads(env):
 
 # ---- tabs and dialogs -------------------------------------------------------------------------
 
-async def test_browser_tabs_and_browser_tab(env):
+async def test_browser_tabs_lists_and_selects(env):
     runtime, lanes, _ = env
     ctx = Ctx(runtime)
     main = await lanes.tracker.page()
@@ -349,10 +349,10 @@ async def test_browser_tabs_and_browser_tab(env):
     assert [(t["index"], t["active"], t["opened_by"]) for t in out["tabs"]] == [(0, False, None), (1, True, 0)]
     assert ctx.authorized[-1]["effect"] is Effect.READ and ctx.authorized[-1]["domain"] == "accounts.example"
 
-    out = await io_tools.browser_tab(ctx, on=LANE, index=0)
+    out = await io_tools.browser_tabs(ctx, on=LANE, select=0)
     assert out["active"] == 0 and out["tabs"][0]["active"] and lanes.tracker.active is main
     with pytest.raises(InvalidRequest, match="no tab 3"):
-        await io_tools.browser_tab(ctx, on=LANE, index=3)
+        await io_tools.browser_tabs(ctx, on=LANE, select=3)
     assert popup in lanes.context.pages
 
 
@@ -362,14 +362,14 @@ async def test_browser_dialog_and_answer(env):
     page = await lanes.tracker.page()
     page.url = "https://www.instagram.com/p/1/"
     assert (await io_tools.browser_dialog(ctx, on=LANE))["pending"] is None
-    assert (await io_tools.browser_dialog_answer(ctx, on=LANE, accept=True))["answered"] is None
+    assert (await io_tools.browser_dialog(ctx, on=LANE, accept=True))["answered"] is None
 
     dialog = open_dialog(page, "confirm", "Delete this post?")
     shown = await io_tools.browser_dialog(ctx, on=LANE)
     assert shown["pending"]["type"] == "confirm" and shown["pending"]["message"] == "Delete this post?"
     assert "dismissed in" in shown["pending"]["auto_answer"] and shown["others_pending"] == 0
 
-    out = await io_tools.browser_dialog_answer(ctx, on=LANE, accept=True, text="ignored")
+    out = await io_tools.browser_dialog(ctx, on=LANE, accept=True, text="ignored")
     assert dialog.answers == [("accept", None)]
     assert out["answered"]["outcome"] == "accepted" and "only used for a prompt" in out["note"]
     auth = ctx.authorized[-1]
@@ -378,11 +378,11 @@ async def test_browser_dialog_and_answer(env):
     assert (await io_tools.browser_dialog(ctx, on=LANE))["recent"][0]["outcome"] == "accepted"
 
     prompt = open_dialog(page, "prompt", "Caption?", default="")
-    await io_tools.browser_dialog_answer(ctx, on=LANE, accept=True, text="Launch day")
+    await io_tools.browser_dialog(ctx, on=LANE, accept=True, text="Launch day")
     assert prompt.answers == [("accept", "Launch day")] and ctx.authorized[-1]["effect"] is Effect.DRAFT
 
     leave = open_dialog(page, "beforeunload", "")
-    await io_tools.browser_dialog_answer(ctx, on=LANE, accept=False)
+    await io_tools.browser_dialog(ctx, on=LANE, accept=False)
     assert leave.answers == [("dismiss", None)] and ctx.authorized[-1]["effect"] is Effect.DRAFT
 
 
@@ -393,7 +393,7 @@ async def test_an_approval_pending_holds_the_dialog_open(env):
     entry = lanes.tracker.dialogs.current(page)
     before = entry.deadline
     with pytest.raises(ApprovalPending):
-        await io_tools.browser_dialog_answer(Ctx(runtime, deny=ApprovalPending("ask", "ap_1")), on=LANE, accept=True)
+        await io_tools.browser_dialog(Ctx(runtime, deny=ApprovalPending("ask", "ap_1")), on=LANE, accept=True)
     assert entry.pending and entry.deadline >= before + io_tools.APPROVAL_HOLD_SECONDS - 61
     assert dialog.answers == []
 
@@ -424,8 +424,7 @@ def test_tool_specs_follow_the_contract(env):
     effects = {s.name: s.effect for s in specs}
     assert effects == {
         "browser_file_put": Effect.DRAFT, "browser_files": Effect.READ, "browser_file_get": Effect.READ, "browser_file_delete": Effect.DRAFT,
-        "browser_upload": Effect.DRAFT, "browser_tabs": Effect.READ, "browser_tab": Effect.READ,
-        "browser_dialog": Effect.READ, "browser_dialog_answer": Effect.DRAFT,
+        "browser_upload": Effect.DRAFT, "browser_tabs": Effect.READ, "browser_dialog": Effect.READ,
     }
     for spec in specs:
         assert TOOL_NAME_RE.match(spec.name) and spec.lane_arg == "on" and spec.description
@@ -457,5 +456,5 @@ async def test_a_dialog_a_person_approved_is_not_held_by_ask_first(env, monkeypa
         return SimpleNamespace(route=route)
 
     ctx.authorize = decided
-    await io_tools.browser_dialog_answer(ctx, on=LANE, accept=True)
+    await io_tools.browser_dialog(ctx, on=LANE, accept=True)
     assert bool(calls) is cleared

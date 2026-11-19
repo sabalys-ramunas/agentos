@@ -80,7 +80,7 @@ CORE_TOOLS = {
     "environment_open", "environment", "environment_save", "environment_close", "environment_upload",
     "environment_download", "terminal_exec", "terminal_job_start", "terminal_job_read", "terminal_job_cancel",
     "file_read", "file_write", "file_edit", "browser_navigate", "browser_snapshot", "browser_act", "browser_wait",
-    "browser_screenshot", "browser_tabs", "browser_dialog_answer", "browser_wait_handback", "browser_record",
+    "browser_screenshot", "browser_tabs", "browser_dialog", "browser_wait_handback", "browser_record",
     "environment_pull_request", "environment_checkpoint", "environment_rollback", "environment_port", "login",
     "approval_wait",
 }
@@ -394,7 +394,7 @@ async def test_a_real_session_loads_a_toolset_and_hears_list_changed(tmp_path):
             loaded = await client.call_tool("tools_more", {"toolset": "browser"})
             assert not loaded.is_error and "list_changed" in loaded.structured_content["next"]
             after = {t.name for t in (await client.list_tools()).tools}
-            assert after - before == {"browser_file_get", "browser_files", "browser_file_delete", "browser_tab", "browser_scroll"}
+            assert after - before == {"browser_file_get", "browser_files", "browser_file_delete", "browser_scroll"}
             routed = await client.call_tool("tools_call", {"name": "browsers_list", "arguments": {}})
             assert not routed.is_error
         assert "notifications/tools/list_changed" in heard

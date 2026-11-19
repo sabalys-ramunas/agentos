@@ -238,7 +238,7 @@ class WaitMixin:
         elif dialog is not None:
             detail = (f"{_a(dialog.type)} {dialog.type} dialog opened after {waited:g} s: "
                       f"{json.dumps(dialog.message[:300], ensure_ascii=False)}. The page is frozen until it is "
-                      f"answered: call browser_dialog_answer. Unanswered, it is {dialog.automatic} automatically "
+                      f"answered: call browser_dialog(accept=...). Unanswered, it is {dialog.automatic} automatically "
                       f"in {dialog.seconds_left()} s")
         elif stopped == "signal":
             detail = f"stopped after {waited:g} s: the page signal is {report.signal.value}"

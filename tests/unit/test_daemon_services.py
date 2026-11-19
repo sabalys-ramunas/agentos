@@ -186,7 +186,7 @@ async def test_services_named_by_module_are_registered_and_shutdown_is_a_stop(co
 def test_lane_io_tools_are_served_by_default():
     names = {spec.name for provider in mcp_providers.tool_providers()
              for spec in provider(node_runtime(NodeConfig(), FakeLaneManager(), FakeInteraction()))}
-    assert {"browser_file_put", "browser_upload", "browser_tabs", "browser_dialog_answer"} <= names
+    assert {"browser_file_put", "browser_upload", "browser_tabs", "browser_dialog"} <= names
 
 
 async def test_viewer_and_control_api_are_served_with_their_own_auth(tmp_path):

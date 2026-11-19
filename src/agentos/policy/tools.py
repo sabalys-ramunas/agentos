@@ -29,27 +29,21 @@ def _visible_approval(ctx: Any, approval_id: str) -> Any:
 PENDING_LIST_MAX = 50
 
 
-async def approval_status(ctx: Any, *, approval_id: str | None = None) -> dict:
-    """The state of an approval or question you created: pending, approved, denied, expired
-    or consumed. For a question, `answer` holds the owner's reply. After an approval, call the
-    original tool again with the same arguments. Without `approval_id`: the approvals and questions
-    of your own grant still waiting (newest first, at most 50), for a new session that lost track of
-    one; it decides nothing."""
+async def approval_wait(ctx: Any, *, approval_id: str | None = None, timeout_s: float = 60) -> dict:
+    """Wait until an approval or question you created is decided or expires (long-poll, at most 120 s;
+    timeout_s=0 reads it now), then return its state: pending (call again), approved (call the original
+    tool again with the same arguments), denied, expired or consumed; a question's `answer` is the
+    owner's reply. Without approval_id: yours still waiting, newest first (for a new session that lost
+    track of one)."""
     await ctx.authorize(Effect.READ)
+    if timeout_s < 0:
+        raise InvalidRequest("timeout_s cannot be negative")
     if approval_id is None:
         policy = _policy(ctx)  # the caller's own grant family only, an admin grant's too
         waiting = policy.approvals.list(state="pending", viewer=ctx.grant.id, limit=PENDING_LIST_MAX)
         return {"pending": [ap.status() for ap in waiting if not frozen_off(ctx, lanes=[ap.lane])],
-                "next": "wait on one with approval_wait; once approved, call its tool again with the same arguments"}
-    return _visible_approval(ctx, approval_id).status()
-
-
-async def approval_wait(ctx: Any, *, approval_id: str, timeout_s: float = 60) -> dict:
-    """Wait (long-poll, at most 120 seconds) until an approval or question is decided or
-    expires, then return its status. Call it again if it is still pending."""
-    await ctx.authorize(Effect.READ)
-    if timeout_s < 0:
-        raise InvalidRequest("timeout_s cannot be negative")
+                "next": "wait on one with approval_wait(approval_id); once approved, call its tool again with "
+                        "the same arguments"}
     _visible_approval(ctx, approval_id)
     ap = await _policy(ctx).approvals.wait(approval_id, min(float(timeout_s), MAX_WAIT_S))
     return ap.status()
@@ -70,7 +64,7 @@ async def approval_confirm(ctx: Any, *, approval_id: str) -> dict:
 
 async def human_ask(ctx: Any, *, question: str, options: list[str] | None = None) -> dict:
     """Ask the owner a question on their phone. Returns at once with an approval_id; use
-    approval_wait to read the answer (approval_status, in the admin toolset, reads it without waiting). With `options`, the answer is one of them."""
+    approval_wait to read the answer (timeout_s=0 reads it without waiting). With `options`, the answer is one of them."""
     await ctx.authorize(Effect.READ)
     policy = _policy(ctx)
     if policy.approvals.count_pending(ctx.grant.root_id) >= policy.cfg.max_pending_per_grant:
@@ -143,7 +137,6 @@ async def grant_info(ctx: Any) -> dict:
 
 def tool_specs(runtime: Any) -> list[ToolSpec]:
     return [
-        ToolSpec(name="approval_status", handler=approval_status, lane_arg=None, tags=("approvals",)),
         ToolSpec(name="approval_wait", handler=approval_wait, lane_arg=None, tags=("approvals",)),
         ToolSpec(name="approval_confirm", handler=approval_confirm, lane_arg=None, tags=("approvals", "changes_state")),
         ToolSpec(name="human_ask", handler=human_ask, lane_arg=None, tags=("approvals", "changes_state")),

@@ -11,12 +11,16 @@ Internal code keeps the word lane (the lane manager, `env/<id>-browser` ids, mod
 agent or a person reads changes. Traces written before the rename keep the old names, so whatever reads
 a trace's tool name for a person goes through `current()` first.
 
+Three tools merged into another the same day, where two competed for one intent (the review's
+"Merges"): `browser_tab` is `browser_tabs(select=...)`, `browser_dialog_answer` is `browser_dialog(accept=...)`,
+`approval_status` is `approval_wait(timeout_s=0)`. Their old names work the same way (MERGED).
+
 The aliases go in the next minor release (CHANGELOG.md, "Deprecated").
 """
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Container
 from typing import Any
 
 # old name -> new name
@@ -61,6 +65,14 @@ RENAMED: dict[str, str] = {
     "lane_upload_check": "terminal_upload_check",
 }
 NEW_NAMES: frozenset[str] = frozenset(RENAMED.values())
+
+# old tool -> (the tool it merged into, the arguments a call by the old name means): one tool with an
+# argument where two competed for one intent
+MERGED: dict[str, tuple[str, dict[str, Any]]] = {
+    "browser_tab": ("browser_tabs", {}),                     # its `index` is `select` (RENAMED_ARGS)
+    "browser_dialog_answer": ("browser_dialog", {}),         # `accept` answers; without it, a read
+    "approval_status": ("approval_wait", {"timeout_s": 0}),  # 0 reads it now, without waiting
+}
 REMOVED_IN = "the next minor release"
 
 
@@ -73,11 +85,15 @@ def _ms_to_s(value: Any) -> Any:
 RENAMED_ARGS: dict[str, dict[str, tuple[str, Callable[[Any], Any] | None]]] = {
     "terminal_job_read": {"wait_ms": ("wait_s", _ms_to_s)},
     "browser_wait_handback": {"timeout_s": ("wait_s", None)},
+    "browser_tabs": {"index": ("select", None)},  # browser_tab's
 }
 
 
 def current(name: str) -> str:
-    """A tool's name today: an old name's new one, any other name as it is (a trace's, a call's)."""
+    """A tool's name today: an old name's new one (or the tool it merged into), any other name as it is
+    (a trace's, a call's)."""
+    if name in MERGED:
+        return MERGED[name][0]
     return RENAMED.get(name, name)
 
 
@@ -120,9 +136,22 @@ def for_older_node(tool: str, arguments: dict[str, Any]) -> tuple[str, dict[str,
     return old, out
 
 
+def resolve(name: str, arguments: dict[str, Any], served: Container[str]) -> tuple[str, dict[str, Any], str | None]:
+    """A call as the node runs it: (the tool, its arguments, the `renamed` note or None). A name `served`
+    holds is taken as it is; an old one becomes its new tool, with the arguments a merged tool's old name
+    means (approval_status waits 0 s), and old argument names become new ones."""
+    tool = name if name in served else current(name)
+    arguments, notes = rename_arguments(tool, arguments)
+    fixed = MERGED[name][1] if tool != name and name in MERGED else {}
+    if fixed and isinstance(arguments, dict):
+        arguments = {**fixed, **arguments}
+    return tool, arguments, renamed_note(name, tool, notes)
+
+
 def renamed_note(called: str, tool: str, arg_notes: list[str]) -> str | None:
     """The one line a call by an old name (or with an old argument) gets back, or None."""
-    parts = [f"{called} is now {tool}"] if called != tool else []
+    fixed = ", ".join(f"{k}={v}" for k, v in MERGED[called][1].items()) if called in MERGED else ""
+    parts = [f"{called} is now {tool}" + (f" with {fixed}" if fixed else "")] if called != tool else []
     parts += arg_notes
     if not parts:
         return None

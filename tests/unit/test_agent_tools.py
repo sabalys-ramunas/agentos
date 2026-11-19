@@ -162,7 +162,7 @@ async def test_an_unchanged_page_says_the_refs_still_work(manager):
 
 
 async def test_a_frozen_page_is_shown_but_the_next_delta_compares_with_the_page_before_it(manager):
-    notice = '- confirm dialog is open on this tab: "Sure?" (answer with browser_dialog_answer; ...)'
+    notice = '- confirm dialog is open on this tab: "Sure?" (answer with browser_dialog(accept=...); ...)'
     frozen = SnapshotResult(url="https://site.example/feed", title="", ref_count=0, frozen=True, notices=[notice],
                             text=f"{notice}\n- (the page is frozen until the dialog is answered)")
     inter = ScriptedInteraction(snap(FEED), frozen, snap(LIKED))
@@ -177,7 +177,7 @@ async def test_a_frozen_page_is_shown_but_the_next_delta_compares_with_the_page_
 
 
 async def test_dialog_notices_stay_on_top_of_a_delta_and_out_of_it(manager):
-    notice = '- tabs: 2 open, this is tab 1 (browser_tabs lists them, browser_tab switches)'
+    notice = '- tabs: 2 open, this is tab 1 (browser_tabs lists them, select=<index> switches)'
     inter = ScriptedInteraction(snap(FEED), snap(f"{notice}\n{LIKED}", notices=[notice]))
     async with client(manager, inter) as c:
         await c.call_tool("browser_snapshot", {"on": LANE})
@@ -342,7 +342,7 @@ async def test_a_dialog_during_a_wait_is_in_the_result(manager):
     inter.wait_result = result_of("dialog", dialog=dialog)
     async with client(manager, inter) as c:
         data = data_of(await c.call_tool("browser_wait", {"on": LANE, "for_text": "x", "snapshot": "delta"}))
-    assert data["dialog"] == dialog and "browser_dialog_answer" in data["next"]
+    assert data["dialog"] == dialog and "browser_dialog(accept=...)" in data["next"]
     assert inter.reads == 0  # no outline of a frozen page
 
 
@@ -458,11 +458,14 @@ async def test_every_tool_says_its_effect_and_uses_no_em_dash(manager):
     specs = [*[s for s in tool_specs(Runtime()) if not isinstance(s, PromptSpec)],
              *io_tools.tool_specs(Runtime()), *control_tools.tool_specs(Runtime()),
              *devtools_tools.tool_specs(Runtime())]
+    from agentos.core.toolsets import TOOLSETS
     from agentos.mcp.registry import tool_description, tool_params
 
+    core = next(t for t in TOOLSETS if t.name == "core").tools
     for spec in specs:
         text = tool_description(spec)
-        assert re.search(r"Effect: (read|draft)", text), spec.name
+        # the default list says what a tool does through its MCP annotations, not its words (every turn reads them)
+        assert spec.name in core or re.search(r"Effect: (read|draft)", text), spec.name
         params = " ".join(p.description or "" for p in tool_params(spec))
         assert EM_DASH not in text + params, spec.name
     assert "far more" in listed["browser_screenshot"].description
