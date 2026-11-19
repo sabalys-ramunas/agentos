@@ -275,7 +275,7 @@ class Pilot:
 
     async def _settle(self, req: Request) -> None:
         with contextlib.suppress(ToolFailed):
-            await self.tools.call("browser_wait", on=req.lane, network_quiet_ms=300, timeout_s=3)
+            await self.tools.call("browser_wait", on=req.lane, network_quiet_ms=300, wait_s=3)
 
     async def _files(self, req: Request) -> dict[str, str]:
         if not req.files:

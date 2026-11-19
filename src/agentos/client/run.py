@@ -367,7 +367,7 @@ class Run:
         self.say(f"  approve it in {where} or on your phone; Ctrl-C stops waiting")
         try:
             while True:
-                st = self.raw("approval_wait", {"approval_id": aid, "timeout_s": APPROVAL_WAIT_S})
+                st = self.raw("approval_wait", {"approval_id": aid, "wait_s": APPROVAL_WAIT_S})
                 state = st.get("state") if isinstance(st, dict) else None
                 if state == "approved":
                     self.say("  approved")

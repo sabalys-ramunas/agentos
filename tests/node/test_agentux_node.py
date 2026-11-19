@@ -297,7 +297,7 @@ async def test_the_tools_navigate_act_and_wait_with_outlines(page, site_url, ia)
         nav, outline = parts(await client.call_tool("browser_navigate", {
             "on": on, "url": f"{site_url}/bigfeed.html", "snapshot": "full"}))
         assert nav["status"] == 200 and nav["signal"] == "ok"
-        assert outline.startswith("snapshot: full\nlane: personal/fixture") and UNTRUSTED in outline
+        assert outline.startswith("snapshot: full\nbrowser: personal/fixture") and UNTRUSTED in outline
         like = find_refs(outline, role="button", within="Post by Alan Turing")[0]
 
         act, delta = parts(await client.call_tool("browser_act", {
@@ -308,9 +308,9 @@ async def test_the_tools_navigate_act_and_wait_with_outlines(page, site_url, ia)
         more = find_refs(outline, role="button", name="Load more")[0]
         await client.call_tool("browser_act", {"on": on, "ref": more, "action": "click"})
         waited, seen = parts(await client.call_tool("browser_wait", {
-            "on": on, "for_text": "Newcomer 2", "timeout_s": 5, "snapshot": "delta"}))
+            "on": on, "for_text": "Newcomer 2", "wait_s": 5, "snapshot": "delta"}))
         assert waited["met"] is True and waited["conditions"][0]["seen"] == 'article "Post by Newcomer 2"'
         assert '+ article "Post by Newcomer 1"' in seen  # since the outline of the like, not before it
 
-        quiet = (await client.call_tool("browser_wait", {"on": on, "network_quiet_ms": 300, "timeout_s": 5}))
+        quiet = (await client.call_tool("browser_wait", {"on": on, "network_quiet_ms": 300, "wait_s": 5}))
         assert json.loads(quiet.content[0].text)["met"] is True

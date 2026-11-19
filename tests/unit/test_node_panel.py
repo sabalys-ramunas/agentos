@@ -555,7 +555,7 @@ def test_the_owner_answers_a_question_through_the_policy(node):
         assert r.json()["asked_by"] == {"kind": "agent", "id": "asker", "thread": None}
         assert client.post(f"/api/questions/{qid}/answer", json={"answer": "no"}, headers=csrf).status_code == 409
     status = asyncio.run(approval_wait(node.policy.context_for_token(agent, tool="approval_wait"),
-                                       approval_id=qid, timeout_s=0))
+                                       approval_id=qid, wait_s=0))
     assert status["state"] == "approved" and status["answer"] == "yes"  # the agent reads the reply it asked for
     traced = node.policy.traces.query(kind="panel", limit=50)[0]
     assert any(e.tool == "panel.question.answer" and e.status == "ok" and e.principal == "owner" for e in traced)

@@ -343,7 +343,7 @@ async def test_policy_tools_through_the_wrapper(env):
         q = await tools["human_ask"](question="Which caption?", options=["A", "B"])
     svc.approvals.decide(q["approval_id"], "approve", by="owner", answer="B")
     with bind_request_token(tok):
-        st = await tools["approval_wait"](approval_id=q["approval_id"], timeout_s=0)
+        st = await tools["approval_wait"](approval_id=q["approval_id"], wait_s=0)
         assert st["state"] == "approved" and st["answer"] == "B"
         page = await tools["traces_query"](limit=2)
         assert len(page["events"]) == 2 and page["next"]

@@ -25,15 +25,15 @@ def test_no_tool_says_lane_and_every_new_name_is_served():
     assert toolnames.current("lane_exec") == "terminal_exec" and toolnames.current("browser_act") == "browser_act"
     merged = set(toolnames.MERGED)
     assert not merged & names and not {t for ts in TOOLSETS for t in ts.tools} & merged
-    assert {new for new, _ in toolnames.MERGED.values()} <= names
+    assert {merged[0] for merged in toolnames.MERGED.values()} <= names
     assert toolnames.current("approval_status") == "approval_wait" and toolnames.current("browser_tab") == "browser_tabs"
 
 
 def test_a_merged_tool_s_old_name_means_the_same_call():
     served = {"approval_wait", "browser_tabs", "browser_dialog"}
     assert toolnames.resolve("approval_status", {"approval_id": "ap_1"}, served) == (
-        "approval_wait", {"approval_id": "ap_1", "timeout_s": 0},
-        "approval_status is now approval_wait with timeout_s=0. The old name works until the next minor release.")
+        "approval_wait", {"approval_id": "ap_1", "wait_s": 0},
+        "approval_status is now approval_wait with wait_s=0. The old name works until the next minor release.")
     tool, args, note = toolnames.resolve("browser_tab", {"on": "x", "index": 1}, served)
     assert (tool, args) == ("browser_tabs", {"on": "x", "select": 1})
     assert note.startswith("browser_tab is now browser_tabs; index is now select")
@@ -46,7 +46,10 @@ def test_old_arguments_become_new_ones_and_say_so():
     assert args == {"job": "j1", "wait_s": 2.5} and notes == ["wait_ms is now wait_s (in seconds)"]
     assert toolnames.rename_arguments("terminal_job_read", {"job": "j1", "wait_ms": 1, "wait_s": 3})[0]["wait_s"] == 3
     assert toolnames.rename_arguments("browser_wait_handback", {"timeout_s": 60})[0] == {"wait_s": 60}
-    assert toolnames.rename_arguments("browser_wait", {"timeout_s": 5}) == ({"timeout_s": 5}, [])
+    assert toolnames.rename_arguments("browser_wait", {"timeout_s": 5}) == ({"wait_s": 5}, ["timeout_s is now wait_s"])
+    assert toolnames.rename_arguments("terminal_exec", {"timeout_s": 5}) == ({"timeout_s": 5}, [])  # a command's limit
+    assert toolnames.for_older_node("approval_wait", {"approval_id": "a", "wait_s": 5}) == \
+        ("approval_wait", {"approval_id": "a", "timeout_s": 5})
     assert toolnames.for_older_node("terminal_job_read", {"job": "j", "wait_s": 2}) == \
         ("lane_job_read", {"job": "j", "wait_ms": 2000})
     assert toolnames.for_older_node("browser_act", {}) is None

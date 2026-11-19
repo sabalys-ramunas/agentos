@@ -89,14 +89,14 @@ file id it returns (in_...).
 Create button>, action="click", snapshot="delta"). The delta shows the composer and its refs.
 4. browser_upload(on="{on}", ref=<the file input, or the button that opens the file chooser, such as \
 Add photo>, file_id=<the in_ id>). ok true means the field holds the file. Then browser_wait(on="{on}", \
-network_quiet_ms=1000, timeout_s=30, snapshot="delta") shows the preview; for a slow upload wait for \
+network_quiet_ms=1000, wait_s=30, snapshot="delta") shows the preview; for a slow upload wait for \
 the site's own text to go away instead (gone_text="Uploading").
 5. browser_act(on="{on}", ref=<the caption field>, action="type", text="{caption}", snapshot="delta").
 6. browser_act(on="{on}", ref=<the Share or Post button>, action="click", snapshot="delta"). If the \
 result has status approval_pending, tell the user what waits, call approval_wait(approval_id=<its id>), \
 and once it is approved repeat the same browser_act call. You have read pages by now, so a publishing \
 step waits for a person unless the owner pre-approved this exact post; the result's `why` says so.
-7. Read it back: browser_wait(on="{on}", for_text="<the first words of the caption>", timeout_s=30) on \
+7. Read it back: browser_wait(on="{on}", for_text="<the first words of the caption>", wait_s=30) on \
 the post or the profile (browser_navigate there first if the site stays on the composer). Say it is \
 posted only when the post itself shows; a "Posted" toast is not proof.
 Buttons and texts are in the account's language. If a signal other than ok appears at any step, stop \
@@ -215,14 +215,14 @@ changed, with refs: + new, - gone, ~ changed (with what it was). It falls back t
 when most of the page changed.
 - For something slower, browser_wait(on, ...) with for_text="Your post was shared" or \
 gone_text="Uploading", for_ref_state={"ref": "e12", "state": "enabled"}, network_quiet_ms=1000 or \
-url_matches="/comments/"; timeout_s up to 60, and snapshot="delta" to see the page when it ends. \
+url_matches="/comments/"; wait_s up to 60, and snapshot="delta" to see the page when it ends. \
 Give at least one condition: browser_wait with none is refused.
 - met false means it timed out: `conditions` shows what each one saw last. Wait again or take a \
 snapshot. `stopped` says why a wait ended early: dialog (answer it with browser_dialog), \
 signal, human_in_control, tab_closed.
 - A list or feed that loads more as you scroll (it shows "Loading more" or ends before what you need): \
 browser_act(on, ref=<the last item loaded, or something in it>, action="scroll", snapshot="delta"). If \
-the delta shows nothing new yet, browser_wait(on, network_quiet_ms=1000, timeout_s=10, snapshot="delta") \
+the delta shows nothing new yet, browser_wait(on, network_quiet_ms=1000, wait_s=10, snapshot="delta") \
 shows what arrived. Repeat from the new last item until what you need appears or nothing new comes; the \
 new items carry their own refs.
 - Texts are matched as the page shows them, in the account's language.""",

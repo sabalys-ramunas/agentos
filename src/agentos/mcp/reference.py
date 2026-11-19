@@ -141,12 +141,19 @@ def renamed_markdown() -> list[str]:
            "result carries a `renamed` line with the new name. The same holds for an argument a renamed tool",
            "took under another name.", "",
            "| Old name | New name | Old argument |", "|---|---|---|"]
-    rows = [(old, new, "") for old, new in toolnames.RENAMED.items()]
-    rows += [(old, new, ", ".join(f"called with `{k}={v}`" for k, v in fixed.items()))
-             for old, (new, fixed) in toolnames.MERGED.items()]
+    rows = [(old, new, ", ".join(f"`{a}` is `{n}`" for a, (n, _) in toolnames.RENAMED_ARGS.get(new, {}).items()))
+            for old, new in toolnames.RENAMED.items()]
+    rows += [(old, new, ", ".join([*(f"`{a}` is `{n}`" for a, n in renamed.items()),
+                                   *(f"called with `{k}={v}`" for k, v in fixed.items())]))
+             for old, (new, fixed, renamed) in toolnames.MERGED.items()]
     for old, new, how in sorted(rows, key=lambda row: (row[1], row[0])):
-        args = ", ".join(f"`{a}` is `{n}`" for a, (n, _) in toolnames.RENAMED_ARGS.get(new, {}).items())
-        out.append(f"| `{old}` | [`{new}`](#{new}) | {', '.join(x for x in (args, how) if x)} |")
+        out.append(f"| `{old}` | [`{new}`](#{new}) | {how} |")
+    kept = [(tool, a, n) for tool, table in sorted(toolnames.RENAMED_ARGS.items())
+            if tool not in toolnames.NEW_NAMES for a, (n, _) in table.items()]
+    if kept:
+        out += ["", "Arguments renamed on tools that kept their name (`wait_s` is how long a call waits, "
+                "`timeout_s` a command's own limit): "
+                + ", ".join(f"[`{tool}`](#{tool})'s `{a}` is `{n}`" for tool, a, n in kept) + "."]
     return out
 
 

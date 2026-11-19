@@ -294,11 +294,11 @@ def show_jobs(run: runs.Run, lane: str | None) -> int:
     if not jobs:
         typer.echo("No jobs." + ("" if lane else " Start one with: agentos run -- <command>"))
         return 0
-    rows = [("JOB", "LANE", "STATE", "EXIT", "STARTED", "TOOK", "COMMAND")]
+    rows = [("JOB", "TERMINAL", "STATE", "EXIT", "STARTED", "TOOK", "COMMAND")]
     for j in jobs:
         took = j.get("duration_s")
         code = j.get("exit_code")
-        rows.append((j["id"], j["lane"], j["state"], "-" if code is None else str(code),
+        rows.append((j["id"], j.get("terminal") or j["lane"], j["state"], "-" if code is None else str(code),
                      (j.get("started_at") or "")[:19].replace("T", " "),
                      runs.human_duration(took) if isinstance(took, int | float) else "-",
                      (j.get("cmd") or "")[:60]))

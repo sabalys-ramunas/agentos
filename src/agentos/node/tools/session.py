@@ -136,7 +136,7 @@ def lane_session(lanes: Any, on: str, principal_kind: str, *, holder: Holder | N
 def ctx_session(ctx: Any, on: str, *, mode: str = ACT, lanes: Any = None,
                 extra_s: float = 0.0) -> AbstractAsyncContextManager[Any]:
     """lane_session for a tool call: the caller's principal kind and holder, and the tool's overall
-    deadline (agentos.node.deadlines; `extra_s` is what this call needs on top: a wait's timeout_s,
+    deadline (agentos.node.deadlines; `extra_s` is what this call needs on top: a wait's wait_s,
     an act's typing)."""
     lanes = lanes if lanes is not None else ctx.runtime.require("lanes")
     tool = getattr(ctx, "tool", None)

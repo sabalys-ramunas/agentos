@@ -82,7 +82,7 @@ took under another name.
 
 | Old name | New name | Old argument |
 |---|---|---|
-| `approval_status` | [`approval_wait`](#approval_wait) | called with `timeout_s=0` |
+| `approval_status` | [`approval_wait`](#approval_wait) | called with `wait_s=0` |
 | `lane_check` | [`browser_check`](#browser_check) |  |
 | `lane_claim` | [`browser_claim`](#browser_claim) |  |
 | `lane_close` | [`browser_close`](#browser_close) |  |
@@ -119,6 +119,8 @@ took under another name.
 | `lane_upload_check` | [`terminal_upload_check`](#terminal_upload_check) |  |
 | `env_lanes_list` | [`terminals_list`](#terminals_list) |  |
 
+Arguments renamed on tools that kept their name (`wait_s` is how long a call waits, `timeout_s` a command's own limit): [`approval_wait`](#approval_wait)'s `timeout_s` is `wait_s`, [`browser_wait`](#browser_wait)'s `timeout_s` is `wait_s`.
+
 ## Every tool
 
 | Tool | Toolset | Effect | Summary |
@@ -130,7 +132,7 @@ took under another name.
 | [`agenda_propose`](#agenda_propose) | automation | draft | Ask for permission to run a draft entry |
 | [`agenda_update`](#agenda_update) | automation | draft | Edit an entry |
 | [`approval_confirm`](#approval_confirm) | accounts | read | Ask the person to answer an approval your own calls are waiting on |
-| [`approval_wait`](#approval_wait) | core | read | Wait until an approval or question you created is decided or expires (at most 120 s; timeout_s=0 reads it now) |
+| [`approval_wait`](#approval_wait) | core | read | Wait until an approval or question you created is decided or expires (at most 120 s; wait_s=0 reads it now) |
 | [`ask_first_on`](#ask_first_on) | flows | draft | Turn "Ask me first" on for a saved routine (flow id) or for an account (browser), so its commits wait for a person |
 | [`brain_cancel`](#brain_cancel) | brains | brain | Cancel a brain task: a graceful stop first, then a kill if it does not exit |
 | [`brain_resume`](#brain_resume) | brains | brain | Resume an interrupted, failed or cancelled brain task |
@@ -375,12 +377,12 @@ Ask the person to answer an approval your own calls are waiting on. Call it when
 
 Toolset: `core`. Effect: `read`.
 
-Wait until an approval or question you created is decided or expires (at most 120 s; timeout_s=0 reads it now). Pending: call again. Approved: call the original tool again with the same arguments. A question's `answer` is the owner's reply. Without approval_id: yours still waiting.
+Wait until an approval or question you created is decided or expires (at most 120 s; wait_s=0 reads it now). Pending: call again. Approved: call the original tool again with the same arguments. A question's `answer` is the owner's reply. Without approval_id: yours still waiting.
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
 | `approval_id` | `str \| None` | no (default None) |  |
-| `timeout_s` | `float` | no (default 60) |  |
+| `wait_s` | `float` | no (default 60) |  |
 
 ## ask_first_on
 
@@ -824,7 +826,7 @@ A live-view link for a warm browser, so a human can watch and take over: log in,
 
 Toolset: `core`. Effect: `read`. Needs the `interaction` service.
 
-Wait for the page instead of polling with snapshots: a text appears (for_text) or goes away (gone_text), an element reaches a state (for_ref_state), the network goes quiet (network_quiet_ms) or the URL matches (url_matches). Give at least one; all must hold at once. Returns when they do, or after timeout_s (at most 60 s) with met false and what each saw last: call again to keep waiting. `stopped` says why it ended early (a dialog, a challenge signal, a human taking the browser, the tab closing). Text matches the outline (part of a name or text, any case or spacing), in the page's language.
+Wait for the page instead of polling with snapshots: a text appears (for_text) or goes away (gone_text), an element reaches a state (for_ref_state), the network goes quiet (network_quiet_ms) or the URL matches (url_matches). Give at least one; all must hold at once. Returns when they do, or after wait_s (at most 60 s) with met false and what each saw last: call again to keep waiting. `stopped` says why it ended early (a dialog, a challenge signal, a human taking the browser, the tab closing). Text matches the outline (part of a name or text, any case or spacing), in the page's language.
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
@@ -835,7 +837,7 @@ Wait for the page instead of polling with snapshots: a text appears (for_text) o
 | `for_ref_state` | `RefState \| None` | no (default None) | An element of your latest snapshot and its state, like {"ref": "e12", "state": "enabled"}. |
 | `network_quiet_ms` | `int \| None` | no (default None) | No request started or ended for this long (100 to 10000); requests open over 20 s do not count (for an upload, wait for the site's text). |
 | `url_matches` | `str \| None` | no (default None) | Part of the URL, or a glob over the whole URL when it has a *. |
-| `timeout_s` | `float` | no (default 10.0) | 0 to 60; 0 checks once. |
+| `wait_s` | `float` | no (default 10.0) | 0 to 60; 0 checks once. |
 | `snapshot` | `'none' \| 'delta' \| 'full'` | no (default 'none') | "delta" or "full": the outline when the wait ends. |
 
 ## browser_wait_handback
@@ -1180,7 +1182,7 @@ Short, exact recipes naming the real tools and arguments: post_image (and verify
 
 Toolset: `accounts`. Effect: `read`.
 
-Ask the owner a question on their phone. Returns at once with an approval_id; use approval_wait to read the answer (timeout_s=0 reads it without waiting). With `options`, the answer is one of them.
+Ask the owner a question on their phone. Returns at once with an approval_id; use approval_wait to read the answer (wait_s=0 reads it without waiting). With `options`, the answer is one of them.
 
 | Argument | Type | Required | Description |
 |---|---|---|---|

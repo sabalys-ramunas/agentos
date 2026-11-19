@@ -145,7 +145,7 @@ async def test_navigate_snapshot_act_screenshot(connect, manager, interaction):
         snap = await client.call_tool("browser_snapshot", {"on": "personal/reddit"})
         text = text_of(snap)
         assert not snap.is_error
-        assert text.startswith("lane: personal/reddit\nurl: https://reddit.com/r/x\n")
+        assert text.startswith("browser: personal/reddit\nurl: https://reddit.com/r/x\n")
         assert "[ref=e2]" in text and "refs: 2" in text
 
         act = data_of(await client.call_tool("browser_act", {"on": "personal/reddit", "ref": "[ref=e2]",

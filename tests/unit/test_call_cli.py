@@ -84,7 +84,7 @@ def test_with_wait_an_approved_call_runs_again_with_the_same_arguments():
     result = call_tool(session, "flow_run", args, wait_s=300, say=said.append, sleep=lambda _: None)
     assert result == {"id": "run_1", "status": "succeeded_verified"}
     assert session.calls[0] == session.calls[-1] == ("flow_run", args)
-    assert session.calls[1] == ("approval_wait", {"approval_id": "ap_1", "timeout_s": 60.0})
+    assert session.calls[1] == ("approval_wait", {"approval_id": "ap_1", "wait_s": 60.0})
     assert said[0].startswith("Waiting for a person to approve: Run flow biz-a.social.post")
     assert said[-1] == "Approved. Calling it again with the same arguments."
 

@@ -64,15 +64,15 @@ def wait_texts(value: str | list[str] | None, name: str) -> tuple[str, ...]:
     return texts
 
 
-def wait_timeout(timeout_s: float) -> tuple[float, str | None]:
+def wait_timeout(wait_s: float) -> tuple[float, str | None]:
     try:
-        timeout = float(timeout_s)
+        timeout = float(wait_s)
     except (TypeError, ValueError):
-        raise InvalidRequest("timeout_s must be a number of seconds") from None
+        raise InvalidRequest("wait_s must be a number of seconds") from None
     if math.isnan(timeout) or timeout < 0:
-        raise InvalidRequest("timeout_s must be 0 or more seconds")
+        raise InvalidRequest("wait_s must be 0 or more seconds")
     if timeout > WAIT_MAX_S:
-        return WAIT_MAX_S, f"timeout_s is capped at {WAIT_MAX_S:g} s; waited at most that long"
+        return WAIT_MAX_S, f"wait_s is capped at {WAIT_MAX_S:g} s; waited at most that long"
     return timeout, None
 
 
@@ -113,13 +113,13 @@ async def browser_wait(
     for_ref_state: RefState | None = None,
     network_quiet_ms: int | None = None,
     url_matches: str | None = None,
-    timeout_s: float = WAIT_DEFAULT_S,
+    wait_s: float = WAIT_DEFAULT_S,
     snapshot: SnapshotMode = "none",
 ) -> dict[str, Any] | str:
     """Wait for the page instead of polling with snapshots: a text appears (for_text) or goes away
     (gone_text), an element reaches a state (for_ref_state), the network goes quiet
     (network_quiet_ms) or the URL matches (url_matches). Give at least one; all must hold at once.
-    Returns when they do, or after timeout_s (at most 60 s) with met false and what each saw last:
+    Returns when they do, or after wait_s (at most 60 s) with met false and what each saw last:
     call again to keep waiting. `stopped` says why it ended early (a dialog, a challenge signal, a
     human taking the browser, the tab closing). Text matches the outline (part of a name or text, any
     case or spacing), in the page's language.
@@ -133,7 +133,7 @@ async def browser_wait(
         network_quiet_ms: No request started or ended for this long (100 to 10000); requests open
             over 20 s do not count (for an upload, wait for the site's text).
         url_matches: Part of the URL, or a glob over the whole URL when it has a *.
-        timeout_s: 0 to 60; 0 checks once.
+        wait_s: 0 to 60; 0 checks once.
         snapshot: "delta" or "full": the outline when the wait ends.
     """
     on = lane_id(on)
@@ -150,7 +150,7 @@ async def browser_wait(
         url_matches = url_matches.strip()
         if not url_matches or len(url_matches) > MAX_URL_CHARS:
             raise InvalidRequest("url_matches must be part of a URL, or a glob with *")
-    timeout, note = wait_timeout(timeout_s)
+    timeout, note = wait_timeout(wait_s)
     from agentos.node.interaction.waits import WaitFor
 
     spec = WaitFor(for_text=texts, gone_text=gone, exact=exact, ref=ref, ref_state=state,

@@ -123,7 +123,7 @@ def _wait(session: Session, approval: str, deadline: float, sleep: Callable[[flo
         left = deadline - time.monotonic()
         try:
             status = session.call("approval_wait", {"approval_id": approval,
-                                                    "timeout_s": max(1.0, min(WAIT_STEP_S, left))})
+                                                    "wait_s": max(1.0, min(WAIT_STEP_S, left))})
         except ToolError as exc:
             raise CallError(str(exc).strip()) from None
         if not isinstance(status, dict):

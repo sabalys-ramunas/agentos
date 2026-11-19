@@ -76,7 +76,7 @@ async def test_every_page_read_of_a_challenge_holds_the_lane():
     """A lane given back while it shows a challenge (an older node, a hand-back with no browser read):
     the first read of any kind holds it before the agent can act."""
     for tool, args in (("browser_snapshot", {}), ("browser_screenshot", {}), ("browser_tabs", {}),
-                       ("browser_dialog", {}), ("browser_wait", {"for_text": "robot", "timeout_s": 0})):
+                       ("browser_dialog", {}), ("browser_wait", {"for_text": "robot", "wait_s": 0})):
         async with (
             dev_node() as node,
             httpx2.AsyncClient(headers={"Authorization": f"Bearer {node.agent_token}"}) as http,

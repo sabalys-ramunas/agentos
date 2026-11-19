@@ -80,11 +80,17 @@ def refs_line(snap: Any) -> str:
     return refs
 
 
+def browser_line(on: str) -> list[str]:
+    """The header's line naming the browser: an account browser's workspace/name, none for an environment's
+    browser (its lane id is not an `on`, and an agent that saw one passed it as one)."""
+    return [] if on.startswith("env/") else [f"browser: {on}"]
+
+
 def full_outline(on: str, snap: Any, *, label: str | None = None) -> str:
     """The whole outline under its header. Page-derived text (the title too) comes after the
     untrusted line."""
     head = [f"snapshot: {label}"] if label else []
-    head += [f"lane: {on}", f"url: {snap.url}", *signal_lines(snap), refs_line(snap), UNTRUSTED,
+    head += [*browser_line(on), f"url: {snap.url}", *signal_lines(snap), refs_line(snap), UNTRUSTED,
              f"title: {snap.title}"]
     return "\n".join(head) + f"\n\n{snap.text}"
 
@@ -97,7 +103,7 @@ def delta_outline(on: str, snap: Any, seen: Any) -> str | None:
         return None
     first = f"snapshot: delta, {delta.summary()} since your last snapshot of this tab"
     url = f"url: {snap.url}" + (f" (was {seen.url})" if seen.url != snap.url else "")
-    head = [first + (" (+ new, - gone, ~ changed)" if not delta.empty else ""), f"lane: {on}", url,
+    head = [first + (" (+ new, - gone, ~ changed)" if not delta.empty else ""), *browser_line(on), url,
             *signal_lines(snap), refs_line(snap)]
     if not delta.empty:
         head.append(DELTA_REFS)

@@ -184,8 +184,10 @@ class McpSession:
         texts = [c.get("text", "") for c in result.get("content") or [] if c.get("type") == "text"]
         if result.get("isError"):
             older = toolnames.for_older_node(tool, arguments or {})
-            if older is not None and texts and texts[0].startswith(f"not_found: no tool named {tool!r}"):
-                return self.call(*older)  # a node from before the tools were renamed
+            told = texts[0] if texts else ""
+            if older is not None and told.startswith((f"not_found: no tool named {tool!r}",
+                                                      f"invalid: {tool} has no argument")):
+                return self.call(*older)  # a node from before the tools (or their arguments) were renamed
             raise ToolError("\n".join(texts) or f"{tool} failed")
         structured = result.get("structuredContent")
         if isinstance(structured, dict) and set(structured) != {"result"}:

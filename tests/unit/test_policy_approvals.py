@@ -46,7 +46,7 @@ async def test_wait_returns_when_decided_in_process(env):
 
     asyncio.get_running_loop().create_task(decide_soon())
     with bind_request_token(tok):
-        st = await tools(rt)["approval_wait"](approval_id=ap, timeout_s=5)
+        st = await tools(rt)["approval_wait"](approval_id=ap, wait_s=5)
     assert st["state"] == "approved" and st["note"] == "ship it" and "lane_post" in st["next"]
 
 
@@ -57,7 +57,7 @@ async def test_wait_sees_decisions_from_another_process(env, tmp_path):
     t = threading.Timer(0.1, lambda: other.approvals.decide(ap, "deny", by="owner:cli"))
     t.start()
     with bind_request_token(tok):
-        st = await tools(rt)["approval_wait"](approval_id=ap, timeout_s=5)
+        st = await tools(rt)["approval_wait"](approval_id=ap, wait_s=5)
     t.join()
     assert st["state"] == "denied"
 
@@ -70,7 +70,7 @@ async def test_wait_times_out_and_caps_at_120s(env):
     st = await svc.approvals.wait(ap, 0.1)
     assert st.state == "pending" and loop.time() - start < 1
     with bind_request_token(tok), pytest.raises(Exception, match="invalid"):
-        await tools(rt)["approval_wait"](approval_id=ap, timeout_s=-1)
+        await tools(rt)["approval_wait"](approval_id=ap, wait_s=-1)
     assert not svc.approvals._waiters
 
 
@@ -79,14 +79,14 @@ async def test_status_is_hidden_from_other_grants(env):
     ap, tok = await make_pending(svc)
     _, stranger = svc.issue(subject={"id": "other"}, workspaces=["biz-a"])
     with bind_request_token(stranger), pytest.raises(Exception, match="not_found"):
-        await tools(rt)["approval_wait"](approval_id=ap, timeout_s=0)
+        await tools(rt)["approval_wait"](approval_id=ap, wait_s=0)
     # a parent sees what its children asked
     _, child = svc.attenuate(tok, ceiling=Effect.COMMIT)
     ctx = svc.context(svc.resolve(child)[1], tool="t")
     with pytest.raises(ApprovalPending) as e:
         await ctx.authorize(Effect.COMMIT, lane_id="biz-a/x", content="c")
     with bind_request_token(tok):
-        assert (await tools(rt)["approval_wait"](approval_id=e.value.approval_id, timeout_s=0))["state"] == "pending"
+        assert (await tools(rt)["approval_wait"](approval_id=e.value.approval_id, wait_s=0))["state"] == "pending"
 
 
 async def test_status_without_an_id_lists_only_your_own_pending(env):
@@ -119,7 +119,7 @@ async def test_human_ask_question_flow(env):
         svc.approvals.decide(q["approval_id"], "approve", by="owner")
     svc.approvals.decide(q["approval_id"], "approve", by="owner", answer="12")
     with bind_request_token(tok):
-        st = await t["approval_wait"](approval_id=q["approval_id"], timeout_s=1)
+        st = await t["approval_wait"](approval_id=q["approval_id"], wait_s=1)
     assert st["kind"] == "question" and st["answer"] == "12" and st["options"] == ["9", "12"]
 
 

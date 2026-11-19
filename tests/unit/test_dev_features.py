@@ -69,12 +69,12 @@ async def test_an_image_post_follows_the_recipe_on_the_dev_node():
         uploaded = json.loads(text)
         assert uploaded["ok"] is True and str(node.home) not in text
 
-        err, text = await call(client, "browser_wait", {**on, "for_text": "photo.png", "timeout_s": 5,
+        err, text = await call(client, "browser_wait", {**on, "for_text": "photo.png", "wait_s": 5,
                                                         "snapshot": "delta"})
         assert not err, text
         waited, _ = json.JSONDecoder().raw_decode(text)  # the delta outline follows the result
         assert waited["met"] is True and "photo.png attached" in text, text
-        err, text = await call(client, "browser_wait", {**on, "network_quiet_ms": 500, "timeout_s": 5})
+        err, text = await call(client, "browser_wait", {**on, "network_quiet_ms": 500, "wait_s": 5})
         assert not err and json.loads(text)["met"] is True, text
 
         _, snap = await call(client, "browser_snapshot", on)

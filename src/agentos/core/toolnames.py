@@ -13,7 +13,7 @@ a trace's tool name for a person goes through `current()` first.
 
 Three tools merged into another the same day, where two competed for one intent (the review's
 "Merges"): `browser_tab` is `browser_tabs(select=...)`, `browser_dialog_answer` is `browser_dialog(accept=...)`,
-`approval_status` is `approval_wait(timeout_s=0)`. Their old names work the same way (MERGED).
+`approval_status` is `approval_wait(wait_s=0)`. Their old names work the same way (MERGED).
 
 The aliases go in the next minor release (CHANGELOG.md, "Deprecated").
 """
@@ -66,12 +66,12 @@ RENAMED: dict[str, str] = {
 }
 NEW_NAMES: frozenset[str] = frozenset(RENAMED.values())
 
-# old tool -> (the tool it merged into, the arguments a call by the old name means): one tool with an
-# argument where two competed for one intent
-MERGED: dict[str, tuple[str, dict[str, Any]]] = {
-    "browser_tab": ("browser_tabs", {}),                     # its `index` is `select` (RENAMED_ARGS)
-    "browser_dialog_answer": ("browser_dialog", {}),         # `accept` answers; without it, a read
-    "approval_status": ("approval_wait", {"timeout_s": 0}),  # 0 reads it now, without waiting
+# old tool -> (the tool it merged into, the arguments a call by the old name means, its arguments' new
+# names): one tool with an argument where two competed for one intent
+MERGED: dict[str, tuple[str, dict[str, Any], dict[str, str]]] = {
+    "browser_tab": ("browser_tabs", {}, {"index": "select"}),
+    "browser_dialog_answer": ("browser_dialog", {}, {}),     # `accept` answers; without it, a read
+    "approval_status": ("approval_wait", {"wait_s": 0}, {}),  # 0 reads it now, without waiting
 }
 REMOVED_IN = "the next minor release"
 
@@ -81,11 +81,13 @@ def _ms_to_s(value: Any) -> Any:
 
 
 # new tool -> {old argument: (new argument, how an old value becomes a new one)}: one name per meaning
-# on the renamed tools. `wait_s` is how long this call waits; `timeout_s` stays the command's own limit.
+# on the renamed tools and the default list. `wait_s` is how long this call waits; `timeout_s` stays a
+# command's own limit (terminal_exec, terminal_job_start).
 RENAMED_ARGS: dict[str, dict[str, tuple[str, Callable[[Any], Any] | None]]] = {
     "terminal_job_read": {"wait_ms": ("wait_s", _ms_to_s)},
     "browser_wait_handback": {"timeout_s": ("wait_s", None)},
-    "browser_tabs": {"index": ("select", None)},  # browser_tab's
+    "browser_wait": {"timeout_s": ("wait_s", None)},
+    "approval_wait": {"timeout_s": ("wait_s", None)},
 }
 
 
@@ -124,15 +126,16 @@ def rename_arguments(tool: str, arguments: dict[str, Any]) -> tuple[dict[str, An
 
 def for_older_node(tool: str, arguments: dict[str, Any]) -> tuple[str, dict[str, Any]] | None:
     """The same call as a node from before the rename takes it (its old name and argument names), or None
-    when `tool` was not renamed. The CLI's client tries it when such a node says it has no `tool`."""
-    old = _OLD.get(tool)
-    if old is None:
-        return None
+    when neither `tool` nor an argument it is given was renamed. The CLI's client tries it when such a node
+    says it has no `tool`, or no such argument (approval_wait's wait_s was timeout_s)."""
+    old = _OLD.get(tool, tool)
     out = dict(arguments)
     for old_arg, (new_arg, convert) in RENAMED_ARGS.get(tool, {}).items():
         if new_arg in out:
             value = out.pop(new_arg)
             out[old_arg] = int(value * 1000) if convert is _ms_to_s and isinstance(value, int | float) else value
+    if old == tool and out == arguments:
+        return None
     return old, out
 
 
@@ -142,8 +145,13 @@ def resolve(name: str, arguments: dict[str, Any], served: Container[str]) -> tup
     means (approval_status waits 0 s), and old argument names become new ones."""
     tool = name if name in served else current(name)
     arguments, notes = rename_arguments(tool, arguments)
-    fixed = MERGED[name][1] if tool != name and name in MERGED else {}
-    if fixed and isinstance(arguments, dict):
+    if tool != name and name in MERGED and isinstance(arguments, dict):
+        _, fixed, renamed = MERGED[name]
+        for old, new in renamed.items():
+            if old in arguments:
+                notes.append(f"{old} is now {new}")
+                value = arguments.pop(old)
+                arguments.setdefault(new, value)
         arguments = {**fixed, **arguments}
     return tool, arguments, renamed_note(name, tool, notes)
 

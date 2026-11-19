@@ -19,7 +19,7 @@ The table, in seconds (what each tool legitimately needs, with room to spare):
   browser_act             120   + TYPE_S_PER_CHAR for each character it types (human-paced)
   browser_scroll           60
   browser_screenshot       60   the screenshot (15) + scaling
-  browser_wait             60   + its own timeout_s (at most 60)
+  browser_wait             60   + its own wait_s (at most 60)
   browser_tabs             60
   browser_dialog           60
   browser_console          60
@@ -65,7 +65,7 @@ TOOL_DEADLINES_S: dict[str, float] = {
 
 def deadline_for(tool: str | None, *, extra_s: float = 0.0) -> float:
     """The overall deadline of one call of `tool`, plus `extra_s` the call itself needs (browser_wait's
-    timeout_s, browser_act's typing)."""
+    wait_s, browser_act's typing)."""
     base = TOOL_DEADLINES_S.get(tool or "", DEFAULT_S)
     return base + max(0.0, float(extra_s or 0.0))
 

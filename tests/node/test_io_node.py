@@ -351,7 +351,7 @@ async def test_an_alert_is_queued_shown_in_the_snapshot_and_answered(lane, ia, i
     assert dialog is not None and dialog.type == "alert" and dialog.message == "Saved!"
     snap = await ia.snapshot(page)
     assert snap.text.startswith('- alert dialog is open on this tab: "Saved!"') and snap.ref_count == 0
-    with pytest.raises(DialogPending, match="browser_dialog_answer"):
+    with pytest.raises(DialogPending, match="Call browser_dialog"):
         await ia.act(page, save, ActionKind.CLICK)
 
     answered = await lane.dialogs.answer(page, accept=True)
