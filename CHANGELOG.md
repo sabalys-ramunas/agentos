@@ -8,6 +8,12 @@ All notable changes to agentos are recorded here. The format follows
 
 ### Added
 
+- `web/scripts/codemod-legacy-tokens.mjs` moves the web app's pre-Mono class names (`bg-bg`, `text-13`) to
+  the Mono ones, and has run on all of `web/src`: no old name is left, and the design check refuses one.
+  Two type roles join the system for the sizes no role had, `text-heading` (20/28) and `text-headline`
+  (32/40). `web/scripts/visual-compare.mjs` photographs the catalog and the main screens on the mock and
+  compares two runs pixel by pixel. The catalog's screenshot baselines are no longer in git: each machine
+  records its own on the first run.
 - The web app's design system for agents: `web/DESIGN-SYSTEM.md` (a screen in five steps, the tokens, the
   component groups, the checks), an index per group in `web/design-system/`, and `web/AGENTS.md` and
   `web/CLAUDE.md`. The catalog at `/$org/design` (dev only) draws every component by group, and agentos's

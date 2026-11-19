@@ -15,6 +15,8 @@ const ROLES = [
   ['text-display', 'Five jobs running on four machines.'],
   ['text-page-title', 'Environments'],
   ['text-page-title-compact', 'Environments, on a phone'],
+  ['text-headline', 'Pay €412.50 to Nordic Ropeworks?'],
+  ['text-heading', 'What each person gets'],
   ['text-section-title', 'Running now'],
   ['text-lede', 'The computers your agents work on, one per chat.'],
   ['text-card-title', 'Black Friday offer page'],
