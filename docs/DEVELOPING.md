@@ -759,7 +759,8 @@ another ref, so people get a release, never whatever `main` is today. To cut one
    `git tag vX.Y.Z && git push origin vX.Y.Z`, then
    `gh release create vX.Y.Z --draft --verify-tag --title "agentos X.Y.Z" --notes-file NOTES.md`, with the
    notes taken from that version's changelog section.
-4. The draft starts `web-release`: it builds the web app in live mode and attaches
+4. Start `web-release` for the tag: `gh workflow run web-release.yml -f tag=vX.Y.Z` (GitHub sends no
+   release events for a draft, so creating one starts nothing). It builds the web app in live mode and attaches
    `agentos-web-X.Y.Z.tar.gz` and its `.sha256` to the draft (`scripts/web_asset.py`; `make web-asset`
    makes the same archive locally). It never replaces a file: if it failed halfway, delete the asset from
    the draft (`gh release delete-asset vX.Y.Z <file>`) and run it again from Actions > web-release > Run

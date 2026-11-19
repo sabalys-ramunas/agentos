@@ -231,7 +231,8 @@ def test_only_an_immutable_github_releases_own_digest_is_trusted(home, monkeypat
 def test_the_release_workflow_never_replaces_a_file_on_a_release():
     text = (ROOT / ".github" / "workflows" / "web-release.yml").read_text()
     [upload] = [line for line in text.splitlines() if "run: gh release upload" in line]
-    assert "--clobber" not in upload and "types: [created]" in text  # attached to the draft, before it is published
+    # run by hand for the draft, before it is published: GitHub sends no release events for a draft
+    assert "--clobber" not in upload and "workflow_dispatch" in text and "release:" not in text
 
 
 def test_no_network_is_missing(home, monkeypatch):

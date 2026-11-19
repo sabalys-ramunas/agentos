@@ -52,8 +52,11 @@ jobs:
           cp deploy/environments/* src/agentos/environments/setup.sh src/agentos/environments/browser.sh \
             src/agentos/environments/browser-requirements.txt ctx/
       - name: Build
+        # the token goes in as a build secret, for Camoufox's releases API calls (rate limited without one)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          docker build -t "$REPO:${{ steps.v.outputs.version }}-${{ matrix.arch }}" \
+          docker build --secret id=github_token,env=GITHUB_TOKEN -t "$REPO:${{ steps.v.outputs.version }}-${{ matrix.arch }}" \
             --label "org.opencontainers.image.source=https://github.com/${{ github.repository }}" \
             --label "org.opencontainers.image.version=${{ steps.v.outputs.version }}" \
             --label "org.opencontainers.image.revision=${{ github.sha }}" ctx

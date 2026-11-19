@@ -23,7 +23,10 @@ RUN sh /usr/local/lib/agentos-env/setup.sh
 # proofs record the screen with it), fonts and Camoufox pinned to the node's versions (browser.sh). About
 # 1 GB and a few minutes on top; its own layer.
 COPY browser.sh browser-requirements.txt /usr/local/lib/agentos-env/
-RUN sh /usr/local/lib/agentos-env/browser.sh
+# Camoufox finds its browser through GitHub's releases API, which limits unauthenticated calls; a build may
+# pass a token as a build secret (never a layer or an image env): docker build --secret id=github_token,...
+RUN --mount=type=secret,id=github_token,required=false \
+    GITHUB_TOKEN="$(cat /run/secrets/github_token 2>/dev/null || true)" sh /usr/local/lib/agentos-env/browser.sh
 COPY entrypoint.sh /usr/local/lib/agentos-env/entrypoint.sh
 RUN chmod 755 /usr/local/lib/agentos-env/entrypoint.sh
 # 2: the entrypoint walls the machine off (AGENTOS_ENV_WALL=1); agentos.vms.docker refuses an older image
