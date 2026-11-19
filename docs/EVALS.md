@@ -245,3 +245,27 @@ command. It called the pull request, the checkpoint and the rollback directly. I
 change, the tests failed, it rolled back and said what broke. The scripts' times moved with Docker's
 noise (the compare calls several tasks 20 to 40% slower against the prototype's run; no tool on
 those paths changed).
+
+The review's phase 2, the same day: three merges (`browser_tabs(select=...)`, `browser_dialog(accept=...)`,
+`approval_wait(wait_s=0)`), `wait_s` for every wait in the list, and descriptions without "Effect:" lines,
+"Errors:" lists or lists of returned fields. The first live run of it, with `on` described as
+"From environment_open.", went backwards: Haiku left `on` out of `file_write` and `file_edit` three times,
+passed the open's id as `on` once, and t06 did not finish (its last test run was hidden in a command that
+also committed). `on` went back to "The on environment_open gave" and the open says to keep its whole handle
+(50 tokens); the run after that is the "Now" column.
+
+| | Before (the surface above) | `on` as "From environment_open." | Now |
+|---|---:|---:|---:|
+| their tokens | 8,201 | 6,961 | 7,013 |
+| `perfect`: finished, calls, tokens read, wrong turns | 7 of 7, 62, 19,678, 0 | 7 of 7, 62, 19,802, 0 | 7 of 7, 62, 19,745, 0 |
+| `careless`: finished | 0 of 7 | 0 of 7 | 0 of 7 |
+| Haiku t01: finished, calls, errors | yes, 7, 0 | yes, 8, 1 | yes, 10, 1 |
+| Haiku t06: finished, calls, tokens read | yes, 10, 3,396 | no, 16, 3,513 | yes, 9, 3,384 |
+| Haiku: `on` left out or wrong | 0 | 4 | 1 (`file_edit` without it) |
+| Haiku: files read through the terminal | 3 | 3 | 3 |
+| Haiku cost, both tasks | $0.015 | $0.018 | $0.015 |
+
+One run each, so a direction: the trims cost nothing measurable once `on` keeps its words, and the
+words of `on` matter more than their tokens.
+The scripts' times of the last free run are slower across the board because the whole unit suite ran
+on the same machine at the time; no tool on their paths changed.
