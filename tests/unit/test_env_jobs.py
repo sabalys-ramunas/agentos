@@ -255,7 +255,7 @@ async def test_sync_sends_only_what_changed_and_keeps_what_the_command_made(env,
     manifest, missing = await upload_tree(t, ctx, src, paths)
     assert len(missing) == 4  # three files and the manifest
     upload_call = next(c for c in ctx.calls if c["effect"] == Effect.DRAFT)
-    assert "for a sync into lane dev/run" in upload_call["summary"]
+    assert "for a sync into terminal dev/run" in upload_call["summary"]
     sync = {"dest": "src/repo", "manifest": manifest}
     job = await t["terminal_job_start"](ctx, on="dev/run", cmd="./run.sh; cat link; mkdir -p .venv; echo x > .venv/keep",
                                     cwd="src/repo", sync=sync)

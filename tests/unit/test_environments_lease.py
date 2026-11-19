@@ -57,7 +57,7 @@ async def test_two_stateless_chats_each_hold_their_own_and_never_reach_the_other
     for on in ("Shop page", a["id"], f"env/{a['id']}", f"env/{a['id']}-browser", f"{a['id']}-browser"):
         with pytest.raises(ToolCallError, match="^which_environment") as err:
             await node["call"]("terminal_exec", on=on, cmd="rm -rf /work", session=NONE)
-        words = "lane's name, not an on" if on.endswith(("-browser", f"/{a['id']}")) else "pass the on from your"
+        words = ", not an on: pass the on your environment_open returned" if on.endswith(("-browser", f"/{a['id']}")) else "pass the on from your"
         assert words in str(err.value) and a["on"] not in str(err.value)
     # a handle with the right id and a made-up secret is nobody's
     with pytest.raises(ToolCallError, match="^no_environment"):
@@ -310,10 +310,10 @@ async def test_a_lane_name_as_on_reaches_the_sessions_own_machine_and_names_the_
     assert ran["exit_code"] == 0 and ran["environment"]["id"] == a["id"]
     with pytest.raises(ToolCallError, match="^which_environment") as err:
         await node["call"]("terminal_exec", on=f"{a['id']}-browser", cmd="pwd", session="s-b")
-    assert "is the browser lane's name, not an on" in str(err.value) and a["on"] not in str(err.value)
+    assert "is the name of its browser, not an on" in str(err.value) and a["on"] not in str(err.value)
     with pytest.raises(ToolCallError, match="^no_environment") as err:
         await node["call"]("terminal_exec", on="eaaaaaaaaaa-browser", cmd="pwd", session="s-a")
-    assert "looks like a lane's name" in str(err.value) and "—" not in str(err.value)
+    assert "looks like the name of an environment's terminal or browser" in str(err.value) and "—" not in str(err.value)
 
 
 async def test_the_open_result_names_no_lane(node):  # noqa: F811

@@ -244,7 +244,7 @@ class JobTable:
         job = self.jobs.get(job_id) if valid_job_id(job_id) else None
         if job is None:
             raise NotFound(f"no job {job_id} on this node (finished jobs are kept {self.settings.jobs_keep_per_lane} "
-                           "per lane; terminal_jobs shows them)")
+                           "per terminal; terminal_jobs shows them)")
         return job
 
     def running_in(self, lane_id: str) -> list[Job]:

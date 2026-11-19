@@ -48,13 +48,13 @@ class Jobs:
     # =============================================================== jobs
     def _job_argv(self, lane: EnvLane, cmd: str, cwd: str | None) -> list[str]:
         if not lane.policy.exec:
-            raise PolicyDenied(f"commands are off in {lane.preset.value} lanes")
+            raise PolicyDenied(f"commands are off in {lane.preset.value} terminals")
         if not isinstance(cmd, str) or not cmd.strip():
             raise InvalidRequest("empty command")
         if cwd is not None:
             cwd = syncs.check_cwd(cwd, remote=lane.remote is not None)
             if lane.policy.signed_only:
-                raise InvalidRequest(f"locked lane {lane.id} runs allowlisted programs only, without a cwd")
+                raise InvalidRequest(f"locked terminal {lane.id} runs allowlisted programs only, without a cwd")
             # plain names (check_cwd), so it is safe as one shell word
             return self.command_argv(lane, f"cd '{cwd}' && {cmd}")
         return self.command_argv(lane, cmd)

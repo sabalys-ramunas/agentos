@@ -27,11 +27,11 @@ def _mgr(ctx: ToolContext):
 
 def _where(lane: EnvLane) -> str:
     if lane.remote is not None:
-        return f"on VM lane {lane.id} (a disposable cloud machine at {lane.remote.host}, nothing of the node on it)"
+        return f"on VM {lane.id} (a disposable cloud machine at {lane.remote.host}, nothing of the node on it)"
     if not lane.isolated:
-        return f"on the node itself as {exposure.node_user()} (workbench lane {lane.id}, no isolation)"
+        return f"on the node itself as {exposure.node_user()} (workbench terminal {lane.id}, no isolation)"
     if exposure.reaches_node(lane):
-        return (f"in {lane.preset.value} lane {lane.id}, which shares the node's "
+        return (f"in {lane.preset.value} terminal {lane.id}, which shares the node's "
                 f"{' and '.join(exposure.shared_dials(lane))} (it can read the vault and the node token)")
     net = lane.profile.network
     if net == "isolated":
@@ -40,7 +40,7 @@ def _where(lane: EnvLane) -> str:
         net = f"egress via forwarder to {allow}"
     else:
         net = f"network {net}"
-    return f"in {lane.preset.value} lane {lane.id} ({net}, filesystem {lane.profile.filesystem})"
+    return f"in {lane.preset.value} terminal {lane.id} ({net}, filesystem {lane.profile.filesystem})"
 
 
 def _facts(lane: EnvLane) -> dict:
@@ -95,7 +95,7 @@ def _lane_brief(info) -> dict:
 
 # ------------------------------------------------------------------ lanes
 async def env_lanes_list(ctx: ToolContext) -> list[dict]:
-    """List terminal and service lanes on this node: preset, state, and an honest one-line
+    """List the terminals and services on this node: preset, state, and an honest one-line
     description of the isolation each really gets."""
     await ctx.authorize(Effect.READ)
     allowed = getattr(ctx, "can_access_lane", None)  # a grant sees only the lanes it covers
@@ -106,10 +106,10 @@ async def env_create(ctx: ToolContext, *, on: str, preset: str = "sandbox", netw
                      allow_hosts: list[str] | None = None, base_image: str | None = None,
                      filesystem: str | None = None, memory_mb: int | None = None, cpus: float | None = None,
                      disk_mb: int | None = None) -> dict:
-    """Create a terminal lane `workspace/name`. Agents may create sandbox (throwaway: private
+    """Create a terminal `workspace/name` on the node. Agents may create sandbox (throwaway: private
     ephemeral filesystem, network off unless you pass network="isolated" with allow_hosts) or
-    locked lanes. base_image pins a built image such as "dev-box@1". filesystem="overlay" keeps
-    the lane's files when it goes cold (a cached .venv or node_modules); memory_mb, cpus and
+    locked ones. base_image pins a built image such as "dev-box@1". filesystem="overlay" keeps
+    its files when it goes cold (a cached .venv or node_modules); memory_mb, cpus and
     disk_mb size it, up to the node's caps for agents."""
     mgr = _mgr(ctx)
     overrides: dict[str, Any] = {}
@@ -123,7 +123,7 @@ async def env_create(ctx: ToolContext, *, on: str, preset: str = "sandbox", netw
         overrides["filesystem"] = filesystem
     sizes = {k: v for k, v in (("memory_mb", memory_mb), ("cpus", cpus), ("disk_mb", disk_mb)) if v is not None}
     overrides.update(sizes)
-    summary = (f"Create {preset} terminal lane {on}"
+    summary = (f"Create {preset} terminal {on}"
                + (f", network {network}" if network else "")
                + (f", egress allowlist {', '.join(allow_hosts)}" if allow_hosts else "")
                + (f", base image {base_image}" if base_image else "")
@@ -144,11 +144,11 @@ async def env_create(ctx: ToolContext, *, on: str, preset: str = "sandbox", netw
 
 
 async def env_remove(ctx: ToolContext, *, on: str) -> dict:
-    """Delete a terminal or service lane and its files (its writable layer, logs and home)."""
+    """Delete a terminal or service and its files (its writable layer, logs and home)."""
     mgr = _mgr(ctx)
     lane = mgr.get(on)
     await ctx.authorize(Effect.IRREVERSIBLE, lane_id=on,
-                        summary=f"Delete {lane.preset.value} lane {on} and everything written inside it",
+                        summary=f"Delete {lane.preset.value} terminal {on} and everything written inside it",
                         content={"remove": on})
     await mgr.remove(on)
     return {"removed": on}
@@ -160,14 +160,14 @@ EXEC_BYTES = 16000  # what terminal_exec returns of stdout and stderr together b
 
 async def lane_exec(ctx: ToolContext, *, on: str, cmd: str, timeout_s: float = 60,
                     stdin: str | None = None, cwd: str | None = None, max_bytes: int = EXEC_BYTES) -> dict:
-    """Run one shell command inside a lane and wait for it. Returns exit_code, stdout, stderr,
+    """Run one shell command on your environment's machine (or a terminal) and wait for it. Returns exit_code, stdout, stderr,
     duration_s and timed_out. Past max_bytes the middle of the output is dropped with a marker;
     stdout_bytes and stderr_bytes are the full sizes. Binary output comes back base64. Processes
     it starts end with it: use terminal_job_start for a dev server. Effect: exec.
 
     Args:
         cwd: The folder to run in (on an environment's machine an absolute path like /work/shop;
-            elsewhere one under the lane's home).
+            elsewhere one under the terminal's home).
         max_bytes: stdout and stderr together (default 16000, at most 131072).
         timeout_s: At most 200.
     """
@@ -256,9 +256,9 @@ def _exec_budget(mgr: Any, max_bytes: Any) -> int:
 
 
 async def lane_install(ctx: ToolContext, *, on: str, packages: list[str], source: str = "apt") -> dict:
-    """Install programs into a lane from a pinned source: apt (the node's signed apt sources,
-    as the lane's root inside its overlay), pip (pypi.org) or npm (registry.npmjs.org). The
-    install is visible only in this lane, unless the lane shares the node filesystem."""
+    """Install programs into a terminal from a pinned source: apt (the node's signed apt sources,
+    as its root inside its overlay), pip (pypi.org) or npm (registry.npmjs.org). The install is
+    visible only in this terminal, unless it shares the node filesystem."""
     mgr = _mgr(ctx)
     lane = mgr.get(on)
     mgr.check_runnable(lane)  # a sandbox this node can never run is refused before anyone is asked
@@ -310,16 +310,16 @@ def _decode_chunk(sha: str, data: Any) -> bytes:
 
 async def lane_upload_check(ctx: ToolContext, *, on: str, chunks: list[str]) -> dict:
     """Which of these chunks (sha256 hex of each piece of a file) the node does not hold yet for
-    this lane. Upload those with terminal_upload; the rest are there from an earlier sync."""
+    this terminal. Upload those with terminal_upload; the rest are there from an earlier sync."""
     await ctx.authorize(Effect.READ, lane_id=on)
     missing = await _mgr(ctx).upload_check(on, chunks)
     return {"lane": on, "missing": missing, "have": len(set(chunks)) - len(missing)}
 
 
 async def lane_upload(ctx: ToolContext, *, on: str, chunks: dict[str, str]) -> dict:
-    """Store file chunks on the node for a later sync into this lane (terminal_job_start's `sync`):
+    """Store file chunks on the node for a later sync into this terminal (terminal_job_start's `sync`):
     {sha256 hex: base64 data}, at most a few MB per call. Each chunk is checked against its
-    name. Nothing reaches the lane, and nothing runs, until a sync applies them."""
+    name. Nothing reaches the terminal, and nothing runs, until a sync applies them."""
     mgr = _mgr(ctx)
     lane = mgr.get(on)
     if not isinstance(chunks, dict) or not chunks:
@@ -327,7 +327,7 @@ async def lane_upload(ctx: ToolContext, *, on: str, chunks: dict[str, str]) -> d
     data = {sync_check_sha(sha): _decode_chunk(sha, b64) for sha, b64 in chunks.items()}
     size = sum(len(b) for b in data.values())
     await ctx.authorize(Effect.DRAFT, lane_id=on,
-                        summary=f"Store {len(data)} file chunk(s) ({size} bytes) on the node for a sync into lane {on}",
+                        summary=f"Store {len(data)} file chunk(s) ({size} bytes) on the node for a sync into terminal {on}",
                         content={"chunks": sorted(data)}, facts=_facts(lane))
     return {"lane": on, **(await mgr.upload(on, data))}
 
@@ -335,14 +335,18 @@ async def lane_upload(ctx: ToolContext, *, on: str, chunks: dict[str, str]) -> d
 async def lane_job_start(ctx: ToolContext, *, on: str, cmd: str, cwd: str | None = None,
                          env: dict[str, str] | None = None, timeout_s: float | None = None,
                          sync: dict[str, Any] | None = None, source: dict[str, Any] | None = None) -> dict:
-    """Start a shell command in a lane in the background and return its job id at once; read its
-    output with terminal_job_read as it runs, stop it with terminal_job_cancel. For long work (a test
-    suite, a build): the output is kept on the node, so you can disconnect and come back. cwd is a
-    directory under the lane's home; env adds variables; timeout_s defaults to the node's maximum.
-    sync={"dest", "manifest", "clean"} first makes `dest` hold exactly the files of a manifest
-    whose chunks you uploaded (terminal_upload, terminals toolset), keeping what earlier commands made there (a .venv)
-    unless clean is true, and is approved together with the command. source={"branch", "commit",
-    "dirty"} says which git tree the sync came from (kept on the job, with a sync only)."""
+    """Start a shell command on your environment's machine (or a terminal) in the background and
+    return its job id at once; read its output with terminal_job_read as it runs, stop it with
+    terminal_job_cancel. For a dev server and long work (a test suite, a build): the output is kept on
+    the node, so you can disconnect and come back. cwd: a folder such as /work/shop; env adds
+    variables; timeout_s defaults to the node's maximum. sync and source apply chunks uploaded with
+    terminal_upload (terminals toolset) first (agentos run uses them).
+
+    Args:
+        sync: {"dest", "manifest", "clean"}: make `dest` hold exactly the files of a manifest whose chunks
+            you uploaded, keeping what earlier commands made there (a .venv) unless clean is true.
+        source: {"branch", "commit", "dirty"}: which git tree the sync came from (with a sync only).
+    """
     mgr = _mgr(ctx)
     told = _source(source) if sync is not None else None
     lane = mgr.get(on)
@@ -503,7 +507,7 @@ async def lane_job_cancel(ctx: ToolContext, *, job: str, on: str | None = None) 
 
 
 async def lane_jobs_list(ctx: ToolContext, *, on: str | None = None) -> list[dict]:
-    """Background jobs on this node (of one lane with `on`), newest first, running and finished. An
+    """Background jobs on this node (of one terminal with `on`), newest first, running and finished. An
     environment's jobs show only with its on (the on your environment_open gave)."""
     if on is not None:
         await ctx.authorize(Effect.READ, lane_id=on)
@@ -519,7 +523,7 @@ async def lane_jobs_list(ctx: ToolContext, *, on: str | None = None) -> list[dic
 
 # ------------------------------------------------------------------ shells
 async def shell_open(ctx: ToolContext, *, on: str, cols: int = 120, rows: int = 32) -> dict:
-    """Open an interactive shell (a PTY) in a lane. The session keeps running when you
+    """Open an interactive shell (a PTY) in a terminal. The session keeps running when you
     disconnect, until it is closed or idle for a long time. Returns the session id."""
     mgr = _mgr(ctx)
     lane = mgr.get(on)
@@ -567,7 +571,7 @@ async def shell_close(ctx: ToolContext, *, session: str) -> dict:
 
 # ------------------------------------------------------------------ services
 async def service_start(ctx: ToolContext, *, on: str, ttl_s: float | None = None) -> dict:
-    """Start (or keep running) a service lane's supervised command, restarted with backoff if
+    """Start (or keep running) a service's supervised command, restarted with backoff if
     it crashes. ttl_s stops it automatically after that many seconds."""
     mgr = _mgr(ctx)
     lane = mgr.get(on)
@@ -585,7 +589,7 @@ async def service_start(ctx: ToolContext, *, on: str, ttl_s: float | None = None
 
 
 async def service_stop(ctx: ToolContext, *, on: str) -> dict:
-    """Stop a service lane's command (SIGTERM, then SIGKILL after its stop timeout)."""
+    """Stop a service's command (SIGTERM, then SIGKILL after its stop timeout)."""
     mgr = _mgr(ctx)
     # stopping runs nothing in the lane, so it carries no `runs_on_node`: stopping a service on a lane
     # that reaches the node must stay as easy as it was
@@ -618,7 +622,7 @@ async def images_list(ctx: ToolContext) -> dict:
 
 
 async def image_build(ctx: ToolContext, *, template: str) -> dict:
-    """Build a new version of a base image from its template (a shared change: every lane
+    """Build a new version of a base image from its template (a shared change: every terminal
     created on the new version sees it)."""
     mgr = _mgr(ctx)
     t = mgr.templates().get(template)

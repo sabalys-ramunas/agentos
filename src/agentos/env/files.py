@@ -118,14 +118,14 @@ def _header(res: Any, path: str) -> tuple[list[str], bytes]:
     words = first.decode("utf-8", "replace").split()
     if not words or words[0] != MARK:
         said = (res.stderr or res.stdout or "").strip()[-300:]
-        raise InvalidRequest(f"could not reach {path} on the lane (exit {res.exit_code}): {said or 'no answer'}")
+        raise InvalidRequest(f"could not reach {path} on the machine (exit {res.exit_code}): {said or 'no answer'}")
     kind = words[1] if len(words) > 1 else ""
     if kind == "missing":
         raise NotFound(f"no file {path}; terminal_exec(cmd=\"ls\") lists a folder, file_write makes a file")
     if kind == "dir":
         raise InvalidRequest(f"{path} is a folder, not a file; list it with terminal_exec(cmd=\"ls -la {path}\")")
     if kind == "unreadable":
-        raise InvalidRequest(f"{path} cannot be read by the lane's user")
+        raise InvalidRequest(f"{path} cannot be read by the machine's user")
     return words[1:], rest
 
 
@@ -133,7 +133,7 @@ def _numbers(words: list[str]) -> list[int]:
     try:
         return [int(w) for w in words[1:]]
     except ValueError:
-        raise InvalidRequest(f"the lane answered {' '.join(words)!r} about the file") from None
+        raise InvalidRequest(f"the machine answered {' '.join(words)!r} about the file") from None
 
 
 def _binary(path: str, size: int) -> InvalidRequest:

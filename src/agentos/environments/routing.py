@@ -176,7 +176,7 @@ def route(runtime: Any, tool: str, kwargs: dict[str, Any], *, session: str | Non
     if svc is None:
         if on:
             return None
-        raise NoEnvironment("this node has no environments, so name the lane with `on`")
+        raise NoEnvironment("this node has no environments, so name the terminal or browser with `on`")
     if not callable(getattr(svc, "pick", None)):  # a service that only resolves lanes (a test's stand-in)
         if not on:
             kwargs["on"] = svc.resolve(binding(session, grant_id), kind, family)
@@ -187,7 +187,7 @@ def route(runtime: Any, tool: str, kwargs: dict[str, Any], *, session: str | Non
             if "/" in on:
                 return None
             raise NoEnvironment(f"no open environment of yours is named \"{on[:80]}\". on takes the on your "
-                                "environment_open gave, or an account lane \"workspace/name\"; environment() lists "
+                                "environment_open gave, or an account browser \"workspace/name\"; environment() lists "
                                 "your agent's machines")
         if env.state == "failed":
             from agentos.environments.errors import EnvironmentFailed

@@ -479,7 +479,7 @@ async def test_browser_calls_without_on_resolve_to_the_browser_lane(node):
     with pytest.raises(Exception, match="no environment") as err:
         routing.route(rt, "browser_navigate", other, session="chat-2", grant_id="gr_other")
     # an agent doing account work that forgot `on` is told so, not only to rent a machine
-    assert "account lane" in str(err.value) and "`on`" in str(err.value) and "browsers_list" in str(err.value)
+    assert "account browser" in str(err.value) and "`on`" in str(err.value) and "browsers_list" in str(err.value)
 
 
 async def test_studio_checks_get_the_environments_proxy(node):
