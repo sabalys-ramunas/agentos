@@ -117,12 +117,12 @@ async def test_a_page_call_on_the_environments_browser_takes_a_captioned_frame(n
     assert shots.page.shots == [{"type": "jpeg", "quality": replay_mod.FRAME_QUALITY, "caret": "initial",
                                  "timeout": replay_mod.SHOT_TIMEOUT_S * 1000}]  # the viewport only, no style injected
     mgr.record_call(env.browser_lane, "browser_snapshot", ok=True)  # a read changes nothing: no frame
-    mgr.record_call(env.terminal_lane, "lane_exec", ok=True, summary="npm test", exit_code=0)
+    mgr.record_call(env.terminal_lane, "terminal_exec", ok=True, summary="npm test", exit_code=0)
     await settled(mgr)
     assert len(frames(mgr, env)) == 1
     calls = mgr.replay_store().calls(env.id)
     assert [(c["tool"], c["lane"]) for c in calls][-3:] == [("browser_navigate", "browser"),
-                                                            ("browser_snapshot", "browser"), ("lane_exec", "terminal")]
+                                                            ("browser_snapshot", "browser"), ("terminal_exec", "terminal")]
     assert calls[-1]["exit_code"] == 0 and secret not in json.dumps(calls)
 
 
@@ -357,7 +357,7 @@ def test_the_calls_log_keeps_the_newest(tmp_path, monkeypatch):
     monkeypatch.setattr(store_mod, "CALLS_MAX", 4)
     store = store_mod.ReplayStore(tmp_path)
     for i in range(12):
-        store.add_call("eabcdefghjk", {"at": f"2026-11-18T10:00:{i:02d}.000Z", "tool": "lane_exec", "summary": str(i)})
+        store.add_call("eabcdefghjk", {"at": f"2026-11-18T10:00:{i:02d}.000Z", "tool": "terminal_exec", "summary": str(i)})
     kept = [c["summary"] for c in store.calls("eabcdefghjk")]
     assert kept[-1] == "11" and len(kept) <= 5
 
@@ -392,10 +392,10 @@ async def test_a_timeline_interleaves_calls_and_frames_with_signed_links(node, s
     mgr.record_call(env.browser_lane, "browser_navigate", ok=True, summary="http://localhost:3000/")
     await settled(mgr)
     await asyncio.sleep(0.01)  # times are kept to the millisecond, and at one millisecond a call sorts before a frame
-    mgr.record_call(env.terminal_lane, "lane_exec", ok=True, summary="npm run build", exit_code=0)
+    mgr.record_call(env.terminal_lane, "terminal_exec", ok=True, summary="npm run build", exit_code=0)
     out = mgr.replay_timeline(env, src="/api/orgs/local/environments/x/replay")
     kinds = [(i["kind"], i["tool"]) for i in out["timeline"]]
-    assert kinds[-3:] == [("call", "browser_navigate"), ("frame", "browser_navigate"), ("call", "lane_exec")]
+    assert kinds[-3:] == [("call", "browser_navigate"), ("frame", "browser_navigate"), ("call", "terminal_exec")]
     frame = next(i for i in out["timeline"] if i["kind"] == "frame")
     port = node["rt"].get("config").mcp_port
     assert frame["url"].startswith(f"http://localhost:{port}/view/env/{env.id}-browser/replay/{frame['id']}.jpg?t=")
@@ -462,7 +462,7 @@ def test_the_cli_writes_the_frames_and_a_contact_sheet(panel, tmp_path):  # noqa
     store = mgr.replay_store()
     t0 = utcnow()  # each one a millisecond apart: at the same millisecond a call sorts before a frame
     a = _add(store, env.id, "agent", at=store_mod.iso_ms(t0))
-    store.add_call(env.id, {"at": store_mod.iso_ms(t0 + timedelta(milliseconds=1)), "tool": "lane_exec",
+    store.add_call(env.id, {"at": store_mod.iso_ms(t0 + timedelta(milliseconds=1)), "tool": "terminal_exec",
                             "summary": "npm test", "ok": True, "lane": "terminal"})
     c = _add(store, env.id, "close", (200, 200, 200), at=store_mod.iso_ms(t0 + timedelta(milliseconds=2)))
     out = tmp_path / "out"

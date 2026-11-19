@@ -105,7 +105,7 @@ async def test_the_bench_mcp_server_says_the_variant(tmp_path, specs):
 
     (tmp_path / "v").mkdir()
     (tmp_path / "v" / "instructions.md").write_text("Only these words.")
-    (tmp_path / "v" / "tools.json").write_text(json.dumps({"files_list": "List the inbox."}))
+    (tmp_path / "v" / "tools.json").write_text(json.dumps({"browser_files": "List the inbox."}))
     v = variant.load(tmp_path / "v", tool_names=names(specs))
     runtime = Runtime(config=NodeConfig(home=tmp_path / "home"))
     runtime.register("lanes", object())  # lane tools are listed only on a node with lanes
@@ -113,8 +113,8 @@ async def test_the_bench_mcp_server_says_the_variant(tmp_path, specs):
     async with Client(server) as client:
         listed = {t.name: t.description for t in (await client.list_tools()).tools}
         assert client.instructions == "Only these words."
-    assert listed["files_list"] == "List the inbox."
-    assert listed["files_put"] != "List the inbox."
+    assert listed["browser_files"] == "List the inbox."
+    assert listed["browser_file_put"] != "List the inbox."
 
 
 def test_the_cli_refuses_a_variant_without_the_mcp_agent(tmp_path):

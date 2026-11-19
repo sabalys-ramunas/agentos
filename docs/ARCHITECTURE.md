@@ -33,7 +33,7 @@ Guiding invariants, true everywhere below:
 
 ```
   your agent (Claude Code, Codex, T3 Code)               you (web app, live view, chat)
-        |  MCP: environment_open, lane_exec, browser_*, ui_check     |
+        |  MCP: environment_open, terminal_exec, browser_*, ui_check     |
         v                                                            v
   +------------------------------- node (agentosd) ---------------------------------+
   |  grants, approvals, vault, audit log, git gateway (127.0.0.1:3129)               |
@@ -52,8 +52,8 @@ Guiding invariants, true everywhere below:
   asks a person: the grant needs the `vm` special, and the node's limits bound it (open at once,
   the longest life, a monthly budget; `environment_limit` past one). The image is
   the `dev` snapshot when the node has one, else Ubuntu 24.04 with the tools installed by
-  cloud-init. The VM is a terminal lane whose commands run over SSH (`env/<id>`), so `lane_exec`,
-  `lane_job_*`, `shell_*` and services work on it unchanged ([design/vms.md](design/vms.md)).
+  cloud-init. The VM is a terminal lane whose commands run over SSH (`env/<id>`), so `terminal_exec`,
+  `terminal_job_*`, `shell_*` and services work on it unchanged ([design/vms.md](design/vms.md)).
 - **Git.** The VM's SSH connection carries a reverse tunnel to the node's git gateway, and the
   VM's git config sends declared hosts there. Clone, fetch and push run under workspace `env`'s
   declarations: a push never asks, a force push or a delete of the default branch is refused
@@ -503,16 +503,16 @@ handle lives in `LaneSpec.account`).
   `environment_close`, `environment_save`, `environment_upload`, `environment_download`,
   `environment_forget` (section 0); terminal and browser calls without `on` go to the caller's
   environment.
-- **Lanes:** `whoami`, `lanes_list`, `lane_open`, `lane_close`, `lane_view` (a signed link
-  to watch or take over), `lane_claim` and `lane_release`, `lane_check`, `lane_exec`,
-  `lane_install`.
+- **Lanes:** `whoami`, `browsers_list`, `browser_open`, `browser_close`, `browser_view` (a signed link
+  to watch or take over), `browser_claim` and `browser_release`, `browser_check`, `terminal_exec`,
+  `terminal_install`.
 - **Browser:** `browser_navigate`, `browser_snapshot`, `browser_act`, `browser_wait`,
   `browser_screenshot`, `browser_scroll`, `browser_tabs`, `browser_upload`, dialogs.
 - **Devtools:** `browser_console` and `browser_network`, a page's console errors and requests,
   for an agent testing a web app (secrets in headers, URLs and bodies masked; docs/DEVELOPING.md).
-- **Logins and secrets:** `login`, `vault_fill`, `vault_list`, `lane_login_request`.
+- **Logins and secrets:** `login`, `vault_fill`, `vault_list`, `browser_login_request`.
 - **Approvals and people:** `approval_status`, `approval_wait`, `human_ask`,
-  `lane_wait_control`.
+  `browser_wait_handback`.
 - **Automation:** flows (`flow_record_start`, `flow_save`, `flow_run`, one `flow_<name>`
   tool per saved flow), workflows, triggers, schedules, brains (`brain_run`, `brain_use`),
   connectors, memory, mail, files, traces.
@@ -522,7 +522,7 @@ Key choices:
 - **Snapshots return an accessibility outline with refs** (`[ref=e12]`), and an action can
   return only the lines it changed (`snapshot="delta"`); `browser_screenshot` is the
   explicit escape hatch.
-- **The grant projects the surface.** A tool a grant cannot use (for example `lane_exec`
+- **The grant projects the surface.** A tool a grant cannot use (for example `terminal_exec`
   with no `exec` grant) is left out of the list.
 - **Gated actions return `approval_pending`, not an error:** the agent tells the human, waits
   with `approval_wait`, then calls again with the same arguments.

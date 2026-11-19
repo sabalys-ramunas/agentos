@@ -79,6 +79,7 @@ def parse_toolsets(value: str) -> list[str] | None:
     if set(words) & toolsets.FULL_ALIASES:
         return [toolsets.FULL]
     known = (*toolsets.NAMES, toolsets.OTHER)
+    words = [toolsets.TOOLSET_ALIASES.get(w, w) for w in words]
     unknown = [w for w in words if w not in known]
     if unknown:
         raise ClientError(f"--toolsets: no toolset named {', '.join(unknown[:3])}",

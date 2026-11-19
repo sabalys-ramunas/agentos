@@ -18,7 +18,7 @@ import typer
 from agentos.client.call import call as call_command
 from agentos.client.choices import AgentOptions, ClientChoice, ConnectResult, Health, InstallChoice
 from agentos.client.errors import ClientError
-from agentos.client.ops import Client
+from agentos.client.ops import Client, browsers_of
 from agentos.client.state import DEFAULT_REMOTE_HOME, Connection, shown
 
 # Tracebacks never print local variables: they would include the token.
@@ -309,7 +309,7 @@ def nodes() -> None:
 
 
 def lane_counts(whoami: dict[str, Any]) -> str:
-    lanes = whoami.get("lanes") or {}
+    lanes = whoami.get("browsers") or whoami.get("lanes") or {}  # "lanes" from a node before 0.4
     total = lanes.get("total", 0)
     parts = [f"{n} {state}" for state, n in lanes.items() if state != "total" and n]
     return f"{total} total" + (f", {', '.join(parts)}" if parts else "")
@@ -364,7 +364,7 @@ def node_status() -> dict[str, Any] | None:
     try:
         with McpSession(cfg.mcp_port, cfg.mcp_token, timeout=10, host="127.0.0.1") as session:
             out["whoami"] = session.call("whoami")
-            out["lanes"] = session.call("lanes_list").get("lanes", [])
+            out["lanes"] = browsers_of(session.call("browsers_list"))
     except McpError as exc:
         out["error"] = (f"agentosd does not answer on port {cfg.mcp_port}" if exc.failure.value == "unreachable"
                         else f"agentosd on port {cfg.mcp_port}: {exc.detail}")
@@ -486,7 +486,7 @@ def expose_command(
     """Open your dev server (localhost:PORT here) in one browser lane, so you can try your app with the
     lane's real, logged-in accounts: "Sign in with LinkedIn" and the redirect back, embeds, cookies.
 
-    The lane opens it at https://NAME.expose.agentos.invalid, and agents driving the lane see it in lanes_list.
+    The lane opens it at https://NAME.expose.agentos.invalid, and agents driving the lane see it in browsers_list.
 
     Only that lane, only while this command runs: Ctrl-C, --for or a dropped SSH session ends it.
 

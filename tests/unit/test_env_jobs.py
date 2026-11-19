@@ -53,7 +53,7 @@ async def wait_done(t, ctx, job, timeout=10.0):
     loop = asyncio.get_running_loop()
     end = loop.time() + timeout
     while True:
-        r = await t["lane_job_read"](ctx, job=job, stdout_offset=so, stderr_offset=se, wait_ms=500,
+        r = await t["terminal_job_read"](ctx, job=job, stdout_offset=so, stderr_offset=se, wait_s=0.5,
                                       base64_output=True)
         out += base64.b64decode(r["stdout"])
         err += base64.b64decode(r["stderr"])
@@ -90,9 +90,9 @@ def tree_of(root, paths):
 async def upload_tree(t, ctx, root, paths):
     manifest, raw = tree_of(root, paths)
     blobs = {sha: base64.b64encode(data).decode() for sha, data in raw.items()}
-    missing = (await t["lane_upload_check"](ctx, on="dev/run", chunks=list(blobs)))["missing"]
+    missing = (await t["terminal_upload_check"](ctx, on="dev/run", chunks=list(blobs)))["missing"]
     if missing:
-        await t["lane_upload"](ctx, on="dev/run", chunks={k: blobs[k] for k in missing})
+        await t["terminal_upload"](ctx, on="dev/run", chunks={k: blobs[k] for k in missing})
     return manifest, missing
 
 
@@ -114,12 +114,12 @@ def lane_home(runtime):
 
 async def test_a_job_streams_its_output_and_keeps_the_exit_code(env):
     t, ctx = tools(env), Ctx(env)
-    job = await t["lane_job_start"](ctx, on="dev/run", cmd="echo one; echo two >&2; sleep 0.3; echo three; exit 7")
+    job = await t["terminal_job_start"](ctx, on="dev/run", cmd="echo one; echo two >&2; sleep 0.3; echo three; exit 7")
     assert job["state"] == "running" and job["id"].startswith("job-")
     call = ctx.calls[0]
     assert call["effect"] == Effect.EXEC and call["lane_id"] == "dev/run"
     assert "echo one" in call["summary"] and "in the background" in call["summary"]
-    first = await t["lane_job_read"](ctx, job=job["id"], wait_ms=2000)
+    first = await t["terminal_job_read"](ctx, job=job["id"], wait_s=2)
     assert first["stdout"].startswith("one") and ctx.calls[-1]["effect"] == Effect.READ
     r, out, err = await wait_done(t, ctx, job["id"])
     assert out == b"one\nthree\n" and err == b"two\n"
@@ -128,10 +128,10 @@ async def test_a_job_streams_its_output_and_keeps_the_exit_code(env):
 
 async def test_reads_resume_from_an_offset_and_text_never_splits_a_character(env):
     t, ctx = tools(env), Ctx(env)
-    job = await t["lane_job_start"](ctx, on="dev/run", cmd="printf 'héllo wörld'")
+    job = await t["terminal_job_start"](ctx, on="dev/run", cmd="printf 'héllo wörld'")
     _, out, _ = await wait_done(t, ctx, job["id"])
     assert out.decode() == "héllo wörld"
-    part = await t["lane_job_read"](ctx, job=job["id"], stdout_offset=3, max_bytes=4)
+    part = await t["terminal_job_read"](ctx, job=job["id"], stdout_offset=3, max_bytes=4)
     assert part["stdout"] == "llo " and part["next_stdout_offset"] == 7  # é is two bytes: offset 3 is after it
 
 
@@ -140,9 +140,9 @@ async def test_waiting_for_the_end_of_a_long_job_gives_its_start_and_its_end(env
     the summary. A job that printed far more than max_bytes gives the start and the end with a marker
     that names the bytes it skipped, which a plain read at that offset still pages through."""
     t, ctx = tools(env), Ctx(env)
-    job = await t["lane_job_start"](ctx, on="dev/run",
+    job = await t["terminal_job_start"](ctx, on="dev/run",
                                     cmd="echo START; seq 1 100000; echo boom >&2; echo DONE; exit 2")
-    r = await t["lane_job_read"](ctx, job=job["id"], until_exit=True, wait_ms=30000)
+    r = await t["terminal_job_read"](ctx, job=job["id"], until_exit=True, wait_s=30)
     out = r["stdout"]
     assert r["state"] == "exited" and r["exit_code"] == 2 and "boom" in r["stderr"]
     assert out.startswith("START\n1\n") and out.endswith("100000\nDONE\n") and len(out) < 16_400
@@ -153,20 +153,20 @@ async def test_waiting_for_the_end_of_a_long_job_gives_its_start_and_its_end(env
     head, tail = out[:skipped.start()], out[skipped.end():]
     assert head.endswith("\n") and tail.startswith(tuple("0123456789"))  # whole lines on both sides
     assert len(head) + int(skipped[1]) + len(tail) == r["stdout_bytes"] and "skipped" in r["note"]
-    middle = await t["lane_job_read"](ctx, job=job["id"], stdout_offset=int(skipped[3]), max_bytes=1 << 20)
+    middle = await t["terminal_job_read"](ctx, job=job["id"], stdout_offset=int(skipped[3]), max_bytes=1 << 20)
     assert (head + middle["stdout"][:int(skipped[1])] + tail).splitlines() == \
         ["START", *map(str, range(1, 100001)), "DONE"]
 
-    small = await t["lane_job_start"](ctx, on="dev/run", cmd="seq 1 50; exit 1")
-    r = await t["lane_job_read"](ctx, job=small["id"], until_exit=True, wait_ms=30000)
+    small = await t["terminal_job_start"](ctx, on="dev/run", cmd="seq 1 50; exit 1")
+    r = await t["terminal_job_read"](ctx, job=small["id"], until_exit=True, wait_s=30)
     assert r["stdout"] == "".join(f"{i}\n" for i in range(1, 51)) and "note" not in r or not r["note"]
 
 
 async def test_cancel_stops_the_job_and_says_so(env):
     t, ctx = tools(env), Ctx(env)
-    job = await t["lane_job_start"](ctx, on="dev/run", cmd="echo started; sleep 30")
-    await t["lane_job_read"](ctx, job=job["id"], wait_ms=2000)
-    done = await t["lane_job_cancel"](ctx, job=job["id"])
+    job = await t["terminal_job_start"](ctx, on="dev/run", cmd="echo started; sleep 30")
+    await t["terminal_job_read"](ctx, job=job["id"], wait_s=2)
+    done = await t["terminal_job_cancel"](ctx, job=job["id"])
     assert done["state"] == "cancelled" and done["exit_code"] is None or done["signal"]
     assert ctx.calls[-1]["effect"] == Effect.EXEC and "Cancel job" in ctx.calls[-1]["summary"]
     assert env.envs.state("dev/run").value in ("warm", "cold")
@@ -174,7 +174,7 @@ async def test_cancel_stops_the_job_and_says_so(env):
 
 async def test_a_timeout_ends_the_job(env):
     t, ctx = tools(env), Ctx(env)
-    job = await t["lane_job_start"](ctx, on="dev/run", cmd="sleep 30", timeout_s=0.5)
+    job = await t["terminal_job_start"](ctx, on="dev/run", cmd="sleep 30", timeout_s=0.5)
     r, _, _ = await wait_done(t, ctx, job["id"])
     assert r["state"] == "timed_out" and "timeout" in r["note"]
 
@@ -182,24 +182,24 @@ async def test_a_timeout_ends_the_job(env):
 async def test_env_and_cwd_reach_the_command(env):
     t, ctx = tools(env), Ctx(env)
     (lane_home(env) / "sub").mkdir(parents=True)
-    job = await t["lane_job_start"](ctx, on="dev/run", cmd='echo "$GREETING from ${PWD##*/}"', cwd="sub",
+    job = await t["terminal_job_start"](ctx, on="dev/run", cmd='echo "$GREETING from ${PWD##*/}"', cwd="sub",
                                     env={"GREETING": "hi"})
     _, out, _ = await wait_done(t, ctx, job["id"])
     assert out == b"hi from sub\n"
     for bad in ({"cwd": "../etc"}, {"cwd": "/etc"}, {"cwd": "-rf"}, {"env": {"BAD NAME": "x"}}):
         with pytest.raises(InvalidRequest):
-            await t["lane_job_start"](ctx, on="dev/run", cmd="true", **bad)
+            await t["terminal_job_start"](ctx, on="dev/run", cmd="true", **bad)
 
 
 async def test_jobs_are_listed_limited_and_survive_a_restart(env, tmp_path):
     t, ctx = tools(env), Ctx(env)
     env.envs.settings.max_jobs_per_lane = 1
-    running = await t["lane_job_start"](ctx, on="dev/run", cmd="sleep 30")
+    running = await t["terminal_job_start"](ctx, on="dev/run", cmd="sleep 30")
     with pytest.raises(LaneBusy):
-        await t["lane_job_start"](ctx, on="dev/run", cmd="true")
-    listed = await t["lane_jobs_list"](ctx)
+        await t["terminal_job_start"](ctx, on="dev/run", cmd="true")
+    listed = await t["terminal_jobs"](ctx)
     assert [j["id"] for j in listed] == [running["id"]] and listed[0]["state"] == "running"
-    assert await t["lane_jobs_list"](ctx, on="dev/run") == listed
+    assert await t["terminal_jobs"](ctx, on="dev/run") == listed
     # the node stops while it runs: a new manager on the same home finds it lost, and its output
     mgr2 = EnvManager(env.envs.paths.home, host=FakeHost(), launcher=DirectLauncher(), use_lock=False,
                       settings=EnvSettings(proxy_port=0))
@@ -210,17 +210,17 @@ async def test_jobs_are_listed_limited_and_survive_a_restart(env, tmp_path):
     finally:
         await mgr2.shutdown()
     with pytest.raises(NotFound):
-        await t["lane_job_read"](ctx, job="job-0000000000")
+        await t["terminal_job_read"](ctx, job="job-0000000000")
 
 
 async def test_old_finished_jobs_are_pruned(env):
     t, ctx = tools(env), Ctx(env)
     ids = []
     for i in range(5):
-        job = await t["lane_job_start"](ctx, on="dev/run", cmd=f"echo {i}")
+        job = await t["terminal_job_start"](ctx, on="dev/run", cmd=f"echo {i}")
         await wait_done(t, ctx, job["id"])
         ids.append(job["id"])
-    kept = {j["id"] for j in await t["lane_jobs_list"](ctx)}
+    kept = {j["id"] for j in await t["terminal_jobs"](ctx)}
     assert ids[-1] in kept and ids[0] not in kept and len(kept) <= 4
     jobs_dir = env.envs.paths.jobs("dev/run")
     assert not (jobs_dir / f"{ids[0]}.out").exists()
@@ -228,9 +228,9 @@ async def test_old_finished_jobs_are_pruned(env):
 
 async def test_a_cold_lane_ends_its_jobs_with_a_note(env):
     t, ctx = tools(env), Ctx(env)
-    job = await t["lane_job_start"](ctx, on="dev/run", cmd="sleep 30")
+    job = await t["terminal_job_start"](ctx, on="dev/run", cmd="sleep 30")
     await env.envs.cool("dev/run")
-    info = (await t["lane_jobs_list"](ctx))[0]
+    info = (await t["terminal_jobs"](ctx))[0]
     assert info["id"] == job["id"] and info["state"] == "exited" and "lane was stopped" in info["note"]
 
 
@@ -255,9 +255,9 @@ async def test_sync_sends_only_what_changed_and_keeps_what_the_command_made(env,
     manifest, missing = await upload_tree(t, ctx, src, paths)
     assert len(missing) == 4  # three files and the manifest
     upload_call = next(c for c in ctx.calls if c["effect"] == Effect.DRAFT)
-    assert "for a sync into lane dev/run" in upload_call["summary"]
+    assert "for a sync into terminal dev/run" in upload_call["summary"]
     sync = {"dest": "src/repo", "manifest": manifest}
-    job = await t["lane_job_start"](ctx, on="dev/run", cmd="./run.sh; cat link; mkdir -p .venv; echo x > .venv/keep",
+    job = await t["terminal_job_start"](ctx, on="dev/run", cmd="./run.sh; cat link; mkdir -p .venv; echo x > .venv/keep",
                                     cwd="src/repo", sync=sync)
     assert job["sync"]["files"] == 4 and job["sync"]["changed"] == 4 and job["sync"]["deleted"] == 0
     summary = ctx.calls[-1]["summary"]
@@ -275,7 +275,7 @@ async def test_sync_sends_only_what_changed_and_keeps_what_the_command_made(env,
     paths = ["a.txt", "c.txt", "link", "run.sh"]
     manifest, missing = await upload_tree(t, ctx, src, paths)
     assert len(missing) == 3  # a.txt, c.txt and the manifest; run.sh is on the node already
-    job = await t["lane_job_start"](ctx, on="dev/run", cmd="cat a.txt c.txt; ls .venv", cwd="src/repo",
+    job = await t["terminal_job_start"](ctx, on="dev/run", cmd="cat a.txt c.txt; ls .venv", cwd="src/repo",
                                     sync={"dest": "src/repo", "manifest": manifest})
     assert job["sync"]["changed"] == 2 and job["sync"]["deleted"] == 1
     _, out, _ = await wait_done(t, ctx, job["id"])
@@ -284,13 +284,13 @@ async def test_sync_sends_only_what_changed_and_keeps_what_the_command_made(env,
 
     # a file the command changed in the lane is put back to this tree's version on the next sync
     (dest / "a.txt").write_text("changed in the lane\n")
-    job = await t["lane_job_start"](ctx, on="dev/run", cmd="cat a.txt", cwd="src/repo",
+    job = await t["terminal_job_start"](ctx, on="dev/run", cmd="cat a.txt", cwd="src/repo",
                                     sync={"dest": "src/repo", "manifest": manifest})
     _, out, _ = await wait_done(t, ctx, job["id"])
     assert out == b"alpha 2\n"
 
     # clean wipes what the commands made
-    job = await t["lane_job_start"](ctx, on="dev/run", cmd="ls -a", cwd="src/repo",
+    job = await t["terminal_job_start"](ctx, on="dev/run", cmd="ls -a", cwd="src/repo",
                                     sync={"dest": "src/repo", "manifest": manifest, "clean": True})
     _, out, _ = await wait_done(t, ctx, job["id"])
     assert ".venv" not in out.decode() and "a.txt" in out.decode()
@@ -305,13 +305,13 @@ async def test_large_files_go_in_chunks_and_unused_chunks_are_dropped(env, tmp_p
     (src / "big.bin").write_bytes(big)
     manifest, missing = await upload_tree(t, ctx, src, ["big.bin"])
     assert len(missing) == 4
-    job = await t["lane_job_start"](ctx, on="dev/run", cmd="true", sync={"dest": "src/repo", "manifest": manifest})
+    job = await t["terminal_job_start"](ctx, on="dev/run", cmd="true", sync={"dest": "src/repo", "manifest": manifest})
     await wait_done(t, ctx, job["id"])
     landed = (lane_home(env) / "src/repo/big.bin").read_bytes()
     assert hashlib.sha256(landed).digest() == hashlib.sha256(big).digest()
     (src / "big.bin").write_bytes(b"small now")
     manifest, _ = await upload_tree(t, ctx, src, ["big.bin"])
-    job = await t["lane_job_start"](ctx, on="dev/run", cmd="true", sync={"dest": "src/repo", "manifest": manifest})
+    job = await t["terminal_job_start"](ctx, on="dev/run", cmd="true", sync={"dest": "src/repo", "manifest": manifest})
     await wait_done(t, ctx, job["id"])
     store = env.envs.chunk_store("dev/run")
     store.gc(set(manifest) | store_keep(env), grace_s=0)  # what the apply's own gc keeps, without the grace
@@ -322,29 +322,29 @@ async def test_large_files_go_in_chunks_and_unused_chunks_are_dropped(env, tmp_p
 async def test_a_sync_is_checked_before_anyone_is_asked(env, tmp_path):
     t, ctx = tools(env), Ctx(env)
     with pytest.raises(NotFound):  # the manifest was never uploaded
-        await t["lane_job_start"](ctx, on="dev/run", cmd="true", sync={"dest": "src/r", "manifest": ["a" * 64]})
+        await t["terminal_job_start"](ctx, on="dev/run", cmd="true", sync={"dest": "src/r", "manifest": ["a" * 64]})
     bad = json.dumps({"v": 1, "files": [{"path": "../escape", "chunks": []}]}).encode()
     sha = hashlib.sha256(bad).hexdigest()
-    await t["lane_upload"](ctx, on="dev/run", chunks={sha: base64.b64encode(bad).decode()})
+    await t["terminal_upload"](ctx, on="dev/run", chunks={sha: base64.b64encode(bad).decode()})
     with pytest.raises(InvalidRequest):
-        await t["lane_job_start"](ctx, on="dev/run", cmd="true", sync={"dest": "src/r", "manifest": [sha]})
+        await t["terminal_job_start"](ctx, on="dev/run", cmd="true", sync={"dest": "src/r", "manifest": [sha]})
     for dest in ("/root", "../x", "src/../x", "-x"):
         with pytest.raises(InvalidRequest):
-            await t["lane_job_start"](ctx, on="dev/run", cmd="true", sync={"dest": dest, "manifest": [sha]})
+            await t["terminal_job_start"](ctx, on="dev/run", cmd="true", sync={"dest": dest, "manifest": [sha]})
     assert not any(c["effect"] == Effect.EXEC for c in ctx.calls)
 
 
 async def test_uploads_are_checked_and_capped(env):
     t, ctx = tools(env), Ctx(env)
     with pytest.raises(InvalidRequest):  # the data does not match its name
-        await t["lane_upload"](ctx, on="dev/run", chunks={"b" * 64: base64.b64encode(b"x").decode()})
+        await t["terminal_upload"](ctx, on="dev/run", chunks={"b" * 64: base64.b64encode(b"x").decode()})
     with pytest.raises(InvalidRequest):
-        await t["lane_upload"](ctx, on="dev/run", chunks={"not-a-sha": "eA=="})
+        await t["terminal_upload"](ctx, on="dev/run", chunks={"not-a-sha": "eA=="})
     env.envs.settings.upload_max_mb = 0
     env.envs._stores.clear()
     data = b"hello"
     with pytest.raises(InvalidRequest, match="store is full"):
-        await t["lane_upload"](ctx, on="dev/run", chunks={hashlib.sha256(data).hexdigest():
+        await t["terminal_upload"](ctx, on="dev/run", chunks={hashlib.sha256(data).hexdigest():
                                                           base64.b64encode(data).decode()})
 
 
@@ -354,10 +354,10 @@ async def test_a_second_sync_waits_for_the_job_in_the_same_directory(env, tmp_pa
     write(src, "a.txt", "a\n")
     manifest, _ = await upload_tree(t, ctx, src, ["a.txt"])
     sync = {"dest": "src/repo", "manifest": manifest}
-    first = await t["lane_job_start"](ctx, on="dev/run", cmd="sleep 30", sync=sync)
+    first = await t["terminal_job_start"](ctx, on="dev/run", cmd="sleep 30", sync=sync)
     with pytest.raises(LaneBusy, match=first["id"]):
-        await t["lane_job_start"](ctx, on="dev/run", cmd="true", sync=sync)
-    await t["lane_job_cancel"](ctx, job=first["id"])
+        await t["terminal_job_start"](ctx, on="dev/run", cmd="true", sync=sync)
+    await t["terminal_job_cancel"](ctx, job=first["id"])
 
 
 def test_manifest_rules():
@@ -372,10 +372,10 @@ def test_manifest_rules():
 
 async def test_agents_lanes_stay_private_and_under_the_caps(env):
     t, ctx = tools(env), Ctx(env)
-    made = await t["env_create"](ctx, on="dev/big", filesystem="overlay", memory_mb=4096, cpus=2, disk_mb=8192)
+    made = await t["terminal_create"](ctx, on="dev/big", filesystem="overlay", memory_mb=4096, cpus=2, disk_mb=8192)
     assert made["filesystem"] == "overlay"
     assert "filesystem overlay, memory_mb 4096, cpus 2, disk_mb 8192" in ctx.calls[-1]["summary"]
     with pytest.raises(PolicyDenied, match="agent_max_memory_mb"):
-        await t["env_create"](ctx, on="dev/huge", memory_mb=10**6)
+        await t["terminal_create"](ctx, on="dev/huge", memory_mb=10**6)
     with pytest.raises(PolicyDenied, match="never shares the node filesystem"):
-        await t["env_create"](ctx, on="dev/shared", filesystem="shared")
+        await t["terminal_create"](ctx, on="dev/shared", filesystem="shared")

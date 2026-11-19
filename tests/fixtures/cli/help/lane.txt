@@ -9,7 +9,7 @@
 ╭─ Commands ───────────────────────────────────────────────────────────────────╮
 │ create               Create a lane with an empty profile. It stays off (not  │
 │                      running) until first use. Log in later through          │
-│                      lane_view.                                              │
+│                      browser_view.                                           │
 │ import               Create a lane from an existing logged-in profile (for   │
 │                      example, one from the first prototype).                 │
 │ delete               Remove a lane that is not running. Its profile and      │

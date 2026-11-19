@@ -96,7 +96,7 @@ async def test_the_title_alone_takes_back_the_one_environment_with_it(node):  # 
 async def test_a_reconnected_chat_hears_the_repo_it_takes_back_with(node):  # noqa: F811
     a = await opened(node, repo=REPO)
     with pytest.raises(ToolCallError, match="no_environment") as err:
-        await node["call"]("lane_exec", cmd="ls", session="chat-1-reconnected")
+        await node["call"]("terminal_exec", cmd="ls", session="chat-1-reconnected")
     assert f'"{TITLE}" ({REPO})' in str(err.value) and a["id"] not in str(err.value)
     seen = await node["call"]("environment", session="chat-1-reconnected")
     assert seen["open"][0]["repo"] == REPO
@@ -485,9 +485,9 @@ async def test_nothing_runs_on_a_machine_that_is_still_starting(node):  # noqa: 
     bringup.NOW[first["id"]] = {"clone": bringup.time.monotonic() - 190}  # as the clone step would say
     try:
         with pytest.raises(ToolCallError, match=r"^environment_not_ready: .*cloning the repository \(3 min 1\d s so far\)"):
-            await node["call"]("lane_exec", on=first["on"], cmd="git fetch", session=None)
+            await node["call"]("terminal_exec", on=first["on"], cmd="git fetch", session=None)
         with pytest.raises(ToolCallError, match="^environment_not_ready"):
-            await node["call"]("lane_job_start", on=first["on"], cmd="pnpm dev", session=None)
+            await node["call"]("terminal_job_start", on=first["on"], cmd="pnpm dev", session=None)
         now = await node["call"]("environment", on=first["on"], session=None)
         assert "cloning the repository" in now["doing"] and "environment_not_ready" in now["next"]
     finally:
@@ -502,4 +502,4 @@ async def test_a_call_to_a_machine_that_failed_says_why(node):  # noqa: F811
     await node["mgr"]._fail(first["id"], "cloning github.com/me/shop failed: BUG: refs/files-backend.c", code=None,
                             reason="clone")
     with pytest.raises(ToolCallError, match=r"^environment_failed: .*did not start.*cloning github.com/me/shop failed"):
-        await node["call"]("lane_exec", on=first["on"], cmd="pnpm install", session=None)
+        await node["call"]("terminal_exec", on=first["on"], cmd="pnpm install", session=None)

@@ -127,7 +127,7 @@ async def test_denied_maps_to_code_and_message(env):
     fn = wrap_tool(spec("lane_read"), rt)
     with bind_request_token(tok), pytest.raises(ToolCallError) as e:
         await fn(on="biz-b/x")
-    assert e.value.code == "denied" and str(e.value) == "denied: out_of_scope: this grant does not cover lane biz-b/x"
+    assert e.value.code == "denied" and str(e.value) == "denied: out_of_scope: this grant does not cover biz-b/x"
     assert all_traces(svc)[0].status == "denied"
 
 
@@ -243,7 +243,7 @@ def test_visible_tools_follow_the_grant(env):
     _, empty = svc.issue(subject={"id": "x"}, ceiling=Effect.COMMIT)
     names = lambda tok: {s.name for s in visible_tools(tok, SPECS, rt)}
     assert names(read_only) == {"lane_read", "node_info"}
-    assert names(drafter) == {"lane_read", "lane_post", "lane_exec", "node_info"}
+    assert names(drafter) == {"lane_read", "lane_post", "terminal_exec", "node_info"}
     assert names(empty) == {"node_info"}  # no lanes: lane tools hidden
     assert names(OWNER) == {s.name for s in SPECS}
     assert visible_tools(None, SPECS, rt) == [] and visible_tools("garbage", SPECS, rt) == []

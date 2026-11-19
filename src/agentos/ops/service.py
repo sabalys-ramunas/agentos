@@ -9,7 +9,7 @@ Runtime services it uses, all looked up on each round so registration order does
 "config" (NodeConfig), "lanes" (LaneManager), "notifier" (optional).
 
 It also registers "lane_check" (agentos.stealth.lanecheck.LaneChecker): the per-lane checklist behind
-`agentos lane check`, the lane_check MCP tool and the panel's lane check routes. The health rounds
+`agentos lane check`, the browser_check MCP tool and the panel's lane check routes. The health rounds
 run it too (one finding per lane), and share its proxy probes.
 """
 

@@ -644,7 +644,7 @@ async def test_autosave_while_working_is_files_only_and_replaced(node):
     t0 = utcnow()
     for i, minutes in enumerate((16, 32)):
         (work / f"a{i}.txt").write_text(str(i))
-        mgr.record_call(f"env/{out['id']}", "lane_exec", ok=True, summary="npm test")
+        mgr.record_call(f"env/{out['id']}", "terminal_exec", ok=True, summary="npm test")
         env = mgr.get(out["id"])
         mgr.store.update(env.id, lambda e, m=minutes: setattr(e, "last_call_at", t0 + timedelta(minutes=m - 1)))
         got = await mgr.reap_once(t0 + timedelta(minutes=minutes))

@@ -18,7 +18,7 @@
 │ site-api   Site APIs: a site you can use, as a typed API of your own.        │
 │ brains     Brains: run your agent on the node with your own subscription.    │
 │ pilot      The pilot: a cheap worker that drives one lane toward one goal    │
-│            (lane_do).                                                        │
+│            (browser_task).                                                   │
 │ plugins    Plugins: the workers this node can run, and who does their jobs.  │
 │ agenda     The agenda: planned actions per workspace, their approval and     │
 │            proof.                                                            │

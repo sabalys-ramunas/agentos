@@ -22,7 +22,7 @@ from agentos.dev.lanes import DevLaneManager
 
 DEFAULT_PORT = 7460
 CLIENT_NAME = "agentos-studio"
-NO_LANES = ("this is a studio server on a laptop (agentos studio up), with no browser lanes: lanes live on a node. "
+NO_LANES = ("this is a studio server on a laptop (agentos studio up), with no account browsers: they live on a node. "
             "Use the studio tools (ui_check, ui_diff, system_check), which take a URL")
 
 
@@ -30,7 +30,7 @@ NO_LANES = ("this is a studio server on a laptop (agentos studio up), with no br
 # which a laptop studio does not have).
 INSTRUCTIONS = """\
 agentos studio checks the web pages you build, in a real browser on this computer. Its tools take \
-a URL (http://localhost:3000/ is fine), never a lane; lane tools here answer unavailable.
+a URL (http://localhost:3000/ is fine), never an account browser; account browser tools here answer unavailable.
 
 The loop: after you change UI, call ui_check(url). Fix the measured findings, worst first (each has \
 a fix; finding_get(id) gives one in full, ui_image(crop=<finding id>) shows it), then call \
@@ -115,7 +115,7 @@ def remove_instance(home: Path | None = None) -> None:
 
 
 class NoLanes(DevLaneManager):
-    """A lane manager with no lanes: lanes_list is empty and every call on a lane fails with
+    """A lane manager with no lanes: browsers_list is empty and every call on a lane fails with
     `unavailable` (never a fake page). Nothing can create one."""
 
     def _require(self, lane_id: str) -> Any:
@@ -190,7 +190,7 @@ def banner(node: Any, status: dict[str, Any], skill: str | None = None) -> str:
         "checkout on this computer may run its own.",
         "",
         "Then ask it to check a page, for example: \"ui_check http://localhost:3000/\".",
-        "Lane tools answer unavailable here: browser lanes live on a node.",
+        "Account browser tools answer unavailable here: account browsers live on a node.",
         f"When an agent proposes a brand, approve it here: {approve_line('<workspace/profile>', '<N>')}",
     ]
     if status.get("missing"):

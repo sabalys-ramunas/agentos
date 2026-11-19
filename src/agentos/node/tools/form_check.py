@@ -28,8 +28,8 @@ async def form_before_submit(ctx: ToolContext, on: str, ref: str, action: Action
     """The form an act on `ref` that can submit one would submit, as agentos.node.fields.form_diff: the
     fields it sends and how each differs from what the page loaded with (never a secret value),
     and, when it posts to a host the commit gate does not read (ungated_post_host), that host.
-    Read only on a warm lane the caller may use and agents control (a ref needs a snapshot, so
-    the lane is warm); (None, None) for anything else, and when the click submits no form.
+    Read only on a warm browser the caller may use and agents control (a ref needs a snapshot, so
+    the browser is warm); (None, None) for anything else, and when the click submits no form.
 
     When the page cannot be read, nobody knows whether the click submits a form or what it would
     send, so the call is refused (form_changed, nothing clicked) rather than asked for or run with
@@ -51,7 +51,7 @@ async def form_before_submit(ctx: ToolContext, on: str, ref: str, action: Action
     except AgentosError:
         raise
     except Exception:  # no lane to read: the act itself says why
-        log.debug("could not look up the lane before a submit", exc_info=True)
+        log.debug("could not look up the browser before a submit", exc_info=True)
         return None, None
     if info.state not in (LaneState.WARM, LaneState.ACTIVE) or info.control.state is not ControlState.AGENT:
         return None, None
@@ -145,7 +145,7 @@ def _form_change(was: dict[str, Any], now: dict[str, Any] | None) -> str | None:
 
 async def check_form_unchanged(page: Any, ref: str, action: ActionKind, approved: dict[str, Any],
                                text: str | None = None) -> None:
-    """Read the form again inside the act's own lane session, right before the click, and refuse
+    """Read the form again inside the act's own browser session, right before the click, and refuse
     when it sends other than `approved` (the form the approval bound): between a read in its own
     session and the click, a page could change a field the owner never saw (AUD-10). Runs again
     just before the press (agentos.node.human.before_press), after the scroll, pause and glide."""

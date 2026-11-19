@@ -133,7 +133,7 @@ async def test_every_overlay_is_off_on_the_environments_own_lanes(node):
     assert PolicyService._inside_environment(asks, Effect.PAY, {"environment": True}).then == "approval"
     # another family's environment lane is not found, never auto
     _g, other = node.policy.issue(subject={"id": "agent-3"}, workspaces=["env"], ceiling=Effect.COMMIT)
-    with pytest.raises(Exception, match="no lane named"):
+    with pytest.raises(Exception, match="no browser named"):
         await node.ctx(BROWSER, other).authorize(Effect.COMMIT, lane_id=BROWSER, summary="x")
     # a closed environment's lanes are lanes like any other: the usual rules hold
     node.envs.store.update(ENV_ID, lambda e: setattr(e, "state", "closed"))

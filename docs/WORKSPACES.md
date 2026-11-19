@@ -303,7 +303,7 @@ with nothing created.
 | `workspace_queue` | read | the login queue, filtered by the grant |
 | `workspace_plan` | read | plan a template; checks the grant lane by lane |
 | `workspace_apply` | commit | refuses conflicts, asks for approval, then creates |
-| `lane_set_readiness` | draft | set ready, needs_login or needs_attention, when the owner says so |
+| `browser_set_readiness` | draft | set ready, needs_login or needs_attention, when the owner says so |
 
 ## Limits and open questions
 

@@ -38,12 +38,12 @@ and the event stream sit in the live registry (agentos.core.live), which closes 
 owner link), at the link's expiry and on revoke. A view token only watches; a control token may act,
 and the relay forwards its input only while control is HUMAN. An owner token is a control
 token the owner asked for in person (the view-link route, called from the owner's panel session or
-the node's CLI with its one-time code; never lane_view, never a grant, never the node token alone):
+the node's CLI with its one-time code; never browser_view, never a grant, never the node token alone):
 only it may add a refused host to the lane's site list from a block notice, and only it keeps its
 view and its take over through a freeze. Any other link a freeze touched stays dead after it, as a
 grant the freeze revoked does.
 
-lane_view gives its link to an agent, which can open it itself, so a link that is not an owner link is
+browser_view gives its link to an agent, which can open it itself, so a link that is not an owner link is
 never a person: a hand-back, a take over of a held, stopped or quarantined lane (`person_needed`), the
 assisted login and adding a site also need the owner's panel session in the same browser
 (`ViewerApp._person_here`; the viewer is served at the panel's address, so its SameSite cookie comes
@@ -415,7 +415,7 @@ class ViewerApp:
     async def control(self, request: Request) -> Response:
         """One control action. What only a person may do (`person_needed`: a hand-back, a take over of a
         held or stopped lane) needs an owner link or the owner's panel session in this browser on top of
-        the link, because lane_view gives the link to an agent, which can open it itself. When the
+        the link, because browser_view gives the link to an agent, which can open it itself. When the
         session is what proved it, the answer carries a person's own link for the page (`owner_link`). On an
         environment's own browser the control link alone may (`_holder`), recorded as the link holder."""
         try:
@@ -470,7 +470,7 @@ class ViewerApp:
 
     async def sites(self, request: Request) -> Response:
         """From a block notice: the owner adds one entry to the lane's site list, through the same
-        change as POST /api/lanes/{ws}/{name}/sites. Only an owner link (never one from lane_view)."""
+        change as POST /api/lanes/{ws}/{name}/sites. Only an owner link (never one from browser_view)."""
         try:
             lane_id, link = self._link(request)
         except TokenError as e:
@@ -963,7 +963,7 @@ def build_viewer_app(lanes: Any, config: NodeConfig, *, traces: Any = None,
                      live: LiveSockets | None = None, freeze: Callable[[], Any] | None = None,
                      environments: Callable[[], Any] | None = None) -> Starlette:
     """The public viewer routes (token auth). `app.state.viewer` is the ViewerApp, whose
-    `make_view_link(lane_id, mode, ttl)` the MCP lane_view tool uses. `login` returns the node's
+    `make_view_link(lane_id, mode, ttl)` the MCP browser_view tool uses. `login` returns the node's
     assisted login service (agentos.node.login_assist.service_for), for the live view's login form."""
     viewer = ViewerApp(lanes, config, traces=traces, tokens=tokens, login=login, live=live, freeze=freeze,
                        environments=environments)

@@ -26,38 +26,46 @@ class Toolset:
 
 
 TOOLSETS: tuple[Toolset, ...] = (
-    # core: what the howto recipes and the server instructions need for the everyday jobs (a post
-    # with an image, a vault login, a hand-off to the human, waiting for an approval or a run),
-    # so an agent does those without loading anything. approval_confirm rather than approval_status:
-    # an approval_pending result names it, and approval_wait already returns the status. Everything else is one tools_more away.
-    Toolset(CORE, "the everyday lane loop: find and open a lane, look, act, wait, upload, log in, ask a person", (
-        "whoami", "howto", "lanes_list", "lane_open", "lane_close", "lane_claim", "lane_release",
-        "lane_view", "lane_wait_control", "browser_navigate", "browser_snapshot", "browser_act",
-        "browser_wait", "browser_screenshot", "browser_tabs", "browser_dialog", "browser_dialog_answer",
-        "browser_upload", "files_put", "login", "approval_wait", "approval_confirm", "human_ask",
-        "memory_context", "run_status", "environment_open", "environment", "environment_close",
-        # keeping and moving work: testers did not find them behind tools_call (2026-11-15)
-        "environment_save", "environment_upload", "environment_download", "environment_forget",
-        # an environment's terminal: what nearly every chat with one runs, so it needs no tools_more
-        # (about 830 tokens here, against 3,450 for the whole terminals toolset in such a chat)
-        "lane_exec", "lane_job_start", "lane_job_read", "lane_job_cancel",
-        # its files: coding is what an environment is for, and without these an agent writes files
-        # through shell quoting (heredocs, sed), which breaks on the first quote in the code
-        "lane_file_read", "lane_file_write", "lane_file_edit",
+    # core: the loop of an agent on its own computer (docs/design/tool-surface-review.md, the owner's
+    # decision of 2026-11-19): open, keep, close; move work in and out; the terminal and its files; the
+    # browser and its proof; the pull request; an undo point; a port for the human; signing in. Everything
+    # else is one tools_more away, the owner's account browsers in `accounts`.
+    Toolset(CORE, "your own computer: open, save, close, its terminal, files and browser, proof, the pull request", (
+        "environment_open", "environment", "environment_save", "environment_close",
+        "environment_upload", "environment_download",
+        # its terminal: what nearly every chat with one runs
+        "terminal_exec", "terminal_job_start", "terminal_job_read", "terminal_job_cancel",
+        # its files: without these an agent writes files through shell quoting (heredocs, sed), which breaks
+        # on the first quote in the code
+        "file_read", "file_write", "file_edit",
+        "browser_navigate", "browser_snapshot", "browser_act", "browser_wait", "browser_screenshot",
+        "browser_tabs", "browser_dialog_answer", "browser_wait_handback", "browser_record",
+        # the end of nearly every coding task, and the undo before a risky step: testers went through
+        # tools_more and guessed arguments blind when these were a toolset away (2026-11-18)
+        "environment_pull_request", "environment_checkpoint", "environment_rollback", "environment_port",
+        "login", "approval_wait",
     )),
-    Toolset("files", "more for a browser lane: its files (inbox and downloads), switching tabs, scrolling a feed, "
-            "a video proof of an environment's browser (browser_record)", (
-        "files_get", "files_list", "files_delete", "browser_tab", "browser_scroll", "browser_record",
-    ), ("files",), "files, tabs, scroll, video"),
+    # the owner's account browsers (signed in to real accounts on the node), which `core` held until
+    # 2026-11-19: an agent driving them loads this first (the agentos-lanes skill says so)
+    Toolset("accounts", "the owner's account browsers: list, open, claim and release one, its live view, "
+            "files to upload, a dialog, asking a person, workspace memory, a run's status", (
+        "whoami", "howto", "browsers_list", "browser_open", "browser_close", "browser_claim", "browser_release",
+        "browser_view", "browser_file_put", "browser_upload", "browser_dialog", "approval_confirm", "human_ask",
+        "memory_context", "run_status",
+    ), (), "the owner's signed-in browsers"),
+    Toolset("browser", "more for a browser: its inbox and downloads, switching tabs, scrolling a feed", (
+        "browser_files", "browser_file_get", "browser_file_delete", "browser_tab", "browser_scroll",
+    ), ("files",), "files, tabs, scroll"),
     Toolset("devtools", "why a page broke: its console messages and page errors, its requests and which "
             "failed, and one response's body", (
         "browser_console", "browser_network",
     ), ("devtools",)),
-    Toolset("control", "sharing lanes: who has one, asking a person for it, the queue, a safety check, a freeze", (
-        "lane_control", "lane_request_control", "lane_queue", "lane_check", "lane_freeze",
-    ), ("control",), "who has a lane, asking for it, queue, freeze"),
+    Toolset("control", "sharing account browsers: who has one, asking a person for it, the queue, a safety check, "
+            "a freeze", (
+        "browser_control", "browser_request_control", "browser_queue", "browser_check", "browser_freeze",
+    ), ("control",), "who has a browser, asking for it, queue, freeze"),
     Toolset("vault", "stored logins: what the vault holds, filling one login field, asking for a log in", (
-        "vault_list", "vault_fill", "lane_login_request",
+        "vault_list", "vault_fill", "browser_login_request",
     ), ("vault",), "stored logins"),
     Toolset("flows", "saved flows and their runs: list, read, run, record, save, cancel, Ask me first", (
         "flows_list", "flow_get", "flow_run", "flow_save", "flow_record_start", "flow_record_stop", "run_cancel",
@@ -66,7 +74,7 @@ TOOLSETS: tuple[Toolset, ...] = (
     Toolset("workflows", "routines (workflows): a trigger such as a schedule, a webhook or an email, then "
             "steps; save, propose, run, retry, and the leads and opt-outs their mail steps use", (
         "workflow_catalog", "workflow_list", "workflow_get", "workflow_save", "workflow_propose",
-        "workflow_run", "workflow_runs", "workflow_retry", "leads_propose", "send_suppress",
+        "workflow_run", "workflow_runs", "workflow_retry", "workflow_discard", "leads_propose", "send_suppress",
     ), ("workflows",), "routines on a schedule or a trigger"),
     Toolset("connectors", "installed connector operations, one tool per site operation (like "
             "instagram_post_photo), and their health", (
@@ -93,24 +101,24 @@ TOOLSETS: tuple[Toolset, ...] = (
             "ui_diff (what a change did), system_check, baselines, a finding or an image on request", (
         "ui_check", "ui_diff", "system_check", "ui_baseline", "finding_get", "ui_image", "studio_status",
     ), ("studio",), "check a page you build"),
-    Toolset("workspaces", "workspaces: list, plan and apply changes, lane readiness", (
-        "workspace_list", "workspace_queue", "workspace_plan", "workspace_apply", "lane_set_readiness",
+    Toolset("workspaces", "workspaces: list, plan and apply changes, whether an account browser is signed in", (
+        "workspace_list", "workspace_queue", "workspace_plan", "workspace_apply", "browser_set_readiness",
     ), ("workspaces",)),
-    Toolset("worker", "the node's workers: hand a browser job to the cheap worker on the node (lane_do), and "
-            "which workers are on", (
-        "lane_do", "plugins_list",
+    Toolset("worker", "the node's workers: hand a browser job to the cheap worker on the node (browser_task), "
+            "and which workers are on", (
+        "browser_task", "plugins_list",
     ), ("plugins",), "hand a browser job to the node"),
     Toolset("admin", "your grant, an approval's status without waiting (or all yours still waiting), and the call trail", (
         "grant_info", "approval_status", "traces_query",
     ), ("policy", "approvals", "traces"), "grant, approvals, call trail"),
-    Toolset("terminals", "terminal and service lanes: shells, commands, background jobs, synced files, installs, "
-            "images, disposable cloud VMs", (
-        "env_create", "env_lanes_list", "env_remove", "lane_install", "lane_upload_check",
-        "lane_upload", "lane_jobs_list", "shell_open",
+    Toolset("terminals", "terminals and services the node keeps: shells, background jobs, synced files, installs, "
+            "images, disposable cloud VMs; forgetting an environment's saves", (
+        "terminal_create", "terminals_list", "terminal_remove", "terminal_install", "terminal_upload_check",
+        "terminal_upload", "terminal_jobs", "shell_open",
         "shell_read", "shell_write", "shell_close", "service_start", "service_stop", "service_status",
         "service_logs", "image_build", "images_list", "vm_create", "vm_destroy", "vm_extend", "vm_clone",
-        "vms_list", "environment_port", "environment_pull_request", "environment_checkpoint", "environment_rollback",
-    ), ("env",), "shells, commands, services"),
+        "vms_list", "environment_forget",
+    ), ("env",), "shells, services, raw VMs"),
     Toolset("brains", "agent tasks on the node's brains: run, follow, resume, cancel; the git remotes they reach", (
         "brains_list", "brain_run", "brain_status", "brain_tail", "brain_tasks", "brain_resume",
         "brain_cancel", "brain_use", "git_remotes",
@@ -122,3 +130,5 @@ TOOLSETS: tuple[Toolset, ...] = (
     ), ("events", "agenda"), "events, triggers, agenda"),
 )
 NAMES: tuple[str, ...] = tuple(t.name for t in TOOLSETS)
+# a toolset's name before 2026-11-19 -> its name now (node.toml's mcp_toolsets, a URL's ?toolsets=)
+TOOLSET_ALIASES: dict[str, str] = {"files": "browser"}

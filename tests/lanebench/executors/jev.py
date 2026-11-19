@@ -396,7 +396,7 @@ class JevExecutor:
     def tools(self, task: Task, ctx: RunContext) -> dict[str, Tool]:
         """The node's own tools under the task's stand-in grant, exactly as an agent gets them."""
         wrap = bench_wrap(task, ctx)
-        wanted = ("browser_snapshot", "browser_act", "browser_wait", "browser_upload", "files_list", "vault_fill")
+        wanted = ("browser_snapshot", "browser_act", "browser_wait", "browser_upload", "browser_files", "vault_fill")
         return {s.name: wrap(s, ctx.runtime) for s in agent_specs(ctx.runtime) if s.name in wanted}
 
     async def run(self, task: Task, ctx: RunContext) -> ExecResult:
@@ -418,7 +418,7 @@ class JevExecutor:
         return parse_page(str(await tools["browser_snapshot"](on=lane)))
 
     async def _files(self, task: Task, tools: dict[str, Tool], lane: str) -> dict[str, str]:
-        listed = await tools["files_list"](on=lane)
+        listed = await tools["browser_files"](on=lane)
         return {f["name"]: f["id"] for f in listed.get("inbox", []) if f.get("name") and f["name"] in task.goal}
 
     async def _settle(self, tools: dict[str, Tool], lane: str) -> None:

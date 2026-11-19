@@ -9,7 +9,7 @@ import json
 import socket
 
 import pytest
-from env_eval import budget, history
+from env_eval import budget, history, metrics
 from env_eval.metrics import (
     claude_metrics,
     codex_metrics,
@@ -99,20 +99,20 @@ def test_a_sleep_is_long_in_a_loop():
 def test_the_wrong_turns_a_careful_agent_does_not_take():
     rows = [
         row("environment_open", {"title": "x"}, text=json.dumps({"opened": "new", "on": "h", "state": "ready"})),
-        row("lane_exec", {"cmd": "ls"}, ok=False, code="which_environment"),
-        row("lane_exec", {"on": "h", "cmd": "cat package.json"}, text=json.dumps({"exit_code": 0})),
-        row("lane_exec", {"on": "h", "cmd": "npm test"}, text=json.dumps({"exit_code": 1})),
-        row("lane_exec", {"on": "h", "cmd": "npm test"}, text=json.dumps({"exit_code": 1})),
-        row("lane_exec", {"on": "h", "cmd": "(npm run dev &); sleep 5"}, text=json.dumps({"exit_code": 0})),
-        *[row("lane_job_read", {"on": "h", "job": "j1"}) for _ in range(3)],
+        row("terminal_exec", {"cmd": "ls"}, ok=False, code="which_environment"),
+        row("terminal_exec", {"on": "h", "cmd": "cat package.json"}, text=json.dumps({"exit_code": 0})),
+        row("terminal_exec", {"on": "h", "cmd": "npm test"}, text=json.dumps({"exit_code": 1})),
+        row("terminal_exec", {"on": "h", "cmd": "npm test"}, text=json.dumps({"exit_code": 1})),
+        row("terminal_exec", {"on": "h", "cmd": "(npm run dev &); sleep 5"}, text=json.dumps({"exit_code": 0})),
+        *[row("terminal_job_read", {"on": "h", "job": "j1"}) for _ in range(3)],
         row("tools_call", {"name": "environment_open", "arguments": {"title": "y"}},
             text=json.dumps({"opened": "new", "on": "h2", "state": "ready"})),
     ]
     turns = wrong_turns(rows)
     assert len(turns) == 6, turns
-    assert turns[0] == "lane_exec without the on its environment_open gave (refused: which_environment)"
-    assert "read a file through lane_exec" in turns[1]
-    assert turns[2] == "repeated the failing lane_exec unchanged"
+    assert turns[0] == "terminal_exec without the on its environment_open gave (refused: which_environment)"
+    assert "read a file through terminal_exec" in turns[1]
+    assert turns[2] == "repeated the failing terminal_exec unchanged"
     assert "waited with sleep" in turns[3]
     assert turns[4].startswith("polled job j1 3 times")
     assert turns[5] == "opened another new environment (2 where the task needs 1)"
@@ -124,28 +124,29 @@ def test_a_lane_name_as_on_is_a_wrong_turn_even_when_it_worked():
     machine by it), it is not the on the skill teaches; a handle is never taken for one."""
     rows = [row("browser_navigate", {"on": "ea4rfkkx9sw-browser", "url": "http://localhost:3000"}, ok=False,
                 code="which_environment"),
-            row("lane_exec", {"on": "env/ea4rfkkx9sw", "cmd": "ls"}),
-            row("lane_exec", {"on": "ea4rfkkx9sw.fexswp5nylnkryff", "cmd": "ls"}),
+            row("terminal_exec", {"on": "env/ea4rfkkx9sw", "cmd": "ls"}),
+            row("terminal_exec", {"on": "ea4rfkkx9sw.fexswp5nylnkryff", "cmd": "ls"}),
             row("browser_navigate", {"on": "personal/reddit", "url": "https://example.com"})]
     turns = wrong_turns(rows)
-    assert turns == [("browser_navigate with a lane's name as on ('ea4rfkkx9sw-browser'), not the on its "
-                     "environment_open gave (refused: which_environment)"),
-                     "lane_exec with a lane's name as on ('env/ea4rfkkx9sw'), not the on its environment_open gave"]
+    assert turns == [("browser_navigate with its terminal's or browser's name as on ('ea4rfkkx9sw-browser'), not "
+                      "the on its environment_open gave (refused: which_environment)"),
+                     ("terminal_exec with its terminal's or browser's name as on ('env/ea4rfkkx9sw'), not the on its "
+                      "environment_open gave")]
 
 
 def test_the_first_navigate_is_timed():
     rows = [row("browser_navigate", {"url": "a"}, started=3, ended=13.5), row("browser_navigate", started=14, ended=15)]
     assert trace_metrics(rows)["first_navigate_s"] == 10.5
-    assert "first_navigate_s" not in trace_metrics([row("lane_exec", started=0, ended=1)])
+    assert "first_navigate_s" not in trace_metrics([row("terminal_exec", started=0, ended=1)])
 
 
 def test_a_retry_after_a_fix_or_in_another_chat_is_no_repeat():
-    fail = row("lane_exec", {"cmd": "npm test"}, text=json.dumps({"exit_code": 1}))
-    fixed = row("lane_file_edit", {"path": "a.js", "old": "x", "new": "y"})
-    again = row("lane_exec", {"cmd": "npm test"}, text=json.dumps({"exit_code": 0}))
+    fail = row("terminal_exec", {"cmd": "npm test"}, text=json.dumps({"exit_code": 1}))
+    fixed = row("file_edit", {"path": "a.js", "old": "x", "new": "y"})
+    again = row("terminal_exec", {"cmd": "npm test"}, text=json.dumps({"exit_code": 0}))
     assert wrong_turns([fail, fixed, again]) == []
     assert wrong_turns([fail, {**fail, "session": "s2"}]) == []
-    assert wrong_turns([row("lane_job_read", {"job": "j", "until_port": 3000}) for _ in range(5)]) == []
+    assert wrong_turns([row("terminal_job_read", {"job": "j", "until_port": 3000}) for _ in range(5)]) == []
 
 
 # ---- timings and sums ----
@@ -169,14 +170,14 @@ def test_open_times_wait_for_ready_and_say_what_the_open_was():
 
 
 def test_tokens_read_are_the_result_texts_over_four():
-    rows = [row("lane_exec", text="x" * 400, started=0, ended=2), row("browser_screenshot", text="y" * 40, images=1,
+    rows = [row("terminal_exec", text="x" * 400, started=0, ended=2), row("browser_screenshot", text="y" * 40, images=1,
                                                                        started=2, ended=2.5),
-            row("lane_exec", ok=False, code="busy", text="z" * 4)]
+            row("terminal_exec", ok=False, code="busy", text="z" * 4)]
     m = trace_metrics(rows)
     assert m["tokens_read"] == 111 and m["images"] == 1 and m["calls"] == 3
-    assert m["calls_by_tool"] == {"lane_exec": 2, "browser_screenshot": 1}
+    assert m["calls_by_tool"] == {"terminal_exec": 2, "browser_screenshot": 1}
     assert m["errors_by_code"] == {"busy": 1} and m["tool_errors"] == 1
-    assert m["seconds_by_tool"] == {"lane_exec": 3.0, "browser_screenshot": 0.5}
+    assert m["seconds_by_tool"] == {"terminal_exec": 3.0, "browser_screenshot": 0.5}
 
 
 # ---- the proxy ----
@@ -366,3 +367,11 @@ async def test_the_github_stand_in_keeps_the_proofs_agentos_sends_it(tmp_path):
             assert gh.files("evals/shop") == {"e1/p1.mp4": files["p1.mp4"], "e1/p1.gif": files["p1.gif"]}
             again, _ = await prproofs.send(Mgr(), http, "evals/shop", auth, "t", "e1", [{"id": "p1", "kind": "video"}])
             assert again == sent and len(gh.commits) == 1  # nothing new: no second commit
+
+
+def test_an_old_tool_name_counts_as_its_new_one():
+    """Runs from before 2026-11-19 (and agents that still call lane_exec) stay comparable."""
+    rows = [{"tool": "lane_exec", "args": {"cmd": "cat package.json"}, "ok": True, "text": "{}"},
+            {"tool": "tools_call", "args": {"name": "lane_file_read", "arguments": {"path": "a"}}, "ok": True}]
+    assert [metrics.unwrap(r)["tool"] for r in rows] == ["terminal_exec", "file_read"]
+    assert metrics.wrong_turns(rows) == ["read a file through terminal_exec ('cat package.json'), not file_read"]

@@ -43,8 +43,8 @@ WAIT_NEXT = {
                 "waiting, or take a snapshot to look."),
     "dialog": "A dialog opened (see `dialog`): answer it with browser_dialog_answer, then wait again if needed.",
     "signal": "The page signal is no longer ok: stop and follow the instructions for it.",
-    "tab_closed": "The tab closed: browser_tabs lists what is open; take a snapshot of the tab the lane acts in now.",
-    "human_in_control": "A human took the lane: do not act on it; wait with lane_wait_control.",
+    "tab_closed": "The tab closed: browser_tabs lists what is open; take a snapshot of the tab the browser acts in now.",
+    "human_in_control": "A human took the browser: do not act on it; wait with browser_wait_handback.",
 }
 WAIT_REFS = ("The page was re-read like a snapshot: refs of elements that changed are replaced. Take a "
              "snapshot (or wait with snapshot=\"delta\") before acting on them.")
@@ -121,9 +121,9 @@ async def browser_wait(
     (network_quiet_ms) or the URL matches (url_matches). Give at least one; all must hold at once.
     Returns as soon as they do, or after timeout_s (at most 60 s) with met false and what each
     condition saw last: call again to keep waiting. It stops early, with `stopped` saying why, on a
-    dialog, a challenge signal, a human taking the lane or the tab closing. Text matches the outline
-    (part of a name or text, any case or spacing), in the account's language. Text waits re-read the page, so changed
-    elements get new refs. It runs while another caller claims the lane. Effect: read. Errors:
+    dialog, a challenge signal, a human taking the browser or the tab closing. Text matches the outline
+    (part of a name or text, any case or spacing), in the page's language. Text waits re-read the page, so
+    changed elements get new refs. Effect: read. Errors:
     invalid, ref_not_found, dialog_pending.
 
     Args:

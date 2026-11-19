@@ -103,7 +103,7 @@ async def test_workspace_and_node_scopes(node):
     await blocked(node.lanes, "biz-b/three")
     with pytest.raises(Frozen):
         node.freeze.check_call(None, tool="brain_run")  # no lane: a node freeze still refuses it
-    node.freeze.check_call(None, tool="lane_freeze")  # the off switch stays callable
+    node.freeze.check_call(None, tool="browser_freeze")  # the off switch stays callable
     assert {r["scope"] for r in node.freeze.status()["frozen"]} == {"workspace", "node"}
 
 

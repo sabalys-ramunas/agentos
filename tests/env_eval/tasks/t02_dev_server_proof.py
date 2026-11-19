@@ -25,19 +25,19 @@ async def check(ctx: Ctx) -> list[Check]:
 
 async def perfect(ctx: Ctx, a: Agent, session: int) -> str:
     env = await a.open(title="Shop home page", repo=ctx.repo.slug, keep="none")
-    job = await a.on_call("lane_job_start", cmd="npm run dev", cwd=env["workdir"])
-    await a.on_call("lane_job_read", job=job["id"], until_port=3000, wait_ms=60000)
+    job = await a.on_call("terminal_job_start", cmd="npm run dev", cwd=env["workdir"])
+    await a.on_call("terminal_job_read", job=job["id"], until_port=3000, wait_s=60)
     await a.on_call("browser_navigate", url="http://localhost:3000")
     await a.on_call("browser_snapshot")
     shot = await a.on_call("browser_screenshot", proof="shop home page with the autumn sale")
     url = (shot.get("proof") or {}).get("url") if isinstance(shot, dict) else None
-    await a.on_call("lane_job_cancel", job=job["id"])
+    await a.on_call("terminal_job_cancel", job=job["id"])
     await a.on_call("environment_close")
     return done(f"The home page shows the autumn sale with three prices; proof: {url}. The environment is closed.")
 
 
 async def careless(ctx: Ctx, a: Agent, session: int) -> str:
-    """Starts the server inside lane_exec and sleeps for it, and takes a screenshot without keeping it."""
+    """Starts the server inside terminal_exec and sleeps for it, and takes a screenshot without keeping it."""
     env = await a.open(title="Shop home page", repo=ctx.repo.slug)
     await a.sh("(npm run dev > /tmp/dev.log 2>&1 &) ; sleep 3; curl -s localhost:3000 | head -5", cwd=env["workdir"])
     await a.on_call("browser_navigate", url="http://localhost:3000")

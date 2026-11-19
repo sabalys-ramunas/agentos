@@ -1,8 +1,8 @@
-"""File tools for terminal lanes: lane_file_read, lane_file_write and lane_file_edit.
+"""File tools for terminal lanes: file_read, file_write and file_edit.
 
 An agent codes on its environment's machine as it does on its own computer: read a file with line
 numbers, write one, replace an exact string in one. Each is one command over the transport
-lane_exec uses (agentos.env.manager.exec), so it works on every terminal lane, an environment's VM
+terminal_exec uses (agentos.env.manager.exec), so it works on every terminal lane, an environment's VM
 included, and is authorized as a command (Effect.EXEC with the lane's facts): on a lane that reaches
 the node, reading a file there is as sensitive as running `cat`.
 
@@ -118,14 +118,14 @@ def _header(res: Any, path: str) -> tuple[list[str], bytes]:
     words = first.decode("utf-8", "replace").split()
     if not words or words[0] != MARK:
         said = (res.stderr or res.stdout or "").strip()[-300:]
-        raise InvalidRequest(f"could not reach {path} on the lane (exit {res.exit_code}): {said or 'no answer'}")
+        raise InvalidRequest(f"could not reach {path} on the machine (exit {res.exit_code}): {said or 'no answer'}")
     kind = words[1] if len(words) > 1 else ""
     if kind == "missing":
-        raise NotFound(f"no file {path}; lane_exec(cmd=\"ls\") lists a folder, lane_file_write makes a file")
+        raise NotFound(f"no file {path}; terminal_exec(cmd=\"ls\") lists a folder, file_write makes a file")
     if kind == "dir":
-        raise InvalidRequest(f"{path} is a folder, not a file; list it with lane_exec(cmd=\"ls -la {path}\")")
+        raise InvalidRequest(f"{path} is a folder, not a file; list it with terminal_exec(cmd=\"ls -la {path}\")")
     if kind == "unreadable":
-        raise InvalidRequest(f"{path} cannot be read by the lane's user")
+        raise InvalidRequest(f"{path} cannot be read by the machine's user")
     return words[1:], rest
 
 
@@ -133,12 +133,12 @@ def _numbers(words: list[str]) -> list[int]:
     try:
         return [int(w) for w in words[1:]]
     except ValueError:
-        raise InvalidRequest(f"the lane answered {' '.join(words)!r} about the file") from None
+        raise InvalidRequest(f"the machine answered {' '.join(words)!r} about the file") from None
 
 
 def _binary(path: str, size: int) -> InvalidRequest:
     return InvalidRequest(f"{path} is a binary file ({size} bytes), not text, so it is not read or edited "
-                          "here; use lane_exec (file, xxd, base64) for it")
+                          "here; use terminal_exec (file, xxd, base64) for it")
 
 
 def _decode(data: bytes, path: str, size: int, *, cut: bool) -> str:
@@ -151,7 +151,7 @@ def _decode(data: bytes, path: str, size: int, *, cut: bool) -> str:
         return data.decode("utf-8")
     except UnicodeDecodeError:
         raise InvalidRequest(f"{path} is not UTF-8 text ({size} bytes), so it is not read or edited here; use "
-                             "lane_exec (iconv, file) for it") from None
+                             "terminal_exec (iconv, file) for it") from None
 
 
 def _numbered(lines: list[str], first: int) -> str:
@@ -179,7 +179,7 @@ def _preview(text: str, chars: int = PREVIEW_CHARS) -> str:
 
 
 async def _authorize(ctx: ToolContext, on: str, summary: str, content: dict, *, preview: str = "") -> Any:
-    """As lane_exec authorizes a command on this lane (agentos.env.tools). The summary says where it
+    """As terminal_exec authorizes a command on this lane (agentos.env.tools). The summary says where it
     runs first, then what it writes, so a long text never pushes the place out of the card."""
     from agentos.env.tools import _clip, _facts, _where
 
@@ -200,24 +200,37 @@ async def _run(ctx: ToolContext, mgr: Any, on: str, script: str, *, stdin: str |
 
 
 # ------------------------------------------------------------------ tools
-async def lane_file_read(ctx: ToolContext, *, on: str, path: str, offset: int = 1,
-                         limit: int = READ_LINES) -> dict:
+async def lane_file_read(ctx: ToolContext, *, on: str, path: str | None = None, paths: list[str] | None = None,
+                         offset: int = 1, limit: int = READ_LINES) -> dict:
     """Read a text file with line numbers (as cat -n); a relative path starts at the repository.
     Returns content, lines, total_lines and next_offset when there is more (at most 2000 lines or
-    40000 characters a call). Binary files are refused. Effect: exec. Errors: not_found, invalid.
+    40000 characters a call). `paths` reads several files in one call (up to 20; a * in the last part,
+    like "src/*.js", reads each match), each with its lines, within the same 40000 characters. Binary
+    files are refused. Effect: exec. Errors: not_found, invalid.
 
     Args:
+        path: One file, like "src/app.py".
+        paths: Several files, like ["package.json", "src/*.js"], instead of path.
         offset: The first line (1 is the first).
         limit: How many lines.
     """
-    workdir = _workdir(ctx, on)
-    target = resolve_path(path, workdir)
     try:
         first, count = max(1, int(offset)), max(1, min(int(limit), 100000))
     except (TypeError, ValueError):
         raise InvalidRequest("offset and limit are line counts, like offset=1, limit=200") from None
+    workdir = _workdir(ctx, on)
+    if paths is not None:
+        return await _read_many(ctx, on, workdir, paths if path is None else [path, *paths], first, count)
+    if path is None:
+        raise InvalidRequest('give path (one file) or paths (several), like path="src/app.py"')
+    target = resolve_path(path, workdir)
     mgr = await _authorize(ctx, on, f"Read {target}", {"read": target, "offset": first, "limit": count})
-    cap = READ_CHARS * 4 + 4096  # bytes; the characters are counted below
+    return await _read_one(ctx, mgr, on, target, first, count, READ_CHARS)
+
+
+async def _read_one(ctx: ToolContext, mgr: Any, on: str, target: str, first: int, count: int, budget: int) -> dict:
+    """One file's lines from `first`, at most `count` of them and about `budget` characters."""
+    cap = budget * 4 + 4096  # bytes; the characters are counted below
     res = await _run(ctx, mgr, on, _read_script(target, first, first + count - 1, cap), max_bytes=cap + 512)
     words, body = _header(res, target)
     size, nul, newlines, ends = _numbers(words)
@@ -231,7 +244,7 @@ async def lane_file_read(ctx: ToolContext, *, on: str, path: str, offset: int = 
     shown, chars = [], 0
     for line in lines:
         cost = min(len(line), LINE_CHARS) + 8
-        if shown and chars + cost > READ_CHARS:
+        if shown and chars + cost > budget:
             break
         shown.append(line)
         chars += cost
@@ -247,15 +260,68 @@ async def lane_file_read(ctx: ToolContext, *, on: str, path: str, offset: int = 
     return out
 
 
+MANY_MAX = 20     # files one read of several returns
+GLOB_CHARS = "*?["
+
+
+def _glob_script(patterns: list[str]) -> str:
+    """The files each pattern's last part matches (find -name, so no shell expands anything), one a line."""
+    parts = [f"find {shlex.quote(posixpath.dirname(p) or '.')} -maxdepth 1 -type f "
+             f"-name {shlex.quote(posixpath.basename(p))} 2>/dev/null | LC_ALL=C sort | head -n {MANY_MAX + 1}"
+             for p in patterns]
+    return f'echo "{MARK} ok"; ' + "; ".join(parts)
+
+
+async def _read_many(ctx: ToolContext, on: str, workdir: str | None, paths: Any, first: int, count: int) -> dict:
+    """file_read(paths=[...]): each file in turn within one READ_CHARS budget; a file that cannot be read
+    says why in its own entry, and files past the budget are named so the agent reads them next."""
+    if not isinstance(paths, list) or not paths or not all(isinstance(p, str) for p in paths):
+        raise InvalidRequest('paths is a list of files, like ["package.json", "src/*.js"]')
+    targets = [resolve_path(p, workdir) for p in paths[:MANY_MAX]]
+    mgr = await _authorize(ctx, on, f"Read {', '.join(targets)}"[:300],
+                           {"read": targets, "offset": first, "limit": count})
+    globs = [t for t in targets if any(c in posixpath.basename(t) for c in GLOB_CHARS)]
+    found: dict[str, list[str]] = {}
+    if globs:
+        res = await _run(ctx, mgr, on, _glob_script(globs), max_bytes=64 * 1024)
+        _, body = _header(res, "the patterns")
+        matched = body.decode("utf-8", "replace").splitlines()
+        found = {g: [m for m in matched if posixpath.dirname(m) == (posixpath.dirname(g) or ".")] for g in globs}
+    files: list[str] = []
+    for t in targets:
+        files += found.get(t, []) if t in found else [t]
+    files = list(dict.fromkeys(files))
+    out: dict[str, Any] = {"files": []}
+    left = READ_CHARS
+    for i, target in enumerate(files[:MANY_MAX]):
+        if left < LINE_CHARS:
+            out["not_read"] = files[i:MANY_MAX]
+            out["note"] = "The reply is full: read these with file_read(paths=[...]) next."
+            break
+        try:
+            one = await _read_one(ctx, mgr, on, target, first, count, left)
+        except (InvalidRequest, NotFound) as exc:
+            out["files"].append({"path": target, "error": f"{exc.code}: {exc.message}"})
+            continue
+        left -= len(one["content"]) + 64
+        out["files"].append(one)
+    empty = [g for g in globs if not found.get(g)]
+    if empty:
+        out["no_match"] = empty
+    if len(files) > MANY_MAX or len(paths) > MANY_MAX:
+        out["note"] = (out.get("note", "") + f" At most {MANY_MAX} files a call.").strip()
+    return out
+
+
 async def lane_file_write(ctx: ToolContext, *, on: str, path: str, content: str) -> dict:
     """Write a whole text file (at most 1 MB), replacing it; folders are made. A relative path
-    starts at the repository. To change part of one, lane_file_edit. Effect: exec."""
+    starts at the repository. To change part of one, file_edit. Effect: exec."""
     if not isinstance(content, str):
         raise InvalidRequest("content is the file's text")
     data = content.encode()
     if len(data) > WRITE_MAX:
         raise InvalidRequest(f"content is {len(data)} bytes; one write carries at most {WRITE_MAX}. Write it in "
-                             "parts with lane_exec, or generate it on the machine")
+                             "parts with terminal_exec, or generate it on the machine")
     target = resolve_path(path, _workdir(ctx, on))
     mgr = await _authorize(ctx, on, f"Write {len(data)} bytes to {target}",
                            {"write": target, "content": "sha256:" + _sha(data)},
@@ -264,7 +330,7 @@ async def lane_file_write(ctx: ToolContext, *, on: str, path: str, content: str)
     words, _ = _header(res, target)
     if words[0] not in ("created", "updated"):
         raise InvalidRequest(f"could not write {target}: {(res.stderr or '').strip()[-300:] or words[0]}")
-    ctx.trace("lane_file_write", lane=on, path=target, bytes=len(data))
+    ctx.trace("file_write", lane=on, path=target, bytes=len(data))
     return {"path": target, "state": words[0], "bytes": len(data),
             "lines": content.count("\n") + (1 if content and not content.endswith("\n") else 0)}
 
@@ -276,7 +342,7 @@ async def lane_file_edit(ctx: ToolContext, *, on: str, path: str, old: str, new:
     many times it occurs. Returns replaced and snippet (the changed lines). Effect: exec. Errors:
     not_found, invalid."""
     if not isinstance(old, str) or not old:
-        raise InvalidRequest("old is the exact text to replace; to write a whole file use lane_file_write")
+        raise InvalidRequest("old is the exact text to replace; to write a whole file use file_write")
     if not isinstance(new, str):
         raise InvalidRequest("new is the text to put in place of old")
     if old == new:
@@ -293,11 +359,11 @@ async def lane_file_edit(ctx: ToolContext, *, on: str, path: str, old: str, new:
         raise _binary(target, size)
     if size > EDIT_MAX:
         raise InvalidRequest(f"{target} is {size} bytes; an edit reads at most {EDIT_MAX}. Change it with "
-                             "lane_exec (sed, a script)")
+                             "terminal_exec (sed, a script)")
     text = _decode(body, target, size, cut=False)
     found = text.count(old)
     if found == 0:
-        raise InvalidRequest(f"old was not found in {target}. Read the lines with lane_file_read and copy them "
+        raise InvalidRequest(f"old was not found in {target}. Read the lines with file_read and copy them "
                              "exactly, whitespace and indentation included")
     if found > 1 and not replace_all:
         raise InvalidRequest(f"old occurs {found} times in {target}, so it is not changed. Add surrounding lines "
@@ -311,7 +377,7 @@ async def lane_file_edit(ctx: ToolContext, *, on: str, path: str, old: str, new:
                              "it again and repeat the edit")
     if words[0] not in ("created", "updated"):
         raise InvalidRequest(f"could not write {target}: {(res.stderr or '').strip()[-300:] or words[0]}")
-    ctx.trace("lane_file_edit", lane=on, path=target, replaced=found if replace_all else 1)
+    ctx.trace("file_edit", lane=on, path=target, replaced=found if replace_all else 1)
     return {"path": target, "replaced": found if replace_all else 1, "snippet": _snippet(changed, start, new)}
 
 
@@ -329,7 +395,7 @@ def _snippet(text: str, start: int, new: str) -> str:
 def tool_specs(runtime: Any) -> list[ToolSpec]:
     t = ("env", "terminal")
     return [
-        ToolSpec("lane_file_read", lane_file_read, Effect.EXEC, tags=t, hidden_without="envs"),
-        ToolSpec("lane_file_write", lane_file_write, Effect.EXEC, tags=(*t, "changes_state"), hidden_without="envs"),
-        ToolSpec("lane_file_edit", lane_file_edit, Effect.EXEC, tags=(*t, "changes_state"), hidden_without="envs"),
+        ToolSpec("file_read", lane_file_read, Effect.EXEC, tags=t, hidden_without="envs"),
+        ToolSpec("file_write", lane_file_write, Effect.EXEC, tags=(*t, "changes_state"), hidden_without="envs"),
+        ToolSpec("file_edit", lane_file_edit, Effect.EXEC, tags=(*t, "changes_state"), hidden_without="envs"),
     ]

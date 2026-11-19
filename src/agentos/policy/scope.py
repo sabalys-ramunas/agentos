@@ -33,7 +33,7 @@ class ScopeMixin:
         except ValueError as e:
             raise InvalidRequest(str(e)) from None
         if not g.lane_allowed(lane_id):
-            raise Denied("out_of_scope", f"this grant does not cover lane {lane_id}")
+            raise Denied("out_of_scope", f"this grant does not cover {lane_id}")
         return lane_id
 
     def _check_domain(self, g: Grant, domain: str | None) -> str | None:
@@ -58,7 +58,7 @@ class ScopeMixin:
         for cap in caps:
             if eff in (Effect.SECRET, Effect.EXEC, Effect.VM) and cap.lanes is not None and not lane_later and (
                     lane_id is None or not any(globs.lane_match(p, lane_id) for p in cap.lanes)):
-                raise Denied("special", f"{eff.value} is not granted for {lane_id or 'calls without a lane'}")
+                raise Denied("special", f"{eff.value} is not granted for {lane_id or 'calls without `on`'}")
             if not params:
                 continue
             if eff == Effect.SERVICE and cap.ports is not None:

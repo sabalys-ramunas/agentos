@@ -107,7 +107,7 @@ class ConnectorStepsMixin:
             code = IDENTITY_CODES.get(kind, "wrong_surface")
             what = "account" if kind == "account" else kind.replace("_", " ")
             raise StepFailure(code, f"the lane acts as another {what} than {expect}. Nothing was done and the lane "
-                              "is held: check it in the live view (lane_view), then hand it back.", acted=False,
+                              "is held: check it in the live view (browser_view), then hand it back.", acted=False,
                               expected=expect, found=f"another {what}", hold=f"needs_human:{code}")
         return {"acting_as": kind, "id": seen, "source": source, "status": "match"}
 

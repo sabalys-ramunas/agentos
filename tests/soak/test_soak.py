@@ -64,7 +64,7 @@ async def test_lanes_cycle_without_leaks(node):
             for lane in LANES:
                 while True:
                     try:
-                        opened = await ok(client, "lane_open", {"on": lane})
+                        opened = await ok(client, "browser_open", {"on": lane})
                         assert '"warm"' in text_of(opened), text_of(opened)[:400]
                         calls += await one_cycle(client, lane) + 2
                         break
@@ -75,7 +75,7 @@ async def test_lanes_cycle_without_leaks(node):
                             raise
                         memory_waits += 1
                         await asyncio.sleep(30)
-                await ok(client, "lane_close", {"on": lane})
+                await ok(client, "browser_close", {"on": lane})
             cycles += 1
             left = leftovers(daemon)
             if left:

@@ -5,7 +5,7 @@
   binding params acts_as_id and account_language are never arguments), plus `on`: the surface
   to act as. In tools/list, `on` is an enum of the surfaces bound to this connector that the
   caller's grant can see (ToolSpec.view); a caller that can see none does not get the tool. A
-  call binds through the surface (its lane, who it acts as), checks health and pace, asks for
+  call binds through the surface (its browser, who it acts as), checks health and pace, asks for
   the operation's exact-content approval and queues the run (runner.submit). The result is the
   run's description, with `output` once it is done.
 - `connectors_list`: the installed operations, their tools, versions, contract hashes, and
@@ -180,7 +180,7 @@ def make_operation_handler(fv: FlowVersion, name: str):
     for pname, prop in props.items():
         prop = prop if isinstance(prop, dict) else {}
         py = _py_type(prop)
-        desc = prop.get("description") or ("a file id or name in the surface lane's inbox (files_put)"
+        desc = prop.get("description") or ("a file id or name in the surface browser's inbox (browser_file_put)"
                                             if prop.get("format") == "agentos-file" else None)
         if pname in required and "default" not in prop:
             ann, default = py, inspect.Parameter.empty

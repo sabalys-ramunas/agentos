@@ -35,15 +35,15 @@ run):
 
 | Metric | What |
 |---|---|
-| `first_launch_s` | the lane's very first `lane_open` (pins the fingerprint, makes the display); one sample |
-| `wake_cold_s` | `lane_open` of a cold lane until it is warm: browser, display, x11vnc, exit check |
+| `first_launch_s` | the lane's very first `browser_open` (pins the fingerprint, makes the display); one sample |
+| `wake_cold_s` | `browser_open` of a cold lane until it is warm: browser, display, x11vnc, exit check |
 | `navigate_ms` | the first `browser_navigate` after a wake (the fixture feed) |
 | `first_snapshot_ms` | the first `browser_snapshot` of that page |
 | `screenshot_ms` | `browser_screenshot` of a warm lane |
 | `act_ms` | `browser_act` round trip: a click with the human pause and the read-back |
 | `mcp_overhead_ms` | `whoami`: transport, grant check, policy and trace, no page |
 | `warm_lane_rss_mb`, `warm_lane_pss_mb` | the warm browser's whole process group (RSS counts shared pages in every process, PSS splits them) |
-| `close_ms` | `lane_close` back to cold |
+| `close_ms` | `browser_close` back to cold |
 
 A result is one JSON line with the commit (and whether the checkout was dirty), the date, the
 Camoufox package and browser versions, the host, the medians and each metric's min and max.
@@ -65,7 +65,7 @@ Camoufox 0.5.9, browser 158.0.1-beta.41, the node VM (2 vCPU, 3.8 GB), 5 runs:
 | MCP call (whoami) | 26 ms | 14 ms | 64 ms |
 | warm lane RSS | 981 MB | 965 MB | 1160 MB |
 | warm lane PSS | 480 MB | 400 MB | 728 MB |
-| lane_close | 491 ms | 457 ms | 1088 ms |
+| browser_close | 491 ms | 457 ms | 1088 ms |
 
 The spread is wide because the node is shared: the owner's lanes and other agents' tests ran at
 the same time (one owner lane's content process held 2.3 GB during the first attempts, and the bench

@@ -49,7 +49,7 @@ def owns_task(ctx: Any, task: dict) -> bool:
     caller's grant or a grant narrowed from it (the task's grant path starts with the caller's), so a
     brain's child grant never steers or reads what its parent started. Steering a task (cancel,
     resume) needs this: a resumed task runs on the child grant its starter's grant made, so reaching
-    its lanes is not enough. Never the subject id: two grants may share one. A task from before grant
+    its browsers is not enough. Never the subject id: two grants may share one. A task from before grant
     paths were recorded has none, and only an admin grant steers it."""
     grant = getattr(ctx, "grant", None)
     if getattr(grant, "admin", False) is True:
@@ -62,7 +62,7 @@ def owns_task(ctx: Any, task: dict) -> bool:
 def sees_task(ctx: Any, task: dict) -> bool:
     """May this caller see a brain task (status, transcript, the list)? Every agent grant of the owner
     shares the owner, so the owner alone is not enough: its own tasks (owns_task), and the tasks whose
-    lanes it all reaches."""
+    browsers it all reaches."""
     if owns_task(ctx, task):
         return True
     lanes = [lane for lane in task.get("lanes") or [] if isinstance(lane, str)]
@@ -84,7 +84,7 @@ def _seen(ctx: Any, svc: Any, task_id: str, *, steer: bool = False) -> dict:
 
 
 def _task_scope(task: dict) -> dict:
-    """The lanes and workspace a brain task works in, for the freeze."""
+    """The browsers and workspace a brain task works in, for the freeze."""
     ws = task.get("workspace")
     return {"lanes": [x for x in task.get("lanes") or [] if isinstance(x, str)],
             "workspace": ws if isinstance(ws, str) else None}
@@ -114,7 +114,7 @@ def tool_specs(runtime: Any) -> list[ToolSpec]:
         when you disconnect or the laptop sleeps. Check it with brain_status / brain_tail.
 
         prompt: what to do. workspace: the workspace it belongs to (sets the privacy rules).
-        lanes: agentos lanes the brain may drive (it gets a child grant for just these).
+        lanes: the browsers and terminals ("workspace/name") the brain may drive (it gets a child grant for just these).
         brain: force one brain by name (otherwise the router picks).
         budget: {max_usd, max_tokens, max_turns, max_minutes, max_queue_minutes}.
         context_bundle: hand off a session: {summary, files: [path or {path, content}],
@@ -135,7 +135,7 @@ def tool_specs(runtime: Any) -> list[ToolSpec]:
             Effect.BRAIN,
             summary=(f"Run a brain task in workspace {workspace} on {brain or 'the routed brain'} "
                      f"(up to {eff.max_turns} turns and {int(eff.max_minutes or 0)} min{spend}"
-                     f"{', lanes ' + ', '.join(lanes) if lanes else ''})"),
+                     f"{', browsers ' + ', '.join(lanes) if lanes else ''})"),
             content={"workspace": workspace, "brain": brain, "lanes": lanes or [],
                      "prompt_sha256": hashlib.sha256(prompt.encode()).hexdigest(),
                      "budget": eff.model_dump()})

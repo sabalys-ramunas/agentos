@@ -84,7 +84,7 @@ async def test_the_browser_killed_mid_action(node):
         assert len(main_browsers_under(daemon.home)) == 1
         displays = slot_display_processes(daemon.slot)
         assert len([p for p in displays if "Xvfb" in p[1]]) == 1, f"one display for one lane: {displays}"
-        await ok(client, "lane_close", {"on": lane})
+        await ok(client, "browser_close", {"on": lane})
     assert not leftovers(daemon)
 
 
@@ -96,10 +96,10 @@ async def test_agentosd_killed_mid_action_then_restarted(node, proxy):
         await ok(client, "browser_navigate", {"on": held, "url": CAPTCHA})
         assert (await control(client, held))["state"] == "paused"
         # a quarantine: the gateway's exit moves between two opens
-        await ok(client, "lane_open", {"on": moved})
-        await ok(client, "lane_close", {"on": moved})
+        await ok(client, "browser_open", {"on": moved})
+        await ok(client, "browser_close", {"on": moved})
         exit_before, proxy.exit_ip = proxy.exit_ip, "203.0.113.99"
-        reopened = json_of(await ok(client, "lane_open", {"on": moved}))
+        reopened = json_of(await ok(client, "browser_open", {"on": moved}))
         assert reopened["state"] == "quarantined", reopened
         proxy.exit_ip = exit_before  # the quarantine waits for a human, whatever the exit does now
 
@@ -127,7 +127,7 @@ async def test_agentosd_killed_mid_action_then_restarted(node, proxy):
         # the held lane stays held for agents, the quarantined lane stays quarantined
         refused = await call(client, "browser_snapshot", {"on": held})
         assert refused.is_error and "agent_paused" in text_of(refused), text_of(refused)[:400]
-        still = await call(client, "lane_open", {"on": moved})
+        still = await call(client, "browser_open", {"on": moved})
         assert (still.is_error and text_of(still).startswith("quarantined")) or \
             json_of(still).get("state") == "quarantined", text_of(still)[:400]
         assert not [p for p in main_browsers_under(daemon.home)], "a quarantined lane started a browser"
@@ -138,7 +138,7 @@ async def test_agentosd_killed_mid_action_then_restarted(node, proxy):
         ref = await name_field(client, act)
         done = json_of(await ok(client, "browser_act", {"on": act, "ref": ref, "action": "fill", "text": "after"}))
         assert done.get("ok") is True, done
-        await ok(client, "lane_close", {"on": act})
+        await ok(client, "browser_close", {"on": act})
 
 
 async def test_the_proxy_unreachable_mid_action(node, proxy):
@@ -161,16 +161,16 @@ async def test_the_proxy_unreachable_mid_action(node, proxy):
         assert reported_failure(down), text_of(down)[:600]
         assert len(proxy.requests) == seen
         assert (await lanes(client))[lane]["state"] in ("warm", "active", "cold", "quarantined")
-        await ok(client, "lane_close", {"on": lane}, timeout=60)
-        cold_open = json_of(await ok(client, "lane_open", {"on": lane}, timeout=90))
+        await ok(client, "browser_close", {"on": lane}, timeout=60)
+        cold_open = json_of(await ok(client, "browser_open", {"on": lane}, timeout=90))
         assert cold_open["state"] == "quarantined", f"a lane whose proxy is down must not open: {cold_open}"
         assert not browsers_under(daemon.home), "a quarantined lane keeps no browser"
 
         proxy.start()
-        back = json_of(await ok(client, "lane_open", {"on": lane}))
+        back = json_of(await ok(client, "browser_open", {"on": lane}))
         assert back["state"] == "warm", back
         await ok(client, "browser_navigate", {"on": lane, "url": FEED})
-        await ok(client, "lane_close", {"on": lane})
+        await ok(client, "browser_close", {"on": lane})
 
 
 async def test_the_disk_fills_near_the_floor(node):
@@ -193,15 +193,15 @@ async def test_the_disk_fills_near_the_floor(node):
             assert not reported_failure(typed), f"a warm lane's fill failed below the floor: {typed!r}"
             assert json_of(typed).get("ok") is True
 
-            refused = await call(client, "lane_open", {"on": other})
+            refused = await call(client, "browser_open", {"on": other})
             assert refused.is_error and "resources_low" in text_of(refused), text_of(refused)[:600]
             assert "disk" in text_of(refused).lower()
             assert len(main_browsers_under(daemon.home)) == 1, "the refused lane started nothing"
             assert (await lanes(client))[other]["state"] == "cold"
-            await ok(client, "lane_close", {"on": lane})
+            await ok(client, "browser_close", {"on": lane})
 
             filler.unlink()
-            assert json_of(await ok(client, "lane_open", {"on": other}))["state"] == "warm"
-            await ok(client, "lane_close", {"on": other})
+            assert json_of(await ok(client, "browser_open", {"on": other}))["state"] == "warm"
+            await ok(client, "browser_close", {"on": other})
     finally:
         filler.unlink(missing_ok=True)

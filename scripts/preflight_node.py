@@ -110,8 +110,8 @@ def drive(cfg: Any, token: str, wide: str) -> None:
         info = tool(s, "grant_info")
         step("grant_info explains the grant", bool(info.get("explain")), (info.get("explain") or [""])[1][:90])
 
-        opened = tool(s, "lane_open", on=LANE)
-        step("lane_open", opened.get("state") in ("warm", "active"), f"state {opened.get('state')}")
+        opened = tool(s, "browser_open", on=LANE)
+        step("browser_open", opened.get("state") in ("warm", "active"), f"state {opened.get('state')}")
 
         nav = tool(s, "browser_navigate", url=PAGE, on=LANE)
         nav_text = text_of(nav)
@@ -138,10 +138,10 @@ def drive(cfg: Any, token: str, wide: str) -> None:
         kinds = [c.get("type") for c in shot.get("content") or []]
         step("browser_screenshot", "image" in kinds and not shot.get("isError"), f"content {kinds}")
 
-        claim = tool(s, "lane_claim", on=LANE, purpose="preflight", ttl_s=60)
-        queue = tool(s, "lane_queue", on=LANE)
-        rel = tool(s, "lane_release", on=LANE)
-        step("lane_claim, lane_queue, lane_release", bool(claim.get("lease")) and rel.get("released") is True,
+        claim = tool(s, "browser_claim", on=LANE, purpose="preflight", ttl_s=60)
+        queue = tool(s, "browser_queue", on=LANE)
+        rel = tool(s, "browser_release", on=LANE)
+        step("browser_claim, browser_queue, browser_release", bool(claim.get("lease")) and rel.get("released") is True,
              f"holder {queue.get('holder') or (queue.get('claim') or {}).get('holder')}")
 
         pending = tool(s, "memory_write", workspace=WORKSPACE, type="decision",
@@ -172,8 +172,8 @@ def drive(cfg: Any, token: str, wide: str) -> None:
         step("egress guard refuses an off-list site", "egress_refused" in off_site and "Example Domain" in on_site,
              off_site.splitlines()[0][:100] if off_site else "not refused")
 
-        check = tool(s, "lane_check", on=LANE)
-        step("lane_check", check.get("level") in ("ok", "warn"),
+        check = tool(s, "browser_check", on=LANE)
+        step("browser_check", check.get("level") in ("ok", "warn"),
              f"{check.get('level')}: {', '.join(c['id'] for c in check.get('checks', []) if c['level'] != 'ok')}")
 
         code, out = cli("freeze", "lane", LANE, "--reason", "preflight")
@@ -251,7 +251,7 @@ def close_and_delete(cfg: Any) -> tuple[int, str]:
     """Close the lane in the daemon with the node's own token (read here, never printed), then
     delete it: `lane list` reads the store, which can say cold while the daemon still has it warm."""
     with McpSession(cfg.mcp_port, cfg.mcp_token, timeout=60) as s:
-        s.call("lane_close", {"on": LANE})
+        s.call("browser_close", {"on": LANE})
     time.sleep(1)
     return cli("lane", "delete", LANE, "--yes")
 

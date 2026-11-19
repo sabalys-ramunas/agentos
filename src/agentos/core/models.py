@@ -31,7 +31,7 @@ def device_name_problem(v: str) -> str | None:
 def parse_lane_id(value: str) -> tuple[str, str]:
     """`workspace/name` -> (workspace, name). Raises ValueError if malformed."""
     if not isinstance(value, str) or not LANE_ID_RE.fullmatch(value):
-        raise ValueError(f"lane id must look like 'workspace/name' (lowercase, digits, dashes): {value!r}")
+        raise ValueError(f"an id must look like 'workspace/name' (lowercase, digits, dashes): {value!r}")
     workspace, name = value.split("/", 1)
     return workspace, name
 
@@ -460,7 +460,7 @@ class ViewerInfo(BaseModel):
 
     def tunnel_hint(self, ssh_host: str = "your-node", local_port: int | None = None) -> str:
         if self.viewer_port is None:
-            return "the live view is served by agentosd through a signed link: ask for one with lane_view"
+            return "the live view is served by agentosd through a signed link: ask for one with browser_view"
         local = local_port or self.viewer_port
         return (f"ssh -N -L {local}:localhost:{self.viewer_port} {ssh_host}  "
                 f"then open http://localhost:{local}{self.url_path}")
@@ -542,4 +542,4 @@ class RunKind(StrEnum):
     BRAIN = "brain"
     SCRIPT = "script"
     WORKFLOW = "workflow"
-    PILOT = "pilot"  # agentos.pilot: lane_do's cheap worker on one lane
+    PILOT = "pilot"  # agentos.pilot: browser_task's cheap worker on one lane

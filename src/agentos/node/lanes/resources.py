@@ -131,7 +131,7 @@ class ScopeLimiter:
         try:
             code, out = await self._run(self._argv(lane_id, unit, pids))
             if code != 0 and self._oom_policy and "OOMPolicy" in out:
-                log.info("systemd cannot set OOMPolicy on a scope here; lane scopes go without it")
+                log.info("systemd cannot set OOMPolicy on a scope here; browser scopes go without it")
                 self._oom_policy = False
                 code, out = await self._run(self._argv(lane_id, unit, pids))
         except Exception as e:  # noqa: BLE001 - a limit is optional
@@ -141,7 +141,7 @@ class ScopeLimiter:
             self._refused(lane_id, out.strip()[:200] or f"busctl exit {code}")
             return None
         if self.working is False:
-            log.info("lane scopes work again")
+            log.info("browser scopes work again")
         self.applied += 1
         self.working, self.error = True, None
         log.info("%s: browser limited to %s in %s", lane_id, self.describe(), unit)
@@ -218,8 +218,8 @@ class ResourcesMixin:
         note = f", {reserved} MB of it reserved for other work" if reserved else ""
         return ResourcesLow(
             f"only {max(effective, 0)} MB of memory is free on this node (agentos keeps {floor} MB free{note}) and "
-            f"no idle lane can be closed to make room, so {lane_id} was not opened. Close a lane you do not "
-            "need (lane_close), or try again once running work finishes.")
+            f"no idle browser can be closed to make room, so {lane_id} was not opened. Close a browser you do not "
+            "need (browser_close), or try again once running work finishes.")
 
     def _check_disk(self, lane_id: str) -> None:
         floor = self.disk_floor_bytes
@@ -229,7 +229,7 @@ class ResourcesMixin:
         if free is not None and free < floor:
             raise ResourcesLow(
                 f"only {_size(free)} is free on the disk that holds {lane_id}'s profile (agentos keeps "
-                f"{_size(floor)} free), so the lane was not opened: a browser that cannot write its cookies "
+                f"{_size(floor)} free), so the browser was not opened: a browser that cannot write its cookies "
                 "can lose the login. Free space on the node (old screenshots, traces, backups), then open it again.")
 
     def reserve_memory(self, key: str, mb: int) -> None:
@@ -246,7 +246,7 @@ class ResourcesMixin:
             left = available - others - mb
             if left < floor:
                 raise ResourcesLow(f"{key} needs {mb} MB, but only {max(available - others, 0)} MB is free on this "
-                                   f"node (agentos keeps {floor} MB free). Close a lane or try again later.")
+                                   f"node (agentos keeps {floor} MB free). Close a browser or try again later.")
         self._reservations[key] = int(mb)
 
     def release_memory(self, key: str) -> None:
@@ -289,7 +289,7 @@ class ResourcesMixin:
                         lane_id, why)
             await self._teardown(lane_id, lane)
             if lane.claimed():
-                self._end_claim(lane_id, lane, "closed", f"{why}, so the lane's browser was closed and its page "
+                self._end_claim(lane_id, lane, "closed", f"{why}, so the browser was closed and its page "
                                 "is gone")
         self._event(lane_id, "memory_recycled", {"detail": why})
         await self._notify()

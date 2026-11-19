@@ -25,7 +25,7 @@ def test_agentos_tools_lists_every_served_tool():
     import json
 
     names = {row["name"] for row in json.loads(result.output)}
-    assert {"lane_open", "browser_snapshot", "browser_act", "files_put", "vault_list", "flow_run"} <= names
+    assert {"browser_open", "browser_snapshot", "browser_act", "browser_file_put", "vault_list", "flow_run"} <= names
     assert "—" not in result.output
 
 

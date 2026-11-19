@@ -1,5 +1,5 @@
-"""MCP tools for disposable cloud VMs. A VM comes back as a lane: run commands on it with
-lane_exec, shell_open/shell_write/shell_read, or lane_install, exactly as on a terminal lane."""
+"""MCP tools for disposable cloud VMs. A VM comes back as a terminal: run commands on it with
+terminal_exec, shell_open/shell_write/shell_read, or terminal_install, exactly as on any terminal."""
 
 from __future__ import annotations
 
@@ -55,20 +55,21 @@ async def vm_create(ctx: ToolContext, *, on: str, profile: str | None = None, tt
                     server_type: str | None = None, cpu: int | None = None, memory_gb: float | None = None,
                     disk_gb: int | None = None, arch: str | None = None, purpose: str = "",
                     wait_s: float = 150) -> dict:
-    """Rent a fresh cloud VM (Ubuntu, root, its own IP) as lane `on` (workspace/name), for work that
-    should not run on the node: builds, tests, untrusted code. By default the node rents the
+    """Rent a fresh cloud VM (Ubuntu, root, its own IP) as terminal `on` (workspace/name), for work that
+    should not run on the node: builds, tests, untrusted code (your own computer, with a browser, the
+    repo and saves, is environment_open). By default the node rents the
     cheapest server that fits: leave the size alone unless the owner said what they need or the
     task clearly needs more (a big build: cpu=8, memory_gb=16). `profile` picks a size the owner
     set up (vms_list shows them); `server_type` (e.g. cpx42) pins an exact type; cpu, memory_gb,
     disk_gb and arch (x86, arm, any) are minimums. `ttl_minutes` is how long it may live (the node
     deletes it then, or sooner when it sits idle at the end of a paid hour). Waits up to wait_s for
-    SSH; state "ready" means lane_exec and shell_open work on `on`. Call vm_destroy when you are
+    SSH; state "ready" means terminal_exec and shell_open work on `on`. Call vm_destroy when you are
     done: it bills by the hour until deleted."""
     mgr = _mgr(ctx)
     size = {"server_type": server_type, "min_cpu": cpu, "min_memory_gb": memory_gb, "min_disk_gb": disk_gb,
             "arch": arch}
     plan = await mgr.plan(on, profile=profile, ttl_minutes=ttl_minutes, size=size)
-    summary = (f"Rent a {plan['server_type']} VM{_specs(plan)} in {plan['location']} as lane {on} for up to "
+    summary = (f"Rent a {plan['server_type']} VM{_specs(plan)} in {plan['location']} as terminal {on} for up to "
                f"{plan['ttl_minutes']} min{_price(plan)}. Asked for: {plan['size']} ({plan['profile']} profile), "
                f"image {plan['image']}" + (f". Purpose given: {purpose[:200]}" if purpose else ""))
     await ctx.authorize(Effect.VM, lane_id=on, summary=summary,
@@ -81,21 +82,21 @@ async def vm_create(ctx: ToolContext, *, on: str, profile: str | None = None, tt
     ctx.trace("vm_create", lane=on, vm=rec.id, state=rec.state, server_type=rec.server_type)
     out = mgr.brief(rec)
     if rec.state == "ready":
-        out["next"] = (f"run commands with lane_exec(on={on!r}, cmd=...) or shell_open(on={on!r}); "
+        out["next"] = (f"run commands with terminal_exec(on={on!r}, cmd=...) or shell_open(on={on!r}); "
                        f"vm_clone(on={on!r}, repo=...) puts a private repo on it")
     elif rec.state == "booting":
-        out["next"] = "still booting: call vms_list in a minute, then use the lane"
+        out["next"] = "still booting: call vms_list in a minute, then use it"
     return out
 
 
 async def vm_clone(ctx: ToolContext, *, on: str, repo: str, ref: str | None = None, dest: str | None = None,
                    depth: int | None = None) -> dict:
-    """Put a private git repo on the VM behind lane `on`, at `dest` (default /root/src/<repo>). The
+    """Put a private git repo on the VM behind terminal `on`, at `dest` (default /root/src/<repo>). The
     node clones it with a read-only token the owner stored (`agentos vm repo add`) and copies the
     checkout over; the token never reaches the VM. `repo` is github.com/org/repo (or its https or
     git@ address); `ref` a branch, tag or commit (default: the default branch); `depth` 1 for a
     shallow copy. `origin` on the VM has no credentials, so push from there does not work. A public
-    repo needs none of this: run git clone with lane_exec."""
+    repo needs none of this: run git clone with terminal_exec."""
     from agentos.vms import repos
     mgr = _mgr(ctx)
     rec = mgr.find(on)
@@ -104,7 +105,7 @@ async def vm_clone(ctx: ToolContext, *, on: str, repo: str, ref: str | None = No
     if pattern is None:
         from agentos.core.errors import NotFound
         raise NotFound(f"no token for {name.name} on this node; the owner adds one with "
-                       f"`agentos vm repo add {name.name}`. A public repo needs none: run git clone with lane_exec")
+                       f"`agentos vm repo add {name.name}`. A public repo needs none: run git clone with terminal_exec")
     where = dest or f"/root/src/{name.short}"
     await ctx.authorize(Effect.VM, lane_id=rec.lane_id,
                         summary=(f"Copy private repo {name.name}" + (f" at {ref}" if ref else "")
@@ -114,12 +115,12 @@ async def vm_clone(ctx: ToolContext, *, on: str, repo: str, ref: str | None = No
                         facts={"repo": name.name})
     out = await mgr.clone(rec.lane_id, name.name, git_ref=ref, dest=dest, depth=depth)
     ctx.trace("vm_clone", lane=rec.lane_id, vm=rec.id, repo=name.name, commit=out["commit"])
-    out["next"] = f"lane_exec(on={rec.lane_id!r}, cmd=..., cwd={out['dest']!r})"
+    out["next"] = f"terminal_exec(on={rec.lane_id!r}, cmd=..., cwd={out['dest']!r})"
     return out
 
 
 async def vm_destroy(ctx: ToolContext, *, on: str) -> dict:
-    """Delete the VM behind lane `on` now (everything on it is gone). Do this as soon as the work
+    """Delete the VM behind terminal `on` now (everything on it is gone). Do this as soon as the work
     is done and you have copied out what you need."""
     mgr = _mgr(ctx)
     rec = mgr.find(on)
@@ -132,7 +133,7 @@ async def vm_destroy(ctx: ToolContext, *, on: str) -> dict:
 
 
 async def vm_extend(ctx: ToolContext, *, on: str, minutes: int = 30) -> dict:
-    """Give the VM behind lane `on` more time (never past the node's maximum lifetime)."""
+    """Give the VM behind terminal `on` more time (never past the node's maximum lifetime)."""
     mgr = _mgr(ctx)
     rec = mgr.find(on)
     await ctx.authorize(Effect.VM, lane_id=rec.lane_id,
@@ -144,7 +145,7 @@ async def vm_extend(ctx: ToolContext, *, on: str, minutes: int = 30) -> dict:
 
 
 async def vms_list(ctx: ToolContext, *, include_past: bool = False) -> dict:
-    """VMs on this node: state, lane, time left, cost so far; and the profiles you may ask for."""
+    """VMs on this node: state, terminal, time left, cost so far; and the profiles you may ask for."""
     await ctx.authorize(Effect.READ)
     mgr = _mgr(ctx)
     allowed = getattr(ctx, "can_access_lane", None)

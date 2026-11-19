@@ -47,11 +47,11 @@ log = logging.getLogger("agentos.runner")
 HOLDS = {HumanInControl.code: "human", AgentPaused.code: "paused"}  # a human holds the lane
 
 NEEDS_YOU = {
-    Signal.CAPTCHA: "the page shows a captcha. Solve it in the lane's live view (lane_view), then run again",
-    Signal.CHECKPOINT: ("the site asks you to confirm it's you. Answer it in the lane's live view (lane_view), "
+    Signal.CAPTCHA: "the page shows a captcha. Solve it in the lane's live view (browser_view), then run again",
+    Signal.CHECKPOINT: ("the site asks you to confirm it's you. Answer it in the lane's live view (browser_view), "
                         "then run again"),
-    Signal.LOGGED_OUT: "the lane is logged out. Log in through the live view (lane_view), then run again",
-    Signal.BLOCKED: "the site is blocking this lane. Check it in the live view (lane_view)",
+    Signal.LOGGED_OUT: "the lane is logged out. Log in through the live view (browser_view), then run again",
+    Signal.BLOCKED: "the site is blocking this lane. Check it in the live view (browser_view)",
 }
 
 SIGNAL_CODES = RUN_SIGNAL_CODES  # the run's error code

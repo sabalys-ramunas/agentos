@@ -142,7 +142,7 @@ class UploadMixin:
             if f.is_symlink() or not f.is_file():
                 raise InvalidRequest(f"{f.name} is not a regular file")
             if base is not None and not f.resolve().is_relative_to(base):
-                raise InvalidRequest(f"{f.name} is outside the lane inbox; only inbox files can be uploaded")
+                raise InvalidRequest(f"{f.name} is outside the browser's inbox; only inbox files can be uploaded")
         want = _expected(files, mimes)
         ref = normalize_ref(ref)
         self._track(page)

@@ -62,13 +62,12 @@ def act_summary(on: str, ref: str, action: ActionKind, text: str | None) -> str:
 
 async def browser_navigate(ctx: ToolContext, *, on: str, url: str,
                            snapshot: SnapshotMode = "none", main_only: bool = False) -> dict[str, Any] | str:
-    """Open a URL in the lane's active tab (http or https; a bare domain gets https). Returns the
+    """Open a URL in the browser's active tab (http or https; a bare domain gets https). Returns the
     final url, title, HTTP status and signal (with signal_detail and account when there is something
     to say). If the signal is not ok, stop and follow the instructions for it. With snapshot set,
     the result is text: this result as one JSON line, then the page outline (no browser_snapshot
-    call needed). Effect: read (when you may act here without a person and the page links to exactly
-    this address, it clicks that link instead). Errors: invalid (not a web URL, or an address on the node or its network),
-    egress_refused (outside the lane's site list or your grant's egress list, redirects included:
+    call needed). Effect: read. Errors: invalid (not a web URL, or an address on the node or its network),
+    egress_refused (outside the browser's site list or your grant's egress list, redirects included:
     tell the human, do not retry), dialog_pending (answer it with browser_dialog_answer first),
     engine_error (retry once). Do not reopen a page to see it anew: snapshot it.
 
@@ -113,13 +112,13 @@ async def browser_navigate(ctx: ToolContext, *, on: str, url: str,
 
 
 async def browser_snapshot(ctx: ToolContext, *, on: str, main_only: bool = False) -> str:
-    """Read the lane's active tab as an accessibility outline: roles, names and text, with a ref
+    """Read the browser's active tab as an accessibility outline: roles, names and text, with a ref
     like [ref=e12] on everything you can act on (pass it to browser_act); unnamed icon buttons get a
     (hint: ...) read from their attributes. The header shows the url, signal (and account) and ref
     count. Costs about as many tokens as the page has text, at most about 10,000; a screenshot costs
     far more and has no refs. To see what an action changed, pass snapshot="delta" to browser_act
     instead of calling this again. Never changes the page, so it runs while another caller claims
-    the lane. A page frozen by a dialog shows the dialog instead. Images keep their ref too, so
+    the browser. A page frozen by a dialog shows the dialog instead. Images keep their ref too, so
     hover reaches one that shows something on hover. Effect: read. Errors: engine_error (retry once).
 
     Args:
@@ -151,15 +150,8 @@ async def browser_act(
     run in no set order. Returns ok, url, signal and, when it can be
     read back, whether the target's own state changed (`changed`, with `detail`); a label changing
     nearby is not proof. With snapshot set, the result is text: this result as one JSON line, then
-    the outline. Effect: draft.
-
-    A click or Enter that publishes (a post, a comment, a form that needs approval) counts as a
-    commit against your grant's and the lane's limits and posting pace (limit_reached, lane_paced).
-    Where Ask me first is on, it is held and nothing is sent: status approval_pending with an
-    approval_id. Tell the user, wait with approval_wait, then call again with the same arguments: it
-    posts only if it sends exactly what was approved. A result can list `egress_blocked`: requests
-    the lane's guard refused while you acted; rule `unrecognised` (often the page's own telemetry)
-    was held without asking anyone, and your act still ran.
+    the outline. Effect: draft. A click that publishes (a post, a form that needs approval) can
+    return approval_pending: wait with approval_wait, then call again with the same arguments.
 
     Errors, each with its next step: ref_not_found, egress_refused (do not retry or look for another
     way there), form_changed, publish_changed, publish_unbound, denied, dialog_pending, invalid,
@@ -178,7 +170,7 @@ async def browser_act(
         raise InvalidRequest(f"action {action.value} needs `text`")
     if text is not None and len(text) > MAX_TEXT_CHARS:
         raise InvalidRequest(f"text is {len(text)} characters; the limit is {MAX_TEXT_CHARS} (typing is "
-                             "human-paced, so longer text would hold the lane for too long)")
+                             "human-paced, so longer text would hold the browser for too long)")
     on = lane_id(on)
     mode = snapshot_mode(snapshot)
     # DRAFT: what a click does is not known before it. A request it sets off that matches a
@@ -248,13 +240,13 @@ def trace_read_back(ctx: ToolContext, on: str, result: Any) -> None:
 
 
 async def browser_scroll(ctx: ToolContext, *, on: str, snapshot: SnapshotMode = "none") -> dict[str, Any] | str:
-    """Move further down the page with the real wheel: a few notches, at the lane's own pace, as a
+    """Move further down the page with the real wheel: a few notches, at the browser's own pace, as a
     person keeps reading. Use it when what you need is not on the page yet, or a list loads as you
     go. browser_act's scroll only wheels one element into view; this moves the page itself. Returns
     url and signal; with snapshot set, the result is text: this result as one JSON line, then the
     outline ("delta" shows what the wheel brought in). If the signal is not ok, stop and follow the
-    instructions for it. A list can load new content, and the lane's guard judges what that sends.
-    Effect: read. It acts on the lane, so it takes its turn with other acting calls. Errors:
+    instructions for it. A list can load new content, and the browser's guard judges what that sends.
+    Effect: read. It acts on the browser, so it takes its turn with other acting calls. Errors:
     dialog_pending (answer it with browser_dialog_answer), engine_error (retry once).
 
     Args:
@@ -291,7 +283,7 @@ def _no_open_dialog(page: Any, doing: str) -> None:
 
 async def browser_screenshot(ctx: ToolContext, *, on: str, full_page: bool = False, width: int | None = None,
                              proof: str | None = None) -> ToolImage | list[Any]:
-    """A PNG of what the lane's active tab shows right now. Use it only when the snapshot outline is
+    """A PNG of what the browser's active tab shows right now. Use it only when the snapshot outline is
     not enough (layout, images, a canvas, a puzzle you must describe to the human): it costs far
     more context than a snapshot and has no refs. Effect: read. Errors: dialog_pending
     (browser_dialog_answer), engine_error (retry once), invalid.

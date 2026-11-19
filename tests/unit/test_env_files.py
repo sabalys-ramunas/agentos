@@ -1,5 +1,5 @@
-"""lane_file_read, lane_file_write and lane_file_edit on a real lane (a workbench lane running here),
-and lane_exec's and lane_job_read's sizes (QA 2026-11-15, P2-1 and P2-8)."""
+"""file_read, file_write and file_edit on a real lane (a workbench lane running here),
+and terminal_exec's and terminal_job_read's sizes (QA 2026-11-15, P2-1 and P2-8)."""
 
 import asyncio
 import inspect
@@ -78,40 +78,70 @@ def test_the_file_tools_are_well_formed_terminal_tools():
 
 async def test_write_then_read_with_line_numbers_relative_to_the_repository(lane):
     ctx, repo = lane
-    out = await tool("lane_file_write")(ctx, on="ws/bench", path="src/app.py", content="a = 1\nb = 'two'\n")
+    out = await tool("file_write")(ctx, on="ws/bench", path="src/app.py", content="a = 1\nb = 'two'\n")
     assert out == {"path": f"{repo}/src/app.py", "state": "created", "bytes": 16, "lines": 2}
     assert (repo / "src/app.py").read_text() == "a = 1\nb = 'two'\n"  # the quote went through as it is
     assert ctx.calls[-1]["effect"] is Effect.EXEC and ctx.calls[-1]["facts"] is not None
-    read = await tool("lane_file_read")(ctx, on="ws/bench", path="src/app.py")
+    read = await tool("file_read")(ctx, on="ws/bench", path="src/app.py")
     assert read["content"] == "     1\ta = 1\n     2\tb = 'two'"
     assert (read["lines"], read["total_lines"], read["size"]) == ("1-2", 2, 16) and "next_offset" not in read
-    again = await tool("lane_file_write")(ctx, on="ws/bench", path=f"{repo}/src/app.py", content="x")
+    again = await tool("file_write")(ctx, on="ws/bench", path=f"{repo}/src/app.py", content="x")
     assert again["state"] == "updated" and (repo / "src/app.py").read_text() == "x"
 
 
 async def test_read_pages_with_offset_and_limit_and_counts_a_last_line_without_newline(lane):
     ctx, repo = lane
     (repo / "long.txt").write_text("\n".join(f"line {i}" for i in range(1, 51)))
-    out = await tool("lane_file_read")(ctx, on="ws/bench", path="long.txt", offset=10, limit=5)
+    out = await tool("file_read")(ctx, on="ws/bench", path="long.txt", offset=10, limit=5)
     assert out["lines"] == "10-14" and out["next_offset"] == 15 and out["total_lines"] == 50
     assert out["content"].splitlines()[0] == "    10\tline 10"
-    end = await tool("lane_file_read")(ctx, on="ws/bench", path="long.txt", offset=49)
+    end = await tool("file_read")(ctx, on="ws/bench", path="long.txt", offset=49)
     assert end["lines"] == "49-50" and "next_offset" not in end
-    past = await tool("lane_file_read")(ctx, on="ws/bench", path="long.txt", offset=99)
+    past = await tool("file_read")(ctx, on="ws/bench", path="long.txt", offset=99)
     assert past["lines"] is None and "past its end" in past["note"]
 
 
 async def test_a_long_line_is_cut_and_a_large_file_stops_at_a_whole_line(lane):
     ctx, repo = lane
     (repo / "wide.txt").write_text("x" * 5000 + "\nshort\n")
-    out = await tool("lane_file_read")(ctx, on="ws/bench", path="wide.txt")
+    out = await tool("file_read")(ctx, on="ws/bench", path="wide.txt")
     first = out["content"].splitlines()[0]
     assert first.endswith("[agentos: 3000 more characters on this line]") and "short" in out["content"]
     (repo / "big.txt").write_text("".join(f"{i:05d} " + "y" * 90 + "\n" for i in range(3000)))
-    big = await tool("lane_file_read")(ctx, on="ws/bench", path="big.txt")
+    big = await tool("file_read")(ctx, on="ws/bench", path="big.txt")
     shown = big["content"].splitlines()
     assert len(big["content"]) <= files.READ_CHARS + 1000 and big["next_offset"] == len(shown) + 1
     assert shown[-1].split("\t")[1].startswith(f"{len(shown) - 1:05d} ")  # whole lines, in order
+
+
+async def test_paths_reads_several_files_and_a_pattern_in_one_call(lane):
+    """An agent that wants a small repository reads it in one call, not with a cat loop in the terminal
+    (the evals, 2026-11-18: Haiku did `for f in src/* test/*; do cat "$f"; done` with file_read listed)."""
+    ctx, repo = lane
+    (repo / "src").mkdir()
+    (repo / "src/a.js").write_text("const a = 1;\n")
+    (repo / "src/b.js").write_text("const b = 2;\n")
+    (repo / "src/notes.md").write_text("# notes\n")
+    (repo / "package.json").write_text('{"name": "shop"}\n')
+    out = await tool("file_read")(ctx, on="ws/bench", paths=["package.json", "src/*.js", "nope.txt", "test/*"])
+    got = {f["path"].removeprefix(f"{repo}/"): f for f in out["files"]}
+    assert list(got) == ["package.json", "src/a.js", "src/b.js", "nope.txt"]
+    assert got["src/b.js"]["content"] == "     1\tconst b = 2;" and got["package.json"]["total_lines"] == 1
+    assert got["nope.txt"]["error"].startswith("not_found: no file")
+    assert out["no_match"] == [f"{repo}/test/*"] and "not_read" not in out
+    assert len(ctx.calls) == 1 and ctx.calls[0]["effect"] is Effect.EXEC  # one approval for the call
+    with pytest.raises(InvalidRequest, match="give path"):
+        await tool("file_read")(ctx, on="ws/bench")
+
+
+async def test_paths_stops_at_the_reply_budget_and_names_what_is_left(lane):
+    ctx, repo = lane
+    for i in range(3):
+        (repo / f"big{i}.txt").write_text("".join("z" * 90 + "\n" for _ in range(300)))
+    out = await tool("file_read")(ctx, on="ws/bench", paths=[f"big{i}.txt" for i in range(3)])
+    assert len(out["files"]) == 2 and out["not_read"] == [f"{repo}/big2.txt"]
+    assert "next_offset" not in out["files"][0]
+    assert "next_offset" in out["files"][-1] and "file_read(paths=" in out["note"]
 
 
 async def test_binary_missing_and_folders_are_refused_with_what_they_are(lane):
@@ -119,32 +149,32 @@ async def test_binary_missing_and_folders_are_refused_with_what_they_are(lane):
     (repo / "img.png").write_bytes(b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR")
     (repo / "latin.txt").write_bytes("caf\xe9\n".encode("latin-1"))
     with pytest.raises(InvalidRequest, match="binary file"):
-        await tool("lane_file_read")(ctx, on="ws/bench", path="img.png")
+        await tool("file_read")(ctx, on="ws/bench", path="img.png")
     with pytest.raises(InvalidRequest, match="not UTF-8"):
-        await tool("lane_file_read")(ctx, on="ws/bench", path="latin.txt")
+        await tool("file_read")(ctx, on="ws/bench", path="latin.txt")
     with pytest.raises(NotFound, match="no file"):
-        await tool("lane_file_read")(ctx, on="ws/bench", path="nope.txt")
+        await tool("file_read")(ctx, on="ws/bench", path="nope.txt")
     with pytest.raises(InvalidRequest, match="is a folder"):
-        await tool("lane_file_read")(ctx, on="ws/bench", path=".")
+        await tool("file_read")(ctx, on="ws/bench", path=".")
     with pytest.raises(InvalidRequest, match="binary file"):
-        await tool("lane_file_edit")(ctx, on="ws/bench", path="img.png", old="PNG", new="GIF")
+        await tool("file_edit")(ctx, on="ws/bench", path="img.png", old="PNG", new="GIF")
 
 
 async def test_edit_replaces_one_exact_match_and_refuses_several_or_none(lane):
     ctx, repo = lane
     (repo / "app.js").write_text("const a = 1;\nconst b = 1;\nconsole.log(a, b);\n")
     with pytest.raises(InvalidRequest, match="occurs 2 times"):
-        await tool("lane_file_edit")(ctx, on="ws/bench", path="app.js", old="= 1;", new="= 2;")
+        await tool("file_edit")(ctx, on="ws/bench", path="app.js", old="= 1;", new="= 2;")
     assert (repo / "app.js").read_text().count("= 1;") == 2  # nothing changed
     with pytest.raises(InvalidRequest, match="was not found"):
-        await tool("lane_file_edit")(ctx, on="ws/bench", path="app.js", old="const c", new="const d")
-    out = await tool("lane_file_edit")(ctx, on="ws/bench", path="app.js", old="const b = 1;", new="const b = '$HOME';")
+        await tool("file_edit")(ctx, on="ws/bench", path="app.js", old="const c", new="const d")
+    out = await tool("file_edit")(ctx, on="ws/bench", path="app.js", old="const b = 1;", new="const b = '$HOME';")
     assert out["replaced"] == 1 and "     2\tconst b = '$HOME';" in out["snippet"]
     assert (repo / "app.js").read_text() == "const a = 1;\nconst b = '$HOME';\nconsole.log(a, b);\n"
-    every = await tool("lane_file_edit")(ctx, on="ws/bench", path="app.js", old="const", new="let", replace_all=True)
+    every = await tool("file_edit")(ctx, on="ws/bench", path="app.js", old="const", new="let", replace_all=True)
     assert every["replaced"] == 2 and (repo / "app.js").read_text().startswith("let a = 1;\nlet b")
     with pytest.raises(InvalidRequest, match="the same"):
-        await tool("lane_file_edit")(ctx, on="ws/bench", path="app.js", old="let", new="let")
+        await tool("file_edit")(ctx, on="ws/bench", path="app.js", old="let", new="let")
 
 
 async def test_an_edit_does_not_write_over_a_file_that_changed_meanwhile(lane, monkeypatch):
@@ -163,7 +193,7 @@ async def test_an_edit_does_not_write_over_a_file_that_changed_meanwhile(lane, m
 
     monkeypatch.setattr(files, "_run", run)
     with pytest.raises(InvalidRequest, match="changed on the machine"):
-        await tool("lane_file_edit")(ctx, on="ws/bench", path="race.txt", old="one", new="two")
+        await tool("file_edit")(ctx, on="ws/bench", path="race.txt", old="one", new="two")
     assert target.read_text() == "someone else\n"
 
 
@@ -186,11 +216,11 @@ def test_bad_paths_are_refused(path):
 async def test_a_large_write_is_refused_before_anything_runs(lane):
     ctx, _ = lane
     with pytest.raises(InvalidRequest, match="at most"):
-        await tool("lane_file_write")(ctx, on="ws/bench", path="x", content="a" * (files.WRITE_MAX + 1))
+        await tool("file_write")(ctx, on="ws/bench", path="x", content="a" * (files.WRITE_MAX + 1))
     assert ctx.calls == []
 
 
-# ------------------------------------------------------------------ lane_exec and lane_job_read sizes
+# ------------------------------------------------------------------ terminal_exec and terminal_job_read sizes
 
 def test_fit_keeps_both_streams_within_the_budget_and_stderr_its_share():
     out, err = Capture(100_000), Capture(100_000)
@@ -212,7 +242,7 @@ async def test_lane_exec_returns_16_kb_by_default_and_max_bytes_more(tmp_path):
     mgr.create("ws/bench", preset="workbench", node_secrets_ok=True)
     try:
         ctx = Ctx(Runtime(envs=mgr))
-        exec_ = {s.name: s for s in term_specs(ctx.runtime)}["lane_exec"].handler
+        exec_ = {s.name: s for s in term_specs(ctx.runtime)}["terminal_exec"].handler
         cmd = f"{shlex.quote(sys.executable)} -c \"print('x' * 200000)\""
         out = await exec_(ctx, on="ws/bench", cmd=cmd)
         assert out["truncated"] and out["stdout_bytes"] == 200001 and len(out["stdout"]) < 16_500
@@ -231,16 +261,16 @@ async def test_lane_job_read_until_exit_is_one_read_for_a_short_job(tmp_path):
     try:
         ctx = Ctx(Runtime(envs=mgr))
         by = {s.name: s.handler for s in term_specs(ctx.runtime)}
-        job = await by["lane_job_start"](ctx, on="ws/bench", cmd="for i in 1 2 3; do echo tick $i; sleep 0.3; done; exit 3")
+        job = await by["terminal_job_start"](ctx, on="ws/bench", cmd="for i in 1 2 3; do echo tick $i; sleep 0.3; done; exit 3")
         started = time.monotonic()
-        out = await by["lane_job_read"](ctx, job=job["id"], wait_ms=10_000, until_exit=True)
+        out = await by["terminal_job_read"](ctx, job=job["id"], wait_s=10, until_exit=True)
         assert out["state"] == "exited" and out["exit_code"] == 3 and out["stdout"].count("tick") == 3
         assert time.monotonic() - started < 5
-        job2 = await by["lane_job_start"](ctx, on="ws/bench", cmd="echo first; sleep 2; echo second")
+        job2 = await by["terminal_job_start"](ctx, on="ws/bench", cmd="echo first; sleep 2; echo second")
         await asyncio.sleep(0.3)
-        early = await by["lane_job_read"](ctx, job=job2["id"], wait_ms=5000)  # without it: the first output
+        early = await by["terminal_job_read"](ctx, job=job2["id"], wait_s=5)  # without it: the first output
         assert early["state"] == "running" and "second" not in early["stdout"]
-        await by["lane_job_cancel"](ctx, job=job2["id"])
+        await by["terminal_job_cancel"](ctx, job=job2["id"])
     finally:
         await mgr.shutdown()
 
@@ -249,10 +279,10 @@ async def test_the_person_approving_a_write_or_an_edit_sees_its_text_not_only_it
     """On a lane that reaches the node a write waits for a person: the card shows where it runs first,
     then the start of what goes in (an edit: what it replaces with what), clipped, line breaks shown."""
     ctx, repo = lane
-    await tool("lane_file_write")(ctx, on="ws/bench", path="keys.txt", content="ssh-ed25519 AAAA me\n" + "x" * 500)
+    await tool("file_write")(ctx, on="ws/bench", path="keys.txt", content="ssh-ed25519 AAAA me\n" + "x" * 500)
     card = ctx.calls[-1]["summary"]
     assert card.startswith(f"Write 520 bytes to {repo}/keys.txt on the node itself")
     assert 'Text: "ssh-ed25519 AAAA me\\nxxx' in card and "(+280 more characters)" in card
     assert ctx.calls[-1]["content"]["content"].startswith("sha256:")  # the approval binds the whole text
-    await tool("lane_file_edit")(ctx, on="ws/bench", path="keys.txt", old="AAAA me", new="BBBB you")
+    await tool("file_edit")(ctx, on="ws/bench", path="keys.txt", old="AAAA me", new="BBBB you")
     assert ctx.calls[-1]["summary"].endswith('Replace "AAAA me" with "BBBB you"')

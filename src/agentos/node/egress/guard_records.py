@@ -47,7 +47,7 @@ class GuardRecords:
             self._seq += 1
             self._notice(Block(seq=self._seq, host=host, rule="noted", kind=kind, method=method.upper(),
                                path=_path(url), prevented=False, frame=frame,
-                               reason=f"{host} is not on this lane's site list: you loaded it, an agent could not"))
+                               reason=f"{host} is not on this browser's site list: you loaded it, an agent could not"))
         key = ("noted", host, kind)
         now = self.clock()
         last = self._limits.setdefault(key, [-1e18, -1e18, 0])
@@ -58,7 +58,7 @@ class GuardRecords:
         if self.trace is not None:
             self.trace.write({"kind": "noted", "lane": self.lane_id, "host": host, "path": _path(url),
                               "method": method.upper(), "nav": kind, "repeats": last[2] - 1,
-                              "why": "a human had control: let through, not on the lane's site list"})
+                              "why": "a human had control: let through, not on the browser's site list"})
         last[2] = 0
 
     def _record(self, url: str, method: str, refusal: Refusal, *, kind: str, prevented: bool,

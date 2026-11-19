@@ -274,7 +274,7 @@ class SettingsHandlers:
 
     async def grant_route(self, request: Request) -> dict:
         """`agentos connect` records the SSH host and local port its tunnel uses for this grant, so
-        lane_view gives that computer a link that works there (QA 2026-11-10 finding 9)."""
+        browser_view gives that computer a link that works there (QA 2026-11-10 finding 9)."""
         from agentos.node import viewroutes
 
         body = await read_body(request, GrantRoute)

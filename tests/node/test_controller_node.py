@@ -66,10 +66,10 @@ async def test_a_real_lane_through_the_controller(tmp_path):
                    mode="legacy") as client,
         ):
             for _ in range(100):
-                if "lane_open" in {t.name for t in (await client.list_tools()).tools}:
+                if "browser_open" in {t.name for t in (await client.list_tools()).tools}:
                     break
                 await asyncio.sleep(0.1)
-            opened = await client.call_tool("lane_open", {"on": LANE})
+            opened = await client.call_tool("browser_open", {"on": LANE})
             assert not opened.is_error, opened.content[0].text
             shot = await client.call_tool("browser_screenshot", {"on": LANE})
             assert not shot.is_error, shot.content

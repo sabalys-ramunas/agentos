@@ -67,7 +67,7 @@ async def h_node(ctx) -> dict:
 SPECS = [
     ToolSpec(name="lane_read", handler=h_read),
     ToolSpec(name="lane_post", handler=h_post, effect=Effect.DRAFT),
-    ToolSpec(name="lane_exec", handler=h_exec, effect=Effect.EXEC),
+    ToolSpec(name="terminal_exec", handler=h_exec, effect=Effect.EXEC),
     ToolSpec(name="node_info", handler=h_node, lane_arg=None),
 ]
 

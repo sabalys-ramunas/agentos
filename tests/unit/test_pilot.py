@@ -286,12 +286,12 @@ async def test_no_decider_and_no_budget_are_honest_ends() -> None:
 
 async def test_a_file_is_attached_once_and_a_missing_one_is_refused_before_anything_runs() -> None:
     inbox = {"inbox": [{"id": "in_1", "name": "a.png"}]}
-    tools = FakeTools(FEED, LIKED, results={"files_list": inbox})
+    tools = FakeTools(FEED, LIKED, results={"browser_files": inbox})
     decider = ScriptedDecider(step("UPLOAD", upload_target="e2", click_target="e2"), step("DONE", done=0.95))
     result = await pilot(tools, decider).run(request(files=("a.png",)))
     assert tools.named("browser_upload") == [{"on": "w/l", "ref": "e2", "file_id": "in_1"}]
     assert result.status is Status.DONE_UNVERIFIED and "UPLOAD" not in decider.requests[1]["questions"]["operation"]["criteria"]
-    missing = await pilot(FakeTools(FEED, results={"files_list": inbox}), ScriptedDecider(step("DONE"))).run(
+    missing = await pilot(FakeTools(FEED, results={"browser_files": inbox}), ScriptedDecider(step("DONE"))).run(
         request(files=("b.png",)))
     assert missing.status is Status.REFUSED and missing.reason == "file_not_in_inbox"
 

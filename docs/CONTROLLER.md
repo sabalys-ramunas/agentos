@@ -325,8 +325,8 @@ task, an approval, an agenda entry), a definition's workspace (`workflow_save`),
 (`PolicyContext.frozen_scope`, through `can_access_lane`, `covers_workspace`, `require_lanes`,
 `pattern_within`, `pattern_reaches`, `frozen_off` and `refuse_frozen`). A call that acts on, or
 reads one thing in, a frozen scope fails with `frozen`; a listing leaves the frozen scope's rows out
-and says so in its `frozen` field (a tool whose answer is a bare list, `env_lanes_list`,
-`lane_jobs_list` and `brain_tasks`, leaves them out without the note). A person in person is not
+and says so in its `frozen` field (a tool whose answer is a bare list, `terminals_list`,
+`terminal_jobs` and `brain_tasks`, leaves them out without the note). A person in person is not
 stopped. `tests/unit/test_freeze_reach.py` walks the tool registry, so a new tool that reaches a
 workspace another way must say how the freeze reaches it.
 

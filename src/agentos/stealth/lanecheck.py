@@ -2,7 +2,7 @@
 
 `LaneChecker.check(lane_id)` returns a `LaneReport`: nine checks, each ok, warn, fail or unknown, with
 one plain sentence and, when something is wrong, a fix. The lane's level is the worst of them (unknown
-never raises it). The same checks back `agentos lane check`, the `lane_check` MCP tool, the panel's
+never raises it). The same checks back `agentos lane check`, the `browser_check` MCP tool, the panel's
 `GET /api/lanes/{ws}/{name}/check` and the periodic health monitor (docs/API.md, "Lane check").
 
     proxy     the lane's proxy answers, measured from the node through it (never from the lane)

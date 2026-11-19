@@ -1,5 +1,5 @@
-"""The agent's control tools (lane_control, lane_request_control, lane_wait_control) and the
-take-over link for lane_view, driven through ToolSpec handlers with a fake ToolContext."""
+"""The agent's control tools (browser_control, browser_request_control, browser_wait_handback) and the
+take-over link for browser_view, driven through ToolSpec handlers with a fake ToolContext."""
 
 from __future__ import annotations
 
@@ -60,8 +60,8 @@ def call(specs, name, ctx, **kw):
 
 def test_specs_are_read_only_and_well_described(tmp_path):
     specs = tool_specs(Runtime())
-    assert [s.name for s in specs] == ["lane_control", "lane_request_control", "lane_wait_control",
-                                       "lane_login_request"]
+    assert [s.name for s in specs] == ["browser_control", "browser_request_control", "browser_wait_handback",
+                                       "browser_login_request"]
     for spec in specs:
         assert spec.effect == Effect.READ and spec.lane_arg == "on" and "control" in spec.tags
         assert len(spec.description) > 80 and EM_DASH not in spec.description
@@ -80,26 +80,26 @@ def test_handler_signatures_make_a_valid_input_schema():
         model = create_model(f"{spec.name}_args", **fields)
         schema = model.model_json_schema()
         assert "on" in schema["properties"] and "description" in schema["properties"]["on"]
-        if spec.name == "lane_wait_control":
-            assert schema["properties"]["timeout_s"]["maximum"] == 300
+        if spec.name == "browser_wait_handback":
+            assert schema["properties"]["wait_s"]["maximum"] == 300
             with pytest.raises(ValidationError):
-                model(on=LANE, timeout_s=301)
-        if spec.name == "lane_request_control":
+                model(on=LANE, wait_s=301)
+        if spec.name == "browser_request_control":
             assert schema["required"] == ["on", "reason"]
 
 
 async def test_lane_control_reports_who_may_act(env):
     mgr, runtime, specs = env
     ctx = FakeCtx(runtime)
-    out = await call(specs, "lane_control", ctx, on=LANE)
+    out = await call(specs, "browser_control", ctx, on=LANE)
     assert out["on"] == LANE and out["state"] == "agent" and out["agent_may_act"] is True
     assert ctx.authorized == [(Effect.READ, LANE)]
     await mgr.take_control(LANE, by="owner")
-    out = await call(specs, "lane_control", ctx, on=LANE)
+    out = await call(specs, "browser_control", ctx, on=LANE)
     assert out["state"] == "human" and out["by"] == "owner" and out["agent_may_act"] is False
-    assert out["since"].endswith("Z") and "lane_wait_control" in out["next"]
+    assert out["since"].endswith("Z") and "browser_wait_handback" in out["next"]
     await mgr.stop_agent(LANE, by="owner")
-    out = await call(specs, "lane_control", ctx, on=LANE)
+    out = await call(specs, "browser_control", ctx, on=LANE)
     assert out["state"] == "paused" and "do not ask again" in out["next"]
 
 
@@ -112,7 +112,7 @@ async def test_a_pause_agentos_made_itself_is_never_worded_as_a_persons(env):
     await mgr.hold(LANE, reason="needs_human:captcha on social.example")
     info = mgr.get(LANE)
     assert info.control.by == "node"
-    said = [(await call(specs, "lane_control", ctx, on=LANE))["next"]]
+    said = [(await call(specs, "browser_control", ctx, on=LANE))["next"]]
     for refuse in (lambda: session.check_control(info, "agent"), lambda: _not_paused(FakeCtx(runtime), info),
                    control_gate(mgr, LANE)):
         with pytest.raises(AgentPaused) as e:
@@ -126,28 +126,28 @@ async def test_a_pause_agentos_made_itself_is_never_worded_as_a_persons(env):
         assert f"agentos paused {LANE} itself (no person stopped you)" in text, text
         assert "CAPTCHA" in text and "social.example" in text and "live view" in text, text
         assert "human stopped" not in text and "stopped the agent" not in text and EM_DASH not in text
-    assert "lane_wait_control" in said[0] and "do not ask again" in said[0]
+    assert "browser_wait_handback" in said[0] and "do not ask again" in said[0]
 
     await mgr.hand_back(LANE, by="owner")
     await mgr.stop_agent(LANE, by="owner")
-    out = await call(specs, "lane_control", ctx, on=LANE)
+    out = await call(specs, "browser_control", ctx, on=LANE)
     assert out["by"] == "owner" and out["next"].startswith(f"A person stopped agents on {LANE}.")
 
 
 async def test_request_control_records_the_agent_and_its_reason(env):
     mgr, runtime, specs = env
     ctx = FakeCtx(runtime, principal_id="claude-code:T-91")
-    out = await call(specs, "lane_request_control", ctx, on=LANE, reason="ready")
+    out = await call(specs, "browser_request_control", ctx, on=LANE, reason="ready")
     assert out["state"] == "agent" and out["takeback_requested"] is False  # nothing to ask for
     await mgr.take_control(LANE, by="owner")
-    out = await call(specs, "lane_request_control", ctx, on=LANE, reason="The login is done.")
+    out = await call(specs, "browser_request_control", ctx, on=LANE, reason="The login is done.")
     assert out["takeback_requested"] and out["takeback_by"] == "claude-code:T-91"
     assert out["takeback_reason"] == "The login is done." and "not answered" in out["next"]
     await mgr.deny_request(LANE, by="owner")
     with pytest.raises(HumanInControl, match="just refused"):
-        await call(specs, "lane_request_control", ctx, on=LANE, reason="please")
+        await call(specs, "browser_request_control", ctx, on=LANE, reason="please")
     with pytest.raises(InvalidRequest):
-        await call(specs, "lane_request_control", ctx, on="Not A Lane", reason="x")
+        await call(specs, "browser_request_control", ctx, on="Not A Lane", reason="x")
 
 
 async def test_login_request_only_notifies_the_owner_and_never_starts_a_login(env):
@@ -166,18 +166,18 @@ async def test_login_request_only_notifies_the_owner_and_never_starts_a_login(en
     runtime.register("notifier", Notifier())
     runtime.register("events", Bus())
     ctx = FakeCtx(runtime)
-    out = await call(specs, "lane_login_request", ctx, on=LANE, why="Reddit signed this lane out — I need it.")
-    assert out["asked"] is True and "lane_wait_control" in out["next"] and EM_DASH not in out["next"]
+    out = await call(specs, "browser_login_request", ctx, on=LANE, why="Reddit signed this lane out — I need it.")
+    assert out["asked"] is True and "browser_wait_handback" in out["next"] and EM_DASH not in out["next"]
     assert ctx.authorized == [(Effect.READ, LANE)]
     assert pushes[0]["type"] == "login.requested" and pushes[0]["lane"] == LANE
     assert "Reddit signed this lane out, I need it." in pushes[0]["body"] and EM_DASH not in pushes[0]["body"]
     assert published == [("login", {"lane": LANE, "state": "requested", "version": 0, "step": None})]
     assert mgr.get(LANE).control.state == "agent"  # nothing was taken or started
-    again = await call(specs, "lane_login_request", ctx, on=LANE, why="Please log in.")
+    again = await call(specs, "browser_login_request", ctx, on=LANE, why="Please log in.")
     assert again["asked"] is False and again["already_asked"] and len(pushes) == 1
     assert runtime.get("login_assist").get(LANE)["requested"]["why"] == "Reddit signed this lane out, I need it."
     with pytest.raises(InvalidRequest):
-        await call(specs, "lane_login_request", ctx, on=LANE, why="   ")
+        await call(specs, "browser_login_request", ctx, on=LANE, why="   ")
 
 
 async def test_policy_runs_before_anything_happens(env):
@@ -185,9 +185,9 @@ async def test_policy_runs_before_anything_happens(env):
     await mgr.take_control(LANE, by="owner")
     ctx = FakeCtx(runtime, deny=True)
     with pytest.raises(PolicyDenied):
-        await call(specs, "lane_request_control", ctx, on=LANE, reason="please")
+        await call(specs, "browser_request_control", ctx, on=LANE, reason="please")
     assert not mgr.get(LANE).control.takeback_requested
-    for name in ("lane_control", "lane_wait_control"):
+    for name in ("browser_control", "browser_wait_handback"):
         with pytest.raises(PolicyDenied):
             await call(specs, name, ctx, on=LANE)
 
@@ -195,7 +195,7 @@ async def test_policy_runs_before_anything_happens(env):
 async def test_wait_control_returns_on_hand_back(env):
     mgr, runtime, specs = env
     ctx = FakeCtx(runtime)
-    out = await call(specs, "lane_wait_control", ctx, on=LANE, timeout_s=5)
+    out = await call(specs, "browser_wait_handback", ctx, on=LANE, wait_s=5)
     assert out["agent_may_act"] and not out["timed_out"] and out["waited_s"] < 1
     await mgr.take_control(LANE, by="owner")
 
@@ -204,7 +204,7 @@ async def test_wait_control_returns_on_hand_back(env):
         await mgr.hand_back(LANE, by="owner")
 
     asyncio.create_task(hand_back_soon())
-    out = await call(specs, "lane_wait_control", ctx, on=LANE, timeout_s=5)
+    out = await call(specs, "browser_wait_handback", ctx, on=LANE, wait_s=5)
     assert out["agent_may_act"] and out["state"] == "agent" and 0 < out["waited_s"] < 1
 
 
@@ -212,7 +212,7 @@ async def test_wait_control_times_out_and_clamps(env, monkeypatch):
     mgr, runtime, specs = env
     ctx = FakeCtx(runtime)
     await mgr.stop_agent(LANE, by="owner")
-    out = await call(specs, "lane_wait_control", ctx, on=LANE, timeout_s=0.05)
+    out = await call(specs, "browser_wait_handback", ctx, on=LANE, wait_s=0.05)
     assert out["timed_out"] and out["state"] == "paused"
     asked: list[float] = []
     original = mgr.wait_for_agent_control
@@ -223,17 +223,17 @@ async def test_wait_control_times_out_and_clamps(env, monkeypatch):
 
     monkeypatch.setattr(mgr, "wait_for_agent_control", spy)
     for given in (10_000, -3, 0, "12"):
-        await call(specs, "lane_wait_control", ctx, on=LANE, timeout_s=given)
+        await call(specs, "browser_wait_handback", ctx, on=LANE, wait_s=given)
     assert asked == [300.0, 0.0, 0.0, 12.0]
     for bad in (float("nan"), "soon", None):
         with pytest.raises(InvalidRequest):
-            await call(specs, "lane_wait_control", ctx, on=LANE, timeout_s=bad)
+            await call(specs, "browser_wait_handback", ctx, on=LANE, wait_s=bad)
 
 
 async def test_tools_need_the_lanes_service():
     specs = {s.name: s for s in tool_specs(Runtime())}
     with pytest.raises(ServiceUnavailable):
-        await call(specs, "lane_control", FakeCtx(Runtime()), on=LANE)
+        await call(specs, "browser_control", FakeCtx(Runtime()), on=LANE)
 
 
 def test_take_over_link(tmp_path, monkeypatch):
@@ -288,7 +288,7 @@ def test_take_over_link_uses_the_registered_signer(tmp_path):
 
 
 class _ViewLanes:
-    """A warm lane with take over, for lane_view."""
+    """A warm lane with take over, for browser_view."""
 
     def __init__(self, mgr):
         self.mgr = mgr
@@ -300,7 +300,7 @@ class _ViewLanes:
         return object()
 
     async def take_control(self, lane_id, **kw):
-        raise AssertionError("lane_view never takes a lane")
+        raise AssertionError("browser_view never takes a lane")
 
 
 class _Grant:

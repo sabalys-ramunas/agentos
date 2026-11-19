@@ -12,7 +12,7 @@ from agentos.core.config import load_config
 from agentos.pilot.service import load_settings, settings_path
 
 app = typer.Typer(no_args_is_help=True, help="The pilot: a cheap worker that drives one lane toward one "
-                                             "goal (lane_do).")
+                                             "goal (browser_task).")
 
 
 @app.command("settings")

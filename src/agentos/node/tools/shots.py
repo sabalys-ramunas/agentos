@@ -3,7 +3,7 @@ as proof of the work (stored by the environments service, which signs a link to 
 
 The node layer cannot import agentos.environments, so the service is found on the runtime by name
 ("environments") and called by its methods: `browser_environment(lane_id)` (the environment whose
-browser this lane is, or None) and `keep_proof(env, png, ...)`.
+browser this browser is, or None) and `keep_proof(env, png, ...)`.
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ _NEXT_FRAMES = "() => new Promise(r => requestAnimationFrame(() => requestAnimat
 
 
 def environment_of(ctx: Any, lane_id: str) -> Any:
-    """The environment whose browser this lane is, or None (an account lane, or no environments)."""
+    """The environment whose browser this browser is, or None (an account browser, or no environments)."""
     get = getattr(ctx.runtime, "get", None)
     svc = get("environments") if callable(get) else None
     find = getattr(svc, "browser_environment", None)

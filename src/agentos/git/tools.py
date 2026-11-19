@@ -20,10 +20,10 @@ from agentos.git.wire import Remote, parse_remote
 
 def tool_specs(runtime: Any) -> list[ToolSpec]:
     async def git_remotes(ctx: ToolContext, *, workspace: str, remote: str | None = None) -> dict:
-        """The git remotes the node can fetch from and push to for this workspace's lanes and brain
+        """The git remotes the node can fetch from and push to for this workspace's browsers and brain
         tasks, and whether it holds a credential for each (never the credential itself). With
         `remote` (a URL or host/owner/name), says whether that one is declared, whether pushes are
-        allowed, and what the owner runs on the node when it is not. Git in a lane or a brain task
+        allowed, and what the owner runs on the node when it is not. Git in a terminal or a brain task
         reaches only these, through the node, which asks a person before a force-push, a deletion or a
         push to a protected branch (and before any push after untrusted content)."""
         if not isinstance(workspace, str) or not WORKSPACE_RE.match(workspace):

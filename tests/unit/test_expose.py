@@ -681,7 +681,7 @@ def test_lanes_list_tells_an_agent_the_address_while_it_lasts(svc):
         return out
 
     out = run(go())
-    by_id = {row["id"]: row for row in out["lanes"]}
+    by_id = {row["id"]: row for row in out["browsers"]}
     assert by_id[LANE]["exposed"][0]["url"] == URL and "exposed" not in by_id[OTHER]
 
 

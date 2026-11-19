@@ -1,4 +1,4 @@
-"""A job on a VM ends with every process it started (lane_job_cancel left a dev server's vite running:
+"""A job on a VM ends with every process it started (terminal_job_cancel left a dev server's vite running:
 killing the local ssh never reached the VM). The remote command runs in a process group of its own,
 and stop_argv signals that group over ssh. Here the "VM" is this computer's shell, with a stand-in
 for util-linux setsid where there is none (macOS)."""

@@ -301,7 +301,7 @@ class ExposeService:
                          if x.kind == "expose" and x.lane == lane and x.host and x.live(now))
 
     def lane_notes(self, lane: str) -> list[dict[str, Any]]:
-        """What an agent may know about the lane's exposes (lanes_list): the address and the end."""
+        """What an agent may know about the lane's exposes (browsers_list): the address and the end."""
         now = self.clock()
         return [{"url": names.origin_for(x.host) + "/", "until": _iso(x.expires_at),
                  "note": "the owner's dev server, open in this lane only while the owner keeps it open"}

@@ -35,7 +35,7 @@ Well-known service names (keep this list in sync with the packages that provide 
   workspaces    agentos.workspaces (workspace names and colors, templates, bulk lanes, login queue)
   memory        agentos.memory  (workspace memory with provenance, docs/design/workspace-memory.md)
   expose        agentos.node.expose (the owner's dev servers in a browser lane, a lane's port on the laptop)
-  pilot         agentos.pilot   (lane_do: a cheap worker drives one lane toward one goal, docs/design/browser-and-computer-agents.md)
+  pilot         agentos.pilot   (browser_task: a cheap worker drives one lane toward one goal, docs/design/browser-and-computer-agents.md)
 """
 
 from __future__ import annotations

@@ -32,7 +32,7 @@ from agentos.setup.cli import setup as setup_command
 from agentos.studio import cli as studio_cli
 
 # isort: off
-# `agentos lane` lists its commands in the order they are made: lanes, then lane_sites, then lane_control
+# `agentos lane` lists its commands in the order they are made: lanes, then lane_sites, then browser_control
 from agentos.commands.lanes import lane_app
 from agentos.commands import lane_sites, lane_control  # noqa: F401  (their commands join lane_app)
 # isort: on

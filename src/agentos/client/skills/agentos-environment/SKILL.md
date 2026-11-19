@@ -10,7 +10,7 @@ holds no key of the human's, and nothing in it waits for a person.
 
 **Keep the `on` from your `environment_open` and pass it on every call.**
 
-## How long it stays (`keep`)
+## How long it stays (`keep`, chosen at `environment_open`)
 
 - `keep="save"`, the default: on idle or close the whole machine is saved and the VM deleted
   (cents a month), so "continue tomorrow" in any chat gets it back. Sign-ins are kept too
@@ -18,6 +18,7 @@ holds no key of the human's, and nothing in it waits for a person.
 - `keep="none"` for a one-off fix only: push, close, the VM is deleted.
 - `keep="live"`: only when the human asks for an always-on machine; every hour is billed and the
   owner must allow it (`keep_live_not_allowed`).
+- Not `environment_close(keep=...)`: `environment_save` keeps one now.
 
 ## Coming back
 
@@ -41,27 +42,26 @@ holds no key of the human's, and nothing in it waits for a person.
    - Code only on your computer: `environment_upload()`, then its `pack` and `send`.
    - `app.listening`: its dev server runs; `app.why`: fix it first.
 2. Give the human `links.browser`, its live view, right away. In T3 Code use the preview pane
-   (`preview_open`). While they have control, wait with `lane_wait_control`.
+   (`preview_open`). While they have control, wait with `browser_wait_handback`.
 3. Work, with `on` on every terminal, browser and studio call. These are in your tool list:
-   - Files: `lane_file_read(path="src/cart.ts")`, `lane_file_edit(path, old, new)`,
-     `lane_file_write(path, content)`, not `cat` or `sed`.
-   - `lane_exec(cmd="pnpm test", cwd="/work/shop")` runs it and waits.
-   - `lane_job_start(cmd="pnpm dev --host 0.0.0.0", cwd="/work/shop")` for a dev server or build;
-     `lane_job_read(job=..., until_exit=true)` waits for it; `until_port=3000` for its port, never sleep.
+   - Files: `file_read(path="src/cart.ts")` (`paths=[...]` reads several), `file_edit(path, old,
+     new)`, `file_write(path, content)`, not `cat` or `sed`.
+   - `terminal_exec(cmd="pnpm test", cwd="/work/shop")` runs it and waits.
+   - `terminal_job_start(cmd="pnpm dev --host 0.0.0.0", cwd="/work/shop")` for a dev server or build;
+     `terminal_job_read(job=..., until_exit=true)` waits for it; `until_port=3000` for its port, never sleep.
    - `browser_navigate(url="http://localhost:3000")`. `localhost` is the VM.
    - A sign-in page: `login` types a login the owner bound; you never see it (the open's `logins`, also
      after a logout).
-   - Also listed: `environment_save`, `environment_forget`, `environment_download(path)`. In
-     `tools_more("terminals")`: `environment_port`, `environment_pull_request`, and
-     `environment_checkpoint(note)` before a risky step (`environment_rollback(checkpoint=n)` undoes it;
-     ignored files stay).
+   - Also listed: `environment_save`, `environment_download(path)`, `environment_port`,
+     `environment_pull_request`, and `environment_checkpoint(note)` before a risky step
+     (`environment_rollback(checkpoint=n)` undoes it; ignored files stay).
    - A result with `ssh`: `ssh agentos-<id>`, scp and rsync reach the VM.
 4. Check pages: `tools_more("studio")`, then `ui_check(url="http://localhost:3000", on=...)`; fix
    its findings.
 5. Show the human the dev server: `app.link`, else `environment_port(port=3000)` gives `url`. Server
    node: run its `tunnel` line first.
 6. Keep proof: `browser_screenshot(proof="checkout page after the fix")`. A video:
-   `tools_more("browser_record")`, `browser_record(action="start")`, the flow,
+   `browser_record(action="start")`, the flow,
    `browser_record(action="stop", proof="guest checkout")`. Give the human `proof.url`.
 7. Commit on a branch, `git push origin <branch>` from the VM. Force-pushing or deleting the
    default branch, or one not made here, is refused (`push_refused`).
@@ -78,7 +78,7 @@ holds no key of the human's, and nothing in it waits for a person.
      agrees to lose them, `environment_close(discard=true)`. `keep="live"` stays running unless
      `final=true`.
    - Done for good: `environment_close(forget=true)` deletes the VM and every save of the title;
-     `environment_forget(title)` removes saves alone.
+     `environment_forget(title)` (in `tools_more("terminals")`) removes saves alone.
 10. Tell the human the pull request, the proofs, and how to come back
     ("continue Black Friday page in agentos").
 
@@ -97,10 +97,10 @@ A refused host (a 403, `network.blocked_now`): give the human its command; never
 ## When a call fails
 
 - `no_environment`: this chat holds none: `environment_open(title=...)`.
-- `which_environment`: no `on` (or a title, a lane's name): pass yours, never another chat's.
+- `which_environment`: no `on` (or a title, a browser's name): pass yours, never another chat's.
 - `environment_already_open`: that title is open with another repo. Pick another.
 - `environment_in_use`: another chat holds that title. Pick another. `take_over=true` only when the
-  message says it is quiet and that chat is done.
+  message says that chat is quiet and done.
 - `environment_full`: wait for a free one. `environment_limit`: fewer `hours`, or tell the human.
 - `environment_not_ready`: `environment(on=...)` waits for `ready`; open no other.
 - `environment_failed`: it did not start; its `fix:` says what next.

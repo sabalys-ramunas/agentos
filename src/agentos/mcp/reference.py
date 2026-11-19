@@ -13,6 +13,7 @@ import typing
 from collections.abc import Iterable
 from typing import Any
 
+from agentos.core import toolnames
 from agentos.core.tools import ToolSpec
 from agentos.mcp.registry import tool_description, tool_params
 from agentos.mcp.toolsets import (
@@ -74,7 +75,9 @@ def toolsets_markdown(rows: list[dict[str, Any]]) -> list[str]:
     out = [
         "## Toolsets",
         "",
-        f"An agent's tool list starts small: the `{CORE}` toolset (the everyday lane loop) plus two meta tools.",
+        f"An agent's tool list starts small: the `{CORE}` toolset (its own computer: open, save, close, the",
+        "terminal, files and browser, proof, the pull request, checkpoints) plus two meta tools. The owner's",
+        "account browsers are the `accounts` toolset.",
         "Every other tool is in a named toolset and stays reachable:",
         "",
         "- `tools_more(toolset)` returns a toolset's tools with their descriptions and argument schemas, adds",
@@ -82,12 +85,12 @@ def toolsets_markdown(rows: list[dict[str, Any]]) -> list[str]:
         "  toolset. A tool's name works in place of its toolset's.",
         "- `tools_call(name, arguments)` calls any tool by name, listed or not, for clients that do not re-read",
         "  their list. It is the same call as calling the tool directly.",
-        f"- The MCP URL can ask for toolsets per connection: `/mcp?{QUERY_PARAM}=files,flows`, or",
+        f"- The MCP URL can ask for toolsets per connection: `/mcp?{QUERY_PARAM}=accounts,flows`, or",
         f"  `/mcp?{QUERY_PARAM}=full` for every tool and no meta tools (the list before toolsets).",
         "- `mcp_toolsets` in node.toml sets what a connection that does not ask gets (default `[\"core\"]`;",
         "  `[\"full\"]` keeps the old list for every agent). A controller's combined `/mcp` works the same way,",
         "  with `mcp_toolsets` in controller.toml; its own `nodes_list` is always listed.",
-        "- `agentos connect <host> --toolsets files,flows` (or `full`, or `default`) puts the choice on the URL it",
+        "- `agentos connect <host> --toolsets accounts,flows` (or `full`, or `default`) puts the choice on the URL it",
         "  registers with Claude Code, and later runs keep it.",
         "",
         "Toolsets change what tools/list shows, never what a caller may do: every call, direct or through",
@@ -124,9 +127,22 @@ def toolsets_markdown(rows: list[dict[str, Any]]) -> list[str]:
         "",
         "| Argument | Type | Required | Description |",
         "|---|---|---|---|",
-        "| `name` | `str` | yes | The tool to call, for example files_put. |",
+        "| `name` | `str` | yes | The tool to call, for example terminal_jobs (terminals toolset). |",
         "| `arguments` | `dict` | no | The tool's arguments, as you would pass them. |",
     ]
+    return out
+
+
+def renamed_markdown() -> list[str]:
+    """The names tools had before 2026-11-19, which still work for one release (agentos.core.toolnames)."""
+    out = ["", "## Renamed tools", "",
+           f"These tools were renamed on 2026-11-19. An old name still works until {toolnames.REMOVED_IN}: it is",
+           "not listed, and its result carries a `renamed` line with the new name. The same holds for an",
+           "argument a renamed tool took under another name.", "",
+           "| Old name | New name | Old argument |", "|---|---|---|"]
+    for old, new in sorted(toolnames.RENAMED.items(), key=lambda kv: kv[1]):
+        args = ", ".join(f"`{a}` is `{n}`" for a, (n, _) in toolnames.RENAMED_ARGS.get(new, {}).items())
+        out.append(f"| `{old}` | [`{new}`](#{new}) | {args} |")
     return out
 
 
@@ -140,6 +156,7 @@ def reference_markdown(specs: Iterable[ToolSpec]) -> str:
         "against, and a handler may ask for a stricter one (a click that publishes is commit).",
         "",
         *toolsets_markdown(rows),
+        *renamed_markdown(),
         "",
         "## Every tool",
         "",

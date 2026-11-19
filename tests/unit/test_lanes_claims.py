@@ -169,7 +169,7 @@ async def test_busy_names_the_holder_since_when_and_the_place_never_a_token(tmp_
         await act(t.mgr, B)
     msg = e.value.message
     assert "agent claude-code has claimed it since 03:00:00 UTC (posting)" in msg
-    assert "number 1 in its queue" in msg and "lane_queue" in msg
+    assert "number 1 in its queue" in msg and "browser_queue" in msg
     assert e.value.details["holder"]["label"] == "agent claude-code" and e.value.details["position"] == 1
     assert "g_claude" not in msg and "s1" not in msg and "—" not in msg  # no grant id, no session
     assert t.mgr.queue_info(LANE)["queue_length"] == 0  # the caller that gave up left the queue
@@ -288,7 +288,7 @@ async def test_a_claimed_lane_is_never_closed_for_idleness_or_the_warm_cap(tmp_p
     await t.mgr.claim(LANE, A, purpose="job", ttl_s=900)
     t.clock.advance(120)
     assert await t.mgr.reap_idle() == []
-    with pytest.raises(LaneBusy, match="warm lanes are busy"):
+    with pytest.raises(LaneBusy, match="warm browsers are busy"):
         await t.mgr.open("biz-a/other")  # the only warm lane is claimed: it is not evicted
     assert t.mgr.get(LANE).state == LaneState.WARM
 
@@ -473,7 +473,7 @@ async def test_the_claim_tools_end_to_end(tmp_path):
     me = Ctx(rt, Principal(id="claude-code", grant_id="g_1"))
     other = Ctx(rt, Principal(id="codex", grant_id="g_2"))
     out = await tools.lane_claim(me, on=LANE, purpose="posting a reply", ttl_s=60)
-    assert out["lease"].startswith("lease_") and "lane_release" in out["next"]
+    assert out["lease"].startswith("lease_") and "browser_release" in out["next"]
     q = await tools.lane_queue(other, on=LANE)
     assert q["claim"]["yours"] is False and "Another caller holds the claim" in q["next"]
     assert (await tools.lane_queue(me, on=LANE))["claim"]["yours"] is True

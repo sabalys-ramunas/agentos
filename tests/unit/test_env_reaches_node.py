@@ -36,7 +36,7 @@ def agent_ctx(svc):
     _g, tok = svc.issue(subject={"id": "agent-1"}, workspaces=["biz-a"], ceiling=Effect.IRREVERSIBLE,
                         specials=Specials(exec=LaneCap()))
     p, g = svc.resolve(tok)
-    return lambda: svc.context(g, principal=p, tool="lane_exec", token=tok)
+    return lambda: svc.context(g, principal=p, tool="terminal_exec", token=tok)
 
 
 async def run_twice(svc, ctx, lane):
@@ -125,11 +125,11 @@ class RecordingCtx:
 
 
 @pytest.mark.parametrize(("tool", "args"), [
-    ("lane_exec", {"cmd": "id"}),
-    ("lane_job_start", {"cmd": "id"}),
+    ("terminal_exec", {"cmd": "id"}),
+    ("terminal_job_start", {"cmd": "id"}),
     ("shell_open", {}),
-    ("lane_install", {"packages": ["jq"]}),
-    ("lane_upload", {"chunks": {"9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08": "dGVzdA=="}}),
+    ("terminal_install", {"packages": ["jq"]}),
+    ("terminal_upload", {"chunks": {"9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08": "dGVzdA=="}}),
 ])
 async def test_every_agent_path_sends_runs_on_node(tmp_path, tool, args):
     mgr = EnvManager(tmp_path / "home", host=FakeHost(), launcher=DirectLauncher(), settings=EnvSettings(proxy_port=0))

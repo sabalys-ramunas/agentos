@@ -50,9 +50,9 @@ def bare_runtime(tmp_path: Path):
 def test_the_agent_gets_the_browser_lane_tool_set(tmp_path):
     """compose-publish needs files and uploads, a login task the vault: what a node serves."""
     names = {s.name for s in agent_specs(bare_runtime(tmp_path))}
-    assert {"browser_snapshot", "browser_act", "browser_upload", "files_put", "files_list", "login", "vault_fill",
-            "vault_list", "lane_control", "howto"} <= names
-    assert not names & {"lane_freeze", "workflow_run", "mail_send", "brain_run"}
+    assert {"browser_snapshot", "browser_act", "browser_upload", "browser_file_put", "browser_files", "login", "vault_fill",
+            "vault_list", "browser_control", "howto"} <= names
+    assert not names & {"browser_freeze", "workflow_run", "mail_send", "brain_run"}
 
 
 async def test_secret_is_granted_on_login_tasks_only():

@@ -6,6 +6,7 @@ from __future__ import annotations
 import base64
 import binascii
 import hashlib
+import math
 import re
 from typing import Any
 
@@ -26,11 +27,11 @@ def _mgr(ctx: ToolContext):
 
 def _where(lane: EnvLane) -> str:
     if lane.remote is not None:
-        return f"on VM lane {lane.id} (a disposable cloud machine at {lane.remote.host}, nothing of the node on it)"
+        return f"on VM {lane.id} (a disposable cloud machine at {lane.remote.host}, nothing of the node on it)"
     if not lane.isolated:
-        return f"on the node itself as {exposure.node_user()} (workbench lane {lane.id}, no isolation)"
+        return f"on the node itself as {exposure.node_user()} (workbench terminal {lane.id}, no isolation)"
     if exposure.reaches_node(lane):
-        return (f"in {lane.preset.value} lane {lane.id}, which shares the node's "
+        return (f"in {lane.preset.value} terminal {lane.id}, which shares the node's "
                 f"{' and '.join(exposure.shared_dials(lane))} (it can read the vault and the node token)")
     net = lane.profile.network
     if net == "isolated":
@@ -39,7 +40,7 @@ def _where(lane: EnvLane) -> str:
         net = f"egress via forwarder to {allow}"
     else:
         net = f"network {net}"
-    return f"in {lane.preset.value} lane {lane.id} ({net}, filesystem {lane.profile.filesystem})"
+    return f"in {lane.preset.value} terminal {lane.id} ({net}, filesystem {lane.profile.filesystem})"
 
 
 def _facts(lane: EnvLane) -> dict:
@@ -94,7 +95,7 @@ def _lane_brief(info) -> dict:
 
 # ------------------------------------------------------------------ lanes
 async def env_lanes_list(ctx: ToolContext) -> list[dict]:
-    """List terminal and service lanes on this node: preset, state, and an honest one-line
+    """List the terminals and services on this node: preset, state, and an honest one-line
     description of the isolation each really gets."""
     await ctx.authorize(Effect.READ)
     allowed = getattr(ctx, "can_access_lane", None)  # a grant sees only the lanes it covers
@@ -105,10 +106,10 @@ async def env_create(ctx: ToolContext, *, on: str, preset: str = "sandbox", netw
                      allow_hosts: list[str] | None = None, base_image: str | None = None,
                      filesystem: str | None = None, memory_mb: int | None = None, cpus: float | None = None,
                      disk_mb: int | None = None) -> dict:
-    """Create a terminal lane `workspace/name`. Agents may create sandbox (throwaway: private
+    """Create a terminal `workspace/name` on the node. Agents may create sandbox (throwaway: private
     ephemeral filesystem, network off unless you pass network="isolated" with allow_hosts) or
-    locked lanes. base_image pins a built image such as "dev-box@1". filesystem="overlay" keeps
-    the lane's files when it goes cold (a cached .venv or node_modules); memory_mb, cpus and
+    locked ones. base_image pins a built image such as "dev-box@1". filesystem="overlay" keeps
+    its files when it goes cold (a cached .venv or node_modules); memory_mb, cpus and
     disk_mb size it, up to the node's caps for agents."""
     mgr = _mgr(ctx)
     overrides: dict[str, Any] = {}
@@ -122,7 +123,7 @@ async def env_create(ctx: ToolContext, *, on: str, preset: str = "sandbox", netw
         overrides["filesystem"] = filesystem
     sizes = {k: v for k, v in (("memory_mb", memory_mb), ("cpus", cpus), ("disk_mb", disk_mb)) if v is not None}
     overrides.update(sizes)
-    summary = (f"Create {preset} terminal lane {on}"
+    summary = (f"Create {preset} terminal {on}"
                + (f", network {network}" if network else "")
                + (f", egress allowlist {', '.join(allow_hosts)}" if allow_hosts else "")
                + (f", base image {base_image}" if base_image else "")
@@ -138,35 +139,35 @@ async def env_create(ctx: ToolContext, *, on: str, preset: str = "sandbox", netw
     await ctx.authorize(Effect.EXEC, lane_id=on, summary=summary,
                         content={"on": on, "preset": preset, "overrides": overrides}, facts=facts)
     info = mgr.create(on, kind="terminal", preset=preset, overrides=overrides, by_agent=True)
-    ctx.trace("env_create", lane=on, preset=preset)
+    ctx.trace("terminal_create", lane=on, preset=preset)
     return _lane_brief(info)
 
 
 async def env_remove(ctx: ToolContext, *, on: str) -> dict:
-    """Delete a terminal or service lane and its files (its writable layer, logs and home)."""
+    """Delete a terminal or service and its files (its writable layer, logs and home)."""
     mgr = _mgr(ctx)
     lane = mgr.get(on)
     await ctx.authorize(Effect.IRREVERSIBLE, lane_id=on,
-                        summary=f"Delete {lane.preset.value} lane {on} and everything written inside it",
+                        summary=f"Delete {lane.preset.value} terminal {on} and everything written inside it",
                         content={"remove": on})
     await mgr.remove(on)
     return {"removed": on}
 
 
 # ------------------------------------------------------------------ exec
-EXEC_BYTES = 16000  # what lane_exec returns of stdout and stderr together by default: an MCP client takes it inline
+EXEC_BYTES = 16000  # what terminal_exec returns of stdout and stderr together by default: an MCP client takes it inline
 
 
 async def lane_exec(ctx: ToolContext, *, on: str, cmd: str, timeout_s: float = 60,
                     stdin: str | None = None, cwd: str | None = None, max_bytes: int = EXEC_BYTES) -> dict:
-    """Run one shell command inside a lane and wait for it. Returns exit_code, stdout, stderr,
+    """Run one shell command on your environment's machine (or a terminal) and wait for it. Returns exit_code, stdout, stderr,
     duration_s and timed_out. Past max_bytes the middle of the output is dropped with a marker;
     stdout_bytes and stderr_bytes are the full sizes. Binary output comes back base64. Processes
-    it starts end with it: use lane_job_start for a dev server. Effect: exec.
+    it starts end with it: use terminal_job_start for a dev server. Effect: exec.
 
     Args:
         cwd: The folder to run in (on an environment's machine an absolute path like /work/shop;
-            elsewhere one under the lane's home).
+            elsewhere one under the terminal's home).
         max_bytes: stdout and stderr together (default 16000, at most 131072).
         timeout_s: At most 200.
     """
@@ -188,7 +189,7 @@ async def lane_exec(ctx: ToolContext, *, on: str, cmd: str, timeout_s: float = 6
     progress.step(f"running: {_clip(cmd)[:80]}")
     res = await mgr.exec(on, run, timeout_s=capped, stdin=stdin, grant_id=_grant_id(ctx), max_bytes=budget,
                          oom_check=True)
-    ctx.trace("lane_exec", lane=on, exit_code=res.exit_code, duration_s=res.duration_s, timed_out=res.timed_out)
+    ctx.trace("terminal_exec", lane=on, exit_code=res.exit_code, duration_s=res.duration_s, timed_out=res.timed_out)
     out = res.model_dump()
     if out.get("oom") is None:
         out.pop("oom", None)
@@ -219,7 +220,7 @@ def self_kill_note(cmd: str, exit_code: int | None, signal: str | None, *, what:
     how = signal or f"exit {exit_code}"
     return (f"The shell running this {what} was killed ({how}): pkill -f matched the shell's own command line, "
             "which holds the pattern too, so it killed itself before the rest ran. Use pkill -f '[v]ite' (the "
-            "brackets keep the pattern from matching itself), kill a pid, or lane_job_cancel for a job.")
+            "brackets keep the pattern from matching itself), kill a pid, or terminal_job_cancel for a job.")
 
 
 GIT_PUSH_RE = re.compile(r"\bgit\b[^;&|]*\bpush\b")
@@ -233,15 +234,15 @@ def _seconds(value: Any) -> float:
 
 
 def exec_note(cmd: str, timed_out: bool, wanted: float, capped: float) -> str | None:
-    """What a lane_exec result adds: a push that timed out may have landed; a timeout that was cut."""
+    """What a terminal_exec result adds: a push that timed out may have landed; a timeout that was cut."""
     parts = []
     if timed_out and GIT_PUSH_RE.search(cmd or ""):
         parts.append("The command timed out while git push ran, so the push may have landed anyway. Do not push "
-                     "again blind: check with lane_exec \"git fetch origin && git status -sb\" (or git ls-remote "
+                     "again blind: check with terminal_exec \"git fetch origin && git status -sb\" (or git ls-remote "
                      "origin <branch>), or call environment(): git.pushed lists the branches the node saw pushed.")
     if timed_out and wanted > capped:
         parts.append(f"timeout_s was cut to {capped:g} s: one call may not run longer. For a longer command use "
-                     "lane_job_start, then lane_job_read(until_exit=true).")
+                     "terminal_job_start, then terminal_job_read(until_exit=true).")
     return " ".join(parts) or None
 
 
@@ -255,9 +256,9 @@ def _exec_budget(mgr: Any, max_bytes: Any) -> int:
 
 
 async def lane_install(ctx: ToolContext, *, on: str, packages: list[str], source: str = "apt") -> dict:
-    """Install programs into a lane from a pinned source: apt (the node's signed apt sources,
-    as the lane's root inside its overlay), pip (pypi.org) or npm (registry.npmjs.org). The
-    install is visible only in this lane, unless the lane shares the node filesystem."""
+    """Install programs into a terminal from a pinned source: apt (the node's signed apt sources,
+    as its root inside its overlay), pip (pypi.org) or npm (registry.npmjs.org). The install is
+    visible only in this terminal, unless it shares the node filesystem."""
     mgr = _mgr(ctx)
     lane = mgr.get(on)
     mgr.check_runnable(lane)  # a sandbox this node can never run is refused before anyone is asked
@@ -268,7 +269,7 @@ async def lane_install(ctx: ToolContext, *, on: str, packages: list[str], source
     await ctx.authorize(effect, lane_id=on, summary=programs.summary(source, pkgs, hosts, on, shared=shared),
                         content={"source": source, "packages": pkgs}, facts=_facts(lane))
     out = await mgr.install(on, pkgs, source)
-    ctx.trace("lane_install", lane=on, source=source, packages=pkgs, ok=out["ok"])
+    ctx.trace("terminal_install", lane=on, source=source, packages=pkgs, ok=out["ok"])
     return out
 
 
@@ -309,16 +310,16 @@ def _decode_chunk(sha: str, data: Any) -> bytes:
 
 async def lane_upload_check(ctx: ToolContext, *, on: str, chunks: list[str]) -> dict:
     """Which of these chunks (sha256 hex of each piece of a file) the node does not hold yet for
-    this lane. Upload those with lane_upload; the rest are there from an earlier sync."""
+    this terminal. Upload those with terminal_upload; the rest are there from an earlier sync."""
     await ctx.authorize(Effect.READ, lane_id=on)
     missing = await _mgr(ctx).upload_check(on, chunks)
     return {"lane": on, "missing": missing, "have": len(set(chunks)) - len(missing)}
 
 
 async def lane_upload(ctx: ToolContext, *, on: str, chunks: dict[str, str]) -> dict:
-    """Store file chunks on the node for a later sync into this lane (lane_job_start's `sync`):
+    """Store file chunks on the node for a later sync into this terminal (terminal_job_start's `sync`):
     {sha256 hex: base64 data}, at most a few MB per call. Each chunk is checked against its
-    name. Nothing reaches the lane, and nothing runs, until a sync applies them."""
+    name. Nothing reaches the terminal, and nothing runs, until a sync applies them."""
     mgr = _mgr(ctx)
     lane = mgr.get(on)
     if not isinstance(chunks, dict) or not chunks:
@@ -326,7 +327,7 @@ async def lane_upload(ctx: ToolContext, *, on: str, chunks: dict[str, str]) -> d
     data = {sync_check_sha(sha): _decode_chunk(sha, b64) for sha, b64 in chunks.items()}
     size = sum(len(b) for b in data.values())
     await ctx.authorize(Effect.DRAFT, lane_id=on,
-                        summary=f"Store {len(data)} file chunk(s) ({size} bytes) on the node for a sync into lane {on}",
+                        summary=f"Store {len(data)} file chunk(s) ({size} bytes) on the node for a sync into terminal {on}",
                         content={"chunks": sorted(data)}, facts=_facts(lane))
     return {"lane": on, **(await mgr.upload(on, data))}
 
@@ -334,14 +335,18 @@ async def lane_upload(ctx: ToolContext, *, on: str, chunks: dict[str, str]) -> d
 async def lane_job_start(ctx: ToolContext, *, on: str, cmd: str, cwd: str | None = None,
                          env: dict[str, str] | None = None, timeout_s: float | None = None,
                          sync: dict[str, Any] | None = None, source: dict[str, Any] | None = None) -> dict:
-    """Start a shell command in a lane in the background and return its job id at once; read its
-    output with lane_job_read as it runs, stop it with lane_job_cancel. For long work (a test
-    suite, a build): the output is kept on the node, so you can disconnect and come back. cwd is a
-    directory under the lane's home; env adds variables; timeout_s defaults to the node's maximum.
-    sync={"dest", "manifest", "clean"} first makes `dest` hold exactly the files of a manifest
-    whose chunks you uploaded (lane_upload, terminals toolset), keeping what earlier commands made there (a .venv)
-    unless clean is true, and is approved together with the command. source={"branch", "commit",
-    "dirty"} says which git tree the sync came from (kept on the job, with a sync only)."""
+    """Start a shell command on your environment's machine (or a terminal) in the background and
+    return its job id at once; read its output with terminal_job_read as it runs, stop it with
+    terminal_job_cancel. For a dev server and long work (a test suite, a build): the output is kept on
+    the node, so you can disconnect and come back. cwd: a folder such as /work/shop; env adds
+    variables; timeout_s defaults to the node's maximum. sync and source apply chunks uploaded with
+    terminal_upload (terminals toolset) first (agentos run uses them).
+
+    Args:
+        sync: {"dest", "manifest", "clean"}: make `dest` hold exactly the files of a manifest whose chunks
+            you uploaded, keeping what earlier commands made there (a .venv) unless clean is true.
+        source: {"branch", "commit", "dirty"}: which git tree the sync came from (with a sync only).
+    """
     mgr = _mgr(ctx)
     told = _source(source) if sync is not None else None
     lane = mgr.get(on)
@@ -366,13 +371,13 @@ async def lane_job_start(ctx: ToolContext, *, on: str, cmd: str, cwd: str | None
                         facts=_facts(lane))
     info = await mgr.job_start(on, cmd, cwd=cwd, env=env, timeout_s=timeout, sync=prepared, grant_id=_grant_id(ctx),
                                by=getattr(getattr(ctx, "principal", None), "id", None), source=told)
-    ctx.trace("lane_job_start", lane=on, job=info.id, synced=(info.sync or {}).get("files"))
+    ctx.trace("terminal_job_start", lane=on, job=info.id, synced=(info.sync or {}).get("files"))
     return _job_view(info)
 
 
 JOB_READ_BYTES = 16000
-JOB_WAIT_MS = 30000
-JOB_WAIT_EXIT_MS = 120000
+JOB_WAIT_S = 30
+JOB_WAIT_EXIT_S = 120
 
 
 def _job_on(on: str | None, j: Any) -> None:
@@ -384,21 +389,21 @@ def _job_on(on: str | None, j: Any) -> None:
 
 
 async def lane_job_read(ctx: ToolContext, *, job: str, on: str | None = None, stdout_offset: int = 0,
-                        stderr_offset: int = 0, wait_ms: int = 1000, max_bytes: int = JOB_READ_BYTES,
+                        stderr_offset: int = 0, wait_s: float = 1, max_bytes: int = JOB_READ_BYTES,
                         base64_output: bool = False, until_exit: bool = False, until_port: int = 0) -> dict:
-    """Read a job's output after your byte offsets, waiting up to wait_ms (30000) for more while it
-    runs. until_exit=true waits for the job to end (then its start and its end, a marker naming any
-    bytes skipped); until_port=3000 for that port to listen or the job to end (then the end of its
-    output); both wait_ms up to 120000. Pass back next_stdout_offset and next_stderr_offset;
-    stdout_bytes is the size so far. `state`: running, exited, cancelled, timed_out or lost; then
-    exit_code (or signal). `oom`: what the kernel killed for memory. Effect: read."""
+    """Read a job's output after your byte offsets, waiting up to wait_s seconds (default 1, at most 30)
+    for more while it runs. until_exit=true waits for the job to end (then its start and its end, a
+    marker naming any bytes skipped); until_port=3000 for that port to listen or the job to end (then
+    the end of its output); with either, wait_s goes up to 120. Pass back next_stdout_offset and
+    next_stderr_offset; stdout_bytes is the size so far. `state`: running, exited, cancelled, timed_out
+    or lost; then exit_code (or signal). `oom`: what the kernel killed for memory. Effect: read."""
     mgr = _mgr(ctx)
     j = mgr.job(job)
     await ctx.authorize(Effect.READ, lane_id=j.info.lane)
     _job_on(on, j)
     port = _port(until_port)
-    most = JOB_WAIT_EXIT_MS if until_exit or port else JOB_WAIT_MS
-    wait_s = max(0, min(_int(wait_ms, "wait_ms"), most)) / 1000
+    most = JOB_WAIT_EXIT_S if until_exit or port else JOB_WAIT_S
+    wait_s = max(0.0, min(_wait_seconds(wait_s), most))
     max_bytes = max(1, min(_int(max_bytes, "max_bytes"), 1 << 20))
     stdout_offset, stderr_offset = max(0, _int(stdout_offset, "stdout_offset")), max(0, _int(stderr_offset, "stderr_offset"))
     listening = None
@@ -440,9 +445,9 @@ async def lane_job_read(ctx: ToolContext, *, job: str, on: str | None = None, st
 
 async def _start_and_end(mgr: Any, j: Any, stream: str, offset: int, data: bytes,
                          max_bytes: int) -> tuple[str, int, str] | None:
-    """lane_job_read(until_exit) of a job that ended with more of `stream` after `offset` than one
+    """terminal_job_read(until_exit) of a job that ended with more of `stream` after `offset` than one
     read: what an agent waits for is the end (the error, the summary). The start and the end as
-    lane_exec keeps them (a quarter and three quarters of max_bytes), cut at line ends, with a
+    terminal_exec keeps them (a quarter and three quarters of max_bytes), cut at line ends, with a
     marker that names the bytes skipped and the offset that reads them. (text, next offset, note),
     or None when `data` is all there is."""
     kept = j.kept(stream)
@@ -463,6 +468,16 @@ async def _start_and_end(mgr: Any, j: Any, stream: str, offset: int, data: bytes
     ) + tail.decode("utf-8", "replace")
     return text, kept, (f"The job ended with more {stream} than max_bytes: {stream} is its start and its end, "
                         f"{skipped} bytes skipped between them (read them with {stream}_offset={skip_from}).")
+
+
+def _wait_seconds(value: Any) -> float:
+    try:
+        seconds = float(value)
+    except (TypeError, ValueError):
+        raise InvalidRequest("wait_s is a number of seconds, like 30") from None
+    if math.isnan(seconds):
+        raise InvalidRequest("wait_s is a number of seconds, like 30")
+    return seconds
 
 
 def _int(value: Any, name: str) -> int:
@@ -492,7 +507,7 @@ async def lane_job_cancel(ctx: ToolContext, *, job: str, on: str | None = None) 
 
 
 async def lane_jobs_list(ctx: ToolContext, *, on: str | None = None) -> list[dict]:
-    """Background jobs on this node (of one lane with `on`), newest first, running and finished. An
+    """Background jobs on this node (of one terminal with `on`), newest first, running and finished. An
     environment's jobs show only with its on (the on your environment_open gave)."""
     if on is not None:
         await ctx.authorize(Effect.READ, lane_id=on)
@@ -508,7 +523,7 @@ async def lane_jobs_list(ctx: ToolContext, *, on: str | None = None) -> list[dic
 
 # ------------------------------------------------------------------ shells
 async def shell_open(ctx: ToolContext, *, on: str, cols: int = 120, rows: int = 32) -> dict:
-    """Open an interactive shell (a PTY) in a lane. The session keeps running when you
+    """Open an interactive shell (a PTY) in a terminal. The session keeps running when you
     disconnect, until it is closed or idle for a long time. Returns the session id."""
     mgr = _mgr(ctx)
     lane = mgr.get(on)
@@ -556,7 +571,7 @@ async def shell_close(ctx: ToolContext, *, session: str) -> dict:
 
 # ------------------------------------------------------------------ services
 async def service_start(ctx: ToolContext, *, on: str, ttl_s: float | None = None) -> dict:
-    """Start (or keep running) a service lane's supervised command, restarted with backoff if
+    """Start (or keep running) a service's supervised command, restarted with backoff if
     it crashes. ttl_s stops it automatically after that many seconds."""
     mgr = _mgr(ctx)
     lane = mgr.get(on)
@@ -574,7 +589,7 @@ async def service_start(ctx: ToolContext, *, on: str, ttl_s: float | None = None
 
 
 async def service_stop(ctx: ToolContext, *, on: str) -> dict:
-    """Stop a service lane's command (SIGTERM, then SIGKILL after its stop timeout)."""
+    """Stop a service's command (SIGTERM, then SIGKILL after its stop timeout)."""
     mgr = _mgr(ctx)
     # stopping runs nothing in the lane, so it carries no `runs_on_node`: stopping a service on a lane
     # that reaches the node must stay as easy as it was
@@ -607,7 +622,7 @@ async def images_list(ctx: ToolContext) -> dict:
 
 
 async def image_build(ctx: ToolContext, *, template: str) -> dict:
-    """Build a new version of a base image from its template (a shared change: every lane
+    """Build a new version of a base image from its template (a shared change: every terminal
     created on the new version sees it)."""
     mgr = _mgr(ctx)
     t = mgr.templates().get(template)
@@ -628,19 +643,19 @@ async def image_build(ctx: ToolContext, *, template: str) -> dict:
 def tool_specs(runtime: Any) -> list[ToolSpec]:
     t = ("env",)
     return [
-        ToolSpec("env_lanes_list", env_lanes_list, Effect.READ, lane_arg=None, tags=t, hidden_without="envs"),
-        ToolSpec("env_create", env_create, Effect.EXEC, tags=t, hidden_without="envs"),
-        ToolSpec("env_remove", env_remove, Effect.IRREVERSIBLE, tags=t, hidden_without="envs"),
-        ToolSpec("lane_exec", lane_exec, Effect.EXEC, tags=(*t, "terminal"), hidden_without="envs"),
-        ToolSpec("lane_install", lane_install, Effect.INSTALL_OVERLAY, tags=(*t, "programs"), hidden_without="envs"),
-        ToolSpec("lane_upload_check", lane_upload_check, Effect.READ, tags=(*t, "terminal"), hidden_without="envs"),
-        ToolSpec("lane_upload", lane_upload, Effect.DRAFT, tags=(*t, "terminal"), hidden_without="envs"),
-        ToolSpec("lane_job_start", lane_job_start, Effect.EXEC, tags=(*t, "terminal"), hidden_without="envs"),
-        ToolSpec("lane_job_read", lane_job_read, Effect.READ, lane_arg=None, tags=(*t, "terminal"),
+        ToolSpec("terminals_list", env_lanes_list, Effect.READ, lane_arg=None, tags=t, hidden_without="envs"),
+        ToolSpec("terminal_create", env_create, Effect.EXEC, tags=t, hidden_without="envs"),
+        ToolSpec("terminal_remove", env_remove, Effect.IRREVERSIBLE, tags=t, hidden_without="envs"),
+        ToolSpec("terminal_exec", lane_exec, Effect.EXEC, tags=(*t, "terminal"), hidden_without="envs"),
+        ToolSpec("terminal_install", lane_install, Effect.INSTALL_OVERLAY, tags=(*t, "programs"), hidden_without="envs"),
+        ToolSpec("terminal_upload_check", lane_upload_check, Effect.READ, tags=(*t, "terminal"), hidden_without="envs"),
+        ToolSpec("terminal_upload", lane_upload, Effect.DRAFT, tags=(*t, "terminal"), hidden_without="envs"),
+        ToolSpec("terminal_job_start", lane_job_start, Effect.EXEC, tags=(*t, "terminal"), hidden_without="envs"),
+        ToolSpec("terminal_job_read", lane_job_read, Effect.READ, lane_arg=None, tags=(*t, "terminal"),
                  hidden_without="envs"),
-        ToolSpec("lane_job_cancel", lane_job_cancel, Effect.EXEC, lane_arg=None, tags=(*t, "terminal"),
+        ToolSpec("terminal_job_cancel", lane_job_cancel, Effect.EXEC, lane_arg=None, tags=(*t, "terminal"),
                  hidden_without="envs"),
-        ToolSpec("lane_jobs_list", lane_jobs_list, Effect.READ, lane_arg=None, tags=(*t, "terminal"),
+        ToolSpec("terminal_jobs", lane_jobs_list, Effect.READ, lane_arg=None, tags=(*t, "terminal"),
                  hidden_without="envs"),
         ToolSpec("shell_open", shell_open, Effect.EXEC, tags=(*t, "terminal"), hidden_without="envs"),
         ToolSpec("shell_write", shell_write, Effect.EXEC, lane_arg=None, tags=(*t, "terminal"), hidden_without="envs"),

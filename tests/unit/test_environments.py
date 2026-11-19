@@ -202,9 +202,9 @@ async def test_open_never_asks_then_rents_clones_and_is_ready(node):
     # the node's own live view, never a page of the web app (the public repository has none)
     assert set(out["links"]) == {"browser"} and "/environments/" not in str(out["links"]["browser"])
     # the agent finds its terminal without guessing: the tools it needs are named, and where the rest are
-    for words in ("calls without `on` go here", 'lane_exec(cmd="npm test", cwd="/work/shop")',
-                  "lane_file_read", "lane_file_edit", "proof=", "environment_pull_request(title)",
-                  "lane_job_start(", "lane_job_read", "in your list", 'tools_more("terminals")',
+    for words in ("calls without `on` go here", 'terminal_exec(cmd="npm test", cwd="/work/shop")',
+                  "file_read", "file_edit", "proof=", "environment_pull_request(title)",
+                  "terminal_job_start(", "terminal_job_read", "in your list", 'tools_more("terminals")',
                   'tools_more("studio")', "links.browser"):
         assert words in out["next"], words
     # the VM is the environment's, its browser lane was made by the node, with the tunnel as its proxy
@@ -297,10 +297,10 @@ async def test_a_new_title_opens_another_and_a_new_chat_reattaches_by_title(node
     assert again["id"] == a["id"] and again["opened"] == "attached"
     other_title = await call("environment_open", title="Something else")  # the title names the computer
     assert other_title["id"] != a["id"] and other_title["opened"] == "new"
-    ran = await call("lane_exec", cmd="pwd")  # this session took "Something else" last: calls go there
+    ran = await call("terminal_exec", cmd="pwd")  # this session took "Something else" last: calls go there
     assert ran["environment"] == {"id": other_title["id"], "title": "Something else"}
     await call("environment_open", title=TITLE)  # attaching again makes it this session's
-    ran = await call("lane_exec", cmd="pwd")
+    ran = await call("terminal_exec", cmd="pwd")
     assert ran["environment"]["id"] == a["id"]
     await call("environment_close", on=other_title["on"])
     # another chat of the same grant takes it over only with take_over=true, once the first was quiet 10 minutes
@@ -441,20 +441,20 @@ async def test_a_size_the_cloud_has_no_room_for_offers_the_sizes_it_lists_now_an
 async def test_terminal_calls_without_on_go_to_the_environment_and_never_wait(node):
     call = node["call"]
     with pytest.raises(ToolCallError, match="no_environment"):
-        await call("lane_exec", cmd="echo hi")
+        await call("terminal_exec", cmd="echo hi")
     out = await opened(node)
     # untrusted page text in this grant's context does not hold a command on its own VM
     ctx = node["policy"].context(node["grant"], tool="browser_snapshot")
     ctx.taint("untrusted", source="browser_snapshot")
-    res = await call("lane_exec", cmd="npm test", cwd="/work/shop")
+    res = await call("terminal_exec", cmd="npm test", cwd="/work/shop")
     assert res["exit_code"] == 0 and res.get("status") != "approval_pending"
     assert ("cd '/work/shop' && npm test", node["grant"].id) in node["machine"].ran
     env = node["mgr"].get(out["id"])
-    assert env.last_call_at is not None and [c.tool for c in env.calls][-1] == "lane_exec"
+    assert env.last_call_at is not None and [c.tool for c in env.calls][-1] == "terminal_exec"
     assert env.calls[-1].summary == "npm test"
     # with `on`, a call behaves as before: another lane is another lane
     with pytest.raises(ToolCallError):
-        await call("lane_exec", on="dev/other", cmd="echo hi")
+        await call("terminal_exec", on="dev/other", cmd="echo hi")
 
 
 async def test_a_command_on_another_vm_lane_still_asks_after_untrusted_text(node):
@@ -462,7 +462,7 @@ async def test_a_command_on_another_vm_lane_still_asks_after_untrusted_text(node
     await node["vms"].create("dev/plain", ttl_minutes=30)
     ctx = node["policy"].context(node["grant"], tool="browser_snapshot")
     ctx.taint("untrusted", source="browser_snapshot")
-    out = await node["call"]("lane_exec", on="dev/plain", cmd="echo hi")
+    out = await node["call"]("terminal_exec", on="dev/plain", cmd="echo hi")
     assert out["status"] == "approval_pending"
 
 
@@ -479,7 +479,7 @@ async def test_browser_calls_without_on_resolve_to_the_browser_lane(node):
     with pytest.raises(Exception, match="no environment") as err:
         routing.route(rt, "browser_navigate", other, session="chat-2", grant_id="gr_other")
     # an agent doing account work that forgot `on` is told so, not only to rent a machine
-    assert "account lane" in str(err.value) and "`on`" in str(err.value) and "lanes_list" in str(err.value)
+    assert "account browser" in str(err.value) and "`on`" in str(err.value) and "browsers_list" in str(err.value)
 
 
 async def test_studio_checks_get_the_environments_proxy(node):
@@ -542,7 +542,7 @@ def test_routed_tools_take_on_as_optional_in_their_schema():
     async def lane_exec(ctx, *, on: str, cmd: str) -> dict:
         return {}
 
-    [on, _cmd] = tool_params(ToolSpec("lane_exec", lane_exec, Effect.EXEC))
+    [on, _cmd] = tool_params(ToolSpec("terminal_exec", lane_exec, Effect.EXEC))
     assert not on.required and on.default is None and "environment" in on.description
     async def vm_create(ctx, *, on: str) -> dict:
         return {}
@@ -556,12 +556,12 @@ def test_routed_tools_take_on_as_optional_in_their_schema():
 
 async def test_environment_reads_ports_git_and_calls(node):
     out = await opened(node, repo="example.test/me/shop")
-    await node["call"]("lane_exec", cmd="ls")
+    await node["call"]("terminal_exec", cmd="ls")
     st = await node["call"]("environment")
     assert st["id"] == out["id"] and st["state"] == "working"
     assert st["ports"] == [{"port": 3000, "process": "node", "link": None}]
     assert st["git"] == {"branch": "main", "ahead": 0, "dirty": 0, "pushed": [], "deleted": []}
-    assert st["calls"][0]["tool"] == "lane_exec" and st["unsaved"] is None
+    assert st["calls"][0]["tool"] == "terminal_exec" and st["unsaved"] is None
     assert st["calls"][0]["ok"] is True and st["calls"][0]["exit_code"] == 0
 
 
@@ -587,7 +587,7 @@ async def test_close_refuses_unsaved_work_then_discard_deletes_everything(node):
     assert f"env/{out['id']}-browser" in node["lanes"].deleted
     assert node["lanes"].proxies_loader() == {}
     with pytest.raises(ToolCallError, match="no_environment"):
-        await node["call"]("lane_exec", cmd="echo after")
+        await node["call"]("terminal_exec", cmd="echo after")
 
 
 async def test_close_refuses_files_in_no_git_repo_and_says_how_to_keep_them(node):
@@ -836,14 +836,14 @@ async def test_the_grant_agentos_connect_gives_opens_one_and_works_only_on_env_l
                                    specials=specials)
     out = await opened(node, tok=tok, session="chat-c", repo="example.test/me/shop")
     assert out["state"] == "ready", out
-    ran = await node["call"]("lane_exec", tok=tok, session="chat-c", cmd="npm test", cwd=out["workdir"])
+    ran = await node["call"]("terminal_exec", tok=tok, session="chat-c", cmd="npm test", cwd=out["workdir"])
     assert ran["exit_code"] == 0
     with pytest.raises((ToolCallError, PolicyDenied)):  # an account lane is not covered
-        await node["call"]("lane_exec", tok=tok, session="chat-c", on="personal/code", cmd="ls")
+        await node["call"]("terminal_exec", tok=tok, session="chat-c", on="personal/code", cmd="ls")
 
 
 async def test_a_job_on_the_environment_is_cancelled_with_the_connect_grant(node, monkeypatch):
-    # lane_job_cancel names a job, not a lane: the check waits for the job's lane (env/<id>)
+    # terminal_job_cancel names a job, not a lane: the check waits for the job's lane (env/<id>)
     from types import SimpleNamespace
 
     from agentos.api.bridge import panel_specials
@@ -860,14 +860,14 @@ async def test_a_job_on_the_environment_is_cancelled_with_the_connect_grant(node
         return cancelled
 
     monkeypatch.setattr(node["envs"], "job_cancel", job_cancel)
-    done = await node["call"]("lane_job_cancel", tok=tok, session="chat-j", job="job-1")
+    done = await node["call"]("terminal_job_cancel", tok=tok, session="chat-j", job="job-1")
     assert done["state"] == "cancelled"
     # a job on an account lane stays out of reach: the handler's own check refuses it
     info = JobInfo(id="job-2", lane="personal/code", cmd="ls", timeout_s=60)
     lane = node["envs"].get(f"env/{out['id']}")
     monkeypatch.setattr(node["envs"], "get", lambda _id: lane)
     with pytest.raises((ToolCallError, PolicyDenied), match="exec is not granted for personal/code"):
-        await node["call"]("lane_job_cancel", tok=tok, session="chat-j", job="job-2")
+        await node["call"]("terminal_job_cancel", tok=tok, session="chat-j", job="job-2")
 
 
 # ------------------------------------------------------------------ unsaved work, with real git

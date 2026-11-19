@@ -148,9 +148,14 @@ describe('words a computer says about its workers, environments and tools', () =
 
   it('titles each AI tool in everyday words, and keeps the node name for the rest', () => {
     expect(toolPlainTitle('login')).toBe('Log in with a saved login');
-    expect(toolPlainTitle('env_create')).toBe('Make an environment');
+    expect(toolPlainTitle('terminal_create')).toBe('Make a terminal');
+    expect(toolPlainTitle('terminal_exec')).toBe('Run a command');
+    expect(toolPlainTitle('terminal_install')).toBe('Install a program');
+    // a name a tool had before 2026-11-19, as older calls and the action log still carry it
+    expect(toolPlainTitle('env_create')).toBe('Make a terminal');
     expect(toolPlainTitle('lane_exec')).toBe('Run a command');
-    expect(toolPlainTitle('lane_install')).toBe('Install a program in an account');
+    expect(toolPlainTitle('lane_file_read')).toBe('Read a file');
+    expect(toolPlainTitle('files_put')).toBe('Store a file for an account');
     // A tool this build does not list still reads plainly, with a lane as an account.
     expect(toolPlainTitle('lane_new_thing')).toBe('Account new thing');
   });
@@ -163,6 +168,7 @@ describe('raw tool names and ids a person reads (2026-11-15 test, F7)', () => {
 
   it("reads an agent's tool in the audit log as what it does", () => {
     expect(auditWords('tool_end lane_close', 'test/linkedin', envNames)).toBe("Close an account: Test's LinkedIn");
+    expect(auditWords('tool_end browser_close', 'test/linkedin', envNames)).toBe("Close an account: Test's LinkedIn");
     expect(auditWords('tool_end browser_act', 'test/linkedin', envNames)).toBe("Click or type on a page: Test's LinkedIn");
   });
 
@@ -178,8 +184,10 @@ describe('raw tool names and ids a person reads (2026-11-15 test, F7)', () => {
   });
 
   it('reads the tools of an environment plainly', () => {
-    expect(toolPlainTitle('lane_exec')).toBe('Run a command');
+    expect(toolPlainTitle('terminal_exec')).toBe('Run a command');
     expect(toolPlainTitle('ui_check')).toBe("Check a page's design");
+    expect(toolPlainTitle('browser_request_control')).toBe('Ask for control back');
     expect(toolPlainTitle('lane_request_control')).toBe('Ask for control back');
+    expect(toolPlainTitle('environment_pull_request')).toBe('Open a pull request');
   });
 });

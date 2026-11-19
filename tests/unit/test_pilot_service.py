@@ -1,4 +1,4 @@
-"""lane_do end to end on the dev node's fake lanes: the real policy service, approvals, commit gate,
+"""browser_task end to end on the dev node's fake lanes: the real policy service, approvals, commit gate,
 runner and claims, with only the decision brain scripted. An agent hands a goal over, the pilot
 types and clicks through the node's tools under a child grant, and a publish waits for a person."""
 
@@ -101,7 +101,7 @@ class Node:
         self.runner.store.close()
 
     def ctx(self, token: str | None = None) -> Any:
-        return self.policy.context_for_token(token or self.token, tool="lane_do", lane_id=LANE)
+        return self.policy.context_for_token(token or self.token, tool="browser_task", lane_id=LANE)
 
     @property
     def page(self) -> Any:

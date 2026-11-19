@@ -63,7 +63,7 @@ class BrowserTools:
         if name == "browser_upload":
             result = await self.interaction.upload(page, a["ref"], [self.inbox / a["file_id"]], root=self.inbox)
             return result.model_dump(mode="json")
-        if name == "files_list":
+        if name == "browser_files":
             return {"inbox": [{"name": "photo.png", "id": "photo.png"}]}
         raise ToolFailed("denied", name)
 

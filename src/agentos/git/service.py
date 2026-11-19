@@ -6,7 +6,7 @@
   127.0.0.1:LANE_PORT inside it, opened the first time a command there needs git, closed when the
   lane goes cold. A request on it can only come from that lane. In a lane with network `off` it is
   the one way out, to the remotes declared for it.
-- A command a grant starts in a lane (lane_exec, lane_job_start, so `agentos run`, a shell) gets a
+- A command a grant starts in a lane (terminal_exec, terminal_job_start, so `agentos run`, a shell) gets a
   gateway token for that lane and grant, and GIT_CONFIG_* variables that point each declared host at
   the listener and add the token to requests to it. A brain task gets the same in its private
   `~/.gitconfig`, and the bundle's clone uses it too. Tokens end with the lane (cold) or the task.

@@ -194,7 +194,7 @@ class FakeLogin:
 
 
 def test_the_live_view_runs_the_form_only_for_a_person(tmp_path):
-    """Logging in is a person's: an agent's control link (lane_view's) is refused every step of it, and an
+    """Logging in is a person's: an agent's control link (browser_view's) is refused every step of it, and an
     owner link (made in person) runs the form and saves to the vault (docs/THREAT-MODEL.md)."""
     config = NodeConfig(home=tmp_path)
     lanes = FakeLaneManager(config)

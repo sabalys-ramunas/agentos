@@ -139,7 +139,7 @@ async def test_the_tools_pass_the_callers_grant(node):
             return None
 
     t = {s.name: s.handler for s in tool_specs(node["rt"])}
-    out = await t["lane_exec"](Ctx(), on=LANE, cmd="printenv GIT_CONFIG_COUNT")
+    out = await t["terminal_exec"](Ctx(), on=LANE, cmd="printenv GIT_CONFIG_COUNT")
     assert int(out["stdout"].strip()) > 0
 
 

@@ -648,8 +648,9 @@ async def test_self_approval_stands_beside_chat(node, url):
 async def test_the_tool_has_no_argument_that_could_carry_an_answer(node, url):
     _, token = issue(node)
     async with agent(url, token) as client:
-        tool = next(t for t in (await client.list_tools()).tools if t.name == "approval_confirm")
-    assert set(tool.input_schema["properties"]) == {"approval_id"}
+        more = await client.call_tool("tools_more", {"toolset": "approval_confirm"})  # in the accounts toolset
+    tool = next(t for t in more.structured_content["tools"] if t["name"] == "approval_confirm")
+    assert set(tool["input_schema"]["properties"]) == {"approval_id"}
 
 
 @pytest.mark.parametrize("extra", [{"answer": "yes"}, {"approved": True}, {"decision": "approve"}, {"level": "chat"}])

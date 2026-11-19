@@ -1,4 +1,4 @@
-"""A browser tool's call under the lane's egress guard: what it blocked, and what a publish
+"""A browser tool's call under the browser's egress guard: what it blocked, and what a publish
 during the call is charged to (agentos.node.egress).
 """
 
@@ -30,7 +30,7 @@ def _trace_blocks(ctx: ToolContext, on: str, blocks: list[egress.Block]) -> None
 
 class ActMeter:
     """egress.CommitMeter for one tool call: a publish its act set off is one commit on the
-    caller's grant and the lane (PolicyContext.charge_commit, agentos.policy.meters), traced as
+    caller's grant and the browser (PolicyContext.charge_commit, agentos.policy.meters), traced as
     `commit_observed`. A context without meters (a bare ToolContext) charges nothing."""
 
     def __init__(self, ctx: ToolContext, on: str):
@@ -64,9 +64,9 @@ class ActMeter:
 @asynccontextmanager
 async def guarded(ctx: ToolContext, on: str, page: Any, *, route: bool = True,
                   gate: commitgate.ActGate | None = None) -> AsyncIterator[list[dict[str, Any]]]:
-    """Run an agent's action under the lane's egress guard. Yields the list the result reports
+    """Run an agent's action under the browser's egress guard. Yields the list the result reports
     as `egress_blocked`. A failed action that the guard stopped becomes egress_refused, naming
-    the host; every block of the call goes to the action log. `route`: a strict lane's route is
+    the host; every block of the call goes to the action log. `route`: a strict browser's route is
     on for the action (waits pass False: they act on nothing). A publish the action sets off is
     charged as a commit (ActMeter). `gate`: the commit gate (AUD-03): every publish the action
     sets off waits for its approval; when the gate held one, a failed action fails with what the
@@ -117,7 +117,14 @@ def main_frame_block(report: list[dict[str, Any]]) -> dict[str, Any] | None:
     return next((b for b in report if b["kind"] in ("navigation", "redirect", "committed")), None)
 
 
+EGRESS_NOTE = ("egress_blocked: requests the browser's guard refused while you acted. Rule unrecognised (often the "
+               "page's own telemetry) was held without asking anyone, and your act still ran.")
+
+
 def with_blocks(out: dict[str, Any], report: list[dict[str, Any]]) -> dict[str, Any]:
+    """The result with the call's blocks, and once what they mean (the browser tools' descriptions leave it out:
+    only an account browser's guard blocks)."""
     if report:
         out["egress_blocked"] = report
+        out.setdefault("egress_note", EGRESS_NOTE)
     return out

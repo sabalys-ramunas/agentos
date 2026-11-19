@@ -30,11 +30,11 @@ async def ok(client: Any, tool: str, args: dict[str, Any], timeout: float = 120)
 
 
 async def lanes(client: Any) -> dict[str, dict[str, Any]]:
-    return lanes_by_id(await ok(client, "lanes_list", {}, timeout=15))
+    return lanes_by_id(await ok(client, "browsers_list", {}, timeout=15))
 
 
 async def control(client: Any, lane: str) -> dict[str, Any]:
-    return json_of(await ok(client, "lane_control", {"on": lane}, timeout=15))
+    return json_of(await ok(client, "browser_control", {"on": lane}, timeout=15))
 
 
 def one_ref(outline: str, role: str, name: str, within: str | None = None) -> str:

@@ -201,7 +201,7 @@ def lane_switch(
     state: Annotated[str | None, typer.Argument(metavar="[on|off]", help="Leave it out to see the switch.")] = None,
     as_json: JsonOpt = False,
 ) -> None:
-    """The browser worker on one lane: on by default. Off stops lane_do there, and agents and a person
+    """The browser worker on one lane: on by default. Off stops browser_task there, and agents and a person
     can still drive the lane directly."""
     def change(service: PluginService, log: ChangeLog) -> None:
         if state not in ("on", "off"):
@@ -216,9 +216,9 @@ def lane_switch(
     if as_json:
         typer.echo(json.dumps({"lane": lane, "plugin": LANE_WORKER, "on": on}, indent=2))
     elif on:
-        typer.echo(f"{lane}: the browser worker is on here. lane_do can run, if {LANE_WORKER} is enabled on this node.")
+        typer.echo(f"{lane}: the browser worker is on here. browser_task can run, if {LANE_WORKER} is enabled on this node.")
     else:
-        typer.echo(f"{lane}: the browser worker is off here. lane_do is refused, and any run stops at its next step. "
+        typer.echo(f"{lane}: the browser worker is off here. browser_task is refused, and any run stops at its next step. "
                    "Agents can still use the browser tools, and a person can take over.")
 
 

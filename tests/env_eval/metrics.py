@@ -18,6 +18,8 @@ import shlex
 from collections import Counter
 from typing import Any
 
+from agentos.core.toolnames import current
+
 ENV_TOOLS = {"environment_open", "environment"}
 # A call refused for want of the environment's handle: the skill's first rule is to pass `on`.
 NO_ON_CODES = {"which_environment", "no_environment"}
@@ -25,16 +27,20 @@ READERS = {"cat", "head", "tail", "less", "more", "nl", "bat"}
 SLEEP_S = 2.0           # a sleep this long inside a command is waiting by hand (until_port waits on the machine)
 POLLS = 3               # this many reads of one job with no until_exit or until_port is a poll loop
 SEGMENT = re.compile(r"\|\||&&|;|\||\n")
-# an environment's lane name (env/<id>, env/<id>-browser, <id>-browser, <id>), never its handle "<id>.<secret>"
+# the name of an environment's terminal or browser (env/<id>, env/<id>-browser, <id>-browser, <id>), never its
+# handle "<id>.<secret>"
 LANE_NAME = re.compile(r"^(env/)?e[a-z0-9]{3,15}(-browser)?$")
 
 
 def unwrap(row: dict[str, Any]) -> dict[str, Any]:
-    """A tools_call row as the tool it ran."""
+    """A tools_call row as the tool it ran, by its name today: a run from before 2026-11-19 (or an agent
+    that still says lane_exec) counts as the renamed tool, so history stays comparable."""
     if row.get("tool") == "tools_call" and isinstance((row.get("args") or {}).get("name"), str):
         inner = row["args"].get("arguments")
-        return {**row, "tool": row["args"]["name"], "args": inner if isinstance(inner, dict) else {},
+        return {**row, "tool": current(row["args"]["name"]), "args": inner if isinstance(inner, dict) else {},
                 "via": "tools_call"}
+    if isinstance(row.get("tool"), str) and current(row["tool"]) != row["tool"]:
+        return {**row, "tool": current(row["tool"]), "old_name": row["tool"]}
     return row
 
 
@@ -67,7 +73,7 @@ def _segments(cmd: str) -> list[list[str]]:
 
 def shell_file_io(cmd: str) -> str | None:
     """'read' or 'write' when the command reads or writes a file by hand (cat, sed -n, a heredoc,
-    echo > file) instead of lane_file_read / lane_file_edit / lane_file_write; else None. A reader
+    echo > file) instead of file_read / file_edit / file_write; else None. A reader
     at the end of a pipe (`npm test | tail -5`) reads no file and is fine."""
     if "<<" in cmd:
         return "write"
@@ -104,7 +110,7 @@ def sleeps(cmd: str) -> float:
 def _failed(row: dict[str, Any]) -> bool:
     if not row.get("ok"):
         return True
-    if row.get("tool") == "lane_exec":
+    if row.get("tool") == "terminal_exec":
         code = parsed(row).get("exit_code")
         return isinstance(code, int) and code != 0
     return False
@@ -126,20 +132,21 @@ def wrong_turns(rows: list[dict[str, Any]], *, new_environments: int = 1) -> lis
         tool, args = r["tool"], r.get("args") or {}
         on = args.get("on")
         if isinstance(on, str) and LANE_NAME.match(on.strip()):  # Haiku, 2026-11-18: lanes.browser as on
-            out.append(f"{tool} with a lane's name as on ({on[:40]!r}), not the on its environment_open gave"
+            out.append(f"{tool} with its terminal's or browser's name as on ({on[:40]!r}), not the on its "
+                       "environment_open gave"
                        + (f" (refused: {r['code']})" if r.get("code") else ""))
         elif r.get("code") in NO_ON_CODES and tool != "environment_open":
             out.append(f"{tool} without the on its environment_open gave (refused: {r['code']})")
-        if tool == "lane_exec":
+        if tool == "terminal_exec":
             cmd = str(args.get("cmd") or "")
             how = shell_file_io(cmd)
             if how:
-                out.append(f"{'read' if how == 'read' else 'wrote'} a file through lane_exec "
-                           f"({cmd[:50]!r}), not lane_file_{'read' if how == 'read' else 'edit'}")
+                out.append(f"{'read' if how == 'read' else 'wrote'} a file through terminal_exec "
+                           f"({cmd[:50]!r}), not file_{'read' if how == 'read' else 'edit'}")
             if sleeps(cmd) >= SLEEP_S:
-                out.append(f"waited with sleep in lane_exec ({cmd[:50]!r}); lane_job_read's until_port or "
+                out.append(f"waited with sleep in terminal_exec ({cmd[:50]!r}); terminal_job_read's until_port or "
                            "until_exit waits on the machine")
-        if tool == "lane_job_read" and not args.get("until_exit") and not args.get("until_port"):
+        if tool == "terminal_job_read" and not args.get("until_exit") and not args.get("until_port"):
             job = str(args.get("job"))
             polls[job] += 1
             if polls[job] == POLLS:

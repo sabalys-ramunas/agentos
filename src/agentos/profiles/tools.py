@@ -4,9 +4,9 @@ profile_list and profile_get read. profile_save, profile_update, profile_attach 
 profile_detach save a version: the owner in person (a signed-in panel session) saves it live; any
 agent, on any token, saves a draft the owner approves in the panel or with `agentos profile
 approve`. No tool approves a profile. profile_sync_status says, per account, how far each field is,
-and which ones someone changes in the lane by hand;
+and which ones someone changes in the browser by hand;
 profile_mark_synced records such a change. profile_photo_put keeps a photo (or a brand's logo or
-font) from a lane's inbox.
+font) from a browser's inbox.
 
 profile_use serves the approved profile sliced for one task (design, build, write, review), and
 profile_propose saves an agent's change to a brand, guidelines or references as a draft with its
@@ -189,7 +189,7 @@ async def profile_detach(ctx: ToolContext, *, profile: str, surface: str) -> dic
 async def profile_sync_status(ctx: ToolContext, *, profile: str | None = None, surface: str | None = None) -> dict:
     """Per account of a profile, each field it should show and its state: in_sync, failed,
     syncing, learning, held, relearn, manual (no learned operation on this site yet: teach it
-    with profile_learn_start, or change it in the lane by hand, then call profile_mark_synced)
+    with profile_learn_start, or change it in the browser by hand, then call profile_mark_synced)
     or done_by_hand. Also fields left out (people only) and problems.
 
     Args:
@@ -208,7 +208,7 @@ async def profile_sync_status(ctx: ToolContext, *, profile: str | None = None, s
 
 
 async def profile_mark_synced(ctx: ToolContext, *, surface: str, fields: list[str]) -> dict:
-    """Record that you changed these manual fields in the account's lane by hand, so they read
+    """Record that you changed these manual fields in the account's browser by hand, so they read
     done_by_hand until the profile changes them again. Only after the page shows the new value.
 
     Args:
@@ -261,7 +261,7 @@ async def profile_propose(ctx: ToolContext, *, profile: str, change: str, reason
 
 
 async def profile_photo_put(ctx: ToolContext, *, workspace: str, on: str, file_id: str) -> dict:
-    """Keep a photo for a workspace's profiles, from a lane's inbox (put it there with files_put
+    """Keep a photo for a workspace's profiles, from a browser's inbox (put it there with browser_file_put
     first). Returns its id (sha256:...): set it as photos.avatar or photos.cover with
     profile_update. JPEG, PNG, WebP or GIF, at most 10 MB. A brand's logo, assets and fonts are
     kept the same way (also SVG, WOFF2, WOFF, TTF, OTF): name them in brand.logo, brand.assets
@@ -269,14 +269,14 @@ async def profile_photo_put(ctx: ToolContext, *, workspace: str, on: str, file_i
 
     Args:
         workspace: The profile's workspace.
-        on: The lane whose inbox has the file, as "workspace/name".
+        on: The browser whose inbox has the file, as "workspace/name".
         file_id: The file's id in that inbox (in_...).
     """
     from agentos.node.io_tools import lane_files
 
     await ctx.authorize(Effect.DRAFT, lane_id=on, summary=f"keep a profile photo for {workspace}")
     if parse_lane_id(on)[0] != workspace:
-        raise InvalidRequest(f"take the photo from a lane of {workspace}")
+        raise InvalidRequest(f"take the photo from a browser of {workspace}")
     box = lane_files(ctx.runtime, on)
     meta = box.get(file_id)
     data = box.read(file_id, 10 * 1024 * 1024 + 1)
@@ -286,7 +286,7 @@ async def profile_photo_put(ctx: ToolContext, *, workspace: str, on: str, file_i
 async def profile_learn_start(ctx: ToolContext, *, surface: str, field: str) -> dict:
     """Teach agentos how to change one profile field on a site, so it does it by itself from then
     on, on every account of that site. Returns the value to set and the site's edit pages. Then, in
-    the account's lane: log in if needed (login), open the edit page, put exactly that value in the
+    the account's browser: log in if needed (login), open the edit page, put exactly that value in the
     field, save, open the account's own profile page, take a snapshot, and call
     profile_learn_finish. While you learn, one save carrying exactly the value is let through with
     no approval; nothing else changes. Not for name or photos. Fails with not_found (the account is

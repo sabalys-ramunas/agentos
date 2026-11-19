@@ -6,7 +6,7 @@
  the redirect back, embeds, cookies.
 
  The lane opens it at https://NAME.expose.agentos.invalid, and agents driving
- the lane see it in lanes_list.
+ the lane see it in browsers_list.
 
  Only that lane, only while this command runs: Ctrl-C, --for or a dropped SSH
  session ends it.

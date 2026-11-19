@@ -107,7 +107,7 @@ class Tools(dict):
             return {"inbox": [{"id": "in_1", "name": "photo.png"}]}
 
         super().__init__(browser_snapshot=snapshot, browser_act=act, browser_wait=wait, browser_upload=act,
-                         files_list=files_list)
+                         browser_files=files_list)
 
 
 class FakeHands:

@@ -173,7 +173,7 @@ def test_the_generated_files_are_current(scanned):
 
 def test_mcp_lines_give_the_agent_step_and_the_wait():
     assert catalog.mcp_lines("busy", "all slots") == [f"fix: {catalog.entry('busy').agent}", "retry_after: 30"]
-    assert catalog.mcp_lines("lane_not_found", "x")[0].startswith("fix: Call lanes_list")
+    assert catalog.mcp_lines("lane_not_found", "x")[0].startswith("fix: Call browsers_list")
     assert len(catalog.mcp_lines("lane_not_found", "x")) == 1  # no wait to suggest
     assert catalog.mcp_lines("no_such_code", "x") == []
 
@@ -258,3 +258,17 @@ def test_a_members_fix_names_no_command_token_or_grant_and_the_owners_keeps_them
     assert "agentos grants" in catalog.person_fix("denied")
     assert catalog.error_body("denied", "x")["error"]["fix"] == catalog.person_fix("denied")
     assert "fix" not in catalog.error_body("denied", "x", member=True)["error"]
+
+
+def test_an_agent_step_that_names_a_tool_outside_core_says_its_toolset():
+    """A fresh agent lists only core: a next step that names another tool says which toolset holds it, so
+    the agent loads it (tools_more) instead of guessing. Light: the tools come from the toolsets table."""
+    from agentos.core.toolsets import CORE, TOOLSETS
+
+    home = {tool: ts.name for ts in TOOLSETS for tool in ts.tools}
+    for item in catalog.entries().values():
+        for text in (item.agent, *item.reasons.values()):
+            for name in set(re.findall(r"\b[a-z]+_[a-z_]+\b", text)) & set(home):
+                if home[name] != CORE:
+                    assert f"{home[name]} toolset" in text, (
+                        f"{item.code} names {name}: say it is in the {home[name]} toolset")

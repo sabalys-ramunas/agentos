@@ -34,7 +34,7 @@ async def environment_checkpoint(ctx: ToolContext, *, note: str | None = None, o
     as it is now (tracked and new files git does not ignore), kept as git's
     refs/agentos/checkpoints/<n>. Your index, stash and branches are not touched; files git ignores
     (node_modules, .env) are not in it. About 20 are kept. Returns checkpoint, repos (head,
-    files_changed from HEAD), compare (the git diff to run yourself) and rollback. Effect: read.
+    files_changed from HEAD), compare (the git diff to run yourself) and rollback.
     Errors: checkpoint_failed.
 
     Args:
@@ -65,7 +65,7 @@ async def environment_rollback(ctx: ToolContext, *, checkpoint: int, on: str | N
     It checkpoints the work as it is first, so `undo` takes the rollback back. Files git ignores
     (node_modules, .env, build output) are not touched: after a dependency change, run the install
     again. Returns checkpoint, repos (files_restored, files_removed, branch, head, was), undo.
-    Effect: read. Errors: checkpoint_not_found, rollback_refused (mid merge or rebase).
+    Errors: checkpoint_not_found, rollback_refused (mid merge or rebase).
 
     Args:
         checkpoint: Its number, from environment_checkpoint or environment()'s checkpoints.

@@ -89,7 +89,7 @@ class _Lane:
     op: asyncio.Lock = field(default_factory=asyncio.Lock)
     format_lock: LaneLock | None = None  # shared while warming or warm: migrations keep off
     calls: list[_Call] = field(default_factory=list)  # non-human calls inside using() (deadlines)
-    close_note: dict[str, Any] | None = None  # what close() had to do about a stuck call (lane_close says so)
+    close_note: dict[str, Any] | None = None  # what close() had to do about a stuck call (browser_close says so)
 
     def idle(self) -> bool:
         return (self.state == LaneState.WARM and self.users == 0 and self.viewers == 0 and not self.op.locked()

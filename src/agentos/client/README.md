@@ -12,7 +12,7 @@ agentos open biz-a/instagram       # the lane's live view in your browser (--wak
 agentos run -- make check          # this working tree into a terminal lane on the node, the command there
 agentos expose 5173 --lane personal/linkedin   # your dev server in that one lane, while this runs
 agentos lane forward dev/web:3000  # a service lane's port on this computer's localhost, while this runs
-agentos call lanes_list            # any MCP tool, with the agents' grant (--wait for an approval)
+agentos call browsers_list         # any MCP tool, with the agents' grant (--wait for an approval)
 agentos flow pull flows/           # the node's flows as files; diff, push (docs/WORKFLOWS.md, Flows in git)
 agentos disconnect mynode          # undo all of it, the grant on the node included
 ```

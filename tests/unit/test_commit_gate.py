@@ -296,7 +296,7 @@ async def test_an_approved_publish_outside_the_lanes_waking_hours_is_refused_and
     with pytest.raises(LanePaced) as err:
         await node.share()
     assert err.value.code == "lane_paced" and err.value.hit["next_at"] == "2026-11-06T13:00:00Z"
-    assert "may next post at 08:00 tomorrow lane time (America/New_York)" in err.value.message
+    assert "may next post at 08:00 tomorrow its time (America/New_York)" in err.value.message
     assert node.sent == [] and node.posts == []
     assert node.approvals.get(ap_id).state == "approved"  # refused before routing: the approval is not used
 

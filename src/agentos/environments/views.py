@@ -165,10 +165,10 @@ class Views:
         jobs = {self._scrub(r["cmd"]) for r in out}  # as record_call writes a summary
         for i, c in enumerate(env.calls):
             summary = self._scrub(c.summary)
-            if c.tool == "lane_exec":
+            if c.tool == "terminal_exec":
                 out.append({"id": f"exec-{i}", "cmd": summary, "state": "exited" if c.ok else "failed",
                             "started_at": clock.iso_or_none(c.at, z=True), "exit_code": c.exit_code})
-            elif c.tool == "lane_job_start" and c.ok and summary not in jobs:
+            elif c.tool == "terminal_job_start" and c.ok and summary not in jobs:
                 # a job whose record went with its lane (the machine was deleted, or the node restarted)
                 out.append({"id": f"start-{i}", "cmd": summary, "state": "ended", "started_at": clock.iso_or_none(c.at, z=True),
                             "exit_code": None})
@@ -215,7 +215,7 @@ class Views:
         return out
 
     def call_view(self, c: Call) -> dict:
-        """One of the last calls: `ok` is the tool's answer; a command's `exit_code` (lane_exec) and the
+        """One of the last calls: `ok` is the tool's answer; a command's `exit_code` (terminal_exec) and the
         `error` code of a refused or failed call are there when they are known."""
         out = {"at": clock.iso_or_none(c.at, z=True), "tool": c.tool, "summary": self._scrub(c.summary), "ok": c.ok}
         if c.exit_code is not None:

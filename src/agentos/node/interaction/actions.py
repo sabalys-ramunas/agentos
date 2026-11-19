@@ -118,7 +118,7 @@ class ActMixin:
                                   "done. Take a snapshot to see what reached the page before you go on")
             detail = f"the tab closed during the {kind.value} (a popup or sign-in window finishing)"
         notes = await self._side_effects(page, pages_before, choosers_before, guard, ref)
-        why = _DIALOG_OPEN if opened is not None else "the tab closed; take a snapshot of the tab the lane acts in now"
+        why = _DIALOG_OPEN if opened is not None else "the tab closed; take a snapshot of the tab the browser acts in now"
         return ActionResult(ok=True, action=kind, ref=ref, url=_url_of(page), signal=Signal.UNKNOWN, changed=None,
                             detail="; ".join([detail, *notes]), signal_detail=why)
 
@@ -129,16 +129,16 @@ class ActMixin:
         if new:
             await quietly(asyncio.wait_for(new[-1].wait_for_load_state("domcontentloaded"),
                                            NEW_TAB_SETTLE_MS / 1000))
-            notes.append(f"a new tab opened ({_url_of(new[-1]) or 'loading'}) and the lane now acts in it; "
+            notes.append(f"a new tab opened ({_url_of(new[-1]) or 'loading'}) and the browser now acts in it; "
                          "browser_tabs lists the tabs")
         elif page.is_closed():
             rest = _open_pages(page)
             if rest:
-                notes.append("the lane now acts in the tab that opened it (or the last one used); "
+                notes.append("the browser now acts in the tab that opened it (or the last one used); "
                              "take a snapshot to see it")
         if guard is not None and guard.chooser_count(page) > choosers_before:
             notes.append(f"it opened a file chooser (not shown on screen): attach files with "
-                         f"browser_upload on ref {ref} and file ids from files_list")
+                         f"browser_upload on ref {ref} and file ids from browser_files")
         return notes
 
     # ---- act internals -----------------------------------------------------------------

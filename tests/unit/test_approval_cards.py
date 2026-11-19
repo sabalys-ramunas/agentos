@@ -222,7 +222,7 @@ def test_a_flow_cards_upload_param_is_a_file_and_the_approval_binds_its_bytes(tm
     png = b"\x89PNG\r\n\x1a\n" + b"\x00" * 64
     stored = files.lane(lane).put_bytes("photo.png", png)
     fv = h.save(post_flow())
-    params = {"caption": "Autumn at the lake", "image": stored.id}  # what files_put returns
+    params = {"caption": "Autumn at the lake", "image": stored.id}  # what browser_file_put returns
     content = h.flows.approval_content(fv, lane, params)
     assert content["params"]["image"] == "sha256:" + hashlib.sha256(png).hexdigest()
     card = cards.build_card("flow_run", lane, content, runtime=h.runtime)

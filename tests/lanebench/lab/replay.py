@@ -36,7 +36,7 @@ class ReplayTools:
     async def call(self, name: str, **arguments: Any) -> Any:
         if name == "browser_snapshot":
             return self.points[self.at]["outline"]
-        if name == "files_list":
+        if name == "browser_files":
             return {"inbox": [{"name": f, "id": f} for f in self.files]}
         if name in ("browser_act", "browser_upload", "browser_scroll"):
             return self._advance()

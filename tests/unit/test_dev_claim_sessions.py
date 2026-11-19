@@ -30,15 +30,15 @@ async def test_the_same_agent_on_a_new_session_keeps_its_own_claim():
     async with dev_node() as node:
         http, first = session(node)
         async with http, first:
-            claimed = body(await first.call_tool("lane_claim", {**ON, "purpose": "a post"}))
+            claimed = body(await first.call_tool("browser_claim", {**ON, "purpose": "a post"}))
             assert claimed["lease"]
         http, second = session(node)  # reconnected: a new MCP session, the same grant
         async with http, second:
             went = await second.call_tool("browser_navigate", {**ON, "url": "https://social.example/"})
             assert not went.is_error, went.content[0].text  # never waits behind its own claim
-            queue = body(await second.call_tool("lane_queue", ON))
+            queue = body(await second.call_tool("browser_queue", ON))
             assert queue["claim"]["yours"] is True
-            released = body(await second.call_tool("lane_release", ON))
+            released = body(await second.call_tool("browser_release", ON))
             assert released["released"] is True and "note" not in released
 
 
@@ -47,7 +47,7 @@ async def test_another_agent_never_passes_the_claim():
         lanes = node.lanes
         http, first = session(node)
         async with http, first:
-            body(await first.call_tool("lane_claim", {**ON, "purpose": "a post"}))
+            body(await first.call_tool("browser_claim", {**ON, "purpose": "a post"}))
             other = Holder(key="other|g2||s9", label="agent other", identity="other|g2|")
             queue = lanes.queue_info("biz-a/social", viewer=other)
             assert queue["claim"]["yours"] is False

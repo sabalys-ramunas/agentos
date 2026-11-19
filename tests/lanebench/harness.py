@@ -290,7 +290,7 @@ class Bench:
 
     def _stage_files(self, task: Task, lane_id: str) -> None:
         """The task's files (`files`) in the lane's inbox in the run's home: by name for a flow, and
-        in the files index, where an agent finds them with files_list and uploads them by id."""
+        in the files index, where an agent finds them with browser_files and uploads them by id."""
         from agentos.node.flow_driver import inbox_dir
         from agentos.node.io_tools import lane_files
         from lanebench.sites.app import FIXTURE_FILES

@@ -21,9 +21,9 @@ log = logging.getLogger("agentos.node.daemon")  # the daemon's log lines, under 
 # that is not installed is skipped; keep this list explicit, so nothing is imported by accident.
 FEATURE_TOOLS: tuple[str, ...] = (
     "agentos.node.io_tools",  # files, uploads, tabs and dialogs of browser lanes
-    "agentos.node.control_tools",  # lane_control, lane_request_control, lane_wait_control
+    "agentos.node.control_tools",  # browser_control, browser_request_control, browser_wait_handback
     "agentos.node.devtools_tools",  # browser_console, browser_network: why a page broke
-    "agentos.freeze.tools",  # lane_freeze (an agent can freeze, never unfreeze)
+    "agentos.freeze.tools",  # browser_freeze (an agent can freeze, never unfreeze)
     "agentos.node.vault_tools",  # login, vault_fill, vault_list: the vault types into a lane
     "agentos.workspaces.tools",
     "agentos.policy.tools",
@@ -32,7 +32,7 @@ FEATURE_TOOLS: tuple[str, ...] = (
     "agentos.brains.tools",
     "agentos.git.tools",  # git_remotes: what the node can clone and push for a workspace (no secrets)
     "agentos.env.tools",
-    "agentos.env.files",  # lane_file_read, lane_file_write, lane_file_edit: code on a lane's machine
+    "agentos.env.files",  # file_read, file_write, file_edit: code on a lane's machine
     "agentos.vms.tools",  # vm_create, vm_destroy, vm_extend, vms_list (disposable cloud VMs as lanes)
     "agentos.environments.tools",  # environment_open, environment, environment_close (a cloud computer per chat)
     "agentos.environments.uploads",  # environment_upload: a one-use link for a local checkout's tarball
@@ -42,7 +42,7 @@ FEATURE_TOOLS: tuple[str, ...] = (
     "agentos.agenda.tools",  # agenda_list, agenda_draft, agenda_propose, ... (approving is not an agent tool)
     "agentos.memory.tools",  # memory_context, memory_search, memory_get, memory_write, memory_forget
     "agentos.profiles.tools",  # profile_list, profile_get, profile_use, profile_propose, profile_save, ...
-    "agentos.stealth.tools",  # lane_check: is this lane safe to use right now
+    "agentos.stealth.tools",  # browser_check: is this lane safe to use right now
     "agentos.studio.tools",  # ui_check, ui_diff, system_check, ...: is this page all right (a URL, not a lane)
 )
 PLUGINS_TOOLS = "agentos.plugins.tools"

@@ -24,7 +24,7 @@ log = logging.getLogger("agentos.env")
 REATTACH_LAUNCHER_TRIES = 20  # half seconds a restarted node waits for its ssh launcher before it reattaches
 _ENV_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,63}$")  # a job's environment variable names
 
-# lane_job_read(until_port=): one command in the job's lane that returns once something listens on the
+# terminal_job_read(until_port=): one command in the job's lane that returns once something listens on the
 # port there (a LISTEN socket, state 0A, in /proc/net/tcp or tcp6: no ss or netstat needed, and a
 # server on 0.0.0.0, 127.0.0.1 or ::1 counts), or at its own deadline, so it never outlives the wait.
 PORT_WAIT = """p=$(printf '%04X' {port}); end=$(($(date +%s) + {secs}))
@@ -48,13 +48,13 @@ class Jobs:
     # =============================================================== jobs
     def _job_argv(self, lane: EnvLane, cmd: str, cwd: str | None) -> list[str]:
         if not lane.policy.exec:
-            raise PolicyDenied(f"commands are off in {lane.preset.value} lanes")
+            raise PolicyDenied(f"commands are off in {lane.preset.value} terminals")
         if not isinstance(cmd, str) or not cmd.strip():
             raise InvalidRequest("empty command")
         if cwd is not None:
             cwd = syncs.check_cwd(cwd, remote=lane.remote is not None)
             if lane.policy.signed_only:
-                raise InvalidRequest(f"locked lane {lane.id} runs allowlisted programs only, without a cwd")
+                raise InvalidRequest(f"locked terminal {lane.id} runs allowlisted programs only, without a cwd")
             # plain names (check_cwd), so it is safe as one shell word
             return self.command_argv(lane, f"cd '{cwd}' && {cmd}")
         return self.command_argv(lane, cmd)
@@ -87,7 +87,7 @@ class Jobs:
                 busy = [j for j in self.jobs.running_in(lane_id) if (j.info.sync or {}).get("dest") == sync["dest"]]
                 if busy:
                     raise LaneBusy(f"job {busy[0].info.id} still runs in {sync['dest']} of {lane_id}; a sync now "
-                                   "would change its files under it. Wait for it, or cancel it with lane_job_cancel")
+                                   "would change its files under it. Wait for it, or cancel it with terminal_job_cancel")
                 applied = await self.sync_apply(lane_id, sync)
                 self.jobs.check_room(lane_id)
                 rt = await self.warm(lane_id)

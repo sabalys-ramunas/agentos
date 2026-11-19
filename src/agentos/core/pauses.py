@@ -1,5 +1,5 @@
 """What an agent reads about a paused lane (ControlState.PAUSED): who paused it, why, and what clears
-it, in one place. The refusal of every tool (agent_paused), lane_control's `next`, browser_wait's
+it, in one place. The refusal of every tool (agent_paused), browser_control's `next`, browser_wait's
 `next`, a flow's and a run's wait all word it here.
 
 A pause is one of two kinds, and an agent that mixes them up tells its human something false:
@@ -22,9 +22,9 @@ NODE_BYS = frozenset({"node", "idle", "unknown", ""})
 NEEDS = {
     "captcha": ("a robot check (CAPTCHA) appeared", "solves it"),
     "checkpoint": ("the site asked the account holder to confirm it is them", "answers it"),
-    "logged_out": ("the site signed this lane out", "signs in again"),
-    "blocked": ("the site blocked this lane", "deals with what the site says"),
-    "wrong_account": ("the lane is signed in to another account than the one it is for",
+    "logged_out": ("the site signed this browser out", "signs in again"),
+    "blocked": ("the site blocked this browser", "deals with what the site says"),
+    "wrong_account": ("the browser is signed in to another account than the one it is for",
                       "signs in to the right account"),
 }
 BACKOFF = {"rate_limited": "the site limited how fast this account may act"}
@@ -49,7 +49,7 @@ def _until(control: Any) -> str | None:
 
 def pause_why(lane_id: str, control: Any) -> str:
     """Who paused the lane, why, and what clears it, in plain words, with the hold's code in brackets
-    (lane_control's `reason`, which the skills name)."""
+    (browser_control's `reason`, which the skills name)."""
     reason = str(getattr(control, "reason", None) or "").strip()
     if not reason:
         return f"A person stopped agents on {lane_id}. Nothing runs there until they hand it back."
@@ -61,7 +61,7 @@ def pause_why(lane_id: str, control: Any) -> str:
     if kind == "needs_human" and what in NEEDS and not until:
         happened, does = NEEDS[what]
         return (f"{who}: {happened}{on} ({code}). Nothing runs there until the human {does} in the live view "
-                "and hands the lane back.")
+                "and hands the browser back.")
     if kind == "quarantined":
         return (f"{who}: it is quarantined ({what or 'it failed its self-check'}). Nothing runs there until a "
                 "person checks it and hands it back.")
@@ -76,7 +76,7 @@ def paused_words(lane_id: str, control: Any) -> str:
     """The refusal and the `next` an agent reads on a paused lane: pause_why, then what the agent does."""
     why = pause_why(lane_id, control)
     if _until(control):
-        return f"{why} Do not retry sooner, and do not ask again in a loop: wait with lane_wait_control, or tell your user."
+        return f"{why} Do not retry sooner, and do not ask again in a loop: wait with browser_wait_handback, or tell your user."
     if getattr(control, "reason", None) and _by_agentos(control):
-        return f"{why} Tell your user that. Do not retry, and do not ask again in a loop: wait with lane_wait_control."
-    return f"{why} Do not retry, and do not ask again in a loop: wait with lane_wait_control, or tell your user."
+        return f"{why} Tell your user that. Do not retry, and do not ask again in a loop: wait with browser_wait_handback."
+    return f"{why} Do not retry, and do not ask again in a loop: wait with browser_wait_handback, or tell your user."

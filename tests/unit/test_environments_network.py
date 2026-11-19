@@ -304,11 +304,11 @@ async def test_a_command_that_was_refused_a_host_says_so_with_the_owners_command
         return await real(lane_id, cmd, **kw)
 
     monkeypatch.setattr(closing["envs"], "exec", refused_meanwhile)
-    ran = await closing["call"]("lane_exec", on=out["on"], cmd="curl -sS https://rates.example.com")
+    ran = await closing["call"]("terminal_exec", on=out["on"], cmd="curl -sS https://rates.example.com")
     net = ran["network"]
     assert net["blocked_now"] == ["rates.example.com"]
     assert "agentos environments allow --host rates.example.com" in net["fix"] and "—" not in net["fix"]
-    plain = await closing["call"]("lane_exec", on=out["on"], cmd="npm test")
+    plain = await closing["call"]("terminal_exec", on=out["on"], cmd="npm test")
     assert "network" not in plain
 
 
@@ -394,7 +394,7 @@ def test_a_job_read_names_what_was_refused_since_its_job_began():
 
     rt = SimpleNamespace(get=lambda name: Svc() if name == "environments" else None)
     job = {"id": "job-1", "lane": "env/e1", "started_at": "2026-11-18T10:00:00Z", "state": "exited"}
-    out = routing.finish(rt, "lane_job_read", job, None)
+    out = routing.finish(rt, "terminal_job_read", job, None)
     assert out["network"]["blocked_now"] == ["rates.example.com"]
     assert asked == [datetime(2026, 11, 18, 10, 0, tzinfo=UTC)]
     assert "network" not in routing.finish(rt, "browser_navigate", {"url": "x"}, None)

@@ -1,5 +1,5 @@
-"""lane_exec's hint for a command that only read a file (agentos.env.readhint): the evals saw agents
-read files with cat through lane_exec, and lane_file_read does that with line numbers."""
+"""terminal_exec's hint for a command that only read a file (agentos.env.readhint): the evals saw agents
+read files with cat through terminal_exec, and file_read does that with line numbers."""
 
 from __future__ import annotations
 
@@ -44,17 +44,17 @@ def test_anything_more_than_a_read_gets_no_hint(cmd):
 
 def test_the_hint_names_the_path_from_the_commands_folder_and_is_short():
     hint = file_read_hint("cat src/price.js", "/work/calc")
-    assert hint == 'lane_file_read(path="/work/calc/src/price.js") reads a file with line numbers, as lane_file_edit expects.'
+    assert hint == 'file_read(path="/work/calc/src/price.js") reads a file with line numbers, as file_edit expects.'
     assert len(hint) // 4 < 30 and "—" not in hint
-    assert file_read_hint("cat /etc/hosts", "/work/calc").startswith('lane_file_read(path="/etc/hosts")')
-    assert file_read_hint('for f in a b; do cat "$f"; done').startswith("lane_file_read(path=...)")
+    assert file_read_hint("cat /etc/hosts", "/work/calc").startswith('file_read(path="/etc/hosts")')
+    assert file_read_hint('for f in a b; do cat "$f"; done').startswith("file_read(path=...)")
 
 
 async def test_lane_exec_adds_the_hint_only_to_a_plain_read(node):  # noqa: F811
     from test_environments import opened
 
     env = await opened(node)
-    read = await node["call"]("lane_exec", on=env["on"], cmd="cat package.json", cwd="/work/shop")
-    assert read["hint"].startswith('lane_file_read(path="/work/shop/package.json")')
-    plain = await node["call"]("lane_exec", on=env["on"], cmd="npm test 2>&1 | tail -5", cwd="/work/shop")
+    read = await node["call"]("terminal_exec", on=env["on"], cmd="cat package.json", cwd="/work/shop")
+    assert read["hint"].startswith('file_read(path="/work/shop/package.json")')
+    plain = await node["call"]("terminal_exec", on=env["on"], cmd="npm test 2>&1 | tail -5", cwd="/work/shop")
     assert "hint" not in plain

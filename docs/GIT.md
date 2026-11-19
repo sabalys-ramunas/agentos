@@ -51,7 +51,7 @@ connection; the node never trusts a key on first sight during a push.
 
 ## In a lane or a brain task
 
-Nothing to configure. A command a grant starts in a lane (`lane_exec`, `lane_job_start` and so
+Nothing to configure. A command a grant starts in a lane (`terminal_exec`, `terminal_job_start` and so
 `agentos run`, `shell_open`) gets `GIT_CONFIG_*` variables, and a brain task gets a private
 `~/.gitconfig`, that send every declared host to the node's git gateway:
 

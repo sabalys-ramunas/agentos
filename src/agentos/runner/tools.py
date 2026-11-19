@@ -43,7 +43,7 @@ def saver(ctx: Any) -> dict[str, Any]:
 
 
 def flow_seen(ctx: Any, lane: str) -> bool:
-    """Does the caller see a flow bound to `lane`: its lane in the grant, or for a pattern, a lane the
+    """Does the caller see a flow bound to `lane`: its browser in the grant, or for a pattern, a browser the
     grant reaches that the pattern can match (it could run the flow there)."""
     try:
         return pattern_reaches(ctx, lane) if any(c in lane for c in "*?[") else bool(ctx.can_access_lane(lane))
@@ -53,7 +53,7 @@ def flow_seen(ctx: Any, lane: str) -> bool:
 
 def seen_flow(ctx: Any, flow_id: str, version: str | None = None) -> FlowVersion:
     """The flow, or not_found as for a flow that is not there when the caller does not see it, so
-    neither its lane nor its params reach a grant outside it."""
+    neither its browser nor its params reach a grant outside it."""
     fv = _flows(ctx).get(flow_id, version)
     if not flow_seen(ctx, fv.definition.lane):
         raise NotFound(f"flow {flow_id!r} is not saved on this node (see flows_list)")
@@ -62,7 +62,7 @@ def seen_flow(ctx: Any, flow_id: str, version: str | None = None) -> FlowVersion
 
 def check_replace(ctx: Any, flow_id: str) -> None:
     """A new version of a flow that exists is bound where the old one was too: refuse unless the grant
-    covers every lane the saved head is bound to, so no grant re-points another workspace's flow."""
+    covers every browser the saved head is bound to, so no grant re-points another workspace's flow."""
     try:
         head = _flows(ctx).get(flow_id)
     except NotFound:
@@ -75,7 +75,7 @@ def check_replace(ctx: Any, flow_id: str) -> None:
 
 
 def seen_run(ctx: Any, run_id: str) -> Any:
-    """The run, or not_found as for a run that is not there. A run with no lane or surface (a workflow's
+    """The run, or not_found as for a run that is not there. A run with no browser or surface (a workflow's
     run) is the workflow's workspace's: the grant must cover all of it, or be an admin grant."""
     run = ctx.runtime.require("runner").get(run_id)
     admin = getattr(ctx, "admin", False) is True
@@ -127,7 +127,7 @@ def pace_row(decision: Any) -> int | None:
 
 
 def slot_of(start: datetime | None, runner: Any) -> dict[str, float]:
-    """`at` for ctx.authorize when a run is queued for a later slot (not_before): the lane's posting
+    """`at` for ctx.authorize when a run is queued for a later slot (not_before): the browser's posting
     pace is read at that time (agentos.policy.pace), not now. Nothing for a run that goes now."""
     if start is None or start <= runner.clock.now():
         return {}
@@ -216,10 +216,10 @@ async def _start_flow(ctx: ToolContext, runner: Any, flows: Any, fv: FlowVersion
 async def flows_list(ctx: ToolContext, *, prefix: str | None = None, lane: str | None = None) -> dict:
     """List saved flows by namespace, lazily: with no prefix you get the top namespaces
     (for example 'biz-a'), then call again with a prefix ('biz-a.instagram') to see the
-    flows inside. `lane` ('biz-a/instagram') lists every flow that runs on that lane, bound to it or
-    to a pattern that covers it, whatever its namespace: use it to ask "is there a flow for this lane".
-    Each flow shows its lane, effect (the effective one: input steps count as commit), params,
-    readbacks and its typed tool. Only flows bound to lanes your grant reaches. Installed connector
+    flows inside. `lane` ('biz-a/instagram') lists every flow that runs on that browser, bound to it or
+    to a pattern that covers it, whatever its namespace: use it to ask "is there a flow for this browser".
+    Each flow shows its browser, effect (the effective one: input steps count as commit), params,
+    readbacks and its typed tool. Only flows bound to browsers your grant reaches. Installed connector
     operations are listed by connectors_list."""
     return _flows(ctx).catalog(prefix, seen=lambda lane_: flow_seen(ctx, lane_),
                                lane_seen=lambda lane_: flow_seen(ctx, lane_), lane=lane)
@@ -229,7 +229,7 @@ async def flow_get(ctx: ToolContext, *, name: str, version: str | None = None) -
     """One saved flow's definition: the document flow_save takes, as the node holds it, with its
     version (the content hash), its effective effect and the lint warnings. Read it before you
     repair a flow, change it, then save it again with flow_save. `version` reads an older one.
-    Only flows bound to lanes your grant reaches; installed connector operations are not read
+    Only flows bound to browsers your grant reaches; installed connector operations are not read
     here (connectors_list)."""
     if is_connector_id(name):
         raise PolicyDenied(f"{name} is an installed connector operation; see connectors_list")
@@ -249,7 +249,7 @@ async def flow_run(ctx: ToolContext, *, name: str, params: dict | None = None, o
                    version: str | None = None, wait_seconds: float = DEFAULT_WAIT_S,
                    idempotency_key: str | None = None, not_before: str | None = None) -> dict:
     """Run a saved flow by id (for example 'biz-a.instagram.post') with typed params.
-    Replays with no model. `on` picks the lane when the flow's lane is a pattern. Waits up
+    Replays with no model. `on` picks the browser when the flow's browser is a pattern. Waits up
     to wait_seconds and returns the run with an honest status: succeeded_verified (every
     readback of the target's own state passed), succeeded_unverified, partial or failed,
     with the failing step, locator, expected vs found and a screenshot ref. Pass an
@@ -311,7 +311,7 @@ async def flow_save(ctx: ToolContext, *, definition: dict, ask_first: bool | Non
     counts as commit. Saved routines run on their own; pass ask_first=true to make every
     commit of this flow wait for a person ("Ask me first"). Only a person turns it off, and
     a new version keeps the flow's setting; payments and irreversible steps always ask. A new
-    flow on a lane where a person set a routine to ask first starts with it on (ask_first_why
+    flow on a browser where a person set a routine to ask first starts with it on (ask_first_why
     says why), so a copy under a new id still asks."""
     flows = _flows(ctx)
     if ask_first is not None and not isinstance(ask_first, bool):
@@ -343,13 +343,13 @@ async def flow_save(ctx: ToolContext, *, definition: dict, ask_first: bool | Non
 
 
 async def ask_first_on(ctx: ToolContext, *, flow: str | None = None, lane: str | None = None) -> dict:
-    """Turn "Ask me first" on for a saved routine (flow id) or for an account (lane), so its
+    """Turn "Ask me first" on for a saved routine (flow id) or for an account (browser), so its
     commits wait for a person. Routines and accounts run on their own by default. You can only
     turn it on; a person turns it off. Payments and irreversible actions always ask anyway. On a
     site agentos has no publish rules for, it holds a form your click submits by POST, not a
     request the page's own script sends."""
     if (flow is None) == (lane is None):
-        raise InvalidRequest("name one: flow (a flow id) or lane (workspace/name)")
+        raise InvalidRequest("name one: flow (a flow id) or browser (workspace/name)")
     store = _ask_first_store(ctx)
     if flow is not None:
         fv = seen_flow(ctx, flow)
@@ -364,18 +364,18 @@ async def ask_first_on(ctx: ToolContext, *, flow: str | None = None, lane: str |
 
 
 async def flow_record_start(ctx: ToolContext, *, on: str) -> dict:
-    """Start recording your browser actions in a lane. Act with the browser tools as usual,
+    """Start recording your browser actions in a browser. Act with the browser tools as usual,
     then call flow_record_stop to get a draft flow with params detected from typed text."""
     await ctx.authorize(Effect.DRAFT, lane_id=on, summary=f"Record actions in {on} into a draft flow")
     rec = _flows(ctx).recorder.start(on, ctx.principal.model_dump())
-    rec["next"] = "Act in the lane, then call flow_record_stop."
+    rec["next"] = "Act in the browser, then call flow_record_stop."
     return rec
 
 
 async def flow_record_stop(ctx: ToolContext, *, on: str, name: str | None = None, effect: str | None = None,
                            title: str | None = None, save: bool = True) -> dict:
-    """Stop recording in a lane and turn the actions into a draft flow. `name` is the flow
-    id (default '<workspace>.<lane>.draft-<time>'), `effect` its effect class. Saved as a new
+    """Stop recording in a browser and turn the actions into a draft flow. `name` is the flow
+    id (default '<workspace>.<browser>.draft-<time>'), `effect` its effect class. Saved as a new
     version unless save is false. Review the notes and warnings before running it."""
     await ctx.authorize(Effect.DRAFT, lane_id=on, summary=f"Save the recording from {on} as a draft flow")
     flows = _flows(ctx)
@@ -503,7 +503,7 @@ def flow_tool_specs(runtime: Any, taken: set[str] | None = None) -> list[ToolSpe
 
 def flow_view(lane: str) -> Any:
     """A flow's typed tool is listed only to a grant that sees the flow (flow_seen): its title,
-    description and params are the flow's, and a grant outside its lane is not told it exists. The
+    description and params are the flow's, and a grant outside its browser is not told it exists. The
     policy hands a view the grant's own `lane_allowed`; a pattern is checked against that grant."""
     from types import SimpleNamespace
 
@@ -541,7 +541,7 @@ def make_flow_handler(fv: FlowVersion, name: str):
         sig.append(inspect.Parameter(pname, inspect.Parameter.KEYWORD_ONLY, default=default, annotation=ann))
     if d.lane_is_pattern:
         sig.append(inspect.Parameter("on", inspect.Parameter.KEYWORD_ONLY, annotation=Annotated[
-            str, Field(description=f"the lane to run on, matching {d.lane}")]))
+            str, Field(description=f"the browser to run on, matching {d.lane}")]))
     sig.append(inspect.Parameter("wait_seconds", inspect.Parameter.KEYWORD_ONLY, default=DEFAULT_WAIT_S,
                                  annotation=float))
     sig.append(inspect.Parameter("idempotency_key", inspect.Parameter.KEYWORD_ONLY, default=None,
@@ -555,7 +555,7 @@ def make_flow_handler(fv: FlowVersion, name: str):
         params = {k: v for k, v in kwargs.items() if v is not None}
         return await _run_flow(ctx, flow_id, params, on, None, wait, key)
 
-    where = f"lanes matching {d.lane} (pass on)" if d.lane_is_pattern else d.lane
+    where = f"browsers matching {d.lane} (pass on)" if d.lane_is_pattern else d.lane
     handler.__name__ = name
     handler.__qualname__ = name
     handler.__doc__ = (f"{d.title or d.id}. {d.description}".strip() +
@@ -566,7 +566,7 @@ def make_flow_handler(fv: FlowVersion, name: str):
     schema_props = dict(props)
     schema_required = sorted(required)
     if d.lane_is_pattern:
-        schema_props["on"] = {"type": "string", "description": f"the lane to run on, matching {d.lane}"}
+        schema_props["on"] = {"type": "string", "description": f"the browser to run on, matching {d.lane}"}
         schema_required.append("on")
     schema_props["wait_seconds"] = {"type": "number", "default": DEFAULT_WAIT_S}
     schema_props["idempotency_key"] = {"type": "string"}

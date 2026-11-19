@@ -95,7 +95,7 @@ def test_run_over_the_tunnel_with_a_grant(node, repo, tmp_path, monkeypatch):
     assert r.stdout == "line 1\nline 2\nline 3\n"
     assert "warn" in r.stderr and "agentos run: exit 5" in r.stderr
     # creating the lane is the first exec in it, so a person approved it; the run after was routine
-    assert "waiting for approval: Create sandbox terminal lane dev/run-proj" in r.stderr
+    assert "waiting for approval: Create sandbox terminal dev/run-proj" in r.stderr
     assert len(seen) == 1 and "dev/run-proj" in seen[0]
     assert (node.mgr.paths.workdir("dev/run-proj") / "src/proj/check.sh").exists()
 

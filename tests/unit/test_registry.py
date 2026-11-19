@@ -246,10 +246,10 @@ async def test_node_tool_annotations():
     assert tools["browser_act"].annotations.read_only_hint is False
     assert tools["browser_act"].annotations.destructive_hint is False
     assert tools["browser_act"].annotations.open_world_hint is True
-    for name in ("whoami", "lanes_list", "lane_view", "browser_snapshot", "browser_screenshot"):
+    for name in ("whoami", "browsers_list", "browser_view", "browser_snapshot", "browser_screenshot"):
         assert tools[name].annotations.read_only_hint is True, name
     # READ for grants, but they change something: a client must not run them as read only
-    for name in ("lane_open", "lane_close", "lane_claim", "lane_release", "browser_navigate", "browser_scroll"):
+    for name in ("browser_open", "browser_close", "browser_claim", "browser_release", "browser_navigate", "browser_scroll"):
         assert tools[name].annotations.read_only_hint is False, name
         assert tools[name].annotations.destructive_hint is False, name
 
@@ -273,8 +273,8 @@ async def test_hidden_without_a_service():
 async def test_node_tools_hide_without_lanes_or_interaction():
     assert await listed(build_mcp(runtime_with(), [node_tool_specs])) == {}
     lanes_only = await listed(build_mcp(runtime_with(lanes=FakeLaneManager()), [node_tool_specs]))
-    assert set(lanes_only) == {"whoami", "lanes_list", "lane_open", "lane_close", "lane_view", "lane_claim",
-                               "lane_release", "lane_queue", "howto"}
+    assert set(lanes_only) == {"whoami", "browsers_list", "browser_open", "browser_close", "browser_view", "browser_claim",
+                               "browser_release", "browser_queue", "howto"}
 
 
 @pytest.mark.parametrize("hidden", [None, "vault"])
@@ -397,11 +397,11 @@ class RecordingWrap:
 
 NODE_CALLS = [
     ("whoami", {}),
-    ("lanes_list", {}),
-    ("lane_open", {"on": "personal/reddit"}),
-    ("lane_view", {"on": "personal/reddit"}),
-    ("lane_claim", {"on": "personal/reddit", "purpose": "posting"}),
-    ("lane_queue", {"on": "personal/reddit"}),
+    ("browsers_list", {}),
+    ("browser_open", {"on": "personal/reddit"}),
+    ("browser_view", {"on": "personal/reddit"}),
+    ("browser_claim", {"on": "personal/reddit", "purpose": "posting"}),
+    ("browser_queue", {"on": "personal/reddit"}),
     ("browser_navigate", {"on": "personal/reddit", "url": "https://example.com/a"}),
     ("browser_snapshot", {"on": "personal/reddit"}),
     ("browser_act", {"on": "personal/reddit", "ref": "e2", "action": "type", "text": "hello"}),
@@ -409,8 +409,8 @@ NODE_CALLS = [
     ("browser_screenshot", {"on": "personal/reddit"}),
     ("browser_wait", {"on": "personal/reddit", "for_text": "Posted", "timeout_s": 1}),
     ("howto", {"topic": "waiting"}),
-    ("lane_release", {"on": "personal/reddit"}),
-    ("lane_close", {"on": "personal/reddit"}),
+    ("browser_release", {"on": "personal/reddit"}),
+    ("browser_close", {"on": "personal/reddit"}),
 ]
 
 

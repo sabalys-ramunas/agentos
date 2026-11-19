@@ -1,6 +1,6 @@
 """plugins_list: an agent can see which workers exist and whether they are on. That is all.
 
-No tool turns a plugin on or off, on the node or on a lane, or changes an assignment. Only a person
+No tool turns a plugin on or off, on the node or on a browser, or changes an assignment. Only a person
 does, with `agentos plugins` on the node or signed in to the panel.
 """
 
@@ -23,16 +23,16 @@ def _service(runtime: Any) -> PluginService:
 
 
 def _seen(view: Any, ctx: ToolContext) -> dict[str, Any]:
-    """A view as this caller may read it: a lane outside its grant is not named."""
+    """A view as this caller may read it: a browser outside its grant is not named."""
     return {**view.to_dict(), "lanes_off": [lane for lane in view.lanes_off if ctx.can_access_lane(lane)]}
 
 
 def tool_specs(runtime: Any) -> list[ToolSpec]:
     async def plugins_list(ctx: ToolContext, *, plugin: PluginArg = None) -> dict:
         """The workers on this node: whether each is on, why one cannot run, and which brain does each of
-        its jobs. `lanes_off` names the lanes you can reach where a person turned the worker off: lane_do is
+        its jobs. `lanes_off` names the browsers you can reach where a person turned the worker off: browser_task is
         refused there, and the browser tools still work. Name one with `plugin` when you need it: you get it
-        back when it can run, and otherwise an error that says why. You cannot turn a worker on, on a lane
+        back when it can run, and otherwise an error that says why. You cannot turn a worker on, on a browser
         or anywhere, or change its brain; only a person can.
         Effect: read. Errors: plugin_disabled (it is off, tell your user), unavailable (it is on and cannot
         run), not_found."""

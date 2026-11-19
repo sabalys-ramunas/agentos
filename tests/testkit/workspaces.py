@@ -53,7 +53,7 @@ class FakeLanes:
 
     def get(self, lane_id: str) -> LaneInfo:
         if lane_id not in self.lanes:
-            raise LaneNotFound(f"no lane {lane_id!r}; see lanes_list")
+            raise LaneNotFound(f"no lane {lane_id!r}; see browsers_list")
         return self.lanes[lane_id]
 
 

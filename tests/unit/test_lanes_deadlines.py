@@ -81,7 +81,7 @@ async def test_a_dead_browser_is_closed_and_the_next_call_opens_it_again(tmp_pat
 async def test_lane_close_closes_a_lane_with_a_stuck_call(tmp_path):
     mgr, engine = await lane(tmp_path, queue_timeout=0.3)
     session = engine.sessions[-1]
-    task = asyncio.ensure_future(stuck_call(mgr, deadline_s=None))  # no deadline: only lane_close can end it
+    task = asyncio.ensure_future(stuck_call(mgr, deadline_s=None))  # no deadline: only browser_close can end it
     await asyncio.sleep(0.05)
     hang_page(session)
     info = await asyncio.wait_for(mgr.close(LANE, holder=agent("b")), 5)
@@ -148,7 +148,7 @@ async def test_tool_calls_take_the_lane_with_their_deadline():
         def using(self, on, *, principal_kind="agent", holder=None, mode="act", deadline_s=None, tool=None):
             seen.update(deadline_s=deadline_s, tool=tool)
 
-    for tool, extra, want in (("browser_wait", 60.0, 120.0), ("login", 0.0, 1080.0), ("lane_do", 0.0, 120.0)):
+    for tool, extra, want in (("browser_wait", 60.0, 120.0), ("login", 0.0, 1080.0), ("browser_task", 0.0, 120.0)):
         ctx = SimpleNamespace(tool=tool, principal=None, meta=None, runtime=None)
         node_tools.ctx_session(ctx, LANE, lanes=Lanes(), extra_s=extra)
         assert seen == {"deadline_s": want, "tool": tool}

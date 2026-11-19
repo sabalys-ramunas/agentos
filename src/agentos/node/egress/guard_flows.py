@@ -36,7 +36,7 @@ class GuardFlows:
         publish). Everything else stays gated, so a timer the agent's presses armed on another page,
         or on a page that could not be reloaded (`page` None), cannot publish in the flow's window.
         The drive's route stays on, and gates everything again once the flow lets go of the lane."""
-        self._learn_close("a flow took the lane")
+        self._learn_close("a flow took the browser")
         self._routines += 1
         if page is not None:
             self._flow_pages.append(page)

@@ -14,7 +14,7 @@ run in the background (a control listener must not slow down a take over); a rea
 note at most CLAIM_WAIT_S.
 
 Delivery: the next thing each agent session sees on the lane carries the note once, as
-`handback`: the lane_wait_control (or lane_control) result, or the first browser tool result. A
+`handback`: the browser_wait_handback (or browser_control) result, or the first browser tool result. A
 note lives NOTE_TTL_S; a new loss of control replaces it.
 """
 
@@ -279,8 +279,8 @@ def compare(lane_id: str, before: Capture | None, after: Capture, *, lost: LaneC
     if new.handback_note:
         note["human_note"] = redact_text(new.handback_note, max_len=0)
     if before is None or not before.warm or not after.warm:
-        note["page"] = ("the lane had no open browser when agents lost it" if before is None or not before.warm
-                        else "the lane has no open browser now")
+        note["page"] = ("no page was open when agents lost the browser" if before is None or not before.warm
+                        else "no page is open in the browser now")
         if after.warm:
             note["url"] = {"before": None, "after": _clip(after.url, URL_CHARS)}
         note["refs"] = STALE_REFS

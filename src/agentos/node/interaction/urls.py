@@ -76,7 +76,7 @@ def check_url(url: str, *, allow_private: bool = False) -> str:
         raise InvalidRequest(f"only http and https URLs can be opened: {url!r}")
     if not allow_private and is_private_target(parts.hostname or ""):
         raise InvalidRequest(
-            f"lanes cannot open addresses on the node or its private network: {parts.hostname}")
+            f"browsers cannot open addresses on the node or its private network: {parts.hostname}")
     return value
 
 

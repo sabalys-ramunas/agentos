@@ -30,7 +30,7 @@ def _grant(ctx: Any) -> str | None:
 
 
 def _visible(ctx: ToolContext):
-    """A lane's entries need that lane in the grant; a lane-less one needs the whole workspace."""
+    """A browser's entries need that browser in the grant; a lane-less one needs the whole workspace."""
     def see(target: str | None, workspace: str | None) -> bool:
         if target:
             return ctx.can_access_lane(target)
@@ -49,7 +49,7 @@ def _time(value: str | None, name: str, default: datetime) -> datetime:
 
 
 async def _entry(ctx: ToolContext, entry_id: str) -> Any:
-    """The entry, when the caller's grant sees its lane (else not found, so ids do not leak)."""
+    """The entry, when the caller's grant sees its browser (else not found, so ids do not leak)."""
     e = _svc(ctx).get(entry_id)
     if not _visible(ctx)(e.action.acts_on, e.workspace):
         raise NotFound(f"agenda entry {entry_id!r} not found")
@@ -62,19 +62,19 @@ async def agenda_list(ctx: ToolContext, *, workspace: str | None = None, start: 
     """The workspace's agenda: one timeline of planned actions (posts, reminders, renewals, form
     submissions, exports, agent tasks), the upcoming fires of its recurring schedules (projected,
     not stored) and the runs that already happened, with their proof. It also shows the work
-    other services plan on lanes on their own (type managed, state planned: keepalive's next
-    visit per lane, at an approximate time).
+    other services plan on browsers on their own (type managed, state planned: keepalive's next
+    visit per browser, at an approximate time).
     Those are read only: they cannot be approved or cancelled here, and `managed_by` says what
-    each service can and cannot show. Default range: from now for 7 days. Filter by lane, kind (flow,
+    each service can and cannot show. Default range: from now for 7 days. Filter by browser, kind (flow,
     connector, route, keepalive) or state (draft, proposed, scheduled, running, done,
-    failed, skipped, expired, cancelled, projected, planned). Shows only what your grant's lanes
+    failed, skipped, expired, cancelled, projected, planned). Shows only what your grant's browsers
     cover.
 
     Args:
         workspace: One workspace, like biz-a; leave it out for every workspace your grant covers.
         start: The range's start, ISO 8601 with a timezone (default: an hour ago).
         end: The range's end, ISO 8601 with a timezone (default: 7 days after the start; at most 93 days).
-        lane: Only items on this lane or surface, like biz-a/instagram.
+        lane: Only items on this browser or surface, like biz-a/instagram.
         kind: Only this kind of action: flow, connector, route (a trigger) or keepalive.
         state: Only items in this state, like proposed (waiting for a person), projected (a schedule's next fire)
             or planned (another service's own plan).
@@ -110,12 +110,12 @@ async def agenda_get(ctx: ToolContext, *, id: str) -> dict:
 async def agenda_draft(ctx: ToolContext, *, title: str, action: dict, when: dict | None = None,
                        notes: str | None = None, propose: bool = False) -> dict:
     """Plan an action on the workspace's agenda, as a draft. `action` names what runs: a saved
-    flow ({"flow": "biz-a.billing.remind", "params": {...}, "on": lane}), a connector operation
+    flow ({"flow": "biz-a.billing.remind", "params": {...}, "on": browser}), a connector operation
     ({"connector": "instagram.post_photo", "params": {...}, "on": surface}) or a trigger that wakes
-    a flow, a brain or an agent ({"trigger": "rt_...", "on": lane}; put what it should do in
+    a flow, a brain or an agent ({"trigger": "rt_...", "on": browser}; put what it should do in
     notes). `when`: {"at": time} (runs then, with 30 minutes of grace), {"not_before": time,
     "not_after": time} (a window), or {} (as soon as approved, optionally not_after). Times are
-    ISO 8601 with a timezone. Your grant must cover the lane and the action's effect. Nothing runs
+    ISO 8601 with a timezone. Your grant must cover the browser and the action's effect. Nothing runs
     until it is proposed and approved: pass propose=true, or call agenda_propose. Recurring work
     belongs in a schedule, not here. Effect: draft (an entry on the agenda, nothing runs); with
     propose=true also a card in Needs you. You read back the inputs you gave; others see only what
@@ -141,7 +141,7 @@ async def agenda_draft(ctx: ToolContext, *, title: str, action: dict, when: dict
 async def agenda_update(ctx: ToolContext, *, id: str, title: str | None = None, notes: str | None = None,
                         action: dict | None = None, when: dict | None = None) -> dict:
     """Edit an entry. Title and notes only change what a person reads. New params (merged over the
-    old ones), a new lane or a new time change what runs: an entry that was approved or is waiting
+    old ones), a new browser or a new time change what runs: an entry that was approved or is waiting
     is asked again (back to proposed), and one that failed, was skipped or expired goes back to
     draft. A running, done or cancelled entry cannot be edited.
 

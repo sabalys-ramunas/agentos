@@ -47,7 +47,7 @@ def signal_lines(snap: Any) -> list[str]:
         if account.get("status") == "wrong_account":
             handle, uid = expected.get("handle"), expected.get("user_id")
             want = f"{handle} ({uid})" if handle and uid else handle or uid
-            line += f"; the lane expects {want}. Stop and tell the human"
+            line += f"; the browser expects {want}. Stop and tell the human"
         lines.append(line + ")")
     return lines
 
@@ -154,7 +154,7 @@ def with_outline(result: dict[str, Any], outline: str) -> str:
 
 
 def active_page(page: Any) -> Any:
-    """The tab the lane acts in now: a click that opened a popup moved it there, and a popup that
+    """The tab the browser acts in now: a click that opened a popup moved it there, and a popup that
     closed moved it back (the engine's PageTracker); `page` when the engine tracks no tabs."""
     from agentos.node.camoufox.engine import tracker_for
 

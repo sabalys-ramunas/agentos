@@ -291,11 +291,11 @@ def _page_refusal(host: str, sites: tuple[str, ...] | list[str], *, frame: bool,
     a page), and on the egress list of an agent's grant."""
     if sites and not in_sites(sites, host, frame=frame):
         if site_scope(sites, host) == "frame":
-            return Refusal("lane_sites", f"{host} is on this lane's site list only as a frame inside a page, "
+            return Refusal("lane_sites", f"{host} is on this browser's site list only as a frame inside a page, "
                                          "not as a page of its own")
-        return Refusal("lane_sites", f"{host} is not on this lane's site list")
+        return Refusal("lane_sites", f"{host} is not on this browser's site list")
     if agent and driver is not None and not driver.allows_host(host):
-        return Refusal("grant_egress", f"{host} is outside the egress list of the grant driving this lane")
+        return Refusal("grant_egress", f"{host} is outside the egress list of the grant driving this browser")
     return None
 
 
@@ -310,9 +310,9 @@ def _send_refusal(host: str, method: str, sites: tuple[str, ...] | list[str], *,
         if sites or grant_lists_set:
             return Refusal("non_get", f"a {method} to an unreadable address")
     elif sites and not in_sites(sites, host, frame=True):
-        return Refusal("non_get", f"a {method} to {host} goes outside the hosts this lane allows")
+        return Refusal("non_get", f"a {method} to {host} goes outside the hosts this browser allows")
     elif agent and driver is not None and not driver.allows_host(host):
-        return Refusal("non_get", f"a {method} to {host} goes outside the hosts this lane and its grant allow")
+        return Refusal("non_get", f"a {method} to {host} goes outside the hosts this browser and its grant allow")
     return None
 
 
@@ -327,7 +327,7 @@ def _effect_refusal(host: str, method: str, *, agent: bool, driver: Driver | Non
         if not driver.allows(need):
             what = "publishes" if effect.effect == "commit" else "writes"
             return Refusal(effect.effect, f"this {method} to {host} {what} ({effect.id}), and the grant driving "
-                                          f"this lane allows up to {driver.ceiling}")
+                                          f"this browser allows up to {driver.ceiling}")
     if effect.effect == "commit" and asks_first is not None and asks_first():
         return Refusal("ask_first", f"this {method} to {host} publishes ({effect.id}), and this account asks a person "
                                     "first, so an agent cannot publish here by clicking. Run a routine for it, "

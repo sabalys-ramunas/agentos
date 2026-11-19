@@ -434,7 +434,7 @@ async def test_an_app_that_does_not_listen_says_why(node):
     app = out["app"]
     assert app["listening"] is False and "port 3000 did not listen" in app["why"]
     assert "EADDRINUSE" in app["log_tail"] and app["listening_instead"] == [5173]
-    assert "lane_job_read" in app["next"] and "app did not come up" in out["next"]
+    assert "terminal_job_read" in app["next"] and "app did not come up" in out["next"]
 
 
 async def test_no_file_changes_nothing_and_says_how_to_add_one(node):

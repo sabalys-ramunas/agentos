@@ -16,7 +16,7 @@ from agentos.core import fs
 from agentos.core.aio import maybe_await
 from agentos.core.ceiling import problems as ceiling_problems
 from agentos.core.models import ProxyConfig, parse_lane_id
-from agentos.core.toolsets import FULL_ALIASES, NAMES, OTHER
+from agentos.core.toolsets import FULL_ALIASES, NAMES, OTHER, TOOLSET_ALIASES
 
 DEFAULT_HOME = Path("/var/lib/agentos")
 # The smallest per-lane memory cap: a warm lane on a logged-in social feed takes 0.8 to 1 GB
@@ -143,7 +143,7 @@ class NodeConfig(BaseModel):
         if set(self.lane_os) - {"windows", "macos", "linux"}:
             problems.append("lane_os may list only windows, macos and linux")
         if self.mcp_toolsets != ["core"]:
-            unknown = [n for n in self.mcp_toolsets if n.strip().lower() not in {*NAMES, OTHER, *FULL_ALIASES}]
+            unknown = [n for n in self.mcp_toolsets if n.strip().lower() not in {*NAMES, OTHER, *FULL_ALIASES, *TOOLSET_ALIASES}]
             if unknown:
                 problems.append(f"mcp_toolsets may list only full or these toolsets: {', '.join(NAMES)} "
                                 f"(unknown: {', '.join(unknown)[:200]})")

@@ -254,7 +254,7 @@ class DialogGuard:
     async def answer(self, page: Any, *, accept: bool, text: str | None = None, by: str = "agent") -> PageDialog:
         entry = self.current(page)
         if entry is None:
-            raise NotFound("no dialog is open in this lane")
+            raise NotFound("no dialog is open in this browser")
         return await self._answer(entry, accept=accept, text=text, by=by)
 
     def extend(self, entry: PageDialog, seconds: float) -> None:

@@ -54,7 +54,7 @@ def _lane(mailbox: Any) -> str:
     try:
         parse_lane_id(mailbox)
     except (TypeError, ValueError):
-        raise InvalidRequest("A mailbox id looks like a lane id: 'harbor/mail'.") from None
+        raise InvalidRequest("A mailbox id looks like a browser id: 'harbor/mail'.") from None
     return mailbox
 
 
@@ -110,7 +110,7 @@ def label(ctx: Any, box: Mailbox, source: str) -> None:
 async def mail_connect(ctx: ToolContext, *, address: str, mailbox: str) -> dict:
     """Ask a person to connect a mailbox: puts a card in Needs you that names the address. Only a
     person can connect one, on this node, so you get no link, and there is no way to pass a password.
-    `mailbox` is the id to give it, like a lane id ('harbor/mail'), and it must not exist yet: nothing
+    `mailbox` is the id to give it, like a browser id ('harbor/mail'), and it must not exist yet: nothing
     you call changes a mailbox that does. Tell the person it waits for them. Errors: invalid,
     mail_id_taken, denied with too_many_pending."""
     mailbox = _lane(mailbox)

@@ -290,7 +290,7 @@ def show_logs(run: runs.Run, job: str) -> int:
 
 
 def show_jobs(run: runs.Run, lane: str | None) -> int:
-    jobs = run.raw("lane_jobs_list", {"on": lane} if lane else {})
+    jobs = run.raw("terminal_jobs", {"on": lane} if lane else {})
     if not jobs:
         typer.echo("No jobs." + ("" if lane else " Start one with: agentos run -- <command>"))
         return 0

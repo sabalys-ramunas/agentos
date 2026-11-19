@@ -204,11 +204,11 @@ class Downloads:
         said = (res.stdout or "").strip().splitlines()
         kind, _, real = (said[-1] if said else "").partition(" ")
         if res.exit_code != 0 or kind not in ("dir", "file", "other", "missing"):
-            raise InvalidRequest(f"the machine did not say what {target} is; check it with lane_exec(cmd=\"ls -la "
+            raise InvalidRequest(f"the machine did not say what {target} is; check it with terminal_exec(cmd=\"ls -la "
                                  f"{shlex.quote(target)}\")")
         if kind == "missing":
             raise InvalidRequest(f"{target} does not exist on the machine; list the folder with "
-                                 f"lane_exec(cmd=\"ls -la {shlex.quote(posixpath.dirname(target))}\")")
+                                 f"terminal_exec(cmd=\"ls -la {shlex.quote(posixpath.dirname(target))}\")")
         if not _inside_work(real):
             raise InvalidRequest(f"{target} is a link to {real}, outside /work; a download takes only what is "
                                  "under /work")
@@ -245,7 +245,7 @@ class Downloads:
         return {"url": url, "expires_at": clock.iso_or_none(datetime.fromtimestamp(expires, UTC), z=True),
                 "path": target, "kind": dl.kind, "files": dl.files, "bytes": dl.bytes, "sha256": dl.sha256,
                 "max_bytes": DOWNLOAD_BYTES_MAX, "fetch": fetch, "unpack": UNPACK,
-                "next": (f"In your own shell (not lane_exec), in the folder it goes into: {fetch} && {UNPACK}. "
+                "next": (f"In your own shell (not terminal_exec), in the folder it goes into: {fetch} && {UNPACK}. "
                          f"It unpacks {what} there. The link works once, for 15 minutes")}
 
     def take_download(self, workspace: str, name: str, token: str | None) -> _Download:
@@ -315,7 +315,7 @@ class Downloads:
 async def environment_download(ctx: ToolContext, *, on: str, path: str) -> dict:
     """A file or a folder under /work, to your own computer: a one-use .tar.gz link (15 minutes); the
     bytes never go through tool calls. Returns fetch and unpack: run them in your own shell (not
-    lane_exec). At most 512 MB packed. Effect: exec.
+    terminal_exec). At most 512 MB packed. Effect: exec.
 
     Args:
         path: A file or a folder under /work, like "/work/shop/dist" or "report.pdf" (a relative one

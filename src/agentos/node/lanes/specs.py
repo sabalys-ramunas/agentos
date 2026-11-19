@@ -262,7 +262,7 @@ class SpecsMixin:
         lane = self._lanes.get(lane_id)
         if lane is not None and (lane.state in _HOLDS_SLOT or lane.session is not None or lane.users
                                  or lane.op.locked()):
-            raise InvalidRequest(f"lane {lane_id} is {lane.state.value}; close it first (lane_close or "
+            raise InvalidRequest(f"lane {lane_id} is {lane.state.value}; close it first (browser_close or "
                                  f"agentos lane close {lane_id}), then {what} it")
         running = _browsers_using(self.config.profile_dir(lane_id))
         if running:

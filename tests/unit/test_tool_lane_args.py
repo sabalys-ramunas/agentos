@@ -37,10 +37,10 @@ SELF_AUTHORIZED_LANE_PARAM = {
     "site_api_try": "on",
     # `on` is an optional filter; the handler calls ctx.authorize(READ, lane_id=on) and filters the
     # list with ctx.can_access_lane.
-    "lane_jobs_list": "on",
+    "terminal_jobs": "on",
     # `on` beside a job id (agents pass it on every call): routing makes an environment's handle its terminal
     # lane (the lease is checked there); the handler authorizes the job's lane and refuses another `on`
-    "lane_job_read": "on", "lane_job_cancel": "on",
+    "terminal_job_read": "on", "terminal_job_cancel": "on",
     # `lane` only narrows a list already filtered by flow_seen (ctx.can_access_lane); it acts on nothing.
     "flows_list": "lane",
     # `on` names one of the caller's environments by its handle (or a session's own id or env/<id>), found
@@ -103,8 +103,8 @@ SELF_AUTHORIZED_INDIRECT = {
 NO_LANE = frozenset({
     "approval_confirm", "approval_status", "approval_wait",
     "brain_cancel", "brain_resume", "brain_status", "brain_tail", "brain_tasks", "brain_use", "brains_list",
-    "env_lanes_list", "grant_info", "howto", "human_ask", "image_build", "images_list",
-    "lanes_list", "leads_propose", "memory_context", "memory_forget", "memory_get", "memory_search",
+    "terminals_list", "grant_info", "howto", "human_ask", "image_build", "images_list",
+    "browsers_list", "leads_propose", "memory_context", "memory_forget", "memory_get", "memory_search",
     "memory_write", "plugins_list", "run_cancel", "run_status", "send_suppress", "site_api_propose",
     "site_apis_list", "triggers_list", "whoami", "workflow_catalog", "workflow_get", "workflow_list",
     "workflow_runs", "workspace_list", "workspace_queue",

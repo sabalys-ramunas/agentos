@@ -275,12 +275,12 @@ async def test_it_serves_mcp_and_the_web_app_and_the_registered_grant_works(tmp_
             McpClient(streamable_http_client(f"http://127.0.0.1:{port}/mcp", http_client=http), mode="legacy") as mcp,
         ):
             tools = {tool.name for tool in (await mcp.list_tools()).tools}
-            assert {"environment_open", "environment", "environment_close", "lane_exec", "lane_file_read"} <= tools
-            # the environment's browser (on its VM) and its sign-in with the owner's bound logins, and nothing
-            # built on account lanes
+            assert {"environment_open", "environment", "environment_close", "terminal_exec", "file_read"} <= tools
+            # the environment's browser (on its VM), its proof and pull request, its sign-in with the owner's bound
+            # logins, and nothing built on account browsers (those are in the accounts toolset)
             assert {"browser_navigate", "browser_snapshot", "browser_act", "browser_wait", "browser_screenshot",
-                    "lanes_list", "lane_view", "login"} <= tools
-            assert not tools & {"flow_run", "lane_create", "profile_use"}
+                    "browser_record", "environment_pull_request", "login"} <= tools
+            assert not tools & {"flow_run", "lane_create", "profile_use", "browsers_list", "browser_view"}
             who = await mcp.call_tool("environment", {})
             assert not who.is_error and json.loads(who.content[0].text)["environment"] is None
             up = await mcp.call_tool("tools_call", {"name": "environment_upload", "arguments": {}})

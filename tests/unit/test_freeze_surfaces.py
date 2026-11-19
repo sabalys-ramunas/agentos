@@ -1,4 +1,4 @@
-"""The freeze's surfaces: the MCP wrapper's guard, the lane_freeze tool, the push button, the panel
+"""The freeze's surfaces: the MCP wrapper's guard, the browser_freeze tool, the push button, the panel
 routes and the CLI (agentos.freeze)."""
 
 from __future__ import annotations
@@ -92,10 +92,10 @@ async def test_an_agent_freezes_its_own_lane_and_loses_its_grant(node):
     fns = tools(node)
     g, tok = node.agent(lanes=["biz-a/one"])
     with pytest.raises(ToolCallError) as e:
-        await call(fns["lane_freeze"], tok, on="biz-a/one", reason="the page asked for my password",
+        await call(fns["browser_freeze"], tok, on="biz-a/one", reason="the page asked for my password",
                    scope="workspace")
     assert e.value.code == "denied"  # its grant does not cover the whole workspace
-    out = await call(fns["lane_freeze"], tok, on="biz-a/one", reason="the page asked for my password")
+    out = await call(fns["browser_freeze"], tok, on="biz-a/one", reason="the page asked for my password")
     assert out["frozen"] and out["target"] == "biz-a/one" and g.id in out["revoked_grants"]
     assert "only the owner can unfreeze" in out["next"]
     with pytest.raises(ToolCallError) as e:
@@ -107,15 +107,15 @@ async def test_an_agent_freezes_its_own_lane_and_loses_its_grant(node):
 
 async def test_a_wide_grant_may_freeze_its_workspace_or_the_node_and_no_tool_unfreezes(node):
     fns = tools(node)
-    assert set(fns) == {"look", "think", "lane_freeze"}  # there is no unfreeze tool
+    assert set(fns) == {"look", "think", "browser_freeze"}  # there is no unfreeze tool
     _, ws_tok = node.agent(workspaces=["biz-a"])
-    out = await call(fns["lane_freeze"], ws_tok, on="biz-a/two", reason="r", scope="workspace")
+    out = await call(fns["browser_freeze"], ws_tok, on="biz-a/two", reason="r", scope="workspace")
     assert out["scope"] == "workspace" and out["target"] == "biz-a"
     _, all_tok = node.agent(workspaces=["*"], sub="wide", during_freeze=True)
-    out = await call(fns["lane_freeze"], all_tok, on="biz-b/three", reason="r", scope="node")
+    out = await call(fns["browser_freeze"], all_tok, on="biz-b/three", reason="r", scope="node")
     assert out["scope"] == "node"
     _, late = node.agent(workspaces=["*"], sub="late", during_freeze=True)
-    out = await call(fns["lane_freeze"], late, on="biz-b/three", reason="again", scope="node")
+    out = await call(fns["browser_freeze"], late, on="biz-b/three", reason="again", scope="node")
     assert out["already_frozen"]  # still callable on a frozen node
 
 

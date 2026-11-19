@@ -30,7 +30,7 @@ node of your own, after this check passes:
     agentos vm image build dev --home /tmp/morph-node                 # the dev snapshot (a few minutes)
     agentos dev up --no-connect --port 7463 --home /tmp/morph-node
     # then, from an agent connected to that node: environment_open(title="morph check", repo=...,
-    # keep="save"), start a dev server with lane_job_start, environment_close(note="..."): `machine` is
+    # keep="save"), start a dev server with terminal_job_start, environment_close(note="..."): `machine` is
     # "paused"; environment_open(title="morph check"): resumed.from is "paused" and the dev server's
     # resumed.services say running; environment_close(forget=true, discard=true) deletes it.
 """

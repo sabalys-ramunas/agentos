@@ -458,4 +458,4 @@ def test_a_security_check_stops_a_flow_and_asks_the_human():
     from agentos.runner.proof import BAD_SIGNALS
 
     assert Signal.CHECKPOINT in BAD_SIGNALS
-    assert "lane_view" in NEEDS_YOU[Signal.CHECKPOINT] and "—" not in NEEDS_YOU[Signal.CHECKPOINT]
+    assert "browser_view" in NEEDS_YOU[Signal.CHECKPOINT] and "—" not in NEEDS_YOU[Signal.CHECKPOINT]

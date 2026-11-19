@@ -340,7 +340,7 @@ def tool(name, lane_arg="on", effect=Effect.READ):
 
 
 def nodes():
-    tools = {t.name: t for t in (tool("browser_snapshot"), tool("lanes_list", None), tool("approval_status", None))}
+    tools = {t.name: t for t in (tool("browser_snapshot"), tool("browsers_list", None), tool("approval_status", None))}
     return [NodeView("node_a", "a", tools, {"personal/reddit", "shared/blog"}),
             NodeView("node_b", "b", dict(tools), {"work/x", "shared/blog"})]
 
@@ -364,17 +364,17 @@ def test_a_shared_lane_id_needs_the_qualified_form_or_node():
 
 def test_tools_without_a_lane_route_by_node_or_approval():
     with pytest.raises(RouteError):
-        routing.route("lanes_list", {}, nodes())
-    assert routing.route("lanes_list", {"node": "a"}, nodes())[0].name == "a"
+        routing.route("browsers_list", {}, nodes())
+    assert routing.route("browsers_list", {"node": "a"}, nodes())[0].name == "a"
     target, _ = routing.route("approval_status", {"approval_id": "ap_1"}, nodes(),
                               approval_node=lambda aid: "node_b" if aid == "ap_1" else None)
     assert target.name == "b"
     with pytest.raises(RouteError):
-        routing.route("lanes_list", {"node": "ghost"}, nodes())
+        routing.route("browsers_list", {"node": "ghost"}, nodes())
     with pytest.raises(RouteError):
         routing.route("unknown_tool", {}, nodes())
     single = [nodes()[0]]
-    assert routing.route("lanes_list", {}, single)[0].name == "a"
+    assert routing.route("browsers_list", {}, single)[0].name == "a"
 
 
 def test_node_tool_definitions_are_untrusted():
@@ -460,22 +460,22 @@ async def test_the_combined_list_starts_with_core_and_loads_the_rest(tmp_path, c
         await wait_for(lambda: all(s.tools for s in ctl.controller.hub.sessions.values())
                        and len(ctl.controller.hub.sessions) == 1)
         everything = set(ctl.controller.hub.sessions[next(iter(ctl.controller.hub.sessions))].tools)
-        assert "files_list" in everything and "grant_info" in everything
+        assert "browser_files" in everything and "grant_info" in everything
         async with agent(ctl) as client:
             listed = {t.name: t for t in (await client.list_tools()).tools}
-            assert {"nodes_list", "tools_more", "tools_call", "browser_snapshot", "lane_open", "files_put"} <= set(listed)
-            assert "files_list" not in listed and "grant_info" not in listed
+            assert {"nodes_list", "tools_more", "tools_call", "browser_snapshot", "browser_open", "browser_file_put"} <= set(listed)
+            assert "browser_files" not in listed and "grant_info" not in listed
             assert len(listed) < len(everything)
             # the controller lists lean schemas, as a node does: no pydantic titles
             assert '"title":' not in json.dumps(listed["browser_snapshot"].input_schema)
             assert listed["browser_snapshot"].input_schema["properties"]["node"]["enum"] == ["mine"]
             overview = (await client.call_tool("tools_more", {})).structured_content
-            assert {"files", "admin"} <= {row["toolset"] for row in overview["toolsets"]}
-            loaded = (await client.call_tool("tools_more", {"toolset": "files"})).structured_content
-            assert loaded["toolset"] == "files" and "in your list now" in loaded["next"]
-            assert any(t["name"] == "files_list" for t in loaded["tools"])
-            assert "files_list" in {t.name for t in (await client.list_tools()).tools}
-            again = (await client.call_tool("tools_more", {"toolset": "files_list"})).structured_content
+            assert {"browser", "accounts", "admin"} <= {row["toolset"] for row in overview["toolsets"]}
+            loaded = (await client.call_tool("tools_more", {"toolset": "files"})).structured_content  # the old name
+            assert loaded["toolset"] == "browser" and "in your list now" in loaded["next"]
+            assert any(t["name"] == "browser_files" for t in loaded["tools"])
+            assert "browser_files" in {t.name for t in (await client.list_tools()).tools}
+            again = (await client.call_tool("tools_more", {"toolset": "browser_files"})).structured_content
             assert again["next"] == "These tools are already in your list."
             bad = await client.call_tool("tools_more", {"toolset": "nope"})
             assert bad.is_error and "no toolset or tool of yours" in bad.content[0].text
@@ -493,6 +493,6 @@ async def test_the_combined_list_starts_with_core_and_loads_the_rest(tmp_path, c
             assert names == everything | {"nodes_list"}
         async with agent_at(ctl, "?toolsets=admin") as client:
             names = {t.name for t in (await client.list_tools()).tools}
-            assert "grant_info" in names and "files_list" not in names and "tools_more" in names
+            assert "grant_info" in names and "browser_files" not in names and "tools_more" in names
     finally:
         await node.close()

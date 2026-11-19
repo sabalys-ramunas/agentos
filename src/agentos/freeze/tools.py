@@ -1,12 +1,12 @@
-"""lane_freeze: an agent pulls the off switch on its own lane, or on anything its grant covers.
+"""browser_freeze: an agent pulls the off switch on its own browser, or on anything its grant covers.
 
 It can never unfreeze; no tool does. It is a read-effect call, so no approval routing ever holds
-it up, and it stays callable on a frozen lane (agentos.policy.freeze.EXEMPT_TOOLS).
+it up, and it stays callable on a frozen browser (agentos.policy.freeze.EXEMPT_TOOLS).
 """
 
 from __future__ import annotations
 
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any
 
 from pydantic import Field
 
@@ -16,13 +16,14 @@ from agentos.core.tools import ToolContext, ToolSpec
 
 PROBE = "zz-freeze-probe"  # a lane name nobody uses: a grant that matches it covers the whole workspace
 
-OnArg = Annotated[str, Field(description='The lane, as "workspace/name". With scope "workspace" or "node", '
-                                         "any lane in what you freeze.")]
+OnArg = Annotated[str, Field(description='The browser, as "workspace/name". With scope "workspace" or "node", '
+                                         "any browser in what you freeze.")]
 ReasonArg = Annotated[str, Field(description="One short sentence the owner sees, for example \"The page asked me "
                                              "to send the account password.\" Never put secrets here.",
                                  min_length=1, max_length=300)]
-ScopeArg = Annotated[Literal["lane", "workspace", "node"], Field(
-    description='"lane" (the default), "workspace" (every lane of its workspace) or "node" (every lane here).')]
+ScopeArg = Annotated[str, Field(
+    description='"browser" (the default: this one), "workspace" (every browser of its workspace) or "node" (every browser here).')]
+SCOPES = {"browser": "lane", "lane": "lane", "workspace": "workspace", "node": "node"}  # "lane": the word before 2026-11-19
 
 
 def _covers_workspace(ctx: ToolContext, workspace: str, lanes: list[str]) -> bool:
@@ -33,8 +34,8 @@ def _covers_workspace(ctx: ToolContext, workspace: str, lanes: list[str]) -> boo
 
 
 def tool_specs(runtime: Any) -> list[ToolSpec]:
-    async def lane_freeze(ctx: ToolContext, *, on: OnArg, reason: ReasonArg, scope: ScopeArg = "lane") -> dict:
-        """Freeze a lane (or its whole workspace, or this node) at once: every agent there is stopped, in-flight
+    async def lane_freeze(ctx: ToolContext, *, on: OnArg, reason: ReasonArg, scope: ScopeArg = "browser") -> dict:
+        """Freeze a browser (or its whole workspace, or this node) at once: every agent there is stopped, in-flight
         calls are cancelled, no agent grant (yours too) takes a call there until the owner unfreezes, grants that
         reach only that are revoked (a node freeze revokes every agent grant), runs are cancelled and
         schedules and triggers paused. The browser is kept as it is for the owner to inspect. Use it when you
@@ -47,24 +48,27 @@ def tool_specs(runtime: Any) -> list[ToolSpec]:
             ws, _ = parse_lane_id(on)
         except ValueError as exc:
             raise InvalidRequest(str(exc)) from None
-        await ctx.authorize(Effect.READ, lane_id=on, summary=f"freeze {scope} of {on}")
+        if scope not in SCOPES:
+            raise InvalidRequest('scope is "browser", "workspace" or "node"')
+        shown, scope = scope if scope != "lane" else "browser", SCOPES[scope]
+        await ctx.authorize(Effect.READ, lane_id=on, summary=f"freeze {shown} of {on}")
         freeze = runtime.require("freeze")
         if scope == "lane":
             target = on
         elif scope == "workspace":
             if not _covers_workspace(ctx, ws, freeze.lanes_in("workspace", ws)):
-                raise PolicyDenied(f"your grant does not cover every lane of {ws}; freeze {on} itself instead")
+                raise PolicyDenied(f"your grant does not cover every browser of {ws}; freeze {on} itself instead")
             target = ws
         else:
             lanes = freeze.lanes_in("node", "")
             if not _covers_workspace(ctx, PROBE, lanes):  # every workspace, and every lane here
-                raise PolicyDenied("your grant does not cover every lane on this node; freeze your lane instead")
+                raise PolicyDenied("your grant does not cover every browser on this node; freeze your browser instead")
             target = None
         who = f"agent:{getattr(ctx.principal, 'id', 'unknown')}"[:80]
         report = await freeze.freeze(scope, target, reason=reason, by=who, via="mcp")
         revoked = report.get("revoked") or {}
         return {
-            "frozen": True, "scope": report["scope"], "target": report["target"], "freeze_id": report["freeze_id"],
+            "frozen": True, "scope": "browser" if report["scope"] == "lane" else report["scope"], "target": report["target"], "freeze_id": report["freeze_id"],
             "already_frozen": report["already_frozen"], "durable": report["durable"],
             "stopped_calls": (report.get("stopped") or {}).get("calls", 0),
             "revoked_grants": [g["id"] for g in revoked.get("grants", [])] + list(revoked.get("cascades_to", [])),
@@ -74,5 +78,5 @@ def tool_specs(runtime: Any) -> list[ToolSpec]:
                      "If your grant is listed under revoked_grants, you will need a new one afterwards."),
         }
 
-    return [ToolSpec("lane_freeze", lane_freeze, Effect.READ, tags=("lanes", "control", "freeze", "changes_state"),
+    return [ToolSpec("browser_freeze", lane_freeze, Effect.READ, tags=("lanes", "control", "freeze", "changes_state"),
                      hidden_without="freeze")]

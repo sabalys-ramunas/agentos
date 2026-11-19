@@ -38,7 +38,7 @@ class ControllerConfig(BaseModel):
     extra_allowed_hosts: list[str] = Field(default_factory=list)
     invoke_timeout_s: int = 300
     # what /mcp lists an agent that does not ask in its URL (agentos.mcp.toolsets); "full": every tool
-    mcp_toolsets: list[str] = Field(default_factory=lambda: ["core"])
+    mcp_toolsets: list[str] = Field(default_factory=lambda: ["core", "accounts"])  # a controller fronts account browsers
     session_hours: int = 12
 
     @model_validator(mode="after")

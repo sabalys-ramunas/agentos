@@ -116,7 +116,7 @@ class NodePanel:
                                                  "specials": list(specials), "ttl": ttl}, bearer=owner_token)
 
     def record_route(self, owner_token: str, grant_id: str, *, ssh_host: str, local_port: int) -> Any:
-        """Tell the node how this computer reaches it for this grant (lane_view's links)."""
+        """Tell the node how this computer reaches it for this grant (browser_view's links)."""
         return self.call("POST", f"/api/grants/{quote(grant_id, safe='')}/route",
                          {"ssh_host": ssh_host, "local_port": local_port}, bearer=owner_token)
 

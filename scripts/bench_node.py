@@ -7,14 +7,14 @@ Runs a throwaway agentosd in the slot (agentos.dev.slotnode: the production daem
 behind a loopback stand-in proxy that serves tests/fixtures/site, so nothing leaves the node) with
 one lane, and measures over MCP, as an agent sees it:
 
-- first_launch_s: the lane's very first lane_open (the fingerprint is pinned, the display made);
-- wake_cold_s: lane_open of a cold lane until it is warm (browser, display, exit check);
+- first_launch_s: the lane's very first browser_open (the fingerprint is pinned, the display made);
+- wake_cold_s: browser_open of a cold lane until it is warm (browser, display, exit check);
 - navigate_ms and first_snapshot_ms: the first page after a wake and its first browser_snapshot;
 - screenshot_ms: browser_screenshot of a warm lane;
 - act_ms: browser_act round trip (a click with its read-back, on the feed's Comments toggle);
 - mcp_overhead_ms: whoami, a call that reads no page (transport, auth, policy, trace);
 - warm_lane_rss_mb and warm_lane_pss_mb: memory of the warm browser's whole process tree;
-- close_ms: lane_close back to cold.
+- close_ms: browser_close back to cold.
 
 Each metric is the median of every sample over --runs wakes. The last line printed is
 `BENCH <json>` with the commit, the Camoufox versions and the host; --out appends the JSON too.
@@ -109,15 +109,15 @@ async def measure(daemon: SlotDaemon, runs: int) -> dict[str, list[float]]:
         "mcp_overhead_ms", "warm_lane_rss_mb", "warm_lane_pss_mb", "close_ms")}
     async with mcp_client(daemon.url, daemon.agent_token) as client:
         await call_ok(client, "whoami", {})  # the session is up before anything is timed
-        opened, took = await timed(client, "lane_open", {"on": LANE})
+        opened, took = await timed(client, "browser_open", {"on": LANE})
         if opened.is_error or '"warm"' not in text_of(opened):
-            raise AssertionError(f"lane_open did not warm the lane: {text_of(opened)[:600]}")
+            raise AssertionError(f"browser_open did not warm the lane: {text_of(opened)[:600]}")
         samples["first_launch_s"].append(took)
-        await call_ok(client, "lane_close", {"on": LANE})
+        await call_ok(client, "browser_close", {"on": LANE})
         for i in range(runs):
-            opened, took = await timed(client, "lane_open", {"on": LANE})
+            opened, took = await timed(client, "browser_open", {"on": LANE})
             if opened.is_error or '"warm"' not in text_of(opened):
-                raise AssertionError(f"run {i}: lane_open did not warm the lane: {text_of(opened)[:600]}")
+                raise AssertionError(f"run {i}: browser_open did not warm the lane: {text_of(opened)[:600]}")
             samples["wake_cold_s"].append(took)
             nav, took = await timed(client, "browser_navigate", {"on": LANE, "url": f"{SITE}/feed.html"})
             if nav.is_error:
@@ -144,7 +144,7 @@ async def measure(daemon: SlotDaemon, runs: int) -> dict[str, list[float]]:
             rss, pss, _ = tree_memory_kb(main_browsers_under(daemon.home))
             samples["warm_lane_rss_mb"].append(rss / 1024)
             samples["warm_lane_pss_mb"].append(pss / 1024)
-            closed, took = await timed(client, "lane_close", {"on": LANE})
+            closed, took = await timed(client, "browser_close", {"on": LANE})
             if closed.is_error:
                 raise AssertionError(f"run {i}: close failed: {text_of(closed)[:600]}")
             samples["close_ms"].append(took * 1000)

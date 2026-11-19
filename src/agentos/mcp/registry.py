@@ -74,7 +74,7 @@ from pydantic import Field, ValidationError
 from pydantic.fields import FieldInfo
 
 from agentos import __version__
-from agentos.core import catalog, logs, progress
+from agentos.core import catalog, logs, progress, toolnames
 from agentos.core.errors import AgentosError, ApprovalPending, EngineError
 from agentos.core.models import Effect, Principal
 from agentos.core.runtime import Runtime
@@ -120,7 +120,7 @@ MAX_ERROR_CHARS = 600
 TRACE_VALUE_CHARS = 200
 CODE_RE = re.compile(r"^[a-z][a-z0-9_]{0,40}$")
 SECRETISH_RE = re.compile(r"pass|secret|token|cookie|credential|auth|otp|seed|key", re.IGNORECASE)
-LANE_ARG_DESCRIPTION = 'Lane id: "workspace/name".'
+LANE_ARG_DESCRIPTION = 'The browser or terminal: "workspace/name".'
 APPROVAL_NEXT = ("A human must approve this call first. Tell the user what is waiting, then call this tool "
                  "again with the same arguments once they approve. Do not retry it in a loop.")
 
@@ -348,7 +348,7 @@ def tool_params(spec: ToolSpec) -> list[ToolParam]:
         if p.name == spec.lane_arg and p.name == "on" and env_routing.routes(spec.name):
             # leave `on` out and the call goes to the caller's environment (agentos.environments.routing)
             annotation, default = annotation | None, None
-            description = env_routing.LANE_ARG_TEXT
+            description = env_routing.on_text(spec.name)
         if description is None and p.name == spec.lane_arg:
             description = LANE_ARG_DESCRIPTION
         out.append(ToolParam(p.name, annotation, default, description))
@@ -668,6 +668,13 @@ class ToolServer(MCPServer):
             return await self.tools_more(arguments or {}, context)
         if name == ts.TOOLS_CALL:
             return await self.tools_call(arguments or {}, context)
+        # a name a tool had before 0.4 (and its old argument names) reach the tool, with a note that says so
+        tool = name if name in self.specs else toolnames.current(name)
+        arguments, arg_notes = toolnames.rename_arguments(tool, arguments)
+        result = await self._call(tool, arguments, context)
+        return with_renamed(result, toolnames.renamed_note(name, tool, arg_notes))
+
+    async def _call(self, name: str, arguments: dict[str, Any], context: Any) -> Any:
         names = self.visible_names()
         if name not in self.specs or (names is not None and name not in names):
             hint = self.missing_hint(name) if self.missing_hint is not None and name not in self.specs else None
@@ -730,6 +737,17 @@ class ToolServer(MCPServer):
         if changed:
             await tools_changed(context)
         return to_result(result, self.redactor)
+
+
+def with_renamed(result: Any, note: str | None) -> Any:
+    """A call's result with the `renamed` note of an old tool or argument name: in its structured
+    content and as a last line of text, so an agent reading either learns the new name."""
+    if note is None or not isinstance(result, CallToolResult):
+        return result
+    update: dict[str, Any] = {"content": [*result.content, TextContent(type="text", text=f"renamed: {note}")]}
+    if isinstance(result.structured_content, dict):
+        update["structured_content"] = {**result.structured_content, "renamed": note}
+    return result.model_copy(update=update)
 
 
 def advertise_tools_changed(server: MCPServer) -> None:

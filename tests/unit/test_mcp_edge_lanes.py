@@ -69,7 +69,7 @@ async def test_a_third_lane_is_busy_when_every_warm_slot_is_taken(tmp_path):
         blocked = await client.call_tool("browser_act", act_args("a/three"))
         gate.set()
         done = await asyncio.gather(*holders)
-    assert blocked.is_error and text_of(blocked).startswith("busy: all 2 warm lanes are busy")
+    assert blocked.is_error and text_of(blocked).startswith("busy: all 2 warm browsers are busy")
     assert all(not r.is_error for r in done)
     await mgr.shutdown()
 
@@ -81,11 +81,11 @@ async def test_quarantine_is_reported_through_mcp_and_cleared_by_reopening(tmp_p
     engine.exit_ip = "203.0.113.7"  # not the proxy's address: the self-check must quarantine the lane
     async with Client(build_server(mgr, TrackingInteraction(), cfg), mode="auto") as client:
         blocked = await client.call_tool("browser_navigate", {"on": "personal/reddit", "url": "https://a.test"})
-        assert blocked.is_error and text_of(blocked).startswith("quarantined: lane personal/reddit")
+        assert blocked.is_error and text_of(blocked).startswith("quarantined: browser personal/reddit")
         assert "does not match proxy lt1" in text_of(blocked)
 
-        engine.exit_ip = "198.51.100.10"  # the cause is fixed; lane_open tries again
-        reopened = await client.call_tool("lane_open", {"on": "personal/reddit"})
+        engine.exit_ip = "198.51.100.10"  # the cause is fixed; browser_open tries again
+        reopened = await client.call_tool("browser_open", {"on": "personal/reddit"})
     assert not reopened.is_error
     assert (reopened.structured_content or json.loads(text_of(reopened)))["state"] == "warm"
     await mgr.shutdown()

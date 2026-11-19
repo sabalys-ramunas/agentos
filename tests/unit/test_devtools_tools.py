@@ -40,7 +40,7 @@ def test_the_egress_check_follows_the_lane_list_and_the_grant() -> None:
         grant = None
 
     assert devtools_tools.body_refusal(Ctx(), page, "shop.example") is None
-    assert "not on this lane's site list" in devtools_tools.body_refusal(Ctx(), page, "cdn.other.example")
+    assert "not on this browser's site list" in devtools_tools.body_refusal(Ctx(), page, "cdn.other.example")
     guard.set_sites([])
     assert devtools_tools.body_refusal(Ctx(), page, "cdn.other.example") is None
 

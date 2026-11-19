@@ -182,7 +182,7 @@ class Agent:
         args: dict[str, Any] = {"cmd": cmd, "timeout_s": timeout_s}
         if cwd:
             args["cwd"] = cwd
-        return await self.on_call("lane_exec", **args)
+        return await self.on_call("terminal_exec", **args)
 
 
 def done(summary: str, status: str = "done") -> str:

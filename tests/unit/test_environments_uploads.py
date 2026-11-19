@@ -147,7 +147,7 @@ def leftovers(n, env_id: str) -> list[str]:
 
 # ------------------------------------------------------------------ the real case
 async def test_local_code_goes_onto_an_environment_opened_without_a_repo_and_the_loop_runs(node, up, tmp_path):  # noqa: F811
-    """environment_open(title) with no repo, environment_upload(), curl the tarball, lane_exec("pnpm install")
+    """environment_open(title) with no repo, environment_upload(), curl the tarball, terminal_exec("pnpm install")
     in the workdir, environment() shows it, close."""
     out = await opened(node)
     assert out["state"] == "ready" and out["workdir"] == "/work"
@@ -171,11 +171,11 @@ async def test_local_code_goes_onto_an_environment_opened_without_a_repo_and_the
     assert up["machine"].calls == [(f"env/{out['id']}", "/work", True)]
     assert leftovers(node, out["id"]) == []  # the temp file is gone
 
-    ran = await node["call"]("lane_exec", cmd="pnpm install", cwd="/work")
+    ran = await node["call"]("terminal_exec", cmd="pnpm install", cwd="/work")
     assert ran["exit_code"] == 0 and ("cd '/work' && pnpm install", node["grant"].id) in node["machine"].ran
     state = await node["call"]("environment")
     tools = [c["tool"] for c in state["calls"]]
-    assert tools[:3] == ["lane_exec", "upload", "environment_upload"], tools  # newest first
+    assert tools[:3] == ["terminal_exec", "upload", "environment_upload"], tools  # newest first
     upload_call = next(c for c in state["calls"] if c["tool"] == "upload")
     assert upload_call["ok"] and "5 files" in upload_call["summary"] and "/work" in upload_call["summary"]
 
@@ -207,7 +207,7 @@ async def test_a_plain_folder_with_no_git_packs_too_and_an_empty_one_is_refused(
     assert res.status_code == 200, res.text
     got = res.json()
     assert sorted(got["paths"]) == ["calc.py", "pyproject.toml", "tests/test_calc.py"] and got["files"] == 3
-    assert 'lane_exec(cmd="uv sync", cwd="/work")' in got["next"] and "environment_download" in got["next"]
+    assert 'terminal_exec(cmd="uv sync", cwd="/work")' in got["next"] and "environment_download" in got["next"]
     work = up["machine"].root
     assert (work / "calc.py").is_file() and not (work / ".env").exists() and not (work / "node_modules").exists()
 

@@ -329,8 +329,8 @@ class Uploads:
         if packed["files"] > len(packed["paths"]):
             out["more"] = packed["files"] - len(packed["paths"])
         step = next((cmd for marker, cmd in PROJECT_STEPS if marker in packed["kinds"]), None)
-        now = (f'Now lane_exec(cmd="{step}", cwd="{link.dest}") or what else the project needs' if step
-               else "Now run what the project needs with lane_exec")
+        now = (f'Now terminal_exec(cmd="{step}", cwd="{link.dest}") or what else the project needs' if step
+               else "Now run what the project needs with terminal_exec")
         out["next"] = (f"Files in the archive replaced the same paths in {link.dest}; nothing else was deleted. {now}. "
                        "Files in no git repository count as unsaved work at close: download what you make "
                        "(environment_download)")
@@ -383,7 +383,7 @@ async def _write_body(body: AsyncIterator[bytes], path: Path) -> tuple[int, str]
 async def environment_upload(ctx: ToolContext, *, on: str, dest: str | None = None) -> dict:
     """A one-use link (15 minutes) that puts a .tar.gz of your local checkout (uncommitted changes
     too) on the environment's machine; the bytes never go through tool calls. Returns pack and send:
-    run them in your own shell (not lane_exec), in the checkout. Files replace the same paths;
+    run them in your own shell (not terminal_exec), in the checkout. Files replace the same paths;
     nothing else is deleted. At most 512 MB. Effect: exec.
 
     Args:

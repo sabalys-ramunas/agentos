@@ -13,7 +13,7 @@ a shutdown) still ends as cancelled.
 
 Besides a freeze's reasons (free text), the node interrupts a call for three reasons of its own,
 which LaneManagerImpl.using() and the MCP registry turn into their own errors: DEADLINE (the call
-ran past its overall deadline, agentos.node.deadlines), CLOSED (lane_close or the memory watchdog
+ran past its overall deadline, agentos.node.deadlines), CLOSED (browser_close or the memory watchdog
 closed a lane a stuck call was on) and CLIENT_GONE (the MCP client that made the call went away).
 """
 

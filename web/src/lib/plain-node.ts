@@ -202,7 +202,7 @@ export function auditWords(action: string, target: string | null, names?: PlaceN
   // The node writes `<kind> <tool>`, such as `panel panel.lane.check`: the tool says what happened.
   const tool = action.split(' ').pop() ?? action;
   const known = AUDIT_ACTIONS[tool];
-  // An agent's tool (`lane_close`, `browser_act`) reads as what it does: "Close an account: Test's LinkedIn".
+  // An agent's tool (`browser_close`, `browser_act`) reads as what it does: "Close an account: Test's LinkedIn".
   const agentTool = !known && !tool.startsWith('panel.') && /^[a-z][a-z0-9_]*$/.test(tool);
   const fallback = tool.replace(/^panel\./, '').replaceAll('.', ' ').replaceAll('_', ' ');
   const sentence = known ?? (agentTool ? toolPlainTitle(tool) : fallback.charAt(0).toUpperCase() + fallback.slice(1));
@@ -247,18 +247,18 @@ export function checkName(name: string): string {
 
 /**
  * What an AI app can call on a computer, in a person's words. The node names each tool for the agent
- * (`lane_open`, `env_create`); the name stays under Technical details. A tool the list does not know reads
+ * (`browser_open`, `terminal_create`); the name stays under Technical details. A tool the list does not know reads
  * its own name with the words made plain (`lane` is an account).
  */
 export const TOOL_TITLES: Record<string, string> = {
   whoami: 'Check this computer',
-  lanes_list: 'List the accounts',
-  lane_open: 'Open an account',
-  lane_close: 'Close an account',
-  lane_view: 'Show the live view',
-  lane_claim: 'Hold an account for a job',
-  lane_release: 'Let go of an account',
-  lane_queue: 'See who waits for an account',
+  browsers_list: 'List the accounts',
+  browser_open: 'Open an account',
+  browser_close: 'Close an account',
+  browser_view: 'Show the live view',
+  browser_claim: 'Hold an account for a job',
+  browser_release: 'Let go of an account',
+  browser_queue: 'See who waits for an account',
   browser_navigate: 'Open a page',
   browser_snapshot: 'Read a page',
   browser_act: 'Click or type on a page',
@@ -273,15 +273,15 @@ export const TOOL_TITLES: Record<string, string> = {
   browser_console: "Read a page's error messages",
   browser_network: "See a page's network requests",
   howto: 'Recipes for common jobs',
-  files_put: 'Store a file for an account',
-  files_list: "List an account's files",
-  files_get: "Read one of an account's files",
-  files_delete: "Delete one of an account's files",
-  lane_control: 'See who is in control of an account',
-  lane_request_control: 'Ask for control back',
-  lane_wait_control: 'Wait for control to come back',
-  lane_login_request: 'Ask for a login',
-  lane_freeze: 'Freeze an account',
+  browser_file_put: 'Store a file for an account',
+  browser_files: "List an account's files",
+  browser_file_get: "Read one of an account's files",
+  browser_file_delete: "Delete one of an account's files",
+  browser_control: 'See who is in control of an account',
+  browser_request_control: 'Ask for control back',
+  browser_wait_handback: 'Wait for control to come back',
+  browser_login_request: 'Ask for a login',
+  browser_freeze: 'Freeze an account',
   login: 'Log in with a saved login',
   vault_fill: 'Fill in a saved login',
   vault_list: 'List the saved logins',
@@ -289,7 +289,7 @@ export const TOOL_TITLES: Record<string, string> = {
   workspace_queue: 'See the login queue',
   workspace_plan: 'Preview a template',
   workspace_apply: 'Create accounts from a template',
-  lane_set_readiness: "Record an account's login state",
+  browser_set_readiness: "Record an account's login state",
   approval_status: 'Check a yes or no',
   approval_wait: 'Wait for a yes or no',
   approval_confirm: 'Ask for a yes or no',
@@ -334,24 +334,35 @@ export const TOOL_TITLES: Record<string, string> = {
   brain_tasks: 'List the AI tasks',
   brains_list: 'List the AI services',
   brain_use: 'Choose the AI service for a task',
-  env_lanes_list: 'List the environments',
-  env_create: 'Make an environment',
-  env_remove: 'Remove an environment',
-  lane_exec: 'Run a command',
-  lane_job_start: 'Start a program',
-  lane_job_read: "Read a program's output",
-  lane_job_cancel: 'Stop a program',
-  lane_jobs_list: 'List the programs',
+  terminals_list: 'List the terminals',
+  terminal_create: 'Make a terminal',
+  terminal_remove: 'Remove a terminal',
+  terminal_exec: 'Run a command',
+  terminal_job_start: 'Start a program',
+  terminal_job_read: "Read a program's output",
+  terminal_job_cancel: 'Stop a program',
+  terminal_jobs: 'List the programs',
+  terminal_upload: 'Send files for a run',
+  terminal_upload_check: 'Check which files a run still needs',
+  file_read: 'Read a file',
+  file_write: 'Write a file',
+  file_edit: 'Edit a file',
   environment_open: 'Open its environment',
   environment_close: 'Close its environment',
   environment: 'Read its environment',
+  environment_save: 'Save its environment',
+  environment_pull_request: 'Open a pull request',
+  environment_checkpoint: 'Make an undo point',
+  environment_rollback: 'Go back to an undo point',
+  environment_port: 'Share a dev server',
+  browser_record: 'Record a video of the browser',
   ui_check: "Check a page's design",
   ui_diff: 'Compare a page with before',
   system_check: 'Check the design system',
   profile_use: 'Work to a brand',
   profile_learn_brand: 'Learn a brand from its site',
-  lane_install: 'Install a program in an account',
-  lane_check: 'Check an account',
+  terminal_install: 'Install a program',
+  browser_check: 'Check an account',
   shell_open: 'Open a terminal',
   shell_write: 'Type in a terminal',
   shell_read: 'Read a terminal',
@@ -371,10 +382,56 @@ export const TOOL_TITLES: Record<string, string> = {
   memory_write: 'Save a memory',
   memory_forget: 'Forget a memory',
   plugins_list: 'List the workers',
+  browser_task: 'Hand a browser job to the worker',
 };
 
+/**
+ * The names tools had before 2026-11-19 (agentos.core.toolnames): the action log and an environment's calls
+ * from before then still carry them, so they read as the tool does now.
+ */
+export const OLD_TOOL_NAMES: Record<string, string> = {
+  lane_exec: 'terminal_exec',
+  lane_job_start: 'terminal_job_start',
+  lane_job_read: 'terminal_job_read',
+  lane_job_cancel: 'terminal_job_cancel',
+  lane_jobs_list: 'terminal_jobs',
+  lane_file_read: 'file_read',
+  lane_file_write: 'file_write',
+  lane_file_edit: 'file_edit',
+  lane_wait_control: 'browser_wait_handback',
+  lanes_list: 'browsers_list',
+  lane_open: 'browser_open',
+  lane_close: 'browser_close',
+  lane_claim: 'browser_claim',
+  lane_release: 'browser_release',
+  lane_view: 'browser_view',
+  lane_control: 'browser_control',
+  lane_request_control: 'browser_request_control',
+  lane_queue: 'browser_queue',
+  lane_check: 'browser_check',
+  lane_freeze: 'browser_freeze',
+  lane_login_request: 'browser_login_request',
+  lane_set_readiness: 'browser_set_readiness',
+  lane_do: 'browser_task',
+  files_put: 'browser_file_put',
+  files_list: 'browser_files',
+  files_get: 'browser_file_get',
+  files_delete: 'browser_file_delete',
+  env_create: 'terminal_create',
+  env_remove: 'terminal_remove',
+  env_lanes_list: 'terminals_list',
+  lane_install: 'terminal_install',
+  lane_upload: 'terminal_upload',
+  lane_upload_check: 'terminal_upload_check',
+};
+
+/** A tool's name as it is called today: an old name's new one, any other as it is. */
+export function currentToolName(name: string): string {
+  return OLD_TOOL_NAMES[name] ?? name;
+}
+
 export function toolPlainTitle(name: string): string {
-  const known = TOOL_TITLES[name];
+  const known = TOOL_TITLES[currentToolName(name)];
   if (known) return known;
   const words = name.replaceAll('_', ' ').replace(/\blanes?\b/g, 'account');
   return words.charAt(0).toUpperCase() + words.slice(1);

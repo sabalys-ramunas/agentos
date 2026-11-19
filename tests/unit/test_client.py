@@ -133,7 +133,7 @@ def test_connect_sets_up_tunnel_keychain_and_claude(system, node, home):
     assert TOKEN not in system.security_stdin()
     record = json.loads((home / ".config/agentos/connections/mynode.json").read_text())
     assert record["credential"] == "agent_grant" and record["agent_subject"] == "claude-code@testmac"
-    # the node knows how this computer reaches it for that grant, for lane_view's link and tunnel
+    # the node knows how this computer reaches it for that grant, for browser_view's link and tunnel
     routes = json.loads((node.home / "run" / "connect-routes.json").read_text())  # the daemon's home
     assert {k: routes[record["agent_grant_id"]][k] for k in ("ssh_host", "local_port")} == {
         "ssh_host": "mynode", "local_port": port}
@@ -239,15 +239,15 @@ def test_toolsets_go_in_the_url_and_stay_until_changed(system, node, home):
     def registered_url() -> str:
         return system.claude_servers()["user:agentos-mynode"]["url"]
 
-    result = run("connect", "mynode", "--toolsets", "flows, files")
+    result = run("connect", "mynode", "--toolsets", "flows, files")  # files: the browser toolset's old name
     assert result.exit_code == 0, result.output
     port = port_of(home)
-    assert registered_url() == f"http://localhost:{port}/mcp?toolsets=core,files,flows"
-    assert "Tools listed: core, files, flows; agents load the rest with tools_more" in result.output
+    assert registered_url() == f"http://localhost:{port}/mcp?toolsets=core,browser,flows"
+    assert "Tools listed: core, browser, flows; agents load the rest with tools_more" in result.output
 
     # connecting again keeps the choice; full and default replace it
     assert run("connect", "mynode").exit_code == 0
-    assert registered_url().endswith("?toolsets=core,files,flows")
+    assert registered_url().endswith("?toolsets=core,browser,flows")
     assert run("connect", "mynode", "--toolsets", "full").exit_code == 0
     assert registered_url().endswith("/mcp?toolsets=full")
     result = run("connect", "mynode", "--toolsets", "default")
@@ -256,7 +256,7 @@ def test_toolsets_go_in_the_url_and_stay_until_changed(system, node, home):
     assert system.claude_servers()["user:agentos-mynode"]["headersHelper"] == f"{helper} mynode"
 
     bad = run("connect", "mynode", "--toolsets", "files,nope")
-    assert bad.exit_code == 1 and "no toolset named nope" in bad.output and "files, devtools, control" in bad.output
+    assert bad.exit_code == 1 and "no toolset named nope" in bad.output and "accounts, browser, devtools" in bad.output
     assert registered_url() == f"http://localhost:{port}/mcp"  # a refused choice changes nothing
 
 

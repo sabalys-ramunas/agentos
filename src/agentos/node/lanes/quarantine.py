@@ -103,7 +103,7 @@ class QuarantineMixin:
             node_ip_known = bool(node_ip)
         if proxy is None:
             if node_ip_known and ip != node_ip:
-                reason = (f"exit IP {ip} is not this node's own IP {node_ip}, but the lane has no proxy. Check "
+                reason = (f"exit IP {ip} is not this node's own IP {node_ip}, but the browser has no proxy. Check "
                           "the profile's own proxy settings, then open it again")
                 return reason, None
             log.info("%s: exit IP %s (no proxy)", lane_id, ip)
@@ -113,7 +113,7 @@ class QuarantineMixin:
             log.info("%s: exit IP %s through %s (an environment's tunnel: not compared)", lane_id, ip, label)
             return None
         if node_ip and ip == node_ip:
-            reason = f"proxy {label} is not in use: the lane left from the node's own IP {ip}"
+            reason = f"proxy {label} is not in use: the browser left from the node's own IP {ip}"
             return reason, self._record(reason, "exit_ip_is_node", label, ip)
         hosts = await _proxy_ips(proxy.host)
         pin = self.store.proxy_exit(label)
@@ -128,7 +128,7 @@ class QuarantineMixin:
                 return None
             if pin is not None:  # it worked before, so something changed: a human looks
                 reason = (f"proxy {label} now exits from {ip}, not from its own address {proxy.host} as before. A "
-                          f"human checks the proxy; the lane opens again once it exits from {proxy.host}")
+                          f"human checks the proxy; the browser opens again once it exits from {proxy.host}")
                 return reason, self._record(reason, "exit_ip_mismatch", None, ip)
             return f"exit IP {ip} does not match proxy {label} ({proxy.host})", None
         # A gateway (a host name) may exit anywhere: pin the first exit, then hold to it.
@@ -138,19 +138,19 @@ class QuarantineMixin:
                 log.info("%s: exit IP %s matches the pinned exit of proxy %s", lane_id, ip, label)
                 return None
             reason = (f"proxy {label} used to exit from {pin.exit_ip} and now exits from {ip}, so the account "
-                      "would be seen from a new address. A human checks the proxy and hands the lane back to "
+                      "would be seen from a new address. A human checks the proxy and hands the browser back to "
                       "accept the new address")
             return reason, self._record(reason, "exit_ip_changed", label, ip)
         if not node_ip_known and self.node_ip_probe is not None:
             # never pin an exit that might be the node's own address
             reason = (f"could not read this node's own IP, so the first exit {ip} of gateway proxy {label} "
-                      "cannot be checked against it; open the lane again shortly")
+                      "cannot be checked against it; open the browser again shortly")
             return reason, None
         held = await self.store.run(self.store.pin_proxy_exit_if_absent, label, ip, by="self-check (gateway)",
                                     when=self.now())
         if held.exit_ip != ip:  # another lane on this gateway pinned its first exit meanwhile
             reason = (f"proxy {label} is pinned to exit from {held.exit_ip} and now exits from {ip}, so the "
-                      "account would be seen from a new address. A human checks the proxy and hands the lane "
+                      "account would be seen from a new address. A human checks the proxy and hands the browser "
                       "back to accept the new address")
             return reason, self._record(reason, "exit_ip_changed", label, ip)
         self._event(lane_id, "exit_ip_pinned", {"proxy": label, "exit_ip": ip, "host": proxy.host})
@@ -250,7 +250,7 @@ class QuarantineMixin:
         quarantine = rec.quarantine or self._quarantining.get(lane_id) or self._unsaved_quarantines.get(lane_id)
         if quarantine is not None:
             raise LaneQuarantined(
-                f"lane {rec.spec.id} is quarantined ({quarantine.reason}). Nothing runs there until a human "
+                f"browser {rec.spec.id} is quarantined ({quarantine.reason}). Nothing runs there until a human "
                 f"fixes the cause and hands it back (agentos lane handback {rec.spec.id}); tell your user.")
 
     async def quarantine(self, lane_id: str, reason: str, *, by: str = NODE_BY, kind: str = "manual",

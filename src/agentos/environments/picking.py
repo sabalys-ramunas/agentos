@@ -157,7 +157,7 @@ class Picking:
                 if self.holds(hit[0], binding):
                     return hit[0]
                 if lane:  # Haiku, 2026-11-18: lanes.browser from the open, passed as `on`
-                    raise WhichEnvironment(f"{ref} is the {lane} lane's name, not an on: pass the on your "
+                    raise WhichEnvironment(f"{ref} is the name of its {lane}, not an on: pass the on your "
                                            f"environment_open returned (\"{eid}.\" and 16 letters and digits)")
                 raise WhichEnvironment(f"{ref} names environment {eid} by its id, and only the on its "
                                        f"environment_open gave reaches it: {ON_FIX}. "
@@ -165,7 +165,8 @@ class Picking:
         if "/" in ref:
             return None
         if lane and ID_RE.match(eid):
-            raise NoEnvironment(f"{ref} looks like a lane's name, and no open environment of yours has it. Pass "
+            raise NoEnvironment(f"{ref} looks like the name of an environment's terminal or browser, and no open "
+                                "environment of yours has it. Pass "
                                 "the on your environment_open returned; environment() lists your machines")
         titled = [e for e in mine if same_title(e.title, ref)]
         if titled:
@@ -237,8 +238,8 @@ class Picking:
     def needs_on(kind: str | None = None, titles: list[str] | None = None) -> WhichEnvironment:
         """which_environment for a call without `on` from a client with no session id. `titles`: the
         agent's open machines (titles only, never a handle: agentos cannot tell which is this chat's)."""
-        lanes = (" A logged-in account lane the human made always needs `on` too (on=\"personal/reddit\"; "
-                 "lanes_list lists them).") if kind == "browser" else ""
+        lanes = (" A signed-in account browser the human made always needs `on` too (on=\"personal/reddit\"; "
+                 "browsers_list lists them).") if kind == "browser" else ""
         shown = titles[:OPENS_LISTED] if titles else []
         names = ", ".join(f"\"{t}\"" for t in shown) + (" and more" if titles and len(titles) > len(shown) else "")
         mine = (f" Your agent has {len(titles)} machine{'s' if len(titles) != 1 else ''} open: {names}; if one is "
@@ -255,8 +256,8 @@ class Picking:
         over, or the titles of the agent's machines in other chats (never a way into them). A browser
         call also hears that an account lane needs `on`."""
         mine = self.open_for_family(family)
-        lanes = (" A browser call meant for a logged-in account lane the human made needs `on` "
-                 "(on=\"personal/reddit\"; lanes_list lists them).") if kind == "browser" else ""
+        lanes = (" A browser call meant for a signed-in account browser the human made needs `on` "
+                 "(on=\"personal/reddit\"; browsers_list lists them).") if kind == "browser" else ""
         for env in mine:
             gone = [h for h in env.handoffs if h.binding == binding]
             if gone and env.binding != binding:
@@ -273,7 +274,7 @@ class Picking:
             return NoEnvironment("this chat has no environment, and a browser call without `on` goes to one. To "
                                  "build and test, open one first with environment_open(title=...)." + lanes)
         return NoEnvironment("this chat has no environment. Open one first with environment_open(title=...), "
-                             "or name a lane with `on`")
+                             "or name a terminal or browser with `on`")
 
     def resolve(self, binding: str, kind: str, family: str | None = None) -> str:
         """The lane a call without `on` goes to: the picked environment's terminal or browser lane."""

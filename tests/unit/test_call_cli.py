@@ -118,8 +118,8 @@ def scripted(monkeypatch):
 
 
 def test_cli_prints_the_result_as_json(scripted):
-    scripted["session"] = Scripted(("lanes_list", {"lanes": [{"id": "biz-a/social"}]}))
-    result = runner.invoke(app, ["call", "lanes_list", "--node", "dev"])
+    scripted["session"] = Scripted(("browsers_list", {"lanes": [{"id": "biz-a/social"}]}))
+    result = runner.invoke(app, ["call", "browsers_list", "--node", "dev"])
     assert result.exit_code == 0, result.output
     assert json.loads(result.output) == {"lanes": [{"id": "biz-a/social"}]}
     assert scripted["where"] == ("dev", None)

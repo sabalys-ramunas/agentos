@@ -1,4 +1,4 @@
-"""env_create checks what it can refuse before it asks a person: a lane that exists, and a sandbox
+"""terminal_create checks what it can refuse before it asks a person: a lane that exists, and a sandbox
 this machine cannot run. Otherwise the approval is spent on a call that cannot succeed."""
 
 from __future__ import annotations
@@ -26,11 +26,11 @@ def policy(tmp_path):
 
 
 def agent_ctx(svc):
-    """An agent's ToolContext for env_create on biz-a lanes, built the way an MCP call builds one."""
+    """An agent's ToolContext for terminal_create on biz-a lanes, built the way an MCP call builds one."""
     _g, tok = svc.issue(subject={"id": "agent-1"}, workspaces=["biz-a"], ceiling=Effect.IRREVERSIBLE,
                         specials=Specials(exec=LaneCap()))
     p, g = svc.resolve(tok)
-    return svc.context(g, principal=p, tool="env_create", token=tok)
+    return svc.context(g, principal=p, tool="terminal_create", token=tok)
 
 
 async def test_env_create_refuses_an_existing_lane_before_it_asks(policy, tmp_path):
@@ -42,7 +42,7 @@ async def test_env_create_refuses_an_existing_lane_before_it_asks(policy, tmp_pa
     try:
         with pytest.raises(AgentosError) as e:
             await env_create(agent_ctx(svc), on="biz-a/box")
-        assert not isinstance(e.value, ApprovalPending), "env_create asked a person about a lane that exists"
+        assert not isinstance(e.value, ApprovalPending), "terminal_create asked a person about a lane that exists"
         assert e.value.code == "lane_exists"
         assert svc.approvals.list(state="pending") == []
     finally:
@@ -57,7 +57,7 @@ async def test_env_create_refuses_a_sandbox_this_machine_cannot_run_before_it_as
     try:
         with pytest.raises(AgentosError) as e:
             await env_create(agent_ctx(svc), on="biz-a/box", preset="sandbox")
-        assert not isinstance(e.value, ApprovalPending), "env_create asked a person for a sandbox this machine cannot run"
+        assert not isinstance(e.value, ApprovalPending), "terminal_create asked a person for a sandbox this machine cannot run"
         assert e.value.code == "no_sandbox"
         assert "workbench" in e.value.message and "node token" in e.value.message  # the real choice, in words
         assert svc.approvals.list(state="pending") == []

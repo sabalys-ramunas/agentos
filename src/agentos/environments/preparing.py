@@ -12,7 +12,7 @@ In the bring-up, after the clone (prepare_work):
 - else: `setup` runs on the agent's own machine (its dependencies are installed either way), and the
   node starts a build of the prepared machine for next time, within its limits
   (agentos.environments.prepbuild);
-- then `start` runs as a job (as lane_job_start does, so it shows in jobs, a save records it as a
+- then `start` runs as a job (as terminal_job_start does, so it shows in jobs, a save records it as a
   service and a resume starts it again), and the open waits for `port` to listen, up to
   ready_timeout_s. A setup that fails or an app that does not listen never fails the open: the
   result says what happened, with the end of the log (prepared_view, app_view).
@@ -437,7 +437,7 @@ class Preparing:
             app["log_tail"] = self._tail(tail)
         with contextlib.suppress(Exception):
             app["listening_instead"] = [p["port"] for p in await self.ports(env) if p.get("port") not in (None, 22)]
-        app["next"] = f"lane_job_read(job=\"{job_id}\") shows its whole output"
+        app["next"] = f"terminal_job_read(job=\"{job_id}\") shows its whole output"
 
     async def after_ready(self, env: Environment) -> None:
         """Once the environment is ready: the app's port link (as environment_port gives), and the warm

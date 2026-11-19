@@ -30,7 +30,7 @@ class Policy(BaseModel):
     """What a lane allows, derived from its preset and dials. Shown to humans as-is."""
     shell: bool = True               # interactive shells
     exec: bool = True                # one-shot commands
-    install: bool = True             # lane_install into the overlay
+    install: bool = True             # terminal_install into the overlay
     signed_only: bool = False        # locked: apt only (signed repos), allowlisted packages and programs
     noexec_writable: bool = False    # writable dirs are mounted noexec (only base programs run)
     seccomp: bool = True             # syscall filter on isolated workloads
@@ -177,7 +177,7 @@ JobState = Literal["running", "exited", "cancelled", "timed_out", "lost"]
 
 
 class JobInfo(BaseModel):
-    """A background command in a lane (lane_job_start). Its output is logged on the node, so a
+    """A background command in a lane (terminal_job_start). Its output is logged on the node, so a
     caller can disconnect and read it later from any offset. `lost` means the node stopped while
     it ran; `note` says why a job ended early (a cancel, a timeout, the lane being stopped)."""
     id: str

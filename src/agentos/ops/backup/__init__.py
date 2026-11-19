@@ -385,7 +385,7 @@ def _stage_lane(lane: LaneDir, staging: Path, *, host: Host, coordinator: LaneCo
         else:
             raise BackupRefused(
                 f"lane {lane.id} is warm and no daemon answers on the ops socket to pause it. Close it "
-                "(lane_close), stop agentosd, or pass --allow-live to copy it while it runs.")
+                "(browser_close), stop agentosd, or pass --allow-live to copy it while it runs.")
     dest = staging / lane.id
     try:
         for attempt in range(COPY_ATTEMPTS):

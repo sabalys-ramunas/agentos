@@ -68,8 +68,8 @@ async def main() -> int:
         tools = await client.list_tools()
         print("tools:", ", ".join(sorted(t.name for t in tools.tools)))
         await call(client, "whoami", {})
-        await call(client, "lanes_list", {})
-        opened = await call(client, "lane_open", {"on": a.lane})
+        await call(client, "browsers_list", {})
+        opened = await call(client, "browser_open", {"on": a.lane})
         if opened.is_error:
             return 1
         nav = await call(client, "browser_navigate", {"on": a.lane, "url": a.url})
@@ -111,9 +111,9 @@ async def main() -> int:
             if getattr(c, "type", "") == "image":
                 Path(a.shot).write_bytes(base64.b64decode(c.data))
                 print("screenshot saved:", a.shot)
-        await call(client, "lane_view", {"on": a.lane})
+        await call(client, "browser_view", {"on": a.lane})
         if a.close:
-            await call(client, "lane_close", {"on": a.lane})
+            await call(client, "browser_close", {"on": a.lane})
     return 0
 
 

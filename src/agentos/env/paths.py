@@ -40,16 +40,16 @@ class EnvSettings(BaseModel):
     extra_host_lowers: list[str] = Field(default_factory=list)
     extra_etc_masks: list[str] = Field(default_factory=list)
     agent_create_presets: list[str] = Field(default_factory=lambda: ["sandbox", "locked"])
-    # the most an agent's env_create may ask for (the owner's `agentos env create` is not capped)
+    # the most an agent's terminal_create may ask for (the owner's `agentos env create` is not capped)
     agent_max_memory_mb: int = 8192
     agent_max_cpus: float = 4.0
     agent_max_disk_mb: int = 32768
-    # background commands (lane_job_start): their output is logged on the node, outside the lane
+    # background commands (terminal_job_start): their output is logged on the node, outside the lane
     max_jobs_per_lane: int = 4
     max_jobs: int = 16
     job_log_max_bytes: int = 64 * 1024 * 1024   # per stream; past it the output is counted, not kept
     jobs_keep_per_lane: int = 20                # finished jobs kept (meta and logs) per lane
-    # synced working trees (lane_upload, lane_job_start's sync): chunks kept on the node per lane
+    # synced working trees (terminal_upload, terminal_job_start's sync): chunks kept on the node per lane
     upload_max_mb: int = 4096
     upload_chunk_max_bytes: int = 4 * 1024 * 1024
 
@@ -122,7 +122,7 @@ class EnvPaths:
         return self.lane_dir(lane_id) / "logs"
 
     def jobs(self, lane_id: str) -> Path:
-        """Background commands' meta and output (lane_job_start), on the node, never inside the lane."""
+        """Background commands' meta and output (terminal_job_start), on the node, never inside the lane."""
         return self.logs(lane_id) / "jobs"
 
     def sync(self, lane_id: str) -> Path:

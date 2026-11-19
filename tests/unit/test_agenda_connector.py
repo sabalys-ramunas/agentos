@@ -32,7 +32,7 @@ def env(tmp_path):
     policy, _ = make_service(tmp_path / "policy", clock=lambda: clock.now().timestamp(),
                              config=PolicyConfig(meters=MeterPolicy(timezone="Europe/Vilnius")))
     inbox = Inbox(tmp_path / "inbox")
-    inbox.put(LANE, "photo.jpg", b"\xff\xd8\xff\xe0 a small photo")  # files_put put it in the lane's inbox
+    inbox.put(LANE, "photo.jpg", b"\xff\xd8\xff\xe0 a small photo")  # browser_file_put put it in the lane's inbox
     h = Harness(tmp_path / "runner", clock=clock, site=connector_site(),
                 services={"lanes": FakeLanes([LANE]), "policy": policy, "approvals": policy.approvals,
                           "traces": policy.traces, "notifier": policy.notifier, "files": inbox})

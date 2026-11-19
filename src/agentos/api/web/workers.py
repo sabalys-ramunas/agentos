@@ -315,7 +315,7 @@ class Handlers:
         return self.thing(rows[0]) if rows else None
 
     async def start_thing(self, request: Request) -> dict[str, Any]:
-        """A person hands the worker a job, as an agent does with `lane_do`. It runs the same way, under
+        """A person hands the worker a job, as an agent does with `browser_task`. It runs the same way, under
         a child grant of this person's, so it goes no further on this account than they could."""
         from agentos.core.models import RunKind
 

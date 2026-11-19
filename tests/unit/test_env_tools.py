@@ -56,7 +56,7 @@ def test_specs_are_well_formed(rt):
 
 async def test_exec_authorizes_with_the_exact_command(rt):
     ctx = Ctx(rt)
-    out = await specs(rt)["lane_exec"].handler(ctx, on="ws/bench", cmd="echo $((40+2))")
+    out = await specs(rt)["terminal_exec"].handler(ctx, on="ws/bench", cmd="echo $((40+2))")
     assert out["stdout"] == "42\n"
     call = ctx.calls[0]
     assert call["effect"] == Effect.EXEC and call["lane_id"] == "ws/bench"
@@ -69,8 +69,8 @@ async def test_exec_authorizes_with_the_exact_command(rt):
 async def test_exec_tells_the_policy_an_isolated_lane_is_one(rt):
     rt.envs.create("ws/sb", preset="sandbox")
     ctx = Ctx(rt)
-    await specs(rt)["lane_exec"].handler(ctx, on="ws/sb", cmd="true")
-    await specs(rt)["env_create"].handler(ctx, on="ws/sb2")
+    await specs(rt)["terminal_exec"].handler(ctx, on="ws/sb", cmd="true")
+    await specs(rt)["terminal_create"].handler(ctx, on="ws/sb2")
     assert [c["facts"] for c in ctx.calls] == [{"isolated": True}, {"isolated": True}]
 
 
@@ -78,18 +78,18 @@ async def test_denied_exec_runs_nothing(rt, tmp_path):
     ctx = Ctx(rt, deny={Effect.EXEC})
     marker = tmp_path / "ran"
     with pytest.raises(PolicyDenied):
-        await specs(rt)["lane_exec"].handler(ctx, on="ws/bench", cmd=f"touch {marker}")
+        await specs(rt)["terminal_exec"].handler(ctx, on="ws/bench", cmd=f"touch {marker}")
     assert not marker.exists()
 
 
 async def test_install_effect_depends_on_shared_filesystem(rt):
     ctx = Ctx(rt, deny={Effect.INSTALL_BASE, Effect.INSTALL_OVERLAY})
     with pytest.raises(PolicyDenied):
-        await specs(rt)["lane_install"].handler(ctx, on="ws/bench", packages=["jq"], source="apt")
+        await specs(rt)["terminal_install"].handler(ctx, on="ws/bench", packages=["jq"], source="apt")
     assert ctx.calls[0]["effect"] == Effect.INSTALL_BASE and "onto the node itself" in ctx.calls[0]["summary"]
     rt.envs.create("ws/sb")
     with pytest.raises(PolicyDenied):
-        await specs(rt)["lane_install"].handler(ctx, on="ws/sb", packages=["requests==2.32.3"], source="pip")
+        await specs(rt)["terminal_install"].handler(ctx, on="ws/sb", packages=["requests==2.32.3"], source="pip")
     call = ctx.calls[1]
     assert call["effect"] == Effect.INSTALL_OVERLAY and "requests==2.32.3" in call["summary"]
     assert "pypi.org" in call["summary"] and call["content"] == {"source": "pip", "packages": ["requests==2.32.3"]}
@@ -129,13 +129,13 @@ async def test_service_tools_use_the_service_effect(rt):
 async def test_lane_listing_create_remove_and_images(rt):
     ctx = Ctx(rt)
     sp = specs(rt)
-    lanes = await sp["env_lanes_list"].handler(ctx)
+    lanes = await sp["terminals_list"].handler(ctx)
     assert {lane["id"] for lane in lanes} == {"ws/bench", "ws/svc"}
-    made = await sp["env_create"].handler(ctx, on="ws/tmp", network="isolated", allow_hosts=["example.com"])
+    made = await sp["terminal_create"].handler(ctx, on="ws/tmp", network="isolated", allow_hosts=["example.com"])
     assert made["egress_allowlist"] == ["example.com"] and made["preset"] == "sandbox"
     with pytest.raises(PolicyDenied):
-        await sp["env_create"].handler(ctx, on="ws/wb", preset="workbench")
-    await sp["env_remove"].handler(ctx, on="ws/tmp")
+        await sp["terminal_create"].handler(ctx, on="ws/wb", preset="workbench")
+    await sp["terminal_remove"].handler(ctx, on="ws/tmp")
     assert ctx.calls[-1]["effect"] == Effect.IRREVERSIBLE
     imgs = await sp["images_list"].handler(ctx)
     assert {t["name"] for t in imgs["templates"]} >= {"dev-box", "render", "brain", "browser"}

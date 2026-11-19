@@ -361,7 +361,7 @@ class PlaywrightFlowDriver:
     async def read_signed_out(self, url: str, text: str, *, timeout_ms: int = 20_000) -> dict[str, Any]:
         """The AUD-22 check (agentos.node.signed_out): a throwaway browser, not this lane's page."""
         if self._signed_out is None:
-            raise ServiceUnavailable("this lane cannot open a page signed out")
+            raise ServiceUnavailable("this browser cannot open a page signed out")
         return await self._signed_out(url, text, timeout_ms=timeout_ms)
 
     # ---- resolution (the rules of Locator, as in runner.fakes) ----
@@ -764,7 +764,7 @@ def resolve_inbox_file(inbox: Path, file_ref: str, *, files: Any = None, lane_id
     `..`, a symlink that leads out) is refused."""
     ref = (file_ref or "").strip()
     if not ref:
-        raise FileNotInInbox("the upload needs a file: a name or id from the lane's inbox")
+        raise FileNotInInbox("the upload needs a file: a name or id from the browser's inbox")
     root = Path(inbox).resolve()
     candidate: Path | None = None
     resolver = getattr(files, "resolve", None)
@@ -784,7 +784,7 @@ def resolve_inbox_file(inbox: Path, file_ref: str, *, files: Any = None, lane_id
         candidate = p if p.is_absolute() else root / p
     real = candidate.resolve()
     if real != root and not real.is_relative_to(root):
-        raise FileOutsideInbox(f"{file_ref!r} is outside the lane's inbox; flows upload only files put in "
+        raise FileOutsideInbox(f"{file_ref!r} is outside the browser's inbox; flows upload only files put in "
                                "the inbox first")
     if real.is_file():
         return real
@@ -795,10 +795,10 @@ def resolve_inbox_file(inbox: Path, file_ref: str, *, files: Any = None, lane_id
             hit = hits[0].resolve()
             if hit.is_relative_to(root) and hit.is_file():
                 return hit
-            raise FileOutsideInbox(f"{file_ref!r} links outside the lane's inbox")
+            raise FileOutsideInbox(f"{file_ref!r} links outside the browser's inbox")
         if len(hits) > 1:
             raise FileNotInInbox(f"{len(hits)} inbox files match {file_ref!r}; use the full file name")
-    raise FileNotInInbox(f"no file {file_ref!r} in the lane's inbox; put it there first")
+    raise FileNotInInbox(f"no file {file_ref!r} in the browser's inbox; put it there first")
 
 
 def driver_factory(runtime: Any, *, interaction: Any = None, dwell_ms: tuple[int, int] = DWELL_MS) -> DriverFactory:

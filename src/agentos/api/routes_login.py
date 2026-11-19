@@ -35,7 +35,7 @@ from agentos.core.presence import NEEDS_A_PERSON
 from agentos.node.login_assist import read_values
 
 NOT_YOURS = ("Only the owner logs a lane in (the panel or the node's CLI), or a member whose role may take "
-             "control of it. An agent's grant never can: agents ask with lane_login_request.")
+             "control of it. An agent's grant never can: agents ask with browser_login_request.")
 MAX_WAIT = 30
 
 

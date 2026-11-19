@@ -138,10 +138,10 @@ async def test_a_command_that_failed_shows_its_exit_code(node, monkeypatch):  # 
         return await real(lane_id, cmd, **kw)
 
     monkeypatch.setattr(node["envs"], "exec", exec_)
-    res = await node["call"]("lane_exec", cmd="exit 7")
+    res = await node["call"]("terminal_exec", cmd="exit 7")
     assert res["exit_code"] == 7
     st = await node["call"]("environment")
-    assert st["calls"][0]["tool"] == "lane_exec" and st["calls"][0]["exit_code"] == 7
+    assert st["calls"][0]["tool"] == "terminal_exec" and st["calls"][0]["exit_code"] == 7
 
 
 async def test_a_refused_close_is_one_of_the_last_calls(node):  # noqa: F811
@@ -163,7 +163,7 @@ async def test_the_close_says_the_machine_is_deleted_once_the_provider_has_none(
     closed = await node["call"]("environment_close")
     assert closed["machine"] == "deleted" and rec.provider_id in node["prov"].deleted
     # its lanes are gone too, not left as cold lanes (F7)
-    with pytest.raises(Exception, match="no lane|not found|unknown"):
+    with pytest.raises(Exception, match="no browser|not found|unknown"):
         node["lanes"].get(f"env/{out['id']}-browser")
     assert not node["envs"].has(f"env/{out['id']}")
     # closed again: the same answer from the record

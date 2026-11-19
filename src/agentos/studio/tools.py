@@ -9,7 +9,7 @@
 - finding_get(id), ui_image(capture): one finding in full, one image or crop, on request only.
 - studio_status(): what this install can do.
 
-They take a URL, never a lane: the review browser is not a lane (docs/design/studio.md, decision
+They take a URL, never a browser id: the review browser is not an account browser (docs/design/studio.md, decision
 1). They read pages and write only studio's own store (captures, runs, baselines). A call that
 reads a page labels the caller's session untrusted (page text), as browser reads do, and the URL
 is authorized as a navigation would be (its host is a sink). A profile is read only when the
@@ -251,7 +251,7 @@ async def ui_check(ctx: ToolContext, *, url: str, profile: str | None = None, wi
                    theme_switch: ThemeSwitch | None = None, wait_for: str | None = None,
                    ignore: list[str] | None = None, on: str | None = None) -> dict[str, Any]:
     """Is this page all right? Call it after you change UI. Opens the url in a review browser (not a
-    lane) at each width and theme, runs the measured checks (layout, text, contrast, tap targets,
+    browser) at each width and theme, runs the measured checks (layout, text, contrast, tap targets,
     names, page health, theme leaks) and, when a profile has a brand, the design system check.
     Returns a verdict, `used` (every default applied), counts, the worst findings grouped by
     component (each with an id and a fix), `coverage` (what did not run, and why) and `next`. With

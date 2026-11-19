@@ -104,12 +104,12 @@ async def test_control_before_the_freeze_the_same_calls_work(frozen):
 
 def test_the_scope_helpers_hold_an_agent_off_a_frozen_workspace_and_a_person_not(frozen):
     """The one place: every helper a tool uses to reach a workspace asks the freeze. A listing of jobs
-    (lane_jobs_list) filters with
+    (terminal_jobs) filters with
     can_access_lane, so it leaves a frozen lane's rows out."""
     n, fz, tok, _specs = frozen
     freeze(fz)
     p, g = n.svc.resolve(tok)
-    agent = n.svc.context(g, principal=p, tool="lane_jobs_list")
+    agent = n.svc.context(g, principal=p, tool="terminal_jobs")
     assert not agent.can_access_lane("biz-a/social") and agent.can_access_lane("biz-b/social")
     assert not covers_workspace(agent, "biz-a") and covers_workspace(agent, "biz-b")
     assert not pattern_within(agent, "biz-a/*") and pattern_within(agent, "biz-b/*")
@@ -117,7 +117,7 @@ def test_the_scope_helpers_hold_an_agent_off_a_frozen_workspace_and_a_person_not
     with pytest.raises(Frozen):
         require_lanes(agent, ["biz-a/social"], Effect.READ)
     assert agent.frozen_hits
-    person = n.svc.context(g, principal=p, tool="lane_jobs_list", in_person=True)
+    person = n.svc.context(g, principal=p, tool="terminal_jobs", in_person=True)
     assert person.can_access_lane("biz-a/social") and covers_workspace(person, "biz-a")
     require_lanes(person, ["biz-a/social"], Effect.READ)
     assert person.frozen_hits == []
@@ -153,11 +153,11 @@ FREEZE_REACH = {
     # (refuse_frozen); a new one authorizes env/<id>; the listing leaves frozen ones out (frozen_off)
     "environment": "id", "environment_close": "id", "environment_open": "check", "environment_save": "id", "environment_port": "id", "environment_pull_request": "id",
     "environment_forget": "check", "environment_checkpoint": "id", "environment_rollback": "id",  # checkpoint_tools: _find
-    "env_lanes_list": "filter", "events_list": "filter", "triggers_list": "filter", "trigger_propose": "check",
+    "terminals_list": "filter", "events_list": "filter", "triggers_list": "filter", "trigger_propose": "check",
     "flow_get": "id", "flow_run": "id", "flow_save": "check", "flows_list": "filter",
     "grant_info": "filter", "howto": "none", "human_ask": "none", "image_build": "none", "images_list": "none",
-    "lane_check": "filter", "lane_job_cancel": "id", "lane_job_read": "id", "lane_jobs_list": "filter",
-    "lanes_list": "filter", "leads_propose": "check", "mail_mailboxes": "filter",
+    "browser_check": "filter", "terminal_job_cancel": "id", "terminal_job_read": "id", "terminal_jobs": "filter",
+    "browsers_list": "filter", "leads_propose": "check", "mail_mailboxes": "filter",
     "memory_forget": "check", "memory_get": "check",  # agentos.memory: a frozen workspace reads as not found
     "plugins_list": "filter",
     # agentos.profiles: _check_reach / _sees go through covers_workspace and can_access_lane

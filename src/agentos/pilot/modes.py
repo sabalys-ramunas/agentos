@@ -1,6 +1,6 @@
 """What each pilot mode may do, as data (design 5.2). The grant's pins and ceiling hold it to this.
 
-Only `goal` exists so far: `lane_do`. `repair`, `resolve` and `login_assist` are other briefs.
+Only `goal` exists so far: `browser_task`. `repair`, `resolve` and `login_assist` are other briefs.
 """
 
 from __future__ import annotations
@@ -24,5 +24,5 @@ class Mode:
 # reach. What does: a lane the gate does not read is refused (PilotService.check_lane), and on a lane
 # it reads, a request no rule names always asks a person (agentos.pilot.grant).
 GOAL = Mode(name="goal", ceiling=Effect.COMMIT, tools=frozenset({
-    "lane_claim", "lane_release", "browser_snapshot", "browser_act", "browser_scroll", "browser_wait",
-    "browser_upload", "files_list", "vault_fill"}))
+    "browser_claim", "browser_release", "browser_snapshot", "browser_act", "browser_scroll", "browser_wait",
+    "browser_upload", "browser_files", "vault_fill"}))
