@@ -402,7 +402,7 @@ check, a staging site, a service's settings. Bind the login once at the node, an
 whenever it needs to, without asking anyone and without ever seeing the password:
 
 ```
-agentos environments login add github.com --user me@example.com --title "Shop fix"      # that title
+agentos environments login add github.com --user me@example.com --title "Shop fix"      # that computer
 agentos environments login add https://staging.example.com/login --repo github.com/me/shop
 agentos environments login add example.com --user me@example.com --all --totp           # every one, with codes
 agentos environments login add github.com --entry "github work" --title "Shop fix"       # one already in the vault
@@ -414,8 +414,12 @@ agentos environments login "Shop fix" github.com                                
 - **The binding.** The password (and with `--totp` the TOTP seed) is read from a hidden prompt, or
   from stdin with `--stdin` (the password on the first line, the seed on the second), never from the
   command line. It is an ordinary vault login bound to environments (`env/*`), with the computers it
-  covers: `--title` (one title: it follows the title across saves and resumes, where the id changes),
-  `--repo` (that repository's environments) or `--all`. `add` again with another scope adds it;
+  covers. `--title`: the computer an agent has with that title now (open or saved), and only that
+  agent's (the grant family that opened it): it follows the computer across saves and resumes, where
+  the id changes, and another agent that picks the same title gets nothing. So bind it once the
+  computer exists: with no computer of that title yet, or several agents' computers of it, `add` says
+  so (name one by its id then: `--title e7k2`). `--repo`: every environment of that repository,
+  whichever agent opened it. `--all`: every environment. `add` again with another scope adds it;
   `remove` takes one scope off (or all), and a login `add` stored leaves the vault with its last one.
   A login is named after its site; `--name` tells two logins of one site apart. Only you bind one: no
   tool takes a binding, and the vault seals its bindings with its key, so an agent can never add or

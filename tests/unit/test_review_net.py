@@ -52,17 +52,24 @@ async def test_n2_control_origin_form_is_swapped():
     assert REAL.encode() in out.request.target
 
 
-@pytest.mark.xfail(strict=True, reason="N3: a login bound by title covers any grant family's environment of that title")
 def test_n3_a_title_binding_is_not_reachable_by_another_family_choosing_the_title():
+    # The binding records the grant family whose computer had the title when the owner bound it
+    # (agentos.environments.logins.title_scope), and lane_facts gives each lane's family: the title is the
+    # opener's free choice (environment_open(title=...)), so it alone reaches nothing.
     class Entry:
-        config: ClassVar[dict] = {"envs": {"scopes": [{"title": "Shop fix"}]}}
+        config: ClassVar[dict] = {"envs": {"scopes": [{"title": "Shop fix", "family": "g-owners-agent"}]}}
 
-    # lane_facts (agentos.environments.logins.Logins.lane_facts) gives only {title, repo}: nothing says
-    # which grant family opened it, and the title is the opener's free choice (environment_open(title=...)).
-    owner_family_env = {"title": "Shop fix", "repo": "github.com/me/shop"}
-    other_family_env = {"title": "shop   FIX", "repo": None}   # another grant, its own new machine
+    owner_family_env = {"title": "Shop fix", "repo": "github.com/me/shop", "family": "g-owners-agent"}
+    other_family_env = {"title": "shop   FIX", "repo": None, "family": "g-other"}   # another grant, its own machine
+    no_family = {"title": "Shop fix", "repo": None}
     assert env_scope_allows(Entry(), "env/e1-browser", owner_family_env)
     assert not env_scope_allows(Entry(), "env/e2-browser", other_family_env)
+    assert not env_scope_allows(Entry(), "env/e3-browser", no_family)
+
+    class Unbound:  # a title binding made before bindings named the family: it covers no computer
+        config: ClassVar[dict] = {"envs": {"scopes": [{"title": "Shop fix"}]}}
+
+    assert not env_scope_allows(Unbound(), "env/e1-browser", owner_family_env)
 
 
 ENTRYPOINT = Path(__file__).resolve().parents[2] / "deploy" / "environments" / "entrypoint.sh"

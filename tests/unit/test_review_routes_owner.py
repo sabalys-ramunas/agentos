@@ -25,8 +25,8 @@ async def test_r1_the_sign_in_route_needs_a_person_not_the_bare_node_token(agent
 
     from agentos.api import ApiSettings, build_api
 
-    await logins.add(agent.vault, LOGIN_URL, user=USER, password=PASSWORD, scope={"title": TITLE})
     await agent.call("environment_open", title=TITLE)
+    await logins.add(agent.vault, LOGIN_URL, user=USER, password=PASSWORD, scope=logins.title_scope(agent.mgr, TITLE))
     api = build_api(agent.rt, ApiSettings(lane_pump_seconds=0, panel_dir=tmp_path / "no-panel"))
     node_token = agent.rt.get("config").mcp_token  # what an agent with the node's token holds: never a person
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=api), base_url="http://localhost") as c:
