@@ -296,7 +296,9 @@ class Replay:
                         limit: int = TIMELINE_LIMIT) -> dict:
         """The owner's timeline of one environment: its frames and its calls, oldest first (see
         docs/ENVIRONMENTS.md, "Replay"). `src`: the app's own route for a frame's JPEG. `after`: only
-        what came after this time (the last page's `next`)."""
+        what came after the last page (its `next`: the last item's time and how many items of that same time
+        it held, `<at>|<n>`, so items sharing a millisecond across a page edge are all shown; a bare time is
+        strictly after it)."""
         store = self.replay_store()
         frames = store.frames(env.id)
         calls = store.calls(env.id) or [_call_item(c) for c in env.calls]  # one from before the replay
@@ -312,7 +314,7 @@ class Replay:
         items.extend({"kind": "call", **c} for c in calls)
         items.sort(key=lambda i: (str(i.get("at") or ""), i["kind"] == "frame"))
         if after:
-            items = [i for i in items if str(i.get("at") or "") > after]
+            items = _after(items, after)
         limit = max(1, min(int(limit), TIMELINE_MAX))
         kept = self.replay_kept_until(env)
         return {
@@ -326,7 +328,7 @@ class Replay:
                        "kept_until": clock.iso_or_none(kept, z=True)},
             "links_expire_at": link[2] if link is not None else None,
             "timeline": items[:limit],
-            "next": items[limit - 1]["at"] if len(items) > limit else None,
+            "next": _cursor(items, limit, after) if len(items) > limit else None,
         }
 
     def prune_replays(self, now: datetime | None = None) -> int:
@@ -340,6 +342,39 @@ class Replay:
             return None if env.open else (env.closed_at or env.created_at)
 
         return self.replay_store().prune(now or self._clock(), self.settings.replay_days, ended)
+
+
+def _split(after: str) -> tuple[str, int]:
+    at, sep, n = after.rpartition("|")
+    return (at, int(n)) if sep and n.isdigit() else (after, -1)
+
+
+def _after(items: list[dict], after: str) -> list[dict]:
+    """The items after a page's `next`: later than its time, and of that same time past the first n
+    (a bare time, n = -1: strictly later only)."""
+    at, n = _split(after)
+    out, same = [], 0
+    for i in items:
+        t = str(i.get("at") or "")
+        if t == at and n >= 0:
+            same += 1
+            if same > n:
+                out.append(i)
+        elif t > at:
+            out.append(i)
+    return out
+
+
+def _cursor(items: list[dict], limit: int, after: str | None) -> str:
+    """`<at>|<n>` for the page items[:limit]: its last item's time, and how many items of that time
+    the pages so far held (this one's, plus the earlier page's when it ended at that same time)."""
+    last = str(items[limit - 1].get("at") or "")
+    n = sum(1 for i in items[:limit] if str(i.get("at") or "") == last)
+    if after:
+        at, before = _split(after)
+        if at == last and before > 0:
+            n += before
+    return f"{last}|{n}"
 
 
 def _call_item(call: Any) -> dict:

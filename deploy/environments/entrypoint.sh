@@ -13,7 +13,7 @@
 # With AGENTOS_ENV_NETWORK=closed as well (an environment's network "limited" or "none",
 # agentos.vms.netwall) the wall is tighter: every new outbound connection is refused but loopback,
 # DNS included. The machine then reaches only what the node forwards into it over its SSH connection
-# (the git gateway, the node's allowlist proxy). The docker provider copies this file in and runs it
+# (the git gateway, the node's allowlist proxy); it resolves no name itself (the proxy does). The docker provider copies this file in and runs it
 # for such a machine, so an image with an older entrypoint still gets this wall.
 set -eu
 SEED=/etc/agentos-env
@@ -50,9 +50,14 @@ wall() {
   fi
 }
 
-# Nothing out but loopback (and the replies of the node's SSH connection in).
+# Nothing out but loopback (and the replies of the node's SSH connection in). Docker's embedded
+# resolver (127.0.0.11, on loopback) is refused first: it answers from outside the machine and
+# forwards any name to this computer's resolvers, a way out by DNS. The docker provider also
+# starts such a machine with --dns 0.0.0.0, so the resolver has nowhere to forward even without
+# this rule.
 closed() {
   iptables -F OUTPUT || return 1
+  iptables -A OUTPUT -d 127.0.0.11 -j REJECT || return 1
   iptables -A OUTPUT -o lo -j ACCEPT || return 1
   iptables -A OUTPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT || return 1
   iptables -A OUTPUT -j REJECT || return 1

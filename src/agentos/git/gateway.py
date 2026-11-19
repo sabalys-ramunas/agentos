@@ -90,7 +90,8 @@ class Caller:
     """Who a gateway token stands for. `lane`: the env lane whose command holds it (its listener
     must be the one the request arrives on); `lanes`: the lanes a brain task was given. `repos`:
     the only repositories (slugs) it reaches, when set. `bound`: good only on the listener of its
-    own lane (an environment's VM, agentos.git.service.vm_token), never on the node's own."""
+    own lane (an environment's VM, agentos.git.service.vm_token), never on the node's own.
+    `fetch_only`: it never pushes, whatever the declaration allows (a prepared machine's build)."""
     grant_id: str
     workspace: str
     lane: str | None
@@ -100,6 +101,7 @@ class Caller:
     task: str | None = None
     repos: tuple[str, ...] = ()
     bound: bool = False
+    fetch_only: bool = False
 
     def scopes(self) -> list[str]:
         """Where a declaration may be, most specific first: the caller's lanes, then its workspace."""
@@ -322,6 +324,10 @@ class GitGateway:
             raise Refused(f"{remote.slug} is not declared for {where}; the owner runs `agentos git remote allow "
                           f"{caller.workspace} {remote.slug}` on the node (or for one lane: "
                           f"`agentos git remote allow <lane> {remote.slug}`)", code="undeclared")
+        if push and caller.fetch_only:
+            self._trace_refusal(caller, remote, "fetch_only", push)
+            raise Refused(f"this token only fetches ({caller.label}), so nothing was pushed to {remote.slug}",
+                          code="undeclared")
         if push and not rule.push:
             self._trace_refusal(caller, remote, "fetch_only", push)
             raise Refused(f"{remote.slug} is declared fetch-only for {rule.scope}; pushes need "

@@ -13,8 +13,14 @@ booked at least); with no room it is not started and the open says so. Its lane 
 which the git gateway serves like an open environment's terminal while the build runs
 (building_lane).
 
-Retention (prepared_reap, from the environments' reaper): a newer build of a repository replaces the
-older one; one no open used for prepared_days goes; at most prepared_max on the node (the least
+Whose build it is: the grant that started it. An agent's open starts one under the agent's own grant
+(never the owner's), `agentos environments prepare` under the owner's. Its gateway token is that grant's
+and fetches only (no push, whatever the declaration allows), and the build stops (its machine deleted,
+no snapshot) within GRANT_CHECK_S once that grant is revoked, a freeze included, or the environments
+are frozen.
+
+Retention (prepared_reap, from the environments' reaper): a newer build of a repository and ref (the
+default branch, or one other ref: repoconfig.prepared_key) replaces the older one; one no open used for prepared_days goes; at most prepared_max on the node (the least
 recently used go first); a build the node lost (a restart) is marked failed and its machine deleted.
 """
 
@@ -35,6 +41,7 @@ from agentos.environments import machine
 from agentos.environments.models import WORKSPACE
 from agentos.environments.prepared import Prepared, eur_month, row
 from agentos.environments.repoconfig import RepoConfig
+from agentos.policy.grants import OWNER_GRANT_ID
 
 log = logging.getLogger("agentos.environments")
 
@@ -45,18 +52,21 @@ FAILED_KEEP = timedelta(days=1)    # a failed build's record (and its error) sta
 SETUP_TIMEOUT_S = 1800.0
 CLONE_TIMEOUT_S = 900.0
 STEP_TIMEOUT_S = 120.0
+GRANT_CHECK_S = 5.0                # how often a running step checks the build's grant still holds
 
 # What must never be in a snapshot. The node writes each new machine's login key and host key itself
 # (cloud-init's ssh_keys with ssh_deletekeys on a VM, the docker entrypoint in a container), so the old
-# ones go too; machine-id is made again at boot. No browser profile is ever on a machine (a "vm" browser's
-# lives on the node), and caches stay: they are what makes the next refresh fast. Swap goes so no
-# process memory is kept (machine.SWAP_OFF).
+# ones go too, unless the provider signs in with the machine's own keys (Morph: its script_prefix sets
+# AGENTOS_KEEP_SSH, as for an image build, agentos.vms.manager.IMAGE_CLEANUP); machine-id is made again
+# at boot. No browser profile is ever on a machine (a "vm" browser's lives on the node), and caches stay:
+# they are what makes the next refresh fast. Swap goes so no process memory is kept (machine.SWAP_OFF).
 SCRUB = f"""set -u
 git config --global --unset-all include.path '~/.config/agentos/gitconfig' 2>/dev/null || true
 rm -rf ~/.config/agentos ~/.git-credentials ~/.config/gh ~/.netrc ~/.docker/config.json
 rm -f ~/.bash_history ~/.zsh_history ~/.python_history ~/.node_repl_history ~/.lesshst ~/.wget-hsts ~/.viminfo
 rm -rf /tmp/agentos-* /run/agentos-* /var/tmp/agentos-*
-rm -f /root/.ssh/authorized_keys /etc/ssh/ssh_host_* /etc/agentos-env/*
+if [ -z "${{AGENTOS_KEEP_SSH:-}}" ]; then rm -f /root/.ssh/authorized_keys /etc/ssh/ssh_host_*; fi
+rm -f /etc/agentos-env/*
 truncate -s 0 /etc/machine-id 2>/dev/null || true
 {machine.UPGRADE_WAIT}; {machine.SWAP_OFF}
 sync
@@ -110,7 +120,8 @@ class PrepBuild:
         return None
 
     async def start_build(self, *, repo: str, ref: str | None, key: str, config: RepoConfig, base_image: str,
-                          base_id: str, grant_id: str = "owner", wait: bool = False, force: bool = False) -> dict:
+                          base_id: str, grant_id: str = OWNER_GRANT_ID, wait: bool = False,
+                          force: bool = False) -> dict:
         """Start building the prepared machine `key` in the background (with `wait`, until it is done):
         {"started": True} or {"started": False, "why": ...}. The open never waits for it."""
         if not self.settings.prepared_builds or self.settings.prepared_max == 0:
@@ -176,12 +187,14 @@ class PrepBuild:
             with contextlib.suppress(AgentosError):
                 await envs.exec(lane, machine.SWAP_ON, timeout_s=machine.SWAP_ON_S)
             self._step(rec.key, "cloning the repository")
-            tunnel, token = await self._build_git(lane, rec.repo, vms.store.get(vm_id))
-            dest, commit = await self._build_clone(lane, rec.repo, rec.ref)
+            self._check_grant(grant_id, lane)
+            tunnel, token = await self._build_git(lane, rec.repo, vms.store.get(vm_id), grant_id)
+            dest, commit = await self._while_granted(grant_id, lane, self._build_clone(lane, rec.repo, rec.ref))
             self._step(rec.key, "running setup", commit=commit)
             t = time.monotonic()
-            res = await envs.exec(lane, f"cd {shlex.quote(dest)} && CI=true COREPACK_ENABLE_DOWNLOAD_PROMPT=0 bash -c "
-                                  f"{shlex.quote(config.setup or 'true')}", timeout_s=SETUP_TIMEOUT_S)
+            res = await self._while_granted(grant_id, lane, envs.exec(
+                lane, f"cd {shlex.quote(dest)} && CI=true COREPACK_ENABLE_DOWNLOAD_PROMPT=0 bash -c "
+                f"{shlex.quote(config.setup or 'true')}", timeout_s=SETUP_TIMEOUT_S))
             setup_s = round(time.monotonic() - t, 1)
             if res.exit_code != 0:
                 raise BuildFailed(f"setup failed with exit code {res.exit_code}: "
@@ -189,6 +202,7 @@ class PrepBuild:
             self._step(rec.key, "removing credentials before the snapshot", setup_s=setup_s)
             tunnel = await self._build_git_down(lane, tunnel)
             await self._scrub_for_snapshot(lane, token)
+            self._check_grant(grant_id, lane)
             self._step(rec.key, "taking the snapshot")
             made = await vms.snapshot(vm_id, description=f"agentos prepared machine of {rec.repo}"[:200],
                                       labels={"agentos-prepared": rec.key[:16], "agentos-repo": rec.repo})
@@ -206,7 +220,7 @@ class PrepBuild:
                 return
             log.info("prepared machine of %s ready: %s (%.0f s, setup %.0f s)", rec.repo, made["id"],
                      time.monotonic() - began, setup_s)
-            await self._retire_older(rec.repo, rec.key)
+            await self._retire_older(rec)
         except BaseException as e:
             words = (str(e) if isinstance(e, BuildFailed) else e.message if isinstance(e, AgentosError)
                      else f"{type(e).__name__}: {e}")
@@ -250,10 +264,44 @@ class PrepBuild:
         if r.live:
             await vms.destroy(vm_id, reason=reason)
 
-    async def _build_git(self, lane: str, repo: str, vrec: Any) -> tuple[Any, str | None]:
+    def _check_grant(self, grant_id: str, lane: str) -> None:
+        """BuildFailed when the grant that started the build no longer holds (revoked, a freeze's revocation
+        included) or the environments are frozen. The owner's own build (the CLI) is not an agent's."""
+        if grant_id == OWNER_GRANT_ID:
+            return
+        policy = self._get("policy")
+        if policy is not None and callable(getattr(policy, "grant_by_id", None)):
+            try:
+                policy.grant_by_id(grant_id)
+            except AgentosError as e:
+                raise BuildFailed(f"the build was stopped: the grant that started it no longer holds ({e.message[:200]})"
+                                  ) from None
+        freeze = self._get("freeze")
+        if freeze is not None and callable(getattr(freeze, "frozen_for", None)) \
+                and freeze.frozen_for(lane, WORKSPACE) is not None:
+            raise BuildFailed("the build was stopped: the environments are frozen")
+
+    async def _while_granted(self, grant_id: str, lane: str, step: Any) -> Any:
+        """Run one step of the build, checking every GRANT_CHECK_S that its grant still holds (_check_grant);
+        the step is cancelled when it does not (the failed build then deletes the machine)."""
+        task = asyncio.ensure_future(step)
+        try:
+            while True:
+                done, _ = await asyncio.wait({task}, timeout=GRANT_CHECK_S)
+                if done:
+                    return task.result()
+                self._check_grant(grant_id, lane)
+        finally:
+            if not task.done():
+                task.cancel()
+                with contextlib.suppress(BaseException):
+                    await task
+
+    async def _build_git(self, lane: str, repo: str, vrec: Any, grant_id: str) -> tuple[Any, str | None]:
         """A declared repository: the build machine reaches the git gateway through its own tunnel, with
-        a token for this repository alone (written to its git config through stdin, removed and revoked
-        before the snapshot). A public one: nothing, it clones straight from the host."""
+        a token for this repository alone, of the build's grant and fetch-only (written to its git config
+        through stdin, removed and revoked before the snapshot). A public one: nothing, it clones straight
+        from the host."""
         from agentos.environments import bringup
 
         git = self._get("git")
@@ -266,7 +314,7 @@ class PrepBuild:
         port = await git.vm_listener(lane)
         tunnel = bringup.Tunnel(self.vms().remote(vrec), gateway_port=port)
         await tunnel.start()
-        token = git.vm_token(lane, grant_id="owner", repo=repo)
+        token = git.vm_token(lane, grant_id=grant_id, repo=repo, fetch_only=True)
         if token is None:
             return tunnel, None
         from agentos.git.service import vm_gitconfig
@@ -304,7 +352,8 @@ class PrepBuild:
 
     async def _scrub_for_snapshot(self, lane: str, token: str | None) -> None:
         envs = self.envs()
-        res = await envs.exec(lane, SCRUB, timeout_s=STEP_TIMEOUT_S)
+        prefix = getattr(self.vms().provider(), "script_prefix", "")  # Morph keeps the machine's SSH keys
+        res = await envs.exec(lane, (prefix if isinstance(prefix, str) else "") + SCRUB, timeout_s=STEP_TIMEOUT_S)
         if "ok=1" not in (res.stdout or ""):
             raise BuildFailed(f"the build machine could not be cleaned for its snapshot: {_tail(res.stderr or '', 300)}")
         if token:
@@ -327,9 +376,9 @@ class PrepBuild:
         log.info("prepared machine of %s (%s) deleted: %s", rec.repo, rec.image or "no image", why)
         return True
 
-    async def _retire_older(self, repo: str, key: str) -> None:
-        for rec in self.prepared_store().of_repo(repo):
-            if rec.key != key and rec.state == "ready":
+    async def _retire_older(self, new: Prepared) -> None:
+        for rec in self.prepared_store().of_repo(new.repo):
+            if rec.key != new.key and rec.ref == new.ref and rec.state == "ready":
                 await self._drop_prepared(rec, "a newer build replaced it")
 
     async def prepared_reap(self, now: Any = None) -> dict:
@@ -343,12 +392,12 @@ class PrepBuild:
             elif rec.state == "failed" and now - rec.started_at > FAILED_KEEP:
                 store.remove(rec.key)
         ready = sorted((r for r in store.all() if r.state == "ready"), key=lambda r: r.last_used(), reverse=True)
-        newest: dict[str, Prepared] = {}
+        newest: dict[tuple[str, str], Prepared] = {}
         for rec in sorted(ready, key=lambda r: r.built_at or r.started_at, reverse=True):
-            newest.setdefault(rec.repo, rec)
+            newest.setdefault((rec.repo, rec.ref or ""), rec)
         keep = 0
         for rec in ready:
-            if newest.get(rec.repo) is not rec:
+            if newest.get((rec.repo, rec.ref or "")) is not rec:
                 why = "a newer build replaced it"
             elif now - rec.last_used() > timedelta(days=self.settings.prepared_days):
                 why = f"no open used it for {self.settings.prepared_days} days"

@@ -1,17 +1,20 @@
 name: web-release
 
 # The web app, prebuilt for each release, so `agentos web install` (and the web step of `agentos setup`)
-# downloads it instead of needing Node.js and pnpm (agentos.setup.webapp). Published on the release as
+# downloads it instead of needing Node.js and pnpm (agentos.setup.webapp). Attached to the release as
 # agentos-web-<version>.tar.gz and agentos-web-<version>.tar.gz.sha256: the installer takes both from
-# the release of the agentos it runs (v<version>), and refuses the archive when its sha256 differs.
+# the release of the agentos it runs (v<version>), and trusts only GitHub's own digest of the archive on
+# a release GitHub keeps immutable (published once, its files and tag never change).
 #
-# It runs when a release is published (docs/DEVELOPING.md, "Releases"), or by hand for a release that
-# exists already (Actions > web-release > Run workflow, with its tag): the build is in live mode,
-# since `vite build` refuses the mock, and scripts/web_asset.py checks the folder again before packing.
+# So it runs on the release's draft (`created`: docs/DEVELOPING.md, "Releases"), before it is published,
+# or by hand for a draft that exists already (Actions > web-release > Run workflow, with its tag). It never
+# replaces a file on a release (no --clobber): to attach again, delete the old asset from the draft first.
+# The build is in live mode, since `vite build` refuses the mock, and scripts/web_asset.py checks the
+# folder again before packing.
 
 on:
   release:
-    types: [published]
+    types: [created]
   workflow_dispatch:
     inputs:
       tag:
@@ -67,4 +70,4 @@ jobs:
       - name: Attach to the release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload "$TAG" dist-release/* --clobber --repo "${{ github.repository }}"
+        run: gh release upload "$TAG" dist-release/* --repo "${{ github.repository }}"

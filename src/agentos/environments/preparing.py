@@ -138,16 +138,16 @@ class Preparing:
                                "base_image": base_name, "base_id": base_id}
         if read.state != "found" or read.config is None:
             return out
-        return self._match_prepared(out, repo, read)
+        return self._match_prepared(out, repo, read, ref)
 
-    def _match_prepared(self, out: dict, repo: str, read: ConfigRead) -> dict:
+    def _match_prepared(self, out: dict, repo: str, read: ConfigRead, ref: str | None) -> dict:
         cfg = read.config
         assert cfg is not None
         out["config"] = cfg.model_dump()
         if not cfg.setup:
             out["state"] = "no_setup"
             return out
-        key = prepared_key(repo, out["base_id"], cfg, read.inputs)
+        key = prepared_key(repo, out["base_id"], cfg, read.inputs, ref)
         out["key"] = key
         rec = self.prepared_store().get(key)
         if rec is None:
@@ -351,7 +351,7 @@ class Preparing:
         listed = await self.envs().exec(env.terminal_lane,
                                         f"cd {shlex.quote(env.workdir)} && {checkout_blobs_cmd(paths)}", timeout_s=60)
         read.inputs = parse_ls_tree(listed.stdout or "", paths)
-        p = self._match_prepared(p, env.repo or "", read)
+        p = self._match_prepared(p, env.repo or "", read, env.ref)
         if p.get("state") == "ready":  # booted from the base image already
             p["state"] = "none_now"
             p.pop("image", None)

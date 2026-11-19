@@ -139,18 +139,21 @@ def _same_title(a: str, b: str) -> bool:
 
 def env_scope_allows(entry: EntryMeta, lane_id: str, facts: Mapping[str, object] | None) -> bool:
     """For an entry the owner bound to agent environments (config `envs`, agentos.environments.logins):
-    on an environment's lane, does one of its scopes cover the lane's environment (`facts`: its title
-    and repository)? Any other lane, or an entry with no such binding: True (its lanes decide)."""
+    on an environment's lane, does one of its scopes cover the lane's environment (`facts`: its title,
+    repository and grant family)? A title scope covers only the family recorded when the owner bound it
+    (a title is the agent's own choice; one with no family covers nothing). Any other lane, or an entry
+    with no such binding: True (its lanes decide)."""
     envs = (getattr(entry, "config", None) or {}).get("envs")
     if not isinstance(envs, dict) or not str(lane_id).startswith(ENV_WORKSPACE + "/"):
         return True
     if not facts:
         return False
-    title, repo = str(facts.get("title") or ""), facts.get("repo")
+    title, repo, family = str(facts.get("title") or ""), facts.get("repo"), facts.get("family")
     for scope in envs.get("scopes") or []:
         if scope.get("all") is True:
             return True
-        if scope.get("title") and title and _same_title(str(scope["title"]), title):
+        if scope.get("title") and title and _same_title(str(scope["title"]), title) \
+                and scope.get("family") and family and scope["family"] == family:
             return True
         if scope.get("repo") and repo and scope["repo"] == repo:
             return True

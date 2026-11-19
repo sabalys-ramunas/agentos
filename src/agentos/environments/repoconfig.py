@@ -132,10 +132,16 @@ def wanted(inputs: list[str] | None, names: list[str]) -> list[str]:
     return sorted(n for n in names if any(fnmatch.fnmatchcase(n, pat) for pat in DEFAULT_INPUTS))
 
 
-def prepared_key(repo: str, base_image: str, config: RepoConfig, inputs: dict[str, str | None]) -> str:
-    """The prepared machine's key: what decides what is on it. An input that is missing counts as missing."""
-    doc = {"v": SETUP_VERSION, "repo": repo, "image": base_image, "setup": config.setup or "",
-           "refresh": config.refresh or "", "inputs": sorted((k, v or "") for k, v in inputs.items())}
+def prepared_key(repo: str, base_image: str, config: RepoConfig, inputs: dict[str, str | None],
+                 ref: str | None = None) -> str:
+    """The prepared machine's key: what decides what is on it. An input that is missing counts as missing.
+    `ref`: what the build checks out. None (the default branch) is the one shared build every open of the
+    repository may boot; a build of any other branch, tag or commit is that ref's own, because its setup ran
+    that ref's scripts (anyone who pushes a branch decides them), so an open of another ref never boots it."""
+    doc: dict = {"v": SETUP_VERSION, "repo": repo, "image": base_image, "setup": config.setup or "",
+                 "refresh": config.refresh or "", "inputs": sorted((k, v or "") for k, v in inputs.items())}
+    if ref:
+        doc["ref"] = ref
     return hashlib.sha256(json.dumps(doc, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 

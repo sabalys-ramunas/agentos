@@ -230,17 +230,38 @@ ENV_TITLE_MAX = 80
 LOGIN_URL_MAX = 500
 
 
+FAMILY_RE = re.compile(r"^[A-Za-z0-9_.:-]{1,80}$")
+
+
+def _words_ok(v: Any) -> bool:
+    return isinstance(v, str) and bool(v.strip()) and len(v) <= ENV_TITLE_MAX \
+        and not any(unicodedata.category(c).startswith("C") for c in v)
+
+
 def _env_scope(value: Any) -> dict[str, Any]:
-    if not isinstance(value, dict) or len(value) != 1:
-        raise EntryInvalid("an environment scope is one of {title}, {repo} or {all: true}")
+    """One scope of an environment login: {all: true}, {repo}, or {title, family, agent}: a title of the
+    one grant family whose computer had it when the owner bound it (agentos.environments.logins.title_scope),
+    with that agent's name in words for the owner's list. A title without a family is kept, and covers nothing."""
+    if not isinstance(value, dict) or not value:
+        raise EntryInvalid("an environment scope is one of {title, family}, {repo} or {all: true}")
+    if set(value) <= {"title", "family", "agent"} and "title" in value and _words_ok(value["title"]):
+        out = {"title": " ".join(value["title"].split())}
+        if "family" in value:
+            if not isinstance(value["family"], str) or not FAMILY_RE.match(value["family"]):
+                raise EntryInvalid("an environment scope's family is a grant id")
+            out["family"] = value["family"]
+        if "agent" in value:
+            if not _words_ok(value["agent"]):
+                raise EntryInvalid("an environment scope's agent is its name in words (1 to 80 characters)")
+            out["agent"] = " ".join(value["agent"].split())
+        return out
+    if len(value) != 1:
+        raise EntryInvalid("an environment scope is one of {title, family}, {repo} or {all: true}")
     (key, v), = value.items()
     if key == "all" and v is True:
         return {"all": True}
     if key == "repo" and isinstance(v, str) and REPO_RE.match(v):
         return {"repo": v}
-    if key == "title" and isinstance(v, str) and v.strip() and len(v) <= ENV_TITLE_MAX \
-            and not any(unicodedata.category(c).startswith("C") for c in v):
-        return {"title": " ".join(v.split())}
     raise EntryInvalid("an environment scope is a title (1 to 80 characters), a repository like "
                        "github.com/me/shop, or all")
 

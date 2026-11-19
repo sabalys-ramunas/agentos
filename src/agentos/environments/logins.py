@@ -6,8 +6,11 @@ every environment's lanes (`env/*`), whose config `envs` names the environments 
 a title, a repository, or all), the username the owner's list shows and the login page the node opens
 (`user`, `url`), and whether this command made the entry (`made`: it goes with its last binding). An existing vault login
 can be bound instead (`--entry`). The vault's own check (agentos.vault.policy.entry_bound) reads the
-lane's environment from the node's records (`lane_facts`): a binding by title follows the title across
-saves and resumes (the id changes, the title does not). Storing and binding it is the permission:
+lane's environment from the node's records (`lane_facts`). A binding by title is the owner's word about
+one computer: `title_scope` records, when the owner binds, the grant family whose computer has that title
+(open or saved), and the binding covers that family's computer of that title only, across its saves and
+resumes (the id changes; the title and the family do not). Another agent's computer with the same title
+gets nothing, since a title is the agent's own choice. A binding by repository or `--all` names no family. Storing and binding it is the permission:
 signing in asks nobody. Only the owner binds: no tool takes a binding, and the entry's metadata is
 sealed with the vault key.
 
@@ -90,12 +93,63 @@ def scope_of(title: str | None, repo: str | None, all_: bool) -> dict[str, Any]:
     return {"title": " ".join(str(title).split())}
 
 
-def scope_words(scope: dict) -> str:
+def title_families(mgr: Any, title: str) -> dict[str, list[Any]]:
+    """The computers titled `title`, by grant family: its open environments and its saves."""
+    from agentos.environments.picking import same_title
+
+    out: dict[str, list[Any]] = {}
+    for env in mgr.store.open():
+        if same_title(env.title, title):
+            out.setdefault(env.family, []).append(env)
+    for m in mgr.saves().all():
+        if same_title(m.title, title):
+            out.setdefault(m.family, []).append(m)
+    return out
+
+
+def title_scope(mgr: Any, title: str) -> dict[str, Any]:
+    """The scope of `--title`: the title and the one grant family whose computer has it now (an open
+    environment or a save; `title` may also be an open environment's id). InvalidRequest, with the fix,
+    when no computer has that title yet or several agents' computers do."""
+    title = " ".join(str(title).split())
+    with contextlib.suppress(ValueError, KeyError, NotFound):
+        if mgr.store.has(title):
+            env = mgr.store.get(title)
+            return {"title": env.title, "family": env.family, "agent": env.agent}
+    found = title_families(mgr, title)
+    if not found:
+        raise InvalidRequest(f"no computer is titled \"{title}\" yet, so this binding would name none. Open it first "
+                             f"(the agent's environment_open(title=\"{title}\")) and bind it then, or bind it to "
+                             "a repository with --repo, or to every computer with --all")
+    if len(found) > 1:
+        ids = "; ".join(f"{(rows[0].agent or 'an agent')}: {', '.join(str(r.id) for r in rows[:3])}"
+                        for rows in found.values())
+        raise InvalidRequest(f"computers of {len(found)} agents are titled \"{title}\" ({ids}). Bind the one you mean "
+                             "by its environment id instead of the title (--title <id>, while it is open)")
+    family, rows = next(iter(found.items()))
+    return {"title": title, "family": family, "agent": rows[0].agent or "an agent"}
+
+
+def same_scope(a: dict, b: dict) -> bool:
+    """Do two scopes name the same computers? A title is one, whatever family it was recorded with."""
+    if a.get("title") or b.get("title"):
+        from agentos.environments.picking import same_title
+
+        return bool(a.get("title") and b.get("title")) and same_title(str(a["title"]), str(b["title"]))
+    return a == b
+
+
+def scope_words(scope: dict, *, stored: bool = True) -> str:
+    """A scope in words. `stored`: one a binding holds (a title there without a family covers nothing);
+    else what the owner typed (`remove --title`)."""
     if scope.get("all"):
         return "every environment"
     if scope.get("repo"):
         return f"environments of {scope['repo']}"
-    return f"the environment titled \"{scope.get('title')}\""
+    if stored and scope.get("title") and not scope.get("family"):
+        return f"no computer (\"{scope['title']}\" was bound before bindings named the agent: bind it again)"
+    who = f" of {scope['agent']}" if scope.get("agent") else ""
+    return f"the environment titled \"{scope.get('title')}\"{who}"
 
 
 def parse_site(site: str) -> tuple[str, str | None]:
@@ -222,9 +276,9 @@ async def remove(vault: Any, ref: str, scope: dict | None = None) -> list[BoundL
         raise NotFound(f"no login {ref!r} is bound to environments; `agentos environments login list` shows them")
     out = []
     for b in found:
-        if scope is not None and scope not in b.scopes:
+        if scope is not None and not any(same_scope(scope, s) for s in b.scopes):
             continue
-        left = [s for s in b.scopes if scope is not None and s != scope]
+        left = [s for s in b.scopes if scope is not None and not same_scope(scope, s)]
         if left:
             config = dict(b.meta.config)
             config["envs"] = {**config["envs"], "scopes": left}
@@ -252,12 +306,12 @@ class Logins:
             vault.lane_facts = self.lane_facts
 
     def lane_facts(self, lane_id: str) -> dict[str, Any] | None:
-        """{title, repo} of the open environment whose lane this is, else None."""
+        """{title, repo, family} of the open environment whose lane this is, else None."""
         found = self.env_of_lane(lane_id)  # type: ignore[attr-defined]
         if found is None or not found[0].open:
             return None
         env = found[0]
-        return {"title": env.title, "repo": env.repo}
+        return {"title": env.title, "repo": env.repo, "family": env.family}
 
     async def login_names(self, env: Any) -> list[dict[str, Any]]:
         """The logins the environment's browser may use, by name (environment() and environment_open)."""

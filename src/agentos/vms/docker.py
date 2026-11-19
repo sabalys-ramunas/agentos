@@ -22,7 +22,8 @@ What differs from a cloud VM, said plainly:
   Mac's own loopback, where the node's git gateway and the environments' SOCKS tunnels listen; on
   Linux the docker gateway is this computer. DNS (port 53) stays open, and the internet does.
 - A machine whose environment's network is limited or none (the server label agentos-network,
-  agentos.vms.netwall) gets a tighter wall: nothing out but loopback, DNS included. The entrypoint
+  agentos.vms.netwall) gets a tighter wall: nothing out but loopback, DNS included (Docker's own
+  resolver too, refused and given no server to forward to, `--dns 0.0.0.0`). The entrypoint
   that sets it is this package's own copy (`entrypoint_text`), copied in with the keys and run in
   place of the image's, so an image pulled before that mode existed closes the machine too.
 - First-boot cloud-config is not run (there is no cloud-init): the image already has what the
@@ -254,7 +255,9 @@ class DockerProvider:
                 "--network", spec.name, "--cpus", f"{cpus:g}", "--memory", memory, "--memory-swap", memory,
                 "--pids-limit", str(self.pids), "--cap-drop", "ALL", "-e", "AGENTOS_ENV_WALL=1"]
         if netwall.closed(spec.labels.get(netwall.LABEL)):
-            args += ["-e", "AGENTOS_ENV_NETWORK=closed", "--entrypoint", SEED_ENTRYPOINT]
+            # --dns 0.0.0.0: Docker's resolver forwards to the machine itself, never to this computer's
+            # resolvers (the entrypoint also refuses the resolver: two locks, so one broken does not open DNS)
+            args += ["-e", "AGENTOS_ENV_NETWORK=closed", "--dns", "0.0.0.0", "--entrypoint", SEED_ENTRYPOINT]
         for cap in CAPS:
             args += ["--cap-add", cap]
         for k, v in sorted({**spec.labels, TYPE_LABEL: spec.server_type}.items()):

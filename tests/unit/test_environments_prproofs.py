@@ -14,6 +14,7 @@ from test_environments_comeback import FakeGateway, cred
 
 from agentos.core.errors import InvalidRequest
 from agentos.environments import prproofs, pulls
+from agentos.environments.repoconfig import blob_id
 from agentos.git import keys as keymod
 
 ENV = "eproofs1234"
@@ -67,14 +68,16 @@ class GitHub:
             return httpx.Response(200, json={"object": {"sha": self.ref}})
         if path == f"/contents/{ENV}" and method == "GET":
             assert request.url.params["ref"] == prproofs.BRANCH
-            rows = [{"name": p.split("/", 1)[1], "size": len(d)} for p, d in self.files().items()
+            tree = self.trees[self.commits[self.ref]["tree"]]
+            rows = [{"name": p.split("/", 1)[1], "size": len(self.blobs[sha]), "sha": sha} for p, sha in tree.items()
                     if p.startswith(ENV + "/")]
             return httpx.Response(200, json=rows) if rows else httpx.Response(404, json={"message": "Not Found"})
         if path == "/git/blobs":
             if self.refuse_blobs:
                 return httpx.Response(403, json={"message": "Resource not accessible by integration"})
-            sha = f"b{len(self.blobs)}"
-            self.blobs[sha] = base64.b64decode(body["content"])
+            data = base64.b64decode(body["content"])
+            sha = blob_id(data)  # git's id, as GitHub gives it
+            self.blobs[sha] = data
             return httpx.Response(201, json={"sha": sha})
         if path.startswith("/git/commits/") and method == "GET":
             return httpx.Response(200, json={"tree": {"sha": self.commits[path.rsplit("/", 1)[1]]["tree"]}})
@@ -159,10 +162,10 @@ async def test_again_on_an_open_one_replaces_only_its_own_section(tmp_path):
     gh.body = "The agent's text.\n\n" + gh.posted["body"] + "\n\n" + person
     records.append({"id": "pshot000002", "kind": "screenshot", "title": "the phone layout"})
     (tmp_path / "proofs" / "pshot000002.png").write_bytes(PNG)
-    blobs_before = len(gh.blobs)
+    blobs_before = gh.calls.count(("POST", "/git/blobs"))
     got = await pulls.open_pull_request(mgr, env, title="Fix", body="ignored for an open one")
     assert got["created"] is False and got["url"] == "https://github.com/me/shop/pull/3"
-    assert len(gh.blobs) == blobs_before + 1  # only the new file went up
+    assert gh.calls.count(("POST", "/git/blobs")) == blobs_before + 1  # only the new file went up
     assert ("PATCH", f"/git/refs/heads/{prproofs.BRANCH}") in gh.calls
     assert gh.body.startswith("The agent's text.\n\n" + prproofs.PROOF_BEGIN) and gh.body.endswith(person)
     assert gh.body.count(prproofs.PROOF_BEGIN) == 1 and "the phone layout" in gh.body

@@ -340,13 +340,18 @@ VM holds a placeholder, and the node's TLS swap puts the value in for the bound 
 | Who sets the network and the bindings | the owner, at the node (`environments.toml`, `agentos environments allow --network/--host`, `agentos environments secret add`). An agent may only narrow the network on `environment_open`; no tool, page, repository file or command widens it or binds a secret |
 | What a closed machine reaches | the node's proxy (registries and code hosts for `limited`, the owner's hosts, bound hosts), the git gateway, its own loopback. Names are resolved on the node, and private, loopback and link-local addresses are refused there |
 | Where a secret's value is | in the vault, and in agentosd's memory while requests use it (read from the vault again each minute). Never on the VM, in a tool result, a log line, the record or the web app: they hold the variable's name only |
-| When the value is put in | a request on a TLS connection whose server name is a bound host, and whose Host header is that same host: headers (a Basic credential included) and the URL's query. Not bodies, not plain HTTP, not another host. A placeholder sent anywhere else goes out as it is and is listed under `blocked` |
+| When the value is put in | a request on a TLS connection whose server name is a bound host, and whose Host header is that same host, with a target that names no other host (a full URL naming another host gets nothing, one naming the bound host is sent as a path): headers (a Basic credential included) and the URL's query. Not bodies, not plain HTTP, not another host. A placeholder sent anywhere else goes out as it is and is listed under `blocked` |
 | The environment's CA | made per environment on the node; its key never leaves the node and is deleted at close; it signs certificates for bound hosts only; the VM trusts it |
 | The swap's own connection out | to the bound host by name, an address the node resolved itself (public only), with full certificate checks against the node's trust store; HTTP/1.1 |
 | What is recorded | the refused hosts (host, count, last) with the environment, shown in `environment()`, the web app and the pull request; each use of a secret in the vault's use count and the node's log (entry and host, no value) |
 
 What this does not stop:
 
+- **DNS on a closed Hetzner machine.** Hetzner's firewall always lets DNS to Hetzner's own resolvers
+  through (and answers the metadata service on the host, which holds only the machine's own first-boot
+  config). Root on a `limited` or `none` Hetzner machine can still send name lookups there, a slow way
+  out for data. A closed docker machine has no DNS at all: Docker's resolver is refused and given
+  nowhere to forward (`--dns 0.0.0.0`).
 - **DNS on a `full` machine.** A full machine resolves names itself and reaches any public host; the
   network setting is the guard, so choose `limited` or `none` where it matters. A bound host is
   mapped in the VM's `/etc/hosts`, which root on the VM can change: a request that bypasses the
@@ -374,7 +379,7 @@ could read what the browser holds, so bind only what that computer's work needs.
 | Question | Answer |
 |---|---|
 | Who binds | the owner, at the node: the CLI writes the vault entry with the vault's key (its metadata, the bindings included, is sealed with it). No tool, page, repository file or command adds or widens one; an agent names a login only by the name `environment()` gives it |
-| Which computers | the ones the binding covers, read from the node's own records each time a field is filled (agentos.vault.policy.entry_bound): an open environment with that title, of that repository, or every one. An environment the node does not know as open covers nothing |
+| Which computers | the ones the binding covers, read from the node's own records each time a field is filled (agentos.vault.policy.entry_bound). `--title`: the computer of the one agent (grant family) that had a computer of that title, open or saved, when you bound it, across its saves and resumes; another agent that picks the same title gets nothing, since a title is the agent's own choice (bind refuses when no computer or several agents' computers have the title, and names the fix). `--repo`: every environment opened with that repository, by any agent you connected; the repository is also the agent's choice, so bind by repository only an account every such agent may use. `--all`: every environment of every agent. An environment the node does not know as open covers nothing |
 | Where the value goes | where the browser runs. With `browser = "vm"` (a laptop) the node types it into the VM's browser over the connection it drives (Playwright through the environment's SSH tunnel), so it passes through that browser's process on the VM; with `browser = "node"` it stays on the node. Never on a command line (the CLI reads a hidden prompt or stdin), in a log, a trace, a tool result, a replay caption or the record |
 | Which fields | the vault's rules, as on any lane: the page's site is the login's (https, or the machine's own `localhost` over http), no frame from another origin, and the password only into a password input (the page masks it). A TOTP code from the stored seed; an emailed or texted code, a CAPTCHA or a device approval stays with the person, in the live view |
 | What a picture shows | no replay frame is taken while a fill runs. A frame or a video proof can show the page after it, and before the submit a username as typed into a visible field (as the live view does) |
@@ -424,6 +429,22 @@ agent's own shell reaches the VM: `ssh`, `scp`, `rsync`, git.
 
 What this gives up: a person who reads the call log to see what an agent did on its machine sees the ssh
 sessions' times, not their commands. Pushes and pull requests are still recorded by the gateway.
+
+## The web app's download (docs/LOCAL.md, `agentos web install`)
+
+The prebuilt web app is JavaScript the owner's browser runs against the node's API with the owner's
+session, so whoever can change the archive can act as the owner in the panel. Where its trust comes from:
+
+| Question | Answer |
+|---|---|
+| Where it comes from | the GitHub release of the agentos version installed (`v<version>`, never "latest"), the same repository the installer takes the code from |
+| What it is checked against | GitHub's own digest of the archive on that release, read from GitHub's API, and only when GitHub keeps the release immutable (once published, no file or tag of it can change). The `.sha256` beside the archive must agree, but alone it proves nothing: the same release serves it |
+| What is refused | a release that is not immutable, a digest that differs, any other source (`AGENTOS_WEB_RELEASE_URL`: a fork, a mirror) unless the owner pins the archive's sha256 with `AGENTOS_WEB_SHA256`, and an archive with a link, an absolute path or a `..` |
+| How a release gets it | the `web-release` workflow builds it on the release's draft and attaches it, never replacing a file that is there (no `--clobber`); the release is published after, immutable (docs/DEVELOPING.md, "Releases") |
+
+What this does not stop: whoever can publish a release of the repository (its maintainers, a stolen token
+with write access, a poisoned build dependency) ships both the code and the web app, and the installer
+trusts them as it trusts the code. The check stops a file swapped on a published release, not a bad release.
 
 ## What this does not stop
 

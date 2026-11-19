@@ -84,6 +84,17 @@ def _scope(title: str | None, repo: str | None, all_: bool) -> dict:
         raise _fail(e) from None
 
 
+def _title_scope(title: str) -> dict:
+    """--title as the owner means it: that title, and the agent (grant family) whose computer has it now."""
+    from agentos.environments import logins
+    from agentos.environments.cli import _managers
+
+    try:
+        return logins.title_scope(_managers()[0], title)
+    except AgentosError as e:
+        raise _fail(e) from None
+
+
 def read_values(site: str, user: str | None, *, totp: bool, stdin: bool) -> tuple[str, str | None]:
     """(password, TOTP seed or None), from a hidden prompt or stdin: never from argv."""
     if stdin:
@@ -100,8 +111,8 @@ def read_values(site: str, user: str | None, *, totp: bool, stdin: bool) -> tupl
     return password, seed
 
 
-Title = Annotated[str | None, typer.Option("--title", help="The environment's title: it follows the title across "
-                                           "saves and resumes.")]
+Title = Annotated[str | None, typer.Option("--title", help="The title of a computer an agent has now (or its id): "
+                                           "that agent's computer of that title, across saves and resumes.")]
 Repo = Annotated[str | None, typer.Option("--repo", help="Every environment of this repository, like "
                                           "github.com/me/shop.")]
 All = Annotated[bool, typer.Option("--all", help="Every environment.")]
@@ -122,11 +133,15 @@ def add(site: Annotated[str, typer.Argument(metavar="SITE", help="The site (gith
         ) -> None:
     """Bind a login to computers: their browser signs in with it, and nothing asks when it does.
 
-    A binding by --title follows that title across saves and resumes; --repo covers that repository's
-    environments; --all every one. Storing it is the permission to use it."""
+    A binding by --title names the computer an agent has with that title now (open or saved): that agent's
+    computer, across its saves and resumes, and never another agent's of the same title. --repo covers
+    every environment of that repository, whichever agent opened it; --all every one. Storing it is the
+    permission to use it."""
     from agentos.environments import logins
 
     scope = _scope(title, repo, all_)
+    if title:
+        scope = _title_scope(scope["title"])
     try:
         domain, url = logins.parse_site(site)
     except AgentosError as e:
@@ -139,7 +154,7 @@ def add(site: Annotated[str, typer.Argument(metavar="SITE", help="The site (gith
             return await logins.bind(vault, entry, scope, user=user, url=url), "bound"
         found = await logins.existing(vault, site, user, name)
         if found is not None and not replace:
-            if scope in found.scopes:
+            if any(s == scope for s in found.scopes):
                 return found, "already"
             await _unsealed(vault)
             return await logins.bind(vault, found.ref, scope, url=url), "bound"
@@ -149,7 +164,7 @@ def add(site: Annotated[str, typer.Argument(metavar="SITE", help="The site (gith
             out = await logins.add(vault, site, user=user, password=password, totp=seed, scope=scope, replace=True,
                                    name=name)
             for s in found.scopes:
-                if s != scope:
+                if not logins.same_scope(s, scope):
                     out = await logins.bind(vault, out.ref, s)
             return out, "replaced"
         return await logins.add(vault, site, user=user, password=password, totp=seed, scope=scope,
@@ -201,7 +216,7 @@ def remove(ref: Annotated[str, typer.Argument(metavar="SITE_OR_NAME")],
         return await logins.remove(vault, ref, scope)
 
     for b in _run(go()):
-        what = logins.scope_words(scope) if scope else "every environment"
+        what = logins.scope_words(scope, stored=False) if scope else "every environment"
         typer.echo(f"Removed {b.name} from {what}. A browser signed in already stays signed in until the site "
                    "logs it out.")
 

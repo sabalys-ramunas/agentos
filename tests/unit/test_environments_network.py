@@ -210,6 +210,8 @@ def test_the_docker_entrypoint_closes_everything_but_loopback_dns_included():
     closed = text.split("closed() {", 1)[1].split("\n}\n", 1)[0]
     assert "iptables -A OUTPUT -o lo -j ACCEPT" in closed and "iptables -A OUTPUT -j REJECT" in closed
     assert "53" not in closed and "ESTABLISHED,RELATED" in closed
+    # Docker's resolver is on loopback and forwards out: it is refused before loopback is let through
+    assert closed.index("-d 127.0.0.11 -j REJECT") < closed.index("-o lo -j ACCEPT")
     assert 'AGENTOS_ENV_NETWORK:-full}" = "closed"' in text and "--bounding-set=-net_admin" in text
 
 
@@ -220,6 +222,7 @@ def test_a_closed_docker_machine_runs_the_packages_entrypoint_in_its_closed_mode
                       user_data="", labels={"agentos-network": "limited"})
     args = prov.run_args(spec)
     assert "AGENTOS_ENV_NETWORK=closed" in args and args[args.index("--entrypoint") + 1] == "/etc/agentos-env/entrypoint.sh"
+    assert args[args.index("--dns") + 1] == "0.0.0.0"  # Docker's resolver forwards nowhere (review N1)
     assert "--entrypoint" not in prov.run_args(ServerSpec(**{**spec.__dict__, "labels": {}}))
     with tarfile.open(fileobj=io.BytesIO(seed_tar("k", "p", "a", entrypoint_text()))) as tar:
         info = tar.getmember("etc/agentos-env/entrypoint.sh")

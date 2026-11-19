@@ -96,6 +96,8 @@ def test_the_key_changes_with_what_decides_the_machine():
     assert base != prepared_key(REPO, "snap-1", other, {"pnpm-lock.yaml": "a1"})           # refresh changed
     started = parse(CONFIG.replace("pnpm dev", "pnpm start"))
     assert base == prepared_key(REPO, "snap-1", started, {"pnpm-lock.yaml": "a1"})         # start is not on the image
+    assert base != prepared_key(REPO, "snap-1", cfg, {"pnpm-lock.yaml": "a1"}, "agent/x")  # another ref's own
+    assert base == prepared_key(REPO, "snap-1", cfg, {"pnpm-lock.yaml": "a1"}, None)         # the default branch
 
 
 async def test_a_public_repository_is_read_from_githubs_raw_files(tmp_path):
@@ -251,7 +253,7 @@ class FakeGit:
     async def vm_listener(self, lane):
         return 45000
 
-    def vm_token(self, lane, *, grant_id, repo):
+    def vm_token(self, lane, *, grant_id, repo, fetch_only=False):
         self.tokens[lane] = f"agt_{lane.replace('/', '_')}_secret_token_value"
         return self.tokens[lane]
 
@@ -547,11 +549,20 @@ async def test_the_gateway_serves_a_build_lane_only_while_it_builds(node):
 # ------------------------------------------------------------------ retention
 
 
-async def _ready(mgr, prov, key, repo, *, built, used=None):
+async def _ready(mgr, prov, key, repo, *, built, used=None, ref=None):
     sid = await prov.create_snapshot("1", "x", {"agentos-prepared": key})
     mgr.prepared_store().put(Prepared(key=key, repo=repo, state="ready", image=sid, started_at=built, built_at=built,
-                                      last_used_at=used, provider="fake"))
+                                      last_used_at=used, provider="fake", ref=ref))
     return sid
+
+
+async def test_retention_keeps_the_newest_per_repository_and_ref(node):
+    mgr, prov, now = node.mgr, node.prov, utcnow()
+    await _ready(mgr, prov, "main-old", REPO, built=now - timedelta(days=2))
+    await _ready(mgr, prov, "main", REPO, built=now - timedelta(days=1))
+    await _ready(mgr, prov, "branch", REPO, built=now - timedelta(hours=1), ref="agent/x")  # newer, another ref
+    await mgr.prepared_reap(now)
+    assert {r.key for r in mgr.prepared_store().all()} == {"main", "branch"}
 
 
 async def test_retention_keeps_the_newest_per_repository_and_few_in_all(node):
@@ -817,6 +828,12 @@ async def test_the_prepare_route_is_the_owners_only(node, cli):
         assert r.status_code in (401, 403), r.text
         owner = node.rt.get("config").mcp_token
         r = await c.post("/api/environments/prepare", json={"repo": REPO}, headers={"Authorization": f"Bearer {owner}"})
+        assert r.status_code == 403 and "presence_required" in r.text  # the bare node token is no person
+        from agentos.commands.base import operator_presence
+
+        person = operator_presence(node.rt.get("config"))
+        r = await c.post("/api/environments/prepare", json={"repo": REPO},
+                         headers={"Authorization": f"Bearer {owner}", **person})
         assert r.status_code == 200 and r.json()["started"] is True, r.text
     await builds_done(node.mgr)
 

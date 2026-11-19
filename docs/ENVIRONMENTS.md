@@ -306,10 +306,16 @@ How it holds. The agent is root on its machine, so the network is closed outside
   instead of its usual one: SSH and ping in from the node as before, and one outbound rule (ping to
   the node), which makes Hetzner drop every other packet the machine sends. The firewall is stateful,
   so the node's SSH connection keeps working. It needs the `dev` image: a machine closed from its
-  first boot cannot install its tools (`network_not_allowed` says so).
+  first boot cannot install its tools (`network_not_allowed` says so). Two kinds of traffic Hetzner
+  never filters, whatever the firewall says: its metadata service, answered on the host (it holds
+  this machine's own first-boot config, nothing the machine does not already have), and DNS to
+  Hetzner's own resolvers. That second one is a known limit: root on a closed Hetzner machine can
+  still send DNS queries, a slow way to leak data out by name lookups. Use docker where that matters.
 - On docker, the entrypoint refuses every new connection out but loopback, DNS included, before
-  sshd starts, with no NET_ADMIN left after. The docker provider copies its own entrypoint in for
-  this, so an image pulled before this works too.
+  sshd starts, with no NET_ADMIN left after. Docker's own resolver (127.0.0.11) is refused too, and
+  the machine is started with `--dns 0.0.0.0` so that resolver has nowhere to forward: no name
+  resolves on the machine. The docker provider copies its own entrypoint in for this, so an image
+  pulled before this works too.
 - Another provider that cannot close a machine refuses `limited` and `none` (`network_not_allowed`)
   before it rents anything.
 
@@ -396,7 +402,7 @@ check, a staging site, a service's settings. Bind the login once at the node, an
 whenever it needs to, without asking anyone and without ever seeing the password:
 
 ```
-agentos environments login add github.com --user me@example.com --title "Shop fix"      # that title
+agentos environments login add github.com --user me@example.com --title "Shop fix"      # that computer
 agentos environments login add https://staging.example.com/login --repo github.com/me/shop
 agentos environments login add example.com --user me@example.com --all --totp           # every one, with codes
 agentos environments login add github.com --entry "github work" --title "Shop fix"       # one already in the vault
@@ -408,8 +414,12 @@ agentos environments login "Shop fix" github.com                                
 - **The binding.** The password (and with `--totp` the TOTP seed) is read from a hidden prompt, or
   from stdin with `--stdin` (the password on the first line, the seed on the second), never from the
   command line. It is an ordinary vault login bound to environments (`env/*`), with the computers it
-  covers: `--title` (one title: it follows the title across saves and resumes, where the id changes),
-  `--repo` (that repository's environments) or `--all`. `add` again with another scope adds it;
+  covers. `--title`: the computer an agent has with that title now (open or saved), and only that
+  agent's (the grant family that opened it): it follows the computer across saves and resumes, where
+  the id changes, and another agent that picks the same title gets nothing. So bind it once the
+  computer exists: with no computer of that title yet, or several agents' computers of it, `add` says
+  so (name one by its id then: `--title e7k2`). `--repo`: every environment of that repository,
+  whichever agent opened it. `--all`: every environment. `add` again with another scope adds it;
   `remove` takes one scope off (or all), and a login `add` stored leaves the vault with its last one.
   A login is named after its site; `--name` tells two logins of one site apart. Only you bind one: no
   tool takes a binding, and the vault seals its bindings with its key, so an agent can never add or
@@ -755,7 +765,7 @@ to you only (a member's role and an agent's grant get `denied`):
   time: a frame is `{kind: "frame", id, at, cause, tool, summary, page_url, page_title, width, height,
   bytes, url, src}`, a call `{kind: "call", at, tool, summary, ok, error, exit_code, lane}`. `url` is
   the frame on the node's viewer, signed like a proof's link (15 minutes; replacing the viewer key
-  revokes it), `src` the app's own route for it. Pass `next` as `after` for the next page.
+  revokes it), `src` the app's own route for it. Pass `next` as `after` for the next page (it is the last item's time and a count, `<at>|<n>`, so no item that shares a millisecond with a page's edge is lost).
 - `GET /api/orgs/{org}/environments/{id}/replay/{frame}.jpg` is a frame (its `src`).
 
 ### Who the commits are by
@@ -899,19 +909,28 @@ if the setup wrote it somewhere, no snapshot is taken), git credentials, shell h
 and host keys (each new machine gets its own), the machine id and swap. Then it takes the snapshot
 (`docker commit` on Docker) and deletes the build machine. Caches stay: they make `refresh` fast.
 
-**What makes it stale.** The prepared machine's key is a hash of the repository, the base image,
-`setup`, `refresh`, each input file's content (by its git blob id) and agentos's own setup version.
-Change one and the next open runs setup again and builds a new one; `start` and `port` are not part
-of it.
+A build is the grant's that started it: an agent's open builds under that agent's own grant, and
+`agentos environments prepare` under the owner's. Its gateway token is that grant's and only fetches
+(no push, whatever the repository's declaration allows). If the grant is revoked or frozen while the
+build runs, the build stops within seconds: its machine is deleted and no snapshot is taken.
 
-**Keeping few.** A newer build of a repository replaces the older one; one no open used for
+**What makes it stale.** The prepared machine's key is a hash of the repository, the base image,
+`setup`, `refresh`, each input file's content (by its git blob id), agentos's own setup version and
+the ref. Change one and the next open runs setup again and builds a new one; `start` and `port` are
+not part of it. The ref: an open with no `ref` (the default branch) boots the repository's one
+shared build, from the default branch. An open of any other branch, tag or commit boots only a build
+of that same ref, because that build ran that ref's scripts (whoever pushed the branch chose them).
+So an agent's branch never ends up in the machine of an open of `main`, and reopening a branch keeps
+its speedup.
+
+**Keeping few.** A newer build of a repository and ref replaces the older one; one no open used for
 `prepared_days` (default 14) is deleted; at most `prepared_max` (default 5) are kept on the node,
 the least recently used going first. The reaper does it, as it does for saves. A snapshot is billed
 like a save's (`snapshot_eur_per_gb_month`); on Docker it costs nothing. `prepared_builds = false` in
 `environments.toml` turns builds off.
 
 ```
-agentos environments prepare github.com/me/shop [--ref main] [--force]   # build it now, with its steps
+agentos environments prepare github.com/me/shop [--ref <ref>] [--force]  # build it now, with its steps
 agentos environments prepared                                           # each one, its age and cost; the warm pool
 agentos environments prepared forget github.com/me/shop                 # delete them
 ```

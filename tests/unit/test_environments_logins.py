@@ -54,30 +54,58 @@ async def vault(tmp_path):
     await v.stop()
 
 
-def facts(title: str, repo: str | None = None) -> dict:
-    return {"title": title, "repo": repo}
+FAMILY = "g-family-1"   # the grant family whose computer the owner bound by title
+
+
+def facts(title: str, repo: str | None = None, family: str = FAMILY) -> dict:
+    return {"title": title, "repo": repo, "family": family}
+
+
+def by_title(title: str = TITLE, family: str = FAMILY) -> dict:
+    return {"title": title, "family": family, "agent": "agent-1"}
 
 
 # ------------------------------------------------------------------ the owner's bindings
 
 
 async def test_a_login_is_bound_by_title_by_repo_or_to_all_and_used_only_there(vault):
-    by_title = await logins.add(vault, LOGIN_URL, user=USER, password=PASSWORD, scope=logins.scope_of(TITLE, None, False))
-    assert by_title.name == "localhost" and by_title.url == LOGIN_URL and by_title.made
-    meta = await vault.get_entry(by_title.ref)
-    assert meta.lanes == ["env/*"] and meta.config["envs"]["scopes"] == [{"title": TITLE}]
+    titled = await logins.add(vault, LOGIN_URL, user=USER, password=PASSWORD, scope=by_title())
+    assert titled.name == "localhost" and titled.url == LOGIN_URL and titled.made
+    meta = await vault.get_entry(titled.ref)
+    assert meta.lanes == ["env/*"] and meta.config["envs"]["scopes"] == [by_title()]
     lane = "env/eabc123-browser"
     assert entry_bound(meta, lane, facts("shop FIX"))  # titles compare as the environments do
     assert not entry_bound(meta, lane, facts("Blog"))
+    assert not entry_bound(meta, lane, facts(TITLE, family="g-another-agent"))  # its title, another agent's computer
     assert not entry_bound(meta, lane, None)  # no environment known: nothing covered
     assert not entry_bound(meta, "biz/insta", None)  # an account lane: not bound at all
 
-    await logins.bind(vault, by_title.ref, logins.scope_of(None, "github.com/me/shop", False))
-    meta = await vault.get_entry(by_title.ref)
-    assert entry_bound(meta, lane, facts("Blog", "github.com/me/shop"))
+    await logins.bind(vault, titled.ref, logins.scope_of(None, "github.com/me/shop", False))
+    meta = await vault.get_entry(titled.ref)
+    assert entry_bound(meta, lane, facts("Blog", "github.com/me/shop", family="g-any"))  # a repository: any agent's
     assert not entry_bound(meta, lane, facts("Blog", "github.com/me/blog"))
-    await logins.bind(vault, by_title.ref, logins.scope_of(None, None, True))
-    assert entry_bound(await vault.get_entry(by_title.ref), lane, facts("Anything"))
+    await logins.bind(vault, titled.ref, logins.scope_of(None, None, True))
+    assert entry_bound(await vault.get_entry(titled.ref), lane, facts("Anything", family="g-any"))
+
+
+def test_a_title_binding_names_the_one_agent_whose_computer_has_the_title():
+    def env(title, family, agent="agent-1", id_="eabc123"):
+        return SimpleNamespace(title=title, family=family, agent=agent, id=id_)
+
+    def mgr(open_=(), saves=()):
+        ids = {e.id: e for e in open_}
+        return SimpleNamespace(store=SimpleNamespace(has=lambda i: i in ids, get=lambda i: ids[i],
+                                                     open=lambda: list(open_)),
+                               saves=lambda: SimpleNamespace(all=lambda: list(saves)))
+
+    with pytest.raises(InvalidRequest, match="no computer is titled"):
+        logins.title_scope(mgr(), TITLE)
+    assert logins.title_scope(mgr([env("shop  FIX", "g1")]), TITLE) == {"title": TITLE, "family": "g1", "agent": "agent-1"}
+    assert logins.title_scope(mgr(saves=[env(TITLE, "g2", "agent-2", "s1")]), TITLE)["family"] == "g2"  # a save counts
+    two = mgr([env(TITLE, "g1"), env(TITLE, "g2", "agent-2", "edef456")])
+    with pytest.raises(InvalidRequest, match="--title <id>"):
+        logins.title_scope(two, TITLE)
+    assert logins.title_scope(two, "edef456") == {"title": TITLE, "family": "g2", "agent": "agent-2"}
 
 
 def test_a_binding_names_exactly_one_scope():
@@ -94,8 +122,8 @@ async def test_a_title_binding_follows_the_title_across_a_resume(node, vault):  
     node["rt"].register("vault", vault)
     mgr = node["mgr"]
     mgr.logins_install()
-    await logins.add(vault, "localhost", user=USER, password=PASSWORD, scope={"title": TITLE})
     first = mgr.get((await opened(node, title=TITLE))["id"])
+    await logins.add(vault, "localhost", user=USER, password=PASSWORD, scope=logins.title_scope(mgr, TITLE))
     assert [x["name"] for x in await mgr.login_names(first)] == ["localhost"]
     other = mgr.get((await opened(node, title="Other work", session="chat-2"))["id"])
     assert await mgr.login_names(other) == []
@@ -157,12 +185,14 @@ def meta(**config) -> EntryMeta:
 
 
 def test_the_policy_refuses_a_login_on_an_environment_it_does_not_cover():
-    entry = meta(envs={"scopes": [{"title": TITLE}], "user": None, "url": None, "made": True})
+    entry = meta(envs={"scopes": [by_title()], "user": None, "url": None, "made": True})
     pw = site_form()[1]
     args = {"lane_id": "env/eabc123-browser", "sink": Sink.FORM_PASSWORD, "url": LOGIN_URL, "field": pw,
             "fields": site_form()}
     assert decide(entry, **args, lane_facts=facts(TITLE)).allowed
-    for wrong in (facts("Blog"), None):
+    old = meta(envs={"scopes": [{"title": TITLE}], "user": None, "url": None, "made": True})
+    assert not decide(old, **args, lane_facts=facts(TITLE)).allowed  # bound before titles named an agent: none
+    for wrong in (facts("Blog"), facts(TITLE, family="g-another-agent"), None):
         d = decide(entry, **args, lane_facts=wrong)
         assert not d.allowed and d.reason is Reason.LANE_NOT_BOUND
     unscoped = meta()  # bound to env/* some other way (agentos vault bind): every environment, as before
@@ -208,12 +238,14 @@ async def agent(node, vault, monkeypatch):  # noqa: F811
 
 
 async def test_the_agents_login_opens_the_page_fills_it_and_signs_in_again_after_a_logout(agent):
-    await logins.add(agent.vault, LOGIN_URL, user=USER, password=PASSWORD, scope={"title": TITLE})
+    await logins.add(agent.vault, LOGIN_URL, user=USER, password=PASSWORD, scope={"all": True})
     out = await agent.call("environment_open", title=TITLE)
     assert out["logins"] == [{"name": "localhost", "site": "localhost", "totp": False}]
     assert "login(on=" in out["next"]
     on = out["on"]
-    assert (await agent.call("environment", on=on))["logins"] == out["logins"]
+    await logins.remove(agent.vault, "localhost")
+    await logins.add(agent.vault, LOGIN_URL, user=USER, password=PASSWORD, scope=logins.title_scope(agent.mgr, TITLE))
+    assert (await agent.call("environment", on=on))["logins"] == out["logins"]  # bound by its title now
 
     result = await agent.call("login", on=on)
     assert result["ok"] is True and result["step"] == "done"
@@ -234,7 +266,7 @@ async def test_the_agents_login_opens_the_page_fills_it_and_signs_in_again_after
 
 
 async def test_a_login_bound_to_another_title_is_refused_even_by_name(agent):
-    await logins.add(agent.vault, LOGIN_URL, user=USER, password=PASSWORD, scope={"title": "Another one"})
+    await logins.add(agent.vault, LOGIN_URL, user=USER, password=PASSWORD, scope=by_title("Another one"))
     on = (await agent.call("environment_open", title=TITLE))["on"]
     with pytest.raises(ToolCallError) as e:
         await agent.call("login", on=on)
@@ -313,8 +345,8 @@ async def test_no_frame_is_taken_while_a_fill_runs(node, monkeypatch):  # noqa: 
 
 
 async def test_the_owner_signs_an_environment_in_now_and_hears_when_the_person_is_needed(agent, monkeypatch):
-    await logins.add(agent.vault, LOGIN_URL, user=USER, password=PASSWORD, scope={"title": TITLE})
     out = await agent.call("environment_open", title=TITLE)
+    await logins.add(agent.vault, LOGIN_URL, user=USER, password=PASSWORD, scope=logins.title_scope(agent.mgr, TITLE))
     monkeypatch.setattr(agent.mgr, "_live_link", lambda env: {"browser": "http://127.0.0.1:1/view/x"})
     done = await agent.mgr.sign_in_now("shop fix", "localhost")
     assert done["ok"] is True and done["environment"]["id"] == out["id"] and done["login"]["name"] == "localhost"
@@ -341,9 +373,14 @@ async def test_the_owner_signs_an_environment_in_now_and_hears_when_the_person_i
 
 @pytest.fixture
 def cli(vault, monkeypatch):
+    from agentos.environments import cli as env_cli
     from agentos.environments import logins_cli
 
     monkeypatch.setattr(logins_cli, "_vault", lambda: vault)
+    shop = SimpleNamespace(id="eabc123", title=TITLE, family=FAMILY, agent="agent-1")  # the computer an agent has
+    mgr = SimpleNamespace(store=SimpleNamespace(has=lambda i: False, open=lambda: [shop]),
+                          saves=lambda: SimpleNamespace(all=list))
+    monkeypatch.setattr(env_cli, "_managers", lambda: (mgr, None))
     return logins_cli
 
 
@@ -374,8 +411,10 @@ def test_the_cli_reads_the_password_from_a_hidden_prompt_or_stdin_never_argv(cli
     listed = run(cli, "list", "--json")
     rows = {row["name"]: row for row in json.loads(listed.output)["logins"]}
     assert rows["localhost"]["totp"] is True and rows["localhost"]["user"] == USER
-    assert rows["localhost"]["environments"] == ["the environment titled \"Shop fix\"",
+    assert rows["localhost"]["environments"] == ["the environment titled \"Shop fix\" of agent-1",
                                                  "environments of github.com/me/shop"]
+    [local] = [b for b in cli.asyncio.run(logins.all_bound(vault)) if b.name == "localhost"]
+    assert local.scopes[0]["family"] == FAMILY  # the agent whose computer has the title, recorded at the bind
     assert PASSWORD not in listed.output
     assert "Shop fix" in run(cli, "list").output
 
@@ -417,8 +456,8 @@ async def test_the_sign_in_route_answers_the_owner_only_and_never_a_value(agent,
 
     from agentos.api import ApiSettings, build_api
 
-    await logins.add(agent.vault, LOGIN_URL, user=USER, password=PASSWORD, scope={"title": TITLE})
     await agent.call("environment_open", title=TITLE)
+    await logins.add(agent.vault, LOGIN_URL, user=USER, password=PASSWORD, scope=logins.title_scope(agent.mgr, TITLE))
     api = build_api(agent.rt, ApiSettings(lane_pump_seconds=0, panel_dir=tmp_path / "no-panel"))
     owner = agent.rt.get("config").mcp_token
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=api), base_url="http://localhost") as c:
@@ -427,6 +466,13 @@ async def test_the_sign_in_route_answers_the_owner_only_and_never_a_value(agent,
         assert r.status_code in (401, 403), r.text  # an agent's grant: never
         assert agent.site.typed == []
         r = await c.post("/api/environments/login", json=body, headers={"Authorization": f"Bearer {owner}"})
+        assert r.status_code == 403 and "presence_required" in r.text  # the bare node token: an agent may hold it
+        assert agent.site.typed == []
+        from agentos.commands.base import operator_presence
+
+        person = operator_presence(agent.rt.get("config"))  # the node's own CLI: a one-time code in panel.db
+        assert person
+        r = await c.post("/api/environments/login", json=body, headers={"Authorization": f"Bearer {owner}", **person})
     assert r.status_code == 200, r.text
     assert r.json()["ok"] is True and PASSWORD not in r.text and USER not in r.text
 
