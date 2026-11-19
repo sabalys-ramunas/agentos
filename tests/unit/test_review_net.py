@@ -26,7 +26,6 @@ async def _resolve(_b, _host):
     return REAL
 
 
-@pytest.mark.xfail(strict=True, reason="N2: the swap puts the value into an absolute-form target naming another host")
 async def test_n2_absolute_form_target_to_another_host_is_not_swapped():
     # RFC 9112 3.2.2: a server that gets an absolute-form target MUST use its authority and ignore Host.
     # A shared front (a CDN) of the bound host then routes this request, with the real key, to evil.example.
@@ -34,6 +33,17 @@ async def test_n2_absolute_form_target_to_another_host_is_not_swapped():
                       headers=[("host", HOST)])
     out = await swap_request(req, sni=HOST, bindings=[Binding("K", (HOST,), PH)], resolve=_resolve)
     assert REAL.encode() not in out.request.target, "the real value went into a target naming evil.example"
+
+
+async def test_n2_absolute_form_naming_the_bound_host_is_swapped_in_origin_form():
+    req = h11.Request(method="GET", target=f"https://{HOST}:443/v1?key={PH}", headers=[("host", HOST)])
+    out = await swap_request(req, sni=HOST, bindings=[Binding("K", (HOST,), PH)], resolve=_resolve)
+    assert out.request.target == f"/v1?key={REAL}".encode()
+    for target in (f"https://user@{HOST}/v1?key={PH}", f"{HOST}:443", "*"):
+        req = h11.Request(method="GET", target=target, headers=[("host", HOST), ("x-key", PH)])
+        out = await swap_request(req, sni=HOST, bindings=[Binding("K", (HOST,), PH)], resolve=_resolve)
+        assert REAL.encode() not in out.request.target + b"".join(v for _k, v in out.request.headers)
+        assert out.elsewhere == ["K"]
 
 
 async def test_n2_control_origin_form_is_swapped():

@@ -166,6 +166,23 @@ def _host_only(value: bytes) -> str:
     return text.rsplit(":", 1)[0] if text.count(":") == 1 else text
 
 
+def _origin_form(target: bytes, sni: str) -> bytes | None:
+    """The target as `/path?query` when it names no host or the TLS server's own, else None. A server takes
+    an absolute-form target's authority over the Host header (RFC 9112 3.2.2), so a request naming another
+    host (a shared front routes it there) never gets a value; one naming this host is sent in origin-form."""
+    if target.startswith(b"/"):
+        return target
+    scheme, sep, rest = target.partition(b"://")
+    if not sep or scheme.lower() not in (b"http", b"https"):
+        return None  # authority-form or asterisk-form: nothing to swap into
+    ends = [i for i in (rest.find(b"/"), rest.find(b"?")) if i >= 0]
+    end = min(ends) if ends else len(rest)
+    authority, tail = rest[:end], rest[end:]
+    if not authority or b"@" in authority or _host_only(authority) != sni:
+        return None
+    return tail if tail.startswith(b"/") else b"/" + tail
+
+
 def _basic(value: bytes) -> bytes | None:
     """The decoded credential of `Basic <base64 user:password>`, else None."""
     scheme, _, token = value.partition(b" ")
@@ -208,22 +225,24 @@ class Swapped:
 
 
 async def swap_request(req: h11.Request, *, sni: str, bindings: list[Binding], resolve: Resolver) -> Swapped:
-    """The request with each bound placeholder swapped for its value, when the request's Host is the TLS
-    server name and the binding allows that host; else as it came. Headers and the URL's query only."""
+    """The request with each bound placeholder swapped for its value, when the request's Host (and an
+    absolute-form target's host) is the TLS server name and the binding allows that host; else as it came.
+    Headers and the URL's query only."""
     out = Swapped(req)
     raw_headers = list(req.headers.raw_items())
     seen = _visible(req.target, raw_headers)
     if PLACEHOLDER_PREFIX not in seen:
         return out
     host_hdr = next((v for k, v in req.headers if k == b"host"), b"")
-    same = bool(host_hdr) and _host_only(host_hdr) == sni
+    origin = _origin_form(req.target, sni)
+    same = bool(host_hdr) and _host_only(host_hdr) == sni and origin is not None
     olds: list[tuple[bytes, bytes]] = []
     for b in bindings:
         if same and sni in b.hosts and b.placeholder.encode() in seen:
             olds.append((b.placeholder.encode(), _reveal(await resolve(b, sni))))
             out.names.append(b.name)
     headers = [(k, _swap_header(k, v, olds)) for k, v in raw_headers]
-    path, q, query = req.target.partition(b"?")
+    path, q, query = (origin if same and origin is not None else req.target).partition(b"?")
     for old, real in olds:
         query = query.replace(old, quote(real, safe="-._~").encode())
     target = path + q + query
