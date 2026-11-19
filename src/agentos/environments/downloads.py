@@ -313,9 +313,8 @@ class Downloads:
 
 # ------------------------------------------------------------------ the tool
 async def environment_download(ctx: ToolContext, *, on: str, path: str) -> dict:
-    """A file or a folder under /work, to your own computer: a one-use .tar.gz link (15 minutes); the
-    bytes never go through tool calls. Returns fetch and unpack: run them in your own shell (not
-    terminal_exec). At most 512 MB packed. Effect: exec.
+    """A file or a folder under /work, to your own computer: a one-use .tar.gz link (15 minutes).
+    Returns fetch and unpack: run them in your own shell (not terminal_exec). At most 512 MB packed.
 
     Args:
         path: A file or a folder under /work, like "/work/shop/dist" or "report.pdf" (a relative one

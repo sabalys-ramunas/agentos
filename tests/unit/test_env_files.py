@@ -69,7 +69,7 @@ def test_the_file_tools_are_well_formed_terminal_tools():
 
     core = next(t for t in TOOLSETS if t.name == "core").tools
     for spec in files.tool_specs(None):
-        assert TOOL_NAME_RE.match(spec.name) and "\u2014" not in spec.description and "Effect: exec" in spec.description
+        assert TOOL_NAME_RE.match(spec.name) and "\u2014" not in spec.description  # the effect: in the annotations
         params = list(inspect.signature(spec.handler).parameters.values())
         assert params[0].name == "ctx" and params[1].name == "on"
         assert spec.effect is Effect.EXEC and spec.hidden_without == "envs"

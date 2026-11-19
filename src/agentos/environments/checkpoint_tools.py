@@ -32,14 +32,12 @@ def _open_env(ctx: ToolContext, on: str | None, what: str) -> tuple[Any, Environ
 async def environment_checkpoint(ctx: ToolContext, *, note: str | None = None, on: str | None = None) -> dict:
     """A cheap undo point before a risky step, in seconds and at no cost: every repository under /work
     as it is now (tracked and new files git does not ignore), kept as git's
-    refs/agentos/checkpoints/<n>. Your index, stash and branches are not touched; files git ignores
-    (node_modules, .env) are not in it. About 20 are kept. Returns checkpoint, repos (head,
-    files_changed from HEAD), compare (the git diff to run yourself) and rollback.
-    Errors: checkpoint_failed.
+    refs/agentos/checkpoints/<n>. Your index, stash and branches are not touched; ignored files
+    (node_modules, .env) are not in it. About 20 are kept. `compare` is the git diff to run yourself.
 
     Args:
         note: What you are about to try, like "before the big refactor".
-        on: The on your environment_open gave (a client with a session id may leave it out).
+        on: From environment_open.
     """
     mgr, env = _open_env(ctx, on, "checkpoint")
     await ctx.authorize(Effect.READ, lane_id=None, summary=f"checkpoint environment {env.id} ({env.title})")
@@ -60,16 +58,15 @@ async def environment_checkpoint(ctx: ToolContext, *, note: str | None = None, o
 
 
 async def environment_rollback(ctx: ToolContext, *, checkpoint: int, on: str | None = None) -> dict:
-    """Put every repository under /work back to a checkpoint: the branch it was on at the checkpoint's
-    HEAD, the index at that HEAD, the files as they were (new files git does not ignore are removed).
-    It checkpoints the work as it is first, so `undo` takes the rollback back. Files git ignores
-    (node_modules, .env, build output) are not touched: after a dependency change, run the install
-    again. Returns checkpoint, repos (files_restored, files_removed, branch, head, was), undo.
-    Errors: checkpoint_not_found, rollback_refused (mid merge or rebase).
+    """Put every repository under /work back to a checkpoint: its branch at the checkpoint's HEAD, the
+    index at that HEAD, the files as they were (new files git does not ignore are removed). It
+    checkpoints the work first, so `undo` takes the rollback back. Ignored files (node_modules, .env,
+    build output) are not touched: after a dependency change, run the install again. Refused mid
+    merge or rebase.
 
     Args:
         checkpoint: Its number, from environment_checkpoint or environment()'s checkpoints.
-        on: The on your environment_open gave (a client with a session id may leave it out).
+        on: From environment_open.
     """
     mgr, env = _open_env(ctx, on, "roll back")
     await ctx.authorize(Effect.READ, lane_id=None,

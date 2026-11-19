@@ -202,15 +202,14 @@ async def _run(ctx: ToolContext, mgr: Any, on: str, script: str, *, stdin: str |
 # ------------------------------------------------------------------ tools
 async def lane_file_read(ctx: ToolContext, *, on: str, path: str | None = None, paths: list[str] | None = None,
                          offset: int = 1, limit: int = READ_LINES) -> dict:
-    """Read a text file with line numbers (as cat -n); a relative path starts at the repository.
-    Returns content, lines, total_lines and next_offset when there is more (at most 2000 lines or
-    40000 characters a call). `paths` reads several files in one call (up to 20; a * in the last part,
-    like "src/*.js", reads each match), each with its lines, within the same 40000 characters. Binary
-    files are refused. Effect: exec. Errors: not_found, invalid.
+    """Read a text file with line numbers (as cat -n); a relative path starts at the repository. At
+    most 2000 lines or 40000 characters a call (next_offset when there is more). `paths` reads
+    several in one call (up to 20; a * in the last part, like "src/*.js", reads each match), within
+    the same 40000 characters. Binary files are refused.
 
     Args:
         path: One file, like "src/app.py".
-        paths: Several files, like ["package.json", "src/*.js"], instead of path.
+        paths: Several, like ["package.json", "src/*.js"], instead of path.
         offset: The first line (1 is the first).
         limit: How many lines.
     """
@@ -315,7 +314,8 @@ async def _read_many(ctx: ToolContext, on: str, workdir: str | None, paths: Any,
 
 async def lane_file_write(ctx: ToolContext, *, on: str, path: str, content: str) -> dict:
     """Write a whole text file (at most 1 MB), replacing it; folders are made. A relative path
-    starts at the repository. To change part of one, file_edit. Effect: exec."""
+    starts at the repository. To change part of one, file_edit.
+    """
     if not isinstance(content, str):
         raise InvalidRequest("content is the file's text")
     data = content.encode()
@@ -339,8 +339,8 @@ async def lane_file_edit(ctx: ToolContext, *, on: str, path: str, old: str, new:
                          replace_all: bool = False) -> dict:
     """Replace exact text in a file (a relative path starts at the repository). `old` must occur
     once, with its whitespace, unless replace_all=true; else nothing changes and the error says how
-    many times it occurs. Returns replaced and snippet (the changed lines). Effect: exec. Errors:
-    not_found, invalid."""
+    many times it occurs.
+    """
     if not isinstance(old, str) or not old:
         raise InvalidRequest("old is the exact text to replace; to write a whole file use file_write")
     if not isinstance(new, str):

@@ -62,21 +62,18 @@ def act_summary(on: str, ref: str, action: ActionKind, text: str | None) -> str:
 
 async def browser_navigate(ctx: ToolContext, *, on: str, url: str,
                            snapshot: SnapshotMode = "none", main_only: bool = False) -> dict[str, Any] | str:
-    """Open a URL in the browser's active tab (http or https; a bare domain gets https). Returns the
-    final url, title, HTTP status and signal (with signal_detail and account when there is something
-    to say). If the signal is not ok, stop and follow the instructions for it. With snapshot set,
-    the result is text: this result as one JSON line, then the page outline (no browser_snapshot
-    call needed). Effect: read. Errors: invalid (not a web URL, or an address on the node or its network),
-    egress_refused (outside the browser's site list or your grant's egress list, redirects included:
-    tell the human, do not retry), dialog_pending (answer it with browser_dialog_answer first),
-    engine_error (retry once). Do not reopen a page to see it anew: snapshot it.
+    """Open a URL in the browser's active tab (a bare domain gets https). If the result's signal is
+    not ok, stop and follow its instructions. With snapshot set, the result is this as one JSON line,
+    then the page outline. A site outside the browser's site list or your grant's egress list
+    (redirects too) is egress_refused: tell the human, do not retry. To see a page anew, snapshot it;
+    do not reopen it.
 
     Args:
-        url: The page to open, for example https://www.reddit.com/
-        snapshot: "none" (default), "full" (the outline once the page has loaded) or "delta" (what
-            changed since your last snapshot of this tab).
-        main_only: With a full outline, fold the page header, menus, side columns and footer to one
-            line each with a count, to read a large page's main content for fewer tokens.
+        url: The page to open, like https://example.com/
+        snapshot: "full" (the outline once the page has loaded) or "delta" (what changed since your
+            last snapshot of this tab).
+        main_only: With a full outline, fold the header, menus, side columns and footer to a line
+            each, to read a large page's main content.
     """
     target = normalize_url(url)
     on = lane_id(on)
@@ -113,17 +110,14 @@ async def browser_navigate(ctx: ToolContext, *, on: str, url: str,
 
 async def browser_snapshot(ctx: ToolContext, *, on: str, main_only: bool = False) -> str:
     """Read the browser's active tab as an accessibility outline: roles, names and text, with a ref
-    like [ref=e12] on everything you can act on (pass it to browser_act); unnamed icon buttons get a
-    (hint: ...) read from their attributes. The header shows the url, signal (and account) and ref
-    count. Costs about as many tokens as the page has text, at most about 10,000; a screenshot costs
-    far more and has no refs. To see what an action changed, pass snapshot="delta" to browser_act
-    instead of calling this again. Never changes the page, so it runs while another caller claims
-    the browser. A page frozen by a dialog shows the dialog instead. Images keep their ref too, so
-    hover reaches one that shows something on hover. Effect: read. Errors: engine_error (retry once).
+    like [ref=e12] on everything you can act on (pass it to browser_act; images too, for hover), and a
+    (hint: ...) on unnamed icon buttons. About as many tokens as the page has text, at most about
+    10,000; a screenshot costs far more and has no refs. To see what an action changed, pass
+    snapshot="delta" to browser_act instead. A dialog that freezes the page shows instead.
 
     Args:
-        main_only: Fold the page header, menus, side columns and footer to one line each with a
-            count, to read a large page's main content for fewer tokens. Off by default.
+        main_only: Fold the header, menus, side columns and footer to a line each, to read a large
+            page's main content.
     """
     on = lane_id(on)
     await ctx.authorize(Effect.READ, lane_id=on, summary=f"read the page outline in {on}")
@@ -143,27 +137,21 @@ async def browser_act(
     text: str | None = None,
     snapshot: SnapshotMode = "none",
 ) -> dict[str, Any] | str:
-    """Act on an element by its ref from your latest snapshot, with human input (pauses, real
-    clicks, typing at human rhythm). Actions: click, hover, scroll (wheel it into
-    view), type, fill (clear, then type), select (an option by its label), press (a key such as
-    Enter). type, fill, select and press need `text`. Send acts one at a time: calls sent together
-    run in no set order. Returns ok, url, signal and, when it can be
-    read back, whether the target's own state changed (`changed`, with `detail`); a label changing
-    nearby is not proof. With snapshot set, the result is text: this result as one JSON line, then
-    the outline. Effect: draft. A click that publishes (a post, a form that needs approval) can
-    return approval_pending: wait with approval_wait, then call again with the same arguments.
-
-    Errors, each with its next step: ref_not_found, egress_refused (do not retry or look for another
-    way there), form_changed, publish_changed, publish_unbound, denied, dialog_pending, invalid,
-    engine_error. Nothing was sent when a publish fails.
+    """Act on an element by its ref from your latest snapshot, with human input. Actions: click,
+    hover, scroll (wheel it into view), type, fill (clear, then type), select (an option by its label),
+    press (a key such as Enter); type, fill, select and press need `text`. Send acts one at a time:
+    calls sent together run in no set order. `changed` (when it can be read back) says whether the
+    target's own state changed; a label changing nearby is not proof. With snapshot set, the result is
+    this as one JSON line, then the outline. A click that publishes can return approval_pending: wait
+    with approval_wait, then call again with the same arguments. Errors such as ref_not_found and
+    dialog_pending say what to do next; nothing was sent when a publish fails.
 
     Args:
-        ref: A ref from your latest snapshot, for example e12.
-        action: Required: what to do with the element.
-        text: Text to type or fill, the option label to select, or the key to press.
-        snapshot: "none" (default), "delta" (only the outline lines that appeared, went away or
-            changed since your last snapshot of this tab, with their refs: the cheapest way to see
-            what the action did, also after a click that opens another page) or "full".
+        ref: From your latest snapshot, like e12.
+        action: What to do with the element.
+        text: What to type or fill, the option to select, or the key to press.
+        snapshot: "delta" (only the outline lines that changed since your last snapshot of this tab:
+            the cheapest way to see what it did, also after a click opens another page) or "full".
     """
     target = normalize_ref(ref)
     if action in NEEDS_TEXT and not text:
@@ -283,17 +271,15 @@ def _no_open_dialog(page: Any, doing: str) -> None:
 
 async def browser_screenshot(ctx: ToolContext, *, on: str, full_page: bool = False, width: int | None = None,
                              proof: str | None = None) -> ToolImage | list[Any]:
-    """A PNG of what the browser's active tab shows right now. Use it only when the snapshot outline is
-    not enough (layout, images, a canvas, a puzzle you must describe to the human): it costs far
-    more context than a snapshot and has no refs. Effect: read. Errors: dialog_pending
-    (browser_dialog_answer), engine_error (retry once), invalid.
+    """A PNG of what the browser's active tab shows now. Only when the outline is not enough (layout,
+    images, a canvas, a puzzle to describe to the human): it costs far more context than a snapshot
+    and has no refs.
 
     Args:
         full_page: The whole page, not only the window.
-        width: Lay the page out this wide for the shot (390: a phone). An environment's browser only.
-        proof: Keep it as proof, titled for the human ("cart after the fix"): kept after the
-            environment closes, with a link for the human (curl -o proof.png <url>);
-            browser_record (files toolset) keeps a video. An environment's browser only.
+        width: Lay the page out this wide (390: a phone). An environment's browser only.
+        proof: A title to keep it as proof for the human ("cart after the fix"), with a link, also after
+            the environment closes (browser_record keeps a video). An environment's browser only.
     """
     from agentos.node.tools import shots
 

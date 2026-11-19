@@ -74,7 +74,11 @@ CORE_MAX_TOOLS = 30  # the environment loop (28) and the two meta tools: docs/de
 # environment loop, the account browser loop (15 tools) is the accounts toolset, the pull request,
 # checkpoints, the port and browser_record are in it, and the shared browser tools lost the account
 # rules. Measured 8,201 for 30 tools, plus about 2%.
-CORE_MAX_TOKENS = 8370
+# 7,100 since the review's phase 2 the same day (2026-11-19): three merges (browser_tabs selects,
+# browser_dialog answers, approval_wait reads without waiting), a short `on` ("From environment_open."),
+# no "Effect:" lines (the annotations carry it), no "Errors:" lists (each error's own fix line says it) and
+# no lists of returned fields the result shows anyway. Measured 6,964 for 30 tools, plus about 2%.
+CORE_MAX_TOKENS = 7100
 
 CORE_TOOLS = {
     "environment_open", "environment", "environment_save", "environment_close", "environment_upload",

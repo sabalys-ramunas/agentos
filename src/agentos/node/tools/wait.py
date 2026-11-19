@@ -33,7 +33,7 @@ RefStateName = Literal["visible", "hidden", "enabled", "disabled", "checked", "u
 
 
 class RefState(BaseModel):
-    ref: str = Field(description="A ref from your latest snapshot.")
+    ref: str
     state: RefStateName = Field(description=(
         "hidden is also met when it leaves the page; changed is any change in its own state."))
 
@@ -116,27 +116,25 @@ async def browser_wait(
     timeout_s: float = WAIT_DEFAULT_S,
     snapshot: SnapshotMode = "none",
 ) -> dict[str, Any] | str:
-    """Wait for something on the page instead of polling with snapshots: a text appears (for_text)
-    or goes away (gone_text), an element reaches a state (for_ref_state), the network goes quiet
+    """Wait for the page instead of polling with snapshots: a text appears (for_text) or goes away
+    (gone_text), an element reaches a state (for_ref_state), the network goes quiet
     (network_quiet_ms) or the URL matches (url_matches). Give at least one; all must hold at once.
-    Returns as soon as they do, or after timeout_s (at most 60 s) with met false and what each
-    condition saw last: call again to keep waiting. It stops early, with `stopped` saying why, on a
-    dialog, a challenge signal, a human taking the browser or the tab closing. Text matches the outline
-    (part of a name or text, any case or spacing), in the page's language. Text waits re-read the page, so
-    changed elements get new refs. Effect: read. Errors:
-    invalid, ref_not_found, dialog_pending.
+    Returns when they do, or after timeout_s (at most 60 s) with met false and what each saw last:
+    call again to keep waiting. `stopped` says why it ended early (a dialog, a challenge signal, a
+    human taking the browser, the tab closing). Text matches the outline (part of a name or text, any
+    case or spacing), in the page's language.
 
     Args:
-        for_text: A text to wait for, or a list where any one appearing is enough.
-        gone_text: A text that must go away, or a list that must all go away.
-        exact: Match whole names or texts only, so "Post" does not match "Posts".
-        for_ref_state: An element from your latest snapshot and its state, for example
+        for_text: A text, or a list where any one is enough.
+        gone_text: A text, or a list that must all go away.
+        exact: Whole names or texts only ("Post" does not match "Posts").
+        for_ref_state: An element of your latest snapshot and its state, like
             {"ref": "e12", "state": "enabled"}.
-        network_quiet_ms: No request started or ended for this long, 100 to 10000. Requests open
-            over 20 s do not count: for a long upload, wait for the site's own text.
+        network_quiet_ms: No request started or ended for this long (100 to 10000); requests open
+            over 20 s do not count (for an upload, wait for the site's text).
         url_matches: Part of the URL, or a glob over the whole URL when it has a *.
-        timeout_s: Seconds to wait, 0 to 60. 0 checks once.
-        snapshot: "none" (default), "delta" or "full": the outline when the wait ends.
+        timeout_s: 0 to 60; 0 checks once.
+        snapshot: "delta" or "full": the outline when the wait ends.
     """
     on = lane_id(on)
     mode = snapshot_mode(snapshot)

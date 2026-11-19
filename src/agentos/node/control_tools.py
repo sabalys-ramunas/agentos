@@ -38,7 +38,7 @@ WhyArg = Annotated[str, Field(
     description="One short sentence the owner sees, for example \"Reddit signed this browser out; I need it to post "
                 "the reply.\" Never put a password, a code or an email address here.", max_length=300)]
 WaitArg = Annotated[float, Field(
-    description=f"How long to wait, in seconds (0 to {MAX_WAIT_SECONDS:.0f}). Call again to keep waiting.",
+    description=f"Seconds, 0 to {MAX_WAIT_SECONDS:.0f}.",
     ge=0, le=MAX_WAIT_SECONDS)]
 
 NEXT = {
@@ -115,12 +115,11 @@ def tool_specs(runtime: Any) -> list[ToolSpec]:
 
     async def lane_wait_control(ctx: ToolContext, *, on: OnArg,
                                 wait_s: WaitArg = DEFAULT_WAIT_SECONDS) -> dict[str, Any]:
-        """Wait until you may use the browser again (the human handed it back, or it went back after a while
-        without human input). Returns as soon as that happens, or after wait_s (at most 300 s) with the
-        current state: call again while agent_may_act is false. Use this instead of retrying browser tools.
-        Once the browser is back, `handback` says what changed while the human had it (url, title, signal,
-        tabs, files, changed fields, the human's note); your old refs are stale, so take a new
-        browser_snapshot before you act. Effect: read. Errors: invalid, lane_not_found."""
+        """Wait until the human hands the browser back (or it goes back after a while without human
+        input); use it instead of retrying browser tools. Call again while agent_may_act is false. Once it
+        is back, `handback` says what changed while the human had it (url, title, signal, tabs, files,
+        changed fields, their note); your old refs are stale: take a new browser_snapshot before you act.
+        """
         lane_id = _lane(on)
         await ctx.authorize(Effect.READ, lane_id=lane_id)
         try:

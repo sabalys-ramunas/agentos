@@ -167,14 +167,13 @@ class Loaded:
 def more_description() -> str:
     names = ", ".join(f"{ts.name} ({ts.hint})" if ts.hint else ts.name for ts in TOOLSETS if ts.name != CORE)
     return ("More agentos tools, by toolset: "
-            f"{names}. tools_more(toolset) returns its tools with their arguments and adds them to your list "
-            "(a tool's name works too); with no toolset it lists every toolset's tools. tools_call runs any "
-            "tool, listed or not.")
+            f"{names}. tools_more(toolset) adds its tools to your list and returns their arguments (a tool's "
+            "name works too); with none, it lists them all. tools_call runs any tool, listed or not.")
 
 
-CALL_DESCRIPTION = ("Call any agentos tool by name with its arguments, including tools not in your list "
-                    "(see tools_more). It is the same call as calling the tool directly: your grant, "
-                    "approvals and argument checks apply, and the result is the tool's own.")
+CALL_DESCRIPTION = ("Call any agentos tool by name with its arguments, also one not in your list (see "
+                    "tools_more): the same call as calling it directly, with your grant, approvals and "
+                    "argument checks, and the tool's own result.")
 
 
 def meta_tools() -> list[Tool]:

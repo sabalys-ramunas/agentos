@@ -332,21 +332,16 @@ async def environment_open(ctx: ToolContext, *, title: str | None = None, repo: 
                            wait_s: float = 240, keep: str | None = None, signins: bool | None = None,
                            take_over: bool = False, network: str | None = None) -> dict:
     """Your own cloud computer: a VM with a terminal, a browser and the repo, to build and test on
-    instead of the user's laptop. It returns `on`, this machine's handle: keep it and pass on="<it>"
-    on every call, since only calls that carry it reach the machine. A new title opens one; a saved
-    one's title resumes it (`resumed`). Another chat's live machine is environment_in_use (pick
-    another title). Without a title, repo finds that repo's environment. localhost there is the VM.
-    Nothing in it waits for a person.
-
-    Returns on, id, title, opened (new, resumed, attached, taken_over), state (starting: call
-    environment(on=...)), workdir, branch, machine (`bigger`: sizes and prices), expires_at, keep,
-    links.browser (its live view, for the human); applied and differs when it is not what you asked;
-    prepared and app with a .agentos/environment.toml (setup ran, dev server up).
-    A private repo the node cannot read: approval_pending with review_url for the human. Errors:
-    environment_in_use, environment_limit, environment_already_open.
+    instead of the user's laptop. It returns `on`, its handle: pass on="<it>" on every call, since only
+    calls that carry it reach the machine. A new title opens one; a saved one's title resumes it
+    (`resumed`). localhost there is the VM.
+    Nothing in it waits for a person. State starting: environment(on=...) waits for ready.
+    links.browser is its live view, for the human; machine.bigger lists sizes and prices; `differs`
+    says what is not as you asked. A private repo the node cannot read: approval_pending with a
+    review_url for the human.
 
     Args:
-        title: A few words people see, like "Black Friday page". It names the computer. Without it,
+        title: A few words people see, like "Black Friday page"; it names the computer. Without it,
             repo finds that repo's environment (several: a list to pick from).
         repo: To clone, like github.com/me/shop. Leave it out for an empty /work.
         ref: A branch, tag or commit (default: the default branch).
@@ -357,8 +352,8 @@ async def environment_open(ctx: ToolContext, *, title: str | None = None, repo: 
         keep: save (default: saved when idle or closed, its title resumes it), none (deleted when done),
             live (kept running if allowed).
         signins: false: saves keep no sign-ins.
-        take_over: Take a machine another chat of yours holds but has not used for 10 minutes. Only
-            when that chat is done with it.
+        take_over: Take a machine another chat of yours holds but has not used for 10 minutes, once
+            that chat is done with it.
         network: limited or none (only narrows the node's).
     """
     mgr = _mgr(ctx)
@@ -560,13 +555,12 @@ async def _wait_ready(mgr: EnvironmentManager, env: Environment) -> Environment:
 
 async def environment(ctx: ToolContext, *, on: str | None = None) -> dict:
     """Your environment now: state, minutes_left, cost_eur, ports listening on the VM, git (branch,
-    ahead, dirty, pushed, pull_requests), proofs (fresh links), replay (frames for the human),
-    unsaved work, your note and the last 10 calls. Cheap: call it to see if it is ready or what is
-    left to push. It always lists your agent's open and saved ones (`open`, `saved`), never another
-    chat's handle.
+    ahead, dirty, pushed, pull_requests), proofs (fresh links), replay, unsaved work, your note and
+    the last 10 calls. Cheap: call it to see if it is ready or what is left to push. It always lists
+    your agent's open and saved ones (`open`, `saved`).
 
     Args:
-        on: The on your environment_open gave. Without it, only a client with a session id sees its own.
+        on: From environment_open. Without it, a client with a session id sees its own.
     """
     await ctx.authorize(Effect.READ, summary="read the state of an environment")
     mgr = _mgr(ctx)
@@ -625,14 +619,13 @@ async def environment(ctx: ToolContext, *, on: str | None = None) -> dict:
 async def environment_close(ctx: ToolContext, *, on: str | None = None, discard: bool = False,
                             final: bool = False, note: str | None = None, forget: bool = False) -> dict:
     """Stop or finish your environment, as the `keep` it was opened with says. Saved: it is saved
-    (`saved`; `pause` says what it costs and how fast it resumes), then the VM is deleted; its title
-    resumes it. Live: only let go (final=true deletes it). Single use: the VM is deleted, refused with
-    unsaved_work while work is not pushed (push, or discard=true if the user agreed). Returns id, title,
-    state, machine (deleted, or deleting), cost_eur, pushed, proofs and `saves` (what became of them). A
-    long save goes on in the background (state closing). Errors: no_environment, unsaved_work, save_failed.
+    (`pause` says what it costs and how fast it resumes), then the VM is deleted; its title resumes
+    it. Live: only let go (final=true deletes it). Single use: the VM is deleted, refused with
+    unsaved_work while work is not pushed (push, or discard=true if the user agreed). A long save goes
+    on in the background (state closing).
 
     Args:
-        on: The on your environment_open gave (a client with a session id may leave it out).
+        on: From environment_open.
         discard: Delete it even with work that is not pushed (no save).
         final: A live one: delete it too.
         note: A saved one: what you did and what is next, for the next chat (resumed.note).
@@ -752,13 +745,12 @@ def _saved_result(mgr: EnvironmentManager, save_id: str) -> dict:
 async def environment_save(ctx: ToolContext, *, note: str | None = None, on: str | None = None) -> dict:
     """Save the environment now, without closing it: commits and stashes no remote has, changed and
     new files git does not ignore, running services, and with keep "save" a disk snapshot (services
-    pause for it). environment_open with its title resumes the newest save in any chat. Returns
-    save_id, saved_at, snapshot, files, bytes, verified. Errors: save_failed (nothing
-    was lost: the machine works on), save_limit.
+    pause for it). Its title resumes the newest save in any chat. After save_failed nothing was lost:
+    the machine works on.
 
     Args:
-        note: Your own words for the next chat that resumes it: what you were doing and what is next.
-        on: The on your environment_open gave (a client with a session id may leave it out).
+        note: For the next chat that resumes it: what you were doing and what is next.
+        on: From environment_open.
     """
     mgr = _mgr(ctx)
     env = _find(ctx, on)
@@ -804,15 +796,14 @@ async def environment_forget(ctx: ToolContext, *, title: str, save_id: str | Non
 
 
 async def environment_port(ctx: ToolContext, *, port: int, on: str | None = None) -> dict:
-    """Open a dev server of your environment on the human's own computer, as a preview link. The
-    VM's port is forwarded over the environment's own SSH connection to a free 127.0.0.1 port; it
-    closes with the environment. Returns port, local_port and url (on agentos local the human opens it
-    as is; on a server node they first run `tunnel`, the ssh -L line). environment()'s ports show it
-    as `link`. Errors: no_environment, environment_not_ready.
+    """Open a dev server of your environment on the human's own computer, as a preview link: the VM's
+    port, forwarded over the environment's SSH connection to a free 127.0.0.1 port until it closes.
+    The url opens as is on agentos local; on a server node the human first runs `tunnel` (an ssh -L
+    line). environment()'s ports show it as `link`.
 
     Args:
         port: The port your server listens on in the VM, like 3000 or 5173 (environment() lists them).
-        on: The on your environment_open gave (a client with a session id may leave it out).
+        on: From environment_open.
     """
     from agentos.environments import ports as env_ports
 
@@ -837,23 +828,21 @@ async def environment_pull_request(ctx: ToolContext, *, title: str, body: str | 
                                    base: str | None = None, draft: bool = False,
                                    branch: str | None = None, proofs: bool | list[str] | None = None,
                                    on: str | None = None) -> dict:
-    """Open a pull request on GitHub for the branch your environment pushed, with the node's stored
-    GitHub token (the VM has no gh and no credential). Only a branch this environment created; it
-    never merges. Your proofs (screenshots, recordings) go in its Proof section, stored on the
-    repository's agentos-proofs branch, never in the diff. If one is open for that branch already,
-    it returns that one with its Proof section brought up to date (your text and others' stay).
-    Returns url (give it to the human), number, branch, base, draft, created and proofs. Errors:
-    no_environment, denied (not a branch it pushed), pull_request_failed (no token on
-    the node, or GitHub refused).
+    """Open a pull request on GitHub for a branch your environment pushed, with the node's GitHub
+    token (the VM has no gh and no credential). Only a branch this environment created; it never
+    merges. Your proofs (screenshots, recordings) go in its Proof section, stored on the repository's
+    agentos-proofs branch, never in the diff. One already open for the branch comes back with its
+    Proof section brought up to date. Give the human its url. pull_request_failed: no token on the
+    node, or GitHub refused.
 
     Args:
         title: The pull request's title.
         body: Its description (Markdown): what changed, how it was tested.
-        base: The branch to merge into; the repository's default branch if left out.
+        base: The branch to merge into (default: the repository's default branch).
         draft: Open it as a draft.
-        branch: Which pushed branch; the newest one this environment pushed if left out.
+        branch: Which pushed branch (default: the newest one this environment pushed).
         proofs: false leaves the proofs out; a list of proof ids or titles shows only those.
-        on: The on your environment_open gave (a client with a session id may leave it out).
+        on: From environment_open.
     """
     from agentos.environments import pulls
 

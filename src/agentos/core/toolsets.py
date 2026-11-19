@@ -130,5 +130,6 @@ TOOLSETS: tuple[Toolset, ...] = (
     ), ("events", "agenda"), "events, triggers, agenda"),
 )
 NAMES: tuple[str, ...] = tuple(t.name for t in TOOLSETS)
+CORE_TOOLS: frozenset[str] = frozenset(next(t for t in TOOLSETS if t.name == CORE).tools)
 # a toolset's name before 2026-11-19 -> its name now (node.toml's mcp_toolsets, a URL's ?toolsets=)
 TOOLSET_ALIASES: dict[str, str] = {"files": "browser"}

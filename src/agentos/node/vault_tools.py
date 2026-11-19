@@ -37,13 +37,17 @@ def _session(ctx: ToolContext, lanes: Any, on: str) -> Any:
 
 
 async def login(ctx: ToolContext, *, on: str, entry: str | None = None) -> dict:
-    """Sign the browser in with a login stored in the vault. An environment's browser opens the
-    login page itself when needed; on an account browser, browser_navigate there first. The node finds
-    the form, checks the login is bound to this browser and site, types it with human input and
-    submits, and a code from its TOTP seed, its mail or the owner (waits a few minutes). You never see a
-    secret. It asks nobody: call it again whenever a site logs you out. `entry`: a login's name, only
-    when several match (environment(), or vault_list in the vault toolset, names them). Returns ok, step, needs ("totp",
-    "code", "captcha", "human" or null; not null: the human's turn, in the live view) and the signal."""
+    """Sign the browser in with a login from the vault. An environment's browser opens the login
+    page itself when needed; on an account browser, browser_navigate there first. The node checks the
+    login is bound to this browser and site, types it with human input and submits, with a code from
+    its TOTP seed, its mail or the owner (waits a few minutes). You never see a
+    secret. It asks nobody: call it again whenever a site logs you out. `needs` not null ("totp",
+    "code", "captcha", "human"): the human's turn, in the live view.
+
+    Args:
+        entry: A login's name, only when several match (environment(), or vault_list in the vault
+            toolset, names them).
+    """
     vault = ctx.runtime.require("vault")
     lanes = _browser_lane(ctx, on)
     factory = vault.typist_for(ctx.runtime)

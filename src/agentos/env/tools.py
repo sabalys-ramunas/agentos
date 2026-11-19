@@ -160,15 +160,15 @@ EXEC_BYTES = 16000  # what terminal_exec returns of stdout and stderr together b
 
 async def lane_exec(ctx: ToolContext, *, on: str, cmd: str, timeout_s: float = 60,
                     stdin: str | None = None, cwd: str | None = None, max_bytes: int = EXEC_BYTES) -> dict:
-    """Run one shell command on your environment's machine (or a terminal) and wait for it. Returns exit_code, stdout, stderr,
-    duration_s and timed_out. Past max_bytes the middle of the output is dropped with a marker;
-    stdout_bytes and stderr_bytes are the full sizes. Binary output comes back base64. Processes
-    it starts end with it: use terminal_job_start for a dev server. Effect: exec.
+    """Run one shell command on your environment's machine (or a terminal) and wait for it. Past
+    max_bytes the middle of the output is dropped with a marker (stdout_bytes and stderr_bytes are
+    the full sizes); binary output comes back base64. Processes it starts end with it: use
+    terminal_job_start for a dev server.
 
     Args:
-        cwd: The folder to run in (on an environment's machine an absolute path like /work/shop;
-            elsewhere one under the terminal's home).
-        max_bytes: stdout and stderr together (default 16000, at most 131072).
+        cwd: The folder to run in (on an environment's machine an absolute path like /work/shop; on a
+            terminal one under its home).
+        max_bytes: stdout and stderr together, at most 131072.
         timeout_s: At most 200.
     """
     mgr = _mgr(ctx)
@@ -336,16 +336,16 @@ async def lane_job_start(ctx: ToolContext, *, on: str, cmd: str, cwd: str | None
                          env: dict[str, str] | None = None, timeout_s: float | None = None,
                          sync: dict[str, Any] | None = None, source: dict[str, Any] | None = None) -> dict:
     """Start a shell command on your environment's machine (or a terminal) in the background and
-    return its job id at once; read its output with terminal_job_read as it runs, stop it with
+    return its job id at once: read its output with terminal_job_read as it runs, stop it with
     terminal_job_cancel. For a dev server and long work (a test suite, a build): the output is kept on
-    the node, so you can disconnect and come back. cwd: a folder such as /work/shop; env adds
-    variables; timeout_s defaults to the node's maximum. sync and source apply chunks uploaded with
-    terminal_upload (terminals toolset) first (agentos run uses them).
+    the node, so you can disconnect and come back.
 
     Args:
-        sync: {"dest", "manifest", "clean"}: make `dest` hold exactly the files of a manifest whose chunks
-            you uploaded, keeping what earlier commands made there (a .venv) unless clean is true.
-        source: {"branch", "commit", "dirty"}: which git tree the sync came from (with a sync only).
+        cwd: A folder such as /work/shop.
+        env: Variables to add.
+        timeout_s: Default: the node's maximum.
+        sync: For agentos run, which uploads with terminal_upload (terminals toolset) first: leave it out.
+        source: For agentos run, with sync.
     """
     mgr = _mgr(ctx)
     told = _source(source) if sync is not None else None
@@ -391,12 +391,13 @@ def _job_on(on: str | None, j: Any) -> None:
 async def lane_job_read(ctx: ToolContext, *, job: str, on: str | None = None, stdout_offset: int = 0,
                         stderr_offset: int = 0, wait_s: float = 1, max_bytes: int = JOB_READ_BYTES,
                         base64_output: bool = False, until_exit: bool = False, until_port: int = 0) -> dict:
-    """Read a job's output after your byte offsets, waiting up to wait_s seconds (default 1, at most 30)
-    for more while it runs. until_exit=true waits for the job to end (then its start and its end, a
-    marker naming any bytes skipped); until_port=3000 for that port to listen or the job to end (then
-    the end of its output); with either, wait_s goes up to 120. Pass back next_stdout_offset and
-    next_stderr_offset; stdout_bytes is the size so far. `state`: running, exited, cancelled, timed_out
-    or lost; then exit_code (or signal). `oom`: what the kernel killed for memory. Effect: read."""
+    """Read a job's output after your byte offsets, waiting up to wait_s seconds (at most 30) for more
+    while it runs. until_exit=true waits for the job to end (then its start and its end, a marker
+    naming any bytes skipped); until_port=3000 for that port to listen or the job to end (then the end
+    of its output); with either, wait_s goes up to 120. Pass back next_stdout_offset and
+    next_stderr_offset; stdout_bytes is the size so far. `state`: running, exited, cancelled,
+    timed_out or lost; then exit_code (or signal). `oom`: what the kernel killed for memory.
+    """
     mgr = _mgr(ctx)
     j = mgr.job(job)
     await ctx.authorize(Effect.READ, lane_id=j.info.lane)

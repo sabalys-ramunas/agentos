@@ -30,11 +30,11 @@ PENDING_LIST_MAX = 50
 
 
 async def approval_wait(ctx: Any, *, approval_id: str | None = None, timeout_s: float = 60) -> dict:
-    """Wait until an approval or question you created is decided or expires (long-poll, at most 120 s;
-    timeout_s=0 reads it now), then return its state: pending (call again), approved (call the original
-    tool again with the same arguments), denied, expired or consumed; a question's `answer` is the
-    owner's reply. Without approval_id: yours still waiting, newest first (for a new session that lost
-    track of one)."""
+    """Wait until an approval or question you created is decided or expires (at most 120 s;
+    timeout_s=0 reads it now). Pending: call again. Approved: call the original tool again with the
+    same arguments. A question's `answer` is the owner's reply. Without approval_id: yours still
+    waiting.
+    """
     await ctx.authorize(Effect.READ)
     if timeout_s < 0:
         raise InvalidRequest("timeout_s cannot be negative")

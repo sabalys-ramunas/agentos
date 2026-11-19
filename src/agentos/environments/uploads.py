@@ -382,13 +382,12 @@ async def _write_body(body: AsyncIterator[bytes], path: Path) -> tuple[int, str]
 # ------------------------------------------------------------------ the tool
 async def environment_upload(ctx: ToolContext, *, on: str, dest: str | None = None) -> dict:
     """A one-use link (15 minutes) that puts a .tar.gz of your local checkout (uncommitted changes
-    too) on the environment's machine; the bytes never go through tool calls. Returns pack and send:
-    run them in your own shell (not terminal_exec), in the checkout. Files replace the same paths;
-    nothing else is deleted. At most 512 MB. Effect: exec.
+    too) on the environment's machine. Returns pack and send: run them in your own shell (not
+    terminal_exec), in the checkout. Files replace the same paths; nothing else is deleted. At most
+    512 MB.
 
     Args:
-        dest: A folder under /work (default: the workdir, /work/<repo> or /work); a relative one
-            starts at the workdir.
+        dest: A folder under /work (default: the workdir); a relative one starts at the workdir.
     """
     from agentos.env.tools import _facts, _grant_id, _where
     from agentos.environments.manager import EnvironmentManager

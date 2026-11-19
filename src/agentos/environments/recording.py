@@ -308,10 +308,10 @@ class Recording:
 
 # ------------------------------------------------------------------ the tool
 async def browser_record(ctx: ToolContext, *, on: str, action: str, proof: str | None = None) -> dict:
-    """A video of your environment's browser as proof: start, do the flow (navigate, fill, click), then
-    stop with a title. Kept like a screenshot proof (an MP4 and a GIF preview, with links), and
-    environment_pull_request shows it. It stops by itself after a few minutes, or when the environment
-    closes. The first one on an older machine installs the recorder (about a minute). Effect: read.
+    """A video of your environment's browser as proof: start, do the flow, then stop with a title.
+    Kept like a screenshot proof (an MP4 and a GIF preview, with links); environment_pull_request
+    shows it. It stops by itself after a few minutes, or when the environment closes. The first one
+    on an older machine installs the recorder (about a minute).
 
     Args:
         action: "start", or "stop" to keep it.
