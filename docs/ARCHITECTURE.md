@@ -511,7 +511,7 @@ handle lives in `LaneSpec.account`).
 - **Devtools:** `browser_console` and `browser_network`, a page's console errors and requests,
   for an agent testing a web app (secrets in headers, URLs and bodies masked; docs/DEVELOPING.md).
 - **Logins and secrets:** `login`, `vault_fill`, `vault_list`, `browser_login_request`.
-- **Approvals and people:** `approval_status`, `approval_wait`, `human_ask`,
+- **Approvals and people:** `approval_wait`, `human_ask`,
   `browser_wait_handback`.
 - **Automation:** flows (`flow_record_start`, `flow_save`, `flow_run`, one `flow_<name>`
   tool per saved flow), workflows, triggers, schedules, brains (`brain_run`, `brain_use`),

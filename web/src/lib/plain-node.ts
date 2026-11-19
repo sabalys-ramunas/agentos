@@ -266,10 +266,10 @@ export const TOOL_TITLES: Record<string, string> = {
   browser_screenshot: 'Take a picture of a page',
   browser_wait: 'Wait for something on a page',
   browser_upload: 'Attach a file to a page',
-  browser_tabs: 'List the open tabs',
-  browser_tab: 'Switch to a tab',
-  browser_dialog: 'See the pop-up box that waits',
-  browser_dialog_answer: 'Answer a pop-up box',
+  browser_tabs: 'See or switch the open tabs',
+  browser_tab: 'Switch to a tab', // before 2026-11-19: browser_tabs(select)
+  browser_dialog: 'See or answer a pop-up box',
+  browser_dialog_answer: 'Answer a pop-up box', // before 2026-11-19: browser_dialog(accept)
   browser_console: "Read a page's error messages",
   browser_network: "See a page's network requests",
   howto: 'Recipes for common jobs',
@@ -290,8 +290,8 @@ export const TOOL_TITLES: Record<string, string> = {
   workspace_plan: 'Preview a template',
   workspace_apply: 'Create accounts from a template',
   browser_set_readiness: "Record an account's login state",
-  approval_status: 'Check a yes or no',
-  approval_wait: 'Wait for a yes or no',
+  approval_status: 'Check a yes or no', // before 2026-11-19: approval_wait(wait_s=0)
+  approval_wait: 'Check or wait for a yes or no',
   approval_confirm: 'Ask for a yes or no',
   human_ask: 'Ask the owner a question',
   traces_query: 'Read the action log',

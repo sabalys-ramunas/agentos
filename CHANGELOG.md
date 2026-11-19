@@ -204,6 +204,18 @@ All notable changes to agentos are recorded here. The format follows
   browser tools no longer carry the account rules (posting pace, Ask me first), which are in the
   account tools and the agentos-lanes skill; an error's fix names the toolset of a tool that is not in
   the default list.
+- **The default list says less and means the same: about 6,960 tokens, down from 8,200.** Three tools
+  merged into another where two competed for one intent: `browser_tabs(select=<index>)` switches tabs
+  (was `browser_tab`), `browser_dialog` reads the waiting dialog and answers it with `accept`
+  (`browser_dialog_answer` was the answer; `browser_dialog` is now in the default list), and
+  `approval_wait(wait_s=0)` reads an approval now, or without an id lists yours still waiting (was
+  `approval_status`). Waiting is `wait_s` on `browser_wait` and `approval_wait` too, like every other tool
+  in the list (`timeout_s` is a command's own limit). The descriptions lost what an agent does not need
+  to pick and call a tool: `on` says "From environment_open." on the default list's tools, no "Effect:"
+  lines (the MCP annotations carry it), no "Errors:" lists (every error carries its own fix line) and no
+  lists of the fields a result shows anyway. A snapshot's header names an account browser as `browser:`
+  and an environment's browser not at all (it said `lane: env/<id>-browser`, which is not an `on`), and a
+  job says `terminal` where it runs; `agentos run --list` shows it as TERMINAL.
 - **`file_read` reads several files in one call**: `paths=["package.json", "src/*.js"]`, each with its
   lines, within the same 40,000 characters. Agents read a small repository with a `cat` loop in the
   terminal because it took one path.
@@ -242,6 +254,10 @@ All notable changes to agentos are recorded here. The format follows
   tool, so grants, freezes and the call trail name the new one. The old names and argument names are
   removed in the next minor release. `agentos run` and the other CLI commands call a node from before the
   rename by the old names.
+- **The merged tools' old names work for one release too**: `browser_tab(index)` is
+  `browser_tabs(select)`, `browser_dialog_answer` is `browser_dialog`, `approval_status` is
+  `approval_wait(wait_s=0)`, each with the `renamed` line. So does `timeout_s` on `browser_wait` and
+  `approval_wait`, and a job's `lane` beside its `terminal`.
 
 ## [0.3.0] - 2026-11-16
 

@@ -393,7 +393,7 @@ The default list is the loop of an agent on its own computer:
 | `terminal_exec`, `terminal_job_start`, `terminal_job_read(until_port=3000)`, `terminal_job_cancel` | run a command in its terminal; dev servers and long jobs, waiting until a port listens |
 | `file_read`, `file_write`, `file_edit` | read (several files in one call), write and edit code |
 | `ssh agentos-<id>` (local mode) | the agent's own shell on the machine, with `scp` and `rsync` |
-| `browser_navigate`, `browser_snapshot`, `browser_act`, `browser_wait`, `browser_tabs`, `browser_dialog_answer` | its browser and tabs: read the page as an outline, act by reference |
+| `browser_navigate`, `browser_snapshot`, `browser_act`, `browser_wait`, `browser_tabs`, `browser_dialog` | its browser, tabs and dialogs: read the page as an outline, act by reference |
 | `browser_wait_handback` | waits while you have taken the browser over |
 | `browser_screenshot(proof=...)`, `browser_record` | a screenshot or a video kept as proof, at desktop or phone width |
 | `environment_pull_request(title)` | opens the pull request for the pushed branch, with its proofs |
@@ -403,7 +403,7 @@ The default list is the loop of an agent on its own computer:
 | `tools_more`, `tools_call` | the other groups, loaded when the agent needs them |
 
 The groups: `accounts` (driving your own signed-in account browsers on a server node: list, open,
-claim, live view, uploads), `browser` (a browser's downloads, switching tabs, scrolling a feed),
+claim, live view, uploads), `browser` (a browser's downloads, scrolling a feed),
 `terminals` (terminals and services the node keeps, raw VMs, forgetting saves), `studio` (checking
 a page you build), `devtools`, `control`, `vault`, `flows`, `workflows`, `mail`, `memory`,
 `profiles` and more.

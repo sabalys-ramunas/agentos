@@ -16,11 +16,11 @@ An agentos connection lists an agent's own computer by default (environments, te
 files, the browser loop, `login`, `approval_wait`), plus `tools_more` and `tools_call`.
 **Start with `tools_more("accounts")`**: it adds `browsers_list`, `browser_open`,
 `browser_close`, `browser_claim`, `browser_release`, `browser_view`, `browser_file_put`,
-`browser_upload`, `browser_dialog`, `approval_confirm`, `human_ask`, `memory_context`,
+`browser_upload`, `approval_confirm`, `human_ask`, `memory_context`,
 `run_status`, `whoami` and `howto` to your list. Everything else is one call away:
 
 - `tools_more(toolset)` returns a toolset's tools with their arguments and adds them to
-  your list: `browser` (downloads, `browser_tab`, `browser_scroll`), `control`
+  your list: `browser` (downloads, `browser_scroll`), `control`
   (`browser_control`, `browser_request_control`, the queue), `vault`, `flows`, `workflows`
   (routines on a schedule or a trigger), `connectors`, `site_apis`, `mail`, `worker`
   (`browser_task`), `devtools` (`browser_console`, `browser_network`: why a page broke), and

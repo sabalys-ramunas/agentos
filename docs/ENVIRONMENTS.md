@@ -481,14 +481,16 @@ The agent's default tool list is this loop and nothing else: `environment_open`,
 `environment_save`, `environment_close`, `environment_upload`, `environment_download`, the terminal
 (`terminal_exec`, `terminal_job_start`, `terminal_job_read`, `terminal_job_cancel`), the files (`file_read`,
 `file_write`, `file_edit`), the browser (`browser_navigate`, `browser_snapshot`, `browser_act`,
-`browser_wait`, `browser_screenshot`, `browser_tabs`, `browser_dialog_answer`, `browser_wait_handback`,
+`browser_wait`, `browser_screenshot`, `browser_tabs`, `browser_dialog`, `browser_wait_handback`,
 `browser_record`), `environment_pull_request`, `environment_checkpoint`, `environment_rollback`,
 `environment_port`, `login` and `approval_wait`, plus `tools_more` and `tools_call`. The rest come in
 groups the agent loads with `tools_more(group)`: `accounts` (your own signed-in account browsers on a server
-node), `browser` (a browser's downloads, switching tabs, scrolling), `terminals` (terminals and services the
+node), `browser` (a browser's downloads, scrolling), `terminals` (terminals and services the
 node keeps, raw VMs, and `environment_forget`), `studio` and more ([TOOLS.md](TOOLS.md)). Tools renamed on
 2026-11-19 (`lane_exec` is `terminal_exec`, `lane_file_read` is `file_read`, and so on) still answer to their
-old names until the next minor release; the result then says the new name.
+old names until the next minor release; the result then says the new name. So do the three merged into
+another: `browser_tab` is `browser_tabs(select=...)`, `browser_dialog_answer` is `browser_dialog(accept=...)`
+and `approval_status` is `approval_wait(wait_s=0)`. A wait is `wait_s` on every tool in the list.
 
 Work that is only on your computer (changes not committed yet, or a project with no repository the
 node can clone) gets there two ways. The agent commits it to a branch, pushes it, and opens with
@@ -704,7 +706,7 @@ browser between them, and it stays after the VM is gone: the node keeps a timeli
 with what led to each one:
 
 - after each agent call that can change the page (`browser_navigate`, `browser_act`,
-  `browser_scroll`, `browser_upload`, `browser_dialog_answer`, `browser_tab`, `browser_wait`), with
+  `browser_scroll`, `browser_upload`, `browser_dialog` answering, `browser_tabs` switching, `browser_wait`), with
   the call and the same short summary environment() lists for it (`click e12`, the url), scrubbed
   as the audit log is (`cause: agent`);
 - every 3 seconds while you have control in the live view (`person`), and while the page goes on
