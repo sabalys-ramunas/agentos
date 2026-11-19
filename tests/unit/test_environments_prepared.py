@@ -251,7 +251,7 @@ class FakeGit:
     async def vm_listener(self, lane):
         return 45000
 
-    def vm_token(self, lane, *, grant_id, repo):
+    def vm_token(self, lane, *, grant_id, repo, fetch_only=False):
         self.tokens[lane] = f"agt_{lane.replace('/', '_')}_secret_token_value"
         return self.tokens[lane]
 

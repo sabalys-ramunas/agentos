@@ -216,16 +216,17 @@ class GitService:
             self._vm_listeners[lane_id] = (listener, port)
             return port
 
-    def vm_token(self, lane_id: str, *, grant_id: str, repo: str) -> str | None:
+    def vm_token(self, lane_id: str, *, grant_id: str, repo: str, fetch_only: bool = False) -> str | None:
         """The one gateway token an environment's VM holds: `repo` only (fetch, and push under the
-        gateway's policy), on the VM's own listener only. None when `repo` is not declared for the
-        lane or workspace env, or the VM has no listener: then the VM holds no token at all."""
+        gateway's policy; with `fetch_only`, never a push), on the VM's own listener only. None when
+        `repo` is not declared for the lane or workspace env, or the VM has no listener: then the VM
+        holds no token at all."""
         if lane_id not in self._vm_listeners:
             return None
-        caller = self.vm_caller(lane_id, grant_id=grant_id, repo=repo)
+        caller = self.vm_caller(lane_id, grant_id=grant_id, repo=repo, fetch_only=fetch_only)
         return None if caller is None else self.gateway.token_for(caller)
 
-    def vm_caller(self, lane_id: str, *, grant_id: str, repo: str) -> Caller | None:
+    def vm_caller(self, lane_id: str, *, grant_id: str, repo: str, fetch_only: bool = False) -> Caller | None:
         """Who an environment's VM is to the gateway: `repo` only, bound to its own listener. None when
         `repo` is not declared for the lane or its workspace."""
         from agentos.git.wire import parse_remote
@@ -235,7 +236,7 @@ class GitService:
         if self.remotes.find(remote, [lane_id, workspace]) is None:
             return None
         return Caller(grant_id=grant_id, workspace=workspace, lane=lane_id, lanes=(),
-                      label=f"environment {lane_id}", repos=(remote.slug,), bound=True)
+                      label=f"environment {lane_id}", repos=(remote.slug,), bound=True, fetch_only=fetch_only)
 
     async def warm(self, lane_id: str, *, grant_id: str, repo: str) -> bool:
         """Bring the mirror of an environment's repository up to date while its VM boots, under the same

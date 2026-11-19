@@ -382,13 +382,13 @@ class Environments:
         return True
 
 
-async def vm(node: Node):
+async def vm(node: Node, *, fetch_only: bool = False):
     """An environment's VM: its own gateway listener and its one token, for the repository only."""
     node.rt.register("environments", Environments())  # node.rt.get("environments").own: its branches
     node.git.remotes.allow("env", f"{HOST}/{REPO}", url=str(node.upstream))
     g, _ = node.policy.issue(subject={"id": "agent-1"}, workspaces=["env"], ceiling=Effect.COMMIT)
     port = await node.git.vm_listener(ENV_LANE)
-    tok = node.git.vm_token(ENV_LANE, grant_id=g.id, repo=f"{HOST}/{REPO}")
+    tok = node.git.vm_token(ENV_LANE, grant_id=g.id, repo=f"{HOST}/{REPO}", fetch_only=fetch_only)
     env = plain_env(node.client_home)
     env.update(config_env(rewrite_pairs(f"http://127.0.0.1:{port}", [HOST], tok)))
 
@@ -430,6 +430,21 @@ async def test_a_push_from_an_environment_to_the_default_branch_never_asks(node)
     r = await run("push", "-f", "origin", "agent/x", cwd=work)
     assert r.returncode == 0, r.stderr
     assert node.upstream_ref("agent/x") == git("rev-parse", "HEAD", cwd=work).stdout.strip()
+
+
+async def test_a_fetch_only_token_fetches_and_never_pushes(node):
+    """A prepared machine's build holds such a token (review G1): the repository's setup runs with it."""
+    g, run, work, env = await vm(node, fetch_only=True)
+    before = node.upstream_ref("main")
+    assert (await run("fetch", "-q", "origin", cwd=work)).returncode == 0
+    vm_commit(work, env, "from-a-build")
+    r = await run("push", "origin", "HEAD:refs/heads/agent/build", cwd=work)
+    assert r.returncode != 0 and "only fetches" in r.stderr, r.stderr
+    assert node.upstream_ref("main") == before
+    assert git("show-ref", "--verify", "-q", "refs/heads/agent/build", cwd=node.upstream, check=False).returncode != 0
+    # and its grant is the one checked: revoked, it fetches nothing either
+    node.policy.revoke(g.id)
+    assert (await run("fetch", "-q", "origin", cwd=work)).returncode != 0
 
 
 async def test_a_force_push_or_a_delete_of_the_default_branch_from_an_environment_is_refused(node):

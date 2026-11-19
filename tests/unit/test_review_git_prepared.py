@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+
 import pytest
 from test_environments_prepared import REPO, FakeGit, builds_done, node  # noqa: F401  (node is a fixture)
 from test_environments_prproofs import ENV, PNG, GitHub, setup
@@ -15,13 +17,14 @@ class RecordingGit(FakeGit):
     def __init__(self):
         super().__init__()
         self.grant_of: dict[str, str] = {}
+        self.fetch_only: dict[str, bool] = {}
 
-    def vm_token(self, lane, *, grant_id, repo):
+    def vm_token(self, lane, *, grant_id, repo, fetch_only=False):
         self.grant_of[lane] = grant_id
+        self.fetch_only[lane] = fetch_only
         return super().vm_token(lane, grant_id=grant_id, repo=repo)
 
 
-@pytest.mark.xfail(strict=True, reason="G1: a build an agent's open starts gets an owner-grant gateway token")
 async def test_review_G1_agent_started_build_token_is_the_agents_grant(node):  # noqa: F811
     git = RecordingGit()
     node.rt.register("git", git)
@@ -33,6 +36,39 @@ async def test_review_G1_agent_started_build_token_is_the_agents_grant(node):  #
     assert builds, "the open started a prepared build with a gateway token"
     # the repository's setup runs there with this token: it must carry the opener's grant, never the owner's
     assert set(builds.values()) == {agent_grant}
+    assert all(git.fetch_only[lane] for lane in builds)  # and it fetches only
+
+
+async def test_review_G1_the_owners_build_from_the_cli_is_the_owners_and_fetch_only(node):  # noqa: F811
+    git = RecordingGit()
+    node.rt.register("git", git)
+    assert (await node.mgr.prepare_now(REPO))["started"]
+    await builds_done(node.mgr)
+    [lane] = [lane for lane in git.grant_of if lane.startswith("env/prep-")]
+    assert git.grant_of[lane] == "owner" and git.fetch_only[lane]
+
+
+async def test_review_G1_a_revoked_grant_stops_its_build(node, monkeypatch):  # noqa: F811
+    git = RecordingGit()
+    node.rt.register("git", git)
+    monkeypatch.setattr(prepbuild, "GRANT_CHECK_S", 0.01)
+    real_exec, revoked = node.machine.exec, {}
+
+    async def exec_(lane_id, cmd, **kw):
+        if lane_id.startswith("env/prep-") and "pnpm install --frozen-lockfile" in cmd:
+            node.policy.revoke(git.grant_of[lane_id])  # the agent's grant ends while its build's setup runs
+            revoked["at"] = lane_id
+            await asyncio.sleep(1)
+        return await real_exec(lane_id, cmd, **kw)
+
+    monkeypatch.setattr(node.envs, "exec", exec_)
+    out = await node.call("environment_open", title="Shop", repo=REPO)
+    assert out["state"] == "ready", out
+    await builds_done(node.mgr)
+    [rec] = node.mgr.prepared_store().all()
+    assert revoked and rec.state == "failed" and "no longer holds" in rec.error, rec
+    assert not node.prov.snapshots
+    assert not [r for r in node.vms.store.live() if r.lane_id.startswith("env/prep-")]  # its machine is gone
 
 
 @pytest.mark.xfail(strict=True, reason="G2: a prepared machine built from one ref is booted for another")
