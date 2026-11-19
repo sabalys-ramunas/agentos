@@ -91,19 +91,19 @@ export function ProveYes({ org, approval, question, yes, noMeans, changed, large
       {hosted ? (
         <div className="flex items-start gap-3">
           <Laptop aria-hidden="true" className="mt-px size-4 shrink-0 text-faint" />
-          <p className="text-14 text-pretty text-muted">This needs a passkey check. That check runs on your computer, so say yes there.</p>
+          <p className="text-body text-pretty text-muted">This needs a passkey check. That check runs on your computer, so say yes there.</p>
         </div>
       ) : stage === 'elsewhere' ? (
         <div className="flex items-start gap-3">
           <Laptop aria-hidden="true" className="mt-px size-4 shrink-0 text-faint" />
-          <p className="text-14 text-pretty text-muted">It is waiting in Needs you {mac ? 'on your phone and in the Mac app' : 'on your phone'}. Say yes there, and this page follows by itself.</p>
+          <p className="text-body text-pretty text-muted">It is waiting in Needs you {mac ? 'on your phone and in the Mac app' : 'on your phone'}. Say yes there, and this page follows by itself.</p>
         </div>
       ) : (
         <div className="grid justify-items-center gap-4 pt-2 text-center">
           <div className="yes-prove-ring" data-checking={stage === 'checking' || undefined} data-proved={stage === 'proved' || undefined} data-failed={stage === 'failed' || undefined}>
             {stage === 'proved' ? <Check aria-hidden="true" className="size-8" strokeWidth={2} /> : stage === 'failed' ? <X aria-hidden="true" className="size-8" strokeWidth={2} /> : <Fingerprint aria-hidden="true" className="size-8" strokeWidth={1.25} />}
           </div>
-          <p role="status" className="max-w-[40ch] text-14 text-pretty text-muted">
+          <p role="status" className="max-w-[40ch] text-body text-pretty text-muted">
             {stage === 'failed'
               ? `That didn't work. ${noMeans}`
               : stage === 'proved'
@@ -112,9 +112,9 @@ export function ProveYes({ org, approval, question, yes, noMeans, changed, large
                   ? 'Your browser is asking for your finger, your face or your PIN.'
                   : `${whyProof(approval)} This counts once, for exactly "${yes}".`}
           </p>
-          {changed ? <p className="text-13 text-pretty text-faint">It changed after you first saw it. Say yes only if the version on screen is what you want.</p> : null}
+          {changed ? <p className="text-secondary text-pretty text-faint">It changed after you first saw it. Say yes only if the version on screen is what you want.</p> : null}
           {busy ? null : (
-            <button type="button" className="link text-13" onClick={() => setStage('elsewhere')}>
+            <button type="button" className="link text-secondary" onClick={() => setStage('elsewhere')}>
               {mac ? 'Use my phone or the Mac app instead' : 'Use my phone instead'}
             </button>
           )}

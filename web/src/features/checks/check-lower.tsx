@@ -56,7 +56,7 @@ export function Coverage({ run }: { run: StudioRun }) {
             <h3 className="text-secondary text-faint">Not checked, and why</h3>
             <ul className="grid gap-2">
               {lines.map((line, index) => (
-                <li key={index} className="flex gap-2 text-14 text-fg">
+                <li key={index} className="flex gap-2 text-body text-fg">
                   <span aria-hidden="true" className="mt-2 size-1 shrink-0 rounded-full bg-faint" />
                   <span className="min-w-0 break-words">{line}</span>
                 </li>
@@ -64,7 +64,7 @@ export function Coverage({ run }: { run: StudioRun }) {
             </ul>
           </>
         ) : (
-          <p className="flex items-center gap-2 text-14 text-muted">
+          <p className="flex items-center gap-2 text-body text-muted">
             <CircleCheck aria-hidden="true" className="size-4 text-ok" />
             Every screen rendered and every check ran.
           </p>
@@ -118,7 +118,7 @@ export function DesignSystem({ run, findings, onPick }: { run: StudioRun; findin
           <dl className="grid gap-2">
             {categories.map(([category, share]) => (
               <div key={category} className="grid grid-cols-[7rem_minmax(0,1fr)] items-center gap-3">
-                <dt className="truncate text-14 text-muted">{CATEGORY_WORDS[category] ?? category}</dt>
+                <dt className="truncate text-body text-muted">{CATEGORY_WORDS[category] ?? category}</dt>
                 <dd>
                   <ShareBar wide share={share} label={`${CATEGORY_WORDS[category] ?? category} on a token`} className="w-full" />
                 </dd>
@@ -145,7 +145,7 @@ export function DesignSystem({ run, findings, onPick }: { run: StudioRun; findin
                       ) : (
                         <span aria-hidden="true" className="size-4 shrink-0 rounded-sm border border-dashed border-line-strong" />
                       )}
-                      <span className="min-w-0 flex-1 text-14">
+                      <span className="min-w-0 flex-1 text-body">
                         <span className="font-mono text-code text-fg">{item.value}</span>{' '}
                         <span className="text-muted">
                           should be {item.token ? <span className="font-mono text-code">{item.token}</span> : 'a token'}
@@ -162,7 +162,7 @@ export function DesignSystem({ run, findings, onPick }: { run: StudioRun; findin
             </ul>
           </div>
         ) : null}
-        <p className="text-14 text-muted">
+        <p className="text-body text-muted">
           {hand
             ? `${plural(hand, 'hand-rolled control')} ${hand === 1 ? 'looks' : 'look'} like a component but ${hand === 1 ? 'is' : 'are'} not one.`
             : 'No hand-rolled controls: every control comes from a component.'}
@@ -186,7 +186,7 @@ function DiffPicture({ org, before, after, screen }: { org: string; before: stri
   const afterSrc = studioShotUrl(org, after, screen, 1000);
   const beforeSrc = studioShotUrl(org, before, screen, 1000);
   const { size, failed } = useImageSize(afterSrc);
-  if (failed) return <p className="text-14 text-muted">The pictures of this screen are no longer kept; the causes below still stand.</p>;
+  if (failed) return <p className="text-body text-muted">The pictures of this screen are no longer kept; the causes below still stand.</p>;
   if (!size) return <Skeleton className="aspect-[16/10] h-auto w-full" />;
   return (
     <div className="mx-auto w-full max-w-3xl" style={{ maxWidth: Math.max((screenOfKey(screen)?.width ?? 600) * 1.25, 320) }}>
@@ -285,7 +285,7 @@ export function WhatChanged({
     <Card>
       {head}
       <div className="grid gap-4 p-5">
-        <p className="text-14 text-fg">{data.verdict}</p>
+        <p className="text-body text-fg">{data.verdict}</p>
         <div className="flex flex-wrap gap-1" role="group" aria-label="Screens compared">
           {data.screens.map((item) => (
             <button
@@ -295,7 +295,7 @@ export function WhatChanged({
               onClick={() => onScreen(item.screen)}
               title={item.reason}
               className={cn(
-                'inline-flex h-7 items-center gap-2 rounded-full border px-3 text-13',
+                'inline-flex h-7 items-center gap-2 rounded-full border px-3 text-secondary',
                 shown?.screen === item.screen ? 'border-fg bg-fg text-on-primary' : 'border-line bg-card text-muted hover:text-fg',
               )}
             >
@@ -307,9 +307,9 @@ export function WhatChanged({
         {data.not_compared ? <p className="text-secondary text-faint">{data.not_compared}</p> : null}
         {shown ? (
           shown.status === 'skipped' ? (
-            <p className="text-14 text-muted">Not compared{shown.reason ? `: ${shown.reason}` : '.'}</p>
+            <p className="text-body text-muted">Not compared{shown.reason ? `: ${shown.reason}` : '.'}</p>
           ) : shown.status === 'same' ? (
-            <p className="flex items-center gap-2 text-14 text-muted">
+            <p className="flex items-center gap-2 text-body text-muted">
               <CircleCheck aria-hidden="true" className="size-4 text-ok" />
               {keyWords(shown.screen)} looks the same.
             </p>
@@ -318,7 +318,7 @@ export function WhatChanged({
               {shown.lines.length ? (
                 <ol className="grid gap-2">
                   {shown.lines.map((line, index) => (
-                    <li key={index} className="flex gap-3 text-14 text-fg">
+                    <li key={index} className="flex gap-3 text-body text-fg">
                       <span className="mt-px inline-flex h-5 shrink-0 items-center rounded-full border border-line px-2 text-micro text-muted">Cause</span>
                       <span className="min-w-0 break-words">{line}</span>
                     </li>

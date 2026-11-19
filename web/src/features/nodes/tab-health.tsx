@@ -14,9 +14,9 @@ import { useTechnical } from '@/lib/technical';
 import { NotReported, Panel } from './parts';
 
 const LOOK: Record<CheckStatus, { icon: typeof CircleCheck; word: string; tone: string }> = {
-  ok: { icon: CircleCheck, word: 'Passes', tone: 'text-green' },
-  warn: { icon: CircleAlert, word: 'Worth a look', tone: 'text-amber' },
-  fail: { icon: CircleX, word: 'Fails', tone: 'text-red' },
+  ok: { icon: CircleCheck, word: 'Passes', tone: 'text-ok' },
+  warn: { icon: CircleAlert, word: 'Worth a look', tone: 'text-warn' },
+  fail: { icon: CircleX, word: 'Fails', tone: 'text-bad' },
 };
 
 const ORDER: Record<CheckStatus, number> = { fail: 0, warn: 1, ok: 2 };
@@ -39,12 +39,12 @@ function FixLine({ fix }: { fix: string }) {
   const [technical] = useTechnical();
   const { plain, command } = fixWords(fix);
   return (
-    <div className="mt-2 text-13 break-words text-fg">
+    <div className="mt-2 text-secondary break-words text-fg">
       <p>
         <span className="text-faint">To fix it: </span>
         {plain}
       </p>
-      {technical ? <p className="mono mt-1 text-12 break-all text-faint">{command}</p> : null}
+      {technical ? <p className="mono mt-1 text-caption break-all text-faint">{command}</p> : null}
     </div>
   );
 }
@@ -52,7 +52,7 @@ function FixLine({ fix }: { fix: string }) {
 /** The node's raw sentence, with its command, for Technical details only. */
 function RawLine({ raw, shown }: { raw: string; shown: string }) {
   const [technical] = useTechnical();
-  return technical && raw !== shown ? <p className="mono mt-1 text-12 break-all text-faint">{raw}</p> : null;
+  return technical && raw !== shown ? <p className="mono mt-1 text-caption break-all text-faint">{raw}</p> : null;
 }
 
 function Rounds({ rounds, node, notHere, names }: { rounds: HealthRound | null | undefined; node: string; notHere: boolean; names: PlaceNames }) {
@@ -61,8 +61,8 @@ function Rounds({ rounds, node, notHere, names }: { rounds: HealthRound | null |
   if (rounds === null) {
     return (
       <Card className="p-4 sm:p-6">
-        <p className="text-14">The health checks are not answering on {node}, so there is no round to show.</p>
-        <p className="mt-1 text-13 text-muted">It runs on its own while the machine is up. Start it and this fills in by itself.</p>
+        <p className="text-body">The health checks are not answering on {node}, so there is no round to show.</p>
+        <p className="mt-1 text-secondary text-muted">It runs on its own while the machine is up. Start it and this fills in by itself.</p>
       </Card>
     );
   }
@@ -70,14 +70,14 @@ function Rounds({ rounds, node, notHere, names }: { rounds: HealthRound | null |
   const when = rounds.at ? `Ran ${timeAgo(rounds.at)}.` : '';
   return (
     <Card className="p-4 sm:p-6">
-      <p className="text-14">
+      <p className="text-body">
         {attention.length ? `${plural(attention.length, 'thing')} need${attention.length === 1 ? 's' : ''} a look.` : 'Nothing needs a look.'}{' '}
         <span className="text-faint">{when}</span>
       </p>
       {attention.length ? (
         <ul className="mt-3 grid gap-3">
           {attention.map((finding) => (
-            <li key={finding.key} className="text-13">
+            <li key={finding.key} className="text-secondary">
               <span className="break-words text-fg">{plainDetail(finding.title, names)}</span>
               <span className="text-muted">. {accessDetail(finding.detail, names)}</span>
             </li>
@@ -116,10 +116,10 @@ export function HealthTab({ org, node, checks, owner }: { org: string; node: str
       <section aria-label="Health" className="grid gap-4">
         <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
           <div className="min-w-0">
-            <p className="text-14" aria-live="polite">
+            <p className="text-body" aria-live="polite">
               {healthAnswer(list)}
             </p>
-            <p className="mt-1 text-13 text-faint">
+            <p className="mt-1 text-secondary text-faint">
               {run.isPending
                 ? 'Checking now. Each proxy can take a few seconds.'
                 : latest
@@ -137,7 +137,7 @@ export function HealthTab({ org, node, checks, owner }: { org: string; node: str
         </div>
         {run.isError ? (
           <Card className="flex flex-wrap items-center justify-between gap-3 p-4 sm:p-6">
-            <p className="text-13 text-muted">The full check did not finish. Nothing on this machine was changed.</p>
+            <p className="text-secondary text-muted">The full check did not finish. Nothing on this machine was changed.</p>
             <Button size="sm" onClick={() => run.mutate()}>
               Try again
             </Button>
@@ -145,7 +145,7 @@ export function HealthTab({ org, node, checks, owner }: { org: string; node: str
         ) : null}
         <div role="img" aria-label={`${passing} of ${list.length} checks pass`} style={{ gap: 2 }} className="flex h-2 overflow-hidden rounded-full">
           {sorted.map((check) => (
-            <span key={check.id ?? check.name} className={cn('block h-full flex-1', check.status === 'ok' ? 'bg-fill-3' : check.status === 'warn' ? 'bg-amber' : 'bg-red')} />
+            <span key={check.id ?? check.name} className={cn('block h-full flex-1', check.status === 'ok' ? 'bg-fill-strong' : check.status === 'warn' ? 'bg-warn' : 'bg-bad')} />
           ))}
         </div>
         <Card className="divide-y divide-line overflow-hidden">
@@ -158,15 +158,15 @@ export function HealthTab({ org, node, checks, owner }: { org: string; node: str
                   <look.icon aria-hidden="true" className={cn('size-4', look.tone)} />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-14 break-words">
+                  <p className="text-body break-words">
                     {checkName(check.name)}
                     <span className="sr-only">: {look.word}</span>
                   </p>
-                  <p className="text-13 break-words text-muted">{detail}</p>
+                  <p className="text-secondary break-words text-muted">{detail}</p>
                   <RawLine raw={check.detail} shown={detail} />
                   {check.status !== 'ok' && check.fix ? <FixLine fix={check.fix} /> : null}
                 </div>
-                <span className={cn('shrink-0 text-12', check.status === 'ok' ? 'text-faint' : 'text-muted')}>{look.word}</span>
+                <span className={cn('shrink-0 text-caption', check.status === 'ok' ? 'text-faint' : 'text-muted')}>{look.word}</span>
               </div>
             );
           })}
@@ -183,15 +183,15 @@ export function HealthTab({ org, node, checks, owner }: { org: string; node: str
         ) : upgrade.data ? (
           <div className="grid gap-4">
             <Card className="p-4 sm:p-6">
-              <p className="text-14">
+              <p className="text-body">
                 Running agentos <span className="mono">{upgrade.data.running}</span>.
               </p>
-              <p className="mt-1 text-13 text-muted">
+              <p className="mt-1 text-secondary text-muted">
                 This machine cannot see a newer release from here, so it does not say whether one is out.
               </p>
             </Card>
             <div className="grid gap-2">
-              <p className="text-13 text-muted">
+              <p className="text-secondary text-muted">
                 Upgrading restarts agentos on this machine, so every account pauses while it runs. Do it in a terminal on the machine,
                 after pulling the new code.
               </p>

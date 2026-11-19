@@ -102,7 +102,7 @@ export function ScheduleDialog({ org, routines, initial = null, open, onOpenChan
             />
           </Field>
         ) : (
-          <p className="text-14 text-pretty text-muted">A routine you build sets its time in the routine. A recording takes a schedule here.</p>
+          <p className="text-body text-pretty text-muted">A routine you build sets its time in the routine. A recording takes a schedule here.</p>
         )}
         <div className="grid grid-cols-[minmax(0,1fr)_7rem] gap-2">
           <Field label="When">
@@ -112,7 +112,7 @@ export function ScheduleDialog({ org, routines, initial = null, open, onOpenChan
             <Input type="time" value={time} onChange={(event) => setTime(event.target.value)} />
           </Field>
         </div>
-        <p className="text-13 text-faint">{valid ? describeCron(cron) : 'Choose the days and the time.'}</p>
+        <p className="text-secondary text-faint">{valid ? describeCron(cron) : 'Choose the days and the time.'}</p>
         {technical ? (
           <Field label="Cron line" hint="Five fields: minute, hour, day, month, weekday.">
             <Input mono value={cron} onChange={(event) => setLine(event.target.value)} autoComplete="off" />
@@ -146,7 +146,7 @@ export function NextFire({ schedule, zone }: { schedule: Schedule; zone: string 
   return (
     <span className="tabular">
       {fireLabel(at, zone)}
-      {zonesDiffer(zone, local, at) ? <span className="block text-12 text-faint">Your time: {fireLabel(at, local)}</span> : null}
+      {zonesDiffer(zone, local, at) ? <span className="block text-caption text-faint">Your time: {fireLabel(at, local)}</span> : null}
     </span>
   );
 }
@@ -206,34 +206,34 @@ function ScheduleTable({ org, schedules, titles, zoneOf, canOperate, onDelete, a
           return (
             <Tr
               key={item.id}
-              className={cn('hover:bg-fill-1', active === item.id && 'bg-fill-1')}
+              className={cn('hover:bg-hover', active === item.id && 'bg-hover')}
               onPointerEnter={() => onActive(item.id)}
               onPointerLeave={() => onActive(null)}
             >
               <Td className={mainCell}>
                 {item.flow ? (
-                  <Link to="/$org/flows/$flow" params={{ org, flow: item.flow }} className="block truncate text-14 hover:underline">
+                  <Link to="/$org/flows/$flow" params={{ org, flow: item.flow }} className="block truncate text-body hover:underline">
                     {title}
                   </Link>
                 ) : (
-                  <span className="block truncate text-14 text-muted">{title}</span>
+                  <span className="block truncate text-body text-muted">{title}</span>
                 )}
-                {item.routine ? <span className="block truncate text-12 text-faint">Set in the routine</span> : null}
-                <div className="text-12 text-faint md:hidden">
+                {item.routine ? <span className="block truncate text-caption text-faint">Set in the routine</span> : null}
+                <div className="text-caption text-faint md:hidden">
                   <p className="truncate">{trigger}</p>
                   <NextFire schedule={item} zone={zoneOf(item)} />
                 </div>
               </Td>
-              <Td className="hidden text-13 text-muted md:table-cell">
+              <Td className="hidden text-secondary text-muted md:table-cell">
                 <span title={item.cron ?? undefined}>{trigger}</span>
               </Td>
-              <Td className="hidden text-13 text-muted md:table-cell">
+              <Td className="hidden text-secondary text-muted md:table-cell">
                 <NextFire schedule={item} zone={zoneOf(item)} />
               </Td>
               <Td className="hidden lg:table-cell">
-                {item.last_run ? <Status status={runStatus[item.last_run.status]} /> : <span className="text-13 text-faint">Not run yet</span>}
+                {item.last_run ? <Status status={runStatus[item.last_run.status]} /> : <span className="text-secondary text-faint">Not run yet</span>}
               </Td>
-              <Td className="tabular hidden text-13 text-muted lg:table-cell">{item.deadman_minutes ? `${item.deadman_minutes} min` : '–'}</Td>
+              <Td className="tabular hidden text-secondary text-muted lg:table-cell">{item.deadman_minutes ? `${item.deadman_minutes} min` : '–'}</Td>
               <Td className="pr-4 md:pr-6">
                 {canOperate ? (
                   <span className="flex items-center justify-end gap-2">

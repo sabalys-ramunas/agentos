@@ -89,8 +89,8 @@ function HandBack({ challenged, pending, onHandBack }: { challenged: boolean; pe
 function Takeback({ lane, canControl, pending, onDeny, onHandBack }: BarProps & { pending: ControlRequest | null; onDeny: () => void; onHandBack: (done?: boolean) => void }) {
   const { control } = lane;
   return (
-    <div role="status" className="flex animate-fade-in flex-wrap items-center gap-x-4 gap-y-2 border-b border-line bg-subtle px-4 py-3">
-      <p className="flex min-w-0 flex-1 basis-64 items-baseline gap-2 text-14">
+    <div role="status" className="flex animate-fade-in flex-wrap items-center gap-x-4 gap-y-2 border-b border-line bg-inset px-4 py-3">
+      <p className="flex min-w-0 flex-1 basis-64 items-baseline gap-2 text-body">
         <StatusDot tone="warn" className="translate-y-px" />
         <span className="min-w-0">
           <span className="font-medium">
@@ -165,7 +165,7 @@ export function ControlFrame({ org, lane, canControl, expanded = false, children
       data-control={control.state}
       className={cn(
         // A second pixel of frame from the outline, so nothing moves when it appears.
-        'overflow-hidden rounded-xl border bg-bg outline outline-transparent transition-[outline-color,border-color] duration-(--duration-slow) ease-standard',
+        'overflow-hidden rounded-xl border bg-card outline outline-transparent transition-[outline-color,border-color] duration-(--duration-slow) ease-standard',
         person ? 'border-fg outline-1 outline-fg' : 'border-line',
         // Above the top bar and the tab bar, below dialogs, so Stop agent still confirms.
         expanded && 'safe-bottom fixed inset-0 z-[35] flex flex-col rounded-none outline-offset-[-2px]',
@@ -174,14 +174,14 @@ export function ControlFrame({ org, lane, canControl, expanded = false, children
       <div
         className={cn(
           'flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2 transition-colors duration-(--duration-slow) ease-standard sm:min-h-12',
-          person ? 'bg-primary text-on-primary' : 'border-b border-line bg-subtle',
+          person ? 'bg-primary text-on-primary' : 'border-b border-line bg-inset',
         )}
       >
         <div key={control.state} className="flex min-w-0 flex-1 basis-56 animate-fade-in items-center gap-2">
           <Icon className={cn('size-4', !person && 'text-faint')} />
           <div role="status" className="min-w-0">
-            <p className="truncate text-14 font-medium">{title}</p>
-            <p className={cn('tabular text-12', person ? 'opacity-80' : 'text-faint')}>{detail}</p>
+            <p className="truncate text-label">{title}</p>
+            <p className={cn('tabular text-caption', person ? 'opacity-80' : 'text-faint')}>{detail}</p>
           </div>
         </div>
         {canControl ? (

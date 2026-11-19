@@ -33,11 +33,11 @@ function Usage({ item }: { item: StandingApproval }) {
         aria-valuenow={item.used}
         aria-valuemin={0}
         aria-valuemax={item.count ?? undefined}
-        className="h-1 flex-1 overflow-hidden rounded-full bg-fill-2"
+        className="h-1 flex-1 overflow-hidden rounded-full bg-pressed"
       >
         <div className="h-full rounded-full bg-fg transition-[width] duration-(--duration-slow) ease-standard" style={{ width: `${pct}%` }} />
       </div>
-      <span className="mono tabular shrink-0 text-12 text-muted">
+      <span className="mono tabular shrink-0 text-caption text-muted">
         {item.count === null ? `${item.used} used` : `${item.used} of ${item.count} used`}
       </span>
     </div>
@@ -61,8 +61,8 @@ function Item({ org, item, workspaceName, onRevoke, canRevoke, gap, nameOf }: It
     <li className={cn('grid gap-4 p-6', !active && 'text-muted')}>
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className={cn('text-14 font-medium break-words', active ? 'text-fg' : 'text-muted')}>{describeStanding(item)}</p>
-          <p className="mt-1 text-13 text-faint">
+          <p className={cn('text-label font-medium break-words', active ? 'text-fg' : 'text-muted')}>{describeStanding(item)}</p>
+          <p className="mt-1 text-secondary text-faint">
             {workspaceName} · {lanesWords(item.lanes, workspaceName)}
             {item.per_day ? ` · at most ${item.per_day} a day` : ''}
             {item.contents ? ` · ${item.contents === 1 ? 'one exact content' : `${item.contents} exact contents`}` : ''}
@@ -81,8 +81,8 @@ function Item({ org, item, workspaceName, onRevoke, canRevoke, gap, nameOf }: It
       <div className="grid gap-2">
         {gap ? <LimitNote org={org} gap={gap} nameOf={nameOf} /> : null}
         {active ? <EnforcementNote enforcement={item.enforcement} /> : null}
-        <p className="tabular text-13 text-faint">{ends}</p>
-        {item.note ? <p className="text-13 break-words text-muted">{item.note}</p> : null}
+        <p className="tabular text-secondary text-faint">{ends}</p>
+        {item.note ? <p className="text-secondary break-words text-muted">{item.note}</p> : null}
       </div>
     </li>
   );
@@ -93,7 +93,7 @@ function NothingApplied({ items }: { items: StandingApproval[] }) {
   const active = items.filter((item) => item.state === 'active');
   if (!active.length || active.some((item) => item.enforcement.state === 'applied' || item.enforcement.state === 'partial')) return null;
   return (
-    <div role="note" className="mb-6 flex items-baseline gap-2 rounded-xl border border-line bg-subtle px-6 py-4 text-14">
+    <div role="note" className="mb-6 flex items-baseline gap-2 rounded-xl border border-line bg-inset px-6 py-4 text-body">
       <StatusDot tone="warn" className="translate-y-px" />
       <p className="min-w-0">
         <span className="font-medium">No computer applies these yet.</span>{' '}

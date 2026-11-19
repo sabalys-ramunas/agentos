@@ -45,11 +45,11 @@ function DiffBody({ org, env, checkpoint }: { org: string; env: string; checkpoi
           : diff.error instanceof ApiError
             ? `${diff.error.message} Nothing was changed.`
             : 'The diff could not be read. Nothing was changed.';
-    return <p className="rounded-lg border border-line px-4 py-6 text-center text-14 text-muted">{why}</p>;
+    return <p className="rounded-lg border border-line px-4 py-6 text-center text-body text-muted">{why}</p>;
   }
   const files = diffFiles(diff.data);
   const cut = diffCut(diff.data);
-  if (!files.length) return <p className="rounded-lg border border-line px-4 py-6 text-center text-14 text-muted">Nothing changed since this checkpoint.</p>;
+  if (!files.length) return <p className="rounded-lg border border-line px-4 py-6 text-center text-body text-muted">Nothing changed since this checkpoint.</p>;
   const keyOf = (entry: DiffFile) => `${entry.repo}/${entry.path}`;
   const file = files.find((entry) => keyOf(entry) === pickedPath) ?? files[0];
   const added = files.reduce((sum, entry) => sum + (entry.added ?? 0), 0);
@@ -154,7 +154,7 @@ function FileDiff({ file }: { file: DiffFile }) {
           ))}
         </pre>
       ) : (
-        <p className="px-4 py-6 text-14 text-muted">{file.added === null ? 'A binary file: git counts no lines in it.' : file.lines ? 'Only its mode changed.' : 'Its lines are past the cut of the patch.'}</p>
+        <p className="px-4 py-6 text-body text-muted">{file.added === null ? 'A binary file: git counts no lines in it.' : file.lines ? 'Only its mode changed.' : 'Its lines are past the cut of the patch.'}</p>
       )}
     </section>
   );

@@ -143,7 +143,7 @@ const routeTree = rootRoute.addChildren([
  */
 function PagePending() {
   return (
-    <div role="status" aria-label="Loading" className="flex min-h-48 items-center justify-center gap-2 text-14 text-muted">
+    <div role="status" aria-label="Loading" className="flex min-h-48 items-center justify-center gap-2 text-body text-muted">
       <Spinner />
       Loading
     </div>

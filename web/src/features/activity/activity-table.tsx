@@ -75,7 +75,7 @@ export function RunsChart({ org, range, scope, from, to, onWindow }: ChartProps)
         <Skeleton className="h-40 rounded-md" />
       )}
       {from && to ? (
-        <div className="mt-2 flex items-center gap-2 text-13 text-muted">
+        <div className="mt-2 flex items-center gap-2 text-secondary text-muted">
           <span className="tabular">
             {dateTime(from)} to {dateTime(to)}
           </span>
@@ -103,8 +103,8 @@ export function ActivityTable({ org, rows, onOpen }: { org: string; rows: TraceE
       </thead>
       <tbody>
         {rows.map((row) => (
-          <Tr key={row.id} className="hover:bg-fill-1">
-            <Td className="tabular hidden text-13 whitespace-nowrap text-faint md:table-cell" title={dateTime(row.at)}>
+          <Tr key={row.id} className="hover:bg-hover">
+            <Td className="tabular hidden text-secondary whitespace-nowrap text-faint md:table-cell" title={dateTime(row.at)}>
               {timeAgo(row.at)}
             </Td>
             <Td className="hidden md:table-cell">
@@ -118,15 +118,15 @@ export function ActivityTable({ org, rows, onOpen }: { org: string; rows: TraceE
                     <button
                       type="button"
                       aria-label={`View run: ${row.summary}`}
-                      className="block max-w-full truncate rounded-sm text-left text-14 hover:underline"
+                      className="block max-w-full truncate rounded-sm text-left text-body hover:underline"
                       onClick={() => row.run_id && onOpen(row.run_id)}
                     >
                       {row.summary}
                     </button>
                   ) : (
-                    <p className="truncate text-14">{row.summary}</p>
+                    <p className="truncate text-body">{row.summary}</p>
                   )}
-                  <p className="truncate text-12 text-faint">
+                  <p className="truncate text-caption text-faint">
                     <span className="mono">{row.lane}</span>
                     <span className="mono"> · {row.kind} · {row.tool}</span>
                     <span className="hidden md:inline"> · {effectLabel[row.effect]}</span>
@@ -135,8 +135,8 @@ export function ActivityTable({ org, rows, onOpen }: { org: string; rows: TraceE
                 </div>
               </div>
             </Td>
-            <Td className="hidden text-13 whitespace-nowrap text-muted xl:table-cell">{nameOf(row.principal)}</Td>
-            <Td className="mono tabular pr-4 pl-0 text-right text-13 text-muted md:pr-6 md:pl-4">{usd(row.cost.usd)}</Td>
+            <Td className="hidden text-secondary whitespace-nowrap text-muted xl:table-cell">{nameOf(row.principal)}</Td>
+            <Td className="mono tabular pr-4 pl-0 text-right text-secondary text-muted md:pr-6 md:pl-4">{usd(row.cost.usd)}</Td>
           </Tr>
         ))}
       </tbody>

@@ -31,7 +31,7 @@ function FireStrip({ fires }: { fires: ScheduleFire[] }) {
   const missed = fires.filter((fire) => fire.status === 'missed').length;
   const failed = fires.filter((fire) => fire.status === 'failed').length;
   const summary = `Last ${fires.length} fires: ${[missed && `${missed} missed`, failed && `${failed} failed`].filter(Boolean).join(', ') || 'all ran'}`;
-  if (fires.length === 0) return <span className="text-13 text-faint">Not fired yet</span>;
+  if (fires.length === 0) return <span className="text-secondary text-faint">Not fired yet</span>;
   return (
     <span className="inline-flex items-center gap-3">
       <span role="img" aria-label={summary} className="inline-flex h-4 items-center gap-px" onPointerLeave={() => setHover(null)}>
@@ -41,14 +41,14 @@ function FireStrip({ fires }: { fires: ScheduleFire[] }) {
             onPointerEnter={() => setHover(fire)}
             className={cn(
               'block h-4 w-2 rounded-[2px] transition-opacity duration-(--duration-fast) ease-standard',
-              fire.status === 'missed' && 'border border-red',
+              fire.status === 'missed' && 'border border-bad',
             )}
             style={{ backgroundColor: FIRE_COLORS[fire.status] ?? 'transparent', opacity: hover && hover !== fire ? 0.35 : 1 }}
           />
         ))}
       </span>
       {/* Fixed width, so the row never moves while the pointer reads the strip. */}
-      <span aria-hidden="true" className="tabular hidden w-36 truncate text-12 text-faint xl:inline">
+      <span aria-hidden="true" className="tabular hidden w-36 truncate text-caption text-faint xl:inline">
         {hover ? `${fireWord(hover)} · ${timeAgo(hover.at)}` : missed ? `${missed} missed` : failed ? `${failed} failed` : 'All ran'}
       </span>
     </span>
@@ -91,29 +91,29 @@ export function SchedulesTab({ org, node, zone, schedules, canOperate }: { org: 
               {schedules.map((item) => (
                 <Tr
                   key={item.id}
-                  className={cn('hover:bg-fill-1', active === item.id && 'bg-fill-1')}
+                  className={cn('hover:bg-hover', active === item.id && 'bg-hover')}
                   onPointerEnter={() => setActive(item.id)}
                   onPointerLeave={() => setActive(null)}
                 >
                   <Td className={cn(mainCell, 'min-w-48')}>
-                    <Link to="/$org/flows/$flow" params={{ org, flow: item.flow }} className="mono block truncate text-13 hover:underline">
+                    <Link to="/$org/flows/$flow" params={{ org, flow: item.flow }} className="mono block truncate text-secondary hover:underline">
                       {item.flow}
                     </Link>
-                    <p className="truncate text-12 text-faint lg:hidden">{triggerOf(item)}</p>
+                    <p className="truncate text-caption text-faint lg:hidden">{triggerOf(item)}</p>
                     <div className="mt-1 md:hidden">
                       <FireStrip fires={item.recent_fires} />
                     </div>
                   </Td>
-                  <Td className="hidden text-13 text-muted lg:table-cell">
+                  <Td className="hidden text-secondary text-muted lg:table-cell">
                     <span title={item.cron ?? undefined}>{triggerOf(item)}</span>
                   </Td>
                   <Td className="hidden md:table-cell">
                     <FireStrip fires={item.recent_fires} />
                   </Td>
-                  <Td className="hidden text-13 text-muted md:table-cell">
+                  <Td className="hidden text-secondary text-muted md:table-cell">
                     <NextFire schedule={item} zone={zone} />
                   </Td>
-                  <Td className="tabular hidden text-13 text-muted xl:table-cell">{item.deadman_minutes ? `After ${item.deadman_minutes} min` : '–'}</Td>
+                  <Td className="tabular hidden text-secondary text-muted xl:table-cell">{item.deadman_minutes ? `After ${item.deadman_minutes} min` : '–'}</Td>
                   <Td>{canOperate ? <PauseSwitch org={org} schedule={item} /> : null}</Td>
                 </Tr>
               ))}

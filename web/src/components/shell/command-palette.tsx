@@ -23,7 +23,7 @@ import { menuFor } from './nav';
 import { openFreeze, openShortcuts, openUnfreeze, setPaletteOpen, usePaletteOpen } from './palette-store';
 
 const itemClass =
-  'flex h-10 cursor-pointer items-center gap-2 rounded-md px-2 text-body text-fg select-none data-[selected=true]:bg-fill-2 [&_svg]:text-faint';
+  'flex h-10 cursor-pointer items-center gap-2 rounded-md px-2 text-body text-fg select-none data-[selected=true]:bg-pressed [&_svg]:text-faint';
 
 function Item({ value, onSelect, children, hint }: { value: string; onSelect: () => void; children: ReactNode; hint?: ReactNode }) {
   return (

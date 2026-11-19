@@ -63,7 +63,7 @@ export function LastHour({ org, lanes: all, now }: { org: string; lanes: Lane[];
             <div
               role="list"
               aria-label={`Runs on ${row.name} in the last hour`}
-              className={cn('relative h-6 rounded-sm bg-fill-1', row.node?.state === 'down' && 'opacity-60')}
+              className={cn('relative h-6 rounded-sm bg-hover', row.node?.state === 'down' && 'opacity-60')}
             >
               {bars.map((bar) => {
                 const words = `${bar.job.command}, ${BAR_WORDS[bar.tone]}, from ${clock(bar.job.started_at)}${bar.job.finished_at ? ` to ${clock(bar.job.finished_at)}` : ' until now'}`;

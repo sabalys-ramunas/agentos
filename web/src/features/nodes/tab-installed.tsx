@@ -56,10 +56,10 @@ function Programs({ node, programs, scope, onScope }: { node: string; programs: 
           </thead>
           <tbody>
             {shown.map((program) => (
-              <Tr key={`${program.name}:${program.scope}`} className="hover:bg-fill-1">
+              <Tr key={`${program.name}:${program.scope}`} className="hover:bg-hover">
                 <Td className={mainCell}>
-                  <p className="mono truncate text-13">{program.name}</p>
-                  <p className="truncate text-12 text-faint">
+                  <p className="mono truncate text-secondary">{program.name}</p>
+                  <p className="truncate text-caption text-faint">
                     from {program.source}
                     <span className="md:hidden">
                       {' · '}
@@ -68,8 +68,8 @@ function Programs({ node, programs, scope, onScope }: { node: string; programs: 
                     <span className="lg:hidden"> · {SCOPE_WORDS[program.scope]}</span>
                   </p>
                 </Td>
-                <Td className="mono hidden text-13 text-muted md:table-cell">{program.version}</Td>
-                <Td className="hidden text-13 text-muted lg:table-cell">
+                <Td className="mono hidden text-secondary text-muted md:table-cell">{program.version}</Td>
+                <Td className="hidden text-secondary text-muted lg:table-cell">
                   {SCOPE_WORDS[program.scope]}
                   {program.lanes.length ? <span className="text-faint"> · {program.lanes.length === 1 ? program.lanes[0] : plural(program.lanes.length, 'lane')}</span> : null}
                 </Td>
@@ -79,14 +79,14 @@ function Programs({ node, programs, scope, onScope }: { node: string; programs: 
                 <Td className="hidden xl:table-cell">
                   {program.pinned_hash ? (
                     <span className="inline-flex items-center gap-1">
-                      <span className="mono text-12 text-muted">{shortHash(program.pinned_hash)}</span>
+                      <span className="mono text-caption text-muted">{shortHash(program.pinned_hash)}</span>
                       <CopyButton text={program.pinned_hash} label={`Copy the hash for ${program.name}`} />
                     </span>
                   ) : (
-                    <span className="text-13 text-faint">Not pinned</span>
+                    <span className="text-secondary text-faint">Not pinned</span>
                   )}
                 </Td>
-                <Td className="hidden text-13 text-muted lg:table-cell">{program.installed_at ? <span title={date(program.installed_at)}>{timeAgo(program.installed_at)}</span> : NONE}</Td>
+                <Td className="hidden text-secondary text-muted lg:table-cell">{program.installed_at ? <span title={date(program.installed_at)}>{timeAgo(program.installed_at)}</span> : NONE}</Td>
               </Tr>
             ))}
           </tbody>
@@ -129,10 +129,10 @@ function Services({ org, node, services }: { org: string; node: string; services
             {services.map((service) => {
               const [ws, name] = service.lane?.split('/') ?? [];
               return (
-                <Tr key={service.name} className="hover:bg-fill-1">
+                <Tr key={service.name} className="hover:bg-hover">
                   <Td className={mainCell}>
-                    <p className="mono truncate text-13">{service.name}</p>
-                    <p className="truncate text-12 text-faint">
+                    <p className="mono truncate text-secondary">{service.name}</p>
+                    <p className="truncate text-caption text-faint">
                       {ws && name ? (
                         <Link to="/$org/lanes/$ws/$name" params={{ org, ws, name }} className="hover:text-fg">
                           in {service.lane}
@@ -146,12 +146,12 @@ function Services({ org, node, services }: { org: string; node: string; services
                   <Td>
                     <Status status={serviceStatus(service.state)} />
                   </Td>
-                  <Td className="mono hidden text-13 text-muted lg:table-cell">{service.ports?.length ? service.ports.join(', ') : NONE}</Td>
-                  <Td className="tabular text-right text-13">
-                    <span className={service.restarts > 2 ? 'text-amber' : 'text-muted'}>{service.restarts}</span>
+                  <Td className="mono hidden text-secondary text-muted lg:table-cell">{service.ports?.length ? service.ports.join(', ') : NONE}</Td>
+                  <Td className="tabular text-right text-secondary">
+                    <span className={service.restarts > 2 ? 'text-warn' : 'text-muted'}>{service.restarts}</span>
                   </Td>
-                  <Td className="mono tabular hidden text-right text-13 text-muted md:table-cell">{service.cpu_pct === null ? NONE : `${service.cpu_pct}%`}</Td>
-                  <Td className="mono tabular hidden text-right text-13 text-muted md:table-cell">{service.mem_mb === null ? NONE : `${service.mem_mb} MB`}</Td>
+                  <Td className="mono tabular hidden text-right text-secondary text-muted md:table-cell">{service.cpu_pct === null ? NONE : `${service.cpu_pct}%`}</Td>
+                  <Td className="mono tabular hidden text-right text-secondary text-muted md:table-cell">{service.mem_mb === null ? NONE : `${service.mem_mb} MB`}</Td>
                 </Tr>
               );
             })}
@@ -178,11 +178,11 @@ function Tools({ node, tools }: { node: string; tools: ToolDef[] | null }) {
     <Panel title="Tools for AI apps" description={`What an AI app attached to this machine can call here. ${plural(tools.length, 'tool')}, biggest effect first.`}>
       <Card className="grid gap-px overflow-hidden bg-line sm:grid-cols-2 xl:grid-cols-3">
         {sorted.map((tool) => (
-          <div key={tool.name} className="flex min-w-0 items-start justify-between gap-3 bg-bg px-4 py-3">
+          <div key={tool.name} className="flex min-w-0 items-start justify-between gap-3 bg-card px-4 py-3">
             <div className="min-w-0">
-              <p className="truncate text-13">{toolPlainTitle(tool.name)}</p>
-              {technical ? <p className="mono truncate text-12 text-faint">{tool.name}</p> : null}
-              {technical && tool.description ? <p className="truncate text-12 text-faint">{tool.description}</p> : null}
+              <p className="truncate text-secondary">{toolPlainTitle(tool.name)}</p>
+              {technical ? <p className="mono truncate text-caption text-faint">{tool.name}</p> : null}
+              {technical && tool.description ? <p className="truncate text-caption text-faint">{tool.description}</p> : null}
             </div>
             {tool.effect ? <Badge className="shrink-0">{effectLabel[tool.effect]}</Badge> : null}
           </div>

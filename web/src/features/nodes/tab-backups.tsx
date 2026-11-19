@@ -77,7 +77,7 @@ export function BackupsTab({ org, node, owner }: { org: string; node: string; ow
     <div className="grid gap-10">
       <section aria-label="Backups" className="grid gap-4">
         <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
-          <p className="min-w-0 text-14" aria-live="polite">
+          <p className="min-w-0 text-body" aria-live="polite">
             {backupAnswer(data)}
           </p>
           {owner ? (
@@ -96,10 +96,10 @@ export function BackupsTab({ org, node, owner }: { org: string; node: string; ow
 
         {running ? (
           <Card className="flex items-start gap-3 p-4 sm:p-6" role="status">
-            <span aria-hidden="true" className="mt-2 size-2 shrink-0 animate-pulse-dot rounded-full bg-blue" />
+            <span aria-hidden="true" className="mt-2 size-2 shrink-0 animate-pulse-dot rounded-full bg-fg" />
             <div className="min-w-0">
-              <p className="text-14">{data.job?.kind === 'backup' ? 'Making the backup.' : 'Checking the backup.'}</p>
-              <p className="mt-1 text-13 text-muted">
+              <p className="text-body">{data.job?.kind === 'backup' ? 'Making the backup.' : 'Checking the backup.'}</p>
+              <p className="mt-1 text-secondary text-muted">
                 Started {timeAgo(data.job?.started_at)}. It takes a few minutes, and each open account pauses for a moment while it is copied.
               </p>
             </div>
@@ -107,15 +107,15 @@ export function BackupsTab({ org, node, owner }: { org: string; node: string; ow
         ) : null}
         {formWaiting && start.data?.form_url ? (
           <Card className="flex flex-wrap items-center justify-between gap-3 p-4 sm:p-6">
-            <p className="text-13 text-muted">Type the passphrase in the form that opened, to start the backup.</p>
-            <a href={start.data.form_url} target="_blank" rel="noreferrer" className="inline-flex h-8 items-center gap-1 text-13 text-blue hover:underline">
+            <p className="text-secondary text-muted">Type the passphrase in the form that opened, to start the backup.</p>
+            <a href={start.data.form_url} target="_blank" rel="noreferrer" className="inline-flex h-8 items-center gap-1 text-secondary link hover:underline">
               Open the form again
               <ArrowUpRight aria-hidden="true" className="size-4" />
             </a>
           </Card>
         ) : null}
         {!running && data.job && data.job.state !== 'running' ? (
-          <p className={cn('text-13', data.job.state === 'failed' ? 'text-red' : 'text-muted')} role="status">
+          <p className={cn('text-secondary', data.job.state === 'failed' ? 'text-bad' : 'text-muted')} role="status">
             {data.job.state === 'failed' ? 'It did not finish. ' : ''}
             {plainReason(data.job.message)}
           </p>
@@ -147,17 +147,17 @@ export function BackupsTab({ org, node, owner }: { org: string; node: string; ow
                 {data.items.map((item) => (
                   <Tr key={item.name} className="h-12 border-b border-line last:border-b-0">
                     <Td className="max-w-0 pl-4 sm:pl-6">
-                      <time dateTime={item.created_at} title={dateTime(item.created_at)} className="text-14">
+                      <time dateTime={item.created_at} title={dateTime(item.created_at)} className="text-body">
                         {timeAgo(item.created_at)}
                       </time>
-                      <p className="mono mt-1 truncate text-12 text-faint">{item.name}</p>
+                      <p className="mono mt-1 truncate text-caption text-faint">{item.name}</p>
                     </Td>
                     <Td className="hidden md:table-cell">
-                      <span className="tabular text-13 text-muted">{gb(item.size / MIB)}</span>
+                      <span className="tabular text-secondary text-muted">{gb(item.size / MIB)}</span>
                     </Td>
                     <Td>
                       <Status status={backupCheck[item.check.state]} />
-                      {item.check.state === 'failed' && item.check.error ? <p className="mt-1 max-w-xs truncate text-12 text-muted">{item.check.error}</p> : null}
+                      {item.check.state === 'failed' && item.check.error ? <p className="mt-1 max-w-xs truncate text-caption text-muted">{item.check.error}</p> : null}
                     </Td>
                     {owner ? (
                       <Td className="pr-4 text-right sm:pr-6">
@@ -174,17 +174,17 @@ export function BackupsTab({ org, node, owner }: { org: string; node: string; ow
             </Table>
           </Card>
         ) : (
-          <Card className="p-4 text-13 text-muted sm:p-6">None yet. Make one, and it shows here.</Card>
+          <Card className="p-4 text-secondary text-muted sm:p-6">None yet. Make one, and it shows here.</Card>
         )}
       </Panel>
 
       <Panel title="Restore" description="Restoring writes over everything on this machine, so it is done in a terminal, on purpose.">
         <Card className="grid gap-3 p-4 sm:p-6">
-          <p className="text-13 text-muted">
+          <p className="text-secondary text-muted">
             A restore stops the accounts and replaces this machine's data with the backup. A browser should not start that, so it stays with the person at the machine.
           </p>
           <details open={technical} className="group">
-            <summary className="flex cursor-pointer list-none items-center gap-2 text-13 text-muted hover:text-fg [&::-webkit-details-marker]:hidden">
+            <summary className="flex cursor-pointer list-none items-center gap-2 text-secondary text-muted hover:text-fg [&::-webkit-details-marker]:hidden">
               Technical details
             </summary>
             <div className="mt-3 grid gap-3">
@@ -192,7 +192,7 @@ export function BackupsTab({ org, node, owner }: { org: string; node: string; ow
                 label="Restore a backup"
                 code={`agentos backup restore ${data.folder}/<backup file> --passphrase-file <file with the passphrase>`}
               />
-              <p className="text-12 text-faint">
+              <p className="text-caption text-faint">
                 The backups are kept in <span className="mono">{data.folder}</span> on this machine's own disk. Copy one somewhere else too.
               </p>
             </div>

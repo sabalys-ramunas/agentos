@@ -58,7 +58,7 @@ function Block({ title, meta, action, children, className }: { title: string; me
   return (
     <section aria-label={title} className={cn('grid gap-3 border-t border-line py-4 first:border-t-0 first:pt-0', className)}>
       <div className="flex min-h-6 items-center gap-2">
-        <h3 className="text-14 font-semibold">{title}</h3>
+        <h3 className="text-body font-semibold">{title}</h3>
         {meta ? <span className="text-secondary text-faint">{meta}</span> : null}
         {action ? <span className="ml-auto">{action}</span> : null}
       </div>
@@ -71,7 +71,7 @@ function Fact({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="grid min-w-0 gap-1">
       <dt className="text-caption text-faint">{label}</dt>
-      <dd className="min-w-0 truncate text-14 text-fg">{children}</dd>
+      <dd className="min-w-0 truncate text-body text-fg">{children}</dd>
     </div>
   );
 }
@@ -160,7 +160,7 @@ function LaneLine({ org, lane }: { org: string; lane: Lane }) {
 
 function Lanes({ org, node }: { org: string; node: NodeDetail }) {
   const groups = KIND_GROUPS.map((group) => ({ ...group, lanes: node.lanes.filter((lane) => group.kinds.includes(lane.kind)) })).filter((group) => group.lanes.length);
-  if (!groups.length) return <p className="text-14 text-muted">No accounts, terminals or services on it yet.</p>;
+  if (!groups.length) return <p className="text-body text-muted">No accounts, terminals or services on it yet.</p>;
   return (
     <div className="grid gap-4">
       {groups.map((group) => {
@@ -225,13 +225,13 @@ export interface RunsInfo {
 
 function Runs({ org, id, runs }: { org: string; id: string; runs: RunsInfo }) {
   const { jobs, available, hidden } = runs;
-  if (hidden) return <p className="text-14 text-muted">{hidden}</p>;
-  if (available === false) return <p className="text-14 text-muted">No runs here: this machine has no terminal lanes to run them in.</p>;
+  if (hidden) return <p className="text-body text-muted">{hidden}</p>;
+  if (available === false) return <p className="text-body text-muted">No runs here: this machine has no terminal lanes to run them in.</p>;
   if (!jobs) return <Skeleton className="h-12" />;
   const running = jobs.filter((job) => job.state === 'running');
   const recent = jobs.filter((job) => job.state !== 'running').slice(0, Math.max(0, 3 - running.length));
   const shown = [...running, ...recent];
-  if (!shown.length) return <p className="text-14 text-muted">Nothing has run here yet. A run starts with <code className="font-mono text-code">agentos run</code>.</p>;
+  if (!shown.length) return <p className="text-body text-muted">Nothing has run here yet. A run starts with <code className="font-mono text-code">agentos run</code>.</p>;
   return (
     <ul className="grid gap-3" aria-label={`Runs on ${id}`}>
       {shown.map((job) => (
@@ -244,10 +244,10 @@ function Runs({ org, id, runs }: { org: string; id: string; runs: RunsInfo }) {
 function Services({ org, id }: { org: string; id: string }) {
   const services = useNodeServices(org, id);
   if (services.isPending) return <Skeleton className="h-10" />;
-  if (isNotServed(services.error)) return <p className="text-14 text-muted">{NOT_HERE}</p>;
-  if (services.isError) return <p className="text-14 text-muted">Its services could not be read just now.</p>;
-  if (services.data === null) return <p className="text-14 text-muted">This machine does not report its services yet.</p>;
-  if (!services.data.length) return <p className="text-14 text-muted">No services run on it.</p>;
+  if (isNotServed(services.error)) return <p className="text-body text-muted">{NOT_HERE}</p>;
+  if (services.isError) return <p className="text-body text-muted">Its services could not be read just now.</p>;
+  if (services.data === null) return <p className="text-body text-muted">This machine does not report its services yet.</p>;
+  if (!services.data.length) return <p className="text-body text-muted">No services run on it.</p>;
   return (
     <ul className="grid gap-3">
       {services.data.slice(0, SHOWN).map((service) => (
@@ -268,14 +268,14 @@ function Services({ org, id }: { org: string; id: string }) {
 function Health({ org, id }: { org: string; id: string }) {
   const health = useNodeHealth(org, id);
   if (health.isPending) return <Skeleton className="h-10" />;
-  if (isNotServed(health.error)) return <p className="text-14 text-muted">{NOT_HERE}</p>;
-  if (health.isError) return <p className="text-14 text-muted">Its health could not be read just now.</p>;
-  if (health.data === null) return <p className="text-14 text-muted">This machine does not report health checks yet.</p>;
+  if (isNotServed(health.error)) return <p className="text-body text-muted">{NOT_HERE}</p>;
+  if (health.isError) return <p className="text-body text-muted">Its health could not be read just now.</p>;
+  if (health.data === null) return <p className="text-body text-muted">This machine does not report health checks yet.</p>;
   const checks = health.data;
   const wrong = checks.filter((check) => check.status !== 'ok').sort((a, b) => Number(b.status === 'fail') - Number(a.status === 'fail'));
   return (
     <div className="grid gap-3">
-      <p className="text-14 text-muted">{checks.length ? healthAnswer(checks) : 'No checks have run yet.'}</p>
+      <p className="text-body text-muted">{checks.length ? healthAnswer(checks) : 'No checks have run yet.'}</p>
       {wrong.length ? (
         <ul className="grid gap-3">
           {wrong.slice(0, 3).map((check) => (
@@ -302,7 +302,7 @@ function Everything({ org, id }: { org: string; id: string }) {
             search={{ tab }}
             className="group flex min-h-10 items-center gap-3 rounded-md px-2 hover:bg-hover"
           >
-            <span className="w-28 shrink-0 text-14 text-fg">{TAB_WORDS[tab].label}</span>
+            <span className="w-28 shrink-0 text-body text-fg">{TAB_WORDS[tab].label}</span>
             <span className="min-w-0 flex-1 truncate text-secondary text-faint" title={TAB_WORDS[tab].says}>
               {TAB_WORDS[tab].says}
             </span>
@@ -370,7 +370,7 @@ export function NodeNow({ org, node, runs }: { org: string; node: NodeDetail; ru
     <>
       {node.state === 'down' ? (
         <Block title="Not answering">
-          <p className="text-14 text-muted">
+          <p className="text-body text-muted">
             It has not answered since {lastSeen(node.last_seen)}. Its accounts are paused, and nothing was lost. When it comes back, agents see it again on their own.
           </p>
         </Block>
@@ -482,7 +482,7 @@ export function VmPanel({ org, vm, runs }: { org: string; vm: Vm; runs: RunsInfo
         {vm.purpose ? (
           <div className="grid gap-1">
             <p className="text-caption text-faint">What it is for{vm.started_by ? `, as ${vm.started_by.toLowerCase()} said` : ''}</p>
-            <p className="text-14 text-fg">{vm.purpose}</p>
+            <p className="text-body text-fg">{vm.purpose}</p>
           </div>
         ) : null}
       </Block>
@@ -496,7 +496,7 @@ export function VmPanel({ org, vm, runs }: { org: string; vm: Vm; runs: RunsInfo
         </Link>
       </Block>
       <Block title="Delete it now">
-        <p className="text-14 text-muted">It deletes itself on time even if the agent forgets. To end it sooner, run this on the node:</p>
+        <p className="text-body text-muted">It deletes itself on time even if the agent forgets. To end it sooner, run this on the node:</p>
         <CodeBlock code={`agentos vm destroy ${vm.id}`} label="Copy the delete command" />
       </Block>
     </div>

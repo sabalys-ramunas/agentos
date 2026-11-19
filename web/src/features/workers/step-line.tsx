@@ -43,17 +43,17 @@ function Face({ kind, thing, left, on, now }: { kind: WorkerStepKind; thing: Wor
 function Reading({ thing, index, showing }: { thing: WorkerThing; index: number; showing: boolean }) {
   const [technical] = useTechnical();
   const step = thing.steps[index];
-  if (!step) return <p className="min-h-10 text-13 text-muted">No steps yet.</p>;
+  if (!step) return <p className="min-h-10 text-secondary text-muted">No steps yet.</p>;
   const said = !showing && thing.state !== 'working' && thing.stop ? STOP_WORDS[thing.stop] : STEP_WHO[step.kind];
   const note = !showing && thing.state === 'working' ? `${said}. It stops by itself at step ${thing.limit}.` : said;
   return (
     <div className="flex min-h-10 min-w-0 items-start gap-3 sm:gap-4">
-      <span className="tabular w-[52px] shrink-0 text-13 text-faint sm:w-[72px]">Step {index + 1}</span>
+      <span className="tabular w-[52px] shrink-0 text-secondary text-faint sm:w-[72px]">Step {index + 1}</span>
       <div className="min-w-0 flex-1">
-        <p className="text-14 text-pretty">{step.what}</p>
-        <p className="text-13 text-pretty text-muted">{note}</p>
+        <p className="text-body text-pretty">{step.what}</p>
+        <p className="text-secondary text-pretty text-muted">{note}</p>
         {technical && step.model ? (
-          <p className="mono mt-1 text-12 text-faint">
+          <p className="mono mt-1 text-caption text-faint">
             {step.model} · {step.ms.toLocaleString('en-GB')} ms · ${step.usd.toFixed(4)}
           </p>
         ) : null}
@@ -93,7 +93,7 @@ export function StepLine({ thing, example = false, className }: { thing: WorkerT
       <div className="steps" data-reading={pointed !== null || undefined} data-example={example || undefined}>
         <div aria-hidden="true" className="grid auto-rows-[28px]">
           {ROWS.map((row) => (
-            <span key={row} className="flex items-center truncate text-12 text-muted">{WORKER_ROWS[row].word}</span>
+            <span key={row} className="flex items-center truncate text-caption text-muted">{WORKER_ROWS[row].word}</span>
           ))}
         </div>
         <div
@@ -131,11 +131,11 @@ export function StepLine({ thing, example = false, className }: { thing: WorkerT
         </div>
         <div aria-hidden="true" className="hidden auto-rows-[28px] sm:grid">
           {ROWS.map((row) => (
-            <span key={row} className="tabular flex items-center justify-end text-13 text-muted">{counts(row) || <span className="text-faint">–</span>}</span>
+            <span key={row} className="tabular flex items-center justify-end text-secondary text-muted">{counts(row) || <span className="text-faint">–</span>}</span>
           ))}
         </div>
       </div>
-      <p className="tabular text-12 text-muted sm:hidden">
+      <p className="tabular text-caption text-muted sm:hidden">
         {ROWS.filter((row) => counts(row)).map((row) => `${WORKER_ROWS[row].word} ${counts(row)}`).join(' · ')}
       </p>
       <p id={label} className="sr-only">Each step of this thing, and who thought at each one.</p>

@@ -129,7 +129,7 @@ export function RequestColumn({ org, queue, request, narrow, alone, canDecide, f
         </Card>
       ) : !count.loaded ? (
         <Card>
-          <p role="status" className="p-6 text-14 text-muted">
+          <p role="status" className="p-6 text-body text-muted">
             {count.failedToLoad ? 'Could not read what waits for you.' : 'Reading what waits for you.'}
           </p>
         </Card>
@@ -137,7 +137,7 @@ export function RequestColumn({ org, queue, request, narrow, alone, canDecide, f
         <AllClear org={org} decided={queue.decidedHere} canDecide={canDecide} />
       ) : (
         <Card>
-          <p className="p-6 text-14 text-muted">Nothing to decide right now. What waits is listed below.</p>
+          <p className="p-6 text-body text-muted">Nothing to decide right now. What waits is listed below.</p>
         </Card>
       )}
       {alone ? <div className="mt-6">{failedStrip}</div> : null}

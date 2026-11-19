@@ -24,11 +24,11 @@ export function LadderHead({ chat, lit, onLit }: { chat: boolean; lit: Rung | nu
       <ol className="grid grid-cols-4">
         {RUNGS.map((rung) => (
           <li key={rung} className="px-2 text-center" onPointerEnter={() => onLit(rung)} onPointerLeave={() => onLit(null)}>
-            <span className={cn('mx-auto flex size-8 items-center justify-center rounded-full transition-colors duration-(--duration-fast) ease-standard', lit === rung ? 'bg-fill-2 text-fg' : 'text-muted')}>
+            <span className={cn('mx-auto flex size-8 items-center justify-center rounded-full transition-colors duration-(--duration-fast) ease-standard', lit === rung ? 'bg-pressed text-fg' : 'text-muted')}>
               <RungIcon rung={rung} className="size-4" />
             </span>
-            <span className="mt-1 block text-13 font-medium">{RUNG_WORDS[rung].word}</span>
-            <span className="mt-1 block text-12 text-pretty text-faint">{rungLine(rung, chat)}</span>
+            <span className="mt-1 block text-secondary font-medium">{RUNG_WORDS[rung].word}</span>
+            <span className="mt-1 block text-caption text-pretty text-faint">{rungLine(rung, chat)}</span>
           </li>
         ))}
       </ol>
@@ -141,7 +141,7 @@ function Track({ label, rung, floor, system, fixed, onPeek, onPick }: TrackProps
       </div>
       <div className="relative hidden h-4 md:block" aria-hidden="true">
         {system && system !== shown ? (
-          <span className="absolute -translate-x-1/2 animate-fade-in text-11 whitespace-nowrap text-faint transition-opacity duration-(--duration-base) ease-standard" style={{ left: `${((rungIndex(system) + 0.5) / RUNGS.length) * 100}%` }}>
+          <span className="absolute -translate-x-1/2 animate-fade-in text-micro whitespace-nowrap text-faint transition-opacity duration-(--duration-base) ease-standard font-normal" style={{ left: `${((rungIndex(system) + 0.5) / RUNGS.length) * 100}%` }}>
             System default
           </span>
         ) : null}
@@ -180,18 +180,18 @@ export function LadderRow({ row, rung, floor, system, locked, note, warn, seen, 
   return (
     <li className={cn(ROW_GRID, 'border-t border-line py-4')} onPointerEnter={() => onHover?.(rung)} onPointerLeave={() => onHover?.(null)}>
       <div className="min-w-0">
-        <h4 className="flex items-center gap-2 text-14 font-medium">
+        <h4 className="flex items-center gap-2 text-label">
           {locked ? <Lock aria-label="Always asks" className="size-3 shrink-0 text-faint" /> : null}
           <span className="min-w-0">{row.title}</span>
         </h4>
-        <p className="mt-1 text-13 text-pretty text-muted">{row.because ?? row.covers}</p>
-        <p className="mt-2 flex items-start gap-2 text-12 text-faint">
+        <p className="mt-1 text-secondary text-pretty text-muted">{row.because ?? row.covers}</p>
+        <p className="mt-2 flex items-start gap-2 text-caption text-faint">
           <Sites sites={row.sites} />
           <span className="tabular min-w-0 text-pretty">{seen}</span>
         </p>
       </div>
       <div className="min-w-0 md:pt-1">
-        <p className="mb-1 flex items-center gap-2 text-13 md:hidden">
+        <p className="mb-1 flex items-center gap-2 text-secondary md:hidden">
           <RungIcon rung={rung} className="size-4 text-faint" />
           {RUNG_WORDS[rung].word}
         </p>
@@ -204,7 +204,7 @@ export function LadderRow({ row, rung, floor, system, locked, note, warn, seen, 
           onPeek={onPeek ? (next) => onPeek(row.key, next) : undefined}
           onPick={onPick ? (next) => onPick(row.key, next) : undefined}
         />
-        <p aria-live="polite" className={cn('mt-1 min-h-4 text-12 text-pretty', warn ? 'text-amber' : 'text-faint')}>
+        <p aria-live="polite" className={cn('mt-1 min-h-4 text-caption text-pretty', warn ? 'text-warn' : 'text-faint')}>
           {note}
         </p>
       </div>
@@ -217,12 +217,12 @@ export function FixedRow({ seen }: { seen: string }) {
   return (
     <li className={cn(ROW_GRID, 'border-t border-line py-4')}>
       <div className="min-w-0">
-        <h4 className="flex items-center gap-2 text-14 font-medium">
+        <h4 className="flex items-center gap-2 text-label">
           <Lock aria-label="Nobody's to change" className="size-3 shrink-0 text-faint" />
           Looking and drafting
         </h4>
-        <p className="mt-1 text-13 text-pretty text-muted">Nothing leaves, so there is nothing to ask.</p>
-        <p className="tabular mt-2 text-12 text-faint">{seen}</p>
+        <p className="mt-1 text-secondary text-pretty text-muted">Nothing leaves, so there is nothing to ask.</p>
+        <p className="tabular mt-2 text-caption text-faint">{seen}</p>
       </div>
       <div className="min-w-0 md:pt-1">
         <div className="yes-track" data-fixed="" role="img" aria-label="On its own, always" style={{ '--at': 0, '--floor': 0 } as CSSProperties}>

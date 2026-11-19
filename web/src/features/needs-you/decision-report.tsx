@@ -26,7 +26,7 @@ function Report({ report, inQueue, onReview, onDismiss, titleOf }: ReportProps) 
     <Card role="alert" className="p-4">
       <div className="flex items-start gap-2">
         <StatusDot tone="warn" className="mt-2" />
-        <p className="min-w-0 flex-1 text-14 font-medium">{reportHeadline(report.decision, report.decided, report.refused.length)}</p>
+        <p className="min-w-0 flex-1 text-label">{reportHeadline(report.decision, report.decided, report.refused.length)}</p>
         <IconButton label="Dismiss this report" size="sm" onClick={onDismiss}>
           <X className="size-4" />
         </IconButton>
@@ -36,8 +36,8 @@ function Report({ report, inQueue, onReview, onDismiss, titleOf }: ReportProps) 
           <li key={item.id} className="flex items-center gap-4 py-2">
             <span className="min-w-0 flex-1">
               {/* A refused item carries no summary of its own: its title is the one the queue showed. */}
-              <span className="block text-14 break-words">{item.summary || titleOf(item.id) || 'This item'}</span>
-              <span className="block text-13 text-muted">{refusalReason(item)}</span>
+              <span className="block text-body break-words">{item.summary || titleOf(item.id) || 'This item'}</span>
+              <span className="block text-secondary text-muted">{refusalReason(item)}</span>
             </span>
             {inQueue(item.id) ? (
               <Button size="sm" onClick={() => onReview(item.id)}>

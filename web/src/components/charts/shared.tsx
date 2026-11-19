@@ -64,7 +64,7 @@ export function Readout({ x, width, children }: ReadoutProps) {
   const flip = x > width - 150;
   return (
     <div
-      className="pointer-events-none absolute top-0 z-10 rounded-md border border-line bg-raised px-2 py-1 text-12 whitespace-nowrap shadow-popover"
+      className="pointer-events-none absolute top-0 z-10 rounded-md border border-line bg-raised px-2 py-1 text-caption whitespace-nowrap shadow-popover"
       style={flip ? { right: width - x + 8 } : { left: x + 8 }}
     >
       {children}
@@ -80,7 +80,7 @@ export function LineKey({ color }: { color: string }) {
 /** Text beside a mark stays in text tokens. The swatch carries the identity. */
 export function Legend({ items, className }: { items: { label: string; color: string }[]; className?: string }) {
   return (
-    <ul className={cn('flex flex-wrap items-center gap-x-4 gap-y-1 text-12 text-muted', className)}>
+    <ul className={cn('flex flex-wrap items-center gap-x-4 gap-y-1 text-caption text-muted', className)}>
       {items.map((item) => (
         <li key={item.label} className="flex items-center gap-1">
           <span aria-hidden="true" className="size-2 rounded-sm" style={{ backgroundColor: item.color }} />

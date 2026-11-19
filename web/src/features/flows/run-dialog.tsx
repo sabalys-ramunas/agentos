@@ -82,7 +82,7 @@ export function RunDialog({ org, flow, onClose }: { org: string; flow: Flow | nu
             )}
           </Field>
         ))}
-        <p className="text-13 text-muted">
+        <p className="text-secondary text-muted">
           {ask
             ? ask.asks
               ? canDecide ? `${ask.word}: it waits in Needs you for your yes.` : WAITS_FOR_SOMEONE

@@ -102,7 +102,7 @@ export function Proposal({ org, profile, draft, onDecided }: { org: string; prof
             {draft.created_by ? principalName(draft.created_by) : 'An agent'} proposes version {draft.version} of {profile.display_name}
           </span>
         </h2>
-        {draft.reason ? <p className="max-w-[60em] text-14 break-words text-muted">“{draft.reason}”</p> : null}
+        {draft.reason ? <p className="max-w-[60em] text-body break-words text-muted">“{draft.reason}”</p> : null}
       </div>
       <div className="grid gap-5 border-t border-line px-5 py-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <div className="grid content-start gap-4">
@@ -138,10 +138,10 @@ export function Proposal({ org, profile, draft, onDecided }: { org: string; prof
                       {change.kind === 'added' ? 'added' : change.kind === 'removed' ? 'removed' : 'changed'}
                     </span>
                     {change.before && change.kind !== 'added' ? (
-                      <span className="text-14 text-muted line-through">{change.before.text}</span>
+                      <span className="text-body text-muted line-through">{change.before.text}</span>
                     ) : null}
                     {change.after ? (
-                      <span className="text-14 text-fg">
+                      <span className="text-body text-fg">
                         {change.after.text} <span className="text-secondary text-faint">{guidelineRule(change.after)}</span>
                       </span>
                     ) : null}
@@ -173,7 +173,7 @@ export function Proposal({ org, profile, draft, onDecided }: { org: string; prof
           ) : null}
         </div>
         <div className="grid content-start gap-3">
-          <p className="text-14 text-muted">
+          <p className="text-body text-muted">
             Only you can decide. Agents keep using version {profile.version} until you approve, and every check of {profile.display_name} measures against
             the version that is live.
           </p>
@@ -222,7 +222,7 @@ export function Decided({ version, approved, onDone }: { version: number; approv
   return (
     <Card role="status" className="mb-8 flex flex-wrap items-center gap-3 px-5 py-4">
       <Status status={{ label: approved ? `Version ${version} is live` : `Version ${version} was rejected`, tone: approved ? 'ok' : 'neutral' }} />
-      <span className="min-w-0 flex-1 text-14 text-muted">
+      <span className="min-w-0 flex-1 text-body text-muted">
         {approved ? 'Every check now measures against it, and agents get it on their next task.' : 'Agents keep using the version that was live.'}
       </span>
       <Button variant="ghost" size="sm" icon={<ArrowRight className="size-4" />} onClick={onDone}>

@@ -70,7 +70,7 @@ function FoldedLine({ env, lead, controls, onOpen }: { env: EnvDetail; lead: str
       <h2 id="env-opened" className="sr-only">
         {openedEyebrow(env)}
       </h2>
-      <span className="text-14 font-medium text-fg">{lead}</span>
+      <span className="text-label text-fg">{lead}</span>
       {env.app ? (
         <span className="inline-flex min-w-0 items-center gap-2 text-secondary text-muted">
           <Status status={appStatus(env.app)} />

@@ -40,7 +40,7 @@ function eventsLine(events: WebhookEvent[]) {
 function EventPicker({ value, onChange }: { value: WebhookEvent[]; onChange: (next: WebhookEvent[]) => void }) {
   return (
     <fieldset className="grid gap-2">
-      <legend className="mb-2 text-13 font-medium">Send these events</legend>
+      <legend className="mb-2 text-secondary font-medium">Send these events</legend>
       {EVENTS.map((event) => {
         const id = `event-${event}`;
         return (
@@ -52,8 +52,8 @@ function EventPicker({ value, onChange }: { value: WebhookEvent[]; onChange: (ne
               onCheckedChange={(checked) => onChange(checked === true ? [...value, event] : value.filter((item) => item !== event))}
             />
             <label htmlFor={id} className="min-w-0 flex-1 cursor-pointer">
-              <span className="block text-14">{webhookEvent[event].label}</span>
-              <span className="block text-13 text-faint">{webhookEvent[event].hint}</span>
+              <span className="block text-body">{webhookEvent[event].label}</span>
+              <span className="block text-secondary text-faint">{webhookEvent[event].hint}</span>
             </label>
           </div>
         );
@@ -78,7 +78,7 @@ function SecretDialog({ secret, rotated, onClose }: { secret: string | null; rot
     >
       <div className="grid gap-4">
         <CodeBlock code={secret ?? ''} label="Copy signing secret" />
-        {rotated ? <p className="text-13 text-muted">The old secret stopped working just now. Update your receiver before the next delivery.</p> : null}
+        {rotated ? <p className="text-secondary text-muted">The old secret stopped working just now. Update your receiver before the next delivery.</p> : null}
       </div>
     </Dialog>
   );
@@ -158,12 +158,12 @@ function DeliveryStrip({ items }: { items: WebhookDelivery[] }) {
             title={`${deliveryState[item.state].label} · ${dateTime(item.created_at)}`}
             className={cn(
               'w-2 rounded-sm',
-              item.state === 'delivered' ? 'h-full bg-fill-3' : item.state === 'failed' ? 'h-full bg-red' : 'h-1/2 border border-line-strong',
+              item.state === 'delivered' ? 'h-full bg-fill-strong' : item.state === 'failed' ? 'h-full bg-bad' : 'h-1/2 border border-line-strong',
             )}
           />
         ))}
       </div>
-      <figcaption className="text-13 text-muted">
+      <figcaption className="text-secondary text-muted">
         {ok} of {items.length} delivered
       </figcaption>
     </figure>
@@ -192,16 +192,16 @@ function DeliveriesDrawer({ org, hook, onOpenChange }: { org: string; hook: Webh
                 {items.map((item) => (
                   <li key={item.id} className="grid gap-1 py-3">
                     <div className="flex items-center justify-between gap-4">
-                      <span className="text-14">{webhookEvent[item.kind].label}</span>
+                      <span className="text-body">{webhookEvent[item.kind].label}</span>
                       <Status status={deliveryState[item.state]} />
                     </div>
-                    <p className="mono tabular text-12 text-faint">
+                    <p className="mono tabular text-caption text-faint">
                       {dateTime(item.created_at)} · {item.attempts === 1 ? '1 try' : `${item.attempts} tries`}
                       {item.status !== null ? ` · HTTP ${item.status}` : ''}
                     </p>
-                    {item.error ? <p className="text-13 break-words text-muted">{item.error}</p> : null}
+                    {item.error ? <p className="text-secondary break-words text-muted">{item.error}</p> : null}
                     {item.state === 'pending' && item.next_attempt_at ? (
-                      <p className="text-13 text-muted">Next try {timeAgo(item.next_attempt_at).toLowerCase() === 'just now' ? 'any moment' : `at ${dateTime(item.next_attempt_at)}`}.</p>
+                      <p className="text-secondary text-muted">Next try {timeAgo(item.next_attempt_at).toLowerCase() === 'just now' ? 'any moment' : `at ${dateTime(item.next_attempt_at)}`}.</p>
                     ) : null}
                   </li>
                 ))}
@@ -260,7 +260,7 @@ function Signature() {
         label="Copy the signature rule"
         code={'X-Agentos-Signature: sha256=HMAC_SHA256(secret, X-Agentos-Timestamp + "." + body)'}
       />
-      <p className="text-13 text-muted">
+      <p className="text-secondary text-muted">
         Also sent: <span className="mono">X-Agentos-Event</span> and <span className="mono">X-Agentos-Delivery</span>, which stays the same when a
         delivery is tried again. Redirects are never followed.
       </p>
@@ -336,9 +336,9 @@ export function WebhooksSettings() {
                       return (
                         <Tr key={hook.id}>
                           <Td className={mainCell}>
-                            <p className="mono truncate text-13">{hook.origin}</p>
-                            <p className="truncate text-13 text-faint">{eventsLine(hook.events)}</p>
-                            <p className="truncate text-13 text-faint md:hidden">
+                            <p className="mono truncate text-secondary">{hook.origin}</p>
+                            <p className="truncate text-secondary text-faint">{eventsLine(hook.events)}</p>
+                            <p className="truncate text-secondary text-faint md:hidden">
                               {last ? `${deliveryState[last.state].label} ${timeAgo(last.created_at).toLowerCase()}` : 'Nothing sent yet'}
                             </p>
                           </Td>
@@ -351,10 +351,10 @@ export function WebhooksSettings() {
                                 aria-label={`Deliveries to ${hook.origin}`}
                               >
                                 <Status status={deliveryState[last.state]} />
-                                <span className="text-13 text-faint">{timeAgo(last.created_at)}</span>
+                                <span className="text-secondary text-faint">{timeAgo(last.created_at)}</span>
                               </button>
                             ) : (
-                              <span className="text-13 text-faint">Nothing sent yet</span>
+                              <span className="text-secondary text-faint">Nothing sent yet</span>
                             )}
                           </Td>
                           <Td>
@@ -378,7 +378,7 @@ export function WebhooksSettings() {
                                 {canManage ? <MenuItem onSelect={() => setEditing(hook)}>Choose events</MenuItem> : null}
                                 {canManage ? <MenuItem onSelect={() => setRotating(hook)}>Rotate secret</MenuItem> : null}
                                 <MenuSeparator />
-                                <MenuItem className="text-red" onSelect={() => setRemoving(hook)}>
+                                <MenuItem className="text-bad" onSelect={() => setRemoving(hook)}>
                                   Remove
                                 </MenuItem>
                               </MenuContent>

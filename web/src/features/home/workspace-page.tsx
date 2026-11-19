@@ -23,7 +23,7 @@ function AccountRow({ org, lane }: { org: string; lane: Lane }) {
   const condition = accountCondition(lane, me);
   return (
     <li className="flex items-center justify-between gap-4 px-4 py-3 sm:px-6">
-      <Link to="/$org/lanes/$ws/$name" params={{ org, ws: lane.workspace, name: lane.name }} className="min-w-0 truncate text-14 hover:underline">
+      <Link to="/$org/lanes/$ws/$name" params={{ org, ws: lane.workspace, name: lane.name }} className="min-w-0 truncate text-body hover:underline">
         {accountName(lane)}
       </Link>
       <StateBadge state={condition.state} label={condition.label} sentence={condition.sentence} className="shrink-0" />
@@ -38,12 +38,12 @@ function QueueRow({ org, item }: { org: string; item: QueueLane }) {
   return (
     <li className="grid gap-2 px-4 py-3 sm:px-6">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-        <Link to="/$org/lanes/$ws/$name" params={{ org, ws: item.workspace, name: item.name }} className="min-w-0 truncate text-14 hover:underline">
+        <Link to="/$org/lanes/$ws/$name" params={{ org, ws: item.workspace, name: item.name }} className="min-w-0 truncate text-body hover:underline">
           {laneName(item.name)}
         </Link>
         <Status status={word} />
       </div>
-      {item.note ? <p className="text-13 text-muted">{item.note}</p> : null}
+      {item.note ? <p className="text-secondary text-muted">{item.note}</p> : null}
       <div className="flex flex-wrap gap-2">
         <Button size="sm" asChild>
           <Link to="/$org/lanes/$ws/$name" params={{ org, ws: item.workspace, name: item.name }}>

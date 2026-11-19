@@ -42,7 +42,7 @@ function KeepUpdated({ org, api }: { org: string; api: SiteApiDetail }) {
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-72 p-1">
-        <p className="px-2 pt-1 pb-2 text-12 text-faint">How often should this table read the site?</p>
+        <p className="px-2 pt-1 pb-2 text-caption text-faint">How often should this table read the site?</p>
         {KEEP.map((option) => (
           <button
             key={option.value}
@@ -51,11 +51,11 @@ function KeepUpdated({ org, api }: { org: string; api: SiteApiDetail }) {
               action.mutate({ kind: 'keep-updated', every: option.value });
               setOpen(false);
             }}
-            className="grid w-full grid-cols-[16px_minmax(0,1fr)] gap-x-2 rounded-md px-2 py-2 text-left transition-colors duration-(--duration-fast) ease-standard hover:bg-fill-1 active:bg-fill-2"
+            className="grid w-full grid-cols-[16px_minmax(0,1fr)] gap-x-2 rounded-md px-2 py-2 text-left transition-colors duration-(--duration-fast) ease-standard hover:bg-hover active:bg-pressed"
           >
             <span className="pt-px">{chosen === option.value ? <Check aria-hidden="true" className="size-4" /> : null}</span>
-            <span className="text-13 font-medium">{option.label}</span>
-            <span className="col-start-2 text-12 text-faint">{option.note}</span>
+            <span className="text-secondary font-medium">{option.label}</span>
+            <span className="col-start-2 text-caption text-faint">{option.note}</span>
           </button>
         ))}
       </PopoverContent>
@@ -95,7 +95,7 @@ export function SeeData({ org, api, endpoint }: { org: string; api: SiteApiDetai
           <Search aria-hidden="true" className="pointer-events-none absolute top-2 left-2 size-4 text-faint" />
           <Input aria-label="Find in this table" placeholder={`Find in ${plural(rows.length, 'row')}`} value={query} onChange={(event) => setQuery(event.target.value)} className="pl-8" />
         </div>
-        <Button size="sm" icon={copied ? <Check aria-hidden="true" className="size-4 text-green" /> : <Clipboard aria-hidden="true" className="size-4" />} onClick={() => copy(toTsv(fields, shown))}>
+        <Button size="sm" icon={copied ? <Check aria-hidden="true" className="size-4 text-ok" /> : <Clipboard aria-hidden="true" className="size-4" />} onClick={() => copy(toTsv(fields, shown))}>
           {copied ? 'Copied' : 'Copy for a sheet'}
         </Button>
         <Button size="sm" icon={<Download aria-hidden="true" className="size-4" />} onClick={download}>
@@ -127,7 +127,7 @@ export function SeeData({ org, api, endpoint }: { org: string; api: SiteApiDetai
             </thead>
             <tbody>
               {visible.map((row, rowIndex) => (
-                <Tr key={rowIndex} className="hover:bg-fill-1">
+                <Tr key={rowIndex} className="hover:bg-hover">
                   {fields.map((field, index) => (
                     <Td key={field.key} className={cn('first:pl-4 last:pr-4', index === 1 && 'w-full max-w-0 truncate', field.kind === 'money' || field.kind === 'count' ? 'tabular' : undefined, index === 0 && 'font-medium')}>
                       {row[field.key]}
@@ -139,11 +139,11 @@ export function SeeData({ org, api, endpoint }: { org: string; api: SiteApiDetai
           </Table>
         </div>
       ) : (
-        <p className="border-t border-line p-8 text-center text-14 text-muted">Nothing in this table says "{query}".</p>
+        <p className="border-t border-line p-8 text-center text-body text-muted">Nothing in this table says "{query}".</p>
       )}
       {shown.length > FIRST ? (
         <div className="flex items-center justify-between border-t border-line px-4 py-2">
-          <p className="tabular text-13 text-faint">
+          <p className="tabular text-secondary text-faint">
             {visible.length} of {shown.length}
           </p>
           <Button size="sm" variant="ghost" onClick={() => setAll((value) => !value)}>

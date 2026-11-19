@@ -141,7 +141,7 @@ function EmptyFrame() {
 /** A stretch of days with nothing in it, said once and quietly. */
 function Quiet({ children }: { children: string }) {
   return (
-    <p className="flex items-center gap-3 px-1 text-13 text-faint">
+    <p className="flex items-center gap-3 px-1 text-secondary text-faint">
       <span aria-hidden="true" className="h-px w-6 bg-line" />
       {children}
     </p>
@@ -323,8 +323,8 @@ export function Activity() {
     ) : (
       <Card className="flex flex-col items-center px-6 py-12 text-center">
         <EmptyFrame />
-        <h2 className="mt-4 text-16 font-semibold">Nothing has gone out yet</h2>
-        <p className="mt-1 max-w-sm text-14 text-muted">
+        <h2 className="mt-4 text-section-title">Nothing has gone out yet</h2>
+        <p className="mt-1 max-w-sm text-body text-muted">
           When an agent sends an email, posts, pays an invoice, fills in a form or looks something up, you will see it here, with how we know it worked.
         </p>
       </Card>
@@ -335,8 +335,8 @@ export function Activity() {
         {working.length > 0 ? <WorkingNow org={org} stories={working} /> : null}
         {!newestIsToday ? (
           <section aria-label="Today" className="grid gap-2">
-            <h2 className="text-14 font-semibold">Today</h2>
-            <p className="rounded-xl border border-dashed border-line px-4 py-3 text-13 text-muted">
+            <h2 className="text-body font-semibold">Today</h2>
+            <p className="rounded-xl border border-dashed border-line px-4 py-3 text-secondary text-muted">
               {working.length > 0 ? 'Nothing finished yet today. Something is on its way.' : show === 'problems' ? 'No problems today.' : 'Nothing yet today. The agents are resting.'}
             </p>
           </section>
@@ -459,8 +459,8 @@ export function Activity() {
         <div className={cn(wide && stories.size > 0 && 'grid grid-cols-[minmax(0,1fr)_400px] items-start gap-8')}>
           <div className="min-w-0">{feed}</div>
           {wide && stories.size > 0 ? (
-            <aside aria-label="What happened" className="sticky top-6 max-h-[calc(100dvh-48px)] overflow-y-auto rounded-xl border border-line bg-bg p-5">
-              {selected ? <Chosen org={org} id={selected} stories={stories} /> : <p className="text-14 text-muted">Pick something on the left to see what it did and the proof.</p>}
+            <aside aria-label="What happened" className="sticky top-6 max-h-[calc(100dvh-48px)] overflow-y-auto rounded-xl border border-line bg-card p-5">
+              {selected ? <Chosen org={org} id={selected} stories={stories} /> : <p className="text-body text-muted">Pick something on the left to see what it did and the proof.</p>}
             </aside>
           ) : null}
         </div>

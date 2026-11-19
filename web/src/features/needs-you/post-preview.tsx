@@ -119,7 +119,7 @@ export function PostPreview({ approval, where, color, children, className }: Car
   const Card = CARDS[kind];
   return (
     <div className={cn('relative flex flex-col items-center gap-4 rounded-lg border border-line bg-inset px-4 py-6 sm:px-6', className)}>
-      <span className="inline-flex h-7 items-center gap-2 rounded-full border border-line bg-card px-3 text-12 text-muted">
+      <span className="inline-flex h-7 items-center gap-2 rounded-full border border-line bg-card px-3 text-caption text-muted">
         {where.site ? <SiteMark site={where.site} size={14} label={false} /> : null}
         {stageLabel(kind, where)}
       </span>

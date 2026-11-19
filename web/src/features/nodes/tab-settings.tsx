@@ -23,21 +23,21 @@ export function SettingsTab({ org, node }: { org: string; node: string }) {
   const rows = settings.data;
   return (
     <Panel title="Settings" description="Read-only. Change one in the settings file on this machine, then restart agentos there.">
-      <p className="text-14">
+      <p className="text-body">
         {rows.length} settings, read from the file on the machine and its defaults. Secret values are never shown.
       </p>
       <details open={technical} className="group">
-        <summary className="flex cursor-pointer list-none items-center gap-2 py-2 text-13 text-muted hover:text-fg [&::-webkit-details-marker]:hidden">
+        <summary className="flex cursor-pointer list-none items-center gap-2 py-2 text-secondary text-muted hover:text-fg [&::-webkit-details-marker]:hidden">
           Technical details
         </summary>
         <Card className="mt-2 overflow-hidden">
           <dl className="divide-y divide-line">
             {rows.map((row) => (
               <div key={row.name} className="grid gap-1 px-4 py-3 sm:grid-cols-[minmax(0,12rem)_minmax(0,1fr)] sm:gap-4 sm:px-6">
-                <dt className="mono text-13">{row.name}</dt>
+                <dt className="mono text-secondary">{row.name}</dt>
                 <dd className="min-w-0">
-                  <p className="mono truncate text-13 text-fg">{shown(row.value)}</p>
-                  <p className="mt-1 text-12 text-muted">
+                  <p className="mono truncate text-secondary text-fg">{shown(row.value)}</p>
+                  <p className="mt-1 text-caption text-muted">
                     {row.description} <span className="text-faint">From {row.source}.</span>
                   </p>
                 </dd>

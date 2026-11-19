@@ -27,7 +27,7 @@ const KIND: Record<Brain['kind'], string> = { subscription: 'Subscription', loca
 function ServiceMark({ brain }: { brain: Brain }) {
   if (brain.provider === 'anthropic') return <AgentMark principal={{ kind: 'agent', id: 'claude', thread: null }} size={32} />;
   return (
-    <span aria-hidden="true" className="grid size-8 shrink-0 place-items-center rounded-lg border border-line bg-subtle text-13 font-medium text-muted">
+    <span aria-hidden="true" className="grid size-8 shrink-0 place-items-center rounded-lg border border-line bg-inset text-secondary font-medium text-muted">
       {brain.kind === 'local' ? <Cpu className="size-4" /> : serviceName(brain).charAt(0)}
     </span>
   );
@@ -35,7 +35,7 @@ function ServiceMark({ brain }: { brain: Brain }) {
 
 function Models({ brain }: { brain: Brain }) {
   return (
-    <dl className="mono mt-2 grid gap-1 text-12 text-faint">
+    <dl className="mono mt-2 grid gap-1 text-caption text-faint">
       <div className="flex flex-wrap gap-x-2">
         <dt>{brain.name}</dt>
         <dd>
@@ -104,11 +104,11 @@ export function BrainsSettings() {
                     <ServiceMark brain={brain} />
                     <div className="min-w-0 flex-1">
                       <div className="flex min-w-0 items-center justify-between gap-4">
-                        <p className="truncate text-14 font-medium">{serviceName(brain)}</p>
+                        <p className="truncate text-label">{serviceName(brain)}</p>
                         <StateBadge state={STATE[brain.state]} label={brainState[brain.state].label} className="shrink-0" />
                       </div>
-                      <p className="mt-1 max-w-xl text-13 text-pretty text-muted">{serviceSentence(brain, workers)}</p>
-                      <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-13 text-faint">
+                      <p className="mt-1 max-w-xl text-secondary text-pretty text-muted">{serviceSentence(brain, workers)}</p>
+                      <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-secondary text-faint">
                         {brain.computer ? <span>Kept on {computerName(brain.computer)}</span> : null}
                         {brain.window_used_pct !== null ? (
                           <span className="flex items-center gap-2">
@@ -147,7 +147,7 @@ export function BrainsSettings() {
           }
         </QueryView>
       </Card>
-      <p className="mt-3 flex items-start gap-2 text-13 text-pretty text-muted">
+      <p className="mt-3 flex items-start gap-2 text-secondary text-pretty text-muted">
         <span className="grid h-5 shrink-0 place-items-center text-faint"><Lock aria-hidden="true" className="size-3" /></span>
         Each one lives on a computer of yours, and agentos never holds a key.{technical ? ' Your agents try these from the top down.' : ''}
       </p>

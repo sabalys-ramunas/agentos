@@ -56,12 +56,12 @@ function Trigger({ trigger, onChange, catalog, workspace }: { trigger: RoutineTr
               role="radio"
               aria-checked={chosen}
               onClick={() => !chosen && onChange({ kind, label: null, cron: kind === 'schedule' ? '0 9 * * 1-5' : null })}
-              className={cn('flex items-start gap-3 rounded-lg border p-2 text-left transition-colors duration-(--duration-fast) ease-standard', chosen ? 'border-fg' : 'border-transparent hover:bg-fill-1')}
+              className={cn('flex items-start gap-3 rounded-lg border p-2 text-left transition-colors duration-(--duration-fast) ease-standard', chosen ? 'border-fg' : 'border-transparent hover:bg-hover')}
             >
               <Icon aria-hidden="true" className="translate-y-0.5 size-4 shrink-0 text-muted" />
               <span className="min-w-0 flex-1">
-                <span className="block text-14 font-medium">{TRIGGER_WORDS[kind].word}</span>
-                {chosen ? <span className="block text-13 text-pretty text-muted">{TRIGGER_WORDS[kind].hint}</span> : null}
+                <span className="block text-label">{TRIGGER_WORDS[kind].word}</span>
+                {chosen ? <span className="block text-secondary text-pretty text-muted">{TRIGGER_WORDS[kind].hint}</span> : null}
               </span>
               {chosen ? <Check aria-hidden="true" className="translate-y-0.5 size-4 shrink-0" /> : null}
             </button>
@@ -85,16 +85,16 @@ function Trigger({ trigger, onChange, catalog, workspace }: { trigger: RoutineTr
       ) : null}
       {trigger.kind === 'webhook' ? (
         <div className="grid gap-2 rounded-lg border border-line p-3">
-          <p className="text-13 font-medium">The private address</p>
+          <p className="text-secondary font-medium">The private address</p>
           {trigger.hook ? (
             <p className="flex items-center gap-2">
-              <span className="mono min-w-0 flex-1 truncate text-12">{trigger.hook.url}</span>
+              <span className="mono min-w-0 flex-1 truncate text-caption">{trigger.hook.url}</span>
               <CopyButton text={trigger.hook.url} label="Copy the address" />
             </p>
           ) : (
-            <p className="text-13 text-muted">You get it once this is saved, with a signing secret shown one time.</p>
+            <p className="text-secondary text-muted">You get it once this is saved, with a signing secret shown one time.</p>
           )}
-          <p className="flex items-start gap-2 text-12 text-pretty text-faint">
+          <p className="flex items-start gap-2 text-caption text-pretty text-faint">
             <Lock aria-hidden="true" className="size-3 shrink-0 translate-y-0.5" />
             Only signed requests get through, and a replay is ignored. Your computer stays closed to the internet.
           </p>
@@ -116,7 +116,7 @@ function Trigger({ trigger, onChange, catalog, workspace }: { trigger: RoutineTr
         </Field>
       ) : null}
       {trigger.kind === 'email' || trigger.kind === 'webhook' || trigger.kind === 'page_change' ? (
-        <p className="flex items-start gap-2 text-13 text-pretty text-muted">
+        <p className="flex items-start gap-2 text-secondary text-pretty text-muted">
           <ShieldAlert aria-hidden="true" className="size-4 shrink-0 translate-y-0.5 text-faint" />
           What comes in here is written by someone outside. It can fill in words, and never decides what this routine does.
         </p>
@@ -130,18 +130,18 @@ function SendRules({ limit, listSuppressed }: { limit: RoutineSendLimit | undefi
   const daily = limit?.daily_limit ?? 200;
   const sent = limit?.sent_today ?? 0;
   return (
-    <div className="grid gap-2 rounded-lg bg-subtle p-3">
-      <p className="flex items-center gap-2 text-13 font-medium">
+    <div className="grid gap-2 rounded-lg bg-inset p-3">
+      <p className="flex items-center gap-2 text-secondary font-medium">
         <Lock aria-hidden="true" className="size-3 text-faint" />
         Always true for this step
       </p>
       <div className="flex items-center gap-2">
         <Meter value={sent} max={daily} label="Sent today" className="w-24 shrink-0" />
-        <span className="tabular text-12 text-muted">
+        <span className="tabular text-caption text-muted">
           {sent} of {daily} today
         </span>
       </div>
-      <ul className="grid gap-1 text-13 text-muted">
+      <ul className="grid gap-1 text-secondary text-muted">
         <li>Stops at {daily} a day</li>
         <li>Skips {listSuppressed === null ? 'anyone' : plural(listSuppressed, 'person', 'people')} who asked not to hear from you</li>
         <li>Every email carries an unsubscribe link</li>
@@ -170,7 +170,7 @@ function Condition({ condition, onChange, definition, id, catalog }: { condition
           </Field>
         ) : null}
       </div>
-      {blocked.length ? <p className="text-13 text-pretty text-faint">{blocked.map((field) => field.label).join(', ')} came from outside, so it cannot decide this.</p> : null}
+      {blocked.length ? <p className="text-secondary text-pretty text-faint">{blocked.map((field) => field.label).join(', ')} came from outside, so it cannot decide this.</p> : null}
     </div>
   );
 }
@@ -197,19 +197,19 @@ const pretty = (value: unknown) => (Array.isArray(value) ? value.join(', ') : St
 /** What this step really took in and gave out last time. */
 function LastRun({ ran }: { ran: RoutineStepRun | undefined }) {
   const [technical] = useTechnical();
-  if (!ran || (!ran.input && !ran.output)) return <p className="text-13 text-muted">Its data shows here after the first run.</p>;
+  if (!ran || (!ran.input && !ran.output)) return <p className="text-secondary text-muted">Its data shows here after the first run.</p>;
   const block = (title: string, values: Record<string, unknown> | null) =>
     values ? (
       <div className="min-w-0">
         <p className="silk mb-1">{title}</p>
         {technical ? (
-          <pre className="mono overflow-x-auto rounded-md bg-subtle p-2 text-12">{JSON.stringify(values, null, 2)}</pre>
+          <pre className="mono overflow-x-auto rounded-md bg-inset p-2 text-caption">{JSON.stringify(values, null, 2)}</pre>
         ) : (
           <dl className="grid gap-1">
             {Object.entries(values)
               .filter(([, value]) => value !== null)
               .map(([key, value]) => (
-                <div key={key} className="flex justify-between gap-4 text-13">
+                <div key={key} className="flex justify-between gap-4 text-secondary">
                   <dt className="shrink-0 text-faint">{key.replaceAll('_', ' ')}</dt>
                   <dd className="min-w-0 truncate">{pretty(value)}</dd>
                 </div>
@@ -229,7 +229,7 @@ function LastRun({ ran }: { ran: RoutineStepRun | undefined }) {
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="grid gap-3 border-t border-line pt-4">
-      <h3 className="text-13 font-medium text-muted">{title}</h3>
+      <h3 className="text-secondary font-medium text-muted">{title}</h3>
       {children}
     </section>
   );
@@ -251,7 +251,7 @@ export function Inspector({ target, step, definition, flow, catalog, ran, onStep
   if (target === TRIGGER_TARGET) {
     return (
       <div className="grid gap-4">
-        <h2 className="text-16 font-semibold">How it starts</h2>
+        <h2 className="text-section-title">How it starts</h2>
         <Trigger trigger={definition.trigger} onChange={onTrigger} catalog={catalog} workspace={definition.workspace} />
       </div>
     );
@@ -266,7 +266,7 @@ export function Inspector({ target, step, definition, flow, catalog, ran, onStep
     <div className="grid gap-4">
       <div>
         <p className="silk">{STEP_WORDS[step.kind].silk}</p>
-        <h2 className="mt-1 text-16 font-semibold">{step.label.charAt(0).toUpperCase() + step.label.slice(1)}</h2>
+        <h2 className="mt-1 text-section-title">{step.label.charAt(0).toUpperCase() + step.label.slice(1)}</h2>
       </div>
       {step.kind === 'action' ? (
         <>
@@ -279,7 +279,7 @@ export function Inspector({ target, step, definition, flow, catalog, ran, onStep
             />
           </Field>
           {operation ? (
-            <p className="flex items-center gap-2 text-13 text-muted">
+            <p className="flex items-center gap-2 text-secondary text-muted">
               <SiteMark site={operation.lane} size={16} label={false} />
               {EFFECT_WORDS[operation.effect].word}
               {operation.effect === 'pay' || operation.effect === 'irreversible' ? (
@@ -344,7 +344,7 @@ export function Inspector({ target, step, definition, flow, catalog, ran, onStep
       {step.kind === 'ask' ? (
         <>
           <DataField label="What to ask" multiline sources={sources} value={step.question} onChange={(question) => onStep((current) => ({ ...current, question } as RoutineStep), `${step.id}.question`)} />
-          <p className="flex items-start gap-2 text-13 text-pretty text-muted">
+          <p className="flex items-start gap-2 text-secondary text-pretty text-muted">
             <Lock aria-hidden="true" className="size-4 shrink-0 translate-y-0.5 text-faint" />
             The routine stops here until someone says yes in Needs you.
           </p>
@@ -358,7 +358,7 @@ export function Inspector({ target, step, definition, flow, catalog, ran, onStep
         <LastRun ran={ran} />
       </Section>
       {technical ? (
-        <p className="mono text-12 break-all text-faint">
+        <p className="mono text-caption break-all text-faint">
           {step.id}
           {step.kind === 'action' && step.operation ? ` · ${step.operation}` : ''}
         </p>

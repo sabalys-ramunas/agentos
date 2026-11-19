@@ -81,7 +81,7 @@ function Body({ kind, accent }: { kind: WorkKind; accent: string }) {
       return (
         <div className="grid grid-cols-3 gap-px overflow-hidden rounded-sm bg-fg/10">
           {Array.from({ length: 9 }, (_, cell) => (
-            <span key={cell} className="flex h-3 items-center bg-bg px-1">
+            <span key={cell} className="flex h-3 items-center bg-card px-1">
               <span className={cn(bar, 'h-1 w-full', cell < 3 && 'bg-fg/25', cell === 5 && 'bg-transparent')} style={cell === 5 ? { background: accent, opacity: 0.6 } : undefined} />
             </span>
           ))}
@@ -166,14 +166,14 @@ export function StandIn({ site, title, line, compact = false, className }: Stand
   };
   return (
     <div aria-hidden="true" data-stand-in={kind} style={style} className={cn('absolute inset-0 flex flex-col items-center justify-center overflow-hidden', compact ? 'p-3' : 'px-4 pt-2 pb-9', className)}>
-      <div className={cn('w-full rounded-lg border border-fg/8 bg-bg/90 shadow-[0_1px_2px_rgb(0_0_0/0.04),0_8px_24px_-12px_rgb(0_0_0/0.18)]', compact ? 'max-w-[82%] p-2' : 'max-w-[58%] p-3')}>
+      <div className={cn('w-full rounded-lg border border-fg/8 bg-card/90 shadow-[0_1px_2px_rgb(0_0_0/0.04),0_8px_24px_-12px_rgb(0_0_0/0.18)]', compact ? 'max-w-[82%] p-2' : 'max-w-[58%] p-3')}>
         <div className="mb-2 flex min-w-0 items-center gap-2">
           <SiteMark site={site} size={compact ? 14 : 16} label={false} />
-          {title && !compact ? <span className="min-w-0 truncate text-11 font-medium text-muted">{title}</span> : <span className={cn(bar, 'w-1/3')} />}
+          {title && !compact ? <span className="min-w-0 truncate text-micro text-muted">{title}</span> : <span className={cn(bar, 'w-1/3')} />}
         </div>
         <Body kind={kind} accent={accent} />
       </div>
-      {line && !compact ? <p className="mt-2 max-w-[86%] truncate text-12 text-muted">{line}</p> : null}
+      {line && !compact ? <p className="mt-2 max-w-[86%] truncate text-caption text-muted">{line}</p> : null}
     </div>
   );
 }

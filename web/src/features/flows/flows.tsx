@@ -43,10 +43,10 @@ export function SiteStack({ sites }: { sites: string[] }) {
   const from = sites.length > 1 ? sites[0] : null;
   return (
     <span aria-hidden="true" className="relative block size-10 shrink-0">
-      <SiteMark site={main} size={40} tile label={false} className="bg-bg" />
+      <SiteMark site={main} size={40} tile label={false} className="bg-card" />
       {from ? (
-        <span className="absolute -right-1.5 -bottom-1.5 rounded-md bg-bg p-px">
-          <SiteMark site={from} size={20} tile label={false} className="bg-bg" />
+        <span className="absolute -right-1.5 -bottom-1.5 rounded-md bg-card p-px">
+          <SiteMark site={from} size={20} tile label={false} className="bg-card" />
         </span>
       ) : null}
     </span>
@@ -60,10 +60,10 @@ function Hero({ flows, ran, checked, soonest }: { flows: Flow[]; ran: number | n
   const rest = stuck || waiting ? `The other ${flows.length - stuck - waiting} are fine.` : 'Nothing needs you.';
   return (
     <div className="max-w-3xl">
-      <h1 className="text-32 font-semibold text-balance sm:text-[40px] sm:leading-[44px] sm:tracking-[-0.045em]">
+      <h1 className="text-headline text-balance sm:text-[40px] sm:leading-[44px] sm:tracking-[-0.045em]">
         {lead} <span className="text-faint">{rest}</span>
       </h1>
-      <p className="mt-3 max-w-2xl text-16 text-pretty text-muted">
+      <p className="mt-3 max-w-2xl text-lede text-pretty text-muted">
         {ran === null ? (
           <span className="invisible">Loading</span>
         ) : ran === 0 ? (
@@ -95,20 +95,20 @@ function Problem({ org, flow, business }: { org: string; flow: Flow; business: W
   const site = (stuck ? flow.sites?.at(-1) : flow.sites?.[0]) ?? '';
   const [ws, lane] = (stuck?.lane ?? '').split('/');
   return (
-    <li className={cn('grid gap-4 rounded-(--radius-card) border bg-bg p-4 shadow-(--shadow-card) sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center', stuck ? 'border-(--stuck-line)' : 'border-(--wait-line)')}>
+    <li className={cn('grid gap-4 rounded-(--radius-card) border bg-card p-4 shadow-(--shadow-card) sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center', stuck ? 'border-(--stuck-line)' : 'border-(--wait-line)')}>
       <span className="relative hidden sm:block">
-        <SiteMark site={site} size={40} tile label={false} className="bg-bg" />
-        <span className="absolute -top-1 -right-1 rounded-full bg-bg p-px">
+        <SiteMark site={site} size={40} tile label={false} className="bg-card" />
+        <span className="absolute -top-1 -right-1 rounded-full bg-card p-px">
           <StateGlyph state={stuck ? 'stuck' : 'waiting'} size={16} />
         </span>
       </span>
       <div className="min-w-0">
-        <p className="flex items-center gap-2 text-12 text-faint">
+        <p className="flex items-center gap-2 text-caption text-faint">
           {business ? <BusinessMark name={business.name} color={business.color} size={16} /> : null}
           {business?.name}
         </p>
-        <h3 className="mt-1 text-16 font-semibold">{stuck ? `${routineTitle(flow)} stopped at "${stuck.label}"` : `${routineTitle(flow)} is waiting for you`}</h3>
-        <p className="mt-1 text-14 text-pretty text-muted">{stuck ? stuck.words : 'It wrote this week\'s email and will send it once you say yes.'}</p>
+        <h3 className="mt-1 text-section-title">{stuck ? `${routineTitle(flow)} stopped at "${stuck.label}"` : `${routineTitle(flow)} is waiting for you`}</h3>
+        <p className="mt-1 text-body text-pretty text-muted">{stuck ? stuck.words : 'It wrote this week\'s email and will send it once you say yes.'}</p>
       </div>
       <div className="flex gap-2 sm:justify-end">
         {stuck?.fix && ws && lane ? (
@@ -139,9 +139,9 @@ function Facts({ flow, canDecide }: { flow: Flow; canDecide: boolean }) {
   const ask = routineAsk(flow, canDecide);
   const next = flow.enabled === false ? 'Paused' : flow.next_at ? `Next ${whenNext(flow.next_at)}` : flow.trigger?.kind === 'schedule' ? null : 'When it is needed';
   return (
-    <span className="tabular block min-w-0 text-13 md:text-right">
+    <span className="tabular block min-w-0 text-secondary md:text-right">
       <span className="block truncate text-muted">{flow.latest ? `${flow.latest.status === 'failed' ? 'Did not work' : flow.latest.result}, ${timeAgo(flow.latest.at).toLowerCase()}` : 'Has not run yet'}</span>
-      <span className="flex items-center gap-2 truncate text-12 text-faint md:justify-end">
+      <span className="flex items-center gap-2 truncate text-caption text-faint md:justify-end">
         {flow.enabled === false ? <Pause aria-hidden="true" className="size-3 shrink-0" /> : null}
         {next}
         {ask?.asks ? (
@@ -165,12 +165,12 @@ function Row({ org, flow, catalog }: { org: string; flow: Flow; catalog: Routine
       <Link
         to="/$org/flows/$flow"
         params={{ org, flow: flow.id }}
-        className="group/row -mx-2 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 gap-y-1 rounded-lg px-2 py-3 transition-colors duration-(--duration-fast) ease-standard hover:bg-fill-1 md:grid-cols-[auto_minmax(0,1fr)_minmax(0,18rem)_auto]"
+        className="group/row -mx-2 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 gap-y-1 rounded-lg px-2 py-3 transition-colors duration-(--duration-fast) ease-standard hover:bg-hover md:grid-cols-[auto_minmax(0,1fr)_minmax(0,18rem)_auto]"
       >
         <SiteStack sites={routineSites(flow)} />
         <span className="min-w-0">
-          <span className="block truncate text-14 font-medium">{routineTitle(flow)}</span>
-          <span className="line-clamp-2 text-13 text-pretty text-muted md:line-clamp-1">{routineSentence(flow, catalog)}</span>
+          <span className="block truncate text-label">{routineTitle(flow)}</span>
+          <span className="line-clamp-2 text-secondary text-pretty text-muted md:line-clamp-1">{routineSentence(flow, catalog)}</span>
         </span>
         <span className="col-start-2 md:col-start-auto">
           <Facts flow={flow} canDecide={canDecide} />
@@ -188,7 +188,7 @@ function Business({ org, name, color, flows, catalog }: { org: string; name: str
     <section aria-label={name}>
       <div className="mb-2 flex items-center gap-2">
         <BusinessMark name={name} color={color} size={20} />
-        <h2 className="text-16 font-semibold">{name}</h2>
+        <h2 className="text-section-title">{name}</h2>
         <Count value={flows.length} />
       </div>
       <ul className="divide-y divide-line">
@@ -248,8 +248,8 @@ function Everything({ org, flows, workspaces }: { org: string; flows: Flow[]; wo
                 aria-checked={show === pill.value}
                 onClick={() => setShow(pill.value)}
                 className={cn(
-                  'tabular flex h-8 shrink-0 items-center gap-2 rounded-full px-3 text-13 transition-colors duration-(--duration-fast) ease-standard',
-                  show === pill.value ? 'bg-fill-2 text-fg' : 'text-muted hover:bg-fill-1 hover:text-fg',
+                  'tabular flex h-8 shrink-0 items-center gap-2 rounded-full px-3 text-secondary transition-colors duration-(--duration-fast) ease-standard',
+                  show === pill.value ? 'bg-pressed text-fg' : 'text-muted hover:bg-hover hover:text-fg',
                 )}
               >
                 {pill.label}
@@ -268,7 +268,7 @@ function Everything({ org, flows, workspaces }: { org: string; flows: Flow[]; wo
           return <Business key={key} org={org} name={business?.name ?? key} color={business?.color} flows={ordered(items)} catalog={catalog} />;
         })
       ) : (
-        <p className="py-8 text-center text-14 text-muted">Nothing matches. Try another word.</p>
+        <p className="py-8 text-center text-body text-muted">Nothing matches. Try another word.</p>
       )}
     </div>
   );
@@ -360,12 +360,12 @@ export function Flows() {
       <header className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4">
         <Hero flows={visible} ran={day.data?.ran_today ?? null} checked={day.data?.checked_today ?? null} soonest={soonest} />
         {newRoutine}
-        <nav aria-label="Routines views" className="col-span-2 flex gap-1 text-13">
+        <nav aria-label="Routines views" className="col-span-2 flex gap-1 text-secondary">
           {[
             { label: 'Today', search: {}, on: tab !== 'schedules' },
             { label: 'The week ahead', search: { tab: 'schedules' as const }, on: tab === 'schedules' },
           ].map((view) => (
-            <Link key={view.label} to="/$org/flows" params={{ org }} search={view.search} replace aria-current={view.on ? 'page' : undefined} className={cn('flex h-8 items-center rounded-full px-3 transition-colors duration-(--duration-fast) ease-standard', view.on ? 'bg-fill-2 text-fg' : 'text-muted hover:bg-fill-1 hover:text-fg')}>
+            <Link key={view.label} to="/$org/flows" params={{ org }} search={view.search} replace aria-current={view.on ? 'page' : undefined} className={cn('flex h-8 items-center rounded-full px-3 transition-colors duration-(--duration-fast) ease-standard', view.on ? 'bg-pressed text-fg' : 'text-muted hover:bg-hover hover:text-fg')}>
               {view.label}
             </Link>
           ))}
@@ -376,7 +376,7 @@ export function Flows() {
           <WeekAhead org={org} flows={visible} schedules={visibleSchedules} onNew={canOperate ? () => setAdding(true) : undefined} />
           {visibleSchedules.length ? (
             <details open={technical} className="group/more">
-              <summary className="cursor-pointer text-14 text-muted hover:text-fg">Pause or remove a schedule</summary>
+              <summary className="cursor-pointer text-body text-muted hover:text-fg">Pause or remove a schedule</summary>
               <div className="mt-4">
                 <SchedulesPanel org={org} schedules={visibleSchedules} titles={titles} canOperate={canOperate} onDelete={setDeleting} />
               </div>

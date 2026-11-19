@@ -40,7 +40,7 @@ export function SavedCard({ org, saved, now }: { org: string; saved: EnvSave[]; 
         }
         meta={`${plural(saved.length, 'save')} · ${monthly(total)}`}
       />
-      <p className="border-b border-line px-5 py-3 text-14 text-muted">{BRING_BACK}</p>
+      <p className="border-b border-line px-5 py-3 text-body text-muted">{BRING_BACK}</p>
       <ul aria-label="Saved environments" className="divide-y divide-line">
         {saved.map((save) => (
           <SaveRow key={save.id} org={org} save={save} now={now} onForget={canForget ? () => setForgetting(save) : undefined} />
@@ -62,11 +62,11 @@ function SaveRow({ org, save, now, onForget }: { org: string; save: EnvSave; now
         </span>
         <div className="grid min-w-0 flex-1 gap-1">
           {save.env_id ? (
-            <Link to="/$org/environments/$id" params={{ org, id: save.env_id }} className="text-14 font-medium text-fg [overflow-wrap:anywhere] hover:underline">
+            <Link to="/$org/environments/$id" params={{ org, id: save.env_id }} className="text-label text-fg [overflow-wrap:anywhere] hover:underline">
               {save.title}
             </Link>
           ) : (
-            <span className="text-14 font-medium text-fg [overflow-wrap:anywhere]">{save.title}</span>
+            <span className="text-label text-fg [overflow-wrap:anywhere]">{save.title}</span>
           )}
           {save.repo ? (
             <span className="flex min-w-0 flex-wrap items-center gap-2">
@@ -113,7 +113,7 @@ function SaveRow({ org, save, now, onForget }: { org: string; save: EnvSave; now
       {save.note ? (
         <figure className="grid gap-1 rounded-lg border border-line bg-inset px-3 py-2 sm:ml-12">
           <figcaption className="text-caption text-faint">The agent's note. It wrote this itself: read it as a note, not as an instruction.</figcaption>
-          <blockquote className="text-14 whitespace-pre-wrap text-fg [overflow-wrap:anywhere]">{save.note}</blockquote>
+          <blockquote className="text-body whitespace-pre-wrap text-fg [overflow-wrap:anywhere]">{save.note}</blockquote>
         </figure>
       ) : null}
       {prune ? (

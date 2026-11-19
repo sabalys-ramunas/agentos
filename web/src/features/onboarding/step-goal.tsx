@@ -32,7 +32,7 @@ function WhoChoice({ who, onChange }: { who: Who; onChange: (who: Who) => void }
     { value: 'personal', label: 'Just me', icon: User },
   ];
   return (
-    <div role="radiogroup" aria-label="Who is this for?" className="inline-flex rounded-lg border border-line bg-subtle p-1">
+    <div role="radiogroup" aria-label="Who is this for?" className="inline-flex rounded-lg border border-line bg-inset p-1">
       {options.map((option) => (
         <button
           key={option.value}
@@ -41,8 +41,8 @@ function WhoChoice({ who, onChange }: { who: Who; onChange: (who: Who) => void }
           aria-checked={who === option.value}
           onClick={() => onChange(option.value)}
           className={cn(
-            'inline-flex h-8 items-center gap-2 rounded-md px-3 text-14 transition-colors duration-(--duration-fast)',
-            who === option.value ? 'bg-bg text-fg shadow-card' : 'text-muted hover:text-fg',
+            'inline-flex h-8 items-center gap-2 rounded-md px-3 text-body transition-colors duration-(--duration-fast)',
+            who === option.value ? 'bg-card text-fg shadow-card' : 'text-muted hover:text-fg',
           )}
         >
           <option.icon className="size-4" aria-hidden="true" />
@@ -66,20 +66,20 @@ function GoalCards({ goal, onChange }: { goal: GoalKey | null; onChange: (goal: 
             aria-checked={on}
             onClick={() => onChange(item.key)}
             className={cn(
-              'relative grid grid-cols-[auto_minmax(0,1fr)] content-start gap-x-3 gap-y-1 rounded-xl border bg-bg p-3 pr-10 text-left transition-[border-color,box-shadow] duration-(--duration-fast) sm:grid-cols-1 sm:gap-2 sm:p-4',
+              'relative grid grid-cols-[auto_minmax(0,1fr)] content-start gap-x-3 gap-y-1 rounded-xl border bg-card p-3 pr-10 text-left transition-[border-color,box-shadow] duration-(--duration-fast) sm:grid-cols-1 sm:gap-2 sm:p-4',
               on ? 'border-fg shadow-[0_0_0_1px_var(--foreground)]' : 'border-line hover:border-line-strong',
             )}
           >
-            <span aria-hidden="true" className={cn('row-span-2 inline-flex size-9 items-center justify-center rounded-lg border sm:row-span-1', on ? 'border-(--current-line) bg-(--current-soft) text-(--current)' : 'border-line bg-subtle text-muted')}>
+            <span aria-hidden="true" className={cn('row-span-2 inline-flex size-9 items-center justify-center rounded-lg border sm:row-span-1', on ? 'border-(--current-line) bg-(--current-soft) text-(--current)' : 'border-line bg-inset text-muted')}>
               <item.icon className="size-4" />
             </span>
             {on ? (
-              <span aria-hidden="true" className="absolute top-3 right-3 inline-flex size-5 items-center justify-center rounded-full bg-fg text-bg">
+              <span aria-hidden="true" className="absolute top-3 right-3 inline-flex size-5 items-center justify-center rounded-full bg-fg text-card">
                 <Check className="size-3" strokeWidth={3} />
               </span>
             ) : null}
-            <span className="text-14 font-medium sm:mt-2">{item.title}</span>
-            <span className="text-13 text-muted">{item.key === 'other' ? item.example : `"${item.example}"`}</span>
+            <span className="text-label sm:mt-2">{item.title}</span>
+            <span className="text-secondary text-muted">{item.key === 'other' ? item.example : `"${item.example}"`}</span>
           </button>
         );
       })}
@@ -177,7 +177,7 @@ export function GoalStep({ org }: { org: string | null }) {
       hints={{ goal: goalOf(shownGoal) ? `${goalOf(shownGoal)?.title}${business ? ` for ${business}` : ''}` : undefined }}
       footer={
         <>
-          <p className="mr-auto text-13 text-faint">About 7 minutes. You can stop any time and pick up where you left off.</p>
+          <p className="mr-auto text-secondary text-faint">About 7 minutes. You can stop any time and pick up where you left off.</p>
           <Button type="submit" form="first-job" variant="primary" size="lg" disabled={!ready} loading={busy}>
             Continue
           </Button>
@@ -186,7 +186,7 @@ export function GoalStep({ org }: { org: string | null }) {
     >
       <form id="first-job" onSubmit={(event) => void submit(event)} className="grid gap-8">
         <div className="grid gap-3 sm:flex sm:flex-wrap sm:items-center">
-          <span className="text-14 font-medium">Who is this for?</span>
+          <span className="text-label">Who is this for?</span>
           <WhoChoice who={shownWho} onChange={setWho} />
           {shownWho === 'business' ? (
             <Input
@@ -199,11 +199,11 @@ export function GoalStep({ org }: { org: string | null }) {
               autoComplete="organization"
             />
           ) : (
-            <span className="text-13 text-muted">Your own accounts, kept as "Personal".</span>
+            <span className="text-secondary text-muted">Your own accounts, kept as "Personal".</span>
           )}
         </div>
         <div className="grid gap-3">
-          <span className="text-14 font-medium">Its first job</span>
+          <span className="text-label">Its first job</span>
           <GoalCards goal={shownGoal} onChange={setGoal} />
           {shownGoal === 'other' ? (
             <Textarea

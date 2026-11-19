@@ -34,11 +34,11 @@ function Values({ title, values, technical }: { title: string; values: Record<st
     <div className="min-w-0">
       <p className="silk mb-1">{title}</p>
       {technical ? (
-        <pre className="mono overflow-x-auto rounded-md bg-subtle p-2 text-12">{JSON.stringify(values, null, 2)}</pre>
+        <pre className="mono overflow-x-auto rounded-md bg-inset p-2 text-caption">{JSON.stringify(values, null, 2)}</pre>
       ) : (
         <dl className="grid gap-1">
           {entries.map(([key, value]) => (
-            <div key={key} className="grid grid-cols-[auto_minmax(0,1fr)] gap-3 text-13">
+            <div key={key} className="grid grid-cols-[auto_minmax(0,1fr)] gap-3 text-secondary">
               <dt className="text-faint">{key.replaceAll('_', ' ')}</dt>
               <dd className="text-right break-words">{Array.isArray(value) ? value.join(', ') : String(value)}</dd>
             </div>
@@ -60,12 +60,12 @@ function StepRow({ step, longest, onRetry, retrying, canRetry }: { step: Routine
       <button type="button" disabled={!detail} aria-expanded={open} onClick={() => setOpen(!open)} className="flex w-full items-center gap-2 py-3 text-left">
         <ChevronRight aria-hidden="true" className={cn('size-4 shrink-0 text-faint transition-transform duration-(--duration-fast) ease-standard', open && 'rotate-90', !detail && 'invisible')} />
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-14">{step.label.charAt(0).toUpperCase() + step.label.slice(1)}</span>
-          {step.short ? <span className="block truncate text-12 text-faint">{step.short}</span> : null}
+          <span className="block truncate text-body">{step.label.charAt(0).toUpperCase() + step.label.slice(1)}</span>
+          {step.short ? <span className="block truncate text-caption text-faint">{step.short}</span> : null}
         </span>
         {took !== null ? (
           <span className="flex w-20 shrink-0 flex-col items-end gap-1">
-            <span className="mono tabular text-12 text-faint">{elapsed(took)}</span>
+            <span className="mono tabular text-caption text-faint">{elapsed(took)}</span>
             <span aria-hidden="true" className="block h-0.5 rounded-full bg-fg/40" style={{ width: `${Math.max(6, (took / longest) * 100)}%` }} />
           </span>
         ) : null}
@@ -74,13 +74,13 @@ function StepRow({ step, longest, onRetry, retrying, canRetry }: { step: Routine
       {open && detail ? (
         <div className="grid gap-3 pb-4 pl-6">
           {step.note ? (
-            <p className="flex items-start gap-2 text-13 text-pretty">
+            <p className="flex items-start gap-2 text-secondary text-pretty">
               {failed ? <StateGlyph state="stuck" size={14} className="translate-y-0.5" /> : null}
               {step.note}
             </p>
           ) : null}
           {step.items?.length ? (
-            <ul className="grid gap-1 text-13 text-muted">
+            <ul className="grid gap-1 text-secondary text-muted">
               {step.items.map((item) => (
                 <li key={item.label}>{item.label}</li>
               ))}
@@ -95,7 +95,7 @@ function StepRow({ step, longest, onRetry, retrying, canRetry }: { step: Routine
               <Button size="sm" icon={<RotateCcw className="size-3" />} loading={retrying} onClick={onRetry}>
                 Try this step again
               </Button>
-              <p className="mt-1 text-12 text-faint">It starts from here. Steps that already worked are kept, and nothing is sent twice.</p>
+              <p className="mt-1 text-caption text-faint">It starts from here. Steps that already worked are kept, and nothing is sent twice.</p>
             </div>
           ) : null}
         </div>
@@ -135,7 +135,7 @@ export function RunSheet({ org, flow, run, catalog, site, onClose }: { org: stri
             />
           ))}
         </ol>
-        {technical ? <p className="mono text-12 break-all text-faint">{run.id} · v{run.version} · ${run.cost.usd.toFixed(2)}</p> : null}
+        {technical ? <p className="mono text-caption break-all text-faint">{run.id} · v{run.version} · ${run.cost.usd.toFixed(2)}</p> : null}
       </div>
     </Drawer>
   );

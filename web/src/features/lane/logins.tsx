@@ -33,10 +33,10 @@ function Progress({ queue }: { queue: LoginQueue }) {
   return (
     <Card className="mb-6 p-4">
       <div className="flex items-baseline justify-between gap-4">
-        <p className="text-14 font-medium">
+        <p className="text-label">
           <span className="tabular">{queue.ready}</span> of <span className="tabular">{queue.total}</span> accounts ready
         </p>
-        <p className="tabular text-13 text-faint">
+        <p className="tabular text-secondary text-faint">
           {plural(queue.needs_login, 'login')} to go
           {queue.needs_attention ? `, ${queue.needs_attention} to look at` : ''}
         </p>
@@ -44,10 +44,10 @@ function Progress({ queue }: { queue: LoginQueue }) {
       <Meter value={queue.ready} max={queue.total} label="Accounts ready" className="mt-2" />
       <ul className="mt-4 grid gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
         {queue.workspaces.map((workspace) => (
-          <li key={workspace.id} className="flex items-center gap-2 text-13">
+          <li key={workspace.id} className="flex items-center gap-2 text-secondary">
             <span className="min-w-0 flex-1 truncate text-muted">{workspace.name}</span>
             <Meter value={workspace.ready} max={Math.max(1, workspace.total)} label={`${workspace.name} accounts ready`} className="w-16 shrink-0" />
-            <span className="mono tabular w-10 shrink-0 text-right text-12 text-faint">
+            <span className="mono tabular w-10 shrink-0 text-right text-caption text-faint">
               {workspace.ready}/{workspace.total}
             </span>
           </li>
@@ -65,14 +65,14 @@ function QueueRow({ item, current, workspace, onPick }: { item: QueueLane; curre
       aria-current={current || undefined}
       className={cn(
         'focus-inset flex w-full items-center gap-2 px-4 py-2 text-left transition-colors duration-(--duration-fast) ease-standard',
-        current ? 'bg-fill-2' : 'hover:bg-fill-1',
+        current ? 'bg-pressed' : 'hover:bg-hover',
       )}
     >
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-14">{laneName(item.name)}</span>
-        <span className="block truncate text-12 text-faint">{item.note ? `${workspace}: ${item.note}` : workspace}</span>
+        <span className="block truncate text-body">{laneName(item.name)}</span>
+        <span className="block truncate text-caption text-faint">{item.note ? `${workspace}: ${item.note}` : workspace}</span>
       </span>
-      {item.readiness === 'needs_attention' ? <Status status={{ label: 'Look at this', tone: 'warn' }} className="text-12" /> : null}
+      {item.readiness === 'needs_attention' ? <Status status={{ label: 'Look at this', tone: 'warn' }} className="text-caption" /> : null}
       <ChevronRight className="size-4 text-faint" />
     </button>
   );
@@ -124,14 +124,14 @@ function Current({ org, item, workspace, left, canAct, onNext }: CurrentProps) {
   return (
     <div className="grid min-w-0 content-start gap-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-16 font-semibold">
+        <h2 className="text-section-title">
           {laneName(item.name)} <span className="font-normal text-muted">for {workspace}</span>
         </h2>
-        <p className="tabular text-13 text-faint">{plural(left, 'account')} left</p>
+        <p className="tabular text-secondary text-faint">{plural(left, 'account')} left</p>
       </div>
-      {item.note ? <p className="text-14 text-muted">{item.note}</p> : null}
+      {item.note ? <p className="text-body text-muted">{item.note}</p> : null}
       {/* The answer first: the sign-in is what this page is for, so it sits above the live view, not under it. */}
-      <p className="text-13 text-faint">
+      <p className="text-secondary text-faint">
         The password is typed on this computer, into the account's own browser. agentos never sees it, and the computer keeps the session.
         {item.login_url ? (
           <>
@@ -192,7 +192,7 @@ function Current({ org, item, workspace, left, canAct, onNext }: CurrentProps) {
           </div>
         )
       ) : (
-        <p className="text-13 text-faint">Your role can see this queue but not work through it.</p>
+        <p className="text-secondary text-faint">Your role can see this queue but not work through it.</p>
       )}
     </div>
   );

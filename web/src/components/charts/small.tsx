@@ -33,15 +33,15 @@ export function Segmented<T extends string>({ value, onChange, options, label, c
       aria-label={label}
       value={value}
       onValueChange={(next) => onChange(next as T)}
-      className={cn('scrollbar-none inline-flex h-8 max-w-full shrink-0 items-center overflow-x-auto rounded-md bg-fill-1 p-0 md:h-7 md:border md:border-line md:bg-transparent md:p-px', className)}
+      className={cn('scrollbar-none inline-flex h-8 max-w-full shrink-0 items-center overflow-x-auto rounded-md bg-hover p-0 md:h-7 md:border md:border-line md:bg-transparent md:p-px', className)}
     >
       {options.map((option) => (
         <RadioGroup.Item
           key={option.value}
           value={option.value}
           className={cn(
-            'tabular h-full shrink-0 rounded-sm px-2 text-13 whitespace-nowrap text-faint transition-colors duration-(--duration-fast) ease-standard hover:text-fg',
-            'data-[state=checked]:bg-fill-2 data-[state=checked]:text-fg',
+            'tabular h-full shrink-0 rounded-sm px-2 text-secondary whitespace-nowrap text-faint transition-colors duration-(--duration-fast) ease-standard hover:text-fg',
+            'data-[state=checked]:bg-pressed data-[state=checked]:text-fg',
           )}
         >
           {option.label}

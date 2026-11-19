@@ -87,7 +87,7 @@ export function Dialog({ open, onOpenChange, title, description, children, foote
           <div className="px-6 pt-6 pr-12">
             <Primitive.Title className="text-section-title">{title}</Primitive.Title>
             {description ? (
-              <Primitive.Description className="mt-1 text-14 text-muted">{description}</Primitive.Description>
+              <Primitive.Description className="mt-1 text-body text-muted">{description}</Primitive.Description>
             ) : (
               <Primitive.Description className="sr-only">{title}</Primitive.Description>
             )}
@@ -128,7 +128,7 @@ export function Drawer({ open, onOpenChange, title, description, children }: Dra
           <div className="border-b border-line py-4 pr-12 pl-6">
             <Primitive.Title className="truncate text-section-title">{title}</Primitive.Title>
             {description ? (
-              <Primitive.Description className="mt-1 text-13 text-muted">{description}</Primitive.Description>
+              <Primitive.Description className="mt-1 text-secondary text-muted">{description}</Primitive.Description>
             ) : (
               <Primitive.Description className="sr-only">{title}</Primitive.Description>
             )}
@@ -200,7 +200,7 @@ export function SidePanel({ open, onOpenChange, title, description, children, cl
         <h2 id={headingId} className="truncate text-section-title">
           {title}
         </h2>
-        {description ? <p className="mt-1 text-13 text-muted">{description}</p> : null}
+        {description ? <p className="mt-1 text-secondary text-muted">{description}</p> : null}
         <IconButton label="Close" size="sm" className="absolute top-3 right-3" onClick={() => onOpenChange(false)}>
           <X className="size-4" />
         </IconButton>
@@ -263,7 +263,7 @@ export function ConfirmDialog({
       {children}
       {typeToConfirm !== undefined ? (
         <div className="grid gap-2">
-          <label htmlFor="confirm-text" className="text-13 text-muted">
+          <label htmlFor="confirm-text" className="text-secondary text-muted">
             Type <span className="mono text-fg">{typeToConfirm}</span> to confirm
           </label>
           <Input id="confirm-text" mono value={typed} onChange={(event) => setTyped(event.target.value)} autoComplete="off" />

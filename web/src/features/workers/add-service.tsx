@@ -46,13 +46,13 @@ function ServiceChoice({ org, chosen, added, computer }: { org: string; chosen?:
                 to="/$org/settings/brains/add"
                 params={{ org }}
                 search={{ service: service.id, computer }}
-                className={cn('flex items-start gap-3 px-4 py-4 transition-colors duration-(--duration-fast) ease-standard hover:bg-fill-1 sm:px-6', chosen === service.id && 'bg-fill-1')}
+                className={cn('flex items-start gap-3 px-4 py-4 transition-colors duration-(--duration-fast) ease-standard hover:bg-hover sm:px-6', chosen === service.id && 'bg-hover')}
               >
                 <span className="grid h-5 shrink-0 place-items-center text-faint"><Icon aria-hidden="true" className="size-4" /></span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-14 font-medium">{service.name}</span>
-                  <span className="block text-13 text-pretty text-muted">{service.sentence}</span>
-                  <span className="block text-13 text-faint">{here ? 'Already on a computer. Add it to another.' : HOW[service.how].word}</span>
+                  <span className="block text-label">{service.name}</span>
+                  <span className="block text-secondary text-pretty text-muted">{service.sentence}</span>
+                  <span className="block text-secondary text-faint">{here ? 'Already on a computer. Add it to another.' : HOW[service.how].word}</span>
                 </span>
                 <span className="grid h-5 shrink-0 place-items-center text-faint"><ArrowRight aria-hidden="true" className="size-4" /></span>
               </Link>
@@ -87,8 +87,8 @@ function ComputerChoice({ computers, value, onChange }: { computers: FleetNode[]
           >
             <span className={cn('grid size-4 shrink-0 place-items-center rounded-full border', selected ? 'border-fg' : 'border-control')}>{selected ? <span className="size-2 rounded-full bg-fg" /> : null}</span>
             <span className="min-w-0 flex-1">
-              <span className="block text-14 font-medium">{computerName(computer.id)}</span>
-              <span className="block text-13 text-muted">{away ? 'Offline, so it cannot take this now' : hasScreen(computer.id) ? 'Has a screen' : 'No screen, so it uses its terminal'}</span>
+              <span className="block text-label">{computerName(computer.id)}</span>
+              <span className="block text-secondary text-muted">{away ? 'Offline, so it cannot take this now' : hasScreen(computer.id) ? 'Has a screen' : 'No screen, so it uses its terminal'}</span>
             </span>
           </button>
         );
@@ -102,11 +102,11 @@ function Disclosure({ label, open: initial, children }: { label: string; open: b
   const shown = open || initial;
   return (
     <div>
-      <button type="button" aria-expanded={shown} onClick={() => setOpen(!open)} className="inline-flex items-center gap-1 text-13 text-muted hover:text-fg">
+      <button type="button" aria-expanded={shown} onClick={() => setOpen(!open)} className="inline-flex items-center gap-1 text-secondary text-muted hover:text-fg">
         {label}
         <ChevronDown aria-hidden="true" className={cn('size-3 transition-transform duration-(--duration-fast) ease-standard', shown && 'rotate-180')} />
       </button>
-      {shown ? <div className="mt-2 grid gap-2 text-13 text-pretty text-muted">{children}</div> : null}
+      {shown ? <div className="mt-2 grid gap-2 text-secondary text-pretty text-muted">{children}</div> : null}
     </div>
   );
 }
@@ -166,8 +166,8 @@ function HandOver({ org, service, computers, computer, onComputer }: { org: stri
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
         <div>
           <StateGlyph state="good" size={24} />
-          <h3 className="mt-2 text-20 font-semibold text-balance">{service.name} is ready on {name}</h3>
-          <p className="mt-1 text-14 text-pretty text-muted">It answered a small test question. The {thing} stays on {name}, and agentos Cloud only heard that it worked.</p>
+          <h3 className="mt-2 text-heading text-balance">{service.name} is ready on {name}</h3>
+          <p className="mt-1 text-body text-pretty text-muted">It answered a small test question. The {thing} stays on {name}, and agentos Cloud only heard that it worked.</p>
           <div className="mt-4 flex flex-wrap gap-2">
             <Button asChild variant="primary"><Link to="/$org/settings/workers" params={{ org }}>Go to Workers</Link></Button>
             <Button asChild><Link to="/$org/settings/brains" params={{ org }}>See AI models</Link></Button>
@@ -182,8 +182,8 @@ function HandOver({ org, service, computers, computer, onComputer }: { org: stri
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
         <div>
           <StateGlyph state="stuck" size={24} />
-          <h3 className="mt-2 text-20 font-semibold text-balance">{service.name} did not accept that {thing}</h3>
-          <p className="mt-1 text-14 text-pretty text-muted">Nothing was saved, and the {thing} that was tried is gone from {name}. Copy a new one from your {service.name} account and try again.</p>
+          <h3 className="mt-2 text-heading text-balance">{service.name} did not accept that {thing}</h3>
+          <p className="mt-1 text-body text-pretty text-muted">Nothing was saved, and the {thing} that was tried is gone from {name}. Copy a new one from your {service.name} account and try again.</p>
           <Button variant="primary" className="mt-4" onClick={() => { setId(undefined); }}>Try again</Button>
         </div>
         {picture}
@@ -194,9 +194,9 @@ function HandOver({ org, service, computers, computer, onComputer }: { org: stri
     return (
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
         <div>
-          <p className="flex items-center gap-2 text-13 text-muted"><Spinner className="size-3" />{stage === 'checking' ? `Asking ${service.name} a small test question` : `Waiting for you on ${name}`}</p>
-          <h3 className="mt-2 text-20 font-semibold text-balance">{stage === 'checking' ? `${name} has it, and is checking` : `Paste the ${thing} on ${name}`}</h3>
-          <p className="mt-1 text-14 text-pretty text-muted">{stage === 'checking' ? 'Nothing is saved until the answer comes back.' : 'This page moves on by itself. You can keep it open, or come back to it.'}</p>
+          <p className="flex items-center gap-2 text-secondary text-muted"><Spinner className="size-3" />{stage === 'checking' ? `Asking ${service.name} a small test question` : `Waiting for you on ${name}`}</p>
+          <h3 className="mt-2 text-heading text-balance">{stage === 'checking' ? `${name} has it, and is checking` : `Paste the ${thing} on ${name}`}</h3>
+          <p className="mt-1 text-body text-pretty text-muted">{stage === 'checking' ? 'Nothing is saved until the answer comes back.' : 'This page moves on by itself. You can keep it open, or come back to it.'}</p>
           {stage === 'waiting' && screen && handover.data?.form_url ? (
             <Button asChild className="mt-4">
               <a href={handover.data.form_url} target="_blank" rel="noreferrer">Open the form again<ArrowUpRight aria-hidden="true" className="size-4" /></a>
@@ -212,19 +212,19 @@ function HandOver({ org, service, computers, computer, onComputer }: { org: stri
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
       <div className="grid gap-4">
         <div>
-          <h3 className="text-16 font-semibold">Which computer keeps it?</h3>
-          <p className="mt-1 text-14 text-pretty text-muted">
+          <h3 className="text-section-title">Which computer keeps it?</h3>
+          <p className="mt-1 text-body text-pretty text-muted">
             {service.how === 'key' ? `Your ${service.name} key goes straight to this computer, on a small page it makes for this one job. It never passes through agentos Cloud.` : service.how === 'sign-in' ? 'You sign in on this computer, so the sign-in never passes through agentos Cloud.' : 'It runs on this computer, so there is nothing to paste and nothing leaves it.'}
           </p>
         </div>
         <ComputerChoice computers={computers} value={computer} onChange={onComputer} />
         {service.keysAt ? (
-          <a href={service.keysAt} target="_blank" rel="noreferrer" className="link inline-flex items-center gap-1 justify-self-start text-13">
+          <a href={service.keysAt} target="_blank" rel="noreferrer" className="link inline-flex items-center gap-1 justify-self-start text-secondary">
             Get a key from {service.name}
             <ArrowUpRight aria-hidden="true" className="size-3" />
           </a>
         ) : service.how === 'key' ? (
-          <p className="text-13 text-faint">Have your key from your {service.name} account ready.</p>
+          <p className="text-secondary text-faint">Have your key from your {service.name} account ready.</p>
         ) : null}
         {screen ? (
           <div className="flex flex-wrap items-center gap-3">
@@ -235,7 +235,7 @@ function HandOver({ org, service, computers, computer, onComputer }: { org: stri
           </div>
         ) : (
           <div className="grid gap-2">
-            <p className="text-14 text-pretty">{name} has no screen, so its terminal is the way in. It asks for the {thing} with the letters hidden.</p>
+            <p className="text-body text-pretty">{name} has no screen, so its terminal is the way in. It asks for the {thing} with the letters hidden.</p>
             <CodeBlock code={command} label="One line for its terminal" />
             <Button className="justify-self-start" onClick={begin}>I ran it</Button>
           </div>
@@ -267,7 +267,7 @@ export function AddService() {
   const added = useMemo(() => new Set((brains.data ?? []).map((brain) => brain.name)), [brains.data]);
   return (
     <>
-      <Link to="/$org/settings/brains" params={{ org }} className="mb-4 inline-flex items-center gap-1 text-13 text-faint hover:text-fg">
+      <Link to="/$org/settings/brains" params={{ org }} className="mb-4 inline-flex items-center gap-1 text-secondary text-faint hover:text-fg">
         <ChevronLeft aria-hidden="true" className="size-4" />
         AI models
       </Link>
@@ -297,7 +297,7 @@ export function AddService() {
                 />
               ) : null}
               <p className="mt-8 border-t border-line pt-4">
-                <Link to="/$org/settings/brains/add" params={{ org }} search={{ computer: search.computer }} className="inline-flex items-center gap-1 text-13 text-muted hover:text-fg">
+                <Link to="/$org/settings/brains/add" params={{ org }} search={{ computer: search.computer }} className="inline-flex items-center gap-1 text-secondary text-muted hover:text-fg">
                   <ChevronLeft aria-hidden="true" className="size-3" />
                   Choose a different service
                 </Link>

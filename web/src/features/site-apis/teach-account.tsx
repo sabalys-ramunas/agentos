@@ -12,7 +12,7 @@ export function AccountStage({ org, workspaces, onPick }: { org: string; workspa
   return (
     <div className="mx-auto grid max-w-4xl gap-6">
       {anyReady ? null : (
-        <p className="text-14 text-pretty text-muted">
+        <p className="text-body text-pretty text-muted">
           {browsers.length ? 'None of your accounts is ready yet. Sign in to one on its own page, and it will show here.' : 'You have no accounts to read a page with yet.'}
         </p>
       )}
@@ -24,12 +24,12 @@ export function AccountStage({ org, workspaces, onPick }: { org: string; workspa
               key={lane.id}
               type="button"
               onClick={() => onPick(lane)}
-              className="group flex w-full items-center gap-3 rounded-(--radius-card) border border-line bg-bg p-4 text-left transition-[border-color,background-color,transform] duration-(--duration-fast) ease-standard hover:border-line-strong hover:bg-fill-1 active:translate-y-px"
+              className="group flex w-full items-center gap-3 rounded-(--radius-card) border border-line bg-card p-4 text-left transition-[border-color,background-color,transform] duration-(--duration-fast) ease-standard hover:border-line-strong hover:bg-hover active:translate-y-px"
             >
-              <SiteMark site={lane.id} size={40} tile label={false} className="bg-bg" />
+              <SiteMark site={lane.id} size={40} tile label={false} className="bg-card" />
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-16 font-semibold">{lane.account?.user_id}</span>
-                <span className="block truncate text-13 text-muted">
+                <span className="block truncate text-section-title">{lane.account?.user_id}</span>
+                <span className="block truncate text-secondary text-muted">
                   {workspace.name}, signed in at <span className="mono">{lane.account?.site}</span>
                 </span>
               </span>
@@ -43,7 +43,7 @@ export function AccountStage({ org, workspaces, onPick }: { org: string; workspa
         if (!lanes.length) return null;
         return (
           <section key={workspace.id} aria-label={workspace.name}>
-            <h2 className="mb-2 flex items-center gap-2 text-13 font-medium">
+            <h2 className="mb-2 flex items-center gap-2 text-secondary font-medium">
               <BusinessMark name={workspace.name} color={workspace.color} size={16} />
               {workspace.name}
             </h2>
@@ -53,14 +53,14 @@ export function AccountStage({ org, workspaces, onPick }: { org: string; workspa
                 const [ws = '', name = lane.name] = lane.id.split('/');
                 const inner = (
                   <>
-                    <SiteMark site={lane.id} size={24} tile label={false} className="bg-bg" />
+                    <SiteMark site={lane.id} size={24} tile label={false} className="bg-card" />
                     <span className="min-w-0">
-                      <span className="block truncate text-13 font-medium">{lane.account?.user_id ?? lane.name}</span>
-                      <span className="block truncate text-12 text-faint">{ready ? (lane.account?.site ?? lane.name) : 'Not signed in yet'}</span>
+                      <span className="block truncate text-secondary font-medium">{lane.account?.user_id ?? lane.name}</span>
+                      <span className="block truncate text-caption text-faint">{ready ? (lane.account?.site ?? lane.name) : 'Not signed in yet'}</span>
                     </span>
                   </>
                 );
-                const rowClass = 'flex w-full items-center gap-2 rounded-lg border border-line bg-bg p-2 text-left transition-[border-color,background-color,transform] duration-(--duration-fast) ease-standard hover:border-line-strong hover:bg-fill-1 active:translate-y-px';
+                const rowClass = 'flex w-full items-center gap-2 rounded-lg border border-line bg-card p-2 text-left transition-[border-color,background-color,transform] duration-(--duration-fast) ease-standard hover:border-line-strong hover:bg-hover active:translate-y-px';
                 return (
                   <li key={lane.id}>
                     {ready ? (

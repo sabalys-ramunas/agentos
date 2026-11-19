@@ -53,13 +53,13 @@ export function TurnOnDialog({ org, data, node, onClose }: { org: string; data: 
       }
     >
       <div className="grid gap-3">
-        {who.length ? <p className="text-14 text-pretty">{inWords(who)}.</p> : null}
-        <p className="text-14 text-pretty">
+        {who.length ? <p className="text-body text-pretty">{inWords(who)}.</p> : null}
+        <p className="text-body text-pretty">
           It stops at {data.limits.steps_per_day.toLocaleString('en-GB')} steps a day, and at {data.limits.steps_per_thing} on any one thing.
         </p>
         <ul className="grid gap-1">
           {NEVER.slice(0, 2).map((line) => (
-            <li key={line} className="flex items-start gap-2 text-13 text-pretty text-muted">
+            <li key={line} className="flex items-start gap-2 text-secondary text-pretty text-muted">
               <span className="grid h-5 shrink-0 place-items-center text-faint"><Lock aria-hidden="true" className="size-3" /></span>
               {line}
             </li>

@@ -18,7 +18,7 @@ import { LiveDot, Picture, PictureChip } from './picture';
 import { accountCondition, accountName, accountTitle, didSentence, lastLine, nextStep } from './words';
 
 export const cardClass =
-  'group/card relative flex flex-col overflow-hidden rounded-(--radius-card) border bg-bg shadow-(--shadow-card) ' +
+  'group/card relative flex flex-col overflow-hidden rounded-(--radius-card) border bg-card shadow-(--shadow-card) ' +
   'transition-[box-shadow,border-color,transform] duration-(--duration-settle) ease-(--ease-out) ' +
   'hover:-translate-y-px hover:shadow-(--shadow-hover) motion-reduce:hover:translate-y-0';
 
@@ -31,8 +31,8 @@ export const stateBorder = (state: PersonState) =>
  * and the card's hairline carry the state; the words stay in the page's own colours.
  */
 const FOOTER: Record<PersonState, string> = {
-  stuck: 'border-t border-line text-fg hover:bg-fill-1',
-  waiting: 'border-t border-line text-fg hover:bg-fill-1',
+  stuck: 'border-t border-line text-fg hover:bg-hover',
+  waiting: 'border-t border-line text-fg hover:bg-hover',
   working: 'border-t border-line text-muted',
   good: 'border-t border-line text-muted',
   sleeping: 'border-t border-line text-muted',
@@ -81,25 +81,25 @@ export function AccountCard({ org, lane, last, canWatch, index = 0, workspaceNam
       </div>
       <div className="flex items-center gap-3 px-4 pt-3">
         <SiteMark site={lane.site?.key ?? lane.name} size={24} label={false} />
-        <h3 className="min-w-0 flex-1 truncate text-14 font-semibold">
+        <h3 className="min-w-0 flex-1 truncate text-body font-semibold">
           <Link to="/$org/lanes/$ws/$name" params={{ org, ws: lane.workspace, name: lane.name }} className="after:absolute after:inset-0 after:content-['']">
             {name}
           </Link>
         </h3>
         <StateBadge state={condition.state} label={condition.label} className="shrink-0" />
       </div>
-      <p className="px-4 pt-1 text-13 text-muted">{condition.sentence}.</p>
+      <p className="px-4 pt-1 text-secondary text-muted">{condition.sentence}.</p>
       <div className="mt-auto px-4 pt-3 pb-3">
         {last ? (
-          <p className="flex min-w-0 items-center gap-2 text-13">
+          <p className="flex min-w-0 items-center gap-2 text-secondary">
             <AgentMark principal={last.principal} size={16} />
             <span className="min-w-0 flex-1 truncate text-muted">{didSentence(last)}</span>
-            <span className="tabular shrink-0 text-12 text-faint">{timeAgo(last.at)}</span>
+            <span className="tabular shrink-0 text-caption text-faint">{timeAgo(last.at)}</span>
           </p>
         ) : lane.last_used ? (
-          <p className="text-13 text-faint">Last used {timeAgo(lane.last_used)}</p>
+          <p className="text-secondary text-faint">Last used {timeAgo(lane.last_used)}</p>
         ) : (
-          <p className="text-13 text-faint">Not used yet</p>
+          <p className="text-secondary text-faint">Not used yet</p>
         )}
       </div>
       <AccountAskRow org={org} lane={lane} ask={ask} />
@@ -107,7 +107,7 @@ export function AccountCard({ org, lane, last, canWatch, index = 0, workspaceNam
         <Link
           to="/$org/lanes/$ws/$name"
           params={{ org, ws: lane.workspace, name: lane.name }}
-          className={cn('relative z-10 flex min-h-11 items-center gap-2 px-4 text-13 font-medium transition-colors duration-(--duration-fast)', FOOTER[condition.state])}
+          className={cn('relative z-10 flex min-h-11 items-center gap-2 px-4 text-secondary font-medium transition-colors duration-(--duration-fast)', FOOTER[condition.state])}
         >
           <span className="min-w-0 flex-1 truncate">{step.label}</span>
           <ChevronRight className="size-4 opacity-70 transition-transform duration-(--duration-base) group-hover/card:translate-x-0.5" />

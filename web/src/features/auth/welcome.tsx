@@ -23,12 +23,12 @@ function names(list: string[]): string {
 
 function Ask({ picture, title, body, note }: { picture: React.ReactNode; title: string; body: string; note: string }) {
   return (
-    <li className="grid gap-4 rounded-xl border border-line bg-bg p-4 sm:grid-cols-[160px_minmax(0,1fr)] sm:items-center">
+    <li className="grid gap-4 rounded-xl border border-line bg-card p-4 sm:grid-cols-[160px_minmax(0,1fr)] sm:items-center">
       <div className="w-full max-w-[220px] justify-self-center sm:max-w-none">{picture}</div>
       <div>
-        <p className="text-16 font-semibold">{title}</p>
-        <p className="mt-1 text-14 text-muted">{body}</p>
-        <p className="mt-2 text-13 text-faint">{note}</p>
+        <p className="text-section-title">{title}</p>
+        <p className="mt-1 text-body text-muted">{body}</p>
+        <p className="mt-2 text-secondary text-faint">{note}</p>
       </div>
     </li>
   );
@@ -49,7 +49,7 @@ export function Welcome() {
   const main = workspaces[0];
 
   return (
-    <div className="min-h-dvh bg-bg">
+    <div className="min-h-dvh bg-card">
       <header className="flex h-(--topbar-height) items-center gap-2 border-b border-line px-4">
         <Logo />
         {main ? (
@@ -58,11 +58,11 @@ export function Welcome() {
               /
             </span>
             <BusinessMark name={main.name} color={main.color} size={20} />
-            <span className="truncate text-14 font-medium">{business}</span>
+            <span className="truncate text-label">{business}</span>
           </>
         ) : null}
         {user ? (
-          <span className="ml-auto flex items-center gap-2 text-13 text-muted">
+          <span className="ml-auto flex items-center gap-2 text-secondary text-muted">
             <span className="hidden sm:inline">{user.name}</span>
             <PersonMark id={user.id} name={user.name} size={24} />
           </span>
@@ -70,11 +70,11 @@ export function Welcome() {
       </header>
       <main className="mx-auto grid w-full max-w-6xl gap-10 px-4 pt-10 pb-16 sm:px-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-16 lg:pt-16">
         <section>
-          {from ? <p className="text-13 text-faint">{from} invited you</p> : null}
-          <h1 className="mt-2 text-32 font-semibold text-balance">
+          {from ? <p className="text-secondary text-faint">{from} invited you</p> : null}
+          <h1 className="mt-2 text-headline text-balance">
             {first ? `Hi ${first}. ` : 'Hi. '}You're helping {from ? `${from} with` : 'with'} {business}.
           </h1>
-          <p className="mt-4 text-16 text-muted">Its agents work on computers of their own in the cloud: they run tests, check the pages they build, push branches, send emails. When something is set to ask first, or it costs money, they ask a person. That's you.</p>
+          <p className="mt-4 text-lede text-muted">Its agents work on computers of their own in the cloud: they run tests, check the pages they build, push branches, send emails. When something is set to ask first, or it costs money, they ask a person. That's you.</p>
           <ul aria-label="Good to know" className="mt-8 grid gap-4">
             {[
               {
@@ -87,12 +87,12 @@ export function Welcome() {
               { icon: Eye, title: `You only see ${business}`, body: 'Everything else stays private.' },
             ].map((row) => (
               <li key={row.title} className="flex gap-3">
-                <span aria-hidden="true" className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-line bg-subtle text-muted">
+                <span aria-hidden="true" className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-line bg-inset text-muted">
                   <row.icon className="size-4" />
                 </span>
                 <span>
-                  <span className="block text-14 font-medium">{row.title}</span>
-                  <span className="block text-13 text-muted">{row.body}</span>
+                  <span className="block text-label">{row.title}</span>
+                  <span className="block text-secondary text-muted">{row.body}</span>
                 </span>
               </li>
             ))}
@@ -101,7 +101,7 @@ export function Welcome() {
             <Button variant="primary" size="lg" asChild>
               <Link to="/$org/needs-you" params={{ org }}>
                 {waiting ? "Show me what's waiting" : 'Go to Needs you'}
-                {waiting ? <Count value={waiting} className="bg-bg/20 text-on-primary" /> : null}
+                {waiting ? <Count value={waiting} className="bg-card/20 text-on-primary" /> : null}
               </Link>
             </Button>
             <Button size="lg" icon={<Smartphone className="size-4" />} aria-expanded={phone} onClick={() => setPhone(!phone)}>
@@ -115,7 +115,7 @@ export function Welcome() {
           ) : null}
         </section>
         <section aria-labelledby="asked-title">
-          <h2 id="asked-title" className="text-14 font-medium">
+          <h2 id="asked-title" className="text-label">
             What you'll be asked
           </h2>
           <ul className="mt-3 grid gap-3">

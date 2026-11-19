@@ -87,8 +87,8 @@ function Address({ org, slug, canEdit }: { org: string; slug: string; canEdit: b
         }
       >
         <div className="grid max-w-sm gap-2">
-          <div className="flex h-8 items-center overflow-hidden rounded-md border border-line text-14 focus-within:outline-2 focus-within:-outline-offset-1 focus-within:outline-(--focus)">
-            <span className="flex h-full shrink-0 items-center border-r border-line bg-subtle px-3 text-faint">{host}/</span>
+          <div className="flex h-8 items-center overflow-hidden rounded-md border border-line text-body focus-within:outline-2 focus-within:-outline-offset-1 focus-within:outline-(--focus)">
+            <span className="flex h-full shrink-0 items-center border-r border-line bg-inset px-3 text-faint">{host}/</span>
             <input
               aria-label="Address"
               aria-invalid={error ? true : undefined}
@@ -147,7 +147,7 @@ export function GeneralSettings() {
             {technical ? (
               <FormCard title="Id" description="Quote this when you contact support.">
                 <div className="flex items-center gap-2">
-                  <code className="mono min-w-0 truncate text-13 text-muted">{data.id}</code>
+                  <code className="mono min-w-0 truncate text-secondary text-muted">{data.id}</code>
                   <CopyButton text={data.id} label="Copy the id" />
                 </div>
               </FormCard>

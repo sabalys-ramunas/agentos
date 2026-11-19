@@ -32,7 +32,7 @@ export function Select({ value, onValueChange, options, placeholder, disabled, c
           'inline-flex w-full items-center justify-between gap-2 rounded-md border border-line-strong bg-card text-left text-fg',
           'transition-colors duration-(--duration-fast) ease-standard hover:border-control',
           'data-[placeholder]:text-faint disabled:cursor-not-allowed disabled:border-line disabled:bg-inset disabled:text-disabled',
-          size === 'sm' ? 'h-8 px-2 text-13 md:h-7' : 'h-8 px-3 text-14',
+          size === 'sm' ? 'h-8 px-2 text-secondary md:h-7' : 'h-8 px-3 text-body',
           className,
         )}
         {...aria}
@@ -58,7 +58,7 @@ export function Select({ value, onValueChange, options, placeholder, disabled, c
               <Primitive.Item
                 key={option.value}
                 value={option.value}
-                className="flex h-8 cursor-pointer items-center justify-between gap-4 rounded-md px-2 text-14 text-fg outline-none select-none data-[highlighted]:bg-hover"
+                className="flex h-8 cursor-pointer items-center justify-between gap-4 rounded-md px-2 text-body text-fg outline-none select-none data-[highlighted]:bg-hover"
               >
                 <Primitive.ItemText>{option.label}</Primitive.ItemText>
                 <Primitive.ItemIndicator>

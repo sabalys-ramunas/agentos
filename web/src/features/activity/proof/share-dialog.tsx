@@ -69,11 +69,11 @@ export function ShareDialog({ org, target, onClose }: { org: string; target: Sha
     >
       {made ? (
         <div className="grid gap-4">
-          <div className="flex items-center gap-2 rounded-lg border border-line bg-subtle p-3">
-            <code className="mono min-w-0 flex-1 break-all text-13">{made.url}</code>
+          <div className="flex items-center gap-2 rounded-lg border border-line bg-inset p-3">
+            <code className="mono min-w-0 flex-1 break-all text-secondary">{made.url}</code>
             <CopyButton text={made.url} label="Copy link" size="md" />
           </div>
-          <p className="text-13 text-muted">
+          <p className="text-secondary text-muted">
             Shown once, so copy it now. It works until {dateTime(made.expires_at)}, and you can stop it from the list of links.
           </p>
         </div>
@@ -89,7 +89,7 @@ export function ShareDialog({ org, target, onClose }: { org: string; target: Sha
               <Label htmlFor="share-shots" className="font-normal">
                 Include the proof screenshots
               </Label>
-              <p className="text-13 text-muted">Off by default. A screenshot can show what was on the account&apos;s page.</p>
+              <p className="text-secondary text-muted">Off by default. A screenshot can show what was on the account&apos;s page.</p>
             </div>
           </div>
           {create.isError ? (

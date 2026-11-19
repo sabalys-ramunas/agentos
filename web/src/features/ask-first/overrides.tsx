@@ -24,10 +24,10 @@ export function AccountOverrides({ org, laneId }: { org: string; laneId: string 
   if (mine.length === 0) return null;
   return (
     <section aria-label="Overrides" className="mt-3 grid gap-2 border-t border-line pt-3">
-      <h3 className="text-13 text-faint">Overrides</h3>
+      <h3 className="text-secondary text-faint font-semibold">Overrides</h3>
       <ul className="grid gap-2">
         {mine.map((item) => (
-          <li key={item.id} className="text-13 text-muted">
+          <li key={item.id} className="text-secondary text-muted">
             <span className="text-fg">{item.rules.length ? item.rules.join(', ') : 'A proxy check'}</span> was turned off
             {item.proxy ? ` on ${item.proxy}` : ''} {timeAgo(item.at)} by {overrideBy(item.by)}.{' '}
             {item.reason ? <span>Reason: {item.reason}</span> : null}

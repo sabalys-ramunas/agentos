@@ -25,8 +25,8 @@ function Note({ title, children, action }: { title: string; children: ReactNode;
       <div className="flex min-w-0 gap-3">
         <BellOff className="mt-[2px] size-4 shrink-0 text-faint" />
         <div className="min-w-0">
-          <p className="text-14 font-medium">{title}</p>
-          <div className="mt-1 text-13 text-muted">{children}</div>
+          <p className="text-label">{title}</p>
+          <div className="mt-1 text-secondary text-muted">{children}</div>
         </div>
       </div>
       {action ? <div className="shrink-0 pl-7 sm:pl-0">{action}</div> : null}
@@ -65,11 +65,11 @@ function DeviceRow({ org, device, current }: { org: string; device: PushDevice; 
     <li className="flex min-h-14 items-center gap-3 py-2">
       <DeviceIcon label={device.label} />
       <div className="min-w-0 flex-1">
-        <p className="flex items-center gap-2 text-14">
+        <p className="flex items-center gap-2 text-body">
           <span className="truncate">{device.label}</span>
           {current ? <Badge>This device</Badge> : null}
         </p>
-        <p className="text-13 text-faint">
+        <p className="text-secondary text-faint">
           Added {timeAgo(device.created_at).toLowerCase()} · {device.last_sent_at ? `last push ${timeAgo(device.last_sent_at).toLowerCase()}` : 'no push yet'}
         </p>
       </div>
@@ -115,7 +115,7 @@ export function PushCard({ org, enabledInSettings }: { org: string; enabledInSet
             : (
                 <>
                   Approvals still wait in Needs you. To reach your phone instead, install the free ntfy app, then set it up on this computer, in a terminal.
-                  {technical ? <span className="mono mt-1 block text-12 text-faint">agentos policy notify ntfy</span> : null}
+                  {technical ? <span className="mono mt-1 block text-caption text-faint">agentos policy notify ntfy</span> : null}
                 </>
               )}
       </Note>
@@ -145,11 +145,11 @@ export function PushCard({ org, enabledInSettings }: { org: string; enabledInSet
     body = (
       <div className="flex items-center justify-between gap-6">
         <div className="min-w-0">
-          <p className="flex items-center gap-2 text-14 font-medium">
+          <p className="flex items-center gap-2 text-label">
             <StatusDot tone={on ? 'ok' : 'idle'} />
             {on ? 'Push is on for this device' : 'Push is off for this device'}
           </p>
-          <p className="mt-1 text-13 text-muted">
+          <p className="mt-1 text-secondary text-muted">
             {on && !enabledInSettings
               ? 'Push to your devices is turned off below, so nothing is sent until you turn it back on.'
               : 'An approval arrives with Review and Deny. Approving always happens in agentos, signed in.'}
@@ -174,8 +174,8 @@ export function PushCard({ org, enabledInSettings }: { org: string; enabledInSet
     <Card>
       <div className="grid gap-4 p-6">
         <div>
-          <h2 className="text-16 font-semibold">Push</h2>
-          <p className="mt-1 text-14 text-muted">On your phone or computer, even when agentos is closed.</p>
+          <h2 className="text-section-title">Push</h2>
+          <p className="mt-1 text-body text-muted">On your phone or computer, even when agentos is closed.</p>
         </div>
         {body}
         {failure ? (
@@ -195,8 +195,8 @@ export function PushCard({ org, enabledInSettings }: { org: string; enabledInSet
         ) : null}
       </div>
       {canTest ? (
-        <div className="flex min-h-14 flex-col gap-2 rounded-b-xl border-t border-line bg-subtle px-6 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-          <p role="status" className="min-w-0 text-13 text-faint">
+        <div className="flex min-h-14 flex-col gap-2 rounded-b-xl border-t border-line bg-inset px-6 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+          <p role="status" className="min-w-0 text-secondary text-faint">
             {test.isSuccess
               ? `Sent to ${test.data.devices === 1 ? 'your device' : `your ${test.data.devices} devices`}. It ignores quiet hours.`
               : 'A test goes to every device you have, and ignores quiet hours.'}

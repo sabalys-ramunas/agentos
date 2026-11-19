@@ -183,11 +183,11 @@ export function WorkspacesSettings() {
                       <li key={workspace.id} className="flex min-h-14 items-center gap-2 px-4 py-2 sm:px-6">
                         <WorkspaceMark name={workspace.name} color={workspace.color} className="mr-1" />
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-14">{workspace.name}</p>
-                          {technical ? <p className="mono truncate text-12 text-faint">{workspace.id}</p> : null}
+                          <p className="truncate text-body">{workspace.name}</p>
+                          {technical ? <p className="mono truncate text-caption text-faint">{workspace.id}</p> : null}
                         </div>
                         {readOnly ? <Badge>Read-only</Badge> : null}
-                        <span className="hidden text-13 text-muted sm:inline">{plural(workspace.lanes.length, 'account')}</span>
+                        <span className="hidden text-secondary text-muted sm:inline">{plural(workspace.lanes.length, 'account')}</span>
                         {canManage ? (
                           <Menu>
                             <MenuTrigger asChild>
@@ -208,7 +208,7 @@ export function WorkspacesSettings() {
                                   Export
                                 </MenuItem>
                               ) : null}
-                              <MenuItem className="text-red" onSelect={() => setDeleting(workspace)}>
+                              <MenuItem className="text-bad" onSelect={() => setDeleting(workspace)}>
                                 <Trash2 className="size-4" />
                                 Delete
                               </MenuItem>

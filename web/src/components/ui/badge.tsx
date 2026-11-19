@@ -33,7 +33,7 @@ export function Badge({ className, tone = 'neutral', solid: isSolid = false, ...
   return (
     <span
       className={cn(
-        'inline-flex h-5 items-center gap-1 rounded-full border px-2 text-12 leading-4 font-medium whitespace-nowrap',
+        'inline-flex h-5 items-center gap-1 rounded-full border px-2 text-caption leading-4 font-medium whitespace-nowrap',
         isSolid ? solid[tone] : soft[tone],
         className,
       )}
@@ -88,7 +88,7 @@ export function Chip({ pressed, label, count, kind, className, type = 'button', 
       aria-pressed={pressed}
       data-kind={kind}
       className={cn(
-        'inline-flex h-8 items-center gap-2 rounded-full border px-3 text-13 font-medium whitespace-nowrap md:h-7',
+        'inline-flex h-8 items-center gap-2 rounded-full border px-3 text-secondary font-medium whitespace-nowrap md:h-7',
         'transition-colors duration-(--duration-fast) ease-standard',
         pressed ? 'border-fg bg-fg text-on-primary' : 'border-line bg-card text-muted hover:border-line-strong hover:text-fg',
         kind && 'pl-2',

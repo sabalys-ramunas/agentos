@@ -134,6 +134,14 @@
   --text-page-title-compact--line-height: var(--type-page-title-compact-line-height);
   --text-page-title-compact--font-weight: var(--type-page-title-compact-font-weight);
   --text-page-title-compact--letter-spacing: var(--type-page-title-compact-tracking);
+  --text-headline: var(--type-headline-font-size);
+  --text-headline--line-height: var(--type-headline-line-height);
+  --text-headline--font-weight: var(--type-headline-font-weight);
+  --text-headline--letter-spacing: var(--type-headline-tracking);
+  --text-heading: var(--type-heading-font-size);
+  --text-heading--line-height: var(--type-heading-line-height);
+  --text-heading--font-weight: var(--type-heading-font-weight);
+  --text-heading--letter-spacing: var(--type-heading-tracking);
   --text-section-title: var(--type-section-title-font-size);
   --text-section-title--line-height: var(--type-section-title-line-height);
   --text-section-title--font-weight: var(--type-section-title-font-weight);

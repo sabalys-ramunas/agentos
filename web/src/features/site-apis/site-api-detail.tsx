@@ -36,8 +36,8 @@ function Veil({ icon: Icon, title, note }: { icon: LucideIcon; title: string; no
   return (
     <div className="max-w-sm rounded-lg border border-line bg-raised p-4 text-center">
       <Icon aria-hidden="true" className="mx-auto size-4 text-muted" />
-      <p className="mt-2 text-14 font-medium">{title}</p>
-      <p className="mt-1 text-13 text-pretty text-muted">{note}</p>
+      <p className="mt-2 text-label">{title}</p>
+      <p className="mt-1 text-secondary text-pretty text-muted">{note}</p>
     </div>
   );
 }
@@ -126,13 +126,13 @@ function Trouble({ org, api, endpoint, look, onShow }: { org: string; api: Api; 
   return (
     <section
       aria-label="What needs attention"
-      className={cn('mb-6 grid items-center gap-4 rounded-(--radius-card) border bg-bg p-4 md:grid-cols-[auto_minmax(0,1fr)_auto]', state === 'stuck' ? 'border-(--stuck-line)' : state === 'waiting' ? 'border-(--wait-line)' : 'border-line')}
+      className={cn('mb-6 grid items-center gap-4 rounded-(--radius-card) border bg-card p-4 md:grid-cols-[auto_minmax(0,1fr)_auto]', state === 'stuck' ? 'border-(--stuck-line)' : state === 'waiting' ? 'border-(--wait-line)' : 'border-line')}
     >
       <StateGlyph state={state} size={24} className="max-md:hidden" />
       <div className="min-w-0">
-        <h2 className="text-16 font-semibold text-pretty">{words.title}</h2>
-        <p className="mt-1 text-14 text-pretty text-muted">{looked && api.health === 'changed' ? `The new column is outlined above the wires. If it says the same thing as "${field?.label}", use it and the wire joins up again.` : looked && api.health === 'empty' ? 'The page is below, as the computer saw it. If this is right, say so. If rows should be there, teach it the page again.' : words.body}</p>
-        <p className="mt-1 text-13 text-faint">
+        <h2 className="text-section-title text-pretty">{words.title}</h2>
+        <p className="mt-1 text-body text-pretty text-muted">{looked && api.health === 'changed' ? `The new column is outlined above the wires. If it says the same thing as "${field?.label}", use it and the wire joins up again.` : looked && api.health === 'empty' ? 'The page is below, as the computer saw it. If this is right, say so. If rows should be there, teach it the page again.' : words.body}</p>
+        <p className="mt-1 text-secondary text-faint">
           {words.callers}
           {api.health === 'resting' && api.problem?.resumes_at ? ` ${timeUntil(api.problem.resumes_at, now)} to go.` : ''}
           {technical ? <span className="mono"> {words.code}</span> : null}
@@ -157,16 +157,16 @@ function Header({ org, api, business, color }: { org: string; api: Api; business
   const proposed = api.stage === 'proposed';
   return (
     <header className="mb-6">
-      <Link to="/$org/site-apis" params={{ org }} className="group mb-4 inline-flex items-center gap-1 text-13 text-muted transition-colors duration-(--duration-fast) ease-standard hover:text-fg">
+      <Link to="/$org/site-apis" params={{ org }} className="group mb-4 inline-flex items-center gap-1 text-secondary text-muted transition-colors duration-(--duration-fast) ease-standard hover:text-fg">
         <ArrowLeft aria-hidden="true" className="size-4 transition-transform duration-(--duration-fast) ease-standard group-hover:-translate-x-px" />
         Site APIs
       </Link>
       <div className="flex items-start gap-4 max-sm:flex-col">
-        <SiteMark site={markOf(api.site)} size={40} tile label={false} className="bg-bg max-sm:hidden" />
+        <SiteMark site={markOf(api.site)} size={40} tile label={false} className="bg-card max-sm:hidden" />
         <div className="min-w-0 flex-1">
-          <h1 className="text-24 font-semibold text-balance sm:text-32">{api.title}</h1>
-          <p className="mt-1 max-w-2xl text-16 text-pretty text-muted">{api.words}</p>
-          <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-13 text-faint">
+          <h1 className="text-page-title-compact text-balance sm:text-headline">{api.title}</h1>
+          <p className="mt-1 max-w-2xl text-lede text-pretty text-muted">{api.words}</p>
+          <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-secondary text-faint">
             <span className="inline-flex items-center gap-2">
               {business && color ? <BusinessMark name={business} color={color} size={16} /> : null}
               {business}
@@ -196,15 +196,15 @@ function ProposalStrip({ org, api, endpoint }: { org: string; api: Api; endpoint
   const { proposal } = api;
   if (!proposal) return null;
   return (
-    <section aria-label="Proposed by an agent" className="mb-6 rounded-(--radius-card) border border-(--wait-line) bg-bg">
+    <section aria-label="Proposed by an agent" className="mb-6 rounded-(--radius-card) border border-(--wait-line) bg-card">
       <div className="grid gap-4 p-4 md:grid-cols-2">
         <div>
-          <h2 className="text-16 font-semibold">{proposal.by} proposed this, and only a person can turn it on</h2>
-          <p className="mt-1 text-14 text-pretty text-muted">
+          <h2 className="text-section-title">{proposal.by} proposed this, and only a person can turn it on</h2>
+          <p className="mt-1 text-body text-pretty text-muted">
             {proposal.tried_rows === undefined ? null : `It read ${plural(proposal.tried_rows, 'row')} once to try it. `}Below is exactly what your computer recorded, in the computer's words, not the agent's.
           </p>
         </div>
-        <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 text-13">
+        <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 text-secondary">
           <dt className="text-faint">Site</dt>
           <dd className="mono">{api.site.domain}</dd>
           <dt className="text-faint">Steps</dt>
@@ -250,7 +250,7 @@ function ProposalStrip({ org, api, endpoint }: { org: string; api: Api; endpoint
 function Endpoints({ api, selected }: { api: Api; selected: SiteEndpoint }) {
   return (
     <section aria-labelledby="site-endpoints" className="mt-8">
-      <h2 id="site-endpoints" className="mb-3 text-16 font-semibold">
+      <h2 id="site-endpoints" className="mb-3 text-section-title">
         {plural(api.endpoints.length, 'endpoint')}
       </h2>
       <ul className="divide-y divide-line overflow-hidden rounded-(--radius-card) border border-line">
@@ -265,20 +265,20 @@ function Endpoints({ api, selected }: { api: Api; selected: SiteEndpoint }) {
                 resetScroll={false}
                 aria-current={on ? 'true' : undefined}
                 className={cn(
-                  'relative grid gap-x-6 gap-y-1 px-4 py-3 transition-colors duration-(--duration-fast) ease-standard hover:bg-fill-1 md:grid-cols-[minmax(0,1.4fr)_auto_auto_auto_auto] md:items-center',
-                  on && 'bg-fill-1 before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:bg-fg',
+                  'relative grid gap-x-6 gap-y-1 px-4 py-3 transition-colors duration-(--duration-fast) ease-standard hover:bg-hover md:grid-cols-[minmax(0,1.4fr)_auto_auto_auto_auto] md:items-center',
+                  on && 'bg-hover before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:bg-fg',
                 )}
               >
                 <span className="min-w-0">
-                  <span className="block truncate text-14 font-medium">{endpoint.title}</span>
-                  <span className="mono block truncate text-12 text-faint">
+                  <span className="block truncate text-label">{endpoint.title}</span>
+                  <span className="mono block truncate text-caption text-faint">
                     GET /{api.key}/{endpoint.key}
                   </span>
                 </span>
-                <span className="text-13 text-muted">{EFFECT_WORD[endpoint.effect].word}</span>
-                <span className="text-13 text-muted">{freshWords(endpoint.cache_s)}</span>
-                <span className="tabular text-13 text-muted">{endpoint.p50_ms === null ? '–' : speed(endpoint.p50_ms)}</span>
-                <span className="tabular text-13 text-muted md:w-24 md:text-right">{compact(endpoint.calls_7d)} calls</span>
+                <span className="text-secondary text-muted">{EFFECT_WORD[endpoint.effect].word}</span>
+                <span className="text-secondary text-muted">{freshWords(endpoint.cache_s)}</span>
+                <span className="tabular text-secondary text-muted">{endpoint.p50_ms === null ? '–' : speed(endpoint.p50_ms)}</span>
+                <span className="tabular text-secondary text-muted md:w-24 md:text-right">{compact(endpoint.calls_7d)} calls</span>
               </Link>
             </li>
           );
@@ -311,21 +311,21 @@ function Doors({ org, api, endpoint, door }: { org: string; api: Api; endpoint: 
               className={cn(
                 'door relative flex items-start gap-3 border border-line p-4',
                 index === 0 ? 'rounded-tl-(--radius-card) md:border-r-0' : 'rounded-tr-(--radius-card)',
-                on ? 'z-10 border-b-transparent bg-bg' : 'bg-subtle hover:bg-fill-1',
+                on ? 'z-10 border-b-transparent bg-card' : 'bg-inset hover:bg-hover',
               )}
             >
-              <span className={cn('grid size-8 shrink-0 place-items-center rounded-lg', on ? 'bg-fg text-bg' : 'border border-line bg-bg text-muted')}>
+              <span className={cn('grid size-8 shrink-0 place-items-center rounded-lg', on ? 'bg-fg text-card' : 'border border-line bg-card text-muted')}>
                 <item.icon aria-hidden="true" className="size-4" />
               </span>
               <span className="min-w-0">
-                <span className="block text-16 font-semibold">{item.title}</span>
-                <span className="block text-13 text-muted">{item.note}</span>
+                <span className="block text-section-title">{item.title}</span>
+                <span className="block text-secondary text-muted">{item.note}</span>
               </span>
             </Link>
           );
         })}
       </div>
-      <div className="-mt-px overflow-hidden rounded-b-(--radius-card) border border-line bg-bg">
+      <div className="-mt-px overflow-hidden rounded-b-(--radius-card) border border-line bg-card">
         {door === 'data' ? <SeeData key={endpoint.key} org={org} api={api} endpoint={endpoint} /> : <UseCode key={endpoint.key} org={org} api={api} endpoint={endpoint} />}
       </div>
     </section>
@@ -337,8 +337,8 @@ function Plumbing({ api, endpoint }: { api: Api; endpoint: SiteEndpoint }) {
   if (!technical) return null;
   return (
     <details className="mt-8 rounded-(--radius-card) border border-line">
-      <summary className="cursor-pointer px-4 py-3 text-13 font-medium">Technical details</summary>
-      <dl className="mono grid grid-cols-[auto_minmax(0,1fr)] gap-x-6 gap-y-1 border-t border-line p-4 text-12">
+      <summary className="cursor-pointer px-4 py-3 text-secondary font-medium">Technical details</summary>
+      <dl className="mono grid grid-cols-[auto_minmax(0,1fr)] gap-x-6 gap-y-1 border-t border-line p-4 text-caption">
         <dt className="text-faint">api</dt>
         <dd>{api.key}</dd>
         <dt className="text-faint">version</dt>
@@ -362,8 +362,8 @@ function Plumbing({ api, endpoint }: { api: Api; endpoint: SiteEndpoint }) {
 function PageNotKept({ endpoint, onRead, reading }: { endpoint: SiteEndpoint; onRead: (() => void) | undefined; reading: boolean }) {
   return (
     <section aria-label="The page" className="mt-6 grid gap-3 rounded-lg border border-line p-4">
-      <h2 className="text-16 font-semibold">No picture of the page yet</h2>
-      <p className="text-13 text-pretty text-muted">
+      <h2 className="text-section-title">No picture of the page yet</h2>
+      <p className="text-secondary text-pretty text-muted">
         This computer keeps the data a read returns, not a copy of the page, so there is nothing to draw here. The fields
         it reads are {endpoint.fields.length ? endpoint.fields.map((field) => field.label).join(', ') : 'not declared'}.
       </p>

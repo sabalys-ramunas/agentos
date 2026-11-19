@@ -105,7 +105,7 @@ LEGACY_COLORS = {
 }
 
 # Type roles (the `text-<role>` classes). The mono roles also take Geist Mono in app.css.
-ROLES = ["display", "page-title", "page-title-compact", "section-title", "lede", "card-title", "table-header", "label",
+ROLES = ["display", "page-title", "page-title-compact", "headline", "heading", "section-title", "lede", "card-title", "table-header", "label",
          "body", "secondary", "caption", "number", "stat", "code", "code-caption", "eyebrow", "micro"]
 # The old size scale: size -> (line height, tracking var or None, the role to write instead).
 LEGACY_TEXT = {

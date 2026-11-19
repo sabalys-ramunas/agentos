@@ -36,8 +36,8 @@ function StoppedCard({ org, run, business }: { org: string; run: Run; business: 
       </span>
       <div className="grid min-w-0 flex-1 justify-items-start gap-3">
         <div className="min-w-0">
-          <p className="text-14 font-medium break-words">{run.summary || `A step on ${business} stopped halfway`}</p>
-          <p className="text-13 break-words text-faint">
+          <p className="text-label break-words">{run.summary || `A step on ${business} stopped halfway`}</p>
+          <p className="text-secondary break-words text-faint">
             {money ? 'The payment may or may not have gone through.' : 'It may or may not have gone through.'} Look at the account, then say which. Stopped{' '}
             {timeAgo(run.finished_at ?? run.started_at)}.
           </p>
@@ -64,8 +64,8 @@ export function StoppedRuns({ org, runs, businessOf }: { org: string; runs: Run[
   return (
     <section aria-label="Stopped halfway">
       <div className="mb-1 px-2">
-        <h2 className="text-14 font-semibold">Stopped halfway</h2>
-        <p className="text-12 text-faint">The computer stopped in the middle of these. Only you can say whether they went through.</p>
+        <h2 className="text-body font-semibold">Stopped halfway</h2>
+        <p className="text-caption text-faint">The computer stopped in the middle of these. Only you can say whether they went through.</p>
       </div>
       <Card className="px-4">
         <ul className="divide-y divide-line">

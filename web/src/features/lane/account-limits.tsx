@@ -47,14 +47,14 @@ export function LimitsSection({ org, lane }: { org: string; lane: Lane }) {
           ))}
         </ul>
       ) : (
-        <p className="text-13 text-muted">No limit on posts. Agents may post as much as the pace and the approvals allow.</p>
+        <p className="text-secondary text-muted">No limit on posts. Agents may post as much as the pace and the approvals allow.</p>
       )}
-      {plain.length ? <p className="text-13 text-faint">{limitRule(meter)}</p> : null}
+      {plain.length ? <p className="text-secondary text-faint">{limitRule(meter)}</p> : null}
       {money.length ? (
         technical ? (
           <LimitMoney limits={money} />
         ) : (
-          <p className="text-13 text-faint">Also a spending limit, shown in Technical details.</p>
+          <p className="text-secondary text-faint">Also a spending limit, shown in Technical details.</p>
         )
       ) : null}
       {editing ? <LimitsDialog org={org} lane={lane} meter={meter} onClose={() => setEditing(false)} /> : null}
@@ -66,16 +66,16 @@ function LimitRow({ limit, meter }: { limit: MeterLimit; meter: Meter }) {
   const status = limitStatus(limit.state);
   return (
     <li className="grid gap-2">
-      <div className="flex items-baseline justify-between gap-3 text-13">
+      <div className="flex items-baseline justify-between gap-3 text-secondary">
         <span className="min-w-0 truncate">{limitName(limit.name)}</span>
         <span className="tabular shrink-0 text-muted">{limitUsed(limit)}</span>
       </div>
       <UsageBar value={limit.used} max={limit.value} label={`${limitName(limit.name)}, ${limitUsed(limit)}`} className="shrink-0" />
-      <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-12 text-faint">
+      <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-faint">
         <Status status={{ label: status.word, tone: status.tone }} className="text-muted" />
         {limit.period === 'day' ? <span>{resetWords(limit.resets_at)}</span> : null}
       </p>
-      {limit.state === 'cut_off' && meter.explain ? <p className="text-13 text-muted">{meter.explain}</p> : null}
+      {limit.state === 'cut_off' && meter.explain ? <p className="text-secondary text-muted">{meter.explain}</p> : null}
     </li>
   );
 }
@@ -85,7 +85,7 @@ function LimitMoney({ limits }: { limits: MeterLimit[] }) {
   return (
     <ul className="grid gap-3 border-t border-line pt-3">
       {limits.map((limit) => (
-        <li key={limit.name} className="flex items-baseline justify-between gap-3 text-13">
+        <li key={limit.name} className="flex items-baseline justify-between gap-3 text-secondary">
           <span className="text-faint">{limitName(limit.name)}</span>
           <span className="tabular mono">{limit.name === 'usd_per_day' ? `${usd(limit.used)} of ${usd(limit.value)}` : `${limit.used} of ${limit.value} tokens`}</span>
         </li>
@@ -155,7 +155,7 @@ function LimitsDialog({ org, lane, meter, onClose }: { org: string; lane: Lane; 
         <Field label="Posts an hour" hint="Counted in each clock hour. Empty for no limit.">
           <Input type="number" inputMode="numeric" min={0} value={hour} onChange={(event) => setHour(event.target.value)} />
         </Field>
-        {replaces ? <p className="text-13 text-muted">These replace the limits this business sets for its accounts, for this one only.</p> : null}
+        {replaces ? <p className="text-secondary text-muted">These replace the limits this business sets for its accounts, for this one only.</p> : null}
         {formError ? (
           <InlineError>
             {formError}

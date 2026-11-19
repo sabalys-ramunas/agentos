@@ -5,8 +5,8 @@ import { Logo } from '@/components/ui/misc';
 function Rule({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="mt-8">
-      <h2 className="text-16 font-semibold">{title}</h2>
-      <div className="mt-2 grid gap-2 text-14 text-muted">{children}</div>
+      <h2 className="text-section-title">{title}</h2>
+      <div className="mt-2 grid gap-2 text-body text-muted">{children}</div>
     </section>
   );
 }
@@ -18,12 +18,12 @@ export function AcceptableUse() {
       <Link to="/" aria-label="agentos home" className="inline-flex rounded-md">
         <Logo className="size-8" />
       </Link>
-      <h1 className="mt-8 text-24 font-semibold">Acceptable use policy</h1>
-      <p className="mt-2 text-13 text-faint">Version 2026-11</p>
-      <p role="note" className="mt-6 rounded-lg border border-line bg-subtle px-4 py-3 text-14 text-muted">
+      <h1 className="mt-8 text-page-title-compact">Acceptable use policy</h1>
+      <p className="mt-2 text-secondary text-faint">Version 2026-11</p>
+      <p role="note" className="mt-6 rounded-lg border border-line bg-inset px-4 py-3 text-body text-muted">
         Draft wording, awaiting legal review. It says what we mean today, and the final text may change.
       </p>
-      <p className="mt-6 text-14 text-muted">
+      <p className="mt-6 text-body text-muted">
         agentos gives your agents a computer on machines you control: browsers, terminals and the accounts you connect. That is a lot of reach, so these are the rules for using it.
         Accepting this policy is how you agree to them.
       </p>

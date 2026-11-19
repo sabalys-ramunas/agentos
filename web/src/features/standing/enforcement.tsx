@@ -12,7 +12,7 @@ import type { LimitGap } from './describe';
 export function EnforcementNote({ enforcement, className }: { enforcement: Enforcement; className?: string }) {
   const applied = enforcement.state === 'applied';
   return (
-    <p className={cn('flex items-baseline gap-2 text-13', className)}>
+    <p className={cn('flex items-baseline gap-2 text-secondary', className)}>
       <StatusDot tone={applied ? 'ok' : 'warn'} className="translate-y-px" />
       <span className="min-w-0">
         <span className={applied ? 'text-muted' : 'text-fg'}>{enforcement.message}</span>
@@ -37,7 +37,7 @@ export function LimitNote({ org, gap, nameOf }: { org: string; gap: LimitGap; na
   const [ws, name] = (lane ?? '').split('/');
   const keep = 'Turn on Ask me first';
   return (
-    <p className="flex items-baseline gap-2 text-13">
+    <p className="flex items-baseline gap-2 text-secondary">
       <StatusDot tone="warn" className="translate-y-px" />
       <span className="min-w-0 text-fg">
         This limit only counts while {gap.routines.length ? 'a routine' : 'an account'} asks first. {shown} {several ? 'run' : 'runs'} on {several ? 'their' : 'its'} own, so what goes out there

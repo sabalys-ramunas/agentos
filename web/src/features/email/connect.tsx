@@ -43,7 +43,7 @@ function ConceptWalk({ org }: { org: string }) {
       <p className="silk mb-2">Concept only: see another outcome</p>
       <div className="flex flex-wrap gap-1">
         {WALK.map((item) => (
-          <Link key={item.word} to="/$org/email/connect" params={{ org }} search={item.search} className="rounded-md px-2 py-1 text-12 text-muted transition-colors duration-(--duration-fast) ease-standard hover:bg-fill-1 hover:text-fg">
+          <Link key={item.word} to="/$org/email/connect" params={{ org }} search={item.search} className="rounded-md px-2 py-1 text-caption text-muted transition-colors duration-(--duration-fast) ease-standard hover:bg-hover hover:text-fg">
             {item.word}
           </Link>
         ))}
@@ -164,7 +164,7 @@ function ConnectHere() {
 
   return (
     <div className="pb-16">
-      <Link to="/$org/email" params={{ org }} className="mb-6 inline-flex items-center gap-1 text-13 text-muted hover:text-fg">
+      <Link to="/$org/email" params={{ org }} className="mb-6 inline-flex items-center gap-1 text-secondary text-muted hover:text-fg">
         <ArrowLeft className="size-3" /> Email
       </Link>
       <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_26rem] lg:gap-16">
@@ -175,7 +175,7 @@ function ConnectHere() {
             <DoneStep org={org} address={address} provider={provider ?? 'your mail company'} computer={computer.id} />
           ) : (
             <>
-              <h1 className="mb-6 text-24 font-semibold break-all">Connecting {address}</h1>
+              <h1 className="mb-6 text-page-title-compact break-all">Connecting {address}</h1>
               <Spine
                 org={org}
                 address={address}
@@ -201,7 +201,7 @@ function ConnectHere() {
             <p className="silk mb-3">Where your password goes</p>
             <RoutePicture computer={computer.id} provider={provider} site={found?.site ?? null} looking={picture.looking} keyAt={picture.keyAt} read={picture.read} send={picture.send} />
           </div>
-          <p aria-live="polite" className="mt-3 text-14 text-pretty text-muted">{picture.caption}</p>
+          <p aria-live="polite" className="mt-3 text-body text-pretty text-muted">{picture.caption}</p>
         </aside>
       </div>
     </div>

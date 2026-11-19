@@ -101,13 +101,13 @@ export function FormCard({ title, description, footnote, action, children, class
       <div className="grid gap-4 p-6">
         <div>
           <h2 className="text-section-title">{title}</h2>
-          {description ? <p className="mt-1 text-14 text-muted">{description}</p> : null}
+          {description ? <p className="mt-1 text-body text-muted">{description}</p> : null}
         </div>
         {children}
       </div>
       {footnote || action ? (
         <div className="flex min-h-14 flex-col gap-2 rounded-b-xl border-t border-line bg-inset px-6 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-          <p className="min-w-0 text-13 text-faint">{footnote}</p>
+          <p className="min-w-0 text-secondary text-faint">{footnote}</p>
           {action ? <div className="self-end sm:self-auto">{action}</div> : null}
         </div>
       ) : null}

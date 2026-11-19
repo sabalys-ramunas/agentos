@@ -72,7 +72,7 @@ export function BusinessMark({ name, color, logo, size = 20, label = false, clas
       className={cn(
         'inline-flex shrink-0 items-center justify-center overflow-hidden leading-none font-semibold',
         'shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)]',
-        logo && 'border border-line bg-bg',
+        logo && 'border border-line bg-card',
         className,
       )}
     >
@@ -158,7 +158,7 @@ export function AgentMark({ principal, name, size = 20, label = false, className
   }
   const Icon = who.kind === 'flow' ? Repeat : who.kind === 'brain' ? Brain : who.kind === 'worker' ? MousePointerClick : Bot;
   return (
-    <span {...a11y} data-agent={who.kind === 'flow' ? 'routine' : who.kind} style={box} className={cn('inline-flex shrink-0 items-center justify-center border border-line bg-subtle text-muted', className)}>
+    <span {...a11y} data-agent={who.kind === 'flow' ? 'routine' : who.kind} style={box} className={cn('inline-flex shrink-0 items-center justify-center border border-line bg-inset text-muted', className)}>
       <Icon width={Math.round(size * 0.6)} height={Math.round(size * 0.6)} strokeWidth={2} />
     </span>
   );

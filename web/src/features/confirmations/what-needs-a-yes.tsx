@@ -45,13 +45,13 @@ function Scope({ workspaces, view, scope, onScope }: { workspaces: Workspace[]; 
       aria-checked={scope === id}
       onClick={() => onScope(id)}
       className={cn(
-        'flex h-8 items-center gap-2 rounded-md px-2 text-13 whitespace-nowrap transition-colors duration-(--duration-fast) ease-standard',
-        scope === id ? 'bg-fill-2 text-fg' : 'text-muted hover:bg-fill-1 hover:text-fg',
+        'flex h-8 items-center gap-2 rounded-md px-2 text-secondary whitespace-nowrap transition-colors duration-(--duration-fast) ease-standard',
+        scope === id ? 'bg-pressed text-fg' : 'text-muted hover:bg-hover hover:text-fg',
       )}
     >
       {mark}
       {label}
-      {more ? <span className="text-12 text-faint">asks for more</span> : null}
+      {more ? <span className="text-caption text-faint">asks for more</span> : null}
     </button>
   );
   return (
@@ -68,8 +68,8 @@ function ChatAnswers({ view, canChange, busy, onChange }: { view: ConfirmationVi
     <section aria-label="Answers in chat" className="grid gap-4 rounded-xl border border-line p-6">
       <div className="flex items-start gap-6">
         <div className="min-w-0 flex-1">
-          <h3 className="text-16 font-semibold">Answers in chat</h3>
-          <p className="mt-1 max-w-[56ch] text-14 text-pretty text-muted">
+          <h3 className="text-section-title">Answers in chat</h3>
+          <p className="mt-1 max-w-[56ch] text-body text-pretty text-muted">
             {on
               ? 'Your chat app can show a yes and a no, in words agentos wrote. Good for anyone without a Mac or an iPhone. Money, what can\'t be undone and anything after outside words never count there.'
               : 'A yes in a chat counts for nothing now. Everything is answered here or in the Mac app, and a chat can still say no.'}
@@ -82,7 +82,7 @@ function ChatAnswers({ view, canChange, busy, onChange }: { view: ConfirmationVi
           {view.clients.map((client) => (
             <li key={client.name} className="flex min-w-0 items-center gap-3">
               <AgentMark principal={{ kind: 'agent', id: client.agent, thread: null }} name={client.name} size={24} />
-              <span className="min-w-0 text-13">
+              <span className="min-w-0 text-secondary">
                 <span className="block truncate font-medium">{client.name}</span>
                 <span className="tabular block truncate text-faint">
                   {client.answers} answers, last {timeAgo(client.last_at).toLowerCase()}
@@ -92,7 +92,7 @@ function ChatAnswers({ view, canChange, busy, onChange }: { view: ConfirmationVi
           ))}
         </ul>
       ) : null}
-      {on ? <p className="text-13 text-pretty text-faint">A chat app that answers by itself would turn this yes into nothing. If you can&apos;t be sure of one, turn this off.</p> : null}
+      {on ? <p className="text-secondary text-pretty text-faint">A chat app that answers by itself would turn this yes into nothing. If you can&apos;t be sure of one, turn this off.</p> : null}
     </section>
   );
 }
@@ -171,8 +171,8 @@ function Page({ org, view, workspaces }: { org: string; view: ConfirmationView; 
       <section aria-label="How strong a yes each thing needs" className="grid gap-4">
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
           <div className="min-w-0">
-            <h3 className="text-16 font-semibold">How strong a yes each thing needs</h3>
-            <p className="mt-1 text-13 text-muted">{canAny ? 'Move a dot to change it. Point at a stop to see the day above change first.' : 'An owner or admin can change this.'}</p>
+            <h3 className="text-section-title">How strong a yes each thing needs</h3>
+            <p className="mt-1 text-secondary text-muted">{canAny ? 'Move a dot to change it. Point at a stop to see the day above change first.' : 'An owner or admin can change this.'}</p>
           </div>
           {!isSystem && canAny && !scope ? (
             <Button size="sm" variant="ghost" icon={<RotateCcw className="size-4" />} onClick={() => set.mutate({ setting: view.system })}>
@@ -212,7 +212,7 @@ function Page({ org, view, workspaces }: { org: string; view: ConfirmationView; 
           {said.words}
         </InlineError>
       ) : null}
-      <p className="text-13 text-muted">
+      <p className="text-secondary text-muted">
         <Link to="/$org/settings/say-yes" params={{ org }} className="inline-flex items-center gap-1 hover:text-fg">
           See where you can say yes
           <ArrowRight aria-hidden="true" className="size-4" />

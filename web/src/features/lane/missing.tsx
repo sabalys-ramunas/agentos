@@ -19,7 +19,7 @@ export function MissingLane({ org, lane }: { org: string; lane: Lane }) {
   if (!lane.missing_since) return null;
   return (
     <div role="status" className="flex flex-wrap items-start gap-x-4 gap-y-2 rounded-xl border border-line px-4 py-3">
-      <p className="flex min-w-0 flex-1 basis-64 items-baseline gap-2 text-14">
+      <p className="flex min-w-0 flex-1 basis-64 items-baseline gap-2 text-body">
         <StatusDot tone="warn" className="translate-y-px" />
         <span className="min-w-0">
           <span className="font-medium">

@@ -451,7 +451,7 @@ function Hands({ org, queue, whoOf }: { org: string; queue: ReturnType<typeof us
         ))}
       </ul>
       {loginQueue.data && loginQueue.data.lanes.length > 0 ? (
-        <Link to="/$org/logins" params={{ org }} className="mt-2 flex min-h-8 items-center px-4 text-13 text-muted hover:text-fg md:min-h-0">
+        <Link to="/$org/logins" params={{ org }} className="mt-2 flex min-h-8 items-center px-4 text-secondary text-muted hover:text-fg md:min-h-0">
           All sign-ins: {loginQueue.data.summary}
         </Link>
       ) : null}

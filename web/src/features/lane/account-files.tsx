@@ -53,7 +53,7 @@ function FileGroup({ box, rows, org, lane, canOperate }: { box: FileBox; rows: A
   if (rows.length === 0) return null;
   return (
     <div className="border-t border-line first:border-t-0">
-      <h3 className="px-4 pt-3 text-13 text-faint">{fileBox[box]}</h3>
+      <h3 className="px-4 pt-3 text-secondary text-faint font-semibold">{fileBox[box]}</h3>
       <ul className="divide-y divide-line">
         {rows.map((file) => (
           <FileRow key={file.id} file={file} org={org} lane={lane} canOperate={canOperate} />
@@ -73,8 +73,8 @@ function FileRow({ file, org, lane, canOperate }: { file: AccountFile; org: stri
     <li className="grid gap-1 px-4 py-2">
       <div className="flex min-h-10 items-center gap-3">
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-14 font-medium">{file.name}</span>
-          <span className="block truncate text-13 text-faint">
+          <span className="block truncate text-label">{file.name}</span>
+          <span className="block truncate text-secondary text-faint">
             {file.size_text}
             {file.kind ? ` · ${file.kind}` : ''} · {timeAgo(file.created_at)}
           </span>
@@ -97,7 +97,7 @@ function FileRow({ file, org, lane, canOperate }: { file: AccountFile; org: stri
           </IconButton>
         ) : null}
       </div>
-      {file.error ? <p className="text-13 text-muted">{file.error}</p> : null}
+      {file.error ? <p className="text-secondary text-muted">{file.error}</p> : null}
       {failure ? (
         <InlineError>
           {describeError(failure)}

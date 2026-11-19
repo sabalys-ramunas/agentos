@@ -99,8 +99,8 @@ export function SendPlan({ past, plan, limit, other }: { past: ListDay[]; plan: 
   return (
     <div className="min-w-0">
       <div className="flex min-h-5 items-baseline justify-between gap-4">
-        <p aria-live="polite" className="min-w-0 truncate text-13 text-muted">{pointed ? pointed.words : 'Point at a day to read it.'}</p>
-        <p className="shrink-0 text-12 text-faint">Top of each day: the limit of {limit}</p>
+        <p aria-live="polite" className="min-w-0 truncate text-secondary text-muted">{pointed ? pointed.words : 'Point at a day to read it.'}</p>
+        <p className="shrink-0 text-caption text-faint">Top of each day: the limit of {limit}</p>
       </div>
       <div className="scrollbar-none mt-2 overflow-x-auto pb-1">
         <div className="relative" style={{ width: total, height: height + foot }}>
@@ -116,9 +116,9 @@ export function SendPlan({ past, plan, limit, other }: { past: ListDay[]; plan: 
               className="focus-inset absolute top-0 rounded-sm"
               style={{ left: index * (width + GAP) - 4, width: width + 6, height: height + foot }}
             >
-              <span className={cn('absolute inset-x-0 top-0 rounded-sm transition-colors duration-(--duration-fast) ease-standard', day === column.at ? 'bg-fill-2' : 'bg-fill-1')} style={{ height: height + 4 }} />
+              <span className={cn('absolute inset-x-0 top-0 rounded-sm transition-colors duration-(--duration-fast) ease-standard', day === column.at ? 'bg-pressed' : 'bg-hover')} style={{ height: height + 4 }} />
               <span className="absolute inset-x-1 top-0 h-px bg-(--board-wire-strong)" />
-              <span className="absolute inset-x-0 text-center text-12" style={{ top: height + 10 }}>
+              <span className="absolute inset-x-0 text-center text-caption" style={{ top: height + 10 }}>
                 <span className="block font-medium">{weekday(column.at)}</span>
                 <span className="block text-faint">{dayNumber(column.at)}</span>
                 {column.replies ? <span className="block text-muted">{plural(column.replies, 'reply', 'replies')}</span> : null}
@@ -130,7 +130,7 @@ export function SendPlan({ past, plan, limit, other }: { past: ListDay[]; plan: 
           ))}
         </div>
       </div>
-      <ul aria-label="What the dots mean" className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-12 text-muted">
+      <ul aria-label="What the dots mean" className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-caption text-muted">
         {LEGEND.filter((item) => kinds.has(item.kind)).map((item) => (
           <li key={item.kind} className="flex items-center gap-2">
             <span className="plan-dot relative! size-2" data-kind={item.kind} />

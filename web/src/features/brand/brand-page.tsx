@@ -37,7 +37,7 @@ function ProposalRow({ org, proposal }: { org: string; proposal: BrandProposal }
           {proposal.created_by ? principalName(proposal.created_by) : 'An agent'} proposes version {proposal.version} of {proposal.display_name}
         </p>
         {proposal.reason ? (
-          <p title={proposal.reason} className="line-clamp-2 text-14 text-muted">
+          <p title={proposal.reason} className="line-clamp-2 text-body text-muted">
             “{proposal.reason}”
           </p>
         ) : null}
@@ -46,7 +46,7 @@ function ProposalRow({ org, proposal }: { org: string; proposal: BrandProposal }
       <Link
         to="/$org/brand/$profile"
         params={{ org, profile: proposal.ref }}
-        className="inline-flex h-8 items-center justify-center gap-2 rounded-md bg-primary px-3 text-14 font-medium text-on-primary hover:bg-primary-hover"
+        className="inline-flex h-8 items-center justify-center gap-2 rounded-md bg-primary px-3 text-label text-on-primary hover:bg-primary-hover"
       >
         Review version {proposal.version}
         <ArrowRight aria-hidden="true" className="size-4" />
@@ -71,7 +71,7 @@ function ProfileCard({ org, row }: { org: string; row: BrandProfileRow }) {
         <ArrowRight aria-hidden="true" className="ml-auto size-4 shrink-0 text-faint transition-transform duration-(--duration-fast) group-hover:translate-x-0.5 group-hover:text-fg" />
       </span>
       {row.headline ? (
-        <span title={row.headline} className="line-clamp-2 text-14 text-muted">
+        <span title={row.headline} className="line-clamp-2 text-body text-muted">
           {row.headline}
         </span>
       ) : null}

@@ -76,7 +76,7 @@ export function CodeLogin() {
   return (
     <AuthLayout title="Sign in to this computer" description="Your accounts and passwords stay here." aside={<PromisePicture />}>
       {signIn.isError ? <Notice alert>{describeError(signIn.error)}</Notice> : null}
-      {signIn.isError || !code ? <CodeForm /> : <p className="text-14 text-muted">Signing you in.</p>}
+      {signIn.isError || !code ? <CodeForm /> : <p className="text-body text-muted">Signing you in.</p>}
     </AuthLayout>
   );
 }

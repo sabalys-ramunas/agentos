@@ -52,7 +52,7 @@ function Progress({ done, total, className }: { done: number; total: number; cla
       aria-valuemin={0}
       aria-valuemax={total}
       aria-valuenow={done}
-      className={cn('h-1 overflow-hidden rounded-full bg-fill-2', className)}
+      className={cn('h-1 overflow-hidden rounded-full bg-pressed', className)}
     >
       <div className="h-full rounded-full bg-fg transition-[width] duration-(--duration-slow) ease-standard" style={{ width: `${(done / total) * 100}%` }} />
     </div>
@@ -63,9 +63,9 @@ function Sidebar({ org, current, setup, hints }: { org: string | null; current: 
   const done = STEPS.filter((step) => stepDone(setup, step)).length;
   const left = minutesLeft(setup);
   return (
-    <aside aria-label="Getting started" className="hidden w-72 shrink-0 border-r border-line bg-subtle px-6 py-8 lg:block">
-      <p className="text-14 font-medium">Getting started</p>
-      <p className="tabular mt-1 text-13 text-faint">
+    <aside aria-label="Getting started" className="hidden w-72 shrink-0 border-r border-line bg-inset px-6 py-8 lg:block">
+      <p className="text-label">Getting started</p>
+      <p className="tabular mt-1 text-secondary text-faint">
         {done} of {STEPS.length} done · about {left} min left
       </p>
       <Progress done={done} total={STEPS.length} className="mt-4" />
@@ -78,24 +78,24 @@ function Sidebar({ org, current, setup, hints }: { org: string | null; current: 
               <span
                 aria-hidden="true"
                 className={cn(
-                  'mt-px inline-flex size-6 shrink-0 items-center justify-center rounded-full border text-12',
-                  finished ? 'border-fg bg-fg text-bg' : here ? 'border-fg text-fg' : 'border-line-strong text-faint',
+                  'mt-px inline-flex size-6 shrink-0 items-center justify-center rounded-full border text-caption',
+                  finished ? 'border-fg bg-fg text-card' : here ? 'border-fg text-fg' : 'border-line-strong text-faint',
                 )}
               >
                 {finished ? <Check className="size-3.5" strokeWidth={2.5} /> : index + 1}
               </span>
               <span className="min-w-0">
-                <span className={cn('block text-14', here || finished ? 'text-fg' : 'text-muted')}>{step.title}</span>
-                <span className="block truncate text-13 text-faint">{hints[step.key] ?? step.hint}</span>
+                <span className={cn('block text-body', here || finished ? 'text-fg' : 'text-muted')}>{step.title}</span>
+                <span className="block truncate text-secondary text-faint">{hints[step.key] ?? step.hint}</span>
               </span>
               {finished ? <span className="sr-only">, done</span> : null}
             </>
           );
-          const className = cn('flex items-start gap-3 rounded-lg border px-3 py-2', here ? 'border-line bg-bg shadow-card' : 'border-transparent');
+          const className = cn('flex items-start gap-3 rounded-lg border px-3 py-2', here ? 'border-line bg-card shadow-card' : 'border-transparent');
           return (
             <li key={step.key}>
               {org && step.key !== 'goal' ? (
-                <Link to="/onboarding/$org/$step" params={{ org, step: step.key }} aria-current={here ? 'step' : undefined} className={cn(className, !here && 'hover:bg-fill-1')}>
+                <Link to="/onboarding/$org/$step" params={{ org, step: step.key }} aria-current={here ? 'step' : undefined} className={cn(className, !here && 'hover:bg-hover')}>
                   {body}
                 </Link>
               ) : (
@@ -107,7 +107,7 @@ function Sidebar({ org, current, setup, hints }: { org: string | null; current: 
           );
         })}
       </ol>
-      <p className="mt-6 border-t border-line pt-4 text-13 text-faint">
+      <p className="mt-6 border-t border-line pt-4 text-secondary text-faint">
         Leave whenever you like. This list waits on Home, and each step picks up where you stopped.
       </p>
     </aside>
@@ -140,9 +140,9 @@ export function SetupLayout({ org, business, step, setup, eyebrow, title, descri
   const index = STEPS.findIndex((item) => item.key === step);
   const done = STEPS.filter((item) => stepDone(setup, item)).length;
   return (
-    <div className="flex min-h-dvh flex-col bg-bg">
+    <div className="flex min-h-dvh flex-col bg-card">
       {org ? <Live org={org} /> : null}
-      <header className="sticky top-0 z-20 flex h-(--topbar-height) items-center gap-2 border-b border-line bg-bg px-4">
+      <header className="sticky top-0 z-20 flex h-(--topbar-height) items-center gap-2 border-b border-line bg-card px-4">
         <Logo />
         {business ? (
           <>
@@ -150,12 +150,12 @@ export function SetupLayout({ org, business, step, setup, eyebrow, title, descri
               /
             </span>
             <BusinessMark name={business.name} color={business.color} size={20} />
-            <span className="min-w-0 truncate text-14 font-medium">{business.name}</span>
+            <span className="min-w-0 truncate text-label">{business.name}</span>
             <Badge className="hidden sm:inline-flex">Setting up</Badge>
           </>
         ) : null}
         {org ? (
-          <Link to="/$org" params={{ org }} className="ml-auto shrink-0 text-13 text-muted underline decoration-line-strong underline-offset-4 hover:text-fg">
+          <Link to="/$org" params={{ org }} className="ml-auto shrink-0 text-secondary text-muted underline decoration-line-strong underline-offset-4 hover:text-fg">
             Save and finish later
           </Link>
         ) : null}
@@ -164,15 +164,15 @@ export function SetupLayout({ org, business, step, setup, eyebrow, title, descri
         <Sidebar org={org} current={step} setup={setup} hints={hints} />
         <main className="min-w-0 flex-1">
           <div className="border-b border-line px-4 py-3 lg:hidden">
-            <p className="tabular text-13 text-muted">
+            <p className="tabular text-secondary text-muted">
               Step {index + 1} of {STEPS.length} · <span className="text-fg">{STEPS[index]?.title}</span>
             </p>
             <Progress done={done} total={STEPS.length} className="mt-2" />
           </div>
           <div className={cn('mx-auto w-full px-4 pt-8 pb-12 sm:px-8 lg:pt-12', wide ? 'max-w-5xl' : 'max-w-3xl')}>
-            <div className="text-13 text-muted">{eyebrow ?? `Step ${index + 1} of ${STEPS.length}`}</div>
-            <h1 className="mt-2 text-24 font-semibold text-balance sm:text-32">{title}</h1>
-            <div className="mt-2 max-w-2xl text-16 text-muted">{description}</div>
+            <div className="text-secondary text-muted">{eyebrow ?? `Step ${index + 1} of ${STEPS.length}`}</div>
+            <h1 className="mt-2 text-page-title-compact text-balance sm:text-headline">{title}</h1>
+            <div className="mt-2 max-w-2xl text-lede text-muted">{description}</div>
             <div className="mt-8">{children}</div>
             <div className="mt-10 flex flex-wrap items-center gap-2 border-t border-line pt-4">{footer}</div>
           </div>

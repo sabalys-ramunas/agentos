@@ -67,22 +67,22 @@ export function StreamNotice({ state, kind, org, node, onRetry }: { state: Strea
     <div
       role="status"
       data-phase={state.phase}
-      className="absolute inset-0 z-10 flex animate-fade-in flex-col items-center justify-center bg-subtle p-6 text-center"
+      className="absolute inset-0 z-10 flex animate-fade-in flex-col items-center justify-center bg-inset p-6 text-center"
     >
       {Icon ? <Icon className="mb-4 size-6 text-faint" /> : <Spinner className="mb-4 size-6 text-faint" />}
-      <h3 className="text-14 font-medium">{copy.title}</h3>
-      <p className="tabular mt-1 max-w-sm text-14 text-muted">{copy.body}</p>
+      <h3 className="text-label">{copy.title}</h3>
+      <p className="tabular mt-1 max-w-sm text-body text-muted">{copy.body}</p>
       {copy.action === 'retry' ? (
         <Button className="mt-4" size="sm" onClick={onRetry}>
           {state.phase === 'ended' ? 'Reconnect' : state.phase === 'failed' ? 'Try again' : 'Try now'}
         </Button>
       ) : copy.action === 'sign_in' ? (
-        <Link to="/sign-in" className="mt-4 text-14 text-blue hover:underline">
+        <Link to="/sign-in" className="mt-4 text-body link hover:underline">
           Sign in
         </Link>
       ) : copy.action === 'needs_you' ? (
         <div className="mt-4 flex gap-2">
-          <Link to="/$org/needs-you" params={{ org }} className="inline-flex h-7 items-center rounded-md border border-line px-3 text-13 font-medium hover:bg-fill-1">
+          <Link to="/$org/needs-you" params={{ org }} className="inline-flex h-7 items-center rounded-md border border-line px-3 text-secondary font-medium hover:bg-hover">
             Open Needs you
           </Link>
           <Button size="sm" onClick={onRetry}>
@@ -98,7 +98,7 @@ export function StreamNotice({ state, kind, org, node, onRetry }: { state: Strea
 export function StreamBadge({ state, kind, node }: { state: StreamState; kind: StreamKind; node: string }) {
   const copy = streamCopy(state, kind, node, Date.now());
   return (
-    <span className="inline-flex items-center gap-2 text-13 whitespace-nowrap text-muted">
+    <span className="inline-flex items-center gap-2 text-secondary whitespace-nowrap text-muted">
       <StatusDot tone={PHASE_TONE[state.phase]} />
       {state.switching ? 'Switching' : copy.label}
     </span>

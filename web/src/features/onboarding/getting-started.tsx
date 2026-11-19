@@ -41,20 +41,20 @@ function Row({ org, item }: { org: string; item: GettingStartedItem }) {
     <li className={cn('min-h-14 items-center gap-3 px-4 py-2', item.done ? 'hidden md:flex' : 'flex')}>
       <span
         aria-hidden="true"
-        className={cn('inline-flex size-5 shrink-0 items-center justify-center rounded-full border', item.done ? 'border-fg bg-fg text-bg' : 'border-line-strong')}
+        className={cn('inline-flex size-5 shrink-0 items-center justify-center rounded-full border', item.done ? 'border-fg bg-fg text-card' : 'border-line-strong')}
       >
         {item.done ? <Check className="size-3" strokeWidth={3} /> : null}
       </span>
       <span className="min-w-0 flex-1">
-        <span className={cn('block text-14', item.done ? 'text-muted' : 'font-medium')}>
+        <span className={cn('block text-label', item.done ? 'text-muted' : 'font-medium')}>
           {item.title}
           {item.done ? <span className="sr-only">, done</span> : null}
         </span>
-        {item.done ? null : <span className="block truncate text-13 text-faint">{item.hint}</span>}
+        {item.done ? null : <span className="block truncate text-secondary text-faint">{item.hint}</span>}
       </span>
       {item.done ? null : (
         <>
-          <span className="tabular hidden text-13 text-faint sm:inline">{item.minutes} min</span>
+          <span className="tabular hidden text-secondary text-faint sm:inline">{item.minutes} min</span>
           <Button size="sm" asChild>
             <Link to="/onboarding/$org/$step" params={{ org, step: action.step }} aria-label={`${action.label}: ${item.title}`}>
               {action.label}
@@ -89,10 +89,10 @@ export function GettingStarted({ org }: { org: string }) {
       <div className="flex items-center gap-3 border-b border-line px-4 py-4">
         <Ring done={done} total={total} />
         <div className="min-w-0 flex-1">
-          <h2 id="getting-started-title" className="text-16 font-semibold">
+          <h2 id="getting-started-title" className="text-section-title">
             Getting started
           </h2>
-          <p className="tabular text-13 text-muted">
+          <p className="tabular text-secondary text-muted">
             {done} of {total} done. The rest takes about {left} {left === 1 ? 'minute' : 'minutes'}.
           </p>
         </div>
@@ -106,7 +106,7 @@ export function GettingStarted({ org }: { org: string }) {
         ))}
       </ul>
       {/* On a phone the done lines fold into one, so what is left stays in reach. */}
-      <p className={cn('items-start gap-2 border-t border-line px-4 py-3 text-13 text-muted md:hidden', done ? 'flex' : 'hidden')}>
+      <p className={cn('items-start gap-2 border-t border-line px-4 py-3 text-secondary text-muted md:hidden', done ? 'flex' : 'hidden')}>
         <Check className="mt-1 size-3.5 shrink-0" aria-hidden="true" />
         Done: {setup.items.filter((item) => item.done).map((item) => item.title.toLowerCase()).join(', ')}.
       </p>
@@ -125,7 +125,7 @@ function AlmostDone({ org, open, items, done, total }: { org: string; open: Gett
     <Card role="region" aria-labelledby="getting-started-title" className="mb-10 overflow-hidden">
       <div className="flex min-h-14 flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2">
         <Ring done={done} total={total} />
-        <p className="min-w-0 flex-1 basis-[calc(100%-48px)] text-14 sm:basis-auto">
+        <p className="min-w-0 flex-1 basis-[calc(100%-48px)] text-body sm:basis-auto">
           <span id="getting-started-title" className="font-medium">
             Almost set up:
           </span>{' '}

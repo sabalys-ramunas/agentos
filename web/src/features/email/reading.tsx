@@ -31,16 +31,16 @@ function Body({ blocks }: { blocks: MailBlock[] }) {
   return (
     <div className="grid gap-3">
       {blocks.map((block, index) => {
-        if (block.kind === 'text') return <p key={index} className="text-14 leading-6 whitespace-pre-wrap">{block.text}</p>;
+        if (block.kind === 'text') return <p key={index} className="text-body leading-6 whitespace-pre-wrap">{block.text}</p>;
         if (block.kind === 'link') {
           return (
-            <p key={index} className="text-14">
-              {block.text} <span className="mono text-12 break-all text-faint">({block.url})</span>
+            <p key={index} className="text-body">
+              {block.text} <span className="mono text-caption break-all text-faint">({block.url})</span>
             </p>
           );
         }
         return (
-          <p key={index} className="left-out flex items-center gap-2 rounded-md border border-dashed border-line-strong px-3 py-3 text-12 text-faint">
+          <p key={index} className="left-out flex items-center gap-2 rounded-md border border-dashed border-line-strong px-3 py-3 text-caption text-faint">
             <ImageOff aria-hidden="true" className="size-3 shrink-0" />
             <span className="min-w-0">A picture from <span className="mono">{block.host}</span> was not loaded</span>
           </p>
@@ -51,19 +51,19 @@ function Body({ blocks }: { blocks: MailBlock[] }) {
 }
 
 function WhatHappened({ org, message }: { org: string; message: MailMessage }) {
-  if (!message.did) return <p className="text-13 text-muted">What a routine did with it is not kept on this computer yet.</p>;
-  if (!message.did) return <p className="text-13 text-muted">What a routine did with it is not kept on this computer yet.</p>;
-  if (!message.did.length) return <p className="text-13 text-muted">No routine touched this. It is only here for you to read.</p>;
+  if (!message.did) return <p className="text-secondary text-muted">What a routine did with it is not kept on this computer yet.</p>;
+  if (!message.did) return <p className="text-secondary text-muted">What a routine did with it is not kept on this computer yet.</p>;
+  if (!message.did.length) return <p className="text-secondary text-muted">No routine touched this. It is only here for you to read.</p>;
   return (
     <ol className="relative grid gap-4 before:absolute before:inset-y-2 before:left-[7.5px] before:w-px before:bg-line">
       {(message.did ?? []).map((item, index) => (
-        <li key={index} className="relative flex gap-3 text-14 text-pretty">
-          <span className="mt-1 grid size-4 shrink-0 place-items-center rounded-full bg-bg text-faint">
+        <li key={index} className="relative flex gap-3 text-body text-pretty">
+          <span className="mt-1 grid size-4 shrink-0 place-items-center rounded-full bg-card text-faint">
             {item.waits ? <StateGlyph state="waiting" size={16} /> : item.routine ? <Repeat aria-hidden="true" className="size-3" /> : <Bell aria-hidden="true" className="size-3" />}
           </span>
           <span className="min-w-0">
             {item.words}
-            <span className="block text-12 text-faint">
+            <span className="block text-caption text-faint">
               {clock(item.at)}
               {item.routine ? (
                 <>
@@ -88,7 +88,7 @@ function Reply({ org, message, mailbox }: { org: string; message: MailMessage; m
   const [text, setText] = useState('');
   const send = useMailSend(org);
   useEffect(() => setText(''), [message.id]);
-  if (message.kind === 'unsubscribe') return <p className="text-13 text-muted">{firstName(message.from_name)} asked not to hear from you, so there is nothing to reply to.</p>;
+  if (message.kind === 'unsubscribe') return <p className="text-secondary text-muted">{firstName(message.from_name)} asked not to hear from you, so there is nothing to reply to.</p>;
   if (!mailbox) return null;
   return (
     <form
@@ -108,7 +108,7 @@ function Reply({ org, message, mailbox }: { org: string; message: MailMessage; m
     >
       <Textarea rows={3} value={text} onChange={(event) => setText(event.target.value)} aria-label={`Reply to ${message.from_name}`} placeholder="Write a reply" />
       <div className="mt-2 flex items-center justify-between gap-4">
-        <p className="min-w-0 truncate text-12 text-faint">From {mailbox.address} · uses 1 of today's {mailbox.daily_limit - mailbox.sent_today} left</p>
+        <p className="min-w-0 truncate text-caption text-faint">From {mailbox.address} · uses 1 of today's {mailbox.daily_limit - mailbox.sent_today} left</p>
         <Button type="submit" loading={send.isPending} aria-disabled={!text.trim()}>Send</Button>
       </div>
     </form>
@@ -123,38 +123,38 @@ function Reader({ org, message, mailbox, onUnread }: { org: string; message: Mai
     <article aria-label={message.subject} className="min-w-0">
       <header>
         <div className="flex items-start justify-between gap-4">
-          <h2 className="min-w-0 text-20 font-semibold text-balance">{message.subject}</h2>
+          <h2 className="min-w-0 text-heading text-balance">{message.subject}</h2>
           <Button variant="ghost" size="sm" onClick={onUnread}>Mark unread</Button>
         </div>
-        <p className="mt-2 flex min-w-0 items-center gap-2 text-13 text-muted">
+        <p className="mt-2 flex min-w-0 items-center gap-2 text-secondary text-muted">
           <PersonMark id={message.from_address} name={message.from_name} size={20} />
           <span className="truncate">{message.from_name}</span>
-          <span className="mono min-w-0 truncate text-12 text-faint">{message.from_address}</span>
-          <span className="ml-auto shrink-0 text-12 text-faint">{dayAndTime(message.at)}</span>
+          <span className="mono min-w-0 truncate text-caption text-faint">{message.from_address}</span>
+          <span className="ml-auto shrink-0 text-caption text-faint">{dayAndTime(message.at)}</span>
         </p>
       </header>
       {message.kind === 'unsubscribe' ? (
-        <p className="mt-6 text-14 text-pretty text-muted">{firstName(message.from_name)} pressed the unsubscribe link your computer adds to every email. Nobody wrote anything.</p>
+        <p className="mt-6 text-body text-pretty text-muted">{firstName(message.from_name)} pressed the unsubscribe link your computer adds to every email. Nobody wrote anything.</p>
       ) : (
       <div className="stranger mt-6">
         <p className="silk mb-3">Written by someone else</p>
-        {blocks.length || !whole.isPending ? (blocks.length || !whole.isError ? <Body blocks={blocks} /> : <p className="text-14 text-muted">This message could not be opened from this computer just now.</p>) : <p className="text-14 text-muted">Opening the message.</p>}
+        {blocks.length || !whole.isPending ? (blocks.length || !whole.isError ? <Body blocks={blocks} /> : <p className="text-body text-muted">This message could not be opened from this computer just now.</p>) : <p className="text-body text-muted">Opening the message.</p>}
         {message.attachments.length ? (
           <ul className="mt-4 grid gap-1">
             {message.attachments.map((file) => (
-              <li key={file.name} className="flex items-center gap-2 text-13 text-muted">
+              <li key={file.name} className="flex items-center gap-2 text-secondary text-muted">
                 <FileText aria-hidden="true" className="size-3 shrink-0 text-faint" />
-                <span className="mono min-w-0 truncate text-12">{file.name}</span>
-                <span className="shrink-0 text-12 text-faint">Not opened</span>
+                <span className="mono min-w-0 truncate text-caption">{file.name}</span>
+                <span className="shrink-0 text-caption text-faint">Not opened</span>
               </li>
             ))}
           </ul>
         ) : null}
-        <p className="mt-4 text-12 text-faint">Shown as plain text. No picture was fetched and no link here can be pressed.</p>
+        <p className="mt-4 text-caption text-faint">Shown as plain text. No picture was fetched and no link here can be pressed.</p>
       </div>
       )}
       <section aria-label="What happened to it" className="mt-8 border-t border-line pt-6">
-        <h3 className="mb-3 text-14 font-semibold">What happened to it</h3>
+        <h3 className="mb-3 text-body font-semibold">What happened to it</h3>
         <WhatHappened org={org} message={message} />
       </section>
       <section aria-label="Reply" className="mt-8 border-t border-line pt-6">
@@ -174,16 +174,16 @@ function MessageRow({ message, open, lit, onOpen, onLight }: { message: MailMess
         onClick={onOpen}
         onPointerEnter={() => onLight(message.id)}
         onPointerLeave={() => onLight(null)}
-        className={cn('focus-inset block w-full rounded-md px-3 py-2 text-left transition-colors duration-(--duration-fast) ease-standard', open ? 'bg-fill-2' : lit ? 'bg-fill-1' : 'hover:bg-fill-1')}
+        className={cn('focus-inset block w-full rounded-md px-3 py-2 text-left transition-colors duration-(--duration-fast) ease-standard', open ? 'bg-pressed' : lit ? 'bg-hover' : 'hover:bg-hover')}
       >
         <span className="flex items-center gap-2">
-          <span aria-label={message.unread ? 'Unread' : undefined} className={cn('size-2 shrink-0 rounded-full', message.unread ? 'bg-blue' : 'bg-transparent')} />
-          <span className={cn('min-w-0 flex-1 truncate text-14', message.unread ? 'font-medium' : 'text-muted')}>{message.from_name}</span>
-          {tag ? <span className="shrink-0 rounded-sm bg-fill-2 px-1 text-12 text-muted">{tag}</span> : null}
-          <span className="tabular shrink-0 text-12 text-faint">{clock(message.at)}</span>
+          <span aria-label={message.unread ? 'Unread' : undefined} className={cn('size-2 shrink-0 rounded-full', message.unread ? 'bg-fg' : 'bg-transparent')} />
+          <span className={cn('min-w-0 flex-1 truncate text-label', message.unread ? 'font-medium' : 'text-muted')}>{message.from_name}</span>
+          {tag ? <span className="shrink-0 rounded-sm bg-pressed px-1 text-caption text-muted">{tag}</span> : null}
+          <span className="tabular shrink-0 text-caption text-faint">{clock(message.at)}</span>
         </span>
-        <span className="mt-px block truncate pl-4 text-13">{message.subject}</span>
-        <span className="block truncate pl-4 text-13 text-faint">{message.clip}</span>
+        <span className="mt-px block truncate pl-4 text-secondary">{message.subject}</span>
+        <span className="block truncate pl-4 text-secondary text-faint">{message.clip}</span>
       </button>
     </li>
   );
@@ -311,28 +311,28 @@ export function Reading() {
       <EmailTabs org={org} here="new-mail" newCount={fresh} />
       <div className="flex items-start justify-between gap-6">
         <div className="min-w-0">
-          <h1 className="text-32 font-semibold text-balance">{plural(shown.length, 'message')} today{replies ? <span className="text-faint">, {plural(replies, 'reply', 'replies')}.</span> : '.'}</h1>
+          <h1 className="text-headline text-balance">{plural(shown.length, 'message')} today{replies ? <span className="text-faint">, {plural(replies, 'reply', 'replies')}.</span> : '.'}</h1>
           <FromComputer computers={computers} className="mt-2" />
         </div>
         <Button icon={<PenLine aria-hidden="true" className="size-4" />} onClick={() => setWriting(true)}>New email</Button>
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-1">
-        <button type="button" aria-pressed={!search.mailbox} onClick={() => void navigate({ search: {}, replace: true })} className={cn('rounded-md px-2 py-1 text-13 transition-colors duration-(--duration-fast) ease-standard', !search.mailbox ? 'bg-fill-2 text-fg' : 'text-muted hover:bg-fill-1')}>Every mailbox</button>
+        <button type="button" aria-pressed={!search.mailbox} onClick={() => void navigate({ search: {}, replace: true })} className={cn('rounded-md px-2 py-1 text-secondary transition-colors duration-(--duration-fast) ease-standard', !search.mailbox ? 'bg-pressed text-fg' : 'text-muted hover:bg-hover')}>Every mailbox</button>
         {mailboxes.filter((item) => item.health === 'good').map((item) => (
-          <button key={item.id} type="button" aria-pressed={search.mailbox === item.id} onClick={() => void navigate({ search: { mailbox: item.id }, replace: true })} className={cn('rounded-md px-2 py-1 text-13 transition-colors duration-(--duration-fast) ease-standard', search.mailbox === item.id ? 'bg-fill-2 text-fg' : 'text-muted hover:bg-fill-1')}>{item.address}</button>
+          <button key={item.id} type="button" aria-pressed={search.mailbox === item.id} onClick={() => void navigate({ search: { mailbox: item.id }, replace: true })} className={cn('rounded-md px-2 py-1 text-secondary transition-colors duration-(--duration-fast) ease-standard', search.mailbox === item.id ? 'bg-pressed text-fg' : 'text-muted hover:bg-hover')}>{item.address}</button>
         ))}
       </div>
 
       <TodayLine messages={shown} lit={lit ?? open?.id ?? null} onLight={setLit} onOpen={openMessage} />
-      <p className="mt-1 flex items-baseline justify-between gap-4 text-12 text-faint">
+      <p className="mt-1 flex items-baseline justify-between gap-4 text-caption text-faint">
         <span className="tabular">{clock(shown.at(-1)?.at ?? new Date().toISOString())}</span>
         <span className="min-w-0 truncate text-muted">{pointed ? `${pointed.from_name}, ${clock(pointed.at)}` : ''}</span>
         <span>Now</span>
       </p>
 
       {held.map((item) => (
-        <p key={item.id} className="mt-4 flex items-center gap-2 text-13 text-muted">
+        <p key={item.id} className="mt-4 flex items-center gap-2 text-secondary text-muted">
           <StateGlyph state="stuck" size={16} />
           <span className="min-w-0">{item.address} cannot be read until it is connected again. New mail is safe on the server.</span>
         </p>

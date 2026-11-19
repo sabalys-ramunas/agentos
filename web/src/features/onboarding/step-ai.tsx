@@ -105,14 +105,14 @@ export function AiStep({ ctx }: { ctx: StepContext }) {
                   setToken(null);
                 }}
                 className={cn(
-                  'flex items-center gap-3 rounded-xl border bg-bg p-3 text-left transition-[border-color,box-shadow] duration-(--duration-fast)',
+                  'flex items-center gap-3 rounded-xl border bg-card p-3 text-left transition-[border-color,box-shadow] duration-(--duration-fast)',
                   on ? 'border-fg shadow-[0_0_0_1px_var(--foreground)]' : 'border-line hover:border-line-strong',
                 )}
               >
                 <AgentMark principal={{ kind: 'agent', id: item.key, thread: null }} size={32} />
                 <span className="min-w-0">
-                  <span className="block truncate text-14 font-medium">{AGENT_NAMES[item.key]}</span>
-                  <span className="block truncate text-12 text-muted">{item.soon ? 'Coming soon' : item.where}</span>
+                  <span className="block truncate text-label">{AGENT_NAMES[item.key]}</span>
+                  <span className="block truncate text-caption text-muted">{item.soon ? 'Coming soon' : item.where}</span>
                 </span>
               </button>
             );
@@ -121,7 +121,7 @@ export function AiStep({ ctx }: { ctx: StepContext }) {
 
         {tile.soon ? (
           <div className="grid gap-4 rounded-xl border border-dashed border-line-strong p-4 sm:p-6">
-            <p className="text-14">
+            <p className="text-body">
               <Badge className="mr-2">Coming soon</Badge>
               <span className="text-muted">
                 {name} will connect with one link and an Allow button, no token to keep. Here is how it will look. Until then, Claude Code or Codex works today.
@@ -156,21 +156,21 @@ export function AiStep({ ctx }: { ctx: StepContext }) {
               </PictureStep>
             </ol>
             {isNotServed(grant.error) ? (
-              <p className="rounded-lg border border-line bg-subtle px-4 py-3 text-14 text-muted">Connecting an AI is not switched on here yet. You can do it later in Settings.</p>
+              <p className="rounded-lg border border-line bg-inset px-4 py-3 text-body text-muted">Connecting an AI is not switched on here yet. You can do it later in Settings.</p>
             ) : token ? (
               <div className="grid gap-3">
                 <DoneRow>
                   Connection made for {name}. {may}
                 </DoneRow>
                 <CodeBlock code={commandFor(agent, url, token)} label="Copy command" />
-                <p className="text-13 text-faint">This line holds a secret and is shown once. Paste it now; you can always make a new one in Settings.</p>
+                <p className="text-secondary text-faint">This line holds a secret and is shown once. Paste it now; you can always make a new one in Settings.</p>
               </div>
             ) : (
               <div className="flex flex-wrap items-center gap-3">
                 <Button variant="primary" size="lg" loading={grant.isPending} disabled={!setup || !workspace} onClick={connect}>
                   Make a connection for {name}
                 </Button>
-                <p className="min-w-0 flex-1 text-13 text-muted">
+                <p className="min-w-0 flex-1 text-secondary text-muted">
                   {may}
                 </p>
               </div>

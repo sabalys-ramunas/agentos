@@ -51,7 +51,7 @@ export function EnvHeader({ org, env, now }: { org: string; env: EnvDetail; now:
               <Status status={ENV_STATUS[env.state]} />
             </span>
           </div>
-          <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-14 text-muted">
+          <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-body text-muted">
             <span>{agentWords(env.agent)}</span>
             <span aria-hidden="true" className="text-faint">
               ·
@@ -131,9 +131,9 @@ export function ClosedNotice({ env }: { env: EnvDetail }) {
   return (
     <Card role="status" className="flex items-start gap-3 px-5 py-4">
       <StatusDot tone={failed ? 'bad' : 'neutral'} className="mt-2" />
-      <p className="min-w-0 text-14">
+      <p className="min-w-0 text-body">
         <span className="font-medium text-fg">{lead}</span> <span className="text-muted">{closedReason(env.closed_reason, env.state)}</span>
-        <span className="mt-1 block text-13 text-faint">
+        <span className="mt-1 block text-secondary text-faint">
           {keepOf(env) === 'save' && !failed
             ? 'Its machine and browser are deleted, and its work is saved: resume it below, or an agent brings it back when it opens it again.'
             : 'Its machine and browser are deleted. What is below is what the node kept.'}

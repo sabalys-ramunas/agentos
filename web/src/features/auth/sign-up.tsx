@@ -11,7 +11,7 @@ import { AuthLayout, Or, PromisePicture } from './layout';
 /** Under the button, never a checkbox: continuing is accepting, and the server records it. */
 export function PolicyLine({ extra }: { extra?: string }) {
   return (
-    <p className="mt-4 text-13 text-faint">
+    <p className="mt-4 text-secondary text-faint">
       By continuing you agree to the{' '}
       <Link to="/legal/acceptable-use" target="_blank" className="link">
         acceptable use policy

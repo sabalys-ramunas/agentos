@@ -206,7 +206,7 @@ function RunHeader({ org, job, kind, title, now }: { org: string; job: Job; kind
           </Button>
         </div>
       </div>
-      <p className="max-w-[60em] text-14 text-muted">{lede(job, now)}</p>
+      <p className="max-w-[60em] text-body text-muted">{lede(job, now)}</p>
       {cancel.error ? (
         <InlineError>
           {cancel.error instanceof ApiError && cancel.error.status === 403
@@ -232,7 +232,7 @@ function Fact({ label, children, sub, className }: { label: string; children: Re
   return (
     <div className={cn('grid min-w-0 content-start gap-1 bg-card px-5 py-4', className)}>
       <dt className="text-caption text-faint">{label}</dt>
-      <dd className="flex min-w-0 items-center gap-2 text-14 font-medium text-fg">{children}</dd>
+      <dd className="flex min-w-0 items-center gap-2 text-label text-fg">{children}</dd>
       {sub ? (
         <dd title={typeof sub === 'string' ? sub : undefined} className="min-w-0 truncate text-secondary text-faint">
           {sub}

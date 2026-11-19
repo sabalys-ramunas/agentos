@@ -30,15 +30,15 @@ export function ScaleBar({ step }: { step: number }) {
   const fill = step >= 2 ? 'bg-(--stuck-dot)' : step === 1 ? 'bg-(--wait-dot)' : 'bg-(--ok-dot)';
   return (
     <div role="img" aria-label={`How big is this: ${SCALE[step]}`} className="rounded-lg border border-line bg-card p-4">
-      <p className="flex items-baseline justify-between gap-2 text-13">
+      <p className="flex items-baseline justify-between gap-2 text-secondary">
         <span className="text-muted">How big is this?</span>
         <span className="font-semibold">{SCALE[step]}</span>
       </p>
       <div className="mt-3 grid grid-cols-4 gap-1" aria-hidden="true">
         {SCALE.map((label, index) => (
           <div key={label} className="grid gap-2">
-            <span className={cn('h-1 rounded-full', index <= step ? fill : 'bg-fill-2')} />
-            <span className={cn('text-11 leading-tight', index === step ? 'font-medium text-fg' : 'text-faint')}>{label}</span>
+            <span className={cn('h-1 rounded-full', index <= step ? fill : 'bg-pressed')} />
+            <span className={cn('text-micro leading-tight', index === step ? 'font-medium text-fg' : 'text-faint')}>{label}</span>
           </div>
         ))}
       </div>
@@ -83,9 +83,9 @@ export function Facts({ org, facts, approval }: { org: string; facts: Fact[]; ap
               <AgentMark principal={approval.requested_by} size={32} />
             )}
             <span className="min-w-0">
-              <span className="block text-14 break-words">{fact.title}</span>
+              <span className="block text-body break-words">{fact.title}</span>
               {fact.detail ? (
-                <span className="block text-13 break-words text-faint">
+                <span className="block text-secondary break-words text-faint">
                   {fact.detail}
                   {fact.key === 'why' && !fact.locked ? (
                     <>
@@ -108,11 +108,11 @@ export function SafetyNotice({ title, detail }: { title: string; detail: string 
   return (
     <div role="note" className="flex items-start gap-3">
       <span className="grid size-8 shrink-0 place-items-center rounded-lg border border-(--wait-line)">
-        <ShieldAlert aria-hidden="true" className="size-4 text-amber" />
+        <ShieldAlert aria-hidden="true" className="size-4 text-warn" />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-14 font-medium break-words">{title}</p>
-        {detail ? <p className="text-13 text-pretty break-words text-muted">{detail}</p> : null}
+        <p className="text-label break-words">{title}</p>
+        {detail ? <p className="text-secondary text-pretty break-words text-muted">{detail}</p> : null}
       </div>
     </div>
   );
@@ -123,9 +123,9 @@ export function BlockerNotice({ org, approval, blocker }: { org: string; approva
   const [ws = '', name = ''] = approval.lane.split('/');
   return (
     <div role="note" className="flex items-start gap-3 rounded-lg border border-(--wait-line) bg-(--wait-soft) p-4">
-      <AlertTriangle aria-hidden="true" className="size-4 shrink-0 translate-y-0.5 text-amber" />
+      <AlertTriangle aria-hidden="true" className="size-4 shrink-0 translate-y-0.5 text-warn" />
       <div className="min-w-0 flex-1">
-        <p className="text-14 break-words">{blocker.sentence}</p>
+        <p className="text-body break-words">{blocker.sentence}</p>
         {ws && name ? (
           <Button asChild size="sm" className="mt-2">
             <Link to="/$org/lanes/$ws/$name" params={{ org, ws, name }}>
@@ -187,7 +187,7 @@ export function DoneState({ approval, decision, label }: { approval: Approval; d
   const yes = decision === 'approve';
   return (
     <div role="status" className="flex min-h-10 animate-fade-in items-center justify-center gap-2 rounded-md border border-line bg-inset px-4 py-2 text-label sm:justify-end" data-done={approval.id}>
-      {yes ? <Check aria-hidden="true" className="size-4 text-green" /> : <X aria-hidden="true" className="size-4 text-muted" />}
+      {yes ? <Check aria-hidden="true" className="size-4 text-ok" /> : <X aria-hidden="true" className="size-4 text-muted" />}
       {label}
     </div>
   );
@@ -197,7 +197,7 @@ export function DoneState({ approval, decision, label }: { approval: Approval; d
 function DoneMark({ decision }: { decision: 'approve' | 'deny' }) {
   return (
     <div aria-hidden="true" className="absolute inset-0 flex animate-fade-in items-center justify-center">
-      <span className={cn('flex size-20 animate-pop-in items-center justify-center rounded-full bg-bg shadow-popover', decision === 'approve' ? 'text-green' : 'text-muted')}>
+      <span className={cn('flex size-20 animate-pop-in items-center justify-center rounded-full bg-card shadow-popover', decision === 'approve' ? 'text-ok' : 'text-muted')}>
         {decision === 'approve' ? <Check className="size-10" strokeWidth={2.5} /> : <X className="size-10" strokeWidth={2.5} />}
       </span>
     </div>
@@ -223,7 +223,7 @@ export function TechnicalDetails({ org, approval, open, onToggle, allowAgain }: 
         type="button"
         aria-expanded={open}
         onClick={onToggle}
-        className="-ml-1 inline-flex h-8 items-center gap-1 rounded-sm px-1 text-13 text-faint hover:text-fg"
+        className="-ml-1 inline-flex h-8 items-center gap-1 rounded-sm px-1 text-secondary text-faint hover:text-fg"
       >
         <ChevronRight aria-hidden="true" className={cn('size-4 transition-transform duration-(--duration-base) ease-standard', open && 'rotate-90')} />
         Technical details
@@ -254,9 +254,9 @@ export function TechnicalDetails({ org, approval, open, onToggle, allowAgain }: 
             <Detail label="Ends at">{dateTime(approval.expires_at)}</Detail>
           </dl>
           <div>
-            <p className="text-13 text-faint">Content ID. A yes covers exactly this; if anything changes, you are asked again.</p>
-            <div className="mt-1 flex items-start gap-2 rounded-md bg-subtle py-1 pr-1 pl-2">
-              <code className="mono min-w-0 flex-1 py-1 text-12 break-all text-muted">{approval.content_hash}</code>
+            <p className="text-secondary text-faint">Content ID. A yes covers exactly this; if anything changes, you are asked again.</p>
+            <div className="mt-1 flex items-start gap-2 rounded-md bg-inset py-1 pr-1 pl-2">
+              <code className="mono min-w-0 flex-1 py-1 text-caption break-all text-muted">{approval.content_hash}</code>
               <CopyButton text={approval.content_hash} label="Copy content ID" />
             </div>
           </div>

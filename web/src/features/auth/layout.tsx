@@ -18,21 +18,21 @@ export function PromisePicture() {
   return (
     <div
       aria-hidden="true"
-      className="relative hidden min-h-dvh items-center justify-center overflow-hidden border-l border-line bg-subtle bg-[radial-gradient(var(--border)_1px,transparent_1px)] [background-size:16px_16px] lg:flex"
+      className="relative hidden min-h-dvh items-center justify-center overflow-hidden border-l border-line bg-inset bg-[radial-gradient(var(--border)_1px,transparent_1px)] [background-size:16px_16px] lg:flex"
     >
       {JOBS.map((job) => (
-        <span key={job.text} className={cn('absolute inline-flex items-center gap-2 rounded-full border border-line bg-bg px-3 py-2 text-13 shadow-card', job.className)}>
+        <span key={job.text} className={cn('absolute inline-flex items-center gap-2 rounded-full border border-line bg-card px-3 py-2 text-secondary shadow-card', job.className)}>
           <job.icon className="size-4 text-faint" />
           {job.text}
         </span>
       ))}
       <PhoneFrame>
-        <div className="mb-3 flex items-center justify-between text-11 text-faint">
+        <div className="mb-3 flex items-center justify-between text-micro text-faint font-normal">
           <Logo className="size-4" />
           12 done on their own · 1 needs you
         </div>
         <ApprovalPicture business="Aster Coffee" small className="border-0 p-0 shadow-none" />
-        <p className="mt-3 text-11 text-faint">Agents work on computers of their own. A post set to ask, a payment or a push to main asks you first.</p>
+        <p className="mt-3 text-micro text-faint font-normal">Agents work on computers of their own. A post set to ask, a payment or a push to main asks you first.</p>
       </PhoneFrame>
     </div>
   );
@@ -50,14 +50,14 @@ interface AuthLayoutProps {
 export function AuthLayout({ title, description, children, footer, aside }: AuthLayoutProps) {
   const form = (
     <div className="w-full max-w-[400px]">
-      <Link to="/" aria-label="agentos" className="mb-10 inline-flex items-center gap-2 rounded-md text-16 font-semibold">
+      <Link to="/" aria-label="agentos" className="mb-10 inline-flex items-center gap-2 rounded-md text-section-title">
         <Logo className="size-7" />
         agentos
       </Link>
-      <h1 className="text-32 font-semibold text-balance">{title}</h1>
-      {description ? <div className="mt-3 text-16 text-muted">{description}</div> : null}
+      <h1 className="text-headline text-balance">{title}</h1>
+      {description ? <div className="mt-3 text-lede text-muted">{description}</div> : null}
       {children ? <div className="mt-8">{children}</div> : null}
-      {footer ? <p className="mt-10 text-13 text-faint">{footer}</p> : null}
+      {footer ? <p className="mt-10 text-secondary text-faint">{footer}</p> : null}
     </div>
   );
   if (!aside) {
@@ -74,7 +74,7 @@ export function AuthLayout({ title, description, children, footer, aside }: Auth
 /** A short message above a form, for what happened before this page. */
 export function Notice({ children, alert }: { children: ReactNode; alert?: boolean }) {
   return (
-    <p role={alert ? 'alert' : 'status'} className={cn('mb-6 rounded-lg border border-line bg-subtle px-4 py-3 text-14 text-muted')}>
+    <p role={alert ? 'alert' : 'status'} className={cn('mb-6 rounded-lg border border-line bg-inset px-4 py-3 text-body text-muted')}>
       {children}
     </p>
   );
@@ -83,7 +83,7 @@ export function Notice({ children, alert }: { children: ReactNode; alert?: boole
 /** "or", between the buttons and the email field. */
 export function Or() {
   return (
-    <div className="my-4 flex items-center gap-3 text-13 text-faint" aria-hidden="true">
+    <div className="my-4 flex items-center gap-3 text-secondary text-faint" aria-hidden="true">
       <span className="h-px flex-1 bg-line" />
       or
       <span className="h-px flex-1 bg-line" />

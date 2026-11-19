@@ -50,7 +50,7 @@ export function ProfileSettings() {
           </Field>
           {hasEmail ? (
             <Field label="Email">
-              <Input value={user?.email ?? ''} readOnly className="bg-subtle text-muted hover:border-line" />
+              <Input value={user?.email ?? ''} readOnly className="bg-inset text-muted hover:border-line" />
             </Field>
           ) : null}
         </div>
@@ -119,8 +119,8 @@ export function PasskeySettings() {
                   <li key={item.id} className="flex items-center gap-4 px-4 py-3 sm:px-6">
                     <Fingerprint className="size-4 text-faint" />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-14">{item.name}</p>
-                      <p className="truncate text-13 text-faint">
+                      <p className="truncate text-body">{item.name}</p>
+                      <p className="truncate text-secondary text-faint">
                         Added {date(item.created_at)}
                         {item.last_used_at ? ` · Used ${timeAgo(item.last_used_at).toLowerCase()}` : ''}
                       </p>
@@ -163,11 +163,11 @@ export function DeviceSettings() {
                   <li key={item.id} className="flex items-center gap-4 px-4 py-3 sm:px-6">
                     <Icon className="size-4 text-faint" />
                     <div className="min-w-0 flex-1">
-                      <p className="flex items-center gap-2 text-14">
+                      <p className="flex items-center gap-2 text-body">
                         <span className="truncate">{item.label}</span>
                         {item.current ? <Badge>This device</Badge> : null}
                       </p>
-                      <p className="truncate text-13 text-faint">
+                      <p className="truncate text-secondary text-faint">
                         <span className="mono">{item.ip}</span>
                         {item.location ? ` · ${item.location}` : ''}
                         {item.current ? '' : ` · ${timeAgo(item.last_active_at)}`}

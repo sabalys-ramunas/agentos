@@ -31,7 +31,7 @@ function Reach({ item, api }: { item: SiteKey; api: SiteApiDetail }) {
   const named = item.endpoints?.flatMap((key) => api.endpoints.filter((endpoint) => endpoint.key === key).map((endpoint) => endpoint.title)) ?? [];
   const others = item.apis.length - 1;
   return (
-    <span className="block truncate text-13 text-muted">
+    <span className="block truncate text-secondary text-muted">
       {named.length ? named.join(', ') : 'Every endpoint here'}
       {others > 0 ? `, and ${others} other Site ${others === 1 ? 'API' : 'APIs'}` : ''}
     </span>
@@ -105,7 +105,7 @@ function NewKey({ org, api, open, onClose }: { org: string; api: SiteApiDetail; 
         }
       >
         <CodeBlock code={made.secret} label="Copy the key" />
-        <p className="mt-2 text-13 text-muted">If it is lost, revoke it and make a new one.</p>
+        <p className="mt-2 text-secondary text-muted">If it is lost, revoke it and make a new one.</p>
       </Dialog>
     );
   }
@@ -142,9 +142,9 @@ function NewKey({ org, api, open, onClose }: { org: string; api: SiteApiDetail; 
           <Input value={label} onChange={(event) => setLabel(event.target.value)} placeholder="Stock sheet" autoComplete="off" />
         </Field>
         <fieldset className="grid gap-2">
-          <legend className="mb-2 text-13 font-medium">What it can reach</legend>
+          <legend className="mb-2 text-secondary font-medium">What it can reach</legend>
           {api.endpoints.map((endpoint) => (
-            <label key={endpoint.key} className="flex items-center gap-2 text-13">
+            <label key={endpoint.key} className="flex items-center gap-2 text-secondary">
               <Checkbox
                 checked={picked.includes(endpoint.key)}
                 onCheckedChange={(on) => setPicked((now) => (on === true ? [...now, endpoint.key] : now.filter((key) => key !== endpoint.key)))}
@@ -176,10 +176,10 @@ export function Keys({ org, api }: { org: string; api: SiteApiDetail }) {
     <section aria-labelledby="site-keys" className="min-w-0">
       <div className="mb-4 flex items-center justify-between gap-4">
         <div>
-          <h2 id="site-keys" className="text-16 font-semibold">
+          <h2 id="site-keys" className="text-section-title">
             API keys
           </h2>
-          <p className="mt-1 text-13 text-muted">Each key is shown once, and can only read unless you say otherwise.</p>
+          <p className="mt-1 text-secondary text-muted">Each key is shown once, and can only read unless you say otherwise.</p>
         </div>
         <Button icon={<Plus aria-hidden="true" className="size-4" />} onClick={() => setAdding(true)}>
           New key
@@ -205,20 +205,20 @@ export function Keys({ org, api }: { org: string; api: SiteApiDetail }) {
             </thead>
             <tbody>
               {mine.map((item) => (
-                <Tr key={item.id} className="hover:bg-fill-1">
+                <Tr key={item.id} className="hover:bg-hover">
                   <Td className={cn(mainCell)}>
                     <span className="flex min-w-0 items-center gap-2">
                       <span className="truncate font-medium">{item.label}</span>
-                      <span className="mono shrink-0 text-12 text-faint">{item.prefix}...</span>
+                      <span className="mono shrink-0 text-caption text-faint">{item.prefix}...</span>
                     </span>
                     <Reach item={item} api={api} />
                   </Td>
-                  <Td className="hidden text-13 md:table-cell">
+                  <Td className="hidden text-secondary md:table-cell">
                     {EFFECT_WORD[item.ceiling].word}
-                    {item.expires_at ? <span className="block text-12 text-faint">Until {date(item.expires_at)}</span> : null}
+                    {item.expires_at ? <span className="block text-caption text-faint">Until {date(item.expires_at)}</span> : null}
                   </Td>
-                  <Td className="tabular hidden text-right text-13 text-muted md:table-cell">{item.rate_per_min} a minute</Td>
-                  <Td className="tabular text-right text-13 text-muted">{timeAgo(item.last_used_at)}</Td>
+                  <Td className="tabular hidden text-right text-secondary text-muted md:table-cell">{item.rate_per_min} a minute</Td>
+                  <Td className="tabular text-right text-secondary text-muted">{timeAgo(item.last_used_at)}</Td>
                   <Td className="w-12">
                     <Tooltip label={`Revoke ${item.label}`}>
                       <IconButton label={`Revoke ${item.label}`} size="sm" onClick={() => setLeaving(item)}>

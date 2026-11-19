@@ -20,12 +20,12 @@ export function EmailTabs({ org, here, newCount, waiting }: { org: string; here:
           params={{ org }}
           aria-current={place === here ? 'page' : undefined}
           className={cn(
-            'focus-inset -mb-px flex h-10 items-center gap-2 border-b text-14 whitespace-nowrap transition-colors duration-(--duration-base) ease-standard',
+            'focus-inset -mb-px flex h-10 items-center gap-2 border-b text-body whitespace-nowrap transition-colors duration-(--duration-base) ease-standard',
             place === here ? 'border-fg text-fg' : 'border-transparent text-faint hover:text-fg',
           )}
         >
           {word}
-          {count ? <span className="tabular rounded-sm bg-fill-2 px-1 text-12 text-muted">{count}</span> : null}
+          {count ? <span className="tabular rounded-sm bg-pressed px-1 text-caption text-muted">{count}</span> : null}
         </Link>
       ))}
     </nav>
@@ -35,7 +35,7 @@ export function EmailTabs({ org, here, newCount, waiting }: { org: string; here:
 /** Mail text and leads' addresses stay on the computer. This says so wherever they are shown. */
 export function FromComputer({ computers, className }: { computers: string[]; className?: string }) {
   return (
-    <p className={cn('flex items-center gap-2 text-12 text-faint', className)}>
+    <p className={cn('flex items-center gap-2 text-caption text-faint', className)}>
       <Monitor aria-hidden="true" className="size-3 shrink-0" />
       <span>
         Read live from <span className="mono">{computers.join(' and ')}</span>. It stays there.
@@ -47,7 +47,7 @@ export function FromComputer({ computers, className }: { computers: string[]; cl
 /** A lock, a rule, no control: what the computer always does. */
 export function Rule({ icon, children }: { icon: ReactNode; children: ReactNode }) {
   return (
-    <li className="flex items-start gap-3 py-2 text-14 text-pretty">
+    <li className="flex items-start gap-3 py-2 text-body text-pretty">
       <span className="mt-px shrink-0 text-faint">{icon}</span>
       <span className="min-w-0">{children}</span>
     </li>

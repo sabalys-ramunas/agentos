@@ -33,7 +33,7 @@ import { slotKey, useReorder, useSettle } from './use-reorder';
 function Sentence({ draft, catalog, lit, selected, onLight, onPick }: { draft: RoutineDefinition; catalog: RoutineCatalog | undefined; lit: string | null; selected: string | null; onLight: (id: string | null) => void; onPick: (id: string) => void }) {
   const parts = sentenceOf(draft, (ref) => refName(dataBefore(draft, null, catalog), ref)?.toLowerCase() ?? null, catalog);
   return (
-    <p className="max-w-4xl text-20 font-semibold text-balance md:text-24">
+    <p className="max-w-4xl text-heading text-balance md:text-page-title-compact">
       {parts.map((part, index) => {
         // A button is its own box, so a comma after one could fall to the next line. It goes inside.
         const before = index ? parts[index - 1] : null;
@@ -56,9 +56,9 @@ function Sentence({ draft, catalog, lit, selected, onLight, onPick }: { draft: R
             onPointerEnter={() => onLight(part.target ?? null)}
             onPointerLeave={() => onLight(null)}
             className={cn(
-              'rounded-sm text-left font-semibold transition-colors duration-(--duration-fast) ease-standard hover:bg-fill-2',
-              part.blank ? 'underline decoration-amber decoration-dashed decoration-2 underline-offset-4' : 'underline decoration-transparent',
-              (lit === part.target || selected === part.target) && 'bg-fill-2',
+              'rounded-sm text-left font-semibold transition-colors duration-(--duration-fast) ease-standard hover:bg-pressed',
+              part.blank ? 'underline decoration-warn decoration-dashed decoration-2 underline-offset-4' : 'underline decoration-transparent',
+              (lit === part.target || selected === part.target) && 'bg-pressed',
             )}
           >
             {part.text}
@@ -242,10 +242,10 @@ function Editor({ org, start, flow, catalog }: EditorProps) {
 
   return (
     <div data-bleed className="flex min-h-[calc(100dvh-56px)] flex-col max-lg:pb-16">
-      <header className="sticky top-0 z-20 border-b border-line bg-bg px-4 py-3 md:px-6">
+      <header className="sticky top-0 z-20 border-b border-line bg-card px-4 py-3 md:px-6">
         <div className="flex items-center gap-2">
           <Tooltip label="Back to the routine">
-            <Link to={flow ? '/$org/flows/$flow' : '/$org/flows/new'} params={{ org, flow: flow?.id ?? '' }} aria-label="Back" className="grid size-8 shrink-0 place-items-center rounded-md text-muted hover:bg-fill-1 hover:text-fg">
+            <Link to={flow ? '/$org/flows/$flow' : '/$org/flows/new'} params={{ org, flow: flow?.id ?? '' }} aria-label="Back" className="grid size-8 shrink-0 place-items-center rounded-md text-muted hover:bg-hover hover:text-fg">
               <ArrowLeft className="size-4" />
             </Link>
           </Tooltip>
@@ -253,13 +253,13 @@ function Editor({ org, start, flow, catalog }: EditorProps) {
             aria-label="Name of this routine"
             value={draft.name}
             onChange={(event) => change((current) => ({ ...current, name: event.target.value }), 'name')}
-            className="min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-2 py-1 text-14 font-medium transition-colors duration-(--duration-fast) ease-standard hover:border-line md:max-w-72"
+            className="min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-2 py-1 text-label transition-colors duration-(--duration-fast) ease-standard hover:border-line md:max-w-72"
           />
           {!flow && workspaces.length > 1 ? (
             <Select aria-label="For which business" size="sm" value={draft.workspace ?? ''} onValueChange={(workspace) => change((current) => ({ ...fillTemplate({ name: current.name, trigger: current.trigger, steps: current.steps }, catalog, workspace), workspace }))} options={workspaces.map((item) => ({ value: item.id, label: item.name }))} className="hidden w-44 md:inline-flex" />
           ) : null}
           <span className="flex-1 max-md:hidden" />
-          <p aria-live="polite" className="hidden w-44 truncate text-right text-13 text-faint lg:block">
+          <p aria-live="polite" className="hidden w-44 truncate text-right text-secondary text-faint lg:block">
             {problem ?? (save.isPending ? 'Telling the computer.' : dirty ? 'Not saved yet' : flow ? 'Saved' : '')}
           </p>
           <IconButton label="Undo" disabled={!canUndo} onClick={undo}>
@@ -299,7 +299,7 @@ function Editor({ org, start, flow, catalog }: EditorProps) {
 
       <div className="border-b border-line px-4 py-4 md:px-6 md:py-6">
         <Sentence draft={draft} catalog={catalog} lit={lit} selected={selected} onLight={setLit} onPick={setSelected} />
-        <p className="mt-2 flex min-h-5 flex-wrap items-center gap-x-3 text-13 text-muted">
+        <p className="mt-2 flex min-h-5 flex-wrap items-center gap-x-3 text-secondary text-muted">
           {firstMissing ? (
             <button type="button" onClick={() => setSelected(firstMissing.target)} className="link">
               {missing.length === 1 ? firstMissing.words : `${missing.length} things to finish. ${firstMissing.words}`}
@@ -313,29 +313,29 @@ function Editor({ org, start, flow, catalog }: EditorProps) {
       <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_24rem]">
         <div ref={board} className="picture-stage min-w-0 overflow-x-hidden px-8 py-8 md:px-10">
           <Board trigger={draft.trigger} steps={steps} catalog={catalog} run={run} events={events} locked={locked} limits={limits} />
-          <p className="mx-auto mt-6 hidden max-w-3xl text-center text-12 text-faint lg:block">Arrow keys move between steps. Alt and an arrow moves a step. A adds one, Delete removes it, and Cmd Z undoes.</p>
+          <p className="mx-auto mt-6 hidden max-w-3xl text-center text-caption text-faint lg:block">Arrow keys move between steps. Alt and an arrow moves a step. A adds one, Delete removes it, and Cmd Z undoes.</p>
         </div>
         {narrow ? (
           <Dialog open={selected !== null} onOpenChange={(open) => !open && setSelected(null)} title="This step" className="max-h-[85dvh]">
             {inspector}
           </Dialog>
         ) : (
-          <aside aria-label="Settings of this step" className="border-l border-line bg-bg p-6">
+          <aside aria-label="Settings of this step" className="border-l border-line bg-card p-6">
             {inspector ?? (
               <div className="grid gap-4">
-                <h2 className="text-16 font-semibold">{firstMissing ? 'Almost ready' : 'Ready to go'}</h2>
+                <h2 className="text-section-title">{firstMissing ? 'Almost ready' : 'Ready to go'}</h2>
                 {missing.length ? (
                   <ul className="grid gap-1">
                     {missing.map((item) => (
                       <li key={`${item.target}-${item.words}`}>
-                        <button type="button" onClick={() => setSelected(item.target)} className="w-full rounded-md px-2 py-2 text-left text-14 text-pretty hover:bg-fill-1">
+                        <button type="button" onClick={() => setSelected(item.target)} className="w-full rounded-md px-2 py-2 text-left text-body text-pretty hover:bg-hover">
                           {item.words}
                         </button>
                       </li>
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-14 text-pretty text-muted">Nothing is missing. Choose a step to see its settings, and what it did last time.</p>
+                  <p className="text-body text-pretty text-muted">Nothing is missing. Choose a step to see its settings, and what it did last time.</p>
                 )}
               </div>
             )}

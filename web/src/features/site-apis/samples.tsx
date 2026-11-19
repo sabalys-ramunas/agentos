@@ -10,11 +10,11 @@ import { hueOf } from './page-sheet';
 
 function Rows({ sample, hued }: { sample: Extract<SiteSample, { kind: 'rows' }>; hued?: boolean }) {
   return (
-    <table className="w-full table-fixed text-13">
+    <table className="w-full table-fixed text-secondary">
       <thead>
         <tr>
           {sample.columns.map((column, index) => (
-            <th key={column} scope="col" className={cn('truncate pb-1 text-left text-12 font-normal text-faint', index === 1 && sample.columns.length > 2 && 'w-2/5')}>
+            <th key={column} scope="col" className={cn('truncate pb-1 text-left text-caption font-normal text-faint', index === 1 && sample.columns.length > 2 && 'w-2/5')}>
               {hued ? <span aria-hidden="true" className="mr-2 inline-block size-2 rounded-full" style={{ backgroundColor: hueOf(index) }} /> : null}
               {column}
             </th>
@@ -41,18 +41,18 @@ function Aging({ sample }: { sample: Extract<SiteSample, { kind: 'aging' }> }) {
   return (
     <div className="grid gap-3">
       <p className="flex items-baseline gap-2">
-        <span className="text-24 font-semibold">{sample.total}</span>
-        <span className="text-13 text-muted">{sample.note}</span>
+        <span className="text-page-title-compact">{sample.total}</span>
+        <span className="text-secondary text-muted">{sample.note}</span>
       </p>
       <ul className="grid gap-2">
         {sample.items.map((item) => (
-          <li key={item.who} className="grid grid-cols-[minmax(0,1fr)_72px_minmax(0,1fr)_32px] items-center gap-2 text-13">
+          <li key={item.who} className="grid grid-cols-[minmax(0,1fr)_72px_minmax(0,1fr)_32px] items-center gap-2 text-secondary">
             <span className="truncate font-medium">{item.who}</span>
             <span className="tabular text-right text-muted">{item.amount}</span>
-            <span aria-hidden="true" className="h-1 overflow-hidden rounded-full bg-fill-2">
+            <span aria-hidden="true" className="h-1 overflow-hidden rounded-full bg-pressed">
               <span className="block h-full rounded-full bg-fg" style={{ width: `${(item.days / most) * 100}%` }} />
             </span>
-            <span className="tabular text-right text-12 text-faint">{item.days}d</span>
+            <span className="tabular text-right text-caption text-faint">{item.days}d</span>
           </li>
         ))}
       </ul>
@@ -64,9 +64,9 @@ function Levels({ sample }: { sample: Extract<SiteSample, { kind: 'levels' }> })
   return (
     <ul className="grid gap-2">
       {sample.items.map((item) => (
-        <li key={item.label} className="grid grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_56px] items-center gap-3 text-13">
+        <li key={item.label} className="grid grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_56px] items-center gap-3 text-secondary">
           <span className="truncate font-medium">{item.label}</span>
-          <span aria-hidden="true" className="relative h-1 rounded-full bg-fill-2">
+          <span aria-hidden="true" className="relative h-1 rounded-full bg-pressed">
             <span className="absolute inset-y-0 left-0 rounded-full bg-fg" style={{ width: `${Math.min(100, (item.left / item.reorder) * 100)}%` }} />
             <span className="absolute -top-1 right-0 h-3 w-px bg-line-strong" />
           </span>
@@ -75,7 +75,7 @@ function Levels({ sample }: { sample: Extract<SiteSample, { kind: 'levels' }> })
           </span>
         </li>
       ))}
-      <li className="text-12 text-faint">The mark at the end of each line is its reorder point.</li>
+      <li className="text-caption text-faint">The mark at the end of each line is its reorder point.</li>
     </ul>
   );
 }
@@ -83,16 +83,16 @@ function Levels({ sample }: { sample: Extract<SiteSample, { kind: 'levels' }> })
 function Journey({ sample }: { sample: Extract<SiteSample, { kind: 'journey' }> }) {
   return (
     <div>
-      <p className="flex items-baseline justify-between gap-2 text-13">
+      <p className="flex items-baseline justify-between gap-2 text-secondary">
         <span className="mono font-medium">{sample.parcel}</span>
-        <span className="text-12 text-faint">{sample.note}</span>
+        <span className="text-caption text-faint">{sample.note}</span>
       </p>
       <ol className="mt-3 grid" style={{ gridTemplateColumns: `repeat(${sample.stops.length}, minmax(0, 1fr))` }}>
         {sample.stops.map((stop, index) => (
           <li key={stop} className="relative grid justify-items-center gap-2 text-center">
             {index > 0 ? <span aria-hidden="true" className={cn('absolute top-1 right-1/2 h-px w-full', index <= sample.at ? 'bg-fg' : 'bg-line-strong')} /> : null}
-            <span aria-hidden="true" className={cn('relative size-2 rounded-full', index <= sample.at ? 'bg-fg' : 'border border-line-strong bg-subtle')} />
-            <span className={cn('text-12', index === sample.at ? 'font-medium text-fg' : 'text-faint')}>{stop}</span>
+            <span aria-hidden="true" className={cn('relative size-2 rounded-full', index <= sample.at ? 'bg-fg' : 'border border-line-strong bg-inset')} />
+            <span className={cn('text-caption', index === sample.at ? 'font-medium text-fg' : 'text-faint')}>{stop}</span>
           </li>
         ))}
       </ol>
@@ -105,8 +105,8 @@ function Quotes({ sample }: { sample: Extract<SiteSample, { kind: 'quotes' }> })
     <ul className="grid gap-2">
       {sample.items.map((item) => (
         <li key={item.who + item.when} className="border-l border-line-strong pl-3">
-          <p className="truncate text-13">{item.text}</p>
-          <p className="text-12 text-faint">
+          <p className="truncate text-secondary">{item.text}</p>
+          <p className="text-caption text-faint">
             {item.who} · {item.when}
           </p>
         </li>

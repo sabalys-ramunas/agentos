@@ -148,11 +148,11 @@ function Word({ view, detail }: { view: AskView; detail?: string | null }) {
   const line = view.short ?? detail;
   return (
     <span className="block min-w-0">
-      <span className="flex items-center gap-2 text-13 whitespace-nowrap">
+      <span className="flex items-center gap-2 text-secondary whitespace-nowrap">
         <AskIcon view={view} className="size-4 shrink-0 text-faint" />
         {view.word}
       </span>
-      {line ? <span className="block truncate pl-6 text-12 text-faint">{line}</span> : null}
+      {line ? <span className="block truncate pl-6 text-caption text-faint">{line}</span> : null}
     </span>
   );
 }
@@ -189,12 +189,12 @@ function Panel({ view, control, line, refused, busy, stacked, limit }: PanelProp
       <div className={cn('flex items-center gap-3', stacked && 'flex-wrap')}>
         <AskIcon view={view} className="size-4 shrink-0 text-faint" />
         <div className={cn('min-w-0 flex-1', !stacked && 'md:flex md:items-baseline md:gap-3')}>
-          <h2 className="text-14 font-medium whitespace-nowrap">{view.word}</h2>
-          <p className={cn('text-13 text-pretty text-muted', view.switchable && stacked && 'min-h-15')}>{view.sentence}</p>
+          <h2 className="text-label whitespace-nowrap">{view.word}</h2>
+          <p className={cn('text-secondary text-pretty text-muted', view.switchable && stacked && 'min-h-15')}>{view.sentence}</p>
         </div>
         {control}
       </div>
-      <p aria-live="polite" className={cn('mt-1 pl-7 text-12 text-pretty', view.switchable && (stacked ? 'min-h-28' : 'min-h-12 md:min-h-4'), refused ? 'text-red' : 'text-faint')}>
+      <p aria-live="polite" className={cn('mt-1 pl-7 text-caption text-pretty', view.switchable && (stacked ? 'min-h-28' : 'min-h-12 md:min-h-4'), refused ? 'text-bad' : 'text-faint')}>
         {refused ?? (busy ? 'Telling the computer.' : [line, limit, always].filter(Boolean).map((part, index) => (index ? <span key={index}> {part}</span> : <span key={index}>{part}</span>)))}
       </p>
     </section>
@@ -203,7 +203,7 @@ function Panel({ view, control, line, refused, busy, stacked, limit }: PanelProp
 
 function LabelledSwitch({ children, stacked }: { children: ReactNode; stacked?: boolean }) {
   return (
-    <span className={cn('flex shrink-0 items-center gap-2 text-13 text-muted', stacked && 'w-full justify-between pl-7')}>
+    <span className={cn('flex shrink-0 items-center gap-2 text-secondary text-muted', stacked && 'w-full justify-between pl-7')}>
       <span aria-hidden="true">Ask me first</span>
       {children}
     </span>

@@ -30,7 +30,7 @@ function StatusLine({ status }: { status: VaultStatus | undefined }) {
         : status.state === 'uninitialized'
           ? 'There is no vault on this computer yet.'
           : `The vault could not be read${status.error ? `: ${status.error.message}` : '.'}`;
-  return <p className="mb-4 text-14 text-muted">{words}</p>;
+  return <p className="mb-4 text-body text-muted">{words}</p>;
 }
 
 function AddDialog({ org, open, onOpenChange }: { org: string; open: boolean; onOpenChange: (open: boolean) => void }) {
@@ -90,12 +90,12 @@ function AddDialog({ org, open, onOpenChange }: { org: string; open: boolean; on
     >
       {form.failed ? <InlineError className="mb-4">That did not start. Nothing was changed.</InlineError> : null}
       {form.link ? (
-        <p className="text-14 text-muted" role="status">{FORM_WORDS[form.stage ?? 'waiting']}</p>
+        <p className="text-body text-muted" role="status">{FORM_WORDS[form.stage ?? 'waiting']}</p>
       ) : (
         <div className="grid gap-4">
           <Field label="Name"><Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Shop Instagram" autoFocus /></Field>
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-2 text-13 font-medium">
+            <div className="grid gap-2 text-secondary font-medium">
               <span>Kind</span>
               <Select value={kind} onValueChange={(value) => setKind(value as VaultKind)} options={KIND_OPTIONS} aria-label="Kind" />
             </div>
@@ -154,7 +154,7 @@ export function VaultSettings() {
       />
       {unlock.failed ? <InlineError className="mb-4">That did not start. Nothing was changed.</InlineError> : null}
       {unlock.link && sealed ? (
-        <p className="mb-4 text-14 text-muted" role="status">
+        <p className="mb-4 text-body text-muted" role="status">
           {FORM_WORDS[unlock.stage ?? 'waiting']}{' '}
           <a className="underline underline-offset-2" href={unlock.link} target="_blank" rel="noreferrer">
             Open the page again
@@ -211,15 +211,15 @@ export function VaultSettings() {
                   {rows.map((item) => (
                     <Tr key={item.id}>
                       <Td className={mainCell}>
-                        <p className="mono truncate text-13">{item.name}</p>
-                        <p className="truncate text-13 text-faint">
+                        <p className="mono truncate text-secondary">{item.name}</p>
+                        <p className="truncate text-secondary text-faint">
                           {item.domain ?? 'No domain'}
                           <span className="md:hidden"> · {vaultKind[item.kind]}</span>
                         </p>
                       </Td>
-                      <Td className="hidden text-13 text-muted md:table-cell">{vaultKind[item.kind]}</Td>
-                      <Td className="mono hidden max-w-56 truncate text-13 text-muted xl:table-cell">{item.lanes.join(', ')}</Td>
-                      <Td className="tabular text-13 text-faint md:text-left">{item.last_used ? timeAgo(item.last_used) : 'Never'}</Td>
+                      <Td className="hidden text-secondary text-muted md:table-cell">{vaultKind[item.kind]}</Td>
+                      <Td className="mono hidden max-w-56 truncate text-secondary text-muted xl:table-cell">{item.lanes.join(', ')}</Td>
+                      <Td className="tabular text-secondary text-faint md:text-left">{item.last_used ? timeAgo(item.last_used) : 'Never'}</Td>
                       <Td className="pr-4 text-right md:pr-6">
                         {canManage ? (
                           <IconButton label={`Remove ${item.name}`} onClick={() => setRemoving(item)}>

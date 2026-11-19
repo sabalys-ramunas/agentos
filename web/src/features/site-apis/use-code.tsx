@@ -43,7 +43,7 @@ function InputField({ field, value, onChange }: { field: SiteInputField; value: 
 function Json({ value }: { value: unknown }) {
   const lines = useMemo(() => JSON.stringify(value, null, 2).split('\n'), [value]);
   return (
-    <pre className="mono max-h-96 overflow-auto p-4 text-12 leading-5">
+    <pre className="mono max-h-96 overflow-auto p-4 text-caption leading-5">
       {lines.map((line, index) => {
         const match = /^(\s*)("[^"]+")(:\s*)(.*)$/.exec(line);
         return (
@@ -70,19 +70,19 @@ function Timing({ result, endpoint }: { result: SiteTryResult; endpoint: SiteEnd
   const hit = body.cache?.hit ?? false;
   const longest = Math.max(result.ms, endpoint.p50_ms ?? 0);
   const bar = (ms: number, on: boolean) => (
-    <span aria-hidden="true" className="h-1 flex-1 overflow-hidden rounded-full bg-fill-2">
+    <span aria-hidden="true" className="h-1 flex-1 overflow-hidden rounded-full bg-pressed">
       <span className={cn('block h-full rounded-full', on ? 'bg-fg' : 'bg-line-strong')} style={{ width: `${Math.max(1.5, (ms / longest) * 100)}%` }} />
     </span>
   );
   return (
     <div className="grid gap-1 border-b border-line px-4 py-3">
-      <div className="flex items-center gap-3 text-12">
+      <div className="flex items-center gap-3 text-caption">
         <span className="w-24 shrink-0 text-muted">This call</span>
         {bar(result.ms, true)}
         <span className="tabular w-16 shrink-0 text-right font-medium">{speed(result.ms)}</span>
       </div>
       {hit && endpoint.p50_ms !== null ? (
-        <div className="flex items-center gap-3 text-12 text-faint">
+        <div className="flex items-center gap-3 text-caption text-faint">
           <span className="w-24 shrink-0">A fresh read</span>
           {bar(endpoint.p50_ms, false)}
           <span className="tabular w-16 shrink-0 text-right">{speed(endpoint.p50_ms)}</span>
@@ -98,8 +98,8 @@ function Answer({ result, endpoint }: { result: SiteTryResult; endpoint: SiteEnd
   return (
     <div className="min-w-0">
       <div className="flex h-11 items-center gap-2 border-b border-line px-4">
-        <span className="mono text-13 font-medium">{result.status}</span>
-        <span className="min-w-0 flex-1 truncate text-13 text-muted">
+        <span className="mono text-secondary font-medium">{result.status}</span>
+        <span className="min-w-0 flex-1 truncate text-secondary text-muted">
           {ok ? (body.cache?.hit ? `From a saved answer, ${body.cache.age_s} s old. It did not touch the site.` : 'Read fresh from the site. It used 1 read of this account\'s pace.') : body.detail}
         </span>
         <CopyButton text={JSON.stringify(result.body, null, 2)} label="Copy the answer" />
@@ -107,8 +107,8 @@ function Answer({ result, endpoint }: { result: SiteTryResult; endpoint: SiteEnd
       {ok ? <Timing result={result} endpoint={endpoint} /> : null}
       <Json value={result.body} />
       <details className="group border-t border-line">
-        <summary className="cursor-pointer px-4 py-2 text-12 text-faint transition-colors duration-(--duration-fast) ease-standard hover:text-fg">Headers</summary>
-        <dl className="mono grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 px-4 pb-3 text-12">
+        <summary className="cursor-pointer px-4 py-2 text-caption text-faint transition-colors duration-(--duration-fast) ease-standard hover:text-fg">Headers</summary>
+        <dl className="mono grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 px-4 pb-3 text-caption">
           {Object.entries(result.headers).map(([name, value]) => (
             <div key={name} className="contents">
               <dt className="text-faint">{name}</dt>
@@ -125,8 +125,8 @@ function Waiting() {
   return (
     <div className="grid h-full min-h-72 place-items-center p-8 text-center">
       <div>
-        <p className="text-14 font-medium">The answer lands here</p>
-        <p className="mt-1 text-13 text-muted">Press Send to see exactly what a caller gets, and how long it takes.</p>
+        <p className="text-label">The answer lands here</p>
+        <p className="mt-1 text-secondary text-muted">Press Send to see exactly what a caller gets, and how long it takes.</p>
       </div>
     </div>
   );
@@ -153,17 +153,17 @@ export function UseCode({ org, api, endpoint }: { org: string; api: SiteApiDetai
         >
           <div>
             <p className="flex items-center gap-2">
-              <span className="mono rounded-sm border border-line px-1 text-12 font-medium">GET</span>
-              <span className="mono min-w-0 truncate text-13">/{api.key}/{endpoint.key}</span>
+              <span className="mono rounded-sm border border-line px-1 text-caption font-medium">GET</span>
+              <span className="mono min-w-0 truncate text-secondary">/{api.key}/{endpoint.key}</span>
             </p>
-            <p className="mt-2 text-13 text-muted">
+            <p className="mt-2 text-secondary text-muted">
               {endpoint.description} {EFFECT_WORD[endpoint.effect].note}
             </p>
           </div>
           {endpoint.input.map((field) => (
             <InputField key={field.key} field={field} value={values[field.key] ?? ''} onChange={(value) => setValues((now) => ({ ...now, [field.key]: value }))} />
           ))}
-          <div className="flex items-start gap-2 text-13">
+          <div className="flex items-start gap-2 text-secondary">
             <Checkbox id="site-try-fresh" checked={fresh} onCheckedChange={(value) => setFresh(value === true)} className="mt-px" />
             <label htmlFor="site-try-fresh">
               <span className="block font-medium">Read the page fresh</span>
@@ -171,13 +171,13 @@ export function UseCode({ org, api, endpoint }: { org: string; api: SiteApiDetai
             </label>
           </div>
           <div className="flex items-center justify-between gap-2 border-t border-line pt-4">
-            <p className="text-12 text-faint">Tried as you, so no key is needed here.</p>
+            <p className="text-caption text-faint">Tried as you, so no key is needed here.</p>
             <Button type="submit" variant="primary" loading={attempt.isPending} icon={<ArrowRight aria-hidden="true" className="size-4" />} disabled={Boolean(missing)}>
               Send
             </Button>
           </div>
         </form>
-        <div aria-live="polite" className="min-w-0 bg-subtle">
+        <div aria-live="polite" className="min-w-0 bg-inset">
           {attempt.data ? <Answer result={attempt.data} endpoint={endpoint} /> : <Waiting />}
         </div>
       </div>
@@ -201,11 +201,11 @@ export function UseCode({ org, api, endpoint }: { org: string; api: SiteApiDetai
           {SNIPPETS.map(([key]) => {
             const code = snippet(key, url);
             return (
-              <TabPanel key={key} value={key} className="relative bg-subtle">
+              <TabPanel key={key} value={key} className="relative bg-inset">
                 <div className="absolute top-2 right-2">
                   <CopyButton text={code} label={`Copy the ${key} snippet`} />
                 </div>
-                <pre className="mono max-h-72 overflow-auto p-4 pr-12 text-12 leading-5">{code}</pre>
+                <pre className="mono max-h-72 overflow-auto p-4 pr-12 text-caption leading-5">{code}</pre>
               </TabPanel>
             );
           })}
@@ -217,7 +217,7 @@ export function UseCode({ org, api, endpoint }: { org: string; api: SiteApiDetai
           <div className="flex justify-end">
             <CopyButton text={document} label="Copy the document" />
           </div>
-          <pre className="mono overflow-auto rounded-lg border border-line bg-subtle p-4 text-12 leading-5">{document}</pre>
+          <pre className="mono overflow-auto rounded-lg border border-line bg-inset p-4 text-caption leading-5">{document}</pre>
         </div>
       </Drawer>
     </div>

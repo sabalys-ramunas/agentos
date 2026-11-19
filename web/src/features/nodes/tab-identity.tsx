@@ -58,20 +58,20 @@ function AccountIdentity({ org, node, account, owner, title }: { org: string; no
     <Card className="grid gap-3 p-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <div className="min-w-0">
-          <p className="truncate text-14">{title}</p>
+          <p className="truncate text-body">{title}</p>
           <TypedCommand command={account.lane} className="mt-0" />
         </div>
         <Status status={identityState[account.state]} />
       </div>
-      <p className="text-13 text-muted">{accountSentence(account)}</p>
+      <p className="text-secondary text-muted">{accountSentence(account)}</p>
 
       {account.hosts.length ? (
         <ul className="divide-y divide-line border-t border-line">
           {account.hosts.map((host) => (
             <li key={host.origin} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-3">
               <div className="min-w-0">
-                <p className="mono truncate text-13">{host.origin}</p>
-                <p className="truncate text-12 text-muted">
+                <p className="mono truncate text-secondary">{host.origin}</p>
+                <p className="truncate text-caption text-muted">
                   {host.reason}
                   {host.added_at ? `, added ${timeAgo(host.added_at)}` : ''}
                 </p>
@@ -115,14 +115,14 @@ function AccountIdentity({ org, node, account, owner, title }: { org: string; no
       ) : null}
 
       {account.state === 'none' ? (
-        <div className="text-13">
+        <div className="text-secondary">
           <p>Making one takes a terminal on the machine. Technical details has the command.</p>
           <TypedCommand command={`agentos identity init ${account.lane} --agent <https URL>`} />
         </div>
       ) : null}
 
       {technical && account.keyid ? (
-        <p className="text-12 text-faint">
+        <p className="text-caption text-faint">
           Key id <span className="mono">{account.keyid}</span>. The private key stays on this machine and is never shown.
         </p>
       ) : null}
@@ -147,7 +147,7 @@ export function IdentityPanel({ org, node, owner }: { org: string; node: string;
   const configured = accounts.filter((account) => account.state !== 'none');
   return (
     <Panel title="Identity on sites" description="Some sites want to know which automated agent is calling. An account can sign its requests so they can tell.">
-      <p className="text-14" aria-live="polite">
+      <p className="text-body" aria-live="polite">
         {identityAnswer(accounts)}
       </p>
       {configured.length ? (
@@ -158,7 +158,7 @@ export function IdentityPanel({ org, node, owner }: { org: string; node: string;
         </div>
       ) : null}
       {unset.length ? (
-        <Card className="grid gap-2 p-4 text-13 sm:p-6">
+        <Card className="grid gap-2 p-4 text-secondary sm:p-6">
           <p className="text-muted">
             {unset.length === 1 ? 'This account has' : 'These accounts have'} no identity yet:{' '}
             {unset.map((account, index) => (
@@ -173,7 +173,7 @@ export function IdentityPanel({ org, node, owner }: { org: string; node: string;
           <TypedCommand command="agentos identity init <account> --agent <https URL>" />
         </Card>
       ) : null}
-      {owner && configured.length ? <p className="text-12 text-faint">Changes take effect when the account next opens.</p> : null}
+      {owner && configured.length ? <p className="text-caption text-faint">Changes take effect when the account next opens.</p> : null}
     </Panel>
   );
 }

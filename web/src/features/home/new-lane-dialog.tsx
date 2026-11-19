@@ -103,8 +103,8 @@ export function NewLaneDialog({ org, open, onOpenChange, workspaces, defaultWork
               >
                 <LaneIcon kind={item.value} className="mt-px" />
                 <span className="min-w-0">
-                  <span className="block text-14 font-medium">{item.label}</span>
-                  <span className="block text-12 text-faint">{item.hint}</span>
+                  <span className="block text-label">{item.label}</span>
+                  <span className="block text-caption text-faint">{item.hint}</span>
                 </span>
               </RadioGroup.Item>
             ))}

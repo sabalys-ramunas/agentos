@@ -19,7 +19,7 @@ export function Tab({ className, ...props }: ComponentProps<typeof Primitive.Tri
   return (
     <Primitive.Trigger
       className={cn(
-        'focus-inset -mb-px h-10 border-b-2 border-transparent text-14 font-medium whitespace-nowrap text-faint',
+        'focus-inset -mb-px h-10 border-b-2 border-transparent text-label font-medium whitespace-nowrap text-faint',
         'transition-colors duration-(--duration-fast) ease-standard hover:text-fg',
         'data-[state=active]:border-fg data-[state=active]:text-fg',
         className,
@@ -71,7 +71,7 @@ export function SegmentedControl<T extends string>({ value, onValueChange, optio
             'inline-flex items-center gap-1 rounded-sm border border-transparent px-2 font-medium whitespace-nowrap text-muted',
             'transition-colors duration-(--duration-fast) ease-standard hover:text-fg',
             'data-[state=on]:border-line data-[state=on]:bg-card data-[state=on]:text-fg data-[state=on]:shadow-lift',
-            size === 'sm' ? 'h-8 text-13 md:h-6' : 'h-8 text-14',
+            size === 'sm' ? 'h-8 text-secondary md:h-6' : 'h-8 text-label',
           )}
         >
           {option.label}

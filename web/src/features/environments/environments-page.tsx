@@ -121,7 +121,7 @@ function OpenCard({ org, open }: { org: string; open: EnvSummary[] }) {
       {open.length ? (
         <EnvTable org={org} rows={open} now={now} label="Open environments" />
       ) : (
-        <p className="px-5 py-6 text-14 text-muted">
+        <p className="px-5 py-6 text-body text-muted">
           Nothing is open. An agent gets one with <code className="font-mono text-code text-fg">environment_open</code>, and it shows here
           while it works.
         </p>

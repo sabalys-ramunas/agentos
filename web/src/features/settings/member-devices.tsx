@@ -48,8 +48,8 @@ export function MemberDevices({ org, member, onClose }: { org: string; member: M
                 {data.devices.sessions.map((session) => (
                   <li key={session.id} className="flex items-center justify-between gap-4 py-3">
                     <div className="min-w-0">
-                      <p className="truncate text-14">{session.label}</p>
-                      <p className="text-13 text-faint">
+                      <p className="truncate text-body">{session.label}</p>
+                      <p className="text-secondary text-faint">
                         Signed in {timeAgo(session.created_at)} · last seen {timeAgo(session.last_seen_at)}
                       </p>
                     </div>
@@ -62,7 +62,7 @@ export function MemberDevices({ org, member, onClose }: { org: string; member: M
             ) : (
               <EmptyState title="Not signed in anywhere right now" description={`When ${first} signs in on a device, it shows here, and you can end it.`} />
             )}
-            <p className="text-13 text-muted">
+            <p className="text-secondary text-muted">
               {plural(data.devices.passkeys.length, 'passkey')} set up for {first}. Only {first} can remove a passkey.
             </p>
           </div>

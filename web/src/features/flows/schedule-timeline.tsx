@@ -124,7 +124,7 @@ function Track({ row, axis, now }: { row: TimelineRow; axis: Axis; now: number }
         const end = axis.ticks[index + 1]?.at ?? axis.to;
         return (
           <span key={tick.at} aria-hidden="true">
-            {tick.rest ? <span className="absolute inset-y-0 bg-fill-1" style={{ left: `${position(tick.at)}%`, width: `${position(end) - position(tick.at)}%` }} /> : null}
+            {tick.rest ? <span className="absolute inset-y-0 bg-hover" style={{ left: `${position(tick.at)}%`, width: `${position(end) - position(tick.at)}%` }} /> : null}
             {index > 0 ? <span className="absolute inset-y-0 w-px bg-line" style={{ left: `${position(tick.at)}%` }} /> : null}
           </span>
         );
@@ -137,18 +137,18 @@ function Track({ row, axis, now }: { row: TimelineRow; axis: Axis; now: number }
             className="absolute inset-x-0 top-1/2 h-3 -translate-y-1/2 rounded-sm"
             style={{ left: `${position(now)}%`, backgroundImage: 'repeating-linear-gradient(135deg, var(--fill-3) 0 1px, transparent 1px 6px)' }}
           />
-          <span className="absolute top-1/2 -translate-y-1/2 rounded-sm bg-bg px-1 text-12 text-faint" style={{ left: `calc(${position(now)}% + 8px)` }}>
+          <span className="absolute top-1/2 -translate-y-1/2 rounded-sm bg-card px-1 text-caption text-faint" style={{ left: `calc(${position(now)}% + 8px)` }}>
             Paused
           </span>
         </>
       ) : null}
       {row.state === 'watch' ? (
-        <span className="absolute top-1/2 max-w-[80%] -translate-y-1/2 truncate rounded-sm bg-bg px-1 text-12 text-faint" style={{ left: `calc(${position(now)}% + 8px)` }}>
+        <span className="absolute top-1/2 max-w-[80%] -translate-y-1/2 truncate rounded-sm bg-card px-1 text-caption text-faint" style={{ left: `calc(${position(now)}% + 8px)` }}>
           On change: {row.schedule.watch}
         </span>
       ) : null}
       {row.state === 'fires' && row.marks.length === 0 ? (
-        <span className="absolute top-1/2 -translate-y-1/2 rounded-sm bg-bg px-1 text-12 text-faint" style={{ left: `calc(${position(now)}% + 8px)` }}>
+        <span className="absolute top-1/2 -translate-y-1/2 rounded-sm bg-card px-1 text-caption text-faint" style={{ left: `calc(${position(now)}% + 8px)` }}>
           No fire in this window
         </span>
       ) : null}
@@ -166,7 +166,7 @@ function Track({ row, axis, now }: { row: TimelineRow; axis: Axis; now: number }
       ))}
       {peek ? (
         <div
-          className="pointer-events-none absolute bottom-full z-10 mb-1 rounded-md border border-line bg-raised px-2 py-1 text-12 whitespace-nowrap shadow-popover"
+          className="pointer-events-none absolute bottom-full z-10 mb-1 rounded-md border border-line bg-raised px-2 py-1 text-caption whitespace-nowrap shadow-popover"
           style={flip ? { right: peek.width - peek.x } : { left: peek.x }}
         >
           <p className="tabular text-fg">{fireLabel(peek.mark.at, row.zone, now)}</p>
@@ -211,13 +211,13 @@ export function ScheduleTimeline({ org, schedules, zoneOf, fallback, active, onA
       <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
         <div className="min-w-0">
           {soonest ? (
-            <p className="text-14">
+            <p className="text-body">
               Next: {titleOf(soonest.row.schedule)}, <span className="tabular">{fireLabel(soonest.mark.at, soonest.row.zone, now)}</span>
             </p>
           ) : (
-            <p className="text-14">Nothing fires in this window.</p>
+            <p className="text-body">Nothing fires in this window.</p>
           )}
-          <p className="tabular text-13 text-faint">
+          <p className="tabular text-secondary text-faint">
             {capped ? `${fires}+ fires` : plural(fires, 'fire')} in the next {window}.{' '}
             {zones.length > 1 ? `Axis on ${zoneCity(zone)} time. Each schedule keeps its own computer's clock.` : `On the computer's clock, ${zoneCity(zone)} time.`}
           </p>
@@ -240,15 +240,15 @@ export function ScheduleTimeline({ org, schedules, zoneOf, fallback, active, onA
                 onPointerLeave={() => onActive(null)}
                 className={cn(
                   'grid border-t border-line transition-colors duration-(--duration-fast) ease-standard md:grid-cols-[minmax(0,13rem)_minmax(0,1fr)] md:items-center md:gap-x-4',
-                  active === row.schedule.id && 'bg-fill-1',
+                  active === row.schedule.id && 'bg-hover',
                 )}
               >
                 {row.schedule.flow ? (
-                  <Link to="/$org/flows/$flow" params={{ org, flow: row.schedule.flow }} className="truncate pt-2 text-14 hover:underline md:pt-0">
+                  <Link to="/$org/flows/$flow" params={{ org, flow: row.schedule.flow }} className="truncate pt-2 text-body hover:underline md:pt-0">
                     {titleOf(row.schedule)}
                   </Link>
                 ) : (
-                  <span className="truncate pt-2 text-14 text-muted md:pt-0">{titleOf(row.schedule)}</span>
+                  <span className="truncate pt-2 text-body text-muted md:pt-0">{titleOf(row.schedule)}</span>
                 )}
                 <Track row={row} axis={axis} now={now} />
                 <span className="sr-only">
@@ -268,7 +268,7 @@ function TickLabels({ axis, className }: { axis: Axis; className?: string }) {
   return (
     <div aria-hidden="true" className={cn('relative h-5', className)}>
       {axis.ticks.map((tick) => (
-        <span key={tick.at} className="tabular absolute truncate text-12 text-faint" style={{ left: `${((tick.at - axis.from) / span) * 100}%` }}>
+        <span key={tick.at} className="tabular absolute truncate text-caption text-faint" style={{ left: `${((tick.at - axis.from) / span) * 100}%` }}>
           {tick.label}
         </span>
       ))}

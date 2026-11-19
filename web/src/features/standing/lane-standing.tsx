@@ -20,10 +20,10 @@ export function LaneStanding({ org, lane }: { org: string; lane: Lane }) {
   const applied = items.every((item) => item.enforcement.applied_by.includes(lane.node));
   return (
     <section aria-label="Always allowed on this account">
-      <h2 className="mb-2 text-13 text-faint">Standing approvals</h2>
+      <h2 className="mb-2 text-secondary text-faint font-semibold">Standing approvals</h2>
       <ul className="grid gap-2">
         {items.map((item) => (
-          <li key={item.id} className="text-13">
+          <li key={item.id} className="text-secondary">
             <span className="text-fg">{describeStanding(item)}</span>
             <span className="mono tabular text-faint"> · {item.count === null ? `${item.used} used` : `${item.used} of ${item.count}`}</span>
           </li>
@@ -35,7 +35,7 @@ export function LaneStanding({ org, lane }: { org: string; lane: Lane }) {
         </div>
       ) : null}
       {applied ? null : (
-        <p className="mt-2 flex items-baseline gap-2 text-13">
+        <p className="mt-2 flex items-baseline gap-2 text-secondary">
           <StatusDot tone="warn" className="translate-y-px" />
           <span className="min-w-0 text-muted">
             <span className="mono text-fg">{lane.node}</span> does not apply these rules yet, so whatever asks first here still asks a person each time.{' '}

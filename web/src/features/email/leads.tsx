@@ -34,14 +34,14 @@ function Waiting({ org, batch, workspace }: { org: string; batch: LeadBatch; wor
     <Link to="/$org/email/leads/$batch" params={{ org, batch: batch.id }} className="picture-stage group mt-8 grid items-center gap-6 rounded-(--radius-card) border border-line p-6 transition-colors duration-(--duration-fast) ease-standard hover:border-line-strong md:grid-cols-[auto_minmax(0,1fr)_auto]">
       <Dots batch={batch} />
       <span className="min-w-0">
-        <span className="flex items-center gap-2 text-12 text-faint">
+        <span className="flex items-center gap-2 text-caption text-faint">
           {workspace ? <BusinessMark name={workspace.name} color={workspace.color} size={14} /> : null}
           Found by {batch.by}, {agoWords(batch.at)}
         </span>
-        <span className="mt-1 block text-20 font-semibold text-balance">{batch.found} people for {batch.list_name}</span>
-        <span className="mt-1 block text-14 text-pretty text-muted">{plural(batch.leads.length, 'is', 'are')} yours to decide, {looks} worth a look. Nobody gets an email until you have looked.</span>
+        <span className="mt-1 block text-heading text-balance">{batch.found} people for {batch.list_name}</span>
+        <span className="mt-1 block text-body text-pretty text-muted">{plural(batch.leads.length, 'is', 'are')} yours to decide, {looks} worth a look. Nobody gets an email until you have looked.</span>
       </span>
-      <span className="flex items-center gap-1 text-14 font-medium">
+      <span className="flex items-center gap-1 text-label">
         Look and decide
         <ArrowRight aria-hidden="true" className="size-4 transition-transform duration-(--duration-fast) ease-standard group-hover:translate-x-1" />
       </span>
@@ -59,10 +59,10 @@ function ListRow({ org, list, workspace }: { org: string; list: MailList; worksp
   const most = Math.max(1, ...shape.map((day) => day.first + day.follow));
   return (
     <li>
-      <Link to="/$org/email/lists/$list" params={{ org, list: list.id }} className="group grid items-center gap-x-6 gap-y-1 px-4 py-3 transition-colors duration-(--duration-fast) ease-standard hover:bg-fill-1 md:grid-cols-[minmax(0,1fr)_7rem_16rem_auto]">
+      <Link to="/$org/email/lists/$list" params={{ org, list: list.id }} className="group grid items-center gap-x-6 gap-y-1 px-4 py-3 transition-colors duration-(--duration-fast) ease-standard hover:bg-hover md:grid-cols-[minmax(0,1fr)_7rem_16rem_auto]">
         <span className="min-w-0">
-          <span className="block truncate text-14 font-medium">{list.name}</span>
-          <span className="flex items-center gap-1 text-12 text-faint">
+          <span className="block truncate text-label">{list.name}</span>
+          <span className="flex items-center gap-1 text-caption text-faint">
             {workspace ? <BusinessMark name={workspace.name} color={workspace.color} size={14} /> : null}
             <span className="truncate">{workspace?.name}{list.address ? ` · ${list.address}` : ''}</span>
           </span>
@@ -72,7 +72,7 @@ function ListRow({ org, list, workspace }: { org: string; list: MailList; worksp
             {shape.map((day) => <span key={day.at} className="w-2 rounded-t-[2px] bg-fg" style={{ height: `${Math.max(2, ((day.first + day.follow) / most) * 24)}px` }} />)}
           </span>
         ) : <span aria-hidden="true" className="hidden md:block" />}
-        <span className="tabular text-13 text-muted">{list.people === null ? plural(list.size, 'person', 'people') + ' on this list' : reached ? `${reached} written to, ${plural(replied, 'reply', 'replies')}, ${out} out` : `${plural(people.length, 'person', 'people')}, nothing sent yet`}</span>
+        <span className="tabular text-secondary text-muted">{list.people === null ? plural(list.size, 'person', 'people') + ' on this list' : reached ? `${reached} written to, ${plural(replied, 'reply', 'replies')}, ${out} out` : `${plural(people.length, 'person', 'people')}, nothing sent yet`}</span>
         <ArrowRight aria-hidden="true" className="hidden size-4 text-faint transition-transform duration-(--duration-fast) ease-standard group-hover:translate-x-1 md:block" />
       </Link>
     </li>
@@ -104,7 +104,7 @@ export function Leads() {
   if (!waiting.length && !running.length) {
     return (
       <div className="grid gap-8">
-        <h1 className="text-24 font-semibold">Leads</h1>
+        <h1 className="text-page-title-compact">Leads</h1>
         <Card>
           <EmptyState
             icon={<Users />}
@@ -119,20 +119,20 @@ export function Leads() {
   return (
     <div className="pb-16">
       <EmailTabs org={org} here="leads" newCount={fresh} waiting={waiting.length} />
-      <h1 className="text-32 font-semibold text-balance sm:text-40">
+      <h1 className="text-headline text-balance sm:text-40">
         {waiting.length ? <>{plural(waiting.length, 'batch is', 'batches are')} waiting for a look. </> : null}
         <span className={waiting.length ? 'text-faint' : undefined}>{plural(running.length, 'list')} running.</span>
       </h1>
       {waiting.map((batch) => <Waiting key={batch.id} org={org} batch={batch} workspace={business(batch.workspace)} />)}
       {running.length ? (
         <section aria-labelledby="lists" className="mt-8">
-          <h2 id="lists" className="mb-3 text-16 font-semibold">Your lists</h2>
-          <ul className="divide-y divide-line overflow-hidden rounded-(--radius-card) border border-line bg-bg">
+          <h2 id="lists" className="mb-3 text-section-title">Your lists</h2>
+          <ul className="divide-y divide-line overflow-hidden rounded-(--radius-card) border border-line bg-card">
             {running.map((list) => <ListRow key={list.id} org={org} list={list} workspace={business(list.workspace)} />)}
           </ul>
         </section>
       ) : null}
-      <p className="mt-6 flex items-center gap-2 text-13 text-muted">
+      <p className="mt-6 flex items-center gap-2 text-secondary text-muted">
         <SiteMark site="linkedin" size={14} label={false} />
         <span className="min-w-0">Agents find people at your account's own pace, and a site's challenge stops them. Only a person adds anyone to a list.</span>
       </p>

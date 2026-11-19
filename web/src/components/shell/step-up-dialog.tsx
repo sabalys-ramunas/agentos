@@ -143,7 +143,7 @@ export function StepUpDialog() {
     >
       {stage === 'email' && byEmail ? (
         <div className="grid gap-2">
-          <div role="status" className="flex items-center gap-2 rounded-lg border border-line bg-subtle px-4 py-3 text-body text-muted">
+          <div role="status" className="flex items-center gap-2 rounded-lg border border-line bg-inset px-4 py-3 text-body text-muted">
             <Spinner className="text-faint" />
             <span>
               Check <span className="text-fg">{session?.user.email}</span> and open the link in this browser. This window
@@ -164,7 +164,7 @@ export function StepUpDialog() {
             </p>
           ) : null}
           {error ? (
-            <p role="alert" className="text-secondary text-red">
+            <p role="alert" className="text-secondary text-bad">
               {error}
             </p>
           ) : null}

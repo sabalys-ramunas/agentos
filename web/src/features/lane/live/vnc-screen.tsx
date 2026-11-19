@@ -135,7 +135,7 @@ function TypePanel({ onType, onKey }: { onType: (text: string) => void; onKey: (
           Paste
         </Button>
       </div>
-      {note ? <p className="text-12 text-muted">{note}</p> : null}
+      {note ? <p className="text-caption text-muted">{note}</p> : null}
     </div>
   );
 }
@@ -314,7 +314,7 @@ export default function VncScreen({ org, lane, interactive, holder, canTake, exp
       {/* Not expanded, the box takes the far screen's own shape (16:10 until it is known), no taller than
           most of the window, so a wide desktop and a tall phone screen both fill it rather than float in black. */}
       <div
-        className={cn('relative min-h-0 bg-subtle', expanded ? 'flex-1' : 'max-h-[75dvh]')}
+        className={cn('relative min-h-0 bg-inset', expanded ? 'flex-1' : 'max-h-[75dvh]')}
         style={expanded ? undefined : { aspectRatio: `${frame.width} / ${frame.height}` }}
       >
         <div
@@ -342,7 +342,7 @@ export default function VncScreen({ org, lane, interactive, holder, canTake, exp
       <div data-screen-toolbar className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line px-4 py-2">
         <div className="flex min-w-0 flex-1 basis-48 items-center gap-2">
           <StreamBadge state={state} kind="vnc" node={lane.node} />
-          {line ? <span className={cn('min-w-0 truncate text-13', driving ? 'font-medium text-fg' : 'text-faint')}>{line}</span> : null}
+          {line ? <span className={cn('min-w-0 truncate text-secondary', driving ? 'font-medium text-fg' : 'text-faint')}>{line}</span> : null}
         </div>
         <div className="flex items-center gap-1">
           {interactive ? (
@@ -358,7 +358,7 @@ export default function VncScreen({ org, lane, interactive, holder, canTake, exp
           <IconButton label="Zoom out" disabled={zoom <= 1} onClick={() => setZoom(zoom / 1.5)}>
             <Minus className="size-4" />
           </IconButton>
-          <span className="tabular w-12 text-center text-12 text-faint" aria-live="polite">
+          <span className="tabular w-12 text-center text-caption text-faint" aria-live="polite">
             {Math.round(zoom * 100)}%
           </span>
           <IconButton label="Zoom in" disabled={zoom >= 4} onClick={() => setZoom(zoom * 1.5)}>

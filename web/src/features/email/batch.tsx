@@ -60,12 +60,12 @@ function Tile({ lead, out, dim, tabbable, onDown, onEnter, onClick, onPoint, onK
       onKeyDown={onKey}
       className="sheet-tile focus-inset block h-12 px-3 py-1"
     >
-      <span className="flex min-w-0 items-baseline gap-2 text-13">
+      <span className="flex min-w-0 items-baseline gap-2 text-secondary">
         <span className="sheet-name min-w-0 truncate font-medium">{lead.name}</span>
-        <span className="sheet-sub min-w-0 flex-1 truncate text-12 text-faint">{lead.company}</span>
+        <span className="sheet-sub min-w-0 flex-1 truncate text-caption text-faint">{lead.company}</span>
         {lead.look && !out ? <StateGlyph state="waiting" size={14} className="self-center" /> : null}
       </span>
-      <span className="sheet-sub mono flex min-w-0 text-12 text-faint">
+      <span className="sheet-sub mono flex min-w-0 text-caption text-faint">
         <span className="min-w-0 truncate">{local}</span>
         <span className="shrink-0 text-muted">{domain}</span>
       </span>
@@ -75,15 +75,15 @@ function Tile({ lead, out, dim, tabbable, onDown, onEnter, onClick, onPoint, onK
 
 /** The person being pointed at, in one fixed place, so reading never moves anything. */
 function Reading({ lead }: { lead: Lead | null }) {
-  if (!lead) return <p className="text-13 text-faint">Point at someone to read where they came from.</p>;
+  if (!lead) return <p className="text-secondary text-faint">Point at someone to read where they came from.</p>;
   return (
     <div className="flex min-w-0 items-center gap-3">
       <PersonMark id={lead.id} name={lead.name} size={32} />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-13">
+        <p className="truncate text-secondary">
           <span className="font-medium">{lead.name}</span> <span className="text-muted">· {[lead.role, lead.company, lead.country ? countryName(lead.country) : null].filter(Boolean).join(', ')}</span>
         </p>
-        <p className="truncate text-12 text-faint">
+        <p className="truncate text-caption text-faint">
           {lead.look ? <span className="text-fg">{LOOK_WORDS[lead.look].long}</span> : <>Found on <span className="mono">{(lead.source_url ?? lead.source_word).replace('https://', '')}</span>, {agoWords(lead.found_at)}. {lead.why}</>}
         </p>
       </div>
@@ -110,10 +110,10 @@ function Filters({ value, onChange, batch }: { value: Filter; onChange: (filter:
   return (
     <div role="group" aria-label="Show" className="flex flex-wrap items-center gap-1">
       {items.map((item) => (
-        <button key={item.key} type="button" aria-pressed={value === item.key} onClick={() => onChange(item.key)} className={cn('flex h-7 items-center gap-2 rounded-md px-2 text-13 transition-colors duration-(--duration-fast) ease-standard', value === item.key ? 'bg-fill-2 text-fg' : 'text-muted hover:bg-fill-1')}>
+        <button key={item.key} type="button" aria-pressed={value === item.key} onClick={() => onChange(item.key)} className={cn('flex h-7 items-center gap-2 rounded-md px-2 text-secondary transition-colors duration-(--duration-fast) ease-standard', value === item.key ? 'bg-pressed text-fg' : 'text-muted hover:bg-hover')}>
           {item.key === 'look' ? <StateGlyph state="waiting" size={14} /> : null}
           {item.word}
-          <span className="tabular text-12 text-faint">{item.count}</span>
+          <span className="tabular text-caption text-faint">{item.count}</span>
         </button>
       ))}
     </div>
@@ -123,8 +123,8 @@ function Filters({ value, onChange, batch }: { value: Filter; onChange: (filter:
 function Rows({ leads, out, onToggle }: { leads: Lead[]; out: ReadonlySet<string>; onToggle: (id: string) => void }) {
   return (
     <div className="overflow-x-auto rounded-(--radius-card) border border-line">
-      <table className="w-full text-13">
-        <thead className="text-left text-12 text-faint">
+      <table className="w-full text-secondary">
+        <thead className="text-left text-caption text-faint">
           <tr className="border-b border-line">
             <th className="w-10 px-3 py-2 font-normal"><span className="sr-only">Keep</span></th>
             <th className="px-3 py-2 font-normal">Name</th>
@@ -141,7 +141,7 @@ function Rows({ leads, out, onToggle }: { leads: Lead[]; out: ReadonlySet<string
                 <td className="px-3 py-2"><input type="checkbox" aria-label={`Keep ${lead.name}`} checked={!out.has(lead.id)} onChange={() => onToggle(lead.id)} className="accent-(--foreground)" /></td>
                 <td className="px-3 py-2 whitespace-nowrap">{lead.name}</td>
                 <td className="px-3 py-2 whitespace-nowrap text-muted">{lead.company}</td>
-                <td className="mono px-3 py-2 text-12 whitespace-nowrap">{lead.address}</td>
+                <td className="mono px-3 py-2 text-caption whitespace-nowrap">{lead.address}</td>
                 <td className="px-3 py-2 whitespace-nowrap">{url ? <a href={url} target="_blank" rel="noreferrer" className="link">{lead.source_word}</a> : lead.source_word}</td>
               </tr>
             );
@@ -246,7 +246,7 @@ function Sheet({ org, batch }: { org: string; batch: LeadBatch }) {
     <div data-bleed="" className="flex h-[calc(100dvh-var(--topbar-height))] min-h-0 flex-col max-lg:h-auto">
       <div className="shrink-0 px-4 pt-4 sm:px-6 lg:px-10">
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1">
-        <p className="flex min-w-0 items-center gap-2 text-13 text-muted">
+        <p className="flex min-w-0 items-center gap-2 text-secondary text-muted">
           <Link to="/$org/email/leads" params={{ org }} className="inline-flex items-center gap-1 hover:text-fg">
             <ArrowLeft className="size-3" /> Leads
           </Link>
@@ -256,8 +256,8 @@ function Sheet({ org, batch }: { org: string; batch: LeadBatch }) {
         </p>
         <FromComputer computers={['hetzner-1']} />
       </div>
-      <h1 className="mt-3 text-32 font-semibold text-balance">{batch.by} found {batch.found} people. <span className="text-faint">Who should stay?</span></h1>
-      <p className="mt-1 text-14 text-pretty text-muted">Everyone starts in. Press someone to leave them out, or drag across several. {plural(looks, 'is', 'are')} worth reading twice.</p>
+      <h1 className="mt-3 text-headline text-balance">{batch.by} found {batch.found} people. <span className="text-faint">Who should stay?</span></h1>
+      <p className="mt-1 text-body text-pretty text-muted">Everyone starts in. Press someone to leave them out, or drag across several. {plural(looks, 'is', 'are')} worth reading twice.</p>
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
         <Filters value={filter} onChange={setFilter} batch={batch} />
@@ -282,11 +282,11 @@ function Sheet({ org, batch }: { org: string; batch: LeadBatch }) {
             const allOut = ids.every((id) => out.has(id));
             return (
               <section key={group.key} aria-label={group.word}>
-                <div className="mb-1 flex items-center gap-2 text-13">
+                <div className="mb-1 flex items-center gap-2 text-secondary">
                   {group.key === 'linkedin' ? <SiteMark site="linkedin" size={14} label={false} /> : <SiteMark site="baltic-marine-directory.example" size={14} label={false} />}
                   <span className="font-medium">{group.word}</span>
                   <span className="min-w-0 truncate text-faint">{plural(group.leads.length, 'person', 'people')} {group.note}{group.key === 'directory' && batch.suppressed ? `, and ${batch.suppressed.length} who are on the do-not-write list, so they cannot be added` : ''}</span>
-                  <button type="button" className="ml-auto shrink-0 text-12 text-muted hover:text-fg" onClick={() => setMany(ids, !allOut)}>
+                  <button type="button" className="ml-auto shrink-0 text-caption text-muted hover:text-fg" onClick={() => setMany(ids, !allOut)}>
                     {allOut ? 'Bring them all back' : `Leave out all ${ids.length}`}
                   </button>
                 </div>
@@ -323,8 +323,8 @@ function Sheet({ org, batch }: { org: string; batch: LeadBatch }) {
                     <div key={lead.id} data-never="" className="sheet-tile flex h-12 items-center gap-2 px-3" aria-label={`${lead.name}: ${SUPPRESSED_WORD[lead.why]}. Not in this batch.`}>
                       <Lock aria-hidden="true" className="size-3 shrink-0 text-faint" />
                       <span className="min-w-0">
-                        <span className="block truncate text-13 text-muted">{lead.name}</span>
-                        <span className="block truncate text-12 text-faint">{SUPPRESSED_WORD[lead.why]}</span>
+                        <span className="block truncate text-secondary text-muted">{lead.name}</span>
+                        <span className="block truncate text-caption text-faint">{SUPPRESSED_WORD[lead.why]}</span>
                       </span>
                     </div>
                   )) : null}
@@ -336,7 +336,7 @@ function Sheet({ org, batch }: { org: string; batch: LeadBatch }) {
       </div>
 
       {/* The desk: what is being read, and the one decision. It never moves. */}
-      <div className="sticky bottom-0 z-10 shrink-0 border-t border-line bg-bg px-4 py-3 sm:px-6 lg:px-10">
+      <div className="sticky bottom-0 z-10 shrink-0 border-t border-line bg-card px-4 py-3 sm:px-6 lg:px-10">
         <div className="grid items-center gap-x-6 gap-y-3 lg:grid-cols-[minmax(0,1fr)_auto]">
           <div className="min-h-8 min-w-0"><Reading lead={pointed} /></div>
           <div className="flex flex-wrap items-center gap-2">
@@ -381,7 +381,7 @@ export function Batch() {
   if (batch.error) return <ErrorState error={batch.error} onRetry={() => void batch.refetch()} />;
   if (!batch.data) return <div className="grid gap-4"><Skeleton className="h-24 max-w-3xl rounded-lg" /><Skeleton className="h-96 rounded-lg" /></div>;
   if (batch.data.status !== 'waiting') {
-    return <Card><EmptyState icon={<Lock />} title="This batch has been decided" description="A batch gets one look, and it has had it." action={<Link to="/$org/email/leads" params={{ org }} className="link text-14">Back to leads</Link>} /></Card>;
+    return <Card><EmptyState icon={<Lock />} title="This batch has been decided" description="A batch gets one look, and it has had it." action={<Link to="/$org/email/leads" params={{ org }} className="link text-body">Back to leads</Link>} /></Card>;
   }
   return <Sheet org={org} batch={batch.data} />;
 }

@@ -77,7 +77,7 @@ export function Picture({ src, site, refreshMs, focus = 'top', resting = false, 
   const url = src && near && !failed ? (beat ? `${src}${src.includes('?') ? '&' : '?'}t=${beat}` : src) : null;
 
   return (
-    <div ref={ref} className={cn('relative overflow-hidden bg-subtle', className)}>
+    <div ref={ref} className={cn('relative overflow-hidden bg-inset', className)}>
       {/* The stand-in sits under the picture, so it shows while loading and when there is none. */}
       <div className={cn('absolute inset-0 transition-opacity duration-500', loaded && url ? 'opacity-0' : 'opacity-100')}>
         <StandIn site={site} title={title} line={line} compact={compact} />
@@ -114,9 +114,9 @@ export function PictureChip({ children, tone = 'plain', className }: { children:
   return (
     <span
       className={cn(
-        'inline-flex h-6 items-center gap-2 rounded-full px-2 text-12 font-medium shadow-[0_1px_2px_rgb(0_0_0/0.12)] backdrop-blur-md',
-        tone === 'plain' && 'bg-bg/90 text-fg ring-1 ring-line',
-        tone === 'live' && 'bg-bg/90 text-fg ring-1 ring-(--current-line)',
+        'inline-flex h-6 items-center gap-2 rounded-full px-2 text-caption font-medium shadow-[0_1px_2px_rgb(0_0_0/0.12)] backdrop-blur-md',
+        tone === 'plain' && 'bg-card/90 text-fg ring-1 ring-line',
+        tone === 'live' && 'bg-card/90 text-fg ring-1 ring-(--current-line)',
         tone === 'dark' && 'bg-[rgb(0_0_0/0.62)] text-[#fff]',
         className,
       )}

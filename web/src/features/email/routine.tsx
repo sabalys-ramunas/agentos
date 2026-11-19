@@ -87,11 +87,11 @@ function Chase({ people, lit, onLight }: { people: ChasePerson[]; lit: string | 
   return (
     <section aria-labelledby="chase" className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_17rem]">
       <div className="min-w-0">
-        <h2 id="chase" className="text-20 font-semibold">The chase, one line for each person</h2>
-        <p aria-live="polite" className="mt-1 min-h-5 truncate text-14 text-muted">{pointed ? storyOf(pointed) : 'A line that stops early is someone who answered. Point at one to read it.'}</p>
+        <h2 id="chase" className="text-heading">The chase, one line for each person</h2>
+        <p aria-live="polite" className="mt-1 min-h-5 truncate text-body text-muted">{pointed ? storyOf(pointed) : 'A line that stops early is someone who answered. Point at one to read it.'}</p>
         <div className="relative mt-4 pt-6">
           <div aria-hidden="true" className="absolute inset-y-0 w-px bg-(--board-wire-strong)" style={{ left: at(3) }}>
-            <span className="absolute top-0 left-2 text-12 whitespace-nowrap text-muted">Day 3: one follow-up</span>
+            <span className="absolute top-0 left-2 text-caption whitespace-nowrap text-muted">Day 3: one follow-up</span>
           </div>
           <div role="img" aria-label={`${counts.replied} replied, ${counts.unsubscribed} unsubscribed, ${counts.followed} followed up once, ${counts.waiting} still in the three days`} className={cn(shown && 'chase-dim')} onPointerLeave={() => setPointed(null)}>
             {lives.map((life, index) => (
@@ -102,16 +102,16 @@ function Chase({ people, lit, onLight }: { people: ChasePerson[]; lit: string | 
               </div>
             ))}
           </div>
-          <div aria-hidden="true" className="mt-2 flex justify-between border-t border-line pt-1 text-12 text-faint">
+          <div aria-hidden="true" className="mt-2 flex justify-between border-t border-line pt-1 text-caption text-faint">
             <span>First email</span>
             <span>{SPAN} days later</span>
           </div>
         </div>
-        <button type="button" aria-expanded={listed} onClick={() => setListed(!listed)} className="mt-3 text-13 text-muted hover:text-fg">{listed ? 'Hide the list' : 'Read it as a list'}</button>
+        <button type="button" aria-expanded={listed} onClick={() => setListed(!listed)} className="mt-3 text-secondary text-muted hover:text-fg">{listed ? 'Hide the list' : 'Read it as a list'}</button>
         {listed ? (
           <ul className="mt-2 divide-y divide-line border-y border-line">
             {lives.map((life) => (
-              <li key={life.id} className="grid gap-x-4 py-2 text-13 text-pretty sm:grid-cols-[14rem_minmax(0,1fr)]">
+              <li key={life.id} className="grid gap-x-4 py-2 text-secondary text-pretty sm:grid-cols-[14rem_minmax(0,1fr)]">
                 <span className="min-w-0 truncate font-medium">{life.name} <span className="font-normal text-faint">{life.company}</span></span>
                 <span className="min-w-0 text-muted">{storyOf(life)}</span>
               </li>
@@ -119,7 +119,7 @@ function Chase({ people, lit, onLight }: { people: ChasePerson[]; lit: string | 
           </ul>
         ) : null}
       </div>
-      <ul className="grid content-start gap-1 text-14">
+      <ul className="grid content-start gap-1 text-body">
         {LEGEND.map((item) => (
           <li key={item.ending}>
             <button
@@ -134,13 +134,13 @@ function Chase({ people, lit, onLight }: { people: ChasePerson[]; lit: string | 
               }}
               onFocus={() => setGroup(item.ending)}
               onBlur={() => setGroup(null)}
-              className="-mx-2 flex w-[calc(100%+16px)] items-center gap-3 rounded-md px-2 py-2 text-left transition-colors duration-(--duration-fast) ease-standard hover:bg-fill-1"
+              className="-mx-2 flex w-[calc(100%+16px)] items-center gap-3 rounded-md px-2 py-2 text-left transition-colors duration-(--duration-fast) ease-standard hover:bg-hover"
             >
               <span className="relative size-2 shrink-0">
                 {item.ending === 'waiting' ? <span className="absolute top-[3px] h-0.5 w-2 rounded-sm bg-(--board-wire-strong)" /> : <span className="chase-end" data-kind={item.ending} style={{ left: 4 }} />}
               </span>
-              <span className="tabular w-6 shrink-0 text-16 font-semibold">{counts[item.ending]}</span>
-              <span className="min-w-0 text-13 text-pretty text-muted">{item.word}</span>
+              <span className="tabular w-6 shrink-0 text-section-title">{counts[item.ending]}</span>
+              <span className="min-w-0 text-secondary text-pretty text-muted">{item.word}</span>
             </button>
           </li>
         ))}
@@ -161,34 +161,34 @@ function Rules({ org, routine }: { org: string; routine: MailRoutine }) {
   return (
     <section aria-label="What it will never do" className="grid gap-6 lg:grid-cols-2 lg:gap-16">
       <div className="min-w-0">
-        <h2 className="text-20 font-semibold">What goes out</h2>
+        <h2 className="text-heading">What goes out</h2>
         {followUp ? (
           <div className="mt-3 rounded-lg border border-line p-4">
-            <p className="text-13 font-medium">{followUp.subject.replace('{company}', 'your cafe')}</p>
-            <p className="mt-2 text-14 text-pretty text-muted">{followUp.body.replace('{first name}', 'there')}</p>
+            <p className="text-secondary font-medium">{followUp.subject.replace('{company}', 'your cafe')}</p>
+            <p className="mt-2 text-body text-pretty text-muted">{followUp.body.replace('{first name}', 'there')}</p>
           </div>
         ) : null}
         {limit ? (
           <div className="mt-4 flex items-center gap-3">
             <Meter value={limit.sent_today} max={limit.daily_limit} label="Sent today" className="w-40 shrink-0" />
-            <span className="tabular text-13 text-muted">{limit.sent_today} of {limit.daily_limit} today</span>
+            <span className="tabular text-secondary text-muted">{limit.sent_today} of {limit.daily_limit} today</span>
           </div>
         ) : (
-          <p className="mt-1 text-14 text-pretty text-muted">
-            It sends from {routine.address ? <span className="mono text-13">{routine.address}</span> : 'its mailbox'}. Its send limit is set on the mailbox.
+          <p className="mt-1 text-body text-pretty text-muted">
+            It sends from {routine.address ? <span className="mono text-secondary">{routine.address}</span> : 'its mailbox'}. Its send limit is set on the mailbox.
           </p>
         )}
       </div>
       <div>
-        <h2 className="text-20 font-semibold">Who it can reach</h2>
+        <h2 className="text-heading">Who it can reach</h2>
         {list ? (
-          <p className="mt-1 text-14 text-pretty text-muted">
+          <p className="mt-1 text-body text-pretty text-muted">
             Only <Link to="/$org/email/lists/$list" params={{ org, list: list.id }} className="text-fg underline underline-offset-4">{list.name}</Link>{limit ? ` (${plural(limit.list_size, 'person', 'people')})` : null}. These always apply. They are not settings.
           </p>
         ) : (
-          <p className="mt-1 text-14 text-pretty text-muted">This routine has no list it sends to yet. These always apply. They are not settings.</p>
+          <p className="mt-1 text-body text-pretty text-muted">This routine has no list it sends to yet. These always apply. They are not settings.</p>
         )}
-        <ul className="mt-3 divide-y divide-line text-14">
+        <ul className="mt-3 divide-y divide-line text-body">
           {rules.map((rule) => (
             <li key={rule} className="flex items-center gap-3 py-2">
               <Lock aria-hidden="true" className="size-4 shrink-0 text-faint" />
@@ -205,10 +205,10 @@ function Sentence({ routine, catalog, lit, onLight }: { routine: MailRoutine; ca
   const definition = { trigger: routine.trigger, steps: routine.steps };
   const parts = sentenceOf(definition, (ref) => refName(dataBefore(definition, null, catalog), ref)?.toLowerCase() ?? null, catalog);
   return (
-    <h1 className="max-w-4xl text-24 font-semibold text-balance sm:text-[36px] sm:leading-[42px] sm:tracking-[-0.04em]">
+    <h1 className="max-w-4xl text-page-title-compact text-balance sm:text-[36px] sm:leading-[42px] sm:tracking-[-0.04em]">
       {parts.map((part, index) =>
         part.target ? (
-          <span key={index} onPointerEnter={() => onLight(part.target ?? null)} onPointerLeave={() => onLight(null)} className={cn('rounded-sm transition-colors duration-(--duration-fast) ease-standard', lit === part.target ? 'bg-fill-2' : '')}>
+          <span key={index} onPointerEnter={() => onLight(part.target ?? null)} onPointerLeave={() => onLight(null)} className={cn('rounded-sm transition-colors duration-(--duration-fast) ease-standard', lit === part.target ? 'bg-pressed' : '')}>
             {part.text}
           </span>
         ) : (
@@ -237,22 +237,22 @@ function Body({ org, routine }: { org: string; routine: MailRoutine }) {
   return (
     <div className="grid gap-10 pb-16 md:gap-12">
       <div>
-        <Link to="/$org/email" params={{ org }} className="mb-6 inline-flex items-center gap-1 text-13 text-muted hover:text-fg">
+        <Link to="/$org/email" params={{ org }} className="mb-6 inline-flex items-center gap-1 text-secondary text-muted hover:text-fg">
           <ArrowLeft className="size-3" /> Email
         </Link>
         <header>
-          <p className="mb-3 flex min-w-0 items-center gap-2 text-14 text-muted">
+          <p className="mb-3 flex min-w-0 items-center gap-2 text-body text-muted">
             {workspace ? <BusinessMark name={workspace.name} color={workspace.color} size={20} /> : null}
             <span className="truncate">{workspace?.name} · {routine.name}</span>
           </p>
           <Sentence routine={routine} catalog={catalog} lit={lit} onLight={setLit} />
           {routine.people ? (
-            <p className="mt-4 text-14 text-pretty text-muted">
+            <p className="mt-4 text-body text-pretty text-muted">
               <span className="text-fg">{plural(replied, 'person', 'people')} replied, so the chase stopped for them.</span> {followed} got their one follow-up, and {waiting} are still in the three days.
             </p>
           ) : null}
           <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-y border-line py-3">
-            <p className="text-13 text-muted"><span className="text-14 font-medium text-fg">Runs on its own.</span> It only ever writes to people on one list, and a reply always wins.</p>
+            <p className="text-secondary text-muted"><span className="text-label text-fg">Runs on its own.</span> It only ever writes to people on one list, and a reply always wins.</p>
             <FromComputer computers={['home-mini']} className="ml-auto" />
           </div>
         </header>
@@ -262,8 +262,8 @@ function Body({ org, routine }: { org: string; routine: MailRoutine }) {
         <Chase people={routine.people} lit={lit} onLight={setLit} />
       ) : (
         <section aria-labelledby="chase">
-          <h2 id="chase" className="text-20 font-semibold">The chase</h2>
-          <p className="mt-1 text-14 text-pretty text-muted">Who this routine has written to, and how each one ended, is not kept on this computer yet.</p>
+          <h2 id="chase" className="text-heading">The chase</h2>
+          <p className="mt-1 text-body text-pretty text-muted">Who this routine has written to, and how each one ended, is not kept on this computer yet.</p>
         </section>
       )}
       <Rules org={org} routine={routine} />

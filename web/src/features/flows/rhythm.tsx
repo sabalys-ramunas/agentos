@@ -56,14 +56,14 @@ export function Rhythm({ runs, onOpen }: { runs: RoutineRun[]; onOpen: (run: Rou
   const legend = WORST.slice().reverse().filter((status) => within.some((run) => run.status === status));
   return (
     <div>
-      <p className="text-20 font-semibold">{plural(within.length, 'run')}</p>
-      <p className="mt-1 text-13 text-muted">
+      <p className="text-heading">{plural(within.length, 'run')}</p>
+      <p className="mt-1 text-secondary text-muted">
         {failed ? `Over the last ${WEEKS} weeks, ${failed} did not work.` : within.length ? `Over the last ${WEEKS} weeks, every run finished.` : `Over the last ${WEEKS} weeks, nothing ran.`}
       </p>
       <div className="mt-4 flex gap-1">
         <div aria-hidden="true" className="grid grid-rows-7 gap-1 pr-1">
           {DAYS.map((word, index) => (
-            <span key={index} className="flex h-3 items-center text-11 text-faint">
+            <span key={index} className="flex h-3 items-center text-micro text-faint font-normal">
               {word}
             </span>
           ))}
@@ -78,7 +78,7 @@ export function Rhythm({ runs, onOpen }: { runs: RoutineRun[]; onOpen: (run: Rou
                   <button type="button" aria-label={words} onClick={() => onOpen(first)} className="relative size-3 rounded-[3px] transition-transform duration-(--duration-fast) ease-standard before:absolute before:-inset-0.5 hover:scale-125" style={{ backgroundColor: cell.status ? OUTCOME[cell.status]?.color : 'var(--fill-3)' }} />
                 </Tooltip>
               ) : (
-                <span key={cell.at} aria-hidden="true" className={cn('size-3 rounded-[3px]', cell.future ? '' : 'bg-fill-1')} />
+                <span key={cell.at} aria-hidden="true" className={cn('size-3 rounded-[3px]', cell.future ? '' : 'bg-hover')} />
               );
             })}
           </div>

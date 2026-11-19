@@ -23,7 +23,7 @@ export function WaitingSection({ org, lane }: { org: string; lane: Lane }) {
       <Answer tone="neutral" word={queue.claim ? (queue.claim.yours ? 'You are using it' : 'In use now') : 'Waiting its turn'}>
         {lead}
       </Answer>
-      {waiting ? <p className="text-13 text-muted">{waiting}</p> : null}
+      {waiting ? <p className="text-secondary text-muted">{waiting}</p> : null}
     </AccountSection>
   );
 }
@@ -42,10 +42,10 @@ export function TaintSection({ org, lane }: { org: string; lane: Lane }) {
       <Answer tone="warn" word="Asks first for now">
         {taintSentence(family, owner)}
       </Answer>
-      <p className="text-13 text-faint">Until it is cleared, posts, payments and anything that cannot be undone wait for a person.</p>
+      <p className="text-secondary text-faint">Until it is cleared, posts, payments and anything that cannot be undone wait for a person.</p>
       {owner && grant ? (
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-13 text-muted">Clearing it lets the next post go on its own again.</p>
+          <p className="text-secondary text-muted">Clearing it lets the next post go on its own again.</p>
           <Button size="sm" onClick={() => setConfirming(true)}>
             Clear it
           </Button>

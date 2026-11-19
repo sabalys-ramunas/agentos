@@ -39,7 +39,7 @@ export function PaceSection({ org, lane }: { org: string; lane: Lane }) {
         {pace.paced ? paceSentence(pace.pace) : 'Not paced: agents may post at any hour. A pace holds them to set hours and a number of posts.'}
       </Answer>
       {pace.paced ? (
-        <div className="grid gap-1 text-13 text-faint">
+        <div className="grid gap-1 text-secondary text-faint">
           <p className="text-muted">{postsWords(pace)}</p>
           {quiet ? <p>{quiet}</p> : null}
           <p>{laneTimeWords(pace)}</p>
@@ -136,15 +136,15 @@ function PaceDialog({ org, lane, pace, onClose }: { org: string; lane: Lane; pac
           submit();
         }}
       >
-        <p className="text-13 text-muted">Recommended for a new account: {RECOMMENDED}.</p>
+        <p className="text-secondary text-muted">Recommended for a new account: {RECOMMENDED}.</p>
         <div className="grid gap-2">
-          <span className="text-13 font-medium">Posts go out</span>
+          <span className="text-secondary font-medium">Posts go out</span>
           <div className="flex items-center gap-2">
             <Input type="time" aria-label="Posts go out from" value={from} onChange={(event) => setFrom(event.target.value)} className="w-32" />
-            <span className="text-13 text-muted">to</span>
+            <span className="text-secondary text-muted">to</span>
             <Input type="time" aria-label="Posts stop at" value={to} onChange={(event) => setTo(event.target.value)} className="w-32" />
           </div>
-          <p className="text-13 text-faint">In the account&apos;s own time. Leave both empty to post at any hour.</p>
+          <p className="text-secondary text-faint">In the account&apos;s own time. Leave both empty to post at any hour.</p>
         </div>
         <Field label="Minutes between posts" hint="The least gap between two posts. Empty for no gap.">
           <Input type="number" inputMode="numeric" min={0} value={gap} onChange={(event) => setGap(event.target.value)} />

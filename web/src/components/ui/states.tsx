@@ -34,7 +34,7 @@ export function EmptyState({ icon, title, description, action, className }: Empt
     <div className={cn('flex flex-col items-center px-6 py-16 text-center', className)}>
       {icon ? <StateIcon>{icon}</StateIcon> : null}
       <h3 className="text-card-title">{title}</h3>
-      {description ? <p className="mt-1 max-w-sm text-14 text-muted">{description}</p> : null}
+      {description ? <p className="mt-1 max-w-sm text-body text-muted">{description}</p> : null}
       {action ? <div className="mt-4">{action}</div> : null}
     </div>
   );
@@ -60,7 +60,7 @@ export function ErrorState({ error, onRetry, className }: { error: unknown; onRe
         <AlertCircle className="text-bad" />
       </StateIcon>
       <h3 className="text-card-title">Could not load this</h3>
-      <p className="mt-1 max-w-sm text-14 text-muted">{errorCopy(error)}</p>
+      <p className="mt-1 max-w-sm text-body text-muted">{errorCopy(error)}</p>
       {onRetry ? (
         <Button className="mt-4" onClick={onRetry}>
           Try again
@@ -114,7 +114,7 @@ export function NoAccess({ action }: { action?: ReactNode }) {
  */
 export function InlineError({ children, id, className }: { children: ReactNode; id?: string; className?: string }) {
   return (
-    <p id={id} role="alert" className={cn('text-13 text-bad', className)}>
+    <p id={id} role="alert" className={cn('text-secondary text-bad', className)}>
       {children}
     </p>
   );

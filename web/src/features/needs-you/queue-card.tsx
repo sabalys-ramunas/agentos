@@ -60,7 +60,7 @@ export function QueueCard({ queue, open, whoOf, canDecide, changed, selecting, s
       />
       {waiting > 0 ? (
         <div className="pointer-events-none sticky top-2 z-10 -mb-6 flex h-0 justify-center">
-          <span className="tabular h-6 animate-pop-in rounded-full border border-line bg-raised px-2 text-12 leading-6 text-muted shadow-popover">
+          <span className="tabular h-6 animate-pop-in rounded-full border border-line bg-raised px-2 text-caption leading-6 text-muted shadow-popover">
             {waiting} new when you move away
           </span>
         </div>
@@ -161,7 +161,7 @@ export function BatchBar({ chosen, onClear, onNo, onYes }: { chosen: Approval[];
   const words = batchWords(chosen);
   return (
     <div className="sticky bottom-[calc(var(--tabbar-height)+env(safe-area-inset-bottom)+16px)] z-20 mt-6 flex animate-pop-in items-center gap-2 rounded-xl bg-inverse p-2 pl-4 text-on-inverse shadow-popover md:bottom-6">
-      <span className="tabular min-w-0 flex-1 text-14">{words.chosen}</span>
+      <span className="tabular min-w-0 flex-1 text-body">{words.chosen}</span>
       <Button size="md" variant="inverse" onClick={onClear}>
         Clear
       </Button>

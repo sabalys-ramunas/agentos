@@ -48,20 +48,20 @@ export function AuditSettings() {
             <tbody>
               {rows.map((row) => (
                 <Tr key={row.id}>
-                  <Td className="tabular hidden text-13 whitespace-nowrap text-faint md:table-cell">{dateTime(row.at)}</Td>
+                  <Td className="tabular hidden text-secondary whitespace-nowrap text-faint md:table-cell">{dateTime(row.at)}</Td>
                   <Td className="w-full max-w-0 pl-4 md:pl-4">
-                    <p className="truncate text-13">{auditWords(row.action, row.target, names)}</p>
+                    <p className="truncate text-secondary">{auditWords(row.action, row.target, names)}</p>
                     {technical ? (
-                      <p className="mono truncate text-12 text-faint">
+                      <p className="mono truncate text-caption text-faint">
                         {row.action} {row.target}
                       </p>
                     ) : null}
-                    <p className="truncate text-12 text-faint">
+                    <p className="truncate text-caption text-faint">
                       {row.actor}
                       <span className="md:hidden"> · {dateTime(row.at)}</span>
                     </p>
                   </Td>
-                  <Td className="mono hidden text-13 text-faint xl:table-cell">{row.ip ?? '–'}</Td>
+                  <Td className="mono hidden text-secondary text-faint xl:table-cell">{row.ip ?? '–'}</Td>
                 </Tr>
               ))}
             </tbody>

@@ -56,19 +56,19 @@ function Option({ option, chosen, onChoose }: { option: (typeof OPTIONS)[number]
       aria-checked={chosen}
       onClick={onChoose}
       className={cn(
-        'grid content-start gap-2 rounded-xl border bg-bg p-4 text-left transition-[border-color,box-shadow] duration-(--duration-fast)',
+        'grid content-start gap-2 rounded-xl border bg-card p-4 text-left transition-[border-color,box-shadow] duration-(--duration-fast)',
         chosen ? 'border-fg shadow-[0_0_0_1px_var(--foreground)]' : 'border-line hover:border-line-strong',
       )}
     >
       <span className="flex items-center gap-2">
-        <span aria-hidden="true" className="inline-flex size-9 items-center justify-center rounded-lg border border-line bg-subtle text-muted">
+        <span aria-hidden="true" className="inline-flex size-9 items-center justify-center rounded-lg border border-line bg-inset text-muted">
           <option.icon className="size-4" />
         </span>
         <Badge className={cn(!option.soon && 'border-(--ok-soft) bg-(--ok-soft) text-fg')}>{option.badge}</Badge>
         <span aria-hidden="true" className={cn('ml-auto inline-flex size-4 rounded-full border', chosen ? 'border-[5px] border-fg' : 'border-line-strong')} />
       </span>
-      <span className="mt-2 text-14 font-medium">{option.title}</span>
-      <span className="text-13 text-muted">{option.body}</span>
+      <span className="mt-2 text-label">{option.title}</span>
+      <span className="text-secondary text-muted">{option.body}</span>
     </button>
   );
 }
@@ -143,7 +143,7 @@ export function ComputerStep({ ctx }: { ctx: StepContext }) {
       }
     >
       {notServed ? (
-        <p className="rounded-lg border border-line bg-subtle px-4 py-3 text-14 text-muted">Adding a computer is not switched on here yet. You can do it later from Computers.</p>
+        <p className="rounded-lg border border-line bg-inset px-4 py-3 text-body text-muted">Adding a computer is not switched on here yet. You can do it later from Computers.</p>
       ) : (
         <div className="grid gap-6">
           <div role="radiogroup" aria-label="Where should it work?" className="grid gap-3 md:grid-cols-3">
@@ -154,7 +154,7 @@ export function ComputerStep({ ctx }: { ctx: StepContext }) {
 
           {soon ? (
             <div className="grid gap-4 rounded-xl border border-dashed border-line-strong p-4 sm:p-6">
-              <p className="text-14">
+              <p className="text-body">
                 <span className="font-medium">Coming soon.</span>{' '}
                 <span className="text-muted">
                   {choice === 'mac'
@@ -182,8 +182,8 @@ export function ComputerStep({ ctx }: { ctx: StepContext }) {
           ) : (
             <div className="grid gap-4 rounded-xl border border-line p-4 sm:p-6">
               <div>
-                <p className="text-16 font-medium">How it works</p>
-                <p className="mt-1 text-14 text-muted">A small program goes on the computer. It keeps a private browser for each account and only talks to agentos.</p>
+                <p className="text-lede font-medium">How it works</p>
+                <p className="mt-1 text-body text-muted">A small program goes on the computer. It keeps a private browser for each account and only talks to agentos.</p>
               </div>
               <ol aria-label="How it works" className="grid gap-3 sm:grid-cols-3">
                 <PictureStep n={1} picture={<ComputerPicture />}>
@@ -197,7 +197,7 @@ export function ComputerStep({ ctx }: { ctx: StepContext }) {
                 </PictureStep>
               </ol>
 
-              <div role="status" className={cn('flex min-h-12 flex-wrap items-center gap-3 rounded-lg border px-4 py-3 text-14', connected ? 'border-(--ok-soft) bg-(--ok-soft)' : 'border-line')}>
+              <div role="status" className={cn('flex min-h-12 flex-wrap items-center gap-3 rounded-lg border px-4 py-3 text-body', connected ? 'border-(--ok-soft) bg-(--ok-soft)' : 'border-line')}>
                 {connected ? (
                   <DoneRow>
                     <span>
@@ -207,7 +207,7 @@ export function ComputerStep({ ctx }: { ctx: StepContext }) {
                 ) : (
                   <>
                     <span className="mr-auto flex items-center gap-2 text-muted">
-                      <span aria-hidden="true" className="size-2 shrink-0 animate-pulse-dot rounded-full bg-blue" />
+                      <span aria-hidden="true" className="size-2 shrink-0 animate-pulse-dot rounded-full bg-fg" />
                       Waiting for your computer. It turns green here by itself.
                     </span>
                     <a
@@ -218,7 +218,7 @@ export function ComputerStep({ ctx }: { ctx: StepContext }) {
                         setTechnical(true);
                         setMailing(true);
                       }}
-                      className="text-13 text-muted underline decoration-line-strong underline-offset-4 hover:text-fg"
+                      className="text-secondary text-muted underline decoration-line-strong underline-offset-4 hover:text-fg"
                     >
                       Email the steps to someone who helps me
                     </a>
@@ -231,7 +231,7 @@ export function ComputerStep({ ctx }: { ctx: StepContext }) {
                     type="button"
                     aria-expanded={technical}
                     onClick={() => setTechnical(!technical)}
-                    className="inline-flex items-center gap-2 text-14 font-medium text-fg"
+                    className="inline-flex items-center gap-2 text-label text-fg"
                   >
                     <ChevronDown className={cn('size-4 text-faint transition-transform duration-(--duration-fast)', technical && 'rotate-180')} aria-hidden="true" />
                     I'm technical: show me the command
@@ -241,14 +241,14 @@ export function ComputerStep({ ctx }: { ctx: StepContext }) {
                       {flow.token ? (
                         <div className="grid gap-4">
                           <div className="grid gap-2">
-                            <p className="text-13 font-medium">Run this in the computer's Terminal</p>
+                            <p className="text-secondary font-medium">Run this in the computer's Terminal</p>
                             <CodeBlock code={flow.token.install_command ?? ''} label="Copy install command" />
                           </div>
                           {/* On its own, so it never lands in shell history or the process list (security review 10). */}
                           <div className="grid gap-2">
-                            <p className="text-13 font-medium">Paste this when it asks for a join token</p>
+                            <p className="text-secondary font-medium">Paste this when it asks for a join token</p>
                             {flow.token.token ? <CodeBlock code={flow.token.token} label="Copy join token" /> : null}
-                            <p className="text-13 text-faint">It works once, for the next {timeUntil(flow.token.expires_at)}. Coming back here later makes a fresh one.</p>
+                            <p className="text-secondary text-faint">It works once, for the next {timeUntil(flow.token.expires_at)}. Coming back here later makes a fresh one.</p>
                           </div>
                         </div>
                       ) : (

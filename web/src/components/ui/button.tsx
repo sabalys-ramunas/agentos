@@ -40,9 +40,9 @@ const busy = {
 
 const sizes = {
   // 32px on a phone, where a finger lands on it; 28px from md up, where the page is denser.
-  sm: 'h-8 gap-1 rounded-md px-2 text-13 md:h-7',
-  md: 'h-8 gap-2 rounded-md px-3 text-14',
-  lg: 'h-10 gap-2 rounded-md px-4 text-14',
+  sm: 'h-8 gap-1 rounded-md px-2 text-secondary md:h-7',
+  md: 'h-8 gap-2 rounded-md px-3 text-body',
+  lg: 'h-10 gap-2 rounded-md px-4 text-body',
 } as const;
 
 const iconSizes = { sm: 'size-8 rounded-md md:size-7', md: 'size-8 rounded-md', lg: 'size-10 rounded-md' } as const;

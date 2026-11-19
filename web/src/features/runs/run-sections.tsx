@@ -29,7 +29,7 @@ function Calm({ icon, title, children }: { icon: ReactNode; title: string; child
         {icon}
       </span>
       <div className="grid min-w-0 gap-1">
-        <p className="text-14 font-medium text-fg">{title}</p>
+        <p className="text-label text-fg">{title}</p>
         {children ? <p className="text-secondary text-muted">{children}</p> : null}
       </div>
     </div>
@@ -73,7 +73,7 @@ export function FailuresCard({ ref, job, text, trimmed, onJump }: SectionProps &
           <li key={`${failure.file ?? ''}:${failure.name}:${index}`} className="grid gap-1 px-5 py-3">
             <div className="flex min-w-0 items-start gap-2">
               <StatusDot tone="bad" className="mt-2 shrink-0" />
-              <span className="min-w-0 text-14 font-medium [overflow-wrap:anywhere] text-fg">{failure.name}</span>
+              <span className="min-w-0 text-label [overflow-wrap:anywhere] text-fg">{failure.name}</span>
             </div>
             {failure.file ? (
               <span title={failure.file} className="truncate pl-4 font-mono text-code-caption text-muted">
@@ -85,7 +85,7 @@ export function FailuresCard({ ref, job, text, trimmed, onJump }: SectionProps &
             <button
               type="button"
               onClick={() => onJump(failure.at.stream, failure.at.line)}
-              className="group ml-4 inline-flex w-fit items-center gap-1 rounded-sm text-13 font-medium text-muted hover:text-fg"
+              className="group ml-4 inline-flex w-fit items-center gap-1 rounded-sm text-secondary font-medium text-muted hover:text-fg"
             >
               Show in the output
               <ArrowRight aria-hidden="true" className="size-3.5 transition-transform duration-(--duration-fast) group-hover:translate-x-0.5" />
@@ -176,7 +176,7 @@ export function HappenedCard({ ref, job, text, onJump }: SectionProps) {
       title: 'The first failure in the output',
       detail: <span className="line-clamp-2 font-mono text-code-caption [overflow-wrap:anywhere]">{plain(lines[first.line] ?? '').trim()}</span>,
       action: (
-        <button type="button" onClick={() => onJump(first.stream, first.line)} className="justify-self-start text-13 font-medium text-muted underline-offset-2 hover:text-fg hover:underline">
+        <button type="button" onClick={() => onJump(first.stream, first.line)} className="justify-self-start text-secondary font-medium text-muted underline-offset-2 hover:text-fg hover:underline">
           Show line {first.line + 1}
         </button>
       ),
@@ -224,7 +224,7 @@ export function HappenedCard({ ref, job, text, onJump }: SectionProps) {
               </span>
               <div className="grid min-w-0 gap-1">
                 <div className="flex min-w-0 items-baseline gap-2">
-                  <p className="min-w-0 flex-1 text-14 font-medium [overflow-wrap:anywhere] text-fg">{step.title}</p>
+                  <p className="min-w-0 flex-1 text-label [overflow-wrap:anywhere] text-fg">{step.title}</p>
                   {step.at ? (
                     <time dateTime={step.at} title={dateTime(step.at)} className="shrink-0 font-mono text-code-caption text-faint tabular">
                       {clock(step.at)}

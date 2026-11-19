@@ -70,7 +70,7 @@ export function StepFooter({ ctx, step, note, later = "I'll do this later", cont
   return (
     <>
       {/* On a phone the note goes first, on its own line, and the buttons sit under it. */}
-      {note ? <p className="order-first w-full text-13 text-faint lg:order-1 lg:w-auto lg:flex-1">{note}</p> : null}
+      {note ? <p className="order-first w-full text-secondary text-faint lg:order-1 lg:w-auto lg:flex-1">{note}</p> : null}
       <Button variant="ghost" size="lg" className="-ml-3 lg:order-first" onClick={() => ctx.go(previousOf(step))}>
         Back
       </Button>
