@@ -470,9 +470,9 @@ async def test_the_combined_list_starts_with_core_and_loads_the_rest(tmp_path, c
             assert '"title":' not in json.dumps(listed["browser_snapshot"].input_schema)
             assert listed["browser_snapshot"].input_schema["properties"]["node"]["enum"] == ["mine"]
             overview = (await client.call_tool("tools_more", {})).structured_content
-            assert {"files", "admin"} <= {row["toolset"] for row in overview["toolsets"]}
-            loaded = (await client.call_tool("tools_more", {"toolset": "files"})).structured_content
-            assert loaded["toolset"] == "files" and "in your list now" in loaded["next"]
+            assert {"browser", "accounts", "admin"} <= {row["toolset"] for row in overview["toolsets"]}
+            loaded = (await client.call_tool("tools_more", {"toolset": "files"})).structured_content  # the old name
+            assert loaded["toolset"] == "browser" and "in your list now" in loaded["next"]
             assert any(t["name"] == "browser_files" for t in loaded["tools"])
             assert "browser_files" in {t.name for t in (await client.list_tools()).tools}
             again = (await client.call_tool("tools_more", {"toolset": "browser_files"})).structured_content

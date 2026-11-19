@@ -73,14 +73,12 @@ CORE_MAX_TOOLS = 41  # 27, the seven environment tools, the four terminal tools 
 CORE_MAX_TOKENS = 10150
 
 CORE_TOOLS = {
-    "whoami", "howto", "browsers_list", "browser_open", "browser_close", "browser_claim", "browser_release", "browser_view",
-    "browser_wait_handback", "browser_navigate", "browser_snapshot", "browser_act", "browser_wait",
-    "browser_screenshot", "browser_tabs", "browser_dialog", "browser_dialog_answer", "browser_upload",
-    "browser_file_put", "login", "approval_wait", "approval_confirm", "human_ask", "memory_context", "run_status",
-    "environment_open", "environment", "environment_close",
-    "environment_save", "environment_upload", "environment_download", "environment_forget",
-    "terminal_exec", "terminal_job_start", "terminal_job_read", "terminal_job_cancel", "file_read", "file_write",
-    "file_edit",
+    "environment_open", "environment", "environment_save", "environment_close", "environment_upload",
+    "environment_download", "terminal_exec", "terminal_job_start", "terminal_job_read", "terminal_job_cancel",
+    "file_read", "file_write", "file_edit", "browser_navigate", "browser_snapshot", "browser_act", "browser_wait",
+    "browser_screenshot", "browser_tabs", "browser_dialog_answer", "browser_wait_handback", "browser_record",
+    "environment_pull_request", "environment_checkpoint", "environment_rollback", "environment_port", "login",
+    "approval_wait",
 }
 META = {"tools_more", "tools_call"}
 
@@ -170,15 +168,16 @@ def test_dynamic_tools_land_by_tag():
 
 def test_parse_toolsets():
     assert parse_toolsets(None) == {CORE}
-    assert parse_toolsets("files, flows") == {CORE, "files", "flows"}
-    assert parse_toolsets(["FILES"]) == {CORE, "files"}
-    assert parse_toolsets("files,full") is None and parse_toolsets(["all"]) is None
-    assert parse_toolsets("files,nonsense") == {CORE, "files"}
+    assert parse_toolsets("browser, flows") == {CORE, "browser", "flows"}
+    assert parse_toolsets(["FILES"]) == {CORE, "browser"}  # the browser toolset's name before 2026-11-19
+    assert parse_toolsets("accounts,full") is None and parse_toolsets(["all"]) is None
+    assert parse_toolsets("accounts,nonsense") == {CORE, "accounts"}
 
 
 def test_node_config_checks_the_toolset_names(tmp_path):
     assert NodeConfig().mcp_toolsets == ["core"]
-    assert NodeConfig(mcp_toolsets=["core", "files"]).mcp_toolsets == ["core", "files"]
+    assert NodeConfig(mcp_toolsets=["core", "accounts"]).mcp_toolsets == ["core", "accounts"]
+    NodeConfig(mcp_toolsets=["core", "files"])  # the old name of the browser toolset still loads
     NodeConfig(mcp_toolsets=["full"])
     with pytest.raises(ValueError, match="mcp_toolsets may list only"):
         NodeConfig(mcp_toolsets=["core", "filez"])
@@ -238,12 +237,12 @@ async def test_tools_more_lists_toolsets_and_loads_one_into_the_session():
     with bind_request_token("t1"), bind_connection(session="s1"):
         overview = (await server.call_tool("tools_more", {})).structured_content
         rows = {row["toolset"]: row for row in overview["toolsets"]}
-        assert set(rows) == set(NAMES) and rows["core"]["loaded"] and not rows["files"]["loaded"]
-        assert "browser_files" in rows["files"]["tools"]
+        assert set(rows) == set(NAMES) and rows["core"]["loaded"] and not rows["browser"]["loaded"]
+        assert "browser_files" in rows["browser"]["tools"] and "browsers_list" in rows["accounts"]["tools"]
 
-        result = await server.call_tool("tools_more", {"toolset": "files"})
+        result = await server.call_tool("tools_more", {"toolset": "browser"})
         data = result.structured_content
-        assert data["toolset"] == "files" and "list_changed" in data["next"]
+        assert data["toolset"] == "browser" and "list_changed" in data["next"]
         put = next(t for t in data["tools"] if t["name"] == "browser_files")
         assert put["description"] and "on" in put["input_schema"]["properties"]
         names = {t.name for t in await server.list_tools()}
@@ -252,7 +251,7 @@ async def test_tools_more_lists_toolsets_and_loads_one_into_the_session():
         # a tool's name loads its toolset
         assert (await server.call_tool("tools_more", {"toolset": "brain_run"})).structured_content["toolset"] == "brains"
         assert "brain_run" in {t.name for t in await server.list_tools()}
-        again = (await server.call_tool("tools_more", {"toolset": "files"})).structured_content
+        again = (await server.call_tool("tools_more", {"toolset": "browser"})).structured_content
         assert again["next"] == "These tools are already in your list."
 
     # another session, or the same session id with another token, still has the default
@@ -387,8 +386,8 @@ async def test_a_real_session_loads_a_toolset_and_hears_list_changed(tmp_path):
         ):
             assert client.server_capabilities.tools.list_changed
             before = {t.name for t in (await client.list_tools()).tools}
-            assert "browser_files" not in before and {"browsers_list", "tools_more", "tools_call"} <= before
-            loaded = await client.call_tool("tools_more", {"toolset": "files"})
+            assert "browser_files" not in before and {"browser_snapshot", "tools_more", "tools_call"} <= before
+            loaded = await client.call_tool("tools_more", {"toolset": "browser"})
             assert not loaded.is_error and "list_changed" in loaded.structured_content["next"]
             after = {t.name for t in (await client.list_tools()).tools}
             assert after - before == {"browser_file_get", "browser_files", "browser_file_delete", "browser_tab", "browser_scroll"}

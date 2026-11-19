@@ -42,7 +42,7 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 from agentos import __version__
 from agentos.controller import guide, routing
 from agentos.controller.grants import AgentGrant
-from agentos.core import http_errors
+from agentos.core import http_errors, toolnames
 from agentos.mcp import toolsets as ts
 from agentos.mcp.registry import (
     APPROVAL_NEXT,
@@ -51,6 +51,7 @@ from agentos.mcp.registry import (
     tools_changed,
     unknown_tool,
     with_catalog_lines,
+    with_renamed,
 )
 
 log = logging.getLogger("agentos.controller.mcp")
@@ -254,6 +255,9 @@ class ControllerMcp(MCPServer):
             return error_result(f"frozen: every node is frozen ({mesh['reason']}). Every agent is stopped and its "
                                 "grants were revoked. Do not retry; tell your user. Only the owner can unfreeze.")
         tools = self._tools(grant)
+        called = name
+        if name not in tools and toolnames.current(name) in tools:  # a name from before 2026-11-19
+            name = toolnames.current(name)
         if name not in tools:  # its own fix line: tools_more lists them all, tools/list only the loaded ones
             return CallToolResult(content=[TextContent(type="text", text=unknown_tool(name, tools))], is_error=True)
         hub = self.controller.hub
@@ -274,7 +278,8 @@ class ControllerMcp(MCPServer):
             code = getattr(exc, "code", "unavailable")
             message = getattr(exc, "message", None) or f"{type(exc).__name__}"
             return error_result(f"{code}: {message}")
-        return to_result(name, body, images, f"{self.controller.config.local_url}/#approvals")
+        return with_renamed(to_result(name, body, images, f"{self.controller.config.local_url}/#approvals"),
+                            toolnames.renamed_note(called, name, []))
 
 
 class AgentAuth:
