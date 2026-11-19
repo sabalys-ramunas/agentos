@@ -177,6 +177,34 @@ All notable changes to agentos are recorded here. The format follows
 
 ### Changed
 
+- **The tools say terminal, file and browser, never lane, and the default list is your agent's
+  computer.** An agent starts with the environment loop (30 tools with `tools_more` and `tools_call`,
+  about 8,000 tokens, down from 41 and 10,150): open, status, save, close, upload and download, the
+  terminal (`terminal_exec`, `terminal_job_start`, `terminal_job_read`, `terminal_job_cancel`), its files
+  (`file_read`, `file_write`, `file_edit`), the browser with `browser_record`, `environment_pull_request`,
+  `environment_checkpoint` and `environment_rollback`, `environment_port`, `login` and `approval_wait`.
+  The owner's signed-in account browsers moved to a new `accounts` toolset (`browsers_list`,
+  `browser_open`, `browser_claim`, `browser_view` and the rest; the agentos-lanes skill loads it first,
+  and a controller lists it by default). The `files` toolset is now `browser` (the old name still
+  works in `mcp_toolsets`, URLs and `--toolsets`), and `environment_forget` is in `terminals`. Every
+  rename is in docs/TOOLS.md, "Renamed tools": `lane_exec` is `terminal_exec`, `lane_file_read` is
+  `file_read`, `lane_wait_control` is `browser_wait_handback`, `lanes_list` is `browsers_list`, `lane_claim`
+  is `browser_claim`, `files_put` is `browser_file_put`, `env_create` is `terminal_create`, `lane_do` is
+  `browser_task`, and so on. Waiting is `wait_s` on the renamed tools (`terminal_job_read` took `wait_ms`,
+  `browser_wait_handback` `timeout_s`). Descriptions, results and errors use the new words; the shared
+  browser tools no longer carry the account rules (posting pace, Ask me first), which are in the
+  account tools and the agentos-lanes skill; an error's fix names the toolset of a tool that is not in
+  the default list.
+- **`file_read` reads several files in one call**: `paths=["package.json", "src/*.js"]`, each with its
+  lines, within the same 40,000 characters. Agents read a small repository with a `cat` loop in the
+  terminal because it took one path.
+- **`environment_close` says `keep` is chosen at `environment_open`**, and `keep` passed to the close is
+  refused with what to do instead (push, or `environment_save`, then close).
+- **The environments eval's t06 counts a change that passes the tests**: a model that makes the risky
+  change so the tests pass, after a checkpoint, finishes it too, as one that rolls back after a failure.
+- **An environment's tools no longer say "Effect: read"** where they delete or change things (close,
+  forget, rollback); the MCP annotations say what a tool does.
+
 - **An environment saves when idle by default.** agentos is a computer for your agent that stays, so
   `default_keep` is now `save`: an `environment_open` that names no `keep` is saved (disk and files, or
   paused on Morph) when it idles, closes or the laptop sleeps, and its title brings it back in any chat.
@@ -194,6 +222,17 @@ All notable changes to agentos are recorded here. The format follows
   minute or two, and builds it here only when it cannot (10 to 15 minutes). `agentos environments
   setup --pull` does the same; `--build` still builds it here; `docker_pull = ""` in `vms.toml` never
   downloads.
+
+### Deprecated
+
+- **The old tool names work for one release.** `lane_exec`, `lane_file_read`, `lanes_list`, `files_put`
+  and every other renamed tool (docs/TOOLS.md, "Renamed tools") are still callable, directly or through
+  `tools_call`, and `tools_more` finds a tool by its old name, but they are not listed, and each result
+  carries a `renamed` line ("lane_exec is now terminal_exec"). The same for `wait_ms` on
+  `terminal_job_read` and `timeout_s` on `browser_wait_handback`. Calls by an old name reach the new
+  tool, so grants, freezes and the call trail name the new one. The old names and argument names are
+  removed in the next minor release. `agentos run` and the other CLI commands call a node from before the
+  rename by the old names.
 
 ## [0.3.0] - 2026-11-16
 

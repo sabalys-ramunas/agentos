@@ -6,7 +6,7 @@ it up, and it stays callable on a frozen browser (agentos.policy.freeze.EXEMPT_T
 
 from __future__ import annotations
 
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any
 
 from pydantic import Field
 
@@ -21,8 +21,9 @@ OnArg = Annotated[str, Field(description='The browser, as "workspace/name". With
 ReasonArg = Annotated[str, Field(description="One short sentence the owner sees, for example \"The page asked me "
                                              "to send the account password.\" Never put secrets here.",
                                  min_length=1, max_length=300)]
-ScopeArg = Annotated[Literal["lane", "workspace", "node"], Field(
-    description='"lane" (the default: this browser), "workspace" (every browser of its workspace) or "node" (every browser here).')]
+ScopeArg = Annotated[str, Field(
+    description='"browser" (the default: this one), "workspace" (every browser of its workspace) or "node" (every browser here).')]
+SCOPES = {"browser": "lane", "lane": "lane", "workspace": "workspace", "node": "node"}  # "lane": the word before 2026-11-19
 
 
 def _covers_workspace(ctx: ToolContext, workspace: str, lanes: list[str]) -> bool:
@@ -33,7 +34,7 @@ def _covers_workspace(ctx: ToolContext, workspace: str, lanes: list[str]) -> boo
 
 
 def tool_specs(runtime: Any) -> list[ToolSpec]:
-    async def lane_freeze(ctx: ToolContext, *, on: OnArg, reason: ReasonArg, scope: ScopeArg = "lane") -> dict:
+    async def lane_freeze(ctx: ToolContext, *, on: OnArg, reason: ReasonArg, scope: ScopeArg = "browser") -> dict:
         """Freeze a browser (or its whole workspace, or this node) at once: every agent there is stopped, in-flight
         calls are cancelled, no agent grant (yours too) takes a call there until the owner unfreezes, grants that
         reach only that are revoked (a node freeze revokes every agent grant), runs are cancelled and
@@ -47,7 +48,10 @@ def tool_specs(runtime: Any) -> list[ToolSpec]:
             ws, _ = parse_lane_id(on)
         except ValueError as exc:
             raise InvalidRequest(str(exc)) from None
-        await ctx.authorize(Effect.READ, lane_id=on, summary=f"freeze {scope} of {on}")
+        if scope not in SCOPES:
+            raise InvalidRequest('scope is "browser", "workspace" or "node"')
+        shown, scope = scope if scope != "lane" else "browser", SCOPES[scope]
+        await ctx.authorize(Effect.READ, lane_id=on, summary=f"freeze {shown} of {on}")
         freeze = runtime.require("freeze")
         if scope == "lane":
             target = on
@@ -64,7 +68,7 @@ def tool_specs(runtime: Any) -> list[ToolSpec]:
         report = await freeze.freeze(scope, target, reason=reason, by=who, via="mcp")
         revoked = report.get("revoked") or {}
         return {
-            "frozen": True, "scope": report["scope"], "target": report["target"], "freeze_id": report["freeze_id"],
+            "frozen": True, "scope": "browser" if report["scope"] == "lane" else report["scope"], "target": report["target"], "freeze_id": report["freeze_id"],
             "already_frozen": report["already_frozen"], "durable": report["durable"],
             "stopped_calls": (report.get("stopped") or {}).get("calls", 0),
             "revoked_grants": [g["id"] for g in revoked.get("grants", [])] + list(revoked.get("cascades_to", [])),

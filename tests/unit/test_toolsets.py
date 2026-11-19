@@ -43,7 +43,7 @@ TOKEN = "toolsets-node-token-0123456789"
 
 # The default surface's budget. Raise it only on purpose: every tool and every word in it is
 # read by every connected agent on every turn.
-CORE_MAX_TOOLS = 41  # 27, the seven environment tools, the four terminal tools and the three file tools an environment needs
+CORE_MAX_TOOLS = 30  # the environment loop (28) and the two meta tools: docs/design/tool-surface-review.md
 # approximate: characters of the tools/list JSON / 4. 6,600 since the agent text review (act one at
 # a time, required arguments, call whoami and browsers_list once): on lanebench it cut calls per task
 # by a fifth, which saves far more than these 100 tokens. 7,600 with the three environment tools and the
@@ -70,7 +70,11 @@ CORE_MAX_TOOLS = 41  # 27, the seven environment tools, the four terminal tools 
 # terminal and browser tool says in a few words. 10,150 when builder I3 merged (2026-11-16): environment_open
 # takes signins and a title found by repo, environment_close a note and forget, and environment() lists the
 # open and saved ones, so an agent stops for the day, finishes and comes back in one call each
-CORE_MAX_TOKENS = 10150
+# 8,370 since 2026-11-19 (the tool surface review, the owner's decision): the default list is the
+# environment loop, the account browser loop (15 tools) is the accounts toolset, the pull request,
+# checkpoints, the port and browser_record are in it, and the shared browser tools lost the account
+# rules. Measured 8,201 for 30 tools, plus about 2%.
+CORE_MAX_TOKENS = 8370
 
 CORE_TOOLS = {
     "environment_open", "environment", "environment_save", "environment_close", "environment_upload",
