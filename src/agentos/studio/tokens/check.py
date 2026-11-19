@@ -94,6 +94,10 @@ class Value:
             return True   # a circle or a pill is a shape, whatever wrote it
         if self.match is not None and self.match.kind == "exact" and (self.match.token or "").endswith(".scale.px"):
             return True   # a 1px hairline (Tailwind's p-px) is fixed on purpose
+        if self.category == "border_width" and self.match is not None and self.match.kind == "exact":
+            # utilities write border widths as literals no custom property drives (Tailwind's
+            # border is 1px, border-2 is 2px), so a still width that equals a token is the token
+            return True
         if self.prov is not None and self.method == "probe":
             return self.prov.kind in ("token", "derived")
         return self.match is not None and self.match.kind == "exact"

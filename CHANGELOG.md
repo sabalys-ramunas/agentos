@@ -174,6 +174,9 @@ All notable changes to agentos are recorded here. The format follows
   secret its chat holds; the node's log context now names the environment's lane (`env/<id>`) instead.
 - **`agentos setup --docker` works from the one-line install.** The machine image's Dockerfile and
   entrypoint now ship inside the package, so the image builds without a checkout of agentos.
+- **Studio reads a font size scale named by number.** `font.13` in a tokens file and `--font-13` in CSS
+  are font sizes now (Tailwind mode read them as font families), and a border width equal to a token is
+  on the system even when a utility wrote it as a literal (Tailwind's `border` is 1px).
 
 ### Changed
 
