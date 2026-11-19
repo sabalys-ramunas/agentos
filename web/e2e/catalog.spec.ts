@@ -1,8 +1,9 @@
 /**
  * The design system's catalog (/$org/design, web/DESIGN-SYSTEM.md), photographed group by group in both
- * themes at 1440 and 390, so a change to a component shows as a picture that changed. The baselines are
- * in e2e/__screenshots__; after a change you meant, `pnpm test:e2e catalog --update-snapshots` takes new
- * ones, and the diff in the pull request is the review.
+ * themes at 1440 and 390, so a change to a component shows as a picture that changed. The baselines live
+ * in e2e/__screenshots__ on each machine and never in git (fonts and anti-aliasing differ between
+ * machines): the first run records them and passes (updateSnapshots: 'missing' in playwright.config.ts),
+ * later runs compare. After a change you meant, `pnpm test:e2e catalog --update-snapshots` takes new ones.
  */
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';

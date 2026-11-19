@@ -9,8 +9,8 @@ export default defineConfig({
   timeout: 30_000,
   fullyParallel: false,
   reporter: [['list']],
-  // The catalog's baselines (e2e/catalog.spec.ts): one set for every machine, so no platform in the name,
-  // and a machine without them yet writes them instead of failing.
+  // The catalog's baselines (e2e/catalog.spec.ts) stay on the machine that took them and out of git
+  // (.gitignore): a machine without them yet records them and passes, so CI never fails for a missing one.
   snapshotPathTemplate: '{testDir}/__screenshots__/{arg}{ext}',
   updateSnapshots: 'missing',
   use: {

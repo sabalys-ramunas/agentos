@@ -91,5 +91,25 @@ no hex colour in screens, screens never import the mock, no password field) and 
 which run `python3 tokens/build-tokens.py --check`. `pnpm test:e2e` starts its own dev server on
 port 5392, or on `E2E_PORT`.
 
+`pnpm test:e2e catalog` photographs the design system's catalog by group, light and dark, at 1440 and
+390. The baselines are not in git (`e2e/__screenshots__/` is ignored): a machine's first run records
+them and passes, and later runs compare against them, so take the first run on a clean `main` before
+you change anything. After a change you meant, `pnpm test:e2e catalog --update-snapshots` records the
+new pictures. Fonts and anti-aliasing differ between machines, so a baseline only means something on
+the machine that took it.
+
+To prove a change draws nothing different (a codemod, a token rename), `scripts/visual-compare.mjs`
+photographs the catalog and the main screens on the mock and compares two sets pixel by pixel:
+
+```bash
+AGENTOS_API_TARGET=http://127.0.0.1:9 pnpm dev --port 5343 &
+node scripts/visual-compare.mjs shoot --out /tmp/before      # before the change
+node scripts/visual-compare.mjs shoot --out /tmp/after       # after it
+node scripts/visual-compare.mjs diff /tmp/before /tmp/after --out /tmp/diff
+```
+
+`scripts/codemod-legacy-tokens.mjs` rewrites the pre-Mono class names (`bg-bg`, `text-13`) to the Mono
+ones; a branch made before 2026-11-19 runs it once to pass `pnpm design:check`.
+
 From the repository root, `uv run pytest -q tests/unit/web` checks the node's side: every call in
 `src/api/client.ts` must be a route the node serves (`tests/unit/web/test_every_call.py`).
