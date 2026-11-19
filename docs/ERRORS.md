@@ -220,7 +220,7 @@ carries one of these codes:
 | [`vm_error`](#vm_error) | The cloud provider refused or failed a VM call: a bad token, a server type or location it does not offer, the project's server limit, or its API being down. | no |
 | [`vm_limit`](#vm_limit) | A VM limit set on this node was reached: how many VMs at once, how long one lives, or the monthly budget. | no |
 | [`web_app_missing`](#web_app_missing) | The web app for this agentos release could not be downloaded: the release has none yet, or GitHub could not be reached. The node, MCP and live view links work without it. | yes, once the cause is fixed |
-| [`web_app_refused`](#web_app_refused) | The downloaded web app was refused: its sha256 differs from GitHub's own digest of it, its release is not immutable on GitHub (its files could be replaced), it came from another source with no AGENTOS_WEB_SHA256 pin, or the archive holds a link, an absolute path or a path that leads out of its folder. Nothing was installed. | no |
+| [`web_app_refused`](#web_app_refused) | The web app download was refused: its sha256 is not GitHub's digest of it, its release is not immutable, another source had no AGENTOS_WEB_SHA256 pin, or the archive holds a link or a path out of its folder. Nothing was installed. | no |
 | [`which_environment`](#which_environment) | The call needs the handle of the machine it is for, and did not carry it: a call without `on` from a client that sends no MCP session id, or an `on` that is a title or an id. Only the chat that holds a machine reaches it. Nothing ran. | no |
 | [`workflow_missing`](#workflow_missing) | The version of the workflow this run was started on is no longer on this computer. | no |
 | [`wrong_account`](#wrong_account) | The browser is logged in as another account than the one the run is bound to, so it did nothing and the browser is held. | no |
@@ -2152,7 +2152,7 @@ The web app for this agentos release could not be downloaded: the release has no
 
 ## web_app_refused
 
-The downloaded web app was refused: its sha256 differs from GitHub's own digest of it, its release is not immutable on GitHub (its files could be replaced), it came from another source with no AGENTOS_WEB_SHA256 pin, or the archive holds a link, an absolute path or a path that leads out of its folder. Nothing was installed.
+The web app download was refused: its sha256 is not GitHub's digest of it, its release is not immutable, another source had no AGENTOS_WEB_SHA256 pin, or the archive holds a link or a path out of its folder. Nothing was installed.
 
 - **Agent:** Nothing for an agent to do. Tell the user the web app download was refused, and why.
 - **You:** Read the message: it names the fix. A mirror's copy needs AGENTOS_WEB_SHA256 set to the sha256 you checked. If a GitHub release is refused again, the download is not the release's file: report it, and use the node without the web app until then.
