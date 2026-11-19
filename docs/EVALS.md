@@ -121,7 +121,7 @@ The wrong turns (`metrics.wrong_turns`), each one a rule the skill states:
 
 - a call refused for want of the `on` its `environment_open` gave (`which_environment`,
   `no_environment`), whether it passed none or another value;
-- a lane's name as `on` (`env/<id>`, `env/<id>-browser`, `<id>-browser`), refused or not (Haiku passed
+- the name of an environment's terminal or browser as `on` (`env/<id>`, `env/<id>-browser`, `<id>-browser`), refused or not (Haiku passed
   the open's `lanes.browser` once; a chat whose session holds the machine now reaches it so);
 - a file read or written through `terminal_exec` (`cat`, `head`, `sed -n`, `sed -i`, a heredoc, `echo >`)
   instead of `file_read`, `file_edit` or `file_write` (a `tail` at the end of a pipe
