@@ -379,11 +379,16 @@ def test_the_image_cleanup_keeps_morphs_ssh_keys():
     from agentos.vms.morph import MorphProvider
 
     script = "set -eu\n" + IMAGE_CLEANUP
+    # a cloud-init that does nothing, first on PATH: the script must never run this machine's own (an
+    # Ubuntu CI runner has one, and `cloud-init clean` there is refused, or worse, obeyed)
+    stub = Path(subprocess.run(["mktemp", "-d"], capture_output=True, text=True, check=True).stdout.strip())
+    (stub / "cloud-init").write_text("#!/bin/sh\nexit 0\n")
+    (stub / "cloud-init").chmod(0o755)
     for prefix, kept in (("", False), (MorphProvider.script_prefix, True)):
         root = Path(subprocess.run(["mktemp", "-d"], capture_output=True, text=True, check=True).stdout.strip())
         (root / "etc" / "ssh").mkdir(parents=True)
         (root / "etc" / "ssh" / "ssh_host_ed25519_key").write_text("k")
         body = prefix + script.replace("/etc/ssh", str(root / "etc" / "ssh"))
         body = "\n".join(ln for ln in body.splitlines() if ln.startswith(("set", "export", "if")))
-        subprocess.run(["bash", "-c", body], check=True, env={"PATH": "/usr/bin:/bin"})
+        subprocess.run(["bash", "-c", body], check=True, env={"PATH": f"{stub}:/usr/bin:/bin"})
         assert (root / "etc" / "ssh" / "ssh_host_ed25519_key").exists() == kept, shlex.quote(prefix)

@@ -459,10 +459,11 @@ def test_the_cli_writes_the_frames_and_a_contact_sheet(panel, tmp_path):  # noqa
     _, mgr = panel
     env = _record(mgr, "eexportagnt", member=None, root="gr_owner_agent")
     store = mgr.replay_store()
-    a = _add(store, env.id, "agent")
-    store.add_call(env.id, {"at": store_mod.iso_ms(utcnow()), "tool": "lane_exec", "summary": "npm test", "ok": True,
-                            "lane": "terminal"})
-    c = _add(store, env.id, "close", (200, 200, 200))
+    t0 = utcnow()  # each one a millisecond apart: at the same millisecond a call sorts before a frame
+    a = _add(store, env.id, "agent", at=store_mod.iso_ms(t0))
+    store.add_call(env.id, {"at": store_mod.iso_ms(t0 + timedelta(milliseconds=1)), "tool": "lane_exec",
+                            "summary": "npm test", "ok": True, "lane": "terminal"})
+    c = _add(store, env.id, "close", (200, 200, 200), at=store_mod.iso_ms(t0 + timedelta(milliseconds=2)))
     out = tmp_path / "out"
     done = export(mgr.home, env.id, out)
     assert done["frames"] == 2 and done["calls"] == 1
