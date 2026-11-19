@@ -366,7 +366,7 @@ def test_snapshot_header_lines():
     wrong = snap.model_copy(update={"signal": Signal.OK, "signal_detail": None, "account": {
         "site": "instagram", "user_id": "555", "status": "wrong_account",
         "expected": {"handle": "@acme.coffee", "user_id": "444"}}})
-    assert signal_lines(wrong) == ["signal: ok", ("account: instagram user 555 (wrong_account; the lane expects "
+    assert signal_lines(wrong) == ["signal: ok", ("account: instagram user 555 (wrong_account; the browser expects "
                                                   "@acme.coffee (444). Stop and tell the human)")]
     for line in signal_lines(wrong):
         assert EM_DASH not in line

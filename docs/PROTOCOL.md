@@ -340,7 +340,7 @@ rewrites this section, and CI fails when the code's messages change shape or thi
       "tools": [
         {
           "name": "whoami",
-          "description": "Which agentos node this is and which environment (your cloud computer) calls without `on` go to, or how to open one: name, version, lane counts by state, and li...",
+          "description": "Which agentos node this is and which environment (your cloud computer) calls without `on` go to, or how to open one: name, version, account browser counts by st...",
           "input_schema": {
             "properties": {},
             "title": "whoamiArguments",
@@ -357,10 +357,10 @@ rewrites this section, and CI fails when the code's messages change shape or thi
         },
         {
           "name": "browsers_list",
-          "description": "Every lane you may use on this node: id, kind, engine, state (cold, warming, warm, active, quarantined), proxy label, device (lanes on one device share one comp...",
+          "description": "Every account browser you may use on this node (the owner's, signed in to real accounts): id, kind, engine, state (cold, warming, warm, active, quarantined), pr...",
           "input_schema": {
             "properties": {},
-            "title": "lanes_listArguments",
+            "title": "browsers_listArguments",
             "type": "object"
           },
           "annotations": {
@@ -1024,7 +1024,7 @@ rewrites this section, and CI fails when the code's messages change shape or thi
             "arguments": [
               {
                 "name": "on",
-                "description": "The lane to post from, for example biz-a/instagram.",
+                "description": "The browser to post from, for example biz-a/instagram.",
                 "required": true
               },
               {
@@ -1033,16 +1033,16 @@ rewrites this section, and CI fails when the code's messages change shape or thi
                 "required": false
               }
             ],
-            "text": "Use the agentos MCP tools for this job.\nPost an image with a caption on lane <lane>.\nFirst browser_claim(on=\"<lane>\", purpose=\"posting an image\") so no other agent..."
+            "text": "Use the agentos MCP tools for this job.\nPost an image with a caption on <browser>. Its tools are in the accounts toolset: tools_more(toolset=\"accounts\") first i..."
           },
           {
             "name": "hand_to_human",
-            "title": "Hand a lane to the human and wait",
-            "description": "agentos: let the human take the lane (login, captcha, checkpoint), then carry on.",
+            "title": "Hand a browser to the human and wait",
+            "description": "agentos: let the human take the browser (login, captcha, checkpoint), then carry on.",
             "arguments": [
               {
                 "name": "on",
-                "description": "The lane to hand over, for example biz-a/instagram.",
+                "description": "The browser to hand over, for example biz-a/instagram.",
                 "required": true
               },
               {
@@ -1051,7 +1051,7 @@ rewrites this section, and CI fails when the code's messages change shape or thi
                 "required": false
               }
             ],
-            "text": "Use the agentos MCP tools for this job.\nHand lane <lane> to the human, then carry on.\n1. browser_view(on=\"<lane>\"): it returns a url and an ssh tunnel command. Giv..."
+            "text": "Use the agentos MCP tools for this job.\nHand <browser> to the human, then carry on.\n1. browser_view(on=\"<browser>\"): it returns a url and an ssh tunnel command...."
           }
         ]
       }

@@ -61,7 +61,7 @@ async def test_a_scheduled_slot_at_night_moves_to_the_lanes_morning_and_says_so(
     assert paced["timezone_source"] == "lane" and paced["next_at"] == "2026-11-05T13:00:00Z"
     moved = run.not_before - ny(5, 8)
     assert timedelta(seconds=30) <= moved <= timedelta(seconds=240)  # a little after, never on the minute
-    assert "may next post at 08:00 today lane time (America/New_York), 2026-11-05 13:00 UTC" in run.error["message"]
+    assert "may next post at 08:00 today its time (America/New_York), 2026-11-05 13:00 UTC" in run.error["message"]
     assert run.held == 1  # a hold: never counts toward giving up
     clock.set(run.not_before)
     await h.runner.run_until_idle()
@@ -85,7 +85,7 @@ async def test_an_agents_flow_run_learns_when_the_lane_may_post_and_can_queue_fo
     with pytest.raises(LanePaced) as e:
         await flow_run(agent(svc), name=FLOW, params=PARAMS, wait_seconds=0)
     assert e.value.hit["next_at"] == "2026-11-05T13:00:00Z"
-    assert "it may next post at 08:00 today lane time" in e.value.message
+    assert "it may next post at 08:00 today its time" in e.value.message
     out = await flow_run(agent(svc), name=FLOW, params=PARAMS, wait_seconds=0,
                          not_before=ny(5, 9).isoformat())
     assert out["status"] == "queued"
@@ -200,7 +200,7 @@ async def test_a_run_queued_for_a_slot_holds_off_a_publish_just_before_it(env):
     clock.set(ny(5, 9, 50))
     with pytest.raises(LanePaced) as e:
         svc.reserve(agent(svc).grant, effect=Effect.COMMIT, lane_id=LANE, action=False)
-    assert "has a post queued for 10:00 today lane time" in e.value.message
+    assert "has a post queued for 10:00 today its time" in e.value.message
     clock.set(ny(5, 10))
     await h.runner.run_until_idle()
     assert len(h.site.state["posts"]) == 1 and svc.lane_pace(LANE)["posts_today"] == 1
