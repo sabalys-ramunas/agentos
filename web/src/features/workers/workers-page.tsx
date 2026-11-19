@@ -62,16 +62,16 @@ function ThingHeader({ org, thing }: { org: string; thing: WorkerThing }) {
   return (
     <div className="mb-4 grid min-w-0 gap-2">
       <div className="flex min-w-0 items-center justify-between gap-4">
-        <p className="flex min-w-0 items-center gap-2 text-13 text-muted">
+        <p className="flex min-w-0 items-center gap-2 text-secondary text-muted">
           <SiteMark site={lane?.site?.key ?? name} size={16} label={false} />
           <span className="truncate">{[workspace?.name, lane ? accountName(lane) : null].filter(Boolean).join(' · ')} · {thing.state === 'working' ? 'started' : ''} {timeAgo(thing.started_at)}</span>
         </p>
-        <Link to="/$org/activity" params={{ org }} className="inline-flex shrink-0 items-center gap-1 text-13 text-muted hover:text-fg">
+        <Link to="/$org/activity" params={{ org }} className="inline-flex shrink-0 items-center gap-1 text-secondary text-muted hover:text-fg">
           History
           <ArrowRight aria-hidden="true" className="size-3" />
         </Link>
       </div>
-      <p className="flex min-w-0 items-start gap-2 text-14 text-pretty">
+      <p className="flex min-w-0 items-start gap-2 text-body text-pretty">
         <AgentMark principal={thing.said_by} size={20} className="mt-px" />
         <span className="min-w-0">
           <span className="text-muted">{principalName(thing.said_by)} said:</span> {thing.told}
@@ -92,11 +92,11 @@ function Now({ org, data, canChange, onTurnOn }: { org: string; data: WorkerOver
           <p className="silk min-w-0 truncate">{[WORKER_NAME.browser, ...running].join(' · ')}</p>
           <StateBadge state={answer.state} label={answer.label} />
         </div>
-        <h3 className="mt-3 max-w-2xl text-24 font-semibold text-balance">
+        <h3 className="mt-3 max-w-2xl text-page-title-compact text-balance">
           {answer.lead} <span className="block text-faint">{answer.rest}</span>
         </h3>
         {data.today.waiting && answer.next !== 'needs-you' ? (
-          <Link to="/$org/needs-you" params={{ org }} className="mt-2 inline-flex items-center gap-1 text-13 text-muted hover:text-fg">
+          <Link to="/$org/needs-you" params={{ org }} className="mt-2 inline-flex items-center gap-1 text-secondary text-muted hover:text-fg">
             {data.today.waiting === 1 ? 'One question waits' : `${data.today.waiting} questions wait`} for you in Needs you
             <ArrowRight aria-hidden="true" className="size-3" />
           </Link>
@@ -114,7 +114,7 @@ function Now({ org, data, canChange, onTurnOn }: { org: string; data: WorkerOver
         ) : null}
       </div>
       <div className="border-t border-board-line p-4 sm:p-6">
-        {data.latest ? <ThingHeader org={org} thing={data.latest} /> : <p className="mb-4 text-13 text-muted">How one thing will look, once it has done one.</p>}
+        {data.latest ? <ThingHeader org={org} thing={data.latest} /> : <p className="mb-4 text-secondary text-muted">How one thing will look, once it has done one.</p>}
         <StepLine thing={data.latest ?? EXAMPLE} example={!data.latest} />
       </div>
     </section>
@@ -137,7 +137,7 @@ function PlaceAccounts({ org, place }: { org: string; place: WorkerPlace }) {
       })
     : [];
   return (
-    <p className="text-13 text-pretty text-muted">
+    <p className="text-secondary text-pretty text-muted">
       {named.length ? (
         <>
           Off on{' '}
@@ -175,14 +175,14 @@ function PlaceRow({ org, place, canChange, canAdd, onTurnOn }: { org: string; pl
     <li className="flex items-start gap-3 px-4 py-4 sm:px-6">
       <span className="grid h-5 shrink-0 place-items-center text-faint"><Monitor aria-hidden="true" className="size-4" /></span>
       <div className="min-w-0 flex-1">
-        <p className="text-14 font-medium">{name}</p>
-        <p aria-live="polite" className="text-13 text-pretty text-muted">{refused ?? (set.isPending ? 'Telling the computer.' : placeSentence(place))}</p>
+        <p className="text-label">{name}</p>
+        <p aria-live="polite" className="text-secondary text-pretty text-muted">{refused ?? (set.isPending ? 'Telling the computer.' : placeSentence(place))}</p>
         <PlaceAccounts org={org} place={place} />
-        {place.suggested_by ? <p className="text-13 text-pretty text-muted">{principalName(place.suggested_by)} asked to turn it on here. Only a person can.</p> : null}
+        {place.suggested_by ? <p className="text-secondary text-pretty text-muted">{principalName(place.suggested_by)} asked to turn it on here. Only a person can.</p> : null}
       </div>
       {switchable && canChange ? (
         <span className="flex h-5 shrink-0 items-center gap-2">
-          <span className="text-13 text-muted">{place.worker === 'on' ? 'On' : 'Off'}</span>
+          <span className="text-secondary text-muted">{place.worker === 'on' ? 'On' : 'Off'}</span>
           <Switch
             aria-label={`Browser worker on ${name}`}
             aria-disabled={set.isPending || undefined}
@@ -200,7 +200,7 @@ function PlaceRow({ org, place, canChange, canAdd, onTurnOn }: { org: string; pl
           </Link>
         </Button>
       ) : (
-        <span className="shrink-0 text-13 text-muted">{place.worker === 'on' ? 'On' : 'Off'}</span>
+        <span className="shrink-0 text-secondary text-muted">{place.worker === 'on' ? 'On' : 'Off'}</span>
       )}
     </li>
   );
@@ -214,9 +214,9 @@ function JobRow({ org, item, brains, canChange }: { org: string; item: WorkerAss
   return (
     <li className="grid gap-3 px-4 py-4 sm:grid-cols-[minmax(0,1fr)_200px] sm:items-center sm:gap-4 sm:px-6">
       <div className="min-w-0">
-        <p className="text-14 font-medium">{jobWord(item.job)}</p>
-        <p className="text-13 text-pretty text-muted">{JOB_NOTE[item.job]}</p>
-        {technical && item.model ? <p className="mono mt-1 text-12 text-faint">{item.job} · {item.model}</p> : null}
+        <p className="text-label">{jobWord(item.job)}</p>
+        <p className="text-secondary text-pretty text-muted">{JOB_NOTE[item.job]}</p>
+        {technical && item.model ? <p className="mono mt-1 text-caption text-faint">{item.job} · {item.model}</p> : null}
       </div>
       {options.length && canChange ? (
         <Select
@@ -227,9 +227,9 @@ function JobRow({ org, item, brains, canChange }: { org: string; item: WorkerAss
           onValueChange={(brain) => set.mutate({ job: item.job, brain })}
         />
       ) : options.length ? (
-        <p className="text-14">{chosen ? serviceName(chosen) : 'Not chosen'}</p>
+        <p className="text-body">{chosen ? serviceName(chosen) : 'Not chosen'}</p>
       ) : (
-        <p className="text-14 text-muted">Nothing can do this yet</p>
+        <p className="text-body text-muted">Nothing can do this yet</p>
       )}
     </li>
   );
@@ -237,7 +237,7 @@ function JobRow({ org, item, brains, canChange }: { org: string; item: WorkerAss
 
 function LockLine({ children }: { children: React.ReactNode }) {
   return (
-    <li className="flex items-start gap-2 text-13 text-pretty text-muted">
+    <li className="flex items-start gap-2 text-secondary text-pretty text-muted">
       <span className="grid h-5 shrink-0 place-items-center text-faint"><Lock aria-hidden="true" className="size-3" /></span>
       <span className="min-w-0">{children}</span>
     </li>
@@ -251,12 +251,12 @@ function Jobs({ org, data, canChange }: { org: string; data: WorkerOverview; can
       <Card>
         <ol className="divide-y divide-line">
           {data.jobs.map((item) => <JobRow key={item.job} org={org} item={item} brains={brains} canChange={canChange} />)}
-          <li className="grid gap-1 rounded-b-xl bg-subtle px-4 py-4 sm:grid-cols-[minmax(0,1fr)_200px] sm:items-center sm:gap-4 sm:px-6">
+          <li className="grid gap-1 rounded-b-xl bg-inset px-4 py-4 sm:grid-cols-[minmax(0,1fr)_200px] sm:items-center sm:gap-4 sm:px-6">
             <div className="min-w-0">
-              <p className="text-14 font-medium">Still unsure, it stops and asks you</p>
-              <p className="text-13 text-pretty text-muted">The question waits in Needs you, and nothing changes until you answer.</p>
+              <p className="text-label">Still unsure, it stops and asks you</p>
+              <p className="text-secondary text-pretty text-muted">The question waits in Needs you, and nothing changes until you answer.</p>
             </div>
-            <p className="flex items-center gap-2 text-14 text-muted"><Lock aria-hidden="true" className="size-3 text-faint" />You, always</p>
+            <p className="flex items-center gap-2 text-body text-muted"><Lock aria-hidden="true" className="size-3 text-faint" />You, always</p>
           </li>
         </ol>
       </Card>
@@ -273,8 +273,8 @@ function Later({ data }: { data: WorkerOverview }) {
     <section aria-label="Later" className="grid gap-3 border-t border-line pt-6">
       {data.later.map((item) => (
         <div key={item.kind} className="grid gap-1 sm:grid-cols-[160px_minmax(0,1fr)] sm:gap-4">
-          <p className="text-14 font-medium text-muted">{WORKER_NAME[item.kind]}</p>
-          <p className="text-14 text-pretty text-muted">
+          <p className="text-label text-muted">{WORKER_NAME[item.kind]}</p>
+          <p className="text-body text-pretty text-muted">
             Not yet. {item.sentence}
             {item.places.length ? <span className="text-faint"> {laterFacts(item.places)}</span> : null}
           </p>
@@ -290,12 +290,12 @@ function Technical({ data }: { data: WorkerOverview }) {
   const shown = open || technical;
   return (
     <div>
-      <button type="button" aria-expanded={shown} onClick={() => setOpen(!open)} className="inline-flex items-center gap-1 text-13 text-muted hover:text-fg">
+      <button type="button" aria-expanded={shown} onClick={() => setOpen(!open)} className="inline-flex items-center gap-1 text-secondary text-muted hover:text-fg">
         Technical details
         <ChevronDown aria-hidden="true" className={cn('size-3 transition-transform duration-(--duration-fast) ease-standard', shown && 'rotate-180')} />
       </button>
       {shown ? (
-        <dl className="mono mt-2 grid gap-1 text-12 text-muted">
+        <dl className="mono mt-2 grid gap-1 text-caption text-muted">
           <div className="flex gap-2"><dt className="w-20 shrink-0 text-faint">plugin</dt><dd className="min-w-0 break-all">{data.plugin}</dd></div>
           <div className="flex gap-2"><dt className="w-20 shrink-0 text-faint">version</dt><dd>{data.version}</dd></div>
           {data.jobs.map((item) => (

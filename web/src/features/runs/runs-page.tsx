@@ -84,7 +84,7 @@ export function RunsPage() {
             Tests, builds and dev servers that you and your agents start on your machines with{' '}
             <code className="rounded-sm border border-line bg-hover px-1 font-mono text-code">agentos run</code>.
             {query.data?.available && jobs?.length ? <span className="text-fg"> {summaryOf(jobs, now)}</span> : null}
-            <span className="mt-1 block text-14 text-faint">
+            <span className="mt-1 block text-body text-faint">
               Routines and the runs agents make on accounts are in{' '}
               <Link to="/$org/activity" params={{ org }} className="font-medium text-muted underline underline-offset-2 hover:text-fg">
                 History

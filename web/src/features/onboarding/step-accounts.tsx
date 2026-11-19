@@ -159,8 +159,8 @@ export function AccountsStep({ ctx }: { ctx: StepContext }) {
                 <Checkbox id={id} checked={on} onCheckedChange={(value) => toggle(site, value === true)} />
                 <SiteMark site={site} size={32} tile label={false} />
                 <label htmlFor={id} className="min-w-0 flex-1 cursor-pointer">
-                  <span className="block text-14 font-medium">{siteName(site)}</span>
-                  <span className="block text-13 text-muted">
+                  <span className="block text-label">{siteName(site)}</span>
+                  <span className="block text-secondary text-muted">
                     {ready
                       ? 'Logged in'
                       : lane
@@ -207,8 +207,8 @@ export function AccountsStep({ ctx }: { ctx: StepContext }) {
                   <Plus className="size-4" />
                 </span>
                 <span>
-                  <span className="block text-14 font-medium">Add another website</span>
-                  <span className="block text-13 text-muted">Any site you can use in a browser</span>
+                  <span className="block text-label">Add another website</span>
+                  <span className="block text-secondary text-muted">Any site you can use in a browser</span>
                 </span>
               </button>
             )}
@@ -216,7 +216,7 @@ export function AccountsStep({ ctx }: { ctx: StepContext }) {
         </ul>
 
         {computer && missing.length ? (
-          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-subtle px-4 py-3 text-14">
+          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-inset px-4 py-3 text-body">
             <span className="mr-auto text-muted">Make {missing.length === 1 ? 'this account' : 'these accounts'} now, then log in to each one in its own window.</span>
             <Button size="md" loading={busy} onClick={() => void save(false)}>
               Make {missing.length === 1 ? 'it' : `${missing.length} accounts`}
@@ -225,7 +225,7 @@ export function AccountsStep({ ctx }: { ctx: StepContext }) {
         ) : null}
 
         <section aria-labelledby="asks-title" className="grid gap-3">
-          <h2 id="asks-title" className="text-14 font-medium">
+          <h2 id="asks-title" className="text-label">
             What it may do
           </h2>
           <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line">
@@ -234,15 +234,15 @@ export function AccountsStep({ ctx }: { ctx: StepContext }) {
               return (
                 <li key={item.key} className="flex items-center gap-4 px-4 py-3">
                   <label htmlFor={`ask-${item.key}`} className="min-w-0 flex-1 cursor-pointer">
-                    <span className="block text-14">{item.label}</span>
-                    <span className={cn('block text-13', on ? 'text-muted' : 'text-faint')}>{on ? item.yes : 'It cannot do this at all.'}</span>
+                    <span className="block text-body">{item.label}</span>
+                    <span className={cn('block text-secondary', on ? 'text-muted' : 'text-faint')}>{on ? item.yes : 'It cannot do this at all.'}</span>
                   </label>
                   <Switch id={`ask-${item.key}`} checked={on} onCheckedChange={(value) => setAsks(setAsk(shownAsks, item.key, value))} />
                 </li>
               );
             })}
           </ul>
-          <p className="flex items-center gap-2 text-13 text-muted">
+          <p className="flex items-center gap-2 text-secondary text-muted">
             <ShieldCheck className="size-4 shrink-0 text-faint" aria-hidden="true" />
             Reading and writing drafts never needs you. Money and things that can't be undone always ask.
           </p>

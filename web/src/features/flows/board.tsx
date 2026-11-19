@@ -46,25 +46,25 @@ function Gap({ slot, events, last }: { slot: Slot; events: BoardEvents; last?: b
   return (
     <div data-slot={key} className="group/gap relative flex h-10 w-full items-center justify-center">
       <span aria-hidden="true" className={cn('absolute inset-y-0 left-1/2 w-px', last ? 'bottom-1/2' : '', 'bg-(--board-wire-strong)')} />
-      {lit ? <span aria-hidden="true" className="absolute inset-x-6 top-1/2 h-0.5 -translate-y-1/2 rounded-full bg-blue" /> : null}
+      {lit ? <span aria-hidden="true" className="absolute inset-x-6 top-1/2 h-0.5 -translate-y-1/2 rounded-full bg-fg" /> : null}
       <Popover open={events.adding === key} onOpenChange={(open) => events.onAdding(open ? key : null)}>
         <PopoverTrigger
           aria-label="Add a step here"
           className={cn(
-            'relative grid size-6 place-items-center rounded-full border border-line-strong bg-bg text-muted transition-[opacity,transform,color] duration-(--duration-fast) ease-standard hover:scale-110 hover:text-fg',
+            'relative grid size-6 place-items-center rounded-full border border-line-strong bg-card text-muted transition-[opacity,transform,color] duration-(--duration-fast) ease-standard hover:scale-110 hover:text-fg',
             events.dragging ? 'opacity-0' : last || events.adding === key ? 'opacity-100' : 'opacity-0 group-hover/gap:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100',
           )}
         >
           <Plus aria-hidden="true" className="size-3" />
         </PopoverTrigger>
         <PopoverContent align="center" className="p-1">
-          <p className="px-2 py-1 text-12 text-faint">Add a step</p>
+          <p className="px-2 py-1 text-caption text-faint">Add a step</p>
           {PICKER.map(({ kind, icon: Icon }) => (
-            <button key={kind} type="button" onClick={() => events.onAdd(slot, kind)} className="flex w-full items-start gap-3 rounded-md px-2 py-2 text-left hover:bg-fill-2">
+            <button key={kind} type="button" onClick={() => events.onAdd(slot, kind)} className="flex w-full items-start gap-3 rounded-md px-2 py-2 text-left hover:bg-pressed">
               <Icon aria-hidden="true" className="translate-y-0.5 size-4 shrink-0 text-muted" />
               <span className="min-w-0">
-                <span className="block text-14">{STEP_WORDS[kind].word}</span>
-                <span className="block text-12 text-faint">{STEP_WORDS[kind].hint}</span>
+                <span className="block text-body">{STEP_WORDS[kind].word}</span>
+                <span className="block text-caption text-faint">{STEP_WORDS[kind].hint}</span>
               </span>
             </button>
           ))}
@@ -96,7 +96,7 @@ function Card({ id, mark, silk, title, detail, blank, events, foot, movable = tr
       onPointerEnter={() => events.onLight(id)}
       onPointerLeave={() => events.onLight(null)}
       className={cn(
-        'group/card relative w-full max-w-80 rounded-xl border bg-bg shadow-(--shadow-card) transition-[border-color,box-shadow] duration-(--duration-fast) ease-standard',
+        'group/card relative w-full max-w-80 rounded-xl border bg-card shadow-(--shadow-card) transition-[border-color,box-shadow] duration-(--duration-fast) ease-standard',
         selected ? 'border-fg' : events.lit === id ? 'border-line-strong' : blank ? 'border-dashed border-line-strong' : 'border-line',
         events.dragging === id && 'shadow-(--shadow-hover)',
       )}
@@ -105,11 +105,11 @@ function Card({ id, mark, silk, title, detail, blank, events, foot, movable = tr
         {mark}
         <span className="min-w-0 flex-1">
           <span className="silk block">{silk}</span>
-          <span className="block truncate text-14 font-medium">{title}</span>
-          <span className="block truncate text-12 text-faint">{detail}</span>
+          <span className="block truncate text-label">{title}</span>
+          <span className="block truncate text-caption text-faint">{detail}</span>
         </span>
       </button>
-      {foot ? <div className="border-t border-line px-3 py-2 text-12 text-muted">{foot}</div> : null}
+      {foot ? <div className="border-t border-line px-3 py-2 text-caption text-muted">{foot}</div> : null}
       {movable ? (
         <>
           <span
@@ -128,7 +128,7 @@ function Card({ id, mark, silk, title, detail, blank, events, foot, movable = tr
             <MenuContent align="end">
               <MenuItem onSelect={() => events.onNudge(id, -1)}>Move up</MenuItem>
               <MenuItem onSelect={() => events.onNudge(id, 1)}>Move down</MenuItem>
-              <MenuItem onSelect={() => events.onRemove(id)} className="text-red">
+              <MenuItem onSelect={() => events.onRemove(id)} className="text-bad">
                 <Trash2 className="size-4" /> Remove
               </MenuItem>
             </MenuContent>
@@ -188,7 +188,7 @@ function StepBlock({ step, ...rest }: Omit<ListProps, 'steps' | 'parent' | 'arm'
           <span aria-hidden="true" className="absolute top-3 right-1/4 left-1/4 hidden h-px bg-(--board-wire-strong) md:block" />
           {(['then', 'otherwise'] as const).map((arm) => (
             <div key={arm} className="flex min-w-0 flex-col items-center">
-              <span className="silk mb-1 rounded-sm bg-subtle px-1">{arm === 'then' ? 'If yes' : 'Otherwise'}</span>
+              <span className="silk mb-1 rounded-sm bg-inset px-1">{arm === 'then' ? 'If yes' : 'Otherwise'}</span>
               <List {...rest} steps={step[arm]} parent={step.id} arm={arm} />
             </div>
           ))}

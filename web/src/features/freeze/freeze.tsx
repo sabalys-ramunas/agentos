@@ -22,7 +22,7 @@ import { InlineError } from '@/components/ui/states';
 /** Plain, short lines: what a freeze does, as a person reads it. */
 function Consequences({ what, children }: { what: string; children?: React.ReactNode }) {
   return (
-    <ul className="grid gap-2 text-14 text-muted">
+    <ul className="grid gap-2 text-body text-muted">
       <li>Every agent on {what} stops at once.</li>
       <li>No agent can act on {what} until you lift the freeze. Access that reaches only {what} is cancelled for good.</li>
       <li>The browser is kept as it is, so you can take over and look. Nothing is closed or deleted.</li>
@@ -132,7 +132,7 @@ export function UnfreezeDialog({ org, open, onOpenChange, scope, target, name }:
         )
       }
     >
-      <p className="text-13 text-muted">
+      <p className="text-secondary text-muted">
         To lift it, confirm it is you first. With a passkey, that is one tap. With no passkey, sign in again with a code, and do it in the last five minutes.
       </p>
       {unfreeze.isError ? (
@@ -179,11 +179,11 @@ export function FrozenNotice({
   return (
     <div role="status" className={cn('flex flex-wrap items-start gap-x-6 gap-y-3 rounded-xl border border-line px-4 py-3', className)}>
       <div className="min-w-0 flex-1">
-        <p className="text-14 font-medium">Agents are stopped on {SCOPE_WORDS[record.scope]}.</p>
-        <p className="text-13 text-muted">
+        <p className="text-label">Agents are stopped on {SCOPE_WORDS[record.scope]}.</p>
+        <p className="text-secondary text-muted">
           {frozenSentence(record)} Their grants stay revoked until someone grants them again.
         </p>
-        <p className="mt-1 text-13 text-faint break-words">Reason: {reasonOf(record)}</p>
+        <p className="mt-1 text-secondary text-faint break-words">Reason: {reasonOf(record)}</p>
       </div>
       {canLift ? (
         <>

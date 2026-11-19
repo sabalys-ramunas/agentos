@@ -28,10 +28,10 @@ export function PhoneSteps({ org }: { org: string }) {
       <div className="justify-self-center rounded-xl border border-line bg-[#fff] p-2">
         <Qr value={url} label="QR code that opens Needs you on your phone" />
       </div>
-      <ol className="grid gap-3 text-14">
+      <ol className="grid gap-3 text-body">
         {['Point your phone’s camera here', 'Tap Share, then Add to Home Screen', 'Open it from your Home Screen and allow notifications'].map((line, index) => (
           <li key={line} className="flex gap-2">
-            <span aria-hidden="true" className="tabular inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-fg text-11 font-medium text-bg">
+            <span aria-hidden="true" className="tabular inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-fg text-micro text-card">
               {index + 1}
             </span>
             {line}
@@ -97,12 +97,12 @@ export function PeopleStep({ ctx }: { ctx: StepContext }) {
     >
       <div className="grid items-start gap-4 lg:grid-cols-2">
         <section aria-labelledby="phone-title" className="grid gap-4 rounded-xl border border-line p-4 sm:p-6">
-          <h2 id="phone-title" className="flex items-center gap-2 text-16 font-medium">
+          <h2 id="phone-title" className="flex items-center gap-2 text-lede font-medium">
             <Smartphone className="size-4 text-faint" aria-hidden="true" />
             Get asked on your phone
           </h2>
           <PhoneSteps org={org} />
-          <div role="status" className="flex min-h-12 items-center gap-2 rounded-lg border border-line px-4 py-2 text-14">
+          <div role="status" className="flex min-h-12 items-center gap-2 rounded-lg border border-line px-4 py-2 text-body">
             {phoneDone ? (
               <DoneRow>Your phone is set up.</DoneRow>
             ) : approvals.length ? (
@@ -121,11 +121,11 @@ export function PeopleStep({ ctx }: { ctx: StepContext }) {
 
         <section aria-labelledby="people-title" className="grid gap-4 rounded-xl border border-line p-4 sm:p-6">
           <div>
-            <h2 id="people-title" className="flex items-center gap-2 text-16 font-medium">
+            <h2 id="people-title" className="flex items-center gap-2 text-lede font-medium">
               <UserPlus className="size-4 text-faint" aria-hidden="true" />
               Who else can say yes?
             </h2>
-            <p className="mt-1 text-14 text-muted">A partner, a manager, anyone you trust. They don't set anything up.</p>
+            <p className="mt-1 text-body text-muted">A partner, a manager, anyone you trust. They don't set anything up.</p>
           </div>
           <form onSubmit={send} className="grid gap-3">
             <Field label="Their email" error={invite.isError ? describeError(invite.error) : null}>
@@ -141,20 +141,20 @@ export function PeopleStep({ ctx }: { ctx: StepContext }) {
                     role="radio"
                     aria-checked={on}
                     onClick={() => setRole(choice.role)}
-                    className={cn('flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-fill-1', on && 'bg-subtle')}
+                    className={cn('flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-hover', on && 'bg-inset')}
                   >
                     <span aria-hidden="true" className={cn('inline-flex size-4 shrink-0 rounded-full border', on ? 'border-[5px] border-fg' : 'border-line-strong')} />
                     <span className="min-w-0 flex-1">
-                      <span className="block text-14">{choice.label(name)}</span>
-                      <span className="block text-13 text-muted">{choice.hint}</span>
+                      <span className="block text-body">{choice.label(name)}</span>
+                      <span className="block text-secondary text-muted">{choice.hint}</span>
                     </span>
-                    {choice.role === 'approver' ? <span className="hidden text-12 text-faint sm:inline">Recommended</span> : null}
+                    {choice.role === 'approver' ? <span className="hidden text-caption text-faint sm:inline">Recommended</span> : null}
                   </button>
                 );
               })}
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              <p className="min-w-0 flex-1 text-13 text-muted">
+              <p className="min-w-0 flex-1 text-secondary text-muted">
                 {email.trim() ? `${who} gets` : 'They get'} an email that explains what they will be asked, and joins with one click.
               </p>
               <Button type="submit" loading={invite.isPending} disabled={!email.trim()}>

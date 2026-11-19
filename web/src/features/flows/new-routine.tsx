@@ -46,17 +46,17 @@ function TemplateCard({ org, template, catalog, workspace, noMailbox }: { org: s
       params={{ org, template: template.id }}
       search={{ workspace: workspace ?? undefined }}
       aria-label={`${template.name}: ${template.sentence}`}
-      className="group/job flex flex-col overflow-hidden rounded-(--radius-card) border border-line bg-bg shadow-(--shadow-card) transition-[box-shadow,border-color,transform] duration-(--duration-settle) ease-(--ease-out) hover:-translate-y-px hover:border-line-strong hover:shadow-(--shadow-hover) motion-reduce:hover:translate-y-0"
+      className="group/job flex flex-col overflow-hidden rounded-(--radius-card) border border-line bg-card shadow-(--shadow-card) transition-[box-shadow,border-color,transform] duration-(--duration-settle) ease-(--ease-out) hover:-translate-y-px hover:border-line-strong hover:shadow-(--shadow-hover) motion-reduce:hover:translate-y-0"
     >
       <Chain template={template} catalog={catalog} workspace={workspace} />
       <span className="flex flex-1 flex-col p-4">
-        <span className="flex items-center justify-between gap-2 text-16 font-semibold">
+        <span className="flex items-center justify-between gap-2 text-section-title">
           {template.name}
           <ArrowRight aria-hidden="true" className="size-4 text-faint opacity-0 transition-opacity duration-(--duration-fast) ease-standard group-hover/job:opacity-100" />
         </span>
-        <span className="mt-1 text-14 text-pretty text-muted">{template.sentence}</span>
-        <span className="mt-auto pt-3 text-13 text-faint">{template.note}</span>
-        {needsMail && noMailbox ? <span className="pt-1 text-13 text-amber">Needs a mailbox first. Connect one in Email.</span> : null}
+        <span className="mt-1 text-body text-pretty text-muted">{template.sentence}</span>
+        <span className="mt-auto pt-3 text-secondary text-faint">{template.note}</span>
+        {needsMail && noMailbox ? <span className="pt-1 text-secondary text-warn">Needs a mailbox first. Connect one in Email.</span> : null}
       </span>
     </Link>
   );
@@ -89,22 +89,22 @@ export function NewRoutine() {
   return (
     <div className="grid gap-10">
       <div>
-        <Link to="/$org/flows" params={{ org }} className="mb-6 inline-flex items-center gap-1 text-13 text-muted hover:text-fg">
+        <Link to="/$org/flows" params={{ org }} className="mb-6 inline-flex items-center gap-1 text-secondary text-muted hover:text-fg">
           <ArrowLeft className="size-3" /> Routines
         </Link>
         <header className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
           <div className="max-w-2xl">
-            <h1 className="text-32 font-semibold text-balance sm:text-[40px] sm:leading-[44px] sm:tracking-[-0.045em]">
+            <h1 className="text-headline text-balance sm:text-display">
               What should happen <span className="text-faint">on its own?</span>
             </h1>
-            <p className="mt-3 text-16 text-pretty text-muted">Pick a job you already do. It opens ready to go, and you can change any part of it.</p>
+            <p className="mt-3 text-lede text-pretty text-muted">Pick a job you already do. It opens ready to go, and you can change any part of it.</p>
           </div>
           {options.length > 1 && workspace ? (
             <Select aria-label="For which business" value={workspace} onValueChange={(next) => void navigate({ search: { workspace: next }, replace: true })} options={options} className="md:w-56" />
           ) : null}
         </header>
       </div>
-      {nodes.length === 0 ? <p className="text-14 text-muted">Connect a computer to run these. You can still look around.</p> : null}
+      {nodes.length === 0 ? <p className="text-body text-muted">Connect a computer to run these. You can still look around.</p> : null}
       <QueryView
         query={catalog}
         card
@@ -125,11 +125,11 @@ export function NewRoutine() {
         )}
       </QueryView>
       <div className="flex flex-col gap-4 border-t border-line pt-6 sm:flex-row sm:items-center sm:justify-between">
-        <p className="flex items-start gap-2 text-13 text-pretty text-muted">
+        <p className="flex items-start gap-2 text-secondary text-pretty text-muted">
           <Lock aria-hidden="true" className="size-4 shrink-0 translate-y-0.5 text-faint" />
           Anything that emails people stops at a daily limit, skips anyone who asked not to hear from you, and only goes to a list you gave it.
         </p>
-        <Link to="/$org/flows/new/$template" params={{ org, template: 'blank' }} search={{ workspace: workspace ?? undefined }} className="inline-flex shrink-0 items-center gap-1 text-14 text-fg hover:underline">
+        <Link to="/$org/flows/new/$template" params={{ org, template: 'blank' }} search={{ workspace: workspace ?? undefined }} className="inline-flex shrink-0 items-center gap-1 text-body text-fg hover:underline">
           <Plus aria-hidden="true" className="size-4" />
           Start from nothing
         </Link>

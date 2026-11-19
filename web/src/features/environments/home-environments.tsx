@@ -38,7 +38,7 @@ export function HomeEnvironments({ org }: { org: string }) {
           <Link
             to="/$org/environments"
             params={{ org }}
-            className="inline-flex h-7 items-center gap-1 rounded-md px-2 text-13 font-medium text-muted hover:bg-hover hover:text-fg"
+            className="inline-flex h-7 items-center gap-1 rounded-md px-2 text-secondary font-medium text-muted hover:bg-hover hover:text-fg"
           >
             {open.length > HOME_ROWS ? `See all ${open.length}` : 'See all'}
             <ChevronRight aria-hidden="true" className="size-4" />
@@ -67,7 +67,7 @@ function HomeRow({ org, env, now }: { org: string; env: EnvSummary; now: number 
           <Status status={ENV_STATUS[env.state]} />
         </span>
         <span className="grid min-w-0 gap-1 max-sm:order-1 sm:flex sm:items-center sm:gap-3">
-          <span className="truncate text-14 font-medium text-fg" title={env.title}>
+          <span className="truncate text-label text-fg" title={env.title}>
             {env.title}
           </span>
           {env.repo ? (

@@ -37,7 +37,7 @@ export function Status({ status, quiet = false, className }: { status: StatusLab
     <span
       data-status={shape(status.tone)}
       className={cn(
-        'inline-flex items-center gap-2 text-12 leading-4 font-medium whitespace-nowrap',
+        'inline-flex items-center gap-2 text-caption leading-4 font-medium whitespace-nowrap',
         quiet ? 'text-muted' : word[status.tone],
         className,
       )}

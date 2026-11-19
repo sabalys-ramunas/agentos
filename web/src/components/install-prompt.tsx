@@ -51,11 +51,11 @@ export function InstallPrompt() {
   if (!earned || resting || install.installed || (!install.canPrompt && !install.manual)) return null;
   const later = () => dismissed.set(String(Date.now()));
   return (
-    <aside aria-label="Install agentos" className="mb-6 flex animate-fade-in items-start gap-4 rounded-xl border border-line bg-subtle p-4">
+    <aside aria-label="Install agentos" className="mb-6 flex animate-fade-in items-start gap-4 rounded-xl border border-line bg-inset p-4">
       <Logo className="size-8 shrink-0" />
       <div className="min-w-0 flex-1">
-        <p className="text-14 font-medium">Install agentos</p>
-        <p className="mt-1 text-13 text-muted">
+        <p className="text-label">Install agentos</p>
+        <p className="mt-1 text-secondary text-muted">
           {install.manual ? (
             <>
               Tap <Share className="inline size-4 align-text-bottom" aria-label="Share" /> then Add to Home Screen. Approvals open in their own window, and push can

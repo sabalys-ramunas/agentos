@@ -120,7 +120,6 @@ export const GROUPS: Group[] = [
       { file: ui('tabs.tsx'), names: 'Tabs, TabList, Tab, TabPanel, SegmentedControl', demo: TabsDemo },
       { file: ui('menu.tsx'), names: 'Menu, MenuItem, Popover, Tooltip, TooltipProvider', shownBy: 'tabs above, and overlays' },
       { file: ui('misc.tsx'), names: 'CodeBlock, CopyButton, useCopy', demo: CopyDemo },
-      { file: 'src/components/charts/small.tsx', names: 'Segmented (old; use SegmentedControl)', shownBy: 'Machines, History and Settings, until they move' },
     ],
   },
   {

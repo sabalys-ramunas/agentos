@@ -83,13 +83,13 @@ export function LaneWindow() {
 
   return (
     <>
-      <Link to="/$org/accounts" params={{ org }} search={{ workspace: ws }} className="mb-4 inline-flex min-h-8 items-center gap-1 text-13 text-faint hover:text-fg md:min-h-0">
+      <Link to="/$org/accounts" params={{ org }} search={{ workspace: ws }} className="mb-4 inline-flex min-h-8 items-center gap-1 text-secondary text-faint hover:text-fg md:min-h-0">
         <ChevronLeft className="size-4" />
         {workspace ? `${workspace.name}'s accounts` : <Skeleton className="h-3 w-20" />}
       </Link>
       <LaneHeader org={org} name={name} lane={data} workspace={workspace} awake={awake} action={action} freeze={freeze} onInspect={() => setInspect(true)} />
       {data ? (
-        <p className="mb-6 text-13 text-faint">
+        <p className="mb-6 text-secondary text-faint">
           {presetLabel[data.preset]?.name ?? data.preset} · Runs on {computerName(data.node)} · {data.last_used ? `Last used ${timeAgo(data.last_used)}` : 'Not used yet'}
         </p>
       ) : null}
@@ -125,7 +125,7 @@ function LaneHeader({ org, name, lane: data, workspace, awake, action, freeze, o
     <header className="mb-2 flex flex-wrap items-center justify-between gap-4">
       <div className="flex min-w-0 items-center gap-4">
         <SiteMark site={data?.site?.key ?? name} size={32} label={false} />
-        <h1 className="truncate text-24 font-semibold">
+        <h1 className="truncate text-page-title-compact">
           {workspace ? <span className="text-faint">{workspace.name} · </span> : null}
           {data ? accountName(data) : laneName(name)}
         </h1>
@@ -176,7 +176,7 @@ function LaneBody({ org, lane: data, awake, action, full, covering, coveringName
       {help ? (
         <div role="status" className="flex items-start gap-2 rounded-xl border border-line px-4 py-3">
           <StatusDot tone="warn" className="mt-2" />
-          <p className="min-w-0 text-14">
+          <p className="min-w-0 text-body">
             <span className="font-medium">{help.title}.</span> <span className="text-muted">{help.body}</span>
           </p>
         </div>

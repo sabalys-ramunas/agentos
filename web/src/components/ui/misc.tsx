@@ -70,7 +70,7 @@ export function Avatar({ name, className }: { name: string; className?: string }
     <span
       aria-hidden="true"
       className={cn(
-        'inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-fill-2 text-11 font-medium text-muted',
+        'inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-pressed text-micro text-muted',
         className,
       )}
     >
@@ -113,8 +113,8 @@ export function Logo({ className }: { className?: string }) {
 export function Detail({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-4 py-2">
-      <dt className="shrink-0 text-13 text-faint">{label}</dt>
-      <dd className="min-w-0 text-right text-13 break-words text-fg">{children}</dd>
+      <dt className="shrink-0 text-secondary text-faint">{label}</dt>
+      <dd className="min-w-0 text-right text-secondary break-words text-fg">{children}</dd>
     </div>
   );
 }
@@ -141,7 +141,7 @@ export function PageHeader({
         <h1 className="text-page-title-compact text-balance [overflow-wrap:anywhere] md:text-page-title">{title}</h1>
       </div>
       {actions ? <div className="flex flex-wrap items-center justify-end gap-2">{actions}</div> : <span />}
-      {description ? <p className="col-span-2 mt-2 max-w-[46em] text-14 text-muted md:text-lede">{description}</p> : null}
+      {description ? <p className="col-span-2 mt-2 max-w-[46em] text-body text-muted md:text-lede">{description}</p> : null}
     </header>
   );
 }

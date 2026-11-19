@@ -50,7 +50,7 @@ export function KeyRoute({ computer, service, thing, keyAt, checking = false, re
       <g className="key-token" style={{ transform: `translate(${KEY_X[keyAt]}px, 122px)` }}>
         <circle cx={8} cy={8} r={11} fill="var(--foreground)" />
         <foreignObject x={0} y={0} width={16} height={16}>
-          <div className="grid size-4 place-items-center text-bg">
+          <div className="grid size-4 place-items-center text-card">
             <Key aria-hidden="true" className="size-3" />
           </div>
         </foreignObject>

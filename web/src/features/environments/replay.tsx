@@ -33,7 +33,7 @@ export function ReplayCard({ org, env, embedded = false }: { org: string; env: E
       <Skeleton className="h-24 w-full" />
     </div>
   ) : !model || !model.frames.length ? (
-    <p className="flex items-center gap-2 px-5 py-6 text-14 text-muted">
+    <p className="flex items-center gap-2 px-5 py-6 text-body text-muted">
       <History aria-hidden="true" className="size-4 text-faint" />
       {query.error instanceof ApiError && query.error.status === 403
         ? 'Only the owner watches a replay.'
@@ -98,7 +98,7 @@ function Player({ model }: { model: ReplayModel }) {
           </div>
           <figcaption className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
             <CauseMark cause={frame.cause} />
-            <span className="min-w-0 text-14 font-medium text-fg [overflow-wrap:anywhere]">{causeWords(frame)}</span>
+            <span className="min-w-0 text-label text-fg [overflow-wrap:anywhere]">{causeWords(frame)}</span>
             <span className="min-w-0 truncate font-mono text-code-caption text-muted" title={frame.page_url ?? undefined}>
               {frame.page_url?.replace(/^https?:\/\//, '')}
             </span>

@@ -168,14 +168,14 @@ export function HandCard({ org, lane, business, nameOf }: { org: string; lane: L
         <span className={cn('flex size-10 items-center justify-center rounded-lg', condition.state === 'stuck' ? 'bg-(--stuck-soft)' : 'bg-(--wait-soft)')}>
           <StateGlyph state={condition.state === 'stuck' ? 'stuck' : 'waiting'} size={20} />
         </span>
-        <span className="absolute -right-1 -bottom-1 flex size-5 items-center justify-center rounded-full border border-line bg-bg">
+        <span className="absolute -right-1 -bottom-1 flex size-5 items-center justify-center rounded-full border border-line bg-card">
           <SiteMark site={lane.site?.key ?? lane.name} size={14} label={false} />
         </span>
       </span>
       <span className="grid min-w-0 flex-1 justify-items-start gap-2">
         <span className="min-w-0">
-          <span className="block text-14 font-medium break-words">{hand.title}</span>
-          <span className="block text-13 break-words text-faint">{hand.action === 'Log in' && lane.login_request?.why ? lane.login_request.why : condition.sentence}</span>
+          <span className="block text-label break-words">{hand.title}</span>
+          <span className="block text-secondary break-words text-faint">{hand.action === 'Log in' && lane.login_request?.why ? lane.login_request.why : condition.sentence}</span>
         </span>
         <Button asChild size="sm">
           <Link to="/$org/lanes/$ws/$name" params={{ org, ws: lane.workspace, name: lane.name }}>

@@ -86,11 +86,11 @@ function EntryView({ org, target, entry, workspaceName }: { org: string; target:
   return (
     <div className="grid gap-6">
       <header className="grid gap-2">
-        <p className="text-13 text-faint">
+        <p className="text-secondary text-faint">
           {memoryType[entry.type]} in {workspaceName(entry.workspace)}
         </p>
-        <h3 className="text-16 font-semibold break-words">{entry.title ?? 'Forgotten entry'}</h3>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-13 text-muted">
+        <h3 className="text-section-title break-words">{entry.title ?? 'Forgotten entry'}</h3>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-secondary text-muted">
           <span className="inline-flex items-center gap-2">
             <StatusDot tone={entry.trust === 'untrusted' ? 'warn' : 'neutral'} />
             {memoryTrust[entry.trust]}
@@ -98,38 +98,38 @@ function EntryView({ org, target, entry, workspaceName }: { org: string; target:
           {waiting ? <Status status={{ label: 'Waiting for a look', tone: 'warn' }} /> : null}
           {!live ? <Status status={memoryState[entry.state]} /> : null}
         </div>
-        <p className="text-13 text-muted">{SOURCE_SENTENCE[entry.trust]}</p>
+        <p className="text-secondary text-muted">{SOURCE_SENTENCE[entry.trust]}</p>
       </header>
 
       {entry.suspicious && live ? (
-        <p className="rounded-xl border border-line px-4 py-3 text-13 text-muted">
+        <p className="rounded-xl border border-line px-4 py-3 text-secondary text-muted">
           This entry reads like an instruction aimed at agents. Its text stays hidden here, so only its title is shown.
         </p>
       ) : null}
 
       <section aria-labelledby="memory-text" className="grid gap-2">
-        <h4 id="memory-text" className="text-13 text-faint">
+        <h4 id="memory-text" className="text-secondary text-faint font-semibold">
           Text
         </h4>
         {entry.state === 'forgotten' && entry.forgotten ? (
-          <p className="text-14 text-muted">
+          <p className="text-body text-muted">
             Forgotten {timeAgo(entry.forgotten.at)} by {entry.forgotten.by}. Reason: {entry.forgotten.reason}
           </p>
         ) : entry.body === null ? (
-          <p className="text-14 text-muted">Nothing to show. Its text is hidden.</p>
+          <p className="text-body text-muted">Nothing to show. Its text is hidden.</p>
         ) : (
-          <p className="text-14 break-words whitespace-pre-wrap">{entry.body}</p>
+          <p className="text-body break-words whitespace-pre-wrap">{entry.body}</p>
         )}
       </section>
 
       {entry.evidence.length ? (
         <section aria-labelledby="memory-read" className="grid gap-2">
-          <h4 id="memory-read" className="text-13 text-faint">
+          <h4 id="memory-read" className="text-secondary text-faint font-semibold">
             What the agent read first
           </h4>
           <ul className="grid gap-2">
             {entry.evidence.map((item, index) => (
-              <li key={`${item.at ?? index}-${index}`} className="text-13 break-words">
+              <li key={`${item.at ?? index}-${index}`} className="text-secondary break-words">
                 {item.summary ?? 'Read a page'}
                 {item.at ? <span className="text-faint"> · {timeAgo(item.at)}</span> : null}
                 {technical && item.tool ? <span className="mono ml-2 text-faint">{item.tool}</span> : null}
@@ -141,12 +141,12 @@ function EntryView({ org, target, entry, workspaceName }: { org: string; target:
 
       {entry.history.length > 1 ? (
         <section aria-labelledby="memory-history" className="grid gap-2">
-          <h4 id="memory-history" className="text-13 text-faint">
+          <h4 id="memory-history" className="text-secondary text-faint font-semibold">
             Versions
           </h4>
           <ol className="grid gap-1">
             {entry.history.map((version) => (
-              <li key={version.version} className="flex items-baseline justify-between gap-4 text-13">
+              <li key={version.version} className="flex items-baseline justify-between gap-4 text-secondary">
                 <span className="min-w-0 truncate">
                   {version.forgotten ? 'Forgotten' : (version.title ?? 'Untitled')}
                 </span>
@@ -202,7 +202,7 @@ function EntryView({ org, target, entry, workspaceName }: { org: string; target:
           <Button variant="danger" className="ml-auto" onClick={() => setForgetting(true)}>
             Forget it
           </Button>
-          {hidden ? <p className="w-full text-13 text-faint">Its text is hidden, so there is nothing here to confirm.</p> : null}
+          {hidden ? <p className="w-full text-secondary text-faint">Its text is hidden, so there is nothing here to confirm.</p> : null}
         </div>
       ) : null}
 

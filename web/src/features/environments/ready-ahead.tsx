@@ -27,7 +27,7 @@ export function ReadyAhead({ org }: { org: string }) {
       className={cn(cardLink, 'group flex min-h-14 flex-wrap items-center gap-x-4 gap-y-1 px-5 py-3')}
     >
       <Layers aria-hidden="true" className="size-4 text-faint" />
-      <span className="text-14 font-medium text-fg">Prepared machines</span>
+      <span className="text-label text-fg">Prepared machines</span>
       <span className="text-secondary text-muted">
         {parts} · warm pool {data.pool.target ? `${data.pool.warm} of ${data.pool.target} warm` : 'off'} · {euro(month)} this month
       </span>

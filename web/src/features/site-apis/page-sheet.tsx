@@ -56,9 +56,9 @@ interface SheetProps {
 
 function Chrome({ page }: { page: SitePage }) {
   return (
-    <div className="flex h-8 items-center gap-2 border-b border-line bg-subtle px-3">
+    <div className="flex h-8 items-center gap-2 border-b border-line bg-inset px-3">
       <Lock aria-hidden="true" className="size-3 shrink-0 text-faint" />
-      <span className="mono min-w-0 truncate text-12 text-muted">{page.url.replace('https://', '')}</span>
+      <span className="mono min-w-0 truncate text-caption text-muted">{page.url.replace('https://', '')}</span>
     </div>
   );
 }
@@ -67,7 +67,7 @@ function Masthead({ page, region }: { page: SitePage; region?: (id: string, body
   const nav = (
     <div className="flex min-w-0 gap-4 overflow-hidden">
       {page.nav.map((item, index) => (
-        <span key={item} className={cn('text-12 whitespace-nowrap', index === 1 ? 'font-medium text-muted' : 'text-faint')}>
+        <span key={item} className={cn('text-caption whitespace-nowrap', index === 1 ? 'font-medium text-muted' : 'text-faint')}>
           {item}
         </span>
       ))}
@@ -75,9 +75,9 @@ function Masthead({ page, region }: { page: SitePage; region?: (id: string, body
   );
   return (
     <div className="flex h-10 items-center gap-6 border-b border-line px-4">
-      <span className="text-13 font-semibold whitespace-nowrap">{page.wordmark}</span>
+      <span className="text-secondary font-semibold whitespace-nowrap">{page.wordmark}</span>
       {region ? region('nav', nav, 'min-w-0') : nav}
-      <span aria-hidden="true" className="ml-auto h-4 w-14 shrink-0 rounded-sm bg-fill-2" />
+      <span aria-hidden="true" className="ml-auto h-4 w-14 shrink-0 rounded-sm bg-pressed" />
     </div>
   );
 }
@@ -86,7 +86,7 @@ function Side({ page }: { page: SitePage }) {
   return (
     <ul className="grid content-start gap-2 py-1">
       {page.side.map((note) => (
-        <li key={note} className="border-l border-line pl-2 text-11 leading-4 text-faint">
+        <li key={note} className="border-l border-line pl-2 text-micro leading-4 text-faint font-normal">
           {note}
         </li>
       ))}
@@ -111,7 +111,7 @@ function TableBody({ page, rows, fields, lit, limit, columns, gone, arrived, onC
             <div
               data-top={kept ? column.field : undefined}
               data-out-column={kept ? undefined : column.label}
-              className={cn('flex h-7 items-center truncate px-2 text-11 font-medium', kept ? 'text-muted' : 'text-faint')}
+              className={cn('flex h-7 items-center truncate px-2 text-micro font-medium', kept ? 'text-muted' : 'text-faint')}
             >
               {column.label}
             </div>
@@ -125,7 +125,7 @@ function TableBody({ page, rows, fields, lit, limit, columns, gone, arrived, onC
                   data-row-lit={!columnLit && lit?.row === row ? '' : undefined}
                   title={value}
                   style={kept ? hueStyle(index) : undefined}
-                  className={cn('split-cell flex h-7 items-center truncate px-2 text-12', kept ? 'text-fg' : 'text-faint')}
+                  className={cn('split-cell flex h-7 items-center truncate px-2 text-caption', kept ? 'text-fg' : 'text-faint')}
                 >
                   <span className="truncate">{value}</span>
                 </div>
@@ -184,9 +184,9 @@ function Cards({ rows, fields, lit, limit }: { rows: SiteRow[]; fields: SiteFiel
     <div className="grid grid-cols-4 gap-2">
       {rows.slice(0, limit).map((row, rowIndex) => (
         <div key={rowIndex} className="grid gap-2 rounded-md border border-line p-2">
-          <div aria-hidden="true" className="h-10 rounded-sm bg-fill-1" />
+          <div aria-hidden="true" className="h-10 rounded-sm bg-hover" />
           {order.map(({ item, index }) => (
-            <Spot key={item.key} field={item.key} row={rowIndex} index={index} lit={lit} className={item.key === 'product' ? 'text-12 font-medium' : 'text-11 text-muted'}>
+            <Spot key={item.key} field={item.key} row={rowIndex} index={index} lit={lit} className={item.key === 'product' ? 'text-caption font-medium' : 'text-micro text-muted'}>
               {item.key === 'product' ? row[item.key] : `${item.label}: ${row[item.key]}`}
             </Spot>
           ))}
@@ -203,14 +203,14 @@ function Thread({ rows, fields, lit, limit }: { rows: SiteRow[]; fields: SiteFie
     <ul className="grid gap-2">
       {rows.slice(0, limit).map((row, rowIndex) => (
         <li key={rowIndex} className="grid grid-cols-[24px_minmax(0,1fr)] gap-2 border-b border-line pb-2 last:border-b-0">
-          <span aria-hidden="true" className="size-6 rounded-full bg-fill-2" />
+          <span aria-hidden="true" className="size-6 rounded-full bg-pressed" />
           <div className="grid min-w-0 gap-1">
-            <div className="flex min-w-0 items-center gap-4 text-11 text-muted">
+            <div className="flex min-w-0 items-center gap-4 text-micro text-muted font-normal">
               {first ? <Spot field={first.key} row={rowIndex} index={position(first.key)} lit={lit} className="font-medium text-fg">{row[first.key]}</Spot> : null}
               {second ? <Spot field={second.key} row={rowIndex} index={position(second.key)} lit={lit}>{row[second.key]}</Spot> : null}
               {fourth ? <Spot field={fourth.key} row={rowIndex} index={position(fourth.key)} lit={lit} className="text-faint">{row[fourth.key]}</Spot> : null}
             </div>
-            {third ? <Spot field={third.key} row={rowIndex} index={position(third.key)} lit={lit} className="text-12 text-fg">{row[third.key]}</Spot> : null}
+            {third ? <Spot field={third.key} row={rowIndex} index={position(third.key)} lit={lit} className="text-caption text-fg">{row[third.key]}</Spot> : null}
           </div>
         </li>
       ))}
@@ -223,7 +223,7 @@ export function PageSheet(props: SheetProps) {
   const pickable = (id: string, body: ReactNode, className?: string) =>
     showRegions ? (
       <button type="button" data-picked={picked === id ? '' : undefined} onClick={() => onPick?.(id)} className={cn('teach-region focus-inset block text-left', className)}>
-        {regionWords?.[id] ? <span className="teach-tag rounded-sm bg-blue px-1 text-12 font-medium whitespace-nowrap text-on-primary">{regionWords[id]}</span> : null}
+        {regionWords?.[id] ? <span className="teach-tag rounded-sm bg-fg px-1 text-caption font-medium whitespace-nowrap text-on-primary">{regionWords[id]}</span> : null}
         {body}
       </button>
     ) : (
@@ -233,11 +233,11 @@ export function PageSheet(props: SheetProps) {
   const main = (
     <div className="min-w-0">
       <div className="mb-2 flex items-baseline gap-2 px-1">
-        <p className="text-14 font-semibold">{page.heading}</p>
-        <p className="mono text-12 text-faint">{page.count_words}</p>
+        <p className="text-body font-semibold">{page.heading}</p>
+        <p className="mono text-caption text-faint">{page.count_words}</p>
         <span aria-hidden="true" className="ml-auto flex gap-2">
           <span className="h-5 w-16 rounded-sm border border-line" />
-          <span className="h-5 w-10 rounded-sm bg-fill-2" />
+          <span className="h-5 w-10 rounded-sm bg-pressed" />
         </span>
       </div>
       {page.layout === 'cards' ? (
@@ -250,7 +250,7 @@ export function PageSheet(props: SheetProps) {
     </div>
   );
   return (
-    <div className={cn('relative rounded-lg border border-board-line bg-bg', !showRegions && 'overflow-hidden')} data-sheet="">
+    <div className={cn('relative rounded-lg border border-board-line bg-card', !showRegions && 'overflow-hidden')} data-sheet="">
       <Chrome page={page} />
       <Masthead page={page} region={showRegions ? pickable : undefined} />
       <div className={cn('relative grid gap-4 p-3', hasSide && 'grid-cols-[132px_minmax(0,1fr)]', veil && 'opacity-40 grayscale')} aria-hidden={veil ? true : undefined}>
@@ -261,7 +261,7 @@ export function PageSheet(props: SheetProps) {
       {reading ? <div aria-hidden="true" className="split-scan" /> : null}
       {empty ? (
         <p className="absolute inset-x-0 bottom-8 text-center">
-          <span className="rounded-sm bg-bg px-2 py-1 text-13 text-muted">The page shows no rows here.</span>
+          <span className="rounded-sm bg-card px-2 py-1 text-secondary text-muted">The page shows no rows here.</span>
         </p>
       ) : null}
     </div>

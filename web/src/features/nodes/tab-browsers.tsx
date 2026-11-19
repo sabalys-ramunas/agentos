@@ -71,7 +71,7 @@ function AddBrowserDialog({ org, open, onOpenChange, proxies }: { org: string; o
       {create.isError ? <InlineError className="mb-4">That did not work. Nothing was added.</InlineError> : null}
       <div className="grid gap-4">
         <Field label="Name" hint="Lowercase letters, numbers and dashes."><Input className="mono" value={name} onChange={(event) => setName(event.target.value.toLowerCase())} placeholder="shop-browser" autoFocus /></Field>
-        <div className="grid gap-2 text-13 font-medium">
+        <div className="grid gap-2 text-secondary font-medium">
           <span>Connection</span>
           {proxies.length ? (
             <Select
@@ -82,7 +82,7 @@ function AddBrowserDialog({ org, open, onOpenChange, proxies }: { org: string; o
               aria-label="Connection"
             />
           ) : (
-            <p className="text-13 font-normal text-muted">Add a connection first. A browser needs one to reach the site.</p>
+            <p className="text-secondary text-muted">Add a connection first. A browser needs one to reach the site.</p>
           )}
         </div>
         <Field label="Note"><Input value={note} onChange={(event) => setNote(event.target.value)} placeholder="The shop accounts" /></Field>
@@ -157,7 +157,7 @@ function AddConnectionDialog({ org, open, onOpenChange }: { org: string; open: b
           <Field label="Port"><Input className="mono" inputMode="numeric" value={port} onChange={(event) => setPort(event.target.value)} /></Field>
         </div>
         <Field label="User name (optional)"><Input value={username} onChange={(event) => setUsername(event.target.value)} /></Field>
-        <p className="text-12 text-faint">If it needs a password, use "It needs a password". The password is typed on this machine.</p>
+        <p className="text-caption text-faint">If it needs a password, use "It needs a password". The password is typed on this machine.</p>
       </div>
     </Dialog>
   );
@@ -194,22 +194,22 @@ function MoveDialog({ org, lane, from, devices, onClose }: { org: string; lane: 
     >
       {move.isError ? <InlineError className="mb-4">That did not work. Nothing moved.</InlineError> : null}
       <div className="grid gap-4">
-        <div className="grid gap-2 text-13 font-medium">
+        <div className="grid gap-2 text-secondary font-medium">
           <span>Browser</span>
           <Select value={target} onValueChange={(value) => { setTarget(value); setConfirmed(false); }} options={options} aria-label="Browser" />
         </div>
         {plan.data ? (
-          <div className="grid gap-2 text-14 text-muted" aria-live="polite">
+          <div className="grid gap-2 text-body text-muted" aria-live="polite">
             {plan.data.changes.map((line) => (
               <p key={line}>{line}</p>
             ))}
             {plan.data.warnings.map((line) => (
-              <p key={line} className="text-amber">{line}</p>
+              <p key={line} className="text-warn">{line}</p>
             ))}
           </div>
         ) : null}
         {plan.data?.confirm ? (
-          <label className="flex items-start gap-3 text-14">
+          <label className="flex items-start gap-3 text-body">
             <input type="checkbox" className="mt-1" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} />
             The site may ask to check the account. Move it anyway.
           </label>
@@ -229,12 +229,12 @@ function DeviceRow({ org, device, proxies, canManage, onMove }: { org: string; d
     <li className="grid gap-3 px-4 py-4 sm:px-6">
       <div className="flex min-w-0 items-center gap-3">
         <div className="min-w-0 flex-1">
-          <p className="mono truncate text-14">{device.name}</p>
-          <p className="truncate text-13 text-muted">
+          <p className="mono truncate text-body">{device.name}</p>
+          <p className="truncate text-secondary text-muted">
             {device.proxy ? `Connection ${device.proxy}` : 'No connection'} · {plural(device.lanes.length, 'account')}
             {device.note ? ` · ${device.note}` : ''}
           </p>
-          {technical && address ? <p className="mono truncate text-12 text-faint">{address}</p> : null}
+          {technical && address ? <p className="mono truncate text-caption text-faint">{address}</p> : null}
         </div>
         <Status status={status} className="shrink-0" />
         {canManage && device.lanes.length === 0 ? (
@@ -246,8 +246,8 @@ function DeviceRow({ org, device, proxies, canManage, onMove }: { org: string; d
       {device.lanes.length ? (
         <ul className="flex flex-wrap gap-2">
           {device.lanes.map((lane) => (
-            <li key={lane.id} className="flex items-center gap-1 rounded-md bg-fill-1 py-1 pr-1 pl-2">
-              <span className="mono text-13">{lane.id}</span>
+            <li key={lane.id} className="flex items-center gap-1 rounded-md bg-hover py-1 pr-1 pl-2">
+              <span className="mono text-secondary">{lane.id}</span>
               {canManage ? (
                 <Button size="sm" variant="ghost" onClick={() => onMove(lane.id)} aria-label={`Move ${lane.id}`}>
                   Move
@@ -287,8 +287,8 @@ export function BrowsersTab({ org }: { org: string }) {
       <Card className="grid gap-4 p-4 sm:p-6">
         <div className="flex items-end justify-between gap-4">
           <div className="min-w-0">
-            <h2 className="text-16 font-semibold">{THINGS.browser.word}</h2>
-            <p className="mt-1 text-13 text-muted">Each browser keeps one fingerprint and one connection. The accounts in it share both.</p>
+            <h2 className="text-section-title">{THINGS.browser.word}</h2>
+            <p className="mt-1 text-secondary text-muted">Each browser keeps one fingerprint and one connection. The accounts in it share both.</p>
           </div>
           {canManage && devices.isSuccess ? (
             <Button icon={<Plus className="size-4" />} onClick={() => setAdding(true)} disabled={!proxies.data?.length}>
@@ -333,8 +333,8 @@ export function BrowsersTab({ org }: { org: string }) {
       <section className="grid gap-4">
         <div className="flex items-end justify-between gap-4">
           <div className="min-w-0">
-            <h2 className="text-16 font-semibold">{THINGS.connection.word}</h2>
-            <p className="mt-1 text-13 text-muted">How browsers reach the internet. An address stays behind Technical details.</p>
+            <h2 className="text-section-title">{THINGS.connection.word}</h2>
+            <p className="mt-1 text-secondary text-muted">How browsers reach the internet. An address stays behind Technical details.</p>
           </div>
           {canManage ? (
             <Button onClick={() => setConnecting(true)}>Add a connection</Button>
@@ -373,9 +373,9 @@ function ConnectionRow({ proxy, devices }: { proxy: Proxy; devices: BrowserDevic
   return (
     <li className="flex min-w-0 items-center gap-3 px-4 py-4 sm:px-6">
       <div className="min-w-0 flex-1">
-        <p className="mono truncate text-14">{proxy.label}</p>
-        <p className="truncate text-13 text-muted">{using ? `Used by ${plural(using, 'browser')}` : 'Not used by a browser yet'}</p>
-        {technical && proxy.host ? <p className="mono truncate text-12 text-faint">{`${proxy.host}${proxy.port ? `:${proxy.port}` : ''}`}</p> : null}
+        <p className="mono truncate text-body">{proxy.label}</p>
+        <p className="truncate text-secondary text-muted">{using ? `Used by ${plural(using, 'browser')}` : 'Not used by a browser yet'}</p>
+        {technical && proxy.host ? <p className="mono truncate text-caption text-faint">{`${proxy.host}${proxy.port ? `:${proxy.port}` : ''}`}</p> : null}
       </div>
     </li>
   );

@@ -180,7 +180,7 @@ function Missing({ title, text, warn }: { title: string; text: string; warn?: bo
           {warn ? <TriangleAlert className="text-bad" /> : <ImageOff />}
         </span>
         <h3 className="text-card-title">{title}</h3>
-        <p className="text-14 text-muted">{text}</p>
+        <p className="text-body text-muted">{text}</p>
       </div>
     </div>
   );

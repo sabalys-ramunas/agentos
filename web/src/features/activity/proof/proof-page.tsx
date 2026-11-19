@@ -38,7 +38,7 @@ function resultOf(status: string) {
 function ProofImage({ src, title, onClose }: { src: string; title: string; onClose: () => void }) {
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()} title="Proof screenshot" description={title} className="sm:max-w-[720px]">
-      <img src={src} alt={`Proof screenshot of ${title}`} className="w-full rounded-lg border border-line bg-subtle" />
+      <img src={src} alt={`Proof screenshot of ${title}`} className="w-full rounded-lg border border-line bg-inset" />
     </Dialog>
   );
 }
@@ -163,14 +163,14 @@ export function ProofPage() {
                           const result = resultOf(step.status);
                           return (
                             <Tr key={step.id}>
-                              <Td className="tabular hidden text-13 whitespace-nowrap text-faint md:table-cell">{utcClock(step.at)}</Td>
+                              <Td className="tabular hidden text-secondary whitespace-nowrap text-faint md:table-cell">{utcClock(step.at)}</Td>
                               <Td className={`${mainCell} whitespace-normal`}>
-                                <p className="text-14 break-words">{step.summary ? proofSummary(step.summary, names) : 'A step with no words'}</p>
-                                <p className="text-12 break-words text-faint">
+                                <p className="text-body break-words">{step.summary ? proofSummary(step.summary, names) : 'A step with no words'}</p>
+                                <p className="text-caption break-words text-faint">
                                   <span className="tabular md:hidden">{utcClock(step.at)} · </span>
                                   {step.grant?.label ?? who(step.principal ?? null, { inSentence: false })}
                                 </p>
-                                {step.error ? <p className="mt-1 text-12 text-red">{step.error}</p> : null}
+                                {step.error ? <p className="mt-1 text-caption text-bad">{step.error}</p> : null}
                               </Td>
                               <Td className="hidden md:table-cell">
                                 <Status status={result} />
@@ -204,7 +204,7 @@ export function ProofPage() {
                         })}
                       </tbody>
                     </Table>
-                    <p className="border-t border-line px-4 py-3 text-12 text-faint">
+                    <p className="border-t border-line px-4 py-3 text-caption text-faint">
                       {record.truncated ? 'Only the first steps of the day are shown. ' : ''}
                       {record.chain.proven_through
                         ? `Signed through ${dateTime(record.chain.proven_through.at)}.`

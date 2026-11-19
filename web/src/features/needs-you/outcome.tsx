@@ -38,10 +38,10 @@ function ResultLine({ outcome, effect, fallback }: { outcome: Outcome | null | u
   if (outcome.state === 'done') {
     return (
       <span className="flex min-w-0 flex-wrap items-center gap-x-2">
-        <Check aria-hidden="true" className="size-4 shrink-0 text-green" />
+        <Check aria-hidden="true" className="size-4 shrink-0 text-ok" />
         <span className="min-w-0">{outcome.title}</span>
         {url ? (
-          <a href={url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue hover:underline">
+          <a href={url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 link hover:underline">
             {effect === 'commit' ? 'View post' : 'View it'}
             <ExternalLink aria-hidden="true" className="size-3" />
           </a>
@@ -52,7 +52,7 @@ function ResultLine({ outcome, effect, fallback }: { outcome: Outcome | null | u
   if (isFailed(outcome)) {
     return (
       <span className="flex min-w-0 items-start gap-2">
-        <AlertTriangle aria-hidden="true" className="translate-y-0.5 size-4 shrink-0 text-amber" />
+        <AlertTriangle aria-hidden="true" className="translate-y-0.5 size-4 shrink-0 text-warn" />
         <span className="min-w-0">{outcomeLine(outcome)} It is back in your list.</span>
       </span>
     );
@@ -88,10 +88,10 @@ function Followed({ org, item, fallback, onDone }: { org: string; item: Approval
     const url = safeUrl(outcome?.proof?.url);
     return (
       <span className="flex min-w-0 flex-wrap items-center gap-x-2">
-        <Check aria-hidden="true" className="size-4 shrink-0 text-green" />
+        <Check aria-hidden="true" className="size-4 shrink-0 text-ok" />
         <span className="min-w-0">Approved, waiting for the agent.</span>
         {url ? (
-          <a href={url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue hover:underline">
+          <a href={url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 link hover:underline">
             {item.effect === 'commit' ? 'View post' : 'View it'}
             <ExternalLink aria-hidden="true" className="size-3" />
           </a>
@@ -155,14 +155,14 @@ export function OutcomeBar({
       role="status"
       aria-live="polite"
       className={cn(
-        'fixed inset-x-4 top-[calc(var(--topbar-height)+8px)] z-40 mx-auto max-w-[520px] animate-pop-in overflow-hidden rounded-xl border border-line bg-raised text-14 shadow-popover',
+        'fixed inset-x-4 top-[calc(var(--topbar-height)+8px)] z-40 mx-auto max-w-[520px] animate-pop-in overflow-hidden rounded-xl border border-line bg-raised text-body shadow-popover',
         !top && 'md:top-auto md:bottom-6',
       )}
     >
       <div className="flex min-h-14 items-center gap-2 py-2 pr-2 pl-4">
         <div className="min-w-0 flex-1">
           {body}
-          {last.undoError ? <span className="mt-1 block text-13 text-muted">{last.undoError}</span> : null}
+          {last.undoError ? <span className="mt-1 block text-secondary text-muted">{last.undoError}</span> : null}
         </div>
         {canUndo ? (
           <Button size="lg" icon={<RotateCcw className="size-4" />} onClick={onUndo} loading={undoing}>
@@ -175,7 +175,7 @@ export function OutcomeBar({
         )}
       </div>
       {canUndo ? (
-        <div className="h-1 bg-fill-1">
+        <div className="h-1 bg-hover">
           <div className="h-full bg-fg/30 transition-[width] duration-1000 ease-linear" style={{ width: `${Math.max(0, Math.min(100, ((last.undoUntil - now) / (last.undoUntil - last.key)) * 100))}%` }} />
         </div>
       ) : null}
@@ -260,7 +260,7 @@ function FailedRow({ org, approval, businessName, color }: { org: string; approv
       <span className="shrink-0">
         {where.site ? <SiteMark site={where.site} size={20} label={false} /> : <BusinessMark name={where.business ?? '?'} color={color} size={20} />}
       </span>
-      <span className="min-w-0 flex-1 basis-48 text-13">
+      <span className="min-w-0 flex-1 basis-48 text-secondary">
         <span className="block font-medium break-words">{outcome.title}</span>
         <span className="block text-muted">
           {outcome.reason ?? 'It did not happen.'} {decider.mine ? 'You said' : `${decider.who} said`} yes{approval.decided_at ? ` at ${clock(approval.decided_at)}` : ''}.
@@ -304,8 +304,8 @@ export function FailedStrip({
   if (items.length === 0) return null;
   return (
     <section aria-label="Did not go through" className={cn('overflow-hidden rounded-xl border border-(--wait-line) bg-(--wait-soft)', className)}>
-      <h2 className="flex items-center gap-2 px-3 pt-3 text-13 font-semibold">
-        <AlertTriangle aria-hidden="true" className="size-4 text-amber" />
+      <h2 className="flex items-center gap-2 px-3 pt-3 text-secondary font-semibold">
+        <AlertTriangle aria-hidden="true" className="size-4 text-warn" />
         {items.length === 1 ? 'One thing did not go through' : `${items.length} things did not go through`}
         <span className="font-normal text-muted">· Said yes, but it did not happen</span>
       </h2>
@@ -336,7 +336,7 @@ export function DecidedList({ org, items, nameOf, className }: { org: string; it
   const label = today.every(mine) ? 'You decided today' : 'Decided today';
   return (
     <section aria-label={label} className={className}>
-      <h2 className="mb-2 text-13 font-medium text-muted">{label}</h2>
+      <h2 className="mb-2 text-secondary font-medium text-muted">{label}</h2>
       <ul className="divide-y divide-line">
         {today.map((item) => {
           const where = whereOf(item, nameOf(item.lane).name);
@@ -347,18 +347,18 @@ export function DecidedList({ org, items, nameOf, className }: { org: string; it
           return (
             <li key={item.id} className="flex items-start gap-3 py-2">
               <span className="translate-y-0.5">{where.site ? <SiteMark site={where.site} size={16} label={false} /> : <Check aria-hidden="true" className="size-4 text-muted" />}</span>
-              <span className="min-w-0 flex-1 text-13">
-                <span className={cn('block break-words', failed && 'text-amber')}>
+              <span className="min-w-0 flex-1 text-secondary">
+                <span className={cn('block break-words', failed && 'text-warn')}>
                   {outcome?.title ?? `${by ? by : 'You'} said ${item.state === 'denied' ? 'no' : 'yes'}${where.place ? ` to ${where.place}` : ''}`}
                 </span>
-                <span className="block text-12 text-faint">
+                <span className="block text-caption text-faint">
                   {by ? `${by} · ` : ''}
                   {item.decided_at ? clock(item.decided_at) : ''}
                   {outcome?.state === 'pending' ? ' · On its way' : outcome?.reason ? ` · ${outcome.reason}` : ''}
                   {url ? (
                     <>
                       {' · '}
-                      <a href={url} target="_blank" rel="noreferrer" className="text-blue hover:underline">
+                      <a href={url} target="_blank" rel="noreferrer" className="link hover:underline">
                         {item.effect === 'commit' ? 'View post' : 'View it'}
                       </a>
                     </>
@@ -386,7 +386,7 @@ export function DecidedChips({ org, items, max = 6 }: { org: string; items: Appr
         const mine = decidedByMe(deciderKey(item), user);
         const said = item.state === 'denied' ? 'no' : 'yes';
         return (
-          <li key={item.id} className="inline-flex h-8 items-center gap-2 rounded-full border border-line bg-bg px-3 text-13 text-muted">
+          <li key={item.id} className="inline-flex h-8 items-center gap-2 rounded-full border border-line bg-card px-3 text-secondary text-muted">
             <SiteMark site={item.site?.key ?? item.lane} size={14} label={false} />
             {item.outcome ? outcomeWord(item.outcome, item.effect) : `${mine ? 'You' : deciderOf(item.decided_by, item.decided_by_name)} said ${said}`}
           </li>

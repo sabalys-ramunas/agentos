@@ -100,15 +100,15 @@ export function CodeDetail({ org, card, business, onLeave }: CodeDetailProps) {
   return (
     <div className="grid gap-4">
       <div>
-        <p className="flex items-center gap-2 text-13 text-muted">
+        <p className="flex items-center gap-2 text-secondary text-muted">
           <AgentMark principal={card.requested_by} size={20} />
           <span>
             <Requester org={org} principal={card.requested_by} /> is signing in to {site}
           </span>
         </p>
-        <h2 className="mt-3 text-24 font-semibold break-words">Type the code {site} sent you</h2>
+        <h2 className="mt-3 text-page-title-compact break-words">Type the code {site} sent you</h2>
       </div>
-      <p className="text-14 text-muted">
+      <p className="text-body text-muted">
         {site} sent a code to your phone or app. Type it here once. agentos types it into the site, and the code is never stored or shown to the agent.
       </p>
       <form className="grid gap-4" autoComplete="off" onSubmit={(event) => void send(event)}>
@@ -134,7 +134,7 @@ export function CodeDetail({ org, card, business, onLeave }: CodeDetailProps) {
           </Button>
         </div>
       </form>
-      <p className="text-13 text-faint">
+      <p className="text-secondary text-faint">
         {business ? `For ${business}. ` : ''}The login waits until {untilWords(card.expires_at)}, then it stops.
       </p>
     </div>

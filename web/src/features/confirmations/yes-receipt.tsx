@@ -18,7 +18,7 @@ function Strength({ level }: { level: ConfirmLevel }) {
   return (
     <span aria-hidden="true" className="flex gap-1">
       {RUNGS.slice(1).map((rung, index) => (
-        <span key={rung} className={cn('h-1 w-4 rounded-full', index + 1 <= at ? 'bg-fg' : 'bg-fill-3')} />
+        <span key={rung} className={cn('h-1 w-4 rounded-full', index + 1 <= at ? 'bg-fg' : 'bg-fill-strong')} />
       ))}
     </span>
   );
@@ -38,24 +38,24 @@ export function YesReceipt({ by, at, method, level, where }: YesReceiptProps) {
   const place = method === 'chat' ? `A chat in ${where ?? 'a chat app'}` : (where ?? METHOD_WORDS[method].word);
   return (
     <section aria-label="How the yes was given" className="rounded-xl border border-line">
-      <dl className="divide-y divide-line px-4 text-14">
+      <dl className="divide-y divide-line px-4 text-body">
         <div className="flex items-center justify-between gap-4 py-3">
-          <dt className="shrink-0 text-13 text-faint">Who</dt>
+          <dt className="shrink-0 text-secondary text-faint">Who</dt>
           <dd className="flex min-w-0 items-center gap-2">
             <PersonMark id={by} name={by} size={20} />
             <span className="truncate font-medium">{by}</span>
-            <span className="tabular shrink-0 text-13 text-muted">at {clock(at)}</span>
+            <span className="tabular shrink-0 text-secondary text-muted">at {clock(at)}</span>
           </dd>
         </div>
         <div className="flex items-center justify-between gap-4 py-3">
-          <dt className="shrink-0 text-13 text-faint">Where</dt>
+          <dt className="shrink-0 text-secondary text-faint">Where</dt>
           <dd className="flex min-w-0 items-center gap-2">
             <Icon aria-hidden="true" className="size-4 shrink-0 text-faint" />
             <span className="truncate font-medium">{place}</span>
           </dd>
         </div>
         <div className="flex items-center justify-between gap-4 py-3">
-          <dt className="shrink-0 text-13 text-faint">How strong</dt>
+          <dt className="shrink-0 text-secondary text-faint">How strong</dt>
           <dd className="flex min-w-0 items-center gap-3">
             <Strength level={level} />
             <RungIcon rung={rung} className="size-4 shrink-0 text-faint" />
@@ -64,7 +64,7 @@ export function YesReceipt({ by, at, method, level, where }: YesReceiptProps) {
         </div>
       </dl>
       {method === 'chat' ? (
-        <p className="border-t border-line p-4 text-13 text-pretty text-muted">agentos wrote the question and the chat app showed it. The agent could not change the words, and could not answer for you.</p>
+        <p className="border-t border-line p-4 text-secondary text-pretty text-muted">agentos wrote the question and the chat app showed it. The agent could not change the words, and could not answer for you.</p>
       ) : null}
     </section>
   );

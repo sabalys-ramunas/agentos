@@ -197,6 +197,18 @@
   --type-page-title-font-weight: var(--font-weight-semibold);
   --type-page-title-line-height: var(--line-height-36);
   --type-page-title-tracking: -0.98px;
+  /* The sentence that opens a focused page: a sign-in, a list's summary, an amount to pay. */
+  --type-headline-font-family: var(--font-family-sans);
+  --type-headline-font-size: var(--font-32);
+  --type-headline-font-weight: var(--font-weight-semibold);
+  --type-headline-line-height: var(--line-height-40);
+  --type-headline-tracking: -1.12px;
+  /* A heading inside a wide page, a step's question, a figure on a card. */
+  --type-heading-font-family: var(--font-family-sans);
+  --type-heading-font-size: var(--font-20);
+  --type-heading-font-weight: var(--font-weight-semibold);
+  --type-heading-line-height: var(--line-height-28);
+  --type-heading-tracking: -0.4px;
   /* A section of a page, a dialog title. */
   --type-section-title-font-family: var(--font-family-sans);
   --type-section-title-font-size: var(--font-16);

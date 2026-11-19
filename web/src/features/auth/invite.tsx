@@ -126,9 +126,9 @@ export function InviteAccept() {
   const picture = shows ? (
     <div
       aria-hidden="true"
-      className="hidden min-h-dvh flex-col items-center justify-center gap-4 border-l border-line bg-subtle bg-[radial-gradient(var(--border)_1px,transparent_1px)] [background-size:16px_16px] lg:flex"
+      className="hidden min-h-dvh flex-col items-center justify-center gap-4 border-l border-line bg-inset bg-[radial-gradient(var(--border)_1px,transparent_1px)] [background-size:16px_16px] lg:flex"
     >
-      <p className="text-13 text-muted">This is what it looks like when you are asked</p>
+      <p className="text-secondary text-muted">This is what it looks like when you are asked</p>
       <PhoneFrame>
         <ApprovalPicture business={words.business} small className="border-0 p-0 shadow-none" />
       </PhoneFrame>
@@ -197,7 +197,7 @@ export function InviteAccept() {
         </>
       )}
       {!signedIn && !needsSignIn ? (
-        <p className="mt-8 text-13 text-faint">
+        <p className="mt-8 text-secondary text-faint">
           Already have an account?{' '}
           <Link to="/sign-in" search={{ next: here }} className="link">
             Sign in

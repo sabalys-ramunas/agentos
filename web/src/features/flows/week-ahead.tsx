@@ -87,8 +87,8 @@ export function WeekAhead({ org, flows, schedules, onNew }: { org: string; flows
     <section aria-label="The week ahead" className="grid gap-4">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-20 font-semibold">The week ahead</h2>
-          <p className="mt-1 text-14 text-muted">{plural(total, 'run')} planned in the next 7 days.</p>
+          <h2 className="text-heading">The week ahead</h2>
+          <p className="mt-1 text-body text-muted">{plural(total, 'run')} planned in the next 7 days.</p>
         </div>
         {onNew ? (
           <Button icon={<Plus className="size-3" />} onClick={onNew}>
@@ -98,19 +98,19 @@ export function WeekAhead({ org, flows, schedules, onNew }: { org: string; flows
       </div>
       <ol className="grid gap-6 lg:grid-cols-7 lg:gap-px lg:overflow-hidden lg:rounded-(--radius-card) lg:border lg:border-line lg:bg-line">
         {days.map((day, index) => (
-          <li key={day.at} className={cn('min-w-0 bg-bg lg:min-h-64 lg:p-3', !day.fires.length && 'max-lg:hidden')}>
-            <p className="tabular text-13 font-medium">
+          <li key={day.at} className={cn('min-w-0 bg-card lg:min-h-64 lg:p-3', !day.fires.length && 'max-lg:hidden')}>
+            <p className="tabular text-secondary font-medium">
               {dayName(day.at, index)} <span className="font-normal text-faint">{new Date(day.at).getDate()}</span>
             </p>
-            {day.fires.length ? null : <p className="mt-2 text-12 text-faint">{index === 0 ? 'Nothing more today' : 'Nothing planned'}</p>}
+            {day.fires.length ? null : <p className="mt-2 text-caption text-faint">{index === 0 ? 'Nothing more today' : 'Nothing planned'}</p>}
             <ul className="mt-2 grid gap-1 max-lg:divide-y max-lg:divide-line">
               {day.fires.map((fire) => {
                 const body = (
                   <>
                     <SiteMark site={fire.site} size={16} label={false} className="shrink-0 lg:translate-y-0.5" />
                     <span className="flex min-w-0 flex-1 items-baseline justify-between gap-2 lg:block">
-                      <span className="block truncate text-13 lg:text-12">{fire.title}</span>
-                      <span className="mono tabular block shrink-0 text-12 text-faint">{clock(fire.at)}</span>
+                      <span className="block truncate text-secondary lg:text-caption">{fire.title}</span>
+                      <span className="mono tabular block shrink-0 text-caption text-faint">{clock(fire.at)}</span>
                     </span>
                   </>
                 );
@@ -118,7 +118,7 @@ export function WeekAhead({ org, flows, schedules, onNew }: { org: string; flows
                 return (
                   <li key={`${fire.flow ?? fire.title}-${fire.at}`}>
                     {fire.flow ? (
-                      <Link to="/$org/flows/$flow" params={{ org, flow: fire.flow }} className={cn(row, 'hover:bg-fill-1')}>
+                      <Link to="/$org/flows/$flow" params={{ org, flow: fire.flow }} className={cn(row, 'hover:bg-hover')}>
                         {body}
                       </Link>
                     ) : (
@@ -131,7 +131,7 @@ export function WeekAhead({ org, flows, schedules, onNew }: { org: string; flows
           </li>
         ))}
       </ol>
-      {onDemand.length ? <p className="text-13 text-pretty text-muted">{plural(onDemand.length, 'routine runs', 'routines run')} when something happens, not at a set time: {onDemand.map(routineTitle).join(', ')}.</p> : null}
+      {onDemand.length ? <p className="text-secondary text-pretty text-muted">{plural(onDemand.length, 'routine runs', 'routines run')} when something happens, not at a set time: {onDemand.map(routineTitle).join(', ')}.</p> : null}
     </section>
   );
 }

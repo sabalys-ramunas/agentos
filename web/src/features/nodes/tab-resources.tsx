@@ -1,5 +1,5 @@
+import { SegmentedControl } from '@/components/ui/tabs';
 import type { NodeDetail, NodeMetrics, NodeRange, NodeService } from '@/api/types';
-import { Segmented } from '@/components/charts/small';
 import { TimeChart } from '@/components/charts/time-chart';
 import type { Band } from '@/components/charts/time-chart';
 import { Card } from '@/components/ui/card';
@@ -68,12 +68,12 @@ function MemorySplit({ parts, total }: { parts: Part[]; total: number }) {
       <ul className="mt-4 grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-flow-col lg:auto-cols-fr">
         {parts.map((part) => (
           <li key={part.label} className="min-w-0">
-            <p className="flex items-center gap-2 text-12 text-faint">
+            <p className="flex items-center gap-2 text-caption text-faint">
               <span aria-hidden="true" className="size-2 shrink-0 rounded-[2px] border border-line" style={{ backgroundColor: part.color }} />
               <span className="truncate">{part.label}</span>
             </p>
-            <p className="mono tabular mt-1 text-14">{gb(part.mb)}</p>
-            <p className="truncate text-12 text-faint">{part.note}</p>
+            <p className="mono tabular mt-1 text-body">{gb(part.mb)}</p>
+            <p className="truncate text-caption text-faint">{part.note}</p>
           </li>
         ))}
       </ul>
@@ -107,7 +107,7 @@ export function ResourcesTab({ node, metrics, services, range, onRange, bands }:
   return (
     <div className="grid gap-10">
       <Panel title="Memory, by what uses it" description="Right now. The machine reports accounts and services, and the rest is the system.">
-        {parts ? <MemorySplit parts={parts} total={node.mem.total_mb} /> : <Card className="p-4 text-13 text-muted sm:p-6">This machine does not report what uses its memory yet, only the total: {gb(node.mem.used_mb)} of {gb(node.mem.total_mb)}.</Card>}
+        {parts ? <MemorySplit parts={parts} total={node.mem.total_mb} /> : <Card className="p-4 text-secondary text-muted sm:p-6">This machine does not report what uses its memory yet, only the total: {gb(node.mem.used_mb)} of {gb(node.mem.total_mb)}.</Card>}
       </Panel>
       <Panel
         title="Over time"
@@ -116,12 +116,12 @@ export function ResourcesTab({ node, metrics, services, range, onRange, bands }:
             ? `Shaded: this machine was away for ${inView.map((band) => span(band.to - band.from)).join(' and ')}. The lines stop there, because nothing was reported.`
             : 'Gaps are real: a line stops while this machine is away, and never draws through it.'
         }
-        action={<Segmented label="Range" value={range} onChange={onRange} options={RANGES} />}
+        action={<SegmentedControl label="Range" value={range} onValueChange={onRange} options={RANGES} />}
       >
         <div className="grid gap-px overflow-hidden rounded-xl border border-line bg-line lg:grid-cols-2">
           {charts.map((chart) => (
-            <div key={chart.label} className="bg-bg p-4 sm:p-6">
-              <p className="mb-3 text-13 text-muted">{chart.label}</p>
+            <div key={chart.label} className="bg-card p-4 sm:p-6">
+              <p className="mb-3 text-secondary text-muted">{chart.label}</p>
               {metrics ? (
                 <TimeChart
                   points={chart.data}

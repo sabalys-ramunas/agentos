@@ -79,12 +79,12 @@ export function SignIn({ org, ws, name, saved, canAct }: { org: string; ws: stri
       <div className="flex items-start gap-3">
         <StatusDot tone={state === 'signed_in' || state === 'done' ? 'ok' : 'idle'} className="mt-2" />
         <div className="min-w-0 flex-1">
-          <p className="text-14 font-medium">{state === 'signed_in' || state === 'done' ? 'Signed in' : 'Sign in'}</p>
-          <p className="text-13 text-muted">{words}</p>
-          {current.error ? <p className="mt-2 text-13 text-red">{current.error}</p> : null}
+          <p className="text-label">{state === 'signed_in' || state === 'done' ? 'Signed in' : 'Sign in'}</p>
+          <p className="text-secondary text-muted">{words}</p>
+          {current.error ? <p className="mt-2 text-secondary text-bad">{current.error}</p> : null}
           {failed ? <InlineError className="mt-2">That did not start. Nothing was typed.</InlineError> : null}
           {saved && locked && OVER.includes(state) ? (
-            <p className="mt-2 text-13 text-muted">
+            <p className="mt-2 text-secondary text-muted">
               The vault is locked. <Link to="/$org/settings/vault" params={{ org }} className="underline underline-offset-2">Unlock it in Settings</Link> to sign in from it.
             </p>
           ) : null}

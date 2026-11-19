@@ -3,13 +3,13 @@
  * the cloud keeps none of them. Reading is never disturbed: scrolled up or paused, the view
  * holds still and new lines wait behind a pill.
  */
+import { SegmentedControl } from '@/components/ui/tabs';
 import { ArrowDown, Pause, Play, Search, ShieldCheck, X } from 'lucide-react';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useNodeLogs } from '@/api/logs';
 import type { SeqLine } from '@/api/logs';
 import type { LogLevel, LogSource } from '@/api/types';
-import { Segmented } from '@/components/charts/small';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
@@ -47,7 +47,7 @@ function highlight(text: string, query: string): ReactNode {
   while (index >= 0 && parts.length < 40) {
     if (index > from) parts.push(text.slice(from, index));
     parts.push(
-      <mark key={index} className="rounded-[2px] bg-fill-3 text-fg">
+      <mark key={index} className="rounded-[2px] bg-fill-strong text-fg">
         {text.slice(index, index + needle.length)}
       </mark>,
     );
@@ -60,9 +60,9 @@ function highlight(text: string, query: string): ReactNode {
 
 function Line({ line, query }: { line: SeqLine; query: string }) {
   return (
-    <div className="grid h-5 grid-cols-[64px_40px_72px_minmax(0,1fr)] items-center gap-3 px-4 whitespace-nowrap hover:bg-fill-1 max-sm:grid-cols-[56px_36px_minmax(0,1fr)] sm:px-6">
+    <div className="grid h-5 grid-cols-[64px_40px_72px_minmax(0,1fr)] items-center gap-3 px-4 whitespace-nowrap hover:bg-hover max-sm:grid-cols-[56px_36px_minmax(0,1fr)] sm:px-6">
       <span className="text-faint">{clockSeconds(line.at)}</span>
-      <span className={cn(line.level === 'error' ? 'text-red' : line.level === 'warn' ? 'text-amber' : 'text-faint')}>{line.level}</span>
+      <span className={cn(line.level === 'error' ? 'text-bad' : line.level === 'warn' ? 'text-warn' : 'text-faint')}>{line.level}</span>
       <span className="truncate text-muted max-sm:hidden">{line.source}</span>
       <span className="truncate text-fg">
         {line.lane ? <span className="text-faint">{line.lane} </span> : null}
@@ -141,18 +141,18 @@ export function LogsTab({ org, node, away, allowed, source, level, q, onFilters 
   if (!allowed) {
     return (
       <Card className="p-4 sm:p-6">
-        <p className="text-14 font-medium">Only admins can read this machine's logs</p>
-        <p className="mt-1 text-13 text-muted">Logs can hold more than a summary shows, so reading them needs the admin role.</p>
+        <p className="text-label">Only admins can read this machine's logs</p>
+        <p className="mt-1 text-secondary text-muted">Logs can hold more than a summary shows, so reading them needs the admin role.</p>
       </Card>
     );
   }
   if (away) {
     return (
       <Card className="p-4 sm:p-6">
-        <p className="text-14 font-medium">
+        <p className="text-label">
           <span className="mono">{node}</span> is away, so there is no log stream
         </p>
-        <p className="mt-1 max-w-prose text-13 text-muted">
+        <p className="mt-1 max-w-prose text-secondary text-muted">
           Logs live on the machine and are never kept, so there is nothing older to show here. The tail starts again when the machine is back.
         </p>
       </Card>
@@ -193,7 +193,7 @@ export function LogsTab({ org, node, away, allowed, source, level, q, onFilters 
               }}
               aria-label="Search the logs"
               placeholder="Search the logs"
-              className="h-7 w-full rounded-md border border-line bg-transparent pr-7 pl-8 text-13 outline-none placeholder:text-faint hover:border-line-strong focus-visible:border-line-strong [&::-webkit-search-cancel-button]:hidden"
+              className="h-7 w-full rounded-md border border-line bg-transparent pr-7 pl-8 text-secondary outline-none placeholder:text-faint hover:border-line-strong focus-visible:border-line-strong [&::-webkit-search-cancel-button]:hidden"
             />
             {query ? (
               <button type="button" aria-label="Clear the search" onClick={() => setQuery('')} className="absolute right-1 inline-flex size-5 items-center justify-center rounded-sm text-faint hover:text-fg">
@@ -202,9 +202,9 @@ export function LogsTab({ org, node, away, allowed, source, level, q, onFilters 
             ) : null}
           </label>
           <Select size="sm" aria-label="Source" value={source ?? 'all'} onValueChange={(next) => onFilters({ source: next === 'all' ? undefined : next })} options={SOURCES} className="w-36" />
-          <Segmented label="Lowest level shown" value={level} onChange={(next) => onFilters({ level: next })} options={LEVELS} />
+          <SegmentedControl label="Lowest level shown" value={level} onValueChange={(next) => onFilters({ level: next })} options={LEVELS} />
           <span className="ml-auto inline-flex items-center gap-3">
-            <span className="inline-flex w-28 items-center justify-end gap-2 text-12 text-muted" aria-live="polite">
+            <span className="inline-flex w-28 items-center justify-end gap-2 text-caption text-muted" aria-live="polite">
               <StatusDot tone={status.tone} pulse={status.word === 'Live'} />
               {status.word}
             </span>
@@ -236,7 +236,7 @@ export function LogsTab({ org, node, away, allowed, source, level, q, onFilters 
                 else setPaused(true);
               }
             }}
-            className="focus-inset mono h-[min(60vh,560px)] min-h-80 overflow-y-auto py-2 text-12 leading-5 [overflow-anchor:none]"
+            className="focus-inset mono h-[min(60vh,560px)] min-h-80 overflow-y-auto py-2 text-caption leading-5 [overflow-anchor:none]"
           >
             {visible.length > SHOW ? (
               <p className="px-4 pb-2 text-faint sm:px-6">Showing the latest {SHOW.toLocaleString('en')} of {visible.length.toLocaleString('en')} matching lines. Search to narrow it.</p>
@@ -244,7 +244,7 @@ export function LogsTab({ org, node, away, allowed, source, level, q, onFilters 
             {shown.length ? (
               shown.map((line) => <Line key={line.seq} line={line} query={query} />)
             ) : (
-              <p className="px-4 py-8 text-center font-sans text-13 text-muted sm:px-6">
+              <p className="px-4 py-8 text-center font-sans text-secondary text-muted sm:px-6">
                 {state === 'refused'
                   ? 'This machine did not open its log stream. It may be on an older version that does not send logs yet.'
                   : lines.length
@@ -258,7 +258,7 @@ export function LogsTab({ org, node, away, allowed, source, level, q, onFilters 
               <button
                 type="button"
                 onClick={jump}
-                className="pointer-events-auto inline-flex h-7 animate-rise items-center gap-2 rounded-full border border-line-strong bg-raised px-3 text-13 text-fg shadow-popover transition-colors duration-(--duration-fast) ease-standard hover:bg-fill-1"
+                className="pointer-events-auto inline-flex h-7 animate-rise items-center gap-2 rounded-full border border-line-strong bg-raised px-3 text-secondary text-fg shadow-popover transition-colors duration-(--duration-fast) ease-standard hover:bg-hover"
               >
                 <ArrowDown className="size-4" />
                 <span className="tabular">{waiting ? `${waiting.toLocaleString('en')} new` : 'Jump to latest'}</span>

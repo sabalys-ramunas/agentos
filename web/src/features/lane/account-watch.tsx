@@ -25,7 +25,7 @@ export function WatchSection({ org, lane }: { org: string; lane: Lane }) {
     <AccountSection id="account-watch" title="Watch link">
       {made ? (
         <div className="grid gap-2">
-          <p className="text-13 text-muted">
+          <p className="text-secondary text-muted">
             Anyone with this link can watch {lane.name} for {timeUntil(made.expires_at) || 'a short time'}, read only. It is shown once, so copy it now.
           </p>
           <div className="flex items-center gap-2">
@@ -38,7 +38,7 @@ export function WatchSection({ org, lane }: { org: string; lane: Lane }) {
         </div>
       ) : (
         <div className="grid gap-2">
-          <p className="text-13 text-muted">Show someone what this account is doing, for a short time. They do not need to sign in.</p>
+          <p className="text-secondary text-muted">Show someone what this account is doing, for a short time. They do not need to sign in.</p>
           <Button size="sm" className="justify-self-start" loading={link.isPending} onClick={() => link.mutate()}>
             Make a watch link
           </Button>

@@ -5,7 +5,8 @@
  * Findings that were in the code when the rules came in (2026-11-18) are counted per file in
  * design-allowlist.json, and the count may only go down: a file over its count fails, a new file has no
  * count, and a file under its count fails too until the list is lowered (`pnpm design:shrink` does that,
- * and never raises one). `exceptions` are the few reviewed places a rule does not apply, each with why.
+ * and never raises one). `exceptions` are the few reviewed places a rule does not apply, each with why:
+ * a rule in a whole file, or one word of the vocabulary in a file (`vocabulary:node`).
  */
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
@@ -43,7 +44,10 @@ function findings(): Finding[] {
   });
 }
 
-const found = findings().filter((finding) => !allowlist.exceptions[finding.rule]?.[finding.file]);
+/** A reviewed exception: a rule for a whole file, or one word of the vocabulary (`vocabulary:node`) in a file. */
+const excepted = (finding: Finding) =>
+  Boolean(allowlist.exceptions[finding.rule]?.[finding.file] || (finding.word && allowlist.exceptions[`${finding.rule}:${finding.word}`]?.[finding.file]));
+const found = findings().filter((finding) => !excepted(finding));
 
 function counted(rule: string): Map<string, Finding[]> {
   const out = new Map<string, Finding[]>();

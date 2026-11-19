@@ -135,7 +135,7 @@ export function Components({ org, profile, picked }: { org: string; profile: Bra
         ) : (
           <Card className="flex flex-wrap items-center gap-3 px-5 py-4">
             <ScanSearch aria-hidden="true" className="size-4 text-muted" />
-            <p className="min-w-0 flex-1 text-14 text-muted">
+            <p className="min-w-0 flex-1 text-body text-muted">
               No system check of {profile.ref} is kept yet, so use and look-alikes are not known. Ask your agent for one.
             </p>
             <CopyButton text={`ui_check url=${profile.website ?? 'http://localhost:3000/'} profile=${profile.ref}`} label="Copy a system check for your agent" size="md" />
@@ -171,7 +171,7 @@ export function Components({ org, profile, picked }: { org: string; profile: Bra
                     {def?.attr || def?.class_pattern ? (
                       <TokenChip name={def.attr ? `[${def.attr}]` : `class ${def.class_pattern}`} />
                     ) : (
-                      <span className="text-14 text-muted">Its marker in the page</span>
+                      <span className="text-body text-muted">Its marker in the page</span>
                     )}
                   </dd>
                   <dt className="text-secondary text-faint">Used</dt>
@@ -181,13 +181,13 @@ export function Components({ org, profile, picked }: { org: string; profile: Bra
                         <span className="h-1 w-full max-w-48 overflow-hidden rounded-full bg-chart-grid">
                           <span className="block h-full rounded-full bg-chart-bar-strong" style={{ width: `${Math.round((use.uses / maxUses) * 100)}%` }} />
                         </span>
-                        <span className="shrink-0 text-14 text-fg">
+                        <span className="shrink-0 text-body text-fg">
                           <span className="font-mono tabular">{use.uses}</span>
                           <span className="text-muted"> on {plural(use.screens, 'screen')}</span>
                         </span>
                       </>
                     ) : (
-                      <span className="text-14 text-muted">{loaded?.run ? 'Not seen on the checked screens' : 'Not measured yet'}</span>
+                      <span className="text-body text-muted">{loaded?.run ? 'Not seen on the checked screens' : 'Not measured yet'}</span>
                     )}
                   </dd>
                 </dl>
@@ -207,7 +207,7 @@ export function Components({ org, profile, picked }: { org: string; profile: Bra
                       <span data-studio="ignore" role="img" aria-label={`The colour ${item.value}`} className="size-4 shrink-0 rounded-sm border border-line" style={{ background: colour }} />
                     ) : null}
                     <span className="font-mono text-code text-fg">{item.value}</span>
-                    <span className="text-14 text-muted">
+                    <span className="text-body text-muted">
                       should be <span className="font-mono text-code">{item.token ?? 'a token'}</span>
                     </span>
                     <span className="min-w-0 truncate font-mono text-code-caption text-faint" title={item.finding.where.selector}>
@@ -333,7 +333,7 @@ export function TypeAndSpace({ profile }: { profile: BrandProfile }) {
                   <span className="flex items-center gap-2 text-caption text-faint">
                     {font.role ?? 'font'} <span className="font-mono text-code-caption">{font.weights.join(' ')}</span>
                   </span>
-                  <span data-studio="ignore" className="truncate text-24 text-fg" style={{ fontFamily: familyFor(font.role) ? `"${font.family}"` : undefined }}>
+                  <span data-studio="ignore" className="truncate text-page-title-compact text-fg font-normal" style={{ fontFamily: familyFor(font.role) ? `"${font.family}"` : undefined }}>
                     {font.family}
                   </span>
                 </li>
@@ -417,7 +417,7 @@ export function Guidelines({ profile }: { profile: BrandProfile }) {
             {profile.guidelines.map((item) => (
               <li key={item.id} className="flex items-start gap-3 border-b border-line px-5 py-3 last:border-b-0">
                 <span className="grid min-w-0 flex-1 gap-1">
-                  <span className="text-14 break-words text-fg">{item.text}</span>
+                  <span className="text-body break-words text-fg">{item.text}</span>
                   <span className="text-secondary text-faint">{guidelineRule(item)}</span>
                 </span>
                 {item.advisory || !item.check ? <Badge>Advice</Badge> : <Badge className="font-mono">{item.check}</Badge>}
@@ -443,7 +443,7 @@ export function References({ profile }: { profile: BrandProfile }) {
                 const href = safeUrl(item.url);
                 return (
                   <li key={item.name} className="grid gap-1 border-b border-line px-5 py-3 last:border-b-0">
-                    <span className="text-14 font-medium text-fg">{item.name}</span>
+                    <span className="text-label text-fg">{item.name}</span>
                     {href ? (
                       <a href={href} target="_blank" rel="noreferrer noopener" className="inline-flex min-w-0 items-center gap-1 font-mono text-code-caption text-muted hover:text-fg">
                         <span className="truncate" title={item.url}>
@@ -470,7 +470,7 @@ export function References({ profile }: { profile: BrandProfile }) {
             <ul>
               {profile.environments.map((item) => (
                 <li key={item.name} className="flex min-w-0 items-center gap-3 border-b border-line px-5 py-3 last:border-b-0">
-                  <span className="w-24 shrink-0 truncate text-14 font-medium text-fg">{item.name}</span>
+                  <span className="w-24 shrink-0 truncate text-label text-fg">{item.name}</span>
                   <span className="min-w-0 flex-1 truncate font-mono text-code-caption text-muted" title={item.url}>
                     {item.url}
                   </span>

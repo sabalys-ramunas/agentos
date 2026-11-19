@@ -7,8 +7,9 @@ build-tokens.py imports this and writes two more generated files from it:
 
 Every Tailwind colour, size, radius, shadow, ease and animation the app has is listed here; Tailwind's own
 palette, radii and shadows are cleared, so `bg-red-500` does not exist. LEGACY_* are the names the screens
-used before Mono: they still work, each says the Mono name to use instead, and the design rules let their
-count only shrink. Edit here, never theme.css.
+used before Mono: since 2026-11-19 (scripts/codemod-legacy-tokens.mjs) no screen uses them, so they are no
+longer classes; they stay here so the design rules can refuse one and name the Mono word. Edit here, never
+theme.css.
 """
 
 # Mono colour keys: the class word -> the CSS variable it reads (from tokens.css or aliases.css).
@@ -90,7 +91,7 @@ for _kind in ("test", "design", "build", "server"):
     for _part in ("mark", "soft", "line"):
         COLORS[f"kind-{_kind}-{_part}"] = f"kind-{_kind}-{_part}"
 
-# Pre-Mono colour keys: old word -> (the variable, the Mono word to write instead).
+# Pre-Mono colour keys: old word -> (the variable it was, the Mono word to write instead). Not classes any more.
 LEGACY_COLORS = {
     "bg": ("surface-card", "card"),
     "subtle": ("surface-inset", "inset"),
@@ -105,9 +106,9 @@ LEGACY_COLORS = {
 }
 
 # Type roles (the `text-<role>` classes). The mono roles also take Geist Mono in app.css.
-ROLES = ["display", "page-title", "page-title-compact", "section-title", "lede", "card-title", "table-header", "label",
+ROLES = ["display", "page-title", "page-title-compact", "headline", "heading", "section-title", "lede", "card-title", "table-header", "label",
          "body", "secondary", "caption", "number", "stat", "code", "code-caption", "eyebrow", "micro"]
-# The old size scale: size -> (line height, tracking var or None, the role to write instead).
+# The old size scale: size -> (line height, tracking var or None, the role to write instead). Not classes any more.
 LEGACY_TEXT = {
     11: (16, None, "micro or eyebrow"),
     12: (16, None, "caption"),
@@ -158,10 +159,6 @@ def theme_css(breakpoints, z_layers, durations):
     for key, var in COLORS.items():
         out.append(f"  --color-{key}: {_var(var)};")
     out.append("")
-    out.append("  /* Pre-Mono names, still working. New code writes the Mono word (theme-keys.json, legacy). */")
-    for key, (var, _instead) in LEGACY_COLORS.items():
-        out.append(f"  --color-{key}: {_var(var)};")
-    out.append("")
     out.append("  --font-sans: var(--font-family-sans);")
     out.append("  --font-mono: var(--font-family-mono);")
     out.append("")
@@ -173,12 +170,6 @@ def theme_css(breakpoints, z_layers, durations):
         out.append(f"  --text-{role}--line-height: var({p}-line-height);")
         out.append(f"  --text-{role}--font-weight: var({p}-font-weight);")
         out.append(f"  --text-{role}--letter-spacing: var({p}-tracking);")
-    out.append("  /* The old size scale (text-11 to text-32), on the Mono sizes. New code uses a role. */")
-    for size, (lead, track, _instead) in LEGACY_TEXT.items():
-        out.append(f"  --text-{size}: var(--font-{size});")
-        out.append(f"  --text-{size}--line-height: var(--line-height-{lead});")
-        if track:
-            out.append(f"  --text-{size}--letter-spacing: var(--{track});")
     out.append("")
     out.append("  /* Spacing on the space tokens; steps that are not tokens keep Tailwind's 4 px multiplier. */")
     for step in SPACING:

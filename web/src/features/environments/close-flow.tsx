@@ -49,7 +49,7 @@ export function UnsavedList({ unsaved }: { unsaved: EnvUnsaved }) {
     <div className="grid gap-4">
       {unsaved.dirty_files.length ? (
         <section aria-label="Changed files" className="grid gap-2">
-          <h3 className="flex items-center gap-2 text-13 font-medium text-fg">
+          <h3 className="flex items-center gap-2 text-secondary font-medium text-fg">
             <FileDiff aria-hidden="true" className="size-4 text-faint" />
             {plural(unsaved.dirty_files.length, 'changed file')}, not committed
           </h3>
@@ -65,7 +65,7 @@ export function UnsavedList({ unsaved }: { unsaved: EnvUnsaved }) {
       ) : null}
       {unsaved.unpushed.length ? (
         <section aria-label="Commits not pushed" className="grid gap-2">
-          <h3 className="flex items-center gap-2 text-13 font-medium text-fg">
+          <h3 className="flex items-center gap-2 text-secondary font-medium text-fg">
             <GitCommitHorizontal aria-hidden="true" className="size-4 text-faint" />
             {plural(unsaved.unpushed.length, 'commit')}, not pushed
           </h3>
@@ -81,7 +81,7 @@ export function UnsavedList({ unsaved }: { unsaved: EnvUnsaved }) {
       ) : null}
       {unsaved.stashes?.length ? (
         <section aria-label="Stashes" className="grid gap-2">
-          <h3 className="flex items-center gap-2 text-13 font-medium text-fg">
+          <h3 className="flex items-center gap-2 text-secondary font-medium text-fg">
             <GitCommitHorizontal aria-hidden="true" className="size-4 text-faint" />
             {plural(unsaved.stashes.length, 'stash', 'stashes')}, on no branch
           </h3>

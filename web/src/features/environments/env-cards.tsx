@@ -40,10 +40,10 @@ import { CALLS_SHOWN } from './environment-page';
 /** The middle of the browser card while there is no live view to show. */
 function Stage({ icon, title, children }: { icon: ReactNode; title: string; children: ReactNode }) {
   return (
-    <div className="flex aspect-[16/10] flex-col items-center justify-center bg-subtle p-6 text-center">
+    <div className="flex aspect-[16/10] flex-col items-center justify-center bg-inset p-6 text-center">
       <div className="mb-4 text-faint [&_svg]:size-6">{icon}</div>
-      <h3 className="text-14 font-medium">{title}</h3>
-      <p className="mt-1 max-w-sm text-14 text-muted">{children}</p>
+      <h3 className="text-label">{title}</h3>
+      <p className="mt-1 max-w-sm text-body text-muted">{children}</p>
     </div>
   );
 }
@@ -194,7 +194,7 @@ export function CommandsCard({ org, env, now }: { org: string; env: EnvDetail; n
           </Table>
         </TableScroll>
       ) : (
-        <p className="px-5 py-6 text-14 text-muted">
+        <p className="px-5 py-6 text-body text-muted">
           {isOpen(env) ? 'Nothing has run yet. What the agent runs in the terminal shows here, and a job links to its output.' : 'Nothing ran in its terminal.'}
         </p>
       )}
@@ -212,7 +212,7 @@ function PullRequestLink({ repo, branch }: { repo: string | null | undefined; br
       target="_blank"
       rel="noreferrer"
       aria-label={`Open a pull request for ${branch}`}
-      className="inline-flex shrink-0 items-center gap-1 text-caption font-medium text-blue hover:underline"
+      className="inline-flex shrink-0 items-center gap-1 text-caption font-medium link hover:underline"
     >
       Open a pull request
       <ArrowUpRight className="size-3.5" aria-hidden />
@@ -242,7 +242,7 @@ export function GitCard({ env, now }: { env: EnvDetail; now: number }) {
           ) : null}
           {unsaved ? (
             <div className="grid gap-3">
-              <p className="flex items-start gap-2 text-13 text-fg">
+              <p className="flex items-start gap-2 text-secondary text-fg">
                 <StatusDot tone="warn" className="mt-1" />
                 <span>
                   <span className="font-medium text-warn">Unsaved work.</span> It has {unsavedWords(unsaved)}. Closing loses it unless the agent pushes first.
@@ -252,7 +252,7 @@ export function GitCard({ env, now }: { env: EnvDetail; now: number }) {
             </div>
           ) : null}
           <div className="grid gap-2">
-            <h3 className="text-13 font-medium text-fg">Pushed{git.branch && git.pushed.length && git.pushed.every((push) => push.branch === git.branch) ? <span className="font-normal text-faint"> to {git.branch}</span> : null}</h3>
+            <h3 className="text-secondary font-medium text-fg">Pushed{git.branch && git.pushed.length && git.pushed.every((push) => push.branch === git.branch) ? <span className="font-normal text-faint"> to {git.branch}</span> : null}</h3>
             {git.pushed.length ? (
               <ul className="grid gap-2">
                 {git.pushed.map((push) => (
@@ -269,12 +269,12 @@ export function GitCard({ env, now }: { env: EnvDetail; now: number }) {
                 ))}
               </ul>
             ) : (
-              <p className="text-13 text-faint">Nothing pushed yet.</p>
+              <p className="text-secondary text-faint">Nothing pushed yet.</p>
             )}
           </div>
         </div>
       ) : (
-        <p className="px-5 py-4 text-14 text-muted">{env.state === 'failed' ? 'It failed before the repository was cloned.' : env.repo ? 'The node did not report git for it.' : 'It was opened without a repository.'}</p>
+        <p className="px-5 py-4 text-body text-muted">{env.state === 'failed' ? 'It failed before the repository was cloned.' : env.repo ? 'The node did not report git for it.' : 'It was opened without a repository.'}</p>
       )}
     </Card>
   );
@@ -299,7 +299,7 @@ export function PortsCard({ env }: { env: EnvDetail }) {
             return (
               <li key={port.port} className="flex min-h-12 flex-wrap items-center gap-x-3 gap-y-1 px-5 py-2">
                 <span className="font-mono text-code text-fg tabular">{port.port}</span>
-                <span className="min-w-0 flex-1 truncate text-13 text-muted" title={port.process ?? undefined}>
+                <span className="min-w-0 flex-1 truncate text-secondary text-muted" title={port.process ?? undefined}>
                   {port.process ?? 'Process not known'}
                 </span>
                 {link && port.tunnel ? (
@@ -323,7 +323,7 @@ export function PortsCard({ env }: { env: EnvDetail }) {
           })}
         </ul>
       ) : (
-        <p className="px-5 py-4 text-14 text-muted">{env.state === 'starting' ? 'Nothing listens yet.' : 'Nothing listens on the machine. A dev server the agent starts shows here with a link.'}</p>
+        <p className="px-5 py-4 text-body text-muted">{env.state === 'starting' ? 'Nothing listens yet.' : 'Nothing listens on the machine. A dev server the agent starts shows here with a link.'}</p>
       )}
     </Card>
   );
@@ -347,7 +347,7 @@ export function CallsCard({ env, now }: { env: EnvDetail; now: number }) {
                   {technical ? (
                     <span className="truncate font-mono text-code text-fg">{call.tool}</span>
                   ) : (
-                    <span className="truncate text-14 text-fg" title={call.tool}>
+                    <span className="truncate text-body text-fg" title={call.tool}>
                       {toolPlainTitle(call.tool)}
                     </span>
                   )}
@@ -371,7 +371,7 @@ export function CallsCard({ env, now }: { env: EnvDetail; now: number }) {
           ) : null}
         </>
       ) : (
-        <p className="px-5 py-4 text-14 text-muted">No calls yet.</p>
+        <p className="px-5 py-4 text-body text-muted">No calls yet.</p>
       )}
     </Card>
   );

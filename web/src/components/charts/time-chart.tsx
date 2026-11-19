@@ -114,7 +114,7 @@ export function TimeChart({ points, label, format, bucketSeconds, height = 120, 
     >
       <svg width={width} height={height} aria-hidden="true" className="block">
         {axes ? (
-          <g className="text-11" fill="var(--foreground-subtle)">
+          <g className="text-micro font-normal" fill="var(--foreground-subtle)">
             {[top, top / 2].map((tick) => (
               <g key={tick}>
                 <line x1={left} x2={width} y1={y(tick)} y2={y(tick)} stroke="var(--border)" />
@@ -163,7 +163,7 @@ export function TimeChart({ points, label, format, bucketSeconds, height = 120, 
         <Readout x={x(active)} width={width}>
           <span className="tabular font-medium text-fg">{point.value === null ? gapLabel : format(point.value)}</span>
           <span className="tabular ml-2 text-faint">{fullTime(point.at, bucketSeconds)}</span>
-          {inBand ? <span className="ml-2 text-red">{inBand.label}</span> : null}
+          {inBand ? <span className="ml-2 text-bad">{inBand.label}</span> : null}
         </Readout>
       ) : null}
     </div>

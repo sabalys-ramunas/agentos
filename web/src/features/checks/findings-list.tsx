@@ -89,7 +89,7 @@ function Item({
           {finding.n}
         </span>
         <span className="grid min-w-0 flex-1 gap-1">
-          <span className={cn('text-14 font-medium break-words', here ? 'text-fg' : 'text-muted')}>{findingTitle(finding)}</span>
+          <span className={cn('text-label font-medium break-words', here ? 'text-fg' : 'text-muted')}>{findingTitle(finding)}</span>
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <Status status={{ label: SEVERITY_WORD[finding.severity], tone: SEVERITY_TONE[finding.severity] }} />
             <span className="font-mono text-code-caption text-muted">{finding.check}</span>
@@ -110,7 +110,7 @@ function Item({
             {finding.fix ? (
               <>
                 <dt className="text-secondary text-faint">Fix</dt>
-                <dd className="min-w-0 text-14 break-words text-fg">{finding.fix}</dd>
+                <dd className="min-w-0 text-body break-words text-fg">{finding.fix}</dd>
               </>
             ) : null}
             <Line label="Where">

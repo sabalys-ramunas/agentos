@@ -21,13 +21,13 @@ export function YesStep({ approval }: { approval: Approval }) {
   if (!approval.requires || !needsProof(approval)) return null;
   return (
     <div role="note" className="flex items-start gap-3 rounded-xl border border-line-strong p-4">
-      <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-fill-1">
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-hover">
         <Fingerprint aria-hidden="true" className="size-5" />
       </span>
       <span className="min-w-0">
-        <span className="block text-14 font-medium">Prove it&apos;s you to say yes</span>
-        <span className="block text-13 text-pretty text-muted">{whyProof(approval)}</span>
-        <span className="block text-12 text-pretty text-faint">{placesLine(approval.methods ?? [])}</span>
+        <span className="block text-label">Prove it&apos;s you to say yes</span>
+        <span className="block text-secondary text-pretty text-muted">{whyProof(approval)}</span>
+        <span className="block text-caption text-pretty text-faint">{placesLine(approval.methods ?? [])}</span>
       </span>
     </div>
   );
@@ -40,7 +40,7 @@ export function TapLine({ approval }: { approval: Approval }) {
   const chat = approval.methods?.includes('chat');
   const words = rung === 'chat' ? (chat ? 'Just a tap. You can also answer this in your chat.' : 'Just a tap.') : `${RUNG_WORDS[rung].word}. A yes in chat doesn't count for this one.`;
   return (
-    <p className="flex items-center justify-center gap-2 text-12 text-faint">
+    <p className="flex items-center justify-center gap-2 text-caption text-faint">
       <RungIcon rung={rung} className="size-3" />
       {words}
     </p>

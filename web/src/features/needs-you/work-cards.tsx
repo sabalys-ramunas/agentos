@@ -22,17 +22,17 @@ export function Generic({ approval, where }: CardProps) {
       {approval.preview.image ? <Photo src={approval.preview.image} className="max-h-[320px]" /> : null}
       {run ? (
         <div className="grid gap-2 px-4 py-4">
-          <p className="text-14 font-medium break-words">{run.name}</p>
+          <p className="text-label break-words">{run.name}</p>
           {run.inputs.map((line, index) => (
-            <p key={index} className="text-14 break-words text-muted">
+            <p key={index} className="text-body break-words text-muted">
               {line}
             </p>
           ))}
         </div>
       ) : (
         <div className="grid gap-2 px-4 py-4">
-          <p className="text-14 font-medium break-words">{approval.summary}</p>
-          {raw ? <p className={cn('text-14 break-words whitespace-pre-wrap text-muted', technical && 'mono text-13')}>{raw}</p> : null}
+          <p className="text-label break-words">{approval.summary}</p>
+          {raw ? <p className={cn('text-body break-words whitespace-pre-wrap text-muted', technical && 'mono text-secondary')}>{raw}</p> : null}
         </div>
       )}
       <CutNote count={cut} />
@@ -56,14 +56,14 @@ export function Payment({ approval, where }: CardProps) {
     <article aria-label="Payment preview" className={cn(card, 'max-w-[440px]')}>
       <SiteBar where={where} />
       <div className="grid gap-1 px-6 pt-6 pb-4">
-        <p className="text-13 text-muted">You pay</p>
-        <p className="tabular text-32 font-semibold">{amount ?? 'An amount'}</p>
-        {d.payee ? <p className="text-14">to {d.payee}</p> : null}
+        <p className="text-secondary text-muted">You pay</p>
+        <p className="tabular text-headline">{amount ?? 'An amount'}</p>
+        {d.payee ? <p className="text-body">to {d.payee}</p> : null}
       </div>
       {known.length ? (
         <dl className="mx-6 mb-6 divide-y divide-line border-t border-line">
           {known.map(([label, value]) => (
-            <div key={label} className="flex items-baseline justify-between gap-4 py-2 text-13">
+            <div key={label} className="flex items-baseline justify-between gap-4 py-2 text-secondary">
               <dt className="text-faint">{label}</dt>
               <dd className="min-w-0 text-right break-words">{value}</dd>
             </div>
@@ -71,8 +71,8 @@ export function Payment({ approval, where }: CardProps) {
         </dl>
       ) : (
         <div className="grid gap-2 px-6 pb-6">
-          <p className="text-14 break-words">{approval.summary}</p>
-          {text ? <p className="text-13 break-words whitespace-pre-wrap text-muted">{text}</p> : null}
+          <p className="text-body break-words">{approval.summary}</p>
+          {text ? <p className="text-secondary break-words whitespace-pre-wrap text-muted">{text}</p> : null}
         </div>
       )}
     </article>
@@ -90,7 +90,7 @@ export function Email({ approval, where }: CardProps) {
   ];
   return (
     <article aria-label="Email preview" className={cn(card, 'max-w-[560px]')}>
-      <div className="flex h-10 items-center gap-2 border-b border-line bg-subtle px-4 text-13 font-medium">
+      <div className="flex h-10 items-center gap-2 border-b border-line bg-inset px-4 text-secondary font-medium">
         <SiteMark site={where.site ?? 'mail'} size={16} label={false} />
         New message
       </div>
@@ -98,7 +98,7 @@ export function Email({ approval, where }: CardProps) {
         {head
           .filter((row): row is [string, string] => Boolean(row[1]))
           .map(([label, value]) => (
-            <div key={label} className="flex gap-3 py-2 text-13">
+            <div key={label} className="flex gap-3 py-2 text-secondary">
               <dt className="w-10 shrink-0 text-faint">{label}</dt>
               {/* A long address breaks after its @, never in the middle of a word. */}
               <dd className="min-w-0 break-words">
@@ -116,12 +116,12 @@ export function Email({ approval, where }: CardProps) {
             </div>
           ))}
       </dl>
-      <p className="border-t border-line px-4 py-3 text-16 font-semibold break-words">{d.subject ?? approval.summary}</p>
-      <p className="px-4 pb-4 text-14 break-words whitespace-pre-wrap">{body}</p>
+      <p className="border-t border-line px-4 py-3 text-section-title break-words">{d.subject ?? approval.summary}</p>
+      <p className="px-4 pb-4 text-body break-words whitespace-pre-wrap">{body}</p>
       {d.attachments?.length ? (
         <ul aria-label="Attachments" className="flex flex-wrap gap-2 border-t border-line px-4 py-3">
           {d.attachments.map((file) => (
-            <li key={file.name} className="inline-flex h-8 items-center gap-2 rounded-lg border border-line bg-subtle px-2 text-13">
+            <li key={file.name} className="inline-flex h-8 items-center gap-2 rounded-lg border border-line bg-inset px-2 text-secondary">
               <Paperclip aria-hidden="true" className="size-4 text-muted" />
               <span className="break-all">{file.name}</span>
               {size(file.size) ? <span className="text-faint">{size(file.size)}</span> : null}
@@ -141,19 +141,19 @@ export function Form({ approval, where }: CardProps) {
     <article aria-label="Form preview" className={cn(card, 'max-w-[520px]')}>
       <SiteBar where={where} />
       <div className="px-4 pt-4 pb-2">
-        <h3 className="text-16 font-semibold break-words">{d.form ?? approval.summary}</h3>
-        {changed.size ? <p className="mt-1 text-12 text-muted">{changed.size === 1 ? 'One field changes' : `${changed.size} fields change`}, marked below.</p> : null}
+        <h3 className="text-section-title break-words">{d.form ?? approval.summary}</h3>
+        {changed.size ? <p className="mt-1 text-caption text-muted">{changed.size === 1 ? 'One field changes' : `${changed.size} fields change`}, marked below.</p> : null}
       </div>
       <dl className="grid gap-2 px-4 pb-4">
         {(d.fields ?? []).map((field) => {
           const isChanged = changed.has(field.label);
           return (
             <div key={field.label} className={cn('grid gap-1 rounded-lg border px-3 py-2', isChanged ? 'border-(--wait-line) bg-(--wait-soft)' : 'border-line')}>
-              <dt className="flex items-center gap-2 text-12 text-faint">
+              <dt className="flex items-center gap-2 text-caption text-faint">
                 {field.label}
-                {isChanged ? <span className="rounded-sm bg-(--wait-dot) px-1 text-11 font-medium text-(--wait-ink)">Changes</span> : null}
+                {isChanged ? <span className="rounded-sm bg-(--wait-dot) px-1 text-micro text-(--wait-ink)">Changes</span> : null}
               </dt>
-              <dd className="text-14 break-words">
+              <dd className="text-body break-words">
                 {isChanged && field.before ? (
                   <>
                     <span className="text-faint line-through">{field.before}</span>
@@ -180,15 +180,15 @@ export function Refund({ approval, where }: CardProps) {
       <SiteBar where={where} />
       <div className="flex items-baseline justify-between gap-4 px-6 pt-6">
         <div>
-          <p className="text-13 text-muted">Refund {d.order ? `for order ${d.order}` : ''}</p>
-          <p className="text-16 font-semibold">{d.customer ?? 'The customer'}</p>
+          <p className="text-secondary text-muted">Refund {d.order ? `for order ${d.order}` : ''}</p>
+          <p className="text-section-title">{d.customer ?? 'The customer'}</p>
         </div>
-        <p className="tabular text-32 font-semibold">{amount ?? ''}</p>
+        <p className="tabular text-headline">{amount ?? ''}</p>
       </div>
       {d.items?.length ? (
         <ul className="mx-6 mt-4 divide-y divide-line border-y border-line">
           {d.items.map((item) => (
-            <li key={item.name} className="flex justify-between gap-4 py-2 text-13">
+            <li key={item.name} className="flex justify-between gap-4 py-2 text-secondary">
               <span className="min-w-0 break-words">
                 {item.quantity ? `${item.quantity} × ` : ''}
                 {item.name}
@@ -198,7 +198,7 @@ export function Refund({ approval, where }: CardProps) {
           ))}
         </ul>
       ) : null}
-      {d.reason ? <p className="px-6 pt-3 text-13 text-muted">Why: {d.reason}</p> : null}
+      {d.reason ? <p className="px-6 pt-3 text-secondary text-muted">Why: {d.reason}</p> : null}
       <div className="h-6" />
     </article>
   );
@@ -224,24 +224,24 @@ export function Thread({ approval, where, color }: CardProps) {
       <ol className="grid gap-3 p-4">
         {(d.thread ?? []).map((message, index) => (
           <li key={index} className="flex items-start gap-2">
-            <span aria-hidden="true" className="flex size-8 shrink-0 items-center justify-center rounded-full bg-fill-2 text-12 font-semibold text-muted">
+            <span aria-hidden="true" className="flex size-8 shrink-0 items-center justify-center rounded-full bg-pressed text-caption font-semibold text-muted">
               {message.from.charAt(0)}
             </span>
-            <div className="min-w-0 rounded-xl rounded-tl-sm bg-subtle px-3 py-2">
-              <p className="flex flex-wrap items-center gap-2 text-13 font-medium">
+            <div className="min-w-0 rounded-xl rounded-tl-sm bg-inset px-3 py-2">
+              <p className="flex flex-wrap items-center gap-2 text-secondary font-medium">
                 {message.from}
                 {message.stars ? <Stars count={message.stars} /> : null}
               </p>
-              <p className="text-14 break-words whitespace-pre-wrap">{message.text}</p>
+              <p className="text-body break-words whitespace-pre-wrap">{message.text}</p>
             </div>
           </li>
         ))}
         <li className="flex items-start justify-end gap-2">
-          <div className="min-w-0 rounded-xl rounded-tr-sm border border-line bg-bg px-3 py-2 shadow-[0_1px_2px_rgb(0_0_0/0.04)]">
-            <p className="text-13 font-medium">
+          <div className="min-w-0 rounded-xl rounded-tr-sm border border-line bg-card px-3 py-2 shadow-[0_1px_2px_rgb(0_0_0/0.04)]">
+            <p className="text-secondary font-medium">
               {where.business ?? 'You'} <span className="font-normal text-faint">· Not sent yet</span>
             </p>
-            <p className="text-14 break-words whitespace-pre-wrap">{reply}</p>
+            <p className="text-body break-words whitespace-pre-wrap">{reply}</p>
           </div>
           <BusinessMark name={where.business ?? 'You'} color={color} size={32} className="rounded-full" />
         </li>
@@ -275,7 +275,7 @@ export function Files({ approval, where }: CardProps) {
   return (
     <article aria-label="Files preview" className={cn(card, 'max-w-[480px]')}>
       <SiteBar where={where} />
-      <p className="px-4 pt-4 text-14 font-medium break-words">{d.destination ? `To ${d.destination}` : approval.summary}</p>
+      <p className="px-4 pt-4 text-label break-words">{d.destination ? `To ${d.destination}` : approval.summary}</p>
       <FileList items={d.items ?? []} />
     </article>
   );
@@ -287,17 +287,17 @@ function FileList({ items, gone = false }: { items: { name: string; size?: numbe
     <>
       <ul className="m-4 mb-2 divide-y divide-line rounded-lg border border-line">
         {items.map((item) => (
-          <li key={item.name} className="flex items-center gap-2 px-3 py-2 text-13">
-            {gone ? <Trash2 aria-hidden="true" className="size-4 shrink-0 text-red" /> : <FileText aria-hidden="true" className="size-4 shrink-0 text-muted" />}
+          <li key={item.name} className="flex items-center gap-2 px-3 py-2 text-secondary">
+            {gone ? <Trash2 aria-hidden="true" className="size-4 shrink-0 text-bad" /> : <FileText aria-hidden="true" className="size-4 shrink-0 text-muted" />}
             <span className="min-w-0 flex-1">
               <span className="block break-all">{baseName(item.name)}</span>
-              {item.name !== baseName(item.name) ? <span className="block text-12 break-all text-faint">{item.name}</span> : null}
+              {item.name !== baseName(item.name) ? <span className="block text-caption break-all text-faint">{item.name}</span> : null}
             </span>
             {size(item.size) ? <span className="tabular shrink-0 text-faint">{size(item.size)}</span> : null}
           </li>
         ))}
       </ul>
-      {total ? <p className="px-4 pb-4 text-12 text-faint">{size(total)} in all</p> : <div className="h-2" />}
+      {total ? <p className="px-4 pb-4 text-caption text-faint">{size(total)} in all</p> : <div className="h-2" />}
     </>
   );
 }
@@ -310,7 +310,7 @@ export function Deletion({ approval, where }: CardProps) {
   return (
     <article aria-label="What will be deleted" className={cn(card, 'max-w-[480px]')}>
       <SiteBar where={d.computer ? { ...where, site: 'terminal', domain: d.computer } : where} />
-      <p className="px-4 pt-4 text-14 font-medium break-words">{approval.summary}</p>
+      <p className="px-4 pt-4 text-label break-words">{approval.summary}</p>
       {items.length ? <FileList items={items} gone /> : <div className="h-4" />}
     </article>
   );

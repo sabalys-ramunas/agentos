@@ -58,7 +58,7 @@ const LABELS = Object.fromEntries(Object.entries(TAB_WORDS).map(([tab, words]) =
 /** A tab's count sits in a fixed slot, so a number arriving never nudges the tab bar. */
 function TabCount({ value, tone }: { value: number | null | undefined; tone?: 'warn' }) {
   if (value === null || value === undefined) return null;
-  return <span className={cn('tabular ml-2 text-12', tone === 'warn' ? 'text-amber' : 'text-faint')}>{value}</span>;
+  return <span className={cn('tabular ml-2 text-caption', tone === 'warn' ? 'text-warn' : 'text-faint')}>{value}</span>;
 }
 
 function Body({ org, node }: { org: string; node: NodeDetail }) {
@@ -164,7 +164,7 @@ function Body({ org, node }: { org: string; node: NodeDetail }) {
         <FrozenNotice org={org} record={frozen} name={computerName(id)} canLift={access.can('freeze.lift')} className="mt-10" />
       ) : null}
       <Tabs value={tab} onValueChange={(next) => setSearch({ tab: next as NodeTab })} className="mt-10">
-        <TabList ref={tabBar} aria-label="Machine" className="sticky top-(--topbar-height) z-10 bg-bg">
+        <TabList ref={tabBar} aria-label="Machine" className="sticky top-(--topbar-height) z-10 bg-card">
           {(Object.keys(LABELS) as NodeTab[]).map((key) => (
             <Tab key={key} value={key}>
               {LABELS[key]}
@@ -271,7 +271,7 @@ function FullPage({ org, id }: { org: string; id: string }) {
   const node = useNode(org, id);
   return (
     <>
-      <Link to="/$org/nodes/$id" params={{ org, id }} className="mb-4 inline-flex items-center gap-1 rounded-md text-13 text-faint hover:text-fg">
+      <Link to="/$org/nodes/$id" params={{ org, id }} className="mb-4 inline-flex items-center gap-1 rounded-md text-secondary text-faint hover:text-fg">
         <ChevronLeft className="size-4" />
         Machines
       </Link>

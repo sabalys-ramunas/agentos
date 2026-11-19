@@ -28,12 +28,12 @@ export function SafeLine({ org, lane }: { org: string; lane: Lane }) {
       {notes.length ? (
         <ul className="grid gap-2 border-t border-line pt-3">
           {notes.map((item) => (
-            <li key={item.id} className="text-13 break-words">
+            <li key={item.id} className="text-secondary break-words">
               <span className="text-fg">{item.title}.</span> <span className="text-muted">{plainDetail(item.detail)}</span>
               {item.fix ? (
                 <span className="block break-words text-faint">
                   {fixWords(item.fix).plain}
-                  {technical ? <span className="mono mt-1 block text-12 break-all">{item.fix}</span> : null}
+                  {technical ? <span className="mono mt-1 block text-caption break-all">{item.fix}</span> : null}
                 </span>
               ) : null}
             </li>
@@ -59,7 +59,7 @@ export function KeepaliveSection({ org, lane }: { org: string; lane: Lane }) {
         {keepaliveSentence(plan)}
       </Answer>
       {last || next ? (
-        <div className="grid gap-1 text-13 text-faint">
+        <div className="grid gap-1 text-secondary text-faint">
           {last ? <p className="text-muted">{visitWords(last)}</p> : null}
           {next ? <p>{next}</p> : null}
         </div>

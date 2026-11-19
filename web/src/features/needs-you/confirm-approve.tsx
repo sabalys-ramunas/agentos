@@ -79,8 +79,8 @@ export function ConfirmApprove({
         </>
       }
     >
-      <p className="text-14 text-muted">{copy.consequence}</p>
-      {heavy && changed ? <p className="mt-2 text-14 text-muted">{CHANGED.consequence}</p> : null}
+      <p className="text-body text-muted">{copy.consequence}</p>
+      {heavy && changed ? <p className="mt-2 text-body text-muted">{CHANGED.consequence}</p> : null}
     </Dialog>
   );
 }

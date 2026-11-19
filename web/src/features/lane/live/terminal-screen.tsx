@@ -205,7 +205,7 @@ export default function TerminalScreen({ org, lane, interactive, expanded, onExp
 
   return (
     <div ref={root} role="group" aria-label={`Terminal of ${name}`} className={cn('flex min-h-0 flex-col', expanded && 'flex-1')}>
-      <div className={cn('relative min-h-0 bg-subtle', expanded ? 'flex-1' : 'aspect-[16/10]')}>
+      <div className={cn('relative min-h-0 bg-inset', expanded ? 'flex-1' : 'aspect-[16/10]')}>
         <div
           {...{ [LANE_INPUT]: '' }}
           className={cn('absolute inset-0 p-2', driving && 'ring-2 ring-fg ring-inset')}
@@ -215,9 +215,9 @@ export default function TerminalScreen({ org, lane, interactive, expanded, onExp
         {open ? (
           <StreamNotice state={state} kind="terminal" org={org} node={lane.node} onRetry={retry} />
         ) : (
-          <div role="status" className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-subtle p-6 text-center">
-            <h3 className="text-14 font-medium">The terminal is closed</h3>
-            <p className="mt-1 max-w-sm text-14 text-muted">
+          <div role="status" className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-inset p-6 text-center">
+            <h3 className="text-label">The terminal is closed</h3>
+            <p className="mt-1 max-w-sm text-body text-muted">
               Take over to open a shell on this lane. Agents are held off while you type.
             </p>
           </div>
@@ -226,7 +226,7 @@ export default function TerminalScreen({ org, lane, interactive, expanded, onExp
       <div data-screen-toolbar className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line px-4 py-2">
         <div className="flex min-w-0 flex-1 basis-48 items-center gap-2">
           <StreamBadge state={open ? state : { ...state, phase: 'idle' }} kind="terminal" node={lane.node} />
-          {line ? <span className={cn('min-w-0 truncate text-13', driving ? 'font-medium text-fg' : 'text-faint')}>{line}</span> : null}
+          {line ? <span className={cn('min-w-0 truncate text-secondary', driving ? 'font-medium text-fg' : 'text-faint')}>{line}</span> : null}
         </div>
         <div className="flex items-center gap-1">
           {interactive ? (
@@ -256,7 +256,7 @@ export default function TerminalScreen({ org, lane, interactive, expanded, onExp
               Paste
             </Button>
           </div>
-          {note ? <p className="text-12 text-muted">{note}</p> : null}
+          {note ? <p className="text-caption text-muted">{note}</p> : null}
         </div>
       ) : null}
     </div>

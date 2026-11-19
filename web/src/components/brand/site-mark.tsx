@@ -208,7 +208,7 @@ export function SiteMark({ site, size = 16, tone = 'brand', tile = false, label,
       style={{ width: size, height: size, borderRadius: tile ? Math.round(size * 0.28) : undefined }}
       className={cn(
         'inline-flex shrink-0 items-center justify-center text-muted',
-        tile && 'border border-line bg-subtle',
+        tile && 'border border-line bg-inset',
         className,
       )}
     >

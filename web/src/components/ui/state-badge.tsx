@@ -69,7 +69,7 @@ export function StateBadge({ state, label, sentence, detail = false, size = 16, 
   return (
     <span
       title={!detail && sentence ? sentence : undefined}
-      className={cn('inline-flex min-w-0 items-center gap-2 text-13 text-fg', className)}
+      className={cn('inline-flex min-w-0 items-center gap-2 text-secondary text-fg', className)}
     >
       <StateGlyph state={state} size={size} />
       <span className="min-w-0 truncate">

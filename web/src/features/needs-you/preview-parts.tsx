@@ -30,7 +30,7 @@ export function Caption({ text }: { text: string }) {
     <>
       {parts.map((part, index) =>
         index % 2 === 1 ? (
-          <span key={index} className="text-blue">
+          <span key={index} className="text-fg">
             {part}
           </span>
         ) : (
@@ -44,7 +44,7 @@ export function Caption({ text }: { text: string }) {
 export function CutNote({ count }: { count: number | null }) {
   if (!count) return null;
   return (
-    <p className="border-t border-line bg-subtle px-4 py-2 text-13 text-muted">
+    <p className="border-t border-line bg-inset px-4 py-2 text-secondary text-muted">
       The preview is cut here. {count.toLocaleString('en')} more characters are not shown, and saying yes covers all of them.
     </p>
   );
@@ -55,12 +55,12 @@ export function Photo({ src, className }: { src: string; className?: string }) {
   const [broken, setBroken] = useState(false);
   if (broken) {
     return (
-      <div className={cn('flex aspect-[4/3] w-full items-center justify-center bg-subtle px-6 text-center text-13 text-muted', className)}>
+      <div className={cn('flex aspect-[4/3] w-full items-center justify-center bg-inset px-6 text-center text-secondary text-muted', className)}>
         The picture cannot be shown right now. It is the one the computer will post.
       </div>
     );
   }
-  return <img src={src} alt="What will be posted" onError={() => setBroken(true)} className={cn('block w-full bg-subtle object-cover', className)} />;
+  return <img src={src} alt="What will be posted" onError={() => setBroken(true)} className={cn('block w-full bg-inset object-cover', className)} />;
 }
 
 export interface CardProps {

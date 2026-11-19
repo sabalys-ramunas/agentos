@@ -85,21 +85,21 @@ function Heartbeat({ points, beat }: { points: NodePoint[]; beat: string }) {
         })}
       </svg>
       {/* Keyed on the last report, so the pulse plays once per heartbeat that really arrives. */}
-      <span key={beat} aria-hidden="true" className="mb-1 size-2 shrink-0 animate-beat rounded-full bg-green" />
+      <span key={beat} aria-hidden="true" className="mb-1 size-2 shrink-0 animate-beat rounded-full bg-ok" />
     </div>
   );
 }
 
 function Tile({ label, value, note, children, live, wide }: { label: string; value: string; note: string; children?: React.ReactNode; live?: boolean; wide?: boolean }) {
   return (
-    <div className={cn('flex min-w-0 flex-col bg-bg px-4 pt-4 pb-3 sm:px-5', wide && 'col-span-2 lg:col-span-1')}>
-      <p className="flex items-center gap-2 text-12 text-faint">
+    <div className={cn('flex min-w-0 flex-col bg-card px-4 pt-4 pb-3 sm:px-5', wide && 'col-span-2 lg:col-span-1')}>
+      <p className="flex items-center gap-2 text-caption text-faint">
         {label}
         {live ? <span className="sr-only">, live</span> : null}
       </p>
-      <p className="mono tabular mt-1 truncate text-20">{value}</p>
+      <p className="mono tabular mt-1 truncate text-heading font-normal">{value}</p>
       <div className="mt-2 h-8">{children}</div>
-      <p className="mt-1 truncate text-12 text-faint">{note}</p>
+      <p className="mt-1 truncate text-caption text-faint">{note}</p>
     </div>
   );
 }
@@ -138,12 +138,12 @@ export function NodeHeader({ node, sentence, system, hour, day, connections, ban
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1">
-            <h1 className="mono truncate text-24 font-semibold">{node.id}</h1>
+            <h1 className="mono truncate text-page-title-compact">{node.id}</h1>
             <Status status={nodeState[node.state]} />
             {frozen ? <StateBadge state="stuck" label={FREEZE_WORDS.frozen.word} sentence={frozenSentence(frozen)} className="shrink-0" /> : null}
           </div>
-          {sentence ? <p className="mt-2 max-w-3xl text-16 text-muted text-pretty">{sentence}</p> : <Skeleton className="mt-3 h-4 w-96 max-w-full" />}
-          <p className="mono mt-2 text-12 text-faint">
+          {sentence ? <p className="mt-2 max-w-3xl text-lede text-muted text-pretty">{sentence}</p> : <Skeleton className="mt-3 h-4 w-96 max-w-full" />}
+          <p className="mono mt-2 text-caption text-faint">
             {meta.join(' · ')}
             {zone ? (
               <span className="whitespace-nowrap">
@@ -160,9 +160,9 @@ export function NodeHeader({ node, sentence, system, hour, day, connections, ban
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-line px-4 py-3 sm:px-5">
           <p className="silk shrink-0">Heartbeat</p>
           <div className="min-w-48 flex-1">{hour ? <Heartbeat points={hour.points} beat={node.last_seen} /> : <Skeleton className="h-7" />}</div>
-          <p className="tabular w-56 shrink-0 text-right text-13 text-muted max-sm:w-full max-sm:text-left" aria-live="off">
+          <p className="tabular w-56 shrink-0 text-right text-secondary text-muted max-sm:w-full max-sm:text-left" aria-live="off">
             {down || away ? (
-              <span className="text-red">
+              <span className="text-bad">
                 Away since {clock(new Date(away?.from ?? lastSeen).toISOString())} ({span(now - (away?.from ?? lastSeen))})
               </span>
             ) : (

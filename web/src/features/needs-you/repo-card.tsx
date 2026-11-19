@@ -26,7 +26,7 @@ const hostName = (card: RepoConnect) => (card.host === 'github.com' ? 'GitHub' :
 
 function Outside({ href, children }: { href: string; children: ReactNode }) {
   return (
-    <a href={href} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue hover:underline">
+    <a href={href} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 link hover:underline">
       {children}
       <ExternalLink aria-hidden="true" className="size-3" />
     </a>
@@ -54,13 +54,13 @@ export function RepoConnectDetail({ org, question, owner, onLeave }: RepoConnect
   return (
     <div className="grid gap-4">
       <div>
-        <p className="flex items-center gap-2 text-13 text-muted">
+        <p className="flex items-center gap-2 text-secondary text-muted">
           <AgentMark principal={question.asked_by} size={20} />
           <span>
             <Requester org={org} principal={question.asked_by} /> wants to work on a private repository
           </span>
         </p>
-        <h2 className="mt-3 flex items-start gap-2 text-24 font-semibold break-words">
+        <h2 className="mt-3 flex items-start gap-2 text-page-title-compact break-words">
           <GitBranch aria-hidden="true" className="mt-1 size-5 shrink-0 text-muted" />
           <span className="min-w-0 [overflow-wrap:anywhere]">{card.reason === 'refused' ? `Give a new token for ${card.repo}` : `Connect ${card.repo}`}</span>
         </h2>
@@ -68,10 +68,10 @@ export function RepoConnectDetail({ org, question, owner, onLeave }: RepoConnect
       {done ? (
         <Connected done={done} onLeave={leave} />
       ) : !owner ? (
-        <p className="text-14 text-muted">Only the owner of this computer can connect a repository.</p>
+        <p className="text-body text-muted">Only the owner of this computer can connect a repository.</p>
       ) : (
         <>
-          <p className="text-14 text-muted">
+          <p className="text-body text-muted">
             {card.reason === 'refused' ? 'The token this computer had for it stopped working. ' : ''}
             Its computer cannot read this repository yet. Paste a token from your own {hostName(card)} account, on a page this computer serves: you do not need to be an admin of the repository. agentos checks the token, then keeps it on this computer only. The agent never sees it.
           </p>
@@ -83,7 +83,7 @@ export function RepoConnectDetail({ org, question, owner, onLeave }: RepoConnect
         </>
       )}
       {done ? null : (
-        <p className="text-13 text-faint">
+        <p className="text-secondary text-faint">
           <Requester org={org} principal={question.asked_by} /> waits until {untilWords(question.expires_at)}. Nothing is rented while it waits.
         </p>
       )}
@@ -121,22 +121,22 @@ function TokenStep({ org, id, card, onDone, onDeclined, onKey }: { org: string; 
 
   return (
     <div className="grid gap-4">
-      <p className="text-13 text-muted">
+      <p className="text-secondary text-muted">
         A classic token needs the repo scope. A fine-grained token needs this repository, with Contents: Read (Read and write to push).
       </p>
       {card.token_url ? (
-        <p className="flex flex-wrap gap-x-3 gap-y-1 text-13">
+        <p className="flex flex-wrap gap-x-3 gap-y-1 text-secondary">
           <Outside href={card.token_url}>Make a fine-grained token</Outside>
           {card.classic_token_url ? <Outside href={card.classic_token_url}>or a classic one</Outside> : null}
         </p>
       ) : null}
       {waiting ? (
         <div className="grid gap-2">
-          <p role="status" className="flex items-center gap-2 text-14">
+          <p role="status" className="flex items-center gap-2 text-body">
             <Spinner className="size-4" />
             Paste the token on this computer&apos;s own page, in a new tab. This card moves on by itself.
           </p>
-          <p className="text-13">
+          <p className="text-secondary">
             <Outside href={trip.url}>Open the token page</Outside>
           </p>
         </div>
@@ -189,7 +189,7 @@ function DeployKey({ org, id, card, onDone, onToken }: { org: string; id: string
 
   return (
     <div className="grid gap-4">
-      <p className="text-14 text-muted">
+      <p className="text-body text-muted">
         An admin of {card.repo} adds this key to the repository, with Allow write access ticked so agents can push. Then press check.
       </p>
       {key.isError ? (
@@ -202,12 +202,12 @@ function DeployKey({ org, id, card, onDone, onToken }: { org: string; id: string
           <p className="font-mono text-code-caption text-faint [overflow-wrap:anywhere]">{key.data.fingerprint}</p>
         </div>
       ) : (
-        <p role="status" className="text-13 text-muted">
+        <p role="status" className="text-secondary text-muted">
           Making the key on this computer.
         </p>
       )}
       {settings?.startsWith('https://') ? (
-        <p className="text-13">
+        <p className="text-secondary">
           <Outside href={settings}>Open the repository&apos;s deploy keys</Outside>
         </p>
       ) : null}
@@ -231,11 +231,11 @@ function DeployKey({ org, id, card, onDone, onToken }: { org: string; id: string
 function Connected({ done, onLeave }: { done: RepoConnected; onLeave: () => void }) {
   return (
     <div className="grid gap-4">
-      <p role="status" className="flex items-start gap-2 text-14">
+      <p role="status" className="flex items-start gap-2 text-body">
         <Check aria-hidden="true" className="mt-1 size-4 shrink-0 text-ok" />
         <span>Connected. The agent can open {done.repo} now.</span>
       </p>
-      {done.expires_at ? <p className="text-13 text-muted">GitHub says this token expires on {date(done.expires_at)}. Make a new one before then.</p> : null}
+      {done.expires_at ? <p className="text-secondary text-muted">GitHub says this token expires on {date(done.expires_at)}. Make a new one before then.</p> : null}
       <div className="flex justify-end">
         <Button variant="primary" onClick={onLeave}>
           Done

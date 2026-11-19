@@ -28,9 +28,9 @@ function UptimeBars({ connections }: { connections: NodeConnections }) {
   return (
     <Card className="p-4 sm:p-6">
       <div className="flex items-baseline justify-between gap-4">
-        <p className="mono tabular text-20">{connections.uptime_pct}%</p>
+        <p className="mono tabular text-heading font-normal">{connections.uptime_pct}%</p>
         {/* A fixed line, so reading a bar never moves the chart. */}
-        <p className="tabular truncate text-13 text-muted" aria-live="polite">
+        <p className="tabular truncate text-secondary text-muted" aria-live="polite">
           {day ? `${date(day.day)}: ${day.up_pct}% up${day.incidents ? `, ${plural(day.incidents, 'incident')}` : ''}` : `${plural(incidents, 'incident')} in 30 days`}
         </p>
       </div>
@@ -44,14 +44,14 @@ function UptimeBars({ connections }: { connections: NodeConnections }) {
           <span
             key={item.day}
             onPointerEnter={() => setActive(index)}
-            className="relative block h-full flex-1 overflow-hidden rounded-[2px] bg-fill-3 transition-opacity duration-(--duration-fast) ease-standard"
+            className="relative block h-full flex-1 overflow-hidden rounded-[2px] bg-fill-strong transition-opacity duration-(--duration-fast) ease-standard"
             style={{ opacity: active !== null && active !== index ? 0.45 : 1 }}
           >
-            {item.incidents || item.up_pct < 100 ? <span className="absolute inset-x-0 top-0 bg-red" style={{ height: `${Math.min(100, Math.max(12, (100 - item.up_pct) * 8))}%` }} /> : null}
+            {item.incidents || item.up_pct < 100 ? <span className="absolute inset-x-0 top-0 bg-bad" style={{ height: `${Math.min(100, Math.max(12, (100 - item.up_pct) * 8))}%` }} /> : null}
           </span>
         ))}
       </div>
-      <div className="mt-2 flex justify-between text-12 text-faint">
+      <div className="mt-2 flex justify-between text-caption text-faint">
         <span>30 days ago</span>
         <span>Today</span>
       </div>
@@ -83,8 +83,8 @@ export function ConnectionTab({ org, node, system, connections, owner }: { org: 
         />
         {system?.key_fingerprint ? (
           <Card className="flex items-center gap-3 py-2 pr-2 pl-4">
-            <span className="shrink-0 text-12 text-faint">Key</span>
-            <code className="mono min-w-0 flex-1 truncate text-13">{system.key_fingerprint}</code>
+            <span className="shrink-0 text-caption text-faint">Key</span>
+            <code className="mono min-w-0 flex-1 truncate text-secondary">{system.key_fingerprint}</code>
             <CopyButton text={system.key_fingerprint} label="Copy the key fingerprint" />
           </Card>
         ) : null}
@@ -99,9 +99,9 @@ export function ConnectionTab({ org, node, system, connections, owner }: { org: 
                 {events.map((event) => (
                   <li key={`${event.at}:${event.kind}`} className="flex items-center gap-3 px-4 py-3 sm:px-6">
                     <StatusDot tone={KIND[event.kind].tone} />
-                    <span className="w-24 shrink-0 text-14">{KIND[event.kind].word}</span>
-                    <span className="min-w-0 flex-1 truncate text-13 text-muted">{event.detail ?? ''}</span>
-                    <time dateTime={event.at} title={dateTime(event.at)} className="tabular shrink-0 text-12 text-faint">
+                    <span className="w-24 shrink-0 text-body">{KIND[event.kind].word}</span>
+                    <span className="min-w-0 flex-1 truncate text-secondary text-muted">{event.detail ?? ''}</span>
+                    <time dateTime={event.at} title={dateTime(event.at)} className="tabular shrink-0 text-caption text-faint">
                       {timeAgo(event.at)}
                     </time>
                   </li>

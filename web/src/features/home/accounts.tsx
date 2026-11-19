@@ -51,12 +51,12 @@ function Group({ org, workspace, lanes, stories, canWatch, offset, asks }: { org
     <section aria-labelledby={`ws-${workspace.id}`} className="mb-12">
       <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1">
         <BusinessMark name={workspace.name} color={workspace.color} size={24} />
-        <h2 id={`ws-${workspace.id}`} className="text-16 font-semibold">
+        <h2 id={`ws-${workspace.id}`} className="text-section-title">
           <Link to="/$org/workspaces/$ws" params={{ org, ws: workspace.id }} className="hover:underline">
             {workspace.name}
           </Link>
         </h2>
-        <span className="inline-flex min-w-0 items-center gap-2 text-13 text-muted">
+        <span className="inline-flex min-w-0 items-center gap-2 text-secondary text-muted">
           <StateGlyph state={line.state} size={14} />
           {line.text}
         </span>
@@ -64,7 +64,7 @@ function Group({ org, workspace, lanes, stories, canWatch, offset, asks }: { org
       {accounts.length ? cards(accounts, offset) : null}
       {tools.length ? (
         <>
-          <h3 className="mt-6 mb-3 text-13 text-faint">Tools on the computer</h3>
+          <h3 className="mt-6 mb-3 text-secondary text-faint font-semibold">Tools on the computer</h3>
           {cards(tools, offset + accounts.length)}
         </>
       ) : null}
@@ -125,12 +125,12 @@ export function Accounts() {
                   aria-checked={filter === item.value}
                   onClick={() => setFilter(item.value)}
                   className={cn(
-                    'inline-flex h-7 items-center gap-2 rounded-md px-3 text-13 text-muted transition-colors duration-(--duration-fast) hover:text-fg',
-                    filter === item.value && 'bg-fill-2 text-fg',
+                    'inline-flex h-7 items-center gap-2 rounded-md px-3 text-secondary text-muted transition-colors duration-(--duration-fast) hover:text-fg',
+                    filter === item.value && 'bg-pressed text-fg',
                   )}
                 >
                   {item.label}
-                  <span className="tabular text-12 text-faint">{n}</span>
+                  <span className="tabular text-caption text-faint">{n}</span>
                 </button>
               );
             })}
@@ -140,7 +140,7 @@ export function Accounts() {
               type="button"
               aria-pressed={!chosen}
               onClick={() => void navigate({ search: {} })}
-              className={cn('h-8 rounded-full px-3 text-13 text-muted hover:bg-fill-1 hover:text-fg', !chosen && 'bg-fill-2 text-fg')}
+              className={cn('h-8 rounded-full px-3 text-secondary text-muted hover:bg-hover hover:text-fg', !chosen && 'bg-pressed text-fg')}
             >
               All workspaces
             </button>
@@ -150,7 +150,7 @@ export function Accounts() {
                 type="button"
                 aria-pressed={chosen === item.id}
                 onClick={() => void navigate({ search: { workspace: item.id } })}
-                className={cn('inline-flex h-8 items-center gap-2 rounded-full px-3 text-13 text-muted hover:bg-fill-1 hover:text-fg', chosen === item.id && 'bg-fill-2 text-fg')}
+                className={cn('inline-flex h-8 items-center gap-2 rounded-full px-3 text-secondary text-muted hover:bg-hover hover:text-fg', chosen === item.id && 'bg-pressed text-fg')}
               >
                 <BusinessMark name={item.name} color={item.color} size={14} />
                 {item.name}
@@ -202,8 +202,8 @@ export function Accounts() {
             return (
               <Card className="flex flex-col items-center px-6 py-14 text-center">
                 <StateGlyph state={filter === 'needs' ? 'good' : 'sleeping'} size={40} />
-                <p className="mt-4 text-14 font-medium">{filter === 'needs' ? 'No account needs a hand' : filter === 'working' ? 'No agent is working right now' : 'No account is resting'}</p>
-                <p className="mt-1 max-w-sm text-14 text-muted">
+                <p className="mt-4 text-label">{filter === 'needs' ? 'No account needs a hand' : filter === 'working' ? 'No agent is working right now' : 'No account is resting'}</p>
+                <p className="mt-1 max-w-sm text-body text-muted">
                   {filter === 'needs' ? 'Every account can do its job. We will tell you when one needs you.' : 'Everything is as it should be.'}
                 </p>
               </Card>

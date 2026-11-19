@@ -34,9 +34,9 @@ function ActivityRow({ row }: { row: TraceEvent }) {
   return (
     <li className="flex h-10 items-center gap-4 border-b border-line px-4 last:border-b-0">
       <StatusDot tone={runStatus[row.status].tone} />
-      <span className={cn('min-w-0 flex-1 truncate text-13', technical && 'mono')}>{technical ? row.summary : (own ?? didSentence(row))}</span>
-      {own ? null : <span className="hidden text-12 text-faint sm:inline">{RUN_WORDS[row.status].word}</span>}
-      <span className="tabular w-14 shrink-0 text-right text-12 text-faint">{timeAgo(row.at)}</span>
+      <span className={cn('min-w-0 flex-1 truncate text-secondary', technical && 'mono')}>{technical ? row.summary : (own ?? didSentence(row))}</span>
+      {own ? null : <span className="hidden text-caption text-faint sm:inline">{RUN_WORDS[row.status].word}</span>}
+      <span className="tabular w-14 shrink-0 text-right text-caption text-faint">{timeAgo(row.at)}</span>
     </li>
   );
 }
@@ -50,7 +50,7 @@ export function LaneActivity({ org, lane }: { org: string; lane: Lane }) {
     <Section
       title="History"
       action={
-        <Link to="/$org/activity" params={{ org }} search={{ lane: lane.id }} className="inline-flex min-h-8 items-center text-13 text-muted hover:text-fg md:min-h-0">
+        <Link to="/$org/activity" params={{ org }} search={{ lane: lane.id }} className="inline-flex min-h-8 items-center text-secondary text-muted hover:text-fg md:min-h-0">
           All of its history
         </Link>
       }
@@ -87,10 +87,10 @@ export function NeedsFirst({ org, lane }: { org: string; lane: Lane }) {
       <Link
         to="/$org/needs-you"
         params={{ org }}
-        className="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-line px-4 py-2 text-14 transition-colors duration-(--duration-base) ease-standard hover:border-line-strong hover:bg-fill-1"
+        className="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-line px-4 py-2 text-body transition-colors duration-(--duration-base) ease-standard hover:border-line-strong hover:bg-hover"
       >
         {pending.length === 1 ? 'One thing waits for your yes' : `${pending.length} things wait for your yes`}
-        <span className="shrink-0 text-13 whitespace-nowrap text-muted">Look and decide</span>
+        <span className="shrink-0 text-secondary whitespace-nowrap text-muted">Look and decide</span>
       </Link>
       <TaintSection org={org} lane={lane} />
     </div>
@@ -103,9 +103,9 @@ export function AccountSettings({ org, lane }: { org: string; lane: Lane }) {
   const flows = (useFlows(org).data ?? []).filter((item) => item.lane === lane.id);
   return (
     <details className="group rounded-xl border border-line">
-      <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 rounded-xl px-4 py-3 text-14 font-medium transition-colors duration-(--duration-base) ease-standard hover:bg-fill-1 [&::-webkit-details-marker]:hidden">
+      <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 rounded-xl px-4 py-3 text-label transition-colors duration-(--duration-base) ease-standard hover:bg-hover [&::-webkit-details-marker]:hidden">
         <span>Settings</span>
-        <span className="hidden min-w-0 flex-1 truncate text-13 font-normal text-muted sm:block">Runs on its own, pace, limits, sites, sign-in upkeep, files and a watch link</span>
+        <span className="hidden min-w-0 flex-1 truncate text-secondary text-muted sm:block">Runs on its own, pace, limits, sites, sign-in upkeep, files and a watch link</span>
         <ChevronDown aria-hidden="true" className="size-4 shrink-0 text-faint transition-transform duration-(--duration-base) ease-standard group-open:rotate-180" />
       </summary>
       <div className="grid gap-8 border-t border-line px-4 py-6">
@@ -120,15 +120,15 @@ export function AccountSettings({ org, lane }: { org: string; lane: Lane }) {
         <LaneStanding org={org} lane={lane} />
         {flows.length ? (
           <div>
-            <h2 className="mb-2 text-13 text-faint">Routines for this account</h2>
+            <h2 className="mb-2 text-secondary text-faint font-semibold">Routines for this account</h2>
             <ul className="grid gap-1">
               {flows.map((flow) => (
                 <li key={flow.id} className="flex items-center justify-between gap-4 py-1">
                   <span className="min-w-0">
-                    <Link to="/$org/flows/$flow" params={{ org, flow: flow.id }} className={cn('block truncate text-13 hover:underline', technical && 'mono')}>
+                    <Link to="/$org/flows/$flow" params={{ org, flow: flow.id }} className={cn('block truncate text-secondary hover:underline', technical && 'mono')}>
                       {technical ? flow.id : routineName(flow.id)}
                     </Link>
-                    <span className="block text-12 text-faint">{flow.last_run ? (technical ? usd(flow.last_run.cost.usd) : timeAgo(flow.last_run.started_at)) : 'Not run yet'}</span>
+                    <span className="block text-caption text-faint">{flow.last_run ? (technical ? usd(flow.last_run.cost.usd) : timeAgo(flow.last_run.started_at)) : 'Not run yet'}</span>
                   </span>
                   <span className="shrink-0">
                     <RoutineAskWord org={org} flow={flow} />
@@ -154,7 +154,7 @@ export function Inspect({ lane, open, onOpenChange }: { lane: Lane; open: boolea
     <Drawer open={open} onOpenChange={onOpenChange} title="Technical details" description={lane.id}>
       <div className="grid gap-6">
         <section>
-          <h3 className="mb-1 text-13 font-medium">Identity</h3>
+          <h3 className="mb-1 text-secondary font-medium">Identity</h3>
           <dl className={group}>
             <Detail label="Lane id">
               {/* Reversed, so the value stays on the right edge with the rows around it. */}
@@ -166,7 +166,7 @@ export function Inspect({ lane, open, onOpenChange }: { lane: Lane; open: boolea
             <Detail label="Kind">{lane.kind}</Detail>
             <Detail label="Isolation">
               {presetLabel[lane.preset]?.name ?? lane.preset}
-              <span className="block text-12 text-faint">{presetLabel[lane.preset]?.hint}</span>
+              <span className="block text-caption text-faint">{presetLabel[lane.preset]?.hint}</span>
             </Detail>
             <Detail label="Engine">
               <span className="mono">{lane.engine ?? '–'}</span>
@@ -175,7 +175,7 @@ export function Inspect({ lane, open, onOpenChange }: { lane: Lane; open: boolea
           </dl>
         </section>
         <section>
-          <h3 className="mb-1 text-13 font-medium">Network</h3>
+          <h3 className="mb-1 text-secondary font-medium">Network</h3>
           <dl className={group}>
             <Detail label="Proxy">
               <span className="mono">{lane.proxy?.label ?? 'None'}</span>
@@ -189,10 +189,10 @@ export function Inspect({ lane, open, onOpenChange }: { lane: Lane; open: boolea
               <span className="mono">{lane.exit_ip ?? '–'}</span>
             </Detail>
           </dl>
-          <p className="mt-2 text-12 text-faint">Proxy credentials stay on the computer that runs this account.</p>
+          <p className="mt-2 text-caption text-faint">Proxy credentials stay on the computer that runs this account.</p>
         </section>
         <section>
-          <h3 className="mb-1 text-13 font-medium">Runtime</h3>
+          <h3 className="mb-1 text-secondary font-medium">Runtime</h3>
           <dl className={group}>
             <Detail label="Node">
               <span className="mono">{lane.node}</span>

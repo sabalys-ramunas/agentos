@@ -2,6 +2,9 @@
 
 > The prototypes under `panel/prototypes/` were removed with the classic panel on 2026-11-14. They are
 > in git history (commit 59634500 and earlier); the commands below run only on such a checkout.
+>
+> Since 2026-11-19 an agent acting now is ink with a ringed, pulsing dot, never pink and never a hue
+> (web/DESIGN.md, web/DESIGN-SYSTEM.md). Where this page gives "live" a colour, that is superseded.
 
 Status: exploration, 2026-11-12. One of two directions for the new centre of the product (the
 other is Workbench). The prototype is
@@ -60,8 +63,8 @@ is live), Add a machine with a copyable command, the live test count and streami
 - **Real pictures, drawn.** The shop pages are real HTML at their real width (360, 768, 1280),
   scaled into the frame, so a problem's outline sits exactly on the element it is about and a
   dark screenshot stays dark inside a light app. Terminals are real output. No grey boxes.
-- **Colour means one thing each.** Pink: an agent acting now (the ring, the wire, the dot), as
-  in web/DESIGN.md. Red marks and amber marks: major and minor problems on a picture. Blue:
+- **Colour means one thing each.** Pink (now ink with a pulsing ring): an agent acting now (the ring,
+  the wire, the dot), as in web/DESIGN.md. Red marks and amber marks: major and minor problems on a picture. Blue:
   what changed, links, focus. Green: passed. Everything else is warm greys, so the pictures are
   the colour on the page.
 - **Type.** Geist for the interface, Geist Mono for commands, ids, branches and machine names.

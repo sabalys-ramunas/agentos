@@ -17,7 +17,7 @@ function chip(ref: string, name: string, untrusted: boolean): HTMLElement {
   const node = document.createElement('span');
   node.contentEditable = 'false';
   node.dataset.ref = ref;
-  node.className = `mx-px inline-flex h-5 items-center gap-1 rounded-sm border px-1 align-baseline text-12 font-medium ${untrusted ? 'border-(--wait-line) bg-fill-1' : 'border-line bg-fill-2'}`;
+  node.className = `mx-px inline-flex h-5 items-center gap-1 rounded-sm border px-1 align-baseline text-caption font-medium ${untrusted ? 'border-(--wait-line) bg-hover' : 'border-line bg-pressed'}`;
   const label = document.createElement('span');
   label.textContent = name;
   const remove = document.createElement('button');
@@ -177,20 +177,20 @@ export function DataField({ label, hint, value, sources, multiline, placeholder,
         <Label id={id}>{label}</Label>
         {sources.length ? (
           <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger className="inline-flex items-center gap-1 rounded-sm text-12 text-muted hover:text-fg">
+            <PopoverTrigger className="inline-flex items-center gap-1 rounded-sm text-caption text-muted hover:text-fg">
               <Braces aria-hidden="true" className="size-3" />
               Use data
             </PopoverTrigger>
             <PopoverContent className="max-h-80 overflow-y-auto p-1">
               {sources.map((source) => (
                 <div key={source.step} className="py-1">
-                  <p className="truncate px-2 py-1 text-12 text-faint">{source.label}</p>
+                  <p className="truncate px-2 py-1 text-caption text-faint">{source.label}</p>
                   {source.fields.map((field) => (
                     <button
                       key={field.key}
                       type="button"
                       onClick={() => insert(source.step, field.key)}
-                      className="flex h-8 w-full items-center justify-between gap-2 rounded-md px-2 text-left text-14 hover:bg-fill-2"
+                      className="flex h-8 w-full items-center justify-between gap-2 rounded-md px-2 text-left text-body hover:bg-pressed"
                     >
                       <span className="truncate">{field.label}</span>
                       {field.untrusted ? <ShieldAlert aria-label="Written by someone outside" className="size-4 shrink-0 text-faint" /> : null}
@@ -198,7 +198,7 @@ export function DataField({ label, hint, value, sources, multiline, placeholder,
                   ))}
                 </div>
               ))}
-              <p className="px-2 py-2 text-12 text-pretty text-faint">Text from outside can fill in words. It never decides what the routine does.</p>
+              <p className="px-2 py-2 text-caption text-pretty text-faint">Text from outside can fill in words. It never decides what the routine does.</p>
             </PopoverContent>
           </Popover>
         ) : null}
@@ -217,12 +217,12 @@ export function DataField({ label, hint, value, sources, multiline, placeholder,
         onClick={onClick}
         onKeyDown={onKeyDown}
         className={cn(
-          'w-full rounded-md border border-line bg-bg px-3 py-1 text-14 text-fg whitespace-pre-wrap transition-colors duration-(--duration-base) ease-standard outline-none hover:border-line-strong focus-visible:outline-2 focus-visible:outline-blue',
+          'w-full rounded-md border border-line bg-card px-3 py-1 text-body text-fg whitespace-pre-wrap transition-colors duration-(--duration-base) ease-standard outline-none hover:border-line-strong focus-visible:outline-2 focus-visible:outline-fg',
           'empty:before:text-faint empty:before:content-[attr(data-placeholder)]',
           multiline ? 'min-h-28 leading-6' : 'min-h-8 leading-6',
         )}
       />
-      {hint ? <p className="text-13 text-faint">{hint}</p> : null}
+      {hint ? <p className="text-secondary text-faint">{hint}</p> : null}
     </div>
   );
 }

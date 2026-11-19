@@ -213,6 +213,8 @@ MONO = ["Geist Mono Variable", "ui-monospace", "SF Mono", "Menlo", "monospace"]
 TYPE = {
     "display": ("sans", 40, "semibold", 44, -0.045, "Home's sentence. One per app, at most."),
     "page-title": ("sans", 28, "semibold", 36, -0.035, "One per page, the h1."),
+    "headline": ("sans", 32, "semibold", 40, -0.035, "The sentence that opens a focused page: a sign-in, a list's summary, an amount to pay."),
+    "heading": ("sans", 20, "semibold", 28, -0.02, "A heading inside a wide page, a step's question, a figure on a card."),
     "section-title": ("sans", 16, "semibold", 24, -0.015, "A section of a page, a dialog title."),
     "page-title-compact": ("sans", 24, "semibold", 32, -0.03, "The page title, and Home's sentence, on a phone."),
     "lede": ("sans", 16, "regular", 24, -0.01, "The sentence under a page title. text.secondary."),

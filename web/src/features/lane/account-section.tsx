@@ -8,7 +8,7 @@ export function AccountSection({ id, title, action, children, className }: { id:
   return (
     <section aria-labelledby={id} className={cn('grid content-start gap-3', className)}>
       <div className="flex min-h-7 items-center justify-between gap-3">
-        <h2 id={id} className="text-13 text-faint">
+        <h2 id={id} className="text-secondary text-faint font-semibold">
           {title}
         </h2>
         {action}
@@ -22,11 +22,11 @@ export function AccountSection({ id, title, action, children, className }: { id:
 export function Answer({ tone, word, children }: { tone: Tone; word: string; children?: ReactNode }) {
   return (
     <div className="grid gap-1">
-      <p className="flex items-center gap-2 text-14 font-medium">
+      <p className="flex items-center gap-2 text-label">
         <StatusDot tone={tone} />
         {word}
       </p>
-      {children ? <p className="text-13 text-pretty text-muted">{children}</p> : null}
+      {children ? <p className="text-secondary text-pretty text-muted">{children}</p> : null}
     </div>
   );
 }

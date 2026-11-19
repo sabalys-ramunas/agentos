@@ -68,16 +68,16 @@ function Stop({ stop, chosen, dim, onChoose }: { stop: PlacedStop; chosen: boole
 
 /** One line, always there, so pointing at a stop never moves the page. */
 function StopLine({ stop }: { stop: PlacedStop | null }) {
-  if (!stop) return <p className="min-h-12 pt-1 text-13 text-muted">Nothing stopped for a person on this day.</p>;
+  if (!stop) return <p className="min-h-12 pt-1 text-secondary text-muted">Nothing stopped for a person on this day.</p>;
   const verdict = stop.said === 'yes' ? yesSentence(stop.who, stop.method, stop.where) : `${stop.who} said no, so it didn't go out`;
   return (
     <div key={stop.id} className="flex min-h-12 animate-fade-in items-start gap-3">
-      <span className="tabular w-11 shrink-0 pt-px text-13 text-faint">{clockOf(stop.minute)}</span>
+      <span className="tabular w-11 shrink-0 pt-px text-secondary text-faint">{clockOf(stop.minute)}</span>
       <div className="min-w-0 flex-1">
-        <p className="text-14 font-medium text-pretty">{stop.title}</p>
-        <p className="text-13 text-pretty text-muted">{verdict}.</p>
+        <p className="text-label text-pretty">{stop.title}</p>
+        <p className="text-secondary text-pretty text-muted">{verdict}.</p>
       </div>
-      <span className="hidden shrink-0 items-center gap-2 text-13 whitespace-nowrap text-muted sm:flex">
+      <span className="hidden shrink-0 items-center gap-2 text-secondary whitespace-nowrap text-muted sm:flex">
         <RungIcon rung={stop.rung} className="size-4 text-faint" />
         {RUNG_WORDS[stop.rung].word}
       </span>
@@ -105,17 +105,17 @@ export function DayShapeView({ day, shape, note, lit }: Props) {
         <p className="silk text-faint">
           {day.label} · {date}
         </p>
-        <h3 className="tabular mt-2 max-w-[34em] text-24 font-semibold text-balance">
+        <h3 className="tabular mt-2 max-w-[34em] text-page-title-compact text-balance">
           {things(shape.total)} got done. {shape.own} went on their own, and {shape.stopped} stopped for a person.
         </h3>
-        <p aria-live="polite" className="mt-1 min-h-5 text-13 text-muted">
+        <p aria-live="polite" className="mt-1 min-h-5 text-secondary text-muted">
           {note}
         </p>
       </div>
       <div className="grid grid-cols-[minmax(0,1fr)] gap-x-4 px-6 sm:grid-cols-[132px_minmax(0,1fr)_32px]">
         <ol className="relative hidden sm:block" style={{ height: HEIGHT }} aria-hidden="true">
           {RUNGS.map((rung) => (
-            <li key={rung} className={cn('absolute inset-x-0 flex -translate-y-1/2 items-center gap-2 text-13 whitespace-nowrap transition-colors duration-(--duration-fast) ease-standard', lit === rung ? 'text-fg' : 'text-muted')} style={{ top: LANE[rung] }}>
+            <li key={rung} className={cn('absolute inset-x-0 flex -translate-y-1/2 items-center gap-2 text-secondary whitespace-nowrap transition-colors duration-(--duration-fast) ease-standard', lit === rung ? 'text-fg' : 'text-muted')} style={{ top: LANE[rung] }}>
               <RungIcon rung={rung} className="size-4 shrink-0 text-faint" />
               {RUNG_WORDS[rung].word}
             </li>
@@ -132,12 +132,12 @@ export function DayShapeView({ day, shape, note, lit }: Props) {
         </div>
         <ol className="relative hidden sm:block" style={{ height: HEIGHT }} aria-hidden="true">
           {RUNGS.map((rung) => (
-            <li key={rung} className="tabular absolute inset-x-0 -translate-y-1/2 text-right text-13 text-muted" style={{ top: LANE[rung] }}>
+            <li key={rung} className="tabular absolute inset-x-0 -translate-y-1/2 text-right text-secondary text-muted" style={{ top: LANE[rung] }}>
               {shape.lanes[rung]}
             </li>
           ))}
         </ol>
-        <div aria-hidden="true" className="tabular relative col-start-1 h-4 text-12 text-faint sm:col-start-2">
+        <div aria-hidden="true" className="tabular relative col-start-1 h-4 text-caption text-faint sm:col-start-2">
           {[0, 6, 12, 18].map((hour) => (
             <span key={hour} className="absolute" style={{ left: `${(hour / 24) * 100}%` }}>
               {hour === 0 ? 'Midnight' : `${String(hour).padStart(2, '0')}:00`}

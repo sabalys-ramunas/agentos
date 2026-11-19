@@ -15,11 +15,11 @@ export function LogCheck({ org }: { org: string }) {
         const verdict = verdictOf(report);
         return (
           <section aria-label="Log check" className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border border-line px-4 py-3">
-            <p className="flex min-w-0 items-center gap-2 text-14 font-medium">
+            <p className="flex min-w-0 items-center gap-2 text-label">
               <StatusDot tone={verdict.tone} />
               {verdict.label}
             </p>
-            <p className="min-w-0 text-13 text-muted">{verdict.sentence}</p>
+            <p className="min-w-0 text-secondary text-muted">{verdict.sentence}</p>
           </section>
         );
       }}

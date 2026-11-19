@@ -25,12 +25,14 @@ Said plainly, for anyone who knew the app before:
 - **No hue accent.** The primary, what is selected and what is running are ink. Links are ink with an
   underline. Focus is the one blue. `text-blue` and `--blue` now give ink.
 - **Running is ink, not pink.** `live`, `--current` and the Working now glyph were pink. They are ink
-  with a ringed, pulsing dot, so no status shares a hue with a kind of work. Changed in one place
+  with a ringed, pulsing dot, so no status shares a hue with a kind of work (the owner kept this on
+  2026-11-19: pink is only the design kind of work). Changed in one place
   (`src/styles/aliases.css`); every screen that says `bg-live` or `var(--current)` follows.
 - **A colour per kind of work.** Tests violet, design checks pink, build and CI teal, dev servers blue:
   always a tile with the kind's icon and its word in mono caps (`KindTile`, `KindEyebrow`).
 - **Type roles.** `text-page-title` (28/36), `text-display` (40/44), `text-table-header`, `text-code`
-  and the rest. The old `text-11` to `text-32` still work.
+  and the rest. The old `text-11` to `text-32` are gone (2026-11-19, `scripts/codemod-legacy-tokens.mjs`);
+  `text-heading` (20/28) and `text-headline` (32/40) took the two sizes no role had.
 - **Tables** have no grey band, rows 52 px (40 compact), sortable heads with `aria-sort`, a list form
   under 768 px, and a selection bar.
 - **Terminals are dark in both themes.** **Radius xl is 10** (was 12). Durations 100 / 150 / 200 ms.
@@ -108,6 +110,8 @@ tracking in one class; never pick a raw size for new work.
 | `text-display` | 40/44, 600, -0.045em | Home's sentence. One per app |
 | `text-page-title` | 28/36, 600, -0.035em | The h1 (`PageHeader` does it) |
 | `text-page-title-compact` | 24/32, 600 | The h1 on a phone |
+| `text-headline` | 32/40, 600, -0.035em | The sentence that opens a focused page: sign-in, a list's summary, an amount to pay |
+| `text-heading` | 20/28, 600, -0.02em | A heading inside a wide page, a step's question, a figure on a card |
 | `text-section-title` | 16/24, 600 | A section, a dialog title, a job card's title |
 | `text-lede` | 16/24 | The sentence under a page title, in `text-muted` |
 | `text-card-title` | 14/20, 600 | A card's head |
@@ -123,8 +127,8 @@ tracking in one class; never pick a raw size for new work.
 | `text-eyebrow` | mono 11/16, 500, +0.04em, caps | A kind's word and "IF YES". The one caps style |
 | `text-micro` | 11/16, 500 | Avatar initials and keys only |
 
-The old scale (`text-11` to `text-32`) still maps onto the same sizes for existing screens. Weights:
-400, 500, 600. Nothing heavier.
+The old scale (`text-11` to `text-32`) is gone: each became the role of the same size and line height,
+and the design rules refuse it. Weights: 400, 500, 600. Nothing heavier.
 
 ### Space, radius, depth, motion
 

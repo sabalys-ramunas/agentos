@@ -15,14 +15,14 @@ import { InlineError } from '@/components/ui/states';
 
 function Tile({ label, value, of, note }: { label: string; value: number; of: number; note: string }) {
   return (
-    <div className="grid min-w-0 content-start gap-2 bg-bg px-4 py-3 sm:px-6 sm:py-4">
-      <p className="text-13 text-muted">{label}</p>
-      <p className="text-20 font-semibold">
+    <div className="grid min-w-0 content-start gap-2 bg-card px-4 py-3 sm:px-6 sm:py-4">
+      <p className="text-secondary text-muted">{label}</p>
+      <p className="text-heading">
         <span className="tabular">{value.toLocaleString('en-GB')}</span>
-        <span className="text-14 font-normal text-faint"> of {of.toLocaleString('en-GB')}</span>
+        <span className="text-body text-faint"> of {of.toLocaleString('en-GB')}</span>
       </p>
       <Meter value={value} max={of} label={label} />
-      <p className="text-13 text-pretty text-faint">{note}</p>
+      <p className="text-secondary text-pretty text-faint">{note}</p>
     </div>
   );
 }
@@ -69,11 +69,11 @@ export function LimitsPanel({ org, data, canChange }: { org: string; data: Worke
         <Tile label="Asked for help" value={today.helped} of={limits.help_per_day} note="Then it asks you instead" />
         <Tile label="Most steps on one thing" value={today.longest} of={limits.steps_per_thing} note="It stops there, and tells you" />
         {technical ? (
-          <div className="grid min-w-0 content-start gap-2 bg-bg px-4 py-3 sm:px-6 sm:py-4">
-            <p className="text-13 text-muted">AI usage today</p>
-            <p className="text-20 font-semibold"><span className="tabular">{usd(today.usd)}</span><span className="text-14 font-normal text-faint"> of {usd(limits.usd_per_day)}</span></p>
+          <div className="grid min-w-0 content-start gap-2 bg-card px-4 py-3 sm:px-6 sm:py-4">
+            <p className="text-secondary text-muted">AI usage today</p>
+            <p className="text-heading"><span className="tabular">{usd(today.usd)}</span><span className="text-body text-faint"> of {usd(limits.usd_per_day)}</span></p>
             <Meter value={today.usd} max={limits.usd_per_day} label="AI usage today" />
-            <p className="text-13 text-faint">About {usd(today.steps ? today.usd / today.steps : 0)} a step</p>
+            <p className="text-secondary text-faint">About {usd(today.steps ? today.usd / today.steps : 0)} a step</p>
           </div>
         ) : null}
       </div>

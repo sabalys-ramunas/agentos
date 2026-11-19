@@ -18,8 +18,9 @@ screen designs all of these. In the catalog: `/$org/design#feedback`.
 | The plan is full | `PlanNotice`, `OverLimitBanner` | `components/plan-notice.tsx` |
 | Add to Home Screen | `InstallPrompt` | `components/install-prompt.tsx` |
 
-An error says what happened, that nothing changed, and what to do. Ink with a moving ring means an
-agent acting now, and nothing else: never decoration, never a resting state.
+An error says what happened, that nothing changed, and what to do. Ink with a moving ring (`Status`
+tone `live` with `pulse`) means an agent acting now, and nothing else: never decoration, never a resting
+state, and never pink (pink is the design kind of work).
 
 ## Not this
 

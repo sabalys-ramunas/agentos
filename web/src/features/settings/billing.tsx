@@ -18,9 +18,9 @@ import { SettingsHeader } from './page';
 function Usage({ label, value, max }: { label: string; value: number; max?: number }) {
   return (
     <div>
-      <div className="mb-2 flex items-baseline justify-between text-14">
+      <div className="mb-2 flex items-baseline justify-between text-body">
         <span>{label}</span>
-        <span className="mono tabular text-13 text-muted">{max === undefined ? value : `${value} of ${max}`}</span>
+        <span className="mono tabular text-secondary text-muted">{max === undefined ? value : `${value} of ${max}`}</span>
       </div>
       {max === undefined ? null : <Meter value={value} max={max} label={label} />}
     </div>
@@ -61,7 +61,7 @@ function Body({ org, status }: { org: string; status: Status }) {
         }
         footnote={
           portal.isError ? (
-            <span role="alert" className="text-red">
+            <span role="alert" className="text-bad">
               {describeError(portal.error)}
             </span>
           ) : alone ? undefined : (
@@ -84,7 +84,7 @@ function Body({ org, status }: { org: string; status: Status }) {
             <Usage label="Workspaces" value={status.usage.workspaces} max={status.limits?.workspaces} />
             <Usage label="Members" value={status.usage.members} max={status.limits?.members} />
           </div>
-          {status.limits ? <p className="text-13 text-faint">History is kept for {status.limits.retention_days} days on this plan.</p> : null}
+          {status.limits ? <p className="text-secondary text-faint">History is kept for {status.limits.retention_days} days on this plan.</p> : null}
         </FormCard>
       ) : null}
       {alone ? null : (

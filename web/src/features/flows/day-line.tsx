@@ -81,17 +81,17 @@ function Mark({ org, placed, flows, size }: { org: string; placed: Placed; flows
         style={{ left: `${left}%`, bottom: 28 + lane * (size + 6) }}
       >
         <span className={cn('relative block', coming && 'rounded-[9px] outline-1 -outline-offset-1 outline-line-strong outline-dashed')}>
-          <SiteMark site={mark.site} size={size as 24 | 32} tile label={false} className={cn('bg-bg', coming && 'opacity-55 grayscale')} />
+          <SiteMark site={mark.site} size={size as 24 | 32} tile label={false} className={cn('bg-card', coming && 'opacity-55 grayscale')} />
           {hurt ? (
-            <span className="absolute -top-1 -right-1 rounded-full bg-bg p-px">
+            <span className="absolute -top-1 -right-1 rounded-full bg-card p-px">
               <StateGlyph state="stuck" size={14} />
             </span>
           ) : mark.status === 'waiting_approval' ? (
-            <span className="absolute -top-1 -right-1 rounded-full bg-bg p-px">
+            <span className="absolute -top-1 -right-1 rounded-full bg-card p-px">
               <StateGlyph state="waiting" size={14} />
             </span>
           ) : null}
-          {more.length ? <span className="tabular absolute -right-1 -bottom-1 rounded-full bg-fg px-1 text-11 text-bg">+{more.length}</span> : null}
+          {more.length ? <span className="tabular absolute -right-1 -bottom-1 rounded-full bg-fg px-1 text-micro text-card font-normal">+{more.length}</span> : null}
         </span>
       </Link>
     </Tooltip>
@@ -117,22 +117,22 @@ export function DayLine({ org, day, flows }: { org: string; day: RoutineDay; flo
   const height = 28 + LANES * (tile + 6) + 16;
 
   return (
-    <section aria-label="What ran, and what comes next" className="relative rounded-(--radius-card) border border-line bg-bg px-4 pt-4 pb-2 md:px-6">
-      <div className="relative h-4 text-12 text-faint">
+    <section aria-label="What ran, and what comes next" className="relative rounded-(--radius-card) border border-line bg-card px-4 pt-4 pb-2 md:px-6">
+      <div className="relative h-4 text-caption text-faint">
         <span>Earlier</span>
         <span className="absolute pl-2" style={{ left: needle }}>Coming up</span>
       </div>
       <div className="relative" style={{ height }}>
         {/* Only the past is solid: what is to come is a promise. */}
         <div aria-hidden="true" className="absolute inset-x-0 bottom-6 h-px bg-line" />
-        <div aria-hidden="true" className="absolute right-0 bottom-6 h-px bg-bg [background-image:repeating-linear-gradient(90deg,var(--border-strong)_0_4px,transparent_4px_8px)]" style={{ left: needle }} />
+        <div aria-hidden="true" className="absolute right-0 bottom-6 h-px bg-card [background-image:repeating-linear-gradient(90deg,var(--border-strong)_0_4px,transparent_4px_8px)]" style={{ left: needle }} />
         {ticks.map((at) => (
-          <span key={at} aria-hidden="true" className="mono tabular absolute bottom-0 -translate-x-1/2 text-11 text-faint" style={{ left: `${((at - from) / (to - from)) * 100}%` }}>
+          <span key={at} aria-hidden="true" className="mono tabular absolute bottom-0 -translate-x-1/2 text-micro text-faint font-normal" style={{ left: `${((at - from) / (to - from)) * 100}%` }}>
             {clock(new Date(at).toISOString())}
           </span>
         ))}
         <div aria-hidden="true" className="absolute top-0 bottom-6 w-px bg-fg" style={{ left: needle }} />
-        <span className="tabular absolute bottom-0 -translate-x-1/2 rounded-sm bg-fg px-1 text-11 font-medium text-bg" style={{ left: needle }}>Now</span>
+        <span className="tabular absolute bottom-0 -translate-x-1/2 rounded-sm bg-fg px-1 text-micro text-card" style={{ left: needle }}>Now</span>
         {placed.map((item) => (
           <Mark key={`${item.mark.flow}-${item.mark.at}`} org={org} placed={item} flows={byId} size={tile} />
         ))}

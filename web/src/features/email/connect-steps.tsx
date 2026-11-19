@@ -31,10 +31,10 @@ export function Step({ number, title, state, summary, children }: { number: numb
   return (
     <li className={cn('spine-step', state === 'now' ? 'pb-8' : 'pb-6')} data-now={state === 'now' ? '' : undefined} data-done={state === 'done' ? '' : undefined}>
       <span className="spine-mark">{state === 'done' ? <StateGlyph state="good" size={20} /> : number}</span>
-      <h2 className={cn('min-h-6 text-14', state === 'now' ? 'text-16 font-semibold text-fg' : state === 'done' ? 'font-medium text-fg' : 'text-faint')}>
+      <h2 className={cn('min-h-6 text-body', state === 'now' ? 'text-section-title font-semibold text-fg' : state === 'done' ? 'font-medium text-fg' : 'text-faint')}>
         {title}
       </h2>
-      {state === 'done' && summary ? <div className="mt-1 text-13 text-muted">{summary}</div> : null}
+      {state === 'done' && summary ? <div className="mt-1 text-secondary text-muted">{summary}</div> : null}
       {state === 'now' ? <div className="spine-rise mt-3">{children}</div> : null}
     </li>
   );
@@ -44,11 +44,11 @@ export function Disclosure({ label, children }: { label: string; children: React
   const [open, setOpen] = useState(false);
   return (
     <div>
-      <button type="button" aria-expanded={open} onClick={() => setOpen(!open)} className="group inline-flex items-center gap-1 text-13 text-muted hover:text-fg">
+      <button type="button" aria-expanded={open} onClick={() => setOpen(!open)} className="group inline-flex items-center gap-1 text-secondary text-muted hover:text-fg">
         {label}
         <ChevronDown aria-hidden="true" className={cn('size-3 transition-transform duration-(--duration-fast) ease-standard', open && 'rotate-180')} />
       </button>
-      {open ? <div className="spine-rise mt-2 max-w-xl text-13 text-pretty text-muted">{children}</div> : null}
+      {open ? <div className="spine-rise mt-2 max-w-xl text-secondary text-pretty text-muted">{children}</div> : null}
     </div>
   );
 }
@@ -56,8 +56,8 @@ export function Disclosure({ label, children }: { label: string; children: React
 export function ServerNames({ found }: { found: MailDiscovery }) {
   return (
     <dl className="grid gap-1">
-      <div className="flex gap-2"><dt className="w-24 shrink-0 text-faint">Mail in</dt><dd className="mono min-w-0 break-all text-12">{found.incoming}</dd></div>
-      <div className="flex gap-2"><dt className="w-24 shrink-0 text-faint">Mail out</dt><dd className="mono min-w-0 break-all text-12">{found.outgoing}</dd></div>
+      <div className="flex gap-2"><dt className="w-24 shrink-0 text-faint">Mail in</dt><dd className="mono min-w-0 break-all text-caption">{found.incoming}</dd></div>
+      <div className="flex gap-2"><dt className="w-24 shrink-0 text-faint">Mail out</dt><dd className="mono min-w-0 break-all text-caption">{found.outgoing}</dd></div>
       <div className="flex gap-2"><dt className="w-24 shrink-0 text-faint">Found in</dt><dd className="min-w-0">{found.source}</dd></div>
     </dl>
   );
@@ -78,8 +78,8 @@ export function AddressStep({ initial, onFind }: { initial: string; onFind: (add
         if (ready) onFind(value.trim());
       }}
     >
-      <label htmlFor="mail-address" className="block text-32 font-semibold text-balance">What is the email address?</label>
-      <p className="mt-2 text-16 text-pretty text-muted">Type it here and the rest gets worked out for you.</p>
+      <label htmlFor="mail-address" className="block text-headline text-balance">What is the email address?</label>
+      <p className="mt-2 text-lede text-pretty text-muted">Type it here and the rest gets worked out for you.</p>
       <input
         id="mail-address"
         className="address-field mt-8"
@@ -95,7 +95,7 @@ export function AddressStep({ initial, onFind }: { initial: string; onFind: (add
         aria-describedby="mail-address-note"
         onChange={(event) => setValue(event.target.value)}
       />
-      <p id="mail-address-note" className="mt-2 flex h-5 items-center gap-2 text-13 text-muted">
+      <p id="mail-address-note" className="mt-2 flex h-5 items-center gap-2 text-secondary text-muted">
         {hint ? <><SiteMark site={hint.site} size={14} label={false} />{hint.word}</> : tried && !ready ? 'That does not look like a whole address yet. It needs an @ and a name after it.' : null}
       </p>
       <Button type="submit" variant="primary" size="lg" className="mt-6">Find my mail</Button>
@@ -123,7 +123,7 @@ export function Finding({ domain, found, failed }: { domain: string; found: Mail
   ];
   return (
     <div>
-      <ul aria-live="polite" className="grid gap-2 text-14">
+      <ul aria-live="polite" className="grid gap-2 text-body">
         {lines.slice(0, shown).map((line, index) => {
           const settled = index < shown - 1 || done;
           return (
@@ -134,8 +134,8 @@ export function Finding({ domain, found, failed }: { domain: string; found: Mail
           );
         })}
       </ul>
-      {failed ? <p className="mt-2 text-13 text-muted">Your computer did not answer. Check that it is on, and try again.</p> : null}
-      <p className="mt-3 text-12 text-faint">Only the name after the @ was looked up. Your address and password stay out of it.</p>
+      {failed ? <p className="mt-2 text-secondary text-muted">Your computer did not answer. Check that it is on, and try again.</p> : null}
+      <p className="mt-3 text-caption text-faint">Only the name after the @ was looked up. Your address and password stay out of it.</p>
     </div>
   );
 }
@@ -146,8 +146,8 @@ function HostLine({ label, host, odd }: { label: string; host: string; odd: stri
   const at = odd ? (name ?? '').indexOf(odd) : -1;
   return (
     <div className="grid gap-1 py-3 sm:grid-cols-[6rem_minmax(0,1fr)] sm:items-baseline">
-      <dt className="text-13 text-faint">{label}</dt>
-      <dd className="mono min-w-0 text-16 break-all text-muted">
+      <dt className="text-secondary text-faint">{label}</dt>
+      <dd className="mono min-w-0 text-lede break-all text-muted">
         {at >= 0 ? (
           <>
             {name?.slice(0, at)}
@@ -189,8 +189,8 @@ export function FoundStep({ found, onHandOver, onAgain }: { found: MailDiscovery
   if (found.result === 'not_found') {
     return (
       <div className="mt-4 max-w-xl">
-        <h3 className="text-20 font-semibold text-balance">We could not find how this mail works</h3>
-        <p className="mt-2 text-14 text-pretty text-muted">We asked every public place, and nothing answered for {found.domain}. That happens with smaller mail companies. They will know the two server names, and nothing is lost.</p>
+        <h3 className="text-heading text-balance">We could not find how this mail works</h3>
+        <p className="mt-2 text-body text-pretty text-muted">We asked every public place, and nothing answered for {found.domain}. That happens with smaller mail companies. They will know the two server names, and nothing is lost.</p>
         {byHand ? <ByHand onDone={onHandOver} /> : <Button variant="primary" className="mt-4" onClick={() => setByHand(true)}>Type the server names</Button>}
       </div>
     );
@@ -198,8 +198,8 @@ export function FoundStep({ found, onHandOver, onAgain }: { found: MailDiscovery
   if (found.result === 'later') {
     return (
       <div className="mt-4 max-w-xl">
-        <h3 className="text-20 font-semibold text-balance">{found.provider} comes a little later</h3>
-        <p className="mt-2 text-14 text-pretty text-muted">Gmail and most business mail work today. {found.provider} needs its own kind of password, and that part is still being built. Nothing was saved.</p>
+        <h3 className="text-heading text-balance">{found.provider} comes a little later</h3>
+        <p className="mt-2 text-body text-pretty text-muted">Gmail and most business mail work today. {found.provider} needs its own kind of password, and that part is still being built. Nothing was saved.</p>
         <Button className="mt-4" onClick={onAgain}>Use another address</Button>
       </div>
     );
@@ -207,13 +207,13 @@ export function FoundStep({ found, onHandOver, onAgain }: { found: MailDiscovery
   if (found.result === 'needs_a_look') {
     return (
       <div className="mt-4 max-w-xl">
-        <h3 className="text-20 font-semibold text-balance">Please look at these two names</h3>
-        <p className="mt-2 text-14 text-pretty text-muted">We found them in public records that can be changed by anyone who gets at this domain, so we will not send a password there until a person says they look right.</p>
+        <h3 className="text-heading text-balance">Please look at these two names</h3>
+        <p className="mt-2 text-body text-pretty text-muted">We found them in public records that can be changed by anyone who gets at this domain, so we will not send a password there until a person says they look right.</p>
         <dl className="mt-4 divide-y divide-line border-y border-line">
           <HostLine label="Mail in" host={found.incoming ?? ''} odd={found.odd_part} />
           <HostLine label="Mail out" host={found.outgoing ?? ''} odd={found.odd_part} />
         </dl>
-        {found.odd_part ? <p className="mt-3 flex items-start gap-2 text-13 text-pretty text-muted"><StateGlyph state="waiting" size={16} />This is not the same name as your address ({found.domain}). That can be fine, if this is the company that runs your mail. If you are not sure, ask whoever set up your email.</p> : null}
+        {found.odd_part ? <p className="mt-3 flex items-start gap-2 text-secondary text-pretty text-muted"><StateGlyph state="waiting" size={16} />This is not the same name as your address ({found.domain}). That can be fine, if this is the company that runs your mail. If you are not sure, ask whoever set up your email.</p> : null}
         {byHand ? <ByHand onDone={onHandOver} /> : (
           <div className="mt-4 flex items-center gap-2">
             <Button onClick={() => setByHand(true)}>These look wrong</Button>
@@ -228,7 +228,7 @@ export function FoundStep({ found, onHandOver, onAgain }: { found: MailDiscovery
 
 function Numbered({ number, children }: { number: number; children: ReactNode }) {
   return (
-    <li className="flex gap-3 border-t border-line py-3 text-14 text-pretty first:border-t-0">
+    <li className="flex gap-3 border-t border-line py-3 text-body text-pretty first:border-t-0">
       <span className="tabular mt-px w-4 shrink-0 text-faint">{number}</span>
       <span className="min-w-0 flex-1">{children}</span>
     </li>
@@ -239,7 +239,7 @@ export function PasswordStep({ provider, go }: { provider: string; go: Go }) {
   const { copied, copy } = useCopy();
   return (
     <div className="max-w-xl">
-      <p className="text-16 text-pretty text-muted">
+      <p className="text-lede text-pretty text-muted">
         It is a separate password, 16 letters long, that you make for agentos. <span className="text-fg">Your normal {provider} password stays yours.</span> You can delete this one any time.
       </p>
       <ol className="mt-4 rounded-lg border border-line px-4">
@@ -253,12 +253,12 @@ export function PasswordStep({ provider, go }: { provider: string; go: Go }) {
               </a>
             </Button>
           </span>
-          <span className="mt-1 block text-13 text-muted">It opens in its own tab, on Google's own site. Google may ask you to sign in there.</span>
+          <span className="mt-1 block text-secondary text-muted">It opens in its own tab, on Google's own site. Google may ask you to sign in there.</span>
         </Numbered>
         <Numbered number={2}>
           <span className="flex flex-wrap items-center gap-2">
             Give it a name, such as
-            <button type="button" onClick={() => void copy('agentos')} className="mono inline-flex h-6 items-center gap-1 rounded-sm bg-fill-2 px-2 text-12 hover:bg-fill-3">
+            <button type="button" onClick={() => void copy('agentos')} className="mono inline-flex h-6 items-center gap-1 rounded-sm bg-pressed px-2 text-caption hover:bg-fill-strong">
               agentos
               {copied ? <CheckIcon aria-hidden="true" className="size-3" /> : <Copy aria-hidden="true" className="size-3 text-faint" />}
             </button>
@@ -269,7 +269,7 @@ export function PasswordStep({ provider, go }: { provider: string; go: Go }) {
       </ol>
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <Button variant="primary" size="lg" onClick={() => go('hand-over')}>I have my 16 letters</Button>
-        <button type="button" className="link text-13" onClick={() => go('failed', { ending: 'two-step-off' })}>Google says this is not available</button>
+        <button type="button" className="link text-secondary" onClick={() => go('failed', { ending: 'two-step-off' })}>Google says this is not available</button>
       </div>
       <div className="mt-6 grid gap-2">
         <Disclosure label="Why not my normal password?">
@@ -291,8 +291,8 @@ export function ComputerChoice({ computers, value, onChange }: { computers: Mail
         <label key={computer.id} aria-label={`${computer.id}, ${computer.word}`} className={cn('flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors duration-(--duration-fast) ease-standard', value === computer.id ? 'border-fg' : 'border-line hover:border-line-strong')}>
           <input type="radio" name="computer" className="sr-only" checked={value === computer.id} onChange={() => onChange(computer.id)} />
           <span className="min-w-0">
-            <span className="mono block truncate text-13">{computer.id}</span>
-            <span className="block truncate text-12 text-faint">{computer.word}</span>
+            <span className="mono block truncate text-secondary">{computer.id}</span>
+            <span className="block truncate text-caption text-faint">{computer.word}</span>
           </span>
         </label>
       ))}

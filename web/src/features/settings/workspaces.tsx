@@ -1,10 +1,10 @@
+import { BusinessMark } from '@/components/brand/identity';
 import { useParams } from '@tanstack/react-router';
 import { Download, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { useAccess, useCreateWorkspace, useDeleteWorkspace, useStatus, useUpdateWorkspace, useWorkspaces } from '@/api/hooks';
 import type { Workspace } from '@/api/types';
-import { WorkspaceMark } from '@/components/lane-icon';
 import { OverLimitBanner, PlanNotice, usePlanRoom } from '@/components/plan-notice';
 import { Badge } from '@/components/ui/badge';
 import { Button, IconButton } from '@/components/ui/button';
@@ -181,13 +181,13 @@ export function WorkspacesSettings() {
                     const readOnly = status?.limits !== undefined && index >= status.limits.workspaces;
                     return (
                       <li key={workspace.id} className="flex min-h-14 items-center gap-2 px-4 py-2 sm:px-6">
-                        <WorkspaceMark name={workspace.name} color={workspace.color} className="mr-1" />
+                        <BusinessMark name={workspace.name} color={workspace.color} className="mr-1" />
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-14">{workspace.name}</p>
-                          {technical ? <p className="mono truncate text-12 text-faint">{workspace.id}</p> : null}
+                          <p className="truncate text-body">{workspace.name}</p>
+                          {technical ? <p className="mono truncate text-caption text-faint">{workspace.id}</p> : null}
                         </div>
                         {readOnly ? <Badge>Read-only</Badge> : null}
-                        <span className="hidden text-13 text-muted sm:inline">{plural(workspace.lanes.length, 'account')}</span>
+                        <span className="hidden text-secondary text-muted sm:inline">{plural(workspace.lanes.length, 'account')}</span>
                         {canManage ? (
                           <Menu>
                             <MenuTrigger asChild>
@@ -208,7 +208,7 @@ export function WorkspacesSettings() {
                                   Export
                                 </MenuItem>
                               ) : null}
-                              <MenuItem className="text-red" onSelect={() => setDeleting(workspace)}>
+                              <MenuItem className="text-bad" onSelect={() => setDeleting(workspace)}>
                                 <Trash2 className="size-4" />
                                 Delete
                               </MenuItem>

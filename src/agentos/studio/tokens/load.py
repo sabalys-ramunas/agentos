@@ -55,10 +55,11 @@ def category_from_name(name: str) -> TokenCategory | None:
     n = kebab(name).replace(".", "-")
     if re.search(r"line-?height|leading", n):
         return C.LINE_HEIGHT
-    # a type scale named by size: --type-14 is a font size, --type-14-line its line height
+    # a type scale named by size: --type-14 (or --font-14, font.14) is a font size, --type-14-line
+    # its line height
     if re.search(r"(^|-)(type|text|font|fs)-\d+(\.\d+)?-line$", n):
         return C.LINE_HEIGHT
-    if re.search(r"(^|-)(type|fs)-\d+(\.\d+)?$", n):
+    if re.search(r"(^|-)(type|font|fs)-\d+(\.\d+)?$", n):
         return C.FONT_SIZE
     if re.search(r"radius|radii|rounded|corner", n):
         return C.RADIUS
@@ -645,6 +646,10 @@ def _category_of(var: str, resolved: str, *, tailwind: bool, uses: dict[str, lis
     """What a custom property is a token of, or None when it is none."""
     if tailwind:
         cat = _tailwind_category(var)
+        if cat == C.FONT_FAMILY and parse_length(resolved, root_px=root_px) is not None:
+            # Tailwind's --font-* are families, but a length is no family: --font-13: 13px is a
+            # size scale of the app's own, read as in plain CSS
+            cat = _plain_category(var, resolved)
         if cat is None and not var.startswith(("--tw-", "--text-", "--color-", "--default-")):
             # the app's own variables beside Tailwind's (--background, --type-14): read them as in plain CSS
             cat = _plain_category(var, resolved)

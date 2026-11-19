@@ -21,7 +21,7 @@ function TechnicalLine({ org, task }: { org: string; task: BrainTask }) {
   const detail = useBrainTask(org, task.id, open);
   return (
     <div className="grid gap-2">
-      <p className="tabular text-12 text-faint">
+      <p className="tabular text-caption text-faint">
         Attempt {task.attempt} · {task.turns} {task.turns === 1 ? 'turn' : 'turns'} · {task.tokens.toLocaleString('en')} tokens
         {task.cost_usd !== null ? ` · ${usd(task.cost_usd)}` : ''}
         {task.status_reason ? ` · ${task.status_reason}` : ''}
@@ -30,13 +30,13 @@ function TechnicalLine({ org, task }: { org: string; task: BrainTask }) {
         detail.isPending ? (
           <Skeleton className="h-16 w-full" />
         ) : detail.isError ? (
-          <p className="text-13 text-muted">Could not read what it said. Try again in a moment.</p>
+          <p className="text-secondary text-muted">Could not read what it said. Try again in a moment.</p>
         ) : detail.data.transcript_tail.length ? (
-          <pre className="mono max-h-48 overflow-auto rounded-lg border border-line bg-subtle p-3 text-12 whitespace-pre-wrap text-muted">
+          <pre className="mono max-h-48 overflow-auto rounded-lg border border-line bg-inset p-3 text-caption whitespace-pre-wrap text-muted">
             {detail.data.transcript_tail.slice(-12).join('\n')}
           </pre>
         ) : (
-          <p className="text-13 text-muted">Nothing was written down yet.</p>
+          <p className="text-secondary text-muted">Nothing was written down yet.</p>
         )
       ) : null}
       <div>
@@ -99,8 +99,8 @@ export function HandedToModels({ org }: { org: string }) {
                     <li key={task.id} className="grid gap-3 px-4 py-4 sm:px-6">
                       <div className="flex min-w-0 items-start justify-between gap-4">
                         <div className="min-w-0">
-                          <p className="line-clamp-2 text-14">{task.summary || 'A task with no words'}</p>
-                          <p className="mt-1 truncate text-13 text-faint">
+                          <p className="line-clamp-2 text-body">{task.summary || 'A task with no words'}</p>
+                          <p className="mt-1 truncate text-secondary text-faint">
                             {nameOf(task)} · {serviceOf(task)}
                             {task.started_at ? ` · started ${timeAgo(task.started_at)}` : ''}
                           </p>
@@ -108,7 +108,7 @@ export function HandedToModels({ org }: { org: string }) {
                         <StateBadge state={word.state} label={word.label} sentence={word.sentence} className="shrink-0" />
                       </div>
                       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-                        <p className="min-w-0 text-13 text-muted">{word.sentence}</p>
+                        <p className="min-w-0 text-secondary text-muted">{word.sentence}</p>
                         <div className="flex shrink-0 gap-2">
                           {canStop(task) ? (
                             <Button size="sm" variant="danger" onClick={() => setStopping(task)}>

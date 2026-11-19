@@ -135,7 +135,7 @@ export function ProfilePage() {
           <a
             key={item.id}
             href={`#section-${item.id}`}
-            className="focus-inset -mb-px flex h-10 shrink-0 items-center border-b-2 border-transparent text-14 font-medium whitespace-nowrap text-faint hover:text-fg"
+            className="focus-inset -mb-px flex h-10 shrink-0 items-center border-b-2 border-transparent text-label whitespace-nowrap text-faint hover:text-fg"
             onClick={(event) => {
               const target = document.getElementById(`section-${item.id}`);
               if (target) {

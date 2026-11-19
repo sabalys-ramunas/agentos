@@ -118,7 +118,7 @@ function Row({ row, first, last, sideTop, now, onOpen }: RowProps) {
       <li className="flex min-h-14 gap-2">
         <Gutter row={row} first={first} last={last} sideTop={sideTop} />
         <div className="grid min-w-0 flex-1 content-start gap-1 py-3">
-          <span className="text-14 font-medium text-fg">The working copy now</span>
+          <span className="text-label text-fg">The working copy now</span>
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <Changes change={row.since} label={row.base ? `Since ${row.base.number}` : undefined} />
           </span>
@@ -148,7 +148,7 @@ function Row({ row, first, last, sideTop, now, onOpen }: RowProps) {
         <div className="grid min-w-0 gap-1">
           <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
             <span className={cn('font-mono text-code-caption tabular', side ? 'text-faint' : 'text-muted')}>{number}</span>
-            <span className={cn('min-w-0 text-14 [overflow-wrap:anywhere]', side ? 'text-muted' : 'font-medium text-fg', !checkpoint.note && 'text-faint')}>{noteOf(checkpoint)}</span>
+            <span className={cn('min-w-0 text-label [overflow-wrap:anywhere]', side ? 'text-muted' : 'font-medium text-fg', !checkpoint.note && 'text-faint')}>{noteOf(checkpoint)}</span>
             {row.forks ? <Badge tone="accent">Went back here</Badge> : null}
             {checkpoint.auto ? <Badge>Made by agentos</Badge> : null}
           </span>

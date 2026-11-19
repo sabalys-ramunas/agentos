@@ -19,10 +19,10 @@ export const TRIGGER_ICON: Record<RoutineTrigger['kind'], LucideIcon> = { schedu
 /** The square at the front of a step: its site, or what kind of step it is. */
 export function StepMark({ step, catalog, size = 32 }: { step: RoutineStep; catalog: RoutineCatalog | undefined; size?: 24 | 32 | 40 }) {
   const site = stepSite(step, catalog);
-  if (site) return <SiteMark site={site} size={size} tile label={false} className="bg-bg" />;
+  if (site) return <SiteMark site={site} size={size} tile label={false} className="bg-card" />;
   const Icon = KIND_ICON[step.kind] ?? Clock;
   return (
-    <span className="grid shrink-0 place-items-center rounded-lg border border-line bg-bg text-muted" style={{ width: size, height: size }}>
+    <span className="grid shrink-0 place-items-center rounded-lg border border-line bg-card text-muted" style={{ width: size, height: size }}>
       <Icon aria-hidden="true" className="size-4" />
     </span>
   );
@@ -31,7 +31,7 @@ export function StepMark({ step, catalog, size = 32 }: { step: RoutineStep; cata
 export function TriggerMark({ trigger, size = 32 }: { trigger: RoutineTrigger; size?: 24 | 32 | 40 }) {
   const Icon = TRIGGER_ICON[trigger.kind];
   return (
-    <span className="grid shrink-0 place-items-center rounded-lg bg-fg text-bg" style={{ width: size, height: size }}>
+    <span className="grid shrink-0 place-items-center rounded-lg bg-fg text-card" style={{ width: size, height: size }}>
       <Icon aria-hidden="true" className="size-4" />
     </span>
   );
@@ -53,7 +53,7 @@ function Node({ mark, silk, title, note, locked, status, id, lit, onLight }: { m
       onPointerEnter={() => onLight?.(id)}
       onPointerLeave={() => onLight?.(null)}
       className={cn(
-        'relative w-full shrink-0 rounded-xl border bg-bg p-3 transition-[border-color,opacity] duration-(--duration-fast) ease-standard md:w-48',
+        'relative w-full shrink-0 rounded-xl border bg-card p-3 transition-[border-color,opacity] duration-(--duration-fast) ease-standard md:w-48',
         lit === id ? 'border-fg' : status === 'failed' ? 'border-(--stuck-line)' : status === 'waiting_approval' ? 'border-(--wait-line)' : 'border-line',
         dim && 'opacity-55',
       )}
@@ -62,8 +62,8 @@ function Node({ mark, silk, title, note, locked, status, id, lit, onLight }: { m
         {mark}
         <span className="silk truncate">{silk}</span>
       </span>
-      <span className="mt-2 block text-13 font-medium text-pretty">{title}</span>
-      <span className="mt-1 flex min-h-4 items-center gap-1 text-12 text-faint">
+      <span className="mt-2 block text-secondary font-medium text-pretty">{title}</span>
+      <span className="mt-1 flex min-h-4 items-center gap-1 text-caption text-faint">
         {status === 'failed' ? <StateGlyph state="stuck" size={14} /> : status === 'waiting_approval' ? <StateGlyph state="waiting" size={14} /> : locked ? <Lock aria-hidden="true" className="size-3 shrink-0" /> : null}
         <span className="truncate">{note ?? (locked ? 'Always asks' : '')}</span>
       </span>
@@ -128,7 +128,7 @@ function Fork({ step, catalog, run, locked, lit, onLight }: Omit<MapProps, 'step
           <Steps steps={steps} catalog={catalog} run={run} locked={locked} lit={lit} onLight={onLight} />
         </div>
       ) : (
-        <span className="text-12 text-faint">Carries on</span>
+        <span className="text-caption text-faint">Carries on</span>
       )}
     </div>
   );

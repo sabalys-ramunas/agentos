@@ -38,8 +38,8 @@ export function AllClear({ org, decided, canDecide }: { org: string; decided: Ap
     >
       <Horizon />
       <div className="grid max-w-md gap-2">
-        <h2 className="text-24 font-semibold">All clear</h2>
-        <p className="text-14 text-muted">Nothing is waiting for you. Your routines carry on by themselves, and you will hear from us when something asks you first.</p>
+        <h2 className="text-page-title-compact">All clear</h2>
+        <p className="text-body text-muted">Nothing is waiting for you. Your routines carry on by themselves, and you will hear from us when something asks you first.</p>
       </div>
       <DecidedChips org={org} items={decided} />
       {canDecide ? (

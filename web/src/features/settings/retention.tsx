@@ -1,10 +1,10 @@
+import { SegmentedControl } from '@/components/ui/tabs';
 import { useParams } from '@tanstack/react-router';
 import { Download } from 'lucide-react';
 import { useState } from 'react';
 import { useExportActivity, useRetention, useWorkspaces } from '@/api/hooks';
 import { isCancelled } from '@/api/http';
 import type { Retention } from '@/api/types';
-import { Segmented } from '@/components/charts/small';
 import { Button } from '@/components/ui/button';
 import { Card, FormCard } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
@@ -28,18 +28,18 @@ function Window({ data }: { data: Retention }) {
   const oldest = data.oldest_at ? Math.max(0, Math.min(100, 100 - ((now - new Date(data.oldest_at).getTime()) / DAY / span) * 100)) : null;
   return (
     <figure className="grid gap-2">
-      <div className="relative h-6 overflow-hidden rounded-md border border-line bg-subtle" aria-hidden="true">
+      <div className="relative h-6 overflow-hidden rounded-md border border-line bg-inset" aria-hidden="true">
         {data.kept_days > data.retention_days ? (
-          <span className="absolute inset-y-0 left-0 bg-fill-1" style={{ width: `${planStart}%` }} />
+          <span className="absolute inset-y-0 left-0 bg-hover" style={{ width: `${planStart}%` }} />
         ) : null}
-        <span className="absolute inset-y-0 right-0 bg-fill-3" style={{ left: `${planStart}%` }} />
+        <span className="absolute inset-y-0 right-0 bg-fill-strong" style={{ left: `${planStart}%` }} />
         {oldest !== null ? <span className="absolute inset-y-0 w-px bg-fg" style={{ left: `${oldest}%` }} /> : null}
       </div>
-      <div className="mono tabular flex justify-between text-12 text-faint" aria-hidden="true">
+      <div className="mono tabular flex justify-between text-caption text-faint" aria-hidden="true">
         <span>{span} days ago</span>
         <span>Now</span>
       </div>
-      <figcaption className="text-13 text-muted">
+      <figcaption className="text-secondary text-muted">
         {data.oldest_at ? `The oldest history kept is from ${date(data.oldest_at)}.` : 'Nothing is stored yet.'} Older than the window is removed by a regular sweep.
       </figcaption>
     </figure>
@@ -90,7 +90,7 @@ function Export({ org, computer }: { org: string; computer: boolean }) {
       description={exportNote}
       footnote={
         run.isError && !isCancelled(run.error) ? (
-          <span role="alert" className="text-red">
+          <span role="alert" className="text-bad">
             {describeError(run.error)}
           </span>
         ) : run.isSuccess ? (
@@ -106,8 +106,8 @@ function Export({ org, computer }: { org: string; computer: boolean }) {
       }
     >
       <div className="flex flex-wrap items-center gap-2">
-        <Segmented label="Format" value={format} options={[...FORMATS]} onChange={setFormat} />
-        <Segmented label="Range" value={range} options={[...RANGES]} onChange={setRange} />
+        <SegmentedControl label="Format" value={format} options={[...FORMATS]} onValueChange={setFormat} />
+        <SegmentedControl label="Range" value={range} options={[...RANGES]} onValueChange={setRange} />
         <Select
           size="sm"
           className="w-44"
@@ -141,8 +141,8 @@ function Body({ org, data }: { org: string; data: Retention }) {
         }
       >
         <div className="flex items-baseline gap-2">
-          <span className="mono tabular text-20 font-semibold">{data.kept_days}</span>
-          <span className="text-14 text-muted">days kept now</span>
+          <span className="mono tabular text-heading">{data.kept_days}</span>
+          <span className="text-body text-muted">days kept now</span>
         </div>
         <Window data={data} />
       </FormCard>
@@ -150,19 +150,19 @@ function Body({ org, data }: { org: string; data: Retention }) {
         <Export org={org} computer={computer} />
       ) : (
         <Card className="px-6 py-4">
-          <p className="text-14 text-muted">Only the owner can export history, because the export holds every workspace.</p>
+          <p className="text-body text-muted">Only the owner can export history, because the export holds every workspace.</p>
         </Card>
       )}
       {computer ? (
         <FormCard title="What the window does not touch" description="Two things are kept whatever the window says.">
-          <ul className="grid gap-2 text-14 text-muted">
+          <ul className="grid gap-2 text-body text-muted">
             <li>Runs. Their records stay on this computer.</li>
             <li>An approval still waiting for a person. It is never deleted.</li>
           </ul>
         </FormCard>
       ) : (
         <FormCard title="What is never kept" description="agentos only keeps what it needs to show you history.">
-          <ul className="grid gap-2 text-14 text-muted">
+          <ul className="grid gap-2 text-body text-muted">
             <li>Computer logs are passed through to your screen and never stored.</li>
             <li>Passwords, cookies and vault secrets stay on your computers. They are never part of history.</li>
             <li>An approval still waiting for a person is never deleted.</li>

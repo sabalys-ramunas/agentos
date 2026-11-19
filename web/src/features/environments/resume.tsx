@@ -122,7 +122,7 @@ export function SavedNotice({ org, env }: { org: string; env: EnvDetail }) {
         <Moon className="size-4 text-fg" />
       </span>
       <div className="grid min-w-0 flex-1 gap-1">
-        <p className="text-14">
+        <p className="text-body">
           <span className="font-medium text-fg">Saved {timeAgo(save.saved_at).toLowerCase()}</span>
           <span className="text-muted">
             {' '}
@@ -149,7 +149,7 @@ export function ResumedNotice({ env }: { env: EnvDetail }) {
   return (
     <section role="status" aria-label={waking ? 'Waking' : 'Waiting for an agent'} className="flex items-start gap-3 rounded-xl border border-line bg-card px-5 py-4 shadow-lift">
       <StatusDot tone={waking ? 'live' : 'ok'} pulse={waking} className="mt-2" />
-      <div className="grid min-w-0 gap-1 text-14">
+      <div className="grid min-w-0 gap-1 text-body">
         <p>
           <span className="font-medium text-fg">{waking ? `Waking from its ${kind}.` : 'Awake, and waiting for an agent.'}</span>{' '}
           <span className="text-muted">

@@ -108,7 +108,7 @@ export function FormDialog({
     >
       {form.link ? null : children}
       {form.failed ? <InlineError>That did not start. Nothing was changed.</InlineError> : null}
-      {form.link ? <p className="text-14 text-muted" role="status">{FORM_WORDS[form.stage ?? 'waiting']}</p> : null}
+      {form.link ? <p className="text-body text-muted" role="status">{FORM_WORDS[form.stage ?? 'waiting']}</p> : null}
     </Dialog>
   );
 }

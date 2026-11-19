@@ -94,7 +94,7 @@ export function MembersSettings() {
   const roleSelect = (member: Member) =>
     differsByWorkspace(member) ? (
       // Each business's role is changed in Workspace access, beside the business.
-      <span className="text-13 text-muted">Differs by workspace</span>
+      <span className="text-secondary text-muted">Differs by workspace</span>
     ) : canChange(member) ? (
       <Select
         size="sm"
@@ -105,7 +105,7 @@ export function MembersSettings() {
         onValueChange={(role) => update.mutate({ id: member.id, role: role as Role }, { onSuccess: () => toast('Role updated') })}
       />
     ) : (
-      <span className="text-13 text-muted">{roleLabel[member.role]}</span>
+      <span className="text-secondary text-muted">{roleLabel[member.role]}</span>
     );
 
   return (
@@ -133,19 +133,19 @@ export function MembersSettings() {
                       <div className="flex items-center gap-2">
                         <Avatar name={member.user.name} />
                         <div className="min-w-0">
-                          <p className="truncate text-14">
+                          <p className="truncate text-body">
                             {member.user.name}
                             {member.user.id === me ? <span className="text-faint"> (you)</span> : null}
                           </p>
-                          <p className="truncate text-13 text-faint">{member.user.email}</p>
+                          <p className="truncate text-secondary text-faint">{member.user.email}</p>
                         </div>
                       </div>
                       {/* A phone has no room for this as a column, so it sits under the name. */}
                       <div className="mt-2 pl-8 md:hidden">{roleSelect(member)}</div>
                     </Td>
                     <Td className="hidden md:table-cell">{roleSelect(member)}</Td>
-                    <Td className="hidden max-w-72 truncate text-13 text-muted xl:table-cell">{scopeLabel(member.workspaces, workspaces)}</Td>
-                    <Td className="tabular hidden text-13 text-faint md:table-cell">
+                    <Td className="hidden max-w-72 truncate text-secondary text-muted xl:table-cell">{scopeLabel(member.workspaces, workspaces)}</Td>
+                    <Td className="tabular hidden text-secondary text-faint md:table-cell">
                       {member.user.id === me ? 'Now' : member.last_active_at ? timeAgo(member.last_active_at) : '–'}
                     </Td>
                     <Td className="pr-4 pl-0 text-right md:pr-6">
@@ -164,7 +164,7 @@ export function MembersSettings() {
                               </MenuItem>
                             ) : null}
                             {canRemove(member) ? (
-                              <MenuItem className="text-red" onSelect={() => setRemoving(member)}>
+                              <MenuItem className="text-bad" onSelect={() => setRemoving(member)}>
                                 <Trash2 className="size-4" />
                                 Remove access
                               </MenuItem>
@@ -302,12 +302,12 @@ export function InvitesSettings() {
         </FormCard>
         {made ? (
           <Card className="grid gap-3 p-4 sm:p-6">
-            <p className="text-14">
+            <p className="text-body">
               Send this link to <span className="text-fg">{made.email}</span>. It opens the invite once, and it is not shown again
               once you leave this page.
             </p>
             <div className="flex flex-col gap-2 sm:flex-row">
-              <Input aria-label="Invite link" readOnly value={made.link} className="mono h-10 flex-1 text-13" onFocus={(event) => event.target.select()} />
+              <Input aria-label="Invite link" readOnly value={made.link} className="mono h-10 flex-1 text-secondary" onFocus={(event) => event.target.select()} />
               <Button
                 icon={<Copy className="size-4" />}
                 onClick={() =>
@@ -342,17 +342,17 @@ export function InvitesSettings() {
                     {items.map((invite) => (
                       <Tr key={invite.id}>
                         <Td className={mainCell}>
-                          <p className="truncate text-14">{invite.email}</p>
-                          <p className="truncate text-13 text-faint">
+                          <p className="truncate text-body">{invite.email}</p>
+                          <p className="truncate text-secondary text-faint">
                             <span className="md:hidden">{roleLabel[invite.role]} · </span>
                             {scopeLabel(invite.workspaces, workspaces)}
                           </p>
                         </Td>
-                        <Td className="hidden text-13 text-muted md:table-cell">{roleLabel[invite.role]}</Td>
+                        <Td className="hidden text-secondary text-muted md:table-cell">{roleLabel[invite.role]}</Td>
                         <Td className="hidden md:table-cell">
                           <Status status={inviteStatus[invite.state]} />
                         </Td>
-                        <Td className="tabular hidden text-13 text-faint md:table-cell">
+                        <Td className="tabular hidden text-secondary text-faint md:table-cell">
                           {invite.state === 'pending' ? timeUntil(invite.expires_at) : '–'}
                         </Td>
                         <Td className="pr-4 text-right md:pr-6">
@@ -399,10 +399,10 @@ function AccessRow({ member, workspaces, org }: { member: Member; workspaces: Wo
       <div className="flex items-center gap-2">
         <Avatar name={member.user.name} />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-14">{member.user.name}</p>
-          <p className="text-13 text-faint">{differs ? 'Differs by workspace' : roleLabel[member.role]}</p>
+          <p className="truncate text-body">{member.user.name}</p>
+          <p className="text-secondary text-faint">{differs ? 'Differs by workspace' : roleLabel[member.role]}</p>
         </div>
-        <div className="flex items-center gap-2 text-13 text-muted">
+        <div className="flex items-center gap-2 text-secondary text-muted">
           {/* An owner or admin always sees every workspace, so there is no switch to offer. */}
           {orgWide ? (
             <span>Always all workspaces</span>
@@ -429,7 +429,7 @@ function AccessRow({ member, workspaces, org }: { member: Member; workspaces: Wo
                 aria-pressed={on}
                 onClick={() => toggle(workspace.id)}
                 className={cn(
-                  'h-7 rounded-md border px-2 text-13 transition-colors duration-(--duration-fast) ease-standard',
+                  'h-7 rounded-md border px-2 text-secondary transition-colors duration-(--duration-fast) ease-standard',
                   on ? 'border-fg text-fg' : 'border-line text-muted hover:border-line-strong',
                 )}
               >
@@ -445,7 +445,7 @@ function AccessRow({ member, workspaces, org }: { member: Member; workspaces: Wo
           {workspaces
             .filter((workspace) => scope.includes(workspace.id))
             .map((workspace) => (
-              <li key={workspace.id} className="flex items-center gap-3 text-13">
+              <li key={workspace.id} className="flex items-center gap-3 text-secondary">
                 <span className="min-w-0 flex-1 truncate">{workspace.name}</span>
                 {canChange ? (
                   <Select

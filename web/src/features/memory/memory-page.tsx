@@ -89,7 +89,7 @@ function MemoryAdmin({ org }: { org: string }) {
           ) : data.available ? (
             <div className="grid gap-12">
               <section aria-labelledby="memory-rooms" className="grid gap-4">
-                <p className="text-14 font-medium" role="status">
+                <p className="text-label" role="status">
                   <StatusDot tone={data.workspaces.some((row) => row.waiting > 0 || !row.chain_ok) ? 'warn' : 'neutral'} className="mr-2" />
                   {waitingSentence(data.workspaces.reduce((sum, row) => sum + row.waiting, 0))}
                 </p>
@@ -101,7 +101,7 @@ function MemoryAdmin({ org }: { org: string }) {
 
               <section aria-labelledby="memory-entries" className="grid gap-4">
                 <div className="flex flex-wrap items-end justify-between gap-3">
-                  <h2 id="memory-entries" className="text-16 font-semibold">
+                  <h2 id="memory-entries" className="text-section-title">
                     Entries
                   </h2>
                   <div className="flex flex-wrap gap-2">
@@ -125,7 +125,7 @@ function MemoryAdmin({ org }: { org: string }) {
                 </div>
                 <div className="flex w-fit items-center gap-2">
                   <Checkbox id="memory-waiting" checked={waitingOnly} onCheckedChange={(checked) => setWaitingOnly(checked === true)} />
-                  <label htmlFor="memory-waiting" className="cursor-pointer text-13">
+                  <label htmlFor="memory-waiting" className="cursor-pointer text-secondary">
                     Only what waits for a look
                   </label>
                 </div>
@@ -194,32 +194,32 @@ function RoomsTable({ rows, nameOf, scope, onScope }: { rows: MemoryWorkspace[];
 
 function RoomRow({ row, name, selected, onSelect }: { row: MemoryWorkspace; name: string; selected: boolean; onSelect: () => void }) {
   return (
-    <Tr className={cn(selected && 'bg-fill-1')}>
+    <Tr className={cn(selected && 'bg-hover')}>
       <Td className={mainCell}>
-        <button type="button" aria-pressed={selected} onClick={onSelect} className="block max-w-full truncate text-left text-14 font-medium hover:underline focus-inset">
+        <button type="button" aria-pressed={selected} onClick={onSelect} className="block max-w-full truncate text-left text-label hover:underline focus-inset">
           {name}
         </button>
-        <span className="block text-13 text-faint sm:hidden">
+        <span className="block text-secondary text-faint sm:hidden">
           {keptSentence(row)} · {recordSentence(row)}
         </span>
       </Td>
       <Td className="hidden w-44 md:table-cell">
-        <span className="tabular block text-13 text-muted">{keptSentence(row)}</span>
+        <span className="tabular block text-secondary text-muted">{keptSentence(row)}</span>
         <Meter className="mt-2 shrink-0" value={row.live_entries} max={row.live_entries_cap} label={`Entries kept in ${name}`} />
       </Td>
       <Td className="hidden w-44 md:table-cell">
-        <span className="tabular block text-13 text-muted">
+        <span className="tabular block text-secondary text-muted">
           {bytesText(row.content_bytes)} of {bytesText(row.content_bytes_cap)}
         </span>
         <Meter className="mt-2 shrink-0" value={row.content_bytes} max={row.content_bytes_cap} label={`Text kept in ${name}`} />
       </Td>
-      <Td className="tabular text-13">{row.waiting > 0 ? <span className="inline-flex items-center gap-2"><StatusDot tone="warn" />{row.waiting}</span> : <span className="text-faint">0</span>}</Td>
+      <Td className="tabular text-secondary">{row.waiting > 0 ? <span className="inline-flex items-center gap-2"><StatusDot tone="warn" />{row.waiting}</span> : <span className="text-faint">0</span>}</Td>
       <Td className="hidden sm:table-cell">
-        <span className={cn('inline-flex items-center gap-2 text-13', row.chain_ok ? 'text-muted' : 'text-red')}>
+        <span className={cn('inline-flex items-center gap-2 text-secondary', row.chain_ok ? 'text-muted' : 'text-bad')}>
           <StatusDot tone={row.chain_ok ? 'ok' : 'bad'} />
           {recordSentence(row)}
         </span>
-        {!row.chain_ok ? <span className="mt-1 block text-12 text-muted">{RECORD_WARNING}</span> : null}
+        {!row.chain_ok ? <span className="mt-1 block text-caption text-muted">{RECORD_WARNING}</span> : null}
       </Td>
     </Tr>
   );
@@ -261,16 +261,16 @@ function EntryList({ query, nameOf, filtered, onOpen }: { query: ReturnType<type
             <button
               type="button"
               onClick={() => onOpen(entry)}
-              className="focus-inset flex min-h-12 w-full items-center gap-3 px-4 py-2 text-left transition-colors duration-(--duration-base) ease-standard hover:bg-fill-1"
+              className="focus-inset flex min-h-12 w-full items-center gap-3 px-4 py-2 text-left transition-colors duration-(--duration-base) ease-standard hover:bg-hover"
             >
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-14 font-medium">{entry.title ?? 'Forgotten entry'}</span>
-                <span className="block truncate text-13 text-faint">
+                <span className="block truncate text-label">{entry.title ?? 'Forgotten entry'}</span>
+                <span className="block truncate text-secondary text-faint">
                   {memoryTrust[entry.trust]} · {memoryType[entry.type]} · {nameOf(entry.workspace)} · {timeAgo(entry.at)}
                 </span>
               </span>
               {waitsForLook(entry) ? (
-                <span className="inline-flex shrink-0 items-center gap-2 text-13 text-muted">
+                <span className="inline-flex shrink-0 items-center gap-2 text-secondary text-muted">
                   <StatusDot tone="warn" />
                   <span className="hidden sm:inline">Waiting for a look</span>
                 </span>

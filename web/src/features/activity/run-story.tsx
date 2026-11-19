@@ -67,14 +67,14 @@ function Screenshot({ view }: { view: StoryView }) {
   if (!src) return null;
   if (broken) {
     return (
-      <p className="flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-13 text-muted">
+      <p className="flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-secondary text-muted">
         <ImageOff className="size-4 shrink-0 text-faint" />
         The picture stays on the computer, and the computer could not send it just now.
       </p>
     );
   }
   return (
-    <a href={src} target="_blank" rel="noreferrer noopener" className="block overflow-hidden rounded-xl border border-line bg-subtle">
+    <a href={src} target="_blank" rel="noreferrer noopener" className="block overflow-hidden rounded-xl border border-line bg-inset">
       <img
         src={src}
         alt={`What ${view.named} showed afterwards: ${view.sentence}`}
@@ -94,7 +94,7 @@ function Proof({ view }: { view: StoryView }) {
       <div className="grid gap-2">
         <ArtifactView artifact={view.artifact} />
         {url ? (
-          <a href={url} target="_blank" rel="noreferrer noopener" className="link inline-flex items-center gap-1 justify-self-end text-13">
+          <a href={url} target="_blank" rel="noreferrer noopener" className="link inline-flex items-center gap-1 justify-self-end text-secondary">
             Open on {view.named} <ArrowUpRight className="size-3" />
           </a>
         ) : null}
@@ -106,7 +106,7 @@ function Proof({ view }: { view: StoryView }) {
     // Only a thing that went out is missing a picture. Looking leaves nothing to take one of.
     if (view.lookOnly || (view.result !== 'checked' && view.result !== 'unchecked')) return null;
     return (
-      <p className="flex items-center gap-2 rounded-lg border border-dashed border-line px-3 py-3 text-13 text-muted">
+      <p className="flex items-center gap-2 rounded-lg border border-dashed border-line px-3 py-3 text-secondary text-muted">
         <ImageOff className="size-4 shrink-0 text-faint" />
         No picture of this one. The agent did it, but did not take a screenshot.
       </p>
@@ -115,7 +115,7 @@ function Proof({ view }: { view: StoryView }) {
   return (
     <div className="grid gap-2">
       <Screenshot view={view} />
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-13">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-secondary">
         {shot ? <span className="tabular text-faint">Screenshot taken at {clockSeconds(view.at)}</span> : <span />}
         {url ? (
           <a href={url} target="_blank" rel="noreferrer noopener" className="link inline-flex items-center gap-1">
@@ -131,13 +131,13 @@ function Steps({ view }: { view: StoryView }) {
   if (view.steps.length === 0) return null;
   return (
     <section className="grid gap-2">
-      <h3 className="text-13 text-faint">What the agent did</h3>
+      <h3 className="text-secondary text-faint font-semibold">What the agent did</h3>
       <ol className="grid gap-2" aria-label="What the agent did">
         {view.steps.map((step) => {
           const bad = step.status === 'failed' || step.status === 'partial' || step.status === 'cancelled';
           const live = step.status === 'running' || step.status === 'queued';
           return (
-            <li key={step.id} className="flex items-start gap-3 text-14">
+            <li key={step.id} className="flex items-start gap-3 text-body">
               <span className="mt-px shrink-0">
                 {bad ? (
                   <span className="flex size-4 items-center justify-center rounded-full bg-(--stuck-dot) text-status-ink">
@@ -151,7 +151,7 @@ function Steps({ view }: { view: StoryView }) {
                 {step.label}
                 {bad ? <span className="text-muted">, and it stopped here</span> : null}
               </span>
-              <span className="tabular shrink-0 text-13 text-faint">{clock(step.at)}</span>
+              <span className="tabular shrink-0 text-secondary text-faint">{clock(step.at)}</span>
             </li>
           );
         })}
@@ -187,28 +187,28 @@ function Facts({ org, view }: { org: string; view: StoryView }) {
   const now = useNow(live);
   const took = (live ? now : new Date(view.at).getTime()) - new Date(view.startedAt).getTime();
   return (
-    <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-14">
+    <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-body">
       <div className="min-w-0">
-        <dt className="text-13 text-faint">Why it ran</dt>
+        <dt className="text-secondary text-faint">Why it ran</dt>
         <dd className="mt-1">
           <WhyItRan org={org} view={view} />
         </dd>
       </div>
       <div className="min-w-0">
-        <dt className="text-13 text-faint">Who did it</dt>
+        <dt className="text-secondary text-faint">Who did it</dt>
         <dd className="mt-1 flex items-center gap-2">
           <AgentMark principal={view.who.principal} name={view.who.name} size={16} />
           <span className="truncate">{view.who.name}</span>
         </dd>
       </div>
       <div className="min-w-0">
-        <dt className="text-13 text-faint">{view.yes ? 'Who said yes' : 'Approved by'}</dt>
+        <dt className="text-secondary text-faint">{view.yes ? 'Who said yes' : 'Approved by'}</dt>
         <dd className="mt-1">
           <ApprovedBy org={org} view={view} />
         </dd>
       </div>
       <div className="min-w-0">
-        <dt className="text-13 text-faint">{live ? 'So far' : 'Took'}</dt>
+        <dt className="text-secondary text-faint">{live ? 'So far' : 'Took'}</dt>
         <dd className="tabular mt-1">{elapsed(took)}</dd>
       </div>
     </dl>
@@ -292,9 +292,9 @@ function NextSteps({ org, view, run }: { org: string; view: StoryView; run?: Run
 export function Figure({ label, value, note }: { label: string; value: string; note?: string }) {
   return (
     <div className="min-w-0">
-      <dt className="text-12 text-faint">{label}</dt>
-      <dd className="mono tabular mt-1 truncate text-16">{value}</dd>
-      {note ? <dd className="tabular truncate text-12 text-faint">{note}</dd> : null}
+      <dt className="text-caption text-faint">{label}</dt>
+      <dd className="mono tabular mt-1 truncate text-lede">{value}</dd>
+      {note ? <dd className="tabular truncate text-caption text-faint">{note}</dd> : null}
     </div>
   );
 }
@@ -330,10 +330,10 @@ function Technical({ org, view }: { org: string; view: StoryView }) {
           event.preventDefault();
           setOpen(!open);
         }}
-        className="flex cursor-pointer list-none items-center gap-3 py-3 text-13 text-muted hover:text-fg [&::-webkit-details-marker]:hidden">
+        className="flex cursor-pointer list-none items-center gap-3 py-3 text-secondary text-muted hover:text-fg [&::-webkit-details-marker]:hidden">
         <ChevronRight className="size-4 shrink-0 transition-transform duration-(--duration-fast) group-open:rotate-90" />
         <span className="shrink-0">Technical details</span>
-        <span className="mono min-w-0 flex-1 truncate text-right text-12 text-faint">
+        <span className="mono min-w-0 flex-1 truncate text-right text-caption text-faint">
           {view.runId ?? view.id} · {view.lane} · {usd(view.technical.cost.usd)}
         </span>
       </summary>
@@ -359,7 +359,7 @@ function Technical({ org, view }: { org: string; view: StoryView }) {
             <Detail label="Started">{dateTime(view.startedAt)}</Detail>
             {view.technical.detail ? (
               <Detail label="Node said">
-                <span className="text-13 break-words text-muted">{view.technical.detail}</span>
+                <span className="text-secondary break-words text-muted">{view.technical.detail}</span>
               </Detail>
             ) : null}
           </dl>
@@ -382,13 +382,13 @@ export function StoryDetail({ org, view, run }: StoryDetailProps) {
   return (
     <article className="grid gap-5" aria-label={view.sentence}>
       <header className="grid gap-2">
-        <p className="flex min-w-0 items-center gap-2 text-13 text-muted">
+        <p className="flex min-w-0 items-center gap-2 text-secondary text-muted">
           {business ? <BusinessMark name={business.name} color={business.color} size={16} /> : <SiteMark site={view.siteKey} size={16} label={false} />}
           <span className="truncate">
             {[view.business, view.siteLabel].filter(Boolean).join(' · ')} · {whenSaid(view.startedAt)}
           </span>
         </p>
-        <h2 className="text-20 font-semibold text-balance">{titleOf(view)}</h2>
+        <h2 className="text-heading text-balance">{titleOf(view)}</h2>
       </header>
       <section className="grid gap-3">
         <div className="flex items-start gap-3">
@@ -396,8 +396,8 @@ export function StoryDetail({ org, view, run }: StoryDetailProps) {
             <ResultGlyph result={view.status === 'cancelled' ? 'unchecked' : view.result} />
           </span>
           <div className="min-w-0">
-            <p className="text-14 font-semibold">{view.verdict}</p>
-            {view.because !== view.verdict ? <p className="mt-1 text-14 text-muted">{view.because}</p> : null}
+            <p className="text-body font-semibold">{view.verdict}</p>
+            {view.because !== view.verdict ? <p className="mt-1 text-body text-muted">{view.because}</p> : null}
           </div>
         </div>
         <div className="pl-8 empty:hidden">

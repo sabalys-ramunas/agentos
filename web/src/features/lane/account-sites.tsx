@@ -37,13 +37,13 @@ export function SitesSection({ org, lane }: { org: string; lane: Lane }) {
 
   return (
     <AccountSection id="account-sites" title="Sites">
-      <p className="text-13 text-muted">{sitesSentence(sites)}</p>
+      <p className="text-secondary text-muted">{sitesSentence(sites)}</p>
       {sites.sites.length ? (
         <ul className="grid divide-y divide-line">
           {sites.sites.map((site) => {
             const { host, note } = siteWords(site);
             return (
-              <li key={site} className="flex min-h-10 items-center justify-between gap-3 text-13">
+              <li key={site} className="flex min-h-10 items-center justify-between gap-3 text-secondary">
                 <span className="mono min-w-0 truncate">
                   {host}
                   {note ? <span className="ml-2 font-sans text-faint">{note}</span> : null}

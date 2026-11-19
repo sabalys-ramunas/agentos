@@ -19,7 +19,7 @@ export function StatTile({ label, value, unit, hint, tone, className }: StatTile
       <span className="text-caption text-faint">{label}</span>
       <span className={cn('text-stat', tone === 'warn' ? 'text-warn' : tone === 'bad' ? 'text-bad' : 'text-fg')}>
         {value}
-        {unit ? <span className="ml-1 text-14 font-normal tracking-normal text-faint">{unit}</span> : null}
+        {unit ? <span className="ml-1 text-body tracking-normal text-faint">{unit}</span> : null}
       </span>
       {hint ? <span className="text-secondary text-muted">{hint}</span> : null}
     </div>

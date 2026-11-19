@@ -67,19 +67,19 @@ export function SharesList({ org }: { org: string }) {
                     return (
                       <Tr key={share.id}>
                         <Td className={mainCell}>
-                          <p className="truncate text-14">{whatOf(share)}</p>
-                          <p className="truncate text-12 text-faint md:hidden">
+                          <p className="truncate text-body">{whatOf(share)}</p>
+                          <p className="truncate text-caption text-faint md:hidden">
                             <Status status={status} />
                           </p>
                         </Td>
                         <Td className="hidden md:table-cell">
                           <Status status={status} />
                         </Td>
-                        <Td className="tabular hidden text-right text-13 text-muted lg:table-cell">
+                        <Td className="tabular hidden text-right text-secondary text-muted lg:table-cell">
                           {share.views === 0 ? 'Not yet' : plural(share.views, 'time')}
-                          {share.last_view_at ? <span className="block text-12 text-faint">{timeAgo(share.last_view_at)}</span> : null}
+                          {share.last_view_at ? <span className="block text-caption text-faint">{timeAgo(share.last_view_at)}</span> : null}
                         </Td>
-                        <Td className="tabular text-13 whitespace-nowrap text-muted">
+                        <Td className="tabular text-secondary whitespace-nowrap text-muted">
                           {share.state === 'active' ? dateTime(share.expires_at) : share.revoked_at ? `Stopped ${timeAgo(share.revoked_at)}` : dateTime(share.expires_at)}
                         </Td>
                         <Td className="text-right">

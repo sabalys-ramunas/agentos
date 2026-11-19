@@ -31,12 +31,12 @@ function ServiceRow({ org, node, row, owner, onLogs }: { org: string; node: stri
   return (
     <div className="flex flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3 sm:px-6">
       <div className="min-w-0 flex-1">
-        <p className="text-14">{row.name}</p>
-        <p className="mono mt-1 truncate text-12 text-faint">{row.lane}</p>
+        <p className="text-body">{row.name}</p>
+        <p className="mono mt-1 truncate text-caption text-faint">{row.lane}</p>
       </div>
-      <div className="min-w-[8rem] text-13">
+      <div className="min-w-[8rem] text-secondary">
         <Status status={serviceState[row.state] ?? { label: row.state, tone: 'neutral' }} />
-        <p className="mt-1 text-12 text-faint">
+        <p className="mt-1 text-caption text-faint">
           {row.restarts ? `Restarted ${plural(row.restarts, 'time')}` : 'Never restarted'}
           {row.started_at ? `, started ${timeAgo(row.started_at)}` : ''}
         </p>
@@ -67,16 +67,16 @@ function LaneRow({ row }: { row: EnvLaneRow }) {
   return (
     <div className="grid gap-1 px-4 py-3 sm:px-6">
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1">
-        <p className="mono min-w-0 truncate text-14">{row.id}</p>
+        <p className="mono min-w-0 truncate text-body">{row.id}</p>
         <Status status={state} />
       </div>
-      <p className="text-13 text-muted">{row.isolation ?? 'Its isolation is not reported.'}</p>
-      <p className="text-12 text-faint">
+      <p className="text-secondary text-muted">{row.isolation ?? 'Its isolation is not reported.'}</p>
+      <p className="text-caption text-faint">
         Network {row.network}
         {row.base_image ? `, built on ${row.base_image}` : ''}
         {row.last_used ? `, last used ${timeAgo(row.last_used)}` : ''}
       </p>
-      {row.quarantine_reason ? <p className="text-13 text-red">{row.quarantine_reason}</p> : null}
+      {row.quarantine_reason ? <p className="text-secondary text-bad">{row.quarantine_reason}</p> : null}
     </div>
   );
 }
@@ -99,7 +99,7 @@ export function EnvironmentsTab({ org, node, owner }: { org: string; node: strin
   return (
     <div className="grid gap-10">
       <section aria-label="Environments" className="grid gap-3">
-        <p className="text-14" aria-live="polite">
+        <p className="text-body" aria-live="polite">
           {environmentsAnswer(data)}
         </p>
         <Panel title="Services" description="A command that stays up, restarted when it crashes. Its log is read when you open it, and is not kept here.">
@@ -110,7 +110,7 @@ export function EnvironmentsTab({ org, node, owner }: { org: string; node: strin
               ))}
             </Card>
           ) : (
-            <Card className="p-4 text-13 text-muted sm:p-6">No services yet. One is made on the machine, in a terminal, with a service preset.</Card>
+            <Card className="p-4 text-secondary text-muted sm:p-6">No services yet. One is made on the machine, in a terminal, with a service preset.</Card>
           )}
         </Panel>
       </section>
@@ -123,7 +123,7 @@ export function EnvironmentsTab({ org, node, owner }: { org: string; node: strin
             ))}
           </Card>
         ) : (
-          <Card className="p-4 text-13 text-muted sm:p-6">None yet.</Card>
+          <Card className="p-4 text-secondary text-muted sm:p-6">None yet.</Card>
         )}
       </Panel>
 
@@ -131,16 +131,16 @@ export function EnvironmentsTab({ org, node, owner }: { org: string; node: strin
         <div className="grid gap-3">
           {data.images.templates.map((template) => (
             <Card key={template.name} className="grid gap-1 p-4 sm:p-6">
-              <p className="mono text-14">{template.name}</p>
-              <p className="text-13 text-muted">{template.description ? plainReason(template.description) : 'No description.'}</p>
+              <p className="mono text-body">{template.name}</p>
+              <p className="text-secondary text-muted">{template.description ? plainReason(template.description) : 'No description.'}</p>
             </Card>
           ))}
           {data.images.built.length ? (
             <Card className="divide-y divide-line overflow-hidden">
               {data.images.built.map((image) => (
                 <div key={image.ref} className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 px-4 py-3 sm:px-6">
-                  <p className="mono text-14">{image.ref}</p>
-                  <p className="tabular text-12 text-faint" title={image.built_at ? dateTime(image.built_at) : undefined}>
+                  <p className="mono text-body">{image.ref}</p>
+                  <p className="tabular text-caption text-faint" title={image.built_at ? dateTime(image.built_at) : undefined}>
                     Built {image.built_at ? timeAgo(image.built_at) : 'at an unknown time'}
                   </p>
                 </div>
@@ -150,11 +150,11 @@ export function EnvironmentsTab({ org, node, owner }: { org: string; node: strin
         </div>
         {owner ? (
           <div className="grid gap-2">
-            <p className="text-13 text-muted">Making or removing an environment, and building an image, is done on the machine, in a terminal.</p>
+            <p className="text-secondary text-muted">Making or removing an environment, and building an image, is done on the machine, in a terminal.</p>
             {technical ? (
               <Card className="grid gap-2 p-4 sm:p-6">
                 {COMMANDS.map((command) => (
-                  <code key={command} className="mono text-13 break-words text-fg">
+                  <code key={command} className="mono text-secondary break-words text-fg">
                     {command}
                   </code>
                 ))}
@@ -182,7 +182,7 @@ export function EnvironmentsTab({ org, node, owner }: { org: string; node: strin
         ) : logs.isError ? (
           <ErrorState error={logs.error} onRetry={() => void logs.refetch()} />
         ) : (
-          <pre className="mono max-h-[60vh] overflow-auto rounded-lg bg-subtle p-4 text-12 break-words whitespace-pre-wrap text-muted">
+          <pre className="mono max-h-[60vh] overflow-auto rounded-lg bg-inset p-4 text-caption break-words whitespace-pre-wrap text-muted">
             {logs.data.log || 'No output yet.'}
           </pre>
         )}

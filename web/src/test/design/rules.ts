@@ -20,6 +20,8 @@ export interface Finding {
   line: number;
   found: string;
   fix: string;
+  /** For vocabulary: the word found, singular and lower case ("node"), so an exception can name it. */
+  word?: string;
 }
 
 /** Screens: held to every rule. Components may use arbitrary values and inline styles; they are the system. */
@@ -57,12 +59,12 @@ const VOCABULARY: Array<[RegExp, string]> = [
 
 const HAND_ROLLED: Array<{ test: (tokens: Set<string>) => boolean; found: string; fix: string }> = [
   {
-    test: (t) => t.has('rounded-xl') && t.has('border') && (t.has('bg-card') || t.has('bg-bg')),
+    test: (t) => t.has('rounded-xl') && t.has('border') && t.has('bg-card'),
     found: 'a card drawn by hand (rounded-xl border bg-card)',
     fix: 'Use <Card> with <CardHeader> (components/ui/card.tsx): it has the radius, hairline, lift and head',
   },
   {
-    test: (t) => t.has('rounded-full') && [...t].some((c) => /^(size-[123]|size-2\.5|h-2)$/.test(c)) && [...t].some((c) => /^bg-(ok|warn|bad|idle|live)(-dot)?$|^bg-(green|amber|red)$/.test(c)),
+    test: (t) => t.has('rounded-full') && [...t].some((c) => /^(size-[123]|size-2\.5|h-2)$/.test(c)) && [...t].some((c) => /^bg-(ok|warn|bad|idle|live)(-dot)?$/.test(c)),
     found: 'a status dot drawn by hand',
     fix: 'Use <StatusDot tone="ok" /> or <Status status={...} /> (components/ui/status.tsx): a shape and a word, never colour alone',
   },
@@ -77,8 +79,8 @@ const HAND_ROLLED: Array<{ test: (tokens: Set<string>) => boolean; found: string
 
 /** Components kept for the screens that still use them, each with the one to use instead. */
 const DEPRECATED: Record<string, string> = {
-  '@/components/charts/small#Segmented': 'SegmentedControl (components/ui/tabs.tsx): the Mono segmented control. Segmented is the older one',
-  '@/components/lane-icon#WorkspaceMark': 'BusinessMark (components/brand/identity.tsx). WorkspaceMark is its old name',
+  // Empty since 2026-11-19: Segmented and WorkspaceMark are gone. A component on its way out goes here,
+  // `'<module>#<name>': '<the one to use instead>'`, until no screen imports it.
 };
 
 function importFindings(file: string, parsed: Parsed, out: Finding[]) {
@@ -135,7 +137,10 @@ function wordFindings(file: string, parsed: Parsed, out: Finding[]) {
   for (const { text, line } of parsed.words) {
     for (const [pattern, word] of VOCABULARY) {
       const match = pattern.exec(text);
-      if (match) out.push({ rule: 'vocabulary', file, line, found: `"${match[0]}" in "${text.slice(0, 60)}"`, fix: `Say ${word}. Technical terms wait behind Technical details (useTechnical)` });
+      if (match) {
+        const found = `"${match[0]}" in "${text.slice(0, 60)}"`;
+        out.push({ rule: 'vocabulary', file, line, found, fix: `Say ${word}. Technical terms wait behind Technical details (useTechnical)`, word: match[0].toLowerCase().replace(/s$/, '') });
+      }
     }
   }
 }

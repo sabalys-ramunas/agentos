@@ -182,12 +182,12 @@ function ViewSwitch({ value, onChange }: { value: SplitView; onChange: (view: Sp
     ['json', 'JSON'],
   ];
   return (
-    <RadioGroup.Root aria-label="Show the data as" value={value} onValueChange={(next) => onChange(next as SplitView)} className="flex h-7 rounded-md bg-fill-1 p-px">
+    <RadioGroup.Root aria-label="Show the data as" value={value} onValueChange={(next) => onChange(next as SplitView)} className="flex h-7 rounded-md bg-hover p-px">
       {options.map(([key, label]) => (
         <RadioGroup.Item
           key={key}
           value={key}
-          className="rounded-sm px-2 text-12 font-medium text-muted transition-colors duration-(--duration-fast) ease-standard hover:text-fg data-[state=checked]:bg-bg data-[state=checked]:text-fg data-[state=checked]:shadow-[0_0_0_1px_var(--border)]"
+          className="rounded-sm px-2 text-caption font-medium text-muted transition-colors duration-(--duration-fast) ease-standard hover:text-fg data-[state=checked]:bg-card data-[state=checked]:text-fg data-[state=checked]:shadow-[0_0_0_1px_var(--border)]"
         >
           {label}
         </RadioGroup.Item>
@@ -220,7 +220,7 @@ function DataTable({ fields, rows, lit, onFocusField, newRows, held, faded }: Pa
             onFocus={() => onFocusField(field.key)}
             onBlur={() => onFocusField(null)}
             data-cell={`${field.key}|-1`}
-            className="focus-inset flex h-7 min-w-0 items-center gap-2 rounded-sm px-2 text-left text-12 font-medium text-muted"
+            className="focus-inset flex h-7 min-w-0 items-center gap-2 rounded-sm px-2 text-left text-caption font-medium text-muted"
           >
             <span aria-hidden="true" className="size-2 shrink-0 rounded-full" style={{ backgroundColor: hueOf(index) }} />
             <span className="truncate">{field.label}</span>
@@ -240,14 +240,14 @@ function DataTable({ fields, rows, lit, onFocusField, newRows, held, faded }: Pa
                 data-row-lit={lit?.row === rowIndex && lit.field !== field.key ? '' : undefined}
                 style={hueStyle(index)}
                 title={row[field.key]}
-                className={cn('split-cell flex h-9 min-w-0 items-center gap-2 px-2 text-14', field.kind === 'money' || field.kind === 'count' ? 'tabular' : undefined, isHeld && 'text-faint')}
+                className={cn('split-cell flex h-9 min-w-0 items-center gap-2 px-2 text-body', field.kind === 'money' || field.kind === 'count' ? 'tabular' : undefined, isHeld && 'text-faint')}
               >
                 {isHeld ? (
-                  <span className="truncate text-13">Held back</span>
+                  <span className="truncate text-secondary">Held back</span>
                 ) : (
                   <>
                     <span className="truncate">{row[field.key]}</span>
-                    {index === 0 && newRows?.includes(rowIndex) ? <span className="shrink-0 rounded-sm border border-line px-1 text-11 text-muted">New</span> : null}
+                    {index === 0 && newRows?.includes(rowIndex) ? <span className="shrink-0 rounded-sm border border-line px-1 text-micro text-muted font-normal">New</span> : null}
                   </>
                 )}
               </div>
@@ -262,7 +262,7 @@ function DataTable({ fields, rows, lit, onFocusField, newRows, held, faded }: Pa
 /** Real JSON, set three records across so a page of it still fits. The copy button gives the whole of it. */
 function DataJson({ fields, rows, lit, onFocusField, gutter, name, total }: PanelProps & { gutter: number; name: string; total: number }) {
   return (
-    <div data-json="" className="mono grid gap-2 py-3 pr-3 text-12 leading-5" style={{ paddingLeft: gutter + 12 + fields.length * LANE + 8 }}>
+    <div data-json="" className="mono grid gap-2 py-3 pr-3 text-caption leading-5" style={{ paddingLeft: gutter + 12 + fields.length * LANE + 8 }}>
       <p className="text-faint">
         {'{ '}
         <span className="text-muted">"{name}"</span>
@@ -394,15 +394,15 @@ export function Split({ page, fields, rows, total, name, health = 'good', newRow
         >
           <div className="mb-2 flex h-7 items-center justify-between gap-4">
             <p className="silk">The page, as your computer saw it</p>
-            <p className="tabular text-12 text-faint">{note ?? (readAt ? `Read ${timeAgo(readAt).toLowerCase()}` : 'Not read yet')}</p>
+            <p className="tabular text-caption text-faint">{note ?? (readAt ? `Read ${timeAgo(readAt).toLowerCase()}` : 'Not read yet')}</p>
           </div>
           <PageSheet page={page} rows={rows} fields={fields} lit={lit} limit={limit} veil={veil} columns={columns} gone={broken} arrived={arrived} reading={reading} empty={empty} />
           <div className="relative grid place-items-center" style={{ height: BAND }}>
-            <p className="tabular relative z-20 rounded-full border border-board-line bg-board px-2 py-px text-12 text-muted">
+            <p className="tabular relative z-20 rounded-full border border-board-line bg-board px-2 py-px text-caption text-muted">
               {empty ? `${plural(0, 'row')} found` : `${plural(total, 'row')}, ${plural(fields.length, 'column')} kept${left ? `, ${left} left out` : ''}`}
             </p>
           </div>
-          <div data-panel="" className="overflow-hidden rounded-lg border border-board-line bg-bg">
+          <div data-panel="" className="overflow-hidden rounded-lg border border-board-line bg-card">
             <div className="flex h-11 items-center gap-2 border-b border-line px-3">
               <p className="silk mr-auto" style={view === 'json' ? { paddingLeft: gutter + fields.length * LANE + 8 } : undefined}>
                 {dataLabel}
@@ -421,7 +421,7 @@ export function Split({ page, fields, rows, total, name, health = 'good', newRow
             ) : (
               <DataJson fields={fields} rows={shown} lit={lit} onFocusField={(field) => setPointed(field ? { field, row: 0 } : null)} gutter={gutter} name={name} total={total} />
             )}
-            {total > shown.length ? <p className="border-t border-line px-5 py-2 text-12 text-faint">and {total - shown.length} more below, under See the data</p> : null}
+            {total > shown.length ? <p className="border-t border-line px-5 py-2 text-caption text-faint">and {total - shown.length} more below, under See the data</p> : null}
           </div>
           {geometry ? <Wires geometry={geometry} fields={fields} view={view} lit={lit} dim={pointed !== null} litPoints={litPoints} broken={broken} candidate={arrived && held ? { label: arrived, field: held } : null} quiet={quiet} reading={reading} gutter={stageGutter(stage.current, gutter)} /> : null}
         </div>

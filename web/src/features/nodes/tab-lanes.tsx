@@ -1,7 +1,8 @@
+import { BusinessMark } from '@/components/brand/identity';
 import { Link } from '@tanstack/react-router';
 import { Layers } from 'lucide-react';
 import type { Lane, NodeDetail, Workspace } from '@/api/types';
-import { LaneIcon, WorkspaceMark } from '@/components/lane-icon';
+import { LaneIcon } from '@/components/lane-icon';
 import { Card } from '@/components/ui/card';
 import { ConditionBadge } from '@/components/ui/state-badge';
 import { EmptyState } from '@/components/ui/states';
@@ -17,10 +18,10 @@ function Share({ value, max, unit }: { value: number | null | undefined; max: nu
   if (value === null || value === undefined) return NONE;
   return (
     <span className="inline-flex items-center justify-end gap-2">
-      <span aria-hidden="true" className="h-1 w-12 overflow-hidden rounded-full bg-fill-2">
+      <span aria-hidden="true" className="h-1 w-12 overflow-hidden rounded-full bg-pressed">
         <span className="block h-full rounded-full bg-faint" style={{ width: `${Math.max(4, (value / Math.max(1, max)) * 100)}%` }} />
       </span>
-      <span className="mono tabular w-14 text-right text-13">
+      <span className="mono tabular w-14 text-right text-secondary">
         {value}
         {unit}
       </span>
@@ -68,29 +69,29 @@ export function LanesTab({ org, node, workspaces }: { org: string; node: NodeDet
           </thead>
           {groups.map(({ workspace, lanes }) => (
             <tbody key={workspace.id}>
-              <tr className="border-b border-line bg-subtle">
-                <th scope="colgroup" colSpan={5} className="h-8 px-4 text-left text-12 font-medium text-muted md:px-6">
+              <tr className="border-b border-line bg-inset">
+                <th scope="colgroup" colSpan={5} className="h-8 px-4 text-left text-caption font-medium text-muted md:px-6">
                   <span className="inline-flex items-center gap-2">
-                    <WorkspaceMark name={workspace.name} color={workspace.color} />
+                    <BusinessMark name={workspace.name} color={workspace.color} />
                     {workspace.name}
                   </span>
                 </th>
               </tr>
               {lanes.map((lane: Lane) => (
-                <Tr key={lane.id} className="relative hover:bg-fill-1">
+                <Tr key={lane.id} className="relative hover:bg-hover">
                   <Td className={mainCell}>
                     <Link
                       to="/$org/lanes/$ws/$name"
                       params={{ org, ws: lane.workspace, name: lane.name }}
-                      className="flex min-w-0 items-center gap-2 rounded-sm text-14 after:absolute after:inset-0"
+                      className="flex min-w-0 items-center gap-2 rounded-sm text-body after:absolute after:inset-0"
                     >
                       <LaneIcon kind={lane.kind} />
                       <span className="truncate">{laneName(lane.name)}</span>
-                      {lane.account?.site ? <span className="mono hidden truncate text-12 text-faint sm:inline">{lane.account.site}</span> : null}
+                      {lane.account?.site ? <span className="mono hidden truncate text-caption text-faint sm:inline">{lane.account.site}</span> : null}
                     </Link>
                     <span className="mt-1 flex items-center gap-2 md:hidden">
                       <ConditionBadge condition={laneCondition(lane, { node: node.state, me })} />
-                      {lane.mem_mb ? <span className="mono tabular text-12 text-faint">{lane.cpu_pct}% · {lane.mem_mb} MB</span> : null}
+                      {lane.mem_mb ? <span className="mono tabular text-caption text-faint">{lane.cpu_pct}% · {lane.mem_mb} MB</span> : null}
                     </span>
                   </Td>
                   <Td className="hidden md:table-cell">
@@ -102,7 +103,7 @@ export function LanesTab({ org, node, workspaces }: { org: string; node: NodeDet
                   <Td className="hidden text-right md:table-cell">
                     <Share value={lane.mem_mb} max={maxMem} unit=" MB" />
                   </Td>
-                  <Td className="hidden text-13 text-muted lg:table-cell">{lane.last_used ? timeAgo(lane.last_used) : 'Never'}</Td>
+                  <Td className="hidden text-secondary text-muted lg:table-cell">{lane.last_used ? timeAgo(lane.last_used) : 'Never'}</Td>
                 </Tr>
               ))}
             </tbody>

@@ -5,7 +5,7 @@ import { cn } from '@/lib/cn';
 import { InlineError } from './states';
 
 const control =
-  'w-full rounded-md border border-line-strong bg-card text-14 text-fg placeholder:text-faint ' +
+  'w-full rounded-md border border-line-strong bg-card text-body text-fg placeholder:text-faint ' +
   'transition-colors duration-(--duration-fast) ease-standard hover:border-control ' +
   'disabled:cursor-not-allowed disabled:border-line disabled:bg-inset disabled:text-disabled ' +
   'aria-invalid:border-bad-dot';
@@ -26,7 +26,7 @@ export function Textarea({ className, ...props }: TextareaHTMLAttributes<HTMLTex
 export function Label({ className, ...props }: React.LabelHTMLAttributes<HTMLLabelElement>) {
   // The control is associated by htmlFor at every call site.
   // eslint-disable-next-line jsx-a11y/label-has-associated-control
-  return <label className={cn('block text-13 leading-5 font-medium text-fg', className)} {...props} />;
+  return <label className={cn('block text-secondary leading-5 font-medium text-fg', className)} {...props} />;
 }
 
 interface FieldProps {
@@ -52,7 +52,7 @@ export function Field({ label, hint, error, children, className }: FieldProps) {
       {error ? (
         <InlineError id={`${id}-error`}>{error}</InlineError>
       ) : hint ? (
-        <p id={`${id}-hint`} className="text-13 text-faint">
+        <p id={`${id}-hint`} className="text-secondary text-faint">
           {hint}
         </p>
       ) : null}

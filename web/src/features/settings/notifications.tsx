@@ -21,13 +21,13 @@ function Row({ label, hint, children, htmlFor }: { label: string; hint: ReactNod
     <div className="flex items-center justify-between gap-6 py-3 first:pt-0 last:pb-0">
       <div className="min-w-0">
         {htmlFor ? (
-          <label htmlFor={htmlFor} className="text-14">
+          <label htmlFor={htmlFor} className="text-body">
             {label}
           </label>
         ) : (
-          <p className="text-14">{label}</p>
+          <p className="text-body">{label}</p>
         )}
-        <p className="text-13 text-faint">{hint}</p>
+        <p className="text-secondary text-faint">{hint}</p>
       </div>
       {children}
     </div>
@@ -82,24 +82,24 @@ function QuietStrip({ quiet }: { quiet: QuietHours }) {
   const inside = pieces.some(([start = 0, end = 0]) => now >= start && now < end);
   return (
     <figure className="grid gap-2">
-      <div className="relative h-6 overflow-hidden rounded-md border border-line bg-subtle" aria-hidden="true">
+      <div className="relative h-6 overflow-hidden rounded-md border border-line bg-inset" aria-hidden="true">
         {pieces.map(([start = 0, end = 0]) => (
           <span
             key={start}
-            className="absolute inset-y-0 bg-fill-3 transition-[left,width] duration-(--duration-base) ease-standard"
+            className="absolute inset-y-0 bg-fill-strong transition-[left,width] duration-(--duration-base) ease-standard"
             style={{ left: `${(start / day) * 100}%`, width: `${((end - start) / day) * 100}%` }}
           />
         ))}
         <span className="absolute inset-y-0 w-px bg-fg" style={{ left: `${(now / day) * 100}%` }} />
       </div>
-      <div className="mono tabular flex justify-between text-12 text-faint" aria-hidden="true">
+      <div className="mono tabular flex justify-between text-caption text-faint" aria-hidden="true">
         <span>00:00</span>
         <span>06:00</span>
         <span>12:00</span>
         <span>18:00</span>
         <span>24:00</span>
       </div>
-      <figcaption className="text-13 text-muted">
+      <figcaption className="text-secondary text-muted">
         It is {clockIn(quiet.timezone)} in {quiet.timezone.replaceAll('_', ' ')}, so quiet hours are {inside ? 'on now' : 'not on now'}.
       </figcaption>
     </figure>
@@ -112,7 +112,7 @@ function ClockField({ id, label, value, onCommit }: { id: string; label: string;
   useEffect(() => setDraft(value), [value]);
   return (
     <div className="grid gap-2">
-      <label htmlFor={id} className="text-13 text-muted">
+      <label htmlFor={id} className="text-secondary text-muted">
         {label}
       </label>
       <Input
@@ -171,7 +171,7 @@ function routes(value: NotificationSettings, hooks: Webhook[], pushable = true):
 }
 
 function Value({ cell }: { cell: Cell }) {
-  return <span className={cn('text-13', cell.off ? 'text-faint' : 'text-fg')}>{cell.text}</span>;
+  return <span className={cn('text-secondary', cell.off ? 'text-faint' : 'text-fg')}>{cell.text}</span>;
 }
 
 function WhereThingsGo({ org, value, pushable, emailable }: { org: string; value: NotificationSettings; pushable: boolean; emailable: boolean }) {
@@ -181,14 +181,14 @@ function WhereThingsGo({ org, value, pushable, emailable }: { org: string; value
   return (
     <Card>
       <div className="p-6 pb-4">
-        <h2 className="text-16 font-semibold">Where things go</h2>
-        <p className="mt-1 text-14 text-muted">Worked out from your choices on this page. Whatever is off, approvals still wait in Needs you.</p>
+        <h2 className="text-section-title">Where things go</h2>
+        <p className="mt-1 text-body text-muted">Worked out from your choices on this page. Whatever is off, approvals still wait in Needs you.</p>
       </div>
       {/* A real table from a tablet up. On a phone each event is a short list instead. */}
       <table className="hidden w-full border-t border-line text-left md:table">
         <caption className="sr-only">Where each kind of event goes</caption>
         <thead>
-          <tr className="h-10 border-b border-line text-13 text-faint">
+          <tr className="h-10 border-b border-line text-secondary text-faint">
             <th scope="col" className="pl-6 font-normal">
               Event
             </th>
@@ -215,8 +215,8 @@ function WhereThingsGo({ org, value, pushable, emailable }: { org: string; value
           {rows.map((row) => (
             <tr key={row.event} className="border-b border-line last:border-b-0">
               <th scope="row" className="py-3 pr-4 pl-6 align-top font-normal">
-                <span className="block text-14">{row.event}</span>
-                <span className="block text-13 text-faint">{row.detail}</span>
+                <span className="block text-body">{row.event}</span>
+                <span className="block text-secondary text-faint">{row.detail}</span>
               </th>
               <td className="py-3 pr-4 align-top">
                 <Value cell={row.push} />
@@ -236,21 +236,21 @@ function WhereThingsGo({ org, value, pushable, emailable }: { org: string; value
       <ul className="divide-y divide-line border-t border-line md:hidden">
         {rows.map((row) => (
           <li key={row.event} className="px-6 py-3">
-            <p className="text-14">{row.event}</p>
+            <p className="text-body">{row.event}</p>
             <dl className="mt-2 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1">
-              <dt className="text-13 text-faint">Push</dt>
+              <dt className="text-secondary text-faint">Push</dt>
               <dd>
                 <Value cell={row.push} />
               </dd>
               {emailable ? (
                 <>
-                  <dt className="text-13 text-faint">Email</dt>
+                  <dt className="text-secondary text-faint">Email</dt>
                   <dd>
                     <Value cell={row.email} />
                   </dd>
                 </>
               ) : null}
-              <dt className="text-13 text-faint">Webhooks</dt>
+              <dt className="text-secondary text-faint">Webhooks</dt>
               <dd>
                 <Value cell={row.webhook} />
               </dd>
@@ -264,7 +264,7 @@ function WhereThingsGo({ org, value, pushable, emailable }: { org: string; value
 
 function SaveState({ save }: { save: ReturnType<typeof useSaveNotifications> }) {
   return (
-    <span role="status" className={cn('block min-h-5 text-13', save.isError ? 'text-red' : 'text-faint')}>
+    <span role="status" className={cn('block min-h-5 text-secondary', save.isError ? 'text-bad' : 'text-faint')}>
       {save.isPending ? 'Saving' : save.isError ? `${describeError(save.error)} Your last saved choice is back.` : save.isSuccess ? 'Saved' : ''}
     </span>
   );
@@ -334,7 +334,7 @@ function Form({ org, value }: { org: string; value: NotificationSettings }) {
             </>
           ) : null}
         </div>
-        {sendsEmail === false ? <p className="mt-4 text-13 text-faint">This computer sends no email. Approvals still wait in Needs you.</p> : null}
+        {sendsEmail === false ? <p className="mt-4 text-secondary text-faint">This computer sends no email. Approvals still wait in Needs you.</p> : null}
       </FormCard>
       <WhereThingsGo org={org} value={value} pushable={pushable} emailable={emailable} />
       <FormCard title="Timing" description="When a push may reach you. Nothing is lost while it waits: everything stays in Needs you.">
@@ -357,7 +357,7 @@ function Form({ org, value }: { org: string; value: NotificationSettings }) {
                 <ClockField id="quiet-from" label="From" value={value.quiet_hours.from} onCommit={(from) => quiet({ from })} />
                 <ClockField id="quiet-to" label="To" value={value.quiet_hours.to} onCommit={(to) => quiet({ to })} />
                 <div className="grid gap-2">
-                  <span id="quiet-zone" className="text-13 text-muted">
+                  <span id="quiet-zone" className="text-secondary text-muted">
                     Time zone
                   </span>
                   <Select aria-describedby="quiet-zone" aria-label="Time zone" value={zone} onValueChange={(timezone) => quiet({ timezone })} options={zones} />

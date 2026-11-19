@@ -171,15 +171,15 @@ export function GrantsSettings() {
                   {items.map((grant) => (
                     <Tr key={grant.id}>
                       <Td className={mainCell}>
-                        <p className="mono truncate text-13">{grant.subject}</p>
-                        <p className="text-13 whitespace-normal text-faint">
+                        <p className="mono truncate text-secondary">{grant.subject}</p>
+                        <p className="text-secondary whitespace-normal text-faint">
                           <span className="md:hidden">{effectLabel[grant.ceiling]} · </span>
                           {grant.workspaces.map((id) => workspaceWords(id, workspaces.find((item) => item.id === id)?.name)).join(', ')}
                           {grant.budget ? ` · ${grant.budget}` : ''}
                         </p>
                       </Td>
-                      <Td className="hidden text-13 text-muted md:table-cell">{effectLabel[grant.ceiling]}</Td>
-                      <Td className="tabular hidden text-13 text-faint md:table-cell">
+                      <Td className="hidden text-secondary text-muted md:table-cell">{effectLabel[grant.ceiling]}</Td>
+                      <Td className="tabular hidden text-secondary text-faint md:table-cell">
                         {grant.expires_at ? date(grant.expires_at) : 'Never'}
                       </Td>
                       <Td className="pr-4 text-right md:pr-6">

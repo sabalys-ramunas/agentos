@@ -209,7 +209,7 @@ export function CheckPage() {
             }
           />
           {run.images_gone ? (
-            <p className="border-b border-line px-5 py-3 text-14 text-muted">
+            <p className="border-b border-line px-5 py-3 text-body text-muted">
               The pictures of this check are no longer kept. Every finding is still here, with what was measured, what was expected and the fix.
             </p>
           ) : null}

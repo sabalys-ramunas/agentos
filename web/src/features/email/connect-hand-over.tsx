@@ -64,8 +64,8 @@ export function HandOverStep({ org, found, computer, typed, go, onOpened }: { or
   const opener = useFormOpener(org, found, typed, onOpened);
   return (
     <div className="max-w-xl">
-      <p className="text-16 text-pretty text-muted">
-        Your password goes straight to <span className="mono text-14 text-fg">{computer.id}</span>, on a small page it makes for this one job. It never passes through agentos Cloud.
+      <p className="text-lede text-pretty text-muted">
+        Your password goes straight to <span className="mono text-body text-fg">{computer.id}</span>, on a small page it makes for this one job. It never passes through agentos Cloud.
       </p>
       <div className="mt-4"><ComputerChoice computers={found.computers} value={computer.id} onChange={(id) => go('hand-over', { computer: id, replace: true })} /></div>
       {computer.has_screen ? (
@@ -74,23 +74,23 @@ export function HandOverStep({ org, found, computer, typed, go, onOpened }: { or
             Open the form on {computer.id}
             <ArrowUpRight aria-hidden="true" className="size-4" />
           </Button>
-          <button type="button" aria-expanded={terminal} className="inline-flex items-center gap-1 text-13 text-muted hover:text-fg" onClick={() => setTerminal(!terminal)}>
+          <button type="button" aria-expanded={terminal} className="inline-flex items-center gap-1 text-secondary text-muted hover:text-fg" onClick={() => setTerminal(!terminal)}>
             <Terminal aria-hidden="true" className="size-3" />
             Or use its terminal
           </button>
         </div>
       ) : (
-        <p className="mt-4 text-14 text-pretty">This computer has no screen, so its terminal is the way in.</p>
+        <p className="mt-4 text-body text-pretty">This computer has no screen, so its terminal is the way in.</p>
       )}
       {terminal ? (
         <div className="spine-rise mt-3">
           <CodeBlock code={line} label="One line for its terminal" />
-          <p className="mt-2 text-13 text-pretty text-muted">Type this on {computer.id} itself. It asks for the password with the letters hidden.</p>
+          <p className="mt-2 text-secondary text-pretty text-muted">Type this on {computer.id} itself. It asks for the password with the letters hidden.</p>
           <Button className="mt-3" onClick={() => go('waiting')}>I ran it</Button>
         </div>
       ) : null}
       {opener.error ? <InlineError className="mt-3">{describeError(opener.error)}</InlineError> : null}
-      <p className="mt-4 text-13 text-faint">{computer.has_screen ? 'The form works once, and only for a short time. ' : ''}Nothing is saved until both checks pass.</p>
+      <p className="mt-4 text-secondary text-faint">{computer.has_screen ? 'The form works once, and only for a short time. ' : ''}Nothing is saved until both checks pass.</p>
       {computer.has_screen ? (
         <div className="mt-2">
           <Disclosure label={`Not sitting at ${computer.id} right now?`}>
@@ -159,8 +159,8 @@ export function WaitingStep({ org, found, computer, typed, form, go, onOpened }:
   if (token !== null && gone === token) {
     return (
       <div className="max-w-xl">
-        <h3 className="text-16 font-semibold">This link has ended</h3>
-        <p className="mt-1 text-14 text-pretty text-muted">It was used without connecting, ran out of time, or was cancelled. Nothing was saved. A new link works the same way.</p>
+        <h3 className="text-section-title">This link has ended</h3>
+        <p className="mt-1 text-body text-pretty text-muted">It was used without connecting, ran out of time, or was cancelled. Nothing was saved. A new link works the same way.</p>
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <Button variant="primary" loading={opener.busy} onClick={() => opener.open()}>
             Start again
@@ -177,18 +177,18 @@ export function WaitingStep({ org, found, computer, typed, form, go, onOpened }:
 
   return (
     <div className="max-w-xl">
-      <p className="flex items-center gap-3 text-16 text-pretty">
+      <p className="flex items-center gap-3 text-lede text-pretty">
         <Spinner className="size-4" />
         Waiting for the form on {computer.id}. This page moves on by itself.
       </p>
-      {Number.isFinite(endsAt) ? <p className="mt-2 text-14 text-muted">The form closes in <Countdown until={endsAt} />.</p> : null}
+      {Number.isFinite(endsAt) ? <p className="mt-2 text-body text-muted">The form closes in <Countdown until={endsAt} />.</p> : null}
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <Button loading={opener.busy} onClick={() => opener.open()}>
           Open the form again
           <ArrowUpRight aria-hidden="true" className="size-3" />
         </Button>
-        <button type="button" className="link text-13" disabled={end.isPending} onClick={cancel}>Cancel</button>
-        {apiMode === 'mock' ? <button type="button" className="link text-13" onClick={() => go('checks', { replace: true })}>Concept: pretend it was filled in</button> : null}
+        <button type="button" className="link text-secondary" disabled={end.isPending} onClick={cancel}>Cancel</button>
+        {apiMode === 'mock' ? <button type="button" className="link text-secondary" onClick={() => go('checks', { replace: true })}>Concept: pretend it was filled in</button> : null}
       </div>
       {opener.error ? <InlineError className="mt-3">{describeError(opener.error)}</InlineError> : null}
     </div>
@@ -200,10 +200,10 @@ function CheckRow({ label, state }: { label: string; state: Check }) {
   return (
     <li className="flex items-center gap-3 border-t border-line py-3 first:border-t-0">
       <span className="grid size-5 place-items-center">
-        {state === 'running' ? <Spinner className="size-4" /> : state === 'yes' ? <StateGlyph state="good" size={20} /> : state === 'no' ? <StateGlyph state="stuck" size={20} /> : state === 'stopped' ? <StateGlyph state="waiting" size={20} /> : <span className="size-2 rounded-full bg-fill-3" />}
+        {state === 'running' ? <Spinner className="size-4" /> : state === 'yes' ? <StateGlyph state="good" size={20} /> : state === 'no' ? <StateGlyph state="stuck" size={20} /> : state === 'stopped' ? <StateGlyph state="waiting" size={20} /> : <span className="size-2 rounded-full bg-fill-strong" />}
       </span>
-      <span className="min-w-0 flex-1 text-14">{label}</span>
-      <span className="text-13 text-muted">{word}</span>
+      <span className="min-w-0 flex-1 text-body">{label}</span>
+      <span className="text-secondary text-muted">{word}</span>
     </li>
   );
 }
@@ -215,7 +215,7 @@ export function ChecksStep({ provider, read, send }: { provider: string; read: C
         <CheckRow label="Can it read new mail?" state={read} />
         <CheckRow label="Can it send mail?" state={send} />
       </ul>
-      <p className="mt-3 text-13 text-faint">This only signs in to {provider}. Nothing is read and nothing is sent.</p>
+      <p className="mt-3 text-secondary text-faint">This only signs in to {provider}. Nothing is read and nothing is sent.</p>
     </div>
   );
 }
@@ -224,10 +224,10 @@ function CopyNote({ text, label, after }: { text: string; label: string; after: 
   const { copied, copy } = useCopy();
   return (
     <div className="mt-4">
-      <p className="stranger rounded-sm bg-subtle py-3 pr-3 text-13 whitespace-pre-line text-muted">{text}</p>
+      <p className="stranger rounded-sm bg-inset py-3 pr-3 text-secondary whitespace-pre-line text-muted">{text}</p>
       <div className="mt-3 flex items-center gap-3">
         <Button variant="primary" onClick={() => void copy(text)}>{copied ? 'Copied' : label}</Button>
-        {copied ? <span className="spine-rise text-13 text-muted">{after}</span> : null}
+        {copied ? <span className="spine-rise text-secondary text-muted">{after}</span> : null}
       </div>
     </div>
   );
@@ -239,15 +239,15 @@ export function FailedStep({ ending, found, computer, go }: { ending: Ending; fo
   const [opened, setOpened] = useState(false);
   return (
     <div className="max-w-xl">
-      <h3 className="text-20 font-semibold text-balance">{words.title}</h3>
-      <p className="mt-2 text-14 text-pretty text-muted">{words.body}</p>
+      <h3 className="text-heading text-balance">{words.title}</h3>
+      <p className="mt-2 text-body text-pretty text-muted">{words.body}</p>
       {ending === 'two-step-off' ? null : (
         <ul className="mt-4 rounded-lg border border-line px-4">
           <CheckRow label="Can it read new mail?" state={words.read} />
           <CheckRow label="Can it send mail?" state={words.send} />
         </ul>
       )}
-      {ending === 'two-step-off' ? null : <p className="mt-3 text-13 text-faint">Nothing was saved.</p>}
+      {ending === 'two-step-off' ? null : <p className="mt-3 text-secondary text-faint">Nothing was saved.</p>}
       {ending === 'wrong-password' ? <Button variant="primary" className="mt-4" onClick={() => go('password')}>Make a new app password</Button> : null}
       {ending === 'two-step-off' ? (
         opened ? (
@@ -270,9 +270,9 @@ export function FailedStep({ ending, found, computer, go }: { ending: Ending; fo
 export function DoneStep({ org, address, provider, computer }: { org: string; address: string; provider: string; computer: string }) {
   return (
     <div className="spine-rise max-w-xl">
-      <p className="flex items-center gap-3"><StateGlyph state="good" size={24} /><span className="text-20 font-semibold">Connected</span></p>
-      <h2 className="mt-2 text-24 font-semibold break-all">{address}</h2>
-      <p className="mt-2 text-14 text-pretty text-muted">It can read and it can send. The password is in {computer}'s vault, tied to {provider}'s two servers, and nobody can read it back, agents included.</p>
+      <p className="flex items-center gap-3"><StateGlyph state="good" size={24} /><span className="text-heading">Connected</span></p>
+      <h2 className="mt-2 text-page-title-compact break-all">{address}</h2>
+      <p className="mt-2 text-body text-pretty text-muted">It can read and it can send. The password is in {computer}'s vault, tied to {provider}'s two servers, and nobody can read it back, agents included.</p>
       <div className="mt-6 flex flex-wrap items-center gap-2">
         <Button variant="primary" size="lg" asChild><Link to="/$org/email/new-mail" params={{ org }}>See new mail</Link></Button>
         <Button size="lg" asChild><Link to="/$org/email/leads" params={{ org }}>Build a list</Link></Button>

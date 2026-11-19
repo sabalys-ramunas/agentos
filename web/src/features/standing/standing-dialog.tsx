@@ -134,21 +134,21 @@ export function StandingDialog({ org, open, onOpenChange, from = null, onCreated
       }
     >
       <form id="standing-form" className="grid gap-6" onSubmit={submit}>
-        <div className="rounded-lg border border-line bg-subtle px-4 py-3">
+        <div className="rounded-lg border border-line bg-inset px-4 py-3">
           {support.data ? (
             <>
               <EnforcementNote enforcement={support.data} />
-              {effect === 'commit' ? <p className="mt-1 text-13 text-muted">It only limits what asks first. An account or routine that runs on its own does not use it.</p> : null}
+              {effect === 'commit' ? <p className="mt-1 text-secondary text-muted">It only limits what asks first. An account or routine that runs on its own does not use it.</p> : null}
             </>
           ) : support.isError ? (
-            <p className="text-13 text-muted">Could not check whether a computer applies this. Assume none does, and that whatever asks first still asks each time.</p>
+            <p className="text-secondary text-muted">Could not check whether a computer applies this. Assume none does, and that whatever asks first still asks each time.</p>
           ) : (
             <Skeleton className="h-5" />
           )}
         </div>
 
         {from ? (
-          <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-6 gap-y-2 text-13">
+          <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-6 gap-y-2 text-secondary">
             <dt className="text-faint">Covers</dt>
             <dd className="text-fg">{effectLabel[from.effect]}</dd>
             <dt className="text-faint">With</dt>
@@ -172,7 +172,7 @@ export function StandingDialog({ org, open, onOpenChange, from = null, onCreated
                   options={choices.map((value) => ({ value, label: effectLabel[value] }))}
                 />
               ) : (
-                <p className="flex h-9 items-center text-14 text-fg">{effectLabel[effect]}</p>
+                <p className="flex h-9 items-center text-body text-fg">{effectLabel[effect]}</p>
               )}
             </Field>
             <Field
@@ -191,19 +191,19 @@ export function StandingDialog({ org, open, onOpenChange, from = null, onCreated
         )}
 
         <fieldset className="grid gap-2">
-          <legend className="mb-2 text-13 font-medium">Lanes</legend>
-          <label className="flex items-center gap-3 text-14">
+          <legend className="mb-2 text-secondary font-medium">Lanes</legend>
+          <label className="flex items-center gap-3 text-body">
             <input type="radio" name="scope" className="size-4 accent-[var(--foreground)]" checked={scope === 'all'} onChange={() => setScope('all')} />
             Every lane in {nameOf(chosen)}
           </label>
-          <label className="flex items-center gap-3 text-14">
+          <label className="flex items-center gap-3 text-body">
             <input type="radio" name="scope" className="size-4 accent-[var(--foreground)]" checked={scope === 'some'} onChange={() => setScope('some')} />
             Only the lanes I choose
           </label>
           {scope === 'some' ? (
             <div className="mt-2 grid gap-2 pl-7 sm:grid-cols-2">
               {laneOptions.map((lane) => (
-                <label key={lane.id} className="flex items-center gap-2 text-13">
+                <label key={lane.id} className="flex items-center gap-2 text-secondary">
                   <Checkbox
                     checked={lanes.includes(lane.id)}
                     onCheckedChange={(checked) => setLanes((current) => (checked === true ? [...current, lane.id] : current.filter((item) => item !== lane.id)))}
@@ -230,7 +230,7 @@ export function StandingDialog({ org, open, onOpenChange, from = null, onCreated
           <Textarea rows={2} maxLength={300} value={note} onChange={(event) => setNote(event.target.value)} />
         </Field>
         {!invalid ? (
-          <p className="text-13 text-muted">
+          <p className="text-secondary text-muted">
             Up to {total} {total === 1 ? 'time' : 'times'}
             {daily ? `, at most ${daily} a day,` : ''} until the end of {date(endOfDay(until))}, then it stops by itself. You can revoke it at any time.
           </p>

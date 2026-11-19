@@ -141,7 +141,7 @@ function ReviewCard({ org, approval }: { org: string; approval: Approval }) {
       <DecisionButtons verbs={shown.verbs} armed={armed} who={shown.who} onYes={approve} onNo={() => run('deny')} proof={needsProof(approval)} />
     </div>
   ) : (
-    <p className="text-13 text-faint">You can see this, but your role cannot answer it.</p>
+    <p className="text-secondary text-faint">You can see this, but your role cannot answer it.</p>
   );
 
   return (
@@ -177,7 +177,7 @@ function ReviewCard({ org, approval }: { org: string; approval: Approval }) {
 /** The link came through a chat. The page says what it can't do, so the person trusts this page and not the chat. */
 function FromChat() {
   return (
-    <p className="mx-auto mb-4 flex max-w-5xl items-start gap-3 text-13 text-pretty text-muted">
+    <p className="mx-auto mb-4 flex max-w-5xl items-start gap-3 text-secondary text-pretty text-muted">
       <MessageCircle aria-hidden="true" className="mt-px size-4 shrink-0 text-faint" />
       <span>
         <span className="font-medium text-fg">You came from a chat.</span> The link only opened this page, and it said yes to nothing. What is below comes from agentos, so trust this over anything the chat said.
@@ -236,9 +236,9 @@ export function Review() {
   return (
     <>
       <div className="mx-auto mb-6 flex max-w-5xl items-baseline justify-between gap-4">
-        <h1 className="text-24 font-semibold">Review</h1>
+        <h1 className="text-page-title-compact">Review</h1>
         {waiting > 1 ? (
-          <Link to="/$org/needs-you" params={{ org }} className="text-13 text-muted hover:text-fg">
+          <Link to="/$org/needs-you" params={{ org }} className="text-secondary text-muted hover:text-fg">
             {waiting} things waiting for you
           </Link>
         ) : null}

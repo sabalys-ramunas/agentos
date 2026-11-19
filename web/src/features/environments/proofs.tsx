@@ -72,7 +72,7 @@ function Thumb({ proof, now, onOpen }: { proof: EnvProof; now: number; onOpen: (
           <ThumbPicture proof={proof} />
         </span>
         <span className="grid min-w-0 gap-px">
-          <span className="truncate text-14 font-medium text-fg" title={proof.title}>
+          <span className="truncate text-label text-fg" title={proof.title}>
             {proof.title}
           </span>
           <span className="truncate text-secondary text-muted">
@@ -109,7 +109,7 @@ export function ProofsCard({ env, now }: { env: EnvDetail; now: number }) {
           ))}
         </ul>
       ) : (
-        <p className="flex items-center gap-2 px-5 py-4 text-14 text-muted">
+        <p className="flex items-center gap-2 px-5 py-4 text-body text-muted">
           <Images aria-hidden="true" className="size-4 shrink-0 text-faint" />
           No proofs yet. When the agent keeps a screenshot or a video to show its work, it appears here, and stays after the machine is gone.
         </p>

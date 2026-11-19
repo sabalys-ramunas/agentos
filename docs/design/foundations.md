@@ -2,6 +2,9 @@
 
 > The prototypes under `panel/prototypes/` were removed with the classic panel on 2026-11-14. They are
 > in git history (commit 59634500 and earlier); the commands below run only on such a checkout.
+>
+> Since 2026-11-19 an agent acting now is ink with a ringed, pulsing dot, never pink and never a hue
+> (web/DESIGN.md, web/DESIGN-SYSTEM.md). Where this page gives "live" a colour, that is superseded.
 
 Status: design, 2026-11-12. Owner's words: "basic tokens like table headers need a lot of work."
 Built by D1 on the design wave that moves agentos toward developers' and designers' work.
@@ -113,8 +116,8 @@ system unless `data-theme` pins one.
   progress. The primary button stays solid ink, as DESIGN.md says.
 - **Status in four parts.** ok, warn, bad, live, idle, each with `text` (4.5:1 on every surface and on
   its own fill), `dot` (3:1 on cards), `fill` (a tint) and `line` (a tint's edge). One family per
-  meaning replaces the four parallel sets. `live` is the app's pink: an agent acting right now, never
-  decoration. The prototype's blue "running" and orange "held" are gone. The warning dot is darker in
+  meaning replaces the four parallel sets. `live` is an agent acting right now (ink with a pulsing ring
+  since 2026-11-19; this page first made it pink), never decoration. The prototype's blue "running" and orange "held" are gone. The warning dot is darker in
   light (`#cf7c00`, 3.2:1) so it passes as a mark. `status-ink` (`#111111`) is for a number on a dot.
 - **Shape carries status too.** Dot fine, diamond needs a look, square failed, ringed dot acting now,
   hollow ring idle. Colour never stands alone.

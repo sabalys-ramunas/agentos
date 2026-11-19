@@ -37,16 +37,16 @@ const SHOWN_OUTPUTS = 3;
 /** The headline: the routine's own sentence. Each phrase lights its step on the map, and back. */
 function Sentence({ flow, catalog, lit, onLight }: { flow: Flow; catalog: RoutineCatalog | undefined; lit: string | null; onLight: (id: string | null) => void }) {
   const parts = routineParts(flow, catalog);
-  if (!parts) return <h1 className="text-32 font-semibold text-balance">{routineTitle(flow)}</h1>;
+  if (!parts) return <h1 className="text-headline text-balance">{routineTitle(flow)}</h1>;
   return (
-    <h1 className="max-w-4xl text-24 font-semibold text-balance sm:text-[36px] sm:leading-[42px] sm:tracking-[-0.04em]">
+    <h1 className="max-w-4xl text-page-title-compact text-balance sm:text-[36px] sm:leading-[42px] sm:tracking-[-0.04em]">
       {parts.map((part, index) =>
         part.target ? (
           <span
             key={index}
             onPointerEnter={() => onLight(part.target ?? null)}
             onPointerLeave={() => onLight(null)}
-            className={cn('rounded-sm transition-colors duration-(--duration-fast) ease-standard', lit === part.target ? 'bg-fill-2' : '')}
+            className={cn('rounded-sm transition-colors duration-(--duration-fast) ease-standard', lit === part.target ? 'bg-pressed' : '')}
           >
             {part.text}
           </span>
@@ -65,7 +65,7 @@ function Standing({ org, flow, onOpen }: { org: string; flow: Flow; onOpen: (id:
   if (flow.stuck) {
     const [ws, lane] = (flow.stuck.lane ?? '').split('/');
     return (
-      <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-14 text-pretty">
+      <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-body text-pretty">
         <StateGlyph state="stuck" size={16} />
         <span className="min-w-0">Stopped at "{flow.stuck.label}". {flow.stuck.words}</span>
         {flow.stuck.fix && ws && lane ? (
@@ -81,7 +81,7 @@ function Standing({ org, flow, onOpen }: { org: string; flow: Flow; onOpen: (id:
   }
   const next = flow.enabled === false ? 'It is paused.' : flow.next_at ? `Next ${whenNext(flow.next_at)}.` : flow.trigger && flow.trigger.kind !== 'schedule' ? 'It runs when it is needed.' : null;
   return (
-    <p className="mt-4 text-14 text-pretty text-muted">
+    <p className="mt-4 text-body text-pretty text-muted">
       {flow.waiting ? (
         <>
           <Link to="/$org/needs-you" params={{ org }} className="link">
@@ -111,19 +111,19 @@ function SendRules({ limits, flow }: { limits: RoutineSendLimit[]; flow: Flow })
         return (
           <div key={limit.step} className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-16">
             <div>
-              <h2 className="text-20 font-semibold">Who it can reach</h2>
-              <p className="mt-1 text-14 text-pretty text-muted">
+              <h2 className="text-heading">Who it can reach</h2>
+              <p className="mt-1 text-body text-pretty text-muted">
                 "{label.charAt(0).toUpperCase() + label.slice(1)}" only goes to <span className="text-fg">{limit.list ?? 'a list you choose'}</span>
                 {limit.list_size ? ` (${limit.list_size.toLocaleString('en')} people)` : ''}. These always apply. They are not settings.
               </p>
               <div className="mt-4 flex items-center gap-3">
                 <Meter value={limit.sent_today} max={limit.daily_limit} label="Sent today" className="w-40 shrink-0" />
-                <span className="tabular text-13 text-muted">
+                <span className="tabular text-secondary text-muted">
                   {limit.sent_today} of {limit.daily_limit} today
                 </span>
               </div>
             </div>
-            <ul className="grid content-start divide-y divide-line text-14">
+            <ul className="grid content-start divide-y divide-line text-body">
               {[`Stops at ${limit.daily_limit} a day`, `Skips ${plural(limit.suppressed, 'person', 'people')} who asked not to hear from you`, 'Every email carries an unsubscribe link'].map((rule) => (
                 <li key={rule} className="flex items-center gap-3 py-2">
                   <Lock aria-hidden="true" className="size-4 shrink-0 text-faint" />
@@ -146,10 +146,10 @@ function Runs({ runs, onOpen }: { runs: RoutineRun[]; onOpen: (run: RoutineRun) 
       <ul className="divide-y divide-line">
         {listed.map((run) => (
           <li key={run.id}>
-            <button type="button" onClick={() => onOpen(run)} className="group/run -mx-2 flex w-[calc(100%+16px)] items-center gap-3 rounded-md px-2 py-2 text-left transition-colors duration-(--duration-fast) ease-standard hover:bg-fill-1">
+            <button type="button" onClick={() => onOpen(run)} className="group/run -mx-2 flex w-[calc(100%+16px)] items-center gap-3 rounded-md px-2 py-2 text-left transition-colors duration-(--duration-fast) ease-standard hover:bg-hover">
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-14">{run.result}</span>
-                <span className="tabular block truncate text-12 text-faint">{dateTime(run.started_at)} · {run.cause}</span>
+                <span className="block truncate text-body">{run.result}</span>
+                <span className="tabular block truncate text-caption text-faint">{dateTime(run.started_at)} · {run.cause}</span>
               </span>
               <Status status={runStatus[run.status]} className="hidden sm:inline-flex" />
               <ChevronRight aria-hidden="true" className="size-4 text-faint" />
@@ -184,7 +184,7 @@ function Technical({ flow }: { flow: Flow }) {
       {file ? (
         <div className="relative min-w-0">
           <div className="absolute top-2 right-2"><CopyButton text={file} label="Copy the file" /></div>
-          <pre className="mono max-h-96 overflow-auto rounded-lg border border-line bg-subtle p-4 text-12">{file}</pre>
+          <pre className="mono max-h-96 overflow-auto rounded-lg border border-line bg-inset p-4 text-caption">{file}</pre>
         </div>
       ) : null}
     </section>
@@ -215,12 +215,12 @@ function Body({ org, flow }: { org: string; flow: Flow }) {
   return (
     <div className="grid gap-10 md:gap-12">
       <div>
-        <Link to="/$org/flows" params={{ org }} className="mb-6 inline-flex items-center gap-1 text-13 text-muted hover:text-fg">
+        <Link to="/$org/flows" params={{ org }} className="mb-6 inline-flex items-center gap-1 text-secondary text-muted hover:text-fg">
           <ArrowLeft className="size-3" /> Routines
         </Link>
         <header>
           <div className="mb-3 flex items-center justify-between gap-4">
-            <p className="flex min-w-0 items-center gap-2 text-14 text-muted">
+            <p className="flex min-w-0 items-center gap-2 text-body text-muted">
               {workspace ? <BusinessMark name={workspace.name} color={workspace.color} size={20} /> : <SiteMark site={site} size={20} label={false} />}
               <span className="truncate">{[workspace?.name, routineTitle(flow)].filter(Boolean).join(' · ')}</span>
             </p>
@@ -249,8 +249,8 @@ function Body({ org, flow }: { org: string; flow: Flow }) {
           {schedules.map((item) => (
             <div key={item.id} className="flex items-center gap-3 border-b border-line py-3">
               <Clock aria-hidden="true" className="size-4 shrink-0 text-faint" />
-              <p className="min-w-0 flex-1 text-13 text-muted">
-                <span className="text-14 font-medium text-fg">{triggerOf(item)}</span> <NextFire schedule={item} zone={zoneOf(item)} />
+              <p className="min-w-0 flex-1 text-secondary text-muted">
+                <span className="text-label text-fg">{triggerOf(item)}</span> <NextFire schedule={item} zone={zoneOf(item)} />
               </p>
               {canOperate ? <PauseSwitch org={org} schedule={item} /> : null}
             </div>
@@ -267,11 +267,11 @@ function Body({ org, flow }: { org: string; flow: Flow }) {
       {flow.trigger && flow.steps ? (
         <FlowMap trigger={flow.trigger} steps={flow.steps} catalog={catalog} run={newest?.steps} next={flow.next_at ? `Next ${whenNext(flow.next_at)}` : null} locked={locked} lit={lit === TRIGGER_TARGET ? 'trigger' : lit} onLight={setLit} />
       ) : (
-        <p className="text-14 text-pretty text-muted">Its steps can't be shown here: the computer it runs on keeps it as a recording. Its runs show below. Updating that computer lets you see and change its steps here.</p>
+        <p className="text-body text-pretty text-muted">Its steps can't be shown here: the computer it runs on keeps it as a recording. Its runs show below. Updating that computer lets you see and change its steps here.</p>
       )}
 
       <section aria-label="What it made lately">
-        <h2 className="mb-4 text-20 font-semibold">What it made lately</h2>
+        <h2 className="mb-4 text-heading">What it made lately</h2>
         <QueryView query={runs} skeleton={<div className="grid gap-4 md:grid-cols-4">{[0, 1, 2, 3].map((item) => <Skeleton key={item} className="h-56 rounded-(--radius-card)" />)}</div>}>
           {() =>
             made.length ? (
@@ -283,7 +283,7 @@ function Body({ org, flow }: { org: string; flow: Flow }) {
                 ))}
               </div>
             ) : (
-              <p className="text-14 text-muted">Nothing yet. What it makes shows here after its first run.</p>
+              <p className="text-body text-muted">Nothing yet. What it makes shows here after its first run.</p>
             )
           }
         </QueryView>
@@ -330,7 +330,7 @@ export function FlowDetail() {
               title="This routine is not here"
               description="It may have been removed on the computer, or it belongs to a workspace you cannot see."
               action={
-                <Link to="/$org/flows" params={{ org }} className="link text-14">
+                <Link to="/$org/flows" params={{ org }} className="link text-body">
                   Back to routines
                 </Link>
               }

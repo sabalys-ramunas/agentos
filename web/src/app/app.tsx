@@ -51,9 +51,9 @@ function makeClient(onPlanLimit: (message: string) => void) {
 
 const toastClasses = {
   toast:
-    'flex w-full items-center gap-2 rounded-lg border border-line bg-raised px-4 py-3 text-14 text-fg shadow-popover',
+    'flex w-full items-center gap-2 rounded-lg border border-line bg-raised px-4 py-3 text-body text-fg shadow-popover',
   title: 'font-normal',
-  description: 'text-13 text-muted',
+  description: 'text-secondary text-muted',
   icon: 'text-faint',
 };
 

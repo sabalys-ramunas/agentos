@@ -80,15 +80,15 @@ function Row({ span, from, total, slowest, open, onToggle }: { span: Span; from:
         type="button"
         aria-expanded={open}
         onClick={onToggle}
-        className="grid w-full gap-1 rounded-md px-2 py-2 text-left transition-colors duration-(--duration-fast) ease-standard hover:bg-fill-1"
+        className="grid w-full gap-1 rounded-md px-2 py-2 text-left transition-colors duration-(--duration-fast) ease-standard hover:bg-hover"
       >
-        <span className="flex items-baseline gap-2 text-13">
+        <span className="flex items-baseline gap-2 text-secondary">
           <StatusDot tone={tone} pulse={span.live} className="translate-y-px" />
           <span className="min-w-0 flex-1 truncate">{step.summary}</span>
-          {word ? <span className="text-12 text-muted">{word}</span> : slowest ? <span className="text-12 text-faint">Slowest</span> : null}
-          <span className="mono tabular text-12 text-muted">{elapsed(length)}</span>
+          {word ? <span className="text-caption text-muted">{word}</span> : slowest ? <span className="text-caption text-faint">Slowest</span> : null}
+          <span className="mono tabular text-caption text-muted">{elapsed(length)}</span>
         </span>
-        <span aria-hidden="true" className="relative block h-1.5 overflow-hidden rounded-full bg-fill-1">
+        <span aria-hidden="true" className="relative block h-1.5 overflow-hidden rounded-full bg-hover">
           <span
             className={cn('absolute inset-y-0 rounded-full', span.live && 'animate-pulse')}
             style={{ left: `${left}%`, width: `max(${width}%, 3px)`, backgroundColor: color }}
@@ -96,7 +96,7 @@ function Row({ span, from, total, slowest, open, onToggle }: { span: Span; from:
         </span>
       </button>
       {open ? (
-        <dl className="tabular grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 px-2 pt-1 pb-2 pl-6 text-12 text-muted">
+        <dl className="tabular grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 px-2 pt-1 pb-2 pl-6 text-caption text-muted">
           {sameWords(step.tool, step.summary) ? null : (
             <>
               <dt className="text-faint">Tool</dt>
@@ -123,7 +123,7 @@ export function Waterfall({ run }: { run: Run }) {
   const longest = spans.length > 1 ? Math.max(...spans.map((span) => span.end - span.start)) : Infinity;
   return (
     <div>
-      <div aria-hidden="true" className="mono tabular flex justify-between px-2 pb-1 text-12 text-faint">
+      <div aria-hidden="true" className="mono tabular flex justify-between px-2 pb-1 text-caption text-faint">
         <span>0s</span>
         <span>{elapsed(total / 2)}</span>
         <span>{elapsed(total)}</span>

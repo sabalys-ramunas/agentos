@@ -122,7 +122,7 @@ export function StackedBars({ buckets, series, bucketSeconds, label, height = 13
         onBlur={() => setActive(null)}
       >
         <svg width={width} height={height} aria-hidden="true" className="block">
-          <g className="text-11" fill="var(--foreground-subtle)">
+          <g className="text-micro font-normal" fill="var(--foreground-subtle)">
             {[top, top / 2].map((tick) => (
               <g key={tick}>
                 <line x1={AXIS_Y} x2={width} y1={plotHeight - scale(tick) - 0.5} y2={plotHeight - scale(tick) - 0.5} stroke="var(--border)" />

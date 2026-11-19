@@ -18,7 +18,8 @@ that. Hairlines, not tinted panels. Everyday words from `src/lib/vocabulary.ts`.
 3. **Style only with tokens.** Classes on roles (`bg-card`, `text-muted`, `border-line`, `text-bad`), type
    roles (`text-body`, `text-secondary`, `text-caption`), the 4 px grid. No hex, no `p-[7px]`, no `style={{ color }}`.
 4. **Words from the vocabulary.** Machine, not node; account, not lane; routine, not flow. Technical terms
-   wait behind Technical details (`useTechnical`).
+   wait behind Technical details (`useTechnical`). One reviewed exception: the environment screens say
+   node for the host an environment runs on, since there is no everyday word for it.
 5. **Check it.** `pnpm design:check`, then look at it in both themes at 390 and 1440 (or `ui_check` with studio).
 
 ## Tokens in one table
@@ -29,9 +30,9 @@ that. Hairlines, not tinted panels. Everyday words from `src/lib/vocabulary.ts`.
 | Hairline, firm edge, control edge | `border-line`, `border-line-strong`, `border-control` | `border-gray-200` |
 | Text: read, second, quiet, off | `text-fg`, `text-muted`, `text-faint`, `text-disabled` | `text-black`, `text-zinc-500` |
 | Status word, mark, tint, edge | `text-ok` / `bg-ok-dot` / `bg-ok-fill` / `border-ok-line` (warn, bad, idle, live) | `text-red`, `text-green-600` |
-| An agent acting now | `Status` tone `live` with `pulse` (ink, a ringed dot) | pink, or any hue |
+| An agent acting now | `Status` tone `live` with `pulse`: ink, a ringed dot that pulses. Never pink: pink is the design kind of work | pink, or any hue |
 | A kind of work | `KindTile`, `KindEyebrow`, `Card kind` | a kind's hue on anything else |
-| Type | `text-page-title`, `text-section-title`, `text-card-title`, `text-body`, `text-secondary`, `text-caption`, `text-code`, `text-number` | `text-sm`, `text-[13px]`, `text-13` |
+| Type | `text-page-title`, `text-headline`, `text-heading`, `text-section-title`, `text-card-title`, `text-body`, `text-secondary`, `text-caption`, `text-code`, `text-number` | `text-sm`, `text-[13px]`, `text-13` |
 | Space, radius, depth | `p-4`, `gap-3`; `rounded-md` controls, `rounded-xl` cards; `shadow-lift` | `p-[7px]`, `rounded-2xl`, `shadow-md` |
 | Motion, layers | `duration-(--duration-fast)`, `ease-standard`; `z-10` to `z-70` | `duration-500`, `z-[35]` |
 
@@ -61,7 +62,8 @@ group's index; the test fails without both. Keep its API to what real screens ne
 | `pnpm design:check` | The design rules (`src/test/design-system.test.ts`), the source rules and the tokens, in seconds |
 | `pnpm test` | All of the above, with every other unit test |
 | `pnpm lint` | File size (500 lines), complexity (25), hooks, a11y, no mock in a screen |
-| `pnpm test:e2e catalog` | The catalog photographed by group, light and dark, 1440 and 390 |
+| `pnpm test:e2e catalog` | The catalog photographed by group, light and dark, 1440 and 390, against this machine's baselines |
+| `node scripts/visual-compare.mjs` | The catalog and the main screens before and after a change, compared pixel by pixel |
 | `python3 tokens/build-tokens.py --check` | The generated files match the script; contrast (AA) and colour-blind checks pass |
 
 The design rules, each failing with the file, line and fix: **raw-colour** (hex, `rgb()`, `color-mix()`,
@@ -74,6 +76,12 @@ status dot, spinner, inline error, table, stat or page title drawn by hand; clip
 
 What was in the code when the rules came in is counted per file in `src/test/design-allowlist.json`. A
 count may only go down: fix one and run `pnpm design:shrink`. Never raise a count; fix the finding.
+`legacy-token` is at zero since 2026-11-19 and has no counts, so an old name anywhere fails; a branch
+from before then runs `node scripts/codemod-legacy-tokens.mjs` once. The `exceptions` are reviewed
+places a rule does not apply, each with its reason; `vocabulary:node` excepts that one word in a file.
+
+The catalog's screenshot baselines are not in git. The first `pnpm test:e2e catalog` on a machine records
+them (take it on a clean `main`), later runs compare, and `--update-snapshots` records a change you meant.
 
 ## Before a pull request
 
@@ -82,4 +90,4 @@ count may only go down: fix one and run `pnpm design:shrink`. Never raise a coun
 - [ ] Every state designed: loading (a skeleton shaped like the content), empty, error, refused, live.
 - [ ] Looked at in light and dark, at 390 and 1440; no sideways scroll at 390.
 - [ ] Words from the vocabulary, sentence case, no em dash.
-- [ ] `pnpm typecheck && pnpm lint && pnpm knip && pnpm test` pass; a changed component has its catalog entry and new screenshots.
+- [ ] `pnpm typecheck && pnpm lint && pnpm knip && pnpm test` pass; a changed component has its catalog entry, and `pnpm test:e2e catalog` shows only the change you meant.

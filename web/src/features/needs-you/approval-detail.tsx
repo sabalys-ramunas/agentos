@@ -29,7 +29,7 @@ export function RefusedDelivery({ approval }: { approval: Approval }) {
   if (approval.delivery !== 'refused') return null;
   const answer = approval.state === 'denied' ? 'no' : 'yes';
   return (
-    <p role="status" className="flex items-baseline gap-2 rounded-lg border border-line bg-subtle px-4 py-3 text-14">
+    <p role="status" className="flex items-baseline gap-2 rounded-lg border border-line bg-inset px-4 py-3 text-body">
       <StatusDot tone="bad" className="translate-y-px" />
       <span className="min-w-0">
         <span className="font-medium">The computer did not take your {answer}.</span>{' '}
@@ -60,15 +60,15 @@ export function QuestionDetail({ org, question, canAnswer, onAnswer }: QuestionD
   return (
     <div className="grid gap-4">
       <div>
-        <p className="flex items-center gap-2 text-13 text-muted">
+        <p className="flex items-center gap-2 text-secondary text-muted">
           <AgentMark principal={question.asked_by} size={20} />
           <span>{mine ? 'Asked by you' : <><Requester org={org} principal={question.asked_by} /> asks you</>}</span>
         </p>
-        <h2 className="mt-3 text-24 font-semibold break-words">{question.question}</h2>
+        <h2 className="mt-3 text-page-title-compact break-words">{question.question}</h2>
       </div>
       {question.worker ? <WorkerStopped thing={question.worker} /> : null}
       {!canAnswer ? (
-        <p className="text-13 text-faint">Your role can see this but not answer it.</p>
+        <p className="text-secondary text-faint">Your role can see this but not answer it.</p>
       ) : question.options?.length ? (
         <ul className="grid gap-2">
           {question.options.map((option, index) => (
@@ -76,7 +76,7 @@ export function QuestionDetail({ org, question, canAnswer, onAnswer }: QuestionD
               <button
                 type="button"
                 onClick={() => onAnswer(option)}
-                className="flex min-h-12 w-full items-center gap-2 rounded-xl border border-line px-4 py-2 text-left text-16 transition-colors duration-(--duration-fast) ease-standard hover:border-line-strong hover:bg-fill-1 active:bg-fill-2"
+                className="flex min-h-12 w-full items-center gap-2 rounded-xl border border-line px-4 py-2 text-left text-lede transition-colors duration-(--duration-fast) ease-standard hover:border-line-strong hover:bg-hover active:bg-pressed"
               >
                 <span className="min-w-0 flex-1 break-words">{option}</span>
                 {index < 9 ? (
@@ -103,7 +103,7 @@ export function QuestionDetail({ org, question, canAnswer, onAnswer }: QuestionD
           </Button>
         </form>
       )}
-      <p className="text-13 text-faint">
+      <p className="text-secondary text-faint">
         <Requester org={org} principal={question.asked_by} /> waits for your answer until {untilWords(question.expires_at)}.
       </p>
     </div>
@@ -112,7 +112,7 @@ export function QuestionDetail({ org, question, canAnswer, onAnswer }: QuestionD
 
 export function ChangedNotice() {
   return (
-    <p role="status" className="flex items-baseline gap-2 rounded-lg border border-line bg-subtle px-4 py-3 text-14">
+    <p role="status" className="flex items-baseline gap-2 rounded-lg border border-line bg-inset px-4 py-3 text-body">
       <StatusDot tone="warn" className="translate-y-px" />
       <span className="min-w-0">
         <span className="font-medium">This changed since you saw it.</span> <span className="text-muted">Nothing was decided. Read it again before you answer.</span>

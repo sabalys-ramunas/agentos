@@ -56,7 +56,7 @@ function Phrase({ on, done, onClick, children }: { on: boolean; done: boolean; o
       aria-current={on ? 'step' : undefined}
       className={cn(
         'rounded-sm px-1 font-medium underline decoration-1 underline-offset-4 transition-colors duration-(--duration-fast) ease-standard',
-        on ? 'bg-fill-2 text-fg decoration-fg' : done ? 'text-fg decoration-line-strong hover:bg-fill-1 hover:decoration-fg' : 'cursor-default text-faint decoration-dotted decoration-line-strong',
+        on ? 'bg-pressed text-fg decoration-fg' : done ? 'text-fg decoration-line-strong hover:bg-hover hover:decoration-fg' : 'cursor-default text-faint decoration-dotted decoration-line-strong',
       )}
     >
       {children}
@@ -73,7 +73,7 @@ function Sentence({ step, go, lane, found, draft }: { step: TeachStep; go: (step
     </Phrase>
   );
   return (
-    <p className="min-w-0 text-16 text-pretty text-muted max-md:order-last max-md:w-full">
+    <p className="min-w-0 text-lede text-pretty text-muted max-md:order-last max-md:w-full">
       On {phrase('account', found ? `${lane?.account?.user_id ?? 'your account'} at ${found.site.name}` : (lane?.account?.user_id ?? 'which account'))}, read {phrase('found', found && at >= 2 ? `the table of ${found.total}` : 'which part of the page')}, keep {phrase('columns', draft && at >= 3 ? plural(draft.kept.length, 'column') : 'which columns')}, and call it {phrase('activate', draft && at >= 4 ? draft.title : 'a name')}.
     </p>
   );
@@ -134,10 +134,10 @@ export function Teach() {
       if (isNotServed(discovery.error)) return <Card><NotLive /></Card>;
       if (discovery.error) return <ErrorState error={discovery.error} onRetry={() => void discovery.refetch()} />;
       return (
-        <div className="mx-auto grid max-w-md place-items-center rounded-lg border border-board-line bg-bg p-8 text-center">
+        <div className="mx-auto grid max-w-md place-items-center rounded-lg border border-board-line bg-card p-8 text-center">
           <SearchX aria-hidden="true" className="size-4 text-muted" />
-          <p className="mt-2 text-14 font-medium">Nothing repeats on this page</p>
-          <p className="mt-1 text-13 text-muted">A Site API needs a list, a table or a set of cards. Try the page that shows them.</p>
+          <p className="mt-2 text-label">Nothing repeats on this page</p>
+          <p className="mt-1 text-secondary text-muted">A Site API needs a list, a table or a set of cards. Try the page that shows them.</p>
         </div>
       );
     }
@@ -183,8 +183,8 @@ export function Teach() {
     if (step === 'account') {
       return (
         <Panel count="Step 1 of 6" title="Which account should it read as?">
-          <p className="text-14 text-pretty text-muted">It reads the site the way you would, signed in as this account, and it only ever uses this one. Pick the one that can see what you want.</p>
-          <p className="mt-4 text-13 text-pretty text-faint">Already signed in, so nothing is typed and no password is needed here.</p>
+          <p className="text-body text-pretty text-muted">It reads the site the way you would, signed in as this account, and it only ever uses this one. Pick the one that can see what you want.</p>
+          <p className="mt-4 text-secondary text-pretty text-faint">Already signed in, so nothing is typed and no password is needed here.</p>
         </Panel>
       );
     }
@@ -214,8 +214,8 @@ export function Teach() {
                     >
                       <Globe aria-hidden="true" className="size-4 shrink-0 text-faint" />
                       <span className="min-w-0">
-                        <span className="block truncate text-13 font-medium">{item.words}</span>
-                        <span className="mono block truncate text-12 text-faint">{item.url.replace('https://', '')}</span>
+                        <span className="block truncate text-secondary font-medium">{item.words}</span>
+                        <span className="mono block truncate text-caption text-faint">{item.url.replace('https://', '')}</span>
                       </span>
                     </button>
                   </li>
@@ -231,7 +231,7 @@ export function Teach() {
         <Panel title={discovery.isPending ? 'Looking at the page' : 'I could not find a list here'}>
           {discovery.isPending ? null : (
             <>
-              <p className="text-14 text-pretty text-muted">Nothing on this page repeats, so there is no table to make. Try another page, or another account.</p>
+              <p className="text-body text-pretty text-muted">Nothing on this page repeats, so there is no table to make. Try another page, or another account.</p>
               <Button className="mt-4" onClick={() => go('account')}>
                 Choose another account
               </Button>
@@ -269,11 +269,11 @@ export function Teach() {
   return (
     <div data-bleed="" className="flex h-[calc(100dvh-var(--topbar-height))] min-h-0 flex-col max-lg:h-auto">
       <div className="flex min-h-14 flex-wrap items-center gap-x-4 gap-y-2 border-b border-line px-4 py-2 md:flex-nowrap">
-        <Link to="/$org/site-apis" params={{ org }} aria-label="Back to Site APIs" className="grid size-8 shrink-0 place-items-center rounded-md text-muted transition-colors duration-(--duration-fast) ease-standard hover:bg-fill-1 hover:text-fg">
+        <Link to="/$org/site-apis" params={{ org }} aria-label="Back to Site APIs" className="grid size-8 shrink-0 place-items-center rounded-md text-muted transition-colors duration-(--duration-fast) ease-standard hover:bg-hover hover:text-fg">
           <ArrowLeft aria-hidden="true" className="size-4" />
         </Link>
         <Sentence step={step} go={(next) => go(next)} lane={lane} found={found} draft={draft} />
-        <RadioGroup.Root aria-label="Show this as" value={mode} onValueChange={(next) => setMode(next as 'steps' | 'json')} className="ml-auto flex h-7 shrink-0 rounded-md bg-fill-1 p-px">
+        <RadioGroup.Root aria-label="Show this as" value={mode} onValueChange={(next) => setMode(next as 'steps' | 'json')} className="ml-auto flex h-7 shrink-0 rounded-md bg-hover p-px">
           {[
             ['steps', 'Steps'],
             ['json', 'JSON definition'],
@@ -282,7 +282,7 @@ export function Teach() {
               key={key}
               value={key}
               disabled={key === 'json' && !canJson}
-              className="rounded-sm px-2 text-12 font-medium whitespace-nowrap text-muted transition-colors duration-(--duration-fast) ease-standard hover:text-fg disabled:text-disabled data-[state=checked]:bg-bg data-[state=checked]:text-fg data-[state=checked]:shadow-[0_0_0_1px_var(--border)]"
+              className="rounded-sm px-2 text-caption font-medium whitespace-nowrap text-muted transition-colors duration-(--duration-fast) ease-standard hover:text-fg disabled:text-disabled data-[state=checked]:bg-card data-[state=checked]:text-fg data-[state=checked]:shadow-[0_0_0_1px_var(--border)]"
             >
               {label}
             </RadioGroup.Item>
@@ -291,7 +291,7 @@ export function Teach() {
       </div>
       <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_400px]">
         <div className="board-surface min-h-0 overflow-auto p-6">{stage()}</div>
-        <div className="min-h-0 border-line bg-bg max-lg:border-t lg:border-l">{mode === 'json' && canJson && found && draft ? <Definition found={found} draft={draft} /> : panel()}</div>
+        <div className="min-h-0 border-line bg-card max-lg:border-t lg:border-l">{mode === 'json' && canJson && found && draft ? <Definition found={found} draft={draft} /> : panel()}</div>
       </div>
     </div>
   );

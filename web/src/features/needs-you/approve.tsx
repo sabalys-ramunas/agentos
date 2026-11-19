@@ -66,13 +66,13 @@ function Current({
           technical={<TechnicalDetails org={org} approval={approval} open={open} onToggle={() => setOpen((value) => !value)} />}
         />
       </main>
-      <div className="safe-bottom sticky bottom-0 shrink-0 border-t border-line bg-bg/95 p-4 backdrop-blur">
+      <div className="safe-bottom sticky bottom-0 shrink-0 border-t border-line bg-card/95 p-4 backdrop-blur">
         {done ? (
           <DoneState approval={approval} decision={done} label={done === 'approve' ? words.doing : words.notDoing} />
         ) : canDecide ? (
           <DecisionButtons verbs={shown.verbs} armed={armed} who={shown.who} onYes={onYes} onNo={onNo} keys={false} proof={needsProof(approval)} />
         ) : (
-          <p className="text-center text-13 text-faint">You can see this, but your role cannot answer it.</p>
+          <p className="text-center text-secondary text-faint">You can see this, but your role cannot answer it.</p>
         )}
       </div>
     </>
@@ -144,7 +144,7 @@ export function Approve() {
         <Link to="/$org" params={{ org }} aria-label="agentos home" className="rounded-md">
           <Logo />
         </Link>
-        <span className="tabular flex-1 text-center text-13 text-faint">{left ? `${left} to decide` : ''}</span>
+        <span className="tabular flex-1 text-center text-secondary text-faint">{left ? `${left} to decide` : ''}</span>
         <Button variant="ghost" size="sm" asChild icon={<X className="size-4" />}>
           <Link to="/$org/needs-you" params={{ org }}>
             Close
@@ -181,7 +181,7 @@ export function Approve() {
         </main>
       ) : (
         <main className="flex flex-1 flex-col justify-center gap-4 p-4">
-          {count > 0 ? <p className="text-center text-14 text-muted">That was the last one.</p> : null}
+          {count > 0 ? <p className="text-center text-body text-muted">That was the last one.</p> : null}
           <AllClear org={org} decided={decided} canDecide={canDecide} />
           <Button asChild className="justify-self-center">
             <Link to="/$org" params={{ org }}>

@@ -39,7 +39,7 @@ export function PlanNotice({ org, resource, reserved = 0 }: { org: string; resou
   const room = usePlanRoom(org, resource, reserved);
   if (!room.full || room.limit === undefined) return null;
   return (
-    <p role="status" className="flex flex-wrap items-center gap-x-2 rounded-lg border border-line bg-subtle px-4 py-3 text-14 text-muted">
+    <p role="status" className="flex flex-wrap items-center gap-x-2 rounded-lg border border-line bg-inset px-4 py-3 text-body text-muted">
       <StatusDot tone="warn" />
       <span>
         The {planName(room.plan)} plan includes {plural(room.limit, NOUN[resource])}, and all are in use.
@@ -56,7 +56,7 @@ export function OverLimitBanner({ org }: { org: string }) {
   const over = status.usage.workspaces > status.limits.workspaces;
   if (!over) return null;
   return (
-    <p role="status" className="flex flex-wrap items-center gap-x-2 rounded-xl border border-line px-4 py-3 text-14 text-muted">
+    <p role="status" className="flex flex-wrap items-center gap-x-2 rounded-xl border border-line px-4 py-3 text-body text-muted">
       <StatusDot tone="warn" />
       <span>
         This org has {status.usage.workspaces} workspaces and the {planName(status.plan ?? '')} plan includes {status.limits.workspaces}. The
