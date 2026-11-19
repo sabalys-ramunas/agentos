@@ -148,12 +148,12 @@ class GitHubStub:
             if bits[0] == "contents" and method == "GET":
                 head = self.refs.get((repo, (query.get("ref") or [""])[0]))
                 tree = self.trees.get(self.commits[head]["tree"], {}) if head else {}
-                rows = [{"name": p.split("/", 1)[1], "size": len(self.blobs.get(sha, b""))}
+                rows = [{"name": p.split("/", 1)[1], "size": len(self.blobs.get(sha, b"")), "sha": sha}
                         for p, sha in tree.items() if p.startswith(what + "/")]
                 return _send(req, 200, rows) if rows else _send(req, 404, {"message": "Not Found"})
             if what == "blobs" and method == "POST":
                 data = base64.b64decode(str(body.get("content") or ""))
-                sha = hashlib.sha1(data).hexdigest()
+                sha = hashlib.sha1(b"blob %d\x00" % len(data) + data).hexdigest()  # git's blob id, as GitHub's
                 self.blobs[sha] = data
                 return _send(req, 201, {"sha": sha})
             if what == "trees" and method == "POST":
