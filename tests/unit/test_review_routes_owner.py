@@ -20,8 +20,6 @@ from agentos.environments import logins
 # ------------------------------------------------------------------ R1
 
 
-@pytest.mark.xfail(strict=True, reason="R1: /api/environments/login takes the bare node token (NODE_TOKEN), "
-                   "though environments/api.py says every route needs Presence.PERSON")
 async def test_r1_the_sign_in_route_needs_a_person_not_the_bare_node_token(agent, tmp_path):  # noqa: F811
     import httpx
 

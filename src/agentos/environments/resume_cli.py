@@ -21,12 +21,15 @@ from agentos.environments.cli import _daemon_base, _daemon_error, _fail, _home, 
 
 
 def _post(path: str, body: dict) -> dict:
-    """POST to agentosd's own API with the node's token, as the owner."""
+    """POST to agentosd's own API with the node's token, as the owner in person: the one-time code this CLI
+    writes into panel.db (operator_presence), which the route needs, because an agent may hold the token."""
     from agentos.core.config import config_path, load_config
 
     home = _home()
     if not config_path(home).exists():
         raise _fail(InvalidRequest(f"no node.toml in {home}; run `agentos node init` first (or set AGENTOS_HOME)"))
+    from agentos.commands.base import operator_presence
+
     cfg = load_config(home)
     if not cfg.mcp_token:
         raise _fail(InvalidRequest("this node has no token for its own API, so the CLI cannot reach agentosd"))
@@ -35,7 +38,8 @@ def _post(path: str, body: dict) -> dict:
     base = _daemon_base(cfg)
     try:
         with _http_client() as http:
-            r = http.post(f"{base}{path}", json=body, headers={"Authorization": f"Bearer {cfg.mcp_token}"})
+            r = http.post(f"{base}{path}", json=body, headers={"Authorization": f"Bearer {cfg.mcp_token}",
+                                                               **operator_presence(cfg)})
     except httpx.HTTPError as e:
         raise _fail(InvalidRequest(f"agentosd is not reachable at {base} ({type(e).__name__}); start agentosd and "
                                    "run this again")) from None

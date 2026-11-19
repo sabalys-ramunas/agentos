@@ -427,6 +427,13 @@ async def test_the_sign_in_route_answers_the_owner_only_and_never_a_value(agent,
         assert r.status_code in (401, 403), r.text  # an agent's grant: never
         assert agent.site.typed == []
         r = await c.post("/api/environments/login", json=body, headers={"Authorization": f"Bearer {owner}"})
+        assert r.status_code == 403 and "presence_required" in r.text  # the bare node token: an agent may hold it
+        assert agent.site.typed == []
+        from agentos.commands.base import operator_presence
+
+        person = operator_presence(agent.rt.get("config"))  # the node's own CLI: a one-time code in panel.db
+        assert person
+        r = await c.post("/api/environments/login", json=body, headers={"Authorization": f"Bearer {owner}", **person})
     assert r.status_code == 200, r.text
     assert r.json()["ok"] is True and PASSWORD not in r.text and USER not in r.text
 

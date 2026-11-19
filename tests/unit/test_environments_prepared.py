@@ -828,6 +828,12 @@ async def test_the_prepare_route_is_the_owners_only(node, cli):
         assert r.status_code in (401, 403), r.text
         owner = node.rt.get("config").mcp_token
         r = await c.post("/api/environments/prepare", json={"repo": REPO}, headers={"Authorization": f"Bearer {owner}"})
+        assert r.status_code == 403 and "presence_required" in r.text  # the bare node token is no person
+        from agentos.commands.base import operator_presence
+
+        person = operator_presence(node.rt.get("config"))
+        r = await c.post("/api/environments/prepare", json={"repo": REPO},
+                         headers={"Authorization": f"Bearer {owner}", **person})
         assert r.status_code == 200 and r.json()["started"] is True, r.text
     await builds_done(node.mgr)
 

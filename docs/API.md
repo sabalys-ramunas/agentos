@@ -817,7 +817,8 @@ A closed card is 404. They are traced as `panel.repo.token_form`, `panel.repo.de
 - `POST /api/environments/prepare` `{ "repo", "ref"?, "force"? }` -> `{ "repo", "key", "started", "why" }`: starts
   the build of the repository's prepared machine (its `.agentos/environment.toml`, docs/ENVIRONMENTS.md
   "Prepared machines"), for `agentos environments prepare`, which then follows the build's steps in the node's
-  store. The owner only. 400 `invalid` when the repository has no usable file, when one is ready already
+  store. The owner in person only (a panel session, or the node's CLI with its one-time code in panel.db; the
+  bare node token is 403 `presence_required`, because an agent may hold it). 400 `invalid` when the repository has no usable file, when one is ready already
   (without `force`), or when the node has no room for a build now. Traced as `panel.environment.prepare`.
 - `GET /api/orgs/{org}/environments/prepared` -> `{ "machines": [...], "eur_month", "eur_per_gb_month", "pool",
   "month" }` for the app. `machines` are the rows of `agentos environments prepared --json`, newest build first;
@@ -927,7 +928,8 @@ use; the owner resumes a save held by no chat.
   `environment_open` with its title takes it with `opened: "resumed"`. The owner in person only, as Forget.
   Traced as `environment.resume`.
 - `POST /api/environments/resume` `{ "ref": "<title or save id>" }` -> the same answer, for `agentos environments
-  resume`, the owner only (the node token, as the other owner routes). A title shared by saves of several
+  resume`, the owner in person only (a panel session, or the node's CLI with its one-time code in panel.db; the
+  bare node token is 403 `presence_required`). A title shared by saves of several
   agents is 400 `invalid` naming their save ids.
 - The live view of a saved environment: `GET /view/env/<id>-browser?t=...` after its machine closed answers
   a small page, not 404: for the owner (an owner link, or the panel session in that browser) the title, when

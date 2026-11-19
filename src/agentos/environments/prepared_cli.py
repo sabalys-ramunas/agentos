@@ -29,6 +29,8 @@ app.add_typer(prepared_app, name="prepared")
 
 
 def _post_prepare(repo: str, ref: str | None, force: bool) -> dict:
+    """POST /api/environments/prepare as the owner in person (the route needs it: operator_presence)."""
+    from agentos.commands.base import operator_presence
     from agentos.core.config import config_path, load_config
 
     home = _home()
@@ -43,7 +45,7 @@ def _post_prepare(repo: str, ref: str | None, force: bool) -> dict:
     try:
         with _http_client() as http:
             r = http.post(f"{base}/api/environments/prepare", json={"repo": repo, "ref": ref, "force": force},
-                          headers={"Authorization": f"Bearer {cfg.mcp_token}"})
+                          headers={"Authorization": f"Bearer {cfg.mcp_token}", **operator_presence(cfg)})
     except httpx.HTTPError as e:
         raise _fail(InvalidRequest(f"agentosd is not reachable at {base} ({type(e).__name__}); start agentosd and "
                                    "run this again")) from None

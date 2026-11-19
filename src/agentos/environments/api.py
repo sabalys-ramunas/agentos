@@ -24,8 +24,10 @@
                                             `agentos environments login <title> <site>`. The owner
 
 `{id}` is the card's approval id, which the questions list marks with `repo_connect`
-(agentos.environments.connect.annotate). Every route answers only the owner signed in with a person
-present (Presence.PERSON), so no agent's token, grant or review link reaches it, and the form's link
+(agentos.environments.connect.annotate). Every route but the download answers only the owner with a
+person present (Presence.PERSON: a panel session, or the node's own CLI with the one-time code it writes
+into panel.db, agentos.commands.base.operator_presence), so no agent's token, grant or review link
+reaches it, the node's bare token included (an agent may hold it); and the form's link
 also needs an owner with a passkey to confirm with it first (step_up_required, the panel's usual
 step-up). No route here takes a token: the web app never holds one (docs/WEB-NODE.md). The token is
 typed on the node's own page, whose link is its credential, works for 15 minutes, and ends once used.
@@ -187,11 +189,11 @@ def routes(api: Api) -> list[Route]:
     return [
         Route("/api/environments/{id}/download", endpoint(api, download, owner=True, action="environment.download"),
               methods=["POST"]),
-        Route("/api/environments/prepare", endpoint(api, prepare, owner=True, action="environment.prepare"),
+        Route("/api/environments/prepare", endpoint(api, prepare, action="environment.prepare", **in_person),
               methods=["POST"]),
-        Route("/api/environments/resume", endpoint(api, resume, owner=True, action="environment.resume"),
+        Route("/api/environments/resume", endpoint(api, resume, action="environment.resume", **in_person),
               methods=["POST"]),
-        Route("/api/environments/login", endpoint(api, sign_in, owner=True, action="environment.login"),
+        Route("/api/environments/login", endpoint(api, sign_in, action="environment.login", **in_person),
               methods=["POST"]),
         Route("/api/repo-connect/{id}/form", endpoint(api, token_page, step_up=True, **in_person), methods=["POST"]),
         Route("/api/repo-connect/{id}/deploy-key", endpoint(api, deploy_key, **in_person), methods=["POST"]),
