@@ -60,8 +60,7 @@ export function SegmentedControl<T extends string>({ value, onValueChange, optio
         if (next) onValueChange(next as T);
       }}
       aria-label={label}
-      // Many choices on a phone scroll sideways inside the control, never the page.
-      className={cn('scrollbar-none inline-flex max-w-full gap-px overflow-x-auto rounded-md border border-line bg-hover p-px', className)}
+      className={cn('inline-flex gap-px rounded-md border border-line bg-hover p-px', className)}
     >
       {options.map((option) => (
         <ToggleGroup.Item
@@ -69,7 +68,7 @@ export function SegmentedControl<T extends string>({ value, onValueChange, optio
           value={option.value}
           aria-label={option.ariaLabel}
           className={cn(
-            'inline-flex shrink-0 items-center gap-1 rounded-sm border border-transparent px-2 font-medium whitespace-nowrap text-muted',
+            'inline-flex items-center gap-1 rounded-sm border border-transparent px-2 font-medium whitespace-nowrap text-muted',
             'transition-colors duration-(--duration-fast) ease-standard hover:text-fg',
             'data-[state=on]:border-line data-[state=on]:bg-card data-[state=on]:text-fg data-[state=on]:shadow-lift',
             size === 'sm' ? 'h-8 text-secondary md:h-6' : 'h-8 text-label',

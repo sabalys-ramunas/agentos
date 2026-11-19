@@ -5,7 +5,7 @@
  * class names change and the page must not.
  *
  *   pnpm dev --port 5343                                   (the mock; any free port)
- *   node scripts/visual-compare.mjs shoot --out /tmp/before [--base http://localhost:5343] [--no-tracking]
+ *   node scripts/visual-compare.mjs shoot --out /tmp/before [--base http://localhost:5343] [--no-tracking] [--only catalog,home]
  *   ... make the change ...
  *   node scripts/visual-compare.mjs shoot --out /tmp/after
  *   node scripts/visual-compare.mjs diff /tmp/before /tmp/after [--out /tmp/diff]
@@ -74,7 +74,8 @@ async function shoot() {
       const page = await context.newPage();
       // One fixed moment, so "4m ago" reads the same on every run.
       await page.clock.setFixedTime(new Date('2026-11-18T14:00:00Z'));
-      for (const [name, path, wait] of PAGES) {
+      const only = option('only')?.split(',');
+      for (const [name, path, wait] of PAGES.filter(([name]) => !only || only.includes(name))) {
         await open(page, base, path, wait);
         if (flat) await page.addStyleTag({ content: '*, *::before, *::after { letter-spacing: 0 !important; }' });
         const mask = [

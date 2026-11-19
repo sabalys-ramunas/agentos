@@ -2,10 +2,11 @@
  * Names the app used before Mono, mapped onto the Mono roles in tokens.css, and the board's own
  * names (the surface instruments sit on).
  *
- * Why this file exists: about 1,900 class names and 600 var() calls in the screens use the old
- * names. Mapping them here gives every screen the Mono look without touching it. New code uses the
- * Mono names (web/DESIGN.md, "Tokens"); a screen that is rebuilt moves to them, and an alias goes
- * when nothing uses it.
+ * Why this file exists: var() calls in the screens still use the old names. Mapping them here gives
+ * every screen the Mono look without touching it. New code uses the Mono names (web/DESIGN.md,
+ * "Tokens"); a screen that is rebuilt moves to them, and an alias goes when nothing uses it. The old
+ * class names (bg-bg, text-13) are gone since 2026-11-19 (scripts/codemod-legacy-tokens.mjs), and with
+ * them the aliases only they read.
  *
  * Every value here is a reference to a token in tokens.css: no colour is written out (a test holds
  * it). The app-only colours (the board's wires, Site API fields, the night band, fill-strong) are
@@ -16,8 +17,6 @@
   /* Surfaces. Page and card now differ: the page is --surface-page, a card --surface-card. */
   --background: var(--surface-card);
   --background-subtle: var(--surface-inset);
-  --background-raised: var(--surface-raised);
-  --overlay: var(--overlay-scrim);
 
   --fill-1: var(--fill-hover);
   --fill-2: var(--fill-pressed);
@@ -35,7 +34,6 @@
 
   /* The primary is ink, never a hue. */
   --primary: var(--accent-fill);
-  --primary-hover: var(--neutral-11);
   --on-primary: var(--text-inverse);
 
   /*
@@ -90,41 +88,15 @@
   --font-sans: var(--font-family-sans);
   --font-mono: var(--font-family-mono);
 
-  /* The old size scale, still used by text-11 to text-56. New code uses a type role. */
-  --type-11: var(--font-11);
-  --type-11-line: var(--line-height-16);
-  --type-12: var(--font-12);
-  --type-12-line: var(--line-height-16);
-  --type-13: var(--font-13);
-  --type-13-line: var(--line-height-20);
-  --type-14: var(--font-14);
-  --type-14-line: var(--line-height-20);
-  --type-16: var(--font-16);
-  --type-16-line: var(--line-height-24);
-  --type-20: var(--font-20);
-  --type-20-line: var(--line-height-28);
-  --type-24: var(--font-24);
-  --type-24-line: var(--line-height-32);
-  --type-32: var(--font-32);
-  --type-32-line: var(--line-height-40);
+  /* What is left of the old size scale: a few headings still name 40 and 56. New code uses a type role. */
   --type-40: var(--font-40);
   --type-40-line: var(--line-height-44);
   --type-56: 56px;
   --type-56-line: 56px;
-
-  --tracking-14: -0.006em;
-  --tracking-16: -0.012em;
-  --tracking-20: -0.02em;
-  --tracking-24: -0.03em;
-  --tracking-32: -0.035em;
   --tracking-40: -0.045em;
   --tracking-56: -0.05em;
   --tracking-silk: 0.04em;
 
-  /* Shadows: the old three steps onto the Mono shadow colours. */
-  --shadow-1: var(--shadow-color-1);
-  --shadow-2: var(--shadow-color-1);
-  --shadow-3: var(--shadow-color-2);
   /* Cards are 10, pictures 8. */
   --radius-card: var(--radius-xl);
   --radius-thumb: var(--radius-lg);

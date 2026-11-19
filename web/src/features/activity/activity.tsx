@@ -398,6 +398,8 @@ export function Activity() {
       <div className="mb-6 flex flex-wrap items-center gap-2">
         <SegmentedControl
           label="Show"
+          // Five choices: on a phone they scroll sideways inside the control, never the page.
+          className="scrollbar-none max-w-full overflow-x-auto [&>*]:shrink-0"
           value={show}
           options={showOptions.map((value) => ({ value, label: value === 'problems' && problems > 0 ? `Problems ${problems}` : labelOf(value) }))}
           onValueChange={setShow}

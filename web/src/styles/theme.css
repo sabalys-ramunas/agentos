@@ -106,17 +106,6 @@
   --color-kind-server-soft: var(--kind-server-soft);
   --color-kind-server-line: var(--kind-server-line);
 
-  /* Pre-Mono names, still working. New code writes the Mono word (theme-keys.json, legacy). */
-  --color-bg: var(--surface-card);
-  --color-subtle: var(--surface-inset);
-  --color-fill-1: var(--fill-hover);
-  --color-fill-2: var(--fill-pressed);
-  --color-fill-3: var(--fill-strong);
-  --color-green: var(--status-ok-text);
-  --color-amber: var(--status-warn-text);
-  --color-red: var(--status-bad-text);
-  --color-blue: var(--accent-text);
-
   --font-sans: var(--font-family-sans);
   --font-mono: var(--font-family-mono);
 
@@ -198,27 +187,6 @@
   --text-micro--line-height: var(--type-micro-line-height);
   --text-micro--font-weight: var(--type-micro-font-weight);
   --text-micro--letter-spacing: var(--type-micro-tracking);
-  /* The old size scale (text-11 to text-32), on the Mono sizes. New code uses a role. */
-  --text-11: var(--font-11);
-  --text-11--line-height: var(--line-height-16);
-  --text-12: var(--font-12);
-  --text-12--line-height: var(--line-height-16);
-  --text-13: var(--font-13);
-  --text-13--line-height: var(--line-height-20);
-  --text-14: var(--font-14);
-  --text-14--line-height: var(--line-height-20);
-  --text-16: var(--font-16);
-  --text-16--line-height: var(--line-height-24);
-  --text-16--letter-spacing: var(--tracking-16);
-  --text-20: var(--font-20);
-  --text-20--line-height: var(--line-height-28);
-  --text-20--letter-spacing: var(--tracking-20);
-  --text-24: var(--font-24);
-  --text-24--line-height: var(--line-height-32);
-  --text-24--letter-spacing: var(--tracking-24);
-  --text-32: var(--font-32);
-  --text-32--line-height: var(--line-height-40);
-  --text-32--letter-spacing: var(--tracking-32);
 
   /* Spacing on the space tokens; steps that are not tokens keep Tailwind's 4 px multiplier. */
   --spacing-0: var(--space-0);

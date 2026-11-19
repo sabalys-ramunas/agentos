@@ -57,12 +57,12 @@ const VOCABULARY: Array<[RegExp, string]> = [
 
 const HAND_ROLLED: Array<{ test: (tokens: Set<string>) => boolean; found: string; fix: string }> = [
   {
-    test: (t) => t.has('rounded-xl') && t.has('border') && (t.has('bg-card') || t.has('bg-bg')),
+    test: (t) => t.has('rounded-xl') && t.has('border') && t.has('bg-card'),
     found: 'a card drawn by hand (rounded-xl border bg-card)',
     fix: 'Use <Card> with <CardHeader> (components/ui/card.tsx): it has the radius, hairline, lift and head',
   },
   {
-    test: (t) => t.has('rounded-full') && [...t].some((c) => /^(size-[123]|size-2\.5|h-2)$/.test(c)) && [...t].some((c) => /^bg-(ok|warn|bad|idle|live)(-dot)?$|^bg-(green|amber|red)$/.test(c)),
+    test: (t) => t.has('rounded-full') && [...t].some((c) => /^(size-[123]|size-2\.5|h-2)$/.test(c)) && [...t].some((c) => /^bg-(ok|warn|bad|idle|live)(-dot)?$/.test(c)),
     found: 'a status dot drawn by hand',
     fix: 'Use <StatusDot tone="ok" /> or <Status status={...} /> (components/ui/status.tsx): a shape and a word, never colour alone',
   },
