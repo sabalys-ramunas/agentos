@@ -176,6 +176,28 @@ All notable changes to agentos are recorded here. The format follows
 
 ### Fixed
 
+- **Security: the fixes of the independent review of 2026-11-19.**
+  - A closed (`limited` or `none`) docker machine has no DNS: Docker's own resolver (127.0.0.11) was on
+    loopback and forwarded any name out. The entrypoint refuses it, and the machine starts with
+    `--dns 0.0.0.0`. On Hetzner, DNS to Hetzner's own resolvers is a known limit (its firewall never
+    filters it): docs/THREAT-MODEL.md.
+  - A prepared machine's build runs under the grant that started it (an agent's open: the agent's grant,
+    never the owner's), its gateway token only fetches, and a revoked or frozen grant stops the build.
+  - A prepared machine built from a branch, tag or commit boots only opens of that same ref; the shared
+    build is the default branch's.
+  - The app secrets swap puts no value in a request whose target is a full URL naming another host.
+  - A login bound with `--title` names the one agent's computer that has that title when you bind it,
+    never another agent's computer that picks the same title. Bind it once the computer exists (`--title
+    <id>` when several agents have one). A title binding made before this covers nothing: bind it again.
+  - `POST /api/environments/login`, `/resume` and `/prepare` need the owner in person (the bare node
+    token is refused); `agentos environments login`, `resume` and `prepare` still work, with the CLI's
+    one-time presence code.
+  - `agentos web install` trusts only GitHub's own digest of the archive on an immutable release
+    (`AGENTOS_WEB_SHA256` pins one for a mirror), and the release workflow never replaces a file. Releases
+    are now made as drafts and published after the web app is attached (docs/DEVELOPING.md).
+  - A proof's file planted on `agentos-proofs` under its name is replaced, not shown as the proof.
+  - The prepared build's scrub keeps the SSH keys on a provider that signs in with them (Morph).
+  - Paging the replay loses no item that shares a millisecond with a page's edge.
 - **A call's log lines no longer carry an environment's handle.** The `on` an agent passes is a
   secret its chat holds; the node's log context now names the environment's lane (`env/<id>`) instead.
 - **`agentos setup --docker` works from the one-line install.** The machine image's Dockerfile and

@@ -1,6 +1,6 @@
 """Review repros for the owner's new routes and the web app install (findings R1 to R3).
 
-Each test states what the code should do and is xfail(strict=True) until the fix lands.
+Each test began as a strict-xfail repro of its finding and now holds the fix.
 """
 
 from __future__ import annotations

@@ -1,6 +1,6 @@
 """Independent review, 2026-11-19: the app secrets swap, the closed network, and environment logins.
 
-Each test is a repro of one finding, marked xfail(strict=True) with its id: the fix flips it."""
+Each test began as a strict-xfail repro of one finding (named by its id) and now holds the fix."""
 
 from __future__ import annotations
 

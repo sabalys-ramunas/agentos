@@ -1,4 +1,4 @@
-"""Review repros (git and prepared machines). Each is xfail(strict) with its finding id: a fix flips it."""
+"""Review repros (git and prepared machines). Each began as a strict-xfail repro of its finding id and now holds the fix."""
 
 from __future__ import annotations
 
