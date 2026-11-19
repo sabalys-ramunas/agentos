@@ -347,6 +347,11 @@ VM holds a placeholder, and the node's TLS swap puts the value in for the bound 
 
 What this does not stop:
 
+- **DNS on a closed Hetzner machine.** Hetzner's firewall always lets DNS to Hetzner's own resolvers
+  through (and answers the metadata service on the host, which holds only the machine's own first-boot
+  config). Root on a `limited` or `none` Hetzner machine can still send name lookups there, a slow way
+  out for data. A closed docker machine has no DNS at all: Docker's resolver is refused and given
+  nowhere to forward (`--dns 0.0.0.0`).
 - **DNS on a `full` machine.** A full machine resolves names itself and reaches any public host; the
   network setting is the guard, so choose `limited` or `none` where it matters. A bound host is
   mapped in the VM's `/etc/hosts`, which root on the VM can change: a request that bypasses the

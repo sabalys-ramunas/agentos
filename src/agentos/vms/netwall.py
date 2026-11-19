@@ -14,8 +14,12 @@ How each provider closes it:
   outbound rule, ICMP to the node's own addresses. Hetzner drops every other outbound packet once a
   firewall has any outbound rule (docs.hetzner.com/cloud/firewalls/faq), and its firewalls are
   stateful, so the node's SSH connection in keeps working. Capability: `ensure_closed_firewall`.
+  What Hetzner never filters (its firewall FAQ): its metadata service, answered on the host, and DNS
+  to its own resolvers. The second is a known limit (docs/THREAT-MODEL.md): root on the machine can
+  still send name lookups, and nothing outside the VM can stop that.
 - Docker: the machine's entrypoint refuses every new outbound connection but loopback (DNS
-  included) before sshd starts, with no NET_ADMIN left after (agentos.vms.docker). Capability:
+  included, Docker's own resolver too, which also gets `--dns 0.0.0.0`) before sshd starts,
+  with no NET_ADMIN left after (agentos.vms.docker). Capability:
   `closes_network = True`.
 - Any other provider (one that has neither) refuses limited and none: `cannot_close` says why.
 

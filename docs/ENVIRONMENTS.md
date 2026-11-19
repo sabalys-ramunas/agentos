@@ -306,10 +306,16 @@ How it holds. The agent is root on its machine, so the network is closed outside
   instead of its usual one: SSH and ping in from the node as before, and one outbound rule (ping to
   the node), which makes Hetzner drop every other packet the machine sends. The firewall is stateful,
   so the node's SSH connection keeps working. It needs the `dev` image: a machine closed from its
-  first boot cannot install its tools (`network_not_allowed` says so).
+  first boot cannot install its tools (`network_not_allowed` says so). Two kinds of traffic Hetzner
+  never filters, whatever the firewall says: its metadata service, answered on the host (it holds
+  this machine's own first-boot config, nothing the machine does not already have), and DNS to
+  Hetzner's own resolvers. That second one is a known limit: root on a closed Hetzner machine can
+  still send DNS queries, a slow way to leak data out by name lookups. Use docker where that matters.
 - On docker, the entrypoint refuses every new connection out but loopback, DNS included, before
-  sshd starts, with no NET_ADMIN left after. The docker provider copies its own entrypoint in for
-  this, so an image pulled before this works too.
+  sshd starts, with no NET_ADMIN left after. Docker's own resolver (127.0.0.11) is refused too, and
+  the machine is started with `--dns 0.0.0.0` so that resolver has nowhere to forward: no name
+  resolves on the machine. The docker provider copies its own entrypoint in for this, so an image
+  pulled before this works too.
 - Another provider that cannot close a machine refuses `limited` and `none` (`network_not_allowed`)
   before it rents anything.
 

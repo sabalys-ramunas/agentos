@@ -69,7 +69,6 @@ def _docker_ready() -> bool:
 
 
 @pytest.mark.skipif(not _docker_ready(), reason="needs Docker and the agentos-env:latest image")
-@pytest.mark.xfail(strict=True, reason="N1: the docker closed wall leaves Docker's embedded DNS (127.0.0.11) open")
 def test_n1_closed_docker_machine_has_no_dns(tmp_path):
     # The entrypoint's own closed() function, run as the docker provider runs it (NET_ADMIN, user network).
     text = ENTRYPOINT.read_text()

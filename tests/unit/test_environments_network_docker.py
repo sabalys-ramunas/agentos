@@ -2,7 +2,7 @@
 container, deploy/environments). Skipped unless docker answers and the image is there.
 
 What it proves, for real: the machine is closed from outside it (no connection out but loopback, root
-included); through the node's proxy it reaches a registry (registry.npmjs.org: this test reaches the
+included, and no name resolves: Docker's own resolver is closed too); through the node's proxy it reaches a registry (registry.npmjs.org: this test reaches the
 internet) and is refused example.com in plain words, which environment() then lists; the app's secret
 is a placeholder on the machine, and an HTTPS server on this computer (with a CA of its own, trusted
 by the node's swap for this test) gets the real value, through the proxy and through the machine's
@@ -89,6 +89,9 @@ async def test_a_limited_machine_with_a_bound_secret(node, tmp_path):  # noqa: F
                           "echo exit=$?")
         assert "exit=0" not in direct, direct
         assert "exit=0" not in await sh("iptables -F OUTPUT 2>&1; echo exit=$?")
+        # no DNS either: Docker's resolver (127.0.0.11) is refused and forwards nowhere (review N1)
+        resolved = await sh("getent hosts example.com && echo RESOLVED; true")
+        assert "RESOLVED" not in resolved, resolved
         # through the proxy: the registry yes, example.com no, in words
         assert (await sh("curl -s -m 30 -o /dev/null -w '%{http_code}' https://registry.npmjs.org/")).strip() == "200"
         refused = await sh("curl -s -m 10 http://example.com/; echo; curl -sS -m 10 https://example.com/ 2>&1; true")
