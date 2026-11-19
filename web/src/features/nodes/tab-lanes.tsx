@@ -1,7 +1,8 @@
+import { BusinessMark } from '@/components/brand/identity';
 import { Link } from '@tanstack/react-router';
 import { Layers } from 'lucide-react';
 import type { Lane, NodeDetail, Workspace } from '@/api/types';
-import { LaneIcon, WorkspaceMark } from '@/components/lane-icon';
+import { LaneIcon } from '@/components/lane-icon';
 import { Card } from '@/components/ui/card';
 import { ConditionBadge } from '@/components/ui/state-badge';
 import { EmptyState } from '@/components/ui/states';
@@ -71,7 +72,7 @@ export function LanesTab({ org, node, workspaces }: { org: string; node: NodeDet
               <tr className="border-b border-line bg-inset">
                 <th scope="colgroup" colSpan={5} className="h-8 px-4 text-left text-caption font-medium text-muted md:px-6">
                   <span className="inline-flex items-center gap-2">
-                    <WorkspaceMark name={workspace.name} color={workspace.color} />
+                    <BusinessMark name={workspace.name} color={workspace.color} />
                     {workspace.name}
                   </span>
                 </th>

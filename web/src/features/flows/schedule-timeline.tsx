@@ -1,8 +1,8 @@
+import { SegmentedControl } from '@/components/ui/tabs';
 import { Link } from '@tanstack/react-router';
 import { useEffect, useMemo, useState } from 'react';
 import type { PointerEvent } from 'react';
 import type { Schedule } from '@/api/types';
-import { Segmented } from '@/components/charts/small';
 import { cn } from '@/lib/cn';
 import { routineName } from '@/lib/principal';
 import { projectFires } from '@/lib/cron';
@@ -222,7 +222,7 @@ export function ScheduleTimeline({ org, schedules, zoneOf, fallback, active, onA
             {zones.length > 1 ? `Axis on ${zoneCity(zone)} time. Each schedule keeps its own computer's clock.` : `On the computer's clock, ${zoneCity(zone)} time.`}
           </p>
         </div>
-        <Segmented label="Timeline range" value={range} onChange={setRange} options={RANGES} />
+        <SegmentedControl label="Timeline range" value={range} onValueChange={setRange} options={RANGES} />
       </div>
       <div>
         <div className="hidden md:grid md:grid-cols-[minmax(0,13rem)_minmax(0,1fr)] md:gap-x-4">

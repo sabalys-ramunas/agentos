@@ -1,3 +1,4 @@
+import { BusinessMark } from '../brand/identity';
 import { useNavigate } from '@tanstack/react-router';
 import { Command } from 'cmdk';
 import { Inbox, Keyboard, KeyRound, Laptop, LogOut, Plus, Search, Server, Settings, Snowflake, UserPlus } from 'lucide-react';
@@ -13,7 +14,6 @@ import { laneName } from '@/lib/labels';
 import { nextTheme, setTheme } from '@/lib/theme';
 import { PLACES } from '@/lib/vocabulary';
 import { SiteMark } from '../brand/site-mark';
-import { WorkspaceMark } from '../lane-icon';
 import { useReturnFocus } from '../ui/dialog';
 import { Kbd } from '../ui/misc';
 import { commandSources, registerCommandSource } from './commands';
@@ -195,7 +195,7 @@ export function CommandPalette({ org }: { org: string }) {
                         })
                       }
                     >
-                      <WorkspaceMark name={workspace.name} color={workspace.color} />
+                      <BusinessMark name={workspace.name} color={workspace.color} />
                       <span className="min-w-0 truncate">{workspace.name}</span>
                     </Item>
                   ))}

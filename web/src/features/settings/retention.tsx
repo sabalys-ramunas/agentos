@@ -1,10 +1,10 @@
+import { SegmentedControl } from '@/components/ui/tabs';
 import { useParams } from '@tanstack/react-router';
 import { Download } from 'lucide-react';
 import { useState } from 'react';
 import { useExportActivity, useRetention, useWorkspaces } from '@/api/hooks';
 import { isCancelled } from '@/api/http';
 import type { Retention } from '@/api/types';
-import { Segmented } from '@/components/charts/small';
 import { Button } from '@/components/ui/button';
 import { Card, FormCard } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
@@ -106,8 +106,8 @@ function Export({ org, computer }: { org: string; computer: boolean }) {
       }
     >
       <div className="flex flex-wrap items-center gap-2">
-        <Segmented label="Format" value={format} options={[...FORMATS]} onChange={setFormat} />
-        <Segmented label="Range" value={range} options={[...RANGES]} onChange={setRange} />
+        <SegmentedControl label="Format" value={format} options={[...FORMATS]} onValueChange={setFormat} />
+        <SegmentedControl label="Range" value={range} options={[...RANGES]} onValueChange={setRange} />
         <Select
           size="sm"
           className="w-44"

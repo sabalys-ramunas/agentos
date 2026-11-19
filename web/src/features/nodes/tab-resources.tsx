@@ -1,5 +1,5 @@
+import { SegmentedControl } from '@/components/ui/tabs';
 import type { NodeDetail, NodeMetrics, NodeRange, NodeService } from '@/api/types';
-import { Segmented } from '@/components/charts/small';
 import { TimeChart } from '@/components/charts/time-chart';
 import type { Band } from '@/components/charts/time-chart';
 import { Card } from '@/components/ui/card';
@@ -116,7 +116,7 @@ export function ResourcesTab({ node, metrics, services, range, onRange, bands }:
             ? `Shaded: this machine was away for ${inView.map((band) => span(band.to - band.from)).join(' and ')}. The lines stop there, because nothing was reported.`
             : 'Gaps are real: a line stops while this machine is away, and never draws through it.'
         }
-        action={<Segmented label="Range" value={range} onChange={onRange} options={RANGES} />}
+        action={<SegmentedControl label="Range" value={range} onValueChange={onRange} options={RANGES} />}
       >
         <div className="grid gap-px overflow-hidden rounded-xl border border-line bg-line lg:grid-cols-2">
           {charts.map((chart) => (

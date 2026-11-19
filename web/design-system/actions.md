@@ -14,7 +14,6 @@ What a person presses and fills in. In the catalog: `/$org/design#actions`.
 | A view of the same thing | `SegmentedControl` | `components/ui/tabs.tsx` |
 | Actions on one thing, a popover, a tip | `Menu`, `Popover`, `Tooltip` | `components/ui/menu.tsx` |
 | A command or id to copy | `CodeBlock code`, `CopyButton text`, `useCopy()` | `components/ui/misc.tsx` |
-| The old segmented control | `Segmented`: kept for the screens that use it; new code uses `SegmentedControl` | `components/charts/small.tsx` |
 
 A busy button is `loading` (it stays focusable). `shortcut="A"` shows the key and sets
 `aria-keyshortcuts`. Deny sits left of Approve, everywhere. The hosted app never has a password field.

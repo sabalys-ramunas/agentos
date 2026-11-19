@@ -1,3 +1,4 @@
+import { SegmentedControl } from '@/components/ui/tabs';
 import { useNavigate, useParams, useSearch } from '@tanstack/react-router';
 import { Plus, Stamp } from 'lucide-react';
 import { useState } from 'react';
@@ -5,7 +6,6 @@ import { toast } from 'sonner';
 import { useAccess, useFlows, useLaneAskFirst, useRevokeStandingApproval, useStandingApprovals, useWorkspaces } from '@/api/hooks';
 import { isNotServed } from '@/api/http';
 import type { StandingApproval } from '@/api/types';
-import { Segmented } from '@/components/charts/small';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/dialog';
@@ -143,11 +143,11 @@ export function StandingSettings() {
         }
       />
       <div className="mb-4">
-        <Segmented
+        <SegmentedControl
           label="Show"
           value={all ? 'all' : 'active'}
           options={[...VIEWS]}
-          onChange={(value) => void navigate({ to: '.', search: value === 'all' ? { show: 'all' } : {}, replace: true, resetScroll: false })}
+          onValueChange={(value) => void navigate({ to: '.', search: value === 'all' ? { show: 'all' } : {}, replace: true, resetScroll: false })}
         />
       </div>
       <QueryView

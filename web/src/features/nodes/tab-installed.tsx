@@ -1,6 +1,6 @@
+import { SegmentedControl } from '@/components/ui/tabs';
 import { Link } from '@tanstack/react-router';
 import type { NodeProgram, NodeService, ProgramScope, ToolDef } from '@/api/types';
-import { Segmented } from '@/components/charts/small';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { CopyButton } from '@/components/ui/misc';
@@ -40,7 +40,7 @@ function Programs({ node, programs, scope, onScope }: { node: string; programs: 
     <Panel
       title="Programs"
       description={`${plural(programs.length, 'program')}${!signing ? '' : unsigned ? `, ${unsigned} unsigned` : ', all signed'}. A pinned program only runs if its hash still matches.`}
-      action={<Segmented label="Where it is installed" value={scope} onChange={onScope} options={SCOPES} />}
+      action={<SegmentedControl label="Where it is installed" value={scope} onValueChange={onScope} options={SCOPES} />}
     >
       <Card className="overflow-hidden">
         <Table>

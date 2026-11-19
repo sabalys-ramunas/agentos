@@ -5,6 +5,7 @@
  * because an address on a page is text a stranger wrote. Pressing Take sends the sheet to the list.
  * Concept stage: answered by the mock only.
  */
+import { SegmentedControl } from '@/components/ui/tabs';
 import { Link, useNavigate, useParams } from '@tanstack/react-router';
 import { ArrowLeft, Lock, Undo2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -13,7 +14,6 @@ import { isNotServed } from '@/api/http';
 import type { Lead, LeadBatch } from '@/api/types';
 import { BusinessMark, PersonMark } from '@/components/brand/identity';
 import { SiteMark } from '@/components/brand/site-mark';
-import { Segmented } from '@/components/charts/small';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/dialog';
@@ -261,10 +261,10 @@ function Sheet({ org, batch }: { org: string; batch: LeadBatch }) {
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
         <Filters value={filter} onChange={setFilter} batch={batch} />
-        <Segmented
+        <SegmentedControl
           label="How to show them"
           value={view}
-          onChange={setView}
+          onValueChange={setView}
           options={[
             { value: 'sheet', label: 'Sheet' },
             { value: 'list', label: 'List' },

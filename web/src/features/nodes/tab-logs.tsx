@@ -3,13 +3,13 @@
  * the cloud keeps none of them. Reading is never disturbed: scrolled up or paused, the view
  * holds still and new lines wait behind a pill.
  */
+import { SegmentedControl } from '@/components/ui/tabs';
 import { ArrowDown, Pause, Play, Search, ShieldCheck, X } from 'lucide-react';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useNodeLogs } from '@/api/logs';
 import type { SeqLine } from '@/api/logs';
 import type { LogLevel, LogSource } from '@/api/types';
-import { Segmented } from '@/components/charts/small';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
@@ -202,7 +202,7 @@ export function LogsTab({ org, node, away, allowed, source, level, q, onFilters 
             ) : null}
           </label>
           <Select size="sm" aria-label="Source" value={source ?? 'all'} onValueChange={(next) => onFilters({ source: next === 'all' ? undefined : next })} options={SOURCES} className="w-36" />
-          <Segmented label="Lowest level shown" value={level} onChange={(next) => onFilters({ level: next })} options={LEVELS} />
+          <SegmentedControl label="Lowest level shown" value={level} onValueChange={(next) => onFilters({ level: next })} options={LEVELS} />
           <span className="ml-auto inline-flex items-center gap-3">
             <span className="inline-flex w-28 items-center justify-end gap-2 text-caption text-muted" aria-live="polite">
               <StatusDot tone={status.tone} pulse={status.word === 'Live'} />

@@ -1,3 +1,4 @@
+import { BusinessMark } from '../brand/identity';
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router';
 import { Bell, Check, ChevronRight, ChevronsUpDown, Keyboard, Laptop, LogOut, Moon, Search, Sun, User } from 'lucide-react';
 import { useSyncExternalStore } from 'react';
@@ -9,7 +10,6 @@ import { timeAgo } from '@/lib/format';
 import { laneName } from '@/lib/labels';
 import { setTheme, useTheme } from '@/lib/theme';
 import type { ThemeChoice } from '@/lib/theme';
-import { WorkspaceMark } from '../lane-icon';
 import { Count } from '../ui/badge';
 import { IconButton } from '../ui/button';
 import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger, Popover, PopoverContent, PopoverTrigger, Tooltip } from '../ui/menu';
@@ -35,7 +35,7 @@ function WorkspaceSwitcher({ org }: { org: string }) {
   return (
     <Menu>
       <MenuTrigger className={cn(chip, '-ml-2 min-w-0 text-fg')} aria-label="Switch workspace">
-        {current ? <WorkspaceMark name={current.name} color={current.color} size={16} /> : null}
+        {current ? <BusinessMark name={current.name} color={current.color} size={16} /> : null}
         <span className="max-w-32 truncate sm:max-w-48">{current?.name ?? 'All workspaces'}</span>
         <ChevronsUpDown className="size-3 shrink-0 text-faint" aria-hidden="true" />
       </MenuTrigger>
@@ -47,7 +47,7 @@ function WorkspaceSwitcher({ org }: { org: string }) {
         {workspaces.length ? <MenuSeparator /> : null}
         {workspaces.map((item) => (
           <MenuItem key={item.id} onSelect={() => setActive(item.id)}>
-            <WorkspaceMark name={item.name} color={item.color} />
+            <BusinessMark name={item.name} color={item.color} />
             <span className="min-w-0 flex-1 truncate">{item.name}</span>
             <Check className={cn('size-4 text-muted', item.id !== active && 'invisible')} />
           </MenuItem>

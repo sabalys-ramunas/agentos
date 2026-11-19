@@ -8,13 +8,13 @@
  * The page reads its org and search from whatever route mounts it, so it works at /activity and
  * at /history alike.
  */
+import { SegmentedControl } from '@/components/ui/tabs';
 import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router';
 import { ArrowUp, Download, ListFilter } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { useActivity, useHistory, useRetention, useWorkspaces } from '@/api/hooks';
 import type { ActivityFilters } from '@/api/client';
 import type { ActivityRange, Effect, HistoryDay, HistoryPage, RunStatus, StoryKind, TraceEvent } from '@/api/types';
-import { Segmented } from '@/components/charts/small';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Menu, MenuContent, MenuItem, MenuTrigger } from '@/components/ui/menu';
@@ -396,11 +396,11 @@ export function Activity() {
       />
       {/* The filters wrap on a phone: a row that scrolls sideways clipped the workspace filter at 375 ("All worksp"). */}
       <div className="mb-6 flex flex-wrap items-center gap-2">
-        <Segmented
+        <SegmentedControl
           label="Show"
           value={show}
           options={showOptions.map((value) => ({ value, label: value === 'problems' && problems > 0 ? `Problems ${problems}` : labelOf(value) }))}
-          onChange={setShow}
+          onValueChange={setShow}
         />
         <Select
           size="sm"
@@ -411,14 +411,14 @@ export function Activity() {
           options={[{ value: ALL, label: 'All workspaces' }, ...(workspaces ?? []).map((item) => ({ value: item.id, label: item.name }))]}
         />
         {technical ? (
-          <Segmented
+          <SegmentedControl
             label="View"
             value={view}
             options={[
               { value: 'story', label: 'Stories' },
               { value: 'table', label: 'Raw log' },
             ]}
-            onChange={setView}
+            onValueChange={setView}
           />
         ) : null}
         {table ? (
@@ -438,11 +438,11 @@ export function Activity() {
       {table ? (
         <>
           <div className="mb-4 flex items-center gap-2">
-            <Segmented
+            <SegmentedControl
               label="Time range"
               value={(search.range ?? '7d') as ActivityRange}
               options={RANGES}
-              onChange={(value) => setSearch({ range: value, from: undefined, to: undefined }, true)}
+              onValueChange={(value) => setSearch({ range: value, from: undefined, to: undefined }, true)}
             />
           </div>
           <RunsChart
