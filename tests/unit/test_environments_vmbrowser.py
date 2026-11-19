@@ -71,7 +71,11 @@ def test_the_dev_snapshot_gets_the_browser_before_its_cleanup():
 def test_the_docker_image_and_its_build_carry_the_browser():
     docker = (ROOT / "deploy" / "environments" / "Dockerfile").read_text()
     assert "COPY browser.sh browser-requirements.txt /usr/local/lib/agentos-env/" in docker
-    assert docker.index("setup.sh\n") < docker.index("RUN sh /usr/local/lib/agentos-env/browser.sh")
+    browser = docker.index("sh /usr/local/lib/agentos-env/browser.sh")
+    assert docker.index("setup.sh\n") < browser
+    # the token for Camoufox's releases API comes as a build secret, never a layer or an image env
+    assert "RUN --mount=type=secret,id=github_token,required=false" in docker[:browser]
+    assert "ENV GITHUB_TOKEN" not in docker and "ARG GITHUB_TOKEN" not in docker
     cli = (PKG / "cli.py").read_text()
     assert '"browser.sh", "browser-requirements.txt"' in cli
 
