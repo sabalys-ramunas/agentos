@@ -127,7 +127,7 @@ async def test_denied_maps_to_code_and_message(env):
     fn = wrap_tool(spec("lane_read"), rt)
     with bind_request_token(tok), pytest.raises(ToolCallError) as e:
         await fn(on="biz-b/x")
-    assert e.value.code == "denied" and str(e.value) == "denied: out_of_scope: this grant does not cover lane biz-b/x"
+    assert e.value.code == "denied" and str(e.value) == "denied: out_of_scope: this grant does not cover biz-b/x"
     assert all_traces(svc)[0].status == "denied"
 
 

@@ -137,10 +137,10 @@ async def test_wait_control_carries_the_note_once(env):
     specs = {s.name: s for s in control_specs(runtime)}
     await human_session(mgr, page)
     ctx = Ctx(runtime)
-    out = await specs["browser_wait_handback"].handler(ctx, on=LANE, timeout_s=1)
+    out = await specs["browser_wait_handback"].handler(ctx, on=LANE, wait_s=1)
     assert out["agent_may_act"] and out["handback"]["fields"]
     assert "new browser_snapshot" in out["next"] and ctx.labels == ["handback"]
-    again = await specs["browser_wait_handback"].handler(ctx, on=LANE, timeout_s=1)
+    again = await specs["browser_wait_handback"].handler(ctx, on=LANE, wait_s=1)
     assert "handback" not in again
 
 
@@ -181,7 +181,7 @@ async def test_a_cold_lane_gets_a_short_note(tmp_path):
     await mgr.stop_agent(LANE, by="owner")
     await mgr.hand_back(LANE, by="owner", note="Go ahead")
     note = await mgr.handback.claim(LANE, "a")
-    assert "no open browser" in note["page"] and note["human_note"] == "Go ahead"
+    assert "no page" in note["page"] and note["human_note"] == "Go ahead"
     assert "agents were resumed by owner" in note["what"] and note["what"].startswith("Agents were held off")
     await mgr.shutdown()
 

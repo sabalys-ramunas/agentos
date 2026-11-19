@@ -70,7 +70,7 @@ def test_descriptions_are_written_for_agents_and_have_no_em_dashes(h):
         assert s.description and len(s.description) > 80, s.name
         assert "\u2014" not in s.description, s.name
     assert "approves first" in spec(h, "workspace_apply").description
-    assert "Do not mark a lane ready on a guess" in spec(h, "browser_set_readiness").description
+    assert "Do not mark a browser ready on a guess" in spec(h, "browser_set_readiness").description
 
 
 def test_every_parameter_has_a_schema_the_mcp_layer_can_derive(h):
@@ -212,7 +212,7 @@ async def test_lane_set_readiness_is_a_draft_on_the_lane(h):
 
 async def test_lane_set_readiness_checks_the_lane_id_and_the_lane(h):
     ctx = FakeCtx(h.runtime)
-    with pytest.raises(InvalidRequest, match="lane id must look like"):
+    with pytest.raises(InvalidRequest, match="an id must look like"):
         await spec(h, "browser_set_readiness").handler(ctx, on="Acme", state="ready")
     assert ctx.authorized == []
     with pytest.raises(LaneNotFound):

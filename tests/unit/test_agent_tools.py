@@ -424,7 +424,7 @@ async def test_howto_lists_the_recipes_and_returns_one(manager):
         post = text_of(await c.call_tool("howto", {"topic": "post_image"}))
         bad = await c.call_tool("howto", {"topic": "fly"})
     assert all(f"- {topic}:" in listing for topic in RECIPES)
-    assert "browser_file_put(" in post and "browser_upload(" in post and "approval_wait(" in post and "<lane>" in post
+    assert "browser_file_put(" in post and "browser_upload(" in post and "approval_wait(" in post and "<browser>" in post
     assert bad.is_error and text_of(bad).startswith("invalid:")
 
 
@@ -439,7 +439,7 @@ async def test_prompts_fill_in_their_arguments(manager):
     text = login.messages[0].content.text
     assert 'login(on="biz-a/instagram")' in text and 'url="https://www.instagram.com/"' in text
     assert "browser_view(" in text and "{" not in text.replace("{<", "")
-    assert "Hand lane biz-a/instagram to the human, then carry on." in handoff.messages[0].content.text
+    assert "Hand biz-a/instagram to the human, then carry on." in handoff.messages[0].content.text
     for p in prompts.values():
         assert EM_DASH not in (p.description or "") + (p.title or "")
 
@@ -466,7 +466,9 @@ async def test_every_tool_says_its_effect_and_uses_no_em_dash(manager):
         params = " ".join(p.description or "" for p in tool_params(spec))
         assert EM_DASH not in text + params, spec.name
     assert "far more" in listed["browser_screenshot"].description
-    assert "account's language" in listed["browser_wait"].description
+    assert "page's language" in listed["browser_wait"].description
+    assert "posting pace" not in listed["browser_act"].description  # account-only rules live in the account tools
+    assert "posting pace" in listed["browser_claim"].description
     assert "60 s" in listed["browser_wait"].description
     for code in ("ref_not_found", "dialog_pending", "approval_pending"):
         assert code in listed["browser_act"].description

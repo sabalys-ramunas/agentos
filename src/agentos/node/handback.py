@@ -279,8 +279,8 @@ def compare(lane_id: str, before: Capture | None, after: Capture, *, lost: LaneC
     if new.handback_note:
         note["human_note"] = redact_text(new.handback_note, max_len=0)
     if before is None or not before.warm or not after.warm:
-        note["page"] = ("the lane had no open browser when agents lost it" if before is None or not before.warm
-                        else "the lane has no open browser now")
+        note["page"] = ("no page was open when agents lost the browser" if before is None or not before.warm
+                        else "no page is open in the browser now")
         if after.warm:
             note["url"] = {"before": None, "after": _clip(after.url, URL_CHARS)}
         note["refs"] = STALE_REFS

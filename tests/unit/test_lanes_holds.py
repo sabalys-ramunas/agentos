@@ -94,7 +94,7 @@ async def test_a_hold_stops_agents_and_flows_at_the_gate_and_says_why(tmp_path):
     for kind in ("agent", "flow", "brain"):
         message = await agent_blocked(t.mgr, "a/one", kind)
         assert "agentos paused a/one itself (no person stopped you)" in message and "needs_human:captcha" in message
-        assert "until the human solves it in the live view and hands the lane back" in message
+        assert "until the human solves it in the live view and hands the browser back" in message
         assert "\u2014" not in message
     with pytest.raises(LaneAgentPaused):
         control_gate(t.mgr, "a/one")()  # a flow run checks the same control before every step
@@ -960,7 +960,7 @@ async def test_a_bad_signal_the_lane_cannot_be_held_for_stops_the_call_that_read
     async with t.mgr.using("a/one", principal_kind="flow") as page:
         await watched.navigate(page, "https://www.reddit.com/")  # a quiet signal: nothing to hold
         interaction.signal_value = Signal.CAPTCHA
-        with pytest.raises(AgentPaused, match="could not hold the lane") as e:
+        with pytest.raises(AgentPaused, match="could not hold the browser") as e:
             await watched.act(page, "e2", "click")
         assert "—" not in e.value.message
         with pytest.raises(AgentPaused):  # a signal that is no Signal is never taken for a quiet one

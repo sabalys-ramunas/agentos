@@ -160,14 +160,14 @@ class LaunchMixin:
             await self._teardown(spec.id, lane)  # runs to the end even when cancelled
             if isinstance(e, (AgentosError, asyncio.CancelledError)):
                 raise
-            raise EngineError(f"{spec.id}: could not open the lane: {browser_error(e, spec.id)}") from e
+            raise EngineError(f"{spec.id}: could not open the browser: {browser_error(e, spec.id)}") from e
         finally:
             await self._notify()
 
     def _check_format(self, lane_id: str) -> None:
         why = lanefmt.check_openable(self.config.lane_dir(lane_id))
         if why:
-            raise LaneFormatMismatch(f"lane {lane_id} was not opened: {why}")
+            raise LaneFormatMismatch(f"browser {lane_id} was not opened: {why}")
 
     async def _hold_format_lock(self, lane_id: str, lane: _Lane) -> None:
         """A shared lock on the lane's format lock file for as long as a browser runs on it, so
@@ -177,7 +177,7 @@ class LaunchMixin:
         self._prepare_lane_dir(lane_id)
         lock = lanefmt.LaneLock(self.config.lane_dir(lane_id))
         if not await asyncio.to_thread(lock.acquire, exclusive=False, wait=10.0):
-            raise LaneFormatMismatch(f"lane {lane_id} was not opened: `agentos migrate run` is migrating "
+            raise LaneFormatMismatch(f"browser {lane_id} was not opened: `agentos migrate run` is migrating "
                                      "its directory right now. Try again when it has finished.")
         lane.format_lock = lock
         self._check_format(lane_id)  # what the migration left, now that it cannot change
@@ -339,7 +339,7 @@ class LaunchMixin:
                         if short is not None:
                             raise self._memory_error(lane_id, short) from None
                         raise LaneBusy(
-                            f"all {self.config.max_warm_lanes} warm lanes are busy; {lane_id} could not "
+                            f"all {self.config.max_warm_lanes} warm browsers are busy; {lane_id} could not "
                             f"open within {self.config.busy_timeout:g}s. Try again shortly.") from None
                     continue
                 victim_id, victim_lane = victim
@@ -354,7 +354,7 @@ class LaunchMixin:
                         await self._teardown(victim_id, victim_lane)
                         if victim_lane.claimed():  # only a memory floor nothing else could meet closes it
                             self._end_claim(victim_id, victim_lane, "closed",
-                                            "the node was short of memory, so the lane was closed and its page is gone")
+                                            "the node was short of memory, so the browser was closed and its page is gone")
             finally:
                 victim_lane.evicting = False
 
@@ -403,9 +403,9 @@ class LaunchMixin:
                     raise
                 self._check_control(lane_id, principal_kind)
                 lane.close_note = {"stuck_calls": [{"tool": c.tool, "ran_s": round(self._ran_s(c), 1)} for c in stuck],
-                                   "detail": "a call was stuck on the lane, so it was stopped and the browser was "
+                                   "detail": "a call was stuck on the browser, so it was stopped and the browser was "
                                              "closed; the next call opens it again"}
-                await self.close_stuck(lane_id, stuck, "browser_close found the lane held by a stuck call")
+                await self.close_stuck(lane_id, stuck, "browser_close found the browser held by a stuck call")
                 lane.quarantine_reason = None
                 await self._notify()
                 return self.get(lane_id)
@@ -452,7 +452,7 @@ class LaunchMixin:
                 log.warning("could not end the agent's drive on the egress guard", exc_info=True)
 
     async def _release_now(self, lane_id: str, lane: _Lane) -> None:
-        self._end_drive(lane, "the lane closes")
+        self._end_drive(lane, "the browser closes")
         session, lane.session = lane.session, None
         if session is not None:
             try:

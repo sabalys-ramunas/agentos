@@ -31,7 +31,7 @@ def device_name_problem(v: str) -> str | None:
 def parse_lane_id(value: str) -> tuple[str, str]:
     """`workspace/name` -> (workspace, name). Raises ValueError if malformed."""
     if not isinstance(value, str) or not LANE_ID_RE.fullmatch(value):
-        raise ValueError(f"lane id must look like 'workspace/name' (lowercase, digits, dashes): {value!r}")
+        raise ValueError(f"an id must look like 'workspace/name' (lowercase, digits, dashes): {value!r}")
     workspace, name = value.split("/", 1)
     return workspace, name
 

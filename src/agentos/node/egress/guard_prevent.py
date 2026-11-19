@@ -120,7 +120,7 @@ class GuardPrevention:
             if scheme not in QUIET_SCHEMES:
                 named = f"a {scheme}: {what}" if scheme else f"a {what} with no web address"
                 self._refuse(url, method, Refusal(
-                    "scheme", f"{named} can run code or open what the guard cannot judge, and this lane limits "
+                    "scheme", f"{named} can run code or open what the guard cannot judge, and this browser limits "
                               "its hosts"))
             return
         rule = classify(url, method, rules=self.rules) if method not in SAFE_METHODS else None
@@ -180,7 +180,7 @@ class GuardPrevention:
         the write and commit requests the guard refuses, and never gates (no approval is asked for
         the node). Not when the strict route is on, which aborts those already."""
         if effects_route:
-            self.end_drive("a keepalive visit holds the lane")
+            self.end_drive("a keepalive visit holds the browser")
         # during a drive the mark is where the last act ended: a publish held between the agent's
         # calls (a page's timer) is reported by its next act
         mark = self._acted_seq if self._drive_route is not None else self._seq
@@ -258,7 +258,7 @@ class GuardPrevention:
         """Bind this guard's route handler on `pattern`. The lane's route must exist for the act to run:
         without a dispatcher, or when the browser refuses the route, the act is refused (EngineError)."""
         if self.dispatcher is None:
-            raise self._unbound(what, "the lane has no route dispatcher")
+            raise self._unbound(what, "the browser has no route dispatcher")
         try:
             await self.dispatcher.add_guard(self._route_handler, pattern)
         except Exception as e:

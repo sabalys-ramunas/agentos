@@ -275,7 +275,7 @@ def test_an_approval_is_waited_for_and_named(cli, node, repo):
     node.ask = {"terminal_create", "terminal_job_start"}
     r = invoke("--", "true")
     assert r.exit_code == 0, r.output
-    assert "waiting for approval: Create sandbox terminal lane dev/run-my-repo" in r.stderr
+    assert "waiting for approval: Create sandbox terminal dev/run-my-repo" in r.stderr
     assert "waiting for approval: Sync 4 files (4 changed, 0 deleted) into src/My-Repo and run" in r.stderr
     assert "http://localhost:7401/needs-you" in r.stderr
 

@@ -93,7 +93,7 @@ def test_facebook_personal_post_and_comment_are_the_lanes_own_account():
     for shape in (facebook_post(), facebook_comment()):
         acts = resolve(shape, FB_LANE, pinned=FB_PIN, session={"site": "facebook", "user_id": ME})
         assert acts["status"] == "self" and acts["id"] == ME and acts["field"] == "variables.input.actor_id"
-        assert acts["verified"] is True and acts["label"] == "Arlo Fenwick (the lane's own account)"
+        assert acts["verified"] is True and acts["label"] == "Arlo Fenwick (the browser's own account)"
 
 
 def test_an_unpinned_lane_takes_the_signed_in_account_as_its_own():
@@ -116,7 +116,7 @@ def test_facebook_identities_agentos_does_not_know():
     assert "no surface through personal/facebook names it" in stranger["why"]
     elsewhere = resolve(as_page(facebook_post(), OTHER_PAGE), FB_LANE, pinned=FB_PIN)
     assert elsewhere["status"] == "unrecognized" and "biz-b/facebook-page" in elsewhere["why"]
-    assert "posts through biz-b/facebook, not this lane" in elsewhere["why"]
+    assert "posts through biz-b/facebook, not this browser" in elsewhere["why"]
     # a Page through this lane, posted from another lane, is not that lane's surface either
     assert resolve(as_page(facebook_post(), PAGE), "biz-b/facebook")["status"] == "unrecognized"
     # nothing names who it acts as, on a site where a login can post as a Page: never the lane's by default
@@ -526,7 +526,7 @@ def test_a_member_urn_the_gate_cannot_compare_is_not_called_the_lanes_account():
     assert acts["status"] == "self" and acts["assumed"] is True and "lane's own" not in acts["label"]
     mine = linkedin("com.linkedin.sdui.requests.sharing.CreatePost",
                     {"commentary": "x", "author": "urn:li:fsd_profile:MYID"})
-    assert resolve(mine, LI_LANE, pinned=pin)["label"] == "me (the lane's own account)"
+    assert resolve(mine, LI_LANE, pinned=pin)["label"] == "me (the browser's own account)"
 
 
 @pytest.mark.parametrize(("acts", "line"), [

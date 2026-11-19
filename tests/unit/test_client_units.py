@@ -138,8 +138,8 @@ def test_session_reads_whoami_and_lanes(server):
         assert session.server["name"] == "agentos"
         assert session.session_id
         who = session.call("whoami")
-        assert who["node"] == "units" and who["lanes"]["total"] == 2
-        lanes = session.call("browsers_list")["lanes"]
+        assert who["node"] == "units" and who["browsers"]["total"] == 2
+        lanes = session.call("browsers_list")["browsers"]
         assert {lane["id"] for lane in lanes} == {"personal/reddit", "biz-a/instagram"}
         with pytest.raises(ToolError, match="lane_not_found"):
             session.call("browser_view", {"on": "nobody/nothing"})

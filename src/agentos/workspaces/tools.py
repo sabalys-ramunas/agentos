@@ -2,7 +2,7 @@
 
 Every handler reads the service from the runtime when it runs, so `tool_specs` works before the service
 exists (the tools are hidden without it). Lists are filtered by `ctx.can_access_lane`, and anything that
-creates lanes is checked lane by lane against the grant before the approval is asked for.
+creates browsers is checked browser by browser against the grant before the approval is asked for.
 """
 
 from __future__ import annotations
@@ -41,7 +41,7 @@ def _not_there(workspace: str, ctx: ToolContext | None = None) -> NotFound:
 
 
 def _seen(ctx: ToolContext, workspace: Any) -> bool:
-    """A workspace the grant reaches: all of it, or a lane of it that is there now."""
+    """A workspace the grant reaches: all of it, or a browser of it that is there now."""
     if not isinstance(workspace, str):
         return False
     if covers_workspace(ctx, workspace):
@@ -52,8 +52,8 @@ def _seen(ctx: ToolContext, workspace: Any) -> bool:
 
 
 def _plan(ctx: ToolContext, template: str, workspaces: Any, **options: Any) -> Plan:
-    """Plan only inside the grant: every lane the template would make in every workspace named is checked
-    before anything about those workspaces is read, and a conflict never names a lane outside it."""
+    """Plan only inside the grant: every browser the template would make in every workspace named is checked
+    before anything about those workspaces is read, and a conflict never names a browser outside it."""
     svc = _svc(ctx)
     tpl = svc.get_template(template)
     if isinstance(workspaces, list):
@@ -73,10 +73,10 @@ def _check_grant(ctx: ToolContext, plan: Plan) -> None:
 
 
 async def workspace_list(ctx: ToolContext, *, workspace: str | None = None) -> dict:
-    """List workspaces (one per business or person) with their lanes, readiness and login state. Each
-    workspace has a summary such as "18 of 29 ready" and a health: ok (all lanes ready), attention (a lane
-    has a note for the owner), blocked (a lane is quarantined) or idle (waiting for logins, or no lanes).
-    Pass `workspace` to see one. Lanes outside your grant are left out."""
+    """List workspaces (one per business or person) with their browsers, readiness and login state. Each
+    workspace has a summary such as "18 of 29 ready" and a health: ok (all browsers ready), attention (a browser
+    has a note for the owner), blocked (a browser is quarantined) or idle (waiting for logins, or no browsers).
+    Pass `workspace` to see one. Browsers outside your grant are left out."""
     svc = _svc(ctx)
     if workspace is not None:
         if not _seen(ctx, workspace):
@@ -87,9 +87,9 @@ async def workspace_list(ctx: ToolContext, *, workspace: str | None = None) -> d
 
 
 async def workspace_queue(ctx: ToolContext, *, workspace: str | None = None) -> dict:
-    """The login queue: lanes that are not ready yet, the ones needing attention first. Each lane carries
+    """The login queue: browsers that are not ready yet, the ones needing attention first. Each browser carries
     its login URL (the owner opens it in the live view to log in) and the note the owner left. Read this to
-    see which account the owner should log into next. Lanes outside your grant are left out."""
+    see which account the owner should log into next. Browsers outside your grant are left out."""
     if workspace is not None and not _seen(ctx, workspace):
         raise NotFound(f"no workspace {workspace!r}")  # as for one that is not there
     return _svc(ctx).queue(workspace, allowed=ctx.can_access_lane).model_dump(mode="json")
@@ -101,10 +101,10 @@ async def workspace_plan(ctx: ToolContext, *, template: str, workspaces: list[st
                          override_proxy_rules: bool = False, reason: str | None = None) -> dict:
     """Preview applying a template (for example 'social-6': instagram, facebook, reddit, medium, blog and
     linkedin) to workspaces. Creates nothing. Each step is create, exists (already there and matching) or
-    conflict, with the reason. A proxy label is one account's IP, so a lane is refused when it would share
-    a proxy with another workspace, or repeat a platform already on that proxy. A lane with no proxy is
+    conflict, with the reason. A proxy label is one account's IP, so a browser is refused when it would share
+    a proxy with another workspace, or repeat a platform already on that proxy. A browser with no proxy is
     allowed with a warning. proxy_per_workspace sets one label per workspace, and proxy_per_lane overrides
-    single lanes (null means no proxy). Overriding the proxy rules needs an explicit reason and is recorded."""
+    single browsers (null means no proxy). Overriding the proxy rules needs an explicit reason and is recorded."""
     plan = _plan(ctx, template, workspaces, proxy_per_workspace=proxy_per_workspace,
                  proxy_per_lane=proxy_per_lane, override_proxy_rules=override_proxy_rules, reason=reason)
     _check_grant(ctx, plan)
@@ -115,9 +115,9 @@ async def workspace_apply(ctx: ToolContext, *, template: str, workspaces: list[s
                           proxy_per_workspace: dict[str, str] | None = None,
                           proxy_per_lane: dict[str, str | None] | None = None,
                           override_proxy_rules: bool = False, reason: str | None = None) -> dict:
-    """Create the lanes of a template in workspaces. The owner approves first: the approval shows the exact
-    lanes and their proxies, and it binds to that plan. Refused, with nothing created, when the plan has
-    conflicts: fix them, or ask the owner whether to override the proxy rules. New lanes start as needs_login,
+    """Create the browsers of a template in workspaces. The owner approves first: the approval shows the exact
+    browsers and their proxies, and it binds to that plan. Refused, with nothing created, when the plan has
+    conflicts: fix them, or ask the owner whether to override the proxy rules. New browsers start as needs_login,
     so the owner logs in through the live view and then browser_set_readiness marks them ready. Safe to run again:
     it only creates what is missing."""
     svc = _svc(ctx)
@@ -135,9 +135,9 @@ async def workspace_apply(ctx: ToolContext, *, template: str, workspaces: list[s
 
 
 async def lane_set_readiness(ctx: ToolContext, *, on: str, state: str, note: str | None = None) -> dict:
-    """Record a lane's login state once the owner says so: ready (the owner logged in), needs_login, or
+    """Record a browser's login state once the owner says so: ready (the owner logged in), needs_login, or
     needs_attention with a short note saying what is wrong (a code was asked, a warning appeared, the account
-    is locked). Do not mark a lane ready on a guess: ask the owner first. Login state is never detected
+    is locked). Do not mark a browser ready on a guess: ask the owner first. Login state is never detected
     automatically, and nothing here visits the site."""
     try:
         parse_lane_id(on)

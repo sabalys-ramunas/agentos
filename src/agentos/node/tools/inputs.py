@@ -1,4 +1,4 @@
-"""What the node's tools accept: lane ids, URLs and refs, checked before a lane is touched.
+"""What the node's tools accept: browser ids, URLs and refs, checked before a browser is touched.
 """
 
 from __future__ import annotations

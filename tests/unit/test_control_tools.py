@@ -81,9 +81,9 @@ def test_handler_signatures_make_a_valid_input_schema():
         schema = model.model_json_schema()
         assert "on" in schema["properties"] and "description" in schema["properties"]["on"]
         if spec.name == "browser_wait_handback":
-            assert schema["properties"]["timeout_s"]["maximum"] == 300
+            assert schema["properties"]["wait_s"]["maximum"] == 300
             with pytest.raises(ValidationError):
-                model(on=LANE, timeout_s=301)
+                model(on=LANE, wait_s=301)
         if spec.name == "browser_request_control":
             assert schema["required"] == ["on", "reason"]
 
@@ -195,7 +195,7 @@ async def test_policy_runs_before_anything_happens(env):
 async def test_wait_control_returns_on_hand_back(env):
     mgr, runtime, specs = env
     ctx = FakeCtx(runtime)
-    out = await call(specs, "browser_wait_handback", ctx, on=LANE, timeout_s=5)
+    out = await call(specs, "browser_wait_handback", ctx, on=LANE, wait_s=5)
     assert out["agent_may_act"] and not out["timed_out"] and out["waited_s"] < 1
     await mgr.take_control(LANE, by="owner")
 
@@ -204,7 +204,7 @@ async def test_wait_control_returns_on_hand_back(env):
         await mgr.hand_back(LANE, by="owner")
 
     asyncio.create_task(hand_back_soon())
-    out = await call(specs, "browser_wait_handback", ctx, on=LANE, timeout_s=5)
+    out = await call(specs, "browser_wait_handback", ctx, on=LANE, wait_s=5)
     assert out["agent_may_act"] and out["state"] == "agent" and 0 < out["waited_s"] < 1
 
 
@@ -212,7 +212,7 @@ async def test_wait_control_times_out_and_clamps(env, monkeypatch):
     mgr, runtime, specs = env
     ctx = FakeCtx(runtime)
     await mgr.stop_agent(LANE, by="owner")
-    out = await call(specs, "browser_wait_handback", ctx, on=LANE, timeout_s=0.05)
+    out = await call(specs, "browser_wait_handback", ctx, on=LANE, wait_s=0.05)
     assert out["timed_out"] and out["state"] == "paused"
     asked: list[float] = []
     original = mgr.wait_for_agent_control
@@ -223,11 +223,11 @@ async def test_wait_control_times_out_and_clamps(env, monkeypatch):
 
     monkeypatch.setattr(mgr, "wait_for_agent_control", spy)
     for given in (10_000, -3, 0, "12"):
-        await call(specs, "browser_wait_handback", ctx, on=LANE, timeout_s=given)
+        await call(specs, "browser_wait_handback", ctx, on=LANE, wait_s=given)
     assert asked == [300.0, 0.0, 0.0, 12.0]
     for bad in (float("nan"), "soon", None):
         with pytest.raises(InvalidRequest):
-            await call(specs, "browser_wait_handback", ctx, on=LANE, timeout_s=bad)
+            await call(specs, "browser_wait_handback", ctx, on=LANE, wait_s=bad)
 
 
 async def test_tools_need_the_lanes_service():

@@ -482,7 +482,7 @@ async def call_ok(client: Any, tool: str, args: dict[str, Any]) -> Any:
 
 def lanes_by_id(result: Any) -> dict[str, dict[str, Any]]:
     data = json_of(result)
-    items = data.get("lanes", data) if isinstance(data, dict) else data
+    items = data.get("browsers", data.get("lanes", data)) if isinstance(data, dict) else data
     return {item["id"]: item for item in items} if isinstance(items, list) else {}
 
 

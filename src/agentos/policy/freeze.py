@@ -311,7 +311,7 @@ def check_new_grant(policy: Any, block: GrantBlock) -> None:
                          "soon as it is unfrozen. Unfreeze first, then grant agents again.")
         raise Frozen(f"{where} is frozen{why}, and this grant reaches only that, so it is not made: it would "
                      "work there as soon as it is unfrozen. Unfreeze first, or make a grant that also reaches "
-                     "lanes outside it (it takes no calls in the frozen scope until the unfreeze).")
+                     "browsers or terminals outside it (it takes no calls in the frozen scope until the unfreeze).")
 
 
 def _freezes(policy: Any) -> list[Any]:

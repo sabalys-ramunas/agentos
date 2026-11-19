@@ -107,7 +107,7 @@ async def test_a_lane_commit_limit_cuts_off_commits_with_a_plain_sentence_and_re
     await ctx.authorize(Effect.COMMIT, lane_id="biz-a/ig")
     e = await limit_reached(ctx.authorize(Effect.COMMIT, lane_id="biz-a/ig"))
     assert e.hit["code"] == "lane.commits_per_day" and e.hit["value"] == 2 and e.hit["used"] == 2
-    assert e.message == ("limit_reached: Lane biz-a/ig reached its limit of 2 commits a day (2 used today), so "
+    assert e.message == ("limit_reached: Browser biz-a/ig reached its limit of 2 commits a day (2 used today), so "
                          "posting, paying and irreversible steps are paused until it resets at 00:00 "
                          "(Europe/Vilnius), in 12 h.")
     await ctx.authorize(Effect.READ, lane_id="biz-a/ig")
@@ -116,7 +116,7 @@ async def test_a_lane_commit_limit_cuts_off_commits_with_a_plain_sentence_and_re
     state = svc.lane_meter("biz-a/ig")
     assert state["state"] == "cut_off" and state["limits_from"] == "owner"
     assert state["usage"]["actions"] == {"commit": 2, "read": 1, "draft": 1}
-    assert state["explain"].startswith("Lane biz-a/ig reached its limit of 2 commits a day")
+    assert state["explain"].startswith("Browser biz-a/ig reached its limit of 2 commits a day")
     clock.t = at(2026, 11, 5, 0, 0) + 1  # past the owner's midnight: a new day
     await ctx.authorize(Effect.COMMIT, lane_id="biz-a/ig")
     assert svc.lane_meter("biz-a/ig")["usage"]["commits_today"] == 1
@@ -209,7 +209,7 @@ async def test_grant_info_shows_the_meters_and_says_what_tripped(env):
     assert info["meters"]["grant"]["limits"][0]["left"] == 1000
     lane = info["meters"]["lanes"][0]
     assert lane["id"] == "biz-a/ig" and lane["state"] == "cut_off"
-    assert any(line.startswith("Lane biz-a/ig reached its limit") for line in info["explain"])
+    assert any(line.startswith("Browser biz-a/ig reached its limit") for line in info["explain"])
 
 
 # ------------------------------------------------------------------ thresholds
@@ -224,7 +224,7 @@ async def test_each_threshold_notifies_once_a_day(env):
     assert events == []
     await ctx.authorize(Effect.COMMIT, lane_id="biz-a/ig")  # 4 of 5: 80%
     assert [e["kind"] for e in events] == ["warning"]
-    assert events[0]["explain"] == ("Lane biz-a/ig used 80% of its limit of 5 commits a day (4 used today). "
+    assert events[0]["explain"] == ("Browser biz-a/ig used 80% of its limit of 5 commits a day (4 used today). "
                                     "It resets at 00:00 (Europe/Vilnius).")
     await ctx.authorize(Effect.READ, lane_id="biz-a/ig")
     await ctx.authorize(Effect.COMMIT, lane_id="biz-a/ig")  # 5 of 5: the cutoff
@@ -485,7 +485,7 @@ async def test_a_publish_the_guard_saw_counts_as_one_commit_and_past_the_limit_i
     assert usage["commits_today"] == 1 and usage["actions"] == {"draft": 1}  # a commit, not a second action
     assert meter.capped()
     why = meter.charge(rule, sent=False)  # the route holds it: refused, nothing debited
-    assert why.startswith("Lane biz-a/ig reached its limit of 1 commit a day")
+    assert why.startswith("Browser biz-a/ig reached its limit of 1 commit a day")
     assert svc.lane_meter("biz-a/ig")["usage"]["commits_today"] == 1
     assert meter.charge(rule, sent=True) is not None  # it left anyway: counted, because it happened
     assert svc.lane_meter("biz-a/ig")["usage"]["commits_today"] == 2

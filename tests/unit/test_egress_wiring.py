@@ -154,7 +154,7 @@ async def setup(tmp_path, *, sites=("*.instagram.com",), fail=True):
 
 async def test_navigate_refuses_an_off_list_host_before_loading_it(tmp_path):
     ctx, guard, inter, _ = await setup(tmp_path)
-    with pytest.raises(EgressRefused, match="evil.example is not on this lane's site list.*nothing was sent"):
+    with pytest.raises(EgressRefused, match="evil.example is not on this browser's site list.*nothing was sent"):
         await node_tools.browser_navigate(ctx, on=LANE, url="https://evil.example/?q=dm")
     assert inter.navigated == []
     assert guard.driver == Driver(kind="agent", id="claude", grant_id="g1", lists=None, ceiling="draft")

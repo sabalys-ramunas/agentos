@@ -342,7 +342,7 @@ def test_inbox_only_where_asked(lane_files, tmp_path):
     src = tmp_path / "r.csv"
     src.write_bytes(b"a,b\n")
     lane_files.finish_download(entry.id, src)
-    with pytest.raises(InvalidRequest, match="only files in the lane's inbox"):
+    with pytest.raises(InvalidRequest, match="only files in the browser's inbox"):
         lane_files.path(entry.id, box="inbox")
     assert lane_files.path(entry.id).read_bytes() == b"a,b\n"
 

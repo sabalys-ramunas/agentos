@@ -187,7 +187,7 @@ def meta_tools() -> list[Tool]:
         Tool(name=TOOLS_CALL, description=CALL_DESCRIPTION,
              annotations=ToolAnnotations(read_only_hint=False),
              input_schema={"type": "object", "required": ["name"], "properties": {
-                 "name": {"type": "string", "description": "The tool to call, for example browser_file_put."},
+                 "name": {"type": "string", "description": "The tool to call, for example terminal_jobs (terminals toolset)."},
                  "arguments": {"type": "object", "description": "The tool's arguments, as you would pass them."}}}),
     ]
 
@@ -249,7 +249,7 @@ def call_target(arguments: dict[str, Any]) -> tuple[str, dict[str, Any]] | str:
     name, args = arguments.get("name"), arguments.get("arguments")
     args = {} if args is None else args
     if not isinstance(name, str) or not name:
-        return "invalid: name: give the tool to call, for example browser_file_put"
+        return "invalid: name: give the tool to call, for example terminal_jobs"
     if not isinstance(args, dict):
         return "invalid: arguments: must be an object of the tool's arguments"
     if name in META_TOOLS:

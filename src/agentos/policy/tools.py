@@ -97,11 +97,11 @@ async def traces_query(ctx: Any, *, lane: str | None = None, tool: str | None = 
 
 
 async def grant_info(ctx: Any) -> dict:
-    """What your grant allows: lanes, domains, effect ceiling, specials, expiry and the budget left,
+    """What your grant allows: browsers, domains, effect ceiling, specials, expiry and the budget left,
     plus `explain`: the same in plain sentences, including which effects wait for a human. `meters`
-    is today's use against the daily and hourly limits of your grant and of your lanes that have
+    is today's use against the daily and hourly limits of your grant and of your browsers that have
     them (`left` per limit, `resets_at`); a limit reached refuses calls with limit_reached. `pace`
-    is the posting pace of your lanes that have one: waking hours in the lane's own timezone (and
+    is the posting pace of your browsers that have one: waking hours in the browser's own timezone (and
     where that zone comes from), the gap between posts and posts a day, with `next_allowed_at` (UTC)
     and `next_allowed_local`; a publish outside it is refused with lane_paced. `taint`
     says whether this session has read untrusted content (a web page, an email, a webhook body, a

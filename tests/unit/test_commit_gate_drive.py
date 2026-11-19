@@ -226,4 +226,4 @@ async def test_a_flows_non_get_is_still_held_to_the_lanes_site_list(tmp_path):
             ctx.emit("request", FakeRequest("https://www.reddit.com/svc/x", "POST", frame=page.main_frame))
         [block] = guard.blocks_since(0)
         assert (block.rule, block.host, block.method) == ("non_get", "collector.example", "POST")
-        assert "this lane allows" in block.reason
+        assert "this browser allows" in block.reason

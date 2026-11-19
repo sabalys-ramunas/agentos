@@ -69,6 +69,13 @@ VERIFY_SECONDS = 25.0
 Service = LaunchdService | SystemdService | NoTunnel
 
 
+def browsers_of(listed: Any) -> list[Any]:
+    """browsers_list's rows: `browsers`, or `lanes` from a node before 0.4."""
+    if not isinstance(listed, dict):
+        return []
+    return list(listed.get("browsers", listed.get("lanes")) or [])
+
+
 class Client(Credentials):
     def __init__(self, paths: Paths | None = None, platform: str | None = None, tools: Tools | None = None,
                  out: Callable[[str], None] = print):
@@ -694,7 +701,7 @@ class Client(Credentials):
                               connect_again(conn))
         try:
             with McpSession(conn.local_port, token, timeout=15) as session:
-                return {"whoami": session.call("whoami"), "lanes": session.call("browsers_list").get("lanes", [])}
+                return {"whoami": session.call("whoami"), "lanes": browsers_of(session.call("browsers_list"))}
         except McpError as exc:
             raise ClientError(f"{conn.name}: {explain(exc, conn)}", reconnect_hint(exc, conn)) from None
 

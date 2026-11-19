@@ -4,18 +4,18 @@
  "engine": "agentos.dev.web",
  "calls": [
   {
-   "tool": "lanes_list",
+   "tool": "browsers_list",
    "args": {},
    "result": {
     "is_error": false,
     "content": [
      {
       "type": "text",
-      "text": "{\n  \"lanes\": [\n    {\n      \"id\": \"biz-a/social\",\n      \"kind\": \"browser\",\n      \"engine\": \"camoufox\",\n      \"state\": \"cold\",\n      \"proxy\": null,\n      \"device\": null,\n      \"last_used\": null\n    }\n  ]\n}"
+      "text": "{\n  \"browsers\": [\n    {\n      \"id\": \"biz-a/social\",\n      \"kind\": \"browser\",\n      \"engine\": \"camoufox\",\n      \"state\": \"cold\",\n      \"proxy\": null,\n      \"device\": null,\n      \"last_used\": null\n    }\n  ]\n}"
      }
     ],
     "structured": {
-     "lanes": [
+     "browsers": [
       {
        "id": "biz-a/social",
        "kind": "browser",
@@ -252,7 +252,7 @@
     "content": [
      {
       "type": "text",
-      "text": "agent_paused: agentos paused biz-a/social itself (no person stopped you): a robot check (CAPTCHA) appeared (needs_human:captcha). Nothing runs there until the human solves it in the live view and hands the lane back. Tell your user that. Do not retry, and do not ask again in a loop: wait with lane_wait_control.\nfix: Stop working on this lane and tell the user what the message says: who paused it and why. Do not retry; wait with lane_wait_control."
+      "text": "agent_paused: agentos paused biz-a/social itself (no person stopped you): a robot check (CAPTCHA) appeared (needs_human:captcha). Nothing runs there until the human solves it in the live view and hands the browser back. Tell your user that. Do not retry, and do not ask again in a loop: wait with browser_wait_handback.\nfix: Stop working on this browser and tell the user what the message says: who paused it and why. Do not retry; wait with browser_wait_handback."
      }
     ],
     "structured": null

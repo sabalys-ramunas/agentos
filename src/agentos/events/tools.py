@@ -20,7 +20,7 @@ def _svc(ctx: ToolContext) -> Any:
 
 
 def _visible(ctx: ToolContext, workspace: str, lane: str | None) -> bool:
-    """A lane's events need that lane in the grant; a lane-less event needs the whole workspace."""
+    """A browser's events need that browser in the grant; a lane-less event needs the whole workspace."""
     return _lane_ok(ctx, lane) if lane else covers_workspace(ctx, workspace)
 
 
@@ -40,7 +40,7 @@ def _grant_of(ctx: Any) -> tuple[str | None, str | None]:
 async def events_list(ctx: ToolContext, *, source: str | None = None, workspace: str | None = None,
                       since: str | None = None, limit: int = 50) -> dict:
     """List recent events on this node (newest first) with their deliveries: what happened
-    (source, kind, lane, node facts), which triggers took it, and what each delivery did and
+    (source, kind, browser, node facts), which triggers took it, and what each delivery did and
     why (waiting for quiet hours, dropped by a rate limit, delivered, dead). Content written by
     others is shown only as its size."""
     svc = _svc(ctx)
@@ -66,7 +66,7 @@ async def events_list(ctx: ToolContext, *, source: str | None = None, workspace:
 
 async def triggers_list(ctx: ToolContext, *, workspace: str | None = None) -> dict:
     """List the owner's triggers (routes): when what happens, what it wakes (a flow, a brain
-    task or an agent lane), with which instruction and grant, its controls (quiet hours, rate
+    task or an agent browser), with which instruction and grant, its controls (quiet hours, rate
     limits, batching), whether it is paused and what is waiting."""
     svc = _svc(ctx)
     out = [svc.describe_route(r) for r in svc.list_routes(workspace) if _visible(ctx, r.workspace, _lane_of(r))]
@@ -80,7 +80,7 @@ def _lane_of(route: Any) -> str | None:
 
 async def trigger_propose(ctx: ToolContext, *, trigger: dict) -> dict:
     """Propose a trigger to the owner: {name, match: {source, kind?, workspace, lane?, where?},
-    target: {kind: flow|brain|agent, ...}, instruction?, grant: {ceiling, lanes, flows,
+    target: {kind: flow|brain|agent, ...}, instruction?, grant: {ceiling, browsers, flows,
     ttl_s, budget}, controls?, priority?}. This never creates it: it puts the full trigger on an
     approval card, and the owner's approval creates it exactly as shown. Returns approval_id."""
     if not isinstance(trigger, dict):
@@ -94,10 +94,10 @@ async def trigger_propose(ctx: ToolContext, *, trigger: dict) -> dict:
              if isinstance(x, str)]  # match.lane too: a trigger hears that lane's events
     if not isinstance(match.get("lane"), str) and not covers_workspace(ctx, ws):  # it hears the whole workspace
         raise PolicyDenied(f"you can only propose triggers for what your grant reaches: one with no match.lane "
-                           f"hears every lane of {ws or 'its workspace'}")
+                           f"hears every browser of {ws or 'its workspace'}")
     for lane in lanes:  # a pattern is checked as a pattern: every lane it can match is in the grant
         if not (pattern_within(ctx, lane) if any(c in lane for c in "*?[") else _lane_ok(ctx, lane)):
-            raise PolicyDenied(f"you can only propose triggers for lanes your grant reaches ({lane} is not)")
+            raise PolicyDenied(f"you can only propose triggers for browsers your grant reaches ({lane} is not)")
     first = next((x for x in lanes if not any(c in x for c in "*?[")), None)
     await ctx.authorize(Effect.DRAFT, lane_id=first, summary=f"Propose a trigger in {ws or 'a workspace'}")
     gid, path = _grant_of(ctx)

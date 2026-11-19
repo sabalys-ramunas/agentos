@@ -210,7 +210,7 @@ def _label_self(lane: str, pinned: Any, session: Mapping[str, Any] | None) -> st
     handle = getattr(pinned, "handle", None)
     uid = getattr(pinned, "user_id", None) or (session or {}).get("user_id")
     who = handle or uid or lane
-    return f"{who} (the lane's own account)"
+    return f"{who} (the browser's own account)"
 
 
 @dataclass
@@ -289,9 +289,9 @@ class _Resolver:
         elsewhere = next((s for s in self.others if s.acts_as.asset_id == ident), None)
         if elsewhere is not None:
             return self.unrecognized(value, path, f"{value} is {elsewhere.acts_as.label()}, the surface "
-                                                  f"{elsewhere.id}, which posts through {elsewhere.lane}, not this lane",
-                                     "it posts through another lane", verified)
-        return self.unrecognized(value, path, f"no surface through {lane} names it, and it is not the lane's own "
+                                                  f"{elsewhere.id}, which posts through {elsewhere.lane}, not this browser",
+                                     "it posts through another browser", verified)
+        return self.unrecognized(value, path, f"no surface through {lane} names it, and it is not the browser's own "
                                               "account", "no surface names it", verified)
 
     def stray(self) -> dict[str, Any]:

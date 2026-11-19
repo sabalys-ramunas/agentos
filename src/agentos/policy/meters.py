@@ -397,7 +397,7 @@ class Meters:
         """What tripped, in one plain sentence: which limit, its value, what was used, when it resets."""
         _, period, _ = _LIMIT[name]
         reset = self.reset_at(period, now)
-        who = f"Lane {scope.id}" if scope.kind == "lane" else f"Grant {scope.label or scope.id}"
+        who = f"Browser {scope.id}" if scope.kind == "lane" else f"Grant {scope.label or scope.id}"
         when = f"{self.local_time(reset)} ({self.timezone}), in {_until(reset - now)}"
         if cost:
             spent = f"${cost / MICRO:,.2f}" if name == "usd_per_day" else f"{cost:,} tokens"
@@ -471,7 +471,7 @@ class Meters:
         reset = self.reset_at(period, now)
         limit = _units(name, value)
         pct = math.floor(100 * used / limit) if limit else 100
-        who = f"Lane {scope.id}" if scope.kind == "lane" else f"Grant {scope.label or scope.id}"
+        who = f"Browser {scope.id}" if scope.kind == "lane" else f"Grant {scope.label or scope.id}"
         return (f"{who} used {pct}% of its limit of {_words(name, value)} ({_used_words(name, used)}). "
                 f"It resets at {self.local_time(reset)} ({self.timezone}).")
 

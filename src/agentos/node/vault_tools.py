@@ -25,12 +25,12 @@ def _browser_lane(ctx: ToolContext, on: str) -> Any:
     lanes = ctx.runtime.require("lanes")
     info = lanes.get(on)
     if info.spec.kind is not LaneKind.BROWSER:
-        raise InvalidRequest(f"{on} is a {info.spec.kind.value} lane; the vault types only into browser lanes")
+        raise InvalidRequest(f"{on} is a {info.spec.kind.value}, not a browser; the vault types only into browsers")
     return lanes
 
 
 def _session(ctx: ToolContext, lanes: Any, on: str) -> Any:
-    """The lane as this caller, acting (agentos.node.claims): it waits while another caller claims it."""
+    """The browser as this caller, acting (agentos.node.claims): it waits while another caller claims it."""
     from agentos.node.tools import ctx_session
 
     return ctx_session(ctx, on, lanes=lanes)
@@ -38,7 +38,7 @@ def _session(ctx: ToolContext, lanes: Any, on: str) -> Any:
 
 async def login(ctx: ToolContext, *, on: str, entry: str | None = None) -> dict:
     """Sign the browser in with a login stored in the vault. An environment's browser opens the
-    login page itself when needed; on an account lane, browser_navigate there first. The node finds
+    login page itself when needed; on an account browser, browser_navigate there first. The node finds
     the form, checks the login is bound to this browser and site, types it with human input and
     submits, and a code from its TOTP seed, its mail or the owner (waits a few minutes). You never see a
     secret. It asks nobody: call it again whenever a site logs you out. `entry`: a login's name, only
@@ -61,7 +61,7 @@ async def vault_fill(ctx: ToolContext, *, on: str, field: str, entry: str) -> di
     """Fill one login field from a vault entry. `field` is a snapshot ref (for example
     "e12") of a password, username/email or one-time-code input; the node decides from
     the field's structure what goes in it and refuses any other kind of field, any page
-    not on the entry's domain, and any lane the entry is not bound to. Does not submit:
+    not on the entry's domain, and any browser the entry is not bound to. Does not submit:
     click the form's button soon after, because the node treats the page's submit as the
     login only for about 30 seconds after a fill. It asks nobody. You never see the value."""
     vault = ctx.runtime.require("vault")
@@ -72,7 +72,7 @@ async def vault_fill(ctx: ToolContext, *, on: str, field: str, entry: str) -> di
 
 
 def _reached(ctx: ToolContext, pattern: str, known: list[str], entry: Any = None, vault: Any = None) -> bool:
-    """Does the caller's grant reach a lane binding: the lane itself, or for `workspace/*` a lane
+    """Does the caller's grant reach a browser binding: the browser itself, or for `workspace/*` a browser
     of that workspace on this node that the grant covers (and, for a login bound to environments,
     one of the environments it covers). Fails closed."""
     allowed = getattr(ctx, "can_access_lane", None)
@@ -98,8 +98,8 @@ def _known_lanes(ctx: ToolContext) -> list[str]:
 
 
 async def vault_list(ctx: ToolContext, *, on: str | None = None) -> dict:
-    """List the vault entries bound to lanes your grant reaches: name, kind, domain and those
-    bound lanes only (never usernames or secrets). With `on`, only entries bound to that lane."""
+    """List the vault entries bound to browsers your grant reaches: name, kind, domain and those
+    bound browsers only (never usernames or secrets). With `on`, only entries bound to that browser."""
     if on is not None:
         try:
             parse_lane_id(on)

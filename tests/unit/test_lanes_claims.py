@@ -288,7 +288,7 @@ async def test_a_claimed_lane_is_never_closed_for_idleness_or_the_warm_cap(tmp_p
     await t.mgr.claim(LANE, A, purpose="job", ttl_s=900)
     t.clock.advance(120)
     assert await t.mgr.reap_idle() == []
-    with pytest.raises(LaneBusy, match="warm lanes are busy"):
+    with pytest.raises(LaneBusy, match="warm browsers are busy"):
         await t.mgr.open("biz-a/other")  # the only warm lane is claimed: it is not evicted
     assert t.mgr.get(LANE).state == LaneState.WARM
 

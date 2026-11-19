@@ -22,9 +22,9 @@ NODE_BYS = frozenset({"node", "idle", "unknown", ""})
 NEEDS = {
     "captcha": ("a robot check (CAPTCHA) appeared", "solves it"),
     "checkpoint": ("the site asked the account holder to confirm it is them", "answers it"),
-    "logged_out": ("the site signed this lane out", "signs in again"),
-    "blocked": ("the site blocked this lane", "deals with what the site says"),
-    "wrong_account": ("the lane is signed in to another account than the one it is for",
+    "logged_out": ("the site signed this browser out", "signs in again"),
+    "blocked": ("the site blocked this browser", "deals with what the site says"),
+    "wrong_account": ("the browser is signed in to another account than the one it is for",
                       "signs in to the right account"),
 }
 BACKOFF = {"rate_limited": "the site limited how fast this account may act"}
@@ -61,7 +61,7 @@ def pause_why(lane_id: str, control: Any) -> str:
     if kind == "needs_human" and what in NEEDS and not until:
         happened, does = NEEDS[what]
         return (f"{who}: {happened}{on} ({code}). Nothing runs there until the human {does} in the live view "
-                "and hands the lane back.")
+                "and hands the browser back.")
     if kind == "quarantined":
         return (f"{who}: it is quarantined ({what or 'it failed its self-check'}). Nothing runs there until a "
                 "person checks it and hands it back.")

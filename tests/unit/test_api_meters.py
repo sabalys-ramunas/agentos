@@ -62,7 +62,7 @@ def test_meters_show_the_owner_everything_and_a_grant_itself_and_its_lanes(panel
         assert [m["id"] for m in mine["lanes"]] == ["biz-a/instagram"]
         lane = mine["lanes"][0]
         assert lane["state"] == "cut_off" and lane["usage"]["commits_today"] == 1
-        assert lane["explain"].startswith("Lane biz-a/instagram reached its limit of 1 commit a day")
+        assert lane["explain"].startswith("Browser biz-a/instagram reached its limit of 1 commit a day")
         assert mine["timezone"] and mine["resets_at"] and mine["warn_at"] == [0.8]
         everything = client.get("/api/meters", headers=bearer(TOKEN)).json()
         assert {g.id, other.id} <= {m["id"] for m in everything["grants"]}

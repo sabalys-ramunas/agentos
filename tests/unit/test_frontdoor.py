@@ -30,7 +30,7 @@ def test_the_intro_starts_with_the_environment_and_puts_lanes_after():
                    "pass it on every call", "only your chat reaches the machine", "environment_in_use"):
         assert phrase in first, phrase
     assert "browsers_list" not in first  # account lanes are a separate thing, after
-    assert INSTRUCTIONS.index("environment_open") < INSTRUCTIONS.index("A lane id is workspace/name")
+    assert INSTRUCTIONS.index("environment_open") < INSTRUCTIONS.index("is workspace/name")
     assert EM_DASH not in INSTRUCTIONS and len(INSTRUCTIONS) < 4_000
     for gone in ("The title names it", "your other chats reach it by title", 'on="<title>"'):  # the lease of 2026-11-16
         assert gone not in INSTRUCTIONS, gone
@@ -89,7 +89,7 @@ def test_the_intro_and_the_skill_say_where_the_terminal_tools_are_and_promise_no
     node's live view (links.browser), no web app page and no port link."""
     first = INSTRUCTIONS.split("\n\n")[0]
     assert "links.browser" in first and "terminal_job_start" in first and "ui_check" in first
-    assert "`on` for an account lane" in INSTRUCTIONS
+    assert "`on` for an account browser" in INSTRUCTIONS
     text = skills.source("agentos-environment")
     for words in ('tools_more("terminals")', 'tools_more("studio")', "terminal_job_read", "in your tool list",
                   "environment_not_ready", "stashes"):

@@ -351,5 +351,5 @@ async def test_a_connector_post_outside_the_lanes_waking_hours_is_refused_with_w
     with pytest.raises(LanePaced) as e:
         await _post(h)(svc.context_for_token(tok, tool="social_post_photo"), on=LANE,
                        caption=PARAMS["caption"], image="photo.jpg", wait_seconds=0)
-    assert e.value.hit["rule"] == "active_hours" and "it may next post at 09:00 today lane time (UTC)" in e.value.message
+    assert e.value.hit["rule"] == "active_hours" and "it may next post at 09:00 today its time (UTC)" in e.value.message
     assert _uses(svc, sa.id) == 0 and h.store.list_runs() == [] and h.site.state["posts"] == []

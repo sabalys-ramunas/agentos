@@ -66,12 +66,12 @@ def default_hold_policy() -> HoldPolicy | None:
                       "human", e.name)
         return hold_for_a_human
     except Exception:
-        log.exception("agentos.node.holds failed to import; every bad signal holds its lane for a human")
+        log.exception("agentos.node.holds failed to import; every bad signal holds its browser for a human")
         return hold_for_a_human
     policy = getattr(module, "hold_for", None)
     if callable(policy):
         return policy
-    log.error("agentos.node.holds has no hold_for; every bad signal holds its lane for a human")
+    log.error("agentos.node.holds has no hold_for; every bad signal holds its browser for a human")
     return hold_for_a_human
 
 
@@ -201,7 +201,7 @@ class ControlMixin:
         touched."""
         lane = self._lanes.get(lane_id)
         if lane is not None:
-            self._end_claim(lane_id, lane, "frozen", f"agents were stopped on the lane ({clean_reason(reason)})")
+            self._end_claim(lane_id, lane, "frozen", f"agents were stopped on the browser ({clean_reason(reason)})")
         return [t for t in self.agent_tasks(lane_id) if interrupts.interrupt(t, reason)]
 
     @staticmethod
@@ -227,8 +227,8 @@ class ControlMixin:
             self._end_drive(lane, f"control is {new.state.value}")
             if lane is not None:
                 self._end_claim(lane_id, lane, "human" if new.state == ControlState.HUMAN else "paused",
-                                "a human took control of the lane" if new.state == ControlState.HUMAN
-                                else f"agents were held off the lane ({new.reason or 'stopped by a human'})")
+                                "a human took control of the browser" if new.state == ControlState.HUMAN
+                                else f"agents were held off the browser ({new.reason or 'stopped by a human'})")
         # Durable: queued now, so sync listeners still run in this tick, and done before this returns.
         saved = self.store.submit(self.store.set_control, lane_id, new)
         log.info("%s: control %s -> %s (%s)", lane_id, old.state.value, new.state.value, why)

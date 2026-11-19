@@ -518,27 +518,27 @@ class PaceStore:
 def sentence(lane_id: str, pace: Pace, zone: Zone, v: Verdict, now: float) -> str:
     tz = zone.tz
     if v.rule == "timezone":
-        return (f"Lane {lane_id}'s timezone could not be read (its pinned fingerprint is unreadable), so it may "
-                "not publish now: its waking hours and its day cannot be told. Check the lane's fingerprint, or "
+        return (f"Browser {lane_id}'s timezone could not be read (its pinned fingerprint is unreadable), so it may "
+                "not publish now: its waking hours and its day cannot be told. Check the browser's fingerprint, or "
                 "set a timezone on its pace.")
     if v.rule == "active_hours":
-        why = (f"Lane {lane_id} is outside its posting hours ({', '.join(pace.active_hours or [])} lane time, "
+        why = (f"Browser {lane_id} is outside its posting hours ({', '.join(pace.active_hours or [])} its time, "
                f"{zone.words()})")
     elif v.rule == "min_gap":
         near = v.near_at if v.near_at is not None else v.last_at
         if near is not None and near > now:
-            what = f"has a post queued for {local_words(near, tz, now)} lane time"
+            what = f"has a post queued for {local_words(near, tz, now)} its time"
         else:
             what = f"posted {_until(now - near) if near is not None else 'moments'} ago"
-        why = f"Lane {lane_id} {what} and keeps at least {pace.min_gap_minutes} minutes between posts"
+        why = f"Browser {lane_id} {what} and keeps at least {pace.min_gap_minutes} minutes between posts"
     else:
         n = pace.commits_per_day
-        why = f"Lane {lane_id} used its {n} {'post' if n == 1 else 'posts'} for that day (lane time, {zone.words()})"
+        why = f"Browser {lane_id} used its {n} {'post' if n == 1 else 'posts'} for that day (its time, {zone.words()})"
     if v.next_ts is None:
         when = "no waking hours open in the next week, so it may not post until the owner changes its pace"
     else:
         utc = datetime.fromtimestamp(v.next_ts, UTC).strftime("%Y-%m-%d %H:%M UTC")
-        when = (f"it may next post at {local_words(v.next_ts, tz, now)} lane time ({zone.name}), {utc}, "
+        when = (f"it may next post at {local_words(v.next_ts, tz, now)} its time ({zone.name}), {utc}, "
                 f"in {_until(v.next_ts - now)}")
     note = zone.note()
     return f"{why}, so it may not publish now: {when}." + (f" {note}" if note else "")

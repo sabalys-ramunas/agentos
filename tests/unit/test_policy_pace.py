@@ -230,9 +230,9 @@ async def test_the_pinned_timezone_wakes_the_lane_on_its_proxys_time(env):
     e = await paced(ctx.authorize(Effect.COMMIT, lane_id="biz-a/ig"))
     assert e.hit["rule"] == "active_hours" and e.hit["timezone_source"] == "pin"
     assert e.hit["next_at"] == "2026-11-05T13:00:00Z" and e.hit["next_at_local"] == "2026-11-05T08:00-05:00"
-    assert e.message == ("Lane biz-a/ig is outside its posting hours (08:00-22:00 lane time, America/New_York, from "
+    assert e.message == ("Browser biz-a/ig is outside its posting hours (08:00-22:00 its time, America/New_York, from "
                          "its proxy's region (the pinned fingerprint)), so it may not publish now: it may next post "
-                         "at 08:00 today lane time (America/New_York), 2026-11-05 13:00 UTC, in 1 h.")
+                         "at 08:00 today its time (America/New_York), 2026-11-05 13:00 UTC, in 1 h.")
     await ctx.authorize(Effect.READ, lane_id="biz-a/ig")  # reads and drafts go on
     await ctx.authorize(Effect.DRAFT, lane_id="biz-a/ig")
     clock.t = at(2026, 11, 5, 8, 0)
@@ -360,7 +360,7 @@ async def test_a_publish_is_held_by_a_run_queued_after_it_and_slots_keep_the_gap
     clock.t = at(2026, 11, 5, 9, 50)
     e = await paced(ctx.authorize(Effect.COMMIT, lane_id="biz-a/ig"))
     assert e.hit["rule"] == "min_gap" and e.hit["next_at_local"] == "2026-11-05T10:45-05:00"
-    assert "has a post queued for 10:00 today lane time" in e.message
+    assert "has a post queued for 10:00 today its time" in e.message
     clock.t = at(2026, 11, 5, 8, 0)
     await ctx.authorize(Effect.COMMIT, lane_id="biz-a/ig", at=at(2026, 11, 5, 12, 5))  # the later slot first
     await paced(ctx.authorize(Effect.COMMIT, lane_id="biz-a/ig", at=at(2026, 11, 5, 12, 0)))

@@ -417,7 +417,7 @@ class TargetPage:
 async def test_clicks_and_enter_are_checked_before_anything_is_sent(tmp_path):
     guard, _, _events, _ = make_guard(tmp_path)
     page = TargetPage({"targets": [{"kind": "link", "url": "https://evil.example/?q=dm", "target": "_blank"}]})
-    with pytest.raises(EgressRefused, match="evil.example is not on this lane's site list.*nothing was sent"):
+    with pytest.raises(EgressRefused, match="evil.example is not on this browser's site list.*nothing was sent"):
         await guard.check_action(page, "e12", ActionKind.CLICK, None)
     [block] = guard.blocks_since(0)
     assert block.kind == "action" and block.prevented

@@ -176,7 +176,7 @@ async def test_a_page_surface_is_reachable_from_biz_a_and_not_from_biz_b(tmp_pat
     with pytest.raises(PolicyDenied, match="does not cover surface biz-a/social-page"):
         await handler(svc.context_for_token(tok_b, tool="social_page_summary"), on="biz-a/social-page")
     # the biz-a grant reaches the Page, never the personal login it acts through
-    with pytest.raises(Denied, match="does not cover lane personal/social"):
+    with pytest.raises(Denied, match="does not cover personal/social"):
         svc.context_for_token(tok_a).precheck(Effect.READ, lane_id="personal/social")
     with pytest.raises(PolicyDenied, match="does not cover"):
         h.runner.submit(flow_id="connector.social.page_summary", surface="biz-a/social-page",

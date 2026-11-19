@@ -290,11 +290,11 @@ class LoginAssist:
 
         text = clean_reason(why)[:WHY_MAX]
         if not text:
-            raise InvalidRequest('Say in one short sentence why the lane needs a login, for example "Reddit '
-                                 'signed this lane out; I need it to post the reply."')
+            raise InvalidRequest('Say in one short sentence why the browser needs a login, for example "Reddit '
+                                 'signed this browser out; I need it to post the reply."')
         info = self.lanes.get(lane_id)
         if info.spec.kind is not LaneKind.BROWSER:
-            raise InvalidRequest(f"{lane_id} is a {info.spec.kind.value} lane; only browser lanes log in.")
+            raise InvalidRequest(f"{lane_id} is a {info.spec.kind.value}, not a browser; only browsers sign in.")
         now = self.clock()
         old = self._requests.get(lane_id)
         s = self.session(lane_id)
@@ -315,7 +315,7 @@ class LoginAssist:
         if callable(send):
             try:
                 send({"type": "login.requested", "title": f"Log in to {name} on {lane_id}",
-                      "body": f"An agent asks you to log {lane_id} in: {text} Open the lane in the panel and "
+                      "body": f"An agent asks you to log {lane_id} in: {text} Open the browser in the panel and "
                               "press Log in. You type into a form, and agentos types it into the site.",
                       "lane": lane_id, "urgent": False})
             except Exception as e:  # noqa: BLE001
@@ -328,7 +328,7 @@ class LoginAssist:
         lanes = self.lanes
         info = lanes.get(lane_id)
         if info.spec.kind is not LaneKind.BROWSER:
-            raise InvalidRequest(f"{lane_id} is a {info.spec.kind.value} lane; only browser lanes log in.")
+            raise InvalidRequest(f"{lane_id} is a {info.spec.kind.value}, not a browser; only browsers sign in.")
         if url is not None:
             from agentos.node.interaction.urls import check_url
 
@@ -436,7 +436,7 @@ class LoginAssist:
         self._stop_waiter(s)
         await self._take(s, by)
         s.state = "paused"
-        s.note = "You have the live view. Hand the lane back, or press Back to the form, and agentos reads the page."
+        s.note = "You have the live view. Hand the browser back, or press Back to the form, and agentos reads the page."
         self._changed(s)
         return s.public()
 
@@ -674,7 +674,7 @@ class LoginAssist:
         name = s.site.name if s.site else (_host(step.origin) or "the site")
         if step.kind is StepKind.SIGNED_IN:
             s.state = "signed_in"
-            s.note = f"Signed in to {name}. The lane keeps the session."
+            s.note = f"Signed in to {name}. The browser keeps the session."
             s.values.pop("code", None)
         elif step.stops:
             s.state = "stopped"
@@ -884,7 +884,7 @@ def service_for(runtime: Any) -> LoginAssist:
     if found is not None:
         return found
     if runtime.get("lanes") is None:
-        raise ServiceUnavailable("This node has no lanes, so it cannot log one in.")
+        raise ServiceUnavailable("This node has no browsers, so it cannot log one in.")
     svc = LoginAssist(runtime)
     runtime.register("login_assist", svc)
     return svc

@@ -367,10 +367,10 @@ def _shown(path: Path, root: Path) -> str:
 
 def _private_dir(path: Path, root: Path) -> None:
     if path.is_symlink():
-        raise _refuse(f"the lane's {_shown(path, root)} is a symlink; refusing to use it for lane files")
+        raise _refuse(f"the browser's {_shown(path, root)} is a symlink; refusing to use it for browser files")
     path.mkdir(mode=0o700, exist_ok=True)
     if not path.is_dir():
-        raise _refuse(f"the lane's {_shown(path, root)} is not a directory")
+        raise _refuse(f"the browser's {_shown(path, root)} is not a directory")
     path.chmod(0o700)
 
 
@@ -389,7 +389,7 @@ class LaneFiles:
 
     def ensure(self) -> None:
         if not self.root.parent.is_dir():
-            raise NotFound("this lane has no folder on the node; tell the owner (`agentos status --check` "
+            raise NotFound("this browser has no folder on the node; tell the owner (`agentos status --check` "
                            "shows what is wrong)")
         for d in (self.root, self.root / INBOX, self.root / OUTBOX):
             _private_dir(d, self.root)
@@ -412,8 +412,8 @@ class LaneFiles:
             except FileNotFoundError:
                 raise NotFound(f"no {box} yet: nothing has been stored in it") from None
             if not stat.S_ISDIR(st.st_mode):
-                raise _refuse(f"the lane's {_shown(d, self.root)} is a symlink or not a directory; refusing to "
-                              "read lane files through it")
+                raise _refuse(f"the browser's {_shown(d, self.root)} is a symlink or not a directory; refusing to "
+                              "read browser files through it")
         return (self.root / box).resolve(strict=True)
 
     @staticmethod
@@ -488,7 +488,7 @@ class LaneFiles:
         if not entry.is_symlink() and entry.is_dir():
             meta = self._read_meta(box, file_id)
         if meta is None:
-            raise NotFound(f"no file {file_id} in this lane; see browser_files")
+            raise NotFound(f"no file {file_id} in this browser; see browser_files")
         return self._live(meta)
 
     def path(self, file_id: str, *, box: str | None = None) -> Path:
@@ -496,7 +496,7 @@ class LaneFiles:
         anything that is not a regular file inside its own box."""
         meta = self.get(file_id)
         if box is not None and meta.box != box:
-            raise InvalidRequest(f"{file_id} is in the {meta.box}; only files in the lane's {box} can be used "
+            raise InvalidRequest(f"{file_id} is in the {meta.box}; only files in the browser's {box} can be used "
                                  "here. Put it with browser_file_put first.")
         if meta.status is not FileStatus.COMPLETE:
             raise InvalidRequest(f"{file_id} is {meta.status.value}"
@@ -948,7 +948,7 @@ async def fetch_url(url: str, sink: Any, *, proxy: ProxyConfig | None = None,
             except (InvalidRequest, EngineError):
                 raise
             except httpcore.ProxyError as e:
-                raise EngineError(f"the lane's proxy refused the fetch of {display_url(current)}: {e}") from None
+                raise EngineError(f"the browser's proxy refused the fetch of {display_url(current)}: {e}") from None
             except httpcore.TimeoutException:
                 raise EngineError(f"fetching {display_url(current)} timed out") from None
             except (httpcore.NetworkError, httpcore.ProtocolError, OSError) as e:

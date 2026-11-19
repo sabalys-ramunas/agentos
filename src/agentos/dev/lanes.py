@@ -151,7 +151,7 @@ class FakeLaneManager:
 
     def _require(self, lane_id: str) -> LaneInfo:
         if lane_id not in self.lanes:
-            raise LaneNotFound(f"no lane {lane_id!r}; see browsers_list")
+            raise LaneNotFound(f"no browser {lane_id!r}; see browsers_list")
         return self.lanes[lane_id]
 
     def _warm(self, info: LaneInfo) -> None:
@@ -188,14 +188,14 @@ class FakeLaneManager:
     async def create(self, spec: LaneSpec) -> LaneInfo:
         self._maybe_fail()
         if spec.id in self.lanes:
-            raise LaneExists(f"lane {spec.id!r} already exists")
+            raise LaneExists(f"browser {spec.id!r} already exists")
         with contextlib.suppress(OSError):  # as a real lane has: files live here. A test may have no home at all
             self.config.lane_dir(spec.id).mkdir(parents=True, exist_ok=True)
         if spec.device:
             device = self._device(spec.device)
             if spec.proxy_label and spec.proxy_label != device.proxy_label:
                 raise InvalidRequest(f"device {device.name} leaves through proxy {device.proxy_label or 'none'}; a "
-                                     "lane on it uses the device's proxy")
+                                     "browser on it uses the device's proxy")
             spec = spec.model_copy(update={"proxy_label": device.proxy_label})
         self.lanes[spec.id] = LaneInfo(spec=spec)
         return self.lanes[spec.id]
@@ -255,7 +255,7 @@ class FakeLaneManager:
 
     def _gate(self, info: LaneInfo, principal_kind: str) -> None:
         if info.state is LaneState.QUARANTINED:
-            raise LaneQuarantined(f"lane {info.spec.id} is quarantined ({info.quarantine_reason})")
+            raise LaneQuarantined(f"browser {info.spec.id} is quarantined ({info.quarantine_reason})")
         self._check_control(info, principal_kind)
 
     def _set_control(self, lane_id: str, new: LaneControl) -> LaneInfo:
@@ -377,7 +377,7 @@ class FakeLaneManager:
     async def delete(self, lane_id: str, *, by: str = "owner") -> Path | None:
         info = self._require(lane_id)
         if info.state in (LaneState.WARMING, LaneState.WARM, LaneState.ACTIVE):
-            raise InvalidRequest(f"lane {lane_id} is {info.state.value}; close it first")
+            raise InvalidRequest(f"browser {lane_id} is {info.state.value}; close it first")
         del self.lanes[lane_id]
         self.deleted.append(lane_id)
         self._event(lane_id, "deleted", by=by)
@@ -387,7 +387,7 @@ class FakeLaneManager:
                         by: str = "owner") -> LaneInfo:
         info = self._require(lane_id)
         if info.state in (LaneState.WARMING, LaneState.WARM, LaneState.ACTIVE):
-            raise InvalidRequest(f"lane {lane_id} is {info.state.value}; close it first")
+            raise InvalidRequest(f"browser {lane_id} is {info.state.value}; close it first")
         self._event(lane_id, "proxy_changed", **{"from": info.spec.proxy_label, "to": label, "by": by})
         info.spec = info.spec.model_copy(update={"proxy_label": label})
         return info
@@ -432,7 +432,7 @@ class FakeLaneManager:
     async def remove_device(self, name: str, *, by: str = "owner") -> None:
         self._device(name)
         if any(i.spec.device == name for i in self.lanes.values()):
-            raise InvalidRequest(f"device {name} is used by lanes; move or delete them first")
+            raise InvalidRequest(f"device {name} is used by browsers; move or delete them first")
         del self.device_specs[name]
 
     def plan_device_move(self, lane_id: str, device: str | None) -> dict:
@@ -460,7 +460,7 @@ class FakeLaneManager:
             raise ConfirmRequired(" ".join(plan["warnings"]) + ". Pass --yes to go ahead.", details=plan)
         info = self._require(lane_id)
         if info.state in (LaneState.WARMING, LaneState.WARM, LaneState.ACTIVE):
-            raise InvalidRequest(f"lane {lane_id} is {info.state.value}; close it first")
+            raise InvalidRequest(f"browser {lane_id} is {info.state.value}; close it first")
         info.spec = info.spec.model_copy(update={"device": device, "proxy_label": plan["proxy"]["to"]})
         self._event(lane_id, "device_changed", **{"from": plan["from"], "to": device, "by": by})
         return {**plan, "done": True}
@@ -515,7 +515,7 @@ class FakeLaneManager:
         claims = self.__dict__.setdefault("claims", {})
         held = claims.get(lane_id)
         if held is not None and held["key"] != holder.key:
-            raise LaneBusy(f"lane {lane_id} is busy: {held['holder']} has claimed it")
+            raise LaneBusy(f"browser {lane_id} is busy: {held['holder']} has claimed it")
         claims[lane_id] = {"key": holder.key, "holder": holder.label, "purpose": purpose or "", "ttl_s": ttl_s}
         return {"on": lane_id, "lease": f"lease_{lane_id}", "renewed": held is not None, "holder": holder.label,
                 "purpose": purpose or "", "ttl_s": ttl_s, "queue_length": 0, "state": info.state.value}
@@ -755,7 +755,7 @@ class DevLaneManager(ControlFakeLaneManager):
         note = self._access(lane_id).take_note(holder, time.monotonic())
         if note is not None:
             raise ClaimLost(f"your claim on {lane_id} ended ({note.message}), so this call did nothing. Someone "
-                            "else may have changed the page: take a new snapshot, and claim the lane again with "
+                            "else may have changed the page: take a new snapshot, and claim the browser again with "
                             "browser_claim if the job still needs it to itself.")
 
     async def _enter(self, lane_id: str, holder: Holder, mode: str, principal_kind: str, *,
@@ -795,7 +795,7 @@ class DevLaneManager(ControlFakeLaneManager):
                 text += f" ({claim.purpose})"
         else:
             text = "other callers are ahead of you"
-        e = LaneBusy(f"lane {lane_id} is busy: {text}. You were number {position} in its queue, about {estimate:g} s "
+        e = LaneBusy(f"browser {lane_id} is busy: {text}. You were number {position} in its queue, about {estimate:g} s "
                      f"from your turn, after {waited:.0f} s of waiting. Call again later; browser_queue(on=\"{lane_id}\") "
                      "shows the queue.")
         e.details = {"lane": lane_id, "position": position, "estimate_s": estimate, "waited_s": round(waited, 1),
@@ -821,7 +821,7 @@ class DevLaneManager(ControlFakeLaneManager):
     async def _shared_using(self, lane_id: str, principal_kind: str, holder: Holder | None, mode: str,
                             purpose: str | None) -> AsyncIterator[FakePage]:
         if mode not in (READ, ACT, RUN):
-            raise InvalidRequest(f"unknown lane use {mode!r}")
+            raise InvalidRequest(f"unknown browser use {mode!r}")
         self._gate(self._require(lane_id), principal_kind)
         holder = self._caller(holder, principal_kind)
         self._tell_lost(lane_id, holder)
@@ -840,7 +840,7 @@ class DevLaneManager(ControlFakeLaneManager):
         info = self._require(lane_id)
         self._gate(info, principal_kind)
         if principal_kind == "human":
-            raise InvalidRequest("a person does not claim a lane: taking control of it ends every claim")
+            raise InvalidRequest("a person does not claim a browser: taking control of it ends every claim")
         access = self._access(lane_id)
         self._expire_claim(lane_id)
         earlier = access.take_note(holder, time.monotonic())
@@ -857,7 +857,7 @@ class DevLaneManager(ControlFakeLaneManager):
             access.leave(waiter, time.monotonic())  # a claim takes no place on the lane, only the lease
             self._dispatch(lane_id)
             if not access.holds(holder):
-                raise LaneBusy(f"lane {lane_id}: the claim ended as soon as it was granted; call again")
+                raise LaneBusy(f"browser {lane_id}: the claim ended as soon as it was granted; call again")
             self._event(lane_id, "claimed", holder=holder.label, purpose=text, ttl_s=ttl)
             self._warm(info)  # a claim on a cold lane warms it, once
         access.renew(holder, time.monotonic(), self.claim_max_total_s)
@@ -882,7 +882,7 @@ class DevLaneManager(ControlFakeLaneManager):
         if note is not None and not released:
             out["ended_earlier"] = {"reason": note.reason, "detail": note.message}
         elif not released:
-            out["note"] = "you held no claim on this lane"
+            out["note"] = "you held no claim on this browser"
         out.update(self.queue_info(lane_id, viewer=holder))
         return out
 
@@ -902,8 +902,8 @@ class DevLaneManager(ControlFakeLaneManager):
         info = super()._set_control(lane_id, new)
         if new.state is not ControlState.AGENT:  # a take-over, a pause or a hold overrides any claim
             self._end_claim(lane_id, "human" if new.state is ControlState.HUMAN else "paused",
-                            "a human took control of the lane" if new.state is ControlState.HUMAN
-                            else f"agents were held off the lane ({new.reason or 'stopped by a human'})")
+                            "a human took control of the browser" if new.state is ControlState.HUMAN
+                            else f"agents were held off the browser ({new.reason or 'stopped by a human'})")
         return info
 
     async def wait_for_agent_control(self, lane_id: str, timeout: float) -> LaneInfo:

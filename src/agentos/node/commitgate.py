@@ -153,7 +153,7 @@ class ActGate:
             cap.record["carries_typed"] = self._typed_field(cap.record, typed)
         unbound = publish.unbound_media(cap.record)
         if unbound:
-            return self._unbound(rule, f"it names media the node did not see uploaded in this lane, by id only "
+            return self._unbound(rule, f"it names media the node did not see uploaded in this browser, by id only "
                                        f"({', '.join(unbound[:3])})")
         account = await self._session_account(rule.site)
         if account is not None:  # bound too: approved as one account, sent as another, is other content
@@ -162,7 +162,7 @@ class ActGate:
         if pinned is UNREADABLE:
             self.outcome = Denied("account_unreadable", f"the account pinned for {self.on} could not be read, so "
                                   "who this click would publish as cannot be checked; nothing was sent. Tell the human")
-            return self._refuse(rule, "the lane's pinned account could not be read", "")
+            return self._refuse(rule, "the browser's pinned account could not be read", "")
         wrong = self._wrong_account(rule, pinned, account)  # the account pin (AUD-12) first
         if wrong is not None:
             return wrong
@@ -301,7 +301,7 @@ class ActGate:
             return None
         want = pinned.handle or pinned.user_id
         self.outcome = Denied("wrong_account", f"the browser is signed in to {account.get('site')} as "
-                              f"{account.get('user_id')}, not as the lane's account {want}; nothing was sent. "
+                              f"{account.get('user_id')}, not as the browser's account {want}; nothing was sent. "
                               "Stop and tell the human")
         return self._refuse(rule, f"the browser is signed in as {account.get('user_id')}, not as {want}", "")
 

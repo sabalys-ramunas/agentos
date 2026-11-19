@@ -245,7 +245,7 @@ class WaitMixin:
         elif stopped == "tab_closed":
             detail = f"the tab closed after {waited:g} s"
         else:
-            detail = f"stopped after {waited:g} s: a human took control of the lane"
+            detail = f"stopped after {waited:g} s: a human took control of the browser"
         return WaitResult(met=met, stopped=stopped, waited_s=waited, url=_url_of(page),
                           conditions=list(watch.conditions.values()), reread=watch.reread,
                           dialog=dialog.public() if dialog is not None else None, detail=detail, **report.public())

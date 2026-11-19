@@ -245,14 +245,14 @@ async def test_files_get_of_an_unfinished_download_has_no_content(env):
 async def test_file_tools_check_the_lane(env, tool):
     runtime, lanes, _ = env
     lanes.add("acme/shell", kind=LaneKind.TERMINAL)
-    args = {"browser_file_put": {"name": "a.png", "content_base64": b64(PNG)}, "browser_files": {},
-            "browser_file_get": {"file_id": "in_0123456789ab"}, "browser_file_delete": {"file_id": "in_0123456789ab"}}[tool]
+    args = {"files_put": {"name": "a.png", "content_base64": b64(PNG)}, "files_list": {},
+            "files_get": {"file_id": "in_0123456789ab"}, "files_delete": {"file_id": "in_0123456789ab"}}[tool]
     handler = getattr(io_tools, tool)
     with pytest.raises(InvalidRequest, match="workspace/name"):
         await handler(Ctx(runtime), on="../etc", **args)
     with pytest.raises(LaneNotFound):
         await handler(Ctx(runtime), on="acme/nope", **args)
-    with pytest.raises(InvalidRequest, match="terminal lane"):
+    with pytest.raises(InvalidRequest, match="terminal, not a browser"):
         await handler(Ctx(runtime), on="acme/shell", **args)
 
 
@@ -306,7 +306,7 @@ async def test_browser_upload_refusals(env):
     src = runtime.config.home / "artifact.png"
     src.write_bytes(PNG)
     files.finish_download(download.id, src)
-    with pytest.raises(InvalidRequest, match="only files in the lane's inbox"):
+    with pytest.raises(InvalidRequest, match="only files in the browser's inbox"):
         await io_tools.browser_upload(ctx, on=LANE, ref="e1", file_id=download.id)
     with pytest.raises(InvalidRequest, match="not a file id"):
         await io_tools.browser_upload(ctx, on=LANE, ref="e1", file_id="../../etc/passwd")

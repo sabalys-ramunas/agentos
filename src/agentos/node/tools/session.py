@@ -1,4 +1,4 @@
-"""How a node tool takes a lane: the caller as the lane's queue knows it, the grant check, the
+"""How a node tool takes a browser: the caller as the browser's queue knows it, the grant check, the
 session a tool runs in (agentos.node.claims), and the page-text label for the trifecta check.
 """
 
@@ -24,7 +24,7 @@ log = logging.getLogger(__name__)
 
 
 def _recording(runtime: Runtime, lane: str) -> bool:
-    """Whether a flow recording is active on the lane (agentos.runner's recorder)."""
+    """Whether a flow recording is active on the browser (agentos.runner's recorder)."""
     flows = runtime.get("flows")
     recorder = getattr(flows, "recorder", None)
     try:
@@ -107,7 +107,7 @@ def grant_check(ctx: Any) -> Any:
 
 
 def caller(ctx: Any) -> Holder:
-    """Who calls, for the lane's queue and claims: the principal, its grant and thread, and the MCP
+    """Who calls, for the browser's queue and claims: the principal, its grant and thread, and the MCP
     session when the policy wrapper knows it (two sessions on one token are two callers)."""
     principal = getattr(ctx, "principal", None)
     session = getattr(getattr(ctx, "meta", None), "session", None)
@@ -119,7 +119,7 @@ def lane_session(lanes: Any, on: str, principal_kind: str, *, holder: Holder | N
                  tool: str | None = None) -> AbstractAsyncContextManager[Any]:
     """`lanes.using(on, principal_kind=..., holder=..., mode=..., deadline_s=..., tool=...)`; a
     LaneManager from before the control contract gets `using(on)` (it has no take-over to enforce
-    yet), and one from before shared lanes or deadlines gets no holder, mode or deadline."""
+    yet), and one from before shared browsers or deadlines gets no holder, mode or deadline."""
     kwargs: dict[str, Any] = {}
     if _takes_principal_kind(lanes.using):
         kwargs["principal_kind"] = principal_kind
@@ -147,7 +147,7 @@ def ctx_session(ctx: Any, on: str, *, mode: str = ACT, lanes: Any = None,
 
 @asynccontextmanager
 async def driven_session(ctx: ToolContext, on: str, *, mode: str = ACT, extra_s: float = 0.0) -> AsyncIterator[Any]:
-    """lane_session, and the lane's egress guard learns who drives the lane (the caller's grant)."""
+    """lane_session, and the browser's egress guard learns who drives the browser (the caller's grant)."""
     async with ctx_session(ctx, on, mode=mode, lanes=ctx.runtime.lanes, extra_s=extra_s) as page:
         guard = egress.guard_for(page)
         if guard is not None:
@@ -158,7 +158,7 @@ async def driven_session(ctx: ToolContext, on: str, *, mode: str = ACT, extra_s:
 
 
 def lane_asks_first(runtime: Any, lane_id: str) -> bool:
-    """Is "Ask me first" on for this lane, or for a connector surface that posts through it?"""
+    """Is "Ask me first" on for this browser, or for a connector surface that posts through it?"""
     get: Any = getattr(runtime, "get", None)
     store = get("ask_first") if callable(get) else None
     if store is None:
@@ -183,7 +183,7 @@ def tell_ask_first(ctx: Any, on: str, block: egress.Block) -> None:
 
 
 def check_control(info: LaneInfo, principal_kind: str) -> None:
-    """The using() gate, for tools that act on a lane without entering it (browser_close)."""
+    """The using() gate, for tools that act on a browser without entering it (browser_close)."""
     if principal_kind == "human":
         return
     if info.control.state is ControlState.HUMAN:

@@ -43,7 +43,7 @@ def _rules(ctx: ToolContext) -> Any:
 
 
 def _lanes(grant: Any) -> tuple[str, ...]:
-    """The grant's lane patterns (its narrowest block), for the decision scope of the pack."""
+    """The grant's browser patterns (its narrowest block), for the decision scope of the pack."""
     out: tuple[str, ...] = ()
     for i, block in enumerate(getattr(grant, "blocks", None) or ()):
         pats = block.lane_patterns(authority=i == 0)

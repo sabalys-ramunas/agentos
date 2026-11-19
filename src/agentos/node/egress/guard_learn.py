@@ -36,7 +36,7 @@ from agentos.node.egress.verdicts import CommitMeter, Driver, PublishGate, Refus
 log = logging.getLogger("agentos.node.egress")
 
 FORM_DATA_KEPT = 8  # the latest form_data answers kept (in memory only, never traced)
-ASKS_FIRST = ("this lane asks a person first (Ask me first is on), so a lesson's save is not let through "
+ASKS_FIRST = ("this browser asks a person first (Ask me first is on), so a lesson's save is not let through "
               "without them and nothing was sent. Tell the human: they turn Ask me first off for the lesson, "
               "or change the field by hand and mark it done")
 
@@ -154,13 +154,13 @@ class GuardLearn:
             self._act_call = key[2] if isinstance(key, tuple) and len(key) == 3 and isinstance(key[2], str) else None
         w = self._learn
         if w is not None and not (agent and driver is not None and driver.grant_id == w.grant_id):
-            self._learn_close("another driver acted on the lane")
+            self._learn_close("another driver acted on the browser")
 
     def _learn_driver(self, driver: Driver | None) -> None:
         """drive(): a person, or an agent of another grant, now drives the lane."""
         w = self._learn
         if w is not None and not (driver is not None and not driver.human and driver.grant_id == w.grant_id):
-            self._learn_close("another driver took the lane")
+            self._learn_close("another driver took the browser")
 
     def _learn_typed(self, text: str | None, *, key: bool = False) -> None:
         """The agent entered text: the window allows exactly one text, the value, and no single keys."""
@@ -268,8 +268,8 @@ class GuardLearn:
             self._learn_refused(w, rule, url, method, why)
             return False
         if self._asks_first():  # type: ignore[attr-defined]
-            self._learn_refused(w, rule, url, method, "Ask me first is on for the lane")
-            self._learn_close("Ask me first is on for the lane")
+            self._learn_refused(w, rule, url, method, "Ask me first is on for the browser")
+            self._learn_close("Ask me first is on for the browser")
             return Refusal("ask_first", ASKS_FIRST)
         over = self._charge(rule, sent=False, meter=meter)  # type: ignore[attr-defined]
         if over is not None:  # within the limits it is debited now, like any publish of an act
@@ -336,11 +336,11 @@ class GuardLearn:
             return "the window is closed"
         d = self.driver
         if d is None or d.human or self._human():  # type: ignore[attr-defined]
-            return "no agent drives the lane"
+            return "no agent drives the browser"
         if d.grant_id != w.grant_id or self._act_grant != w.grant_id:
-            return "another grant than the one the window was opened for drives the lane"
+            return "another grant than the one the window was opened for drives the browser"
         if self._routines or self._flow_owns(request):  # type: ignore[attr-defined]
-            return "a flow or routine holds the lane"
+            return "a flow or routine holds the browser"
         if not (getattr(gate, "submit_like", False) and getattr(gate, "active", False)):
             return "it was not sent by a press of the agent's act"
         if w.excluded is not None:
@@ -388,9 +388,9 @@ class GuardLearn:
 
         pinned = w.pinned()
         if pinned is None or not getattr(pinned, "user_id", None):
-            return "the lane pins no account (unpinned)"
+            return "the browser pins no account (unpinned)"
         if node_sites.site_key(pinned.site) != site:
-            return f"the lane's pinned account is on {pinned.site}, not {site}"
+            return f"the browser's pinned account is on {pinned.site}, not {site}"
         if w.identity is not None:
             seen = await w.identity(site)
         elif self._context is not None and callable(getattr(self._context, "cookies", None)):
@@ -401,6 +401,6 @@ class GuardLearn:
         if verdict is None:
             return "the signed-in account cannot be read, so it cannot be told from another"
         if verdict is False:
-            return "the browser is signed in to another account than the lane's pinned one (wrong_account)"
+            return "the browser is signed in to another account than the browser's pinned one (wrong_account)"
         return None
 

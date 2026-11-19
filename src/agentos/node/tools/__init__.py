@@ -1,20 +1,20 @@
 """The node's own MCP tools as ToolSpecs, plus the MCP
 prompts for common jobs (the same recipes `howto` returns).
 
-Lane tools use the `lanes` service, browser tools also `interaction`; both read `config`.
+Browser tools use the `lanes` service, browser tools also `interaction`; both read `config`.
 Every handler authorizes before it acts: READ for reads, DRAFT for browser_act. Browser
-tools run inside `lanes.using(on, principal_kind=..., holder=..., mode=...)`, so a lane a human
+tools run inside `lanes.using(on, principal_kind=..., holder=..., mode=...)`, so a browser a human
 has taken over refuses agent calls at the same gate as flows and brain tasks.
 
-Shared lanes (agentos.node.claims): `holder` is the caller (its principal, grant and MCP session),
+Shared browsers (agentos.node.claims): `holder` is the caller (its principal, grant and MCP session),
 and `mode` says whether the tool reads or acts. Reads change nothing another caller would notice
-and share the lane, also while someone else claims it: browser_snapshot, browser_screenshot,
+and share the browser, also while someone else claims it: browser_snapshot, browser_screenshot,
 browser_wait, browser_tabs, browser_dialog. Everything else acts and goes one at a time: navigate,
 act, scroll, upload, a tab switch, a dialog answer, vault login and fill, browser_close. browser_open only warms
-the lane and never waits in the queue. browser_claim, browser_release and browser_queue are the claim tools.
+the browser and never waits in the queue. browser_claim, browser_release and browser_queue are the claim tools.
 
-Egress (agentos.node.egress): every browser tool tells the lane's egress guard who drives the
-lane (driven_session). browser_navigate checks the URL and browser_act checks the link or form its
+Egress (agentos.node.egress): every browser tool tells the browser's egress guard who drives the
+browser (driven_session). browser_navigate checks the URL and browser_act checks the link or form its
 click or key press would follow before anything is sent; a navigation the guard stops during the
 call fails the call with egress_refused, and anything else it refused is listed in the result as
 `egress_blocked`.
@@ -178,7 +178,7 @@ def with_handback(handler: Any) -> Any:
 
 
 def _may_act(lanes: Any, on: str) -> bool:
-    """Only an agent that may act now gets the note (one waiting for the lane would lose it)."""
+    """Only an agent that may act now gets the note (one waiting for the browser would lose it)."""
     try:
         return lanes.get(on).control.state is ControlState.AGENT
     except Exception:  # noqa: BLE001 - an unknown lane: the tool says so itself

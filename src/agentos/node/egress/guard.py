@@ -319,7 +319,7 @@ class LaneGuard(GuardFlows, GuardLogin, GuardPrevention, GuardRecords, GuardLear
         self.driver = driver
         self._learn_driver(driver)
         if driver is None or driver.human:
-            self.end_drive("a person drives the lane")
+            self.end_drive("a person drives the browser")
 
     def _exposed(self) -> frozenset[str]:
         """The exposed hosts now; none when they cannot be read (fail closed: the host lists apply)."""
@@ -637,7 +637,7 @@ class LaneGuard(GuardFlows, GuardLogin, GuardPrevention, GuardRecords, GuardLear
         """A redirect hop is never routed: a publish that arrived by one went past the gate, so the
         lane is held."""
         block = self._record(url, method, Refusal(
-            "commit_gate", f"a redirect carried a publish ({rule.id}) past the commit gate, so the lane is held"),
+            "commit_gate", f"a redirect carried a publish ({rule.id}) past the commit gate, so the browser is held"),
             kind="redirect" if nav else "request", prevented=False, rule=rule)
         self._observed_commit(request, url, method, rule)
         self.stats["unblocked"] += 1

@@ -212,7 +212,7 @@ class AuthorizeMixin:
         if not self.environment_reachable(ctx, lane_id):
             from agentos.core.errors import LaneNotFound
 
-            kind = "lane named" if str(lane_id).endswith("-browser") else "terminal or service lane"
+            kind = "browser named" if str(lane_id).endswith("-browser") else "terminal or service named"
             raise LaneNotFound(f"no {kind} {lane_id}")
 
     def _environment_lane(self, g: Grant, lane_id: str | None) -> bool:

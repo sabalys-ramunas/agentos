@@ -76,7 +76,7 @@ class AccessMixin:
         its next await, its turn is released and it fails with engine_error; a browser that does
         not answer a probe then is closed (_deadline_passed)."""
         if mode not in (READ, ACT, RUN):
-            raise InvalidRequest(f"unknown lane use {mode!r}")
+            raise InvalidRequest(f"unknown browser use {mode!r}")
         rec = self.store.require(lane_id)  # a WAL read on a kept connection: never waits for a writer
         self._ensure_running()
         self._refuse_quarantined(rec)
@@ -107,7 +107,7 @@ class AccessMixin:
                 raise LaneQuarantined(self._quarantine_message(lane_id, lane))
             if lane.session is None or info.state not in (LaneState.WARM, LaneState.ACTIVE):
                 self._ensure_running()
-                raise EngineError(f"{lane_id}: the lane closed while it was opening; try again")
+                raise EngineError(f"{lane_id}: the browser closed while it was opening; try again")
             if task is not None:
                 call = self._start_call(lane_id, lane, task, tool or mode, deadline_s, waiter)
             page = await lane.session.page()
@@ -237,7 +237,7 @@ class AccessMixin:
                         "can; the next call opens it again)", lane_id, why)
             await self._teardown(lane_id, lane)
             if lane.claimed():
-                self._end_claim(lane_id, lane, "closed", f"{why}, so the lane's browser was closed")
+                self._end_claim(lane_id, lane, "closed", f"{why}, so the browser was closed")
         self._event(lane_id, "browser_unresponsive", {"detail": why, "closed": True})
         await self._notify()
         return True
@@ -264,7 +264,7 @@ class AccessMixin:
         """The error a call stopped by the node fails with (interrupts.OWN)."""
         if reason == interrupts.CLIENT_GONE:
             return EngineError(f"the MCP client that made this call went away, so it was stopped and {lane_id} "
-                               "is free again. Take a new snapshot before you act on the lane.")
+                               "is free again. Take a new snapshot before you act on the browser.")
         if reason == interrupts.CLOSED:
             return EngineError(f"{lane_id} was closed while this call was stuck on it: the page stopped answering, "
                                "so the browser was closed; the next call opens it again (logins are kept, the page "
@@ -285,7 +285,7 @@ class AccessMixin:
                 closed = bool(call.check.result()) if done else None
             except Exception:
                 log.warning("%s: the check after a deadline failed", lane_id, exc_info=True)
-        text = f"{tool} on {lane_id} ran {ran:.0f} s, past its {limit} limit, so it was stopped and the lane is free again. "
+        text = f"{tool} on {lane_id} ran {ran:.0f} s, past its {limit} limit, so it was stopped and the browser is free again. "
         if closed is None:
             text += ("The page did not answer, so agentos is closing the browser; the next call opens it again "
                      "(logins are kept, the page is gone). Navigate to the page again.")
@@ -338,7 +338,7 @@ class AccessMixin:
             return None
         c = mine[0]
         since = self.now() - timedelta(seconds=self._ran_s(c))
-        end = (f"; agentos stops it at its {c.deadline_s:g} s limit, then the lane is free"
+        end = (f"; agentos stops it at its {c.deadline_s:g} s limit, then the browser is free"
                if c.deadline_s and not c.overdue else "")
         return f"your own {c.tool} from {since:%H:%M:%S} UTC is still running ({self._ran_s(c):.0f} s){end}"
 
@@ -388,7 +388,7 @@ class AccessMixin:
     @staticmethod
     def _lost_message(lane_id: str, note: ClaimEnd) -> str:
         return (f"your claim on {lane_id} ended ({note.message}), so this call did nothing. Someone else may "
-                "have changed the page: take a new snapshot, and claim the lane again with browser_claim if the "
+                "have changed the page: take a new snapshot, and claim the browser again with browser_claim if the "
                 "job still needs it to itself.")
 
     async def _enter(self, lane_id: str, lane: _Lane, holder: Holder, mode: str, principal_kind: str, *,
@@ -474,10 +474,10 @@ class AccessMixin:
         else:
             who, text = {}, "other callers are ahead of you"
         if who.get("yours"):
-            e = LaneBusy(f"lane {lane_id} is busy: {text}. You waited {waited:.0f} s. Call again in a minute: if it "
+            e = LaneBusy(f"browser {lane_id} is busy: {text}. You waited {waited:.0f} s. Call again in a minute: if it "
                          "is stuck by then, agentos stops it and closes the browser for you.")
         else:
-            e = LaneBusy(f"lane {lane_id} is busy: {text}. You were number {position} in its queue, about "
+            e = LaneBusy(f"browser {lane_id} is busy: {text}. You were number {position} in its queue, about "
                          f"{estimate:g} s from your turn, after {waited:.0f} s of waiting. Call again later; "
                          f"browser_queue(on=\"{lane_id}\") shows the queue.")
         e.details = {"lane": lane_id, "position": position, "estimate_s": estimate, "waited_s": round(waited, 1),
@@ -554,7 +554,7 @@ class AccessMixin:
         await self._expire_hold(lane_id)
         self._check_control(lane_id, principal_kind)
         if principal_kind == HUMAN:
-            raise InvalidRequest("a person does not claim a lane: taking control of it ends every claim")
+            raise InvalidRequest("a person does not claim a browser: taking control of it ends every claim")
         lane = self._lane(lane_id)
         access = lane.access
         self._expire_claim(lane_id, lane)
@@ -573,7 +573,7 @@ class AccessMixin:
         self._dispatch(lane_id, lane)
         if not access.holds(holder):  # ended between the grant and here (a take-over)
             self._check_control(lane_id, principal_kind)
-            raise LaneBusy(f"lane {lane_id}: the claim ended as soon as it was granted; call again")
+            raise LaneBusy(f"browser {lane_id}: the claim ended as soon as it was granted; call again")
         self._save_claims()
         self._event(lane_id, "claimed", {"holder": holder.label, "purpose": text, "ttl_s": ttl})
         log.info("%s: claimed by %s for %gs (%s)", lane_id, holder.label, ttl, text or "no purpose given")
@@ -584,7 +584,7 @@ class AccessMixin:
                     raise LaneQuarantined(self._quarantine_message(lane_id, lane))
         except BaseException:
             if access.holds(holder):
-                self._end_claim(lane_id, lane, "failed", "the lane could not be opened", note=False)
+                self._end_claim(lane_id, lane, "failed", "the browser could not be opened", note=False)
             raise
         access.renew(holder, self.clock(), self.claim_max_total_s)
         return self._claim_result(lane_id, lane, holder, renewed=False, earlier=earlier)
@@ -602,7 +602,7 @@ class AccessMixin:
         if note is not None and not released:
             out["ended_earlier"] = {"reason": note.reason, "detail": note.message}
         elif not released:
-            out["note"] = "you held no claim on this lane"
+            out["note"] = "you held no claim on this browser"
         out.update(self.queue_info(lane_id, viewer=holder))
         return out
 
@@ -654,5 +654,5 @@ class AccessMixin:
                 self._refuse_quarantined(rec)
             except LaneQuarantined as e:
                 return e.message
-        return (f"lane {lane_id} is quarantined ({lane.quarantine_reason or 'failed self-check'}). "
+        return (f"browser {lane_id} is quarantined ({lane.quarantine_reason or 'failed self-check'}). "
                 "Fix the cause, then open it again with browser_open.")

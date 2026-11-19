@@ -211,7 +211,7 @@ def test_readiness_states_and_their_wording_are_checked(h):
     h.lanes.add("acme/instagram")
     with pytest.raises(InvalidRequest, match="state must be one of: needs_login, ready, needs_attention"):
         h.service.set_readiness("acme/instagram", "logged_in", by="owner")
-    with pytest.raises(InvalidRequest, match="lane id must look like"):
+    with pytest.raises(InvalidRequest, match="an id must look like"):
         h.service.set_readiness("Acme/Instagram", "ready", by="owner")
 
 

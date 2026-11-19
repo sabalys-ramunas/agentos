@@ -102,13 +102,13 @@ async def test_whoami(connect):
     async with connect() as client:
         data = data_of(await client.call_tool("whoami", {}))
         assert data["node"] == "test-node"
-        assert data["lanes"]["total"] == 2 and data["lanes"]["cold"] == 2
-        assert data["limits"]["max_warm_lanes"] == 2
+        assert data["browsers"]["total"] == 2 and data["browsers"]["cold"] == 2
+        assert data["limits"]["max_warm_browsers"] == 2
 
 
 async def test_lanes_list(connect):
     async with connect() as client:
-        lanes = data_of(await client.call_tool("browsers_list", {}))["lanes"]
+        lanes = data_of(await client.call_tool("browsers_list", {}))["browsers"]
         assert [lane["id"] for lane in lanes] == ["biz-a/instagram", "personal/reddit"]
         reddit = lanes[1]
         assert reddit == {"id": "personal/reddit", "kind": "browser", "engine": "camoufox", "state": "cold",
@@ -178,7 +178,7 @@ async def test_act_with_text(connect, interaction):
         ({"on": "personal/reddit", "ref": "e1", "action": "fill"}, "invalid: action fill needs `text`"),
         ({"on": "personal/reddit", "ref": "e9", "action": "click"}, "ref_not_found: "),
         ({"on": "personal/reddit", "ref": " ", "action": "click"}, "invalid: ref is empty"),
-        ({"on": "Personal/Reddit", "ref": "e1", "action": "click"}, "invalid: lane id must look like"),
+        ({"on": "Personal/Reddit", "ref": "e1", "action": "click"}, "invalid: an id must look like"),
         ({"on": "nobody/here", "ref": "e1", "action": "click"}, "lane_not_found: "),
     ],
 )

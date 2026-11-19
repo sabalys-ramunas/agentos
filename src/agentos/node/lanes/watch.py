@@ -103,7 +103,7 @@ class SignalWatch:
             # A bad signal the lane could not be held for: the call that read it stops here, so no
             # agent, flow step or schedule goes on past a challenge as if nothing was seen.
             value = str(getattr(signal, "value", signal))[:40]
-            raise AgentPaused(f"{lane_id} shows {value}, and agentos could not hold the lane for a human, so "
+            raise AgentPaused(f"{lane_id} shows {value}, and agentos could not hold the browser for a human, so "
                               "this call stops here. Do not retry; tell your user.") from None
 
 

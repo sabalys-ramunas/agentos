@@ -32,14 +32,14 @@ def lane_guard(runtime: Any, lane_id: str) -> LaneGuard:
     InvalidRequest for one with no live browser."""
     lanes = runtime.get("lanes") if runtime is not None else None
     if lanes is None:
-        raise InvalidRequest("this node has no lanes")
+        raise InvalidRequest("this node has no browsers")
     lanes.get(lane_id)  # LaneNotFound for an unknown lane
     session = lanes.live_session(lane_id)
     guard = getattr(session, "guard", None) if session is not None else None
     if not isinstance(guard, LaneGuard) and session is not None:
         guard = guard_for(getattr(session, "context", None))
     if not isinstance(guard, LaneGuard):
-        raise InvalidRequest(f"{lane_id} has no browser open, so it has no egress guard; open the lane first")
+        raise InvalidRequest(f"{lane_id} has no browser open, so it has no egress guard; open the browser first")
     return guard
 
 
@@ -51,8 +51,8 @@ def _pilot_on(runtime: Any, lane_id: str) -> str | None:
         busy = any(getattr(getattr(s, "request", None), "lane", None) == lane_id
                    for s in list((sessions or {}).values()))
     except Exception:  # noqa: BLE001 - cannot tell: refuse
-        return "whether a pilot run drives the lane cannot be read"
-    return "a pilot run drives the lane" if busy else None
+        return "whether a pilot run drives the browser cannot be read"
+    return "a pilot run drives the browser" if busy else None
 
 
 def _pinned(runtime: Any, lane_id: str) -> Any:
@@ -81,7 +81,7 @@ def open_learn(runtime: Any, lane_id: str, *, field: str, value: str, grant_id: 
     pinned = _pinned(runtime, lane_id)
     if pinned is None or not getattr(pinned, "user_id", None):
         raise InvalidRequest(f"{lane_id} pins no account, so who an edit would change cannot be checked; pin the "
-                             "lane's account first")
+                             "browser's account first")
     stop = _pilot_on(runtime, lane_id)
     if stop:
         raise InvalidRequest(f"{lane_id} cannot learn now: {stop}")
