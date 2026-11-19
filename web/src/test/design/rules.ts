@@ -20,6 +20,8 @@ export interface Finding {
   line: number;
   found: string;
   fix: string;
+  /** For vocabulary: the word found, singular and lower case ("node"), so an exception can name it. */
+  word?: string;
 }
 
 /** Screens: held to every rule. Components may use arbitrary values and inline styles; they are the system. */
@@ -135,7 +137,10 @@ function wordFindings(file: string, parsed: Parsed, out: Finding[]) {
   for (const { text, line } of parsed.words) {
     for (const [pattern, word] of VOCABULARY) {
       const match = pattern.exec(text);
-      if (match) out.push({ rule: 'vocabulary', file, line, found: `"${match[0]}" in "${text.slice(0, 60)}"`, fix: `Say ${word}. Technical terms wait behind Technical details (useTechnical)` });
+      if (match) {
+        const found = `"${match[0]}" in "${text.slice(0, 60)}"`;
+        out.push({ rule: 'vocabulary', file, line, found, fix: `Say ${word}. Technical terms wait behind Technical details (useTechnical)`, word: match[0].toLowerCase().replace(/s$/, '') });
+      }
     }
   }
 }

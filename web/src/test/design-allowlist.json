@@ -1,5 +1,5 @@
 {
-  "$comment": "The design rules' allowlist (src/test/design-system.test.ts). counts: what each file held when the rules came in, per rule; a count may only go down (pnpm design:shrink lowers them), and a new file has none. exceptions: the reviewed places a rule does not apply, each with why. Never add to counts by hand: fix the finding.",
+  "$comment": "The design rules' allowlist (src/test/design-system.test.ts). counts: what each file held when the rules came in, per rule; a count may only go down (pnpm design:shrink lowers them), and a new file has none. exceptions: the reviewed places a rule does not apply, each with why; a key `vocabulary:<word>` excepts only that word in the file. Never add to counts by hand: fix the finding.",
   "exceptions": {
     "raw-colour": {
       "src/components/brand/identity.tsx": "Other companies' marks, in their own official colours (DESIGN.md, Brand marks): data, not this app's style.",
@@ -9,6 +9,12 @@
     },
     "hand-rolled": {
       "src/catalog/demos/foundations.tsx": "The catalog's list of type roles names text-page-title as a sample, not as a page title."
+    },
+    "vocabulary:node": {
+      "src/features/environments/env-cards.tsx": "The host an environment runs on has no everyday word: the vocabulary keeps node here (owner, 2026-11-19).",
+      "src/features/environments/home-environments.tsx": "The host an environment runs on has no everyday word: the vocabulary keeps node here (owner, 2026-11-19).",
+      "src/features/environments/network-card.tsx": "The host an environment runs on has no everyday word: the vocabulary keeps node here (owner, 2026-11-19).",
+      "src/features/environments/prepared-page.tsx": "The host an environment runs on has no everyday word: the vocabulary keeps node here (owner, 2026-11-19)."
     }
   },
   "counts": {
@@ -107,10 +113,7 @@
       "src/features/brand/sections.tsx": 1,
       "src/features/email/computer-form.tsx": 1,
       "src/features/email/connect-hand-over.tsx": 1,
-      "src/features/environments/env-cards.tsx": 3,
-      "src/features/environments/home-environments.tsx": 1,
-      "src/features/environments/network-card.tsx": 2,
-      "src/features/environments/prepared-page.tsx": 1,
+      "src/features/environments/env-cards.tsx": 2,
       "src/features/home/new-lane-dialog.tsx": 1,
       "src/features/home/problems.tsx": 2,
       "src/features/lane/control.tsx": 1,
