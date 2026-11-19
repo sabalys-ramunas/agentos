@@ -2,6 +2,9 @@
 
 > The prototypes under `panel/prototypes/` were removed with the classic panel on 2026-11-14. They are
 > in git history (commit 59634500 and earlier); the commands below run only on such a checkout.
+>
+> Since 2026-11-19 an agent acting now is ink with a ringed, pulsing dot, never pink and never a hue
+> (web/DESIGN.md, web/DESIGN-SYSTEM.md). Where this page gives "live" a colour, that is superseded.
 
 Status: design, 2026-11-12. The owner chose Workbench as the base ("machines is better in workbench,
 same with brand, dev task, sidebar is better too") and asked for a calmer Home with running jobs as

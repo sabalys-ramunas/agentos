@@ -2,6 +2,9 @@
 
 > The prototypes under `panel/prototypes/` were removed with the classic panel on 2026-11-14. They are
 > in git history (commit 59634500 and earlier); the commands below run only on such a checkout.
+>
+> Since 2026-11-19 an agent acting now is ink with a ringed, pulsing dot, never pink and never a hue
+> (web/DESIGN.md, web/DESIGN-SYSTEM.md). Where this page gives "live" a colour, that is superseded.
 
 Status: exploration, 2026-11-12. One of the directions the owner chooses from. The prototype is
 `panel/prototypes/dashboard/workbench/index.html`
