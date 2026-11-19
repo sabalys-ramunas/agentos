@@ -123,8 +123,8 @@ The wrong turns (`metrics.wrong_turns`), each one a rule the skill states:
   `no_environment`), whether it passed none or another value;
 - a lane's name as `on` (`env/<id>`, `env/<id>-browser`, `<id>-browser`), refused or not (Haiku passed
   the open's `lanes.browser` once; a chat whose session holds the machine now reaches it so);
-- a file read or written through `lane_exec` (`cat`, `head`, `sed -n`, `sed -i`, a heredoc, `echo >`)
-  instead of `lane_file_read`, `lane_file_edit` or `lane_file_write` (a `tail` at the end of a pipe
+- a file read or written through `terminal_exec` (`cat`, `head`, `sed -n`, `sed -i`, a heredoc, `echo >`)
+  instead of `file_read`, `file_edit` or `file_write` (a `tail` at the end of a pipe
   reads no file and is fine);
 - a `sleep` of 2 s or more in a command (in a loop it counts ten times), or the same job read three
   times without `until_exit` or `until_port`: waiting by hand where the machine waits for you;
@@ -222,3 +222,26 @@ navigates: Haiku's first `browser_navigate` took 3.3 s instead of 15.6 s, and t0
 and 30 s for the same $0.015, with 3 wrong turns (the `cat`s, before the hint) and no tool error. A
 script that navigates a second after the open still waits for most of the start (t02: 6.8 s, was
 7.7 s). `t07_video_proof` finishes in 45 s, 25 of them installing ffmpeg on this image.
+
+The tool surface of 2026-11-19 (docs/design/tool-surface-review.md, as the owner decided it): the
+default list is the environment loop, the tools have their new names (`terminal_exec`, `file_read`,
+...), `file_read` takes several paths, and t06 counts a change that passes. The history counts a call
+by an old name as its new tool (`lane_exec` is `terminal_exec`), so older runs stay comparable.
+
+| | Before (2026-11-18) | The prototype | Now |
+|---|---:|---:|---:|
+| tools at the start of a session (local node) | 38 | 29 | 30 |
+| their tokens | 9,485 | 7,799 | 8,201 |
+| `perfect`: finished, calls, tokens read, wrong turns | 7 of 7, 62, 19,850, 0 | 7 of 7, 62, 19,887, 0 | 7 of 7, 62, 19,678, 0 |
+| `careless`: finished | 0 of 7 | 0 of 7 | 0 of 7 |
+| Haiku t01: finished, calls, errors | yes, 9, 1 | yes, 7, 0 | yes, 7, 0 |
+| Haiku t06: finished, calls, tokens read | no, 18, 7,765 | no, 16, 3,512 | yes, 10, 3,396 |
+| Haiku: files read through the terminal | 3 | 3 | 3 (each one `cat` inside a git status command) |
+| Haiku cost, both tasks | $0.022 | $0.017 | $0.015 |
+
+One live run each, so a direction. Haiku read the repository with `file_read(paths=[...])` in both
+tasks instead of a `cat` loop; what is left is a `cat package.json` inside its first `git status`
+command. It called the pull request, the checkpoint and the rollback directly. In t06 it made the
+change, the tests failed, it rolled back and said what broke. The scripts' times moved with Docker's
+noise (the compare calls several tasks 20 to 40% slower against the prototype's run; no tool on
+those paths changed).
