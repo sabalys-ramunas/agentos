@@ -11,8 +11,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/sabalys-ramunas/agentos/releases/latest"><img src="https://img.shields.io/github/v/release/sabalys-ramunas/agentos?label=release&color=4f46e5" alt="Latest release"></a>
-  <a href="https://github.com/sabalys-ramunas/agentos/actions/workflows/ci.yml"><img src="https://github.com/sabalys-ramunas/agentos/actions/workflows/ci.yml/badge.svg" alt="CI status"></a>
+  <a href="https://github.com/sabalys-ramunas/openajar/releases/latest"><img src="https://img.shields.io/github/v/release/sabalys-ramunas/openajar?label=release&color=4f46e5" alt="Latest release"></a>
+  <a href="https://github.com/sabalys-ramunas/openajar/actions/workflows/ci.yml"><img src="https://github.com/sabalys-ramunas/openajar/actions/workflows/ci.yml/badge.svg" alt="CI status"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue" alt="License: Apache-2.0"></a>
   <a href="https://modelcontextprotocol.io"><img src="https://img.shields.io/badge/MCP-server-black" alt="An MCP server"></a>
 </p>
@@ -66,7 +66,7 @@ One command on macOS or Linux. It installs the latest release, then walks you th
 terminal.
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/sabalys-ramunas/agentos/main/scripts/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/sabalys-ramunas/openajar/main/scripts/install.sh | sh
 ```
 
 Setup takes about five minutes: paste a Hetzner Cloud token (or use Docker), reuse your GitHub
@@ -372,7 +372,7 @@ accounts on the server itself, and run studio's page checks (`ui_check`). A node
 later, or Debian 12). On the node:
 
 ```sh
-git clone https://github.com/sabalys-ramunas/agentos openajar && cd openajar
+git clone https://github.com/sabalys-ramunas/openajar openajar && cd openajar
 sudo deploy/install-node.sh --systemd --user agentos --hardened
 sudo openajar vm setup                      # paste the Hetzner token
 sudo openajar vm image build dev            # the snapshot each VM boots from
@@ -382,7 +382,7 @@ sudo openajar environments setup            # says what is still missing
 Then on your computer, with the node in `~/.ssh/config` as `mynode`:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/sabalys-ramunas/agentos/main/scripts/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/sabalys-ramunas/openajar/main/scripts/install.sh | sh
 openajar connect mynode
 ```
 
@@ -435,7 +435,7 @@ skill that teaches an agent the loop:
 > [!NOTE]
 > **Alpha.** Computers that stay and their logins are new, and the tools may still change between
 > minor versions: see the [changelog](CHANGELOG.md) and the
-> [releases](https://github.com/sabalys-ramunas/agentos/releases). On a laptop there is no
+> [releases](https://github.com/sabalys-ramunas/openajar/releases). On a laptop there is no
 > `ui_check` yet (it needs a server), and the laptop must be awake while a VM works.
 
 ## Docs

@@ -153,7 +153,7 @@ class FakeNode:
         self._add_lane("env", "esrkyfqerme-browser", proxy=False, last_used=self._ago(minutes=3))
         self.environments = [
             {"id": "esrkyfqerme", "title": "qa-env-2026-11-15", "state": "working",
-             "repo": "github.com/sabalys-ramunas/agentos", "branch": "fix/history-words",
+             "repo": "github.com/sabalys-ramunas/openajar", "branch": "fix/history-words",
              "created_at": self._ago(minutes=40), "closed_at": None, "expires_at": self._in(minutes=80),
              "minutes_left": 80, "cost_eur": 0.011,
              "lanes": {"terminal": "env/esrkyfqerme", "browser": "env/esrkyfqerme-browser"}},

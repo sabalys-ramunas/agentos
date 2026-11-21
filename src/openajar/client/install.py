@@ -36,7 +36,7 @@ from openajar.client.remote import explain_ssh_failure, ssh_read_command, valid_
 
 # The repository a fresh node installs from: the public one, unless OPENAJAR_GIT_URL names another
 # (any URL `git clone` takes, with access from the node).
-GIT_URL = "https://github.com/sabalys-ramunas/agentos.git"
+GIT_URL = "https://github.com/sabalys-ramunas/openajar.git"
 GIT_REF = "main"
 SOURCE_DIR = "/opt/agentos-src"
 INSTALL_ARGS = ("--systemd", "--user", "agentos", "--hardened")

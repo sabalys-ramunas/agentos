@@ -71,7 +71,7 @@ def test_installs_from_the_public_repository_by_default(tmp_path):
     bin_dir, log = fake_bin(tmp_path, with_uv=True)
     proc = run(tmp_path, bin_dir, log)
     assert proc.returncode == 0, proc.stderr
-    assert "openajar[local] @ git+https://github.com/sabalys-ramunas/agentos.git@main" in log.read_text()
+    assert "openajar[local] @ git+https://github.com/sabalys-ramunas/openajar.git@main" in log.read_text()
 
 
 def test_installs_the_newest_release_when_there_are_tags(tmp_path):

@@ -1,7 +1,7 @@
 #!/bin/sh
 # Install the openajar CLI on your computer (macOS or Linux), as you, without sudo:
 #
-#   curl -fsSL https://raw.githubusercontent.com/sabalys-ramunas/agentos/main/scripts/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/sabalys-ramunas/openajar/main/scripts/install.sh | sh
 #
 # It installs uv if you do not have it (into ~/.local/bin), then the newest openajar release as a uv
 # tool from the git repository with its `local` extra (Playwright, which drives each environment's browser on its
@@ -20,7 +20,7 @@
 set -eu
 
 # The public repository. OPENAJAR_GIT_URL installs from another one (a fork, a mirror, a private copy).
-OPENAJAR_DEFAULT_GIT_URL="https://github.com/sabalys-ramunas/agentos.git"
+OPENAJAR_DEFAULT_GIT_URL="https://github.com/sabalys-ramunas/openajar.git"
 
 url="${OPENAJAR_GIT_URL:-${AGENTOS_GIT_URL:-$OPENAJAR_DEFAULT_GIT_URL}}"  # legacy-name: AGENTOS_GIT_URL
 ref="${OPENAJAR_GIT_REF:-${AGENTOS_GIT_REF:-}}"  # legacy-name: AGENTOS_GIT_REF

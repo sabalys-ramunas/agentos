@@ -55,11 +55,11 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/sabalys-ramunas/agentos"
-Repository = "https://github.com/sabalys-ramunas/agentos"
-Documentation = "https://github.com/sabalys-ramunas/agentos/blob/main/docs/ENVIRONMENTS.md"
-Issues = "https://github.com/sabalys-ramunas/agentos/issues"
-Changelog = "https://github.com/sabalys-ramunas/agentos/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/sabalys-ramunas/openajar"
+Repository = "https://github.com/sabalys-ramunas/openajar"
+Documentation = "https://github.com/sabalys-ramunas/openajar/blob/main/docs/ENVIRONMENTS.md"
+Issues = "https://github.com/sabalys-ramunas/openajar/issues"
+Changelog = "https://github.com/sabalys-ramunas/openajar/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 # The browser stack, only on nodes (`uv sync --extra node`); the hosted cloud imports

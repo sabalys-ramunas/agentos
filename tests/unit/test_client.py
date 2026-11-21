@@ -878,7 +878,7 @@ def test_an_installed_package_installs_a_node_from_the_public_repository(monkeyp
     monkeypatch.delenv("OPENAJAR_GIT_REF", raising=False)
     monkeypatch.setattr(install_mod, "local_checkout", lambda: None)  # an installed package, not a checkout
     source = install_mod.install_source()
-    assert source.url == "https://github.com/sabalys-ramunas/agentos.git" and source.ref == "main"
+    assert source.url == "https://github.com/sabalys-ramunas/openajar.git" and source.ref == "main"
     assert not source.sends
 
 

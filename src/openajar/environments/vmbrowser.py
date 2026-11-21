@@ -98,7 +98,7 @@ WALLPAPER_NAMES = ("wallpaper.svg", "wallpaper.png", "wallpaper.jpg", "wallpaper
 # Playwright drives the machine's browser from here: the `local` extra of openajar (scripts/install.sh) has it.
 NO_PLAYWRIGHT = ("this openajar has no Playwright, which drives the environment's browser on its machine. Install "
                  "openajar again with scripts/install.sh, or add the local extra: uv tool install --force "
-                 "'openajar[local] @ git+https://github.com/sabalys-ramunas/agentos.git'")
+                 "'openajar[local] @ git+https://github.com/sabalys-ramunas/openajar.git'")
 
 
 def _text(name: str) -> str:

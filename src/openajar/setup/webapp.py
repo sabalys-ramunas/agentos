@@ -35,7 +35,7 @@ from pathlib import Path, PurePosixPath
 from openajar.core import webapp
 from openajar.core.errors import OpenajarError
 
-RELEASES = "https://github.com/sabalys-ramunas/agentos/releases/download"
+RELEASES = "https://github.com/sabalys-ramunas/openajar/releases/download"
 MAX_DOWNLOAD = 64 * 1024**2   # the archive is a few MB; this bounds a wrong or hostile answer
 MAX_UNPACKED = 256 * 1024**2
 MAX_FILES = 5000

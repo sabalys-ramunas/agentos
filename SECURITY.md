@@ -9,7 +9,7 @@ and answer them quickly.
 Please **do not** open a public issue, discussion or pull request for a security problem.
 
 Report it privately through GitHub:
-**[Report a vulnerability](https://github.com/sabalys-ramunas/agentos/security/advisories/new)**
+**[Report a vulnerability](https://github.com/sabalys-ramunas/openajar/security/advisories/new)**
 (the **Security** tab of this repository, then **Report a vulnerability**). Only the maintainers
 see it. If that form does not work for you, open an issue that says only "please open a private
 channel for a security report" and @sabalys-ramunas will reach out; put no details in it.
