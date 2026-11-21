@@ -16,6 +16,7 @@ from starlette.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 from test_node_panel import TOKEN, WS, Node, bearer, concrete
 from test_node_panel import api_routes as every_route
+from testkit.timing import budget
 
 from openajar.api import realtime
 from openajar.api.members import CAPABILITIES, MEMBER_ROLES
@@ -1087,7 +1088,7 @@ def test_a_freeze_ends_a_members_event_stream_when_nothing_else_is_open_to_them(
     api = node.api_app.state.api
     freeze = _freeze(node, tmp_path)
     holds = later(lambda: _hold(api, freeze, "workspace", "biz-a"), 0.3)
-    backstop = later(lambda: boss.req("DELETE", f"/api/members/{va.member['id']}"), 3.0)  # a stream the freeze misses fails here
+    backstop = later(lambda: boss.req("DELETE", f"/api/members/{va.member['id']}"), 20.0)  # a stream the freeze misses fails here
     try:
         with va.client.stream("GET", "/api/events") as resp:
             assert resp.status_code == 200
@@ -1098,7 +1099,7 @@ def test_a_freeze_ends_a_members_event_stream_when_nothing_else_is_open_to_them(
     finally:
         holds.cancel()
         backstop.cancel()
-    assert ended_after < 2.5, "the freeze did not end the member's event stream"
+    assert ended_after < budget(2.5), "the freeze did not end the member's event stream"  # not the 20 s backstop
 
 
 def test_a_freeze_keeps_a_members_stream_but_not_the_frozen_workspaces_events(node, tmp_path):

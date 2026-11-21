@@ -22,6 +22,7 @@ from freeze_support import (
     started,
     task,
 )
+from testkit.timing import budget, until
 
 from openajar.core import signing
 from openajar.core.errors import AgentPaused, Frozen, InvalidRequest, LaneNotFound
@@ -141,11 +142,11 @@ async def test_work_in_flight_is_interrupted_and_reported(node):
     await entered.wait()
     t0 = time.monotonic()
     report = await node.freeze.freeze("workspace", "biz-a", reason="stop", by="owner")
-    assert time.monotonic() - t0 < 2.0
+    assert time.monotonic() - t0 < budget(2.0)  # the agent's call would sleep 30 s
     with pytest.raises(Frozen):
         await a
     assert report["stopped"]["calls"] == 1 and report["stopped"]["still_running"] == 0
-    assert report["stopped"]["ms"] < 2000
+    assert report["stopped"]["ms"] < budget(2.0) * 1000
     assert await h == "done"  # a human's work is never interrupted
     assert not node.lanes.agent_tasks("biz-a/one")
 
@@ -191,7 +192,7 @@ async def test_a_wedged_call_does_not_hold_the_freeze_up(tmp_path):
         await entered.wait()
         t0 = time.monotonic()
         report = await n.freeze.freeze("lane", "biz-a/one", reason="r", by="owner")
-        assert time.monotonic() - t0 < 1.5
+        assert time.monotonic() - t0 < budget(1.5)  # the wedged call never lets go on its own
         assert report["stopped"]["still_running"] == 1 and "wedged" in report["stopped"]["note"]
         await blocked(n.lanes, "biz-a/one")  # nothing new starts meanwhile
         release.set()
@@ -226,8 +227,7 @@ async def test_a_click_is_never_cut_in_half():
     with pytest.raises(asyncio.CancelledError):
         await t
     assert interrupts.take(t) == "frozen"  # the owner of the call sees the interrupt, not a bare cancel
-    await asyncio.sleep(0.3)
-    assert events == ["down", "up"]
+    assert await until(lambda: events == ["down", "up"])
 
 
 async def test_an_interrupt_never_hides_another_cancellation():

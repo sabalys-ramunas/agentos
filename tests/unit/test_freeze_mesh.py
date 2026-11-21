@@ -19,6 +19,7 @@ from channel_support import (
     wait_for,
 )
 from fakes import FakeInteraction, FakeLaneManager
+from testkit.timing import until
 
 from openajar.core import signing
 from openajar.core.errors import PolicyDenied
@@ -126,5 +127,4 @@ async def test_a_controller_unfreeze_never_lifts_a_nodes_own_node_freeze(mesh):
     await a.runtime.get("freeze").freeze("node", None, reason="local", by="owner")
     sent = await ctl.controller.hub.push_mesh_freeze(ctl.org, None)
     assert sent[a.config.node_id] == "sent"
-    await asyncio.sleep(0.2)
-    assert a.runtime.get("freeze").is_frozen("personal/reddit")
+    assert await until(lambda: a.runtime.get("freeze").is_frozen("personal/reddit"))

@@ -10,6 +10,7 @@ import time
 
 import pytest
 from channel_fake_controller import NODE_ID, FakeController, node_pubkey, node_runtime, start, stop
+from testkit.timing import until
 
 from openajar.core import signing
 from openajar.core.models import ControlState
@@ -207,8 +208,7 @@ async def test_config_update_needs_the_pinned_signature(wired):
     assert (await peer.reply_to(sent.id)).body["code"] == "denied"
     assert "heartbeat_seconds" not in runtime.channel.controller_config
     await peer.send("config_update", fake.fresh("config_update", {"config": {"heartbeat_seconds": 5, "x": 1}}))
-    await asyncio.sleep(0.2)
-    assert runtime.channel.controller_config == {"heartbeat_seconds": 5, "x": 1}
+    assert await until(lambda: runtime.channel.controller_config == {"heartbeat_seconds": 5, "x": 1})
     await peer.send("config_update", fake.fresh("config_update", {"config": {"heartbeat_seconds": 9999}}))
     await asyncio.sleep(0.2)
     # out of range is not applied: the value in force stays
@@ -219,11 +219,12 @@ async def test_ack_trims_the_outbox_but_never_past_what_was_delivered(wired):
     _fake, runtime, peer = wired
     channel = runtime.channel
     last = await peer.recv("event", where=lambda e: e.body["kind"] == "lane")
-    await asyncio.sleep(0.2)
-    assert channel.store.depth() >= 2
+    assert await until(lambda: channel.store.depth() >= 2 and channel.conn.sent_seq >= 2)
+    delivered = channel.conn.sent_seq  # the start may still queue events after this (its programs)
     await peer.send("ack", {"upto_seq": 10**9})  # bogus: only what this connection delivered goes
-    await asyncio.sleep(0.2)
-    assert channel.store.depth() == 0
+    assert await until(lambda: (channel.store.oldest_seq() or 10**18) > delivered)  # all it delivered is trimmed
+    left = channel.store.depth()  # what came after: kept whole, from the oldest to the newest
+    assert left == 0 or left == channel.store.high_seq - channel.store.oldest_seq() + 1
     channel._enqueue_event("run", {"id": "run_1"})
     event = await peer.recv("event", where=lambda e: e.body["kind"] == "run")
     assert event.seq > last.seq
@@ -282,8 +283,7 @@ async def test_degraded_mode_refuses_grants_the_node_has_never_seen(wired):
     runtime.policy.resolve(seen_token)  # seen while connected
     fake.refuse_all = True
     await peer.ws.close()
-    await asyncio.sleep(0.3)
-    assert not runtime.channel.connected
+    assert await until(lambda: not runtime.channel.connected)
     with pytest.raises(Exception) as unseen:
         runtime.policy.resolve(grant(fake)[0])
     assert getattr(unseen.value, "reason", "") == "degraded"
@@ -496,8 +496,7 @@ async def test_an_unexpected_error_fails_that_message_only(wired, monkeypatch):
         reply = await peer.reply_to(sent.id)
         assert reply.type == "error" and reply.body["code"] == "engine_error"
     await peer.send("config_update", fake.fresh("config_update", {"config": {"heartbeat_seconds": 6}}))
-    await asyncio.sleep(0.2)
-    assert channel.controller_config.get("heartbeat_seconds") == 6  # the same session still reads
+    assert await until(lambda: channel.controller_config.get("heartbeat_seconds") == 6)  # the same session still reads
     assert channel.sessions == sessions and channel.conn is not None
 
 
@@ -507,23 +506,23 @@ async def test_a_slow_lane_control_does_not_stall_the_reader_and_keeps_its_order
 
     applied = []
     real = viewer_actions.apply_action
+    let_take_end = asyncio.Event()
 
     async def slow(lanes, lane_id, action, **kw):
         if action == "take":
-            await asyncio.sleep(1.0)  # a control listener that takes its time
+            async with asyncio.timeout(10):
+                await let_take_end.wait()  # a control listener that takes its time: until the test lets it end
         applied.append(action)
         return await real(lanes, lane_id, action, **kw)
 
     monkeypatch.setattr(viewer_actions, "apply_action", slow)
     lane = {"lane": "personal/reddit", "by": "owner"}
-    t0 = time.monotonic()
     await peer.send("lane_control", fake.fresh("lane_control", {**lane, "action": "take"}))
     await peer.send("lane_control", fake.fresh("lane_control", {**lane, "action": "hand_back"}))
     await peer.send("config_update", fake.fresh("config_update", {"config": {"heartbeat_seconds": 7}}))
-    async with asyncio.timeout(0.8):
-        while runtime.channel.controller_config.get("heartbeat_seconds") != 7:
-            await asyncio.sleep(0.02)
-    assert time.monotonic() - t0 < 0.9 and applied == []  # read and applied while take still runs
+    assert await until(lambda: runtime.channel.controller_config.get("heartbeat_seconds") == 7)
+    assert applied == []  # read and applied while take still runs (it ends only when let go, below)
+    let_take_end.set()
     async with asyncio.timeout(5):
         while len(applied) < 2:
             await asyncio.sleep(0.05)

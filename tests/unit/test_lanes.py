@@ -9,6 +9,7 @@ import stat
 from pathlib import Path
 
 import pytest
+from testkit.timing import until
 
 from openajar.core.config import NodeConfig
 from openajar.core.errors import (
@@ -518,10 +519,7 @@ async def test_start_sweeps_and_runs_the_reaper(tmp_path):
     await mgr.create(LaneSpec(id="a/one"))
     await mgr.open("a/one")
     clock.advance(11)
-    for _ in range(100):
-        if mgr.get("a/one").state == LaneState.COLD:
-            break
-        await asyncio.sleep(0.01)
+    await until(lambda: mgr.get("a/one").state == LaneState.COLD)
     assert mgr.get("a/one").state == LaneState.COLD
     await mgr.shutdown()
     assert mgr._reaper is None

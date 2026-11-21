@@ -18,6 +18,7 @@ from urllib.parse import parse_qs, urlsplit
 import pytest
 from test_environments import node, opened  # noqa: F401  (node is a fixture)
 from test_environments_isolation import _record, panel  # noqa: F401  (panel is a fixture)
+from testkit.timing import until
 
 from openajar.core.errors import InvalidRequest
 from openajar.core.models import utcnow
@@ -260,12 +261,8 @@ async def test_a_recording_that_ended_by_itself_is_kept(node, tokens, monkeypatc
     mgr = node["mgr"]
     await mgr.record_start(env, title="the flow")
     rec.running = False  # its length passed, or the screen went away
-    import asyncio
 
-    for _ in range(200):
-        if mgr.recording_view(env) is None and mgr.proofs(env):
-            break
-        await asyncio.sleep(0.01)
+    await until(lambda: mgr.recording_view(env) is None and mgr.proofs(env))
     [kept] = mgr.proofs(env)
     assert kept["kind"] == "video" and kept["ended"] == "ended" and kept["title"] == "the flow"
     with pytest.raises(ToolCallError, match=f"stopped by itself and is kept as proof {kept['id']}"):

@@ -6,6 +6,13 @@ All notable changes to openajar are recorded here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- The unit tests no longer pass or fail on the runner's speed: they wait for what they expect for up to
+  10 seconds instead of a fixed sleep, a speed check scales its bound on the macOS runners
+  (OPENAJAR_TEST_SLOW in CI), and the store lock check fails only on a loop really stuck on the lock.
+  docs/DEVELOPING.md says how a new test waits and bounds a speed check.
+
 ## [0.5.2] - 2026-11-21
 
 ### Fixed

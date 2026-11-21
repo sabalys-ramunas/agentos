@@ -23,6 +23,7 @@ from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509.oid import NameOID
+from testkit.timing import until
 
 from openajar.core.driver import MAX_JSON_BYTES
 from openajar.core.models import RunStatus
@@ -566,10 +567,7 @@ async def test_two_answers_on_one_url_each_read_as_their_own(site):
     driver = PlaywrightFlowDriver(site, lane_id="test/lane", dwell_ms=(0, 0))
     watch = driver.watch_json(lambda url: "/api/orders" in url, keep=2)
     await driver.navigate(f"{HOST}/orders")
-    for _ in range(100):
-        if len(watch.responses) == 2:
-            break
-        await asyncio.sleep(0.02)
+    await until(lambda: len(watch.responses) == 2)
     assert [r.body for r in watch.responses] == [b'{"n": 1}', b'{"n": 2}']
     watch.close()
 

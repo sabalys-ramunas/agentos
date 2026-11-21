@@ -30,7 +30,7 @@ def test_a_flash_reaches_open_streams_only_and_is_never_replayed():
         bus.publish("lane", {"id": "a/b"})
         async with bus.subscribe() as sub:
             bus.flash("pointer", {"lane": "a/b", "x": 1, "y": 2, "w": 10, "h": 10, "kind": "move"})
-            got = await asyncio.wait_for(sub.get(), 1)
+            got = await asyncio.wait_for(sub.get(), 10)
         return got
 
     got = asyncio.run(run())

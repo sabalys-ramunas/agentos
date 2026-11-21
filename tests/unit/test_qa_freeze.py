@@ -10,6 +10,7 @@ import time
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from freeze_support import close, make_node, started
+from testkit.timing import until
 
 from openajar.core import signing
 from openajar.core.errors import InvalidRequest
@@ -82,8 +83,7 @@ async def test_a_repeated_mesh_freeze_runs_the_sweep_again(node):
     await asyncio.sleep(0.2)
     g, _ = node.agent(workspaces=["biz-a"], sub="granted-since", during_freeze=True)
     node.freeze.apply_mesh({"frozen": True, "reason": "again", "by": "owner", "freeze_id": "fz_second"})
-    await asyncio.sleep(0.2)
-    assert _state(node, g.id) == "revoked"
+    assert await until(lambda: _state(node, g.id) == "revoked")
 
 
 # ---- the mesh ---------------------------------------------------------------------------------------

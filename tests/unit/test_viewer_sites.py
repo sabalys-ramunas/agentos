@@ -11,6 +11,7 @@ from starlette.applications import Starlette
 from starlette.routing import Mount
 from test_egress import FakeContext, FakeFrame, FakeRequest
 from test_viewer_app import LANE, EventReader, node, serve, tokens_at  # noqa: F401 - node is a fixture
+from testkit.timing import until
 
 from openajar.api.auth import PRESENCE_HEADER, PanelStore, new_login_code
 from openajar.core.models import LaneSpec
@@ -153,5 +154,4 @@ async def test_an_off_list_document_while_a_human_has_control_reaches_the_live_v
                                         frame=frame))  # the same block again: folded, no second notice
         await asyncio.sleep(0.2)
         assert [e for e in reader.events if e[0] == "egress"] == [events[-1]]
-    await asyncio.sleep(0.05)
-    assert not node.app.state.viewer.hub._notice_watchers  # the stream stopped watching when it closed
+    assert await until(lambda: not node.app.state.viewer.hub._notice_watchers)  # the stream stopped watching when it closed

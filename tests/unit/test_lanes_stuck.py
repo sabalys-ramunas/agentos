@@ -9,6 +9,7 @@ import asyncio
 import pytest
 from test_lanes import make
 from test_lanes_deadlines import LANE, agent, hang_page, lane, stuck_call
+from testkit.timing import until
 
 from openajar.core import progress
 from openajar.core.errors import EngineError, LaneBusy
@@ -47,8 +48,7 @@ async def test_a_stuck_call_ends_and_frees_the_lane_even_when_the_close_hangs(tm
         await asyncio.wait_for(stuck_call(mgr, deadline_s=0.2), 3)
     assert loop.time() - t0 < 2  # the call does not wait for the close
     assert "openajar is closing the browser" in err.value.message
-    await asyncio.sleep(0.7)  # CLOSE_WAIT_S later the lane is free, while the close still hangs
-    assert not mgr._lanes[LANE].access.busy()
+    assert await until(lambda: not mgr._lanes[LANE].access.busy())
     release.set()
     await mgr.shutdown()
 

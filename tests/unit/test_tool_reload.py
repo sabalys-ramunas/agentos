@@ -6,6 +6,7 @@ import asyncio
 import pytest
 from connector_samples import SITES, bind, connector, read_op
 from mcp import Client
+from testkit.timing import until
 
 from openajar.core.config import NodeConfig
 from openajar.core.errors import InvalidRequest, PolicyDenied
@@ -125,10 +126,7 @@ async def test_clients_on_both_protocols_hear_that_the_list_changed():
 
             assert type(await asyncio.wait_for(first(), 5)).__name__ == "ToolsListChanged"
             assert await names(modern) == ["one", "two"]
-        for _ in range(50):
-            if heard:
-                break
-            await asyncio.sleep(0.02)
+        await until(lambda: heard)
         assert heard == ["notifications/tools/list_changed"]
         assert await names(legacy) == ["one", "two"]
 
@@ -152,14 +150,6 @@ async def test_reload_tells_the_controller_channel():
 # ---------------------------------------------------------------- the watch
 
 
-async def _until(done, timeout_s: float = 10.0) -> None:
-    """Wait for the watch to act: at once on a quick machine, and up to timeout_s on a slow CI runner (2 s was
-    not always enough on macOS runners)."""
-    deadline = asyncio.get_running_loop().time() + timeout_s
-    while not done() and asyncio.get_running_loop().time() < deadline:
-        await asyncio.sleep(0.02)
-
-
 async def test_the_watch_reloads_when_its_signature_changes_and_when_poked():
     runtime, provider, server = server_with(spec("one", one))
     stamp = {"v": 1}
@@ -170,11 +160,11 @@ async def test_the_watch_reloads_when_its_signature_changes_and_when_poked():
         await asyncio.sleep(0.2)
         assert "two" not in server.specs  # the signature did not move: no reload
         stamp["v"] = 2
-        await _until(lambda: "two" in server.specs)
+        await until(lambda: "two" in server.specs)
         assert "two" in server.specs and watch.reloads == 1
         provider.specs.pop()
         watch.poke()
-        await _until(lambda: "two" not in server.specs)
+        await until(lambda: "two" not in server.specs)
         assert "two" not in server.specs
     finally:
         await watch.stop()
@@ -198,10 +188,7 @@ async def test_a_connector_installed_by_another_process_appears_without_a_restar
         cli = Harness(tmp_path)  # `openajar connector install`: its own process, the same database
         _install(cli)
         bind(cli)
-        for _ in range(100):
-            if "social_profile_summary" in server.specs:
-                break
-            await asyncio.sleep(0.02)
+        await until(lambda: "social_profile_summary" in server.specs)
         assert "social_profile_summary" in server.specs
         async with Client(server) as client:
             assert "social_profile_summary" in await names(client)

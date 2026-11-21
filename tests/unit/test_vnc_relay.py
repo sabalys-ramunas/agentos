@@ -11,6 +11,7 @@ import tempfile
 from typing import Self
 
 import pytest
+from testkit.timing import until
 
 from openajar.core.models import ViewerInfo
 from openajar.node import vnc_relay
@@ -424,8 +425,16 @@ class FakeVnc:
         if self.path is not None:  # x11vnc's real shape on a node: a unix socket
             self.server = await asyncio.start_unix_server(self._handle, self.path)
             return self
-        self.server = await asyncio.start_server(self._handle, "127.0.0.1", 0)
-        self.port = self.server.sockets[0].getsockname()[1]
+        # A port the kernel picks, below the top 64: the viewer tests pass it as vnc_base, which
+        # NodeConfig wants to leave room for max_slots ports below 65536 (macOS hands out ports up to
+        # 65535, so a fixture without this failed now and then).
+        for _ in range(100):
+            self.server = await asyncio.start_server(self._handle, "127.0.0.1", 0)
+            self.port = self.server.sockets[0].getsockname()[1]
+            if self.port <= 65535 - 64:
+                break
+            self.server.close()
+            await self.server.wait_closed()
         return self
 
     async def __aexit__(self, *exc) -> None:
@@ -480,10 +489,7 @@ async def test_relay_pumps_both_ways_and_filters(tmp_path):
         noted: list = []
         relay, task = await run_relay(ws, vnc.port, allow, on_input=lambda: noted.append(1))
         await vnc.until(lambda: vnc.connections == 1)
-        for _ in range(100):
-            if ws.sent:
-                break
-            await asyncio.sleep(0.005)
+        await until(lambda: ws.sent)
         assert bytes(ws.sent) == b"RFB 003.008\n"
         ws.push(HANDSHAKE_IN + fbur() + pointer(0, 5, 5))
         await vnc.until(lambda: len(vnc.received) >= len(HANDSHAKE_OUT) + 10)
@@ -498,10 +504,7 @@ async def test_relay_pumps_both_ways_and_filters(tmp_path):
         relay.control_changed()  # nothing held any more: nothing sent
         vnc.writer.write(b"framebuffer bytes")
         await vnc.writer.drain()
-        for _ in range(100):
-            if ws.sent.endswith(b"framebuffer bytes"):
-                break
-            await asyncio.sleep(0.005)
+        await until(lambda: ws.sent.endswith(b"framebuffer bytes"))
         assert ws.sent.endswith(b"framebuffer bytes")
         ws.leave()
         await asyncio.wait_for(task, 2.0)

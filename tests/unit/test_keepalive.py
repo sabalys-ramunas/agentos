@@ -15,6 +15,7 @@ from zoneinfo import ZoneInfo
 import pytest
 from test_commit_gate_guard import Gate
 from test_egress import COMMITTER, FailingDispatcher, FakeRequest, FakeRoute, make_guard, settle
+from testkit.timing import until
 from typer.testing import CliRunner
 
 from openajar.core.config import NodeConfig, load_config, save_config
@@ -888,10 +889,7 @@ async def test_a_take_over_stops_the_visit_at_once_and_nothing_acts_after_it(nod
     node.service.sleep = asyncio.sleep
     node.service.pace = visit.Pace(first_look=(3600, 3600), max_seconds=7200)
     task = asyncio.create_task(node.service.visit_now(LANE))
-    for _ in range(200):
-        if feed.calls:
-            break
-        await asyncio.sleep(0.01)
+    await until(lambda: feed.calls)
     assert feed.calls == [("navigate", visit_home(node))]
     await node.lanes.take_control(LANE, by="owner")
     done = await asyncio.wait_for(task, 2)

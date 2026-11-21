@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 from test_ops_support import FakeHost, GiB, fingerprint, make_home
+from testkit.timing import until
 
 from openajar.core.models import LaneInfo, LaneSpec, LaneState
 from openajar.core.runtime import Runtime
@@ -257,8 +258,7 @@ async def test_control_socket_ops(tmp_path, short_sock):
                                                                          "work/site": "warm"}
         assert (await ask(short_sock, {"op": "close", "lane": "personal/reddit"}))["state"] == "cold"
         assert (await ask(short_sock, {"op": "open", "lane": "personal/reddit"}))["ok"]
-        await asyncio.sleep(0.05)
-        assert lanes.infos["personal/reddit"].state == LaneState.WARM
+        assert await until(lambda: lanes.infos["personal/reddit"].state == LaneState.WARM)
         drained = await ask(short_sock, {"op": "drain", "timeout": 5})
         assert drained["closed"] == ["personal/reddit", "work/site"] and drained["failed"] == {}
         status = await ask(short_sock, {"op": "check"})

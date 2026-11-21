@@ -13,6 +13,7 @@ import logging
 
 import pytest
 from test_environments_vmbrowser import _create, routed  # noqa: F401 - the fixture
+from testkit.timing import until
 
 from openajar.env.models import ExecResult
 from openajar.environments import vmbrowser
@@ -97,10 +98,7 @@ async def test_a_launch_stopped_by_the_lanes_wall_keeps_its_steps_for_the_error(
     try:
         await _create(mgr, LANE)
         opening = asyncio.create_task(mgr.open(LANE))
-        for _ in range(100):
-            if routed.vm.launch_hint(LANE):
-                break
-            await asyncio.sleep(0.02)
+        await until(lambda: routed.vm.launch_hint(LANE))
         opening.cancel()
         with pytest.raises(asyncio.CancelledError):
             await opening

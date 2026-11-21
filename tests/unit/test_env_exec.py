@@ -5,6 +5,7 @@ import sys
 import time
 
 import pytest
+from testkit.timing import budget
 
 from openajar.core.errors import PolicyDenied
 from openajar.env.execs import Capture, encode_output
@@ -67,7 +68,7 @@ async def test_exec_timeout_terminates_then_kills(mgr):
     assert r.timed_out and r.exit_code is None and r.signal == "SIGTERM"
     t = time.monotonic()
     r = await mgr.exec("ws/bench", "trap '' TERM; sleep 30", timeout_s=0.3)
-    assert r.timed_out and r.signal == "SIGKILL" and time.monotonic() - t < 6
+    assert r.timed_out and r.signal == "SIGKILL" and time.monotonic() - t < budget(6)  # far from the 30 s sleep
 
 
 async def test_a_stop_ends_the_command_at_once_and_its_last_words_are_kept(mgr):
@@ -76,20 +77,22 @@ async def test_a_stop_ends_the_command_at_once_and_its_last_words_are_kept(mgr):
     t = time.monotonic()
     r = await mgr.exec("ws/bench", "trap 'echo let go; exit 0' TERM; echo typing; while :; do sleep 0.05; done",
                        timeout_s=30, stop=stop)
-    assert r.stdout == "typing\nlet go\n" and not r.timed_out and time.monotonic() - t < 3
+    assert r.stdout == "typing\nlet go\n" and not r.timed_out and time.monotonic() - t < budget(3)
 
 
 async def test_background_children_do_not_hold_the_exec(mgr):
     t = time.monotonic()
     r = await mgr.exec("ws/bench", "sleep 30 & echo started")
-    assert r.stdout == "started\n" and time.monotonic() - t < 5
+    assert r.stdout == "started\n" and time.monotonic() - t < budget(5)
 
 
 async def test_concurrent_execs_in_one_lane(mgr):
-    t = time.monotonic()
-    rs = await asyncio.gather(*(mgr.exec("ws/bench", f"sleep 0.5; echo {i}") for i in range(4)))
-    assert [r.stdout for r in rs] == [f"{i}\n" for i in range(4)]
-    assert time.monotonic() - t < 1.9
+    # each one waits (at most 10 s) until all four have started: run one after another, the first one
+    # would see only itself. No clock: a slow runner only makes them meet later.
+    meet = "mkdir -p .meet; touch .meet/{i}; n=0; while [ \"$(ls .meet | wc -l)\" -lt 4 ] && [ $n -lt 200 ]; do " \
+           "sleep 0.05; n=$((n + 1)); done; echo {i} $(ls .meet | wc -l)"
+    rs = await asyncio.gather(*(mgr.exec("ws/bench", meet.format(i=i)) for i in range(4)))
+    assert [r.stdout.split() for r in rs] == [[str(i), "4"] for i in range(4)]
 
 
 async def test_locked_lanes_run_allowlisted_programs_only(mgr):

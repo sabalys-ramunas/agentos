@@ -122,6 +122,15 @@ managers in `src/openajar/dev/lanes.py` (`FakeLaneManager` and friends, re-expor
 Tests that need a real Camoufox and Xvfb are marked `node` and are skipped here
 (`addopts = "-m 'not node'"` in `pyproject.toml`).
 
+Tests and time: a test must not pass or fail on the machine's speed (CI runs on busy macOS runners).
+To wait for something to happen, use `wait_for(check)` or `await until(check)` from
+`tests/testkit/timing.py`: they return as soon as the check holds and give up after 10 s, never a
+fixed sleep before an assert or a loop of a few short sleeps. To check that something is fast or does
+not wait, measure what the code did (returned while a lock was still held, how many calls it made)
+where you can; where only the clock can tell, bound it with `budget(seconds)`, which CI scales with
+`OPENAJAR_TEST_SLOW`, and keep the slow alternative (a timeout, a sleep) well above the scaled bound.
+A port is `free_port()` or port 0, never a fixed number.
+
 Two kinds of recorded fixtures, each with a make target that records it again (review the diff:
 it is what changed on the wire or for agents):
 

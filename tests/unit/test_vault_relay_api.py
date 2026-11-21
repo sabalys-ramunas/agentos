@@ -9,11 +9,13 @@ import asyncio
 import json
 import logging
 import sqlite3
+import time
 
 import httpx
 import pytest
 from fakes import FakeInteraction, FakeLaneManager
 from test_vault_support import FakeTypist, Page, fld, login_form, make_vault, private_home
+from testkit.timing import DEADLINE_S
 
 from openajar.api import ApiSettings, build_api
 from openajar.api.auth import PanelStore
@@ -85,7 +87,8 @@ async def agent_login(node: Node, token: str, typist: FakeTypist) -> dict:
 
 
 async def open_cards(client: httpx.AsyncClient, headers: dict, n: int = 1) -> list[dict]:
-    for _ in range(400):
+    deadline = time.monotonic() + DEADLINE_S
+    while time.monotonic() < deadline:
         r = await client.get("/api/codes", headers=headers)
         if r.status_code == 200 and len(r.json()) >= n:
             return r.json()

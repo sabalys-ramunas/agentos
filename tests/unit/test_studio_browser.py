@@ -14,6 +14,7 @@ import dataclasses
 import time
 
 import pytest
+from testkit.timing import budget, until
 
 from openajar.core import catalog
 from openajar.core.errors import EngineError
@@ -280,7 +281,7 @@ async def test_a_page_that_never_answers_runs_out_of_the_call_time():
         with pytest.raises(StudioTimeout) as err:
             async with pool.page(target("/slow"), Screen(width=360)):
                 pass
-        assert time.monotonic() - started < 3
+        assert time.monotonic() - started < budget(3)  # the call time (1 s), far from the 30 s navigation bound
         assert err.value.code == "studio_timeout" and "loading the url" in err.value.message
         assert pool.open_pages == 0
     finally:
@@ -346,8 +347,7 @@ async def test_a_page_held_too_long_is_closed_under_the_caller():
     pool = await _pool_or_skip(limits=Limits(hold_timeout_s=0.3, network_quiet_s=0.05, close_cap_s=0.3))
     try:
         async with pool.page(target("/media"), Screen(width=360)) as page:
-            await asyncio.sleep(0.6)
-            assert page.is_closed()
+            assert await until(lambda: page.is_closed())
             assert any("held too long" in note for note in pool.report(page)["notes"])
     finally:
         await pool.close()

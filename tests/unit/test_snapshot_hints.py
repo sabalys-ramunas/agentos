@@ -8,6 +8,7 @@ import asyncio
 import time
 
 import pytest
+from testkit.timing import budget
 
 from openajar.node.snapshot import (
     HINT_LIMIT,
@@ -300,7 +301,7 @@ async def test_reads_past_the_budget_are_cancelled_not_awaited():
     elapsed = time.monotonic() - started
 
     assert facts == {"e1": {"flags": ["upvote"]}}
-    assert elapsed < 1.0
+    assert elapsed < budget(1.0)  # e2 would take 5 s
     await asyncio.sleep(0)  # let the cancelled read finish its cancellation
 
 

@@ -9,6 +9,7 @@ from types import SimpleNamespace
 
 import pytest
 from test_lanes import make
+from testkit.timing import until
 
 from openajar.core.errors import EngineError, LaneBusy
 from openajar.core.models import LaneSpec, LaneState
@@ -119,8 +120,7 @@ async def test_the_memory_watchdog_closes_a_lane_whose_only_call_is_past_its_dea
             await release.wait()
 
     task = asyncio.ensure_future(stubborn())
-    await asyncio.sleep(0.15)
-    assert any(c.overdue for c in mgr._lanes[LANE].calls)
+    assert await until(lambda: any(c.overdue for c in mgr._lanes[LANE].calls))
     assert await mgr.recycle_for_memory(LANE, "its browser used 1430 MB of its 1536 MB ceiling")
     assert session.closed and mgr.get(LANE).state == LaneState.COLD
     assert not mgr._lanes[LANE].access.busy()  # its place on the lane was taken from it
@@ -169,8 +169,7 @@ async def test_a_call_whose_client_went_away_is_cancelled_and_frees_the_lane(tmp
             watch.cancel()
 
     task = asyncio.ensure_future(call())
-    await asyncio.sleep(0.05)
-    assert mgr._lanes[LANE].access.busy()
+    assert await until(lambda: mgr._lanes[LANE].access.busy())
     gone.set()  # the MCP client disconnected
     with pytest.raises(EngineError, match="went away"):
         await asyncio.wait_for(task, 2)
@@ -195,4 +194,4 @@ async def test_a_client_gone_outside_a_lane_ends_the_call_quietly():
     task = asyncio.ensure_future(call())
     await asyncio.sleep(0)
     gone.set()
-    assert await asyncio.wait_for(task, 1) == interrupts.CLIENT_GONE
+    assert await asyncio.wait_for(task, 10) == interrupts.CLIENT_GONE

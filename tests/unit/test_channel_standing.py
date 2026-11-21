@@ -390,7 +390,7 @@ async def test_the_owner_revokes_one_locally_and_sees_where_it_came_from(wired, 
     runtime.channel.check_standing()  # what housekeeping does: the CLI is another process
     assert (await standing_event(peer, id="sa_posts1")).body["payload"]["state"] == "revoked"
     runtime.channel.check_standing()
-    await asyncio.sleep(0.2)
+    await asyncio.sleep(0.2)  # a second check tells nothing new
     assert len([e for e in peer.seen if e.type == "event" and e.body["kind"] == "standing"]) == 1
     assert (await post(fake, peer, "hi")).body["error"]["code"] == "approval_pending"
     assert (await send(peer, signed(fake, upsert=[item()]))).body["refused"][0]["code"] == "revoked"

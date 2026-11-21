@@ -20,6 +20,7 @@ import time
 from pathlib import Path
 
 from test_environments import node, opened  # noqa: F401  (node is a fixture)
+from testkit.timing import budget
 
 from openajar.environments import bringup, machine
 
@@ -48,7 +49,7 @@ def test_the_check_answers_as_soon_as_cloud_init_is_done(tmp_path):
     t = time.monotonic()
     out = sh(script, bin_dir)
     took = time.monotonic() - t
-    assert out.stdout.splitlines()[0] == "status: done" and 0.4 <= took < 2.0, (out, took)
+    assert out.stdout.splitlines()[0] == "status: done" and 0.4 <= took < budget(2.0), (out, took)  # not SETUP_WAIT_S (20 s)
     assert machine.boot_done_without_setup(out.stdout.splitlines()[0])
     assert bringup.SETUP_POLL_S <= 1.0
 

@@ -2,6 +2,7 @@ import asyncio
 from datetime import timedelta
 
 import pytest
+from testkit.timing import until
 
 from openajar.core.models import utcnow
 from openajar.env.host import FakeHost
@@ -73,10 +74,7 @@ async def test_ctrl_c_interrupts_the_foreground_command(mgr):
 async def test_flood_pauses_reading_instead_of_growing(mgr):
     s = await open_sh(mgr)
     await s.write(b"head -c 600000 /dev/zero | tr '\\0' 'y'; echo; echo flood-done\n")
-    for _ in range(50):
-        if s.paused:
-            break
-        await asyncio.sleep(0.05)
+    await until(lambda: s.paused)
     assert s.paused and len(s.ring.buf) <= s.ring.capacity
     total = 0
     out = ""

@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 
 import pytest
+from testkit.timing import until
 
 from openajar.node import human
 
@@ -83,8 +84,7 @@ def test_still_waits_out_a_move_in_flight():
         page = Page(move_s=0.05)
         allow(page)
         human.begin_idle(page)
-        await asyncio.sleep(0.02)
-        assert page.mouse.moving
+        assert await until(lambda: page.mouse.moving)
         await human.still(page)
         assert not page.mouse.moving
         count = len(page.mouse.moves)

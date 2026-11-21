@@ -10,6 +10,7 @@ import time
 from types import SimpleNamespace
 
 import pytest
+from testkit.timing import budget
 
 from openajar.core.driver import JsonResponse, parse_json
 from openajar.core.models import RunKind, RunStatus, Signal
@@ -146,7 +147,7 @@ def test_no_url_a_page_makes_can_slow_the_match():
     for url in (long, long[:MAX_WATCHED_URL], "https://a.example/" + "a/" * 1000, "https://a.example/a/b/c/" + "1" * 2000):
         for _ in range(200):
             rx.matches(url)
-    assert time.monotonic() - t0 < 1.0
+    assert time.monotonic() - t0 < budget(1.0)  # a backtracking match takes minutes, not seconds
     assert not url_pattern(r"^https://a\.example/").matches(long)  # over the cap: never tested
 
 

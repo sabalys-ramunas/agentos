@@ -7,6 +7,7 @@ from types import SimpleNamespace
 
 import pytest
 from channel_fake_controller import NODE_ID, FakeController, node_pubkey, node_runtime, start, stop
+from testkit.timing import until
 
 from openajar.core.models import LaneState, ViewerInfo
 from openajar.node import vnc_relay
@@ -39,8 +40,7 @@ async def test_a_writer_never_has_more_than_its_credit_in_flight():
     await asyncio.sleep(0.05)
     assert sum(len(f) - 16 for f in out.binary) == 1000 and not task.done()
     pipe.add_credit(1000)
-    await asyncio.sleep(0.05)
-    assert sum(len(f) - 16 for f in out.binary) == 2000
+    assert await until(lambda: sum(len(f) - 16 for f in out.binary) == 2000)
     pipe.add_credit(5000)
     await task
     assert sum(len(f) - 16 for f in out.binary) == 2500
@@ -144,13 +144,11 @@ async def test_live_view_forwards_input_only_while_a_human_holds_control(node):
         assert vnc.received == RFB_CLIENT_HANDSHAKE  # agents hold the lane: the key is dropped
         await runtime.lanes.take_control("personal/reddit", by="owner")
         await peer.send_raw(wire.stream_frame(stream_id, KEY_DOWN))
-        await asyncio.sleep(0.3)
-        assert vnc.received == RFB_CLIENT_HANDSHAKE + KEY_DOWN
+        assert await until(lambda: vnc.received == RFB_CLIENT_HANDSHAKE + KEY_DOWN)
         assert runtime.lanes.human_inputs == 1
         # control goes back to agents: the held key is released at once
         await runtime.lanes.hand_back("personal/reddit", by="owner")
-        await asyncio.sleep(0.3)
-        assert vnc.received.endswith(struct.pack(">BBxxI", 4, 0, 0x61))
+        assert await until(lambda: vnc.received.endswith(struct.pack(">BBxxI", 4, 0, 0x61)))
         await peer.send("stream_close", {"stream_id": stream_id, "reason": "closed"})
 
 
@@ -271,8 +269,7 @@ async def test_terminal_streams_bytes_both_ways_and_resizes(node):
     shell = envs.shells["sh_test"]
     assert bytes(shell.written) == b"ls\n"
     await peer.send("resize", {"stream_id": stream_id, "cols": 120, "rows": 40})
-    await asyncio.sleep(0.2)
-    assert shell.sizes == [(100, 30), (120, 40)]
+    assert await until(lambda: shell.sizes == [(100, 30), (120, 40)])
     bad = await peer.send("resize", {"stream_id": stream_id, "cols": 0, "rows": 40})
     assert (await peer.reply_to(bad.id)).body["code"] == "invalid"
     shell.queue.put_nowait(None)  # the shell exits

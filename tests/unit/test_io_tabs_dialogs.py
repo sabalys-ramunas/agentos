@@ -7,6 +7,7 @@ from collections import defaultdict
 from typing import Any
 
 import pytest
+from testkit.timing import until
 
 from openajar.core.errors import InvalidRequest, NotFound
 from openajar.core.models import Signal
@@ -197,7 +198,7 @@ async def test_tabs_show_a_waiting_dialog_without_reading_the_frozen_page():
 
     page.title = hang  # a frozen page never answers
     open_dialog(page, "confirm", "Leave?")
-    tabs = await asyncio.wait_for(tracker.tabs(), 1)
+    tabs = await asyncio.wait_for(tracker.tabs(), 10)  # the frozen title would take 30 s
     assert tabs[0]["dialog"] == "confirm" and tabs[0]["title"] == ""
 
 
@@ -245,8 +246,7 @@ async def test_unanswered_dialogs_get_the_safe_answer_after_the_timeout(kind, ex
     page = await ctx.new_page()
     d = open_dialog(page, kind)
     assert "if nobody answers" in guard.current(page).public()["auto_answer"]
-    await asyncio.sleep(0.2)
-    assert d.answers == [expected]
+    assert await until(lambda: d.answers == [expected])
     last = guard.history()[0]
     assert last.answered_by == "timeout" and last.outcome == ("accepted" if kind == "alert" else "dismissed")
     assert guard.pending() == []
@@ -258,7 +258,7 @@ async def test_an_answer_and_the_timer_never_both_answer():
     page = await ctx.new_page()
     d = open_dialog(page, "confirm")
     await guard.answer(page, accept=True)
-    await asyncio.sleep(0.15)
+    await asyncio.sleep(0.15)  # three times the timer: it must not answer again
     assert d.answers == [("accept", None)]
 
 
@@ -267,11 +267,10 @@ async def test_extend_holds_off_the_automatic_answer():
     guard = DialogGuard(timeout=0.05).attach(ctx)
     page = await ctx.new_page()
     d = open_dialog(page, "confirm")
-    guard.extend(guard.current(page), 0.4)
-    await asyncio.sleep(0.15)
+    guard.extend(guard.current(page), 1.0)  # well past the check below, even on a busy runner
+    await asyncio.sleep(0.15)  # three times the timeout it had
     assert d.answers == [] and guard.current(page) is not None
-    await asyncio.sleep(0.4)
-    assert d.answers == [("dismiss", None)]
+    assert await until(lambda: d.answers == [("dismiss", None)])
 
 
 async def test_closing_a_tab_settles_its_dialogs_and_a_failed_answer_is_recorded():
@@ -326,7 +325,7 @@ async def test_snapshot_shows_the_dialog_instead_of_hanging():
     page = await ctx.new_page()
     other = await ctx.new_page()
     open_dialog(page, "confirm", "Delete this draft?")
-    snap = await asyncio.wait_for(PlaywrightInteraction().snapshot(page), 1)
+    snap = await asyncio.wait_for(PlaywrightInteraction().snapshot(page), 10)
     lines = snap.text.splitlines()
     assert lines[0].startswith('- confirm dialog is open on this tab: "Delete this draft?"')
     assert "browser_dialog(accept=...)" in lines[0] and "dismissed automatically in 60 s" in lines[0]
@@ -350,7 +349,7 @@ async def test_page_calls_refuse_while_a_dialog_is_open(call, tmp_path):
              "act": lambda: ia.act(page, "e1", "click"),
              "upload": lambda: ia.upload(page, "e1", [f])}
     with pytest.raises(DialogPending, match="beforeunload dialog is open") as err:
-        await asyncio.wait_for(calls[call](), 1)
+        await asyncio.wait_for(calls[call](), 10)
     assert err.value.code == "dialog_pending" and "accept=true leaves the page" in err.value.message
     assert await ia.signal(page) is Signal.UNKNOWN
 
@@ -365,7 +364,7 @@ async def test_a_dialog_that_opens_during_a_page_call_stops_the_wait():
     assert not shot.done()
     open_dialog(page, "alert", "Saved!")
     with pytest.raises(DialogPending, match='an alert dialog is open on this tab \\("Saved!"\\)'):
-        await asyncio.wait_for(shot, 1)
+        await asyncio.wait_for(shot, 10)
     await asyncio.sleep(0)
     assert page.never.cancelled()  # the frozen call is not left waiting forever
     await dialog_guard(page).answer(page, accept=True)
@@ -374,7 +373,7 @@ async def test_a_dialog_that_opens_during_a_page_call_stops_the_wait():
     await asyncio.sleep(0.05)
     open_dialog(page, "beforeunload", "")
     with pytest.raises(DialogPending, match="finish the navigation"):
-        await asyncio.wait_for(nav, 1)
+        await asyncio.wait_for(nav, 10)
 
 
 # ---- accept attribute ---------------------------------------------------------------------------

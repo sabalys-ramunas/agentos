@@ -16,6 +16,7 @@ from PIL import Image
 from starlette.testclient import TestClient
 from test_environments import node, opened  # noqa: F401  (node is a fixture)
 from test_environments_isolation import _record, panel  # noqa: F401  (panel is a fixture)
+from testkit.timing import budget
 from typer.testing import CliRunner
 
 from openajar.core.models import LaneState, utcnow
@@ -144,7 +145,7 @@ async def test_a_busy_lane_is_skipped_never_waited_for(node, shots):  # noqa: F8
     env = mgr.get((await opened(node))["id"])
     shots.busy = True  # another call is on the lane: frame_turn gives no page
     mgr.record_call(env.browser_lane, "browser_navigate", ok=True, summary="http://localhost:3000/")
-    await asyncio.wait_for(settled(mgr), 1.0)
+    await asyncio.wait_for(settled(mgr), budget(1.0))
     assert frames(mgr, env) == [] and shots.page.shots == []  # nothing asked of the page
     shots.busy = False
     shots.quiet_after = False  # a call came while the shot was taken: it could show that call half way

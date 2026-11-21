@@ -7,11 +7,11 @@ import contextlib
 import json
 import socket
 import threading
-import time
 
 import pytest
 from starlette.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
+from testkit.timing import wait_for
 
 from openajar.api import ApiSettings, EventBus, PanelStore, build_api
 from openajar.api.bridge import Bridge
@@ -178,10 +178,7 @@ def test_vnc_relay_round_trip(upstream):
         assert ws.accepted_subprotocol == "binary"
         assert ws.receive_bytes() == b"RFB 003.008\n"
         ws.send_bytes(b"RFB 003.008\n")
-        for _ in range(50):
-            if upstream["seen"]:
-                break
-            time.sleep(0.02)
+        wait_for(lambda: upstream["seen"])
     assert upstream["seen"].startswith(b"RFB 003.008\n")
 
 

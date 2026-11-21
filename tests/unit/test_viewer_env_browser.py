@@ -9,8 +9,6 @@ environments service says about other lanes. A freeze still ends the environment
 
 from __future__ import annotations
 
-import asyncio
-
 import httpx
 import pytest
 from test_lanes import make
@@ -24,6 +22,7 @@ from test_viewer_app import (  # noqa: F401  (fixtures)
     tcp_upstream,
 )
 from test_vnc_relay import HANDSHAKE_OUT, FakeVnc, fbur, key, pointer
+from testkit.timing import until
 from websockets.asyncio.client import connect
 
 from openajar.core.models import ControlState, LaneSpec
@@ -339,9 +338,6 @@ async def test_an_open_live_view_counts_as_watching_until_it_closes(env_node):
     async with connect(node.ws(token, lane=ENV_LANE), subprotocols=["binary"], origin=f"http://{node.host}") as ws:
         await handshake(ws)
         assert node.envs.watching == [(ENV_LANE, "live_view")] and not getattr(node.envs, "stopped", [])
-    for _ in range(100):
-        if getattr(node.envs, "stopped", None):
-            break
-        await asyncio.sleep(0.02)
+    await until(lambda: getattr(node.envs, "stopped", None))
     assert node.envs.stopped == [ENV_LANE]
 

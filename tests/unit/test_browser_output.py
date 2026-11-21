@@ -10,6 +10,7 @@ import sys
 import time
 
 import pytest
+from testkit.timing import budget
 
 from openajar.core import logs
 from openajar.node import browser_output
@@ -161,14 +162,16 @@ def test_a_chatty_driver_is_drained_fast_and_a_long_line_is_cut_at_a_space():
     read_fd, write_fd = os.pipe()
     drain = threading.Thread(target=browser_output._drain, args=(read_fd,), daemon=True)
     drain.start()
-    long_line = b"head words " + b"x" * (8 * 1024 * 1024) + f" {TYPED}\n".encode()
+    # 32 MB: a byte at a time (the old drain) takes some 20 s, buffered well under a second, so the
+    # bound below catches the old drain even scaled for a slow runner (budget)
+    long_line = b"head words " + b"x" * (32 * 1024 * 1024) + f" {TYPED}\n".encode()
     started = time.monotonic()
     with os.fdopen(write_fd, "wb") as pipe:
         pipe.write(long_line + b"next line\n")
-    drain.join(10)
+    drain.join(60)
     elapsed = time.monotonic() - started
     out = stream.getvalue()
-    assert not drain.is_alive() and elapsed < 3.0
+    assert not drain.is_alive() and elapsed < budget(3.0)
     assert "browser stderr: head words [line cut]" in out and "browser stderr: next line" in out
     assert TYPED not in out and "xxxx" not in out  # cut at the last space before the cap: no half word
 

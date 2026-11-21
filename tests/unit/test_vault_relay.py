@@ -7,6 +7,7 @@ from types import SimpleNamespace
 
 import pytest
 from test_vault_support import FakeCtx, FakeTypist, Page, fld, login_form, make_vault, private_home
+from testkit.timing import until
 
 from openajar.core.errors import InvalidRequest
 from openajar.core.models import Principal
@@ -65,12 +66,8 @@ def code_site() -> FakeTypist:
 
 
 async def opened(v, n=1):
-    for _ in range(200):
-        items = v.relay.list()
-        if len(items) >= n:
-            return items
-        await asyncio.sleep(0.005)
-    raise AssertionError("no code request opened")
+    assert await until(lambda: len(v.relay.list()) >= n, every=0.005), "no code request opened"
+    return v.relay.list()
 
 
 def everything(v, ctx, *extra) -> str:

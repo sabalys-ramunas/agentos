@@ -8,6 +8,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from events_support import OWNER, World, check_flow, no_quiet
+from testkit.timing import until
 
 from openajar.api.events import EventBus
 from openajar.core.errors import InvalidRequest
@@ -227,10 +228,7 @@ async def test_approval_decided_from_the_bus(tmp_path):
         bus.publish("approval", {"id": "ap_1", "state": "approved", "lane": "biz-a/instagram", "tool": "flow_run",
                                  "effect": "commit", "decided_by": "owner"})
         bus.publish("approval", {"id": "ap_2", "state": "denied", "lane": None})  # no workspace: not routed
-        for _ in range(20):
-            await asyncio.sleep(0.01)
-            if w.store.list_events(source="approval"):
-                break
+        await until(lambda: w.store.list_events(source="approval"))
         evs = w.store.list_events(source="approval")
         assert len(evs) == 1 and evs[0].facts == {"approval_id": "ap_1", "state": "approved", "tool": "flow_run",
                                                   "effect": "commit", "decided_by": "owner"}

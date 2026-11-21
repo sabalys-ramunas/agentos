@@ -13,6 +13,7 @@ import time
 from types import SimpleNamespace
 
 from channel_fake_controller import NODE_ID, FakeController, node_pubkey, node_runtime, start, stop
+from testkit.timing import until
 
 from openajar.node.channel import approvals, bridge, calls, connection, outbox, signed, wire
 from openajar.node.channel import node as node_module
@@ -246,8 +247,7 @@ async def test_a_signed_message_dated_too_far_from_the_controllers_now_is_refuse
             assert channel.controller_config.get("heartbeat_seconds") != 7
             await peer.send("config_update", fake.fresh("config_update", {"config": {"heartbeat_seconds": 8},
                                                                          "ts": wire.iso()}))
-            await asyncio.sleep(0.2)
-            assert channel.controller_config.get("heartbeat_seconds") == 8
+            assert await until(lambda: channel.controller_config.get("heartbeat_seconds") == 8)
         finally:
             await stop(runtime)
 

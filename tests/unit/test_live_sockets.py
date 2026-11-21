@@ -165,9 +165,9 @@ def test_the_heartbeat_closes_without_any_event():
         await asyncio.sleep(0.1)
         assert not e.closed.is_set()
         gone["v"] = (4401, "revoked")
-        await asyncio.wait_for(e.wait_closed(), 1)
+        await asyncio.wait_for(e.wait_closed(), 10)
         reg.remove(e)
-        await asyncio.wait_for(reg._task, 1)  # stops once nothing is open
+        await asyncio.wait_for(reg._task, 10)  # stops once nothing is open
 
     asyncio.run(scenario())
 

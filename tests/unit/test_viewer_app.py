@@ -19,6 +19,7 @@ from starlette.applications import Starlette
 from starlette.routing import Mount
 from test_lanes import make
 from test_vnc_relay import HANDSHAKE_IN, HANDSHAKE_OUT, FakeVnc, fbur, key, pointer
+from testkit.timing import until
 from websockets.asyncio.client import connect
 from websockets.exceptions import ConnectionClosed, InvalidStatus
 
@@ -529,8 +530,7 @@ async def test_events_stream_control_lane_and_actions(node):
             events = await reader.until(lambda ev: ev[-1][0] == "lane")
             assert events[-1][1]["state"] == "cold" and events[-1][1]["live"] is False
             assert not any(e[1].get("id") == "tr_x" for e in events if e[0] == "action")
-    await asyncio.sleep(0.05)
-    assert node.traces.subscribers == []  # the stream unsubscribed when the client left
+    assert await until(lambda: node.traces.subscribers == [])  # the stream unsubscribed when the client left
 
 
 async def test_events_poll_traces_without_subscribe(tmp_path, monkeypatch):

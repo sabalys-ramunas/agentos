@@ -243,8 +243,9 @@ async def test_a_machine_reaches_neither_the_node_nor_another_machine(node):
         await envs.job_start(a.terminal_lane, "mkdir -p /srv/t && echo SECRET-OF-A > /srv/t/index.html && cd /srv/t "
                                               "&& exec python3 -m http.server 3000 --bind 0.0.0.0")
         ip_a = (await envs.exec(a.terminal_lane, "hostname -I")).stdout.split()[0]
-        await asyncio.sleep(1.5)
-        assert "SECRET-OF-A" in (await envs.exec(a.terminal_lane, "curl -s -m 5 http://127.0.0.1:3000/")).stdout
+        # the server is up within 10 s: asked again every 0.2 s until it answers
+        up = "for i in $(seq 50); do curl -sf -m 5 http://127.0.0.1:3000/ && break; sleep 0.2; done"
+        assert "SECRET-OF-A" in (await envs.exec(a.terminal_lane, up)).stdout
         gw = "$(ip route | awk '/default/ {print $3}')"
         probes = {
             "this computer's loopback (Docker Desktop)": f"curl -s -m 4 http://host.docker.internal:{port}/",

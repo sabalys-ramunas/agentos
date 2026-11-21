@@ -9,6 +9,7 @@ from dataclasses import replace
 from typing import Any
 
 import pytest
+from testkit.timing import budget
 
 from openajar.core.errors import InvalidRequest, RefNotFound, ServiceUnavailable
 from openajar.core.models import Signal
@@ -651,7 +652,7 @@ async def test_settle_waits_for_what_the_press_started(monkeypatch):
     await t.settle(5)
     await task
     took = loop.time() - started
-    assert 0.15 <= took < 1.0
+    assert 0.15 <= took < budget(1.0)  # ended by the request, not the 5 s timeout
     await asyncio.wait_for(t.settle(0.1), 5)  # nothing pressed since: bounded by the timeout, not the 10 s default
 
 

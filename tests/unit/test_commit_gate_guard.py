@@ -21,6 +21,7 @@ from test_egress import (
     make_guard,
     settle,
 )
+from testkit.timing import budget, slow_factor
 
 from openajar.core.errors import EngineError
 from openajar.node import egress
@@ -250,7 +251,7 @@ async def test_a_draft_grant_is_refused_by_the_rule_before_the_gate_is_asked(tmp
 
 async def test_settle_waits_for_a_publish_that_lags_the_press(tmp_path):
     guard, ctx, _, _ = make_guard(tmp_path, sites=(), driver=COMMITTER)
-    guard.settle_quiet_s, guard.settle_max_s = 0.3, 3.0
+    guard.settle_quiet_s, guard.settle_max_s = 0.3, 10.0  # the max far from the quiet end (about 0.6 s)
     gate = Gate()
     async with guard.acting(gate=gate):
         reload = FakeRequest("https://www.google.com/recaptcha/enterprise/reload", "POST")
@@ -269,13 +270,13 @@ async def test_settle_waits_for_a_publish_that_lags_the_press(tmp_path):
         started = time.monotonic()
         await guard.settle(gate)
         await task
-    assert gate.seen == ["instagram.post"] and time.monotonic() - started < 1.0
+    assert gate.seen == ["instagram.post"] and time.monotonic() - started < budget(1.0)  # ended at quiet, not the max
     quiet = Gate()
     async with guard.acting(gate=quiet):
         started = time.monotonic()
         await guard.settle(quiet)  # nothing but GETs: only the grace for late request events
-    # the far alternative is the cold bound (2.5 s): half a second of slack keeps a loaded runner green
-    assert guard.settle_grace_s <= time.monotonic() - started < guard.settle_grace_s + 0.5
+    # the far alternative is the cold bound (2.5 s): half a second of slack (budget: more on a slow runner)
+    assert guard.settle_grace_s <= time.monotonic() - started < guard.settle_grace_s + budget(0.5)
 
 
 async def test_a_cold_browser_first_click_is_reported_by_its_own_act(tmp_path):
@@ -284,7 +285,7 @@ async def test_a_cold_browser_first_click_is_reported_by_its_own_act(tmp_path):
     driver 1.2 s after the press, past the grace, and the act said ok. Until the browser has told
     of a fetch, the press waits for the held requests (at most settle_cold_s), then the grace."""
     guard, ctx, _, _ = make_guard(tmp_path, sites=(), driver=COMMITTER)
-    guard.settle_quiet_s, guard.settle_cold_s = 0.2, 2.0
+    guard.settle_quiet_s, guard.settle_cold_s = 0.2, 5.0  # the cold bound far from the grace, for the last check
     gate = Gate()
     async with guard.acting(gate=gate):
         async def held_then_released():
@@ -300,17 +301,17 @@ async def test_a_cold_browser_first_click_is_reported_by_its_own_act(tmp_path):
     assert gate.seen == ["instagram.post"]  # judged inside the act: browser_act says approval_pending
 
     fresh, _, _, _ = make_guard(tmp_path / "b", sites=(), driver=COMMITTER)
-    fresh.settle_cold_s, fresh.settle_grace_s = 0.6, 1.0  # a long grace: cold alone (0.6) vs cold + grace (1.6)
+    fresh.settle_cold_s, fresh.settle_grace_s = 0.6, 3.0  # a long grace: cold alone (0.6) vs cold + grace (3.6)
     quiet = Gate()
     async with fresh.acting(gate=quiet):
         started = time.monotonic()
         await fresh.settle(quiet)  # nothing comes: bounded by settle_cold_s, no grace after it
-    assert 0.6 <= time.monotonic() - started < 1.4
+    assert 0.6 <= time.monotonic() - started < 0.6 + budget(0.8)  # below cold + grace even on a slow runner
 
     async with guard.acting(gate=(warm := Gate())):  # the browser told of a fetch: the usual grace only
         started = time.monotonic()
         await guard.settle(warm)
-    assert time.monotonic() - started < guard.settle_grace_s + 0.5  # not the cold bound (2.0)
+    assert time.monotonic() - started < guard.settle_grace_s + budget(0.5)  # not the cold bound (5.0)
 
 
 async def test_the_cold_wait_is_paid_once_a_browser(tmp_path):
@@ -319,27 +320,29 @@ async def test_the_cold_wait_is_paid_once_a_browser(tmp_path):
     press of a browser older than settle_cold_age_s, wait the usual grace."""
     guard, _, _, _ = make_guard(tmp_path, sites=(), driver=COMMITTER)
     # cold 1.5 s and grace 0.5 s keep every case 0.4 s or more from its neighbour (cold + grace is
-    # 2.0, the cold bound 1.5, the grace 0.5), so a loaded runner does not move one into the next
-    guard.settle_cold_s, guard.settle_grace_s = 1.5, 0.5
-    for expected, below in ((1.5, 1.9), (0.5, 1.2), (0.5, 1.2)):
+    # 2.0, the cold bound 1.5, the grace 0.5), so a loaded runner does not move one into the next. On a
+    # runner CI marks slow (OPENAJAR_TEST_SLOW) every time here is that much longer, the gaps too.
+    k = slow_factor()
+    guard.settle_cold_s, guard.settle_grace_s = 1.5 * k, 0.5 * k
+    for expected, below in ((1.5 * k, 1.9 * k), (0.5 * k, 1.2 * k), (0.5 * k, 1.2 * k)):
         async with guard.acting(gate=(gate := Gate())):
             started = time.monotonic()
             await guard.settle(gate)
         assert expected <= time.monotonic() - started < below
 
     old, _, _, _ = make_guard(tmp_path / "b", sites=(), driver=COMMITTER)
-    old.settle_cold_s, old._attached_at = 1.5, time.monotonic() - old.settle_cold_age_s
+    old.settle_cold_s, old._attached_at = 5.0, time.monotonic() - old.settle_cold_age_s
     async with old.acting(gate=(gate := Gate())):
         started = time.monotonic()
         await old.settle(gate)
-    assert time.monotonic() - started < old.settle_grace_s + 0.7  # not the cold bound (1.5)
+    assert time.monotonic() - started < old.settle_grace_s + budget(0.7)  # not the cold bound (5.0)
 
 
 async def test_a_held_request_ends_the_cold_wait_early(tmp_path):
     """Any fetch the browser tells of means its requests are no longer held: the press waits the
     usual grace from then on, not the whole cold bound."""
     guard, ctx, _, _ = make_guard(tmp_path, sites=(), driver=COMMITTER)
-    guard.settle_cold_s = 2.0
+    guard.settle_cold_s = 5.0
     gate = Gate()
     async with guard.acting(gate=gate):
         async def a_read_arrives():
@@ -350,8 +353,8 @@ async def test_a_held_request_ends_the_cold_wait_early(tmp_path):
         started = time.monotonic()
         await guard.settle(gate)
         await task
-    # ended early: far below the whole cold bound (2.0)
-    assert 0.3 + guard.settle_grace_s - 0.05 <= time.monotonic() - started < 0.3 + guard.settle_grace_s + 0.8
+    # ended early: far below the whole cold bound (5.0)
+    assert 0.3 + guard.settle_grace_s - 0.05 <= time.monotonic() - started < 0.3 + guard.settle_grace_s + budget(0.8)
 
 
 async def test_settle_waits_for_a_non_get_still_in_flight(tmp_path):

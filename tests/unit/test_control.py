@@ -10,6 +10,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from test_lanes import make
+from testkit.timing import budget, until
 
 from openajar.core.errors import AgentPaused, HumanInControl, InvalidRequest, LaneNotFound
 from openajar.core.models import ControlState, LaneControl, LaneSpec, LaneState
@@ -240,8 +241,7 @@ async def test_take_over_while_an_agent_waits_for_the_lock_wins(tmp_path):
     first = asyncio.create_task(first_agent())
     second = asyncio.create_task(second_agent())
     await entered.wait()
-    await asyncio.sleep(0.01)
-    assert mgr._lanes[LANE].users == 2  # the second agent is waiting for the lane
+    assert await until(lambda: mgr._lanes[LANE].users == 2)  # the second agent is waiting for the lane
     await mgr.take_control(LANE, by="owner")
     release.set()
     await first
@@ -276,13 +276,13 @@ async def test_hand_back_during_wait_for_agent_control(tmp_path):
     await mgr.take_control(LANE, by="owner")
     loop = asyncio.get_running_loop()
     started = loop.time()
-    waiter = asyncio.create_task(mgr.wait_for_agent_control(LANE, 5.0))
+    waiter = asyncio.create_task(mgr.wait_for_agent_control(LANE, 30.0))
     await asyncio.sleep(0.05)
     assert not waiter.done()
     await mgr.hand_back(LANE, by="owner")
-    info = await asyncio.wait_for(waiter, 1.0)
+    info = await asyncio.wait_for(waiter, 10)
     assert info.control.state == ControlState.AGENT
-    assert loop.time() - started < 1.0
+    assert loop.time() - started < budget(1.0)  # woken by the hand back, not the 30 s timeout
 
 
 async def test_wait_for_agent_control_times_out_with_the_current_state(tmp_path):
@@ -298,23 +298,23 @@ async def test_wait_for_agent_control_times_out_with_the_current_state(tmp_path)
 async def test_wait_keeps_waiting_through_other_changes(tmp_path):
     mgr, *_ = await setup(tmp_path)
     await mgr.take_control(LANE, by="owner")
-    waiter = asyncio.create_task(mgr.wait_for_agent_control(LANE, 5.0))
+    waiter = asyncio.create_task(mgr.wait_for_agent_control(LANE, 30.0))
     await asyncio.sleep(0.01)
     await mgr.request_control(LANE, by="agent", reason="ready")
     await mgr.stop_agent(LANE, by="owner")
     await asyncio.sleep(0.02)
     assert not waiter.done()
     await mgr.hand_back(LANE, by="owner")
-    assert (await asyncio.wait_for(waiter, 1.0)).control.state == ControlState.AGENT
+    assert (await asyncio.wait_for(waiter, 10)).control.state == ControlState.AGENT  # before its 30 s timeout
 
 
 async def test_many_waiters_wake_together(tmp_path):
     mgr, *_ = await setup(tmp_path)
     await mgr.take_control(LANE, by="owner")
-    waiters = [asyncio.create_task(mgr.wait_for_agent_control(LANE, 5.0)) for _ in range(5)]
+    waiters = [asyncio.create_task(mgr.wait_for_agent_control(LANE, 30.0)) for _ in range(5)]
     await asyncio.sleep(0.01)
     await mgr.hand_back(LANE, by="owner")
-    results = await asyncio.wait_for(asyncio.gather(*waiters), 1.0)
+    results = await asyncio.wait_for(asyncio.gather(*waiters), 10)  # woken, not timed out (30 s)
     assert all(r.control.state == ControlState.AGENT for r in results)
 
 
@@ -357,10 +357,7 @@ async def test_reaper_loop_hands_back(tmp_path):
     await mgr.start()
     await mgr.take_control(LANE, by="owner")
     wall.advance(61)
-    for _ in range(100):
-        if mgr.get(LANE).control.state == ControlState.AGENT:
-            break
-        await asyncio.sleep(0.01)
+    await until(lambda: mgr.get(LANE).control.state == ControlState.AGENT)
     assert mgr.get(LANE).control.state == ControlState.AGENT
     await mgr.shutdown()
 
@@ -445,7 +442,7 @@ async def test_slow_async_listener_does_not_hold_up_the_change(tmp_path, monkeyp
     assert not finished.is_set()
     release.set()
     assert mgr._background  # still running, held so it is not garbage collected
-    await asyncio.wait_for(finished.wait(), 1.0)
+    await asyncio.wait_for(finished.wait(), 10)
     await asyncio.sleep(0)
     assert not mgr._background
 

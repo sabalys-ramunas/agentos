@@ -9,6 +9,7 @@ import threading
 import time
 
 import pytest
+from lockheld import held_lock
 
 from openajar.core.sqlite import SqliteStore
 from openajar.node.store import LaneStore
@@ -84,7 +85,7 @@ def test_run_keeps_the_loop_free_while_another_process_holds_the_lock(tmp_path):
         ticker.cancel()
         return ticks
 
-    assert asyncio.run(main()) >= 10  # the loop kept running the whole time
+    assert asyncio.run(main()) >= 3  # the loop kept running while the put waited (a blocked loop ticks 0 or 1)
     holder.join()
 
 
@@ -93,16 +94,12 @@ def test_soon_writes_at_once_when_free_and_queues_in_order_when_locked(tmp_path)
     store.soon(store.put, "a", "now")
     assert store.get("a") == "now" and not store._pending
 
-    ready = threading.Event()
-    holder = threading.Thread(target=_hold_write_lock, args=(tmp_path / "n.db", 0.5, ready))
-    holder.start()
-    ready.wait(5)
-    started = time.monotonic()
-    store.soon(store.put, "a", "first")   # locked: queued, and the caller does not wait
-    store.soon(store.put, "a", "second")  # behind it, even if the lock is free by now
-    assert time.monotonic() - started < 0.2
+    with held_lock(tmp_path / "n.db") as lock:
+        store.soon(store.put, "a", "first")   # locked: queued, and the caller does not wait
+        assert lock.still_held and store._pending  # returned while the lock was held: it did not wait
+        lock.let_go()
+        store.soon(store.put, "a", "second")  # behind it, even though the lock is free by now
     asyncio.run(store.flush())
-    holder.join()
     assert store.get("a") == "second"
 
 
@@ -143,14 +140,9 @@ def test_an_existing_lane_store_opens_as_it_is(tmp_path):
 def test_a_read_never_waits_for_a_write_lock(tmp_path):
     store = Notes(tmp_path / "n.db", timeout=5.0)
     store.put("a", "1")
-    ready = threading.Event()
-    holder = threading.Thread(target=_hold_write_lock, args=(tmp_path / "n.db", 0.8, ready))
-    holder.start()
-    ready.wait(5)
-    started = time.monotonic()
-    assert store.get("a") == "1" and store.get("other") is None  # the uncommitted row is not seen
-    assert time.monotonic() - started < 0.2
-    holder.join()
+    with held_lock(tmp_path / "n.db", insert="INSERT OR REPLACE INTO notes VALUES ('other', 'x')") as lock:
+        assert store.get("a") == "1" and store.get("other") is None  # the uncommitted row is not seen
+        assert lock.still_held  # read while the writer still held the lock: it did not wait
     assert store.get("other") == "x"
 
 

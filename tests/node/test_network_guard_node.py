@@ -8,7 +8,6 @@ These tests drive a real Camoufox on an Xvfb display and use the page's own fetc
 
 from __future__ import annotations
 
-import asyncio
 import os
 import shutil
 import socket
@@ -18,6 +17,7 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import pytest
+from testkit.timing import free_port, until
 
 from openajar.core.models import LaneSpec, ProxyConfig
 from openajar.node.camoufox.engine import CamoufoxEngine
@@ -25,8 +25,9 @@ from openajar.node.camoufox.engine import CamoufoxEngine
 pytestmark = pytest.mark.node
 
 DISPLAY = os.environ.get("OPENAJAR_TEST_GUARD_DISPLAY", ":160")
-SECRET_PORT = int(os.environ.get("OPENAJAR_TEST_GUARD_SECRET_PORT", "7461"))
-PROXY_PORT = int(os.environ.get("OPENAJAR_TEST_GUARD_PROXY_PORT", "7462"))
+# free ports the kernel picks (a fixed pair clashed with whatever else listened there); the env still pins them
+SECRET_PORT = int(os.environ.get("OPENAJAR_TEST_GUARD_SECRET_PORT") or free_port())
+PROXY_PORT = int(os.environ.get("OPENAJAR_TEST_GUARD_PROXY_PORT") or free_port())
 
 FETCH = """async (url) => {
   try { await fetch(url, {mode: 'no-cors', cache: 'no-store'}); return 'reached'; }
@@ -143,9 +144,9 @@ async def test_proxied_lane_sends_localhost_through_the_proxy(tmp_path, display,
         page = await session.page()
         await page.goto("about:blank")
         await page.evaluate(FETCH, f"http://127.0.0.1:{SECRET_PORT}/")
-        await asyncio.sleep(0.5)
         # the request went to the proxy (which, in production, cannot reach the node), never straight to the node
+        assert await until(lambda: any(f"127.0.0.1:{SECRET_PORT}" in line for line in recording_proxy.targets)), \
+            recording_proxy.targets
         assert secret_server.hits == 0
-        assert any(f"127.0.0.1:{SECRET_PORT}" in line for line in recording_proxy.targets), recording_proxy.targets
     finally:
         await session.close()

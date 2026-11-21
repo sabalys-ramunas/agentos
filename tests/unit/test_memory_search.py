@@ -6,6 +6,7 @@ import time
 
 import pytest
 from testkit.memory import fake_memory
+from testkit.timing import budget
 
 from openajar.memory.models import Caller
 
@@ -183,10 +184,10 @@ def test_five_thousand_entries_search_under_50ms(tmp_path):
         took = time.perf_counter() - start
         assert res.data["hits"]
         # measured at 1 to 5 ms; the bound catches a lost index (a scan of 5,000 bodies), not CPU load
-        assert took < 0.5, f"{q!r} took {took * 1000:.1f} ms"
+        assert took < budget(0.5), f"{q!r} took {took * 1000:.1f} ms"
     start = time.perf_counter()
     s.context(m.agent(), "biz-a", task="draft summer sale posts")
-    assert time.perf_counter() - start < 1.0
+    assert time.perf_counter() - start < budget(1.0)
     s.close()
 
 

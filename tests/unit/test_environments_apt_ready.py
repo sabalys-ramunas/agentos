@@ -10,13 +10,14 @@ import time
 from pathlib import Path
 
 import pytest
+from testkit.timing import wait_for
 
 from openajar.environments import machine
 
 FAKE_APT = """#!/bin/sh
 echo "$(basename "$0") $*" >> {log}
 if [ "$1" = update ] || [ "$2" = update ]; then
-  sleep {delay}
+  i=0; while [ ! -e {gate} ] && [ "$i" -lt {tenths} ]; do sleep 0.1; i=$((i + 1)); done
   mkdir -p {root}/var/lib/apt/lists
   touch {root}/var/lib/apt/lists/archive.ubuntu.com_ubuntu_dists_noble_main_binary-amd64_Packages
 fi
@@ -32,9 +33,10 @@ def box(tmp_path):
     log = tmp_path / "apt.log"
 
     def fake(delay: float) -> None:
+        """An update takes `delay` seconds, or less once the file `gate` (beside the log) is there."""
         for name in ("apt-get", "apt"):
             f = root / "usr/bin" / name
-            f.write_text(FAKE_APT.format(log=log, delay=delay, root=root))
+            f.write_text(FAKE_APT.format(log=log, tenths=round(delay * 10), gate=tmp_path / "gate", root=root))
             f.chmod(0o755)
 
     def sh(cmd: str) -> subprocess.CompletedProcess:
@@ -50,13 +52,18 @@ def calls(log: Path) -> list[str]:
 
 def test_the_boot_step_returns_at_once_and_the_update_runs_behind_it(box):
     root, log, fake, sh = box
-    fake(delay=1.0)
-    t0 = time.monotonic()
+    fake(delay=20.0)  # the update runs until the test opens the gate
     assert sh(machine.apt_ready(str(root))).returncode == 0
-    assert time.monotonic() - t0 < 0.8  # the boot does not wait for the lists
+    # the boot step is back and the update still runs: it did not wait for the lists, however slow the runner
+    assert wait_for(lambda: "apt-get update -q" in calls(log)) and not list((root / "var/lib/apt/lists").glob("*"))
     # an install right away waits for the update, then runs with its own arguments
-    out = sh("apt-get install -y jq")
-    assert out.returncode == 0 and "waiting" in out.stderr
+    install = subprocess.Popen(["sh", "-c", "apt-get install -y jq"], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                               text=True, env={"PATH": f"{root}/usr/local/sbin:{root}/usr/bin:/usr/bin:/bin"})
+    said = install.stderr.readline()  # its first word, while the update still runs
+    (root.parent / "gate").touch()
+    _, rest = install.communicate(timeout=30)
+    out = subprocess.CompletedProcess(install.args, install.returncode, "", said + rest)
+    assert out.returncode == 0 and "waiting" in said
     assert calls(log)[-1] == "apt-get install -y jq" and calls(log).count("apt-get update -q") == 1
     assert not (root / machine.APT_PID.lstrip("/")).exists()
 
@@ -65,7 +72,8 @@ def test_with_no_lists_and_no_update_running_the_wrapper_fetches_them_first(box)
     root, log, fake, sh = box
     fake(delay=0.0)
     sh(machine.apt_ready(str(root)))
-    time.sleep(0.3)
+    pid = root / machine.APT_PID.lstrip("/")
+    assert wait_for(lambda: "apt-get update -q" in calls(log) and not pid.exists())  # the boot's update ended
     for f in (root / "var/lib/apt/lists").iterdir():
         f.unlink()  # say the lists went
     log.unlink()

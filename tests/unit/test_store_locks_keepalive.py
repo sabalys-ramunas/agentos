@@ -3,10 +3,9 @@ lane's row is read without taking the write lock (openajar.core.sqlite)."""
 
 from __future__ import annotations
 
-import time
 from datetime import UTC, datetime
 
-from lockheld import _hold, loop_stays_free
+from lockheld import held_lock, loop_stays_free
 
 from openajar.keepalive.store import STARTED, KeepaliveStore, Visit
 
@@ -31,14 +30,8 @@ async def test_status_and_visits_wait_for_the_lock_off_the_loop(tmp_path):
 
 
 def test_reading_a_known_lane_never_waits_for_the_write_lock(tmp_path):
-    import threading
-
     store = KeepaliveStore(tmp_path)
     seed = store.lane("a/one").seed
-    ready, done = threading.Event(), threading.Event()
-    threading.Thread(target=_hold, args=(store.path, 0.6, ready, done), daemon=True).start()
-    assert ready.wait(5)
-    t0 = time.monotonic()
-    assert store.lane("a/one").seed == seed
-    assert time.monotonic() - t0 < 0.2
-    done.wait(5)
+    with held_lock(store.path) as lock:
+        assert store.lane("a/one").seed == seed
+        assert lock.still_held  # read while the other connection held the lock: it did not wait

@@ -58,6 +58,9 @@ jobs:
         # Node tests (-m node) need Camoufox and Xvfb; they run on the node with scripts/node-test.sh.
         env:
           OPENAJAR_TEST_SHARD: ${{ matrix.shard }}/4
+          # macOS runners are much slower and noisier: speed checks scale their bound by this
+          # (tests/testkit/timing.py budget()); waits for an event do not need it
+          OPENAJAR_TEST_SLOW: ${{ startsWith(matrix.os, 'macos') && '3' || '1' }}
         # A shard runs ~3,350 tests in one process, and some leave stores and sockets for the garbage
         # collector to close: raise the open-file limit as far as the runner allows, never lower it
         # (macOS starts at 256). A real leak fails the shard by name first (tests/conftest.py,

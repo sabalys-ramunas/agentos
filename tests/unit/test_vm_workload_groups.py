@@ -13,6 +13,7 @@ import time
 from pathlib import Path
 
 import pytest
+from testkit.timing import wait_for
 
 from openajar.env.models import RemoteHost
 from openajar.env.sandbox import Workload
@@ -62,7 +63,7 @@ def alive(pid: int) -> bool:
     return bool(out.strip()) and not out.strip().startswith("Z")
 
 
-def wait_for(path: Path, timeout: float = 5) -> str:
+def written(path: Path, timeout: float = 5) -> str:
     end = time.monotonic() + timeout
     while time.monotonic() < end:
         if path.exists() and path.read_text().strip():
@@ -76,12 +77,11 @@ def test_cancel_ends_the_dev_server_and_its_children(shell):
     child = tmp / "child.pid"
     # like `pnpm dev`: a shell that starts vite (a child) and waits
     proc = start(["sh", "-c", f"sleep 300 & echo $! > {child}; wait"], "j-dev1")
-    vite = int(wait_for(child))
+    vite = int(written(child))
     assert alive(vite)
     stop("j-dev1", "TERM")
     proc.wait(timeout=5)
-    time.sleep(0.2)
-    assert not alive(vite)
+    assert wait_for(lambda: not alive(vite))
     stop("j-dev1", "KILL")
     assert not (Path(ssh.PGID_DIR) / "j-dev1.pgid").exists()
 
@@ -91,9 +91,8 @@ def test_a_command_that_ends_takes_its_background_children_along_and_keeps_its_e
     child = tmp / "bg.pid"
     proc = start(["sh", "-c", f"sleep 300 & echo $! > {child}; exit 3"], "x-run1")
     assert proc.wait(timeout=5) == 3
-    bg = int(wait_for(child))
-    time.sleep(0.2)
-    assert not alive(bg)
+    bg = int(written(child))
+    assert wait_for(lambda: not alive(bg))
 
 
 def test_a_terminal_workload_and_an_odd_id_keep_the_plain_command():

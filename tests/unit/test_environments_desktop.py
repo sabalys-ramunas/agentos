@@ -20,6 +20,7 @@ from types import SimpleNamespace
 
 import pytest
 from test_environments_vmbrowser import FakeMachine, FakeService, FakeTunnel, _ctl_namespace, _env
+from testkit.timing import until
 
 from openajar.core.errors import EngineError
 from openajar.core.models import LaneSpec
@@ -751,10 +752,7 @@ async def test_the_link_reads_only_the_docks_ask_for_the_browser(tmp_path):
     try:
         link = desklink._Link(path, on_want=wants.append)
         link.send({"t": "hello"})
-        for _ in range(100):
-            if wants and link.writer is None:
-                break
-            await asyncio.sleep(0.02)
+        await until(lambda: wants and link.writer is None)
         assert wants == ["browser"] and link.writer is None
     finally:
         server.close()
@@ -777,10 +775,7 @@ async def test_the_link_drops_what_it_cannot_send_and_never_raises(tmp_path):
     try:
         live = desklink._Link(path)
         live.send({"t": "focus", "what": "terminal"})
-        for _ in range(50):
-            if server_got:
-                break
-            await asyncio.sleep(0.02)
+        await until(lambda: server_got)
         assert json.loads(server_got[0]) == {"t": "focus", "what": "terminal"}
         live.close()
     finally:

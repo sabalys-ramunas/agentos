@@ -12,6 +12,7 @@ from types import SimpleNamespace
 
 import pytest
 from test_mail_tools import Ctx, Transport
+from testkit.timing import budget
 from workflow_support import MAIL, make_node
 
 from openajar.runner.mail import message as parsing
@@ -96,7 +97,7 @@ def test_a_garbage_collector_callback_past_the_limit_does_not_end_the_limit(monk
         ref = weakref.ref(thing, lambda _r: None)  # the callback runs when `thing` goes, here
         del thing
         assert ref() is None
-        deadline = time.monotonic() + 3
+        deadline = time.monotonic() + 20  # far past the bound below, even scaled for a slow runner
         while time.monotonic() < deadline:  # the parser's own work: the limit must stop it
             email.utils.parseaddr("a@b.example")
         return email.message_from_string("Subject: read\r\n\r\nall of it")
@@ -105,7 +106,7 @@ def test_a_garbage_collector_callback_past_the_limit_does_not_end_the_limit(monk
     monkeypatch.setattr(parsing.email, "message_from_bytes", slow_parse)
     started = time.monotonic()
     p = parsing.parse(GOOD)
-    assert p.unreadable and time.monotonic() - started < 2
+    assert p.unreadable and time.monotonic() - started < budget(2)
 
 
 def test_the_time_limit_leaves_nothing_behind_on_the_thread():

@@ -9,6 +9,7 @@ import logging
 import time
 
 import pytest
+from testkit.timing import budget
 
 from openajar.node.camoufox import window as ec  # _xlib is patched where place_window reads it
 from openajar.node.display import _write_xauthority, read_xauthority
@@ -102,8 +103,8 @@ def test_a_window_that_does_not_fit_returns_at_once_and_is_logged_once(monkeypat
     monkeypatch.setattr(ec, "_xlib", lambda: x11)
     t0 = time.monotonic()
     with caplog.at_level(logging.INFO, logger=ec.log.name):
-        assert ec.place_window(":110", (0, 100), timeout=3) == 0
-    assert time.monotonic() - t0 < 1, "waited for the deadline although the window was there"
+        assert ec.place_window(":110", (0, 100), timeout=10) == 0
+    assert time.monotonic() - t0 < budget(1), "waited for the deadline although the window was there"
     assert len([r for r in caplog.records if "does not fit" in r.getMessage()]) == 1
     assert not [c for c in x11.calls if c[0] == "move"] and x11.windows[0][:2] == [0, 0]
 

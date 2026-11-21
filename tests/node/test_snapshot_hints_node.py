@@ -10,6 +10,7 @@ import re
 import time
 
 import pytest
+from testkit.timing import budget
 
 from openajar.node.interaction import PlaywrightInteraction
 from openajar.node.snapshot import HINT_BUDGET_MS, HINT_LIMIT, collect_facts, find_refs
@@ -127,4 +128,4 @@ async def test_a_tight_budget_skips_the_rest_without_waiting(page, ia):
     elapsed = time.perf_counter() - started
 
     assert len(facts) < HINT_LIMIT
-    assert elapsed < 0.5
+    assert elapsed < budget(0.5)
