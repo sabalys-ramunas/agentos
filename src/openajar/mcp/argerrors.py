@@ -10,6 +10,8 @@ import difflib
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any
 
+from openajar.core import toolnames
+
 if TYPE_CHECKING:
     from pydantic import ValidationError
 
@@ -69,8 +71,12 @@ def unknown_arguments(spec: ToolSpec, known: frozenset[str] | None, arguments: A
     parts = []
     for key in extra[:MAX_UNKNOWN_SHOWN]:
         shown = str(key) if len(str(key)) <= 40 else str(key)[:37] + "..."
+        renamed = toolnames.old_argument(spec.name, str(key))
         close = _closest(str(key), known)
-        parts.append(f"{shown!r} (did you mean {close!r}?)" if close else repr(shown))
+        if renamed is not None:  # removed in 0.5.0: say the new name, not a guess
+            parts.append(f"{shown!r} ({renamed}; the old name was removed in {toolnames.REMOVED})")
+        else:
+            parts.append(f"{shown!r} (did you mean {close!r}?)" if close else repr(shown))
     more = f" and {len(extra) - MAX_UNKNOWN_SHOWN} more" if len(extra) > MAX_UNKNOWN_SHOWN else ""
     word = "argument" if len(extra) == 1 else "arguments"
     try:
@@ -90,7 +96,13 @@ def shows_arguments(tool: str) -> str:
 
 def unknown_tool(name: str, known: Iterable[str]) -> str:
     """not_found for a tool this caller has no tool by, naming a close one it does have, and a fix line
-    that works: tools_more lists every tool of every toolset, tools/list only the loaded ones."""
+    that works: tools_more lists every tool of every toolset, tools/list only the loaded ones. A name
+    removed in 0.5.0 (lane_exec, browser_tab) names the tool and call that replace it instead, so an
+    agent on old instructions recovers in one step."""
+    instead = toolnames.use_instead(name)
+    if instead is not None:
+        return (f"not_found: no tool named {name!r}: {instead} (the old name was removed in "
+                f"{toolnames.REMOVED})\nfix: Call {toolnames.call_instead(name)}.")
     shown = name if len(name) <= 64 else name[:61] + "..."
     close = difflib.get_close_matches(name, sorted(known), n=1, cutoff=0.6) if len(name) <= 64 else []
     mean = f" (did you mean {close[0]!r}?)" if close else ""

@@ -383,7 +383,7 @@ class Client(Credentials):
                 claude = ClaudeCode(self.tools.claude, self.paths.home)
                 claude.register(conn, helper)
                 conn.claude_registered = True
-                moved = claude.unregister_legacy(conn.legacy_claude_name)
+                moved = claude.unregister_legacy(conn.legacy_claude_name, conn.url)
                 if moved:
                     result.notes.append(f"Claude Code: removed {conn.legacy_claude_name}, its name before the rename")
                 kept = same and previous and previous.claude_registered and not moved
@@ -476,7 +476,7 @@ class Client(Credentials):
             claude = ClaudeCode(self.tools.claude, self.paths.home)
             if claude.unregister(claude_name):
                 removed.append(f"Claude Code entry {claude_name}")
-            if claude.unregister_legacy(legacy_name):
+            if claude.unregister_legacy(legacy_name, conn.url if conn is not None else None):
                 removed.append(f"Claude Code entry {legacy_name}")
         elif conn is not None and conn.claude_registered:
             manual = f"claude mcp remove --scope user {claude_name}"

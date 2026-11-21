@@ -33,8 +33,8 @@ LANE_NAME = re.compile(r"^(env/)?e[a-z0-9]{3,15}(-browser)?$")
 
 
 def unwrap(row: dict[str, Any]) -> dict[str, Any]:
-    """A tools_call row as the tool it ran, by its name today: a run from before 2026-11-19 (or an agent
-    that still says lane_exec) counts as the renamed tool, so history stays comparable."""
+    """A tools_call row as the tool it ran, by its name today: a run from before 2026-11-19 (lane_exec)
+    counts as the renamed tool, so history stays comparable."""
     if row.get("tool") == "tools_call" and isinstance((row.get("args") or {}).get("name"), str):
         inner = row["args"].get("arguments")
         return {**row, "tool": current(row["args"]["name"]), "args": inner if isinstance(inner, dict) else {},

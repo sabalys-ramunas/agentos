@@ -56,8 +56,6 @@ tools and settings.
 - **Every argument of the everyday tools says what it is** (`terminal_exec`'s `cmd`, `file_edit`'s `old`
   and `new`, `terminal_job_read`'s offsets and waits, and the rest), within 0.4.0's budget for the
   default list (7,141 of 7,150 tokens).
-- The tool names 0.4.0 renamed (`lane_exec`, `lanes_list`, ...) still answer in 0.5.0, each result saying
-  the new name; they go in a later minor release.
 
 ### Added
 
@@ -94,6 +92,17 @@ tools and settings.
   testers found, a build longer than the default wait, a checkout form with every kind of field read back
   by the shop, and a command typed into the desktop's Terminal with the screen tools.
 
+### Removed
+
+- **The old tool and argument names 0.4.0 announced are gone.** `lane_exec`, `lanes_list`, `files_put` and
+  every other name 0.4.0 renamed, the three merged tools (`browser_tab`, `browser_dialog_answer`,
+  `approval_status`), and the old argument names (`wait_ms` on `terminal_job_read`, `timeout_s` where it
+  became `wait_s`) no longer run. A call by one fails as an unknown tool or argument, and the error names
+  what to call instead ("lane_exec is terminal_exec", "browser_tab is browser_tabs(select=...)", "wait_ms is
+  wait_s, in seconds"), so an agent on old instructions recovers in one step. docs/TOOLS.md, "Removed tool
+  names", has the table. A job no longer says where it runs as `lane` beside `terminal`. The CLI still
+  calls a node from before 0.4.0 by the old names.
+
 ### Fixed
 
 - **What the commands window shows is the agent's real record.** A command's output can no longer clear the
@@ -119,6 +128,12 @@ tools and settings.
 - A second home's `openajar local start` and `stop` never touch the person's own service, nor the one an
   install from before the rename left.
 - The installer no longer copies a checkout's `web/node_modules` into the install.
+<!-- legacy-name: begin (the entry's name before the rename) -->
+- **Upgrading removes Claude Code's old `agentos-<name>` entry** even when an `openajar-<name>` entry is there
+  already (from an earlier run). It was kept, and failed with 401 at every session start once the new
+  registration revoked its grant. `claude mcp get` does not show an entry's helper, so the old entry is
+  known by the helper in ~/.claude.json or by a URL that points at the node.
+<!-- legacy-name: end -->
 - **A saved environment with a desktop goes idle again.** The node's own checks of the machine (its screen,
   the agent's ssh, stills, updates) no longer count as its use; two of them at once put back each other's
   time, so such an environment was never saved for idleness.

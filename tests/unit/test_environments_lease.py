@@ -128,9 +128,9 @@ async def test_whoami_names_the_machine_its_session_holds_through_the_service(no
 async def test_jobs_of_a_machine_list_only_with_its_handle(node):  # noqa: F811
     a = await opened(node, session=NONE)
     await node["envs"].job_start(f"env/{a['id']}", "npm run dev", cwd="/work")
-    assert [j for j in await node["call"]("terminal_jobs", session=NONE) if j["lane"].startswith("env/")] == []
+    assert [j for j in await node["call"]("terminal_jobs", session=NONE) if j["terminal"].startswith("env/")] == []
     mine = await node["call"]("terminal_jobs", on=a["on"], session=NONE)
-    assert [j["lane"] for j in mine] == [f"env/{a['id']}"]
+    assert [j["terminal"] for j in mine] == [f"env/{a['id']}"]
     with pytest.raises(ToolCallError, match="^which_environment"):
         await node["call"]("terminal_jobs", on=f"env/{a['id']}", session=NONE)
 

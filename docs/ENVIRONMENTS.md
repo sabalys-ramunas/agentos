@@ -675,11 +675,12 @@ The agent's default tool list is this loop and nothing else: `environment_open`,
 `environment_port`, `login` and `approval_wait`, plus `tools_more` and `tools_call`. The rest come in
 groups the agent loads with `tools_more(group)`: `accounts` (your own signed-in account browsers on a server
 node), `browser` (a browser's downloads, scrolling), `terminals` (terminals and services the
-node keeps, raw VMs, and `environment_forget`), `studio` and more ([TOOLS.md](TOOLS.md)). Tools renamed on
-2026-11-19 (`lane_exec` is `terminal_exec`, `lane_file_read` is `file_read`, and so on) still answer to their
-old names until the next minor release; the result then says the new name. So do the three merged into
-another: `browser_tab` is `browser_tabs(select=...)`, `browser_dialog_answer` is `browser_dialog(accept=...)`
-and `approval_status` is `approval_wait(wait_s=0)`. A wait is `wait_s` on every tool in the list.
+node keeps, raw VMs, and `environment_forget`), `studio` and more ([TOOLS.md](TOOLS.md)). The names 0.4.0
+renamed (`lane_exec` is `terminal_exec`, `lane_file_read` is `file_read`, and so on) were removed in 0.5.0, and
+so were the three merged into another (`browser_tab` is `browser_tabs(select=...)`, `browser_dialog_answer` is
+`browser_dialog(accept=...)`, `approval_status` is `approval_wait(wait_s=0)`). A call by an old name fails, and
+its error names the tool to call instead ([TOOLS.md](TOOLS.md), "Removed tool names"). A wait is `wait_s` on
+every tool in the list.
 
 Work that is only on your computer (changes not committed yet, or a project with no repository the
 node can clone) gets there two ways. The agent commits it to a branch, pushes it, and opens with

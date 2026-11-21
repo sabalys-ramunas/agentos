@@ -1,8 +1,6 @@
-"""The 2026-11-19 names: no tool says lane, and every old name still works for one release, with a note."""
+"""The 2026-11-19 names: no tool says lane, and a call by a name removed in 0.5.0 fails and names the new one."""
 
 from __future__ import annotations
-
-import json
 
 from test_toolsets import every_spec, node_server
 
@@ -29,25 +27,21 @@ def test_no_tool_says_lane_and_every_new_name_is_served():
     assert toolnames.current("approval_status") == "approval_wait" and toolnames.current("browser_tab") == "browser_tabs"
 
 
-def test_a_merged_tool_s_old_name_means_the_same_call():
-    served = {"approval_wait", "browser_tabs", "browser_dialog"}
-    assert toolnames.resolve("approval_status", {"approval_id": "ap_1"}, served) == (
-        "approval_wait", {"approval_id": "ap_1", "wait_s": 0},
-        "approval_status is now approval_wait with wait_s=0. The old name works until the next minor release.")
-    tool, args, note = toolnames.resolve("browser_tab", {"on": "x", "index": 1}, served)
-    assert (tool, args) == ("browser_tabs", {"on": "x", "select": 1})
-    assert note.startswith("browser_tab is now browser_tabs; index is now select")
-    assert toolnames.resolve("browser_dialog_answer", {"accept": True}, served)[:2] == ("browser_dialog", {"accept": True})
-    assert toolnames.resolve("approval_wait", {"approval_id": "a"}, served) == ("approval_wait", {"approval_id": "a"}, None)
+def test_a_removed_name_says_what_to_call_instead():
+    assert toolnames.use_instead("lane_exec") == "lane_exec is terminal_exec"
+    assert toolnames.use_instead("browser_tab") == "browser_tab is browser_tabs(select=...)"
+    assert toolnames.use_instead("approval_status") == "approval_status is approval_wait(wait_s=0)"
+    assert toolnames.use_instead("browser_dialog_answer") == "browser_dialog_answer is browser_dialog(accept=...)"
+    assert toolnames.use_instead("terminal_exec") is None and toolnames.use_instead("nope") is None
+    assert toolnames.call_instead("lane_job_read") == \
+        "terminal_job_read with the same arguments (wait_ms is wait_s, in seconds)"
+    assert toolnames.call_instead("lane_exec") == "terminal_exec with the same arguments"
+    assert toolnames.old_argument("terminal_job_read", "wait_ms") == "wait_ms is wait_s, in seconds"
+    assert toolnames.old_argument("browser_wait", "timeout_s") == "timeout_s is wait_s"
+    assert toolnames.old_argument("terminal_exec", "timeout_s") is None  # a command's own limit
 
 
-def test_old_arguments_become_new_ones_and_say_so():
-    args, notes = toolnames.rename_arguments("terminal_job_read", {"job": "j1", "wait_ms": 2500})
-    assert args == {"job": "j1", "wait_s": 2.5} and notes == ["wait_ms is now wait_s (in seconds)"]
-    assert toolnames.rename_arguments("terminal_job_read", {"job": "j1", "wait_ms": 1, "wait_s": 3})[0]["wait_s"] == 3
-    assert toolnames.rename_arguments("browser_wait_handback", {"timeout_s": 60})[0] == {"wait_s": 60}
-    assert toolnames.rename_arguments("browser_wait", {"timeout_s": 5}) == ({"wait_s": 5}, ["timeout_s is now wait_s"])
-    assert toolnames.rename_arguments("terminal_exec", {"timeout_s": 5}) == ({"timeout_s": 5}, [])  # a command's limit
+def test_the_cli_calls_a_node_from_before_the_rename_by_its_old_names():
     assert toolnames.for_older_node("approval_wait", {"approval_id": "a", "wait_s": 5}) == \
         ("approval_wait", {"approval_id": "a", "timeout_s": 5})
     assert toolnames.for_older_node("terminal_job_read", {"job": "j", "wait_s": 2}) == \
@@ -72,19 +66,23 @@ def _server():
     return build_mcp(Runtime(), [lambda _rt: specs], toolsets=["core"]), seen
 
 
-async def test_an_old_name_calls_the_new_tool_and_its_result_says_the_new_name():
+async def test_an_old_name_or_argument_fails_and_names_the_new_one():
     server, seen = _server()
     for result in (await server.call_tool("lane_job_read", {"job": "j1", "wait_ms": 2000}),
                    await server.call_tool("tools_call", {"name": "lane_job_read",
                                                          "arguments": {"job": "j1", "wait_ms": 2000}})):
-        assert not result.is_error
-        note = result.structured_content["renamed"]
-        assert note.startswith("lane_job_read is now terminal_job_read; wait_ms is now wait_s")
-        assert result.content[-1].text == f"renamed: {note}"
-        assert json.loads(result.content[0].text)["wait_s"] == 2.0
-    assert seen == [{"job": "j1", "wait_s": 2.0}] * 2
+        assert result.is_error
+        text = result.content[0].text
+        assert text.startswith("not_found: no tool named 'lane_job_read': lane_job_read is terminal_job_read")
+        assert "fix: Call terminal_job_read with the same arguments (wait_ms is wait_s, in seconds)." in text
+    old_arg = await server.call_tool("terminal_job_read", {"job": "j1", "wait_ms": 2000})
+    assert old_arg.is_error
+    assert "'wait_ms' (wait_ms is wait_s, in seconds; the old name was removed in 0.5.0)" in old_arg.content[0].text
+    merged = (await server.call_tool("browser_tab", {"index": 1})).content[0].text
+    assert "browser_tab is browser_tabs(select=...)" in merged and "fix: Call browser_tabs(select=...)." in merged
+    assert seen == []  # nothing ran under an old name
     plain = await server.call_tool("terminal_job_read", {"job": "j1"})
-    assert "renamed" not in plain.structured_content and len(plain.content) == 1
+    assert not plain.is_error and "renamed" not in plain.structured_content and len(plain.content) == 1
 
 
 async def test_keep_on_the_close_names_environment_open():
@@ -94,10 +92,10 @@ async def test_keep_on_the_close_names_environment_open():
     assert "keep is chosen at environment_open" in refused.content[0].text
 
 
-async def test_tools_more_finds_a_tool_by_its_old_name_and_the_old_files_toolset():
+async def test_tools_more_with_an_old_name_says_the_new_one_and_the_old_files_toolset_still_loads():
     server = node_server(["core"])
     by_old = await server.tools_more({"toolset": "lane_claim"})
-    body = by_old.structured_content
-    assert body["toolset"] == "accounts" and [t["name"] for t in body["tools"]] == ["browser_claim"]
-    files = (await server.tools_more({"toolset": "files"})).structured_content
+    assert by_old.is_error
+    assert "lane_claim is browser_claim, removed in 0.5.0" in by_old.content[0].text
+    files = (await server.tools_more({"toolset": "files"})).structured_content  # a setting, not a tool name
     assert files["toolset"] == "browser" and "browser_file_get" in [t["name"] for t in files["tools"]]

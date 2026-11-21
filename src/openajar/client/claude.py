@@ -17,6 +17,8 @@ import json
 import shlex
 import subprocess
 from pathlib import Path
+from typing import Any
+from urllib.parse import urlsplit
 
 from openajar.client.errors import ClientError
 from openajar.client.state import Connection
@@ -69,10 +71,45 @@ class ClaudeCode:
     def unregister(self, name: str) -> bool:
         return self._run("remove", "--scope", "user", name).returncode == 0
 
-    def unregister_legacy(self, name: str) -> bool:
+    def user_entry(self, name: str) -> dict[str, Any]:
+        """The user-scope entry as ~/.claude.json holds it, or {}: `claude mcp get` does not print an
+        entry's headersHelper, so that is where the helper an entry runs is read."""
+        try:
+            data = json.loads((self.home / ".claude.json").read_text())
+        except (OSError, ValueError):
+            return {}
+        servers = data.get("mcpServers") if isinstance(data, dict) else None
+        entry = servers.get(name) if isinstance(servers, dict) else None
+        return entry if isinstance(entry, dict) else {}
+
+    def unregister_legacy(self, name: str, url: str | None = None) -> bool:
         """Remove an entry an older version wrote under its old name: only one that runs through our
-        headers helper (an entry the owner made under that name stays)."""
+        headers helper or points at our node's `url` (an entry the owner made under that name for
+        something else stays). Whether or not the new entry was there already."""
         found = self.get(name)
-        if not found or LEGACY_HELPER not in found:
+        if not found:
             return False
-        return self.unregister(name)
+        entry = self.user_entry(name)
+        urls = [entry.get("url"), *(line.strip().removeprefix("URL:").strip() for line in found.splitlines()
+                                    if line.strip().startswith("URL:"))]
+        ours = LEGACY_HELPER in found or LEGACY_HELPER in str(entry.get("headersHelper") or "") or (
+            url is not None and any(same_node(url, other) for other in urls))
+        return self.unregister(name) if ours else False
+
+
+_LOOPBACK = {"localhost", "127.0.0.1", "::1"}
+
+
+def same_node(url: str, other: Any) -> bool:
+    """Whether two MCP URLs reach the same node: equal, or both on this computer at one port and path
+    (an older version wrote 127.0.0.1 where this one writes localhost)."""
+    if not isinstance(other, str) or not other:
+        return False
+    if url == other:
+        return True
+    a, b = urlsplit(url), urlsplit(other)
+    try:
+        return (a.hostname in _LOOPBACK and b.hostname in _LOOPBACK and a.port == b.port
+                and a.path.rstrip("/") == b.path.rstrip("/"))
+    except ValueError:  # a port that is not a number
+        return False

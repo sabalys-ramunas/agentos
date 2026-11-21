@@ -226,14 +226,17 @@ def more(groups: dict[str, list[Any]], shown: frozenset[str] | None, wanted: Any
         return overview(groups, everything), None, False
     if not isinstance(wanted, str):
         return None, "invalid: toolset: must be a string", False
-    key = toolnames.current(TOOLSET_ALIASES.get(wanted.strip().lower(), wanted.strip().lower()))
+    key = TOOLSET_ALIASES.get(wanted.strip().lower(), wanted.strip().lower())
     tool = None  # a tool's name: only that tool's description and arguments (its toolset is loaded)
     if key not in groups:
         owner = next((name for name, tools in groups.items() if any(t.name == key for t in tools)), None)
         if owner is None:
             known = ", ".join(n for n in (*NAMES, OTHER) if n in groups)
             shown_name = key if len(key) <= 64 else key[:61] + "..."
-            return None, f"invalid: toolset: no toolset or tool of yours named {shown_name!r} (yours: {known})", False
+            instead = toolnames.use_instead(key)  # a name removed in 0.5.0: say the one to ask for
+            told = f"{instead}, removed in {toolnames.REMOVED}; " if instead else ""
+            return None, (f"invalid: toolset: no toolset or tool of yours named {shown_name!r} "
+                          f"({told}yours: {known})"), False
         key, tool = owner, key
     tools = [t for t in groups[key] if tool is None or t.name == tool]
     if key in everything:

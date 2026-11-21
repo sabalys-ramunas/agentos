@@ -134,24 +134,24 @@ def toolsets_markdown(rows: list[dict[str, Any]]) -> list[str]:
 
 
 def renamed_markdown() -> list[str]:
-    """The names tools had before 2026-11-19, which still work for one release (openajar.core.toolnames)."""
-    out = ["", "## Renamed tools", "",
-           "These tools were renamed on 2026-11-19, and three merged into another (one tool with an argument",
-           f"where two competed). An old name still works until {toolnames.REMOVED_IN}: it is not listed, and its",
-           "result carries a `renamed` line with the new name. The same holds for an argument a renamed tool",
-           "took under another name.", "",
-           "| Old name | New name | Old argument |", "|---|---|---|"]
-    rows = [(old, new, ", ".join(f"`{a}` is `{n}`" for a, (n, _) in toolnames.RENAMED_ARGS.get(new, {}).items()))
-            for old, new in toolnames.RENAMED.items()]
-    rows += [(old, new, ", ".join([*(f"`{a}` is `{n}`" for a, n in renamed.items()),
-                                   *(f"called with `{k}={v}`" for k, v in fixed.items())]))
-             for old, (new, fixed, renamed) in toolnames.MERGED.items()]
-    for old, new, how in sorted(rows, key=lambda row: (row[1], row[0])):
-        out.append(f"| `{old}` | [`{new}`](#{new}) | {how} |")
+    """The names tools had before 2026-11-19, removed in 0.5.0, and what to call instead
+    (openajar.core.toolnames). A call by one fails, and its error says the same."""
+    out = ["", "## Removed tool names", "",
+           "0.4.0 renamed these tools (no tool name says lane any more) and merged three into another, and",
+           f"kept the old names callable for one release. They were removed in {toolnames.REMOVED}: a call by an old",
+           "tool or argument name fails as an unknown tool or argument, and its error names what to use instead.", "",
+           "| Old name | Use instead |", "|---|---|"]
+    rows = []
+    for old, new in toolnames.RENAMED.items():
+        args = [toolnames.old_argument(new, a) for a in toolnames.RENAMED_ARGS.get(new, {})]
+        rows.append((new, old, f"[`{new}`](#{new})" + "".join(f" ({a})" for a in args if a)))
+    rows += [(new, old, f"[`{call}`](#{new})") for old, (new, call) in toolnames.MERGED.items()]
+    for _, old, how in sorted(rows):
+        out.append(f"| `{old}` | {how} |")
     kept = [(tool, a, n) for tool, table in sorted(toolnames.RENAMED_ARGS.items())
             if tool not in toolnames.NEW_NAMES for a, (n, _) in table.items()]
     if kept:
-        out += ["", "Arguments renamed on tools that kept their name (`wait_s` is how long a call waits, "
+        out += ["", "Argument names removed from tools that kept their name (`wait_s` is how long a call waits, "
                 "`timeout_s` a command's own limit): "
                 + ", ".join(f"[`{tool}`](#{tool})'s `{a}` is `{n}`" for tool, a, n in kept) + "."]
     return out

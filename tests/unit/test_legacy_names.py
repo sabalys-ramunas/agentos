@@ -6,6 +6,7 @@ Codex, launchd, systemd or keychain."""
 # legacy-name: begin (this file names the old identifiers on purpose; scripts/rename_to_openajar.py keeps them)
 from __future__ import annotations
 
+import json
 import os
 import plistlib
 import subprocess
@@ -206,6 +207,23 @@ def test_the_old_claude_entry_goes_only_when_it_is_ours(tmp_path, user_home):
     assert claude.unregister_legacy("agentos-local")  # legacy-name
     assert not claude.unregister_legacy("agentos-mine")  # legacy-name: the owner's own entry stays
     assert not claude.unregister_legacy("agentos-none")  # legacy-name
+    assert (tmp_path / "claude-state" / "agentos-mine").exists()  # legacy-name
+
+
+def test_the_old_claude_entry_is_known_by_the_helper_in_claude_json(tmp_path, user_home):
+    """`claude mcp get` prints no headersHelper: the helper is read from ~/.claude.json, or the URL tells."""
+    exe = fake_claude(tmp_path, {
+        "agentos-local": "agentos-local:\n  Type: http\n  URL: http://127.0.0.1:7410/mcp\n",  # legacy-name
+        "agentos-there": "agentos-there:\n  Type: http\n  URL: http://127.0.0.1:7999/mcp\n",  # legacy-name
+        "agentos-mine": "agentos-mine:\n  Type: http\n  URL: https://example.test/mcp\n",  # legacy-name
+    })
+    (user_home / ".claude.json").write_text(json.dumps({"mcpServers": {"agentos-local": {  # legacy-name
+        "type": "http", "url": "http://127.0.0.1:7410/mcp",
+        "headersHelper": "~/.config/agentos/bin/agentos-mcp-headers local"}}}))  # legacy-name
+    claude = ClaudeCode(exe, user_home)
+    assert claude.unregister_legacy("agentos-local")  # legacy-name
+    assert claude.unregister_legacy("agentos-there", "http://localhost:7999/mcp")  # legacy-name: our node's URL
+    assert not claude.unregister_legacy("agentos-mine", "http://localhost:7999/mcp")  # legacy-name
     assert (tmp_path / "claude-state" / "agentos-mine").exists()  # legacy-name
 
 

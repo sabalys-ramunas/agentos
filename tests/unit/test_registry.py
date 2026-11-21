@@ -407,7 +407,7 @@ NODE_CALLS = [
     ("browser_act", {"on": "personal/reddit", "ref": "e2", "action": "type", "text": "hello"}),
     ("browser_scroll", {"on": "personal/reddit"}),
     ("browser_screenshot", {"on": "personal/reddit"}),
-    ("browser_wait", {"on": "personal/reddit", "for_text": "Posted", "timeout_s": 1}),
+    ("browser_wait", {"on": "personal/reddit", "for_text": "Posted", "wait_s": 1}),
     ("howto", {"topic": "waiting"}),
     ("browser_release", {"on": "personal/reddit"}),
     ("browser_close", {"on": "personal/reddit"}),

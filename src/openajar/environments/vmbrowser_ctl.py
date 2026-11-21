@@ -129,7 +129,7 @@ def _running(name):
 
 def _stop(name):
     pid = _running(name)
-    if pid is not None:
+    if pid is not None and pid > 1:  # killpg(1) or (0) would signal every process of this user, or our own group
         for sig, wait in ((signal.SIGTERM, 5.0), (signal.SIGKILL, 2.0)):
             try:
                 os.killpg(pid, sig)
@@ -219,6 +219,8 @@ def _stop_recorder():
     try:
         with open(RECORDER_PID) as f:
             pid = int(f.read().strip())
+        if pid <= 1:  # never every process of this user (killpg(1)) or our own group (killpg(0))
+            return
         os.killpg(pid, signal.SIGINT)
     except (OSError, ValueError):
         return

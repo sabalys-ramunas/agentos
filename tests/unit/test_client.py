@@ -234,6 +234,21 @@ def test_connect_again_changes_nothing(system, node, home):
     assert len(node.runtime.policy.list_grants()) == 1  # no second grant on the node
 
 
+def test_the_old_claude_entry_goes_when_the_new_one_is_already_there(system, node, home):
+    """An upgrade on a computer that already had openajar-mynode (an earlier run) and still has the old
+    agentos-mynode: the old one goes too (`claude mcp get` does not show a helper, so its URL tells; legacy-name)."""
+    assert run("connect", "mynode").exit_code == 0
+    servers = system.claude_servers()
+    url = servers["user:openajar-mynode"]["url"].replace("localhost", "127.0.0.1")
+    servers["user:agentos-mynode"] = {"type": "http", "url": url,  # legacy-name
+                                      "headersHelper": "~/.config/agentos/bin/agentos-mcp-headers mynode"}  # legacy-name
+    (system.state / "claude.json").write_text(json.dumps(servers))
+    result = run("connect", "mynode")
+    assert result.exit_code == 0, result.output
+    assert list(system.claude_servers()) == ["user:openajar-mynode"]
+    assert "removed agentos-mynode, its name before the rename" in result.output  # legacy-name
+
+
 def test_toolsets_go_in_the_url_and_stay_until_changed(system, node, home):
     helper = home / ".config/openajar/bin/openajar-mcp-headers"
 

@@ -74,53 +74,52 @@ Call any openajar tool by name with its arguments, also one not in your list (se
 | `name` | `str` | yes | The tool to call, for example terminal_jobs (terminals toolset). |
 | `arguments` | `dict` | no | The tool's arguments, as you would pass them. |
 
-## Renamed tools
+## Removed tool names
 
-These tools were renamed on 2026-11-19, and three merged into another (one tool with an argument
-where two competed). An old name still works until the next minor release: it is not listed, and its
-result carries a `renamed` line with the new name. The same holds for an argument a renamed tool
-took under another name.
+0.4.0 renamed these tools (no tool name says lane any more) and merged three into another, and
+kept the old names callable for one release. They were removed in 0.5.0: a call by an old
+tool or argument name fails as an unknown tool or argument, and its error names what to use instead.
 
-| Old name | New name | Old argument |
-|---|---|---|
-| `approval_status` | [`approval_wait`](#approval_wait) | called with `wait_s=0` |
-| `lane_check` | [`browser_check`](#browser_check) |  |
-| `lane_claim` | [`browser_claim`](#browser_claim) |  |
-| `lane_close` | [`browser_close`](#browser_close) |  |
-| `lane_control` | [`browser_control`](#browser_control) |  |
-| `browser_dialog_answer` | [`browser_dialog`](#browser_dialog) |  |
-| `files_delete` | [`browser_file_delete`](#browser_file_delete) |  |
-| `files_get` | [`browser_file_get`](#browser_file_get) |  |
-| `files_put` | [`browser_file_put`](#browser_file_put) |  |
-| `files_list` | [`browser_files`](#browser_files) |  |
-| `lane_freeze` | [`browser_freeze`](#browser_freeze) |  |
-| `lane_login_request` | [`browser_login_request`](#browser_login_request) |  |
-| `lane_open` | [`browser_open`](#browser_open) |  |
-| `lane_queue` | [`browser_queue`](#browser_queue) |  |
-| `lane_release` | [`browser_release`](#browser_release) |  |
-| `lane_request_control` | [`browser_request_control`](#browser_request_control) |  |
-| `lane_set_readiness` | [`browser_set_readiness`](#browser_set_readiness) |  |
-| `browser_tab` | [`browser_tabs`](#browser_tabs) | `index` is `select` |
-| `lane_do` | [`browser_task`](#browser_task) |  |
-| `lane_view` | [`browser_view`](#browser_view) |  |
-| `lane_wait_control` | [`browser_wait_handback`](#browser_wait_handback) | `timeout_s` is `wait_s` |
-| `lanes_list` | [`browsers_list`](#browsers_list) |  |
-| `lane_file_edit` | [`file_edit`](#file_edit) |  |
-| `lane_file_read` | [`file_read`](#file_read) |  |
-| `lane_file_write` | [`file_write`](#file_write) |  |
-| `env_create` | [`terminal_create`](#terminal_create) |  |
-| `lane_exec` | [`terminal_exec`](#terminal_exec) |  |
-| `lane_install` | [`terminal_install`](#terminal_install) |  |
-| `lane_job_cancel` | [`terminal_job_cancel`](#terminal_job_cancel) |  |
-| `lane_job_read` | [`terminal_job_read`](#terminal_job_read) | `wait_ms` is `wait_s` |
-| `lane_job_start` | [`terminal_job_start`](#terminal_job_start) |  |
-| `lane_jobs_list` | [`terminal_jobs`](#terminal_jobs) |  |
-| `env_remove` | [`terminal_remove`](#terminal_remove) |  |
-| `lane_upload` | [`terminal_upload`](#terminal_upload) |  |
-| `lane_upload_check` | [`terminal_upload_check`](#terminal_upload_check) |  |
-| `env_lanes_list` | [`terminals_list`](#terminals_list) |  |
+| Old name | Use instead |
+|---|---|
+| `approval_status` | [`approval_wait(wait_s=0)`](#approval_wait) |
+| `lane_check` | [`browser_check`](#browser_check) |
+| `lane_claim` | [`browser_claim`](#browser_claim) |
+| `lane_close` | [`browser_close`](#browser_close) |
+| `lane_control` | [`browser_control`](#browser_control) |
+| `browser_dialog_answer` | [`browser_dialog(accept=...)`](#browser_dialog) |
+| `files_delete` | [`browser_file_delete`](#browser_file_delete) |
+| `files_get` | [`browser_file_get`](#browser_file_get) |
+| `files_put` | [`browser_file_put`](#browser_file_put) |
+| `files_list` | [`browser_files`](#browser_files) |
+| `lane_freeze` | [`browser_freeze`](#browser_freeze) |
+| `lane_login_request` | [`browser_login_request`](#browser_login_request) |
+| `lane_open` | [`browser_open`](#browser_open) |
+| `lane_queue` | [`browser_queue`](#browser_queue) |
+| `lane_release` | [`browser_release`](#browser_release) |
+| `lane_request_control` | [`browser_request_control`](#browser_request_control) |
+| `lane_set_readiness` | [`browser_set_readiness`](#browser_set_readiness) |
+| `browser_tab` | [`browser_tabs(select=...)`](#browser_tabs) |
+| `lane_do` | [`browser_task`](#browser_task) |
+| `lane_view` | [`browser_view`](#browser_view) |
+| `lane_wait_control` | [`browser_wait_handback`](#browser_wait_handback) (timeout_s is wait_s) |
+| `lanes_list` | [`browsers_list`](#browsers_list) |
+| `lane_file_edit` | [`file_edit`](#file_edit) |
+| `lane_file_read` | [`file_read`](#file_read) |
+| `lane_file_write` | [`file_write`](#file_write) |
+| `env_create` | [`terminal_create`](#terminal_create) |
+| `lane_exec` | [`terminal_exec`](#terminal_exec) |
+| `lane_install` | [`terminal_install`](#terminal_install) |
+| `lane_job_cancel` | [`terminal_job_cancel`](#terminal_job_cancel) |
+| `lane_job_read` | [`terminal_job_read`](#terminal_job_read) (wait_ms is wait_s, in seconds) |
+| `lane_job_start` | [`terminal_job_start`](#terminal_job_start) |
+| `lane_jobs_list` | [`terminal_jobs`](#terminal_jobs) |
+| `env_remove` | [`terminal_remove`](#terminal_remove) |
+| `lane_upload` | [`terminal_upload`](#terminal_upload) |
+| `lane_upload_check` | [`terminal_upload_check`](#terminal_upload_check) |
+| `env_lanes_list` | [`terminals_list`](#terminals_list) |
 
-Arguments renamed on tools that kept their name (`wait_s` is how long a call waits, `timeout_s` a command's own limit): [`approval_wait`](#approval_wait)'s `timeout_s` is `wait_s`, [`browser_wait`](#browser_wait)'s `timeout_s` is `wait_s`.
+Argument names removed from tools that kept their name (`wait_s` is how long a call waits, `timeout_s` a command's own limit): [`approval_wait`](#approval_wait)'s `timeout_s` is `wait_s`, [`browser_wait`](#browser_wait)'s `timeout_s` is `wait_s`.
 
 ## Every tool
 

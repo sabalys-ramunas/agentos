@@ -42,7 +42,7 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 from openajar import __version__
 from openajar.controller import guide, routing
 from openajar.controller.grants import AgentGrant
-from openajar.core import http_errors, toolnames
+from openajar.core import http_errors
 from openajar.mcp import toolsets as ts
 from openajar.mcp.registry import (
     APPROVAL_NEXT,
@@ -51,7 +51,6 @@ from openajar.mcp.registry import (
     tools_changed,
     unknown_tool,
     with_catalog_lines,
-    with_renamed,
 )
 
 log = logging.getLogger("openajar.controller.mcp")
@@ -255,10 +254,7 @@ class ControllerMcp(MCPServer):
             return error_result(f"frozen: every node is frozen ({mesh['reason']}). Every agent is stopped and its "
                                 "grants were revoked. Do not retry; tell your user. Only the owner can unfreeze.")
         tools = self._tools(grant)
-        note = None
-        if name not in tools and toolnames.current(name) in tools:  # a name from before 2026-11-19
-            name, arguments, note = toolnames.resolve(name, arguments or {}, tools)
-        if name not in tools:  # its own fix line: tools_more lists them all, tools/list only the loaded ones
+        if name not in tools:  # its own fix line (a name removed in 0.5.0 names the new tool), see unknown_tool
             return CallToolResult(content=[TextContent(type="text", text=unknown_tool(name, tools))], is_error=True)
         hub = self.controller.hub
         try:
@@ -278,7 +274,7 @@ class ControllerMcp(MCPServer):
             code = getattr(exc, "code", "unavailable")
             message = getattr(exc, "message", None) or f"{type(exc).__name__}"
             return error_result(f"{code}: {message}")
-        return with_renamed(to_result(name, body, images, f"{self.controller.config.local_url}/#approvals"), note)
+        return to_result(name, body, images, f"{self.controller.config.local_url}/#approvals")
 
 
 class AgentAuth:

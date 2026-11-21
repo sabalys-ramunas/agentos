@@ -334,10 +334,9 @@ async def lane_install(ctx: ToolContext, *, on: str, packages: list[str], source
 
 # ------------------------------------------------------------------ jobs and synced trees
 def _job_view(info) -> dict:
-    """A job as an agent reads it: `terminal` is where it runs. `lane` says the same for one release
-    (openajar run before 2026-11-19 reads it; CHANGELOG.md, "Deprecated")."""
+    """A job as an agent reads it: `terminal` is where it runs (0.4.0 also said it as `lane`, removed in 0.5.0)."""
     out = info.model_dump(mode="json", exclude={"vm_wid"})
-    return {"id": out.pop("id"), "terminal": out["lane"], **out}
+    return {"id": out.pop("id"), "terminal": out.pop("lane"), **out}
 
 
 BRANCH_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/+-]{0,199}$")

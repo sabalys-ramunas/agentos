@@ -1,7 +1,7 @@
 # openajar pilot: a cheap worker on one lane
 
 Browser work is expensive when a frontier model does every step. So the expensive model calls
-`lane_do(on, goal, values)` and gets back one honest result. Code owns the loop, a cheap decider
+`browser_task(on, goal, values)` and gets back one honest result. Code owns the loop, a cheap decider
 picks from what code offers, and the node's own tools act. The design is
 `docs/design/browser-and-computer-agents.md` sections 5 and 6.
 
@@ -80,7 +80,7 @@ openajar plugins lane personal/reddit on      # a person only
 openajar plugins lane personal/reddit
 ```
 
-Off is about the worker and nothing else. `lane_do` is refused with `pilot_lane_off` before anything
+Off is about the worker and nothing else. `browser_task` is refused with `pilot_lane_off` before anything
 runs, a queued run ends with it when it comes up, and a run that is going stops at its next step
 with nothing further done. A run parked on an approval stays parked, and stops without sending when
 it wakes. Agents keep the browser tools, and a person can still take over.
@@ -145,7 +145,7 @@ on an approval that a person then approves, waits in the queue (`error.code` `de
   budget, no delegation. Its life is the wall-time budget plus the approval window, because an
   approval binds to the grant that asked. It is revoked the moment the run ends.
 - **Money and what cannot be undone** always need a person (docs/PRINCIPLES.md, 5), on every config,
-  and no effect rule names either. So `lane_do` refuses a lane unless every entry of its site list is a
+  and no effect rule names either. So `browser_task` refuses a lane unless every entry of its site list is a
   host the commit gate reads, or a platform's own reviewed CDN or sign-in host from `SUGGESTED_SITES`
   (`pilot_lane_uncovered`): on any other host a checkout would run as a plain draft. On them, a publish no rule reads (`<site>.unknown`) always asks a person for a pilot grant,
   whatever `[taint] downgrade` says. The one exception is the login window below.

@@ -234,7 +234,7 @@ def _running_screen(ctl, *, gone=(), size="1920x1080", server="xvnc", serving=Tr
     stopped: list[str] = []
     ns["_stop"] = stopped.append
     ns["_wait"] = lambda proc, name, ready, wait_s: None
-    ns["_running"] = lambda name: None if name in gone else 1
+    ns["_running"] = lambda name: None if name in gone else 4242
     ns["_unix_listening"] = lambda path: serving
     ns["X_SOCKET"] = str(ctl.run / "X99")
     Path(ns["X_SOCKET"]).write_text("")
@@ -313,7 +313,7 @@ def test_the_desktops_apps_are_light_and_the_x11vnc_fallback_is_quick(ctl):
 def test_on_the_desktop_the_browser_draws_its_own_title_bar_in_its_own_look(ctl, monkeypatch, capsys):
     ns = ctl.ns
     envs: list[dict] = []
-    ns["_running"] = lambda name: 1
+    ns["_running"] = lambda name: 4242 if name == "xvfb" else None  # the screen runs, no browser yet
     ns["_wait"] = lambda proc, name, ready, wait_s: None
     ns["_spawn"] = lambda name, argv, env: envs.append(env) or FakeProc()
     monkeypatch.setenv("GTK_THEME", "Adwaita:dark")  # the agent's commands carry it, and this script is one
@@ -1003,3 +1003,21 @@ async def test_closing_an_environment_whose_machine_does_not_answer_waits_for_it
     await vm.release(lane)  # the browser's stop: the machine does not answer
     await vm.drop_screen(env)  # the close: not asked a second time
     assert [s["what"] for s in stops] == [["browser"]]
+
+
+def test_stopping_never_signals_process_1_or_its_own_group(ctl, monkeypatch):
+    """os.killpg(1, sig) on Linux signals every process of this user: a pid file or a fake that says 1 (or 0)
+    must stop nothing. (A test once faked the browser's pid as 1, and on a CI runner it killed the runner.)"""
+    ns = ctl.ns
+    sent: list[tuple[int, int]] = []
+    real_os = ns["os"]
+    ns["os"] = SimpleNamespace(**{k: getattr(real_os, k) for k in dir(real_os) if not k.startswith("__")})
+    ns["os"].killpg = lambda pid, sig: sent.append((pid, sig))
+    ns["RECORDER_PID"] = str(ctl.run / "ffmpeg.pid")
+    for pid in (0, 1):
+        ns["_running"] = lambda name, pid=pid: pid
+        ns["_stop"]("browser")
+        Path(ns["RECORDER_PID"]).write_text(f"{pid}\n")
+        ns["_stop_recorder"]()
+    assert sent == []
+

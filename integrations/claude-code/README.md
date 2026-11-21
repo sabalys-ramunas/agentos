@@ -74,6 +74,6 @@ They are in the `brains` toolset: the offload skill loads it with `tools_more` w
 connection does not list them.
 
 The lanes skill names the control tools from the take-over contract:
-`lane_control(on)`, `lane_request_control(on, reason)` (both in the `control` toolset),
-`lane_wait_control(on, timeout_s)` (in `core`), and the errors `human_in_control` and
+`browser_control(on)`, `browser_request_control(on, reason)` (both in the `control` toolset),
+`browser_wait_handback(on, wait_s)` (in `core`), and the errors `human_in_control` and
 `agent_paused`.

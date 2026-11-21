@@ -27,7 +27,6 @@ works:
 | design tokens under `agentos` or `com.agentos` in a tokens file | `openajar`, `com.openajar` | both are read |
 | a repository's `.agentos/environment.toml` (0.4.0's prepared machines) | `.openajar/environment.toml` | read when the new one is not there, from GitHub, the node's mirror and the checkout; the new one wins when both are there |
 | `AGENTOS_NO_WEB`, `AGENTOS_WEB_SHA256`, `AGENTOS_WEB_RELEASE_URL`, `AGENTOS_PANEL_DIR` (0.4.0's web app settings) | `OPENAJAR_*` | as every `AGENTOS_*` variable, read when the new one is not set; the installer reads its own the same way |
-| the old tool names (`lane_exec`, `lanes_list`, ...; 0.4.0's "Renamed tools") | `terminal_exec`, `browsers_list`, ... | still callable in 0.5.0, each result says the new name; removal waits for a later minor release |
 
 ## What keeps the old name
 

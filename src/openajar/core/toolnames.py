@@ -1,26 +1,29 @@
-"""The tools' names as an agent reads them, and the names they had before (aliases for one release).
+"""The tools' names as an agent reads them, and the names they had before 0.4.0 (for errors and old records).
 
 The 2026-11-19 surface (docs/design/tool-surface-review.md): agents think in a terminal, files and a
-browser, not in lanes, so no tool name says "lane" any more. The node registers every tool under its new
-name. An old name stays callable for one release (openajar.mcp.registry resolves it before anything else,
-so grants, the policy, freezes and traces only ever see the new name), is never listed, and its result
-carries a one-line `renamed` note so an agent learns the new name. The same for an argument a renamed
-tool took under another name (`wait_ms` is `wait_s`).
+browser, not in lanes, so no tool name says "lane" any more. 0.4.0 kept the old names callable as hidden
+aliases for one release; 0.5.0 removed them. A call by an old tool name, an old merged name or an old
+argument name now fails like any unknown tool or argument, and this table exists so that error names the
+tool (and the argument) to use instead: `lane_exec is terminal_exec`, `browser_tab is browser_tabs(select=...)`,
+`wait_ms is wait_s (in seconds)` (openajar.mcp.argerrors, openajar.mcp.toolsets). Nothing resolves an old
+name to a tool, so grants, the policy, freezes and traces only ever see the new names.
 
 Internal code keeps the word lane (the lane manager, `env/<id>-browser` ids, module names): only what an
 agent or a person reads changes. Traces written before the rename keep the old names, so whatever reads
-a trace's tool name for a person goes through `current()` first.
+a trace's tool name for a person goes through `current()` first: that reads old records, it calls nothing.
 
 Three tools merged into another the same day, where two competed for one intent (the review's
 "Merges"): `browser_tab` is `browser_tabs(select=...)`, `browser_dialog_answer` is `browser_dialog(accept=...)`,
-`approval_status` is `approval_wait(wait_s=0)`. Their old names work the same way (MERGED).
+`approval_status` is `approval_wait(wait_s=0)` (MERGED).
 
-The aliases go in the next minor release (CHANGELOG.md, "Deprecated").
+The CLI's client still calls a node from before 0.4.0 by the old names when such a node says it has no tool
+by the new one (`for_older_node`): a person's CLI can be upgraded before their node is. That is the client
+speaking an older node's language, not an alias on the node.
 """
 
 from __future__ import annotations
 
-from collections.abc import Callable, Container
+from collections.abc import Callable
 from typing import Any
 
 # old name -> new name
@@ -66,14 +69,14 @@ RENAMED: dict[str, str] = {
 }
 NEW_NAMES: frozenset[str] = frozenset(RENAMED.values())
 
-# old tool -> (the tool it merged into, the arguments a call by the old name means, its arguments' new
-# names): one tool with an argument where two competed for one intent
-MERGED: dict[str, tuple[str, dict[str, Any], dict[str, str]]] = {
-    "browser_tab": ("browser_tabs", {}, {"index": "select"}),
-    "browser_dialog_answer": ("browser_dialog", {}, {}),     # `accept` answers; without it, a read
-    "approval_status": ("approval_wait", {"wait_s": 0}, {}),  # 0 reads it now, without waiting
+# old tool -> (the tool it merged into, how a call by the old name is made with it): one tool with an
+# argument where two competed for one intent
+MERGED: dict[str, tuple[str, str]] = {
+    "browser_tab": ("browser_tabs", "browser_tabs(select=...)"),           # its `index` is `select`
+    "browser_dialog_answer": ("browser_dialog", "browser_dialog(accept=...)"),  # without accept, a read
+    "approval_status": ("approval_wait", "approval_wait(wait_s=0)"),       # 0 reads it now, without waiting
 }
-REMOVED_IN = "the next minor release"
+REMOVED = "0.5.0"  # the release that removed the old names (0.4.0 renamed the tools)
 
 
 def _ms_to_s(value: Any) -> Any:
@@ -99,33 +102,43 @@ def current(name: str) -> str:
     return RENAMED.get(name, name)
 
 
-def old_name(name: str) -> str | None:
-    """The name a tool had before the rename, or None."""
-    return _OLD.get(name)
+def use_instead(name: str) -> str | None:
+    """For a tool name removed in 0.5.0, how to make the same call today (`lane_exec is terminal_exec`,
+    `browser_tab is browser_tabs(select=...)`), or None."""
+    if name in MERGED:
+        return f"{name} is {MERGED[name][1]}"
+    if name in RENAMED:
+        return f"{name} is {RENAMED[name]}"
+    return None
+
+
+def call_instead(name: str) -> str | None:
+    """The fix line's call for a removed tool name: the new tool and, where they changed, its arguments
+    (`terminal_job_read, with wait_s for wait_ms (in seconds)`), or None."""
+    if name in MERGED:
+        return MERGED[name][1]
+    new = RENAMED.get(name)
+    if new is None:
+        return None
+    args = [old_argument(new, old) for old in RENAMED_ARGS.get(new, {})]
+    return new + (f" with the same arguments ({'; '.join(a for a in args if a)})" if args else
+                  " with the same arguments")
+
+
+def old_argument(tool: str, argument: str) -> str | None:
+    """For an argument name of `tool` removed in 0.5.0, its new name (`wait_ms is wait_s, in seconds`), or None."""
+    entry = RENAMED_ARGS.get(tool, {}).get(argument)
+    if entry is None:
+        return None
+    new, convert = entry
+    return f"{argument} is {new}" + (", in seconds" if convert is _ms_to_s else "")
 
 
 _OLD = {new: old for old, new in RENAMED.items()}
 
 
-def rename_arguments(tool: str, arguments: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
-    """A call's arguments with the old names of `tool`'s arguments as their new ones, and what was renamed
-    (`["wait_ms is now wait_s"]`). A new name given too wins over its old one."""
-    table = RENAMED_ARGS.get(tool)
-    if not table or not isinstance(arguments, dict) or not any(k in table for k in arguments):
-        return arguments, []
-    out = dict(arguments)
-    notes = []
-    for old, (new, convert) in table.items():
-        if old not in out:
-            continue
-        value = out.pop(old)
-        notes.append(f"{old} is now {new}" + (" (in seconds)" if convert is _ms_to_s else ""))
-        out.setdefault(new, convert(value) if convert else value)
-    return out, notes
-
-
 def for_older_node(tool: str, arguments: dict[str, Any]) -> tuple[str, dict[str, Any]] | None:
-    """The same call as a node from before the rename takes it (its old name and argument names), or None
+    """The same call as a node from before 0.4.0 takes it (its old name and argument names), or None
     when neither `tool` nor an argument it is given was renamed. The CLI's client tries it when such a node
     says it has no `tool`, or no such argument (approval_wait's wait_s was timeout_s)."""
     old = _OLD.get(tool, tool)
@@ -137,30 +150,3 @@ def for_older_node(tool: str, arguments: dict[str, Any]) -> tuple[str, dict[str,
     if old == tool and out == arguments:
         return None
     return old, out
-
-
-def resolve(name: str, arguments: dict[str, Any], served: Container[str]) -> tuple[str, dict[str, Any], str | None]:
-    """A call as the node runs it: (the tool, its arguments, the `renamed` note or None). A name `served`
-    holds is taken as it is; an old one becomes its new tool, with the arguments a merged tool's old name
-    means (approval_status waits 0 s), and old argument names become new ones."""
-    tool = name if name in served else current(name)
-    arguments, notes = rename_arguments(tool, arguments)
-    if tool != name and name in MERGED and isinstance(arguments, dict):
-        _, fixed, renamed = MERGED[name]
-        for old, new in renamed.items():
-            if old in arguments:
-                notes.append(f"{old} is now {new}")
-                value = arguments.pop(old)
-                arguments.setdefault(new, value)
-        arguments = {**fixed, **arguments}
-    return tool, arguments, renamed_note(name, tool, notes)
-
-
-def renamed_note(called: str, tool: str, arg_notes: list[str]) -> str | None:
-    """The one line a call by an old name (or with an old argument) gets back, or None."""
-    fixed = ", ".join(f"{k}={v}" for k, v in MERGED[called][1].items()) if called in MERGED else ""
-    parts = [f"{called} is now {tool}" + (f" with {fixed}" if fixed else "")] if called != tool else []
-    parts += arg_notes
-    if not parts:
-        return None
-    return f"{'; '.join(parts)}. The old name works until {REMOVED_IN}."

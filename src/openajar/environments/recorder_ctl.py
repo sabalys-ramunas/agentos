@@ -115,6 +115,8 @@ def _tail(req, n=600):
 
 def _end(pid):
     """SIGINT first: ffmpeg finishes the file. Then TERM, then KILL."""
+    if pid <= 1:  # killpg(1) would signal every process of this user, killpg(0) our own group
+        return
     for sig, wait in ((signal.SIGINT, STOP_WAIT_S), (signal.SIGTERM, 5.0), (signal.SIGKILL, 2.0)):
         try:
             os.killpg(pid, sig)
