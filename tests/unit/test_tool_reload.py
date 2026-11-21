@@ -152,6 +152,14 @@ async def test_reload_tells_the_controller_channel():
 # ---------------------------------------------------------------- the watch
 
 
+async def _until(done, timeout_s: float = 10.0) -> None:
+    """Wait for the watch to act: at once on a quick machine, and up to timeout_s on a slow CI runner (2 s was
+    not always enough on macOS runners)."""
+    deadline = asyncio.get_running_loop().time() + timeout_s
+    while not done() and asyncio.get_running_loop().time() < deadline:
+        await asyncio.sleep(0.02)
+
+
 async def test_the_watch_reloads_when_its_signature_changes_and_when_poked():
     runtime, provider, server = server_with(spec("one", one))
     stamp = {"v": 1}
@@ -162,17 +170,11 @@ async def test_the_watch_reloads_when_its_signature_changes_and_when_poked():
         await asyncio.sleep(0.2)
         assert "two" not in server.specs  # the signature did not move: no reload
         stamp["v"] = 2
-        for _ in range(100):
-            if "two" in server.specs:
-                break
-            await asyncio.sleep(0.02)
+        await _until(lambda: "two" in server.specs)
         assert "two" in server.specs and watch.reloads == 1
         provider.specs.pop()
         watch.poke()
-        for _ in range(100):
-            if "two" not in server.specs:
-                break
-            await asyncio.sleep(0.02)
+        await _until(lambda: "two" not in server.specs)
         assert "two" not in server.specs
     finally:
         await watch.stop()
