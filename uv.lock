@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.12"
 resolution-markers = [
     "python_full_version >= '3.14'",
@@ -71,7 +71,7 @@ requires-dist = [
     { name = "playwright", marker = "extra == 'local'", specifier = ">=1.62,<1.63" },
     { name = "playwright", marker = "extra == 'node'", specifier = ">=1.62,<1.63" },
     { name = "playwright", marker = "extra == 'studio'", specifier = ">=1.62,<1.63" },
-    { name = "publicsuffixlist", specifier = ">=1.1.2.20261101" },
+    { name = "publicsuffixlist", specifier = ">=1.1.2.20261115" },
     { name = "pydantic", specifier = ">=2.7" },
     { name = "pyotp", specifier = ">=2.10.0" },
     { name = "pyyaml", specifier = ">=6.0" },
@@ -1431,11 +1431,11 @@ wheels = [
 
 [[package]]
 name = "publicsuffixlist"
-version = "1.1.2.20261101"
+version = "1.1.2.20261115"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/da/68/0d29fc72696e19bcfc8be2f13e0f44ec125751f4324900c499d058f07ba1/publicsuffixlist-1.1.2.20261101.tar.gz", hash = "sha256:1ff49a8d6fae759a90cda23eb2e972d6f28f378049f9d1e51df8ffc3cabfed87", size = 106527, upload-time = "2026-11-01T10:20:28.129Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/55/e7/39f936542ed674fdd86c341d5555de6d4bf870b63f1c3581f3d4b7716fe1/publicsuffixlist-1.1.2.20261115.tar.gz", hash = "sha256:ffad5c498cfe331181ab051b994978e639418e7d9bd24336b9d2f4cba8455343", size = 107538, upload-time = "2026-11-15T10:42:00.464Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/36/b7/de6244c5941d8364f55d7f5af7e779fd10e6e737be27116fd78dfaa87c85/publicsuffixlist-1.1.2.20261101-py3-none-any.whl", hash = "sha256:46fe6b57d992baad7b1914f21e886fe36a2ffd95d84500bfdebc95ca4371eb39", size = 109279, upload-time = "2026-11-01T10:20:26.723Z" },
+    { url = "https://files.pythonhosted.org/packages/2d/a1/e17d16e217bf6f97619164f5a3b44a3664f03ad03e16092dc6069c3d24a2/publicsuffixlist-1.1.2.20261115-py3-none-any.whl", hash = "sha256:fb4eab5a45685f3b4c44495d2fff52b8e625bb6e60c3f1920e7916ae5c0a09e6", size = 110228, upload-time = "2026-11-15T10:41:59.235Z" },
 ]
 
 [[package]]
