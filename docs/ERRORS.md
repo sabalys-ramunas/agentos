@@ -96,6 +96,7 @@ carries one of these codes:
 | [`lane_unavailable`](#lane_unavailable) | The run's browser stayed unavailable through every retry, so the runner gave up. | no |
 | [`login_closed`](#login_closed) | No assisted login is running on this browser: it finished, was cancelled, sat untouched too long, or never started. | no |
 | [`login_step_changed`](#login_step_changed) | The sign-in page moved on (or changed) since the login form was shown, so nothing was typed or pressed. | yes, once the cause is fixed |
+| [`machine_gone`](#machine_gone) | The environment's machine stopped for good (its provider says its container or server is off or gone), so nothing ran. Unsaved, unpushed work on it is lost. | no |
 | [`mail_confirm_hosts`](#mail_confirm_hosts) | These mail servers are not what a person was shown, or only DNS or a guess named them and nobody has said yes yet. | no |
 | [`mail_connect_failed`](#mail_connect_failed) | A sign-in to the mailbox failed, so nothing was saved. The message says which of the two, and why. | no |
 | [`mail_daily_limit`](#mail_daily_limit) | The mailbox's daily limit is used up, across every way of sending. | no |
@@ -1023,6 +1024,15 @@ The sign-in page moved on (or changed) since the login form was shown, so nothin
 - **You:** Look at the new step the form shows now and fill that one.
 - **Retry:** yes, once the cause is fixed
 - **Raised by:** `openajar.vault.errors.LoginStepChanged`
+
+## machine_gone
+
+The environment's machine stopped for good (its provider says its container or server is off or gone), so nothing ran. Unsaved, unpushed work on it is lost.
+
+- **Agent:** Do not retry here or open another title: environment_open with the same title starts a new machine (from its newest save, if any). Redo what was lost; tell the user it stopped.
+- **You:** Nothing to do for a one-off stop. If machines stop often, check the provider (`docker ps -a` for the docker provider, the Hetzner console) and `openajar logs --level warn --since 30m`.
+- **Retry:** no
+- **Raised by:** `openajar.core.errors.MachineGone`
 
 ## mail_confirm_hosts
 

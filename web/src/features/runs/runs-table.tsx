@@ -29,6 +29,7 @@ import { RUN_KINDS, RUN_STATES } from './search';
 import type { RunKind, RunSort, RunStateFilter, RunsSearch } from './search';
 import { JOB_STATUS, durationOf, logsCommand, runKind, titleOf } from './words';
 import { COLUMNS, LIMIT, RANGES, STATE_WORD, density, filterJobs, sortJobs } from './runs-page';
+import { PLACES } from '@/lib/vocabulary';
 
 export function RunsTable({ org, jobs, capped }: { org: string; jobs: Job[]; capped: boolean }) {
   const search = useSearch({ from: '/$org/runs' });
@@ -266,7 +267,7 @@ export function RunsTable({ org, jobs, capped }: { org: string; jobs: Job[]; cap
         <p className="text-secondary text-faint">
           Routines, and the runs agents make on accounts, are in{' '}
           <Link to="/$org/activity" params={{ org }} className="link">
-            History
+            {PLACES.history.word}
           </Link>
           .
         </p>

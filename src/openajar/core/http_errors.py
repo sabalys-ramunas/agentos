@@ -89,6 +89,7 @@ STATUS_BY_CODE: dict[str, int] = {
     "environment_limit": 409, "environment_full": 409, "unsaved_work": 409, "save_limit": 409, "keep_live_not_allowed": 409, "environment_in_use": 409, "environment_already_open": 409, "network_not_allowed": 409,
     "repo_not_connected": 409, "which_environment": 409, "environment_choice": 409, "repo_not_found": 404,
     "no_desktop": 409,  # no desktop on this environment (yet): the browser tools and terminal_exec still work
+    "machine_gone": 409,  # the environment's machine stopped for good: it is closed, or opened again on the same title
     "checkpoint_failed": 409, "rollback_refused": 409, "checkpoint_not_found": 404,
     # 429: too many tries, or the pace is used up; it opens again by itself
     "pace_limited": 429, "vault_locked_out": 429, "pilot_day_limit": 429,

@@ -26,6 +26,7 @@ def _open_env(ctx: ToolContext, on: str | None, what: str) -> tuple[Any, Environ
         raise NoEnvironment(f"this chat has no environment to {what}; environment_open(title=...) first")
     if not env.open:
         raise NoEnvironment(closed_words(mgr, env))
+    mgr.refuse_gone(env)  # its machine stopped: machine_gone (openajar.environments.liveness)
     return mgr, env
 
 

@@ -5,13 +5,17 @@
  */
 import { useLaneCheck, useLaneChecks, useLaneKeepalive } from '@/api/hooks';
 import type { Lane } from '@/api/types';
+import { Card } from '@/components/ui/card';
 import { fixWords, plainDetail } from '@/lib/plain-node';
 import { useTechnical } from '@/lib/technical';
 import { AccountSection, Answer } from './account-section';
 import { checkStatus, keepaliveSaysSomething, keepaliveSentence, nextVisitWords, visitWords } from './account-words';
 
-/** The line under the help banner, shown only when the account is not safe, or only with a warning. */
-export function SafeLine({ org, lane }: { org: string; lane: Lane }) {
+/**
+ * Whether the account is safe to use, shown only when it is not, or only with a warning: dark glass beside the
+ * live screen on the night band, a card under it.
+ */
+export function SafeLine({ org, lane, glass = false }: { org: string; lane: Lane; glass?: boolean }) {
   const brief = useLaneChecks(org).data?.lanes.find((item) => item.lane === lane.id);
   const wrong = brief !== undefined && (brief.level === 'warn' || brief.level === 'fail' || brief.safe === false);
   const check = useLaneCheck(org, lane.workspace, lane.name, wrong).data;
@@ -19,8 +23,8 @@ export function SafeLine({ org, lane }: { org: string; lane: Lane }) {
   if (!brief || !wrong) return null;
   const status = checkStatus(brief);
   const notes = (check?.checks ?? []).filter((item) => item.level !== 'ok' && item.level !== 'unknown');
-  return (
-    <div className="grid gap-3 rounded-xl border border-line px-4 py-3">
+  const body = (
+    <section aria-label="Is it safe to use" className="grid gap-3 px-5 py-4">
       {/* The notes say what is wrong. The summary is said only where the notes do not already say it, never twice. */}
       <Answer tone={status.tone} word={status.word}>
         {check && notes.length && notes.every((item) => check.summary.includes(item.detail)) ? null : check ? check.summary : 'Checking the account.'}
@@ -40,8 +44,9 @@ export function SafeLine({ org, lane }: { org: string; lane: Lane }) {
           ))}
         </ul>
       ) : null}
-    </div>
+    </section>
   );
+  return glass ? <div className="glass-night rounded-xl">{body}</div> : <Card>{body}</Card>;
 }
 
 /** What keeps the sign-in warm, and when it last ran. Off with nothing before it, the section says nothing. */

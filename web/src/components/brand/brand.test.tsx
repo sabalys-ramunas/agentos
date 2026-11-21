@@ -59,7 +59,7 @@ describe('SiteMark', () => {
 
   it('draws in the brand colour, monochrome on request, and never black on the dark theme', () => {
     expect(brandFill({ title: 'Instagram', hex: 'FF0069', path: '' }, 'brand')).toBe('#FF0069');
-    expect(brandFill({ title: 'X', hex: '000000', path: '' }, 'brand')).toBe('var(--foreground)');
+    expect(brandFill({ title: 'X', hex: '000000', path: '' }, 'brand')).toBe('var(--text-primary)');
     expect(brandFill({ title: 'Instagram', hex: 'FF0069', path: '' }, 'mono')).toBe('currentColor');
   });
 

@@ -15,7 +15,7 @@ Never edit those four. In the catalog: `/$org/design#foundations`.
 | Motion | `duration-(--duration-fast)` 100, `-base` 150, `-slow` 200, `-settle` 280, on `ease-standard` | |
 | Layers | `z-10` sticky, `z-20` header, `z-30` dropdown, `z-40` overlay, `z-50` dialog, `z-60` toast, `z-70` tooltip | |
 | Show a token as data | `Swatch`, `TokenChip` | `components/ui/swatch.tsx` |
-| The kind of work | `KindTile`, `KindEyebrow`, `Card kind`, `Chip kind`: tests violet, design pink, build teal, server blue | `components/ui/kind.tsx` |
+| The kind of work | `KindTile`, `KindEyebrow`, `Card kind`, `Chip kind`: tests plum, design pink, build teal, server blue | `components/ui/kind.tsx` |
 | Our own icons | `LaneIcon` for a browser, terminal, service, phone; lucide at 16 px for the rest | `components/lane-icon.tsx` |
 | Who and what | `BusinessMark`, `PersonMark`, `AgentMark` | `components/brand/identity.tsx` |
 | Another company's site | `SiteMark` (official artwork only, beside its name) | `components/brand/site-mark.tsx`, `components/brand/vendored.ts` |

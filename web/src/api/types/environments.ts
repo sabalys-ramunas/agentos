@@ -1,9 +1,17 @@
 /**
  * Environments (docs/design/environments.md, "Web routes"): a cloud computer an agent rents for one
  * chat, with a terminal, a browser and the repository, deleted when the work is done. "working" is a
- * call in the last 2 minutes, "idle" none for 10.
+ * call in the last 2 minutes, "idle" none for 10. "gone" (0.5.1): it is still open, but its machine
+ * stopped for good (killed, powered off, deleted outside openajar), so only Close is left.
  */
-export type EnvState = 'starting' | 'ready' | 'working' | 'idle' | 'closing' | 'closed' | 'failed';
+export type EnvState = 'starting' | 'ready' | 'working' | 'idle' | 'gone' | 'closing' | 'closed' | 'failed';
+
+/** When and why the machine of a `gone` environment stopped (`next` is the agent's line, not shown). */
+export interface EnvMachineGone {
+  at: string | null;
+  why: string | null;
+  next?: string;
+}
 
 /**
  * How an environment stays: `none` is single use (deleted when the work is done), `live` keeps the VM
@@ -44,6 +52,8 @@ export interface EnvSummary {
   /** Its newest save (keep `save`). */
   last_save?: { id: string; at: string | null } | null;
   save_error?: string | null;
+  /** Set when the state is `gone`. */
+  machine_gone?: EnvMachineGone | null;
   /**
    * A recent still to draw the environment's picture from, or null (or missing, on an older node): the app
    * then draws one from its state. On the list only.

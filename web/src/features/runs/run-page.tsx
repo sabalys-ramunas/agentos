@@ -4,19 +4,18 @@
  * made up: a fact the node does not have is named as missing.
  */
 import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router';
-import { Check, Copy, Lock, SearchX, Square } from 'lucide-react';
+import { Check, Copy, Lock, SearchX } from 'lucide-react';
 import { useDeferredValue, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useAccess, useCancelJob, useJobFollow } from '@/api/hooks';
 import { ApiError, isNotServed } from '@/api/http';
 import type { Job } from '@/api/types';
 import { usePageCrumb } from '@/components/shell/crumb';
-import { BranchPill } from '@/components/ui/branch';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/dialog';
-import { KindEyebrow } from '@/components/ui/kind';
-import { useCopy } from '@/components/ui/misc';
+import { KindEyebrow, KindTile } from '@/components/ui/kind';
+import { PageHeader, useCopy } from '@/components/ui/misc';
 import { EmptyState, ErrorState, InlineError, NotLive, Skeleton } from '@/components/ui/states';
 import { Status } from '@/components/ui/status';
 import { cn } from '@/lib/cn';
@@ -45,7 +44,7 @@ function RunView({ org, id, onRetry }: { org: string; id: string; onRetry: () =>
 
 function RunMissing({ org, id, error, onRetry }: { org: string; id: string; error: unknown; onRetry: () => void }) {
   const back = (
-    <Button asChild>
+    <Button asChild variant="primary">
       <Link to="/$org/runs" params={{ org }}>
         All runs
       </Link>
@@ -60,8 +59,8 @@ function RunMissing({ org, id, error, onRetry }: { org: string; id: string; erro
           title="This run is not on the machine"
           description={
             <>
-              No machine you can see has a run called <span className="font-mono text-code">{id}</span>. A machine keeps a
-              lane&apos;s newest runs and clears older ones, or the address is not quite right.
+              No machine you can see has a run called <span className="font-mono text-code">{id}</span>. A machine keeps its
+              newest runs and clears older ones, or the address is not quite right.
             </>
           }
           action={back}
@@ -91,13 +90,19 @@ function RunMissing({ org, id, error, onRetry }: { org: string; id: string; erro
 function RunSkeleton() {
   return (
     <div role="status" aria-label="Loading the run" className="grid gap-6">
-      <div className="grid gap-3">
-        <Skeleton className="h-4 w-20" />
-        <Skeleton className="h-8 w-72 max-w-full" />
-        <Skeleton className="h-5 w-96 max-w-full" />
+      <div className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-4">
+        <Skeleton className="size-10 rounded-lg" />
+        <div className="grid gap-3">
+          <Skeleton className="h-4 w-16" />
+          <Skeleton className="h-8 w-72 max-w-full" />
+          <Skeleton className="h-5 w-80 max-w-full" />
+        </div>
       </div>
-      <Skeleton className="h-24 w-full rounded-xl" />
-      <Skeleton className="h-96 w-full rounded-xl" />
+      <Skeleton className="h-28 w-full rounded-xl" />
+      <div className="grid items-start gap-6 lg:grid-cols-12">
+        <Skeleton className="h-96 w-full rounded-xl lg:col-span-8" />
+        <Skeleton className="h-48 w-full rounded-xl lg:col-span-4" />
+      </div>
     </div>
   );
 }
@@ -136,37 +141,45 @@ function RunLoaded({ org, job, follow }: { org: string; job: Job; follow: Follow
   };
 
   return (
-    <div className="grid gap-6">
-      <RunHeader org={org} job={job} kind={kind} title={title} now={now} />
-      <Facts job={job} now={now} />
-      <div className="grid items-start gap-6 lg:grid-cols-12">
-        <div className="min-w-0 lg:col-span-8">
-          <OutputCard job={job} text={text} done={follow.done} trimmed={follow.trimmed} jump={jump} onJump={jumpTo} />
-        </div>
-        <div className="grid min-w-0 gap-6 lg:col-span-4">
-          <FailuresCard ref={failedRef} job={job} text={text} trimmed={follow.trimmed} onJump={jumpTo} />
-          <HappenedCard ref={happenedRef} job={job} text={text} onJump={jumpTo} />
+    <>
+      <RunHeader org={org} job={job} kind={kind} title={title} />
+      <div className="grid gap-6">
+        <Facts job={job} now={now} />
+        <div className="grid items-start gap-6 lg:grid-cols-12">
+          <div className="min-w-0 lg:col-span-8">
+            <OutputCard job={job} text={text} done={follow.done} trimmed={follow.trimmed} jump={jump} onJump={jumpTo} />
+          </div>
+          <div className="grid min-w-0 gap-6 lg:col-span-4">
+            <FailuresCard ref={failedRef} job={job} text={text} trimmed={follow.trimmed} onJump={jumpTo} />
+            <HappenedCard ref={happenedRef} job={job} text={text} onJump={jumpTo} />
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
-/** The sentence under the title: how it went, in the node's own words when it gave some. */
-function lede(job: Job, now: number): string {
-  const took = durationOf(job, now);
-  const where = `on ${job.node}`;
+/**
+ * The sentence under the command, only when it says what the chip and the facts do not: how a run ended
+ * badly, that it ran out of memory, the machine's own note. A running or passed run needs none.
+ */
+function lede(job: Job): string | null {
   const parts: string[] = [];
-  if (job.state === 'running') parts.push(`Running ${where} for ${took}.`);
-  else if (job.state === 'passed') parts.push(`Passed ${where}${took ? ` in ${took}` : ''}.`);
-  else if (job.state === 'failed') parts.push(`Failed ${where}${took ? ` after ${took}` : ''}${job.exit_code !== null ? `, with exit code ${job.exit_code}` : job.signal ? `, stopped by ${job.signal}` : ''}.`);
-  else parts.push(STATE_SENTENCE[job.state]);
+  if (job.state === 'failed') {
+    parts.push(
+      job.exit_code !== null
+        ? `It ended with exit code ${job.exit_code}.`
+        : job.signal
+          ? `It was stopped by ${job.signal}.`
+          : STATE_SENTENCE.failed,
+    );
+  } else if (job.state !== 'running' && job.state !== 'passed') parts.push(STATE_SENTENCE[job.state]);
   if (job.oom_killed) parts.push('It ran out of memory and was stopped.');
   if (job.note && job.state !== 'running') parts.push(`The machine said: ${job.note}.`);
-  return parts.join(' ');
+  return parts.length ? parts.join(' ') : null;
 }
 
-function RunHeader({ org, job, kind, title, now }: { org: string; job: Job; kind: ReturnType<typeof runKind>; title: string; now: number }) {
+function RunHeader({ org, job, kind, title }: { org: string; job: Job; kind: ReturnType<typeof runKind>; title: string }) {
   const access = useAccess(org);
   const cancel = useCancelJob(org);
   const [asking, setAsking] = useState(false);
@@ -174,45 +187,49 @@ function RunHeader({ org, job, kind, title, now }: { org: string; job: Job; kind
   const status = statusOf(job);
   const command = `openajar run -- ${job.command}`;
   const canCancel = job.state === 'running' && access.can('lanes.operate');
+  const sentence = lede(job);
 
   return (
-    <header className="grid gap-3">
-      <KindEyebrow kind={kind} />
-      <div className="flex flex-wrap items-start gap-x-4 gap-y-3">
-        <div className="grid w-full min-w-0 gap-2 md:w-auto md:flex-1">
-          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-            <h1 tabIndex={-1} className="min-w-0 text-page-title-compact [overflow-wrap:anywhere] md:text-page-title">
-              {title}
-            </h1>
-            <Status status={status} />
-          </div>
-          <div className="flex min-w-0 items-start gap-2 font-mono text-code text-muted md:items-center">
-            <span aria-hidden="true" className="text-faint">
-              $
+    <>
+      <PageHeader
+        lead={<KindTile kind={kind} size="xl" />}
+        eyebrow={<KindEyebrow kind={kind} tile={false} />}
+        title={title}
+        aside={<Status status={status} chip />}
+        description={
+          <>
+            <span className="flex min-w-0 items-start gap-2 font-mono text-code text-muted">
+              <span aria-hidden="true" className="text-faint">
+                $
+              </span>
+              <span title={command} className="min-w-0 [overflow-wrap:anywhere] md:truncate">
+                {command}
+              </span>
             </span>
-            <span title={command} className="min-w-0 [overflow-wrap:anywhere] md:truncate">
-              {command}
-            </span>
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {canCancel ? (
-            <Button variant="danger" icon={<Square className="size-4" />} onClick={() => setAsking(true)}>
-              Cancel
+            {sentence ? <span>{sentence}</span> : null}
+          </>
+        }
+        actions={
+          <>
+            <Button icon={copied ? <Check className="size-4 text-ok" /> : <Copy className="size-4" />} onClick={() => copy(followCommand(job))}>
+              {copied ? 'Copied' : 'Copy follow command'}
             </Button>
-          ) : null}
-          <Button icon={copied ? <Check className="size-4 text-ok" /> : <Copy className="size-4" />} onClick={() => copy(followCommand(job))}>
-            {copied ? 'Copied' : 'Copy follow command'}
-          </Button>
-        </div>
-      </div>
-      <p className="max-w-[60em] text-body text-muted">{lede(job, now)}</p>
+            {canCancel ? (
+              <Button variant="danger" onClick={() => setAsking(true)}>
+                Cancel
+              </Button>
+            ) : null}
+          </>
+        }
+      />
       {cancel.error ? (
-        <InlineError>
-          {cancel.error instanceof ApiError && cancel.error.status === 403
-            ? 'Your role does not let you stop runs in this workspace. Nothing was changed.'
-            : 'The machine did not stop the run. Nothing was changed; try again.'}
-        </InlineError>
+        <div className="-mt-4 mb-6">
+          <InlineError>
+            {cancel.error instanceof ApiError && cancel.error.status === 403
+              ? 'Your role does not let you stop runs in this workspace. Nothing was changed.'
+              : 'The machine did not stop the run. Nothing was changed; try again.'}
+          </InlineError>
+        </div>
       ) : null}
       <ConfirmDialog
         open={asking}
@@ -224,20 +241,16 @@ function RunHeader({ org, job, kind, title, now }: { org: string; job: Job; kind
         loading={cancel.isPending}
         onConfirm={() => cancel.mutate(job.id, { onSettled: () => setAsking(false) })}
       />
-    </header>
+    </>
   );
 }
 
 function Fact({ label, children, sub, className }: { label: string; children: ReactNode; sub?: ReactNode; className?: string }) {
   return (
-    <div className={cn('grid min-w-0 content-start gap-1 bg-card px-5 py-4', className)}>
-      <dt className="text-caption text-faint">{label}</dt>
-      <dd className="flex min-w-0 items-center gap-2 text-label text-fg">{children}</dd>
-      {sub ? (
-        <dd title={typeof sub === 'string' ? sub : undefined} className="min-w-0 truncate text-secondary text-faint">
-          {sub}
-        </dd>
-      ) : null}
+    <div className={cn('grid min-w-0 content-start gap-1', className)}>
+      <dt className="text-secondary text-muted">{label}</dt>
+      <dd className="min-w-0 text-card-title [overflow-wrap:anywhere] text-fg">{children}</dd>
+      {sub ? <dd className="min-w-0 text-secondary [overflow-wrap:anywhere] text-muted">{sub}</dd> : null}
     </div>
   );
 }
@@ -248,9 +261,8 @@ function Facts({ job, now }: { job: Job; now: number }) {
   const took = durationOf(job, now);
   const limit = job.timeout_s ? `limit ${Math.round(job.timeout_s / 60)} min` : undefined;
   return (
-    <Card className="overflow-hidden">
-      {/* The hairlines between facts are the card's line showing through a 1 px gap. */}
-      <dl className="grid grid-cols-2 gap-px bg-line lg:grid-cols-5">
+    <Card>
+      <dl className="grid grid-cols-2 gap-x-6 gap-y-5 px-5 py-5 lg:grid-cols-5">
         <Fact
           label="Branch"
           className="col-span-2 lg:col-span-1"
@@ -266,17 +278,17 @@ function Facts({ job, now }: { job: Job; now: number }) {
           }
         >
           {source?.branch ? (
-            <BranchPill name={source.branch} main={source.branch === 'main' || source.branch === 'master'} />
+            <span title={source.branch} className="font-mono text-code font-medium">
+              {source.branch}
+            </span>
           ) : source ? (
-            <span className="text-muted">No branch (a detached commit)</span>
+            <span className="font-normal text-muted">No branch (a detached commit)</span>
           ) : (
             <span className="font-normal text-muted">Not recorded by this client</span>
           )}
         </Fact>
-        <Fact label="Machine" sub={<span title={job.lane} className="font-mono text-code-caption">{job.lane}</span>}>
-          <span title={job.node} className="truncate">
-            {job.node}
-          </span>
+        <Fact label="Machine" sub={<span title={job.lane}>{job.lane}</span>}>
+          {job.node}
         </Fact>
         <Fact label="Started" sub={job.started_by ? `by ${job.started_by}` : 'Who started it was not kept'}>
           <time dateTime={job.started_at} title={dateTime(job.started_at)} className="tabular">
@@ -306,7 +318,7 @@ function Facts({ job, now }: { job: Job; now: number }) {
               {tests.passed.toLocaleString('en')} of {tests.total.toLocaleString('en')} passed
             </span>
           ) : (
-            <span className="font-normal text-muted">Not reported</span>
+            <span className="font-normal text-muted">{job.state === 'running' ? 'Not reported yet' : 'Not reported'}</span>
           )}
         </Fact>
       </dl>

@@ -2,7 +2,7 @@ import { ApiError } from '@/api/http';
 import type { EnvSummary } from '@/api/types';
 import { seedEnvironments } from '@/mocks/environments';
 import { unsavedFrom, unsavedWords } from './close-flow';
-import { agentWords, closedReason, commandStatus, euro, hourly, idleCost, idleShort, isJob, keepOf, leftOf, machineWhere, monthly, openSummary, pruneWords, pullRequestLink, repoName, saveHolds, size, span, splitEnvironments } from './words';
+import { agentWords, callWords, closedReason, commandStatus, euro, hourly, idleCost, idleShort, isJob, keepOf, leftOf, machineWhere, monthly, openSummary, pruneWords, pullRequestLink, repoName, saveHolds, size, span, splitEnvironments } from './words';
 
 const NOW = Date.parse('2026-11-13T12:00:00Z');
 const summaries = (): EnvSummary[] => seedEnvironments(NOW).map((item) => item.detail);
@@ -115,5 +115,18 @@ describe('the words of keeping', () => {
     expect(pruneWords({ prune_at: new Date(NOW + 30 * 86_400_000).toISOString() }, NOW)).toBeNull();
     expect(pruneWords({ prune_at: new Date(NOW + 2 * 86_400_000).toISOString() }, NOW)).toBe('Deleted in 2 days unless an agent opens it again');
     expect(pruneWords({ prune_at: new Date(NOW - 1).toISOString() }, NOW)).toBe('Deleted soon unless an agent opens it again');
+  });
+});
+
+describe('what the agent did on its screen', () => {
+  it.each([
+    ['type "npm test" in window 3 on the screen of e7k2', 'Typed on its screen', '"npm test" in window 3'],
+    ['press ctrl+s on the screen of e7k2', 'Pressed keys on its screen', 'ctrl+s'],
+    ['bring window 3 to the front on the screen of e7k2', 'Brought a window to the front', 'window 3'],
+    ['double click at 40,60 on the screen of e7k2', 'Double-clicked on its screen', 'at 40,60'],
+    ['click at 40,60 on the screen of e7k2', 'Clicked on its screen', 'at 40,60'],
+    ['scroll at 10,10 on the screen of e7k2', 'Scrolled its screen', 'at 10,10'],
+  ])('%s', (summary, title, detail) => {
+    expect(callWords('screen_act', summary, (tool) => tool)).toEqual({ title, detail, kind: 'screen' });
   });
 });

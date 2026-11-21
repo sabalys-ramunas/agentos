@@ -16,7 +16,8 @@ const org = () => db.orgs.get('northwind-group')!;
 async function askToRemoveNode() {
   const view = renderApp('/northwind-group/nodes/home-mini?tab=lanes');
   const { user } = view;
-  await user.click(await screen.findByRole('button', { name: 'Remove machine' }));
+  await user.click(await screen.findByRole('button', { name: 'More for home-mini' }));
+  await user.click(await screen.findByRole('menuitem', { name: 'Remove machine' }));
   await user.type(await screen.findByLabelText(/to confirm/), 'home-mini');
   const dialogs = screen.getAllByRole('button', { name: 'Remove machine' });
   await user.click(dialogs[dialogs.length - 1]!);

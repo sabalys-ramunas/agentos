@@ -59,6 +59,26 @@ export function onScreen(finding: StudioFinding, key: string): boolean {
   return screensOf(finding).includes(key);
 }
 
+/** The worst severity on each screen, for the tone of its count. */
+export function worstByScreen(findings: StudioFinding[]): Map<string, FindingSeverity> {
+  const out = new Map<string, FindingSeverity>();
+  for (const finding of findings) {
+    for (const key of screensOf(finding)) {
+      const was = out.get(key);
+      if (!was || SEVERITY_RANK[finding.severity] < SEVERITY_RANK[was]) out.set(key, finding.severity);
+    }
+  }
+  return out;
+}
+
+/**
+ * The node's verdict in the page's words: a count of blockers is plural, and "info" reads "to know".
+ * "Not clean: 7 findings (2 blocker, 1 info)" becomes "Not clean: 7 findings (2 blockers, 1 to know)".
+ */
+export function verdictWords(verdict: string): string {
+  return verdict.replace(/\b(\d+) blocker\b/g, (_, n: string) => (n === '1' ? '1 blocker' : `${n} blockers`)).replace(/\b(\d+) info\b/g, '$1 to know');
+}
+
 /** How many findings show on each screen. */
 export function countsByScreen(findings: StudioFinding[]): Map<string, number> {
   const out = new Map<string, number>();

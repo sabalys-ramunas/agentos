@@ -319,7 +319,7 @@ export function studioHandlers({ org, failure }: Pick<Helpers, 'org' | 'failure'
         const runs = runsOf(record)
           .filter((run) => (!url || run.url === url) && (!profile || run.profile === profile))
           .map(({ verdict: _v, groups: _g, screen_list: _s, problems: _p, system: _y, images_gone: _i, ...rest }) => rest);
-        return HttpResponse.json({ available: true, runs });
+        return HttpResponse.json({ available: true, runs: scenario.has('no-developer') ? [] : runs });
       }),
     ),
     http.get(

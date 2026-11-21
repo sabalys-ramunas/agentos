@@ -328,10 +328,12 @@ DELETE /api/orgs/{org}/environments/saves/{save_id}               {forgot, snaps
 The listing adds `saved` and `snapshots_eur_month`, and each EnvSummary `keep`, `last_save` and
 `save_error` (docs/API.md, "Saved environments").
 
-EnvSummary: `id, title, state ("starting" | "ready" | "working" | "idle" | "closing" | "closed" |
+EnvSummary: `id, title, state ("starting" | "ready" | "working" | "idle" | "gone" | "closing" | "closed" |
 "failed"), repo?, branch?, created_at, last_call_at?, closed_at?, expires_at, machine {provider,
 server_type, cpu, memory_gb, location}, price_hourly_eur, cost_eur, agent {name, client?},
-lanes {terminal, browser}`. "working" means a call in the last 2 minutes, "idle" none for 10.
+lanes {terminal, browser}`. "working" means a call in the last 2 minutes, "idle" none for 10. "gone"
+(0.5.1) is an open environment whose machine stopped for good; it carries `machine_gone {at, why, next}`
+(`next` is the agent's line), and the web app offers only Close.
 
 EnvDetail: EnvSummary plus `ports [{port, process?, link?}]`, `git {branch, ahead, dirty,
 pushed [{branch, commit, at}]}`, `calls [{at, tool, summary, ok}]` (newest first, 50),

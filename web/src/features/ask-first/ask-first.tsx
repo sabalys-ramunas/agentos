@@ -23,6 +23,7 @@ import { useMe, usePrincipalName } from '@/lib/use-principal';
 import { accountName } from '@/features/home/words';
 import { routineTitle } from '@/features/flows/routine-words';
 import { AccountOverrides } from './overrides';
+import { toastChange } from '@/components/ui/toast';
 
 /** The hand is a person in the loop, the bolt is nobody needed, the lock is nobody's to change. */
 function AskIcon({ view, className }: { view: AskView; className?: string }) {
@@ -94,7 +95,12 @@ function useFlipWords(name: string) {
   return {
     refused,
     clear: () => setRefused(null),
-    said: (asks: boolean) => toast(asks ? `${name} asks you first now` : `${name} runs on its own now`),
+    /**
+     * Running on its own is the looser way, so it comes with Undo, which asks first again. Asking first is the
+     * stricter way and has none (web/DESIGN.md, Forms).
+     */
+    said: (asks: boolean, askAgain?: () => Promise<unknown>) =>
+      toastChange(asks ? { said: `${name} asks you first now` } : { said: `${name} runs on its own now`, undone: `${name} asks you first again`, undo: askAgain }),
     /** Silent when the person closed the step-up: they know, and the switch is back. */
     failed: (error: unknown, wanted: boolean, inline: boolean) => {
       if (isCancelled(error)) return;
@@ -113,10 +119,7 @@ function useRoutineFlip(org: string, flow: Flow, name: string, inline: boolean) 
     set.mutate(
       { id: flow.id, on },
       {
-        onSuccess: (data) => {
-          if (data.asks_first || on) words.said(Boolean(data.asks_first));
-          else toast(`${name} runs on its own now`, { action: { label: 'Undo', onClick: () => flip(true) } });
-        },
+        onSuccess: (data) => words.said(Boolean(data.asks_first), () => set.mutateAsync({ id: flow.id, on: true })),
         onError: (error) => words.failed(error, on, inline),
       },
     );
@@ -132,10 +135,7 @@ function useAccountFlip(org: string, lane: string, name: string, inline: boolean
     set.mutate(
       { lane, on },
       {
-        onSuccess: (data) => {
-          if (data.asks_first || on) words.said(data.asks_first);
-          else toast(`${name} runs on its own now`, { action: { label: 'Undo', onClick: () => flip(true) } });
-        },
+        onSuccess: (data) => words.said(Boolean(data.asks_first), () => set.mutateAsync({ lane, on: true })),
         onError: (error) => words.failed(error, on, inline),
       },
     );
@@ -270,18 +270,13 @@ export function AccountAskPanel({ org, lane }: { org: string; lane: Lane }) {
   );
 }
 
-/** One line on an account's card. Above the card's own link, so the switch is its own target. */
-export function AccountAskRow({ org, lane, ask }: { org: string; lane: Lane; ask: LaneAskFirst | undefined }) {
-  const name = accountName(lane);
-  const can = useCanChange(org);
+/**
+ * An account's card says only the word ("Runs on its own", "Asks you first") and, when it needs one, the few words of
+ * why. The switch is on the account's page, where a person has read what they are changing.
+ */
+export function AccountAskWord({ org, ask }: { org: string; ask: LaneAskFirst | undefined }) {
   const nameOf = useSetterName(org, true);
-  const { flip, busy } = useAccountFlip(org, lane.id, name, false);
   const view = accountAsk(ask);
   if (!view) return null;
-  return (
-    <div className="relative z-10 flex min-h-11 items-center justify-between gap-3 border-t border-line px-4 py-2">
-      <Word view={view} detail={whoSetItShort({ by: ask?.ask_first_set_by, on: Boolean(ask?.ask_first) }, nameOf)} />
-      {view.switchable && can.on ? <AskSwitch name={name} view={view} busy={busy} can={can} onFlip={flip} compact /> : null}
-    </div>
-  );
+  return <Word view={view} detail={whoSetItShort({ by: ask?.ask_first_set_by, on: Boolean(ask?.ask_first) }, nameOf)} />;
 }

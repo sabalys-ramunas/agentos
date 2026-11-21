@@ -195,7 +195,8 @@ export function ControlFrame({ org, lane, canControl, expanded = false, stage = 
       ) : (
       <Button
         size="sm"
-        variant={person && !stage ? 'inverse' : 'primary'}
+        // The bar sits over the login queue's view, where signing in is the point: Take over is not its one primary.
+        variant={person ? 'inverse' : 'secondary'}
         className="max-sm:h-10 max-sm:flex-1"
         loading={pendingAction === 'take' || pendingAction === 'hand_back'}
         // Its own request makes it busy, which keeps keyboard focus on it. Only another

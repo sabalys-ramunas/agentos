@@ -145,11 +145,12 @@ export function luminance(hex: string): number {
 
 /**
  * The colour a brand mark is drawn in. Black brands (X, TikTok, Medium, Threads) would vanish on
- * the dark theme, so they take the foreground colour, which is the brand's own monochrome rule.
+ * the dark theme and the night band, so they take the primary text colour (redefined on the night), which is the
+ * brand's own monochrome rule.
  */
 export function brandFill(art: BrandArt, tone: 'brand' | 'mono'): string {
   if (tone === 'mono') return 'currentColor';
-  return luminance(art.hex) < 0.02 ? 'var(--foreground)' : `#${art.hex}`;
+  return luminance(art.hex) < 0.02 ? 'var(--text-primary)' : `#${art.hex}`;
 }
 
 interface SiteMarkProps {

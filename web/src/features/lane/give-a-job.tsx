@@ -9,7 +9,7 @@ import { accountName } from '@/features/home/words';
 
 /**
  * A person says what to do, as an agent does. The worker does the steps on this account, and a post
- * still goes by the account's Ask me first. What it does shows in the strip above and in History.
+ * still goes by the account's Ask me first. What it does shows in the strip above and in What happened.
  */
 export function GiveAJob({ org, lane }: { org: string; lane: Lane }) {
   const [open, setOpen] = useState(false);

@@ -12,6 +12,7 @@ import { usd } from '@/lib/format';
 import { useTechnical } from '@/lib/technical';
 import { limitsTitle } from './words';
 import { InlineError } from '@/components/ui/states';
+import { chosen, toastChange } from '@/components/ui/toast';
 
 function Tile({ label, value, of, note }: { label: string; value: number; of: number; note: string }) {
   return (
@@ -41,7 +42,12 @@ function LimitsDialog({ org, data, open, onClose }: { org: string; data: WorkerO
         aria-label={label}
         value={String(data.limits[key])}
         options={CHOICES[key].map((value) => ({ value: String(value), label: value.toLocaleString('en-GB') }))}
-        onValueChange={(value) => set.mutate({ [key]: Number(value) })}
+        onValueChange={(value) => {
+          const before = data.limits[key];
+          const words = chosen(label, Number(value).toLocaleString('en-GB'), before.toLocaleString('en-GB'));
+          // A higher limit lets the worker do more on its own, so Undo lowers it again; a lower one has no Undo.
+          set.mutate({ [key]: Number(value) }, { onSuccess: () => toastChange({ ...words, undo: Number(value) > before ? () => set.mutateAsync({ [key]: before }) : undefined }) });
+        }}
       />
     </Field>
   );

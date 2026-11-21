@@ -284,3 +284,17 @@ describe('AI models', () => {
     expect(screen.queryByText(/brain/i)).toBeNull();
   });
 });
+
+describe('Add an AI service', () => {
+  it('asks who and which computer on one page, with no field for a key, and keeps the choice in the address', async () => {
+    const { user, router } = renderApp(`${ORG}/settings/brains/add`);
+    const who = await screen.findByRole('radiogroup', { name: 'Who should think for you' }, { timeout: 15_000 });
+    expect(within(who).getByRole('radio', { name: /TypeSafe/ })).toBeChecked();
+    await user.click(within(who).getByRole('radio', { name: /OpenRouter/ }));
+    await waitFor(() => expect(router.state.location.search).toMatchObject({ service: 'openrouter' }));
+    expect(screen.getByRole('combobox', { name: 'On which computer' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Continue on the computer' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Cancel' })).toHaveAttribute('href', expect.stringContaining('/settings/brains'));
+    expect(document.querySelector('input:not([type="radio"])')).toBeNull();
+  });
+});

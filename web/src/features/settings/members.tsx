@@ -35,6 +35,7 @@ import { roleHint, roleLabel } from '@/lib/labels';
 import { atLeast, isOrgWide, ROLES } from '@/lib/permissions';
 import { SettingsHeader } from './page';
 import { MemberDevices } from './member-devices';
+import { chosen, toastChange } from '@/components/ui/toast';
 
 /** Only the roles this person may hand out: never above their own. */
 export const roleOptions = (actor: Role) => ROLES.filter((value) => atLeast(actor, value)).map((value) => ({ value, label: roleLabel[value] }));
@@ -126,7 +127,18 @@ export function MembersSettings() {
         aria-label={`Role for ${member.user.name}`}
         value={member.role}
         options={roleOptions(access.role)}
-        onValueChange={(role) => update.mutate({ id: member.id, role: role as Role }, { onSuccess: () => toast('Role updated') })}
+        onValueChange={(role) =>
+          update.mutate(
+            { id: member.id, role: role as Role },
+            {
+              onSuccess: () =>
+                toastChange({
+                  ...chosen(`${member.user.name}'s role`, roleLabel[role as Role], roleLabel[member.role]),
+                  undo: () => update.mutateAsync({ id: member.id, role: member.role }),
+                }),
+            },
+          )
+        }
       />
     ) : (
       <span className="text-body">{roleLabel[member.role]}</span>

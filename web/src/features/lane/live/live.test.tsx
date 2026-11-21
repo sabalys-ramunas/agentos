@@ -58,7 +58,8 @@ describe('the lane window', () => {
   it('fills the window and leaves it with Escape, keeping focus on the toggle', async () => {
     const { user } = renderApp('/northwind-group/lanes/aster/instagram');
     await screen.findByTestId('vnc-screen');
-    await user.click(screen.getByRole('button', { name: 'Full window' }));
+    // the stage's own button, beside the control pill (the stand-in screen draws one of its own too)
+    await user.click(within(await bar('Instagram')).getAllByRole('button', { name: 'Full window' }).at(-1)!);
     expect(await bar('Instagram')).toHaveClass('fixed');
     expect(document.body.style.overflow).toBe('hidden');
     await user.keyboard('{Escape}');

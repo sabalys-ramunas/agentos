@@ -80,6 +80,7 @@ export function FieldsDemo() {
           options={[
             { value: 'hel-1', label: 'hel-1' },
             { value: 'office-nuc', label: 'office-nuc' },
+            { value: 'hetzner-2', label: 'hetzner-2', hint: 'Offline', disabled: true },
           ]}
         />
       </div>

@@ -1571,7 +1571,7 @@ Toolset: `screen`. Effect: `exec`. Needs the `environments` service.
 
 Use an app on your environment's desktop with real mouse and keyboard input, at a person's pace (a glide to the point, a short look, a real press; keys typed one by one). For apps that are not web pages: on a web page use browser_act with a ref from browser_snapshot, which is safer, cheaper and checks what the page sends. Coordinates are screen pixels: from screen_snapshot's picture, multiply by its scale (and add its area's x and y for one window's picture). Snapshot again to see the result.
 
-Actions: click, double_click, right_click, move (x, y); drag (x, y to to_x, to_y, the left button held); scroll (direction, amount notches, at x, y when given); type (text, at the keyboard focus); key (keys: combinations like "ctrl+s", "alt+F4", "Return", several separated by spaces, "ctrl+a Delete"); focus (window: bring it to the front, also from minimized). Returns front (the window in front after it), opened and closed windows, and pointer. Refused while a person has control of the environment (human_in_control: wait with browser_wait_handback). Effect: exec (typing in a terminal runs commands). Errors: no_desktop, human_in_control, agent_paused, invalid, not_found (no such window), deadline_exceeded, engine_error.
+Actions: click, double_click, right_click, move (x, y); drag (x, y to to_x, to_y, the left button held); scroll (direction, amount notches, at x, y when given); type (text, at the keyboard focus); key (keys: combinations like "ctrl+s", "alt+F4", "Return", several separated by spaces, "ctrl+a Delete"); focus (window: bring it to the front, also from minimized). Returns front (the window in front after it), keys_to (the window type or key went to), opened and closed windows, and pointer. Refused while a person has control of the environment (human_in_control: wait with browser_wait_handback). Effect: exec (typing in a terminal runs commands). Errors: no_desktop, human_in_control, agent_paused, invalid, not_found (no such window), deadline_exceeded, engine_error.
 
 | Argument | Type | Required | Description |
 |---|---|---|---|
@@ -1583,7 +1583,7 @@ Actions: click, double_click, right_click, move (x, y); drag (x, y to to_x, to_y
 | `to_y` | `int \| None` | no (default None) | Where a drag lets go. |
 | `text` | `str \| None` | no (default None) | What type types (at most 600 characters; new lines press Enter, tabs press Tab). |
 | `keys` | `str \| None` | no (default None) | For key: names like ctrl, shift, alt, super with + and a key: Return, Escape, Tab, BackSpace, Delete, Home, End, Page_Up, Up, F5, a, 1. |
-| `window` | `int \| None` | no (default None) | For focus: a window's id from screen_snapshot. |
+| `window` | `int \| None` | no (default None) | For focus: a window's id from screen_snapshot. With type or key: that window first. |
 | `direction` | `'up' \| 'down' \| 'left' \| 'right'` | no (default 'down') | For scroll: up, down, left or right. |
 | `amount` | `int` | no (default 3) | For scroll: how many wheel notches (1 to 30). |
 

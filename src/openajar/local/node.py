@@ -88,7 +88,7 @@ title resumes a save from any chat, and so does environment_open(repo=...) alone
 instructions). environment() lists the open and saved ones. Code only on this \
 computer: environment_upload() gives a link and the commands that pack and send it; \
 environment_download(path) gives the human a one-use link to a file. Give the human links.browser, its \
-live view (in T3 Code: preview_open). With on: file_read (paths=[...] for several)/file_edit for code, \
+live view (in T3 Code: preview_open). With on: file_read (paths=[...] for several)/file_edit for files, never cat or sed, \
 terminal_exec for a command, terminal_job_start for a dev server, browser_navigate; localhost there is the VM; \
 browser_screenshot(proof=...) keeps proof, browser_record a video of it. On a sign-in \
 page, login types a login the owner bound to this machine (you never see it). In local mode you can also use your own shell: ssh openajar-<id>, \
@@ -97,8 +97,8 @@ shows ports, git and cost. Push a branch (the default one only when asked); \
 environment_pull_request(title=...) opens its pull request and gives the link, and environment_port(port) \
 gives the human http://127.0.0.1:<p>/ for a dev server. \
 Stopping for the day: environment_close(note="what is next"), then tell the human how to come back \
-("say: continue <title> in openajar"); environment_save(note) before a risky step. environment_close() when \
-done; never leave a single-use one running: it costs money while it is open. environment_close(forget=true) \
+("say: continue <title> in openajar"); environment_save(note) before a risky step. Task done and nobody asked \
+to keep the machine open: environment_close() is your last call, whatever its keep. environment_close(forget=true) \
 ends it for good, saves included; environment_forget(title) deletes saves that are done with.
 
 The browser loop: browser_navigate, then browser_snapshot reads the page as an outline where each element you \

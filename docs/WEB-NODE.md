@@ -107,7 +107,8 @@ local stack you use may already listen: never point a test at it. `pnpm test:e2e
 - Money and the irreversible always ask.
 - Only a person turns on a worker or a looser setting. A token never can.
 - No em dash in anything a person reads. Everyday words from `web/src/lib/vocabulary.ts`.
-- The rail is the menu the owner approved with Mono, in five groups (web/DESIGN.md, "The shell"): Work (Home,
-  Environments, Runs, Checks), Where it runs (Machines), Who it is for (Brand, Accounts), Automations (Routines, Email, Site
-  APIs) and You (Needs you, History, Settings). New things go under one of those places.
+- The rail is the simpler navigation the owner chose on 2026-11-21 (web/DESIGN.md, "The shell"): Home, Needs you,
+  Computers (Environments and Machines as two tabs) and What happened first; Your business (Accounts, Jobs that repeat,
+  which is Routines and Email, and Brand); For developers (Runs and checks, Site APIs, each hidden until first used); and
+  Settings. New things go under one of those places.
 - Never point a test or a script at real accounts, or at a node or stack someone uses.

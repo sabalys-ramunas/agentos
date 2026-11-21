@@ -262,6 +262,14 @@ class EvalNode:
         done = docker("exec", rec.provider_id, "sh", "-c", cmd)
         return done.returncode, done.stdout
 
+    def kill(self, env_id: str) -> str | None:
+        """Kill the container of environment `env_id` as a crash would (`docker kill`, no shutdown): its id,
+        or None when it has none. The harness's own step (t12's dying machine), never the agent's."""
+        rec = next((r for r in self.vms() if r.environment == env_id and r.provider_id), None)
+        if rec is None or docker("kill", rec.provider_id).returncode != 0:
+            return None
+        return rec.provider_id[:12]
+
     def warm_ready(self) -> bool:
         """A warm machine is booted and waiting (openajar.environments.warmpool)."""
         return any(str(r.lane_id).startswith("env/warm-") and r.state == "ready" for r in self.vms())

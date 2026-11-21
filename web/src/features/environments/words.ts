@@ -3,6 +3,7 @@
  * Everything here reads what the node serves and nothing else.
  */
 import type { EnvCommand, EnvKeep, EnvSave, EnvState, EnvSummary } from '@/api/types';
+import { timeAgo } from '@/lib/format';
 import type { StatusLabel } from '@/lib/labels';
 
 /** Running is ink in Mono, so starting, working and closing pulse; idle is the hollow ring. */
@@ -11,6 +12,7 @@ export const ENV_STATUS: Record<EnvState, StatusLabel> = {
   ready: { label: 'Ready', tone: 'ok' },
   working: { label: 'Working', tone: 'live', pulse: true },
   idle: { label: 'Idle', tone: 'idle' },
+  gone: { label: 'Machine stopped', tone: 'bad' },
   closing: { label: 'Closing', tone: 'live', pulse: true },
   closed: { label: 'Closed', tone: 'neutral' },
   failed: { label: 'Did not start', tone: 'bad' },
@@ -22,6 +24,7 @@ export const ENV_STATE_SENTENCE: Record<EnvState, string> = {
   ready: 'The machine is up and waiting for the agent.',
   working: 'The agent called it in the last 2 minutes.',
   idle: 'No call from the agent for 10 minutes or more.',
+  gone: 'Its machine stopped and will not come back. Close it, or ask the agent to open it again on a new machine.',
   closing: 'The machine and its browser are being deleted.',
   closed: 'The machine and its browser are deleted.',
   failed: 'The machine did not start, so it was deleted.',
@@ -72,7 +75,7 @@ export function ageOf(env: EnvSummary, now: number): number {
 
 /** Milliseconds before the node closes it, or null for one that is closed. */
 export function leftOf(env: EnvSummary, now: number): number | null {
-  if (!isOpen(env) || env.state === 'closing') return null;
+  if (!isOpen(env) || env.state === 'closing' || env.state === 'gone') return null;
   return Date.parse(env.expires_at) - now;
 }
 
@@ -154,9 +157,11 @@ export function commandStatus(command: EnvCommand): StatusLabel {
   }
 }
 
-/** Open first (newest first), then closed (newest closing first). */
+/** Open first (one whose machine stopped leads, then newest first), then closed (newest closing first). */
 export function splitEnvironments(environments: EnvSummary[]): { open: EnvSummary[]; closed: EnvSummary[] } {
-  const open = environments.filter(isOpen).sort((a, b) => b.created_at.localeCompare(a.created_at));
+  const open = environments
+    .filter(isOpen)
+    .sort((a, b) => Number(b.state === 'gone') - Number(a.state === 'gone') || b.created_at.localeCompare(a.created_at));
   const closed = environments
     .filter((env) => !isOpen(env))
     .sort((a, b) => (b.closed_at ?? b.created_at).localeCompare(a.closed_at ?? a.created_at));
@@ -166,7 +171,7 @@ export function splitEnvironments(environments: EnvSummary[]): { open: EnvSummar
 /** The lede over the list: "2 working, 1 idle · €0.41 so far". */
 export function openSummary(open: EnvSummary[]): string {
   if (!open.length) return 'None open right now.';
-  const order: EnvState[] = ['working', 'starting', 'ready', 'idle', 'closing'];
+  const order: EnvState[] = ['gone', 'working', 'starting', 'ready', 'idle', 'closing'];
   const parts = order
     .map((state) => [state, open.filter((env) => env.state === state).length] as const)
     .filter(([, count]) => count > 0)
@@ -258,6 +263,19 @@ export function pruneWords(save: Pick<EnvSave, 'prune_at'>, now: number): string
 /** What a person says to an agent to bring one back. */
 export const continueLine = (title: string) => `continue ${title} in openajar`;
 
+/**
+ * The stage's line for an environment whose machine stopped: when, why in the node's words, and what is left
+ * (close it, or the agent opens the same title on a new machine, from its save when it has one).
+ */
+export function goneWords(env: Pick<EnvSummary, 'title' | 'machine_gone' | 'last_save'>, now?: number): { lead: string; why: string | null; then: string } {
+  const at = env.machine_gone?.at;
+  const lead = at ? `Its machine stopped ${timeAgo(at, now).toLowerCase()}.` : 'Its machine stopped.';
+  const reason = env.machine_gone?.why?.trim();
+  const why = reason ? `${reason.charAt(0).toUpperCase()}${reason.slice(1)}${/[.!?]$/.test(reason) ? '' : '.'}` : null;
+  const from = env.last_save ? ' from its last save' : '';
+  return { lead, why, then: `It will not come back. Close it, or say "${continueLine(env.title)}" and the agent starts a new machine${from}.` };
+}
+
 /** What a call did, in the past tense a person uses ("Clicked on a page"), and what it was about. */
 export interface CallWords {
   title: string;
@@ -297,13 +315,39 @@ const CALL_TITLES: Record<string, [string, CallWords['kind']]> = {
 
 export function callWords(tool: string, summary: string, fallback: (tool: string) => string): CallWords {
   const detail = summary.replace(/\bhttps?:\/\//g, '');
-  if (tool === 'browser_act' || tool === 'screen_act') {
+  if (tool === 'browser_act') {
     const typed = /^type\b/i.test(summary);
-    const where = tool === 'browser_act' ? 'on a page' : 'on its screen';
-    return { title: `${typed ? 'Typed' : 'Clicked'} ${where}`, detail: detail.replace(/^(click|type|press|select|hover)\s+/i, ''), kind: tool === 'browser_act' ? 'page' : 'screen' };
+    return { title: `${typed ? 'Typed' : 'Clicked'} on a page`, detail: detail.replace(/^(click|type|press|select|hover)\s+/i, ''), kind: 'page' };
   }
+  if (tool === 'screen_act') return screenActWords(detail);
   const known = CALL_TITLES[tool];
   return { title: known ? known[0] : fallback(tool), detail, kind: known ? known[1] : 'machine' };
+}
+
+/**
+ * screen_act's summary ("press ctrl+s in window 3 on the screen of e7k2", "bring window 3 to the front ...") in
+ * words: what the hands did, and the rest of the line without the machine's name, which the page already says.
+ */
+const SCREEN_ACTS: Array<[RegExp, string]> = [
+  [/^type\s+/i, 'Typed on its screen'],
+  [/^press\s+/i, 'Pressed keys on its screen'],
+  [/^bring\s+/i, 'Brought a window to the front'],
+  [/^drag\s*/i, 'Dragged on its screen'],
+  [/^scroll\s*/i, 'Scrolled its screen'],
+  [/^move\s*/i, 'Moved the pointer'],
+  [/^double click\s*/i, 'Double-clicked on its screen'],
+  [/^right click\s*/i, 'Right-clicked on its screen'],
+  [/^click\s*/i, 'Clicked on its screen'],
+];
+
+function screenActWords(detail: string): CallWords {
+  const rest = detail.replace(/\s*on the screen of \S+$/, '');
+  for (const [verb, title] of SCREEN_ACTS) {
+    if (verb.test(rest)) {
+      return { title, detail: rest.replace(verb, '').replace(/\s*to the front$/, ''), kind: 'screen' };
+    }
+  }
+  return { title: 'Used its screen', detail: rest, kind: 'screen' };
 }
 
 /** Where a machine is, as a person names it: "Nuremberg" for nbg1. An unknown code is shown as it is. */

@@ -574,7 +574,7 @@ control; migrating self-hosted to hosted is a controller swap, not a data move.
 
 - **MCP** is the main surface: the intro an agent reads first leads with the environment, and the
   Claude Code skills (`openajar-environment`, `openajar-studio`, `openajar-lanes`) teach the loops.
-- **The web app** (`web/`): Home, Needs you, Runs, Checks, Brand, Machines and the environment
+- **The web app** (`web/`): Home, Needs you, Computers (environments and machines), Runs and checks, Brand and the environment
   pages (commands, calls, ports, git, cost, extend and close), in light and dark
   ([WEB-NODE.md](WEB-NODE.md)). Not in the public repository yet.
 - **The live view**: a signed link to watch a lane's browser and take control, served by the node

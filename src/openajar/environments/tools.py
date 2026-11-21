@@ -194,8 +194,8 @@ def _proofs(mgr: EnvironmentManager, env: Environment) -> list[dict]:
 
 def _keep_next(env: Environment) -> str:
     if env.keep == "save":
-        return (". keep is save: when it idles or you close it, the node saves it (disk and files) and deletes the "
-                "machine; environment_open with this title resumes it")
+        return (". keep is save: environment_close() when the task is done saves it (disk and files) and deletes the "
+                "machine, as idle would later; environment_open with this title resumes it")
     if env.keep == "live":
         return ". keep is live: environment_close() only lets it go (the machine stays); final=true deletes it"
     return ""
@@ -276,7 +276,7 @@ def _open_result(ctx: ToolContext, mgr: EnvironmentManager, env: Environment, ha
     if env.state == "ready":
         out["next"] = ("Give the human links.browser, the live view of this environment's browser; if your client "
                        "can open a page beside the chat (T3 Code: preview_open), open it there. "
-                       "file_read, file_edit and file_write work on files (a relative path starts in "
+                       "file_read, file_edit and file_write work on files, not cat or sed (a relative path starts in "
                        f'{env.workdir}); terminal_exec(cmd="git status") runs a command, in {env.workdir} too '
                        "(cwd=\"sub/folder\" starts under it), and terminal_job_start(cmd=<the dev server's or the "
                        "long build's command>) runs one in the background past any call's 200 s (terminal_job_read "
@@ -285,7 +285,8 @@ def _open_result(ctx: ToolContext, mgr: EnvironmentManager, env: Environment, ha
                        "http://localhost:<port> in browser_navigate and in ui_check (tools_more(\"studio\")) is the "
                        "machine's own port; browser_screenshot(proof=\"...\") keeps a shot with a link for the human. "
                        "Push a branch, environment_pull_request(title) opens its pull request (give the human the url), then "
-                       "environment_close(). environment_port(3000) gives the human a link to a dev server. "
+                       "environment_close() as your last call unless the human asked to keep the machine open. "
+                       "environment_port(3000) gives the human a link to a dev server. "
                        "Nothing here waits for a person, a push to any branch included; a delete or a force "
                        "push of a branch this environment did not create is refused, so push your work to a new "
                        "branch")
@@ -372,11 +373,13 @@ async def environment_open(ctx: ToolContext, *, title: str | None = None, repo: 
     level = mgr.network_for_open(network, repo)  # narrowed only, never widened (openajar.environments.network)
     loop = asyncio.get_running_loop()
     began, last = loop.time(), False
+    gone: dict = {}  # a machine of this title that stopped, ended by this open
     while True:
         try:
             async with mgr.opening(family, title):  # one open at a time per title: a second one is environment_in_use
                 got = await _open_locked(ctx, mgr, binding, family, title=title, repo=repo, ref=ref, size=size,
-                                         hours=hours, keep=keep, signins=signins, take_over=take_over, network=level)
+                                         hours=hours, keep=keep, signins=signins, take_over=take_over, network=level,
+                                         gone=gone)
             break
         except EnvironmentFull:  # the node runs all the machines it may: wait for one to free, up to wait_s
             waited, slot_wait = loop.time() - began, min(wait, mgr.slot_wait_s)
@@ -405,6 +408,12 @@ async def environment_open(ctx: ToolContext, *, title: str | None = None, repo: 
     with contextlib.suppress(Exception):  # a convenience: the environment works without it
         bigger = await mgr.bigger_sizes(env)
     out = _open_result(ctx, mgr, env, handle, bigger, opened=opened, applied=applied, differs=differs)
+    if gone:
+        out["replaced"] = gone
+        how = ("resumed the title's newest save" if opened == "resumed" else
+               f"has {env.repo} cloned fresh" if env.repo else "starts empty")
+        out["next"] = (f"New machine: the one this title had stopped ({gone['why']}), so it was ended, and this one "
+                       f"{how}; redo what was lost since. " + out.get("next", ""))
     if logins := await mgr.login_names(env):  # the owner's bound logins, by name (openajar.environments.logins)
         out["logins"] = logins
         out["next"] = (f"Signed-in accounts: login(on=\"{handle}\") signs this browser in to "
@@ -416,7 +425,12 @@ async def environment_open(ctx: ToolContext, *, title: str | None = None, repo: 
 async def _open_locked(ctx: ToolContext, mgr: EnvironmentManager, binding: str, family: str | None, *, title: str,
                        repo: str | None, ref: str | None, size: str | None, hours: float | None,
                        keep: str | None = None, signins: bool | None = None, take_over: bool = False,
-                       network: str = "full") -> tuple[Environment, str, str] | dict:
+                       network: str = "full", gone: dict | None = None) -> tuple[Environment, str, str] | dict:
+    # a machine that stopped is never handed back: it is ended, and the open goes on as one with no live
+    # machine, from the title's newest save when there is one (openajar.environments.liveness)
+    replaced = await mgr.replace_gone(title, family, repo)
+    if replaced is not None and gone is not None:
+        gone.update(replaced)
     # the live one with this title (starting or ready, only with the repository asked for): this chat's
     # own, one let go, or another chat's with take_over once it is quiet; else environment_in_use
     found = mgr.reattach(binding, title, family, repo, take_over=take_over)
@@ -600,7 +614,9 @@ async def environment(ctx: ToolContext, *, on: str | None = None) -> dict:
         out["ssh"] = ssh
     if handle_env(on) == env.id:  # it came with its handle: the caller holds it, so it may see it again
         out["on"] = " ".join(str(on).split())
-    if env.state == "starting":
+    if out.get("machine_gone"):
+        out["next"] = out["machine_gone"]["next"]
+    elif env.state == "starting":
         from openajar.environments.bringup import starting_words
 
         now = starting_words(env, mgr._clock())
@@ -683,6 +699,13 @@ async def environment_close(ctx: ToolContext, *, on: str | None = None, discard:
         out["next"] = (f"done for good: the machine is {out['machine']} and no save of \"{env.title}\" is left. "
                        f"environment_open(title=\"{env.title}\") would open a new one")
         return out
+    if env.gone_at is not None:  # its machine had stopped: this close saved nothing (openajar.environments.liveness)
+        left = [r["id"] for r in mgr.saved_for(env.family) if r["title"].lower() == env.title.lower()]
+        out["saves"] = {"made": None, "left": left}
+        out["next"] = (f"its machine had stopped ({env.gone_why}), so nothing was saved now. environment_open(title="
+                       f"\"{env.title}\") starts a new machine on this title"
+                       + (f", from its newest save ({left[0]})" if left else ""))
+        return out
     if env.keep == "save" and not discard and env.last_save_id:
         out["keep"] = "save"
         out["saved"] = _saved_result(mgr, env.last_save_id)
@@ -757,6 +780,7 @@ async def environment_save(ctx: ToolContext, *, note: str | None = None, on: str
     env = _find(ctx, on)
     if env is None:
         raise NoEnvironment("no environment is open to save; environment() lists the open and saved ones")
+    mgr.refuse_gone(env)
     await ctx.authorize(Effect.READ, lane_id=None, summary=f"save environment {env.id} ({env.title})")
     try:
         m = await mgr.save_bounded(env, kind="save", reason="saved by the agent", note=note)
@@ -812,6 +836,7 @@ async def environment_port(ctx: ToolContext, *, port: int, on: str | None = None
     env = _find(ctx, on)
     if env is None:
         raise NoEnvironment("this chat has no environment; environment_open first, then start your server")
+    mgr.refuse_gone(env)
     await ctx.authorize(Effect.READ, lane_id=None, summary=f"forward port {port} of environment {env.id} ({env.title})")
     out = await env_ports.forward(mgr, env, port)
     listening = {p.get("port") for p in await mgr.ports(env)}

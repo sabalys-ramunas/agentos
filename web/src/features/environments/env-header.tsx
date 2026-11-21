@@ -82,7 +82,7 @@ export function EnvHeader({ org, env, now, yours, actions }: { org: string; env:
             </Part>
           ) : null}
         </p>
-        {isOpen(env) && env.watched?.viewers ? (
+        {isOpen(env) && env.state !== 'gone' && env.watched?.viewers ? (
           <p className="text-secondary text-muted">
             <WatchLine watched={env.watched} />
           </p>
@@ -90,7 +90,7 @@ export function EnvHeader({ org, env, now, yours, actions }: { org: string; env:
       </div>
       {actionable && actions ? (
         <div className="flex items-center gap-2">
-          <ExtendMenu org={org} env={env} glass />
+          {env.state === 'gone' ? null : <ExtendMenu org={org} env={env} glass />}
           <CloseEnvironment org={org} env={env} glass />
         </div>
       ) : null}
@@ -102,8 +102,8 @@ export function EnvHeader({ org, env, now, yours, actions }: { org: string; env:
 export function PhoneActions({ org, env, className }: { org: string; env: EnvDetail; className?: string }) {
   if (!useActionable(org, env)) return null;
   return (
-    <div className={cn('grid grid-cols-2 gap-3', className)}>
-      <ExtendMenu org={org} env={env} className="h-11 w-full" />
+    <div className={cn('grid gap-3', env.state === 'gone' ? 'grid-cols-1' : 'grid-cols-2', className)}>
+      {env.state === 'gone' ? null : <ExtendMenu org={org} env={env} className="h-11 w-full" />}
       <CloseEnvironment org={org} env={env} className="h-11 w-full" />
     </div>
   );

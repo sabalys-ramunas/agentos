@@ -15,6 +15,7 @@ What a person presses and fills in. In the catalog: `/$org/design#actions`.
 | Actions on one thing, a popover, a tip | `Menu`, `Popover`, `Tooltip` | `components/ui/menu.tsx` |
 | A command or id to copy | `CodeBlock code`, `CopyButton text`, `useCopy()` | `components/ui/misc.tsx` |
 | A choice of a few options, each with a sentence; a settings form's note and save | `ChoiceGroup`, `Choice`, `CheckCard`, `RadioRow`; `FormNote`, `FormActions`, `SettingRow`, `SaveStatus`, `UnsavedChanges` | `components/ui/choice.tsx`, `components/ui/form.tsx`, `components/unsaved-changes.tsx` |
+| A setting that saved on its own | `toastChange` with `switched` or `chosen`: what changed in plain words and Undo, about six seconds, held while hovered or focused | `components/ui/toast.tsx` |
 
 A busy button is `loading` (it stays focusable). `shortcut="A"` shows the key and sets
 `aria-keyshortcuts`. Deny sits left of Approve, everywhere. The hosted app never has a password field.

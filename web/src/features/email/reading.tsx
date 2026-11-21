@@ -16,9 +16,11 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Dialog } from '@/components/ui/dialog';
 import { Field, Input, Textarea } from '@/components/ui/field';
+import { PageHeader } from '@/components/ui/misc';
 import { Select } from '@/components/ui/select';
 import { StateGlyph } from '@/components/ui/state-badge';
-import { EmptyState, ErrorState, NotLive, Skeleton } from '@/components/ui/states';
+import { Banner, EmptyState, ErrorState, NotLive, Skeleton } from '@/components/ui/states';
+import { Status } from '@/components/ui/status';
 import { cn } from '@/lib/cn';
 import { clock, dayAndTime, plural } from '@/lib/format';
 import { EmailTabs, FromComputer } from './shared';
@@ -137,7 +139,7 @@ function Reader({ org, message, mailbox, onUnread }: { org: string; message: Mai
         <p className="mt-6 text-body text-pretty text-muted">{firstName(message.from_name)} pressed the unsubscribe link your computer adds to every email. Nobody wrote anything.</p>
       ) : (
       <div className="stranger mt-6">
-        <p className="silk mb-3">Written by someone else</p>
+        <p className="mb-3 text-eyebrow text-muted">Written by someone else</p>
         {blocks.length || !whole.isPending ? (blocks.length || !whole.isError ? <Body blocks={blocks} /> : <p className="text-body text-muted">This message could not be opened from this computer just now.</p>) : <p className="text-body text-muted">Opening the message.</p>}
         {message.attachments.length ? (
           <ul className="mt-4 grid gap-1">
@@ -164,57 +166,37 @@ function Reader({ org, message, mailbox, onUnread }: { org: string; message: Mai
   );
 }
 
-function MessageRow({ message, open, lit, onOpen, onLight }: { message: MailMessage; open: boolean; lit: boolean; onOpen: () => void; onLight: (id: string | null) => void }) {
+const TAG_TONE: Partial<Record<MailMessage['kind'], 'ok' | 'idle'>> = { reply: 'ok', unsubscribe: 'idle', automatic: 'idle' };
+
+/** One message as drawn: who, what kind, the subject and its first line, and when. The open one is selected. */
+function MessageRow({ message, open, onOpen }: { message: MailMessage; open: boolean; onOpen: () => void }) {
   const tag = TAG[message.kind];
+  const tone = TAG_TONE[message.kind];
   return (
-    <li>
+    <li className={cn('border-b border-l-2 border-b-line last:border-b-0', open ? 'border-l-accent bg-accent-soft' : 'border-l-transparent')}>
       <button
         type="button"
         aria-current={open ? 'true' : undefined}
         onClick={onOpen}
-        onPointerEnter={() => onLight(message.id)}
-        onPointerLeave={() => onLight(null)}
-        className={cn('focus-inset block w-full rounded-md px-3 py-2 text-left transition-colors duration-(--duration-fast) ease-standard', open ? 'bg-pressed' : lit ? 'bg-hover' : 'hover:bg-hover')}
+        className="focus-inset grid w-full grid-cols-[32px_minmax(0,1fr)_auto] items-start gap-x-3 py-3 pr-5 pl-4 text-left transition-colors duration-(--duration-fast) ease-standard hover:bg-hover"
       >
-        <span className="flex items-center gap-2">
-          <span aria-label={message.unread ? 'Unread' : undefined} className={cn('size-2 shrink-0 rounded-full', message.unread ? 'bg-fg' : 'bg-transparent')} />
-          <span className={cn('min-w-0 flex-1 truncate text-label', message.unread ? 'font-medium' : 'text-muted')}>{message.from_name}</span>
-          {tag ? <span className="shrink-0 rounded-sm bg-pressed px-1 text-caption text-muted">{tag}</span> : null}
-          <span className="tabular shrink-0 text-caption text-faint">{clock(message.at)}</span>
+        <PersonMark id={message.from_address} name={message.from_name} size={32} />
+        <span className="grid min-w-0 gap-1">
+          <span className="flex min-w-0 items-center gap-2">
+            <span className={cn('truncate text-label', message.unread ? 'font-semibold text-fg' : 'text-fg')}>{message.from_name}</span>
+            {message.unread ? <span className="sr-only">, unread</span> : null}
+            {tag && tone ? <Status chip status={{ label: tag, tone }} className="shrink-0" /> : null}
+          </span>
+          <span className="truncate text-secondary">
+            <span className={cn(message.unread ? 'font-semibold text-fg' : 'font-medium text-fg')}>{message.subject}</span>
+            {message.clip ? <span className="text-muted"> · {message.clip}</span> : null}
+          </span>
         </span>
-        <span className="mt-px block truncate pl-4 text-secondary">{message.subject}</span>
-        <span className="block truncate pl-4 text-secondary text-faint">{message.clip}</span>
+        <time dateTime={message.at} className="pt-px text-secondary text-muted tabular">
+          {clock(message.at)}
+        </time>
       </button>
     </li>
-  );
-}
-
-/** Today so far, as a line. Pointing at a mark finds its message, and the other way round. */
-function TodayLine({ messages, lit, onLight, onOpen }: { messages: MailMessage[]; lit: string | null; onLight: (id: string | null) => void; onOpen: (id: string) => void }) {
-  const hours = useMemo(() => {
-    const start = Math.min(...messages.map((item) => new Date(item.at).getTime()), Date.now() - 3_600_000);
-    return { start, span: Date.now() - start };
-  }, [messages]);
-  return (
-    <div aria-label="Mail that came today, by time" role="group" className="post-wire mt-8">
-      {messages.map((message) => {
-        const left = Math.min(100, Math.max(0, ((new Date(message.at).getTime() - hours.start) / hours.span) * 100));
-        return (
-          <button
-            key={message.id}
-            type="button"
-            aria-label={`${message.from_name}, ${clock(message.at)}`}
-            onClick={() => onOpen(message.id)}
-            onPointerEnter={() => onLight(message.id)}
-            onPointerLeave={() => onLight(null)}
-            className="absolute top-0 -ml-3 grid size-6 place-items-center"
-            style={{ left: `${left}%` }}
-          >
-            <span className={cn('rounded-full transition-transform duration-(--duration-fast) ease-standard', message.kind === 'reply' ? 'size-2 bg-fg' : message.kind === 'unsubscribe' ? 'size-2 shadow-[inset_0_0_0_1.5px_var(--control)]' : 'size-2 bg-control', lit === message.id && 'scale-150')} />
-          </button>
-        );
-      })}
-    </div>
   );
 }
 
@@ -268,7 +250,6 @@ export function Reading() {
   const messages = useMailMessages(org);
   const mailboxes = useMailboxes(org).data ?? [];
   const mark = useMailMark(org);
-  const [lit, setLit] = useState<string | null>(null);
   const [writing, setWriting] = useState(false);
 
   const all = useMemo(() => [...(messages.data ?? [])].sort((a, b) => b.at.localeCompare(a.at)), [messages.data]);
@@ -296,7 +277,6 @@ export function Reading() {
     );
   }
 
-  const pointed = shown.find((item) => item.id === lit) ?? null;
   const answers = shown.filter((item) => item.kind !== 'mail');
   const rest = shown.filter((item) => item.kind === 'mail');
   const fresh = all.filter((item) => item.unread).length;
@@ -304,61 +284,68 @@ export function Reading() {
   const held = mailboxes.filter((item) => item.health !== 'good');
   const computers = [...new Set(mailboxes.filter((item) => item.health === 'good').map((item) => item.computer))];
   const openMessage = (id: string) => void navigate({ search: (old) => ({ ...old, message: id }), replace: true });
-  const row = (message: MailMessage) => <MessageRow key={message.id} message={message} open={open?.id === message.id} lit={lit === message.id} onOpen={() => openMessage(message.id)} onLight={setLit} />;
+  const row = (message: MailMessage) => <MessageRow key={message.id} message={message} open={open?.id === message.id} onOpen={() => openMessage(message.id)} />;
+  const readable = mailboxes.filter((item) => item.health === 'good');
 
   return (
     <div className="pb-16">
-      <EmailTabs org={org} here="new-mail" newCount={fresh} />
-      <div className="flex items-start justify-between gap-6">
-        <div className="min-w-0">
-          <h1 className="text-headline text-balance">{plural(shown.length, 'message')} today{replies ? <span className="text-faint">, {plural(replies, 'reply', 'replies')}.</span> : '.'}</h1>
-          <FromComputer computers={computers} className="mt-2" />
-        </div>
-        <Button icon={<PenLine aria-hidden="true" className="size-4" />} onClick={() => setWriting(true)}>New email</Button>
+      <PageHeader
+        title="Email"
+        description={`${plural(shown.length, 'message')} today${replies ? `, ${plural(replies, 'reply', 'replies')}` : ''}.`}
+        actions={
+          <Button variant="primary" icon={<PenLine aria-hidden="true" className="size-4" />} onClick={() => setWriting(true)}>
+            New email
+          </Button>
+        }
+      />
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <EmailTabs org={org} here="new-mail" newCount={fresh} className="mb-0" />
+        {readable.length > 1 ? (
+          <Select
+            aria-label="Which mailbox"
+            value={search.mailbox ?? 'all'}
+            onValueChange={(next) => void navigate({ search: next === 'all' ? {} : { mailbox: next }, replace: true })}
+            options={[{ value: 'all', label: 'Every mailbox' }, ...readable.map((item) => ({ value: item.id, label: item.address }))]}
+            className="w-full sm:w-72"
+          />
+        ) : null}
       </div>
-
-      <div className="mt-4 flex flex-wrap items-center gap-1">
-        <button type="button" aria-pressed={!search.mailbox} onClick={() => void navigate({ search: {}, replace: true })} className={cn('rounded-md px-2 py-1 text-secondary transition-colors duration-(--duration-fast) ease-standard', !search.mailbox ? 'bg-pressed text-fg' : 'text-muted hover:bg-hover')}>Every mailbox</button>
-        {mailboxes.filter((item) => item.health === 'good').map((item) => (
-          <button key={item.id} type="button" aria-pressed={search.mailbox === item.id} onClick={() => void navigate({ search: { mailbox: item.id }, replace: true })} className={cn('rounded-md px-2 py-1 text-secondary transition-colors duration-(--duration-fast) ease-standard', search.mailbox === item.id ? 'bg-pressed text-fg' : 'text-muted hover:bg-hover')}>{item.address}</button>
-        ))}
-      </div>
-
-      <TodayLine messages={shown} lit={lit ?? open?.id ?? null} onLight={setLit} onOpen={openMessage} />
-      <p className="mt-1 flex items-baseline justify-between gap-4 text-caption text-faint">
-        <span className="tabular">{clock(shown.at(-1)?.at ?? new Date().toISOString())}</span>
-        <span className="min-w-0 truncate text-muted">{pointed ? `${pointed.from_name}, ${clock(pointed.at)}` : ''}</span>
-        <span>Now</span>
-      </p>
 
       {held.map((item) => (
-        <p key={item.id} className="mt-4 flex items-center gap-2 text-secondary text-muted">
-          <StateGlyph state="stuck" size={16} />
-          <span className="min-w-0">{item.address} cannot be read until it is connected again. New mail is safe on the server.</span>
-        </p>
+        <Banner key={item.id} tone="warn" className="mb-6">
+          {item.address} cannot be read until it is connected again. New mail is safe on the server.
+        </Banner>
       ))}
 
-      <div className="mt-6 grid gap-8 lg:grid-cols-[24rem_minmax(0,1fr)] lg:gap-12">
-        <div className="min-w-0">
-          {answers.length ? (
-            <section aria-label="Answers to your emails">
-              <h2 className="silk mb-1 px-3">Answers to your emails</h2>
-              <ul className="grid">{answers.map(row)}</ul>
-            </section>
-          ) : null}
-          {rest.length ? (
-            <section aria-label="Everything else" className="mt-6">
-              <h2 className="silk mb-1 px-3">Everything else</h2>
-              <ul className="grid">{rest.map(row)}</ul>
-            </section>
-          ) : null}
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+        <div className="grid min-w-0 gap-3">
+          <Card className="overflow-hidden">
+            {answers.length ? (
+              <section aria-labelledby="mail-answers">
+                <h2 id="mail-answers" className="border-b border-line px-5 py-3 text-eyebrow text-muted">
+                  Answers to your emails
+                </h2>
+                <ul>{answers.map(row)}</ul>
+              </section>
+            ) : null}
+            {rest.length ? (
+              <section aria-labelledby="mail-rest" className={cn(answers.length && 'border-t border-line')}>
+                <h2 id="mail-rest" className="border-b border-line px-5 py-3 text-eyebrow text-muted">
+                  Everything else
+                </h2>
+                <ul>{rest.map(row)}</ul>
+              </section>
+            ) : null}
+            {!shown.length ? <EmptyState icon={<FileText />} title="Nothing new here" description="New mail shows up as soon as your computer sees it." /> : null}
+          </Card>
+          {computers.length ? <FromComputer computers={computers} /> : null}
         </div>
-        <div className="min-w-0 lg:sticky lg:top-6 lg:self-start">
+        <div className="min-w-0 lg:sticky lg:top-20 lg:self-start">
           {open ? (
-            <Reader org={org} message={open} mailbox={mailboxes.find((item) => item.id === open.mailbox)} onUnread={() => mark.mutate({ id: open.id, read: false })} />
-          ) : (
-            <Card><EmptyState icon={<FileText />} title="Nothing new here" description="New mail shows up as soon as your computer sees it." /></Card>
-          )}
+            <Card className="p-5 md:p-6">
+              <Reader org={org} message={open} mailbox={mailboxes.find((item) => item.id === open.mailbox)} onUnread={() => mark.mutate({ id: open.id, read: false })} />
+            </Card>
+          ) : null}
         </div>
       </div>
       <NewEmail org={org} mailboxes={mailboxes} open={writing} onClose={() => setWriting(false)} />

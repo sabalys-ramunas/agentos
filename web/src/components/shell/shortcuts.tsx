@@ -4,7 +4,7 @@ import { isTyping } from '@/lib/keyboard';
 import { Dialog } from '../ui/dialog';
 import { Kbd } from '../ui/misc';
 import { useAccess } from '@/api/hooks';
-import { menuFor } from './nav';
+import { menuFor, OLD_KEYS } from './nav';
 import { setShortcutsOpen, useShortcutsOpen } from './palette-store';
 
 const SEQUENCE_MS = 1_000;
@@ -19,6 +19,12 @@ const NEEDS_YOU_KEYS: [string[], string][] = [
   [['X'], 'Select'],
   [['H'], 'Show the content hash'],
 ];
+
+/** A key a list had before it became a tab (g m, Machines), for a role that has its place. */
+function oldKey(menu: ReturnType<typeof menuFor>['all'], key: string) {
+  const to = OLD_KEYS[key];
+  return to && menu.some((item) => item.tabs?.some((tab) => tab.to === to)) ? to : undefined;
+}
 
 function Row({ keys, label }: { keys: string[]; label: string }) {
   return (
@@ -57,8 +63,8 @@ export function Shortcuts({ org }: { org: string }) {
         // through, "g d" would deny whatever is focused in Needs you.
         event.preventDefault();
         event.stopImmediatePropagation();
-        const target = menuRef.current.find((item) => item.key === event.key);
-        if (target) void navigate({ to: target.to, params: { org } });
+        const target = menuRef.current.find((item) => item.key === event.key)?.to ?? oldKey(menuRef.current, event.key);
+        if (target) void navigate({ to: target, params: { org } });
         return;
       }
       if (event.key === 'g') {

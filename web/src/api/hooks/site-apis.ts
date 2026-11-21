@@ -9,7 +9,8 @@ import type {
 } from '../types';
 import { pollUnlessNotServed } from './shared';
 
-export const useSiteApis = (org: string) => useQuery({ queryKey: keys.siteApis(org), queryFn: () => fleet.siteApis(org), refetchInterval: pollUnlessNotServed(60_000) });
+export const useSiteApis = (org: string, enabled = true) =>
+  useQuery({ queryKey: keys.siteApis(org), queryFn: () => fleet.siteApis(org), refetchInterval: pollUnlessNotServed(60_000), enabled });
 export const useSiteApi = (org: string, api: string) => useQuery({ queryKey: keys.siteApi(org, api), queryFn: () => fleet.siteApi(org, api) });
 export const useSiteUsage = (org: string, api: string) => useQuery({ queryKey: keys.siteUsage(org, api), queryFn: () => fleet.siteUsage(org, api) });
 export const useSiteKeys = (org: string) => useQuery({ queryKey: keys.siteKeys(org), queryFn: () => fleet.siteKeys(org) });

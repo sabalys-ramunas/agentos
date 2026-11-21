@@ -8,6 +8,8 @@
  *   log-changed the log check says the log was changed after it was written (Proof)
  *   computer the app is on a computer, not hosted: it signs in with a code and has what only a computer has
  *   one-machine, machines-many  Machines with one node, or twelve rows (mocks/machines.ts)
+ *   no-developer no run, no check and no Site API yet, so the developer places stay out of the menu
+ *   env-gone   the idle environment's machine stopped for good (state gone, only Close is left)
  */
 const KEY = 'agentos.mock.scenario';
 

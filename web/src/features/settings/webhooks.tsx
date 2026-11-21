@@ -31,6 +31,7 @@ import { describeError } from '@/lib/errors';
 import { dateTime, timeAgo } from '@/lib/format';
 import { deliveryState, webhookEvent } from '@/lib/labels';
 import { SettingsHeader } from './page';
+import { switched, toastChange } from '@/components/ui/toast';
 
 const EVENTS: WebhookEvent[] = ['approval.requested', 'approval.decided', 'approval.expired', 'run.failed'];
 
@@ -359,7 +360,12 @@ export function WebhooksSettings() {
                               aria-label={`Send to ${hook.origin}`}
                               checked={hook.enabled}
                               disabled={!canManage}
-                              onCheckedChange={(enabled) => update.mutate({ id: hook.id, enabled })}
+                              onCheckedChange={(enabled) =>
+                                update.mutate(
+                                  { id: hook.id, enabled },
+                                  { onSuccess: () => toastChange({ ...switched(`Sending to ${hook.origin}`, enabled), undo: () => update.mutateAsync({ id: hook.id, enabled: !enabled }) }) },
+                                )
+                              }
                             />
                           </Td>
                           <Td className="pr-4 md:pr-6">

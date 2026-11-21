@@ -7,11 +7,12 @@ screen designs all of these. In the catalog: `/$org/design#feedback`.
 |---|---|---|
 | The state of a run, a machine, a check | `Status status={...}`: a shape and a word. Words and tones come from `lib/labels.ts` | `components/ui/status.tsx` |
 | A mark beside words of your own | `StatusDot tone pulse` | `components/ui/status.tsx` |
-| State for a person who is not technical | `StateBadge`, `ConditionBadge` (All good, Waiting for you, Stuck, Sleeping, Working now) | `components/ui/state-badge.tsx` |
+| State for a person who is not technical | `StateBadge`, `ConditionBadge` (All good, Waiting for you, Stuck, Sleeping, Working now); `chip` sets it on its tint at a card's or a page's head | `components/ui/state-badge.tsx` |
 | Working on it | `Spinner`, or `loading` on a `Button` | `components/ui/spinner.tsx` |
-| How full | `Meter` (ink, amber from 80%, red from 95%) | `components/ui/misc.tsx` |
+| How full | `Meter` (ink, amber from 80%, red from 95%; `progress` when more is better: ink, green once complete) | `components/ui/misc.tsx` |
 | Loading and failing, for a whole view | `QueryView` (skeleton, then the data, or `ErrorState` with Try again) | `components/ui/states.tsx` |
 | Nothing here yet | `EmptyState`: an icon, one bold line, one sentence, one action | `components/ui/states.tsx` |
+| One sentence about what is below it (a workspace's account that needs a look, the log is intact) | `Banner tone title action`: its tint and edge, the words first, one or two buttons at the end | `components/ui/states.tsx` |
 | A refusal or failure in place | `InlineError` (or `error` on a `Field`) | `components/ui/states.tsx` |
 | A part this place does not serve, no access | `NotLive`, `NoAccess` | `components/ui/states.tsx` |
 | A page that does not exist | `NotFound` | `components/not-found.tsx` |

@@ -92,9 +92,11 @@
     <application class="*" type="normal">
       <position force="no"><x>center</x><y>center</y></position>
     </application>
-    <!-- the agent's browser: placed where the page is told it is, with the wallpaper around it -->
+    <!-- the agent's browser: placed where the page is told it is, with the wallpaper around it. It starts in
+         the background, so a new browser window takes no focus by itself: an app opened before it keeps the
+         keyboard, and desk.py (FocusGuard) gives the browser focus when nothing else has it -->
     <application class="*amoufox*" type="normal">
-      <decor>yes</decor><maximized>AGENTOS_BROWSER_MAXIMIZED</maximized>
+      <decor>yes</decor><focus>no</focus><maximized>AGENTOS_BROWSER_MAXIMIZED</maximized>
       <position force="yes"><x>AGENTOS_BROWSER_X</x><y>AGENTOS_BROWSER_Y</y></position>
     </application>
     <!-- a person's own Terminal and Files open over the browser, offset so both show -->

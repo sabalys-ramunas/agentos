@@ -1,5 +1,5 @@
 import type { UseQueryResult } from '@tanstack/react-query';
-import { AlertCircle, CircleAlert, Lock, Unplug } from 'lucide-react';
+import { AlertCircle, CircleAlert, CircleCheck, Info, Lock, Unplug } from 'lucide-react';
 import type { HTMLAttributes, ReactNode } from 'react';
 import { useProviders } from '@/api/hooks';
 import { ApiError, isNotServed } from '@/api/http';
@@ -142,6 +142,61 @@ export function InlineError({ children, id, className }: { children: ReactNode; 
       </span>
       <span className="min-w-0">{children}</span>
     </p>
+  );
+}
+
+export type BannerTone = 'bad' | 'warn' | 'ok' | 'neutral';
+
+const BANNER: Record<BannerTone, string> = {
+  bad: 'border-bad-line bg-bad-fill text-bad',
+  warn: 'border-warn-line bg-warn-fill text-warn',
+  ok: 'border-ok-line bg-ok-fill text-ok',
+  neutral: 'border-line bg-inset text-fg',
+};
+
+const BANNER_ICON: Record<BannerTone, ReactNode> = {
+  bad: <CircleAlert />,
+  warn: <CircleAlert />,
+  ok: <CircleCheck />,
+  neutral: <Info />,
+};
+
+interface BannerProps {
+  tone?: BannerTone;
+  /** The few words that lead, in semibold: "Reddit needs a look:". */
+  title?: ReactNode;
+  /** The sentence after it. */
+  children?: ReactNode;
+  /** A lucide icon in place of the tone's own. */
+  icon?: ReactNode;
+  /** One or two buttons at the right end (under the words on a phone). */
+  action?: ReactNode;
+  /** `alert` only for something that just went wrong; a banner a page opens with is a `status`. */
+  role?: 'status' | 'alert' | 'note';
+  className?: string;
+}
+
+/**
+ * One sentence across the page or a card about the state of what is below it, on its tone's tint with its edge:
+ * a workspace's account that needs a look (bad), an account that asks first for now (warn), the log is intact (ok).
+ * On the night band the tints are the night's own (`.on-night`). The words lead with the title, and the action
+ * says what to do. Never for a refusal beside a control: that is an InlineError.
+ */
+export function Banner({ tone = 'neutral', title, children, icon, action, role = 'status', className }: BannerProps) {
+  return (
+    <div role={role} className={cn('flex flex-wrap items-center gap-x-4 gap-y-3 rounded-xl border px-4 py-3 sm:min-h-14 sm:flex-nowrap sm:pr-3', BANNER[tone], className)}>
+      <p className="flex min-w-0 flex-1 basis-60 items-start gap-3 text-body">
+        <span aria-hidden className="flex h-(--line-height-22) shrink-0 items-center [&_svg]:size-4">
+          {icon ?? BANNER_ICON[tone]}
+        </span>
+        <span className="min-w-0 [overflow-wrap:anywhere]">
+          {title ? <span className="font-semibold">{title}</span> : null}
+          {title && children ? ' ' : null}
+          {children}
+        </span>
+      </p>
+      {action ? <div className="flex shrink-0 flex-wrap items-center gap-2 max-sm:w-full max-sm:pl-7">{action}</div> : null}
+    </div>
   );
 }
 

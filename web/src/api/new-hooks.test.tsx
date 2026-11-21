@@ -67,7 +67,9 @@ describe('Runs', () => {
       }
       await waitFor(() => expect(result.current.done).toBe(true));
       expect(result.current.job?.state).toBe('passed');
-      expect(result.current.stdout).toContain('Tests  118 passed (118)');
+      // The runner's colours stay in the output; the page strips them where it reads it.
+      // eslint-disable-next-line no-control-regex
+      expect(result.current.stdout.replace(/\u001b\[[0-9;]*m/g, '')).toContain('Tests  118 passed (118)');
       expect(result.current.job?.tests).toMatchObject({ runner: 'vitest', passed: 118 });
       expect(result.current.trimmed).toBe(false);
     } finally {

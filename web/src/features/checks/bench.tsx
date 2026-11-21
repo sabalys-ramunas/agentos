@@ -6,14 +6,15 @@
 import { ImageOff, TriangleAlert } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { studioShotUrl } from '@/api/client';
-import type { StudioRun, StudioScreen } from '@/api/types';
+import type { FindingSeverity, StudioRun, StudioScreen } from '@/api/types';
 import { ImageFrame } from '@/components/ui/image-frame';
 import type { Finding } from '@/components/ui/image-frame';
 import { Kbd } from '@/components/ui/misc';
 import { Skeleton } from '@/components/ui/states';
+import { Status } from '@/components/ui/status';
 import { cn } from '@/lib/cn';
 import { plural } from '@/lib/format';
-import { findingTitle, screenWords } from './model';
+import { SEVERITY_TONE, findingTitle, screenWords } from './model';
 import type { NumberedFinding } from './model';
 import { Thumb, useImageSize } from './parts';
 
@@ -25,52 +26,49 @@ export function ScreenStrip({
   run,
   current,
   counts,
+  worst,
   onPick,
 }: {
   org: string;
   run: StudioRun;
   current: string;
   counts: Map<string, number>;
+  worst: Map<string, FindingSeverity>;
   onPick: (key: string) => void;
 }) {
   return (
-    <div role="group" aria-label="Screens" className="scrollbar-none flex gap-2 overflow-x-auto border-b border-line p-3">
+    <div role="group" aria-label="Screens" className="grid grid-cols-2 gap-3 md:grid-cols-4">
       {run.screen_list.map((screen, index) => {
         const count = counts.get(screen.key) ?? 0;
         const words = screenWords(screen);
         const on = screen.key === current;
+        const severity = worst.get(screen.key);
         return (
           <button
             key={screen.key}
             type="button"
             aria-pressed={on}
             aria-label={`${words}, ${screen.ok ? plural(count, 'finding') : 'did not render'}${index < 9 ? `, key ${index + 1}` : ''}`}
+            aria-keyshortcuts={index < 9 ? String(index + 1) : undefined}
             onClick={() => onPick(screen.key)}
             className={cn(
-              'grid w-32 shrink-0 gap-1 rounded-lg border p-1 text-left transition-colors duration-(--duration-fast) ease-standard',
-              on ? 'border-accent bg-accent-soft' : 'border-transparent hover:bg-hover',
+              'grid min-w-0 gap-3 rounded-xl border p-3 text-left shadow-lift transition-colors duration-(--duration-fast) ease-standard',
+              on ? 'border-accent bg-accent-soft' : 'border-line bg-card hover:border-line-strong',
             )}
           >
             <Thumb
               src={screen.image && !run.images_gone ? studioShotUrl(org, run.capture, screen.key, 240) : null}
               alt=""
-              className="aspect-[16/10] w-full"
+              className="h-20 w-full"
             />
-            <span className="flex items-center justify-between gap-1 px-1">
-              <span title={words} className={cn('truncate font-mono text-code-caption', on ? 'text-accent-text' : 'text-muted')}>
+            <span className="flex min-w-0 items-center justify-between gap-2">
+              <span title={words} className={cn('min-w-0 truncate text-label', on ? 'text-accent-text' : 'text-fg')}>
                 {words}
               </span>
               {screen.ok ? (
-                <span
-                  className={cn(
-                    'inline-flex h-4.5 min-w-4.5 items-center justify-center rounded-full px-1 font-mono text-micro tabular',
-                    count ? 'bg-fg text-on-inverse' : 'border border-line text-faint',
-                  )}
-                >
-                  {count}
-                </span>
+                <Status chip status={{ label: count.toLocaleString('en'), tone: count && severity ? SEVERITY_TONE[severity] : 'ok' }} className="tabular" />
               ) : (
-                <span className="text-micro text-bad">failed</span>
+                <Status chip status={{ label: 'Failed', tone: 'idle' }} />
               )}
             </span>
           </button>
@@ -143,10 +141,10 @@ export function Bench({
   const boxes = size ? boxesOn(findings, screen, scale) : [];
   const unplaced = findings.filter((finding) => !finding.rects?.[screen.key]).length;
   return (
-    <div ref={box} className="max-h-[min(72vh,720px)] min-h-60 overflow-auto bg-inset p-3 md:p-4">
+    <div ref={box} className="max-h-[min(72vh,720px)] min-h-60 overflow-auto bg-stage p-4 md:p-6">
       {size && src ? (
         <div className="mx-auto" style={{ maxWidth: Math.max(screen.width * 1.25, 320) }}>
-        <ImageFrame
+          <ImageFrame
           src={src}
           alt={`The page at ${screenWords(screen)}, with ${plural(boxes.length, 'finding')} outlined and numbered`}
           width={size.width}
@@ -158,7 +156,7 @@ export function Bench({
             if (finding) onSelect(finding);
           }}
           className="bg-card"
-        />
+          />
         </div>
       ) : (
         <Skeleton className="mx-auto aspect-[10/16] h-auto w-full max-w-md" />

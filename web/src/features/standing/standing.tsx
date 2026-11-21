@@ -1,6 +1,7 @@
 import { SegmentedControl } from '@/components/ui/tabs';
 import { useNavigate, useParams, useSearch } from '@tanstack/react-router';
-import { Plus, Stamp } from 'lucide-react';
+import { Check, CircleSlash, Plus, Stamp } from 'lucide-react';
+import { AppTile } from '@/components/ui/tile';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { useAccess, useFlows, useLaneAskFirst, useRevokeStandingApproval, useStandingApprovals, useWorkspaces } from '@/api/hooks';
@@ -22,24 +23,25 @@ import { EnforcementNote, LimitNote } from './enforcement';
 import { StandingDialog } from './standing-dialog';
 
 /** Used of allowed, as a plain bar with the numbers beside it. Running out is not a fault. */
-function Usage({ item }: { item: StandingApproval }) {
+function Usage({ item, ends }: { item: StandingApproval; ends: string }) {
   const pct = item.count ? Math.min(100, (item.used / item.count) * 100) : 0;
   // A limit the node does not keep (null) is no bar: the count says what was used, and nothing more.
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
       <div
         role="meter"
         aria-label="Used"
         aria-valuenow={item.used}
         aria-valuemin={0}
         aria-valuemax={item.count ?? undefined}
-        className="h-1 flex-1 overflow-hidden rounded-full bg-pressed"
+        className="h-1 min-w-40 flex-1 overflow-hidden rounded-full bg-chart-grid"
       >
         <div className="h-full rounded-full bg-fg transition-[width] duration-(--duration-slow) ease-standard" style={{ width: `${pct}%` }} />
       </div>
-      <span className="mono tabular shrink-0 text-caption text-muted">
+      <span className="shrink-0 text-secondary text-muted tabular">
         {item.count === null ? `${item.used} used` : `${item.used} of ${item.count} used`}
       </span>
+      <span className="shrink-0 text-secondary text-muted tabular">{ends}</span>
     </div>
   );
 }
@@ -59,9 +61,10 @@ function Item({ org, item, workspaceName, onRevoke, canRevoke, gap, nameOf }: It
   const ends = active ? `Ends in ${timeUntil(item.until)}, ${date(item.until)}` : item.state === 'revoked' && item.revoked_at ? `Revoked ${date(item.revoked_at)}` : `Ended ${date(item.until)}`;
   return (
     <li className={cn('grid gap-4 p-6', !active && 'text-muted')}>
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <p className={cn('text-label font-medium break-words', active ? 'text-fg' : 'text-muted')}>{describeStanding(item)}</p>
+      <div className="flex items-start gap-4">
+        <AppTile tone={active ? 'green' : 'ink'} icon={active ? Check : CircleSlash} size="sm" />
+        <div className="min-w-0 flex-1">
+          <p className={cn('text-card-title break-words', active ? 'text-fg' : 'text-muted')}>{describeStanding(item)}</p>
           <p className="mt-1 text-secondary text-faint">
             {workspaceName} · {lanesWords(item.lanes, workspaceName)}
             {item.per_day ? ` · at most ${item.per_day} a day` : ''}
@@ -69,7 +72,7 @@ function Item({ org, item, workspaceName, onRevoke, canRevoke, gap, nameOf }: It
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <Status status={standingState[item.state]} />
+          <Status chip status={standingState[item.state]} />
           {active && canRevoke ? (
             <Button size="sm" variant="ghost" onClick={onRevoke}>
               Revoke
@@ -77,12 +80,15 @@ function Item({ org, item, workspaceName, onRevoke, canRevoke, gap, nameOf }: It
           ) : null}
         </div>
       </div>
-      <Usage item={item} />
-      <div className="grid gap-2">
-        {gap ? <LimitNote org={org} gap={gap} nameOf={nameOf} /> : null}
-        {active ? <EnforcementNote enforcement={item.enforcement} /> : null}
-        <p className="tabular text-secondary text-faint">{ends}</p>
-        {item.note ? <p className="text-secondary break-words text-muted">{item.note}</p> : null}
+      <div className="grid gap-4 md:pl-11">
+        <Usage item={item} ends={ends} />
+        {gap || active || item.note ? (
+          <div className="grid gap-2">
+            {gap ? <LimitNote org={org} gap={gap} nameOf={nameOf} /> : null}
+            {active ? <EnforcementNote enforcement={item.enforcement} /> : null}
+            {item.note ? <p className="text-secondary break-words text-muted">{item.note}</p> : null}
+          </div>
+        ) : null}
       </div>
     </li>
   );

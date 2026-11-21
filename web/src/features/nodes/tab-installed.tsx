@@ -150,8 +150,8 @@ function Services({ org, node, services }: { org: string; node: string; services
                   <Td className="tabular text-right text-secondary">
                     <span className={service.restarts > 2 ? 'text-warn' : 'text-muted'}>{service.restarts}</span>
                   </Td>
-                  <Td className="mono tabular hidden text-right text-secondary text-muted md:table-cell">{service.cpu_pct === null ? NONE : `${service.cpu_pct}%`}</Td>
-                  <Td className="mono tabular hidden text-right text-secondary text-muted md:table-cell">{service.mem_mb === null ? NONE : `${service.mem_mb} MB`}</Td>
+                  <Td numeric className="hidden text-muted md:table-cell">{service.cpu_pct === null ? NONE : `${service.cpu_pct}%`}</Td>
+                  <Td numeric className="hidden text-muted md:table-cell">{service.mem_mb === null ? NONE : `${service.mem_mb.toLocaleString('en')} MB`}</Td>
                 </Tr>
               );
             })}

@@ -171,12 +171,11 @@ describe('on an account', () => {
     });
   });
 
-  it('shows on each account card, for a person to flip without leaving the list', async () => {
-    const { user } = renderApp('/northwind-group/accounts');
+  it('says the word on each account card, and keeps the switch on the account page', async () => {
+    renderApp('/northwind-group/accounts');
     const card = await screen.findByRole('article', { name: /Xero/ });
-    await user.click(await within(card).findByRole('switch', { name: /Ask me first for/ }));
-    await waitFor(() => expect(setting('harbor/xero')?.ask_first).toBe(true));
-    expect(within(card).getByText('Asks you first')).toBeInTheDocument();
+    expect(await within(card).findByText('Runs on its own')).toBeInTheDocument();
+    expect(within(card).queryByRole('switch')).not.toBeInTheDocument();
   });
 });
 

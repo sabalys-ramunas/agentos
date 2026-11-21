@@ -5,8 +5,10 @@
  * readers.
  */
 import { cn } from '@/lib/cn';
+import type { Tone } from '@/lib/labels';
 import type { Condition, PersonState } from '@/lib/states';
 import { STATE_WORDS } from '@/lib/states';
+import { Status } from './status';
 
 export type GlyphSize = 14 | 16 | 20 | 24 | 40;
 
@@ -60,12 +62,24 @@ interface StateBadgeProps {
   sentence?: string;
   detail?: boolean;
   size?: GlyphSize;
+  /** On its tone's soft tint as a 24 px pill, with the status mark: the state at the head of a card or a page. */
+  chip?: boolean;
   className?: string;
 }
 
+/** A person's state as a status tone, for the chip. */
+export const STATE_TONE: Record<PersonState, Tone> = { good: 'ok', waiting: 'warn', stuck: 'bad', sleeping: 'idle', working: 'live' };
+
 /** The glyph and the word. The one way a person-facing screen shows state. */
-export function StateBadge({ state, label, sentence, detail = false, size = 16, className }: StateBadgeProps) {
+export function StateBadge({ state, label, sentence, detail = false, size = 16, chip = false, className }: StateBadgeProps) {
   const word = label ?? STATE_WORDS[state];
+  if (chip) {
+    return (
+      <span title={sentence} className={cn('inline-flex min-w-0', className)}>
+        <Status chip status={{ label: word, tone: STATE_TONE[state] }} className="min-w-0" />
+      </span>
+    );
+  }
   return (
     <span
       title={!detail && sentence ? sentence : undefined}

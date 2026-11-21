@@ -127,7 +127,7 @@ export function BackupsTab({ org, node, owner }: { org: string; node: string; ow
             { label: 'Last backup', value: newest ? timeAgo(newest.created_at) : NONE },
             { label: 'Last check', value: newest ? <Status status={backupCheck[newest.check.state]} /> : NONE },
             { label: 'Kept', value: `${data.items.length} of ${data.keep}` },
-            { label: 'Size', value: newest ? gb(newest.size / MIB) : NONE, mono: true },
+            { label: 'Size', value: newest ? gb(newest.size / MIB) : NONE },
           ]}
         />
       </section>

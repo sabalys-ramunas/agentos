@@ -49,6 +49,7 @@ from openajar.environments.errors import (
     UnsavedWork,
 )
 from openajar.environments.fleet import Fleet
+from openajar.environments.liveness import Liveness
 from openajar.environments.logins import Logins
 from openajar.environments.models import (
     BRANCHES_KEPT,
@@ -148,7 +149,7 @@ def check_ref(ref: str | None) -> str | None:
 
 class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downloads, Pausing, Saving, Activity,
                          SshAccess, Updates, Network, Preparing, PrepBuild, WarmPool, Replay, Checkpoints, Watching,
-                         Waking, Recording, Fleet, Logins):
+                         Waking, Recording, Fleet, Logins, Liveness):
     """The environments service. Which environment a call means and attaching by title (Picking), its
     sizing and cost (Sizing), its bring-up (BringUp), its read side (Views), its saves (Saving) and what
     counts as busy (Activity), and in local mode the agent's own ssh (SshAccess) are mixins in their own
@@ -248,6 +249,7 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
             self._reaper = asyncio.create_task(self._reap_loop(), name="environment-reaper")
         self.replay_start()  # frames of a person's take-over and of a changing page (openajar.environments.replay)
         self.logins_install()  # the vault reads which environments a bound login covers (openajar.environments.logins)
+        self.liveness_install()  # a command that cannot reach its machine asks its provider (openajar.environments.liveness)
 
     async def shutdown(self) -> None:
         """Stop the reaper, the bring-ups and the tunnels. The VMs stay: a restart of the node must
@@ -548,6 +550,8 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
         env = self.store.get(env_id)
         if not env.open:
             return env
+        if env.gone_at is not None:  # nothing to save or check on a machine that stopped (openajar.environments.liveness)
+            return await self.end_gone(env)
         if env.keep == "live" and not final:
             return self.unbind(env)
         async with self._lock(f"close:{env_id}"):
@@ -591,8 +595,10 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
         self.ssh_down(env)  # the agent's `ssh openajar-<id>` goes first: its machine is going
         self.drop_downloads(env.id)  # its download links end, and their archives go (openajar.environments.downloads)
         await self.stop_browser_start(env.id)  # a browser still starting (bringup.start_browser) is not waited for
-        await self.last_looks(env, "close")  # its recording kept, the browser's last frame (recording, replay)
-        if env.browser == "vm":  # its browser and screen stop on the machine while the tunnel still reaches it
+        gone = env.gone_at is not None  # its machine stopped: nothing on it answers, so nothing there is waited for
+        if not gone:
+            await self.last_looks(env, "close")  # its recording kept, the browser's last frame (recording, replay)
+        if env.browser == "vm" and not gone:  # its browser and screen stop on the machine while the tunnel still reaches it
             await self._remove_browser(env)
             if self._vm_browsers is not None:
                 await self._vm_browsers.drop_screen(env)
@@ -822,11 +828,17 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
                 await self._teardown(env, reason="its machine was deleted")
                 out["gone"].append(env.id)
                 continue
+            if env.gone_at is not None:  # its machine stopped: no tunnel, screen or save; ended once it waited
+                await self.reap_gone(env, now, out)
+                continue
             env = await self.renew_live(env, now)
             if now >= env.expires_at:
                 await self._end_of_life(env, now, out)
                 continue
             tunnel = self._tunnels.get(env.id)
+            if (rec.state == "ready" and (tunnel is None or not tunnel.alive) and env.state == "ready"
+                    and await self.machine_gone(env, cause="its tunnel went down")):
+                continue  # gone: the agent's next call says so (openajar.environments.liveness)
             if rec.state == "ready" and (tunnel is None or not tunnel.alive):
                 try:
                     await self._start_tunnel(env)

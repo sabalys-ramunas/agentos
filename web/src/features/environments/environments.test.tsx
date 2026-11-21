@@ -1,6 +1,7 @@
 import { act, screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { setPaletteOpen } from '@/components/shell/palette-store';
+import { stopMachine } from '@/mocks/environments';
 import { db } from '@/mocks/handlers';
 import { server } from '@/test/setup';
 import { renderApp } from '@/test/render';
@@ -36,9 +37,9 @@ describe('Environments', () => {
     expect(within(all).getByRole('row', { name: 'Search results pagination, Did not start' })).toBeInTheDocument();
     expect(screen.queryByRole('list', { name: 'Open environments' })).not.toBeInTheDocument();
 
-    // The rail counts the open ones.
+    // The rail counts the open ones, on Computers.
     const [rail] = screen.getAllByRole('navigation', { name: 'Main' });
-    expect(within(rail!).getByRole('link', { name: /Environments/ })).toHaveTextContent('6');
+    expect(within(rail!).getByRole('link', { name: /Computers/ })).toHaveTextContent('6');
 
     await user.click(within(all).getByRole('row', { name: 'Upgrade Vite to 6, Closed' }));
     await waitFor(() => expect(router.state.location.pathname).toBe(`/${ORG}/environments/v6up`));
@@ -219,6 +220,31 @@ describe('One environment', () => {
   it('says plainly when the id is not there', async () => {
     renderApp(`/${ORG}/environments/zzzz`);
     expect(await screen.findByText('This environment is not here', undefined, T)).toBeInTheDocument();
+  });
+});
+
+describe('an environment whose machine stopped', () => {
+  it('leads the list and Home with its red state, says when and why on its page, and offers only Close', async () => {
+    stopMachine(org().environments!, 'w8tp', Date.now());
+    const { user, unmount } = renderApp(`/${ORG}/environments`);
+    const list = await screen.findByRole('list', { name: /open environments/i }, T);
+    const first = within(list).getAllByRole('link')[0]!;
+    expect(first).toHaveAccessibleName(/^Invoice export to CSV\. Machine stopped$/);
+    expect(within(first).getByText(/Its computer stopped/)).toBeInTheDocument();
+    unmount();
+
+    renderApp(`/${ORG}`);
+    const working = await screen.findByRole('list', { name: 'Open environments' }, T);
+    expect(within(working).getAllByRole('link')[0]).toHaveAccessibleName(/^Invoice export to CSV\. Machine stopped/);
+
+    await user.click(within(working).getAllByRole('link')[0]!);
+    expect(await screen.findByRole('heading', { level: 1, name: 'Invoice export to CSV' }, T)).toBeInTheDocument();
+    const line = (await screen.findAllByRole('status')).find((node) => /Its machine stopped 6m ago\./.test(node.textContent ?? ''));
+    expect(line?.textContent).toMatch(/Its server is off \(Hetzner says off\)\./);
+    expect(screen.getByText(/It will not come back\. Close it, or say "continue Invoice export to CSV in openajar"/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Extend' })).toBeNull();
+    await user.click(screen.getAllByRole('button', { name: 'Close' })[0]!);
+    expect(await screen.findByText(/Its machine already stopped, so there is nothing left to save/)).toBeInTheDocument();
   });
 });
 

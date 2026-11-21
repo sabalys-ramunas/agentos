@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import contextlib
+import re
 import signal as _signal
 from typing import Any, BinaryIO
 
@@ -14,6 +15,17 @@ from openajar.env.models import ExecResult
 from openajar.env.sandbox import Workload
 
 LEFTOVER_GRACE_S = 0.5
+# ssh's own words when it could not reach the machine or lost it (exit status 255), not a command's
+SSH_LOST_RE = re.compile(r"^(ssh: |ssh_exchange_identification|kex_exchange_identification|mux_client_|"
+                         r"Connection to \S+ closed|Connection (closed|reset) by|client_loop: |"
+                         r"Read from remote host |Timeout, server \S+ not responding)", re.MULTILINE)
+
+
+def ssh_lost(exit_code: int | None, stderr: str | None) -> bool:
+    """Did a command on a VM lane fail because ssh could not reach the machine (or lost it), rather than
+    because of the command? Exit status 255 and ssh's own line in stderr. A command of the agent's that
+    exits 255 and prints such a line is checked with the provider before anything is said."""
+    return exit_code == 255 and bool(SSH_LOST_RE.search(stderr or ""))
 
 
 class Capture:

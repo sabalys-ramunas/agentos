@@ -343,6 +343,22 @@ async def test_an_actions_result_names_the_window_in_front_and_what_opened(world
     assert req["deadline_s"] == screen.ACT_S
 
 
+async def test_typing_says_which_window_took_the_keys_and_can_bring_one_forward_first(world):
+    """Eval t11: the keys went to the browser and only `front` (after) hinted at it. keys_to says where they went;
+    `window` with type or key brings that window to the front first."""
+    term = {"id": 10485763, "title": "root@vm: /work", "app": "Lxterminal", "kind": "terminal", "x": 180, "y": 204,
+            "w": 658, "h": 448, "front": True}
+    world.machine.answers = [{"ok": True, "front": term, "keys_to": term, "pointer": [1, 2]}]
+    out = await screen.screen_act(world.ctx, on=ON, action="type", text="echo hi", window=10485763)
+    assert out["keys_to"]["kind"] == "terminal" and world.machine.calls[0][1]["window"] == 10485763
+    world.machine.answers = [{"ok": True, "front": term, "pointer": [1, 2]}]
+    assert (await screen.screen_act(world.ctx, on=ON, action="key", keys="Return"))["keys_to"] is None
+    world.machine.answers = [{"ok": True, "front": term, "pointer": [1, 2]}]
+    assert "keys_to" not in await screen.screen_act(world.ctx, on=ON, action="click", x=5, y=5)
+    with pytest.raises(InvalidRequest, match="window"):
+        await screen.screen_act(world.ctx, on=ON, action="type", text="x", window=-4)
+
+
 @pytest.mark.parametrize(("kwargs", "match"), [
     ({"action": "click"}, "needs x and y"),
     ({"action": "click", "x": 1920, "y": 5}, "outside the screen"),
@@ -533,6 +549,24 @@ def test_a_stop_is_seen_at_the_next_pause_and_every_key_comes_up(ctl, monkeypatc
     stop["at_once"] = True
     with pytest.raises(ctl["Stop"], match="stopped"):
         ctl["_stopped"]()  # outside an act (a look, an open): at once
+
+
+def test_keys_go_to_the_window_asked_for_and_the_answer_names_where_they_went(ctl):
+    k = Keys(ctl)
+    wins = [{"id": 5, "kind": "terminal"}, {"id": 9, "kind": "browser"}]
+    active = [9]
+    k.scr.windows = lambda: wins
+    k.scr.active_id = lambda: active[0]
+    k.scr.front = lambda: next(w for w in wins if w["id"] == active[0])
+    k.scr.bring = lambda wid, wait_s=1.5: active.__setitem__(0, wid) or True
+    assert ctl["_do_keys"](k.scr, "key", {"keys": "Return"})["id"] == 9  # where the focus was: the browser
+    assert ctl["_do_keys"](k.scr, "type", {"text": "ab", "window": 5})["id"] == 5
+    assert "".join(chr(c) for c, d in k.events if d and c < 0x100) == "ab"
+    with pytest.raises(ctl["Stop"], match="no window 77"):
+        ctl["_do_keys"](k.scr, "type", {"text": "a", "window": 77})
+    k.scr.bring = lambda wid, wait_s=1.5: False
+    with pytest.raises(ctl["Stop"], match="did not take the keyboard"):
+        ctl["_do_keys"](k.scr, "type", {"text": "a", "window": 9})
 
 
 def test_an_action_that_runs_out_of_time_lets_go_of_what_it_held(ctl):

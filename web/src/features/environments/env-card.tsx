@@ -20,6 +20,7 @@ export const PICTURE: Record<EnvState, PictureState> = {
   ready: 'awake',
   working: 'awake',
   idle: 'awake',
+  gone: 'asleep',
   closing: 'asleep',
   closed: 'asleep',
   failed: 'asleep',
@@ -37,7 +38,8 @@ export function EnvCard({ org, env, now }: { org: string; env: EnvSummary; now: 
         className="group block h-full rounded-xl focus-visible:outline-offset-2"
       >
         <Card className="flex h-full flex-col overflow-hidden p-2 transition-[border-color,background-color] duration-(--duration-fast) ease-standard group-hover:border-line-strong group-active:bg-inset">
-          <ScreenPicture state={PICTURE[env.state]} title={env.title} screen={env.screen} className="rounded-md">
+          {/* A stopped machine's last still is not its screen any more: the dimmed desktop says it is gone. */}
+          <ScreenPicture state={PICTURE[env.state]} title={env.title} screen={env.state === 'gone' ? null : env.screen} className="rounded-md">
             <span className="absolute top-2 left-2">
               <PictureChip>
                 <StatusDot tone={status.tone} starting={status.starting} />

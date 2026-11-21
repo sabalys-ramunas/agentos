@@ -8,8 +8,8 @@ export function SettingsHeader({ title, description, action }: { title: string; 
   return (
     <div className="mb-6 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4">
       <h2 className="text-page-title-compact [overflow-wrap:anywhere]">{title}</h2>
-      {action ? <div className="row-span-2 flex flex-wrap items-center justify-end gap-2">{action}</div> : <span />}
-      {description ? <p className="col-start-1 mt-1 max-w-[46em] text-body text-muted">{description}</p> : null}
+      {action ? <div className="flex flex-wrap items-center justify-end gap-2 sm:row-span-2">{action}</div> : <span />}
+      {description ? <p className="col-start-1 mt-1 max-w-[46em] text-body text-muted max-sm:col-span-2">{description}</p> : null}
     </div>
   );
 }

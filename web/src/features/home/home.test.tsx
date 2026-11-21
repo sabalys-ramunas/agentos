@@ -98,22 +98,38 @@ describe('Home', () => {
     await waitFor(() => expect(links[2]).toHaveTextContent(/\d+ of \d+ online/), { timeout: 8000 });
   });
 
-  it('has the places in their five groups', async () => {
+  it('has the ten places, the four everyday ones first', async () => {
     renderApp('/northwind-group');
     const rails = await screen.findAllByRole('navigation', { name: 'Main' });
     const rail = within(rails[0]!);
     const words = (link: HTMLElement) => link.querySelector('[data-rail-label]')?.textContent;
-    expect(rail.getAllByRole('link').map(words)).toEqual(['Home', 'Environments', 'Runs', 'Checks', 'Machines', 'Brand', 'Accounts', 'Routines', 'Email', 'Site APIs', 'Needs you', 'History', 'Settings']);
-    expect(within(rail.getByRole('group', { name: 'Where it runs' })).getAllByRole('link').map(words)).toEqual(['Machines']);
+    // The developer places show once the node says the organisation has runs and Site APIs.
+    await rail.findByRole('link', { name: /Site APIs/ });
+    await rail.findByRole('link', { name: /Runs and checks/ });
+    expect(rail.getAllByRole('link').map(words)).toEqual([
+      'Home',
+      'Needs you',
+      'Computers',
+      'What happened',
+      'Accounts',
+      'Jobs that repeat',
+      'Brand',
+      'Runs and checks',
+      'Site APIs',
+      'Settings',
+    ]);
+    expect(within(rail.getByRole('group', { name: 'Your business' })).getAllByRole('link').map(words)).toEqual(['Accounts', 'Jobs that repeat', 'Brand']);
   });
 
-  it('puts five places on the phone tab bar and the rest under More', async () => {
+  it('puts four places on the phone tab bar and the rest under More', async () => {
     const { user } = renderApp('/northwind-group');
     const bars = await screen.findAllByRole('navigation', { name: 'Main' });
     const tabs = within(bars[1]!);
-    expect(tabs.getAllByRole('link').map((item) => item.textContent?.replace(/, \d+ waiting$/, ''))).toEqual(['Home', 'Environments', 'Runs', 'Checks', 'Needs you']);
+    expect(tabs.getAllByRole('link').map((item) => item.textContent?.replace(/, \d+ (waiting|open)$/, ''))).toEqual(['Home', 'Needs you', 'Computers', 'What happened']);
+    await waitFor(() => expect(tabs.getByRole('button', { name: /^More/ }).getAttribute('aria-label')).toMatch(/Runs and checks, Site APIs/));
     await user.click(tabs.getByRole('button', { name: /^More/ }));
-    expect((await screen.findAllByRole('menuitem')).map((item) => item.textContent)).toEqual(['Machines', 'Brand', 'Accounts', 'Routines', 'Email', 'Site APIs', 'History', 'Settings']);
+    const more = within(within(await screen.findByRole('dialog', { name: 'More' })).getByRole('navigation', { name: 'More' }));
+    expect(more.getAllByRole('link').map((item) => item.textContent)).toEqual(['Accounts', 'Jobs that repeat', 'Brand', 'Runs and checks', 'Site APIs', 'Settings']);
   });
 
   it('does not offer setup to an approver: their Home is Needs you', async () => {

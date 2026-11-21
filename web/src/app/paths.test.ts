@@ -50,10 +50,10 @@ describe('everyday names in the address bar', () => {
     const { router } = renderApp('/northwind-group/history');
     await waitFor(() => expect(router.state.location.pathname).toBe('/northwind-group/activity'));
     const rail = within((await screen.findAllByRole('navigation', { name: 'Main' }))[0]!);
-    expect(rail.getByRole('link', { name: 'History' })).toHaveAttribute('href', '/northwind-group/history');
+    expect(rail.getByRole('link', { name: 'What happened' })).toHaveAttribute('href', '/northwind-group/history');
     expect(rail.getByRole('link', { name: 'Accounts' })).toHaveAttribute('href', '/northwind-group/accounts');
-    expect(rail.getByRole('link', { name: 'Routines' })).toHaveAttribute('href', '/northwind-group/routines');
-    expect(rail.getByRole('link', { name: /Machines/ })).toHaveAttribute('href', '/northwind-group/machines');
-    expect(rail.getByRole('link', { name: 'Runs' })).toHaveAttribute('href', '/northwind-group/runs');
+    expect(rail.getByRole('link', { name: 'Jobs that repeat' })).toHaveAttribute('href', '/northwind-group/routines');
+    expect(rail.getByRole('link', { name: /Computers/ })).toHaveAttribute('href', '/northwind-group/environments');
+    expect(await rail.findByRole('link', { name: /Runs and checks/ })).toHaveAttribute('href', '/northwind-group/runs');
   });
 });

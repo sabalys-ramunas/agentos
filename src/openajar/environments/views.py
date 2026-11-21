@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import contextlib
 from datetime import UTC, datetime
+from typing import Any
 
 from openajar.core import clock
 from openajar.core.app_paths import lane_viewer_path
@@ -140,9 +141,10 @@ class Views:
         return "; ".join(parts) or "changes git counts but did not list"
 
     def summary(self, env: Environment) -> dict:
-        """EnvSummary of the contract (docs/design/environments.md)."""
+        """EnvSummary of the contract (docs/design/environments.md). One whose machine stopped carries
+        `machine_gone` (when, why), so a list can say so without a read of each."""
         now = self._clock()
-        return {"id": env.id, "title": env.title, "state": env.shown_state(now), "repo": env.repo,
+        out: dict[str, Any] = {"id": env.id, "title": env.title, "state": env.shown_state(now), "repo": env.repo,
                 "branch": env.branch, "workdir": env.workdir, "created_at": clock.iso_or_none(env.created_at, z=True),
                 "ready_at": clock.iso_or_none(env.ready_at, z=True), "last_call_at": clock.iso_or_none(env.last_call_at, z=True),
                 "closed_at": clock.iso_or_none(env.closed_at, z=True), "expires_at": clock.iso_or_none(env.expires_at, z=True),
@@ -153,6 +155,9 @@ class Views:
                 "error_code": env.error_code, "keep": env.keep,
                 "last_save": ({"id": env.last_save_id, "at": clock.iso_or_none(env.last_save_at, z=True)}
                               if env.last_save_id else None), "save_error": env.save_error}
+        if env.gone_at is not None:
+            out["machine_gone"] = self.gone_view(env)  # type: ignore[attr-defined]  (Liveness)
+        return out
 
     def _commands(self, env: Environment) -> list[dict]:
         out = []
@@ -187,9 +192,16 @@ class Views:
         return {"path": lane_viewer_path(WORKSPACE, f"{env.id}-browser")}
 
     async def detail(self, env: Environment, *, calls: int = 50) -> dict:
-        """EnvDetail of the contract, and what environment() returns to an agent."""
+        """EnvDetail of the contract, and what environment() returns to an agent. A machine that stopped for good
+        (openajar.environments.liveness) shows as state gone, with `machine_gone`, and nothing is asked of it."""
+        repos = None
+        if env.gone_at is None and env.open and env.state != "starting" and env.vm_id:
+            repos = await self.git_repos(env)
+            if repos is None and env.state == "ready" and await self.machine_gone(env, cause="environment()"):  # type: ignore[attr-defined]
+                env = self.store.get(env.id)  # type: ignore[attr-defined]
+        if env.gone_at is not None:
+            return self._gone_detail(env, calls=calls)
         out = self.summary(env)
-        repos = await self.git_repos(env) if env.open and env.state != "starting" and env.vm_id else None
         main = main_repo(repos, env.workdir)
         out["ports"] = await self.ports(env) if env.state in ("ready",) else []
         out["git"] = {"branch": (main or {}).get("branch") or env.branch, "ahead": (main or {}).get("ahead", 0),
@@ -212,6 +224,18 @@ class Views:
         busy = self.in_background(env.id)  # type: ignore[attr-defined]  (Saving, on the same manager)
         if busy:
             out["background"] = f"{busy}: an agent's environment_{'close' if busy == 'closing' else 'save'} goes on"
+        return out
+
+    def _gone_detail(self, env: Environment, *, calls: int) -> dict:
+        """detail() of an environment whose machine stopped: what the node knows, nothing from the machine."""
+        out = self.summary(env)
+        out["machine_gone"] = self.gone_view(env)  # type: ignore[attr-defined]  (Liveness)
+        out["ports"], out["checkpoints"], out["unsaved"] = [], [], None
+        out["git"] = {"branch": env.branch, "ahead": 0, "dirty": 0, **self.push_lists(env)}
+        out["calls"] = [self.call_view(c) for c in reversed(env.calls[-calls:])]
+        out["commands"] = self._commands(env)
+        out["viewer"] = None
+        out["network"] = self.network_view(env)  # type: ignore[attr-defined]  (Network, on the same manager)
         return out
 
     def call_view(self, c: Call) -> dict:

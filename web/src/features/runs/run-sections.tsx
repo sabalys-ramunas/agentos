@@ -1,13 +1,11 @@
 /** The run page's side: what failed (read from the output) and what the machine recorded about the run. */
-import { ArrowRight, Check, CircleAlert, Clock, FileText, FlaskConical, Play, Send, Square } from 'lucide-react';
+import { ArrowRight, Check, CircleAlert, Clock, FlaskConical } from 'lucide-react';
 import type { ReactNode, Ref } from 'react';
 import type { Job } from '@/api/types';
-import { Count } from '@/components/ui/badge';
 import { Card, CardHeader } from '@/components/ui/card';
 import { StatusDot } from '@/components/ui/status';
 import { clock, dateTime, plural } from '@/lib/format';
 import type { Tone } from '@/lib/labels';
-import { cn } from '@/lib/cn';
 import { plain } from './failures';
 import type { Stream } from './failures';
 import type { RunText } from './output-card';
@@ -68,37 +66,37 @@ export function FailuresCard({ ref, job, text, trimmed, onJump }: SectionProps &
     );
   } else {
     body = (
-      <ol className="divide-y divide-line">
-        {failures.map((failure, index) => (
-          <li key={`${failure.file ?? ''}:${failure.name}:${index}`} className="grid gap-1 px-5 py-3">
-            <div className="flex min-w-0 items-start gap-2">
-              <StatusDot tone="bad" className="mt-2 shrink-0" />
-              <span className="min-w-0 text-label [overflow-wrap:anywhere] text-fg">{failure.name}</span>
-            </div>
-            {failure.file ? (
-              <span title={failure.file} className="truncate pl-4 font-mono text-code-caption text-muted">
-                {failure.file}
-                {failure.line ? `:${failure.line}` : ''}
-              </span>
-            ) : null}
-            {failure.message ? <p className="line-clamp-3 pl-4 font-mono text-code-caption [overflow-wrap:anywhere] text-bad">{failure.message}</p> : null}
-            <button
-              type="button"
-              onClick={() => onJump(failure.at.stream, failure.at.line)}
-              className="group ml-4 inline-flex w-fit items-center gap-1 rounded-sm text-secondary font-medium text-muted hover:text-fg"
-            >
-              Show in the output
-              <ArrowRight aria-hidden="true" className="size-3.5 transition-transform duration-(--duration-fast) group-hover:translate-x-0.5" />
-              <span className="sr-only">: {failure.name}</span>
-            </button>
-          </li>
-        ))}
-        {count > failures.length ? (
-          <li className="px-5 py-3 text-secondary text-muted">
-            {plural(count - failures.length, 'more failure')} in the summary had no lines openajar could read.
-          </li>
-        ) : null}
-      </ol>
+      <>
+        <ol className="divide-y divide-line">
+          {failures.map((failure, index) => (
+            <li key={`${failure.file ?? ''}:${failure.name}:${index}`} className="grid gap-1 px-5 py-4">
+              <span className="min-w-0 text-label [overflow-wrap:anywhere] text-bad">{failure.name}</span>
+              {failure.file ? (
+                <span title={failure.file} className="truncate font-mono text-code-caption text-muted">
+                  {failure.file}
+                  {failure.line ? `:${failure.line}` : ''}
+                </span>
+              ) : null}
+              {failure.message ? <p className="line-clamp-3 font-mono text-code-caption [overflow-wrap:anywhere] text-fg">{failure.message}</p> : null}
+              <button
+                type="button"
+                onClick={() => onJump(failure.at.stream, failure.at.line)}
+                className="group mt-1 inline-flex w-fit items-center gap-1 rounded-sm text-secondary font-medium text-muted hover:text-fg"
+              >
+                Show in the output
+                <ArrowRight aria-hidden="true" className="size-3.5 transition-transform duration-(--duration-fast) group-hover:translate-x-0.5" />
+                <span className="sr-only">: {failure.name}</span>
+              </button>
+            </li>
+          ))}
+          {count > failures.length ? (
+            <li className="px-5 py-3 text-secondary text-muted">
+              {plural(count - failures.length, 'more failure')} in the summary had no lines openajar could read.
+            </li>
+          ) : null}
+        </ol>
+        <p className="border-t border-line px-5 py-3 text-secondary text-faint">Read from the {RUNNER[tests.runner]} output.</p>
+      </>
     );
   }
   return (
@@ -106,8 +104,7 @@ export function FailuresCard({ ref, job, text, trimmed, onJump }: SectionProps &
       <Card>
         <CardHeader
           title={<span id="run-failed">What failed</span>}
-          meta={failures.length ? `read from the ${RUNNER[tests!.runner]} output` : undefined}
-          action={tests ? <Count value={count} tone={count ? 'bad' : 'quiet'} aria-label={`${count} failed`} /> : undefined}
+          meta={tests && count ? (job.state === 'running' ? `${count} so far` : plural(count, 'test')) : undefined}
         />
         {body}
       </Card>
@@ -117,13 +114,11 @@ export function FailuresCard({ ref, job, text, trimmed, onJump }: SectionProps &
 
 interface Step {
   key: string;
-  icon: ReactNode;
   tone?: Tone;
   at?: string | null;
   title: ReactNode;
   detail?: ReactNode;
   action?: ReactNode;
-  live?: boolean;
 }
 
 /**
@@ -136,7 +131,6 @@ export function HappenedCard({ ref, job, text, onJump }: SectionProps) {
   if (sync) {
     steps.push({
       key: 'sync',
-      icon: <Send />,
       title: `Sent ${plural(sync.changed, 'changed file')} to ${job.node}`,
       detail: (
         <>
@@ -148,7 +142,6 @@ export function HappenedCard({ ref, job, text, onJump }: SectionProps) {
   }
   steps.push({
     key: 'start',
-    icon: <Play />,
     at: job.started_at,
     title: (
       <>
@@ -171,8 +164,6 @@ export function HappenedCard({ ref, job, text, onJump }: SectionProps) {
     const lines = first.stream === 'stdout' ? text.stdout : text.stderr;
     steps.push({
       key: 'first',
-      icon: <CircleAlert />,
-      tone: 'bad',
       title: 'The first failure in the output',
       detail: <span className="line-clamp-2 font-mono text-code-caption [overflow-wrap:anywhere]">{plain(lines[first.line] ?? '').trim()}</span>,
       action: (
@@ -183,12 +174,11 @@ export function HappenedCard({ ref, job, text, onJump }: SectionProps) {
     });
   }
   if (job.state === 'running') {
-    steps.push({ key: 'end', icon: <Clock />, tone: 'live', live: true, title: 'Running now', detail: `It stops on its own after ${Math.round(job.timeout_s / 60)} min.` });
+    steps.push({ key: 'end', tone: 'live', title: 'Running now', detail: `It stops on its own after ${Math.round(job.timeout_s / 60)} min.` });
   } else {
     const status = JOB_STATUS[job.state];
     steps.push({
       key: 'end',
-      icon: job.state === 'passed' ? <Check /> : <Square />,
       tone: status.tone,
       at: job.finished_at,
       title:
@@ -206,40 +196,30 @@ export function HappenedCard({ ref, job, text, onJump }: SectionProps) {
   return (
     <section ref={ref} aria-labelledby="run-happened" className="scroll-mt-20">
       <Card>
-        <CardHeader title={<span id="run-happened">What happened</span>} meta="as the machine recorded it" />
-        <ol className="grid gap-0 px-5 pt-4 pb-2">
-          {steps.map((step, index) => (
-            <li key={step.key} className="relative grid grid-cols-[24px_minmax(0,1fr)] gap-3 pb-4">
-              {index < steps.length - 1 ? <span aria-hidden="true" className="absolute top-7 bottom-1 left-3 w-px bg-line" /> : null}
-              <span
-                aria-hidden="true"
-                className={cn(
-                  'relative grid size-6 place-items-center rounded-full border border-line bg-card text-muted [&_svg]:size-3',
-                  step.tone === 'bad' && 'border-bad-line text-bad',
-                  step.tone === 'ok' && 'text-ok',
-                  step.tone === 'warn' && 'text-warn',
-                )}
-              >
-                {step.live ? <StatusDot tone="live" pulse /> : step.icon}
-              </span>
+        <CardHeader title={<span id="run-happened">What happened</span>} />
+        <ol className="divide-y divide-line px-5">
+          {steps.map((step) => (
+            <li key={step.key} className="grid grid-cols-[44px_minmax(0,1fr)] gap-3 py-3">
+              {step.at ? (
+                <time dateTime={step.at} title={dateTime(step.at)} className="text-body text-muted tabular">
+                  {clock(step.at)}
+                </time>
+              ) : (
+                <span aria-hidden="true" />
+              )}
               <div className="grid min-w-0 gap-1">
-                <div className="flex min-w-0 items-baseline gap-2">
-                  <p className="min-w-0 flex-1 text-label [overflow-wrap:anywhere] text-fg">{step.title}</p>
-                  {step.at ? (
-                    <time dateTime={step.at} title={dateTime(step.at)} className="shrink-0 text-caption text-faint tabular">
-                      {clock(step.at)}
-                    </time>
-                  ) : null}
-                </div>
+                <p className="flex min-w-0 items-baseline gap-2 text-body [overflow-wrap:anywhere] text-fg">
+                  {step.tone ? <StatusDot tone={step.tone} className="shrink-0 self-center" /> : null}
+                  <span className="min-w-0">{step.title}</span>
+                </p>
                 {step.detail ? <div className="text-secondary text-muted">{step.detail}</div> : null}
                 {step.action}
               </div>
             </li>
           ))}
         </ol>
-        <p className="flex gap-2 border-t border-line px-5 py-3 text-secondary text-faint">
-          <FileText aria-hidden="true" className="mt-px size-4 shrink-0" />
-          This is what the machine keeps about a run. What an agent did before or after it, such as its edits and its next steps, is not
+        <p className="border-t border-line px-5 py-3 text-secondary text-faint">
+          As the machine recorded it. What an agent did before or after it, such as its edits and its next steps, is not
           recorded, so it is not shown.
         </p>
       </Card>

@@ -4,7 +4,7 @@
  * the machine is and does, and the twelve tabs hold the depth. Every view is in the URL.
  */
 import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Ellipsis, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import {
@@ -26,7 +26,8 @@ import {
 } from '@/api/hooks';
 import type { LogLevel, NodeDetail } from '@/api/types';
 import type { NodeSearch, NodeTab } from './search';
-import { Button } from '@/components/ui/button';
+import { IconButton } from '@/components/ui/button';
+import { Menu, MenuContent, MenuItem, MenuTrigger } from '@/components/ui/menu';
 import { ConfirmDialog } from '@/components/ui/dialog';
 import { FreezeButton, FrozenNotice } from '@/features/freeze/freeze';
 import { Skeleton } from '@/components/ui/states';
@@ -37,7 +38,7 @@ import { computerFreeze } from '@/lib/freeze';
 import { computerName } from '@/lib/computers';
 import { localZone } from '@/lib/zone';
 import { describeNode, incidentsFrom } from './describe';
-import { NodeHeader } from './header';
+import { AboutCard, LoadCard, NodeHeader } from './header';
 import { ConnectionTab } from './tab-connection';
 import { BackupsTab } from './tab-backups';
 import { EnvironmentsTab } from './tab-environments';
@@ -54,6 +55,9 @@ import { Machines } from './machines';
 import { TAB_WORDS } from './machine-aside';
 
 const LABELS = Object.fromEntries(Object.entries(TAB_WORDS).map(([tab, words]) => [tab, words.label])) as Record<NodeTab, string>;
+
+/** Tabs whose tables, logs and charts need the page's whole width: About it and Load step aside for them. */
+const WIDE = new Set<NodeTab>(['schedules', 'logs', 'installed', 'resources']);
 
 /** A tab's count sits in a fixed slot, so a number arriving never nudges the tab bar. */
 function TabCount({ value, tone }: { value: number | null | undefined; tone?: 'warn' }) {
@@ -84,8 +88,6 @@ function Body({ org, node }: { org: string; node: NodeDetail }) {
   const tools = useNodeTools(org, id);
   const health = useNodeHealth(org, id);
   const connections = useNodeConnections(org, id);
-  const hour = useNodeMetrics(org, id, '1h');
-  const day = useNodeMetrics(org, id, '24h');
   const range = search.range ?? '24h';
   const ranged = useNodeMetrics(org, id, range);
   const workspaces = useWorkspaces(org).data ?? [];
@@ -138,33 +140,39 @@ function Body({ org, node }: { org: string; node: NodeDetail }) {
     health: warnings ? <TabCount value={warnings} tone="warn" /> : null,
   };
 
+  const canRemove = access.can('nodes.remove') && !onComputer;
+
   return (
     <>
       <NodeHeader
         node={node}
         sentence={sentence}
         system={system.data}
-        hour={hour.data}
-        day={day.data}
-        connections={connections.data}
-        bands={bands}
         frozen={frozen}
         actions={
           <>
             {access.can('freeze.computer') && freezable && !frozen ? <FreezeButton org={org} scope="node" name={computerName(id)} /> : null}
-            {access.can('nodes.remove') && !onComputer ? (
-              <Button size="sm" variant="danger" onClick={() => setConfirming(true)}>
-                Remove machine
-              </Button>
+            {canRemove ? (
+              <Menu>
+                <MenuTrigger asChild>
+                  <IconButton label={`More for ${id}`} variant="secondary">
+                    <Ellipsis className="size-4" />
+                  </IconButton>
+                </MenuTrigger>
+                <MenuContent align="end">
+                  <MenuItem className="text-bad" onSelect={() => setConfirming(true)}>
+                    <Trash2 aria-hidden="true" className="size-4" />
+                    Remove machine
+                  </MenuItem>
+                </MenuContent>
+              </Menu>
             ) : null}
           </>
         }
       />
-      {frozen ? (
-        <FrozenNotice org={org} record={frozen} name={computerName(id)} canLift={access.can('freeze.lift')} className="mt-10" />
-      ) : null}
-      <Tabs value={tab} onValueChange={(next) => setSearch({ tab: next as NodeTab })} className="mt-10">
-        <TabList ref={tabBar} aria-label="Machine" className="sticky top-(--topbar-height) z-10 bg-card">
+      {frozen ? <FrozenNotice org={org} record={frozen} name={computerName(id)} canLift={access.can('freeze.lift')} className="mb-8" /> : null}
+      <Tabs value={tab} onValueChange={(next) => setSearch({ tab: next as NodeTab })}>
+        <TabList ref={tabBar} aria-label="Machine" className="sticky top-(--topbar-height) z-10 bg-page">
           {(Object.keys(LABELS) as NodeTab[]).map((key) => (
             <Tab key={key} value={key}>
               {LABELS[key]}
@@ -172,62 +180,70 @@ function Body({ org, node }: { org: string; node: NodeDetail }) {
             </Tab>
           ))}
         </TabList>
-        <div className="pt-8">
-          <TabPanel value="lanes">
-            <LanesTab org={org} node={node} workspaces={workspaces} />
-          </TabPanel>
-          <TabPanel value="workers">
-            <WorkersTab org={org} node={node} />
-          </TabPanel>
-          <TabPanel value="browsers">
-            <BrowsersTab org={org} />
-          </TabPanel>
-          <TabPanel value="schedules">
-            {schedules.isPending ? <Skeleton className="h-64 rounded-xl" /> : <SchedulesTab org={org} node={id} zone={zone} schedules={schedules.data ?? null} canOperate={access.can('lanes.operate')} />}
-          </TabPanel>
-          <TabPanel value="logs">
-            <LogsTab
-              org={org}
-              node={id}
-              away={node.state === 'down'}
-              allowed={access.can('nodes.manage')}
-              source={search.source}
-              level={search.level ?? 'info'}
-              q={search.q ?? ''}
-              onFilters={onFilters}
-            />
-          </TabPanel>
-          <TabPanel value="installed">
-            {programs.isPending || services.isPending || tools.isPending ? (
-              <Skeleton className="h-96 rounded-xl" />
-            ) : (
-              <InstalledTab
+        <div className={cn('grid items-start gap-6 pt-6', !WIDE.has(tab) && 'xl:grid-cols-[minmax(0,1fr)_320px]')}>
+          <div className="min-w-0">
+            <TabPanel value="lanes">
+              <LanesTab org={org} node={node} workspaces={workspaces} />
+            </TabPanel>
+            <TabPanel value="workers">
+              <WorkersTab org={org} node={node} />
+            </TabPanel>
+            <TabPanel value="browsers">
+              <BrowsersTab org={org} />
+            </TabPanel>
+            <TabPanel value="schedules">
+              {schedules.isPending ? <Skeleton className="h-64 rounded-xl" /> : <SchedulesTab org={org} node={id} zone={zone} schedules={schedules.data ?? null} canOperate={access.can('lanes.operate')} />}
+            </TabPanel>
+            <TabPanel value="logs">
+              <LogsTab
                 org={org}
                 node={id}
-                programs={programs.data ?? null}
-                services={services.data ?? null}
-                tools={tools.data ?? null}
-                scope={search.scope ?? 'all'}
-                onScope={(scope) => setSearch({ scope: scope === 'all' ? undefined : scope })}
+                away={node.state === 'down'}
+                allowed={access.can('nodes.manage')}
+                source={search.source}
+                level={search.level ?? 'info'}
+                q={search.q ?? ''}
+                onFilters={onFilters}
               />
-            )}
-          </TabPanel>
-          <TabPanel value="environments">
-            <EnvironmentsTab org={org} node={id} owner={owner} />
-          </TabPanel>
-          <TabPanel value="resources">
-            <ResourcesTab node={node} metrics={ranged.data} services={services.data ?? null} range={range} onRange={(next) => setSearch({ range: next === '24h' ? undefined : next })} bands={bands} />
-          </TabPanel>
-          <TabPanel value="connection">
-            <ConnectionTab org={org} node={node} system={system.data} connections={connections.data} owner={owner} />
-          </TabPanel>
-          <TabPanel value="health">{health.isPending ? <Skeleton className="h-96 rounded-xl" /> : <HealthTab org={org} node={id} checks={health.data ?? null} owner={owner} />}</TabPanel>
-          <TabPanel value="backups">
-            <BackupsTab org={org} node={id} owner={owner} />
-          </TabPanel>
-          <TabPanel value="settings">
-            <SettingsTab org={org} node={id} />
-          </TabPanel>
+            </TabPanel>
+            <TabPanel value="installed">
+              {programs.isPending || services.isPending || tools.isPending ? (
+                <Skeleton className="h-96 rounded-xl" />
+              ) : (
+                <InstalledTab
+                  org={org}
+                  node={id}
+                  programs={programs.data ?? null}
+                  services={services.data ?? null}
+                  tools={tools.data ?? null}
+                  scope={search.scope ?? 'all'}
+                  onScope={(scope) => setSearch({ scope: scope === 'all' ? undefined : scope })}
+                />
+              )}
+            </TabPanel>
+            <TabPanel value="environments">
+              <EnvironmentsTab org={org} node={id} owner={owner} />
+            </TabPanel>
+            <TabPanel value="resources">
+              <ResourcesTab node={node} metrics={ranged.data} services={services.data ?? null} range={range} onRange={(next) => setSearch({ range: next === '24h' ? undefined : next })} bands={bands} />
+            </TabPanel>
+            <TabPanel value="connection">
+              <ConnectionTab org={org} node={node} system={system.data} connections={connections.data} owner={owner} />
+            </TabPanel>
+            <TabPanel value="health">{health.isPending ? <Skeleton className="h-96 rounded-xl" /> : <HealthTab org={org} node={id} checks={health.data ?? null} owner={owner} />}</TabPanel>
+            <TabPanel value="backups">
+              <BackupsTab org={org} node={id} owner={owner} />
+            </TabPanel>
+            <TabPanel value="settings">
+              <SettingsTab org={org} node={id} />
+            </TabPanel>
+          </div>
+          {WIDE.has(tab) ? null : (
+            <aside aria-label={`About ${id}`} className="grid gap-6 md:grid-cols-2 xl:grid-cols-1">
+              <AboutCard node={node} system={system.data} bands={bands} />
+              <LoadCard node={node} system={system.data} connections={connections.data} />
+            </aside>
+          )}
         </div>
       </Tabs>
       <ConfirmDialog
@@ -255,14 +271,19 @@ function Body({ org, node }: { org: string; node: NodeDetail }) {
 function HeaderSkeleton() {
   return (
     <div className="grid gap-6">
-      <div>
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="mt-3 h-4 w-96 max-w-full" />
-        <Skeleton className="mt-3 h-3 w-80 max-w-full" />
+      <div className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-4">
+        <Skeleton className="size-10 rounded-lg" />
+        <div className="grid gap-3">
+          <Skeleton className="h-4 w-16" />
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-5 w-96 max-w-full" />
+        </div>
       </div>
-      <Skeleton className="h-44 rounded-xl" />
-      <Skeleton className="mt-4 h-10" />
-      <Skeleton className="h-72 rounded-xl" />
+      <Skeleton className="mt-2 h-10" />
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <Skeleton className="h-72 rounded-xl" />
+        <Skeleton className="h-64 rounded-xl" />
+      </div>
     </div>
   );
 }

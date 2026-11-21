@@ -25,7 +25,7 @@ describe('memory on the settings page', () => {
     const rooms = within(await screen.findByRole('table'));
     expect(rooms.getByRole('button', { name: 'Aster Coffee' })).toHaveAttribute('aria-pressed', 'false');
     expect(rooms.getByRole('meter', { name: 'Entries kept in Aster Coffee' })).toHaveAttribute('aria-valuemax', '500');
-    expect(rooms.getAllByText('Record checks out').length).toBeGreaterThan(0);
+    expect(rooms.getAllByText('Checks out').length).toBeGreaterThan(0);
   });
 
   it('shows a hidden entry by its title only, and offers nothing to confirm', async () => {

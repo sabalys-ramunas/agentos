@@ -1,101 +1,25 @@
-/** The lower half of an account's page: what it did lately, what it needs first, its settings and its technical details. */
+/** The lower half of an account's page: its settings behind one disclosure, and its technical details. */
 import { Link } from '@tanstack/react-router';
 import { ChevronDown } from 'lucide-react';
 import { AccountWorkerRow } from '@/features/workers/in-place';
-import { useActivity, useApprovals, useFlows } from '@/api/hooks';
-import type { Lane, TraceEvent } from '@/api/types';
-import { Card, Section } from '@/components/ui/card';
+import { useFlows } from '@/api/hooks';
+import type { Lane } from '@/api/types';
 import { Drawer } from '@/components/ui/dialog';
 import { CopyButton, Detail } from '@/components/ui/misc';
-import { StatusDot } from '@/components/ui/status';
-import { EmptyState, Skeleton } from '@/components/ui/states';
+import { Skeleton } from '@/components/ui/states';
 import { dateTime, timeAgo, usd } from '@/lib/format';
-import { presetLabel, runStatus } from '@/lib/labels';
+import { presetLabel } from '@/lib/labels';
 import { cn } from '@/lib/cn';
 import { routineName } from '@/lib/principal';
 import { useTechnical } from '@/lib/technical';
-import { didSentence, isStory } from '@/features/home/words';
-import { RUN_WORDS } from '@/lib/vocabulary';
 import { AccountAskPanel, RoutineAskWord } from '@/features/ask-first/ask-first';
 import { LaneStanding } from '@/features/standing/lane-standing';
 import { KeepaliveSection } from './account-health';
-import { ownActionSentence } from './account-words';
 import { AccountFilesSection } from './account-files';
 import { LimitsSection } from './account-limits';
-import { TaintSection } from './account-people';
 import { PaceSection } from './account-pace';
 import { SitesSection } from './account-sites';
 import { WatchSection } from './account-watch';
-
-function ActivityRow({ row }: { row: TraceEvent }) {
-  const [technical] = useTechnical();
-  // A change the person made is not a check on a site, so it carries no "Not checked" word.
-  const own = ownActionSentence(row);
-  return (
-    <li className="flex h-10 items-center gap-4 border-b border-line px-4 last:border-b-0">
-      <StatusDot tone={runStatus[row.status].tone} />
-      <span className={cn('min-w-0 flex-1 truncate text-secondary', technical && 'mono')}>{technical ? row.summary : (own ?? didSentence(row))}</span>
-      {own ? null : <span className="hidden text-caption text-faint sm:inline">{RUN_WORDS[row.status].word}</span>}
-      <span className="tabular w-14 shrink-0 text-right text-caption text-faint">{timeAgo(row.at)}</span>
-    </li>
-  );
-}
-
-export function LaneActivity({ org, lane }: { org: string; lane: Lane }) {
-  const activity = useActivity(org, { lane: lane.id });
-  const [technical] = useTechnical();
-  // What agents did, and what the person did to the account (take over, freeze, pace, limits), as the audit names it.
-  const rows = (activity.data?.pages[0]?.items ?? []).filter((item) => technical || isStory(item) || ownActionSentence(item) !== null).slice(0, 8);
-  return (
-    <Section
-      title="History"
-      action={
-        <Link to="/$org/activity" params={{ org }} search={{ lane: lane.id }} className="inline-flex min-h-8 items-center text-secondary text-muted hover:text-fg md:min-h-0">
-          All of its history
-        </Link>
-      }
-    >
-      <Card>
-        {activity.isPending ? (
-          <div className="grid gap-4 p-4">
-            <Skeleton />
-            <Skeleton className="w-2/3" />
-          </div>
-        ) : rows.length ? (
-          <ul>
-            {rows.map((row) => (
-              <ActivityRow key={row.id} row={row} />
-            ))}
-          </ul>
-        ) : (
-          <EmptyState title="Nothing done here yet" description="What agents do on this account appears here as it happens." className="py-8" />
-        )}
-      </Card>
-    </Section>
-  );
-}
-
-/**
- * What needs a person first, then the less used settings. A short list of what the account is doing now is
- * above this, on the page itself. Nothing here is a problem twice: the problem is shown once, above.
- */
-export function NeedsFirst({ org, lane }: { org: string; lane: Lane }) {
-  const pending = (useApprovals(org).data ?? []).filter((item) => item.lane === lane.id);
-  if (!pending.length) return <TaintSection org={org} lane={lane} />;
-  return (
-    <div className="grid gap-8">
-      <Link
-        to="/$org/needs-you"
-        params={{ org }}
-        className="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-line px-4 py-2 text-body transition-colors duration-(--duration-base) ease-standard hover:border-line-strong hover:bg-hover"
-      >
-        {pending.length === 1 ? 'One thing waits for your yes' : `${pending.length} things wait for your yes`}
-        <span className="shrink-0 text-secondary whitespace-nowrap text-muted">Look and decide</span>
-      </Link>
-      <TaintSection org={org} lane={lane} />
-    </div>
-  );
-}
 
 /** The settings that change how this account runs, closed until someone opens them, so the page reads calmly. */
 export function AccountSettings({ org, lane }: { org: string; lane: Lane }) {
@@ -210,11 +134,19 @@ export function Inspect({ lane, open, onOpenChange }: { lane: Lane; open: boolea
   );
 }
 
+/** The screen and the panels beside it, on the night, shaped like what comes. */
 export function LaneSkeleton() {
+  const night = 'bg-side-hover';
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
-      <Skeleton className="aspect-[16/10] h-auto rounded-xl" />
-      <Skeleton className="h-40 rounded-xl" />
+    <div role="status" aria-label="Loading the account" className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_312px]">
+      <div className="grid gap-4">
+        <Skeleton className={`aspect-[16/10] h-auto w-full rounded-lg ${night}`} />
+        <Skeleton className={`mx-auto h-12 w-80 max-w-full rounded-full ${night}`} />
+      </div>
+      <div className="hidden gap-3 lg:grid">
+        <Skeleton className={`h-32 rounded-xl ${night}`} />
+        <Skeleton className={`h-64 rounded-xl ${night}`} />
+      </div>
     </div>
   );
 }

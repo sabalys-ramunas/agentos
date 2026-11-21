@@ -10,7 +10,7 @@ describe('Proof', () => {
   it('says whether the log is intact, and shows each step with its record', async () => {
     renderApp(`/${ORG}/activity/proof`);
     expect(await screen.findByRole('heading', { name: 'Proof' })).toBeInTheDocument();
-    expect(await screen.findByText('The log is intact')).toBeInTheDocument();
+    expect(await screen.findByText('The log is intact.')).toBeInTheDocument();
     const table = await screen.findByRole('table');
     expect(within(table).getAllByText('Signed').length).toBeGreaterThan(0);
   });

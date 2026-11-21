@@ -5,7 +5,6 @@
  */
 import type { ProofChain, ProofChainStatus, ProofShareState, ProofVerify } from '@/api/types';
 import type { StatusLabel } from '@/lib/labels';
-import { plural } from '@/lib/format';
 
 export const CHAIN_WORDS: Record<ProofChainStatus, StatusLabel & { sentence: string }> = {
   ok: { label: 'Signed', tone: 'ok', sentence: 'Covered by a signed checkpoint, so it has not changed since.' },
@@ -47,7 +46,8 @@ export interface Verdict {
  * log checked out. Anything else says what is known and what is not.
  */
 export function verdictOf(report: ProofVerify): Verdict {
-  const rows = plural(report.checked, 'step');
+  // 1,451 steps: a large count reads with its separator.
+  const rows = `${report.checked.toLocaleString('en-GB')} ${report.checked === 1 ? 'step' : 'steps'}`;
   if (report.status === 'tampered') {
     return {
       tone: 'bad',

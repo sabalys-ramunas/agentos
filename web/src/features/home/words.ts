@@ -16,6 +16,7 @@ export const ENV_DOING: Record<EnvState, string> = {
   ready: 'Ready for its first step',
   working: 'At work now',
   idle: 'Waiting for its next step',
+  gone: 'Its computer stopped',
   closing: 'Closing its computer',
   closed: 'Closed',
   failed: 'Its computer did not start',
@@ -266,12 +267,5 @@ export function accountTitle(lane: Pick<Lane, 'account'>, workspaceName?: string
   const id = lane.account?.user_id;
   if (id) return id.includes('@') || id.includes(' ') ? id : `@${id.replace(/^@/, '')}`;
   return workspaceName ?? null;
-}
-
-/** "Posted a photo · 4h ago", for the line under a stand-in. */
-export function lastLine(last: Pick<TraceEvent, 'summary' | 'status' | 'at'> | null | undefined, lastUsed?: string | null, ago: (iso: string) => string = (iso) => iso): string | null {
-  if (last) return `${didSentence(last)} · ${ago(last.at).replace(/^Just now$/, 'just now')}`;
-  if (lastUsed) return `Last used ${ago(lastUsed).replace(/^Just now$/, 'just now')}`;
-  return 'Nothing done yet';
 }
 

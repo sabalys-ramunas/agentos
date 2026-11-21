@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import { db } from '@/mocks/handlers';
-import { renderApp } from '@/test/render';
+import { renderApp, renderToasts } from '@/test/render';
 import { asComputer } from '@/test/computer';
 
 describe('what needs a yes', () => {
@@ -24,13 +24,29 @@ describe('what needs a yes', () => {
   });
 
   it('reshapes the day when posts start to ask', async () => {
+    renderToasts();
     const { user } = renderApp('/northwind-group/settings/yes');
     const posts = await screen.findByRole('radiogroup', { name: 'How strong a yes: Posts, emails and replies' });
     await user.click(within(posts).getByRole('radio', { name: 'Just a tap' }));
-    expect(await screen.findByText(/Saved: just a tap\./)).toBeInTheDocument();
+    // A stronger yes says so, with no Undo: putting it back would let more go on its own.
+    expect(await screen.findByText('Posts, emails and replies: just a tap')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Undo' })).toBeNull();
     await waitFor(() => expect(screen.queryByText(/and 11 stopped for a person/)).not.toBeInTheDocument());
     await user.click(screen.getByRole('button', { name: 'Back to the system default' }));
     expect(await screen.findByText(/and 11 stopped for a person/)).toBeInTheDocument();
+  });
+
+  it('offers Undo when a change lets more go on its own, and Undo asks more again', async () => {
+    renderToasts();
+    const { user } = renderApp('/northwind-group/settings/yes');
+    const posts = await screen.findByRole('radiogroup', { name: 'How strong a yes: Posts, emails and replies' });
+    await user.click(within(posts).getByRole('radio', { name: 'Just a tap' }));
+    await screen.findByText('Posts, emails and replies: just a tap');
+    await user.click(within(posts).getByRole('radio', { name: 'On its own' }));
+    const said = await screen.findByText('Posts, emails and replies: on its own');
+    await user.click(within(said.closest('[data-change-toast]') as HTMLElement).getByRole('button', { name: 'Undo' }));
+    expect(await screen.findByText('Posts, emails and replies: just a tap again')).toBeInTheDocument();
+    await waitFor(() => expect(within(posts).getByRole('radio', { name: 'Just a tap' })).toBeChecked());
   });
 
   it('lifts the floor for a business, so it can only ask for more', async () => {

@@ -95,7 +95,8 @@ test('nothing moves under the pointer: a double click on Post it posts once, and
 
 test('step-up opens from a 403 and the request retries by itself', async ({ page }) => {
   await start(page, `${ORG}/nodes/hetzner-1?tab=lanes`);
-  await page.getByRole('button', { name: 'Remove machine' }).click();
+  await page.getByRole('button', { name: 'More for hetzner-1' }).click();
+  await page.getByRole('menuitem', { name: 'Remove machine' }).click();
   await page.getByLabel(/to confirm/).fill('hetzner-1');
   await page.getByRole('dialog').getByRole('button', { name: 'Remove machine' }).click();
   await expect(page.getByText('Confirm it is you')).toBeVisible();
@@ -120,7 +121,7 @@ test('a lane warms up live after Open', async ({ page }) => {
   await start(page, `${ORG}/lanes/aster/medium`);
   await page.getByRole('button', { name: 'Wake it up' }).click();
   await expect(page.getByRole('heading', { name: 'Warming up' })).toBeVisible();
-  await expect(page.getByRole('group', { name: 'Live view of Medium' }).getByText('Live', { exact: true })).toBeVisible({ timeout: 8_000 });
+  await expect(page.getByRole('group', { name: 'Live view of Medium' }).locator('[data-lane-input] canvas').first()).toBeVisible({ timeout: 8_000 });
 });
 
 test('live changes keep arriving without a reload', async ({ page }) => {
@@ -279,19 +280,20 @@ test.describe('at 375 wide', () => {
     }
   });
 
-  test('the rail becomes five tabs and More at the thumb', async ({ page }) => {
+  test('the rail becomes four tabs and More at the thumb', async ({ page }) => {
     await start(page, ORG);
     const tabs = page.getByRole('navigation', { name: 'Main' }).filter({ visible: true });
-    await expect(tabs.getByRole('link')).toHaveCount(5);
-    // Environments is at the thumb, and Machines went under More (2026-11-15, F12).
-    await tabs.getByRole('link', { name: /Environments/ }).click();
+    await expect(tabs.getByRole('link')).toHaveCount(4);
+    // Computers is at the thumb, and its second list, Machines, is one tab away on the page (2026-11-21).
+    await tabs.getByRole('link', { name: /Computers/ }).click();
     await expect(page).toHaveURL(/\/environments$/);
-    await tabs.getByRole('button', { name: /^More/ }).click();
-    await page.getByRole('menuitem', { name: 'Machines' }).click();
+    await page.getByRole('navigation', { name: 'Computers' }).getByRole('link', { name: 'Machines' }).click();
     await expect(page).toHaveURL(/\/machines$/);
-    await tabs.getByRole('button', { name: /^More/ }).click();
-    await page.getByRole('menuitem', { name: 'History' }).click();
+    await tabs.getByRole('link', { name: /What happened/ }).click();
     await expect(page).toHaveURL(/\/history$/);
+    await tabs.getByRole('button', { name: /^More/ }).click();
+    await page.getByRole('dialog', { name: 'More' }).getByRole('link', { name: 'Jobs that repeat' }).click();
+    await expect(page).toHaveURL(/\/routines$/);
   });
 
   test('Home fits the phone, with the answer and what waits first', async ({ page }) => {

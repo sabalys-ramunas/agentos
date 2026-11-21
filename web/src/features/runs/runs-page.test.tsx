@@ -42,7 +42,7 @@ describe('Runs', () => {
     renderApp(`/${ORG}/runs`);
     await table();
     expect(screen.getByText(/In the last 24 hours 4 finished: 1 passed, 1 failed and 2 stopped early\. Their tests: 327 passed and 2 failed\./)).toBeInTheDocument();
-    expect(within(screen.getByRole('main')).getByRole('link', { name: 'History' })).toHaveAttribute('href', `/${ORG}/history`);
+    expect(within(screen.getByRole('main')).getByRole('link', { name: 'What happened' })).toHaveAttribute('href', `/${ORG}/history`);
   });
 
   it('filters by state, kind and words, and offers to clear when nothing matches', async () => {

@@ -211,8 +211,10 @@ describe('Flow detail', () => {
 
   it('leads with the sentence of what it does, and what it really made', async () => {
     renderApp(path);
-    expect(await screen.findByRole('heading', { level: 1 })).toHaveTextContent("pick today's idea, write a caption, then post it on Instagram.");
-    expect(await screen.findByRole('img', { name: 'The steps of this routine, in order' })).toBeInTheDocument();
+    const title = await screen.findByRole('heading', { level: 1 });
+    // The routine's name is the title, and its sentence the line under it.
+    expect(title.closest('header')).toHaveTextContent("pick today's idea, write a caption, then post it on Instagram.");
+    expect(await screen.findByRole('list', { name: 'The steps of this routine, in order' })).toBeInTheDocument();
     expect(await screen.findByRole('heading', { name: 'What it made lately' })).toBeInTheDocument();
     expect((await screen.findAllByText(/Checked on Instagram/)).length).toBeGreaterThan(0);
   }, 20_000);

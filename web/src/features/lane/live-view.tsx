@@ -81,7 +81,9 @@ function resting({
             ? lane.kind === 'terminal'
               ? 'Open it to start its shell, then take over here to type.'
               : lane.kind === 'service'
-                ? 'Open it to start its service. What it does shows in History below.'
+                ? 'Open it to start its service. What it does shows below, under What happened.'
+                : stage
+                ? 'It wakes up on its own when an agent needs it. Wake it now to watch it here.'
                 : 'Open it to start the browser, run the self-check and watch it here.'
             : 'A member of this workspace can open it.'}
         </p>
@@ -159,7 +161,7 @@ export function LiveView({
       <Stage framed={stage}>
         <Cog className="mb-4 size-6 text-faint" />
         <h2 className="text-label">This tool runs a service</h2>
-        <p className="mt-1 max-w-sm text-body text-muted">It has no screen or shell to show. What it does appears in History below.</p>
+        <p className="mt-1 max-w-sm text-body text-muted">It has no screen or shell to show. What it does appears below, under What happened.</p>
       </Stage>
     );
   }

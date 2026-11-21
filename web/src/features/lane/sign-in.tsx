@@ -1,19 +1,18 @@
 /**
- * The sign-in of one account, on the login queue. The password is typed on this computer, in a form it
- * serves, and never in the app. A login already saved in the vault signs in from it with no form and asks
+ * The sign-in of one account, on the login queue (logins.png): the promise and the state in a well, with the one
+ * thing to do at its end. The password is typed on this computer, in a form it serves, and never in the app. A login already saved in the vault signs in from it with no form and asks
  * nobody: the vault's entry is the owner's permission (openajar Cloud and the computer both hold that rule).
  */
 import { Link } from '@tanstack/react-router';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, CircleCheck, Lock } from 'lucide-react';
 import { useState } from 'react';
 import { useAccess, useLaneLogin, useLaneLoginAction, useStartLaneLogin, useVaultSignIn, useVaultStatus } from '@/api/hooks';
 import type { LaneLogin, LoginState } from '@/api/types';
 import { Button } from '@/components/ui/button';
-import { StatusDot } from '@/components/ui/status';
 import { InlineError } from '@/components/ui/states';
 
 const WORDS: Record<LoginState, (saved: boolean) => string> = {
-  none: (saved) => (saved ? 'Saved in the vault. openajar signs in from it and asks nobody.' : 'Not signed in yet. You type the password on this computer, in a form it serves.'),
+  none: (saved) => (saved ? 'Saved in the vault. openajar signs in from it and asks nobody.' : 'Not signed in yet. Sign in opens a form this computer serves.'),
   working: () => 'openajar is opening the sign-in page.',
   ask: () => 'Type the password on this computer. It goes into the lane and nowhere else.',
   waiting: () => 'Approve the sign-in on your phone, then press the button.',
@@ -26,7 +25,7 @@ const WORDS: Record<LoginState, (saved: boolean) => string> = {
 
 const OVER: LoginState[] = ['none', 'cancelled', 'done'];
 
-export function SignIn({ org, ws, name, saved, canAct }: { org: string; ws: string; name: string; saved: boolean; canAct: boolean }) {
+export function SignIn({ org, ws, name, saved, canAct, url = null }: { org: string; ws: string; name: string; saved: boolean; canAct: boolean; url?: string | null }) {
   const login = useLaneLogin(org, ws, name);
   const start = useStartLaneLogin(org, ws, name);
   const act = useLaneLoginAction(org, ws, name);
@@ -74,24 +73,39 @@ export function SignIn({ org, ws, name, saved, canAct }: { org: string; ws: stri
     </Button>
   ) : null;
 
+  const done = state === 'signed_in' || state === 'done';
   return (
-    <section aria-label="Sign in" className="grid gap-3 rounded-xl border border-line p-4 sm:p-6">
-      <div className="flex items-start gap-3">
-        <StatusDot tone={state === 'signed_in' || state === 'done' ? 'ok' : 'idle'} className="mt-2" />
-        <div className="min-w-0 flex-1">
-          <p className="text-label">{state === 'signed_in' || state === 'done' ? 'Signed in' : 'Sign in'}</p>
-          <p className="text-secondary text-muted">{words}</p>
-          {current.error ? <p className="mt-2 text-secondary text-bad">{current.error}</p> : null}
-          {failed ? <InlineError className="mt-2">That did not start. Nothing was typed.</InlineError> : null}
+    <section aria-label="Sign in" className="grid gap-x-4 gap-y-3 rounded-lg border border-line bg-inset px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+      <div className="flex min-w-0 items-start gap-3">
+        <span aria-hidden="true" className="flex h-(--line-height-22) shrink-0 items-center text-muted">
+          {done ? <CircleCheck className="size-4 text-ok" /> : <Lock className="size-4" />}
+        </span>
+        <div className="grid min-w-0 gap-1">
+          <p className="text-body">{words}</p>
+          <p className="text-secondary text-muted">
+            The password is typed on this computer, into the account's own browser. openajar never sees it.
+            {url && !done ? (
+              <>
+                {' '}
+                It opens at <span className="font-mono text-code-caption break-all">{url}</span>.
+              </>
+            ) : null}
+          </p>
+          {current.error ? <p className="text-secondary text-bad">{current.error}</p> : null}
+          {failed ? <InlineError>That did not start. Nothing was typed.</InlineError> : null}
           {saved && locked && OVER.includes(state) ? (
-            <p className="mt-2 text-secondary text-muted">
-              The vault is locked. <Link to="/$org/settings/vault" params={{ org }} className="underline underline-offset-2">Unlock it in Settings</Link> to sign in from it.
+            <p className="text-secondary text-muted">
+              The vault is locked.{' '}
+              <Link to="/$org/settings/vault" params={{ org }} className="link">
+                Unlock it in Settings
+              </Link>{' '}
+              to sign in from it.
             </p>
           ) : null}
         </div>
       </div>
-      {canAct ? (
-        <div className="flex flex-wrap items-center justify-end gap-2">
+      {canAct && (primary || secondary || link) ? (
+        <div className="flex flex-wrap items-center gap-2 max-sm:pl-7 sm:justify-end">
           {secondary}
           {link && state !== 'none' && state !== 'cancelled' && state !== 'done' ? (
             <Button variant="ghost" asChild>

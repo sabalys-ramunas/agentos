@@ -243,6 +243,9 @@ class Environment(BaseModel):
     watched_at: datetime | None = None        # a person last watched it (live view, a port link): openajar.environments.watching
     resumed_by: str | None = None             # "owner": the owner resumed it from a save, held by no chat (openajar.environments.waking)
     bringup: dict | None = None               # its bring-up's steps and seconds, once ready or failed (openajar.environments.timings)
+    # Its machine stopped for good while it was open: the provider said so (openajar.environments.liveness).
+    gone_at: datetime | None = None
+    gone_why: str | None = None               # in words: "its container stopped (docker says exited)"
 
     @field_validator("id")
     @classmethod
@@ -273,9 +276,11 @@ class Environment(BaseModel):
         return {"terminal": self.terminal_lane, "browser": self.browser_lane}
 
     def shown_state(self, now: datetime) -> str:
-        """What people see: starting, ready, working, idle, closing, closed or failed."""
+        """What people see: starting, ready, working, idle, gone (its machine stopped), closing, closed or failed."""
         if self.state != "ready":
             return self.state
+        if self.gone_at is not None:
+            return "gone"
         last = self.last_call_at
         if last is not None and now - last <= WORKING:
             return "working"

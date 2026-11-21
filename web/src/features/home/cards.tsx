@@ -1,118 +1,78 @@
 /**
- * The pieces Home and Accounts are built from: an account as its site's mark with a state badge,
- * an account as a card with its picture, and a business as a card with a live picture of what it
- * is doing (visual.md P2 and P3).
+ * An account as a card (spec-09, accounts.png): the site's mark on its tile, the name and the handle, the state as
+ * a chip, one line on how it is, what it did last, whether it runs on its own or asks first, and the one thing it
+ * needs, when there is one. The whole card opens the account; its one action sits above that link.
  */
 import { Link } from '@tanstack/react-router';
-import { ChevronRight } from 'lucide-react';
 import type { Lane, LaneAskFirst, TraceEvent } from '@/api/types';
-import { AgentMark } from '@/components/brand/identity';
 import { SiteMark } from '@/components/brand/site-mark';
+import { Button } from '@/components/ui/button';
+import { cardLink } from '@/components/ui/card';
 import { StateBadge } from '@/components/ui/state-badge';
 import { cn } from '@/lib/cn';
-import { timeAgo } from '@/lib/format';
+import { dateTime, timeAgo } from '@/lib/format';
 import type { PersonState } from '@/lib/states';
 import { useMe } from '@/lib/use-principal';
-import { AccountAskRow } from '@/features/ask-first/ask-first';
-import { LiveDot, Picture, PictureChip } from './picture';
-import { accountCondition, accountName, accountTitle, didSentence, lastLine, nextStep } from './words';
+import { AccountAskWord } from '@/features/ask-first/ask-first';
+import { accountCondition, accountName, accountTitle, didSentence, nextStep } from './words';
 
-export const cardClass =
-  'group/card relative flex flex-col overflow-hidden rounded-(--radius-card) border bg-card shadow-(--shadow-card) ' +
-  'transition-[box-shadow,border-color,transform] duration-(--duration-settle) ease-(--ease-out) ' +
-  'hover:-translate-y-px hover:shadow-(--shadow-hover) motion-reduce:hover:translate-y-0';
+/** A red or amber edge when something is wrong; the plain hairline otherwise. */
+const EDGE: Partial<Record<PersonState, string>> = { stuck: 'border-bad-line hover:border-bad-line', waiting: 'border-warn-line hover:border-warn-line' };
 
-/** Card border by state: a red or amber hairline when something is wrong, plain otherwise. */
-export const stateBorder = (state: PersonState) =>
-  state === 'stuck' ? 'border-(--stuck-line)' : state === 'waiting' ? 'border-(--wait-line)' : 'border-line hover:border-line-strong';
-
-/**
- * The card's last line. Quiet on purpose: with five workspaces, five tinted bars shout. The glyph
- * and the card's hairline carry the state; the words stay in the page's own colours.
- */
-const FOOTER: Record<PersonState, string> = {
-  stuck: 'border-t border-line text-fg hover:bg-hover',
-  waiting: 'border-t border-line text-fg hover:bg-hover',
-  working: 'border-t border-line text-muted',
-  good: 'border-t border-line text-muted',
-  sleeping: 'border-t border-line text-muted',
-};
-
-/** The picture worth showing for an account: its screen while an agent is on it, else its last post. */
-export function accountPicture(lane: Lane): { src: string | null; live: boolean; at: string | null } {
-  const state = accountCondition(lane).state;
-  if (lane.live_picture && (state === 'working' || state === 'waiting' || !lane.picture)) return { src: lane.live_picture, live: true, at: null };
-  if (lane.picture) return { src: lane.picture.url, live: false, at: lane.picture.at };
-  return { src: lane.live_picture ?? null, live: Boolean(lane.live_picture), at: null };
+/** "Posted a photo on Reddit · 5 h ago", or when it was last used, or that it has not been. */
+function LastLine({ last, lane }: { last?: TraceEvent | null; lane: Lane }) {
+  if (last) {
+    return (
+      <p className="flex min-w-0 text-secondary text-muted" title={`${didSentence(last)}, ${dateTime(last.at)}`}>
+        <span className="min-w-0 truncate">{didSentence(last)}</span>
+        <span className="shrink-0 whitespace-pre"> · {timeAgo(last.at).replace(/^Just now$/, 'just now')}</span>
+      </p>
+    );
+  }
+  return <p className="text-secondary text-muted">{lane.last_used ? `Last used ${timeAgo(lane.last_used).toLowerCase()}` : 'Not used yet'}</p>;
 }
 
-/** One account as a card, for Accounts and a business's desk: its picture, state, last deed and next step. */
-export function AccountCard({ org, lane, last, canWatch, index = 0, workspaceName, ask }: { org: string; lane: Lane; last?: TraceEvent | null; canWatch: boolean; index?: number; workspaceName?: string; ask?: LaneAskFirst }) {
+export function AccountCard({ org, lane, last, ask }: { org: string; lane: Lane; last?: TraceEvent | null; ask?: LaneAskFirst }) {
   const me = useMe();
   const condition = accountCondition(lane, me);
   const step = nextStep(lane);
-  const picture = accountPicture(lane);
-  const src = picture.live && !canWatch ? (lane.picture?.url ?? null) : picture.src;
-  const live = Boolean(picture.live && canWatch && src === lane.live_picture);
   const name = accountName(lane);
+  const handle = lane.account?.user_id ? accountTitle(lane) : null;
+  const params = { org, ws: lane.workspace, name: lane.name };
   return (
-    <article aria-label={name} className={cn(cardClass, stateBorder(condition.state), 'home-rise')} style={{ animationDelay: `${Math.min(index, 12) * 40}ms` }}>
-      <div className="p-2 pb-0">
-        <Picture
-          src={src}
-          site={lane.site?.key ?? lane.name}
-          title={accountTitle(lane, workspaceName)}
-          line={lastLine(last, lane.last_used, timeAgo)}
-          refreshMs={live && condition.state === 'working' ? 20_000 : undefined}
-          resting={condition.state === 'sleeping' && !live}
-          zoom
-          className="aspect-[16/10] rounded-(--radius-thumb) ring-1 ring-line"
-        >
-          <div className="absolute inset-x-2 bottom-2 flex items-end justify-end gap-2">
-            {condition.state === 'working' ? (
-              <PictureChip tone="live" className="mr-auto">
-                <LiveDot />
-                Working now
-              </PictureChip>
-            ) : null}
-            {live ? <PictureChip tone="dark">Live</PictureChip> : picture.at ? <PictureChip tone="dark">{timeAgo(picture.at)}</PictureChip> : null}
-          </div>
-        </Picture>
+    <article aria-label={name} className={cn(cardLink, 'group/card relative flex min-w-0 flex-col p-5', EDGE[condition.state])}>
+      <div className="flex min-w-0 items-start gap-3">
+        <SiteMark site={lane.site?.key ?? lane.name} size={40} tile label={false} className="rounded-lg bg-card shadow-lift" />
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate text-card-title" title={name}>
+            <Link to="/$org/lanes/$ws/$name" params={params} className="outline-none after:absolute after:inset-0 after:rounded-xl after:content-[''] focus-visible:after:outline-2 focus-visible:after:outline-offset-2 focus-visible:after:outline-(--focus-ring)">
+              {name}
+            </Link>
+          </h3>
+          {handle ? (
+            <p className={cn('truncate text-muted', /\s/.test(handle) ? 'text-secondary' : 'text-code-caption')} title={handle}>
+              {handle}
+            </p>
+          ) : null}
+        </div>
+        <StateBadge chip state={condition.state} label={condition.label} sentence={condition.sentence} className="max-w-[45%] shrink-0" />
       </div>
-      <div className="flex items-center gap-3 px-4 pt-3">
-        <SiteMark site={lane.site?.key ?? lane.name} size={24} label={false} />
-        <h3 className="min-w-0 flex-1 truncate text-body font-semibold">
-          <Link to="/$org/lanes/$ws/$name" params={{ org, ws: lane.workspace, name: lane.name }} className="after:absolute after:inset-0 after:content-['']">
-            {name}
-          </Link>
-        </h3>
-        <StateBadge state={condition.state} label={condition.label} className="shrink-0" />
+      <div className="mt-4 grid min-w-0 gap-1">
+        <p className="text-body [overflow-wrap:anywhere]">{condition.sentence}.</p>
+        <LastLine last={last} lane={lane} />
       </div>
-      <p className="px-4 pt-1 text-secondary text-muted">{condition.sentence}.</p>
-      <div className="mt-auto px-4 pt-3 pb-3">
-        {last ? (
-          <p className="flex min-w-0 items-center gap-2 text-secondary">
-            <AgentMark principal={last.principal} size={16} />
-            <span className="min-w-0 flex-1 truncate text-muted">{didSentence(last)}</span>
-            <span className="tabular shrink-0 text-caption text-faint">{timeAgo(last.at)}</span>
-          </p>
-        ) : lane.last_used ? (
-          <p className="text-secondary text-faint">Last used {timeAgo(lane.last_used)}</p>
-        ) : (
-          <p className="text-secondary text-faint">Not used yet</p>
-        )}
+      <div className="mt-auto flex min-h-12 items-end justify-between gap-3">
+        <span className="flex min-h-8 min-w-0 items-center text-muted">
+          <AccountAskWord org={org} ask={ask} />
+        </span>
+        {step ? (
+          <Button asChild size="sm" className="relative z-10 shrink-0">
+            <Link to="/$org/lanes/$ws/$name" params={params}>
+              {step.label}
+            </Link>
+          </Button>
+        ) : null}
       </div>
-      <AccountAskRow org={org} lane={lane} ask={ask} />
-      {step ? (
-        <Link
-          to="/$org/lanes/$ws/$name"
-          params={{ org, ws: lane.workspace, name: lane.name }}
-          className={cn('relative z-10 flex min-h-11 items-center gap-2 px-4 text-secondary font-medium transition-colors duration-(--duration-fast)', FOOTER[condition.state])}
-        >
-          <span className="min-w-0 flex-1 truncate">{step.label}</span>
-          <ChevronRight className="size-4 opacity-70 transition-transform duration-(--duration-base) group-hover/card:translate-x-0.5" />
-        </Link>
-      ) : null}
     </article>
   );
 }

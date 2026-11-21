@@ -8,6 +8,7 @@ import { Logo } from '../ui/misc';
 import { EmptyState } from '../ui/states';
 import { CommandPalette } from './command-palette';
 import { FreezeDialogs } from './freeze-control';
+import { PlaceTabs } from './place-tabs';
 import { Rail, TabBar } from './rail';
 import { Shortcuts } from './shortcuts';
 import { TopBar } from './top-bar';
@@ -88,6 +89,7 @@ export function AppShell({ org }: { org: string }) {
         <TopBar org={org} night={band !== null} />
         <main id="main" tabIndex={-1} className="relative min-w-0 flex-1 pb-[calc(var(--tabbar-height)+env(safe-area-inset-bottom)+32px)] outline-none md:pb-16">
           <div className="page-frame mx-auto w-full max-w-(--page-max) px-4 pt-6 sm:px-6 md:pt-8 lg:px-10 lg:pt-6">
+            <PlaceTabs org={org} />
             <Outlet />
           </div>
         </main>

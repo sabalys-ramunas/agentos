@@ -5,14 +5,16 @@ describe('vocabulary', () => {
   it('holds the names the owner decided, with the technical term behind each', () => {
     expect(PLACES.accounts).toMatchObject({ word: 'Accounts', technical: 'Lanes' });
     expect(PLACES.routines).toMatchObject({ word: 'Routines', technical: 'Flows' });
-    expect(PLACES.history).toMatchObject({ word: 'History', technical: 'Activity' });
     expect(PLACES.machines).toMatchObject({ word: 'Machines', technical: 'Nodes' });
-    // The old key reads the new word, so a screen not yet moved never says Computers.
-    expect(PLACES.computers.word).toBe('Machines');
     expect(PLACES.runs.word).toBe('Runs');
     expect(PLACES.checks.word).toBe('Checks');
     expect(PLACES.brand.word).toBe('Brand');
     expect(PLACES.needsYou.word).toBe('Needs you');
+    // The simpler navigation (2026-11-21): three places that hold two lists, and History's plainer name.
+    expect(PLACES.computers.word).toBe('Computers');
+    expect(PLACES.jobs.word).toBe('Jobs that repeat');
+    expect(PLACES.runsAndChecks.word).toBe('Runs and checks');
+    expect(PLACES.history).toMatchObject({ word: 'What happened', technical: 'Activity' });
     expect(THINGS.inspect.word).toBe('Technical details');
   });
 

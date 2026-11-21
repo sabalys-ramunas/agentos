@@ -15,6 +15,7 @@ import { roleLabel } from '@/lib/labels';
 import { atLeast, isOrgWide } from '@/lib/permissions';
 import { differsByWorkspace, Person, roleIn, roleOptions, TableSkeleton } from './members';
 import { SettingsHeader } from './page';
+import { chosen, toastChange } from '@/components/ui/toast';
 
 /** Short column heads for the access grid: each workspace's first word, unless two would read the same. */
 function shortNames(workspaces: Workspace[]): Map<string, string> {
@@ -35,9 +36,16 @@ function AccessRow({ member, workspaces, org, me }: { member: Member; workspaces
   const differs = differsByWorkspace(member);
   const name = member.user.name;
 
+  // Each change saves at once; the toast says it, and Undo puts back what this person saw before.
+  const save = (workspaces: string[] | null, said: string, undone: string) => {
+    const before = member.workspaces;
+    update.mutate({ id: member.id, workspaces }, { onSuccess: () => toastChange({ said, undone, undo: () => update.mutateAsync({ id: member.id, workspaces: before }) }) });
+  };
   const toggle = (id: string) => {
-    const next = scope.includes(id) ? scope.filter((item) => item !== id) : [...scope, id];
-    update.mutate({ id: member.id, workspaces: next });
+    const seen = scope.includes(id);
+    const next = seen ? scope.filter((item) => item !== id) : [...scope, id];
+    const where = workspaces.find((item) => item.id === id)?.name ?? id;
+    save(next, seen ? `${name} no longer sees ${where}` : `${name} sees ${where} now`, seen ? `${name} sees ${where} again` : `${name} no longer sees ${where}`);
   };
 
   return (
@@ -59,7 +67,9 @@ function AccessRow({ member, workspaces, org, me }: { member: Member; workspaces
               { value: 'all', label: 'All' },
               { value: 'some', label: 'Some' },
             ]}
-            onValueChange={(value) => update.mutate({ id: member.id, workspaces: value === 'all' ? null : scope })}
+            onValueChange={(value) =>
+              save(value === 'all' ? null : scope, value === 'all' ? `${name} sees every workspace` : `${name} sees some workspaces`, value === 'all' ? `${name} sees some workspaces again` : `${name} sees every workspace again`)
+            }
           />
         ) : (
           <span className="text-secondary text-muted">{everything ? 'All' : 'Some'}</span>
@@ -130,7 +140,18 @@ function RolesByWorkspace({ members, workspaces, org, me }: { members: Member[];
                           aria-label={`Role in ${workspace.name} for ${member.user.name}`}
                           value={roleIn(member, workspace.id)}
                           options={roleOptions(access.role)}
-                          onValueChange={(role) => update.mutate({ id: member.id, workspace: workspace.id, role: role as Role })}
+                          onValueChange={(role) =>
+                            update.mutate(
+                              { id: member.id, workspace: workspace.id, role: role as Role },
+                              {
+                                onSuccess: () =>
+                                  toastChange({
+                                    ...chosen(`${member.user.name}'s role in ${workspace.name}`, roleLabel[role as Role], roleLabel[roleIn(member, workspace.id)]),
+                                    undo: () => update.mutateAsync({ id: member.id, workspace: workspace.id, role: roleIn(member, workspace.id) }),
+                                  }),
+                              },
+                            )
+                          }
                         />
                       ) : (
                         <span className="text-secondary text-muted">{roleLabel[roleIn(member, workspace.id)]}</span>

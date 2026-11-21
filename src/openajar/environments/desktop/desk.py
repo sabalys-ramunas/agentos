@@ -12,7 +12,8 @@ happens:
 - the agent's terminal: the commands the agent runs (terminal_exec) and their output, which the node sends here
   as it reads them, written to a transcript a read-only terminal window follows (deskterm.py: output cannot
   drive that window or pass for the command and exit lines, which come from the node's record);
-- focus: the node asks for the browser or the agent's terminal to come to the front when the agent uses it;
+- focus: the node asks for the browser or the agent's terminal to come to the front when the agent uses it,
+  and a browser window that comes up while an app has the keyboard leaves it there (FocusGuard);
 - the browser's window title, without the browser's brand after an em dash;
 - where the browser's window is on the screen, sent to the node when it changes, so the live view can draw
   the agent's pointer where the agent acts in the page.
@@ -201,6 +202,54 @@ class Status:
         return left if left > 0 else None
 
 
+# ---------------------------------------------------------------- who has the keyboard
+
+
+class FocusGuard:
+    """The browser starts in the background when the environment opens, so its first window can come up after
+    an app the agent opened (screen_open) or a person opened has the keyboard. That window never takes the
+    keyboard or the front from such an app (t11 of the eval: the agent's typing went into the browser): for
+    BORN_S after a browser window first shows, the app that last had focus is put back in front, unless the
+    browser was asked for (the node, when the agent uses the browser; the dock's Browser). A browser that comes
+    up on a desktop where nothing has focus gets it (openbox's rc.xml gives a new browser window none itself).
+    The agent's own terminal ("agent") is a read-only transcript: it neither holds nor loses the keyboard here.
+    Pure bookkeeping on window ids and kinds, so it is tested without a screen."""
+
+    BORN_S = 6.0
+
+    def __init__(self):
+        self.last_app = None   # the newest app window (not the browser, not the agent's terminal) that had focus
+        self.asked_at = None   # when the browser was last asked for
+        self.born = {}         # browser window id -> when it first showed
+
+    def asked(self, now):
+        self.asked_at = now
+
+    def saw(self, active, kinds, now):
+        """After the window list changed: `active` the focused window's id (None: none), `kinds` every app
+        window's id and kind. Returns the window to put in front, or None to leave focus as it is."""
+        new = [w for w, k in kinds.items() if k == "browser" and w not in self.born]
+        for w in new:
+            self.born[w] = now
+        self.born = {w: t for w, t in self.born.items() if w in kinds}
+        kind = kinds.get(active)
+        if kind is not None and kind not in ("browser", "agent"):
+            self.last_app = active
+            return None
+        asked = self.asked_at is not None and now - self.asked_at < self.BORN_S
+        young = any(now - t < self.BORN_S for t in self.born.values())
+        if asked:
+            self.last_app = None if kind == "browser" else self.last_app
+            return None
+        if young and self.last_app in kinds and kind in (None, "browser", "agent"):
+            return self.last_app
+        if kind == "browser" and not young:
+            self.last_app = None  # a person (or the agent) chose the browser: it keeps the keyboard
+        if new and kind in (None, "agent"):
+            return new[-1]  # no app has focus: the new browser gets it, as openbox would have
+        return None
+
+
 # ---------------------------------------------------------------- the desk
 
 
@@ -228,6 +277,7 @@ class Desk:
         self.hover = None
         self.active = None
         self.clients = {}  # window id -> (Item key, window)
+        self.guard = FocusGuard()
         self.agent_pids = set()  # the agent's terminal windows we started
         self.agent_term = None
         self.tip = None
@@ -473,6 +523,9 @@ class Desk:
                     self.dress_agent_window(win)
         self.clients = seen
         self._geo_dirty = True
+        keep = self.guard.saw(self.active, {wid: k for wid, (k, _w) in seen.items()}, time.monotonic())
+        if keep is not None and keep != self.active:
+            self.activate(seen[keep][1])  # a browser that just came up does not take the keyboard (FocusGuard)
         agent = [w for k, w in seen.values() if k == "agent"]
         self.agent_term = agent[-1] if agent else None
         items = [Item(k, label, self.icons[k], True) for k, label in PINNED]
@@ -598,6 +651,7 @@ class Desk:
     def click(self, item, button):
         wins = item.windows
         if item.key == "browser":
+            self.guard.asked(time.monotonic())
             if wins:
                 self.activate(wins[-1])  # the agent's browser: raised, never a second one started
             elif self._tell(b'{"t": "want", "what": "browser"}\n'):
@@ -620,6 +674,7 @@ class Desk:
 
     def focus(self, what):
         if what == "browser":
+            self.guard.asked(time.monotonic())
             wins = self.clients and [w for k, w in self.clients.values() if k == "browser"]
             if wins and wins[-1].id != self.active:
                 self.activate(wins[-1])

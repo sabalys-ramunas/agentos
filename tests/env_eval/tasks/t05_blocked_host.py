@@ -27,12 +27,12 @@ async def check(ctx: Ctx) -> list[Check]:
     outputs = [str(r.get("text") or "") for r in ctx.calls("terminal_exec") + ctx.calls("terminal_job_read") if r.get("ok")]
     installed = any(STARTED in o for o in outputs)  # the script prints it once its dependency loaded
     refused = any(b.get("host") == HOST for e in ctx.environments() for b in (e.blocked or []))
-    runs = [c for c in _cmds(ctx) if "rates" in c and "install" not in c]
+    runs = sum(c.count("run rates") + c.count("rates.sh") for c in _cmds(ctx))  # `npm install && npm run rates` is one
     answer = ctx.answer()
     return [
         ("npm installed the dependency (the registry is allowed)", installed),
         (f"the node refused {HOST}", refused),
-        (f"the script ran at most {MAX_RUNS} times (no retry loop)", 0 < len(runs) <= MAX_RUNS),
+        (f"the script ran at most {MAX_RUNS} times (no retry loop)", 0 < runs <= MAX_RUNS),
         ("the answer names the refused host", HOST in answer),
         ("the answer gives the owner's command", FIX in answer),
         *await ctx.closed_and_gone(),

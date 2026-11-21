@@ -158,10 +158,11 @@ const NODE_DOT = { up: 'ok', degraded: 'warn', down: 'bad' } as const;
 /**
  * The system's state, one click from anywhere. On a wide screen it is the status line at the foot of
  * the rail (`variant="line"`): the machines' load as bars and "3 online · 1 not answering". On a
- * phone it is a dot in the top bar (`variant="dot"`). Both open the same popover: the worst thing
+ * phone it is a dot in the top bar (`variant="dot"`), and the line again, with its words, at the foot of the More sheet
+ * (`wide`). Both open the same popover: the worst thing
  * first as a sentence, then the machines, the AI and what it costs today.
  */
-export function StatusPill({ org, variant = 'line' }: { org: string; variant?: 'line' | 'dot' }) {
+export function StatusPill({ org, variant = 'line', wide = false }: { org: string; variant?: 'line' | 'dot'; wide?: boolean }) {
   const status = useStatus(org).data;
   const brains = useBrains(org).data ?? [];
   const workspaces = useWorkspaces(org).data ?? [];
@@ -192,12 +193,13 @@ export function StatusPill({ org, variant = 'line' }: { org: string; variant?: '
         <PopoverTrigger
           aria-label={label}
           className={cn(
-            'flex h-9 w-full min-w-0 items-center justify-center gap-3 rounded-lg px-2 text-secondary text-muted lg:justify-start lg:px-3',
+            'flex h-9 w-full min-w-0 items-center gap-3 rounded-lg px-2 text-secondary text-muted',
+            wide ? 'justify-start px-3' : 'justify-center lg:justify-start lg:px-3',
             'transition-colors duration-(--duration-fast) ease-standard hover:bg-hover hover:text-fg data-[state=open]:bg-pressed data-[state=open]:text-fg',
           )}
         >
           <FleetBars status={status} />
-          <span data-rail-label className="hidden min-w-0 flex-1 truncate text-left lg:block">
+          <span data-rail-label className={cn('min-w-0 flex-1 truncate text-left', wide ? 'block' : 'hidden lg:block')}>
             {fleetWords(fleet)}
           </span>
         </PopoverTrigger>
@@ -209,7 +211,7 @@ export function StatusPill({ org, variant = 'line' }: { org: string; variant?: '
           <PillDot tone={summary.tone} />
         </PopoverTrigger>
       )}
-      <PopoverContent side={variant === 'line' ? 'right' : 'bottom'} align={variant === 'line' ? 'end' : 'end'} className="w-[22rem] max-w-[calc(100vw-16px)] p-0">
+      <PopoverContent side={wide ? 'top' : variant === 'line' ? 'right' : 'bottom'} align={variant === 'line' ? 'end' : 'end'} className="w-[22rem] max-w-[calc(100vw-16px)] p-0">
         <div className="flex items-center gap-2 border-b border-line px-4 py-3">
           <PillDot tone={summary.tone} />
           <p className="text-body font-medium">{summary.text}</p>

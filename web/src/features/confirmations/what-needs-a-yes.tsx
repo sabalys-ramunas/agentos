@@ -6,7 +6,7 @@
 import { Link, useParams } from '@tanstack/react-router';
 import { Card } from '@/components/ui/card';
 import { ArrowRight, RotateCcw } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useAccess, useConfirmation, useSetConfirmation, useWorkspaces } from '@/api/hooks';
 import { isCancelled } from '@/api/http';
 import type { ConfirmationView, ConfirmRow, Workspace } from '@/api/types';
@@ -18,12 +18,13 @@ import { describeError } from '@/lib/errors';
 import { cn } from '@/lib/cn';
 import { timeAgo } from '@/lib/format';
 import type { Rung, Rungs } from '@/lib/confirm';
-import { businessRungs, FLOORS, rungIndex, rungsOf, RUNG_WORDS, shapeOf, withBusinessRung, withRung } from '@/lib/confirm';
+import { businessRungs, FLOORS, ROWS, rungIndex, rungsOf, RUNG_WORDS, shapeOf, withBusinessRung, withRung } from '@/lib/confirm';
 import { SettingsHeader } from '@/features/settings/page';
 import { DayShapeView } from './day-shape';
 import { LadderLegend, RowNotes, YesGrid } from './ladder';
 import type { GridScope } from './ladder';
 import './confirmations.css';
+import { switched, toastChange } from '@/components/ui/toast';
 
 const CHANGED_BY = { commit: 'confirmation.update', marked: 'confirmation.update', after_untrusted: 'confirmation.money', pay: 'confirmation.money', irreversible: 'confirmation.money' } as const;
 
@@ -99,18 +100,40 @@ function Page({ org, view, workspaces }: { org: string; view: ConfirmationView; 
   const shape = useMemo(() => shapeOf(view.day, seen, scope), [view.day, seen, scope]);
   const base = useMemo(() => shapeOf(view.day, peek ? rungs : system, scope), [view.day, peek, rungs, system, scope]);
 
+  // The toast says what changed. Undo is there only when the change let more go on its own: putting it back
+  // asks more again. A stronger yes is never undone from a toast (web/DESIGN.md, Forms).
+  const latest = useRef(view);
+  latest.current = view;
   const pick = (where: string | null, row: ConfirmRow, rung: Rung) => {
     setPeek(null);
     setSaid({ row, words: 'Telling your computers.' });
+    const before = rungsIn(where)[row];
+    const back = where ? { business: where, overlay: view.overlays[where] ?? {} } : null;
     const body = where ? { business: where, overlay: withBusinessRung(view.setting, view.overlays[where], row, rung) } : { setting: withRung(view.setting, row, rung) };
+    const title = ROWS.find((item) => item.key === row)?.title ?? row;
+    const only = where ? `, only in ${nameOf(where)}` : '';
     set.mutate(body, {
-      onSuccess: () => setSaid({ row, words: `Saved: ${RUNG_WORDS[rung].word.toLowerCase()}.${where ? ` Only ${nameOf(where)}.` : ''}` }),
+      onSuccess: () => {
+        setSaid(null);
+        toastChange({
+          said: `${title}: ${RUNG_WORDS[rung].word.toLowerCase()}${only}`,
+          undone: `${title}: ${RUNG_WORDS[before].word.toLowerCase()} again${only}`,
+          undo: rungIndex(rung) < rungIndex(before) ? () => set.mutateAsync(back ?? { setting: withRung(latest.current.setting, row, before) }) : undefined,
+        });
+      },
       onError: (error) => setSaid(isCancelled(error) ? null : { row, words: `Back to the last saved choice. ${describeError(error)}`, bad: true }),
     });
   };
 
   const setChat = (on: boolean) => {
-    set.mutate({ setting: { ...view.setting, chat: on } }, { onError: (error) => !isCancelled(error) && setSaid({ row: 'chat', words: describeError(error), bad: true }) });
+    set.mutate(
+      { setting: { ...view.setting, chat: on } },
+      {
+        // On lets a yes in chat count, so Undo turns it off again; off is the stricter way and has no Undo.
+        onSuccess: () => toastChange({ ...switched('Answers in chat', on), undo: on ? () => set.mutateAsync({ setting: { ...latest.current.setting, chat: false } }) : undefined }),
+        onError: (error) => !isCancelled(error) && setSaid({ row: 'chat', words: describeError(error), bad: true }),
+      },
+    );
   };
 
   const isSystem = JSON.stringify(view.setting) === JSON.stringify(view.system);

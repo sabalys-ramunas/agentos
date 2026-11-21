@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { db } from '@/mocks/handlers';
-import { renderApp } from '@/test/render';
+import { renderApp, renderToasts } from '@/test/render';
 import { server } from '@/test/setup';
 
 const PATH = '/northwind-group/settings/notifications';
@@ -64,7 +64,37 @@ describe('notification settings', () => {
     await user.click(screen.getByRole('switch', { name: 'Urgent email' }));
     await waitFor(() => expect(org().notifications.email_urgent).toBe(false));
     expect(within(urgentRow).getByText('Off')).toBeInTheDocument();
-    expect(await screen.findByText('Saved')).toBeInTheDocument();
+  });
+
+  it('says what changed in a toast, with Undo through the same save, and no Saved in the footer', async () => {
+    renderToasts();
+    const { user } = renderApp(PATH);
+    const quiet = await screen.findByRole('switch', { name: 'Quiet hours' });
+    const was = org().notifications.quiet_hours.enabled;
+    await user.click(quiet);
+    await waitFor(() => expect(org().notifications.quiet_hours.enabled).toBe(!was));
+    expect(await screen.findByText(`Quiet hours turned ${was ? 'off' : 'on'}`)).toBeInTheDocument();
+    expect(screen.queryByText('Saved')).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    await waitFor(() => expect(org().notifications.quiet_hours.enabled).toBe(was));
+    expect(await screen.findByText(`Quiet hours turned ${was ? 'on' : 'off'} again`)).toBeInTheDocument();
+    expect(quiet).toHaveAttribute('aria-checked', String(was));
+  });
+
+  it('puts back only what the change touched', async () => {
+    renderToasts();
+    const { user } = renderApp(PATH);
+    await user.click(await screen.findByRole('switch', { name: 'Push to my devices' }));
+    await waitFor(() => expect(org().notifications.push).toBe(false));
+    await screen.findByText('Push to my devices turned off');
+    // A second change before the first is undone stays.
+    await user.click(screen.getByRole('switch', { name: 'Quiet hours' }));
+    await screen.findByText(/^Quiet hours turned/);
+    const quiet = org().notifications.quiet_hours.enabled;
+    const first = screen.getByText('Push to my devices turned off').closest('[data-change-toast]') as HTMLElement;
+    await user.click(within(first).getByRole('button', { name: 'Undo' }));
+    await waitFor(() => expect(org().notifications.push).toBe(true));
+    expect(org().notifications.quiet_hours.enabled).toBe(quiet);
   });
 
   it('never sends the old webhook_url field', async () => {

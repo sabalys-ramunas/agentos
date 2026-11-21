@@ -472,6 +472,159 @@ def test_every_task_loads_with_its_checker_and_both_scripts():
     from env_eval.tasks import all_tasks
 
     tasks = all_tasks()
-    assert [t.id for t in tasks][-4:] == ["t08_probes", "t09_slow_command", "t10_checkout_form", "t11_desktop_app"]
+    assert [t.id for t in tasks][-8:] == ["t08_probes", "t09_slow_command", "t10_checkout_form", "t11_desktop_app",
+                                          "t12_machine_dies", "t13_files_in_out", "t14_wait_dialog", "t15_find_price"]
     assert all(t.check and t.perfect and t.careless and t.sessions for t in tasks)
     assert len({t.id for t in tasks}) == len(tasks)
+    assert not any(t.internet for t in tasks[-4:])  # the shop and the files are hermetic: nothing leaves this computer
+
+
+def test_the_shop_builds_its_report_slowly_and_deletes_a_draft_the_way_t14_reads_it(shop_site):
+    import time
+    import urllib.parse
+    import urllib.request
+
+    from env_eval.tasks.t10_checkout_form import SHOP
+
+    started = time.monotonic()
+    with urllib.request.urlopen(shop_site + "/api/report") as r:
+        assert json.loads(r.read())["code"] == SHOP.report_code(3)
+    assert time.monotonic() - started >= 4  # slow on purpose: an agent has to wait for it
+    with urllib.request.urlopen(shop_site + "/drafts") as r:
+        assert "return confirm(" in r.read().decode()  # the delete is behind a confirm() dialog
+    draft = SHOP.draft_to_delete(3)
+    urllib.request.urlopen(urllib.request.Request(shop_site + "/drafts/delete",
+                                                  data=urllib.parse.urlencode({"name": draft}).encode())).close()
+    with urllib.request.urlopen(shop_site + "/_state") as r:
+        state = json.loads(r.read())
+    assert state["report_requests"] == 1 and state["deleted"] == [draft]
+
+
+def test_t15s_price_is_never_on_the_first_page_and_its_careless_guess_is_wrong():
+    from env_eval.tasks import t15_find_price as t15
+
+    first = t15.SHOP.catalogue(t15.SEED)[:t15.SHOP.PAGE_SIZE]
+    assert t15.TARGET not in first
+    noun = t15.TARGET["name"].split()[-1]
+    near = [p for p in first if noun in p["name"]]
+    assert all(t15.SHOP.money(p["price_cents"]) != t15.PRICE for p in near)
+
+
+def test_t13s_summary_is_the_totals_and_names_the_computer(tmp_path):
+    import socket as sock
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    from env_eval.tasks import t13_files_in_out as t13
+
+    t13.write_sales(tmp_path)
+    script = Path(__file__).resolve().parents[1] / "env_eval" / "repos" / "report" / "summarize.py"
+    subprocess.run([sys.executable, str(script), str(tmp_path / "sales.csv"), str(tmp_path / "out" / "summary.json")],
+                   check=True, capture_output=True)
+    data = json.loads((tmp_path / "out" / "summary.json").read_text())
+    assert data["totals"] == t13._totals() and data["rows"] == 300 and data["made_on"] == sock.gethostname()
+
+
+async def test_the_person_shell_runs_in_their_folder(tmp_path):
+    from env_eval.tasks import Ctx, host
+
+    ctx = Ctx(task=None, node=None, github=None, local=tmp_path)
+    (tmp_path / "a.txt").write_text("hi")
+    assert await host(ctx, "cat a.txt && pwd") == (0, f"hi{tmp_path.resolve()}\n")
+
+
+async def test_the_harness_step_beside_a_session_is_stopped_with_it_and_its_error_is_kept(monkeypatch):
+    import argparse
+
+    from env_eval import run
+    from env_eval.tasks import Ctx, Session, Task
+
+    seen = []
+
+    async def model(*args, **kwargs):
+        await asyncio.sleep(0.05)
+        return "answer", {}, None
+
+    async def forever(ctx):
+        seen.append("started")
+        await asyncio.sleep(60)
+
+    async def broken(ctx):
+        raise RuntimeError("no machine to kill")
+
+    monkeypatch.setattr(run, "model_session", model)
+    for during, note in ((forever, None), (broken, "RuntimeError: no machine to kill")):
+        task = Task(id="tx", title="", sessions=[Session("p", during=during)], check=None, perfect=None,
+                    careless=None)
+        ctx = Ctx(task=task, node=None, github=None)
+        got = await asyncio.wait_for(run.one_session(argparse.Namespace(), task, "claude", ctx, 0, "u", "t", None, 0),
+                                     5)
+        assert got == ("answer", {}, None) and ctx.notes.get("during_error") == note
+    assert seen == ["started"]
+
+
+def test_a_paid_run_without_a_sign_in_stops_before_any_node_and_says_what_to_provide(tmp_path, monkeypatch, capsys):
+    import os
+    import stat
+
+    from env_eval import agents, run
+
+    fake = tmp_path / "bin" / "claude"
+    fake.parent.mkdir()
+    fake.write_text('#!/bin/sh\necho \'{"loggedIn": false, "authMethod": "none"}\'\nexit 1\n')
+    fake.chmod(fake.stat().st_mode | stat.S_IEXEC)
+    monkeypatch.setenv("PATH", f"{fake.parent}{os.pathsep}{os.environ['PATH']}")
+    monkeypatch.setattr(run, "docker_ready", lambda: None)
+    monkeypatch.setattr(run, "run_all", lambda *a, **k: pytest.fail("a node started"))
+    assert "claude auth login" in agents.signed_in("claude") and "ANTHROPIC_API_KEY" in agents.signed_in("claude")
+    assert run.cmd_run(["--agent", "claude", "--model", "haiku", "--task", "t01", "--no-history"]) == 2
+    err = capsys.readouterr().err
+    assert "the claude agent cannot run" in err and "claude auth login" in err and "Traceback" not in err
+    fake.write_text('#!/bin/sh\necho \'{"loggedIn": true}\'\n')
+    assert agents.signed_in("claude") is None and agents.signed_in("perfect") is None
+
+
+def test_a_model_agent_runs_with_the_person_home_and_never_their_servers_or_skills(tmp_path, monkeypatch):
+    """OPENAJAR_EVAL_AGENT_HOME is the HOME a model agent gets (where claude is signed in) while the harness's own
+    is a scratch one; the claude command names only the run's server, no built-in tool, no skill, a turn limit."""
+    from env_eval import agents
+
+    monkeypatch.setenv("HOME", str(tmp_path / "scratch"))
+    monkeypatch.setenv("OPENAJAR_HOME", str(tmp_path / "node"))
+    monkeypatch.setenv(agents.AGENT_HOME, "/Users/someone")
+    env = agents._env()
+    assert env["HOME"] == "/Users/someone" and "OPENAJAR_HOME" not in env and agents.AGENT_HOME not in env
+    monkeypatch.delenv(agents.AGENT_HOME)
+    assert agents._env()["HOME"] == str(tmp_path / "scratch")
+
+    seen = {}
+
+    async def fake_run(argv, *, cwd, env, timeout_s, transcript):
+        seen["argv"] = argv
+        return "", None
+
+    monkeypatch.setattr(agents, "_run", fake_run)
+    monkeypatch.setattr(agents.shutil, "which", lambda name: "/bin/" + name)
+    asyncio.run(agents.claude("p", url="http://127.0.0.1:1/mcp", token="t", model="claude-sonnet-5-5",
+                              skill=tmp_path / "SKILL.md", transcript=tmp_path / "s.jsonl", timeout_s=5, cap_usd=0.5,
+                              max_turns=40))
+    argv = seen["argv"]
+
+    def after(flag):
+        return argv[argv.index(flag) + 1]
+
+    assert "--strict-mcp-config" in argv and "--disable-slash-commands" in argv and "--no-session-persistence" in argv
+    assert after("--tools") == "" and after("--allowedTools") == "mcp__openajar" and after("--max-turns") == "40"
+    assert after("--setting-sources") == "project" and after("--max-budget-usd") == "0.50"
+
+
+async def test_a_task_that_needs_the_person_shell_is_skipped_for_a_model_unless_allowed():
+    import argparse
+
+    from env_eval import run
+    from env_eval.tasks.t13_files_in_out import TASK
+
+    args = argparse.Namespace(model="haiku", host_shell=False)
+    got = await run.run_task(args, TASK, "claude", 1, gh=None, proxy=None, out=None, cap_usd=0)
+    assert "--host-shell" in got["skipped"]

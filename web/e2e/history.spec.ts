@@ -19,7 +19,7 @@ async function start(page: Page) {
 test('a story opens in the side sheet, the list keeps its width, and Esc gives focus back to the row', async ({ page }) => {
   await start(page);
   const main = page.getByRole('main');
-  await expect(main.getByRole('heading', { level: 1, name: 'History' })).toBeVisible();
+  await expect(main.getByRole('heading', { level: 1, name: 'What happened' })).toBeVisible();
   const today = main.getByRole('region', { name: 'Today', exact: true });
   const stories = today.getByRole('button', { name: /^What happened: / });
   await expect(main.getByRole('complementary', { name: 'What happened' })).toHaveCount(0);

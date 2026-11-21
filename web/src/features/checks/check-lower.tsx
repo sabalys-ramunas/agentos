@@ -43,11 +43,11 @@ export function Coverage({ run }: { run: StudioRun }) {
     <Card>
       <CardHeader title="Coverage" meta={`${ran.length} of ${plural(run.screen_list.length, 'screen')} checked`} />
       <div className="grid gap-3 p-5">
-        <p className="flex flex-wrap gap-1">
+        <p className="flex flex-wrap gap-2">
           {run.screen_list.map((screen) => (
-            <Badge key={screen.key} tone={screen.ok ? 'neutral' : 'bad'} className="font-mono">
+            <Badge key={screen.key} tone={screen.ok ? 'neutral' : 'bad'}>
               {screenWords(screen)}
-              {screen.ok ? '' : ', failed'}
+              {screen.ok ? '' : ', did not render'}
             </Badge>
           ))}
         </p>

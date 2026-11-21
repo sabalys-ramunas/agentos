@@ -42,7 +42,9 @@ describe('An open check', () => {
   it('opens the finding the address names, with what was measured and a copy for the agent', async () => {
     renderApp(`${BLOCKED}?finding=3`);
     const picked = await screen.findByRole('button', { name: /^Finding 3: Text is cut off/, pressed: true }, { timeout: 10_000 });
-    const item = picked.closest('li')!;
+    expect(picked.closest('li')).toBeInTheDocument();
+    // The open finding is its own card beside the picture.
+    const item = screen.getByRole('region', { name: /^Finding 3: Text is cut off/ });
     expect(within(item).getByText('hidden 0.42')).toBeInTheDocument();
     expect(within(item).getByText('Let the title wrap to two lines on phones.')).toBeInTheDocument();
     expect(within(item).getByRole('button', { name: 'Copy for the agent' })).toBeInTheDocument();

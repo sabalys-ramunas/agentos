@@ -54,6 +54,8 @@ const tile = {
   sm: 'size-6 rounded-sm [&_svg]:size-3.5',
   md: 'size-7 rounded-md [&_svg]:size-4',
   lg: 'size-8 rounded-md [&_svg]:size-4',
+  /** A detail page's head (one run, one check): beside the eyebrow and the title. */
+  xl: 'size-10 rounded-lg [&_svg]:size-5',
 } as const;
 
 export interface KindTileProps {
@@ -83,12 +85,15 @@ export function KindTile({ kind, size = 'md', waiting = false, labelled = false,
   );
 }
 
-/** The kind's eyebrow: the tile and its word in mono caps, in the kind's text colour. */
-export function KindEyebrow({ kind, label, className }: { kind: AnyKind; label?: string; className?: string }) {
+/**
+ * The kind's eyebrow: the tile and its word in mono caps, in the kind's text colour. `tile={false}` leaves
+ * the small tile out, for a head whose large `KindTile` already stands beside it.
+ */
+export function KindEyebrow({ kind, label, tile: withTile = true, className }: { kind: AnyKind; label?: string; tile?: boolean; className?: string }) {
   const { word, hue } = KINDS[kind];
   return (
     <span data-kind={hue ? kind : undefined} className={cn('inline-flex min-w-0 items-center gap-2', className)}>
-      <KindTile kind={kind} size="xs" />
+      {withTile ? <KindTile kind={kind} size="xs" /> : null}
       <span title={label ?? word} className="ui-kind-word truncate text-eyebrow">
         {label ?? word}
       </span>

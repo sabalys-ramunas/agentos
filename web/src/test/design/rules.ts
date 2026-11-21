@@ -53,7 +53,6 @@ const VOCABULARY: Array<[RegExp, string]> = [
   [/\bdanger zone\b/i, 'Delete this organization (THINGS.dangerZone)'],
   [/\bstanding approvals?\b/i, 'Always allowed (THINGS.standing)'],
   [/\bcontent hash\b/i, 'Content ID (THINGS.contentHash)'],
-  [/\bComputers\b/, 'Machines (PLACES.machines)'],
   [/\bInspect\b/, 'Technical details (THINGS.inspect)'],
 ];
 

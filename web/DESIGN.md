@@ -232,7 +232,7 @@ them, the groups and the checks: [DESIGN-SYSTEM.md](DESIGN-SYSTEM.md).
   hollow ring idle, quiet solid dot neutral. The word takes its colour only when it asks for attention (failed,
   needs a look, at work). Tones are `ok | warn | bad | live | idle | neutral` (`info` is the old name for live).
   Every enum maps to words and a tone in `src/lib/labels.ts`; add new ones there, never inline. `chip` sets it on
-  its tone's soft tint as a 24 px pill, for a table's result column and the state at an open ask's head.
+  its tone's soft tint as a 24 px pill, for a table's result column and the state at the head of one thing (an open ask, a run, a check).
 - **Badge** (a 24 px pill, a soft tint per tone, or `solid`), **Count** (quiet, `accent` for what waits for
   you, ink, warn, bad) and **Chip** (a filter pill with `aria-pressed`, pressed is the violet tint with violet
   words; with `kind` its square doubles as the legend).
@@ -240,8 +240,9 @@ them, the groups and the checks: [DESIGN-SYSTEM.md](DESIGN-SYSTEM.md).
   a white glyph, in seven tones (violet, blue, pink, amber, green, ink, teal; `--tile-*`). For the app's own
   things: a kind of ask on Home, a channel, a settings section. Never for an action (a button is a pill), and
   never for a kind of work (that is `KindTile`). `red` is the danger zone's alone (what deletes for good).
-- **KindTile, KindEyebrow:** the kind's tile (`xs` 18, `sm` 24, `md` 28, `lg` 32; `waiting` is dashed)
-  and its word in mono caps. `Card kind="test"` adds the 2 px top edge.
+- **KindTile, KindEyebrow:** the kind's tile (`xs` 18, `sm` 24, `md` 28, `lg` 32, `xl` 40 for a detail page's head
+  such as one run or one check; `waiting` is dashed) and its word in mono caps. Beside an `xl` tile the eyebrow drops
+  its own small tile (`tile={false}`). `Card kind="test"` adds the 2 px top edge.
 - **BranchPill:** a mono pill, `main` in ink, full name as a title. **IfYes:** "IF YES" and one line of
   what a yes does, cut with its full text as a title.
 - **Card, CardHeader, CardFooter:** radius 10, the lift, a head of 52 px with the title, quiet meta and
@@ -263,19 +264,28 @@ them, the groups and the checks: [DESIGN-SYSTEM.md](DESIGN-SYSTEM.md).
 - **Tooltip:** the inverse surface, caption size. Every cut line also carries its full text as a title.
 - **Toasts** (`app.tsx`): the raised surface at radius 8 with the popover shadow, bottom right; at the top on a
   phone.
+- **Banner** (`states.tsx`): one sentence about what is below it, on its tone's tint with its edge (bad, warn, ok,
+  neutral), radius 10: the lead words semibold, then the sentence, and one or two buttons at its end (under the words
+  on a phone). On the night band it takes the night's tints. A page opens with it as a `status`; a refusal beside a
+  control is an `InlineError` instead.
 - **Skeleton, EmptyState, ErrorState, QueryView:** an empty state is an icon in a small bordered tile,
   one bold line, one sentence, one action. `dawn` puts the small Dawn crop in the icon's place, for good news
   and a first use (`dawn="grey"` greys it, for "nothing right now"); it is the one way the picture appears in an
   empty state, so a screen never draws its own. An error says nothing changed and offers Try again.
 - **PageHeader:** the page title role (26/32 on a phone), an optional `eyebrow`, the lede, actions on the
-  right on the first row at every width.
+  right on the first row at every width. A detail page (one run, one check, one account, one workspace) passes
+  `lead`, its 40 px mark (an `xl` KindTile, an account's site tile, a workspace's mark) beside the eyebrow and
+  title with the actions level with its top, and `aside`, its state as a chip beside the title (`Status chip`
+  for a job, `StateBadge chip` for an account). `titleHint` is a long title's full text on hover, and
+  `className` sets the space under it (an account's head on the night band).
 - **Field, Input, Select, Switch, Checkbox:** 40 tall, a firm hairline on the card; focus turns the edge
   violet with a soft violet halo (an outline); help is a secondary line in the tertiary ink; an error is a red
   edge and red words with a mark. Checked and on are violet with white. The switch is 38 by 22; off is the control grey,
   which holds 3:1 (the sheet's lighter grey would not). How they behave together is in "Forms" below.
 - **ScreenPicture** (`components/screen-picture.tsx`), the picture of an environment's screen, and
   **PictureChip**, a chip on it: see "The screen's picture".
-- **Kbd** (mono micro on the card), **Meter** (4 px, ink on the chart track, amber at 80%, red at 95%),
+- **Kbd** (mono micro on the card), **Meter** (4 px, ink on the chart track, amber at 80%, red at 95%; `progress`
+  for a bar where more is better, ink and green once complete),
   **CodeBlock** (a well with a copy button).
 - **Terminal:** read-only output, dark in both themes (the stage's night). ANSI colours are parsed into text
   spans (never HTML). Line numbers, `highlight={{ 4: 'bad' }}`, follow mode, wrap. A light status tint never
@@ -293,7 +303,9 @@ them, the groups and the checks: [DESIGN-SYSTEM.md](DESIGN-SYSTEM.md).
 - **Avatar:** initials in a circle; `me` (the person signed in) is violet to blue with white initials.
 - **States for people:** `StateBadge` (`state-badge.tsx`) for screens a non-technical person reads: a
   shaped glyph and a word for All good, Waiting for you, Stuck, Sleeping and Working now (violet, with a still
-  halo). `lib/states.ts` maps every condition to one with one plain sentence.
+  halo). `lib/states.ts` maps every condition to one with one plain sentence. `chip` sets it on its tone's tint as a
+  24 px pill with the status mark (Stuck red, Waiting amber, Working now violet, All good green, Sleeping grey), for
+  the state at the head of an account's card or page.
 - **Words:** `src/lib/vocabulary.ts` holds the everyday words; `principalName` names who did something.
 - **Technical details:** `useTechnical()` is one person's switch for ids, logs, the terminal and costs.
 - **Identity marks:** `BusinessMark`, `PersonMark`, `SiteMark`, `AgentMark`: fills on small marks only.
@@ -313,7 +325,7 @@ every table look like a spreadsheet and added a third grey.
   what the list is): first one row of filters on the page (search first, at most 360 wide, then selects, all 40
   tall, then the states as a `SegmentedTabList` with a count on each, and the table's ⋯ menu at the row's end for
   row height), then the card, which holds only the table and its total line. On a phone the states scroll sideways
-  in their row. A note about the list ("Routines ... are in History") sits under the card. A card's own head
+  in their row. A note about the list ("Routines ... are in What happened") sits under the card. A card's own head
   (`CardHeader`, 15/22) is for a table inside a page about something else (the last hour, a machine's runs).
 - **Rows** 52 px (`density="compact"` 40, which hides second lines; `relaxed` 60), head 40, a hairline
   between rows, 20 px gutters at both ends.
@@ -406,10 +418,29 @@ the card is a real form: Enter in a field saves.
 
 **A setting that saves on its own** (a switch, a select in a row): `SettingRow` puts its name (the control's
 label, so a click on it works the switch) and one line on the left and the control on the right. It saves at
-once; the card's footer says Saving, then Saved with a tick, or what went wrong and that the last saved choice
-is back (`SaveStatus`). A toast is for what the page no longer shows (an address changed, a row removed, an
-invite sent), never for a change that is still on screen. (`states-forms.png` shows a toast with Undo for a
-switch; that needs the toast stack, which the shell owns. Until it has Undo, the footer says it.)
+once, and a **toast with Undo** says so (`toastChange` in `components/ui/toast.tsx`, drawn in `states-forms.png`):
+- The toast says what changed in plain words, never "Saved": "Quiet hours turned on", "Email digest set to
+  Weekly", "Tomas Reyes's role set to Admin" (`switched` and `chosen` make the words).
+- It carries one action, Undo, and stays about six seconds; it holds while the pointer is on it or it has focus
+  (Undo is reachable by keyboard), and a moment more once let go. The stack is a polite live region, so a screen
+  reader hears it.
+- Undo puts the previous value back through the same save path, so whatever that path asks (a step-up, the
+  node's own checks) it asks again. Then the toast says it is back ("Quiet hours turned off again"), or plainly
+  that it could not be ("Could not undo, so it stays as it is." and why).
+- Undo puts back only what that change touched, so a second change made since stays.
+- The card's footer says only Saving and what went wrong, and that the last saved choice is back (`SaveStatus`);
+  it no longer says Saved. A form with a Save button keeps its footer feedback (above) and no toast.
+- **No Undo for what cannot be undone**: a deletion, a sent invite, a revoked grant, a signed-out device keep their
+  confirm dialogs and a plain toast.
+- **Undo never loosens what an agent may do without asking.** A change that let more go on its own gets Undo,
+  which asks more again: Ask me first turned off, a worker turned on for an account, a weaker yes, answers in chat
+  turned on, a higher worker limit. A change the other way gets the toast with no Undo: Ask me first turned on, a
+  worker turned off (turning one on goes through its own dialog), a stronger yes, answers in chat turned off, a
+  lower limit.
+- Not settings and so not here: Technical details and the theme (they change only this browser's view), and a
+  view, filter or tab (it saves nothing).
+
+A toast is otherwise for what the page no longer shows (an address changed, a row removed, an invite sent).
 
 **Choosing.**
 - One of two to four short answers to a short question: `RadioRow` ("Format: CSV, NDJSON"), real radios side by
@@ -420,7 +451,8 @@ switch; that needs the toast stack, which the shell owns. Until it has Undo, the
   or the title. One that cannot be chosen is dimmed to 70% and says why.
 - Several that can all be on: `CheckCard`.
 - A view of the same thing, or a pair such as "A business / Just me": `SegmentedControl`.
-- More than five answers, or answers that come from data (workspaces, roles): `Select`.
+- More than five answers, or answers that come from data (workspaces, roles, computers): `Select`. An option that
+  cannot be chosen now stays listed, `disabled`, with its `hint` saying why ("Offline").
 - A grid of yes or no per person and place (workspace access): a tick per cell, a button with `aria-pressed`
   and a name that says both ("Tomas Reyes sees Aster Coffee"); what cannot change is a quiet tick with a title
   that says why.
@@ -441,7 +473,7 @@ switch; that needs the toast stack, which the shell owns. Until it has Undo, the
 **Keyboard and screen readers.** Tab reaches every control in reading order; Enter saves a form card and
 submits a dialog's form; Escape closes a dialog or a menu and gives focus back to what opened it; arrow keys move
 inside radios, choice cards, segmented controls and the yes ladder. Every control has a name, every error is
-announced, Saved is announced (a status region that is always in the page).
+announced, Saved is announced (a status region that is always in the page, or the toast stack's live region).
 
 ## The shell
 
@@ -461,19 +493,32 @@ The frame every page sits in (`src/components/shell/`), drawn from Dawn's Full.
   it is the mark in the top bar.
 - **A place** is 36 px, its icon 18 px at 1.75. At rest the words are the secondary white; hover is a faint
   white fill; the place you are on is white, semibold, on a white tint with a hairline.
-- **The menu** is the one the owner approved with Mono, in five groups, each place with its "g" key:
+- **The menu** is the simpler navigation the owner chose (2026-11-21, `nav-proposal.png`): ten places, the
+  four everyone needs every day first, then grouped by who they are for, each place with its "g" key:
 
   | Group | Places |
   | --- | --- |
-  | Work | Home (G H), Environments (G V), Runs (G R), Checks (G C) |
-  | Where it runs | Machines (G M) |
-  | Who it is for | Brand (G B), Accounts (G A) |
-  | Automations | Routines (G O), Email (G E), Site APIs (G I) |
-  | You | Needs you (G N), History (G Y), Settings (G S) |
+  | (no heading) | Home (G H), Needs you (G N), Computers (G C), What happened (G Y) |
+  | Your business | Accounts (G A), Jobs that repeat (G O), Brand (G B) |
+  | For developers | Runs and checks (G R), Site APIs (G I) |
+  | (set apart) | Settings (G S) |
 
   A new place goes into one of these groups (`nav.ts`), with a key no screen acts on by itself. The key
-  after g is always swallowed, so "g d" can never deny and "g a" can never approve. An approver's menu
-  stays Needs you, History and Settings, with no group headings and no status line.
+  after g is always swallowed, so "g d" can never deny and "g a" can never approve. The old keys of the lists
+  that became tabs still land (G V Environments, G M Machines, G E Email) but are not shown. An approver's menu
+  stays Needs you, What happened and Settings, with no group headings and no status line.
+- **Three places hold two lists**, as link tabs the shell draws on top of the list's page (`PlaceTabs`, the
+  `Tab` words on one hairline, the open one violet): Computers is Environments and Machines (the agents' own
+  computers and yours), Jobs that repeat is Routines and Email (sending mail is a job that repeats), Runs and
+  checks is Runs and Checks. Each list keeps its own address and its own page, title and actions, so an old
+  link opens the right tab, and every state of the page (loading, empty, refused) still shows the way to the
+  other list. The place is lit in the rail on every page under it (one machine lights Computers).
+- **Hidden until first used.** The two places For developers stay out of the rail and the phone's More until
+  they are used, so a person who never starts a run never meets an empty developer page
+  (`developer-places.ts`): Runs and checks shows once the organisation has a run or a check, Site APIs once
+  it has a Site API, and either shows once the person opens it on this device (the command bar, a link, its
+  address). Once shown it stays, remembered on the device. While the node has not answered it stays hidden
+  rather than appear and vanish. The command bar, the g keys and the addresses reach both at all times.
 - **Counts** sit on the right of a place: what waits for you as a violet pill on Needs you, runs going now and
   open environments as quiet numbers (the secondary white on the place you are on, so they keep 4.5:1). On hover
   or focus the place's keys take the count's spot. On the icon rail a dot stands for the number. Every count
@@ -491,13 +536,22 @@ The frame every page sits in (`src/components/shell/`), drawn from Dawn's Full.
 - **No clock.** The browser's clock is not the machine's, and a number that changes every second pulls the
   eye from the one thing allowed to move.
 - **On a phone** the top bar holds the org's mark, the workspace switch, search, the status dot, the bell
-  and the account; the tab bar (the page, blurred) holds Home, Environments, Runs, Checks and Needs you, with
-  the place you are on in violet, and More holds the rest.
-- **The command bar** lists every place with its keys, then what features add, the workspaces, accounts once
+  and the account; the tab bar (the page, blurred) holds Home, Needs you, Computers and What happened, with
+  the place you are on in violet, and More holds the rest (the developer places only once used): a sheet from
+  the bottom that stops above the tab bar (which stays in reach; More again closes it), the places as tiles
+  three to a row in the rail's groups (Your business, For developers, then Settings) with the one you are on in
+  violet, and the sidebar's foot at its end on the night (the machines' line and the organisation switch, with
+  their words).
+- **The command bar** lists every place with its keys (with nothing typed, the six most used; typing finds
+  the rest, hidden developer places included, and the lists inside a place by their own names: "machines"
+  finds Machines in Computers), then what features add, the workspaces, accounts once
   you type, and the actions. A feature adds its own rows by exporting `commands` from
   `src/features/<it>/commands.ts` (see `commands.ts`); it never edits the shell.
-- **Addresses.** Machines' address is `/machines` (inside the app the route is still `nodes`, see
-  `app/paths.ts`); `/computers` and `/nodes` links keep working. Each place's params live in its own folder
+- **Addresses.** The places kept their addresses when they were renamed and joined (2026-11-21), so no link
+  breaks: What happened is `/history`, Computers opens on `/environments` with Machines at `/machines`, Jobs
+  that repeat opens on `/routines` with Email at `/email`, Runs and checks opens on `/runs` with Checks at
+  `/checks`. Inside the app the routes keep their engine names (`activity`, `nodes`, `flows`, see
+  `app/paths.ts`); the old `/activity`, `/flows`, `/nodes` and `/computers` links open the same pages. Each place's params live in its own folder
   (`features/<place>/search.ts`), so a screen adds a param without touching the router.
 
 ## Home
@@ -552,6 +606,13 @@ phone), it is rendered once in its place (`useMinWidth`), never twice with one c
   cost, what it is doing in plain words, the code). Under it: Proofs, Terminal, What it did (each call by what
   happened, failures in red), Code, Ports, and one quiet line for the machine and its price. Starting, no view yet
   and closed draw the screen from the state with one line in the pill's place.
+- **A machine that stopped** (state `gone`, 0.5.1: its container or server stopped for good outside openajar). It
+  is still open, so it leads the Open list and Home's Working now: the dimmed desktop with no still (the last one
+  is not its screen any more), a red "Machine stopped" chip and no time left, and "Its computer stopped" under the
+  title. Its page keeps the night band: the stage draws the dimmed desktop with one line in the pill's place
+  (when it stopped, why in the node's words, and that it will not come back: close it, or say "continue <title>
+  in openajar" and the agent starts a new machine, from its last save when it has one). Extend goes; Close stays,
+  and its dialog says there is nothing left to save and its saves stay. `?mock=env-gone` shows it.
 - **Empty:** the shared `EmptyState` in a card. No environment ever is the first-use state (the Dawn crop,
   Connect your AI); none open is the greyed crop with "No environments are open" and a way to the saved ones.
 
@@ -643,11 +704,15 @@ each machine's page).
 
 About This Mac, Activity Monitor and Console in one. The pattern for any deep object page:
 
-- **Live header.** Name and status, then one plain sentence generated from data
-  (`describeNode`: "Runs 18 lanes for ..., holds the anthropic-api brain, and has 3 schedules
-  that fire 2 times a day"), then a mono meta line. Under it, one `registered` panel: a
-  heartbeat strip (one tick a minute, as tall as the CPU was, a red floor tick when away) and
-  a stat row (label, value, micro trend, note; the same four rows in every tile).
+- **The head, as drawn (`machine.png`).** `PageHeader` with the machine's neutral `xl` tile, its name with its
+  state as a chip, one plain sentence generated from data (`describeNode`: "Runs 18 accounts for ..., holds the
+  anthropic-api brain, and has 3 schedules that fire 2 times a day") and one line of facts in plain type (system,
+  cores, memory, its time). Freeze is the page's action; Remove machine waits in the ⋯ menu beside it.
+- **About it and Load** sit beside the tab's content from 1280 px (under it before that): the state, the last report
+  (or "Away since", in red), up for, size, what it runs and its time; then busy, memory, disk and warm accounts as
+  meters, and how often it was away in 30 days. The tabs that need the whole width (Schedules, Logs, Installed,
+  Resources) take it, and the two cards step aside. Nothing in the head moves: the old heartbeat strip and its beat
+  are gone, and the Resources tab draws load over time.
 - **Tabs in the URL.** `?tab=`, and every filter on a tab too (`range`, `scope`, `source`,
   `level`, `q`). Tab changes replace history and keep the scroll. Counts sit in a fixed slot.
 - **One incident window.** `incidentsFrom(connections)` gives the times the node was away, and
@@ -690,8 +755,8 @@ About This Mac, Activity Monitor and Console in one. The pattern for any deep ob
   and it asks first). On a phone Full window joins Stop agent in ⋯ so the pill keeps its words. While it is yours
   the picture gets a 2 px white outline outside a 2 px gap, the pill says "You have control since 19:22" and the
   agent's pointer goes. Someone who may only watch reads "Claude Code has control · you can watch" and has nothing
-  to press. The agent's pointer is one size (`POINTER_SCALE`) whatever the picture's scale. An account keeps the
-  bar over the view.
+  to press. The agent's pointer is one size (`POINTER_SCALE`) whatever the picture's scale. An account's page uses the
+  same stage; the login queue keeps the bar over the view.
 
 ### Push, links and standing approvals (S3)
 
@@ -726,6 +791,22 @@ About This Mac, Activity Monitor and Console in one. The pattern for any deep ob
 - **Settings save as they change**, optimistically, and roll back on a refusal with a line that says
   the last saved choice is back. A busy button is `aria-disabled`, never `disabled`, so focus stays.
 
+### Accounts
+
+`features/home/accounts.tsx` and `cards.tsx`, drawn in `spec-09-accounts.md`.
+
+- **The list:** the states as a segmented control with a count on each (All, Need a hand, Working now, Sleeping),
+  the workspaces as chips, then each workspace as a heading (its mark, its name as a link to the workspace, how many
+  accounts) and its accounts as cards in three columns (two from 768 px, one on a phone).
+- **What needs a look is said once, above the cards:** one banner per workspace, red when an account is stuck and amber
+  when one waits, in a sentence with that account's one action ("Reddit is switched off for safety: it is signed in as
+  someone else.", See what happened). Two or more are counted, and each card says its own.
+- **A card** is the site's mark on its tile, the name and the handle (mono when it is a handle), the state as a chip,
+  one line on how it is, what it did last, the Ask me first word, and the one action when there is one (Sign in, Do
+  the check, See what happened, Watch). Stuck has a red edge, waiting an amber one. The whole card opens the account.
+  No picture: the account's screen is on its page. The Ask me first switch is on the account's page too, where a
+  person has read what they change; the card only says the word.
+
 ### An account's page
 
 The account page (`features/lane/`, the sections are `account-*.tsx`, the words in `account-words.ts`) gives
@@ -743,13 +824,20 @@ link. Each section is one quiet block under a faint heading, answer first: a dot
 - **Health reads the brief first.** The full checklist runs only when the brief says the account is not safe.
 - **One problem, said once.** A problem (a failing check, a hold, a missing folder, a freeze) is shown in one place. A
   check's summary is never said again where its notes already say it.
-- **Doing now, then needs you, then what it did.** The page reads in that order: the live view, the plan and who is using
-  it, then what waits for a yes, then History. Pace, limits, sites, sign-in upkeep, files, watch link, standing approvals
-  and routines sit behind one closed Settings disclosure, so every one is reachable and the page stays calm.
+- **It opens on the night band, as an environment does** (`spec-09`, `account.png`): the site's tile, "Aster Coffee ·
+  Instagram" with its state chip, one line of facts, and Put to sleep, Freeze and Technical details at the right. Then
+  what holds it, each as a banner across the band (missing, frozen, a check or a hold, red when it is stuck; "Asks first
+  for now" in amber with Clear it), then the live screen as a stage with the control pill under it (who has control by
+  the agent's name from the account's claim, Take over, full window, and Stop agent in ⋯), and beside it three glass
+  panels: who is using it with what waits for a yes, the last five things done, and whether it is safe to use. Under
+  1024 px the panels are cards under the band.
+- **Doing now, then needs you, then what it did.** The page reads in that order: the live view, who is using it and what
+  waits for a yes, then What happened. Pace, limits, sites, sign-in upkeep, files, watch link, standing approvals and routines
+  sit behind one closed Settings disclosure under the band, so every one is reachable and the page stays calm.
 - **The state is the same everywhere.** An account's word and sentence come from `lib/states.ts` (a failing check makes it
   Stuck, "Not safe to use right now"), so Accounts, the business line, Machines and this page agree.
-- **History names what the person did.** The owner's own changes (who has control, a freeze, a pace, limits, worker and
-  outside-text choices) appear in the account's History in their words ("You froze it"). Reads of the page are not history.
+- **What happened names what the person did.** The owner's own changes (who has control, a freeze, a pace, limits, worker and
+  outside-text choices) appear in the account's What happened panel in their words ("You froze it"). Reads of the page are not history.
 - **Ids are names here.** An account is "Biz A · Social" and its plan "Social on Instagram", never `biz-a/social`.
 
 ### Memory, the day, and an account's files
@@ -803,10 +891,12 @@ is the page. Concept stage: on the mock only, until the owner has steered it.
   by business. Rows carry the sites, the sentence, what it last did and when it runs next.
 - **Nothing in the list can be set off by a slip.** No switch and no Run in a row. Those live on the
   routine's page, where a person has read what they are changing.
-- **A routine's page leads with the job.** The sentence is the title, and each phrase lights its step
-  on the map. Then the steps as a flow, then what it really made (the email, the invoice, the post,
-  with how we know), then its rhythm and runs. Ask me first is one quiet strip, and technical facts
-  appear only with Technical details.
+- **A routine's page leads with the job** (`routine.png`). Its business mark, its name as the title and its sentence
+  as the lede, where each phrase lights its step. Change steps and Run now (the page's one primary). Where it stopped
+  is a red banner with See what happened. Then the steps as a column in one card (Starts, Does, Decides, Tells, each
+  with its tile and what it came to last time; the failed step's tile has a red edge), with Ask me first as one
+  quiet strip at the card's head; beside it, what it really made as rows (the amount, what it was, Checked or Not
+  checked) and its runs. Technical facts appear only with Technical details.
 - **The sentence is the editor.** In the builder, unfinished phrases are underlined, and pressing one
   opens its step. Turn on never greys out into a dead end: it takes the person to what is missing.
 - **Every board action has a keyboard twin and an undo.** Drag by the handle or Alt and an arrow, A
@@ -824,6 +914,8 @@ shapes in `api/types.ts`). Concept stage: on the mock only, until the owner has
 steered it. Two audiences share every page, and neither is a mode: a person never meets a technical word
 on the way to the data, and a developer never has to ask for the URL.
 
+- **One Site API's head** (`site-api.png`): the violet braces tile, its name with its state beside it, its sentence,
+  and one line of the business, the site in mono and its calls this week; Pause is its action.
 - **The page-to-data view** (`split.tsx`) is the signature. The page as the computer saw it on top, the
   data it became underneath, a ribbon of wires between. Stacked, not side by side, so that a column on the
   page falls straight into the same column of data and both keep room for real values. Pointing at a value
@@ -872,9 +964,15 @@ with no technical knowledge has to be able to do all of it unaided.
 - **Jargon waits to be asked for.** "Found Gmail", then Show the server names. A low-trust result is the one
   place names lead, because a person is being asked to judge them, and the part that differs is marked.
 - **Never imitate Google.** Steps are our own words with a link to Google's own page. Its mark only names it.
-- **A mailbox is two wires.** Today's mail sits on the wire in, and the day's limit is the wire out, as a tick
-  gauge: ink for sent, an outline for planned. They are the two checks from connecting, so trouble shows where
-  it is.
+- **A mailbox is a card** (`email.png`). Its business mark, the address (cut, whole as a title), the business and
+  provider, its state as a chip, then sent today against the daily limit as the shared `Meter` with what is planned
+  in words, what came in today (a link to New mail), the routines that use it and the computer it runs on. One in
+  trouble comes first with a red edge, what happened in plain words and its one next step, which is then the page's
+  primary. The page is titled Email with one sentence under it, and the three views follow as the segmented well.
+- **New mail** (`email-new-mail.png`) is one card of rows, answers to your emails first: who, a chip for what kind
+  (Reply, Unsubscribed, Automatic), the subject and its first line, and the time. The open one is selected and read
+  beside the list. A mailbox that cannot be read is an amber banner above it. The drawing's held-back message (mail
+  that tries to give orders to an AI) needs a field the API does not send, so nothing marks one yet.
 - **A stranger's words have their own edge.** `stranger` is a hatched margin with Written by someone else. Mail
   is text, a picture is a hatched note that says what was not fetched, a link is its text and address and cannot
   be pressed, and an attachment is listed as not opened. What openajar itself says never sits inside that edge.
@@ -911,7 +1009,7 @@ has steered it. It is self-contained, so the public build can ship it or leave i
   Workers (`/settings/workers`) is what is turned on, because both are set once and read rarely. A computer's
   Workers tab reads what it runs, what it cannot run and why, and which services it keeps. It has no switch, so
   a worker has one switch per computer in one place.
-- **No timeline of its own.** What a worker did sits in History (its steps in the story, "with the browser
+- **No timeline of its own.** What a worker did sits in What happened (its steps in the story, "with the browser
   worker" on the row), on the account (one quiet strip, only while it has something to say), and in Needs you when
   it asks (how it got there, above the question). The Workers page shows one thing, now or last, and links on.
 - **The step line is the signature** (`step-line.tsx`). One thing done, a tick for each step. The rows are who
@@ -937,7 +1035,7 @@ has steered it. It is self-contained, so the public build can ship it or leave i
   off on, as links to that row, and how its posts go.
 - **A person can give it a job.** Give it a job sits under that row, only while the worker works the account, for
   whoever works the account. It is the same job an agent gives, and it runs the same way. Nothing is promised about
-  what it will do: the strip above and History say what it did.
+  what it will do: the strip above and What happened say what it did.
 - **Its posts have no switch of their own.** They go by the account's Ask me first, and only that strip names the worker,
   only while the worker works there. So `NEVER` and the step words never promise a yes on an account that runs on its own.
   And a post that follows a page asks on a computer that says so (`after_a_page_asks`, the default), which the worker
@@ -946,7 +1044,9 @@ has steered it. It is self-contained, so the public build can ship it or leave i
   the meter colours are the usual ones. Money, model names and milliseconds wait for Technical details.
 - **Only what can do a job is offered.** A service that never writes is not a choice for Writes text.
 - **The hosted panel holds no key, ever.** No field, no type, no handler, and a test reads the source. Adding a service
-  asks who and which computer, then hands over as Email does: `key-route.tsx` shows You, the computer and the service
+  asks who (the services as radio cards, the first chosen to begin with, "On a computer" on one already added) and which
+  computer (a select; an offline one is listed and cannot be chosen) on one page, with Cancel and Continue on the
+  computer at its foot, then hands over as Email does: `key-route.tsx` shows You, the computer and the service
   in a line with openajar Cloud to one side, and the form at `/computer-form/ai-key` is a drawing. A computer with no
   screen says so and shows its one line. Otherwise `openajar brains add` waits behind Technical details.
 - **AI models answers first too.** One sentence on how many are ready, then each service as what it is for, where it
@@ -954,7 +1054,7 @@ has steered it. It is self-contained, so the public build can ship it or leave i
 - **What is coming is said calmly.** The Android and desktop workers are a line of words at the foot: no button, no
   dead switch, and what each computer lacks.
 
-### Proof, in History
+### Proof, in What happened
 
 The record behind a story (`features/activity/proof/`, words in `words.ts`). One account's day is replayed step by
 step, and each step says in words whether it is signed, not signed yet, from before the log began, or changed.
@@ -962,6 +1062,9 @@ step, and each step says in words whether it is signed, not signed yet, from bef
 (`/shared#token=`, `features/shared/`) opens with no sign-in and no app around it. It shows what the link allows,
 with no controls and no arguments, and says plainly when the link is not valid. A token is shown once, never listed.
 
+- **The page** (`proof.png`): Back to What happened above the title and Share this day beside it, whether the log is intact as a
+  banner (green, red when a row no longer matches, quiet when it cannot be checked), the day as a card with its account
+  and day controls in the head and the result and the record as chips, then the read-only links as a card.
 - **Sharing and checking are the owner's.** The node refuses anyone else, and the screen never asks them.
 - **Stopping a link is one confirm.** It stops at once, and the list says what each link did (opened, ended, stopped).
 
@@ -975,7 +1078,12 @@ first and says what stays done. Carrying on is offered only where the node can r
 
 - **Overrides** (a safety check a person turned off, and why) show on an account's Ask me first, under Technical details,
   to the owner alone.
-- **A business** (`/workspaces/$ws`) lists its accounts for anyone who sees it. The logins still to do are the owner's.
+- **A business** (`/workspaces/$ws`) lists its accounts for anyone who sees it, as small cards (the site's tile, the
+  handle or what is wrong, the state chip). The logins still to do are the owner's: a red banner per account to look at
+  (Open the site, Open the account) and one amber banner for those still to log in, with the login queue.
+- **The login queue** (`/logins`) is two columns: how far along it is (a `Meter progress` per business, green once
+  complete) above the logins to do, and the open one as a card with its own browser and the promise ("openajar never
+  sees it") with Sign in as the one primary. Under 1024 px the list folds away and the open one stays.
 - **Signed-in devices** of a member show to an admin, from Members, and an admin can end one after a confirm. Their own
   devices stay on their profile.
 
@@ -1077,9 +1185,9 @@ reason: to name the site an account is on, or the agent that acted. So:
 
 ## Product rules the UI enforces
 
-- The rail is the five groups in "The shell": Work (Home, Environments, Runs, Checks), Where it runs (Machines), Who it is
-  for (Brand, Accounts), Automations (Routines, Email, Site APIs) and You (Needs you, History, Settings).
-  A new place goes into one of those groups.
+- The rail is the four groups in "The shell": Home, Needs you, Computers and What happened first; Your business
+  (Accounts, Jobs that repeat, Brand); For developers (Runs and checks, Site APIs, each hidden until first used);
+  and Settings. A new place goes into one of those groups.
 - The workspace is the top unit. Lanes never appear as a flat list: Home shows one health line
   per workspace, and Cmd-K shows lanes only once you start typing.
 - The vault shows names only and has no field for a secret. Tokens are shown once.

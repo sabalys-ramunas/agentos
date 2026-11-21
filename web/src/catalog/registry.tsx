@@ -11,7 +11,7 @@ import { ButtonsDemo, CopyDemo, FieldsDemo, TabsDemo } from './demos/actions';
 import { CostLineDemo, FactsDemo, LiveViewDemo, ProofDemo, TerminalListDemo, TimelineDemo } from './demos/composites';
 import { PillsDemo, SliderDemo, StatsDemo, TableDemo, TableStatesDemo, TerminalDemo } from './demos/data';
 import { ChoicesDemo, ScreenPictureDemo, TilesDemo } from './demos/dawn';
-import { StatesDemo, StatusDemo } from './demos/feedback';
+import { ChangeToastDemo, StatesDemo, StatusDemo } from './demos/feedback';
 import { IconsDemo, KindsDemo, TokensDemo, TypeDemo } from './demos/foundations';
 import { ChartsDemo, PicturesDemo } from './demos/instrument';
 import { CardsDemo, PageHeaderDemo } from './demos/layout';
@@ -71,7 +71,9 @@ export const GROUPS: Group[] = [
       { file: shell('freeze-control.tsx'), names: 'FrozenChip, FreezeDialogs', shownBy: 'the top bar while a freeze holds' },
       { file: shell('command-palette.tsx'), names: 'CommandPalette', shownBy: 'Search or run (⌘ K)' },
       { file: shell('shortcuts.tsx'), names: 'The keyboard list', shownBy: 'the top bar (?)' },
-      { file: shell('nav.ts'), names: 'The menu: five groups, each place with its g key', shownBy: 'the rail' },
+      { file: shell('nav.ts'), names: 'The menu: ten places in four groups, each with its g key', shownBy: 'the rail' },
+      { file: shell('developer-places.ts'), names: 'useUsedPlaces: the developer places, hidden until first used', shownBy: 'the rail and the phone\'s More' },
+      { file: shell('place-tabs.tsx'), names: 'PlaceTabs: the two lists of Computers, Jobs that repeat, and Runs and checks', shownBy: 'Computers, Jobs that repeat, Runs and checks' },
       { file: shell('counts.ts'), names: 'The counts beside a place', shownBy: 'the rail' },
       { file: shell('crumb.ts'), names: 'usePageCrumb', shownBy: 'the top bar' },
       { file: shell('commands.ts'), names: 'What features add to the command bar', shownBy: 'Search or run (⌘ K)' },
@@ -103,10 +105,10 @@ export const GROUPS: Group[] = [
     purpose: 'What state a thing is in, and what a person sees while it loads, is empty, fails or is refused.',
     entries: [
       { file: ui('status.tsx'), names: 'Status, StatusDot', demo: StatusDemo },
-      { file: ui('state-badge.tsx'), names: 'StateBadge, StateGlyph, ConditionBadge', shownBy: 'status above' },
+      { file: ui('state-badge.tsx'), names: 'StateBadge (and its chip), StateGlyph, ConditionBadge', shownBy: 'status above' },
       { file: ui('spinner.tsx'), names: 'Spinner', shownBy: 'status above' },
       { file: ui('misc.tsx'), names: 'Meter', shownBy: 'status above' },
-      { file: ui('states.tsx'), names: 'Skeleton, EmptyState, ErrorState, InlineError, QueryView, NotLive, NoAccess', demo: StatesDemo },
+      { file: ui('states.tsx'), names: 'Skeleton, EmptyState, ErrorState, InlineError, Banner, QueryView, NotLive, NoAccess', demo: StatesDemo },
       { file: 'src/components/not-found.tsx', names: 'NotFound', shownBy: 'the states above' },
       { file: 'src/components/plan-notice.tsx', names: 'PlanNotice, OverLimitBanner', shownBy: 'Settings, Members and Workspaces when the plan is full' },
       { file: 'src/components/install-prompt.tsx', names: 'InstallPrompt', shownBy: 'Needs you, after a decision, on a phone' },
@@ -126,6 +128,7 @@ export const GROUPS: Group[] = [
       { file: ui('misc.tsx'), names: 'CodeBlock, CopyButton, useCopy', demo: CopyDemo },
       { file: ui('choice.tsx'), names: 'ChoiceGroup, Choice, CheckCard, RadioRow', demo: ChoicesDemo },
       { file: ui('form.tsx'), names: 'FormNote, FormActions, SettingRow, SaveStatus, useSaved', shownBy: 'every settings form' },
+      { file: ui('toast.tsx'), names: 'toastChange, switched, chosen: a toast that says what changed, with Undo', demo: ChangeToastDemo },
       { file: 'src/components/unsaved-changes.tsx', names: 'UnsavedChanges', shownBy: 'a settings form with changes not saved' },
     ],
   },

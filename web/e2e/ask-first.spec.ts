@@ -61,7 +61,9 @@ for (const [name, width, height] of [['desk', 1440, 900], ['phone', 375, 812]] a
       for (const path of ['/northwind-group/flows/harbor.xero.invoice-reminders', '/northwind-group/accounts', '/northwind-group/lanes/aster/gmail']) {
         await page.goto(`${path}?mock=still`);
         if (path.includes('/lanes/')) await openSettings(page);
-        await expect(page.getByRole('switch', { name: /Ask me first for/ }).first()).toBeAttached();
+        // An account's card says the word; its switch is on the account's own page.
+        if (path.endsWith('/accounts')) await expect(page.getByRole('article').getByText('Runs on its own').first()).toBeAttached();
+        else await expect(page.getByRole('switch', { name: /Ask me first for/ }).first()).toBeAttached();
         expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
       }
     });

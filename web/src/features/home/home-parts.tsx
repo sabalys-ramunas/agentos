@@ -98,7 +98,10 @@ export function EarlierToday({ org, jobs, studio, status, today }: EarlierTodayP
 /** Home before there is a workspace: what runs anyway, and how to add the first one. */
 export function NoWorkspaces({ org, now, date, envs, canSetUp }: { org: string; now: number; date: string; envs: EnvList | undefined; canSetUp: boolean }) {
   const [newWorkspace, setNewWorkspace] = useState(false);
-  const openEnvs = envs ? splitEnvironments(envs.environments).open.length : 0;
+  const open = envs ? splitEnvironments(envs.environments).open : [];
+  // A machine that stopped is open until it is closed, but nobody works in it.
+  const working = open.filter((env) => env.state !== 'gone').length;
+  const stopped = open.length - working;
   return (
     <>
       <HomeHero
@@ -108,11 +111,21 @@ export function NoWorkspaces({ org, now, date, envs, canSetUp }: { org: string; 
         current={null}
         workspaces={[]}
         sentence={null}
-        title={openEnvs > 0 ? `Your agents are working in ${plural(openEnvs, 'environment')}.` : 'Nothing is running yet.'}
+        title={
+          working > 0
+            ? `Your agents are working in ${plural(working, 'environment')}.`
+            : stopped > 0
+              ? `${stopped === 1 ? "An agent's machine" : `${stopped} agents' machines`} stopped.`
+              : 'Nothing is running yet.'
+        }
         lede={
-          openEnvs > 0
+          working > 0
             ? 'Each is a computer of its own, deleted when the work is done. Accounts and routines show here once you add a workspace.'
-            : 'Give your agents a workspace and a computer, and this fills up as they work.'
+            : stopped > 0
+              ? stopped === 1
+                ? 'Close it, or ask the agent to open the same title again: it starts on a new machine.'
+                : 'Close them, or ask the agents to open the same titles again: each starts on a new machine.'
+              : 'Give your agents a workspace and a computer, and this fills up as they work.'
         }
       />
       <WorkingNow org={org} />

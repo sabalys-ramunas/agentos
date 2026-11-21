@@ -8,6 +8,7 @@ import { http, HttpResponse } from 'msw';
 import type { Job, JobDetail, JobState, JobTests } from '@/api/types';
 import type { Helpers } from './s3';
 import type { OrgData } from './seed';
+import { scenario } from './scenario';
 
 const MINUTE = 60_000;
 const READ_BYTES = 65_536;
@@ -25,25 +26,30 @@ export interface MockJob {
 const ago = (now: number, minutes: number) => new Date(now - minutes * MINUTE).toISOString();
 
 function vitestOutput(failed: number, passed: number): string {
+  // Coloured as Vitest prints it in a terminal: the page reads the colours and strips them to parse.
+  const green = (text: string) => `\u001b[32m${text}\u001b[39m`;
+  const red = (text: string) => `\u001b[31m${text}\u001b[39m`;
+  const yellow = (text: string) => `\u001b[33m${text}\u001b[39m`;
+  const dim = (text: string) => `\u001b[2m${text}\u001b[22m`;
   const lines = [
-    ' RUN  v2.1.8 /home/agent/src/harbor-shop',
+    ` \u001b[1m\u001b[36mRUN\u001b[39m\u001b[22m  v2.1.8 ${dim('/home/agent/src/harbor-shop')}`,
     '',
-    ' ✓ src/cart/total.test.ts (14 tests) 41ms',
-    ' ✓ src/cart/discount.test.ts (9 tests) 18ms',
-    ' ✓ src/checkout/address.test.ts (22 tests) 120ms',
+    ` ${green('✓')} src/cart/total.test.ts ${dim('(14 tests)')} 41ms`,
+    ` ${green('✓')} src/cart/discount.test.ts ${dim('(9 tests)')} 18ms`,
+    ` ${green('✓')} src/checkout/address.test.ts ${dim('(22 tests)')} 120ms`,
     ...(failed
       ? [
-          ' ❯ src/checkout/payment.test.ts (12 tests | 2 failed) 340ms',
-          '   × rounds the total to cents before it charges 12ms',
-          '   × shows the card error next to the field 30ms',
+          ` ${yellow('❯')} src/checkout/payment.test.ts ${dim(`(12 tests | ${red('2 failed')})`)} 340ms`,
+          `   ${red('×')} rounds the total to cents before it charges 12ms`,
+          `   ${red('×')} shows the card error next to the field 30ms`,
         ]
-      : [' ✓ src/checkout/payment.test.ts (12 tests) 300ms']),
-    ' ✓ src/catalog/search.test.ts (61 tests) 410ms',
+      : [` ${green('✓')} src/checkout/payment.test.ts ${dim('(12 tests)')} 300ms`]),
+    ` ${green('✓')} src/catalog/search.test.ts ${dim('(61 tests)')} 410ms`,
     '',
-    ` Test Files  ${failed ? '1 failed | 4 passed' : '5 passed'} (5)`,
-    `      Tests  ${failed ? `${failed} failed | ` : ''}${passed} passed (${failed + passed})`,
-    '   Start at  09:12:04',
-    '   Duration  4.31s',
+    ` ${dim('Test Files')}  ${failed ? `${red('1 failed')} | ${green('4 passed')}` : green('5 passed')} ${dim('(5)')}`,
+    `      ${dim('Tests')}  ${failed ? `${red(`${failed} failed`)} | ` : ''}${green(`${passed} passed`)} ${dim(`(${failed + passed})`)}`,
+    `   ${dim('Start at')}  09:12:04`,
+    `   ${dim('Duration')}  4.31s`,
     '',
   ];
   return lines.join('\n');
@@ -270,7 +276,7 @@ export function jobHandlers({ org, failure }: Pick<Helpers, 'org' | 'failure'>) 
           .filter((job) => (!lane || job.lane === lane) && (!state || job.state === state))
           .sort((a, b) => b.started_at.localeCompare(a.started_at))
           .slice(0, limit);
-        return HttpResponse.json({ available: true, jobs });
+        return HttpResponse.json({ available: true, jobs: scenario.has('no-developer') ? [] : jobs });
       }),
     ),
     http.get(

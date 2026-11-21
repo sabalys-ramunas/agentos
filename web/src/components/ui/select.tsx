@@ -6,7 +6,10 @@ import { cn } from '@/lib/cn';
 export interface SelectOption {
   value: string;
   label: string;
+  /** A quiet word after the label in the list ("Offline"), and in the item's name for a screen reader. */
   hint?: string;
+  /** Listed, so a person sees it is there, but not chosen (its hint says why). */
+  disabled?: boolean;
 }
 
 interface SelectProps {
@@ -61,9 +64,13 @@ export function Select({ value, onValueChange, options, placeholder, disabled, c
               <Primitive.Item
                 key={option.value}
                 value={option.value}
-                className="flex h-9 cursor-pointer items-center justify-between gap-4 rounded-sm px-2 text-body text-fg outline-none select-none data-[highlighted]:bg-hover data-[state=checked]:text-accent-text"
+                disabled={option.disabled}
+                className="flex h-9 cursor-pointer items-center justify-between gap-4 rounded-sm px-2 text-body text-fg outline-none select-none data-[disabled]:cursor-not-allowed data-[disabled]:text-muted data-[highlighted]:bg-hover data-[state=checked]:text-accent-text"
               >
-                <Primitive.ItemText>{option.label}</Primitive.ItemText>
+                <span className="flex min-w-0 items-baseline gap-2">
+                  <Primitive.ItemText>{option.label}</Primitive.ItemText>
+                  {option.hint ? <span className="truncate text-secondary text-faint">{option.hint}</span> : null}
+                </span>
                 <Primitive.ItemIndicator>
                   <Check className="size-4 text-accent-text" />
                 </Primitive.ItemIndicator>

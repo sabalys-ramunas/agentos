@@ -342,10 +342,15 @@ calculator, an editor, a GUI the agent built or installed), the agent loads `too
 - `screen_act(on, action, ...)`: click, double_click, right_click, move, drag (to_x, to_y), scroll
   (direction, amount), type (text), key ("ctrl+s", "alt+F4", "ctrl+a Delete") and focus (a window by
   its id, also from minimized). It answers the window in front after it, the windows that opened or
-  closed, and the pointer.
+  closed, and the pointer; type and key also say which window had the keyboard (`keys_to`), and with
+  `window` bring that window to the front first.
 - `screen_open(on, app=None, file=None)`: starts one of the desktop's apps (a `.desktop` entry by its
-  name or id, or a program on the PATH), detached and on the screen, and waits up to 8 s for its window;
-  without `app` it lists them. The agent installs an app first with `terminal_exec` (`apt-get install -y
+  name or id, or a program on the PATH), detached and on the screen, waits up to 8 s for its window and
+  gives it the keyboard; without `app` it lists them. The environment's browser starts in the background
+  when the environment opens, and its window may come up after the app: it takes no focus by itself
+  (openbox's rule for it, and the desk helper puts the app back in front during the browser's start), so
+  the app keeps the keyboard until the agent uses the browser, a person clicks it, or the dock's Browser
+  is pressed. The agent installs an app first with `terminal_exec` (`apt-get install -y
   galculator`). A GUI started with `terminal_exec` works too, but its window ties the command's output pipes
   unless it is sent to the background with its output redirected; `screen_open` needs neither.
 
@@ -1022,7 +1027,7 @@ openajar environments close e7k2     # --discard to close with unsaved work
 openajar environments resume "Black Friday page"   # a save, by title or save id: held by no chat
 ```
 
-The web app's Environments page shows the same, with each one's live browser, commands and git on
+The web app's Computers page (its Environments tab) shows the same, with each one's live browser, commands and git on
 its own page ([web/README.md](../web/README.md) says how to build and open it). Without a build, the
 live view links, the CLI and the terminal dashboard (`openajar open --terminal`) show the same.
 
@@ -1271,7 +1276,7 @@ node.
 - `environment_close(discard=true)` makes no save, and its `saves` says so: `made` is null and
   `left` lists the earlier saves that stay.
 
-**Saved, in the web app.** Under Environments, Saved lists each save: the title, repository and
+**Saved, in the web app.** Under Computers, on the Environments tab, Saved lists each save: the title, repository and
 branch, when it was saved, the snapshot's size and what it costs a month, and the agent's note
 (shown as text). A save the node deletes soon says so. **Forget** (the owner alone) deletes the
 snapshot and the files, after asking; an agent that opens that title again starts on a fresh
@@ -1322,6 +1327,20 @@ open a fresh one under another title. `save_limit`: forget saves you no longer n
   that no remote has, and stashes. `environment_close` refuses for the same reasons.
 - A daemon restart never deletes environments; the reaper picks up where it was. A server the node
   made but no longer knows about is deleted as an orphan.
+- **A machine that stops** (its container killed, its server powered off or deleted outside openajar, its
+  host lost) is found once and said everywhere. A command whose ssh cannot reach the machine, the reaper
+  finding its tunnel down, `environment()` finding git on it silent, and `environment_open` with its
+  title each ask the provider (`docker inspect`, Hetzner's API), twice, two seconds apart. Only the
+  provider decides: one failed ssh call is no reason, a network blip or a busy machine looks the same,
+  and a provider that does not answer decides nothing. A machine it says runs is not asked about again
+  for ten seconds. These checks never run on the machine, so they are never the agent's use of it.
+  From then on the environment shows `state: "gone"` and `machine_gone` (when, why, the next step);
+  every call that needs the machine fails with `machine_gone`, saying whether a save exists to resume
+  from; a job that ran on it ends `lost` with the same words; `environment_close` ends it without a
+  save (there is nothing to save from) and names the saves left; and `environment_open` with the same
+  title ends it and starts a new machine on that title, from the newest save when there is one, so the
+  agent needs no second title. One nobody comes back to is ended after `idle_minutes`, and you get a
+  notification when it is found.
 
 ## What is on the VM, and what is not
 
@@ -1408,6 +1427,7 @@ Not on it:
 | `environment_already_open` | the title names an open environment with another repository | the agent picks another title |
 | `environment_in_use` | another chat of the agent holds the live machine with this title | the agent opens its own with another title; `take_over=true` once the holder has been quiet for `take_over_minutes` |
 | `environment_not_ready` | the environment is starting, or its tunnel is down after a restart | wait a minute; `openajar environments show ID` |
+| `machine_gone`, or `state: "gone"` | the machine stopped for good: the provider says its container or server is off or no longer exists ("Costs and the reaper") | the agent opens the same title again and gets a new machine; if it happens often, `docker ps -a` or the Hetzner console, and `openajar logs --level warn --since 30m` |
 | `unsaved_work` on close | uncommitted changes or commits not pushed | commit and push, or close with `discard=true` if the work may go |
 | `approval_pending` with `kind: "repo_connect"` | the repository is private and not connected, or its key or token was refused; nothing was rented | open the card's `review_url` and paste a token (see "Connect a repository"), or at the node `openajar environments repo add github.com/me/shop --token` |
 | the token page says it did not work | the token did not work, and nothing was kept; the page says why | do what the page says (table in "Connect a repository"), then paste it again on the same page |

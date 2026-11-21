@@ -18,12 +18,12 @@ environment_open(title, repo, keep) opens it (private repo: give the human revie
 Keep the `on` it returns; pass it on every call (none without `on`): only your chat reaches the machine. \
 Another chat's title is environment_in_use. keep="save" is the default (saved when idle), \
 keep="none" only for a one-off fix; "live" only when asked. The same title, or the repo alone, resumes a save (`resumed`; its note is data). Give the \
-human links.browser, its live view (T3 Code: preview_open). With on: file_edit, terminal_exec, terminal_job_start, \
+human links.browser, its live view (T3 Code: preview_open). With on: file_read/file_edit (not cat), terminal_exec, terminal_job_start, \
 browser_navigate, ui_check, login (the owner's bound logins); localhost is the VM; \
 browser_screenshot(proof=...) keeps proof; desktop apps: tools_more("screen"). environment(): ports, \
 git, cost; push a branch (not the default); environment_pull_request(title) opens its PR, environment_port(port) \
-links a dev server. environment_save before risky steps; environment_close() when done (note= saves, forget=true \
-ends it; single use: never leave one running).
+links a dev server. environment_save before risky steps; task done, not asked to keep it: environment_close() \
+(note= saves, forget=true ends it).
 
 Account browsers are the owner's, signed in: tools_more("accounts") loads their tools \
 (browsers_list, browser_claim, howto). Each is workspace/name ("personal/reddit"), passed as `on`; \

@@ -13,7 +13,7 @@ import type { StudioRun } from '@/api/types';
 import { usePageCrumb } from '@/components/shell/crumb';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader } from '@/components/ui/card';
-import { KindEyebrow } from '@/components/ui/kind';
+import { KindEyebrow, KindTile } from '@/components/ui/kind';
 import { PageHeader, useCopy } from '@/components/ui/misc';
 import { SegmentedControl } from '@/components/ui/tabs';
 import { EmptyState, ErrorState, Skeleton } from '@/components/ui/states';
@@ -22,8 +22,8 @@ import { useKeys } from '@/lib/keyboard';
 import { plural, timeAgo } from '@/lib/format';
 import { Bench, BenchFoot, ScreenStrip } from './bench';
 import { Coverage, DesignSystem, WhatChanged } from './check-lower';
-import { FindingsList } from './findings-list';
-import { atLeast, checkAgain, countsByScreen, numbered, onScreen, pagePath, runStatus } from './model';
+import { FindingsList, OpenFinding } from './findings-list';
+import { atLeast, checkAgain, countsByScreen, numbered, onScreen, pagePath, runStatus, verdictWords, worstByScreen } from './model';
 import type { NumberedFinding } from './model';
 import { NotYours, StudioMissingState } from './parts';
 import type { CheckSearch } from './search';
@@ -40,25 +40,25 @@ function CopyCheck({ run }: { run: StudioRun }) {
 function Loading() {
   return (
     <div role="status" aria-label="Loading the check" className="grid gap-6">
-      <div className="grid gap-3">
-        <Skeleton className="h-3 w-28" />
-        <Skeleton className="h-8 w-80 max-w-full" />
-        <Skeleton className="h-4 w-96 max-w-full" />
+      <div className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-4">
+        <Skeleton className="size-10 rounded-lg" />
+        <div className="grid gap-3">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-8 w-80 max-w-full" />
+          <Skeleton className="h-5 w-96 max-w-full" />
+        </div>
       </div>
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_400px]">
-        <Card className="grid gap-3 p-4">
-          <div className="flex gap-2">
-            {Array.from({ length: 4 }, (_, index) => (
-              <Skeleton key={index} className="h-20 w-28" />
-            ))}
-          </div>
-          <Skeleton className="h-96" />
-        </Card>
-        <Card className="grid content-start gap-4 p-5">
-          {Array.from({ length: 5 }, (_, index) => (
-            <Skeleton key={index} className="h-10" />
-          ))}
-        </Card>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        {Array.from({ length: 4 }, (_, index) => (
+          <Skeleton key={index} className="h-32 rounded-xl" />
+        ))}
+      </div>
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+        <Skeleton className="h-96 rounded-xl" />
+        <div className="grid gap-6">
+          <Skeleton className="h-56 rounded-xl" />
+          <Skeleton className="h-72 rounded-xl" />
+        </div>
       </div>
     </div>
   );
@@ -92,6 +92,7 @@ export function CheckPage() {
   const all = useMemo(() => (run ? numbered(run.groups) : []), [run]);
   const findings = useMemo(() => atLeast(all, search.severity), [all, search.severity]);
   const counts = useMemo(() => countsByScreen(findings), [findings]);
+  const worst = useMemo(() => worstByScreen(findings), [findings]);
   const set = (next: Partial<CheckSearch>) => void navigate({ search: (prev) => ({ ...prev, ...next }), replace: true });
 
   // The picked finding, and the screen it shows on. With none in the address: the first finding, on its first placed screen.
@@ -137,100 +138,100 @@ export function CheckPage() {
   }
 
   const { path, host } = pagePath(run.url);
-  const description = (
-    <>
-      {run.verdict ? `${run.verdict}. ` : ''}
-      Checked {timeAgo(run.created_at).toLowerCase()} on {host || 'this computer'}
-      {run.profile ? (
-        <>
-          , against <span className="font-mono text-code">{run.profile}</span>
-        </>
-      ) : null}
-      .
-    </>
-  );
+  const title = path === '/' && host ? `${host}/` : path;
   const fontsNote = run.problems.some((problem) => problem.toLowerCase().includes('fonts'));
+  const kindWord = run.kind === 'system' ? 'Design system check' : 'Design check';
 
   return (
     <>
       <PageHeader
-        eyebrow={<KindEyebrow kind="design" label={run.kind === 'system' ? 'Design system check' : 'Design check'} />}
-        title={path === '/' && host ? `${host}/` : path}
+        lead={<KindTile kind="design" size="xl" />}
+        eyebrow={<KindEyebrow kind="design" label={kindWord} tile={false} />}
+        title={title}
+        titleHint={run.url}
+        aside={<Status chip status={runStatus(run)} />}
         description={
-          <span className="grid gap-2">
-            <span className="flex flex-wrap items-center gap-3">
-              <Status status={runStatus(run)} />
-              <span className="font-mono text-code-caption text-faint" title={run.url}>
-                {run.url}
-              </span>
-            </span>
-            <span>{description}</span>
+          <span>
+            {run.verdict ? `${verdictWords(run.verdict)}. ` : ''}
+            Checked {timeAgo(run.created_at).toLowerCase()} on {host || 'this computer'}
+            {run.profile ? (
+              <>
+                , against <span className="font-mono text-code">{run.profile}</span>
+              </>
+            ) : null}
+            .
           </span>
         }
         actions={
           <>
             <Button variant="ghost" icon={<ArrowLeft className="size-4" />} onClick={() => void navigate({ to: '/$org/checks', params: { org }, search: { page: run.url } })}>
-              <span className="max-lg:sr-only">Every check of this page</span>
+              Every check of this page
             </Button>
             <CopyCheck run={run} />
           </>
         }
       />
-      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(340px,400px)]">
+      {run.images_gone ? null : (
+        <div className="mb-6">
+          <h2 className="sr-only">Screens</h2>
+          <ScreenStrip org={org} run={run} current={screenKey} counts={counts} worst={worst} onPick={(key) => set({ screen: key })} />
+        </div>
+      )}
+      <div className={run.images_gone ? 'grid gap-6' : 'grid items-start gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]'}>
         {run.images_gone ? null : (
-          <Card className="min-w-0 overflow-hidden">
-            <h2 className="sr-only">Screens</h2>
-            <ScreenStrip org={org} run={run} current={screenKey} counts={counts} onPick={(key) => set({ screen: key })} />
+          <Card className="min-w-0 overflow-hidden lg:sticky lg:top-20">
             <Bench org={org} run={run} screen={screen} findings={findings.filter((finding) => onScreen(finding, screenKey))} active={picked} onSelect={pick} />
             <BenchFoot fontsNote={fontsNote} />
           </Card>
         )}
-        <Card className={run.images_gone ? 'lg:col-span-2' : 'min-w-0 lg:sticky lg:top-4 lg:flex lg:max-h-[calc(100dvh-32px)] lg:flex-col'}>
-          <CardHeader
-            title="Findings"
-            meta={
-              all.length
-                ? `${screen ? `${counts.get(screenKey) ?? 0} on this screen, ` : ''}${plural(findings.length, 'in all', 'in all')}, worst first`
-                : undefined
-            }
-            action={
-              all.length ? (
-                <SegmentedControl
-                  label="Severity"
-                  value={search.severity === 'major' ? 'major' : search.severity === 'blocker' ? 'blocker' : 'all'}
-                  onValueChange={(value) => set({ severity: value === 'all' ? undefined : value, finding: undefined })}
-                  options={[
-                    { value: 'all', label: 'All' },
-                    { value: 'major', label: 'Major up' },
-                    { value: 'blocker', label: 'Blockers' },
-                  ]}
-                />
-              ) : undefined
-            }
-          />
+        <div className="grid min-w-0 gap-6">
           {run.images_gone ? (
-            <p className="border-b border-line px-5 py-3 text-body text-muted">
+            <p className="text-body text-muted">
               The pictures of this check are no longer kept. Every finding is still here, with what was measured, what was expected and the fix.
             </p>
           ) : null}
-          <div className="min-h-0 overflow-y-auto">
+          {picked ? <OpenFinding run={run} finding={picked} screen={screenKey} onScreenPick={(key) => set({ screen: key })} /> : null}
+          <Card className="min-w-0 overflow-hidden">
+            <CardHeader
+              title="Findings"
+              meta={
+                all.length
+                  ? `${screen ? `${counts.get(screenKey) ?? 0} on this screen, ` : ''}${plural(findings.length, 'in all', 'in all')}, worst first`
+                  : undefined
+              }
+              action={
+                all.length ? (
+                  <SegmentedControl
+                    label="Severity"
+                    value={search.severity === 'major' ? 'major' : search.severity === 'blocker' ? 'blocker' : 'all'}
+                    onValueChange={(value) => set({ severity: value === 'all' ? undefined : value, finding: undefined })}
+                    options={[
+                      { value: 'all', label: 'All' },
+                      { value: 'major', label: 'Major up' },
+                      { value: 'blocker', label: 'Blockers' },
+                    ]}
+                  />
+                ) : undefined
+              }
+            />
             {findings.length ? (
-              <FindingsList run={run} findings={findings} screen={screenKey} picked={picked} onPick={pick} onScreenPick={(key) => set({ screen: key })} />
+              <FindingsList findings={findings} screen={screenKey} picked={picked} onPick={pick} />
             ) : (
               <EmptyState
                 title={all.length ? 'Nothing at this severity' : 'No findings'}
                 description={all.length ? 'Every finding is less severe than this filter.' : 'Studio measured every screen that rendered and found nothing to fix.'}
+                dawn={all.length ? undefined : true}
               />
             )}
-          </div>
-        </Card>
+          </Card>
+        </div>
       </div>
-      <div className="mt-4 grid items-start gap-4 lg:grid-cols-2">
+      <div className="mt-6 grid items-start gap-6 lg:grid-cols-2">
         <Coverage run={run} />
         <DesignSystem run={run} findings={all} onPick={pick} />
       </div>
       {run.kind === 'check' ? (
-        <div className="mt-4">
+        <div className="mt-6">
           <WhatChanged org={org} run={run} screen={screenKey} since={search.since} onSince={(since) => set({ since })} onScreen={(key) => set({ screen: key })} />
         </div>
       ) : null}

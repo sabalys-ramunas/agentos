@@ -52,6 +52,8 @@ client) and want it to have a computer of its own, one that is still there tomor
   admin page, a test shop) and acts there when the work needs it. Logins come from your own vault,
   and the model never sees them.
 - ✅ **Run the app and check it in a real browser**, instead of saying it should work.
+- ✅ **Desktop apps too, not only web pages.** It can open a program on its machine's desktop and use
+  it with a real pointer and keyboard, while you watch.
 - ✅ **Keep your laptop out of it.** Installs, builds, Docker and dev servers run on the machine,
   and no key sits there.
 - ✅ **One computer per agent.** Several agents work at once, each on its own machine, so they never
@@ -97,7 +99,12 @@ can be skipped and changed later.
 
 The installer puts `uv` and `openajar` in `~/.local/bin`, never asks for `sudo`, and is safe to run
 again: it updates openajar in place. To install a branch or an older release, set `OPENAJAR_GIT_REF`
-(for example `OPENAJAR_GIT_REF=v0.2.0`).
+(for example `OPENAJAR_GIT_REF=v0.5.0`).
+
+<!-- legacy-name: begin (the old name, for people upgrading from it) -->
+Coming from agentos 0.3 or 0.4? Run the same install line. It replaces the `agentos` command with
+`openajar` and keeps your setup, environments and saves where they are.
+<!-- legacy-name: end -->
 
 </details>
 
@@ -118,15 +125,20 @@ with a screenshot and the pull request link. You can take over at any time.
    starts a browser there.
 2. **The agent works on it like on its own laptop.** It edits files, runs the tests in its
    terminal, starts the dev server and opens the page in its browser, where `localhost` is the
-   machine. It can also use its own shell: `ssh openajar-<id>`, `rsync` and `scp`. Dev servers keep
-   running when openajar restarts or updates.
+   machine. It can open a program on the machine's desktop (an app that is not a web page) and use it
+   with a real pointer and keyboard. It can also use its own shell: `ssh openajar-<id>`, `rsync` and
+   `scp`. Dev servers keep running when openajar restarts or updates.
 3. **It signs in when it needs to.** On a sign-in page it asks openajar, which types a login you
    chose from your vault into its browser. The model never sees the password.
 4. **It shows you the result**: screenshots and videos kept as proof, and a pushed branch with its
    pull request. Pushes go through openajar, so the machine never holds your key.
-5. **It stays.** When the agent goes idle or stops for the day, the whole machine is saved and the
-   VM deleted, so it costs cents a month. The next chat that asks for it by its title gets it back:
-   in seconds on Morph, in about a minute on Hetzner.
+5. **It closes when done, and stays.** When the task is done the agent closes its computer: the whole
+   machine is saved and the VM deleted, so it costs cents a month (a single-use one is just deleted).
+   The same happens when it goes idle. The next chat that asks for it by its title gets it back: in
+   seconds on Morph, in about a minute on Hetzner.
+6. **A machine that dies is noticed.** If its container or server stops outside openajar (killed,
+   powered off, deleted), openajar asks the provider, says so in every tool and in the web app, and
+   opening the same title again starts a fresh machine, from its last save when there is one.
 
 The thinking stays on your laptop, in the agent you already use. openajar rents the machines in
 your account, and bills you nothing of its own.
@@ -216,8 +228,8 @@ What this defends against, and what it does not: [docs/THREAT-MODEL.md](docs/THR
 
 ## The web app
 
-The live view link shows the agent's computer as it is now: a small desktop with the browser on it,
-and a violet pointer with the agent's name wherever it clicks, types or scrolls. Press **Take over**
+The live view link shows the agent's computer as it is now: its desktop with the browser, a terminal
+and any app the agent opened, and a violet pointer with the agent's name wherever it clicks, types or scrolls. Press **Take over**
 to click and type yourself, and **Hand back** when you are done. A live view link shows everything
 on that screen, the agent's commands and their output included, so share it as you would the
 screen. The round record button saves what you see as a video on your computer, ready to share. It
@@ -227,10 +239,15 @@ is made in your browser and never uploaded.
   <img src="assets/readme/live-view-clip.webp" width="100%" alt="A clip recorded with the live view's record button: Claude Code ticks three items on a launch checklist, its violet pointer gliding from one to the next, types a note for the team, runs a command in its terminal window while the pointer steps aside, and ticks the last item.">
 </p>
 
-openajar has a small web app at `http://127.0.0.1:7410/` that lists every computer, what each costs
-and how long it has left. Each one has a page with its live screen, the proofs, a replay of what
-its browser did, the commands it ran and its pushed branches. It is open source like the rest
-(Apache-2.0, in [web/](web/README.md)).
+openajar has a web app at `http://127.0.0.1:7410/`. **Home** says in a sentence or two what your agents
+are doing and shows each open computer's screen. **Needs you** holds what waits for your answer,
+**Computers** lists your agents' environments (open, saved and closed, each with a picture of its
+screen) and your own machines, and **What happened** tells what the agents did, in plain words. For a
+business there are **Accounts**, **Jobs that repeat** and **Brand**; **Runs and checks** and **Site APIs**
+appear for developers once they are used, and **Settings** is last. Each computer has a page with its
+live screen, the proofs, a replay of what its browser did, the commands it ran, its pushed branches,
+what it costs and how long it has left. A computer whose machine stopped says so in red, with what to
+do. It is open source like the rest (Apache-2.0, in [web/](web/README.md)).
 
 The one-line install includes the web app, as an option: `openajar setup` offers it (yes by default)
 and downloads the copy built for your version, checked against its release's sha256. Running the
@@ -239,18 +256,23 @@ installer again updates it with openajar. To leave it out, answer no, or add it 
 its live view link, and `openajar environments list` in the terminal.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/readme/environment-dark.png">
-  <img src="assets/readme/environment-light.png" width="100%" alt="One environment in the openajar web app: the agent's live screen with one pill under it that says Claude Code has control, with Stop agent and Take over, its git branch and pushes with their pull request links, the ports listening on the VM, the proof screenshots, the time left, the cost so far, and a Close button.">
+  <source media="(prefers-color-scheme: dark)" srcset="assets/readme/home-dark.webp">
+  <img src="assets/readme/home-light.webp" width="100%" alt="Home in the openajar web app, on demo data. On the left, the sidebar on a night blue: Home, Needs you, Computers and What happened, then Your business (Accounts, Jobs that repeat, Brand), For developers (Runs and checks, Site APIs) and Settings. In the window at the top, over a sunrise picture: 3 jobs are running on 2 machines, 2 runs failed and 1 is running again, a Reddit account switched off for safety and another asked to slow down, 30 things that need you, and three of them as cards (a refund and two payments waiting for a yes, each with a Look button). Under it, Working now: six environments as cards, each a small picture of its screen with its state and time left.">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/readme/environment-dark.webp">
+  <img src="assets/readme/environment-light.webp" width="100%" alt="One environment in the openajar web app, from a test run on Docker: its title Release check with a Working chip, the agent and Single use, then its live screen on a dark stage. The desktop shows a browser on the shop page the agent started (Autumn sale, with three prices) and a dock, and the pill under it says the agent has control, with Take over, full window and More. Beside it, the time left and the cost so far, what it is doing (it opened the page and started npm run dev), and its branch. Below, Proofs, the terminal with npm run dev running, what it did, and its code.">
 </picture>
 
 <details>
-<summary><b>More screenshots</b>: the environments list</summary>
+<summary><b>More screenshots</b>: Computers</summary>
 
 <br>
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/readme/environments-dark.png">
-  <img src="assets/readme/environments-light.png" width="100%" alt="The Environments list in the openajar web app: three open environments (starting, working and idle) with their repository, branch, agent, age, cost and time left, and six closed ones below with how long each ran and what it cost.">
+  <source media="(prefers-color-scheme: dark)" srcset="assets/readme/environments-dark.webp">
+  <img src="assets/readme/environments-light.webp" width="100%" alt="Computers in the openajar web app, on demo data, with its two tabs, Environments and Machines. Environments shows Open 6, Saved 4 and Closed 7, a line that says 3 working, 1 starting, 2 idle, and the open ones as cards: a picture of each one's screen (a desktop with a terminal or a browser on it, or the sunrise while it starts) with its state and time left, its title, and the agent with what it is doing.">
 </picture>
 
 The live view link works on its own, without the web app.
@@ -355,7 +377,10 @@ are welcome.
 
 <br>
 
-Update: run the install command again. Remove: see [docs/LOCAL.md](docs/LOCAL.md#remove-it)
+<!-- legacy-name: begin (the old name, for people upgrading from it) -->
+Update: run the install command again, also from agentos 0.3 or 0.4.
+<!-- legacy-name: end -->
+Remove: see [docs/LOCAL.md](docs/LOCAL.md#remove-it)
 (forget the saves you no longer need first, so no snapshot stays in your Hetzner account).
 
 </details>
@@ -403,7 +428,7 @@ The default list is the loop of an agent on its own computer:
 |:--|:--|
 | `environment_open(title, repo, keep)` | opens a computer (or resumes the one with that title) with the repo in `/work/<name>` and a browser; it saves when idle unless `keep="none"`; returns `on`, which every later call carries |
 | `environment()` | what is open and saved, the cost so far, ports, git, and the pull request link |
-| `environment_close(note)` | stops for now: saved with a note for the next agent (a single-use one is deleted) |
+| `environment_close(note)` | the last call when the task is done: saved with a note for the next agent (a single-use one is deleted) |
 | `environment_save(note)` | saves the whole machine now |
 | `environment_upload()`, `environment_download(path)` | one-use links to send a local checkout up, or a file down to you |
 | `terminal_exec`, `terminal_job_start`, `terminal_job_read(until_port=3000)`, `terminal_job_cancel` | run a command in its terminal; dev servers and long jobs, waiting until a port listens |
@@ -418,14 +443,17 @@ The default list is the loop of an agent on its own computer:
 | `login`, `approval_wait` | signs in on the page with a login you bound to that computer (the model never sees it); waits for your answer to an approval |
 | `tools_more`, `tools_call` | the other groups, loaded when the agent needs them |
 
-The groups: `accounts` (driving your own signed-in account browsers on a server node: list, open,
-claim, live view, uploads), `browser` (a browser's downloads, scrolling a feed),
+The groups: `screen` (apps on its desktop that are not web pages: a picture of the screen and its
+windows, real clicks, keys and typing, starting an app), `accounts` (driving your own signed-in
+account browsers on a server node: list, open, claim, live view, uploads), `browser` (a browser's
+downloads, scrolling a feed),
 `terminals` (terminals and services the node keeps, raw VMs, forgetting saves), `studio` (checking
 a page you build), `devtools`, `control`, `vault`, `flows`, `workflows`, `mail`, `memory`,
 `profiles` and more.
 
-The other tools load in groups when the agent needs them: [docs/TOOLS.md](docs/TOOLS.md). The
-skill that teaches an agent the loop:
+The other tools load in groups when the agent needs them: [docs/TOOLS.md](docs/TOOLS.md). If a
+machine stops, every call that needs it answers `machine_gone`, and `environment_open` with the same
+title replaces it with a fresh one. The skill that teaches an agent the loop:
 [openajar-environment](src/openajar/client/skills/openajar-environment/SKILL.md).
 
 </details>
@@ -433,10 +461,12 @@ skill that teaches an agent the loop:
 ## Status
 
 > [!NOTE]
-> **Alpha.** Computers that stay and their logins are new, and the tools may still change between
-> minor versions: see the [changelog](CHANGELOG.md) and the
-> [releases](https://github.com/sabalys-ramunas/openajar/releases). On a laptop there is no
-> `ui_check` yet (it needs a server), and the laptop must be awake while a VM works.
+> **Alpha, at 0.5.1.** 0.5.0 gave the agent's computer a desktop you can watch and work with, and the
+> new name. 0.5.1 notices a machine that dies and replaces it on the same title, keeps typing in the app
+> the agent opened, and brings the web app's simpler navigation and its new design to every screen.
+> Computers that stay and their logins are new, and the tools may still change between minor versions:
+> see the [changelog](CHANGELOG.md) and the [releases](https://github.com/sabalys-ramunas/openajar/releases).
+> On a laptop there is no `ui_check` yet (it needs a server), and the laptop must be awake while a VM works.
 
 ## Docs
 

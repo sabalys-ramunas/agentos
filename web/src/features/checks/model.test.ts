@@ -1,6 +1,6 @@
 import type { StudioFinding, StudioRunRow } from '@/api/types';
 import { summary } from './checks-page';
-import { atLeast, checkAgain, countsByScreen, findingTitle, forAgent, lookAlikes, numbered, pagePath, paintable, recordLine, runStatus, screenOfKey } from './model';
+import { atLeast, checkAgain, countsByScreen, findingTitle, forAgent, lookAlikes, numbered, pagePath, paintable, recordLine, runStatus, screenOfKey, verdictWords, worstByScreen } from './model';
 
 const finding = (over: Partial<StudioFinding> & Pick<StudioFinding, 'id' | 'check' | 'severity'>): StudioFinding => ({
   confidence: 'measured',
@@ -107,5 +107,24 @@ describe('a check in plain words', () => {
       row({ id: 'r1', url: 'https://shop.example/cart', system_share: 0.9 }),
     ]);
     expect(text).toBe('3 checks of 2 pages. The newest checks have 2 open findings on 1 page, 1 blocker among them, and 85% of values are on the design system.');
+  });
+});
+
+describe('a check in the page\'s words', () => {
+  it('says blockers in the plural and "info" as "to know"', () => {
+    expect(verdictWords('Not clean: 7 findings (2 blocker, 3 major, 1 minor, 1 info) on 3 of 4 screens')).toBe(
+      'Not clean: 7 findings (2 blockers, 3 major, 1 minor, 1 to know) on 3 of 4 screens',
+    );
+    expect(verdictWords('Not clean: 1 finding (1 blocker)')).toBe('Not clean: 1 finding (1 blocker)');
+  });
+
+  it('knows the worst finding on each screen', () => {
+    const worst = worstByScreen([
+      finding({ id: 'a', check: 'names.missing', severity: 'minor' }),
+      finding({ id: 'b', check: 'contrast.text', severity: 'blocker' }),
+      finding({ id: 'c', check: 'target.size', severity: 'major', seen_at: [{ screen: 'default@1280-light', count: 1 }] }),
+    ]);
+    expect(worst.get('default@360-light')).toBe('blocker');
+    expect(worst.get('default@1280-light')).toBe('major');
   });
 });

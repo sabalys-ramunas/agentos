@@ -543,6 +543,11 @@ agent = "Nothing to do; only the owner fills a login form."
 fix = "Look at the new step the form shows now and fill that one."
 retryable = true
 
+[machine_gone]
+meaning = "The environment's machine stopped for good (its provider says its container or server is off or gone), so nothing ran. Unsaved, unpushed work on it is lost."
+agent = "Do not retry here or open another title: environment_open with the same title starts a new machine (from its newest save, if any). Redo what was lost; tell the user it stopped."
+fix = "Nothing to do for a one-off stop. If machines stop often, check the provider (`docker ps -a` for the docker provider, the Hetzner console) and `openajar logs --level warn --since 30m`."
+
 [memory_refused]
 meaning = "Workspace memory refused the write. Nothing was written."
 agent = "Read the message, change the entry, and write again only if it now fits the rules."

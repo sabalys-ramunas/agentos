@@ -15,7 +15,7 @@ import { StatusDot } from '../ui/status';
 import { NotificationsBell } from './notifications';
 import { useCurrentCrumb } from './crumb';
 import { FrozenChip } from './freeze-control';
-import { placeOf } from './nav';
+import { placeOf, tabOf } from './nav';
 import { openPalette, openShortcuts } from './palette-store';
 import { OrgSwitcher } from './rail';
 import { StatusPill } from './status-pill';
@@ -81,7 +81,9 @@ function Crumbs({ org }: { org: string }) {
   const override = useCurrentCrumb();
   const address = useAddressCrumb();
   const leaf = override ?? (address ? { label: address, mono: true } : null);
-  const atPlace = place ? pathname.replace(/\/$/, '') === place.to.replace('$org', org).replace(/\/$/, '') : false;
+  // A place with two lists (Computers) links back to the list the page is in (Machines, for one machine).
+  const back = tabOf(pathname)?.to ?? place?.to;
+  const atPlace = back ? pathname.replace(/\/$/, '') === back.replace('$org', org).replace(/\/$/, '') : false;
   return (
     <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1">
       <WorkspaceSwitcher org={org} />
@@ -93,7 +95,7 @@ function Crumbs({ org }: { org: string }) {
               {place.label}
             </span>
           ) : (
-            <Link to={place.to} params={{ org }} className="shrink-0 rounded-sm text-secondary whitespace-nowrap text-muted hover:text-fg">
+            <Link to={back ?? place.to} params={{ org }} className="shrink-0 rounded-sm text-secondary whitespace-nowrap text-muted hover:text-fg">
               {place.label}
             </Link>
           )}

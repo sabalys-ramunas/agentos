@@ -13,6 +13,7 @@ import { Logo } from '@/components/ui/misc';
 import { Switch } from '@/components/ui/toggle';
 import { cn } from '@/lib/cn';
 import './confirmations.css';
+import { PLACES } from '@/lib/vocabulary';
 
 type Voice = 'you' | 'agent' | 'openajar';
 
@@ -63,7 +64,7 @@ function Prompt({ shown, answer, onAnswer }: { shown: boolean; answer: 'yes' | '
     return (
       <div role="status" className="flex animate-fade-in items-center gap-2 rounded-lg border border-line bg-inset px-3 py-2 text-secondary">
         {answer === 'yes' ? <Check aria-hidden="true" className="size-4 text-ok" /> : <X aria-hidden="true" className="size-4 text-muted" />}
-        <span className="min-w-0">{answer === 'yes' ? 'You said yes in this chat. Just a tap. It is in History.' : 'You said no. Nothing is posted.'}</span>
+        <span className="min-w-0">{answer === 'yes' ? `You said yes in this chat. Just a tap. It is in ${PLACES.history.word}.` : 'You said no. Nothing is posted.'}</span>
       </div>
     );
   }

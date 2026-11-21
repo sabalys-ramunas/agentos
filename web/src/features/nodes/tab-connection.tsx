@@ -28,7 +28,7 @@ function UptimeBars({ connections }: { connections: NodeConnections }) {
   return (
     <Card className="p-4 sm:p-6">
       <div className="flex items-baseline justify-between gap-4">
-        <p className="mono tabular text-heading font-normal">{connections.uptime_pct}%</p>
+        <p className="text-heading tabular">{connections.uptime_pct}%</p>
         {/* A fixed line, so reading a bar never moves the chart. */}
         <p className="tabular truncate text-secondary text-muted" aria-live="polite">
           {day ? `${date(day.day)}: ${day.up_pct}% up${day.incidents ? `, ${plural(day.incidents, 'incident')}` : ''}` : `${plural(incidents, 'incident')} in 30 days`}

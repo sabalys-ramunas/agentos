@@ -3,8 +3,8 @@ import { useProofShares, useRevokeShare } from '@/api/hooks';
 import type { ProofShare } from '@/api/types';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/dialog';
-import { Section } from '@/components/ui/card';
-import { EmptyState, QueryView, Skeleton } from '@/components/ui/states';
+import { Card } from '@/components/ui/card';
+import { QueryView, Skeleton } from '@/components/ui/states';
 import { Status } from '@/components/ui/status';
 import { Table, Td, Th, Tr, mainCell } from '@/components/ui/table';
 import { dateTime, plural, timeAgo } from '@/lib/format';
@@ -28,15 +28,17 @@ export function SharesList({ org }: { org: string }) {
   const [stopping, setStopping] = useState<ProofShare | null>(null);
 
   return (
-    <Section
-      title="Read-only links"
-      description="Each link opens one account's day, or one step, with no sign-in. Stop a link and it stops working at once."
-    >
+    <Card className="overflow-hidden">
+      <section aria-labelledby="proof-links" className="grid gap-1 px-5 pt-5 pb-4">
+        <h2 id="proof-links" className="text-section-title">
+          Read-only links
+        </h2>
+        <p className="text-secondary text-pretty text-muted">Each link opens one account's day, or one step, with no sign-in. Stop a link and it stops working at once.</p>
+      </section>
       <QueryView
         query={shares}
-        card
         skeleton={
-          <div role="status" aria-label="Loading" className="grid gap-3 rounded-xl border border-line p-4">
+          <div role="status" aria-label="Loading" className="grid gap-3 px-5 pb-5">
             <Skeleton className="h-4 w-2/3" />
             <Skeleton className="h-4 w-1/3" />
           </div>
@@ -44,11 +46,11 @@ export function SharesList({ org }: { org: string }) {
       >
         {(rows) =>
           rows.length === 0 ? (
-            <div className="rounded-xl border border-line">
-              <EmptyState title="No links yet" description="Share a day or one step from the list above, and its link is kept here." />
-            </div>
+            <p className="mx-5 mb-5 rounded-lg bg-inset px-4 py-5 text-center text-secondary text-pretty text-muted">
+              No links yet. Share a day or one step from the list above, and its link is kept here.
+            </p>
           ) : (
-            <div className="overflow-hidden rounded-xl border border-line">
+            <div className="border-t border-line">
               <Table>
                 <thead className="hidden md:table-header-group">
                   <tr>
@@ -73,7 +75,7 @@ export function SharesList({ org }: { org: string }) {
                           </p>
                         </Td>
                         <Td className="hidden md:table-cell">
-                          <Status status={status} />
+                          <Status chip status={status} />
                         </Td>
                         <Td className="tabular hidden text-right text-secondary text-muted lg:table-cell">
                           {share.views === 0 ? 'Not yet' : plural(share.views, 'time')}
@@ -113,6 +115,6 @@ export function SharesList({ org }: { org: string }) {
           setStopping(null);
         }}
       />
-    </Section>
+    </Card>
   );
 }

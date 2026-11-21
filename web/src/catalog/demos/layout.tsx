@@ -3,8 +3,11 @@ import { Play } from 'lucide-react';
 import { TechnicalToggle } from '@/components/shell/technical-toggle';
 import { Button } from '@/components/ui/button';
 import { Card, CardFooter, CardHeader, cardLink, FormCard, Section } from '@/components/ui/card';
-import { KindEyebrow } from '@/components/ui/kind';
+import { SiteMark } from '@/components/brand/site-mark';
+import { KindEyebrow, KindTile } from '@/components/ui/kind';
 import { PageHeader } from '@/components/ui/misc';
+import { StateBadge } from '@/components/ui/state-badge';
+import { Status } from '@/components/ui/status';
 import { Example } from '../parts';
 
 export function PageHeaderDemo() {
@@ -15,6 +18,22 @@ export function PageHeaderDemo() {
         title="Black Friday offer page"
         description="One sentence that says what this page is for, in the secondary ink, under the title."
         actions={<Button variant="primary" icon={<Play className="size-4" />}>Run it</Button>}
+      />
+      <PageHeader
+        lead={<KindTile kind="test" size="xl" />}
+        eyebrow={<KindEyebrow kind="test" tile={false} />}
+        title="Tests in harbor-shop"
+        aside={<Status chip status={{ label: 'Running', tone: 'live' }} />}
+        description={<span className="font-mono text-code">$ openajar run -- pnpm vitest run</span>}
+        actions={<Button>Copy follow command</Button>}
+      />
+      <PageHeader
+        className="mb-0"
+        lead={<SiteMark site="instagram" size={40} tile label={false} />}
+        title="Aster Coffee · Instagram"
+        aside={<StateBadge chip state="working" />}
+        description="Sealed account · Runs on Mac mini (home) · Last used just now"
+        actions={<Button>Put to sleep</Button>}
       />
     </Card>
   );

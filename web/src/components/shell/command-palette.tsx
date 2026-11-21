@@ -81,7 +81,7 @@ function Footer({ searching }: { searching: boolean }) {
 const wordOf = (condition: Condition) => condition.label ?? STATE_WORDS[condition.state];
 
 /** With nothing typed, the bar offers the places most used; the rest appear as you type. */
-const FIRST_PLACES = new Set(['h', 'v', 'n', 'r', 'c', 'm']);
+const FIRST_PLACES = new Set(['h', 'n', 'c', 'y', 'a', 'o']);
 
 function Item({ value, onSelect, children, hint }: { value: string; onSelect: () => void; children: ReactNode; hint?: ReactNode }) {
   return (
@@ -270,6 +270,22 @@ export function CommandPalette({ org }: { org: string }) {
                     <Highlight text={item.label} query={query} />
                   </Item>
                 ))}
+                {/* The lists inside a place, by their own names, so "machines" still finds Machines in Computers. */}
+                {searching
+                  ? menuFor(access.role)
+                      .all.flatMap((place) => (place.tabs ?? []).map((tab) => ({ place, tab })))
+                      .map(({ place, tab }) => (
+                        <Item
+                          key={tab.to}
+                          value={`go ${tab.label} in ${place.label}`}
+                          onSelect={() => run(() => void navigate({ to: tab.to, params: { org } }))}
+                          hint={<span className="max-w-48 truncate">In {place.label}</span>}
+                        >
+                          <place.icon className="size-4" />
+                          <Highlight text={tab.label} query={query} />
+                        </Item>
+                      ))
+                  : null}
               </Command.Group>
               {SOURCES.map((source) => (
                 <SourceGroup key={source.id} source={source} org={org} query={query} run={run} />

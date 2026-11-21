@@ -7,13 +7,13 @@ import './email.css';
 
 type Place = 'mailboxes' | 'new-mail' | 'leads';
 
-export function EmailTabs({ org, here, newCount, waiting }: { org: string; here: Place; newCount?: number; waiting?: number }) {
+export function EmailTabs({ org, here, newCount, waiting, className }: { org: string; here: Place; newCount?: number; waiting?: number; className?: string }) {
   const item = (place: Place, word: string, count?: number) => ({ place, word, count });
   const items = [item('mailboxes', 'Mailboxes'), item('new-mail', 'New mail', newCount), item('leads', 'Leads', waiting)];
   const to = { mailboxes: '/$org/email', 'new-mail': '/$org/email/new-mail', leads: '/$org/email/leads' } as const;
   return (
     // The three views as the drawings' segmented well, each with its count; the chosen one is the card.
-    <nav aria-label="Email" className="scrollbar-none mb-8 inline-flex max-w-full gap-px overflow-x-auto rounded-full border border-line bg-inset p-1">
+    <nav aria-label="Email" className={cn('scrollbar-none mb-6 inline-flex max-w-full gap-px overflow-x-auto rounded-full border border-line bg-inset p-1', className)}>
       {items.map(({ place, word, count }) => (
         <Link
           key={place}
@@ -52,22 +52,5 @@ export function Rule({ icon, children }: { icon: ReactNode; children: ReactNode 
       <span className="mt-px shrink-0 text-faint">{icon}</span>
       <span className="min-w-0">{children}</span>
     </li>
-  );
-}
-
-/** The gauge for a day's limit. Sent is ink, what is planned is an outline, the rest is room. */
-export function DayGauge({ sent, planned = 0, limit, className }: { sent: number; planned?: number; limit: number; className?: string }) {
-  const ticks = 50;
-  const per = limit / ticks;
-  const filled = Math.round(sent / per);
-  const ahead = Math.round((sent + planned) / per);
-  const share = limit ? sent / limit : 0;
-  const tone = share >= 0.95 ? 'top' : share >= 0.8 ? 'high' : undefined;
-  return (
-    <div role="meter" aria-label="Sent today" aria-valuenow={sent} aria-valuemin={0} aria-valuemax={limit} className={cn('gauge', className)}>
-      {Array.from({ length: ticks }, (_, index) => (
-        <span key={index} className="gauge-tick" data-kind={index < filled ? 'sent' : index < ahead ? 'planned' : undefined} data-tone={tone} />
-      ))}
-    </div>
   );
 }

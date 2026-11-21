@@ -20,6 +20,7 @@ import { describeError } from '@/lib/errors';
 import { timeAgo } from '@/lib/format';
 import { isIos, useInstall } from '@/lib/pwa';
 import { useTechnical } from '@/lib/technical';
+import { switched, toastChange } from '@/components/ui/toast';
 
 function Note({ title, children, action }: { title: string; children: ReactNode; action?: ReactNode }) {
   return (
@@ -165,8 +166,10 @@ export function PushCard({ org, enabledInSettings }: { org: string; enabledInSet
           aria-busy={busy || undefined}
           onCheckedChange={(next) => {
             if (busy) return;
-            if (next) push.enable.mutate();
-            else push.disable.mutate();
+            // Undo turns it the other way through the same path: on subscribes this browser again, off removes it.
+            const words = switched('Push on this device', next);
+            const undo = () => (next ? push.disable.mutateAsync() : push.enable.mutateAsync());
+            (next ? push.enable : push.disable).mutate(undefined, { onSuccess: () => toastChange({ ...words, undo }) });
           }}
         />
       </div>

@@ -15,14 +15,16 @@ Actions, each printing one JSON line:
   input through XTEST, paced like a person's hand (pauses drawn log-normal, a curved glide of the pointer,
   keys held and flown as a typist's): click, double_click, right_click, move, drag, scroll, type, key, and
   focus (a window to the front, through the window manager). It answers what changed: the window in front,
-  windows that opened or closed, the pointer. Every key and button it pressed is released when it ends,
+  windows that opened or closed, the pointer, and for type and key `keys_to`, the window that had the keyboard
+  (with `window`, brought to the front first). Every key and button it pressed is released when it ends,
   also when it fails or is stopped, and a key it had to map for a character is unmapped again. The node
   stops it with SIGTERM when a person takes over: it is seen at the next pause between keys or steps
   (at most a few hundred milliseconds), and the answer says kind "stopped" and how many characters of
   the text were typed.
 - apps {limit}: the apps the desktop's menu would list (.desktop entries: name, id, what they run).
 - open {app, file, wait_s}: start an app (a .desktop entry by its name or id, else a program on the PATH),
-  detached in a session of its own, on the screen, in /work; then wait up to wait_s for its window. Its
+  detached in a session of its own, on the screen, in /work; then wait up to wait_s for its window, which it
+  brings to the front with the keyboard. Its
   output goes to a log beside the screen's, of which only the tail of a failed start is said back.
 
 The text to type travels on stdin only, never on a command line, and is never printed back.
@@ -56,6 +58,7 @@ TITLE_MAX = 160
 MAX_SIDE = 1280           # the picture's longest side by default: what a model reads without scaling it again
 PNG_MAX = 640 << 10
 SETTLE_S = 0.35           # after an action: let a window open, close or come to the front
+FOCUS_WAIT_S = 1.5        # a window brought to the front has the keyboard within this
 STEP_S = 0.008            # a pointer glide moves about every 8 ms
 TEXT_MAX = 4000
 COMBOS_MAX = 12
@@ -500,6 +503,23 @@ class Screen:
         self.root.send_event(ev, event_mask=X.SubstructureRedirectMask | X.SubstructureNotifyMask)
         self.d.flush()
 
+    def bring(self, wid, wait_s=FOCUS_WAIT_S):
+        """`wid` to the front with the keyboard, through the window manager; True once it has it."""
+        if self.active_id() == wid:
+            return True
+        self.activate(wid)
+        end = time.monotonic() + wait_s
+        while time.monotonic() < end:
+            time.sleep(0.05)
+            if self.active_id() == wid:
+                return True
+        return False
+
+    def front(self):
+        """The window that has the keyboard now, as the agent reads it (None: none)."""
+        active = self.active_id()
+        return self.describe(active, active) if active else None
+
 
 # ---------------------------------------------------------------- the actions
 
@@ -595,6 +615,20 @@ def _do_pointer(scr, action, req):
 
 
 def _do_keys(scr, action, req):
+    """Typing or keys, at the keyboard's focus: with `window`, that window is brought to the front first. Returns
+    the window the keys went to."""
+    wid = req.get("window")
+    if wid is not None:
+        if not isinstance(wid, int) or not any(w["id"] == wid for w in scr.windows()):
+            raise Stop("no_window", f"no window {wid} is open on the screen")
+        if not scr.bring(wid):
+            raise Stop("no_window", f"window {wid} did not take the keyboard: screen_snapshot shows what is in front")
+    target = scr.front()
+    _type_or_press(scr, action, req)
+    return target
+
+
+def _type_or_press(scr, action, req):
     if action == "type":
         text = req.get("text")
         if not isinstance(text, str) or not text:
@@ -624,11 +658,12 @@ def act(req):
     scr.deadline = began + float(req.get("deadline_s") or 30.0)
     before = {w["id"] for w in scr.windows()}
     STOP["at_once"] = False
+    keys_to = None
     try:
         if action in ("click", "double_click", "right_click", "move", "drag", "scroll"):
             _do_pointer(scr, action, req)
         elif action in ("type", "key"):
-            _do_keys(scr, action, req)
+            keys_to = _do_keys(scr, action, req)
         elif action == "focus":
             wid = req.get("window")
             if not isinstance(wid, int) or wid not in before:
@@ -646,9 +681,10 @@ def act(req):
         time.sleep(SETTLE_S)
     after = scr.windows()
     front = next((w for w in after if w["front"]), None)
+    extra = {"keys_to": keys_to} if action in ("type", "key") else {}
     _say(ok=True, front=front, opened=[w for w in after if w["id"] not in before],
          closed=sorted(before - {w["id"] for w in after}), pointer=scr.pointer(),
-         took_s=round(time.monotonic() - began, 3))
+         took_s=round(time.monotonic() - began, 3), **extra)
 
 
 def desktop_entries():
@@ -763,6 +799,8 @@ def open_app(req):
             active = scr.active_id()
             opened = [w for w in (scr.describe(i, active) for i in new) if w is not None]
             if opened:
+                if not any(w["front"] for w in opened) and scr.bring(opened[0]["id"]):
+                    opened[0]["front"] = True  # the app the agent opened has the keyboard when the call returns
                 break
         if proc.poll() not in (None, 0):
             break

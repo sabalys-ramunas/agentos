@@ -22,7 +22,7 @@ import { LiveView } from '@/features/lane/live-view';
 import { liveAgentName } from './agent-name';
 import { PICTURE } from './env-card';
 import { ReplayCard } from './replay';
-import { closedReason, continueLine, isOpen, keepOf } from './words';
+import { closedReason, continueLine, goneWords, isOpen, keepOf } from './words';
 
 /** The browser lane of an environment, read while it has a live view (the page and its header share the read). */
 export function useEnvLane(org: string, env: EnvDetail) {
@@ -31,7 +31,7 @@ export function useEnvLane(org: string, env: EnvDetail) {
 }
 
 /** A drawn picture where the live screen would be, and one line under it in the pill's place. */
-function Still({ env, children, tone }: { env: EnvDetail; children: ReactNode; tone?: 'bad' | 'idle' | 'live' }) {
+function Still({ env, children, tone, after }: { env: EnvDetail; children: ReactNode; tone?: 'bad' | 'idle' | 'live'; after?: ReactNode }) {
   return (
     <div className="grid gap-4">
       <ScreenPicture state={PICTURE[env.state]} title={env.title} className="stage-screen rounded-lg" />
@@ -41,6 +41,7 @@ function Still({ env, children, tone }: { env: EnvDetail; children: ReactNode; t
           <span className="min-w-0">{children}</span>
         </p>
       </div>
+      {after ? <p className="mx-auto max-w-[46em] text-center text-body text-pretty text-muted">{after}</p> : null}
     </div>
   );
 }
@@ -105,6 +106,15 @@ export function EnvStage({ org, env }: { org: string; env: EnvDetail }) {
 }
 
 function OpenStage({ org, env }: { org: string; env: EnvDetail }) {
+  if (env.state === 'gone') {
+    const words = goneWords(env);
+    return (
+      <Still env={env} tone="bad" after={words.then}>
+        <span className="font-semibold text-fg">{words.lead}</span>
+        {words.why ? ` ${words.why}` : null}
+      </Still>
+    );
+  }
   if (env.state === 'starting') {
     return (
       <Still env={env} tone="live">

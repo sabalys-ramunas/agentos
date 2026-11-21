@@ -967,6 +967,44 @@ def test_long_titles_and_statuses_end_with_an_ellipsis():
     assert left + width // 2 in range(959, 962) and sep is not None and xs[3] - xs[2] == deskart.ICON + deskart.GAP + deskart.SEP
 
 
+def test_a_browser_that_comes_up_late_takes_no_focus_by_itself():
+    """openbox gives the agent's browser no focus when its window maps (the rule), so desk.py decides."""
+    rc = (DESK / "openbox" / "rc.xml").read_text()
+    rule = rc[rc.index('<application class="*amoufox*"'):]
+    assert "<focus>no</focus>" in rule[:rule.index("</application>")]
+    assert "<focusNew>yes</focusNew>" in rc  # any other new window still gets it
+
+
+def test_an_app_keeps_the_keyboard_when_the_browser_comes_up_after_it(desk):
+    """Eval t11: LXTerminal opened (screen_open), then the browser that started with the environment mapped its
+    first window and took the keyboard, so the agent typed into Camoufox. The app the agent opened stays in
+    front; once the browser's start is over, a person's choice of the browser stands."""
+    g = desk.ns["FocusGuard"]()
+    born = g.BORN_S
+    assert g.saw(7, {7: "terminal"}, 0.0) is None and g.last_app == 7
+    assert g.saw(9, {7: "terminal", 9: "browser"}, 1.0) == 7  # the new browser took focus: the terminal goes back
+    assert g.saw(7, {7: "terminal", 9: "browser"}, 1.1) is None
+    assert g.saw(9, {7: "terminal", 9: "browser"}, 2.0) == 7  # the browser raises itself again during its start
+    assert g.saw(9, {7: "terminal", 9: "browser"}, 1.0 + born + 1) is None  # later: a person clicked it
+    assert g.last_app is None
+    assert g.saw(9, {7: "terminal", 9: "browser", 11: "browser"}, 20.0) is None  # nothing to give back to
+
+
+def test_the_browser_comes_forward_when_it_is_asked_for_or_nothing_else_has_focus(desk):
+    g = desk.ns["FocusGuard"]()
+    assert g.saw(7, {7: "app:Galculator"}, 0.0) is None
+    g.asked(0.5)  # the agent drives the browser (the node's focus), or the dock's Browser
+    assert g.saw(9, {7: "app:Galculator", 9: "browser"}, 1.0) is None and g.last_app is None
+    fresh = desk.ns["FocusGuard"]()
+    assert fresh.saw(None, {9: "browser"}, 0.0) == 9  # an empty desktop: the browser gets the focus
+    term = desk.ns["FocusGuard"]()
+    assert term.saw(3, {3: "agent"}, 0.0) is None and term.last_app is None  # the agent's read-only transcript
+    assert term.saw(3, {3: "agent", 9: "browser"}, 1.0) == 9
+    gone = desk.ns["FocusGuard"]()
+    gone.saw(7, {7: "terminal"}, 0.0)
+    assert gone.saw(None, {9: "browser"}, 1.0) == 9  # the app closed meanwhile: the browser gets it
+
+
 def test_the_commands_window_starts_with_its_read_only_line(desk):
     t = desk.ns["Transcript"](str(desk.log))
     t.agent = "Claude Code"

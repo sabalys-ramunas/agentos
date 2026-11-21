@@ -33,6 +33,7 @@ import type { Result } from './story';
 import { storyOf } from './story';
 import type { StoryView } from './story-view';
 import { fromRun, titleOf } from './story-view';
+import { PLACES } from '@/lib/vocabulary';
 
 /** The cloud serves its own path. Anything else came from a node, so it has to be a real web address. */
 const screenshotSrc = (value: string | null | undefined) => (value?.startsWith('/api/') ? value : safeUrl(value));
@@ -229,7 +230,7 @@ function StopRun({ org, run }: { org: string; run: Run }) {
         open={asking}
         onOpenChange={setAsking}
         title="Stop this now?"
-        description="What already happened stays done, and nothing after this point happens. History records it as stopped, never as done."
+        description={`What already happened stays done, and nothing after this point happens. ${PLACES.history.word} shows it as stopped, never as done.`}
         confirmLabel="Stop it"
         danger
         loading={cancel.isPending}

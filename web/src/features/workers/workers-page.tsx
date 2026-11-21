@@ -6,7 +6,7 @@
  * answered by the mock only.
  */
 import { Link, useParams } from '@tanstack/react-router';
-import { ArrowRight, ChevronDown, Lock, Monitor, MousePointerClick, Plus } from 'lucide-react';
+import { ArrowRight, ChevronDown, Globe, Inbox, Lock, Monitor, MousePointerClick, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { useAccess, useBrains, useSetWorkerJob, useSetWorkerPlace, useWorkers, useWorkspaces } from '@/api/hooks';
 import { isCancelled } from '@/api/http';
@@ -17,8 +17,9 @@ import { Button } from '@/components/ui/button';
 import { Card, Section } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
 import { StateBadge } from '@/components/ui/state-badge';
-import { EmptyState, QueryView, Skeleton } from '@/components/ui/states';
+import { Banner, EmptyState, QueryView, Skeleton } from '@/components/ui/states';
 import { Status } from '@/components/ui/status';
+import { AppTile } from '@/components/ui/tile';
 import { Switch } from '@/components/ui/toggle';
 import { cn } from '@/lib/cn';
 import { computerName } from '@/lib/computers';
@@ -31,6 +32,8 @@ import { LimitsPanel } from './limits';
 import { StepLine } from './step-line';
 import { TurnOnDialog } from './turn-on';
 import { JOB_NOTE, jobWord, laterFacts, NEVER, placeAsks, placeSentence, serviceName, servicesFor, workerAnswer, WORKER_NAME } from './words';
+import { PLACES } from '@/lib/vocabulary';
+import { chosen as choiceWords, switched, toastChange } from '@/components/ui/toast';
 
 const EXAMPLE: WorkerThing = {
   id: 'example',
@@ -67,7 +70,7 @@ function ThingHeader({ org, thing }: { org: string; thing: WorkerThing }) {
           <span className="truncate">{[workspace?.name, lane ? accountName(lane) : null].filter(Boolean).join(' · ')} · {thing.state === 'working' ? 'started' : ''} {timeAgo(thing.started_at)}</span>
         </p>
         <Link to="/$org/activity" params={{ org }} className="inline-flex shrink-0 items-center gap-1 text-secondary text-muted hover:text-fg">
-          History
+          {PLACES.history.word}
           <ArrowRight aria-hidden="true" className="size-3" />
         </Link>
       </div>
@@ -81,42 +84,57 @@ function ThingHeader({ org, thing }: { org: string; thing: WorkerThing }) {
   );
 }
 
-/** Is it on, and what did it do. The one instrument on the page. */
+/**
+ * Is it on, and what did it do (settings-workers.png): the answer card (the worker's tile, where it runs, the answer as
+ * a heading with its state, what waits for a person, and the one next step), then the last thing it did with its
+ * step line, the page's one instrument.
+ */
 function Now({ org, data, canChange, onTurnOn }: { org: string; data: WorkerOverview; canChange: boolean; onTurnOn: () => void }) {
   const answer = workerAnswer(data);
   const running = data.places.filter((place) => place.worker === 'on').map((place) => computerName(place.node));
   return (
-    <section aria-label={WORKER_NAME.browser} className="board-surface registered rounded-xl border border-board-line">
-      <div className="p-4 sm:p-6">
-        <div className="flex min-h-5 flex-wrap items-center justify-between gap-x-4 gap-y-1">
-          <p className="silk min-w-0 truncate">{[WORKER_NAME.browser, ...running].join(' · ')}</p>
-          <StateBadge state={answer.state} label={answer.label} />
+    <section aria-label={WORKER_NAME.browser} className="grid gap-4">
+      <Card className="grid gap-4 p-5 sm:p-6">
+        <div className="flex min-w-0 items-start gap-4">
+          <AppTile tone="blue" icon={Globe} size="lg" />
+          <div className="grid min-w-0 flex-1 gap-1">
+            <p className="text-eyebrow text-muted [overflow-wrap:anywhere]">{[WORKER_NAME.browser, ...running].join(' · ')}</p>
+            <h3 className="text-heading text-balance">{answer.lead}</h3>
+            {/* On a phone the state goes under the answer, so the heading keeps its width. */}
+            <StateBadge chip state={answer.state} label={answer.label} className="mt-1 sm:hidden" />
+          </div>
+          <StateBadge chip state={answer.state} label={answer.label} className="shrink-0 max-sm:hidden" />
         </div>
-        <h3 className="mt-3 max-w-2xl text-page-title-compact text-balance">
-          {answer.lead} <span className="block text-faint">{answer.rest}</span>
-        </h3>
+        <p className="text-body text-pretty text-muted sm:pl-15">{answer.rest}</p>
         {data.today.waiting && answer.next !== 'needs-you' ? (
-          <Link to="/$org/needs-you" params={{ org }} className="mt-2 inline-flex items-center gap-1 text-secondary text-muted hover:text-fg">
-            {data.today.waiting === 1 ? 'One question waits' : `${data.today.waiting} questions wait`} for you in Needs you
-            <ArrowRight aria-hidden="true" className="size-3" />
-          </Link>
+          <Banner
+            icon={<Inbox />}
+            action={
+              <Button asChild size="sm">
+                <Link to="/$org/needs-you" params={{ org }}>Open</Link>
+              </Button>
+            }
+          >
+            {data.today.waiting === 1 ? 'One question waits' : `${data.today.waiting} questions wait`} for you in Needs you.
+          </Banner>
         ) : null}
         {answer.next === 'add-service' && canChange ? (
-          <Button asChild variant="primary" className="mt-4">
+          <Button asChild variant="primary" className="justify-self-start sm:ml-15">
             <Link to="/$org/settings/brains/add" params={{ org }} search={{ service: 'typesafe' }}>Add an AI service</Link>
           </Button>
         ) : answer.next === 'turn-on' && canChange ? (
-          <Button variant="primary" className="mt-4" onClick={onTurnOn}>Turn it on</Button>
+          <Button variant="primary" className="justify-self-start sm:ml-15" onClick={onTurnOn}>Turn it on</Button>
         ) : answer.next === 'needs-you' ? (
-          <Button asChild variant="primary" className="mt-4">
+          <Button asChild variant="primary" className="justify-self-start sm:ml-15">
             <Link to="/$org/needs-you" params={{ org }}>{data.latest?.stop === 'unsure' ? 'Answer it' : 'Do the check'}</Link>
           </Button>
         ) : null}
-      </div>
-      <div className="border-t border-board-line p-4 sm:p-6">
-        {data.latest ? <ThingHeader org={org} thing={data.latest} /> : <p className="mb-4 text-secondary text-muted">How one thing will look, once it has done one.</p>}
+      </Card>
+      <Card className="p-5 sm:p-6">
+        <h3 className="mb-3 text-card-title">{data.latest ? (data.latest.state === 'working' ? 'Now' : 'Last') : 'How one thing will look'}</h3>
+        {data.latest ? <ThingHeader org={org} thing={data.latest} /> : <p className="mb-4 text-secondary text-muted">Once it has done one thing, its steps show here like this.</p>}
         <StepLine thing={data.latest ?? EXAMPLE} example={!data.latest} />
-      </div>
+      </Card>
     </section>
   );
 }
@@ -168,7 +186,11 @@ function PlaceRow({ org, place, canChange, canAdd, onTurnOn }: { org: string; pl
     }
     set.mutate(
       { node: place.node, on: false },
-      { onError: (error) => !isCancelled(error) && setRefused(`${name} did not answer, so the worker stays on.`) },
+      {
+        // No Undo: turning a worker on goes through its own dialog, which a toast must not skip.
+        onSuccess: () => toastChange(switched(`Browser worker on ${name}`, false)),
+        onError: (error) => !isCancelled(error) && setRefused(`${name} did not answer, so the worker stays on.`),
+      },
     );
   };
   return (
@@ -224,7 +246,19 @@ function JobRow({ org, item, brains, canChange }: { org: string; item: WorkerAss
           value={item.brain ?? ''}
           placeholder="Choose"
           options={options}
-          onValueChange={(brain) => set.mutate({ job: item.job, brain })}
+          onValueChange={(brain) =>
+            set.mutate(
+              { job: item.job, brain },
+              {
+                onSuccess: () => {
+                  const now = brains.find((service) => service.name === brain);
+                  const words = choiceWords(jobWord(item.job), now ? serviceName(now) : brain, chosen ? serviceName(chosen) : 'nothing');
+                  // Nothing chosen before is not a choice to put back.
+                  toastChange({ ...words, undo: item.brain ? () => set.mutateAsync({ job: item.job, brain: item.brain! }) : undefined });
+                },
+              },
+            )
+          }
         />
       ) : options.length ? (
         <p className="text-body">{chosen ? serviceName(chosen) : 'Not chosen'}</p>
@@ -310,12 +344,17 @@ function Technical({ data }: { data: WorkerOverview }) {
 function PageSkeleton() {
   return (
     <div className="grid gap-10" role="status" aria-label="Loading">
-      <div className="rounded-xl border border-line p-6">
-        <Skeleton className="w-48" />
-        <Skeleton className="mt-4 h-8 w-3/4" />
-        <Skeleton className="mt-8 h-28 rounded-lg" />
-        <Skeleton className="mt-4 w-2/3" />
-      </div>
+      <Card className="grid gap-4 p-6">
+        <div className="flex items-start gap-4">
+          <Skeleton className="size-11 rounded-xl" />
+          <div className="grid flex-1 gap-2">
+            <Skeleton className="w-48" />
+            <Skeleton className="h-7 w-3/4" />
+          </div>
+        </div>
+        <Skeleton className="w-2/3" />
+      </Card>
+      <Skeleton className="h-48 rounded-xl" />
       <Skeleton className="h-32 rounded-xl" />
       <Skeleton className="h-40 rounded-xl" />
     </div>

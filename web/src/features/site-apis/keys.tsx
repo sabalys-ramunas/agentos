@@ -20,6 +20,7 @@ import { cn } from '@/lib/cn';
 import { describeError } from '@/lib/errors';
 import { date, timeAgo } from '@/lib/format';
 import { EFFECT_WORD } from './words';
+import { PLACES } from '@/lib/vocabulary';
 
 const CEILINGS: { value: SiteApiEffect; label: string; hint: string }[] = [
   { value: 'read', label: 'Only read', hint: 'The default. It can look, and nothing else.' },
@@ -138,7 +139,7 @@ function NewKey({ org, api, open, onClose }: { org: string; api: SiteApiDetail; 
       }
     >
       <div className="grid gap-4">
-        <Field label="What is it for?" hint="This name shows in History beside everything it does.">
+        <Field label="What is it for?" hint={`This name shows in ${PLACES.history.word} beside everything it does.`}>
           <Input value={label} onChange={(event) => setLabel(event.target.value)} placeholder="Stock sheet" autoComplete="off" />
         </Field>
         <fieldset className="grid gap-2">

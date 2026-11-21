@@ -9,22 +9,22 @@ import { useMemo, useState } from 'react';
 import { useAccess, useFlows, useRoutineCatalog, useRoutineRuns, useSchedules, useWorkspaces } from '@/api/hooks';
 import type { Flow, RoutineCatalog, RoutineRun, RoutineSendLimit } from '@/api/types';
 import { BusinessMark } from '@/components/brand/identity';
+import { usePageCrumb } from '@/components/shell/crumb';
 import { SiteMark } from '@/components/brand/site-mark';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { CopyButton, Detail, Meter } from '@/components/ui/misc';
+import { Card, CardHeader } from '@/components/ui/card';
+import { CopyButton, Detail, Meter, PageHeader } from '@/components/ui/misc';
 import { Status } from '@/components/ui/status';
-import { StateGlyph } from '@/components/ui/state-badge';
-import { EmptyState, QueryView, Skeleton } from '@/components/ui/states';
+import { Banner, EmptyState, QueryView, Skeleton } from '@/components/ui/states';
 import { RoutineAskPanel } from '@/features/ask-first/ask-first';
 import { cn } from '@/lib/cn';
-import { dateTime, plural, timeAgo, usd } from '@/lib/format';
+import { dateTime, monthDay, plural, timeAgo, usd } from '@/lib/format';
 import { runStatus } from '@/lib/labels';
 import { fileOf, findStep, TRIGGER_TARGET } from '@/lib/routines';
+import { siteName } from '@/lib/sites';
 import { useTechnical } from '@/lib/technical';
 import { EFFECT_WORDS } from '@/lib/vocabulary';
-import { FlowMap } from './flow-map';
-import { OutputCard } from './output-card';
+import { StepFlow } from './flow-map';
 import { RunDialog } from './run-dialog';
 import { Rhythm } from './rhythm';
 import { NEEDS_REVIEW_WORDS, routineParts, routineTitle, whenNext } from './routine-words';
@@ -32,14 +32,14 @@ import { RunSheet } from './run-sheet';
 import { NextFire, PauseSwitch, ScheduleDialog, triggerOf } from './schedules';
 import { useZones } from './use-zones';
 
-const SHOWN_OUTPUTS = 3;
+const SHOWN_OUTPUTS = 4;
 
-/** The headline: the routine's own sentence. Each phrase lights its step on the map, and back. */
+/** The lede: the routine's own sentence. Each phrase lights its step in the flow, and back. */
 function Sentence({ flow, catalog, lit, onLight }: { flow: Flow; catalog: RoutineCatalog | undefined; lit: string | null; onLight: (id: string | null) => void }) {
   const parts = routineParts(flow, catalog);
-  if (!parts) return <h1 className="text-headline text-balance">{routineTitle(flow)}</h1>;
+  if (!parts) return null;
   return (
-    <h1 className="max-w-4xl text-page-title-compact text-balance sm:text-[36px] sm:leading-[42px] sm:tracking-[-0.04em]">
+    <span className="text-pretty text-fg">
       {parts.map((part, index) =>
         part.target ? (
           <span
@@ -51,37 +51,47 @@ function Sentence({ flow, catalog, lit, onLight }: { flow: Flow; catalog: Routin
             {part.text}
           </span>
         ) : (
-          <span key={index} className="text-faint">
+          <span key={index} className="text-muted">
             {part.text}
           </span>
         ),
       )}
-    </h1>
+    </span>
   );
 }
 
-/** Where it stands, as one sentence. */
-function Standing({ org, flow, onOpen }: { org: string; flow: Flow; onOpen: (id: string) => void }) {
-  if (flow.stuck) {
-    const [ws, lane] = (flow.stuck.lane ?? '').split('/');
-    return (
-      <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-body text-pretty">
-        <StateGlyph state="stuck" size={16} />
-        <span className="min-w-0">Stopped at "{flow.stuck.label}". {flow.stuck.words}</span>
-        {flow.stuck.fix && ws && lane ? (
-          <Link to="/$org/lanes/$ws/$name" params={{ org, ws, name: lane }} className="link whitespace-nowrap">
-            {flow.stuck.fix}
-          </Link>
-        ) : null}
-        <button type="button" onClick={() => onOpen(flow.stuck?.run ?? '')} className="link whitespace-nowrap">
-          See what happened
-        </button>
-      </div>
-    );
-  }
+/** Where it stopped, as a red banner with the way to look. */
+function Stopped({ org, flow, onOpen }: { org: string; flow: Flow; onOpen: (id: string) => void }) {
+  if (!flow.stuck) return null;
+  const [ws, lane] = (flow.stuck.lane ?? '').split('/');
+  return (
+    <Banner
+      tone="bad"
+      action={
+        <>
+          {flow.stuck.fix && ws && lane ? (
+            <Button asChild size="sm">
+              <Link to="/$org/lanes/$ws/$name" params={{ org, ws, name: lane }}>
+                {flow.stuck.fix}
+              </Link>
+            </Button>
+          ) : null}
+          <Button size="sm" onClick={() => onOpen(flow.stuck?.run ?? '')}>
+            See what happened
+          </Button>
+        </>
+      }
+    >
+      Stopped at "{flow.stuck.label}". {flow.stuck.words}
+    </Banner>
+  );
+}
+
+/** How it stands when nothing is stuck, as one quiet sentence. */
+function Standing({ org, flow }: { org: string; flow: Flow }) {
   const next = flow.enabled === false ? 'It is paused.' : flow.next_at ? `Next ${whenNext(flow.next_at)}.` : flow.trigger && flow.trigger.kind !== 'schedule' ? 'It runs when it is needed.' : null;
   return (
-    <p className="mt-4 text-body text-pretty text-muted">
+    <span className="text-body text-pretty text-muted">
       {flow.waiting ? (
         <>
           <Link to="/$org/needs-you" params={{ org }} className="link">
@@ -98,7 +108,44 @@ function Standing({ org, flow, onOpen }: { org: string; flow: Flow; onOpen: (id:
       )}
       {next}
       {flow.needs_review ? ` ${NEEDS_REVIEW_WORDS}` : null}
-    </p>
+    </span>
+  );
+}
+
+const money = (amount: number, currency = 'EUR') => new Intl.NumberFormat('en', { style: 'currency', currency, maximumFractionDigits: amount % 1 ? 2 : 0 }).format(amount);
+
+/** One thing it made, as a row: the amount when there is one, what it was, and how we know. */
+function MadeRow({ run, onOpen }: { run: RoutineRun; onOpen: () => void }) {
+  const failed = run.status === 'failed';
+  const output = run.output;
+  const what = failed ? 'It did not finish' : (output?.title || run.result || '');
+  const amount = output && output.amount !== undefined && output.amount !== null ? money(output.amount, output.currency ?? 'EUR') : null;
+  const detail = output ? [output.who, output.body].filter(Boolean).join(' · ') : null;
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={onOpen}
+        className="focus-inset flex w-full items-start gap-4 px-5 py-4 text-left transition-colors duration-(--duration-fast) hover:bg-hover"
+      >
+        {amount ? <span className="shrink-0 text-card-title tabular">{amount}</span> : null}
+        <span className="grid min-w-0 flex-1 gap-1">
+          <span className="line-clamp-2 text-label text-fg">{what}</span>
+          {failed ? <span className="line-clamp-2 text-secondary text-muted">{run.result}</span> : detail ? <span className="line-clamp-2 text-secondary text-muted">{detail}</span> : null}
+          <span className="text-caption text-faint tabular">
+            {monthDay(run.started_at)}
+            {!failed && output?.proof ? ` · Checked on ${siteName(output.proof.site)}` : ''}
+          </span>
+        </span>
+        {failed ? (
+          <Status chip status={{ label: 'Did not work', tone: 'bad' }} />
+        ) : output?.proof ? (
+          <Status chip status={{ label: 'Checked', tone: 'ok' }} />
+        ) : (
+          <Status chip status={{ label: 'Not checked', tone: 'idle' }} />
+        )}
+      </button>
+    </li>
   );
 }
 
@@ -143,10 +190,10 @@ function Runs({ runs, onOpen }: { runs: RoutineRun[]; onOpen: (run: RoutineRun) 
   const listed = runs.slice(0, all ? 30 : 6);
   return (
     <div>
-      <ul className="divide-y divide-line">
+      <ul className="divide-y divide-line border-t border-line">
         {listed.map((run) => (
           <li key={run.id}>
-            <button type="button" onClick={() => onOpen(run)} className="group/run -mx-2 flex w-[calc(100%+16px)] items-center gap-3 rounded-md px-2 py-2 text-left transition-colors duration-(--duration-fast) ease-standard hover:bg-hover">
+            <button type="button" onClick={() => onOpen(run)} className="group/run focus-inset flex w-full items-center gap-3 px-5 py-3 text-left transition-colors duration-(--duration-fast) ease-standard hover:bg-hover">
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-body">{run.result}</span>
                 <span className="tabular block truncate text-caption text-faint">{dateTime(run.started_at)} · {run.cause}</span>
@@ -158,7 +205,7 @@ function Runs({ runs, onOpen }: { runs: RoutineRun[]; onOpen: (run: RoutineRun) 
         ))}
       </ul>
       {runs.length > 6 ? (
-        <Button variant="ghost" size="sm" className="mt-2" onClick={() => setAll(!all)}>
+        <Button variant="ghost" size="sm" className="mx-3 mb-3" onClick={() => setAll(!all)}>
           {all ? 'Show fewer' : 'Show more runs'}
         </Button>
       ) : null}
@@ -212,96 +259,112 @@ function Body({ org, flow }: { org: string; flow: Flow }) {
   const limits = flow.send_limits ?? [];
   const opened = list.find((run) => run.id === open) ?? null;
 
+  usePageCrumb(routineTitle(flow), { mono: false });
+  const sentence = <Sentence flow={flow} catalog={catalog} lit={lit} onLight={setLit} />;
+
   return (
-    <div className="grid gap-10 md:gap-12">
-      <div>
-        <Link to="/$org/flows" params={{ org }} className="mb-6 inline-flex items-center gap-1 text-secondary text-muted hover:text-fg">
-          <ArrowLeft className="size-3" /> Routines
-        </Link>
-        <header>
-          <div className="mb-3 flex items-center justify-between gap-4">
-            <p className="flex min-w-0 items-center gap-2 text-body text-muted">
-              {workspace ? <BusinessMark name={workspace.name} color={workspace.color} size={20} /> : <SiteMark site={site} size={20} label={false} />}
-              <span className="truncate">{[workspace?.name, routineTitle(flow)].filter(Boolean).join(' · ')}</span>
-            </p>
-            {canOperate ? (
-              <span className="flex shrink-0 gap-2">
-                {flow.steps ? (
-                  <Button asChild>
-                    <Link to="/$org/flows/$flow/edit" params={{ org, flow: flow.id }}>
-                      <Pencil className="size-3" />
-                      <span className="hidden sm:inline">Change steps</span>
-                      <span className="sr-only sm:hidden">Change steps</span>
-                    </Link>
-                  </Button>
-                ) : null}
-                <Button icon={<Play className="size-3" />} onClick={() => setRunning(true)}>
-                  Run
+    <>
+      <Link to="/$org/flows" params={{ org }} className="mb-6 inline-flex items-center gap-1 rounded-sm text-secondary text-muted hover:text-fg">
+        <ArrowLeft className="size-3.5" /> Routines
+      </Link>
+      <PageHeader
+        lead={workspace ? <BusinessMark name={workspace.name} color={workspace.color} size={40} /> : <SiteMark site={site} size={40} tile label={false} />}
+        eyebrow={workspace ? <span className="text-body text-muted">{workspace.name}</span> : undefined}
+        title={routineTitle(flow)}
+        description={
+          <>
+            {routineParts(flow, catalog) ? sentence : null}
+            {flow.stuck ? null : <Standing org={org} flow={flow} />}
+          </>
+        }
+        actions={
+          canOperate ? (
+            <>
+              {flow.steps ? (
+                <Button asChild>
+                  <Link to="/$org/flows/$flow/edit" params={{ org, flow: flow.id }}>
+                    <Pencil aria-hidden="true" className="size-4" />
+                    Change steps
+                  </Link>
                 </Button>
-              </span>
+              ) : null}
+              <Button variant="primary" icon={<Play className="size-4" />} onClick={() => setRunning(true)}>
+                Run now
+              </Button>
+            </>
+          ) : undefined
+        }
+      />
+      <div className="grid gap-6">
+        <Stopped org={org} flow={flow} onOpen={setOpen} />
+
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+          <Card className="min-w-0">
+            <CardHeader title="The steps" meta={schedules.length ? plural(schedules.length, 'schedule') : undefined} />
+            <div className="-mt-px px-5 empty:hidden">
+              <RoutineAskPanel org={org} flow={flow} />
+            </div>
+            {schedules.map((item) => (
+              <div key={item.id} className="flex items-center gap-3 border-b border-line px-5 py-3">
+                <Clock aria-hidden="true" className="size-4 shrink-0 text-faint" />
+                <p className="min-w-0 flex-1 text-secondary text-muted">
+                  <span className="text-label text-fg">{triggerOf(item)}</span> <NextFire schedule={item} zone={zoneOf(item)} />
+                </p>
+                {canOperate ? <PauseSwitch org={org} schedule={item} /> : null}
+              </div>
+            ))}
+            <div className="p-5">
+              {flow.trigger && flow.steps ? (
+                <StepFlow trigger={flow.trigger} steps={flow.steps} catalog={catalog} run={newest?.steps} next={flow.next_at ? `Next ${whenNext(flow.next_at)}` : null} locked={locked} lit={lit === TRIGGER_TARGET ? 'trigger' : lit} onLight={setLit} />
+              ) : (
+                <p className="text-body text-pretty text-muted">Its steps can't be shown here: the computer it runs on keeps it as a recording. Its runs show beside them. Updating that computer lets you see and change its steps here.</p>
+              )}
+              {!flow.trigger && canOperate && !schedules.length ? (
+                <Button size="sm" icon={<Clock className="size-4" />} className="mt-4" onClick={() => setScheduling(true)}>
+                  Run it on a schedule
+                </Button>
+              ) : null}
+            </div>
+            <ScheduleDialog org={org} routines={[flow]} open={scheduling} onOpenChange={setScheduling} />
+          </Card>
+
+          <div className="grid min-w-0 gap-6">
+            <Card>
+              <CardHeader title={<span id="made-lately">What it made lately</span>} />
+              <QueryView query={runs} skeleton={<div className="grid gap-3 p-5">{[0, 1, 2].map((item) => <Skeleton key={item} className="h-14" />)}</div>}>
+                {() =>
+                  made.length ? (
+                    <ul aria-labelledby="made-lately" className="divide-y divide-line">
+                      {made.map((run) => (
+                        <MadeRow key={run.id} run={run} onOpen={() => setOpen(run.id)} />
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="px-5 py-4 text-body text-muted">Nothing yet. What it makes shows here after its first run.</p>
+                  )
+                }
+              </QueryView>
+            </Card>
+            {list.length ? (
+              <Card>
+                <section aria-label="Every run">
+                  <div className="p-5">
+                    <Rhythm runs={list} onOpen={(run) => setOpen(run.id)} />
+                  </div>
+                  <Runs runs={list} onOpen={(run) => setOpen(run.id)} />
+                </section>
+              </Card>
             ) : null}
           </div>
-          <Sentence flow={flow} catalog={catalog} lit={lit} onLight={setLit} />
-          <Standing org={org} flow={flow} onOpen={setOpen} />
-        </header>
-        <div className="mt-6">
-          <RoutineAskPanel org={org} flow={flow} />
-          {schedules.map((item) => (
-            <div key={item.id} className="flex items-center gap-3 border-b border-line py-3">
-              <Clock aria-hidden="true" className="size-4 shrink-0 text-faint" />
-              <p className="min-w-0 flex-1 text-secondary text-muted">
-                <span className="text-label text-fg">{triggerOf(item)}</span> <NextFire schedule={item} zone={zoneOf(item)} />
-              </p>
-              {canOperate ? <PauseSwitch org={org} schedule={item} /> : null}
-            </div>
-          ))}
-          {!flow.trigger && canOperate && !schedules.length ? (
-            <Button variant="ghost" size="sm" icon={<Clock className="size-3" />} className="mt-3" onClick={() => setScheduling(true)}>
-              Run it on a schedule
-            </Button>
-          ) : null}
-          <ScheduleDialog org={org} routines={[flow]} open={scheduling} onOpenChange={setScheduling} />
         </div>
+
+        {limits.length ? <SendRules limits={limits} flow={flow} /> : null}
+        {technical ? <Technical flow={flow} /> : null}
       </div>
-
-      {flow.trigger && flow.steps ? (
-        <FlowMap trigger={flow.trigger} steps={flow.steps} catalog={catalog} run={newest?.steps} next={flow.next_at ? `Next ${whenNext(flow.next_at)}` : null} locked={locked} lit={lit === TRIGGER_TARGET ? 'trigger' : lit} onLight={setLit} />
-      ) : (
-        <p className="text-body text-pretty text-muted">Its steps can't be shown here: the computer it runs on keeps it as a recording. Its runs show below. Updating that computer lets you see and change its steps here.</p>
-      )}
-
-      <section aria-label="What it made lately">
-        <h2 className="mb-4 text-heading">What it made lately</h2>
-        <QueryView query={runs} skeleton={<div className="grid gap-4 md:grid-cols-4">{[0, 1, 2, 3].map((item) => <Skeleton key={item} className="h-56 rounded-(--radius-card)" />)}</div>}>
-          {() =>
-            made.length ? (
-              <div className="scrollbar-none -mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6 lg:mx-0 lg:grid lg:grid-cols-4 lg:gap-4 lg:px-0">
-                {made.map((run, index) => (
-                  <div key={run.id} className={cn('w-72 shrink-0 snap-start lg:w-auto', index === 0 && 'lg:col-span-2')}>
-                    <OutputCard run={run} site={site} lead={index === 0} onOpen={() => setOpen(run.id)} />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-body text-muted">Nothing yet. What it makes shows here after its first run.</p>
-            )
-          }
-        </QueryView>
-      </section>
-
-      {list.length ? (
-        <section aria-label="Every run" className="grid gap-8 lg:grid-cols-[auto_minmax(0,1fr)] lg:gap-16">
-          <Rhythm runs={list} onOpen={(run) => setOpen(run.id)} />
-          <Runs runs={list} onOpen={(run) => setOpen(run.id)} />
-        </section>
-      ) : null}
-
-      {limits.length ? <SendRules limits={limits} flow={flow} /> : null}
-      {technical ? <Technical flow={flow} /> : null}
 
       <RunDialog org={org} flow={running ? flow : null} onClose={() => setRunning(false)} />
       <RunSheet org={org} flow={flow} run={opened} site={site} onClose={() => setOpen(null)} />
-    </div>
+    </>
   );
 }
 
@@ -313,10 +376,22 @@ export function FlowDetail() {
       query={flows}
       card
       skeleton={
-        <div className="grid gap-6">
-          <Skeleton className="h-24 w-3/4" />
-          <Skeleton className="h-40 rounded-(--radius-card)" />
-          <Skeleton className="h-56 rounded-(--radius-card)" />
+        <div role="status" aria-label="Loading the routine" className="grid gap-6">
+          <div className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-4">
+            <Skeleton className="size-10 rounded-lg" />
+            <div className="grid gap-3">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-8 w-72 max-w-full" />
+              <Skeleton className="h-5 w-full max-w-2xl" />
+            </div>
+          </div>
+          <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+            <Skeleton className="h-96 rounded-xl" />
+            <div className="grid gap-6">
+              <Skeleton className="h-64 rounded-xl" />
+              <Skeleton className="h-48 rounded-xl" />
+            </div>
+          </div>
         </div>
       }
     >

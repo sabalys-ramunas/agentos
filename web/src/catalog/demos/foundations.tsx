@@ -130,6 +130,7 @@ export function KindsDemo() {
             <KindTile kind={kind} size="sm" />
             <KindTile kind={kind} size="md" labelled />
             <KindTile kind={kind} size="lg" />
+            <KindTile kind={kind} size="xl" />
             <KindTile kind={kind} size="md" waiting />
           </span>
         ))}

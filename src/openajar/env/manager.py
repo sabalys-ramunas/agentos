@@ -29,6 +29,7 @@ from openajar.core.errors import (
     LaneExists,
     LaneNotFound,
     LaneQuarantined,
+    MachineGone,
     NotFound,
     PolicyDenied,
     ServiceUnavailable,
@@ -151,6 +152,12 @@ class EnvManager(Jobs, Sync):
         # Both are best effort: they never change a command, and a failing hook is as if it were not set.
         self.exec_mirror: Any = None
         self.screen_env: Any = None
+        # `machine_lost(lane_id)`, awaited: a VM lane's ssh could not reach its machine. It asks the machine's
+        # provider (openajar.environments.liveness) and returns why the machine is gone for good, or None
+        # (it runs: a network blip, a busy machine). Then the call fails with machine_gone instead of
+        # handing back ssh's exit 255, and a job on it is lost at once with that reason.
+        self.machine_lost: Any = None
+        self.jobs.lost_check = self.lost_reason
 
     # =============================================================== lifecycle
     async def start(self) -> None:
@@ -644,7 +651,23 @@ class EnvManager(Jobs, Sync):
                                   env=env or None, budget=max_bytes, oom_check=oom_check, tap=tap, stop=stop)
         if use:
             await self.store.run(self.store.touch, lane_id)
+        if lane.remote is not None and execs.ssh_lost(res.exit_code, res.stderr):
+            why = await self.lost_reason(lane_id)
+            if why:
+                raise MachineGone(f"Nothing ran: {why}")
         return res
+
+    async def lost_reason(self, lane_id: str) -> str | None:
+        """The machine_lost hook's answer for a lane whose ssh failed: why its machine is gone, or None (no
+        hook, the hook failed, or the machine still runs)."""
+        hook = self.machine_lost
+        if hook is None:
+            return None
+        try:
+            return await hook(lane_id)
+        except Exception:  # best effort: without an answer the call goes on as before
+            log.debug("the machine_lost hook failed for %s", lane_id, exc_info=True)
+            return None
 
 
     # =============================================================== shells

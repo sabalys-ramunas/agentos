@@ -18,6 +18,9 @@ async function start(page: Page, path: string, scenario = 'still') {
 
 const screen = (page: Page) => page.getByRole('group', { name: /^(Live view|Terminal) of / });
 const toolbar = (page: Page) => screen(page).locator('[data-screen-toolbar]');
+/** An account's screen is a stage on the night band: the picture, and the control pill under it that says who has control. */
+const picture = (page: Page) => page.locator('[data-lane-input] canvas').first();
+const pill = (page: Page) => page.locator('.control-pill').getByRole('status');
 
 /** A fingerprint of the live picture's text field, read from noVNC's canvas. */
 function field(page: Page) {
@@ -35,8 +38,8 @@ function field(page: Page) {
 
 test('watches read-only, takes over to type into the lane, and hands back', async ({ page }) => {
   await start(page, `${ORG}/lanes/aster/instagram`);
-  await expect(toolbar(page).getByText('Live', { exact: true })).toBeVisible();
-  await expect(toolbar(page).getByText('View only. Take over to type or click')).toBeVisible();
+  await expect(picture(page)).toBeVisible({ timeout: 10_000 });
+  await expect(pill(page)).toHaveText(/has control/);
   const before = await field(page);
 
   // Typing while view only changes nothing on the lane.
@@ -47,26 +50,24 @@ test('watches read-only, takes over to type into the lane, and hands back', asyn
 
   const take = page.getByRole('button', { name: /^Take over/ });
   await take.click();
-  await expect(page.getByText('You have control')).toBeVisible();
-  await expect(toolbar(page).getByText('Your keyboard and mouse go to the lane')).toBeVisible();
+  await expect(pill(page)).toHaveText(/^You have control/);
   // The keyboard goes into the lane by itself, and g then n stays there.
   await expect(page.getByRole('application').or(page.locator('[data-lane-input] canvas[tabindex="0"]'))).toBeFocused();
   await page.keyboard.type('gn hello');
   await expect.poll(() => field(page)).not.toBe(before);
   await expect(page).toHaveURL(/accounts\/aster\/instagram/);
 
-  // Shift Escape leaves the lane without sending anything to it.
+  // Shift Escape leaves the lane without sending anything to it, onto the pill's own button.
   await page.keyboard.press('Shift+Escape');
-  await expect(toolbar(page).getByRole('button').first()).toBeFocused();
+  await expect(page.getByRole('button', { name: /^Hand back/ })).toBeFocused();
 
   await page.getByRole('button', { name: /^Hand back/ }).click();
-  await expect(page.getByText('Agent has control')).toBeVisible();
-  await expect(toolbar(page).getByText('View only. Take over to type or click')).toBeVisible();
+  await expect(pill(page)).toHaveText(/has control$/);
 });
 
 test('hand back puts focus back where it was before the lane took it', async ({ page }) => {
   await start(page, `${ORG}/lanes/aster/instagram`);
-  await expect(toolbar(page).getByText('Live', { exact: true })).toBeVisible();
+  await expect(picture(page)).toBeVisible({ timeout: 10_000 });
   const button = page.getByRole('button', { name: /^Take over/ });
   await button.focus();
   await page.keyboard.press('Enter');
@@ -81,7 +82,6 @@ test('says plainly when the node is away, and keeps trying', async ({ page }) =>
   const notice = screen(page).getByRole('status').filter({ hasText: 'home-mini is away' });
   await expect(notice).toBeVisible();
   await expect(notice).toContainText(/Trying again in \d+ s\./);
-  await expect(toolbar(page).getByText('Computer away')).toBeVisible();
 });
 
 test('says not allowed, and does not retry', async ({ page }) => {
@@ -98,17 +98,17 @@ test('says signed out, with the way back in', async ({ page }) => {
 
 test('reconnects by itself after a drop', async ({ page }) => {
   await start(page, `${ORG}/lanes/aster/instagram`, 'still,stream-flaky');
-  await expect(toolbar(page).getByText('Live', { exact: true })).toBeVisible();
+  await expect(picture(page)).toBeVisible({ timeout: 10_000 });
   const notice = screen(page).getByRole('status').filter({ hasText: 'Reconnecting' });
   await expect(notice).toBeVisible({ timeout: 8_000 });
   await expect(notice).toContainText('The connection dropped.');
   // No click: it comes back on its own.
-  await expect(toolbar(page).getByText('Live', { exact: true })).toBeVisible({ timeout: 5_000 });
+  await expect(notice).toHaveCount(0, { timeout: 5_000 });
 });
 
 test('the live view ends when the lane is closed, and says so', async ({ page }) => {
   await start(page, `${ORG}/lanes/aster/blog`);
-  await expect(toolbar(page).getByText('Live', { exact: true })).toBeVisible();
+  await expect(picture(page)).toBeVisible({ timeout: 10_000 });
   await page.getByRole('button', { name: 'Put to sleep', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'This account is sleeping' })).toBeVisible();
 });
@@ -150,21 +150,16 @@ test('a terminal waiting for approval says where to approve it', async ({ page }
 test.describe('on a phone', () => {
   test.use({ viewport: { width: 375, height: 812 }, hasTouch: true, isMobile: true });
 
-  test('fills the window, zooms, and types a code from the on-screen field', async ({ page }) => {
+  test('fills the window and types a code from the on-screen field', async ({ page }) => {
     await start(page, `${ORG}/lanes/harbor/linkedin`);
-    await expect(toolbar(page).getByText('Live', { exact: true })).toBeVisible();
+    await expect(picture(page)).toBeVisible({ timeout: 10_000 });
     await page.getByRole('button', { name: /^Take over/ }).click();
-    await expect(page.getByText('You have control')).toBeVisible();
+    await expect(pill(page)).toHaveText(/^You have control/);
     await page.getByRole('button', { name: 'Full window' }).click();
     const frame = page.getByRole('region', { name: 'Control of LinkedIn' });
     const box = await frame.boundingBox();
     expect(box?.width).toBe(375);
     expect(box?.height).toBeGreaterThan(700);
-
-    await page.getByRole('button', { name: 'Zoom in' }).click();
-    await expect(toolbar(page).getByText('150%')).toBeVisible();
-    await page.getByRole('button', { name: 'Fit to the window' }).click();
-    await expect(toolbar(page).getByText('100%')).toBeVisible();
 
     const before = await field(page);
     await page.getByRole('button', { name: 'Type into the screen' }).click();

@@ -6,6 +6,76 @@ All notable changes to openajar are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-11-21
+
+An agent's environment whose machine dies is now noticed and replaced, typing on its desktop lands in the
+app the agent opened, and the web app has a simpler navigation and the rest of its screens in the Dawn design.
+
+### Added
+
+- **Four more tasks in the eval suite**, ported from evals/ (t12 to t15: the machine dies in the middle of a
+  build, a file from the person's folder up to the machine and back, a report that takes seconds and a confirm
+  dialog, a price past a catalogue's first page), a harness step that runs beside the agent (t12's
+  `docker kill`), the person's own folder for a task, and a paid run on the person's own `claude` sign-in. docs/EVALS.md has the baselines and
+  what 0.5.1 changed, and `bench/evals.jsonl` keeps the runs.
+- **The web app shows an environment whose machine stopped.** It leads the Open list and Home's Working now
+  with a red Machine stopped chip on the dimmed desktop; its page says when it stopped and why, and that the
+  agent starts a new machine when you say "continue <title> in openajar", and Close is what is left (Extend
+  goes). The list's environments carry `machine_gone` (when, why) for it.
+
+### Changed
+
+- The environment skill, the server's instructions and the open's `next` say the defaults in so many
+  words: when the task is done and nobody asked to keep the machine open, `environment_close()` is the
+  last call, whatever the `keep`; files are read and changed with the file tools, never `cat` or `sed`
+  in a command; and `machine_gone` means opening the same title again.
+- `screen_act` with `type` or `key` says where the keys went (`keys_to`, the window that had the keyboard),
+  and takes `window` to bring that window to the front first.
+- **A simpler navigation in the web app: 13 places become 10.** Home, Needs you, Computers and What happened
+  come first; then Your business (Accounts, Jobs that repeat, Brand), For developers (Runs and checks, Site APIs,
+  each hidden until first used) and Settings. Computers holds Environments and Machines as two tabs, Jobs that
+  repeat holds Routines and Email, Runs and checks holds Runs and Checks, and History is now called What
+  happened. Every old address still opens the same page, and the phone's tab bar is Home, Needs you, Computers,
+  What happened and More.
+- **A setting that saves on its own now says what changed in a toast with Undo** ("Quiet hours turned on"),
+  instead of Saved in the card's footer. Undo puts the old value back the same way it was saved; it never loosens
+  what an agent may do without asking, and what cannot be undone keeps its confirm dialog.
+- **Accounts and one account in the Dawn design.** Each workspace is a heading with one banner for what needs a
+  look, and its accounts are cards with the site's tile, the handle, a state chip, what it did last and Ask me
+  first. An account's page opens on the night band with the site's tile, its state and the live screen as a
+  stage with the control pill, and glass panels for who is using it, what happened and whether it is safe. The
+  workspace page, the login queue, the vault, Workers, Add an AI service (one page) and Proof follow the same
+  design, and an address with no such account says so in plain words.
+- **The detail pages in the Dawn design:** one run, one check, one machine, one routine, a new routine, Email,
+  one Site API, memory and standing approvals each open with their kind's tile, the title, the state as a chip
+  and one line of facts, and keep their skeletons in the page's shape while they load.
+- **The phone's More opens a sheet from the bottom** with the places as tiles in the sidebar's groups and the
+  machines' line and the organisation at its end, above the tab bar, which stays in reach.
+- What an agent did on an environment's desktop reads as what its hands did (typed, pressed keys, brought a
+  window to the front), and a `screen_act` type or key with `window` names that window in the call's line.
+
+### Fixed
+
+- **An app opened on the desktop keeps the keyboard.** The environment's browser starts in the background
+  when it opens, and its first window could come up after an app the agent had just opened with
+  `screen_open` (LXTerminal, say) and take the focus, so the agent's `screen_act` typing went into the
+  browser. A browser window that comes up now takes no focus by itself: the app that had it stays in front
+  until the agent uses the browser, a person clicks it, or the dock's Browser is pressed, and a browser on a
+  desktop where nothing has focus still gets it. `screen_open` gives the app's window the keyboard before it
+  returns.
+
+- **A machine that stops is noticed, and said once, everywhere.** When an environment's container or server
+  stops for good (killed, powered off, deleted outside openajar), the node finds out from the provider
+  (`docker inspect`, Hetzner's API, asked twice; never from one failed ssh call, which a network blip also
+  gives) and then: every call that needs the machine fails with the new error `machine_gone`, whose
+  message says when it stopped, why, and whether a save exists to resume from; `environment()` shows
+  `state: "gone"` and `machine_gone`; a job on it ends `lost` with "the job ended with its machine", not
+  "could not reach the machine over ssh to start it"; `terminal_exec` no longer answers ok with ssh's exit
+  255; `environment_close` ends it without asking for `discard=true`; and `environment_open` with the same
+  title no longer hands back the dead machine as `attached`, `ready`: it ends it and starts a new one on that
+  title (from the newest save when there is one), with `replaced` saying what it replaced. The checks never
+  run on the machine, so they never count as the agent's use of it.
+
 ## [0.5.0] - 2026-11-21
 
 The agent's computer has a desktop you can watch, a pointer that shows what the agent does, and a button

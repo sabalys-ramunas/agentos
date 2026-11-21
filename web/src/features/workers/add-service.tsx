@@ -1,15 +1,25 @@
 /**
- * Adding an AI service. The hosted panel holds no secret, ever: no field, no type, no handler. It asks
- * who should think and which computer keeps them, then hands over to that computer, the way Email does.
+ * Adding an AI service (spec-16, settings-ai-add.png). The hosted panel holds no secret, ever: no field, no type,
+ * no handler. On one page it asks who should think (radio cards) and which computer keeps them (a select), then
+ * hands over to that computer, the way Email does.
  * The real command waits behind Technical details, unless a computer without a screen needs it. Concept
  * stage: answered by the mock only.
  */
 import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router';
-import { ArrowRight, ArrowUpRight, ChevronDown, ChevronLeft, Cpu, KeyRound, LogIn } from 'lucide-react';
+import { ArrowUpRight, BrainCircuit, ChevronDown, ChevronLeft, Cpu, ExternalLink, KeyRound, LogIn, Waypoints, Zap } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import { useBrains, useHandover, useHandoverFilled, useNodes, useProviders, useStartHandover } from '@/api/hooks';
 import type { FleetNode } from '@/api/types';
+import { usePageCrumb } from '@/components/shell/crumb';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Choice, ChoiceGroup } from '@/components/ui/choice';
+import { Field } from '@/components/ui/field';
+import { Select } from '@/components/ui/select';
+import { AppTile } from '@/components/ui/tile';
+import type { TileTone } from '@/components/ui/tile';
 import { Card } from '@/components/ui/card';
 import { CodeBlock } from '@/components/ui/misc';
 import { Spinner } from '@/components/ui/spinner';
@@ -33,67 +43,44 @@ const HOW = {
 /** A computer with no screen of its own. The cloud says so on a real one; here the name does. */
 const hasScreen = (id: string) => /mini|mac|imac/.test(id);
 
-function ServiceChoice({ org, chosen, added, computer }: { org: string; chosen?: string; added: Set<string>; computer?: string }) {
+const LOOK: Record<string, { tone: TileTone; icon: LucideIcon }> = {
+  typesafe: { tone: 'blue', icon: Zap },
+  openrouter: { tone: 'amber', icon: Waypoints },
+  'claude-max': { tone: 'violet', icon: BrainCircuit },
+  'ollama-local': { tone: 'teal', icon: Cpu },
+};
+
+/** Who should think: one card per service, as radios, with a line when it is already on a computer. */
+function ServiceChoice({ value, onChange, added }: { value: string; onChange: (id: string) => void; added: Set<string> }) {
   return (
-    <Card>
-      <ul className="divide-y divide-line">
-        {SERVICES.map((service) => {
-          const Icon = HOW[service.how].icon;
-          const here = added.has(service.id);
-          return (
-            <li key={service.id}>
-              <Link
-                to="/$org/settings/brains/add"
-                params={{ org }}
-                search={{ service: service.id, computer }}
-                className={cn('flex items-start gap-3 px-4 py-4 transition-colors duration-(--duration-fast) ease-standard hover:bg-hover sm:px-6', chosen === service.id && 'bg-hover')}
-              >
-                <span className="grid h-5 shrink-0 place-items-center text-faint"><Icon aria-hidden="true" className="size-4" /></span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-label">{service.name}</span>
-                  <span className="block text-secondary text-pretty text-muted">{service.sentence}</span>
-                  <span className="block text-secondary text-faint">{here ? 'Already on a computer. Add it to another.' : HOW[service.how].word}</span>
-                </span>
-                <span className="grid h-5 shrink-0 place-items-center text-faint"><ArrowRight aria-hidden="true" className="size-4" /></span>
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-    </Card>
+    <ChoiceGroup<string> label="Who should think for you" value={value} onValueChange={onChange} columns={2}>
+      {SERVICES.map((service) => {
+        const look = LOOK[service.id] ?? { tone: 'ink' as const, icon: HOW[service.how].icon };
+        return (
+          <Choice
+            key={service.id}
+            value={service.id}
+            icon={<AppTile tone={look.tone} icon={look.icon} />}
+            title={service.name}
+            badge={added.has(service.id) ? <Badge tone="ok" title="Already on a computer. You can add it to another.">On a computer</Badge> : null}
+            description={<span className="text-pretty">{service.sentence}</span>}
+          />
+        );
+      })}
+    </ChoiceGroup>
   );
 }
 
-/** Each computer in words. One that is offline stays listed, and says why it cannot be chosen. */
-function ComputerChoice({ computers, value, onChange }: { computers: FleetNode[]; value: string; onChange: (id: string) => void }) {
+/** Which computer keeps it, as a select. One that is offline stays listed, and says so. */
+function ComputerChoice({ computers, value, onChange, hint }: { computers: FleetNode[]; value: string; onChange: (id: string) => void; hint: string }) {
   return (
-    <div role="radiogroup" aria-label="Which computer keeps it" className="grid gap-2">
-      {computers.map((computer) => {
-        const away = computer.state === 'down';
-        const selected = computer.id === value;
-        return (
-          <button
-            key={computer.id}
-            type="button"
-            role="radio"
-            aria-checked={selected}
-            aria-disabled={away || undefined}
-            onClick={() => !away && onChange(computer.id)}
-            className={cn(
-              'flex min-h-12 items-center gap-3 rounded-lg border px-4 py-2 text-left transition-colors duration-(--duration-fast) ease-standard',
-              selected ? 'border-fg' : 'border-line hover:border-line-strong',
-              away && 'cursor-not-allowed',
-            )}
-          >
-            <span className={cn('grid size-4 shrink-0 place-items-center rounded-full border', selected ? 'border-fg' : 'border-control')}>{selected ? <span className="size-2 rounded-full bg-fg" /> : null}</span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-label">{computerName(computer.id)}</span>
-              <span className="block text-secondary text-muted">{away ? 'Offline, so it cannot take this now' : hasScreen(computer.id) ? 'Has a screen' : 'No screen, so it uses its terminal'}</span>
-            </span>
-          </button>
-        );
-      })}
-    </div>
+    <Field label="On which computer" hint={hint} className="max-w-md">
+      <Select
+        value={value}
+        onValueChange={onChange}
+        options={computers.map((computer) => ({ value: computer.id, label: computerName(computer.id), hint: computer.state === 'down' ? 'Offline' : undefined, disabled: computer.state === 'down' }))}
+      />
+    </Field>
   );
 }
 
@@ -111,7 +98,22 @@ function Disclosure({ label, open: initial, children }: { label: string; open: b
   );
 }
 
-function HandOver({ org, service, computers, computer, onComputer }: { org: string; service: ServiceInfo; computers: FleetNode[]; computer: string; onComputer: (id: string) => void }) {
+interface HandOverProps {
+  org: string;
+  service: ServiceInfo;
+  computers: FleetNode[];
+  computer: string;
+  added: Set<string>;
+  onService: (id: string) => void;
+  onComputer: (id: string) => void;
+}
+
+/**
+ * One page (settings-ai-add.png): who should think as radio cards and which computer as a select, then Continue on
+ * the computer, which opens the form it serves. A computer with no screen shows the one line for its terminal
+ * instead. Once handed over, the route picture says where the key is, through waiting, checking, ready or refused.
+ */
+function HandOver({ org, service, computers, computer, added, onService, onComputer }: HandOverProps) {
   const start = useStartHandover(org);
   const [technical] = useTechnical();
   const [id, setId] = useState<string>();
@@ -124,6 +126,7 @@ function HandOver({ org, service, computers, computer, onComputer }: { org: stri
   const screen = here || hasScreen(computer);
   const command = addCommand(service);
   const thing = HOW[service.how].thing;
+  const away = computers.find((item) => item.id === computer)?.state === 'down';
 
   // The form on the computer says it was used. In real use the computer tells the cloud.
   useEffect(() => {
@@ -160,100 +163,113 @@ function HandOver({ org, service, computers, computer, onComputer }: { org: stri
       refused={stage === 'failed'}
     />
   );
+  const again = (
+    <Button variant="ghost" icon={<ChevronLeft className="size-4" />} onClick={() => setId(undefined)}>
+      Choose a different service
+    </Button>
+  );
 
   if (stage === 'done') {
     return (
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
-        <div>
-          <StateGlyph state="good" size={24} />
-          <h3 className="mt-2 text-heading text-balance">{service.name} is ready on {name}</h3>
-          <p className="mt-1 text-body text-pretty text-muted">It answered a small test question. The {thing} stays on {name}, and openajar Cloud only heard that it worked.</p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Button asChild variant="primary"><Link to="/$org/settings/workers" params={{ org }}>Go to Workers</Link></Button>
-            <Button asChild><Link to="/$org/settings/brains" params={{ org }}>See AI models</Link></Button>
-          </div>
+      <Stage picture={picture}>
+        <StateGlyph state="good" size={24} />
+        <h3 className="mt-3 text-heading text-balance">{service.name} is ready on {name}</h3>
+        <p className="mt-1 text-body text-pretty text-muted">It answered a small test question. The {thing} stays on {name}, and openajar Cloud only heard that it worked.</p>
+        <div className="mt-5 flex flex-wrap gap-2">
+          <Button asChild variant="primary"><Link to="/$org/settings/workers" params={{ org }}>Go to Workers</Link></Button>
+          <Button asChild><Link to="/$org/settings/brains" params={{ org }}>See AI models</Link></Button>
         </div>
-        {picture}
-      </div>
+      </Stage>
     );
   }
   if (stage === 'failed') {
     return (
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
-        <div>
-          <StateGlyph state="stuck" size={24} />
-          <h3 className="mt-2 text-heading text-balance">{service.name} did not accept that {thing}</h3>
-          <p className="mt-1 text-body text-pretty text-muted">Nothing was saved, and the {thing} that was tried is gone from {name}. Copy a new one from your {service.name} account and try again.</p>
-          <Button variant="primary" className="mt-4" onClick={() => { setId(undefined); }}>Try again</Button>
+      <Stage picture={picture}>
+        <StateGlyph state="stuck" size={24} />
+        <h3 className="mt-3 text-heading text-balance">{service.name} did not accept that {thing}</h3>
+        <p className="mt-1 text-body text-pretty text-muted">Nothing was saved, and the {thing} that was tried is gone from {name}. Copy a new one from your {service.name} account and try again.</p>
+        <div className="mt-5 flex flex-wrap gap-2">
+          <Button variant="primary" onClick={() => setId(undefined)}>Try again</Button>
         </div>
-        {picture}
-      </div>
+      </Stage>
     );
   }
   if (stage === 'waiting' || stage === 'checking') {
     return (
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
-        <div>
-          <p className="flex items-center gap-2 text-secondary text-muted"><Spinner className="size-3" />{stage === 'checking' ? `Asking ${service.name} a small test question` : `Waiting for you on ${name}`}</p>
-          <h3 className="mt-2 text-heading text-balance">{stage === 'checking' ? `${name} has it, and is checking` : `Paste the ${thing} on ${name}`}</h3>
-          <p className="mt-1 text-body text-pretty text-muted">{stage === 'checking' ? 'Nothing is saved until the answer comes back.' : 'This page moves on by itself. You can keep it open, or come back to it.'}</p>
+      <Stage picture={picture}>
+        <p className="flex items-center gap-2 text-secondary text-muted"><Spinner className="size-3" />{stage === 'checking' ? `Asking ${service.name} a small test question` : `Waiting for you on ${name}`}</p>
+        <h3 className="mt-2 text-heading text-balance">{stage === 'checking' ? `${name} has it, and is checking` : `Paste the ${thing} on ${name}`}</h3>
+        <p className="mt-1 text-body text-pretty text-muted">{stage === 'checking' ? 'Nothing is saved until the answer comes back.' : 'This page moves on by itself. You can keep it open, or come back to it.'}</p>
+        <div className="mt-5 flex flex-wrap gap-2">
           {stage === 'waiting' && screen && handover.data?.form_url ? (
-            <Button asChild className="mt-4">
+            <Button asChild>
               <a href={handover.data.form_url} target="_blank" rel="noreferrer">Open the form again<ArrowUpRight aria-hidden="true" className="size-4" /></a>
             </Button>
           ) : null}
+          {stage === 'waiting' ? again : null}
         </div>
-        {picture}
-      </div>
+      </Stage>
     );
   }
 
+  const how = service.how === 'key' ? `The ${thing} is pasted on that computer, never here.` : service.how === 'sign-in' ? 'You sign in on that computer, never here.' : 'It runs on that computer, so there is nothing to paste.';
+  const hint = away ? `${name} is offline, so it cannot take this now. Choose another.` : screen ? how : `${how} It has no screen, so its terminal is the way in.`;
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
+    <div className="grid gap-8">
+      <ServiceChoice value={service.id} onChange={onService} added={added} />
       <div className="grid gap-4">
-        <div>
-          <h3 className="text-section-title">Which computer keeps it?</h3>
-          <p className="mt-1 text-body text-pretty text-muted">
-            {service.how === 'key' ? `Your ${service.name} key goes straight to this computer, on a small page it makes for this one job. It never passes through openajar Cloud.` : service.how === 'sign-in' ? 'You sign in on this computer, so the sign-in never passes through openajar Cloud.' : 'It runs on this computer, so there is nothing to paste and nothing leaves it.'}
-          </p>
-        </div>
-        <ComputerChoice computers={computers} value={computer} onChange={onComputer} />
+        <ComputerChoice computers={computers} value={computer} onChange={onComputer} hint={hint} />
         {service.keysAt ? (
           <a href={service.keysAt} target="_blank" rel="noreferrer" className="link inline-flex items-center gap-1 justify-self-start text-secondary">
             Get a key from {service.name}
             <ArrowUpRight aria-hidden="true" className="size-3" />
           </a>
-        ) : service.how === 'key' ? (
-          <p className="text-secondary text-faint">Have your key from your {service.name} account ready.</p>
         ) : null}
-        {screen ? (
-          <div className="flex flex-wrap items-center gap-3">
-            <Button variant="primary" size="lg" loading={start.isPending} onClick={begin}>
-              Open the form on {computerName(computer)}
-              <ArrowUpRight aria-hidden="true" className="size-4" />
-            </Button>
-          </div>
-        ) : (
-          <div className="grid gap-2">
-            <p className="text-body text-pretty">{name} has no screen, so its terminal is the way in. It asks for the {thing} with the letters hidden.</p>
+        {!screen && !away ? (
+          <div className="grid max-w-2xl gap-2">
+            <p className="text-body text-pretty">{name} asks for the {thing} with the letters hidden. Run this one line in its terminal:</p>
             <CodeBlock code={command} label="One line for its terminal" />
-            <Button className="justify-self-start" onClick={begin}>I ran it</Button>
           </div>
-        )}
-        {start.isError && here ? <InlineError>{computerName(computer)} is offline, so nothing was started. Choose another computer, or wait until it is back.</InlineError> : null}
+        ) : null}
+        {start.isError ? <InlineError>{name} did not answer, so nothing was started. Choose another computer, or wait until it is back.</InlineError> : null}
+      </div>
+      <div className="grid gap-4 border-t border-line pt-6">
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <Button asChild variant="ghost">
+            <Link to="/$org/settings/brains" params={{ org }}>Cancel</Link>
+          </Button>
+          {screen ? (
+            <Button variant="primary" loading={start.isPending} disabled={away} onClick={begin} icon={<ExternalLink className="size-4" />}>
+              Continue on the computer
+            </Button>
+          ) : (
+            <Button variant="primary" loading={start.isPending} disabled={away} onClick={begin}>
+              I ran it
+            </Button>
+          )}
+        </div>
         {screen ? (
-          <>
+          <div className="grid gap-2">
             <Disclosure label={`Not sitting at ${name} right now?`} open={false}>
               The form only opens on {name} itself, so the {thing} never crosses the internet. Open this same page there and you carry on from this step.
             </Disclosure>
             <Disclosure label="Technical details" open={technical}>
               <CodeBlock code={command} label="The same thing, in its terminal" />
             </Disclosure>
-          </>
+          </div>
         ) : null}
       </div>
-      {picture}
     </div>
+  );
+}
+
+/** A step after the hand-over: what is happening on the left, the route picture on the right. */
+function Stage({ picture, children }: { picture: ReactNode; children: ReactNode }) {
+  return (
+    <Card className="grid gap-6 p-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-center">
+      <div>{children}</div>
+      {picture}
+    </Card>
   );
 }
 
@@ -263,16 +279,15 @@ export function AddService() {
   const navigate = useNavigate({ from: '/$org/settings/brains/add' });
   const nodes = useNodes(org);
   const brains = useBrains(org);
-  const service = serviceInfo(search.service);
+  usePageCrumb('Add an AI service', { mono: false });
+  // The first service is chosen to begin with, as drawn; the address keeps the choice.
+  const service = serviceInfo(search.service) ?? SERVICES[0]!;
   const added = useMemo(() => new Set((brains.data ?? []).map((brain) => brain.name)), [brains.data]);
+  const set = (next: { service?: string; computer?: string }) => void navigate({ search: (previous) => ({ ...previous, ...next }), replace: true, resetScroll: false });
   return (
     <>
-      <Link to="/$org/settings/brains" params={{ org }} className="mb-4 inline-flex items-center gap-1 text-secondary text-faint hover:text-fg">
-        <ChevronLeft aria-hidden="true" className="size-4" />
-        AI models
-      </Link>
-      <SettingsHeader title="Add an AI service" description={service ? `${service.name}. ${service.sentence}` : 'Who should think for you? It lives on one of your computers, and openajar never holds a key.'} />
-      <QueryView card query={nodes} skeleton={<div className="grid gap-4"><Skeleton className="h-64 rounded-xl" /></div>}>
+      <SettingsHeader title="Add an AI service" description="Who should think for you? It lives on one of your computers, and openajar never holds a key." />
+      <QueryView card query={nodes} skeleton={<div className="grid gap-4"><Skeleton className="h-64 rounded-xl" /><Skeleton className="h-10 w-96 max-w-full" /></div>}>
         {(computers) => {
           if (!computers.length) {
             return (
@@ -281,29 +296,20 @@ export function AddService() {
               </Card>
             );
           }
-          if (!service) return <ServiceChoice org={org} added={added} computer={search.computer} />;
           const fallback = computers.find((computer) => computer.state !== 'down') ?? computers[0];
           const computer = computers.find((item) => item.id === search.computer) ?? fallback;
-          return (
-            <>
-              {computer ? (
-                <HandOver
-                  key={`${service.id}/${computer.id}`}
-                  org={org}
-                  service={service}
-                  computers={computers}
-                  computer={computer.id}
-                  onComputer={(id) => void navigate({ search: (previous) => ({ ...previous, computer: id }), replace: true, resetScroll: false })}
-                />
-              ) : null}
-              <p className="mt-8 border-t border-line pt-4">
-                <Link to="/$org/settings/brains/add" params={{ org }} search={{ computer: search.computer }} className="inline-flex items-center gap-1 text-secondary text-muted hover:text-fg">
-                  <ChevronLeft aria-hidden="true" className="size-3" />
-                  Choose a different service
-                </Link>
-              </p>
-            </>
-          );
+          return computer ? (
+            <HandOver
+              key={`${service.id}/${computer.id}`}
+              org={org}
+              service={service}
+              computers={computers}
+              computer={computer.id}
+              added={added}
+              onService={(id) => set({ service: id })}
+              onComputer={(id) => set({ computer: id })}
+            />
+          ) : null;
         }}
       </QueryView>
     </>

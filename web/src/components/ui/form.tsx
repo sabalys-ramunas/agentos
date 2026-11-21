@@ -136,17 +136,14 @@ export function SettingRow({ label, hint, children, className }: SettingRowProps
   );
 }
 
-/** The quiet line a form that saves on its own shows in its footer: Saving, Saved, or what went wrong. */
+/**
+ * The quiet line a form that saves on its own shows in its footer: Saving, or what went wrong. Saved is not
+ * said here: the toast says what changed, with Undo (`toastChange` in toast.tsx, web/DESIGN.md, Forms).
+ */
 export function SaveStatus({ state, error }: { state: 'idle' | 'pending' | 'success' | 'error'; error?: ReactNode }) {
   return (
-    <span role="status" className={cn('flex min-h-5 items-center gap-1 text-secondary', state === 'error' ? 'text-bad' : state === 'success' ? 'text-ok' : 'text-faint')}>
+    <span role="status" className={cn('flex min-h-5 items-center gap-1 text-secondary', state === 'error' ? 'text-bad' : 'text-faint')}>
       {state === 'pending' ? 'Saving' : null}
-      {state === 'success' ? (
-        <>
-          <Check aria-hidden className="size-4" />
-          Saved
-        </>
-      ) : null}
       {state === 'error' ? error : null}
     </span>
   );

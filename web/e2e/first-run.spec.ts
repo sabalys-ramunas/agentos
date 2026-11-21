@@ -76,7 +76,7 @@ test('an invited approver joins in one click, learns what they will be asked, an
   await page.getByRole('link', { name: /what's waiting|Go to Needs you/ }).click();
   await expect(page).toHaveURL(/\/northwind-group\/needs-you/);
   const rail = page.getByRole('navigation', { name: 'Main' }).first();
-  await expect(rail.getByRole('link')).toHaveText([/Needs you/, /History/, /Settings/]);
+  await expect(rail.getByRole('link')).toHaveText([/Needs you/, /What happened/, /Settings/]);
 });
 
 test.describe('at 375 wide', () => {
@@ -87,7 +87,7 @@ test.describe('at 375 wide', () => {
     await page.getByRole('button', { name: 'Join Aster Coffee' }).click();
     await page.getByRole('link', { name: /what's waiting|Go to Needs you/ }).click();
     const tabs = page.getByRole('navigation', { name: 'Main' }).last();
-    await expect(tabs.getByRole('link')).toHaveText([/Needs you/, /History/, /Settings/]);
+    await expect(tabs.getByRole('link')).toHaveText([/Needs you/, /What happened/, /Settings/]);
     await expect(tabs.getByRole('button', { name: /More/ })).toHaveCount(0);
   });
 

@@ -6,7 +6,7 @@ import { LaneIcon } from '@/components/lane-icon';
 import { Card } from '@/components/ui/card';
 import { ConditionBadge } from '@/components/ui/state-badge';
 import { EmptyState } from '@/components/ui/states';
-import { Table, Td, Th, Tr, mainCell } from '@/components/ui/table';
+import { CellTitle, Table, Td, Th, Tr, mainCell } from '@/components/ui/table';
 import { timeAgo } from '@/lib/format';
 import { laneName } from '@/lib/labels';
 import { laneCondition } from '@/lib/states';
@@ -21,8 +21,8 @@ function Share({ value, max, unit }: { value: number | null | undefined; max: nu
       <span aria-hidden="true" className="h-1 w-12 overflow-hidden rounded-full bg-pressed">
         <span className="block h-full rounded-full bg-faint" style={{ width: `${Math.max(4, (value / Math.max(1, max)) * 100)}%` }} />
       </span>
-      <span className="mono tabular w-14 text-right text-secondary">
-        {value}
+      <span className="w-16 text-right tabular">
+        {value.toLocaleString('en')}
         {unit}
       </span>
     </span>
@@ -62,8 +62,8 @@ export function LanesTab({ org, node, workspaces }: { org: string; node: NodeDet
             <tr>
               <Th>Account</Th>
               <Th>Status</Th>
-              <Th className="text-right">CPU</Th>
-              <Th className="text-right">Memory</Th>
+              <Th align="end">CPU</Th>
+              <Th align="end">Memory</Th>
               <Th className="hidden lg:table-cell">Last used</Th>
             </tr>
           </thead>
@@ -83,24 +83,26 @@ export function LanesTab({ org, node, workspaces }: { org: string; node: NodeDet
                     <Link
                       to="/$org/lanes/$ws/$name"
                       params={{ org, ws: lane.workspace, name: lane.name }}
-                      className="flex min-w-0 items-center gap-2 rounded-sm text-body after:absolute after:inset-0"
+                      className="flex min-w-0 items-center gap-3 rounded-sm after:absolute after:inset-0"
                     >
                       <LaneIcon kind={lane.kind} />
-                      <span className="truncate">{laneName(lane.name)}</span>
-                      {lane.account?.site ? <span className="mono hidden truncate text-caption text-faint sm:inline">{lane.account.site}</span> : null}
+                      <CellTitle
+                        title={laneName(lane.name)}
+                        second={lane.account?.site ? <span className="font-mono text-code-caption">{lane.account.site}</span> : undefined}
+                      />
                     </Link>
                     <span className="mt-1 flex items-center gap-2 md:hidden">
                       <ConditionBadge condition={laneCondition(lane, { node: node.state, me })} />
-                      {lane.mem_mb ? <span className="mono tabular text-caption text-faint">{lane.cpu_pct}% · {lane.mem_mb} MB</span> : null}
+                      {lane.mem_mb ? <span className="tabular text-caption text-faint">{lane.cpu_pct}% · {lane.mem_mb.toLocaleString('en')} MB</span> : null}
                     </span>
                   </Td>
                   <Td className="hidden md:table-cell">
                     <ConditionBadge condition={laneCondition(lane, { node: node.state, me })} />
                   </Td>
-                  <Td className="hidden text-right md:table-cell">
+                  <Td numeric className="hidden md:table-cell">
                     <Share value={lane.cpu_pct} max={maxCpu} unit="%" />
                   </Td>
-                  <Td className="hidden text-right md:table-cell">
+                  <Td numeric className="hidden md:table-cell">
                     <Share value={lane.mem_mb} max={maxMem} unit=" MB" />
                   </Td>
                   <Td className="hidden text-secondary text-muted lg:table-cell">{lane.last_used ? timeAgo(lane.last_used) : 'Never'}</Td>

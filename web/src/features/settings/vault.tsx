@@ -2,7 +2,7 @@ import { useParams } from '@tanstack/react-router';
 import { ArrowUpRight, Lock, LockKeyhole, LockOpen, Plus, Search, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { useAccess, useLockVault, useProviders, useRemoveVaultEntry, useVault, useVaultStatus } from '@/api/hooks';
+import { useAccess, useLockVault, useProviders, useRemoveVaultEntry, useVault, useVaultStatus, useWorkspaces } from '@/api/hooks';
 import type { VaultEntry, VaultKind, VaultStatus } from '@/api/types';
 import { Button, IconButton } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -12,7 +12,9 @@ import { cn } from '@/lib/cn';
 import { Select } from '@/components/ui/select';
 import { EmptyState, InlineError, QueryView, Skeleton } from '@/components/ui/states';
 import { mainCell, Table, Td, Th, Tr } from '@/components/ui/table';
-import { timeAgo } from '@/lib/format';
+import { dateTime, timeAgo } from '@/lib/format';
+import { useTechnical } from '@/lib/technical';
+import { accountName } from '@/features/home/words';
 import { vaultKind } from '@/lib/labels';
 import { FORM_WORDS, useFormOnComputer } from './on-computer';
 import { SettingsHeader } from './page';
@@ -120,6 +122,16 @@ function AddDialog({ org, open, onOpenChange }: { org: string; open: boolean; on
 export function VaultSettings() {
   const { org } = useParams({ from: '/$org/settings/vault' });
   const vault = useVault(org);
+  const workspaces = useWorkspaces(org).data ?? [];
+  const [technical] = useTechnical();
+  // An account by its names, "Aster Coffee · Instagram", as everywhere a person reads it; its id with Technical details.
+  const accountLabel = (id: string) => {
+    if (technical) return id;
+    const [ws] = id.split('/');
+    const workspace = workspaces.find((item) => item.id === ws);
+    const lane = workspace?.lanes.find((item) => item.id === id);
+    return workspace && lane ? `${workspace.name} · ${accountName(lane)}` : id;
+  };
   const access = useAccess(org);
   // The owner alone reads the state, locks, unlocks and adds: the node answers no one else for those.
   const owner = access.can('vault.open');
@@ -209,7 +221,7 @@ export function VaultSettings() {
                   <tr>
                     <Th>Name</Th>
                     <Th className="w-36">Kind</Th>
-                    <Th className="hidden xl:table-cell">Accounts</Th>
+                    <Th className="hidden lg:table-cell">Accounts</Th>
                     <Th className="w-28">Last used</Th>
                     {canManage ? (
                       <Th className="w-12">
@@ -222,15 +234,21 @@ export function VaultSettings() {
                   {rows.map((item) => (
                     <Tr key={item.id}>
                       <Td className={mainCell}>
-                        <p className="mono truncate text-secondary">{item.name}</p>
+                        <p className={cn('truncate text-body font-medium', technical && 'mono')} title={item.name}>
+                          {item.name}
+                        </p>
                         <p className="truncate text-secondary text-faint">
                           {item.domain ?? 'No domain'}
                           <span className="md:hidden"> · {vaultKind[item.kind]}</span>
                         </p>
                       </Td>
                       <Td className="hidden text-secondary text-muted md:table-cell">{vaultKind[item.kind]}</Td>
-                      <Td className="mono hidden max-w-56 truncate text-secondary text-muted xl:table-cell">{item.lanes.join(', ')}</Td>
-                      <Td className="tabular text-secondary text-faint md:text-left">{item.last_used ? timeAgo(item.last_used) : 'Never'}</Td>
+                      <Td className={cn('hidden max-w-64 truncate text-secondary text-muted lg:table-cell', technical && 'mono')} title={item.lanes.map(accountLabel).join(', ')}>
+                        {item.lanes.length ? item.lanes.map(accountLabel).join(', ') : 'No account yet'}
+                      </Td>
+                      <Td className="tabular text-secondary text-muted md:text-left" title={item.last_used ? dateTime(item.last_used) : undefined}>
+                        {item.last_used ? timeAgo(item.last_used) : 'Never'}
+                      </Td>
                       <Td className="pr-4 text-right md:pr-6">
                         {canManage ? (
                           <IconButton label={`Remove ${item.name}`} onClick={() => setRemoving(item)}>

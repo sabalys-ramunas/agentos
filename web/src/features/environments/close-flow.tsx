@@ -136,7 +136,11 @@ export function CloseEnvironment({ org, env, glass = false, className }: { org: 
         open={step === 'confirm'}
         onOpenChange={(open) => !open && setStep(null)}
         title="Close this environment?"
-        description="The machine and its browser are deleted, and the cost stops. openajar checks first that nothing is left unpushed."
+        description={
+          env.state === 'gone'
+            ? 'Its machine already stopped, so there is nothing left to save. Closing ends it here, and its saves stay.'
+            : 'The machine and its browser are deleted, and the cost stops. openajar checks first that nothing is left unpushed.'
+        }
         confirmLabel="Close it"
         danger
         loading={close.isPending}

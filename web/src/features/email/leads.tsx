@@ -10,6 +10,7 @@ import type { LeadBatch, MailList, Workspace } from '@/api/types';
 import { BusinessMark } from '@/components/brand/identity';
 import { SiteMark } from '@/components/brand/site-mark';
 import { Card } from '@/components/ui/card';
+import { PageHeader } from '@/components/ui/misc';
 import { EmptyState, ErrorState, NotLive, Skeleton } from '@/components/ui/states';
 import { plural } from '@/lib/format';
 import { EmailTabs } from './shared';
@@ -103,8 +104,8 @@ export function Leads() {
   const running = lists.data;
   if (!waiting.length && !running.length) {
     return (
-      <div className="grid gap-8">
-        <h1 className="text-page-title-compact">Leads</h1>
+      <div>
+        <PageHeader title="Email" description="Leads: people an agent found for you to look at." />
         <Card>
           <EmptyState
             icon={<Users />}
@@ -118,11 +119,11 @@ export function Leads() {
 
   return (
     <div className="pb-16">
+      <PageHeader
+        title="Email"
+        description={`${waiting.length ? `${plural(waiting.length, 'batch is', 'batches are')} waiting for a look. ` : ''}${plural(running.length, 'list')} running.`}
+      />
       <EmailTabs org={org} here="leads" newCount={fresh} waiting={waiting.length} />
-      <h1 className="text-headline text-balance sm:text-40">
-        {waiting.length ? <>{plural(waiting.length, 'batch is', 'batches are')} waiting for a look. </> : null}
-        <span className={waiting.length ? 'text-faint' : undefined}>{plural(running.length, 'list')} running.</span>
-      </h1>
       {waiting.map((batch) => <Waiting key={batch.id} org={org} batch={batch} workspace={business(batch.workspace)} />)}
       {running.length ? (
         <section aria-labelledby="lists" className="mt-8">

@@ -20,7 +20,8 @@ describe('A run', () => {
     expect(screen.queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument();
 
     const failed = within(screen.getByRole('region', { name: 'What failed' }));
-    expect(failed.getByText('read from the Vitest output')).toBeInTheDocument();
+    expect(failed.getByText('Read from the Vitest output.')).toBeInTheDocument();
+    expect(failed.getByText('2 tests')).toBeInTheDocument();
     expect(failed.getByText('rounds the total to cents before it charges')).toBeInTheDocument();
     expect(failed.getByText('shows the card error next to the field')).toBeInTheDocument();
     expect(failed.getAllByText('src/checkout/payment.test.ts')).toHaveLength(2);
@@ -49,7 +50,7 @@ describe('A run', () => {
     const { user } = open('job-1a2b3c4d5e');
     expect(await screen.findByRole('heading', { level: 1, name: 'Tests in harbor-shop' }, { timeout: 4000 })).toBeInTheDocument();
     if (!screen.queryByText('Running')) return; // ended already on a slow machine
-    expect(screen.getByText('Not reported')).toBeInTheDocument();
+    expect(screen.getByText('Not reported yet')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Following/ })).toHaveAttribute('aria-pressed', 'true');
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
     await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Cancel the run' }));

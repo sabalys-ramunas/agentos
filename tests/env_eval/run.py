@@ -89,12 +89,30 @@ async def model_session(args: argparse.Namespace, task: Task, ctx: Ctx, i: int, 
     prompt = task.prompt(ctx, i)
     skill = agent_runs.skill_path(args.src)
     common = {"url": url, "token": token, "model": args.model, "skill": skill, "transcript": transcript,
-              "timeout_s": task.timeout_s}
+              "timeout_s": task.timeout_s, "cwd": ctx.local, "host_tools": task.host_tools}
     if args.agent_kind == "claude":
-        return await agent_runs.claude(prompt, cap_usd=cap_usd, **common)
+        return await agent_runs.claude(prompt, cap_usd=cap_usd, max_turns=args.max_turns, **common)
     if args.agent_kind == "codex":
         return await agent_runs.codex(prompt, **common)
     return await agent_runs.command(args.agent_cmd, prompt, **common)
+
+
+async def one_session(args: argparse.Namespace, task: Task, kind: str, ctx: Ctx, i: int, url: str, token: str,
+                      transcript: Path, cap_usd: float) -> tuple[str, dict[str, Any], str | None]:
+    """One session of any agent, with the harness's `during` step beside it (stopped when the session ends)."""
+    during = task.sessions[i].during
+    step = asyncio.create_task(during(ctx)) if during is not None else None
+    try:
+        if kind in SCRIPTED:
+            answer, err = await scripted_session(task, kind, ctx, i, url, token)
+            return answer, {}, err
+        return await model_session(args, task, ctx, i, url, token, transcript, cap_usd)
+    finally:
+        if step is not None:
+            step.cancel()
+            await asyncio.gather(step, return_exceptions=True)
+            if not step.cancelled() and step.exception() is not None:  # the harness's step broke: said, never hidden
+                ctx.notes["during_error"] = f"{type(step.exception()).__name__}: {step.exception()}"
 
 
 def _sum_metrics(parts: list[dict[str, Any]]) -> dict[str, Any]:
@@ -123,6 +141,9 @@ async def run_task(args: argparse.Namespace, task: Task, kind: str, rep: int, *,
     base = {"task": task.id, "agent": kind, "model": args.model if kind not in SCRIPTED else None, "repeat": rep}
     if task.scripted_only and kind not in SCRIPTED:
         return {**base, "skipped": task.scripted_only}
+    if task.host_tools and kind not in SCRIPTED and not args.host_shell:
+        return {**base, "skipped": "it needs a shell on this computer to move files (curl, tar): --host-shell "
+                                   "allows the commands the task lists"}
     if task.repo and not has_node():
         return {**base, "skipped": "the checker runs the repository's tests with node, which is not installed here"}
     where = out / kind / f"{task.id}-r{rep}"
@@ -144,17 +165,17 @@ async def run_task(args: argparse.Namespace, task: Task, kind: str, rep: int, *,
             return {**base, "skipped": f"this openajar has no {', '.join(missing)}"}
         t0s: list[float] = []
         mark0 = rec.mark()
+        if task.local is not None:
+            ctx.local = where / "local"
+            ctx.local.mkdir(parents=True, exist_ok=True)
+            task.local(ctx.local)
         for i, session in enumerate(task.sessions):
             if session.before is not None:
                 await session.before(ctx)
             mark = rec.mark()
             t0s.append(time.monotonic())
-            if kind in SCRIPTED:
-                answer, err = await scripted_session(task, kind, ctx, i, proxy.url, node.token)
-                metrics: dict[str, Any] = {}
-            else:
-                answer, metrics, err = await model_session(args, task, ctx, i, proxy.url, node.token,
-                                                           where / f"session{i + 1}.jsonl", cap_usd)
+            answer, metrics, err = await one_session(args, task, kind, ctx, i, proxy.url, node.token,
+                                                     where / f"session{i + 1}.jsonl", cap_usd)
             calls, _ = rec.since(mark)
             rows = [c.__dict__ for c in calls]
             ctx.session_rows.append(rows)
@@ -302,6 +323,10 @@ def parse(argv: list[str]) -> argparse.Namespace:
                    help=f"refuse a paid run estimated above this; also its hard cap (default {budget.DEFAULT_MAX_USD})")
     p.add_argument("--session-usd", type=float, help="your estimate of one session's cost, for a model the price "
                                                       "table does not know (a Codex model)")
+    p.add_argument("--max-turns", type=int, default=agent_runs.MAX_TURNS, help="a claude session's turn limit")
+    p.add_argument("--host-shell", action="store_true",
+                   help="let a model agent run the shell commands a task lists (t13's curl and tar) on this computer; "
+                        "without it such a task is skipped for a model")
     p.add_argument("--ref", help="run the node of this commit (a temporary worktree of it), under this harness")
     p.add_argument("--out", type=Path, help="results and transcripts (default: a new temporary folder)")
     p.add_argument("--keep", action="store_true", help="keep each node's home and repositories under --out")
@@ -368,7 +393,12 @@ def cmd_run(argv: list[str]) -> int:
         if kind not in SCRIPTED:
             cap = each
             print(f"{kind} on {args.model}: {sessions} sessions, estimated at most ${est:.2f} "
-                  f"(each session capped at ${each:.2f}; --max-usd {args.max_usd:.2f})")
+                  f"(each session capped at ${each:.2f}; --max-usd {args.max_usd:.2f})", flush=True)
+    for kind in args.agent:
+        missing = agent_runs.signed_in(kind)
+        if missing:
+            print(f"env eval: the {kind} agent cannot run: {missing}", file=sys.stderr)
+            return 2
     out = args.out or Path(tempfile.mkdtemp(prefix="env-eval-"))
     out.mkdir(parents=True, exist_ok=True)
     signal.signal(signal.SIGINT, signal.default_int_handler)  # Ctrl-C, even when started with it ignored

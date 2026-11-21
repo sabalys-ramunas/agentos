@@ -14,14 +14,13 @@ import { Input } from '@/components/ui/field';
 import { Meter } from '@/components/ui/misc';
 import { Select } from '@/components/ui/select';
 import { EmptyState, ErrorState, InlineError, NoAccess, QueryView, Skeleton } from '@/components/ui/states';
-import { StatusDot } from '@/components/ui/status';
+import { Status, StatusDot } from '@/components/ui/status';
 import { Table, Td, Th, Tr, mainCell, TableScroll } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/toggle';
 import { describeError } from '@/lib/errors';
 import { timeAgo } from '@/lib/format';
 import { memoryTrust, memoryType } from '@/lib/labels';
 import { saveFile } from '@/lib/save-file';
-import { cn } from '@/lib/cn';
 import { SettingsHeader } from '@/features/settings/page';
 import { EntrySheet, type EntryTarget } from './entry-sheet';
 import { bytesText, keptSentence, RECORD_WARNING, recordSentence, TRUST_FILTERS, TYPE_FILTERS, waitingSentence, waitsForLook } from './memory-words';
@@ -177,7 +176,7 @@ function RoomsTable({ rows, nameOf, scope, onScope }: { rows: MemoryWorkspace[];
         <thead>
           <Tr>
             <Th className={mainCell}>Workspace</Th>
-            <Th className="hidden md:table-cell">Kept</Th>
+            <Th className="hidden md:table-cell">Entries kept</Th>
             <Th className="hidden md:table-cell">Text</Th>
             <Th>Waiting</Th>
             <Th className="hidden sm:table-cell">Record</Th>
@@ -196,7 +195,7 @@ function RoomsTable({ rows, nameOf, scope, onScope }: { rows: MemoryWorkspace[];
 
 function RoomRow({ row, name, selected, onSelect }: { row: MemoryWorkspace; name: string; selected: boolean; onSelect: () => void }) {
   return (
-    <Tr className={cn(selected && 'bg-hover')}>
+    <Tr selected={selected}>
       <Td className={mainCell}>
         <button type="button" aria-pressed={selected} onClick={onSelect} className="block max-w-full truncate text-left text-label hover:underline focus-inset">
           {name}
@@ -205,8 +204,10 @@ function RoomRow({ row, name, selected, onSelect }: { row: MemoryWorkspace; name
           {keptSentence(row)} · {recordSentence(row)}
         </span>
       </Td>
-      <Td className="hidden w-36 md:table-cell">
-        <span className="tabular block text-secondary text-muted">{keptSentence(row)}</span>
+      <Td className="hidden w-32 md:table-cell">
+        <span className="tabular block text-secondary text-muted">
+          {row.live_entries.toLocaleString('en')} of {row.live_entries_cap.toLocaleString('en')}
+        </span>
         <Meter className="mt-2 shrink-0" value={row.live_entries} max={row.live_entries_cap} label={`Entries kept in ${name}`} />
       </Td>
       <Td className="hidden w-36 md:table-cell">
@@ -215,11 +216,10 @@ function RoomRow({ row, name, selected, onSelect }: { row: MemoryWorkspace; name
         </span>
         <Meter className="mt-2 shrink-0" value={row.content_bytes} max={row.content_bytes_cap} label={`Text kept in ${name}`} />
       </Td>
-      <Td className="tabular text-secondary">{row.waiting > 0 ? <span className="inline-flex items-center gap-2"><StatusDot tone="warn" />{row.waiting}</span> : <span className="text-faint">0</span>}</Td>
+      <Td className="tabular">{row.waiting > 0 ? <span className="inline-flex items-center gap-2"><StatusDot tone="warn" />{row.waiting}</span> : <span className="text-faint">0</span>}</Td>
       <Td className="hidden sm:table-cell">
-        <span className={cn('inline-flex items-center gap-2 text-secondary', row.chain_ok ? 'text-muted' : 'text-bad')}>
-          <StatusDot tone={row.chain_ok ? 'ok' : 'bad'} />
-          {recordSentence(row)}
+        <span title={recordSentence(row)}>
+          <Status chip status={{ label: row.chain_ok ? 'Checks out' : 'Changed', tone: row.chain_ok ? 'ok' : 'bad' }} />
         </span>
         {!row.chain_ok ? <span className="mt-1 block text-caption text-muted">{RECORD_WARNING}</span> : null}
       </Td>

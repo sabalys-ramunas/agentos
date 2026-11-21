@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/field';
 import { Kbd } from '@/components/ui/misc';
 import { SegmentedControl } from '@/components/ui/tabs';
 import { useKeys } from '@/lib/keyboard';
-import { cn } from '@/lib/cn';
+import { StatusDot } from '@/components/ui/status';
 import { parseFailures, splitLines } from './failures';
 import type { Failure, Stream } from './failures';
 import { OutputView, filterItems, isRow, outputItems } from './output';
@@ -93,36 +93,31 @@ export function OutputCard({ job, text, done, trimmed, jump, onJump }: OutputCar
   const sentence = running
     ? `Following ${job.node} as it runs`
     : done
-      ? `Ended${job.exit_code !== null ? ` with exit code ${job.exit_code}` : ''}. All of the kept output is here`
+      ? `Ended${job.exit_code !== null ? ` with exit code ${job.exit_code}` : ''}`
       : 'Reading the rest of the output';
+
+  const toggle = 'aria-pressed:bg-pressed aria-pressed:text-fg';
 
   return (
     <Card className="overflow-hidden">
       <CardHeader
         title="Output"
-        meta={<span className="max-md:hidden">stdout and stderr, as the machine kept them</span>}
+        meta={<span className="max-md:hidden">What the machine printed</span>}
         action={
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled={!text.first}
-            icon={<CircleAlert className="size-4" />}
-            onClick={() => {
-              if (!text.first) return;
-              setFollow(false);
-              onJump(text.first.stream, text.first.line);
-            }}
-          >
-            First failure
-          </Button>
+          <SegmentedControl
+            label="Which stream"
+            value={stream}
+            onValueChange={(value) => setSearch({ stream: value === 'both' ? undefined : value })}
+            options={STREAMS.map((option) => ({ ...option }))}
+          />
         }
       />
       <div className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-2">
-        <div className="relative min-w-0 flex-1 basis-48 md:max-w-72">
+        <div className="relative min-w-0 flex-1 basis-48 md:max-w-80">
           <label htmlFor="run-output-filter" className="sr-only">
             Filter the output
           </label>
-          <Search aria-hidden="true" className="pointer-events-none absolute top-1/2 left-2 size-4 -translate-y-1/2 text-faint" />
+          <Search aria-hidden="true" className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-faint" />
           <Input
             id="run-output-filter"
             ref={filterRef}
@@ -130,7 +125,7 @@ export function OutputCard({ job, text, done, trimmed, jump, onJump }: OutputCar
             type="search"
             value={query}
             placeholder="Filter lines"
-            className="pr-8 pl-8"
+            className="pr-9 pl-9"
             onChange={(event) => {
               setQuery(event.target.value);
               setSearch({ q: event.target.value || undefined });
@@ -143,38 +138,22 @@ export function OutputCard({ job, text, done, trimmed, jump, onJump }: OutputCar
               }
             }}
           />
-          <Kbd aria-hidden="true" className="absolute top-1/2 right-2 -translate-y-1/2 max-md:hidden">/</Kbd>
+          <Kbd aria-hidden="true" className="absolute top-1/2 right-3 -translate-y-1/2 max-md:hidden">/</Kbd>
         </div>
-        <SegmentedControl
-          label="Which stream"
-          value={stream}
-          onValueChange={(value) => setSearch({ stream: value === 'both' ? undefined : value })}
-          options={STREAMS.map((option) => ({ ...option }))}
-        />
-        <div className="ml-auto flex items-center gap-1">
-          <Button
-            size="sm"
-            variant="ghost"
-            aria-pressed={wrap}
-            className="aria-pressed:bg-hover aria-pressed:text-fg"
-            icon={<WrapText className="size-4" />}
-            onClick={() => setSearch({ wrap: wrap ? undefined : true })}
-            shortcut="W"
-          >
-            Wrap
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            aria-pressed={follow}
-            className="aria-pressed:bg-hover aria-pressed:text-fg"
-            icon={<ArrowDownToLine className="size-4" />}
-            onClick={() => setFollow((value) => !value)}
-            shortcut="F"
-          >
-            {follow ? 'Following' : 'Follow'}
-          </Button>
-        </div>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="ml-auto"
+          disabled={!text.first}
+          icon={<CircleAlert className="size-4" />}
+          onClick={() => {
+            if (!text.first) return;
+            setFollow(false);
+            onJump(text.first.stream, text.first.line);
+          }}
+        >
+          First failure
+        </Button>
       </div>
       {trimmed ? (
         <p className="border-b border-line px-5 py-2 text-secondary text-muted">
@@ -208,15 +187,40 @@ export function OutputCard({ job, text, done, trimmed, jump, onJump }: OutputCar
           }
         />
       </div>
-      <div className={cn('flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-line bg-inset px-5 py-2 text-caption text-muted')}>
-        <span>{sentence}</span>
-        <span aria-hidden="true">·</span>
-        <span className="font-mono tabular">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line py-2 pr-3 pl-5 text-secondary text-muted">
+        <span className="inline-flex min-w-0 items-center gap-2">
+          {running ? <StatusDot tone="live" /> : null}
+          {sentence}
+        </span>
+        <span className="tabular">
           {query ? `${shown.filter(isRow).length.toLocaleString('en')} of ` : ''}
           {lineCount.toLocaleString('en')} {lineCount === 1 ? 'line' : 'lines'}
         </span>
-        <span aria-hidden="true">·</span>
-        <span className="font-mono tabular">{bytes(Math.max(0, job.stdout_bytes + job.stderr_bytes - job.dropped_bytes))} kept on {job.node}</span>
+        <span className="tabular">{bytes(Math.max(0, job.stdout_bytes + job.stderr_bytes - job.dropped_bytes))} kept on {job.node}</span>
+        <span className="ml-auto flex items-center gap-1">
+          <Button
+            size="sm"
+            variant="ghost"
+            aria-pressed={wrap}
+            className={toggle}
+            icon={<WrapText className="size-4" />}
+            onClick={() => setSearch({ wrap: wrap ? undefined : true })}
+            shortcut="W"
+          >
+            Wrap
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            aria-pressed={follow}
+            className={toggle}
+            icon={<ArrowDownToLine className="size-4" />}
+            onClick={() => setFollow((value) => !value)}
+            shortcut="F"
+          >
+            {follow ? 'Following' : 'Follow'}
+          </Button>
+        </span>
       </div>
     </Card>
   );

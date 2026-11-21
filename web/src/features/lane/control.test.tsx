@@ -10,14 +10,19 @@ import { server } from '@/test/setup';
 const org = () => db.orgs.get('northwind-group')!;
 const lane = (id: string) => org().lanes.find((item) => item.id === id)!;
 const bar = (name: string) => screen.findByRole('region', { name: `Control of ${name}` });
+/** The control pill's words, which say who has control, read as one line. */
+const pill = (words: string | RegExp) => (_: string, node: Element | null) =>
+  Boolean(node?.matches('.control-pill [role="status"]') && (typeof words === 'string' ? node.textContent === words : words.test(node.textContent ?? '')));
 
 describe('lane control', () => {
   it('says the agent has control, and offers Take over and Stop agent', async () => {
     renderApp('/northwind-group/lanes/aster/instagram');
     const region = within(await bar('Instagram'));
-    expect(region.getByText('Agent has control')).toBeInTheDocument();
+    expect((await region.findByText(pill(/^Claude Code has control/)))).toBeInTheDocument();
     expect(region.getByRole('button', { name: 'Take over' })).toBeInTheDocument();
-    expect(region.getByRole('button', { name: 'Stop agent' })).toBeInTheDocument();
+    // Stopping is rare and final, so it waits in the pill's ⋯ menu, not beside Take over.
+    expect(region.queryByRole('button', { name: 'Stop agent' })).not.toBeInTheDocument();
+    expect(region.getByRole('button', { name: 'More for this screen' })).toBeInTheDocument();
   });
 
   it('only says "you have control" once the server has agreed', async () => {
@@ -39,15 +44,15 @@ describe('lane control', () => {
     await user.click(region.getByRole('button', { name: 'Take over' }));
     const busy = await region.findByRole('button', { name: 'Taking control' });
     expect(busy).toHaveAttribute('aria-disabled', 'true');
-    expect(region.getByText('Agent has control')).toBeInTheDocument();
-    expect(region.queryByText('You have control')).not.toBeInTheDocument();
+    expect((await region.findByText(pill(/^Claude Code has control/)))).toBeInTheDocument();
+    expect(region.queryByText(pill(/^You have control/))).not.toBeInTheDocument();
     release();
     // the answer, the lane's refetch and the person's own name all have to land: on a busy CI
     // worker that took longer than the 5 s every other wait gets
-    expect(await region.findByText('You have control', {}, { timeout: 15_000 })).toBeInTheDocument();
+    expect(await region.findByText(pill(/^You have control/), {}, { timeout: 15_000 })).toBeInTheDocument();
     // A later read of the lane, such as the catch-up after the event stream reconnects, agrees.
     await act(() => client.invalidateQueries({ queryKey: ['org', 'northwind-group'] }));
-    expect(region.getByText('You have control')).toBeInTheDocument();
+    expect(region.getByText(pill(/^You have control/))).toBeInTheDocument();
   }, 20_000); // a slow machine must not turn the wait for the server into a failure
 
   it('keeps focus on Take over while its request runs, and a second press sends nothing', async () => {
@@ -76,7 +81,7 @@ describe('lane control', () => {
     await user.click(button);
     expect(calls).toBe(1);
     release();
-    await region.findByText('You have control', {}, { timeout: 15_000 });
+    await region.findByText(pill(/^You have control/), {}, { timeout: 15_000 });
     expect(document.activeElement).toBe(button);
     expect(button).not.toHaveAttribute('aria-disabled');
   }, 20_000);
@@ -87,7 +92,7 @@ describe('lane control', () => {
     const button = region.getByRole('button', { name: 'Take over' });
     button.focus();
     await user.keyboard('{Enter}');
-    await region.findByText('You have control');
+    await region.findByText(pill(/^You have control/));
     expect(region.getByRole('button', { name: 'Hand back' })).toBe(button);
     expect(document.activeElement).toBe(button);
   });
@@ -96,24 +101,24 @@ describe('lane control', () => {
     const { user } = renderApp('/northwind-group/lanes/aster/instagram');
     const region = within(await bar('Instagram'));
     await user.keyboard('t');
-    await region.findByText('You have control');
-    expect(region.getByText(/Returns to them in 10:00|Returns to them in 9:5\d/)).toBeInTheDocument();
+    await region.findByText(pill(/^You have control/));
     expect(lane('aster/instagram').control.state).toBe('human');
     await user.keyboard('t');
-    await region.findByText('Agent has control');
+    await region.findByText(pill(/^Claude Code has control/));
     expect(lane('aster/instagram').control.state).toBe('agent');
   });
 
   it('says exactly what Stop agent does, and only acts on confirmation', async () => {
     const { user } = renderApp('/northwind-group/lanes/aster/instagram');
     const region = within(await bar('Instagram'));
-    await user.click(region.getByRole('button', { name: 'Stop agent' }));
+    await user.click(region.getByRole('button', { name: 'More for this screen' }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Stop agent' }));
     const dialog = within(await screen.findByRole('dialog'));
     expect(dialog.getByText(/Any run or brain task on this account is cancelled/)).toBeInTheDocument();
     expect(lane('aster/instagram').control.state).toBe('agent');
     await user.click(dialog.getByRole('button', { name: 'Stop agent' }));
     await waitFor(() => expect(lane('aster/instagram').control.state).toBe('paused'));
-    expect(await region.findByText('Agent stopped')).toBeInTheDocument();
+    expect(await region.findByText(pill(/^Claude Code stopped/))).toBeInTheDocument();
     // A stopped agent is taken over first (to look, or to do what it cannot), then handed back.
     expect(region.getByRole('button', { name: 'Take over' })).toBeInTheDocument();
     expect(region.queryByRole('button', { name: 'Hand back' })).not.toBeInTheDocument();
@@ -122,7 +127,7 @@ describe('lane control', () => {
   it('shows the banner when an agent asks for control back, with both answers', async () => {
     const { user } = renderApp('/northwind-group/lanes/meridian/linkedin');
     const region = within(await bar('LinkedIn'));
-    expect(region.getByText('Mara Lindqvist has control')).toBeInTheDocument();
+    expect(region.getByText(pill(/^Mara Lindqvist has control/))).toBeInTheDocument();
     expect(region.getByText(/is asking for control back/)).toBeInTheDocument();
     expect(region.getByText('The scheduled post is due in 10 minutes')).toBeInTheDocument();
     await user.click(region.getByRole('button', { name: 'Keep control' }));
@@ -136,15 +141,15 @@ describe('lane control', () => {
     const region = within(await bar('Instagram'));
     const control = { ...idleControl, state: 'human' as const, by: 'Mara Lindqvist', since: new Date().toISOString() };
     act(() => applyLiveEvent(client, 'northwind-group', { type: 'control', payload: { lane: 'aster/instagram', control } }));
-    expect(await region.findByText('Mara Lindqvist has control')).toBeInTheDocument();
+    expect(await region.findByText(pill(/^Mara Lindqvist has control/))).toBeInTheDocument();
   });
 
   it.each(['viewer', 'approver'] as const)('shows a %s who holds a lane, and no control at all', async (role) => {
     org().role = role;
     renderApp('/northwind-group/lanes/aster/instagram');
     const region = within(await bar('Instagram'));
-    expect(region.getByText('Agent has control')).toBeInTheDocument();
-    for (const name of ['Take over', 'Stop agent', 'Hand back', 'Keep control']) {
+    expect((await region.findByText(pill(/^Claude Code has control/)))).toBeInTheDocument();
+    for (const name of ['Take over', 'More for this screen', 'Hand back', 'Keep control']) {
       expect(region.queryByRole('button', { name })).not.toBeInTheDocument();
     }
   });
@@ -159,7 +164,7 @@ describe('lane control', () => {
     const region = within(await bar('Instagram'));
     await user.click(region.getByRole('button', { name: 'Take over' }));
     expect(await region.findByRole('alert')).toHaveTextContent('Someone else took this lane first.');
-    expect(region.getByText('Agent has control')).toBeInTheDocument();
+    expect((await region.findByText(pill(/^Claude Code has control/)))).toBeInTheDocument();
   });
 
   it('explains a hold with its end time, and the wrong account', async () => {
@@ -171,10 +176,10 @@ describe('lane control', () => {
     Object.assign(lane('aster/instagram'), { state: 'warm', signal: 'captcha', hold: 'needs_human:captcha', control: { ...idleControl, state: 'paused', by: 'Demo Owner', by_id: 'usr_DEMO', since: new Date().toISOString() } });
     const { user } = renderApp('/northwind-group/lanes/aster/instagram');
     const region = within(await bar('Instagram'));
-    expect(region.getByText('Held for a check')).toBeInTheDocument();
+    expect(region.getByText(pill('Held for a check'))).toBeInTheDocument();
     expect(region.queryByRole('button', { name: 'Hand back' })).not.toBeInTheDocument();
     expect(region.getByRole('button', { name: 'Take over' })).toBeInTheDocument();
-    expect(region.queryByRole('button', { name: 'Stop agent' })).not.toBeInTheDocument();
+    expect(region.queryByRole('button', { name: 'More for this screen' })).not.toBeInTheDocument();
     await user.click(region.getByRole('button', { name: 'Take over' }));
     expect(await region.findByRole('button', { name: 'Not done yet' })).toBeInTheDocument();
   });

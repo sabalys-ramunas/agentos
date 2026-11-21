@@ -1,63 +1,56 @@
 /**
- * Starting a routine: a job a person recognises, not a blank canvas. Each card shows the job as a
- * sentence and the real sites it would use in this business, and one click opens it ready to go.
+ * Starting a routine: a job a person recognises, not a blank canvas. Each card shows the job's tile, its
+ * name, the job as a sentence and who it is for, and one click opens it ready to go.
  */
 import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router';
-import { ArrowLeft, ArrowRight, Lock, Plus } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Camera, Euro, Mail, Package, Plus, Sheet, ShieldCheck, Users, Webhook } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useAccess, useMailboxes, useNodes, useRoutineCatalog, useWorkspaces } from '@/api/hooks';
-import type { RoutineCatalog, RoutineStep, RoutineTemplate } from '@/api/types';
-import { Card } from '@/components/ui/card';
+import type { RoutineTemplate } from '@/api/types';
+import { BusinessMark } from '@/components/brand/identity';
+import { usePageCrumb } from '@/components/shell/crumb';
+import { Button } from '@/components/ui/button';
+import { Card, cardLink } from '@/components/ui/card';
+import { PageHeader } from '@/components/ui/misc';
+import { AppTile } from '@/components/ui/tile';
+import type { TileTone } from '@/components/ui/tile';
 import { Select } from '@/components/ui/select';
 import { NoAccess, QueryView, Skeleton } from '@/components/ui/states';
 import { useActiveWorkspace } from '@/lib/active-workspace';
-import { fillTemplate, flatSteps } from '@/lib/routines';
-import { StepMark, TriggerMark } from './flow-map';
+import { cn } from '@/lib/cn';
 
-function Chain({ template, catalog, workspace }: { template: RoutineTemplate; catalog: RoutineCatalog; workspace: string | null }) {
-  // A picture of the job, so a site this business has not connected yet still shows what it means.
-  const filled = fillTemplate(template, catalog, workspace);
-  const anywhere = flatSteps(template.steps);
-  const shown = flatSteps(filled.steps)
-    .filter((step: RoutineStep) => step.kind !== 'branch' && step.kind !== 'loop')
-    .map((step) => {
-      const tag = anywhere.find((item) => item.id === step.id);
-      if (step.kind !== 'action' || step.operation || tag?.kind !== 'action') return step;
-      return { ...step, operation: catalog.operations.find((item) => tag.operation?.startsWith('tag:') && item.tags.includes(tag.operation.slice(4)))?.id ?? null };
-    })
-    .slice(0, 3);
-  return (
-    <div className="picture-stage flex h-32 items-center justify-center gap-0 border-b border-line">
-      <TriggerMark trigger={template.trigger} size={40} />
-      {shown.map((step) => (
-        <span key={step.id} className="flex items-center">
-          <span aria-hidden="true" className="h-px w-4 bg-(--board-wire-strong)" />
-          <StepMark step={step} catalog={catalog} size={40} />
-        </span>
-      ))}
-    </div>
-  );
-}
+/** Each starting job wears the wrapper tile of what it does, as drawn. */
+const TEMPLATE_TILE: Record<RoutineTemplate['icon'], { icon: LucideIcon; tone: TileTone }> = {
+  order: { icon: Package, tone: 'amber' },
+  invoice: { icon: Euro, tone: 'green' },
+  newsletter: { icon: Mail, tone: 'blue' },
+  outreach: { icon: Users, tone: 'teal' },
+  post: { icon: Camera, tone: 'pink' },
+  webhook: { icon: Webhook, tone: 'ink' },
+  new_row: { icon: Sheet, tone: 'violet' },
+};
 
-function TemplateCard({ org, template, catalog, workspace, noMailbox }: { org: string; template: RoutineTemplate; catalog: RoutineCatalog; workspace: string | null; noMailbox: boolean }) {
+function TemplateCard({ org, template, workspace, noMailbox }: { org: string; template: RoutineTemplate; workspace: string | null; noMailbox: boolean }) {
   const needsMail = template.needs?.includes('mailbox') === true;
+  const tile = TEMPLATE_TILE[template.icon];
   return (
     <Link
       to="/$org/flows/new/$template"
       params={{ org, template: template.id }}
       search={{ workspace: workspace ?? undefined }}
       aria-label={`${template.name}: ${template.sentence}`}
-      className="group/job flex flex-col overflow-hidden rounded-(--radius-card) border border-line bg-card shadow-(--shadow-card) transition-[box-shadow,border-color,transform] duration-(--duration-settle) ease-(--ease-out) hover:-translate-y-px hover:border-line-strong hover:shadow-(--shadow-hover) motion-reduce:hover:translate-y-0"
+      className={cn(cardLink, 'group/job flex flex-col gap-3 p-5')}
     >
-      <Chain template={template} catalog={catalog} workspace={workspace} />
-      <span className="flex flex-1 flex-col p-4">
+      <AppTile tone={tile.tone} icon={tile.icon} />
+      <span className="grid gap-1">
         <span className="flex items-center justify-between gap-2 text-section-title">
           {template.name}
-          <ArrowRight aria-hidden="true" className="size-4 text-faint opacity-0 transition-opacity duration-(--duration-fast) ease-standard group-hover/job:opacity-100" />
+          <ArrowRight aria-hidden="true" className="size-4 text-faint opacity-0 transition-opacity duration-(--duration-fast) ease-standard group-hover/job:opacity-100 group-focus-visible/job:opacity-100" />
         </span>
-        <span className="mt-1 text-body text-pretty text-muted">{template.sentence}</span>
-        <span className="mt-auto pt-3 text-secondary text-faint">{template.note}</span>
-        {needsMail && noMailbox ? <span className="pt-1 text-secondary text-warn">Needs a mailbox first. Connect one in Email.</span> : null}
+        <span className="text-body text-pretty text-fg">{template.sentence}</span>
       </span>
+      <span className="mt-auto text-secondary text-pretty text-muted">{template.note}</span>
+      {needsMail && noMailbox ? <span className="text-secondary text-warn">Needs a mailbox first. Connect one in Email.</span> : null}
     </Link>
   );
 }
@@ -77,6 +70,7 @@ export function NewRoutine() {
   // No workspace chosen in the top bar reads as an empty string.
   const workspace = search.workspace || active || workspaces[0]?.id || null;
   const options = workspaces.map((item) => ({ value: item.id, label: item.name }));
+  usePageCrumb('New routine', { mono: false });
 
   if (!canOperate) {
     return (
@@ -86,54 +80,64 @@ export function NewRoutine() {
     );
   }
 
+  const chosen = workspaces.find((item) => item.id === workspace);
+
   return (
-    <div className="grid gap-10">
-      <div>
-        <Link to="/$org/flows" params={{ org }} className="mb-6 inline-flex items-center gap-1 text-secondary text-muted hover:text-fg">
-          <ArrowLeft className="size-3" /> Routines
-        </Link>
-        <header className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
-          <div className="max-w-2xl">
-            <h1 className="text-headline text-balance sm:text-display">
-              What should happen <span className="text-faint">on its own?</span>
-            </h1>
-            <p className="mt-3 text-lede text-pretty text-muted">Pick a job you already do. It opens ready to go, and you can change any part of it.</p>
-          </div>
-          {options.length > 1 && workspace ? (
-            <Select aria-label="For which business" value={workspace} onValueChange={(next) => void navigate({ search: { workspace: next }, replace: true })} options={options} className="md:w-56" />
-          ) : null}
-        </header>
-      </div>
-      {nodes.length === 0 ? <p className="text-body text-muted">Connect a computer to run these. You can still look around.</p> : null}
-      <QueryView
-        query={catalog}
-        card
-        skeleton={
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }, (_, index) => (
-              <Skeleton key={index} className="h-64 rounded-(--radius-card)" />
-            ))}
-          </div>
+    <>
+      <Link to="/$org/flows" params={{ org }} className="mb-6 inline-flex items-center gap-1 rounded-sm text-secondary text-muted hover:text-fg">
+        <ArrowLeft className="size-3.5" /> Routines
+      </Link>
+      <PageHeader
+        eyebrow={
+          chosen ? (
+            <span className="inline-flex items-center gap-2 text-body text-muted">
+              <BusinessMark name={chosen.name} color={chosen.color} size={20} />
+              {chosen.name}
+            </span>
+          ) : undefined
         }
-      >
-        {(data) => (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {data.templates.map((template) => (
-              <TemplateCard key={template.id} org={org} template={template} catalog={data} workspace={workspace} noMailbox={noMailbox} />
-            ))}
-          </div>
-        )}
-      </QueryView>
-      <div className="flex flex-col gap-4 border-t border-line pt-6 sm:flex-row sm:items-center sm:justify-between">
-        <p className="flex items-start gap-2 text-secondary text-pretty text-muted">
-          <Lock aria-hidden="true" className="size-4 shrink-0 translate-y-0.5 text-faint" />
+        title="What should happen on its own?"
+        description="Pick a job you already do. It opens ready to go, and you can change any part of it."
+        actions={
+          options.length > 1 && workspace ? (
+            <Select aria-label="For which business" value={workspace} onValueChange={(next) => void navigate({ search: { workspace: next }, replace: true })} options={options} className="md:w-56" />
+          ) : undefined
+        }
+      />
+      <div className="grid gap-6">
+        {nodes.length === 0 ? <p className="text-body text-muted">Connect a computer to run these. You can still look around.</p> : null}
+        <QueryView
+          query={catalog}
+          card
+          skeleton={
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 6 }, (_, index) => (
+                <Skeleton key={index} className="h-56 rounded-xl" />
+              ))}
+            </div>
+          }
+        >
+          {(data) => (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {data.templates.map((template) => (
+                <TemplateCard key={template.id} org={org} template={template} workspace={workspace} noMailbox={noMailbox} />
+              ))}
+            </div>
+          )}
+        </QueryView>
+        <p className="flex items-start gap-3 rounded-xl border border-line bg-inset px-5 py-4 text-body text-pretty text-fg">
+          <ShieldCheck aria-hidden="true" className="mt-1 size-4 shrink-0 text-muted" />
           Anything that emails people stops at a daily limit, skips anyone who asked not to hear from you, and only goes to a list you gave it.
         </p>
-        <Link to="/$org/flows/new/$template" params={{ org, template: 'blank' }} search={{ workspace: workspace ?? undefined }} className="inline-flex shrink-0 items-center gap-1 text-body text-fg hover:underline">
-          <Plus aria-hidden="true" className="size-4" />
-          Start from nothing
-        </Link>
+        <div>
+          <Button asChild>
+            <Link to="/$org/flows/new/$template" params={{ org, template: 'blank' }} search={{ workspace: workspace ?? undefined }}>
+              <Plus aria-hidden="true" className="size-4" />
+              Start from nothing
+            </Link>
+          </Button>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

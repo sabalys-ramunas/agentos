@@ -4,14 +4,15 @@
  * the whole log is intact is asked of the owner alone, as the node refuses anyone else.
  */
 import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router';
-import { ChevronLeft, ChevronRight, Share2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Link2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useAccess, useProofDay, useProofReplay, useWorkspaces } from '@/api/hooks';
 import { proof } from '@/api/client';
 import type { ProofStep } from '@/api/types';
+import { usePageCrumb } from '@/components/shell/crumb';
 import { Button, IconButton } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
-import { Section } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/misc';
 import { Select } from '@/components/ui/select';
 import { EmptyState, ErrorState, QueryView, Skeleton } from '@/components/ui/states';
@@ -52,6 +53,7 @@ export function ProofPage() {
   const who = usePrincipalName(org);
   const workspaces = useWorkspaces(org);
   const names = useMemo(() => placeNames(workspaces.data), [workspaces.data]);
+  usePageCrumb('Proof', { mono: false });
   const [target, setTarget] = useState<ShareTarget | null>(null);
   const [shot, setShot] = useState<{ src: string; title: string } | null>(null);
 
@@ -67,36 +69,42 @@ export function ProofPage() {
   return (
     <>
       <PageHeader
+        eyebrow={
+          <Link to="/$org/activity" params={{ org }} className="inline-flex min-h-8 items-center gap-1 text-secondary text-muted hover:text-fg md:min-h-0">
+            <ChevronLeft aria-hidden="true" className="size-4" />
+            Back to {PLACES.history.word}
+          </Link>
+        }
         title="Proof"
-        description={`What one account did on one day, checked against the signed log. ${PLACES.history.word} shows the story, and this shows the record behind it.`}
+        description={`What one account did on one day, checked against the signed log. ${PLACES.history.word} tells the story, and this shows it can be trusted.`}
         actions={
-          <Button asChild>
-            <Link to="/$org/activity" params={{ org }}>
-              Back to {PLACES.history.word}
-            </Link>
-          </Button>
+          owner && lane && day ? (
+            <Button icon={<Link2 className="size-4" />} onClick={() => setTarget({ kind: 'day', lane, day })}>
+              Share this day
+            </Button>
+          ) : null
         }
       />
 
-      <div className="grid gap-12">
+      <div className="grid gap-6">
         {owner ? <LogCheck org={org} /> : null}
 
-        <Section
-          title={day ? dayTitle(day) : 'A day'}
-          description={
-            lane && replay.data ? `${plural(replay.data.steps.length, 'step')} on ${laneName(accountOf(lane))}. ${chainSentence(replay.data.chain)}` : undefined
-          }
-          action={
-            owner && lane && day ? (
-              <Button icon={<Share2 className="size-4" />} onClick={() => setTarget({ kind: 'day', lane, day })}>
-                Share this day
-              </Button>
-            ) : undefined
-          }
-        >
-          <div className="flex items-center gap-2">
+        <Card className="overflow-hidden">
+          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-line px-5 py-4">
+            <div className="min-w-0">
+              <h2 className="text-section-title">
+                {day ? dayTitle(day) : 'A day'}
+                {lane ? <span className="text-muted"> · {laneName(accountOf(lane))}</span> : null}
+              </h2>
+              {lane && replay.data ? (
+                <p className="text-secondary text-pretty text-muted">
+                  {plural(replay.data.steps.length, 'step')}. {chainSentence(replay.data.chain)}
+                </p>
+              ) : null}
+            </div>
+          <div className="flex w-full items-center gap-2 sm:w-auto">
             {accounts.length > 0 ? (
-              <div className="min-w-0 flex-1 sm:max-w-72">
+              <div className="min-w-0 flex-1 sm:w-56 sm:flex-none">
                 <Select
                   aria-label="Account"
                   value={lane}
@@ -113,16 +121,17 @@ export function ProofPage() {
               <ChevronRight className="size-4" />
             </IconButton>
           </div>
+          </div>
 
           {index.isPending ? (
-            <div role="status" aria-label="Loading" className="grid gap-3">
+            <div role="status" aria-label="Loading" className="grid gap-3 p-5">
               <Skeleton className="h-10 w-full" />
               <Skeleton className="h-10 w-full" />
             </div>
           ) : index.isError ? (
             <ErrorState error={index.error} onRetry={() => void index.refetch()} />
           ) : accounts.length === 0 ? (
-            <div className="rounded-xl border border-line">
+            <div>
               <EmptyState
                 title="Nothing was done on any account this day"
                 description="Pick another day with the arrows. Days with work on them show their accounts here."
@@ -132,7 +141,7 @@ export function ProofPage() {
             <QueryView
               query={replay}
               skeleton={
-                <div role="status" aria-label="Loading" className="grid gap-3">
+                <div role="status" aria-label="Loading" className="grid gap-3 p-5">
                   <Skeleton className="h-10 w-full" />
                   <Skeleton className="h-10 w-full" />
                 </div>
@@ -140,11 +149,11 @@ export function ProofPage() {
             >
               {(record) =>
                 record.steps.length === 0 ? (
-                  <div className="rounded-xl border border-line">
+                  <div>
                     <EmptyState title="Nothing on this account this day" description="Nothing it did on this day is kept." />
                   </div>
                 ) : (
-                  <div className="overflow-hidden rounded-xl border border-line">
+                  <div>
                     <Table>
                       <thead className="hidden md:table-header-group">
                         <tr>
@@ -173,11 +182,11 @@ export function ProofPage() {
                                 {step.error ? <p className="mt-1 text-caption text-bad">{step.error}</p> : null}
                               </Td>
                               <Td className="hidden md:table-cell">
-                                <Status status={result} />
+                                <Status chip status={result} />
                               </Td>
                               <Td className="hidden md:table-cell">
                                 <span title={chain.sentence}>
-                                  <Status status={chain} />
+                                  <Status chip status={chain} />
                                 </span>
                               </Td>
                               <Td className="shrink-0 text-right whitespace-nowrap">
@@ -191,12 +200,15 @@ export function ProofPage() {
                                   </Button>
                                 ) : null}
                                 {owner ? (
-                                  <IconButton
-                                    label={`Share this step: ${step.summary}`}
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    icon={<Link2 className="size-4" />}
+                                    aria-label={`Share this step: ${step.summary}`}
                                     onClick={() => setTarget({ kind: 'step', trace: step.id, summary: step.summary })}
                                   >
-                                    <Share2 className="size-4" />
-                                  </IconButton>
+                                    <span className="max-md:sr-only">Share</span>
+                                  </Button>
                                 ) : null}
                               </Td>
                             </Tr>
@@ -215,7 +227,7 @@ export function ProofPage() {
               }
             </QueryView>
           )}
-        </Section>
+        </Card>
 
         {owner ? <SharesList org={org} /> : null}
       </div>

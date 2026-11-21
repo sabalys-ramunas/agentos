@@ -17,8 +17,7 @@ describe('one business', () => {
     expect(await screen.findByRole('heading', { name: 'Aster Coffee' })).toBeInTheDocument();
     const accounts = screen.getByRole('heading', { name: 'Accounts' }).closest('section') as HTMLElement;
     expect(within(accounts).getAllByRole('link').length).toBeGreaterThan(0);
-    const queue = await screen.findByRole('heading', { name: 'Still to log in' });
-    const section = queue.closest('section') as HTMLElement;
+    const section = await screen.findByRole('region', { name: 'Still to log in' });
     expect(await within(section).findAllByRole('link', { name: 'Open the account' })).not.toHaveLength(0);
   });
 
@@ -26,7 +25,7 @@ describe('one business', () => {
     asRole('admin');
     renderApp(`/${ORG}/workspaces/aster`);
     expect(await screen.findByRole('heading', { name: 'Accounts' })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Still to log in' })).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Still to log in' })).toBeNull();
     await expect(fleet.workspaceQueue(ORG, 'aster')).rejects.toMatchObject({ status: 403 });
     await expect(fleet.workspace(ORG, 'aster')).resolves.toMatchObject({ id: 'aster' });
   });

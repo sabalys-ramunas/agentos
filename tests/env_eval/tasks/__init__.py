@@ -44,6 +44,7 @@ class ToolFailed(Exception):
 class Session:
     prompt: str                                                     # {repo} is the repository's slug
     before: Callable[[Ctx], Awaitable[None]] | None = None          # the harness's step before it (a build, the pool)
+    during: Callable[[Ctx], Awaitable[None]] | None = None          # ... and while it runs (it kills the machine)
 
 
 @dataclass
@@ -61,6 +62,8 @@ class Task:
     internet: bool = False                                          # it fetches from a public registry
     timeout_s: float = 480                                          # per session, for a model agent
     scripted_only: str | None = None                                # why a model agent skips it (the probes)
+    local: Callable[[Path], None] | None = None                     # writes the person's folder: the agent works in it
+    host_tools: tuple[str, ...] = ()                                # what a model may run there (Claude Code rules)
 
     def prompt(self, ctx: Ctx, session: int) -> str:
         return self.sessions[session].prompt.format(repo=ctx.repo.slug if ctx.repo else "")
@@ -77,6 +80,7 @@ class Ctx:
     session_rows: list[list[dict[str, Any]]] = field(default_factory=list)
     answers: list[str] = field(default_factory=list)                # each session's final words
     notes: dict[str, Any] = field(default_factory=dict)             # what a task's steps keep for its checker
+    local: Path | None = None                                       # the person's folder (Task.local), else None
 
     def calls(self, tool: str, session: int | None = None) -> list[dict[str, Any]]:
         from env_eval.metrics import unwrap
@@ -191,6 +195,14 @@ class Agent:
         if cwd:
             args["cwd"] = cwd
         return await self.on_call("terminal_exec", **args)
+
+
+async def host(ctx: Ctx, cmd: str, timeout_s: float = 120) -> tuple[int, str]:
+    """`cmd` in the person's own shell, in their folder (ctx.local): what a model with host_tools runs."""
+    proc = await asyncio.create_subprocess_shell(cmd, cwd=ctx.local, stdout=asyncio.subprocess.PIPE,
+                                                 stderr=asyncio.subprocess.STDOUT)
+    out, _ = await asyncio.wait_for(proc.communicate(), timeout_s)
+    return proc.returncode or 0, out.decode(errors="replace")
 
 
 def done(summary: str, status: str = "done") -> str:

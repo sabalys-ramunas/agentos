@@ -26,7 +26,8 @@ def test_the_intro_starts_with_the_environment_and_puts_lanes_after():
     first = INSTRUCTIONS.split("\n\n")[0]
     assert first.startswith("openajar can give you your own cloud computer")
     for phrase in (*ENV_TOOLS, "without `on`", "localhost", "push", "links", "work in openajar",
-                   "builds, tests, dev servers", "never leave one running", "Keep the `on` it returns",
+                   "builds, tests, dev servers", "task done, not asked to keep it: environment_close()",
+                   "file_read/file_edit (not cat)", "Keep the `on` it returns",
                    "pass it on every call", "only your chat reaches the machine", "environment_in_use"):
         assert phrase in first, phrase
     assert "browsers_list" not in first  # account lanes are a separate thing, after
@@ -81,6 +82,11 @@ def test_the_environment_skill_is_installed_like_the_others_and_names_the_loop()
         assert word in text, word
     assert EM_DASH not in text
     assert len(text.split()) < 1000  # short: read in one go
+    # evals 2026-11-21 (Sonnet 5.5): it left a finished machine open with the default keep, read files with cat,
+    # and invented a second title when its machine died. The skill says each default in so many words.
+    for words in ("Done, and not asked to keep it open: `environment_close()` is your last call, whatever the `keep`",
+                  "never `cat`, `head` or `sed` in a command", "`machine_gone`", "same title gives a new one"):
+        assert words in text, words
 
 
 def test_the_intro_and_the_skill_say_where_the_terminal_tools_are_and_promise_no_missing_link():

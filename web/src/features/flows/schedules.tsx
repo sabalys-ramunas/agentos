@@ -23,6 +23,7 @@ import { paramsOf } from './run-dialog';
 import { routineTitle } from './routine-words';
 import { isPaused, NO_ROUTINE, nextFire, ScheduleTimeline } from './schedule-timeline';
 import { useZones } from './use-zones';
+import { toastChange } from '@/components/ui/toast';
 
 const PAUSED: StatusLabel = { label: 'Paused', tone: 'idle' };
 
@@ -164,7 +165,17 @@ export function PauseSwitch({ org, schedule }: { org: string; schedule: Schedule
       aria-label={`${schedule.flow || 'This schedule'} runs on schedule`}
       checked={!isPaused(schedule)}
       onCheckedChange={(enabled) =>
-        set.mutate({ id: schedule.id, enabled }, { onSuccess: () => toast(enabled ? 'Schedule resumed' : 'Schedule paused') })
+        set.mutate(
+          { id: schedule.id, enabled },
+          {
+            onSuccess: () =>
+              toastChange({
+                said: enabled ? 'Schedule resumed' : 'Schedule paused',
+                undone: enabled ? 'Schedule paused again' : 'Schedule resumed again',
+                undo: () => set.mutateAsync({ id: schedule.id, enabled: !enabled }),
+              }),
+          },
+        )
       }
     />
   );

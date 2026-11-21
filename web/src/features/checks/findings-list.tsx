@@ -1,13 +1,15 @@
 /**
- * The findings of an open check, grouped by component as the node groups them. Each one says what was
- * measured, what was expected, the fix, how it is known and where else it was seen, and gives the
- * text an agent can act on. The picked one opens; picking moves the picture to it.
+ * The findings of an open check: the open one as its own card (what was measured, what was expected, the
+ * fix, how it is known, where else it was seen, and the text an agent can act on), and every finding in a
+ * list grouped by component as the node groups them. Picking a row opens it and moves the picture to it.
  */
 import { Check, Copy } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import type { StudioRun } from '@/api/types';
+import { Chip } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { useCopy } from '@/components/ui/misc';
 import { Status } from '@/components/ui/status';
 import { cn } from '@/lib/cn';
@@ -34,141 +36,156 @@ function CopyForAgent({ run, finding }: { run: StudioRun; finding: NumberedFindi
   );
 }
 
-function Line({ label, children, tone }: { label: string; children: ReactNode; tone?: 'bad' | 'ok' }) {
+function Line({ label, children, mono = false }: { label: string; children: ReactNode; mono?: boolean }) {
   return (
     <>
-      <dt className="text-secondary text-faint">{label}</dt>
-      <dd className={cn('min-w-0 font-mono text-code break-words', tone === 'bad' ? 'text-bad' : tone === 'ok' ? 'text-ok' : 'text-fg')}>{children}</dd>
+      <dt className="text-body text-muted">{label}</dt>
+      <dd className={cn('min-w-0 break-words text-fg', mono ? 'self-center font-mono text-code' : 'text-body')}>{children}</dd>
     </>
   );
 }
 
-function Item({
+const EDGE: Record<NumberedFinding['severity'], string> = {
+  blocker: 'border-bad-line',
+  major: 'border-warn-line',
+  minor: '',
+  info: '',
+};
+
+/** The number a finding wears on the picture, so a row and its pin read as one. */
+function Pin({ finding }: { finding: NumberedFinding }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        'inline-flex size-5 shrink-0 items-center justify-center rounded-full font-mono text-micro tabular',
+        finding.severity === 'blocker'
+          ? 'bg-bad-dot text-status-ink'
+          : finding.severity === 'major'
+            ? 'bg-warn-dot text-status-ink'
+            : 'border border-line-strong text-muted',
+      )}
+    >
+      {finding.n}
+    </span>
+  );
+}
+
+const severityOf = (finding: NumberedFinding) => ({ label: SEVERITY_WORD[finding.severity], tone: SEVERITY_TONE[finding.severity] });
+
+/**
+ * The open finding as its own card, edged in its severity: what was measured, what was expected, the fix,
+ * where, how it is known, the screens it was seen on, and the text an agent can act on.
+ */
+export function OpenFinding({
   run,
   finding,
   screen,
-  picked,
-  onPick,
   onScreenPick,
 }: {
   run: StudioRun;
   finding: NumberedFinding;
   screen: string;
-  picked: boolean;
-  onPick: () => void;
   onScreenPick: (key: string) => void;
 }) {
-  const here = onScreen(finding, screen);
   const measured = recordLine(finding.measured);
   const expected = recordLine(finding.expected);
   const others = otherSelectors(finding);
+  return (
+    <Card className={cn('min-w-0', EDGE[finding.severity])}>
+      <section aria-label={`Finding ${finding.n}: ${findingTitle(finding)}`} className="grid gap-4 p-5">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+          <Pin finding={finding} />
+          <Status chip status={severityOf(finding)} />
+          <h2 className="min-w-0 flex-1 text-card-title break-words max-md:basis-full">{findingTitle(finding)}</h2>
+          <span className="font-mono text-code-caption text-muted max-md:hidden">{finding.check}</span>
+        </div>
+        <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-6 gap-y-2">
+          {measured ? <Line label="Measured" mono>{measured}</Line> : null}
+          {expected ? <Line label="Expected" mono>{expected}</Line> : null}
+          {finding.fix ? <Line label="Fix">{finding.fix}</Line> : null}
+          <Line label="Where" mono>
+            {finding.where.selector}
+            {finding.component ? <span className="text-muted"> in {finding.component}</span> : null}
+          </Line>
+          {others.length ? (
+            <Line label="Also at" mono>
+              {others.slice(0, 4).join(', ')}
+              {others.length > 4 ? <span className="text-muted"> and {others.length - 4} more</span> : null}
+            </Line>
+          ) : null}
+          <dt className="text-body text-muted">Seen on</dt>
+          <dd className="flex min-w-0 flex-wrap items-center gap-2">
+            {finding.seen_at.length === 0 ? <span className="text-body text-muted">The whole page</span> : null}
+            {finding.seen_at.map((seen) => (
+              <Chip
+                key={seen.screen}
+                pressed={seen.screen === screen}
+                onClick={() => onScreenPick(seen.screen)}
+                title={`Seen ${plural(seen.count, 'time')} on ${keyWords(seen.screen)}`}
+                label={
+                  <>
+                    {keyWords(seen.screen)}
+                    {seen.count > 1 ? <span className="tabular"> ×{seen.count}</span> : null}
+                  </>
+                }
+              />
+            ))}
+          </dd>
+        </dl>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <CopyForAgent run={run} finding={finding} />
+          <p className="min-w-0 flex-1 basis-60 text-secondary text-muted">{confidenceWords(finding)}</p>
+        </div>
+      </section>
+    </Card>
+  );
+}
+
+function Row({ finding, screen, picked, onPick }: { finding: NumberedFinding; screen: string; picked: boolean; onPick: () => void }) {
+  const here = onScreen(finding, screen);
   const ref = useRef<HTMLLIElement>(null);
   useEffect(() => {
-    if (picked) ref.current?.scrollIntoView({ block: 'nearest' });
+    if (picked) ref.current?.scrollIntoView?.({ block: 'nearest' });
   }, [picked]);
   return (
-    <li ref={ref} data-picked={picked ? '' : undefined} className={cn('border-b border-l-2 border-b-line last:border-b-0', picked ? 'border-l-accent bg-accent-soft' : 'border-l-transparent')}>
+    <li ref={ref} className={cn('border-b border-l-2 border-b-line last:border-b-0', picked ? 'border-l-accent bg-accent-soft' : 'border-l-transparent')}>
       <button
         type="button"
         aria-pressed={picked}
         aria-label={`Finding ${finding.n}: ${findingTitle(finding)}, ${SEVERITY_WORD[finding.severity]}`}
         onClick={onPick}
-        className="focus-inset flex w-full items-start gap-3 px-5 py-3 text-left"
+        className="focus-inset grid w-full grid-cols-[auto_minmax(0,1fr)] items-start gap-x-3 gap-y-1 py-3 pr-5 pl-4 text-left transition-colors duration-(--duration-fast) hover:bg-hover md:grid-cols-[auto_88px_minmax(0,1fr)_auto] md:items-center"
       >
-        <span
-          aria-hidden="true"
-          className={cn(
-            'mt-px inline-flex size-5 shrink-0 items-center justify-center rounded-full font-mono text-micro tabular',
-            finding.severity === 'blocker'
-              ? 'bg-bad-dot text-status-ink'
-              : finding.severity === 'major'
-                ? 'bg-warn-dot text-status-ink'
-                : 'border border-line-strong text-muted',
-          )}
-        >
-          {finding.n}
+        <Pin finding={finding} />
+        <span className="max-md:hidden">
+          <Status chip status={severityOf(finding)} />
         </span>
-        <span className="grid min-w-0 flex-1 gap-1">
-          <span className={cn('text-label font-medium break-words', here ? 'text-fg' : 'text-muted')}>{findingTitle(finding)}</span>
-          <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <Status status={{ label: SEVERITY_WORD[finding.severity], tone: SEVERITY_TONE[finding.severity] }} />
+        <span className="grid min-w-0 gap-1">
+          <span className={cn('text-body break-words', picked ? 'font-medium text-fg' : here ? 'text-fg' : 'text-muted')}>{findingTitle(finding)}</span>
+          <span className="flex flex-wrap items-center gap-x-3 gap-y-1 md:hidden">
+            <Status status={severityOf(finding)} />
             <span className="font-mono text-code-caption text-muted">{finding.check}</span>
-            {!here ? <span className="text-caption text-faint">not on this screen</span> : null}
           </span>
-          {!picked && finding.fix ? (
-            <span title={finding.fix} className="line-clamp-1 text-secondary text-faint">
-              {finding.fix}
-            </span>
-          ) : null}
+          {!here ? <span className="text-caption text-faint">Not on this screen</span> : null}
         </span>
+        <span className="font-mono text-code-caption text-muted max-md:hidden">{finding.check}</span>
       </button>
-      {picked ? (
-        <div className="grid gap-3 px-5 pb-4 pl-13">
-          <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1">
-            {measured ? <Line label="Measured" tone="bad">{measured}</Line> : null}
-            {expected ? <Line label="Expected" tone="ok">{expected}</Line> : null}
-            {finding.fix ? (
-              <>
-                <dt className="text-secondary text-faint">Fix</dt>
-                <dd className="min-w-0 text-body break-words text-fg">{finding.fix}</dd>
-              </>
-            ) : null}
-            <Line label="Where">
-              {finding.where.selector}
-              {finding.component ? <span className="text-faint"> in {finding.component}</span> : null}
-            </Line>
-            {others.length ? (
-              <Line label="Also at">
-                {others.slice(0, 4).join(', ')}
-                {others.length > 4 ? <span className="text-faint"> and {others.length - 4} more</span> : null}
-              </Line>
-            ) : null}
-          </dl>
-          <p className="text-secondary text-muted">{confidenceWords(finding)}</p>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="flex flex-wrap gap-1" role="group" aria-label="Seen on">
-              {finding.seen_at.length === 0 ? <span className="text-caption text-faint">Seen on the whole page</span> : null}
-              {finding.seen_at.map((seen) => (
-                <button
-                  key={seen.screen}
-                  type="button"
-                  aria-pressed={seen.screen === screen}
-                  onClick={() => onScreenPick(seen.screen)}
-                  title={`Seen ${plural(seen.count, 'time')} on ${keyWords(seen.screen)}`}
-                  className={cn(
-                    'inline-flex h-6 items-center gap-1 rounded-sm border px-1 font-mono text-code-caption',
-                    seen.screen === screen ? 'border-accent-line bg-accent-soft text-accent-text' : 'border-line text-muted hover:text-fg',
-                  )}
-                >
-                  {keyWords(seen.screen)}
-                  {seen.count > 1 ? <span className="text-faint">×{seen.count}</span> : null}
-                </button>
-              ))}
-            </span>
-            <span className="ml-auto">
-              <CopyForAgent run={run} finding={finding} />
-            </span>
-          </div>
-        </div>
-      ) : null}
     </li>
   );
 }
 
+/** Every finding, grouped by component as the node groups them, the open one selected. */
 export function FindingsList({
-  run,
   findings,
   screen,
   picked,
   onPick,
-  onScreenPick,
 }: {
-  run: StudioRun;
   findings: NumberedFinding[];
   screen: string;
   picked: NumberedFinding | undefined;
   onPick: (finding: NumberedFinding) => void;
-  onScreenPick: (key: string) => void;
 }) {
   const groups: { name: string; items: NumberedFinding[] }[] = [];
   for (const finding of findings) {
@@ -180,23 +197,15 @@ export function FindingsList({
     <div>
       {groups.map((group) => (
         <section key={group.name} aria-label={group.name === 'page' ? 'The page' : group.name}>
-          <h3 className="flex items-center gap-2 border-b border-line px-5 pt-4 pb-2 text-caption text-faint">
-            <span className="min-w-0 truncate font-mono text-code-caption text-muted" title={group.name}>
+          <h3 className="flex items-center gap-2 border-b border-line bg-inset px-5 py-2 text-caption text-muted">
+            <span className="min-w-0 truncate font-mono text-code-caption" title={group.name}>
               {group.name === 'page' ? 'The whole page' : group.name}
             </span>
             <span className="ml-auto tabular">{group.items.length}</span>
           </h3>
           <ol>
             {group.items.map((finding) => (
-              <Item
-                key={finding.id}
-                run={run}
-                finding={finding}
-                screen={screen}
-                picked={picked?.id === finding.id}
-                onPick={() => onPick(finding)}
-                onScreenPick={onScreenPick}
-              />
+              <Row key={finding.id} finding={finding} screen={screen} picked={picked?.id === finding.id} onPick={() => onPick(finding)} />
             ))}
           </ol>
         </section>

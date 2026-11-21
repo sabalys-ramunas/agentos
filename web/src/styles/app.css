@@ -275,6 +275,11 @@
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+/* The phone's More sheet and its shade stop at the tab bar, which stays in view and in reach. */
+@utility above-tabbar {
+  bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom));
+}
+
 /*
  * Step-up can open over a confirm dialog. Only one dialog is ever visible, so the one
  * underneath steps aside until re-auth finishes, and then the request retries.
@@ -435,6 +440,8 @@ html[data-step-up] [data-dialog-overlay]:not([data-step-up-dialog]) {
   --text-primary: var(--sidebar-text);
   --text-secondary: var(--sidebar-text-secondary);
   --text-tertiary: var(--sidebar-text-tertiary);
+  /* A link is ink with an underline, so on the night it is the night's white (the root's value was resolved against day ink). */
+  --link-text: var(--sidebar-text);
   --line-default: var(--sidebar-line);
   --line-strong: rgb(255 255 255 / 0.22);
   --line-control: var(--sidebar-text-tertiary);

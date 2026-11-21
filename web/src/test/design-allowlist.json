@@ -24,7 +24,6 @@
   "counts": {
     "raw-colour": {
       "src/features/confirmations/confirmations.css": 1,
-      "src/features/home/picture.tsx": 2,
       "src/features/home/stand-in.tsx": 4,
       "src/features/onboarding/pictures.tsx": 5,
       "src/features/site-apis/site-apis.css": 6
@@ -33,13 +32,9 @@
       "src/features/auth/layout.tsx": 2,
       "src/features/email/connect-steps.tsx": 1,
       "src/features/email/leads.tsx": 2,
-      "src/features/email/mailboxes.tsx": 1,
-      "src/features/email/reading.tsx": 1,
       "src/features/email/routine.tsx": 3,
       "src/features/flows/day-line.tsx": 2,
-      "src/features/flows/flow-detail.tsx": 3,
       "src/features/flows/rhythm.tsx": 2,
-      "src/features/home/picture.tsx": 1,
       "src/features/home/stand-in.tsx": 7,
       "src/features/lane/control.tsx": 1,
       "src/features/needs-you/social-cards.tsx": 3,
@@ -55,7 +50,6 @@
       "src/features/site-apis/usage.tsx": 2
     },
     "not-a-token": {
-      "src/features/home/picture.tsx": 2,
       "src/features/needs-you/outcome.tsx": 1
     },
     "unknown-token": {},
@@ -77,17 +71,14 @@
       "src/features/lane/control.tsx": 1,
       "src/features/needs-you/dev-previews.tsx": 1,
       "src/features/needs-you/work-cards.tsx": 1,
-      "src/features/nodes/header.tsx": 1,
       "src/features/onboarding/pictures.tsx": 1,
       "src/features/onboarding/step-try.tsx": 1,
-      "src/features/runs/run-page.tsx": 1,
       "src/features/runs/runs-table.tsx": 1,
       "src/features/settings/digest-preview.tsx": 1,
       "src/features/settings/notifications.tsx": 1,
       "src/features/site-apis/samples.tsx": 1
     },
     "vocabulary": {
-      "src/components/ui/states.tsx": 1,
       "src/features/activity/run-story.tsx": 2,
       "src/features/brand/sections.tsx": 1,
       "src/features/email/computer-form.tsx": 1,
@@ -105,8 +96,6 @@
       "src/features/nodes/machine-aside.tsx": 4,
       "src/features/nodes/machines.tsx": 1,
       "src/features/nodes/tab-schedules.tsx": 1,
-      "src/features/onboarding/step-computer.tsx": 1,
-      "src/features/runs/run-page.tsx": 1,
       "src/features/settings/audit.tsx": 1,
       "src/features/settings/general.tsx": 1,
       "src/features/settings/retention.tsx": 1,

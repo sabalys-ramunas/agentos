@@ -21,6 +21,7 @@ import type {
 } from '@/api/types';
 import type { OrgData } from './seed';
 import type { Helpers } from './s3';
+import { scenario } from './scenario';
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
@@ -1095,7 +1096,7 @@ export function siteApiHandlers({ org, failure }: Pick<Helpers, 'org' | 'failure
     http.get(
       '/api/orgs/:org/site-apis',
       org((data) => {
-        const items = [...store(data).apis.values()].map(listItem);
+        const items = scenario.has('no-developer') ? [] : [...store(data).apis.values()].map(listItem);
         return HttpResponse.json(items.sort((a, b) => RANK.indexOf(a.health) - RANK.indexOf(b.health) || b.calls_7d - a.calls_7d));
       }),
     ),

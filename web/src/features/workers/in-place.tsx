@@ -20,6 +20,7 @@ import { accountName } from '@/features/home/words';
 import { GiveAJob } from '@/features/lane/give-a-job';
 import { StepLine, StepLineMini } from './step-line';
 import { accountWorkerSentence, STOP_WORDS, thingLine, WORKER_NAME } from './words';
+import { switched, toastChange } from '@/components/ui/toast';
 
 /** In a thing done: who said it, and each step, with who thought at each one. */
 export function WorkerSteps({ thing }: { thing: WorkerThing }) {
@@ -80,7 +81,11 @@ export function AccountWorkerRow({ org, lane }: { org: string; lane: Lane }) {
     setRefused(null);
     set.mutate(
       { lane: lane.id, on },
-      { onError: (error) => !isCancelled(error) && setRefused(`${computerName(lane.node)} did not answer, so the worker stays ${on ? 'off' : 'on'} here.`) },
+      {
+        // On is the looser way, so Undo takes it off again; off is the stricter way and has no Undo.
+        onSuccess: () => toastChange({ ...switched(`Browser worker on ${accountName(lane)}`, on), undo: on ? () => set.mutateAsync({ lane: lane.id, on: false }) : undefined }),
+        onError: (error) => !isCancelled(error) && setRefused(`${computerName(lane.node)} did not answer, so the worker stays ${on ? 'off' : 'on'} here.`),
+      },
     );
   };
   const word = worker.on ? 'On' : 'Off';

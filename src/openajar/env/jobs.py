@@ -33,6 +33,7 @@ import signal
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 from openajar.core.errors import LaneBusy, NotFound
 from openajar.core.models import utcnow
@@ -198,6 +199,9 @@ class JobTable:
         self.settings = settings
         self.jobs: dict[str, Job] = {}
         self.pending: list[Job] = []   # running on a VM when the node stopped: to reattach (`attach`)
+        # awaited with a job's lane when its machine does not answer: why the machine is gone for good, or
+        # None (EnvManager.lost_reason: the machine's provider is asked)
+        self.lost_check: Any = None
 
     # ------------------------------------------------------------------ disk
     def load(self, lane_ids: list[str], remote: set[str] | frozenset[str] = frozenset()) -> int:
@@ -409,9 +413,14 @@ class JobTable:
         if status is None:  # the machine did not answer
             if st.stopped:
                 return True
+            gone = await self.lost_check(job.info.lane) if self.lost_check is not None else None
+            if gone:
+                st.lost = f"the job ended with its machine, which stopped while it ran. {gone}"
+                return True
             st.out_of_reach = st.out_of_reach or loop.time()
             waited = loop.time() - st.out_of_reach
-            if st.first and waited > START_REACH_S:
+            started = job.out.total or job.err.total  # it printed: it started, whatever came after
+            if st.first and not started and waited > START_REACH_S:
                 st.lost = "the node could not reach the machine over ssh to start it"
                 return True
             if waited > OUT_OF_REACH_S:

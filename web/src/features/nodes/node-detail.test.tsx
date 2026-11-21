@@ -6,12 +6,14 @@ import { renderApp } from '@/test/render';
 const PATH = '/northwind-group/nodes/hetzner-1';
 
 describe('Node page', () => {
-  it('says what the node does in plain words, with a live header', async () => {
+  it('says what the node does in plain words, with what it is and its load beside the tab', async () => {
     renderApp(`${PATH}?tab=lanes`);
     // The first render in a file also imports the lazy route, and the sentence waits on three reads.
     expect(await screen.findByText(/^Runs 26 accounts for Harbor Supply, Meridian Travel and Solstice Studio, holds the anthropic-api brain/, undefined, { timeout: 10_000 })).toBeInTheDocument();
-    expect(await screen.findByRole('img', { name: /Heartbeat for the last hour/ })).toBeInTheDocument();
-    expect(screen.getByText('Up, 30 days')).toBeInTheDocument();
+    const about = screen.getByRole('complementary', { name: 'About hetzner-1' });
+    expect(within(about).getByRole('heading', { name: 'About it' })).toBeInTheDocument();
+    expect(within(about).getByRole('meter', { name: 'Busy' })).toBeInTheDocument();
+    expect(await within(about).findByText(/of the last 30 days/)).toBeInTheDocument();
   });
 
   it('keeps the tab in the URL, so Back and a shared link land on the same view', async () => {

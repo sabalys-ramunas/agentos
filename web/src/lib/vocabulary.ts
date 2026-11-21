@@ -19,38 +19,46 @@ export interface Term {
   technical: string;
 }
 
-/** The places in the product. The rail, the command bar and the page titles use these. */
+/**
+ * The places in the product. The rail, the command bar and the page titles use these.
+ *
+ * Since 2026-11-21 (the simpler navigation) three places hold two lists each, as tabs: Computers
+ * (Environments and Machines), Jobs that repeat (Routines and Email) and Runs and checks (Runs and
+ * Checks). The tab names keep their own words here.
+ */
 export const PLACES = {
   home: { word: 'Home', technical: 'Home' },
-  environments: { word: 'Environments', singular: 'Environment', technical: 'Environments (cloud VMs)' },
-  runs: { word: 'Runs', singular: 'Run', technical: 'Jobs (openajar run)' },
-  checks: { word: 'Checks', singular: 'Check', technical: 'Studio runs' },
-  machines: { word: 'Machines', singular: 'Machine', technical: 'Nodes' },
-  brand: { word: 'Brand', technical: 'Product profiles' },
+  needsYou: { word: 'Needs you', technical: 'Approvals and questions' },
+  /** Every computer in one place: the agents' own (environments) and yours (machines). */
+  computers: { word: 'Computers', technical: 'Environments and nodes' },
+  history: { word: 'What happened', technical: 'Activity' },
   accounts: { word: 'Accounts', singular: 'Account', technical: 'Lanes' },
+  /** Routines and Email together: sending mail is a job that repeats too. */
+  jobs: { word: 'Jobs that repeat', technical: 'Flows and mail' },
+  brand: { word: 'Brand', technical: 'Product profiles' },
+  /** Runs and Checks together, for developers. */
+  runsAndChecks: { word: 'Runs and checks', technical: 'Jobs and studio runs' },
+  siteApis: { word: 'Site APIs', singular: 'Site API', technical: 'Site APIs' },
+  settings: { word: 'Settings', technical: 'Settings' },
+  // The tabs inside the places above.
+  environments: { word: 'Environments', singular: 'Environment', technical: 'Environments (cloud VMs)' },
+  machines: { word: 'Machines', singular: 'Machine', technical: 'Nodes' },
   routines: { word: 'Routines', singular: 'Routine', technical: 'Flows' },
   email: { word: 'Email', singular: 'Mailbox', technical: 'Mail' },
-  siteApis: { word: 'Site APIs', singular: 'Site API', technical: 'Site APIs' },
-  needsYou: { word: 'Needs you', technical: 'Approvals and questions' },
-  history: { word: 'History', technical: 'Activity' },
-  settings: { word: 'Settings', technical: 'Settings' },
-  /**
-   * The old name of Machines, kept as the same word so a screen that still reads it says Machines.
-   * New code reads `machines`; this goes when nothing uses it.
-   */
-  computers: { word: 'Machines', singular: 'Machine', technical: 'Nodes' },
+  runs: { word: 'Runs', singular: 'Run', technical: 'Jobs (openajar run)' },
+  checks: { word: 'Checks', singular: 'Check', technical: 'Studio runs' },
 } as const satisfies Record<string, Term>;
 
 /**
- * The rail's groups, in order: what is being worked on, where it runs, who it is for, what runs by
- * itself, and what is yours. The owner approved this structure (Mono, 2026-11-13).
+ * The rail's groups, in order (the simpler navigation, 2026-11-21): the four places everyone needs
+ * first with no heading, then what is about your business, then what is for developers, and Settings
+ * set apart at the end. Only the two middle groups have a heading.
  */
 export const PLACE_GROUPS = {
-  work: { word: 'Work', technical: 'Work' },
-  where: { word: 'Where it runs', technical: 'Machines' },
-  who: { word: 'Who it is for', technical: 'Brand and accounts' },
-  automations: { word: 'Automations', technical: 'Routines, mail and Site APIs' },
-  you: { word: 'You', technical: 'Approvals, history and settings' },
+  first: { word: '', technical: 'Everyday' },
+  business: { word: 'Your business', technical: 'Accounts, routines and brand' },
+  developers: { word: 'For developers', technical: 'Runs, checks and Site APIs' },
+  end: { word: '', technical: 'Settings' },
 } as const satisfies Record<string, Term>;
 
 /** Things, as nouns in sentences. */

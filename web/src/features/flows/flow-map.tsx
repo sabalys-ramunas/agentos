@@ -9,6 +9,7 @@ import type { ReactNode } from 'react';
 import type { RoutineCatalog, RoutineStep, RoutineStepRun, RoutineTrigger } from '@/api/types';
 import { SiteMark } from '@/components/brand/site-mark';
 import { StateGlyph } from '@/components/ui/state-badge';
+import { Status } from '@/components/ui/status';
 import { cn } from '@/lib/cn';
 import { STEP_WORDS, triggerPhrase } from '@/lib/routines';
 import { stepSite } from './routine-words';
@@ -153,5 +154,124 @@ export function FlowMap({ trigger, steps, catalog, run, next, locked, lit, onLig
         <Steps steps={steps} catalog={catalog} run={run} locked={locked} lit={lit} onLight={onLight} />
       </div>
     </div>
+  );
+}
+
+/** The eyebrow over a step in the flow: what kind of step it is, as a verb ("Does", "Decides"). */
+const FLOW_WORD: Record<RoutineStep['kind'] | 'trigger', string> = {
+  trigger: 'Starts',
+  action: 'Does',
+  branch: 'Decides',
+  wait: 'Waits',
+  loop: 'Repeats',
+  ask: 'Asks',
+  notify: 'Tells',
+  stop_if_replied: 'Stops',
+};
+
+/** What a step came to on the newest run, as a chip in its outcome's tone, or quiet words. */
+function Outcome({ ran, locked, note }: { ran?: RoutineStepRun; locked?: boolean; note?: string | null }) {
+  const status = ran?.status;
+  const words = ran?.short ?? note ?? null;
+  if (status === 'failed') return <Status chip status={{ label: words ?? 'Did not work', tone: 'bad' }} />;
+  if (status === 'waiting_approval' || status === 'waiting') return <Status chip status={{ label: words ?? 'Waits for you', tone: 'warn' }} />;
+  if (status === 'running') return <Status chip status={{ label: words ?? 'Doing it now', tone: 'live' }} />;
+  if (status === 'skipped') return <p className="text-secondary text-faint">Skipped last time</p>;
+  if (status && words && (status === 'succeeded_verified' || status === 'succeeded_unverified' || status === 'partial')) {
+    return <Status chip status={{ label: words, tone: status === 'partial' ? 'warn' : 'ok' }} />;
+  }
+  if (words) return <p className="text-secondary text-muted">{words}</p>;
+  if (locked) {
+    return (
+      <p className="flex items-center gap-1 text-secondary text-muted">
+        <Lock aria-hidden="true" className="size-3.5 shrink-0" />
+        Always asks
+      </p>
+    );
+  }
+  return null;
+}
+
+function FlowRow({ id, mark, eyebrow, title, last, failed, children, lit, onLight }: { id: string; mark: ReactNode; eyebrow: string; title: string; last: boolean; failed?: boolean; children?: ReactNode } & Lit) {
+  return (
+    <li
+      data-node={id}
+      onPointerEnter={() => onLight?.(id)}
+      onPointerLeave={() => onLight?.(null)}
+      className="grid grid-cols-[40px_minmax(0,1fr)] gap-x-4"
+    >
+      <span className="flex flex-col items-center">
+        <span className={cn('rounded-lg', failed && 'outline-1 outline-offset-2 outline-bad-line')}>{mark}</span>
+        {last ? null : <span aria-hidden="true" className="my-2 w-px flex-1 bg-line" />}
+      </span>
+      <div
+        className={cn(
+          'grid min-w-0 content-start gap-1 rounded-lg pb-6 transition-colors duration-(--duration-fast) ease-standard',
+          lit === id && 'bg-pressed',
+          last && 'pb-0',
+        )}
+      >
+        <span className="text-eyebrow text-muted">{eyebrow}</span>
+        <span className="text-card-title text-pretty">{title}</span>
+        {children}
+      </div>
+    </li>
+  );
+}
+
+function FlowSteps({ steps, catalog, run, locked, lit, onLight, lastOuter }: MapProps & { lastOuter: boolean }) {
+  return (
+    <>
+      {steps.map((step, index) => {
+        const ran = run?.find((item) => item.step === step.id);
+        const last = lastOuter && index === steps.length - 1;
+        const nested = step.kind === 'branch' ? [{ label: 'If yes', steps: step.then }, { label: 'Otherwise', steps: step.otherwise }] : step.kind === 'loop' ? [{ label: 'For each one', steps: step.body }] : [];
+        return (
+          <FlowRow
+            key={step.id}
+            id={step.id}
+            mark={<StepMark step={step} catalog={catalog} size={40} />}
+            eyebrow={FLOW_WORD[step.kind]}
+            title={capital(step.label)}
+            last={last}
+            failed={ran?.status === 'failed'}
+            lit={lit}
+            onLight={onLight}
+          >
+            <span className="mt-1 flex">
+              <Outcome ran={ran} locked={locked.has(step.id)} />
+            </span>
+            {nested.map((arm) => (
+              <div key={arm.label} className="mt-3 grid gap-2">
+                <span className="text-secondary text-faint">{arm.label}</span>
+                {arm.steps.length ? (
+                  <ol className="grid">
+                    <FlowSteps steps={arm.steps} catalog={catalog} run={run} locked={locked} lit={lit} onLight={onLight} lastOuter />
+                  </ol>
+                ) : (
+                  <span className="text-secondary text-muted">Carries on</span>
+                )}
+              </div>
+            ))}
+          </FlowRow>
+        );
+      })}
+    </>
+  );
+}
+
+/**
+ * The routine as drawn on its page: a column of steps from what starts it, each with its tile, its
+ * verb, its words and what it came to last time. A decision and a repeat hold their own steps under
+ * them. The failed step's tile wears a red edge.
+ */
+export function StepFlow({ trigger, steps, catalog, run, next, locked, lit, onLight }: MapProps & { trigger: RoutineTrigger; next?: string | null }) {
+  return (
+    <ol aria-label="The steps of this routine, in order" className="grid">
+      <FlowRow id="trigger" mark={<TriggerMark trigger={trigger} size={40} />} eyebrow={FLOW_WORD.trigger} title={capital(triggerPhrase(trigger))} last={!steps.length} lit={lit} onLight={onLight}>
+        {next ? <p className="text-secondary text-muted">{next}</p> : null}
+      </FlowRow>
+      <FlowSteps steps={steps} catalog={catalog} run={run} locked={locked} lit={lit} onLight={onLight} lastOuter />
+    </ol>
   );
 }

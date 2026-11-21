@@ -1,19 +1,22 @@
 /**
- * The login queue: what makes 29 accounts workable. One account at a time, in the lane's own
- * browser, then on to the next. Nothing here ever asks for a third-party password. The person
+ * The login queue (spec-16, logins.png): what makes 29 accounts workable. On the left, how far along it is and the
+ * logins to do; on the right, the open one in its own browser, then on to the next. Nothing here ever asks for a third-party password. The person
  * types it into the real site in the live view, and it stays on the node.
  */
 import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router';
-import { Check, ChevronRight, KeyRound, SkipForward } from 'lucide-react';
+import { Check, SkipForward } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { useAccess, useLane, useLaneAction, useLoginQueue, useSetReadiness, useVault, useWorkspaces } from '@/api/hooks';
 import type { Lane, LoginQueue, QueueLane, Workspace } from '@/api/types';
+import { usePageCrumb } from '@/components/shell/crumb';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/field';
-import { Kbd, Meter, PageHeader } from '@/components/ui/misc';
-import { Status } from '@/components/ui/status';
+import { Meter, PageHeader } from '@/components/ui/misc';
+import { BusinessMark } from '@/components/brand/identity';
+import { SiteMark } from '@/components/brand/site-mark';
+import { StatusDot } from '@/components/ui/status';
 import { EmptyState, QueryView, Skeleton } from '@/components/ui/states';
 import { cn } from '@/lib/cn';
 import { plural } from '@/lib/format';
@@ -29,25 +32,29 @@ const awake = (lane: Lane) => lane.state === 'warm' || lane.state === 'active';
 
 const nameOf = (workspaces: Workspace[], id: string) => workspaces.find((item) => item.id === id)?.name ?? id;
 
-function Progress({ queue }: { queue: LoginQueue }) {
+/** How far along: the accounts ready, what is left, and one short bar per business, green once it is complete. */
+function Progress({ queue, workspaces }: { queue: LoginQueue; workspaces: Workspace[] }) {
   return (
-    <Card className="mb-6 p-4">
-      <div className="flex items-baseline justify-between gap-4">
-        <p className="text-label">
+    <Card className="grid gap-4 p-5">
+      <div className="grid gap-1">
+        <p className="text-card-title">
           <span className="tabular">{queue.ready}</span> of <span className="tabular">{queue.total}</span> accounts ready
         </p>
-        <p className="tabular text-secondary text-faint">
-          {plural(queue.needs_login, 'login')} to go
-          {queue.needs_attention ? `, ${queue.needs_attention} to look at` : ''}
+        <p className="tabular text-secondary text-muted">
+          {queue.needs_login + queue.needs_attention === 0
+            ? 'Nothing left to log in.'
+            : [queue.needs_login ? `${plural(queue.needs_login, 'login')} to go` : null, queue.needs_attention ? `${queue.needs_attention} to look at` : null].filter(Boolean).join(', ')}
         </p>
       </div>
-      <Meter value={queue.ready} max={queue.total} label="Accounts ready" className="mt-2" />
-      <ul className="mt-4 grid gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+      <ul className="grid gap-3">
         {queue.workspaces.map((workspace) => (
-          <li key={workspace.id} className="flex items-center gap-2 text-secondary">
-            <span className="min-w-0 flex-1 truncate text-muted">{workspace.name}</span>
-            <Meter value={workspace.ready} max={Math.max(1, workspace.total)} label={`${workspace.name} accounts ready`} className="w-16 shrink-0" />
-            <span className="mono tabular w-10 shrink-0 text-right text-caption text-faint">
+          <li key={workspace.id} className="grid grid-cols-[minmax(0,1fr)_88px_40px] items-center gap-3 text-secondary">
+            <span className="flex min-w-0 items-center gap-2">
+              <BusinessMark name={workspace.name} color={workspaces.find((item) => item.id === workspace.id)?.color} size={20} />
+              <span className="min-w-0 truncate">{workspace.name}</span>
+            </span>
+            <Meter value={workspace.ready} max={Math.max(1, workspace.total)} progress label={`${workspace.name}: ${workspace.ready} of ${workspace.total} accounts ready`} />
+            <span className="tabular text-right text-muted">
               {workspace.ready}/{workspace.total}
             </span>
           </li>
@@ -57,23 +64,32 @@ function Progress({ queue }: { queue: LoginQueue }) {
   );
 }
 
+/** One login in the list: its site's tile, "Reddit · Aster Coffee", why it waits, and a red mark when it needs a look. */
 function QueueRow({ item, current, workspace, onPick }: { item: QueueLane; current: boolean; workspace: string; onPick: () => void }) {
+  const look = item.readiness === 'needs_attention';
   return (
     <button
       type="button"
       onClick={onPick}
       aria-current={current || undefined}
       className={cn(
-        'focus-inset flex w-full items-center gap-2 px-4 py-2 text-left transition-colors duration-(--duration-fast) ease-standard',
-        current ? 'bg-pressed' : 'hover:bg-hover',
+        'focus-inset flex w-full items-center gap-3 border-l-2 py-3 pr-4 pl-4 text-left transition-colors duration-(--duration-fast) ease-standard',
+        current ? 'border-accent bg-accent-soft' : 'border-transparent hover:bg-hover',
       )}
     >
+      <SiteMark site={item.platform || item.name} size={32} tile label={false} className="rounded-lg bg-card shadow-lift" />
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-body">{laneName(item.name)}</span>
-        <span className="block truncate text-caption text-faint">{item.note ? `${workspace}: ${item.note}` : workspace}</span>
+        <span className="block truncate text-body font-medium">
+          {laneName(item.name)} · {workspace}
+        </span>
+        <span className={cn('block truncate text-secondary', look ? 'text-bad' : 'text-muted')}>{item.note ?? (look ? 'Needs a look' : 'Not signed in yet')}</span>
       </span>
-      {item.readiness === 'needs_attention' ? <Status status={{ label: 'Look at this', tone: 'warn' }} className="text-caption" /> : null}
-      <ChevronRight className="size-4 text-faint" />
+      {look ? (
+        <span className="shrink-0">
+          <StatusDot tone="bad" />
+          <span className="sr-only">Needs a look</span>
+        </span>
+      ) : null}
     </button>
   );
 }
@@ -121,26 +137,20 @@ function Current({ org, item, workspace, left, canAct, onNext }: CurrentProps) {
 
   useKeys({ r: ready, s: onNext }, canAct && !noting);
 
+  const look = item.readiness === 'needs_attention';
   return (
-    <div className="grid min-w-0 content-start gap-4">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-section-title">
-          {laneName(item.name)} <span className="font-normal text-muted">for {workspace}</span>
-        </h2>
-        <p className="tabular text-secondary text-faint">{plural(left, 'account')} left</p>
+    <Card className="grid min-w-0 content-start gap-5 p-5 sm:p-6">
+      <div className="flex min-w-0 items-start gap-3">
+        <SiteMark site={item.platform || item.name} size={40} tile label={false} className="rounded-lg bg-card shadow-lift" />
+        <div className="min-w-0 flex-1">
+          <h2 className="text-section-title [overflow-wrap:anywhere]">
+            {laneName(item.name)} for {workspace}
+          </h2>
+          <p className={cn('text-secondary', look ? 'text-bad' : 'text-muted')}>{item.note ?? (look ? 'Needs a look' : 'Not signed in yet')}</p>
+          <p className="tabular text-secondary text-muted sm:hidden">{plural(left, 'account')} left</p>
+        </div>
+        <p className="tabular shrink-0 pt-1 text-secondary text-muted max-sm:hidden">{plural(left, 'account')} left</p>
       </div>
-      {item.note ? <p className="text-body text-muted">{item.note}</p> : null}
-      {/* The answer first: the sign-in is what this page is for, so it sits above the live view, not under it. */}
-      <p className="text-secondary text-faint">
-        The password is typed on this computer, into the account's own browser. openajar never sees it, and the computer keeps the session.
-        {item.login_url ? (
-          <>
-            {' '}
-            It opens at <span className="mono break-all">{item.login_url}</span>.
-          </>
-        ) : null}
-      </p>
-      <SignIn org={org} ws={item.workspace} name={item.name} saved={savedHere} canAct={canAct} />
       {lane.data ? (
         <ControlFrame org={org} lane={lane.data} canControl={canTakeOver} expanded={expanded && awake(lane.data)}>
           <LiveView
@@ -157,6 +167,8 @@ function Current({ org, item, workspace, left, canAct, onNext }: CurrentProps) {
       ) : (
         <Skeleton className="aspect-[16/10] h-auto rounded-xl" />
       )}
+      {/* The promise and the one thing to do: the password is typed into the account's own browser, never here. */}
+      <SignIn org={org} ws={item.workspace} name={item.name} saved={savedHere} canAct={canAct} url={item.login_url} />
       {canAct ? (
         noting ? (
           <form
@@ -168,33 +180,27 @@ function Current({ org, item, workspace, left, canAct, onNext }: CurrentProps) {
           >
             <Input autoFocus aria-label="What is wrong" placeholder="For example, phone code asked" className="min-w-48 flex-1" value={note} onChange={(event) => setNote(event.target.value)} />
             <Button onClick={() => setNoting(false)}>Cancel</Button>
-            <Button type="submit" variant="primary" disabled={!note.trim()} loading={setReadiness.isPending}>
+            <Button type="submit" disabled={!note.trim()} loading={setReadiness.isPending}>
               Save and move on
             </Button>
           </form>
         ) : (
-          <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line pt-5">
             <Button variant="ghost" className="mr-auto" onClick={() => setNoting(true)}>
               Something is wrong
             </Button>
-            <Button icon={<SkipForward className="size-4" />} onClick={onNext}>
+            <Button variant="ghost" icon={<SkipForward className="size-4" />} onClick={onNext} shortcut="S">
               Skip for now
-              <Kbd aria-hidden="true" className="hidden border-transparent bg-transparent lg:inline-flex">
-                S
-              </Kbd>
             </Button>
-            <Button variant="primary" icon={<Check className="size-4" />} loading={setReadiness.isPending} onClick={ready}>
+            <Button icon={<Check className="size-4" />} loading={setReadiness.isPending} onClick={ready} shortcut="R">
               Logged in, next
-              <Kbd aria-hidden="true" className="hidden border-transparent bg-transparent text-on-primary opacity-60 lg:inline-flex">
-                R
-              </Kbd>
             </Button>
           </div>
         )
       ) : (
-        <p className="text-secondary text-faint">Your role can see this queue but not work through it.</p>
+        <p className="border-t border-line pt-5 text-secondary text-muted">Your role can see this queue but not work through it.</p>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -208,6 +214,7 @@ export function Logins() {
   const items = useMemo(() => queue.data?.lanes ?? [], [queue.data]);
   const current = items.find((item) => item.id === lane) ?? items[0];
 
+  usePageCrumb('Login queue', { mono: false });
   const pick = (id: string | undefined) => void navigate({ search: { lane: id }, replace: true });
   const next = () => {
     if (!current) return;
@@ -223,34 +230,38 @@ export function Logins() {
         query={queue}
         card
         skeleton={
-          <div className="grid gap-6">
-            <Skeleton className="h-28 rounded-xl" />
-            <Skeleton className="h-96 rounded-xl" />
+          <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
+            <div className="grid gap-4">
+              <Skeleton className="h-56 rounded-xl" />
+              <Skeleton className="h-72 rounded-xl max-lg:hidden" />
+            </div>
+            <Skeleton className="h-[520px] rounded-xl" />
           </div>
         }
       >
-        {(data) => (
-          <>
-            <Progress queue={data} />
-            {data.lanes.length === 0 ? (
-              <Card>
-                <EmptyState
-                  icon={<KeyRound />}
-                  title={`All ${data.total} accounts are ready`}
-                  description="Every account is logged in. If one is logged out later, it comes back here."
-                  action={
-                    <Button asChild>
-                      <Link to="/$org" params={{ org }}>
-                        Go to Home
-                      </Link>
-                    </Button>
-                  }
-                />
-              </Card>
-            ) : (
-              <div className="grid items-start gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-                <Card className="max-h-[640px] overflow-y-auto max-lg:hidden">
-                  <ul className="divide-y divide-line">
+        {(data) =>
+          data.lanes.length === 0 ? (
+            <Card>
+              <EmptyState
+                dawn
+                heading="h2"
+                title={`All ${data.total} accounts are ready`}
+                description="Every account is logged in. If one is logged out later, it comes back here."
+                action={
+                  <Button asChild>
+                    <Link to="/$org" params={{ org }}>
+                      Go to Home
+                    </Link>
+                  </Button>
+                }
+              />
+            </Card>
+          ) : (
+            <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
+              <div className="grid min-w-0 gap-4">
+                <Progress queue={data} workspaces={workspaces} />
+                <Card className="overflow-hidden max-lg:hidden">
+                  <ul aria-label="Logins to do" className="max-h-[560px] divide-y divide-line overflow-y-auto">
                     {data.lanes.map((item) => (
                       <li key={item.id}>
                         <QueueRow item={item} current={item.id === current?.id} workspace={nameOf(workspaces, item.workspace)} onPick={() => pick(item.id)} />
@@ -258,21 +269,13 @@ export function Logins() {
                     ))}
                   </ul>
                 </Card>
-                {current ? (
-                  <Current
-                    key={current.id}
-                    org={org}
-                    item={current}
-                    workspace={nameOf(workspaces, current.workspace)}
-                    left={data.lanes.length}
-                    canAct={canAct}
-                    onNext={next}
-                  />
-                ) : null}
               </div>
-            )}
-          </>
-        )}
+              {current ? (
+                <Current key={current.id} org={org} item={current} workspace={nameOf(workspaces, current.workspace)} left={data.lanes.length} canAct={canAct} onNext={next} />
+              ) : null}
+            </div>
+          )
+        }
       </QueryView>
     </>
   );

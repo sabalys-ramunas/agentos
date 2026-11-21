@@ -354,7 +354,7 @@ def _check_act(action: str, x: int | None, y: int | None, text: str | None, keys
                              "it in parts, or write a file with file_write and open it")
     if action == "key" and not (keys or "").strip():
         raise InvalidRequest('key needs keys, like "ctrl+s", "Return" or "ctrl+a Delete"')
-    if action == "focus":
+    if action == "focus" or (window is not None and action in ("type", "key")):
         _window_id(window)
 
 
@@ -363,11 +363,12 @@ def act_summary(env: Any, action: str, x: int | None, y: int | None, text: str |
     where = f" at {x},{y}" if x is not None else ""
     if action == "drag":
         where += f" to {to[0]},{to[1]}"
+    into = f" in window {window}" if window is not None else ""  # type and key bring that window to the front first
     if action == "type":
         shown = text if text is not None and len(text) <= 80 else (text or "")[:80] + "..."
-        return f'type "{shown}" on the screen of {env.id}'
+        return f'type "{shown}"{into} on the screen of {env.id}'
     if action == "key":
-        return f"press {keys} on the screen of {env.id}"
+        return f"press {keys}{into} on the screen of {env.id}"
     if action == "focus":
         return f"bring window {window} to the front on the screen of {env.id}"
     return f"{action.replace('_', ' ')}{where} on the screen of {env.id}"
@@ -387,7 +388,7 @@ async def screen_act(ctx: ToolContext, *, action: Action, on: str | None = None,
     scroll (direction, amount notches, at x, y when given); type (text, at the keyboard focus); key (keys:
     combinations like "ctrl+s", "alt+F4", "Return", several separated by spaces, "ctrl+a Delete"); focus
     (window: bring it to the front, also from minimized). Returns front (the window in front after it),
-    opened and closed windows, and pointer. Refused while a person has control of the environment
+    keys_to (the window type or key went to), opened and closed windows, and pointer. Refused while a person has control of the environment
     (human_in_control: wait with browser_wait_handback). Effect: exec (typing in a terminal runs commands).
     Errors: no_desktop, human_in_control, agent_paused, invalid, not_found (no such window),
     deadline_exceeded, engine_error.
@@ -402,7 +403,7 @@ async def screen_act(ctx: ToolContext, *, action: Action, on: str | None = None,
         text: What type types (at most 600 characters; new lines press Enter, tabs press Tab).
         keys: For key: names like ctrl, shift, alt, super with + and a key: Return, Escape, Tab, BackSpace,
             Delete, Home, End, Page_Up, Up, F5, a, 1.
-        window: For focus: a window's id from screen_snapshot.
+        window: For focus: a window's id from screen_snapshot. With type or key: that window first.
         direction: For scroll: up, down, left or right.
         amount: For scroll: how many wheel notches (1 to 30).
     """
@@ -515,6 +516,8 @@ def _act_result(ctx: ToolContext, env: Any, on: str, action: str, out: dict[str,
     front = clean_window(out.get("front"))
     res: dict[str, Any] = {"ok": True, "action": action, "front": front,
                            "pointer": clean_point(out.get("pointer"))}
+    if action in ("type", "key"):  # where the keys went: an agent sees at once that they missed its app
+        res["keys_to"] = clean_window(out.get("keys_to"))
     _saw_pointer(env, res["pointer"])
     opened = clean_windows(out.get("opened"))
     closed = [c for c in (out.get("closed") or [])[:WINDOWS_MAX] if _num(c, 1, (1 << 32) - 1)] \

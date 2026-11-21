@@ -119,7 +119,8 @@ describe('the send plan', () => {
 describe('the pages', () => {
   it('sees the mailbox in trouble first, with its one next step', async () => {
     renderApp(`${ORG}/email?mock=still`);
-    expect(await screen.findByRole('heading', { name: /2 mailboxes are fine/ })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Email' })).toBeInTheDocument();
+    expect(screen.getByText(/^2 mailboxes are fine. 1 needs you./)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Connect it again' })).toHaveAttribute('href', expect.stringContaining('studio%40solstice-studio.example'));
     expect(screen.getAllByRole('meter', { name: 'Sent today' })).toHaveLength(2);
   });

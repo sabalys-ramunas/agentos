@@ -5,7 +5,7 @@
  * for a developer), the week of calls, what it runs on, and its keys.
  */
 import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router';
-import { ArrowLeft, Code2, Hand, Lock, Moon, Pause, Play, Table2 } from 'lucide-react';
+import { ArrowLeft, Braces, Code2, Hand, Lock, Moon, Pause, Play, Table2 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -14,7 +14,9 @@ import { isNotServed } from '@/api/http';
 import type { SiteApiDetail as Api, SiteEndpoint, SitePageColumn } from '@/api/types';
 import type { SiteDoor } from '@/app/routes/org';
 import { BusinessMark } from '@/components/brand/identity';
-import { SiteMark } from '@/components/brand/site-mark';
+import { usePageCrumb } from '@/components/shell/crumb';
+import { PageHeader } from '@/components/ui/misc';
+import { AppTile } from '@/components/ui/tile';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { StateBadge, StateGlyph } from '@/components/ui/state-badge';
@@ -28,7 +30,7 @@ import { SeeData } from './see-data';
 import { Split } from './split';
 import { Requests, RunsOn } from './usage';
 import { UseCode } from './use-code';
-import { EFFECT_WORD, endpointOf, freshWords, HEALTH_WORD, markOf, problemWords, speed, STATE_OF } from './words';
+import { EFFECT_WORD, endpointOf, freshWords, HEALTH_WORD, problemWords, speed, STATE_OF } from './words';
 
 type Look = 'taught' | 'now';
 
@@ -156,37 +158,39 @@ function Header({ org, api, business, color }: { org: string; api: Api; business
   const action = useSiteAction(org, api.key);
   const proposed = api.stage === 'proposed';
   return (
-    <header className="mb-6">
-      <Link to="/$org/site-apis" params={{ org }} className="group mb-4 inline-flex items-center gap-1 text-secondary text-muted transition-colors duration-(--duration-fast) ease-standard hover:text-fg">
-        <ArrowLeft aria-hidden="true" className="size-4 transition-transform duration-(--duration-fast) ease-standard group-hover:-translate-x-px" />
+    <>
+      <Link to="/$org/site-apis" params={{ org }} className="group mb-6 inline-flex items-center gap-1 rounded-sm text-secondary text-muted transition-colors duration-(--duration-fast) ease-standard hover:text-fg">
+        <ArrowLeft aria-hidden="true" className="size-3.5 transition-transform duration-(--duration-fast) ease-standard group-hover:-translate-x-px" />
         Site APIs
       </Link>
-      <div className="flex items-start gap-4 max-sm:flex-col">
-        <SiteMark site={markOf(api.site)} size={40} tile label={false} className="bg-card max-sm:hidden" />
-        <div className="min-w-0 flex-1">
-          <h1 className="text-page-title-compact text-balance sm:text-headline">{api.title}</h1>
-          <p className="mt-1 max-w-2xl text-lede text-pretty text-muted">{api.words}</p>
-          <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-secondary text-faint">
-            <span className="inline-flex items-center gap-2">
-              {business && color ? <BusinessMark name={business} color={color} size={16} /> : null}
-              {business}
+      <PageHeader
+        lead={<AppTile tone="violet" icon={Braces} size="lg" />}
+        title={api.title}
+        aside={<StateBadge state={proposed ? 'waiting' : STATE_OF[api.health]} label={proposed ? 'Waiting for you' : HEALTH_WORD[api.health]} />}
+        description={
+          <>
+            <span className="text-pretty">{api.words}</span>
+            <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-secondary text-muted">
+              {business ? (
+                <span className="inline-flex items-center gap-2">
+                  {color ? <BusinessMark name={business} color={color} size={16} /> : null}
+                  {business}
+                </span>
+              ) : null}
+              <span className="font-mono text-code-caption">{api.site.domain}</span>
+              <span className="tabular">{proposed ? 'Tried once, not on yet' : `${compact(api.calls_7d)} calls this week`}</span>
             </span>
-            <span className="mono">{api.site.domain}</span>
-            <span className="tabular">
-              {proposed ? 'Tried once, not on yet' : `${compact(api.calls_7d)} calls this week`}
-            </span>
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center gap-3">
-          <StateBadge state={proposed ? 'waiting' : STATE_OF[api.health]} label={proposed ? 'Waiting for you' : HEALTH_WORD[api.health]} />
-          {api.stage === 'active' && api.health === 'good' ? (
+          </>
+        }
+        actions={
+          api.stage === 'active' && api.health === 'good' ? (
             <Button icon={<Pause aria-hidden="true" className="size-4" />} onClick={() => action.mutate({ kind: 'pause' })}>
               Pause
             </Button>
-          ) : null}
-        </div>
-      </div>
-    </header>
+          ) : undefined
+        }
+      />
+    </>
   );
 }
 
@@ -409,6 +413,7 @@ function Loaded({ org, api, door, endpointKey }: { org: string; api: Api; door: 
     );
   };
 
+  usePageCrumb(api.title, { mono: false });
   return (
     <div className="pb-16">
       <Header org={org} api={api} business={business?.name} color={business?.color} />

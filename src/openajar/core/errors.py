@@ -94,6 +94,13 @@ class NotFound(OpenajarError):
     code = "not_found"
 
 
+class MachineGone(OpenajarError):
+    """An environment's machine stopped for good: its provider says the container or server no longer runs or
+    no longer exists (openajar.environments.liveness). Nothing ran on it. The message says when, why, and how
+    the same title goes on (a new machine, from the newest save when there is one)."""
+    code = "machine_gone"
+
+
 class HumanInControl(OpenajarError):
     """A human has taken control of this lane. The agent waits (browser_wait_handback) or asks
     for it back (browser_request_control); it must not retry the action in a loop."""

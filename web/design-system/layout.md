@@ -6,7 +6,7 @@ place through `nav.ts` and its rows through `features/<it>/commands.ts`. In the 
 
 | Use | Component | File |
 |---|---|---|
-| The head of every page: title, lede, actions on the right | `PageHeader` | `components/ui/misc.tsx` |
+| The head of every page: title, lede, actions on the right (`lead` a 40 px mark before it, `aside` a chip after the title, `titleHint` its full text on hover) | `PageHeader` | `components/ui/misc.tsx` |
 | A block of related facts with a head line | `Card` with `CardHeader` (title, quiet meta, one action) and `CardFooter` | `components/ui/card.tsx` |
 | A whole card that is one link | `cardLink` on the `<Link>` | `components/ui/card.tsx` |
 | A titled part of a page | `Section` | `components/ui/card.tsx` |
@@ -16,7 +16,8 @@ place through `nav.ts` and its rows through `features/<it>/commands.ts`. In the 
 | The page frame | `AppShell`, `Rail`, `TopBar` | `components/shell/app-shell.tsx`, `components/shell/rail.tsx`, `components/shell/top-bar.tsx` |
 | The status line and the freeze chip | `StatusPill`, `FrozenChip` | `components/shell/status-pill.tsx`, `components/shell/freeze-control.tsx` |
 | The command bar | `CommandPalette`, its rows and state | `components/shell/command-palette.tsx`, `components/shell/commands.ts`, `components/shell/palette-store.ts` |
-| The menu, counts, crumb and keys | five groups with a g key each; counts from the node; `usePageCrumb` | `components/shell/nav.ts`, `components/shell/counts.ts`, `components/shell/crumb.ts`, `components/shell/shortcuts.tsx` |
+| The menu, counts, crumb and keys | ten places in four groups with a g key each; the developer places hidden until first used; counts from the node; `usePageCrumb` | `components/shell/nav.ts`, `components/shell/developer-places.ts`, `components/shell/counts.ts`, `components/shell/crumb.ts`, `components/shell/shortcuts.tsx` |
+| A place's two lists | `PlaceTabs`: Environments and Machines in Computers, Routines and Email in Jobs that repeat, Runs and Checks in Runs and checks | `components/shell/place-tabs.tsx` |
 | The night band a page opens on, the bell | `usePageBand`, `NotificationsBell` | `components/shell/page-band.ts`, `components/shell/notifications.tsx` |
 
 A page reads top to bottom as the job: what is happening now first, then what needs a person, then what

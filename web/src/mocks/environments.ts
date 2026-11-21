@@ -417,6 +417,27 @@ export function browserLane(sibling: Lane | undefined, env: EnvDetail, now: numb
   };
 }
 
+/**
+ * `?mock=env-gone`: the idle invoice export's container was killed outside openajar, so the node says its machine
+ * is gone (openajar.environments.liveness): state gone, when and why, no screen, no ports, nothing to save.
+ */
+export function stopMachine(environments: MockEnv[], id: string, now: number) {
+  const item = environments.find((entry) => entry.detail.id === id);
+  if (!item) return;
+  const at = new Date(now - 6 * MINUTE).toISOString();
+  Object.assign(item.detail, {
+    state: 'gone',
+    machine_gone: { at, why: 'its server is off (Hetzner says off)', next: `environment_open(title="${item.detail.title}") starts a new machine for it` },
+    viewer: null,
+    ports: [],
+    unsaved: null,
+    // as the node says it: nothing is read from a machine that is gone, and a job on it ended with it
+    git: item.detail.git ? { ...item.detail.git, ahead: 0, dirty: 0 } : null,
+    commands: item.detail.commands.map((entry) => (entry.state === 'running' ? { ...entry, state: 'lost' } : entry)),
+  });
+  for (const entry of item.jobs) if (entry.job.state === 'running') Object.assign(entry.job, { state: 'lost' });
+}
+
 /** Seeds the environments of northwind-group and puts each open one's browser among its lanes. */
 export function withEnvironments(db: MockDb, now = Date.now()) {
   const data = db.orgs.get('northwind-group');
@@ -424,6 +445,7 @@ export function withEnvironments(db: MockDb, now = Date.now()) {
   data.environments = seedEnvironments(now);
   data.environmentSaves = scenario.has('no-saves') ? [] : [...storySaves(now), ...seedSaves(now)];
   linkSaves(data.environmentSaves, data.environments);
+  if (scenario.has('env-gone')) stopMachine(data.environments, 'w8tp', now);
   const sibling = data.lanes.find((lane) => lane.kind === 'browser');
   for (const item of data.environments) {
     if (item.detail.state === 'closed' || item.detail.state === 'failed') continue;

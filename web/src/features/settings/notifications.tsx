@@ -1,12 +1,14 @@
 import { Link, useParams } from '@tanstack/react-router';
 import { useRunsAlone } from '@/features/nodes/add-node';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAccess, useNotifications, usePushConfig, useProviders, useSaveNotifications, useTestNotification, useWebhooks } from '@/api/hooks';
 import type { NotificationSettings, QuietHours, Webhook, WebhookEvent } from '@/api/types';
 import { Button } from '@/components/ui/button';
 import { Card, FormCard } from '@/components/ui/card';
 import { Input, Label } from '@/components/ui/field';
 import { SaveStatus, SettingRow } from '@/components/ui/form';
+import { chosen, switched, toastChange } from '@/components/ui/toast';
+import type { Change } from '@/components/ui/toast';
 import { AppTile } from '@/components/ui/tile';
 import { Mail, Moon } from 'lucide-react';
 import { Select } from '@/components/ui/select';
@@ -25,6 +27,30 @@ const BATCH = [
   { value: '30', label: '30 minutes' },
   { value: '60', label: '1 hour' },
 ];
+
+const DIGEST = [
+  { value: 'off', label: 'Off' },
+  { value: 'daily', label: 'Daily' },
+  { value: 'weekly', label: 'Weekly' },
+];
+
+const labelOf = (options: { value: string; label: string }[], value: string) => options.find((item) => item.value === value)?.label ?? value;
+const zoneWords = (zone: string) => zone.replaceAll('_', ' ');
+
+/**
+ * What Undo puts back: only what this change touched, from before it, on top of the settings as they are now,
+ * so a later change to another row stays.
+ */
+function restore(now: NotificationSettings, before: NotificationSettings, next: Partial<NotificationSettings>): NotificationSettings {
+  const back: NotificationSettings = { ...now };
+  for (const key of Object.keys(next) as (keyof NotificationSettings)[]) {
+    if (key === 'quiet_hours' && next.quiet_hours) {
+      const changed = Object.keys(next.quiet_hours) as (keyof QuietHours)[];
+      back.quiet_hours = { ...now.quiet_hours, ...Object.fromEntries(changed.map((item) => [item, before.quiet_hours[item]])) };
+    } else Object.assign(back, { [key]: before[key] });
+  }
+  return back;
+}
 
 const ZONES = [
   'UTC',
@@ -252,12 +278,22 @@ function Form({ org, value }: { org: string; value: NotificationSettings }) {
   const save = useSaveNotifications(org);
   const test = useTestNotification(org);
   const alone = useRunsAlone(org);
-  const patch = (next: Partial<NotificationSettings>) => save.mutate({ ...value, ...next });
-  const quiet = (next: Partial<QuietHours>) => {
+  // Each row saves on its own; the toast says what changed, and Undo puts back what this change touched.
+  const latest = useRef(value);
+  latest.current = value;
+  const patch = (next: Partial<NotificationSettings>, words: Pick<Change, 'said' | 'undone'>) => {
+    const before = value;
+    save.mutate({ ...value, ...next }, { onSuccess: () => toastChange({ ...words, undo: () => save.mutateAsync(restore(latest.current, before, next)) }) });
+  };
+  const quiet = (next: Partial<QuietHours>, words: Pick<Change, 'said' | 'undone'>) => {
     // The API's default zone is UTC. Turning quiet hours on uses this browser's zone instead,
     // unless one was chosen before.
     const zoneless = next.enabled && value.quiet_hours.timezone === 'UTC' && browserZone() !== 'UTC';
-    patch({ quiet_hours: { ...value.quiet_hours, ...(zoneless ? { timezone: browserZone() } : {}), ...next } });
+    patch({ quiet_hours: { ...value.quiet_hours, ...(zoneless ? { timezone: browserZone() } : {}), ...next } }, words);
+  };
+  const clock = (end: 'from' | 'to', at: string) => {
+    const word = end === 'from' ? 'start' : 'end';
+    quiet({ [end]: at }, { said: `Quiet hours now ${word} at ${at}`, undone: `Quiet hours ${word} at ${value.quiet_hours[end]} again` });
   };
   const zone = value.quiet_hours.timezone;
   // Known to be impossible here (not set up, or not on the plan). Unknown while loading counts as possible.
@@ -276,7 +312,7 @@ function Form({ org, value }: { org: string; value: NotificationSettings }) {
         tile={<AppTile tone="blue" icon={Mail} size="sm" />}
         title="Channels"
         description={alone ? 'Yours alone, on this computer. Nobody else sees or changes them.' : 'Yours alone, in this organization. Nobody else sees or changes them.'}
-        footnote={save.isIdle ? undefined : <SaveState save={save} />}
+        footnote={save.isPending || save.isError ? <SaveState save={save} /> : undefined}
         action={
           emailable ? (
             <Button size="sm" loading={test.isPending} onClick={() => test.mutate()}>
@@ -290,24 +326,22 @@ function Form({ org, value }: { org: string; value: NotificationSettings }) {
             label="Push to my devices"
             hint={pushable ? 'Turns push off everywhere at once, without removing any device.' : 'Not available here, so nothing is pushed. Approvals still wait in Needs you.'}
           >
-            <Switch aria-label="Push to my devices" checked={value.push && pushable} disabled={!pushable} onCheckedChange={(push) => patch({ push })} />
+            <Switch aria-label="Push to my devices" checked={value.push && pushable} disabled={!pushable} onCheckedChange={(push) => patch({ push }, switched('Push to my devices', push))} />
           </SettingRow>
           {emailable ? (
             <>
               <SettingRow label="Urgent email" hint="Payments and irreversible actions, the moment they ask.">
-                <Switch aria-label="Urgent email" checked={value.email_urgent} onCheckedChange={(email_urgent) => patch({ email_urgent })} />
+                <Switch aria-label="Urgent email" checked={value.email_urgent} onCheckedChange={(email_urgent) => patch({ email_urgent }, switched('Urgent email', email_urgent))} />
               </SettingRow>
               <SettingRow label="Email digest" hint={`What your agents did, and what waits. It lands at ${value.digest?.label ?? `08:00 in ${zone.replaceAll('_', ' ')}`}.`}>
                 <Select
                   className="w-32 shrink-0"
                   aria-label="Email digest"
                   value={value.email_digest}
-                  onValueChange={(email_digest) => patch({ email_digest: email_digest as NotificationSettings['email_digest'] })}
-                  options={[
-                    { value: 'off', label: 'Off' },
-                    { value: 'daily', label: 'Daily' },
-                    { value: 'weekly', label: 'Weekly' },
-                  ]}
+                  onValueChange={(email_digest) =>
+                    patch({ email_digest: email_digest as NotificationSettings['email_digest'] }, chosen('Email digest', labelOf(DIGEST, email_digest), labelOf(DIGEST, value.email_digest)))
+                  }
+                  options={DIGEST}
                 />
               </SettingRow>
             </>
@@ -327,23 +361,25 @@ function Form({ org, value }: { org: string; value: NotificationSettings }) {
               className="w-36 shrink-0"
               aria-label="Group routine approvals"
               value={String(value.batch_minutes)}
-              onValueChange={(minutes) => patch({ batch_minutes: Number(minutes) })}
+              onValueChange={(minutes) =>
+                patch({ batch_minutes: Number(minutes) }, chosen('Group routine approvals', labelOf(BATCH, minutes), labelOf(BATCH, String(value.batch_minutes))))
+              }
               options={BATCH.some((item) => item.value === String(value.batch_minutes)) ? BATCH : [...BATCH, { value: String(value.batch_minutes), label: `${value.batch_minutes} minutes` }]}
             />
           </SettingRow>
           <SettingRow label="Quiet hours" hint="Pushes wait until the end, in the time zone below.">
-            <Switch aria-label="Quiet hours" checked={value.quiet_hours.enabled} onCheckedChange={(enabled) => quiet({ enabled })} />
+            <Switch aria-label="Quiet hours" checked={value.quiet_hours.enabled} onCheckedChange={(enabled) => quiet({ enabled }, switched('Quiet hours', enabled))} />
           </SettingRow>
           {value.quiet_hours.enabled ? (
             <div className="grid gap-4 py-4">
               <div className="grid gap-4 sm:grid-cols-[repeat(2,minmax(0,8rem))_minmax(0,1fr)]">
-                <ClockField id="quiet-from" label="From" value={value.quiet_hours.from} onCommit={(from) => quiet({ from })} />
-                <ClockField id="quiet-to" label="To" value={value.quiet_hours.to} onCommit={(to) => quiet({ to })} />
+                <ClockField id="quiet-from" label="From" value={value.quiet_hours.from} onCommit={(from) => clock('from', from)} />
+                <ClockField id="quiet-to" label="To" value={value.quiet_hours.to} onCommit={(to) => clock('to', to)} />
                 <div className="grid gap-2">
                   <span id="quiet-zone" className="text-label text-fg">
                     Time zone
                   </span>
-                  <Select aria-describedby="quiet-zone" aria-label="Time zone" value={zone} onValueChange={(timezone) => quiet({ timezone })} options={zones} />
+                  <Select aria-describedby="quiet-zone" aria-label="Time zone" value={zone} onValueChange={(timezone) => quiet({ timezone }, chosen('Time zone', zoneWords(timezone), zoneWords(zone)))} options={zones} />
                 </div>
               </div>
               <QuietStrip quiet={value.quiet_hours} />
@@ -354,7 +390,7 @@ function Form({ org, value }: { org: string; value: NotificationSettings }) {
               <Switch
                 aria-label="Urgent comes through"
                 checked={value.quiet_hours.urgent_breaks_through}
-                onCheckedChange={(urgent_breaks_through) => quiet({ urgent_breaks_through })}
+                onCheckedChange={(urgent_breaks_through) => quiet({ urgent_breaks_through }, switched('Urgent comes through', urgent_breaks_through))}
               />
             </SettingRow>
           ) : null}

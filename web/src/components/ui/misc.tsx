@@ -81,10 +81,13 @@ export function Avatar({ name, me = false, className }: { name: string; me?: boo
   );
 }
 
-/** Thin usage bar, 4 px, ink on the chart track. Goes amber then red only when the number actually matters. */
-export function Meter({ value, max, label, className }: { value: number; max: number; label: string; className?: string }) {
+/**
+ * Thin usage bar, 4 px, ink on the chart track. Goes amber then red only when the number actually matters.
+ * `progress` is a bar where more is better (accounts ready, steps done): ink, and green once it is complete.
+ */
+export function Meter({ value, max, label, progress = false, className }: { value: number; max: number; label: string; progress?: boolean; className?: string }) {
   const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
-  const tone = pct >= 95 ? 'bg-bad-dot' : pct >= 80 ? 'bg-warn-dot' : 'bg-chart-bar-strong';
+  const tone = progress ? (pct >= 100 ? 'bg-ok-dot' : 'bg-chart-bar-strong') : pct >= 95 ? 'bg-bad-dot' : pct >= 80 ? 'bg-warn-dot' : 'bg-chart-bar-strong';
   return (
     <div
       role="meter"
@@ -153,25 +156,64 @@ export function Detail({ label, children }: { label: string; children: ReactNode
 }
 
 /**
- * The head of a page: the page title (28/36, 24/32 on a phone), the lede under it in the secondary
+ * The head of a page: the page title (34/40, 26/32 on a phone), the lede under it in the secondary
  * ink, and the page's actions on the right. An optional eyebrow sits over the title (a kind's word).
+ *
+ * A detail page (one run, one check, one account) adds `lead`, its 40 px mark (a `KindTile`, an account's
+ * site tile, a workspace's mark), which stands beside the eyebrow and the title, with the actions level with
+ * its top; `aside` sits beside the title (the state as a chip); `titleHint` is the title's full text on hover
+ * (a long address). `className` sets the space under it.
  */
 export function PageHeader({
   title,
   description,
   actions,
   eyebrow,
+  lead,
+  aside,
+  titleHint,
+  className,
 }: {
   title: string;
   description?: ReactNode;
   actions?: ReactNode;
   eyebrow?: ReactNode;
+  lead?: ReactNode;
+  aside?: ReactNode;
+  titleHint?: string;
+  className?: string;
 }) {
+  const heading = (
+    <h1 title={titleHint} className="min-w-0 text-page-title-compact text-balance [overflow-wrap:anywhere] md:text-page-title">
+      {title}
+    </h1>
+  );
+  const titled = aside ? (
+    <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+      {heading}
+      {aside}
+    </div>
+  ) : (
+    heading
+  );
+  if (lead) {
+    return (
+      <header className={cn('mb-8 grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-4 gap-y-4 md:grid-cols-[auto_minmax(0,1fr)_auto]', className)}>
+        <div>{lead}</div>
+        <div className="grid min-w-0 gap-2">
+          {eyebrow ? <div className="min-w-0">{eyebrow}</div> : null}
+          {titled}
+          {description ? <div className="grid max-w-[46em] gap-2 text-body text-muted md:text-lede">{description}</div> : null}
+        </div>
+        {actions ? <div className="col-start-2 flex flex-wrap items-center gap-2 md:col-start-3 md:row-start-1 md:justify-end">{actions}</div> : null}
+      </header>
+    );
+  }
   return (
-    <header className="mb-8 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-x-4">
+    <header className={cn('mb-8 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-x-4', className)}>
       <div className="grid min-w-0 gap-2">
         {eyebrow ? <div className="min-w-0">{eyebrow}</div> : null}
-        <h1 className="text-page-title-compact text-balance [overflow-wrap:anywhere] md:text-page-title">{title}</h1>
+        {titled}
       </div>
       {actions ? <div className="flex flex-wrap items-center justify-end gap-2">{actions}</div> : <span />}
       {description ? <p className="col-span-2 mt-2 max-w-[46em] text-body text-muted md:text-lede">{description}</p> : null}
