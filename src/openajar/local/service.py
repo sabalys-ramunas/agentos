@@ -120,6 +120,9 @@ class Manager(Protocol):
 
     def state(self) -> Loaded: ...
 
+    def restart(self) -> None:
+        """Stop the running node and start it again from the unit as it is (its home, port and environment)."""
+
     def retire_legacy(self) -> bool:
         """Stop and remove the unit an install before the rename wrote; True when there was one."""
 
@@ -191,6 +194,13 @@ class Launchd:
             path.unlink()
             return True
         return stopped or legacy
+
+    def restart(self) -> None:
+        # -k: launchd ends the running node (SIGTERM, its clean shutdown) and starts the job again at once
+        proc = self.run([self.launchctl, "kickstart", "-k", f"{self.domain}/{self.label}"])
+        if proc.returncode != 0:
+            raise LocalError(f"launchctl could not restart {self.label}: {_last_line(proc)}",
+                             f"look at `launchctl print {self.domain}/{self.label}`, or run `openajar local start`")
 
     def retire_legacy(self) -> bool:
         if self.label != LABEL:  # a second home's service: the old job is the person's own node, never its to stop
@@ -268,6 +278,12 @@ class Systemd:
     def stop(self) -> bool:
         legacy = self.retire_legacy()
         return self._ctl("disable", "--now", self.unit).returncode == 0 or legacy
+
+    def restart(self) -> None:
+        proc = self._ctl("restart", self.unit)
+        if proc.returncode != 0:
+            raise LocalError(f"systemctl --user restart {self.unit} failed: {_last_line(proc)}",
+                             f"look at `systemctl --user status {self.unit}`, or run `openajar local start`")
 
     def retire_legacy(self) -> bool:
         if self.unit != UNIT:  # a second home's service: the old unit is the person's own node, never its to stop
@@ -422,6 +438,72 @@ def start(home: Path, port: int | None = None, *, deps: Deps | None = None) -> S
         state.note = (f"Started, but it did not answer on port {chosen} within {deps.wait_s:g} s. "
                       "See `openajar local logs`.")
     return state
+
+
+def restart(home: Path, *, deps: Deps | None = None) -> ServiceState | None:
+    """Start the running service again, so it runs the openajar installed now (the installer calls this after
+    it replaced the tool: the old node kept running the old code). The unit stays as it is, so the home, the
+    port and the environment do too; an old Background plist is written again (start). None when the service
+    is not loaded: there is nothing to restart, and nothing is started."""
+    deps = deps or Deps()
+    home = Path(home).expanduser()
+    svc = deps.svc(home)
+    loaded = svc.state()
+    cfg = local_home.read(home)
+    if not loaded.loaded or cfg is None:
+        return None
+    live = _open_or_none(home)
+    if getattr(svc, "throttled", lambda: False)():
+        state = start(home, deps=deps)
+    else:
+        svc.restart()
+        state = _wait_for_a_new_node(home, loaded.pid, deps)
+    if not state.running:
+        state.note = (f"Restarted the local service, but it did not answer on port {cfg.mcp_port} within "
+                      f"{deps.wait_s:g} s. See `openajar local logs`.")
+        return state
+    state.note = restarted_words(state.port or cfg.mcp_port, live)
+    return state
+
+
+def _open_or_none(home: Path) -> list[tuple[str, str]]:
+    try:
+        return open_environments(home)
+    except Exception:  # noqa: BLE001 - a store that cannot be read must not stop the restart
+        return []
+
+
+def _wait_for_a_new_node(home: Path, old_pid: int | None, deps: Deps) -> ServiceState:
+    """Wait until a node answers that is not the one before (launchd and systemd may report the old pid for a
+    moment), up to deps.wait_s."""
+    waited = 0.0
+    while True:
+        state = status(home, deps=deps)
+        if state.running and (old_pid is None or state.pid != old_pid):
+            return state
+        if waited >= deps.wait_s:
+            state.running = state.running and old_pid is None
+            return state
+        deps.sleep(0.5)
+        waited += 0.5
+
+
+def restarted_words(port: int, live: list[tuple[str, str]]) -> str:
+    """What a restart says: one line, and one more when environments were open, with what the restart
+    interrupted on them. Their machines and jobs are not touched (a job runs on its VM, detached, and the new
+    node follows it again), but the old node's clean shutdown closes each environment's browser lane (the
+    browser on the VM stops, and opens again from its profile on the next browser call), ends the tunnels and
+    a recording in progress, and drops every connection to the node for a few seconds."""
+    from openajar import __version__
+
+    head = f"Restarted the local service on port {port}, so it runs openajar {__version__} (same home, same port)."
+    if not live:
+        return head
+    n = len(live)
+    return (f"{head}\n{n} environment{'s stay' if n != 1 else ' stays'} open and {'their' if n != 1 else 'its'} "
+            "jobs keep running. An open browser there closed and opens again on the next browser call (its open "
+            "pages are gone); a live view in the web app tries again by itself; a recording or tool call that was "
+            "running stopped, and an upload or download link not used yet no longer works.")
 
 
 THROTTLED_WORDS = ("macOS runs this node as a Background job (an older `openajar local start` wrote its launchd "

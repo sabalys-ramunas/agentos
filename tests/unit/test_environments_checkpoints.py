@@ -314,14 +314,14 @@ def _bridge(loop, app) -> httpx.MockTransport:
 
 
 @pytest.fixture
-def cli(node, monkeypatch):
+def cli(node, monkeypatch, request):
     import asyncio
     from types import SimpleNamespace
 
+    from node_config_support import patch_node_config
     from typer.testing import CliRunner
 
     from openajar.api import ApiSettings, build_api
-    from openajar.core import config as config_mod
     from openajar.environments import resume_cli
 
     home = node["mgr"].home
@@ -329,8 +329,7 @@ def cli(node, monkeypatch):
     cfg = node["rt"].get("config")
     toml = home / "node.toml"
     toml.write_text("")
-    monkeypatch.setattr(config_mod, "config_path", lambda h=None: toml)
-    monkeypatch.setattr(config_mod, "load_config", lambda h=None: cfg)
+    patch_node_config(request, monkeypatch, cfg, toml)
 
     async def run(*args: str):
         transport = _bridge(asyncio.get_running_loop(), api)

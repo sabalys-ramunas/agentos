@@ -17,6 +17,7 @@
 #   OPENAJAR_GIT_REF   a branch or tag (default: the newest release tag, vX.Y.Z; main when there is none)
 #   OPENAJAR_NO_SETUP  set to 1 to only install, never start openajar setup
 #   OPENAJAR_NO_WEB    set to 1 to leave the web app out when setup does not start
+#   OPENAJAR_LOCAL_HOME  the local node whose running service is restarted after an update (default: ~/.openajar)
 set -eu
 
 # The public repository. OPENAJAR_GIT_URL installs from another one (a fork, a mirror, a private copy).
@@ -25,6 +26,7 @@ OPENAJAR_DEFAULT_GIT_URL="https://github.com/sabalys-ramunas/openajar.git"
 url="${OPENAJAR_GIT_URL:-${AGENTOS_GIT_URL:-$OPENAJAR_DEFAULT_GIT_URL}}"  # legacy-name: AGENTOS_GIT_URL
 ref="${OPENAJAR_GIT_REF:-${AGENTOS_GIT_REF:-}}"  # legacy-name: AGENTOS_GIT_REF
 no_setup="${OPENAJAR_NO_SETUP:-${AGENTOS_NO_SETUP:-0}}"  # legacy-name: AGENTOS_NO_SETUP
+local_home="${OPENAJAR_LOCAL_HOME:-}"
 bin="$HOME/.local/bin"
 
 say() { printf '==> %s\n' "$*"; }
@@ -88,6 +90,12 @@ say "$cmd $("$cmd" --version 2>/dev/null || echo installed) is at $(command -v "
 if [ -n "$old_service" ]; then
   say "Starting the local service again, as openajar (same home, same port)"
   "$cmd" local start || say "Could not start it; run: $cmd local start"
+elif [ "$cmd" = openajar ]; then
+  # A running local service keeps the code it started with until it starts again: restart it, so it runs
+  # the version installed just now (it prints one line, and what the restart interrupted). Not running: nothing.
+  set -- local restart --if-running
+  [ -z "$local_home" ] || set -- "$@" --home "$local_home"
+  "$cmd" "$@" || say "The local service did not restart; run: $cmd local stop, then $cmd local start"
 fi
 
 if [ "$no_setup" != 1 ] && [ -t 1 ] && (: </dev/tty) 2>/dev/null; then

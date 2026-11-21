@@ -7,6 +7,7 @@
  * This is the one place for those words. A screen that shows node text reads it from here, and a
  * new raw sentence gets a rule here with a test, never a sentence of its own on the screen.
  */
+import { productName } from './agent-names';
 import { date, dayAndTime } from './format';
 import { laneName } from './labels';
 
@@ -161,9 +162,6 @@ export function fixWords(fix: string): { plain: string; command: string } {
   return { plain: hit ? hit[1] : FALLBACK_FIX, command: fix };
 }
 
-/** The agent's name in an access line: `claude-code@host` reads as Claude Code. */
-const AGENTS: Record<string, string> = { 'claude-code': 'Claude Code', claude: 'Claude', codex: 'Codex', chatgpt: 'ChatGPT' };
-
 /**
  * A health line about an agent's access: "agents use grant gr_... (claude-code@host, up to
  * irreversible), until 2027-02-04". The grant id is for Technical details only.
@@ -172,8 +170,7 @@ export function accessDetail(text: string, names?: PlaceNames): string {
   const grant = /^agents use grant (\S+) \(([^,)]+), up to ([a-z_]+)\), until (\d{4}-\d{2}-\d{2})$/.exec(text);
   if (!grant) return plainReason(text, names);
   const [, , subject = '', ceiling = '', until = ''] = grant;
-  const name = subject.split('@')[0] ?? '';
-  const who = AGENTS[name] ?? (name || 'An agent');
+  const who = productName(subject) ?? 'An agent'; // `claude-code@host` reads as Claude Code
   const reach = ceiling === 'irreversible' ? 'anything that cannot be undone' : 'what it is allowed to do';
   // Noon, so the day reads the same in every time zone.
   return `${who} can act here, up to ${reach}, until ${date(`${until}T12:00:00`)}.`;

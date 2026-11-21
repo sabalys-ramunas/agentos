@@ -13,6 +13,7 @@
  * - Saved: a paused machine on Morph (back in seconds with its dev server) and the dark mode snapshot
  *   (about a minute); Resume wakes either from the app (mocks/env-concepts.ts).
  */
+import { agentView } from '@/lib/agent-names';
 import type { EnvBringUp, EnvBringUpStep, EnvCheckpoint, EnvCheckpointChange, EnvDetail, EnvSave } from '@/api/types';
 import { MEDIUM, SMALL, at, call, command, job, proof, summaryOf, videoProof } from './environments';
 import type { MockEnv } from './environments';
@@ -206,7 +207,7 @@ export function storySaves(now: number): EnvSave[] {
       id: 'sv_k7pz_2', title: 'Checkout redesign', repo: 'github.com/harbor-supply/shop', branch: 'feat/checkout-redesign', head: '5e1b7c9a0d3f2468a1c3e5f7b9d0a2c4e6f8b0d2',
       saved_at: at(now, -2 * HOUR), kind: 'save', snapshot_gb: null, files_bytes: 284 * 1024 * 1024, paused: true, cost_eur_month: 2.4, provider: 'morph', server_type: 'morph-4x8', price_hourly_eur: 0.048,
       note: 'The address step is done and pnpm dev is running. Next: the payment step, then the e2e test for a guest.',
-      agent: { name: 'Claude Code', client: 'T3 Code' }, prune_at: at(now, 12 * 24 * HOUR),
+      agent: agentView('claude-code', 't3-code 0.9.2'), prune_at: at(now, 12 * 24 * HOUR),
       services: [{ cmd: 'pnpm dev', port: 3000 }, { cmd: 'docker compose up db', port: 5432 }],
     },
   ];
@@ -214,7 +215,7 @@ export function storySaves(now: number): EnvSave[] {
 
 /** New environments, one per story. */
 export function storyEnvironments(now: number): MockEnv[] {
-  const claude = { name: 'Claude Code', client: 'T3 Code' };
+  const claude = agentView('claude-code', 't3-code 0.9.2');
   const datePicker = summaryOf(now, {
     id: 'h5ap', title: 'Date picker on the booking form', state: 'working', repo: 'github.com/meridian-travel/booking', branch: 'feat/date-picker',
     age: 9, lastCall: 50, left: 111, machine: MEDIUM, agent: claude,
@@ -222,7 +223,7 @@ export function storyEnvironments(now: number): MockEnv[] {
   const devJob = job(now, 'h5ap', 'job-3a9f0c1d7e', 'pnpm dev', '/work/booking', 'running', 7, null, VITE_TAIL);
   const rates = summaryOf(now, {
     id: 'n3lm', title: 'Shipping rates from the carrier', state: 'idle', repo: 'github.com/harbor-supply/shop', branch: 'feat/carrier-rates',
-    age: 41, lastCall: 12 * 60, left: 79, machine: SMALL, agent: { name: 'Codex', client: null }, keep: 'save',
+    age: 41, lastCall: 12 * 60, left: 79, machine: SMALL, agent: agentView('codex', 'codex-mcp-client 0.40.0'), keep: 'save',
   });
   const cart = summaryOf(now, {
     id: 'c5kp', title: 'Cart totals with discounts', state: 'working', repo: 'github.com/harbor-supply/shop', branch: 'fix/cart-discounts',

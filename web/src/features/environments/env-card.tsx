@@ -3,6 +3,7 @@
  * state and the time left on it as glass chips, its title (two lines at most), and who works in it with what
  * it is doing. The Environments list and Home's Working now show the same card, so the two agree.
  */
+import { agentSaid } from '@/lib/agent-names';
 import { Link } from '@tanstack/react-router';
 import { Clock } from 'lucide-react';
 import type { EnvState, EnvSummary } from '@/api/types';
@@ -60,7 +61,7 @@ export function EnvCard({ org, env, now }: { org: string; env: EnvSummary; now: 
               {env.title}
             </p>
             <p className="mt-1 truncate text-secondary text-muted">
-              {env.agent.name} · {ENV_DOING[env.state]}
+              {agentSaid(env.agent)} · {ENV_DOING[env.state]}
             </p>
           </div>
         </Card>

@@ -220,6 +220,7 @@ describe('the environment concepts on the mock', () => {
   it('lists the refused hosts of a limited network with the command that allows one, and secrets by name only', async () => {
     const { user } = renderApp(`/${ORG}/environments/n3lm`);
     const refused = await screen.findByRole('region', { name: 'Refused hosts' }, T);
+    expect(screen.getByRole('img', { name: 'Network: limited' })).toBeInTheDocument(); // its machine is up: the level shows
     expect(within(refused).getAllByText('api.segment.io').length).toBeGreaterThan(0);
     expect(within(refused).getByText('41×')).toBeInTheDocument();
     expect(within(refused).getByText(/A secret's placeholder went here/)).toBeInTheDocument();

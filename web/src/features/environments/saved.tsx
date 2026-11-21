@@ -7,6 +7,7 @@
  * within the node's limits) or forgets it, after asking; an agent that opens its title brings it back too.
  * A save on Morph is the paused machine itself, and says so.
  */
+import { agentSaid } from '@/lib/agent-names';
 import { Link } from '@tanstack/react-router';
 import { Clock, Info, Moon, Pause } from 'lucide-react';
 import { useState } from 'react';
@@ -56,7 +57,7 @@ function SaveCard({ org, save, now, onForget }: { org: string; save: EnvSave; no
     </time>,
     <span key="holds">{saveHolds(save)}</span>,
     <span key="cost">{monthly(save.cost_eur_month)}</span>,
-    save.agent ? <span key="agent">{save.agent.name}</span> : null,
+    save.agent ? <span key="agent">{agentSaid(save.agent)}</span> : null,
   ].filter(Boolean);
   return (
     <li aria-label={save.title} className="min-w-0">

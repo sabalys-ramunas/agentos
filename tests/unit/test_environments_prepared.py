@@ -823,13 +823,13 @@ async def test_allow_warm_takes_effect_on_a_running_node(node):
 
 
 @pytest.fixture
-def cli(node, monkeypatch):
+def cli(node, monkeypatch, request):
     import httpx
+    from node_config_support import patch_node_config
     from test_environments_downloads import _bridge
     from typer.testing import CliRunner
 
     from openajar.api import ApiSettings, build_api
-    from openajar.core import config as config_mod
     from openajar.environments import prepared_cli
 
     home = node.mgr.home
@@ -837,8 +837,7 @@ def cli(node, monkeypatch):
     cfg = node.rt.get("config")
     toml = home / "node.toml"
     toml.write_text("")
-    monkeypatch.setattr(config_mod, "config_path", lambda h=None: toml)
-    monkeypatch.setattr(config_mod, "load_config", lambda h=None: cfg)
+    patch_node_config(request, monkeypatch, cfg, toml)
     monkeypatch.setattr(prepared_cli, "POLL_S", 0.05)
     monkeypatch.setattr(prepared_cli, "_managers", lambda: (node.mgr, node.vms))
 

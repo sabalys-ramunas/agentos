@@ -1,0 +1,17 @@
+{
+  "about": "An agent's name as a person reads it. Both sides must pass every case: the server (tests/unit/test_agent_names.py, openajar.core.agent_names) and the web app (web/src/lib/agent-names.test.ts). subject is the grant's subject, client the MCP clientInfo; said, via and where are what the API sends; principal is how a history or needs-you row names the subject.",
+  "cases": [
+    { "subject": "claude-code", "client": "claude-code 2.1.328", "said": "Claude Code", "via": null, "where": null, "principal": "Claude Code" },
+    { "subject": "claude-code@studio-mac-mini", "client": "claude-code 2.1.328", "said": "Claude Code", "via": null, "where": "studio mac mini", "principal": "Claude Code (on studio mac mini)" },
+    { "subject": "claude-code", "client": "t3-code 0.9.2", "said": "Claude Code", "via": "T3 Code", "where": null, "principal": "Claude Code" },
+    { "subject": "codex", "client": "codex-mcp-client 0.40.0", "said": "Codex", "via": null, "where": null, "principal": "Codex" },
+    { "subject": "codex@vm2", "client": null, "said": "Codex", "via": null, "where": "vm2", "principal": "Codex (on vm2)" },
+    { "subject": "t3", "client": "t3 1.2.0", "said": "T3 Code", "via": null, "where": null, "principal": "T3 Code" },
+    { "subject": "my_bot", "client": "my-bot 0.1", "said": "My bot", "via": null, "where": null, "principal": "My bot" },
+    { "subject": "an agent", "client": "cursor-vscode 1.0.0", "said": "Cursor", "via": null, "where": null, "principal": "An agent" },
+    { "subject": "", "client": "claude-code 2.1.328", "said": "Claude Code", "via": null, "where": null, "principal": "An agent" },
+    { "subject": "owner", "client": null, "said": "An agent", "via": null, "where": null, "principal": "An agent" },
+    { "subject": "an agent", "client": null, "said": "An agent", "via": null, "where": null, "principal": "An agent" },
+    { "subject": "Claude Code", "client": "Claude Code", "said": "Claude Code", "via": null, "where": null, "principal": "Claude Code" }
+  ]
+}

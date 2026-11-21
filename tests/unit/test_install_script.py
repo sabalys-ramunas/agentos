@@ -94,3 +94,30 @@ def test_installs_the_newest_release_when_there_are_tags(tmp_path):
     again = run(tmp_path, bin_dir, log, OPENAJAR_GIT_URL="https://git.example.test/openajar.git", OPENAJAR_GIT_REF="main")
     assert again.returncode == 0, again.stderr
     assert "ls-remote" not in log.read_text() and "openajar.git@main" in log.read_text()
+
+
+def test_an_update_restarts_a_running_local_service_before_setup_or_the_web_app(tmp_path):
+    """Upgrading from 0.5.0 to 0.5.1 replaced the tool, but the running service kept the old code until it was
+    stopped and started by hand. The installer asks the new openajar to restart it (only when it runs)."""
+    bin_dir, log = fake_bin(tmp_path, with_uv=True)
+    proc = run(tmp_path, bin_dir, log)
+    assert proc.returncode == 0, proc.stderr
+    calls = log.read_text().splitlines()
+    assert "openajar local restart --if-running" in calls
+    assert calls.index("openajar local restart --if-running") < calls.index("openajar web update")
+
+    log.write_text("")
+    given = run(tmp_path, bin_dir, log, OPENAJAR_LOCAL_HOME=str(tmp_path / "my node"))
+    assert given.returncode == 0, given.stderr
+    assert f"openajar local restart --if-running --home {tmp_path / 'my node'}" in log.read_text().splitlines()
+
+
+def test_a_restart_that_fails_says_what_to_run_and_the_install_goes_on(tmp_path):
+    bin_dir, log = fake_bin(tmp_path, with_uv=True)
+    failing = FAKE_UV.replace('exit 0\\n', '[ "$1 $2" = "local restart" ] && exit 1\\nexit 0\\n')
+    assert failing != FAKE_UV
+    (bin_dir / "uv").write_text(failing)
+    proc = run(tmp_path, bin_dir, log)
+    assert proc.returncode == 0, proc.stderr
+    assert "The local service did not restart; run: openajar local stop, then openajar local start" in proc.stdout
+    assert "openajar web update" in log.read_text()

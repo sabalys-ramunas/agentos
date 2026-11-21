@@ -150,6 +150,29 @@ def stop(home: HomeOption = None) -> None:
         raise _fail(exc) from None
 
 
+@app.command("restart")
+def restart(home: HomeOption = None,
+            if_running: Annotated[bool, typer.Option(
+                "--if-running", help="Do nothing, and say nothing, when the service is not running (the installer "
+                                     "passes this after an update).")] = False) -> None:
+    """Start the running local node again, so it runs the openajar installed now: same home, same port."""
+    from openajar.local import service
+
+    try:
+        state = service.restart(_home(home))
+    except ClientError as exc:
+        raise _fail(exc) from None
+    if state is None:
+        if if_running:
+            return
+        typer.echo("The local service is not running, so there is nothing to restart. Start it with "
+                   "`openajar local start`.")
+        raise typer.Exit(1)
+    typer.echo(state.note)
+    if not state.running:
+        raise typer.Exit(1)
+
+
 @app.command("status")
 def status(home: HomeOption = None,
            as_json: Annotated[bool, typer.Option("--json", help="Machine-readable.")] = False) -> None:

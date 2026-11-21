@@ -577,7 +577,8 @@ async def test_another_family_gets_not_found_and_the_owner_sees_the_save(node):
     fresh = await node["call"]("environment_open", title=TITLE, repo=REPO, session="chat-x", tok=node["other_token"])
     assert "resumed" not in fresh  # their own new one, not this family's save
     owner = node["mgr"].saved_for(None)
-    assert [r["id"] for r in owner] == [sid] and owner[0]["agent"] == {"name": "agent-1", "client": None}
+    assert [r["id"] for r in owner] == [sid] and owner[0]["agent"]["name"] == "agent-1" \
+        and owner[0]["agent"]["said"] == "Agent 1"
     assert out["id"] != fresh["id"]
 
 

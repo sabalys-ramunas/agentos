@@ -2,6 +2,7 @@
  * The words of Environments: each state as a status, money, time left, the machine and why one closed.
  * Everything here reads what the node serves and nothing else.
  */
+import { agentSaid, agentVia } from '@/lib/agent-names';
 import type { EnvCommand, EnvKeep, EnvSave, EnvState, EnvSummary } from '@/api/types';
 import { timeAgo } from '@/lib/format';
 import type { StatusLabel } from '@/lib/labels';
@@ -89,9 +90,13 @@ export function repoName(repo: string): string {
   return repo.replace(/^https?:\/\//, '').replace(/^github\.com\//, '').replace(/\.git$/, '');
 }
 
-/** "Claude Code in T3 Code", or just the agent when the client is the agent itself or unknown. */
+/**
+ * "Claude Code in T3 Code", or just "Claude Code" when it came in through itself: the names the node sends
+ * (openajar.core.agent_names), never the raw subject or the client's version.
+ */
 export function agentWords(agent: EnvSummary['agent']): string {
-  return agent.client && agent.client !== agent.name ? `${agent.name} in ${agent.client}` : agent.name;
+  const via = agentVia(agent);
+  return via ? `${agentSaid(agent)} in ${via}` : agentSaid(agent);
 }
 
 /** "2 CPU, 4 GB": what the machine has. */

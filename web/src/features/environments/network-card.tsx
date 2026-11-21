@@ -4,8 +4,10 @@
  * runs on the node to allow it, and the names of the app secrets bound to it. The web app changes none of
  * it: the node's settings are the owner's, at the node. No value of a secret is ever here; the machine
  * holds a placeholder that the node swaps for the real value on the way out, and only to its own host.
+ * Once its machine stopped (state gone) the level scale goes: a level on a machine that is not there reads as a
+ * control that does nothing. One quiet line says what it was; what was refused and the secrets' names stay.
  */
-import { KeyRound, ShieldCheck, TriangleAlert } from 'lucide-react';
+import { KeyRound, PowerOff, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { useState } from 'react';
 import type { EnvBlockedHost, EnvNetwork, EnvNetworkLevel } from '@/api/types';
 import { Button } from '@/components/ui/button';
@@ -32,17 +34,28 @@ const BLOCKED_SHOWN = 4;
 /** The exact command that allows one host. The web app shows it; the owner runs it on the node. */
 export const allowCommand = (host: string) => `openajar environments allow --host ${host}`;
 
-export function NetworkCard({ network, now }: { network: EnvNetwork; now: number }) {
+/** The line that stands in for the scale once the machine stopped. */
+export const stoppedNetworkLine = (level: EnvNetworkLevel) =>
+  `Its machine stopped, so no network setting does anything now. It was ${LEVELS.find((item) => item.level === level)?.label ?? level}.`;
+
+export function NetworkCard({ network, now, stopped = false }: { network: EnvNetwork; now: number; stopped?: boolean }) {
   const [all, setAll] = useState(false);
   const blocked = [...network.blocked].sort((a, b) => b.last.localeCompare(a.last));
   const shown = all ? blocked : blocked.slice(0, BLOCKED_SHOWN);
   return (
     <Card className="overflow-hidden">
       <CardHeader title="Network" meta={network.blocked.length ? plural(network.blocked.length, 'host') + ' refused' : undefined} />
-      <div className="grid gap-4 px-5 py-4">
-        <LevelScale level={network.policy} />
-        <Allowed network={network} />
-      </div>
+      {stopped ? (
+        <p className="flex items-center gap-2 px-5 py-4 text-secondary text-muted">
+          <PowerOff aria-hidden="true" className="size-4 shrink-0 text-faint" />
+          {stoppedNetworkLine(network.policy)}
+        </p>
+      ) : (
+        <div className="grid gap-4 px-5 py-4">
+          <LevelScale level={network.policy} />
+          <Allowed network={network} />
+        </div>
+      )}
       {blocked.length ? (
         <section aria-label="Refused hosts" className="border-t border-line">
           <h3 className="px-5 pt-4 text-caption text-faint">Refused</h3>
@@ -63,7 +76,7 @@ export function NetworkCard({ network, now }: { network: EnvNetwork; now: number
             <CodeBlock code={allowCommand(blocked[0]?.host ?? 'example.com')} label="Copy the command" />
           </div>
         </section>
-      ) : network.policy !== 'full' ? (
+      ) : network.policy !== 'full' && !stopped ? (
         <p className="flex items-center gap-2 border-t border-line px-5 py-3 text-secondary text-muted">
           <ShieldCheck aria-hidden="true" className="size-4 text-faint" />
           Nothing was refused.

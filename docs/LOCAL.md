@@ -185,7 +185,8 @@ The web app is optional. Setup offers it, and `openajar web` changes it later:
 | `openajar web remove` | takes it away; updates leave it away until `openajar web install` |
 | `openajar web status` | what `/` serves now, and whether it matches your openajar |
 
-Running the installer again updates openajar and then the web app to the same version (setup's web step
+Running the installer again updates openajar, restarts a running local service so it runs the new
+version (`openajar local restart`, same home and port; it says what that interrupted), and then updates the web app to the same version (setup's web step
 does it; without setup, the installer runs `openajar web update`, and `OPENAJAR_NO_WEB=1` skips it). A
 copy from another version shows as "to do" in `openajar setup check` and as a warning in
 `openajar doctor`.
@@ -236,6 +237,7 @@ Run it again at any time: it keeps what works.
 | --- | --- |
 | `openajar local start` | Set up, start the service, connect Claude Code and Codex. `--port`, `--no-register`. |
 | `openajar local stop` | Stop it. It stays stopped, also after a restart, until `openajar local start`. |
+| `openajar local restart` | Start the running service again, so it runs the openajar installed now (same home, same port). The installer does this after an update; open environments stay open and their jobs keep running, but each one's browser closes and opens again on the next browser call. |
 | `openajar local status` | Running or not, the port, open environments, what it closed after a sleep. `--json`. |
 | `openajar local logs` | The end of the log (`~/.openajar/logs/local.log`). `-f` keeps printing. |
 | `openajar local serve` | The service itself, in the foreground. Ctrl-C stops it. When it starts it brings the skills openajar installed up to this openajar, only for a home `start` registered (`--skills`, `--no-skills` to say). |

@@ -9,6 +9,7 @@ import logging
 from collections.abc import Callable
 from typing import Any
 
+from openajar.core import agent_names
 from openajar.core.models import ControlState, LaneControl, LaneInfo
 from openajar.node.viewer_tokens import iso
 
@@ -112,44 +113,22 @@ def lane_dict(info: LaneInfo) -> dict[str, Any]:
     return out
 
 
-# What an MCP client calls itself (clientInfo.name), as a person knows the agent behind it.
-KNOWN_CLIENTS = {
-    "claude-code": "Claude Code", "claude-ai": "Claude", "claude": "Claude", "codex": "Codex",
-    "codex-mcp-client": "Codex", "cursor": "Cursor", "cursor-vscode": "Cursor", "gemini-cli": "Gemini CLI",
-    "vscode": "VS Code", "visual-studio-code": "VS Code", "windsurf": "Windsurf", "zed": "Zed",
-}
-MAX_AGENT_NAME = 32
-
-
 def agent_name(client: Any) -> str | None:
     """The agent's name for the live view ("Claude Code"), from the MCP client it connected with
-    ("claude-code 2.1.3"), or None when it said none. Only the client's own name, never a guess: a
-    name the table does not know is shown as it came, without its version."""
-    if not isinstance(client, str):
-        return None
-    words = client.split()
-    if not words:
-        return None
-    if len(words) > 1 and words[-1][:1].isdigit():
-        words = words[:-1]  # the version
-    raw = " ".join(words)
-    known = KNOWN_CLIENTS.get(raw.lower())
-    if known:
-        return known
-    name = "".join(c for c in raw.replace("-", " ").replace("_", " ") if c.isprintable()).strip()
-    name = " ".join(name.split())[:MAX_AGENT_NAME].strip()
-    return (name[:1].upper() + name[1:]) if name else None
+    ("claude-code 2.1.3"), or None when it said none (openajar.core.agent_names, the web app's rule too)."""
+    return agent_names.product(client)
 
 
 def env_agent_name(env: Any) -> str | None:
-    """The name of the agent working an environment ("Claude Code"): the agent the environment names (as the
-    web app shows it), else the MCP client of its newest call, else the one that opened it. None without an
-    environment, and never a guess. The live view and the desktop's top bar both say it."""
+    """The name of the agent working an environment ("Claude Code"): the agent the environment names (its grant's
+    subject, `claude-code@mac-mini` read as Claude Code), else the MCP client of its newest call, else the one
+    that opened it. None without an environment, and never a guess. The web app (the API's `agent.said`), the
+    live view and the desktop's top bar all say it."""
     if env is None:
         return None
-    named = getattr(env, "agent", None)
-    if isinstance(named, str) and named.strip().lower() not in ("", "an agent", "agent", "owner"):
-        return agent_name(named)
+    named = agent_names.product(getattr(env, "agent", None))
+    if named:
+        return named
     calls = getattr(env, "calls", None) or []
     for call in reversed(calls):
         name = agent_name(getattr(call, "client", None))

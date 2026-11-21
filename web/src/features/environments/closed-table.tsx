@@ -3,6 +3,7 @@
  * when it closed. A row opens its page, and so does Details. Titles cut with their full text as a title; on a
  * phone the rows stack.
  */
+import { agentSaid } from '@/lib/agent-names';
 import { Link, useNavigate } from '@tanstack/react-router';
 import type { EnvSummary } from '@/api/types';
 import { Button } from '@/components/ui/button';
@@ -63,7 +64,7 @@ export function ClosedTable({ org, rows, now }: { org: string; rows: EnvSummary[
                 </Td>
                 <Td phone="hide">
                   <span className="block max-w-44 truncate text-fg" title={agentWords(env.agent)}>
-                    {env.agent.name}
+                    {agentSaid(env.agent)}
                   </span>
                 </Td>
                 <Td numeric label="Ran">

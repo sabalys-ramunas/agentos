@@ -262,6 +262,9 @@ export function MachineLine({ env }: { env: EnvDetail }) {
             {env.lanes.browser}
             <CopyButton text={env.lanes.browser} label="Copy the browser lane" />
           </span>
+          {/* The agent as the node knows it: the grant's subject and the MCP client with its version. */}
+          <span title="The agent's grant">{env.agent.name}</span>
+          {env.agent.client ? <span title="The MCP client it connected with">{env.agent.client}</span> : null}
         </p>
       ) : null}
     </div>

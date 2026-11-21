@@ -121,7 +121,9 @@ async def launch_and_dump(config: NodeConfig, displays: DisplayManagerImpl, engi
         running = read_browser_config(session.pid)
         page = await session.page()
         await page.goto(url + "/fingerprint.html")
-        await page.wait_for_selector("#dump[data-state=done]", state="attached", timeout=30_000)
+        # 60 s: the probe page's slowest bounds add up to about 30 s (mediaDevices alone may take 20 s on a
+        # runner with no sound server, src/openajar/stealth/stealth_probe.html)
+        await page.wait_for_selector("#dump[data-state=done]", state="attached", timeout=60_000)
         dump = json.loads(await page.text_content("#dump"))
         return dump, running, list(session.pin_notes)
     finally:

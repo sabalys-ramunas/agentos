@@ -476,11 +476,16 @@ class FakeLaunchctl:
     def __init__(self):
         self.calls: list[list[str]] = []
         self.loaded = False
+        self.pid = 4242
 
     def __call__(self, cmd: list[str]) -> subprocess.CompletedProcess:
         self.calls.append(cmd)
         verb = cmd[1]
-        if verb == "bootstrap":
+        if verb == "kickstart":  # -k: the running node ends and a new one starts
+            if not self.loaded:
+                return subprocess.CompletedProcess(cmd, 113, "", "Could not find service")
+            self.pid += 1
+        elif verb == "bootstrap":
             self.loaded = True
         elif verb == "bootout":
             ok, self.loaded = self.loaded, False
@@ -488,7 +493,7 @@ class FakeLaunchctl:
         elif verb == "print":
             if not self.loaded or not cmd[-1].endswith(service.LABEL):  # one job, the new one
                 return subprocess.CompletedProcess(cmd, 113, "", "Could not find service")
-            return subprocess.CompletedProcess(cmd, 0, "\tstate = running\n\tpid = 4242\n", "")
+            return subprocess.CompletedProcess(cmd, 0, f"\tstate = running\n\tpid = {self.pid}\n", "")
         return subprocess.CompletedProcess(cmd, 0, "", "")
 
 
@@ -582,6 +587,107 @@ def test_a_restart_waits_for_the_old_node_to_let_go_of_its_port(tmp_path, user_h
     assert plistlib.loads(plist_path.read_bytes())["ProcessType"] == "Interactive"
 
 
+def test_restart_starts_the_running_node_again_from_the_same_plist_and_says_so_in_one_line(tmp_path, user_home):
+    """Upgrading the owner's Mac from 0.5.0 to 0.5.1 with the install line replaced the tool, but the running
+    service kept the old code until it was stopped and started by hand. The installer now calls restart: the
+    job starts again from the plist as it is (same home, port and environment), and it says so in one line."""
+    from openajar import __version__
+
+    home = tmp_path / "openajar"
+    deps, fake = launchd_deps(user_home)
+    service.start(home, deps=deps, port=7415)
+    plist_path = user_home / "Library" / "LaunchAgents" / "dev.openajar.local.plist"
+    before, calls = plist_path.read_bytes(), len(fake.calls)
+    state = service.restart(home, deps=deps)
+    assert state is not None and state.running and state.port == 7415 and state.pid == 4243
+    assert ["launchctl", "kickstart", "-k", "gui/501/dev.openajar.local"] in fake.calls[calls:]
+    assert not any(c[1] in ("bootstrap", "bootout") for c in fake.calls[calls:])
+    assert plist_path.read_bytes() == before
+    assert state.note == (f"Restarted the local service on port 7415, so it runs openajar {__version__} "
+                          "(same home, same port).")
+
+
+def test_restart_says_what_it_interrupted_on_open_environments(tmp_path, user_home, monkeypatch):
+    home = tmp_path / "openajar"
+    deps, _ = launchd_deps(user_home)
+    service.start(home, deps=deps)
+    monkeypatch.setattr(service, "open_environments", lambda h: [("e1", "Shop page"), ("e2", "Docs fix")])
+    note = service.restart(home, deps=deps).note
+    head, more = note.split("\n")
+    assert head.startswith("Restarted the local service on port 7410")
+    assert more.startswith("2 environments stay open and their jobs keep running.")
+    assert "opens again on the next browser call" in more and "upload or download link" in more
+    assert "\u2014" not in note
+
+
+def test_restart_of_a_service_that_is_not_running_does_nothing(tmp_path, user_home):
+    home = tmp_path / "openajar"
+    deps, fake = launchd_deps(user_home)
+    assert service.restart(home, deps=deps) is None  # never set up
+    local_home.ensure(home, 7410)
+    assert service.restart(home, deps=deps) is None  # set up, not loaded
+    assert not any(c[1] in ("kickstart", "bootstrap") for c in fake.calls)
+
+
+def test_restart_of_a_node_that_does_not_come_back_says_where_to_look(tmp_path, user_home):
+    home = tmp_path / "openajar"
+    deps, _ = launchd_deps(user_home)
+    service.start(home, deps=deps)
+    deps.answers = lambda port: False
+    state = service.restart(home, deps=deps)
+    assert not state.running and "did not answer on port 7410" in state.note and "openajar local logs" in state.note
+
+
+def test_restart_of_a_background_job_writes_its_plist_again(tmp_path, user_home):
+    home = tmp_path / "openajar"
+    deps, _ = launchd_deps(user_home)
+    service.start(home, deps=deps)
+    plist_path = user_home / "Library" / "LaunchAgents" / "dev.openajar.local.plist"
+    plist_path.write_bytes(plistlib.dumps({**plistlib.loads(plist_path.read_bytes()), "ProcessType": "Background"}))
+    state = service.restart(home, deps=deps)
+    assert state.running and state.port == 7410 and state.note.startswith("Restarted the local service on port 7410")
+    assert plistlib.loads(plist_path.read_bytes())["ProcessType"] == "Interactive"
+
+
+def test_restart_on_linux_restarts_the_user_unit(tmp_path, user_home):
+    calls: list[list[str]] = []
+    pid = {"now": 777}
+
+    def run(cmd):
+        calls.append(cmd)
+        if "restart" in cmd:
+            pid["now"] += 1
+        out = "active\n" if "is-active" in cmd else f"{pid['now']}\n" if "show" in cmd else ""
+        return subprocess.CompletedProcess(cmd, 0, out, "")
+
+    home = tmp_path / "openajar"
+    mgr = service.Systemd(Paths(user_home), run)
+    deps = service.Deps(manager=mgr, busy=Ports(), answers=lambda port: True, sleep=lambda s: None, wait_s=1)
+    service.start(home, deps=deps)
+    unit = mgr.unit_path().read_bytes()
+    calls.clear()
+    state = service.restart(home, deps=deps)
+    assert state.running and state.pid == 779 and state.note.startswith("Restarted the local service on port 7410")
+    assert ["systemctl", "--user", "restart", "openajar-local.service"] in calls
+    assert not any("enable" in c or "daemon-reload" in c for c in calls) and mgr.unit_path().read_bytes() == unit
+
+
+def test_the_restart_command_is_quiet_with_if_running_and_says_why_without(tmp_path, monkeypatch):
+    from openajar.cli import app
+
+    asked = []
+    monkeypatch.setattr(service, "restart", lambda home: asked.append(home))
+    quiet = CliRunner().invoke(app, ["local", "restart", "--if-running", "--home", str(tmp_path / "a")])
+    assert quiet.exit_code == 0 and quiet.output == "" and asked == [tmp_path / "a"]
+    loud = CliRunner().invoke(app, ["local", "restart", "--home", str(tmp_path / "a")])
+    assert loud.exit_code == 1 and "not running, so there is nothing to restart" in loud.output
+
+    done = service.ServiceState(True, 5, 7410, "http://127.0.0.1:7410/mcp", tmp_path / "log", "Restarted it.")
+    monkeypatch.setattr(service, "restart", lambda home: done)
+    out = CliRunner().invoke(app, ["local", "restart", "--if-running", "--home", str(tmp_path / "a")])
+    assert out.exit_code == 0 and out.output == "Restarted it.\n"
+
+
 def test_start_on_a_taken_port_picks_the_next_and_status_says_what_the_catch_up_did(tmp_path, user_home):
     home = tmp_path / "openajar"
     deps, _ = launchd_deps(user_home, taken=(7410,))
@@ -641,7 +747,7 @@ def test_the_cli_lists_its_commands():
 
     out = CliRunner().invoke(app, ["local", "--help"])
     assert out.exit_code == 0
-    for name in ("serve", "start", "stop", "status", "logs"):
+    for name in ("serve", "start", "stop", "restart", "status", "logs"):
         assert name in out.output
 
 

@@ -8,14 +8,16 @@
 │ --help          Show this message and exit.                                  │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ╭─ Commands ───────────────────────────────────────────────────────────────────╮
-│ serve   Run the local node in the foreground (the service runs this). Ctrl-C │
-│         stops it.                                                            │
-│ start   Start the local node as a service (launchd on macOS, systemd on      │
-│         Linux), now and at every login.                                      │
-│ stop    Stop the local node. It stays stopped, also after a restart, until   │
-│         `openajar local start`.                                              │
-│ status  Is it running, on which port, which environments are open, and what  │
-│         it closed after a sleep.                                             │
-│ logs    The end of the local node's log.                                     │
+│ serve    Run the local node in the foreground (the service runs this).       │
+│          Ctrl-C stops it.                                                    │
+│ start    Start the local node as a service (launchd on macOS, systemd on     │
+│          Linux), now and at every login.                                     │
+│ stop     Stop the local node. It stays stopped, also after a restart, until  │
+│          `openajar local start`.                                             │
+│ restart  Start the running local node again, so it runs the openajar         │
+│          installed now: same home, same port.                                │
+│ status   Is it running, on which port, which environments are open, and what │
+│          it closed after a sleep.                                            │
+│ logs     The end of the local node's log.                                    │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 

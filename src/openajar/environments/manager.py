@@ -33,7 +33,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from openajar.core import clock
+from openajar.core import agent_names, clock
 from openajar.core.errors import InvalidRequest, LaneExists, NotFound, OpenajarError
 from openajar.core.models import ProxyConfig, utcnow
 from openajar.environments.activity import Activity
@@ -878,7 +878,7 @@ class EnvironmentManager(Picking, Sizing, BringUp, Views, Proofs, Uploads, Downl
                 env = self.store.update(env.id, noticed)
                 left = max(0, int((env.expires_at - now).total_seconds() // 60))
                 await self._notify(f"Environment \"{env.title}\" has work that is not pushed",
-                                   f"{env.agent} left environment {env.id} with changes that are not committed or "
+                                   f"{agent_names.said(env.agent, env.client)} left environment {env.id} with changes that are not committed or "
                                    f"pushed. It stays open for {left} more minutes, to its time limit; then openajar "
                                    "saves that work and deletes the machine. Open it to look, or extend it.")
                 out["kept_unsaved"].append(env.id)

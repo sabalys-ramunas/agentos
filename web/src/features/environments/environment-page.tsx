@@ -166,7 +166,7 @@ function EnvLoaded({ org, env }: { org: string; env: EnvDetail }) {
         <div className="grid min-w-0 gap-4">
           <StepsCard env={env} now={now} />
           <GitCard env={env} now={now} />
-          {env.network ? <NetworkCard network={env.network} now={now} /> : null}
+          {env.network ? <NetworkCard network={env.network} now={now} stopped={env.state === 'gone'} /> : null}
           {open ? <PortsCard env={env} /> : null}
         </div>
       </div>

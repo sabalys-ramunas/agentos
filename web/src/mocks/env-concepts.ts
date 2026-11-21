@@ -11,6 +11,7 @@
  * machine in about 6 s, a snapshot in about a minute), its bring-up growing step by step, then waits for an
  * agent with the owner watching. `?mock=environment-full` makes a resume hear the node's limit.
  */
+import { agentView } from '@/lib/agent-names';
 import { http, HttpResponse } from 'msw';
 import type { EnvDetail, EnvMachine, EnvResumeAnswer, PreparedList } from '@/api/types';
 import { checkpointDiff } from './env-diffs';
@@ -91,7 +92,7 @@ function resume(record: OrgData, saveId: unknown, now: number): EnvResumeAnswer 
   if (!item) {
     const summary = summaryOf(now, {
       id: 'k7pz', title: save.title, state: 'starting', repo: save.repo ?? null, branch: save.branch ?? null, age: 0, lastCall: null, left: 60,
-      machine: MORPH, agent: save.agent ?? { name: 'Claude Code', client: null }, keep: 'save',
+      machine: MORPH, agent: save.agent ?? agentView('claude-code', null), keep: 'save',
     });
     item = { jobs: [], detail: { ...summary, ports: [], git: { branch: save.branch ?? null, ahead: 0, dirty: 0, pushed: [] }, calls: [], commands: [], viewer: null, closed_reason: null, unsaved: null, checkpoints: [] } };
     items.unshift(item);

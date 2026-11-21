@@ -7,7 +7,7 @@ import contextlib
 from datetime import UTC, datetime
 from typing import Any
 
-from openajar.core import clock
+from openajar.core import agent_names, clock
 from openajar.core.app_paths import lane_viewer_path
 from openajar.core.errors import OpenajarError
 from openajar.environments.models import (
@@ -16,6 +16,7 @@ from openajar.environments.models import (
     Environment,
 )
 from openajar.environments.probes import CHECK_TIMEOUT_S, GIT_STATE, main_repo, parse_git_state, parse_ports
+from openajar.node.viewer_state import env_agent_name
 
 UNSAVED_LIST_MAX = 50
 
@@ -150,7 +151,7 @@ class Views:
                 "closed_at": clock.iso_or_none(env.closed_at, z=True), "expires_at": clock.iso_or_none(env.expires_at, z=True),
                 "minutes_left": max(0, int((env.expires_at - now).total_seconds() // 60)) if env.open else None,
                 "machine": env.machine.model_dump(), "price_hourly_eur": env.price_hourly_eur,
-                "cost_eur": self.cost_now(env), "agent": {"name": env.agent, "client": env.client},
+                "cost_eur": self.cost_now(env), "agent": agent_names.agent_view(env.agent, env.client, named=env_agent_name(env)),
                 "lanes": env.lanes, "closed_reason": env.closed_reason, "error": env.error,
                 "error_code": env.error_code, "keep": env.keep,
                 "last_save": ({"id": env.last_save_id, "at": clock.iso_or_none(env.last_save_at, z=True)}

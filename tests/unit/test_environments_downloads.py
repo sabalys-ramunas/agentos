@@ -306,9 +306,10 @@ def _bridge(loop: asyncio.AbstractEventLoop, apps: dict[str, object]) -> httpx.M
 
 
 @pytest.fixture
-def cli(node, dl, monkeypatch):  # noqa: F811
+def cli(node, dl, monkeypatch, request):  # noqa: F811
+    from node_config_support import patch_node_config
+
     from openajar.api import ApiSettings, build_api
-    from openajar.core import config as config_mod
     from openajar.environments import cli as env_cli
 
     home = node["mgr"].home
@@ -316,8 +317,7 @@ def cli(node, dl, monkeypatch):  # noqa: F811
     cfg = node["rt"].get("config")
     toml = home / "node.toml"
     toml.write_text("")
-    monkeypatch.setattr(config_mod, "config_path", lambda h=None: toml)
-    monkeypatch.setattr(config_mod, "load_config", lambda h=None: cfg)
+    patch_node_config(request, monkeypatch, cfg, toml)
     apps = {"/api/": api, "/view/": dl["viewer"]}
 
     async def run(*args: str):

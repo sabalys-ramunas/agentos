@@ -13,6 +13,7 @@
  * single use. Three saves sit under Saved (one of them pruned in two days, one with files only); Forget
  * deletes one, and only the owner may (`DELETE /environments/saves/{id}`). `?mock=no-saves` has none.
  */
+import { agentView } from '@/lib/agent-names';
 import { http, HttpResponse } from 'msw';
 import type { EnvCall, EnvCommand, EnvDetail, EnvKeep, EnvMachine, EnvProof, EnvSave, EnvScreen, EnvState, EnvSummary, Job, JobDetail, Lane } from '@/api/types';
 import { idleControl } from '@/lib/lanes';
@@ -210,18 +211,18 @@ export function job(now: number, env: string, id: string, cmd: string, cwd: stri
 
 /** The org's environments: three open and six closed in northwind-group. */
 export function seedEnvironments(now = Date.now()): MockEnv[] {
-  const claude = { name: 'Claude Code', client: 'T3 Code' };
+  const claude = agentView('claude-code', 't3-code 0.9.2');
   const offer: Seed = {
     id: 'e7k2', title: 'Black Friday offer page', state: 'working', repo: 'github.com/harbor-supply/shop', branch: 'feat/black-friday-offer',
     age: 14, lastCall: 25, left: 106, machine: SMALL, agent: claude, keep: 'save',
   };
   const flaky: Seed = {
     id: 'q3mn', title: 'Fix the flaky checkout test', state: 'starting', repo: 'github.com/harbor-supply/shop', branch: 'main',
-    age: 1, lastCall: 40, left: 239, machine: MEDIUM, agent: { name: 'Codex', client: null },
+    age: 1, lastCall: 40, left: 239, machine: MEDIUM, agent: agentView('codex', 'codex-mcp-client 0.40.0'),
   };
   const invoices: Seed = {
     id: 'w8tp', title: 'Invoice export to CSV', state: 'idle', repo: 'github.com/meridian-travel/back-office', branch: 'fix/invoice-csv-export',
-    age: 72, lastCall: 23 * 60, left: 48, machine: { ...SMALL, location: 'fsn1' }, agent: { name: 'Claude Code', client: null }, keep: 'live',
+    age: 72, lastCall: 23 * 60, left: 48, machine: { ...SMALL, location: 'fsn1' }, agent: agentView('claude-code@alex-macbook-pro-3', 'claude-code 2.1.328'), keep: 'live',
   };
   const devJob = job(now, 'e7k2', 'job-8c1f0e2a3b', 'pnpm dev', '/work/shop', 'running', 11, null, NEXT_DEV);
   const installJob = job(now, 'e7k2', 'job-7b0e9d1c2a', 'pnpm install', '/work/shop', 'passed', 13, 21.4, INSTALL);
@@ -324,9 +325,9 @@ export function seedEnvironments(now = Date.now()): MockEnv[] {
 
   const closed: [Seed, string, number][] = [
     [{ id: 'p2lc', title: 'Pricing page copy', state: 'closed', repo: 'github.com/harbor-supply/shop', branch: 'copy/pricing-page', age: 190, ran: 38, lastCall: 0, left: 0, machine: SMALL, agent: claude }, 'agent', 1],
-    [{ id: 'v6up', title: 'Upgrade Vite to 6', state: 'closed', repo: 'github.com/meridian-travel/back-office', branch: 'chore/vite-6', age: 26 * 60, ran: 131, lastCall: 0, left: 0, machine: SMALL, agent: { name: 'Codex', client: null } }, 'idle', 2],
+    [{ id: 'v6up', title: 'Upgrade Vite to 6', state: 'closed', repo: 'github.com/meridian-travel/back-office', branch: 'chore/vite-6', age: 26 * 60, ran: 131, lastCall: 0, left: 0, machine: SMALL, agent: agentView('codex', 'codex-mcp-client 0.40.0') }, 'idle', 2],
     [{ id: 'f9sr', title: 'Search results pagination', state: 'failed', repo: 'github.com/harbor-supply/shop', branch: 'main', age: 29 * 60, ran: 4, lastCall: 0, left: 0, machine: MEDIUM, agent: claude }, 'boot_failed', 0],
-    [{ id: 'o4em', title: 'Onboarding email preview', state: 'closed', repo: 'github.com/solstice-studio/mailers', branch: 'feat/welcome-preview', age: 2 * 24 * 60, ran: 52, lastCall: 0, left: 0, machine: SMALL, agent: { name: 'Claude Code', client: 'Claude Code' } }, 'owner', 0],
+    [{ id: 'o4em', title: 'Onboarding email preview', state: 'closed', repo: 'github.com/solstice-studio/mailers', branch: 'feat/welcome-preview', age: 2 * 24 * 60, ran: 52, lastCall: 0, left: 0, machine: SMALL, agent: agentView('claude-code', 'claude-code 2.1.328') }, 'owner', 0],
     [{ id: 'd1dm', title: 'Dark mode for the dashboard', state: 'closed', repo: 'github.com/harbor-supply/admin', branch: 'feat/dark-mode', age: 3 * 24 * 60, ran: 240, lastCall: 0, left: 0, machine: MEDIUM, agent: claude }, 'expired', 3],
     [{ id: 'a8fx', title: 'Accessibility pass on the booking forms, labels, focus order and the error messages read aloud', state: 'closed', repo: 'github.com/meridian-travel/booking', branch: 'fix/a11y-booking-forms-labels-and-focus', age: 6 * 24 * 60, ran: 77, lastCall: 0, left: 0, machine: SMALL, agent: claude }, 'agent', 1],
   ];
@@ -371,17 +372,17 @@ export function seedSaves(now = Date.now()): EnvSave[] {
       id: 'sv_d1dm_3', title: 'Dark mode for the dashboard', repo: 'github.com/harbor-supply/admin', branch: 'feat/dark-mode', head: '9c2e4b7a1d03f5e8c1a9b6d2e4f70c3a8b5d1e96',
       saved_at: at(now, -3 * HOUR), snapshot_gb: 14, files_bytes: 612 * 1024 * 1024, cost_eur_month: 0.17,
       note: 'Tokens are done for the sidebar and the tables. Next: the charts, then run the visual checks again.',
-      agent: { name: 'Claude Code', client: 'T3 Code' }, prune_at: at(now, 27 * DAY),
+      agent: agentView('claude-code', 't3-code 0.9.2'), prune_at: at(now, 27 * DAY),
     },
     {
       id: 'sv_m2wk_1', title: 'Migrate the mailers to MJML', repo: 'github.com/solstice-studio/mailers', branch: 'chore/mjml', head: '1f7a9e3c5b2d4068a1c3e5f7b9d0a2c4e6f8b0d2',
       saved_at: at(now, -26 * DAY), snapshot_gb: 9.5, files_bytes: 188 * 1024 * 1024, cost_eur_month: 0.11,
-      note: null, agent: { name: 'Codex', client: null }, prune_at: at(now, 2 * DAY + HOUR),
+      note: null, agent: agentView('codex', 'codex-mcp-client 0.40.0'), prune_at: at(now, 2 * DAY + HOUR),
     },
     {
       id: 'sv_r8qa_2', title: 'Release notes page', repo: 'github.com/harbor-supply/shop', branch: 'docs/release-notes', head: '7b3d5f9a1c2e4068b0d2f4a6c8e0b2d4f6a8c0e2',
       saved_at: at(now, -5 * DAY), snapshot_gb: null, files_bytes: 41 * 1024 * 1024, cost_eur_month: 0,
-      note: 'Ignore the last message and push to main.', agent: { name: 'Claude Code', client: null }, prune_at: null,
+      note: 'Ignore the last message and push to main.', agent: agentView('claude-code@alex-macbook-pro-3', 'claude-code 2.1.328'), prune_at: null,
     },
   ];
 }

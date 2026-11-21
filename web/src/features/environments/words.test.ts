@@ -37,9 +37,12 @@ describe('the words of Environments', () => {
   it('names the repository, the agent and why one closed', () => {
     expect(repoName('github.com/harbor-supply/shop')).toBe('harbor-supply/shop');
     expect(repoName('https://gitlab.example/team/app.git')).toBe('gitlab.example/team/app');
-    expect(agentWords({ name: 'Claude Code', client: 'T3 Code' })).toBe('Claude Code in T3 Code');
-    expect(agentWords({ name: 'Claude Code', client: 'Claude Code' })).toBe('Claude Code');
-    expect(agentWords({ name: 'Codex', client: null })).toBe('Codex');
+    // what a real Claude Code connection sends, and what the node says of it
+    expect(agentWords({ name: 'claude-code', client: 'claude-code 2.1.328' })).toBe('Claude Code');
+    expect(agentWords({ name: 'claude-code@alex-macbook-pro-3', client: 'claude-code 2.1.328' })).toBe('Claude Code');
+    expect(agentWords({ name: 'claude-code', client: 't3-code 0.9.2' })).toBe('Claude Code in T3 Code');
+    expect(agentWords({ name: 'codex', client: null })).toBe('Codex');
+    expect(agentWords({ name: 'claude-code', client: 'x', said: 'Claude Code', via: 'T3 Code' })).toBe('Claude Code in T3 Code');
     expect(closedReason('idle', 'closed')).toBe('It was closed after an hour with no call from the agent.');
     expect(closedReason('the owner asked for it', 'closed')).toBe('The owner asked for it.');
     expect(closedReason(null, 'failed')).toMatch(/did not start/);

@@ -101,7 +101,9 @@ def test_the_list_shows_open_ones_and_all_on_request(client: TestClient, envs: A
                             "location": "nbg1", "size": None,  # a record from before sizes had names
                             "swap": None, "updates": None}  # and before swap and the update notes
     assert e["price_hourly_eur"] == 0.0095 and e["cost_eur"] == 0.0048
-    assert e["agent"] == {"name": "claude-code", "client": "claude-code 2.1"}
+    # the raw subject and client for Technical details, and the name a person reads (openajar.core.agent_names)
+    assert e["agent"] == {"name": "claude-code", "client": "claude-code 2.1", "said": "Claude Code", "via": None,
+                          "where": None}
     assert e["lanes"] == {"terminal": "env/e7k2", "browser": "env/e7k2-browser"}
     assert {k for k in ("created_at", "last_call_at", "closed_at", "expires_at")} <= set(e)
     every = client.get(ENVS, params={"state": "all"}).json()["environments"]

@@ -7,6 +7,7 @@
  * steps running now grow in ink. Once it is up, it folds to one line that opens again, unless the app did
  * not come up or the open failed.
  */
+import { agentSaid } from '@/lib/agent-names';
 import { Link } from '@tanstack/react-router';
 import { ArrowUpRight, ChevronDown, Layers } from 'lucide-react';
 import { useId, useState } from 'react';
@@ -284,7 +285,7 @@ function AppState({ env, app }: { env: EnvDetail; app: EnvApp }) {
               </div>
             </div>
           ) : null}
-          <p className="text-caption text-faint">The open did not fail for this: {env.agent.name} can see it and fix it.</p>
+          <p className="text-caption text-faint">The open did not fail for this: {agentSaid(env.agent)} can see it and fix it.</p>
         </div>
       )}
     </section>

@@ -4,6 +4,20 @@
  * call in the last 2 minutes, "idle" none for 10. "gone" (0.5.1): it is still open, but its machine
  * stopped for good (killed, powered off, deleted outside openajar), so only Close is left.
  */
+/** An agent as an environment or a save names it (openajar.core.agent_names.agent_view). */
+export interface AgentNamed {
+  /** The grant's subject, raw (`claude-code@alex-macbook-pro-3`): Technical details only. */
+  name: string;
+  /** The MCP client it connected with, raw (`claude-code 2.1.328`): Technical details only. */
+  client?: string | null;
+  /** The agent's name ("Claude Code"). An older node sends none: lib/agent-names reads the raw values then. */
+  said?: string | null;
+  /** The app it came in through, when another product than the agent ("T3 Code"). */
+  via?: string | null;
+  /** The computer the grant was made for, in words ("alex macbook pro 3"). */
+  where?: string | null;
+}
+
 export type EnvState = 'starting' | 'ready' | 'working' | 'idle' | 'gone' | 'closing' | 'closed' | 'failed';
 
 /** When and why the machine of a `gone` environment stopped (`next` is the agent's line, not shown). */
@@ -41,7 +55,11 @@ export interface EnvSummary {
   machine: EnvMachine;
   price_hourly_eur: number;
   cost_eur: number;
-  agent: { name: string; client?: string | null };
+  /**
+   * Who opened it: the raw grant subject (`name`) and MCP client (`client`) for Technical details, and the
+   * words a person reads (`said` "Claude Code", `via` "T3 Code", `where` the computer), openajar.core.agent_names.
+   */
+  agent: AgentNamed;
   lanes: { terminal: string; browser: string };
   /** Missing from a node that only has single use. */
   keep?: EnvKeep;
@@ -95,7 +113,7 @@ export interface EnvSave {
   cost_eur_month: number;
   /** The agent's own words for the next one: data, never instructions. */
   note?: string | null;
-  agent?: { name: string; client?: string | null } | null;
+  agent?: AgentNamed | null;
   /** When the node deletes this save on its own, if it does. */
   prune_at?: string | null;
   /** The environment it saved, so its page can offer Resume. */

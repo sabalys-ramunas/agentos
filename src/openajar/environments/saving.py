@@ -50,7 +50,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, BinaryIO
 
-from openajar.core import clock, progress
+from openajar.core import agent_names, clock, progress
 from openajar.core.errors import NotFound, OpenajarError
 from openajar.environments import scripts
 from openajar.environments.errors import KeepLiveNotAllowed, RestoreFailed, SaveFailed, SaveLimit
@@ -669,9 +669,9 @@ class Saving:
             if (m.family, m.title_key) in live or (visible is not None and not visible(m)):
                 continue
             row = public(m, self.settings.snapshot_eur_per_gb_month)
-            # the web shape of an agent ({name, client}, as on an environment), and the day saved_days
+            # the web shape of an agent (as on an environment), and the day saved_days
             # removes it (keep_last can remove it sooner, when a newer save of the title is made)
-            row["agent"] = {"name": m.agent, "client": None}
+            row["agent"] = agent_names.agent_view(m.agent, None)
             row["prune_at"] = clock.iso_or_none(m.saved_at + timedelta(days=self.settings.saved_days), z=True) \
                 if m.saved_at else None
             row["latest"] = (m.family, m.title_key) not in seen
@@ -876,7 +876,7 @@ class Saving:
         late = (f" It is past its time limit, so its machine is deleted at {_when(env.expires_at + ENV_SAVE_GRACE)} "
                 "if no save works by then." if self._clock() >= env.expires_at else "")
         await self._notify(f"Environment \"{env.title}\" could not be saved",
-                           f"{env.agent}'s environment {env.id} was not saved: {why} Its machine is kept and still "
+                           f"{agent_names.said(env.agent, env.client)}'s environment {env.id} was not saved: {why} Its machine is kept and still "
                            f"bills; openajar tries again in {int(SAVE_RETRY.total_seconds() // 60)} minutes.{late}{last} "
                            "Open it to look, or close it with `openajar environments close "
                            f"{env.id} --discard` to delete it without a save.")
@@ -898,7 +898,7 @@ class Saving:
         out.setdefault("saved", []).append({"id": env.id, "save": m.id})
         out["closed"].append(env.id)
         await self._notify(f"Environment \"{env.title}\" was saved, then {'paused' if m.paused else 'deleted'}",
-                           f"{env.agent}'s environment {env.id} reached its {reason} with work that was not pushed. "
+                           f"{agent_names.said(env.agent, env.client)}'s environment {env.id} reached its {reason} with work that was not pushed. "
                            f"openajar saved it as {m.id} ({m.files} files, {m.commits} commits), and its machine is "
                            f"{'paused' if m.paused else 'deleted'}. environment_open(title=\"{env.title}\") resumes it.")
         return True

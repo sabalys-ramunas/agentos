@@ -19,7 +19,7 @@ import { StatusDot } from '@/components/ui/status';
 import { timeAgo } from '@/lib/format';
 import { ControlFrame } from '@/features/lane/control';
 import { LiveView } from '@/features/lane/live-view';
-import { liveAgentName } from './agent-name';
+import { agentSaid } from '@/lib/agent-names';
 import { PICTURE } from './env-card';
 import { ReplayCard } from './replay';
 import { closedReason, continueLine, goneWords, isOpen, keepOf } from './words';
@@ -153,7 +153,7 @@ function LiveScreen({ org, env, lane }: { org: string; env: EnvDetail; lane: Lan
   const access = useAccess(org);
   const [expanded, setExpanded] = useState(false);
   const canTake = access.can('lanes.control');
-  const agent = liveAgentName(env.agent);
+  const agent = agentSaid(env.agent);
   // the machine's desktop stays up while its browser sleeps, so the screen is awake whenever the node has a view
   const awake = lane.state === 'warm' || lane.state === 'active' || Boolean(lane.viewer);
   return (

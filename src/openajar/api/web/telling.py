@@ -14,6 +14,7 @@ from typing import Any
 from starlette.routing import BaseRoute
 
 from openajar.api.app import Api
+from openajar.core import agent_names
 
 # A run's own status, in the app's verdict words (History) and the approval's outcome (Needs you).
 OUTCOME_OF_RUN = {
@@ -60,10 +61,6 @@ OUTCOME_TITLE = {
     "pending": "The approved action is still running.",
 }
 
-_AGENTS = {"claude-code": "Claude Code", "claude-app": "Claude", "claude": "Claude", "codex": "Codex",
-           "chatgpt-app": "ChatGPT", "chatgpt": "ChatGPT"}
-
-
 def error_text(value: Any) -> str | None:
     """A run's error as the node keeps it: its message, or its words when it is only text."""
     if isinstance(value, dict):
@@ -85,20 +82,14 @@ def plain_failure(detail: str | None) -> str:
     return named_failure(detail) or SOMETHING_WENT_WRONG
 
 
-def _words(text: str) -> str:
-    return re.sub(r"\s+", " ", text.replace("-", " ").replace("_", " ")).strip()
-
-
 def agent_name(principal: str | None) -> str:
     """"claude-code" reads as "Claude Code". An agent named for the computer it runs on (`openajar connect` names
-    a grant `claude-code@alex-macbook-pro-3`) reads as "Claude Code (on alex macbook pro 3)". A person's
-    name is never guessed from an id."""
-    if not principal:
-        return "An agent"
-    base, _, host = principal.partition("@")
-    name = _AGENTS.get(base.lower()) or _words(base).capitalize() or "An agent"
-    where = _words(host)
-    return f"{name} (on {where})" if where else name
+    a grant `claude-code@alex-macbook-pro-3`) reads as "Claude Code (on alex macbook pro 3)", the computer
+    telling two of them apart (openajar.core.agent_names, the rule the web app and the live view share). A
+    person's name is never guessed from an id."""
+    name = agent_names.product(principal) or "An agent"
+    on = agent_names.where(principal)
+    return f"{name} (on {on})" if on else name
 
 
 def agent_brand(principal: str | None) -> str | None:

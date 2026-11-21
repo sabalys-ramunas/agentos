@@ -29,9 +29,9 @@
     };
     const withTimeout = (promise, ms, fallback) =>
       Promise.race([promise, new Promise((resolve) => setTimeout(() => resolve(fallback), ms))]);
-    const put = async (name, fn) => {
+    const put = async (name, fn, ms = 8000) => {
       try {
-        out[name] = await withTimeout(Promise.resolve().then(fn), 8000, "error: timeout");
+        out[name] = await withTimeout(Promise.resolve().then(fn), ms, "error: timeout");
       } catch (e) { out[name] = "error: " + (e && e.name || e); }
     };
 
@@ -207,11 +207,16 @@
       const list = voices.map((v) => [v.name, v.lang, v.localService, v.default].join("|"));
       return { count: list.length, digest: await sha(list.join(";")) };
     });
+    // 20 s, not 8: enumerateDevices waits for the browser's first look at the audio devices, and on a
+    // computer with no sound card or sound server (a CI runner, a node) that first look waits on the
+    // sound server lookup. On one GitHub runner image (ubuntu-24.04 20261116.133.1) it went past 8 s twice
+    // and was quick on the next image. A longer bound changes no value: the kinds, labels and ids are read
+    // in full, and a probe still running at 20 s is still an error the checks fail on.
     await put("mediaDevices", async () => {
       const devices = await navigator.mediaDevices.enumerateDevices();
       return { kinds: devices.map((d) => d.kind), labels: devices.map((d) => d.label),
                ids: await sha(devices.map((d) => d.deviceId + "/" + d.groupId).join(",")) };
-    });
+    }, 20000);
     await put("storage", async () => {
       const e = await navigator.storage.estimate();
       return { quota: e.quota };

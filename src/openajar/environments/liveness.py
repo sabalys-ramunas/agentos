@@ -27,7 +27,7 @@ import time
 from datetime import timedelta
 from typing import Any
 
-from openajar.core import clock
+from openajar.core import agent_names, clock
 from openajar.core.errors import MachineGone, NotFound
 from openajar.environments.models import Environment
 
@@ -131,7 +131,7 @@ class Liveness:
             self.ssh_down(env)  # type: ignore[attr-defined]  (SshAccess: the agent's own ssh alias goes)
         with contextlib.suppress(Exception):
             await self._notify(f"Environment \"{env.title}\": its machine stopped",  # type: ignore[attr-defined]
-                               f"{env.agent}'s environment {env.id} lost its machine: {why}. The agent is told "
+                               f"{agent_names.said(env.agent, env.client)}'s environment {env.id} lost its machine: {why}. The agent is told "
                                f"so on its next call; environment_open with the same title starts a new one.")
         return why
 

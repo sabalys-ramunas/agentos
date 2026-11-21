@@ -98,8 +98,9 @@ can be skipped and changed later.
   private repositories
 
 The installer puts `uv` and `openajar` in `~/.local/bin`, never asks for `sudo`, and is safe to run
-again: it updates openajar in place. To install a branch or an older release, set `OPENAJAR_GIT_REF`
-(for example `OPENAJAR_GIT_REF=v0.5.0`).
+again: it updates openajar in place, and restarts the local service when it runs, so it runs the new
+version on the same port. To install a branch or an older release, set `OPENAJAR_GIT_REF`
+(for example `OPENAJAR_GIT_REF=v0.5.1`).
 
 <!-- legacy-name: begin (the old name, for people upgrading from it) -->
 Coming from agentos 0.3 or 0.4? Run the same install line. It replaces the `agentos` command with
@@ -262,7 +263,7 @@ its live view link, and `openajar environments list` in the terminal.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/readme/environment-dark.webp">
-  <img src="assets/readme/environment-light.webp" width="100%" alt="One environment in the openajar web app, from a test run on Docker: its title Release check with a Working chip, the agent and Single use, then its live screen on a dark stage. The desktop shows a browser on the shop page the agent started (Autumn sale, with three prices) and a dock, and the pill under it says the agent has control, with Take over, full window and More. Beside it, the time left and the cost so far, what it is doing (it opened the page and started npm run dev), and its branch. Below, Proofs, the terminal with npm run dev running, what it did, and its code.">
+  <img src="assets/readme/environment-light.webp" width="100%" alt="One environment in the openajar web app of Northwind Group, from a test run on Docker: its title Autumn sale page with a Working chip, the agent that opened it (Claude Code), Saves when idle and the repository northwind/shop, then its live screen on a dark stage. The desktop shows a browser on the shop page the agent started (Autumn sale, with three prices) and a dock, and the pill under it says Claude Code has control, with Take over, full window and More. Beside it, the time left and the cost so far, what it is doing (it started npm run dev, opened the page, read it and took a picture of it), and its branch. Below, Proofs with the screenshot it kept (the sale page at phone width: Autumn sale, twenty percent off until Sunday, and the three prices), what it did in five steps (npm test among them), the terminal and its code.">
 </picture>
 
 <details>
@@ -461,9 +462,10 @@ title replaces it with a fresh one. The skill that teaches an agent the loop:
 ## Status
 
 > [!NOTE]
-> **Alpha, at 0.5.1.** 0.5.0 gave the agent's computer a desktop you can watch and work with, and the
+> **Alpha, at 0.5.2.** 0.5.0 gave the agent's computer a desktop you can watch and work with, and the
 > new name. 0.5.1 notices a machine that dies and replaces it on the same title, keeps typing in the app
 > the agent opened, and brings the web app's simpler navigation and its new design to every screen.
+> 0.5.2 names each agent the same way everywhere ("Claude Code"), and an update restarts the running service.
 > Computers that stay and their logins are new, and the tools may still change between minor versions:
 > see the [changelog](CHANGELOG.md) and the [releases](https://github.com/sabalys-ramunas/openajar/releases).
 > On a laptop there is no `ui_check` yet (it needs a server), and the laptop must be awake while a VM works.

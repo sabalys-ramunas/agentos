@@ -243,6 +243,10 @@ describe('an environment whose machine stopped', () => {
     expect(line?.textContent).toMatch(/Its server is off \(Hetzner says off\)\./);
     expect(screen.getByText(/It will not come back\. Close it, or say "continue Invoice export to CSV in openajar"/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Extend' })).toBeNull();
+    // the Network level (Full, Limited, None) does nothing on a machine that is not there: one line instead
+    expect(screen.queryByRole('img', { name: /^Network: / })).toBeNull();
+    expect(screen.queryByText('Limited')).toBeNull();
+    expect(screen.getByText('Its machine stopped, so no network setting does anything now. It was Limited.')).toBeInTheDocument();
     await user.click(screen.getAllByRole('button', { name: 'Close' })[0]!);
     expect(await screen.findByText(/Its machine already stopped, so there is nothing left to save/)).toBeInTheDocument();
   });

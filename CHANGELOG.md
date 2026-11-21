@@ -6,6 +6,24 @@ All notable changes to openajar are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-11-21
+
+### Fixed
+
+- The web app names an agent the way the desktop does: Claude Code, not claude-code 2.1.328. One rule on the
+  node and in the web app (openajar.core.agent_names) reads the grant and the MCP client as the product's name,
+  with the computer as words and the raw values under Technical details.
+- Updating with the install line restarts a running local service, so it runs the new version on the same
+  home and port (`openajar local restart`, launchd or systemd). Before, the old service kept running the old
+  code until it was stopped and started by hand. It says so in one line, and when environments are open, what
+  the restart interrupted: their machines and jobs keep running, but an open browser there opens again on the
+  next browser call, and a recording, a tool call in flight or an unused upload or download link ends.
+- A stopped machine's page no longer shows the Network level (Full, Limited, None), which did nothing there:
+  one line says what it was.
+- The browser fingerprint probe gives `navigator.mediaDevices.enumerateDevices()` 20 seconds instead of 8. On a
+  computer with no sound server (a CI runner image) its first look at the audio devices waited past 8 seconds
+  and the fingerprint test failed; the values it reads are the same.
+
 ## [0.5.1] - 2026-11-21
 
 An agent's environment whose machine dies is now noticed and replaced, typing on its desktop lands in the

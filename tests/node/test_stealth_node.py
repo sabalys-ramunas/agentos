@@ -233,7 +233,7 @@ async def test_a_page_finds_no_automation_trace(rig, target_os, tmp_path):
     try:
         page = await session.page()
         await page.goto(f"http://127.0.0.1:{SITE_PORT}/fingerprint.html")
-        await page.wait_for_selector("#dump[data-state=done]", state="attached", timeout=40_000)
+        await page.wait_for_selector("#dump[data-state=done]", state="attached", timeout=60_000)  # see the probe's mediaDevices
         dump = json.loads(await page.text_content("#dump"))
         if os.environ.get("OPENAJAR_TEST_EVIDENCE"):
             out = Path(os.environ["OPENAJAR_TEST_EVIDENCE"])

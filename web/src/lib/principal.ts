@@ -4,6 +4,7 @@
  * Nothing renders either form raw: every screen goes through `principalName`.
  */
 import type { Principal } from '@/api/types';
+import { agentWhere, productName } from './agent-names';
 import { SITES, siteName } from './sites';
 
 export type PrincipalLike = Principal | string;
@@ -120,11 +121,10 @@ export function principalName(principal: PrincipalLike | null | undefined, optio
   switch (kind) {
     case 'agent': {
       // An agent that acts on the owner's own token is recorded as "owner": it is an agent, never the owner.
-      if (!id || id.toLowerCase() === 'owner') return options.inSentence ? 'an agent' : 'An agent';
-      const { base, host } = agentParts(id);
-      const known = AGENT_IDS[base.toLowerCase()];
-      const name = known ? AGENT_NAMES[known] : capital(tidy(base)) || 'An agent';
-      const where = tidy(host).replaceAll(/\s+/g, ' ');
+      // The name and the computer follow the server's rule (lib/agent-names, openajar.core.agent_names).
+      const name = productName(id);
+      if (!name) return options.inSentence ? 'an agent' : 'An agent';
+      const where = agentWhere(id);
       return where ? `${name} (on ${where})` : name;
     }
     case 'worker':
